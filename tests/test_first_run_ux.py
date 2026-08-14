@@ -15,6 +15,7 @@ SETUP_TEMPLATE = ROOT / "app" / "templates" / "setup.html"
 INDEX_TEMPLATE = ROOT / "app" / "templates" / "index.html"
 SETTINGS_TEMPLATE = ROOT / "app" / "templates" / "settings.html"
 DEMO_BANNER_SCRIPT = ROOT / "app" / "static" / "js" / "demo-banner.js"
+SETUP_SCRIPT = ROOT / "app" / "static" / "js" / "setup.js"
 
 FIRST_RUN_KEYS = {
     "setup_value_title",
@@ -43,6 +44,7 @@ FIRST_RUN_KEYS = {
 
 def test_setup_template_has_value_led_hierarchy_and_recovery_actions():
     template = SETUP_TEMPLATE.read_text(encoding="utf-8")
+    script = SETUP_SCRIPT.read_text(encoding="utf-8")
 
     assert 'class="first-run-card glass"' in template
     assert 'id="start-demo-btn"' in template
@@ -51,11 +53,11 @@ def test_setup_template_has_value_led_hierarchy_and_recovery_actions():
     assert 'id="restore-action"' in template
     assert template.index("setup_demo_start") < template.index("setup_connect_modem")
     assert template.index("setup_connect_modem") < template.index("setup_restore_action")
-    assert "showSetupRecovery" in template
+    assert "showSetupRecovery" in script
     assert "setup_try_demo" in template
-    assert "retry.focus({preventScroll: true})" in template
-    assert "function startFreshSetup()" in template
-    assert "nextStep(1);" in template
+    assert "retry.focus({preventScroll: true})" in script
+    assert "function startFreshSetup()" in script
+    assert "nextStep(1);" in script
 
 
 def test_demo_banner_is_shared_by_dashboard_and_settings():

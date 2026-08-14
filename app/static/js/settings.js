@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════
    DOCSight – Settings JavaScript
-   Extracted from inline + Mobile List→Detail
+   Settings behavior + Mobile List→Detail
    ═══════════════════════════════════════════════ */
 
-/* Globals set by template: T, SECTION_TITLES, serverOffsetMin, serverTz, currentLang, currentTz, savedCooldowns */
+/* Globals validated and installed by settings-bootstrap.js: T, SECTION_TITLES,
+   serverOffsetMin, serverTz, currentLang, currentTz, savedCooldowns */
 
 /* ── Section Controller ── */
 var _currentSection = 'connection';

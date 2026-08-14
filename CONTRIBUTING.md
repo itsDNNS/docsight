@@ -55,9 +55,11 @@ This runs on port **8767** (`http://localhost:8767`) in demo mode. Production us
 
 ```bash
 python -m pytest tests/ -v
+npm ci
+npm test
 ```
 
-The test suite covers analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. All tests must pass before submitting a PR.
+The Python suite covers analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. The zero-dependency JavaScript lane uses Node 22's built-in test runner for browser bootstrap and pure frontend contracts. Run both suites before submitting a PR.
 
 ## Running Locally
 

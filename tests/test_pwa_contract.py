@@ -14,6 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "app" / "static" / "manifest.json"
 SERVICE_WORKER = ROOT / "app" / "static" / "sw.js"
 INDEX_TEMPLATE = ROOT / "app" / "templates" / "index.html"
+DASHBOARD_SCRIPT = ROOT / "app" / "static" / "js" / "dashboard.js"
+SERVICE_WORKER_REGISTRATION_SCRIPT = ROOT / "app" / "static" / "js" / "service-worker-registration.js"
+BROWSER_CONTRACTS_SCRIPT = ROOT / "app" / "static" / "js" / "browser-contracts.js"
 
 
 SW_NODE_HARNESS = r"""
@@ -131,7 +134,7 @@ async function probeFetch(probe) {
   if (input.inspectResponses) {
     result.status = response ? response.status : null;
     result.offlineHeader = response ? response.headers.get('X-DOCSight-Offline-Shell') : null;
-    result.offlineMarked = response ? (await response.text()).includes('__DOCSIGHT_OFFLINE_SHELL__') : false;
+    result.offlineMarked = response ? (await response.text()).includes('name="docsight-offline-shell"') : false;
   }
   return result;
 }
@@ -502,15 +505,22 @@ def test_notification_click_does_not_focus_an_out_of_mount_client():
 
 def test_index_template_exposes_honest_offline_state_and_scoped_pwa_lifecycle():
     template = INDEX_TEMPLATE.read_text(encoding="utf-8")
+    dashboard = DASHBOARD_SCRIPT.read_text(encoding="utf-8")
+    registration = SERVICE_WORKER_REGISTRATION_SCRIPT.read_text(encoding="utf-8")
+    contracts = BROWSER_CONTRACTS_SCRIPT.read_text(encoding="utf-8")
+    service_worker = SERVICE_WORKER.read_text(encoding="utf-8")
 
     assert 'id="offline-status-banner"' in template
-    assert "updateOfflineStatus" in template
-    assert "enable-sw-test" in template
+    assert "updateOfflineStatus" in dashboard
+    assert "enable-sw-test" in contracts
     assert "read-only" in template.lower()
     assert "last-known" in template.lower()
-    assert "__DOCSIGHT_OFFLINE_SHELL__" in template
-    assert "X-DOCSight-Offline-Shell" in template
-    assert "navigator.onLine && window.__DOCSIGHT_OFFLINE_SHELL__ !== true" in template
-    assert "registration.scope === docsightServiceWorkerScope" in template
-    assert "key.indexOf(docsightCacheNamespace) === 0" in template
-    assert "register(docsightUrl('/sw.js'), { scope: docsightUrl('/') })" in template
+    assert "__DOCSIGHT_OFFLINE_SHELL__" in dashboard
+    assert 'meta[name="docsight-offline-shell"][content="true"]' in dashboard
+    assert '<meta name="docsight-offline-shell" content="true">' in service_worker
+    assert "<script>" not in service_worker
+    assert "X-DOCSight-Offline-Shell" in dashboard
+    assert "navigator.onLine && window.__DOCSIGHT_OFFLINE_SHELL__ !== true" in dashboard
+    assert "registration.scope === docsightServiceWorkerScope" in registration
+    assert "key.indexOf(docsightCacheNamespace) === 0" in registration
+    assert "register(docsightUrl('/sw.js'), { scope: docsightUrl('/') })" in registration

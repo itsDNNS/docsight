@@ -71,8 +71,8 @@ function shellCacheKey(url) {
 function markOfflineShell(response) {
   if (!response) return response;
   return response.text().then(function(body) {
-    var marker = '<script>window.__DOCSIGHT_OFFLINE_SHELL__ = true;</script>';
-    var markedBody = body.indexOf('__DOCSIGHT_OFFLINE_SHELL__') === -1
+    var marker = '<meta name="docsight-offline-shell" content="true">';
+    var markedBody = body.indexOf('name="docsight-offline-shell"') === -1
       ? body.replace('</head>', marker + '</head>')
       : body;
     var headers = new Headers(response.headers);

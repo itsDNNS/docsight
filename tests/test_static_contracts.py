@@ -56,6 +56,14 @@ STATIC_URL_FOR_JS_CSS_TAG_RE = re.compile(
 STATIC_URL_FOR_RE = re.compile(
     r"url_for\(\s*['\"]static['\"]\s*,\s*filename\s*=\s*['\"]([^'\"]+)['\"]([^)]*)\)"
 )
+SCRIPT_BLOCK_RE = re.compile(
+    r"<script\b(?P<attributes>[^>]*)>(?P<body>.*?)</script>",
+    re.IGNORECASE | re.DOTALL,
+)
+SCRIPT_ATTRIBUTE_RE = re.compile(
+    r"\b(?P<name>src|type)\s*=\s*(['\"])(?P<value>.*?)\2",
+    re.IGNORECASE,
+)
 MODULE_STATIC_LITERAL_RE = re.compile(
     r"module_static_url\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]([^)]*)\)"
 )
@@ -198,6 +206,55 @@ def test_templates_reference_existing_static_assets() -> None:
                 missing.append(f"{source.relative_to(ROOT)} -> {url}")
 
     assert missing == []
+
+
+def test_templates_have_no_executable_inline_script_bodies_and_new_assets_exist() -> None:
+    """Bootstrap data may be inline JSON, but browser behavior must live in assets."""
+    template_paths = sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
+    offenders = []
+    for path in template_paths:
+        text = path.read_text(encoding="utf-8")
+        for match in SCRIPT_BLOCK_RE.finditer(text):
+            attributes = {
+                item.group("name").lower(): item.group("value").strip().lower()
+                for item in SCRIPT_ATTRIBUTE_RE.finditer(match.group("attributes"))
+            }
+            body = match.group("body").strip()
+            if body and "src" not in attributes and attributes.get("type") != "application/json":
+                lineno = text.count("\n", 0, match.start()) + 1
+                offenders.append(f"{path.relative_to(ROOT)}:{lineno}")
+
+    required_assets = {
+        TEMPLATES / "index.html": [
+            STATIC / "js" / "browser-contracts.js",
+            STATIC / "js" / "dashboard-donuts.js",
+            STATIC / "js" / "dashboard.js",
+            STATIC / "js" / "dashboard-routing.js",
+            STATIC / "js" / "service-worker-registration.js",
+        ],
+        TEMPLATES / "setup.html": [
+            STATIC / "js" / "browser-contracts.js",
+            STATIC / "js" / "setup.js",
+        ],
+        TEMPLATES / "settings.html": [
+            STATIC / "js" / "browser-contracts.js",
+            STATIC / "js" / "settings-bootstrap.js",
+        ],
+        MODULES / "connection_monitor" / "templates" / "connection_monitor_settings.html": [
+            MODULES / "connection_monitor" / "static" / "js" / "connection-monitor-settings.js",
+        ],
+    }
+    missing_or_unreferenced = []
+    for template, assets in required_assets.items():
+        source = template.read_text(encoding="utf-8")
+        for asset in assets:
+            if not asset.is_file() or asset.name not in source:
+                missing_or_unreferenced.append(
+                    f"{template.relative_to(ROOT)} -> {asset.relative_to(ROOT)}"
+                )
+
+    assert offenders == []
+    assert missing_or_unreferenced == []
 
 
 def test_template_static_js_and_css_urls_are_versioned() -> None:

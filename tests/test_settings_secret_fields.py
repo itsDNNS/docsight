@@ -62,11 +62,11 @@ def test_frontend_masks_saved_secret_inputs_without_hardcoded_module_names():
     assert "MODULE_SECRET_FIELDS" in js
     assert "SAVED_MODULE_SECRET_FIELDS" in js
     assert "SAVED_SECRET_FIELDS.indexOf(el.name) !== -1" in js
-    assert "var MODULE_SECRET_FIELDS = {{ module_secret_fields | tojson }};" in template
-    assert (
-        "var SAVED_MODULE_SECRET_FIELDS = {{ saved_module_secret_fields | tojson }};"
-        in template
-    )
+    assert "'moduleSecretFields': module_secret_fields" in template
+    assert "'savedModuleSecretFields': saved_module_secret_fields" in template
+    assert "window.MODULE_SECRET_FIELDS = bootstrap.moduleSecretFields" in (
+        ROOT / "app" / "static" / "js" / "settings-bootstrap.js"
+    ).read_text(encoding="utf-8")
     assert "module_secret_fields=sorted(MODULE_SECRET_KEYS)" in web
     assert "config.get(key) == PASSWORD_MASK" in web
 

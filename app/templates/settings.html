@@ -189,31 +189,24 @@
     </div>
 </div>
 
-<script>
-var T = {{ t|tojson }};
-var SECTION_TITLES = {
-    connection: T.step_modem || 'Connection',
-    general: T.general || 'General',
-    notifications: T.get ? (T.get('notifications') || 'Notifications') : 'Notifications',
-    smart_capture: T.smart_capture || 'Smart Capture',
-    appearance: T.appearance || 'Appearance',
-    security: T.get ? (T.get('security') || 'Security') : 'Security',
-    extensions: T.get ? (T.get('settings_extensions') || 'Extensions') : 'Extensions',
-    about: T.about_project || 'About Project',
-    support: T.support_title || 'Support DOCSight'
-};
+{% set settings_bootstrap_modules = [] %}
 {% for mod in modules if mod.template_paths.get('settings') %}
-SECTION_TITLES['mod-' + '{{ mod.id }}'.replace(/\./g, '_')] = T['{{ mod.menu.label_key }}'] || '{{ mod.name }}';
+{% if settings_bootstrap_modules.append({'id': mod.id, 'labelKey': mod.menu.label_key, 'name': mod.name}) %}{% endif %}
 {% endfor %}
-var serverOffsetMin = {{ server_tz_offset }};
-var serverTz = '{{ server_tz }}';
-var currentLang = '{{ lang }}';
-var currentTz = '{{ config.timezone|default("", true) }}';
-try { var savedCooldowns = JSON.parse({{ config.notify_cooldowns|default("{}")|tojson }}); } catch(e) { var savedCooldowns = {}; }
-var DRIVER_HINTS = {{ driver_hints | tojson }};
-var MODULE_SECRET_FIELDS = {{ module_secret_fields | tojson }};
-var SAVED_MODULE_SECRET_FIELDS = {{ saved_module_secret_fields | tojson }};
-</script>
+<script type="application/json" id="docsight-settings-bootstrap">{{ {
+    'translations': t,
+    'modules': settings_bootstrap_modules,
+    'serverOffsetMin': server_tz_offset,
+    'serverTimezone': server_tz|default('', true),
+    'language': lang,
+    'currentTimezone': config.timezone|default('', true),
+    'notificationCooldowns': config.notify_cooldowns|default('{}', true),
+    'driverHints': driver_hints,
+    'moduleSecretFields': module_secret_fields,
+    'savedModuleSecretFields': saved_module_secret_fields
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings-bootstrap.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>

@@ -201,8 +201,38 @@ def test_login_and_setup_render_prefix_aware_assets_forms_and_navigation(tmp_pat
         for value in _application_root_attributes(setup_html)
     )
     assert 'action="/docsight/api/config"' in setup_html
-    assert 'var SETUP_INDEX_URL = "/docsight/";' in setup_html
-    assert 'var SETUP_LOGIN_URL = "/docsight/login";' in setup_html
+    setup_soup = BeautifulSoup(setup_html, "html.parser")
+    setup_bootstrap = setup_soup.find("script", id="docsight-setup-bootstrap")
+    assert setup_bootstrap is not None
+    assert setup_bootstrap.get("type") == "application/json"
+    setup_payload = json.loads(setup_bootstrap.get_text())
+    assert setup_payload["indexUrl"] == "/docsight/"
+    assert setup_payload["loginUrl"] == "/docsight/login"
+    assert isinstance(setup_payload["translations"], dict)
+    assert isinstance(setup_payload["driverHints"], dict)
+
+
+def test_setup_bootstrap_tojson_keeps_hostile_translation_inert(tmp_path, monkeypatch):
+    marker = '</script><script id="bootstrap-injection">alert(1)</script>'
+    translations = dict(web.get_translations("en"))
+    translations["setup_failed"] = marker
+    monkeypatch.setattr(web, "get_translations", lambda _language: translations)
+
+    current_runtime().config_manager = ConfigManager(str(tmp_path / "setup-safety"))
+    current_runtime().storage = None
+    app.config["TESTING"] = True
+    with app.test_client() as client:
+        response = client.get("/setup")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    soup = BeautifulSoup(html, "html.parser")
+    bootstrap = soup.find("script", id="docsight-setup-bootstrap")
+    assert bootstrap is not None
+    assert bootstrap.get("type") == "application/json"
+    assert soup.find("script", id="bootstrap-injection") is None
+    assert marker not in html
+    assert json.loads(bootstrap.get_text())["translations"]["setup_failed"] == marker
 
 
 def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path):

@@ -15,9 +15,9 @@ HELPER = ROOT / "app/static/js/url-contract.js"
 DEMO_BANNER = ROOT / "app/static/js/demo-banner.js"
 
 EXPECTED_CONTRACT_CALLS = {
-    "app/templates/index.html": 4,
-    "app/templates/setup.html": 6,
-    "app/modules/connection_monitor/templates/connection_monitor_settings.html": 4,
+    "app/static/js/dashboard.js": 1,
+    "app/static/js/service-worker-registration.js": 3,
+    "app/static/js/setup.js": 8,
     "app/static/js/bqm.js": 9,
     "app/static/js/channels.js": 7,
     "app/static/js/correlation.js": 5,
@@ -38,6 +38,7 @@ EXPECTED_CONTRACT_CALLS = {
     "app/modules/evidence/static/main.js": 2,
     "app/modules/connection_monitor/static/js/connection-monitor-card.js": 1,
     "app/modules/connection_monitor/static/js/connection-monitor-detail.js": 13,
+    "app/modules/connection_monitor/static/js/connection-monitor-settings.js": 4,
     "app/modules/modulation/static/main.js": 2,
     "app/modules/smokeping/static/main.js": 2,
 }
@@ -353,8 +354,8 @@ REPRESENTATIVE_SITES = [
         "var url = docsightUrl('/api/comparison?from_a='",
     ),
     (
-        "inline module template",
-        ROOT / "app/modules/connection_monitor/templates/connection_monitor_settings.html",
+        "connection-monitor settings asset",
+        ROOT / "app/modules/connection_monitor/static/js/connection-monitor-settings.js",
         "fetch(docsightUrl('/api/connection-monitor/targets/' + target.id)",
     ),
 ]
@@ -381,7 +382,7 @@ def test_inventoried_files_keep_the_reviewed_contract_sites():
     }
 
     assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 133  # reviewed browser URL contract sites
+    assert sum(actual.values()) == 135  # reviewed browser URL contract sites
 
 
 def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():

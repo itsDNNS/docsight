@@ -57,18 +57,13 @@ class TestSettingsRoute:
             html = response.data.decode("utf-8")
 
             assert response.status_code == 200
-            module_match = re.search(
-                r"var MODULE_SECRET_FIELDS = (\[[^;]*\]);", html
-            )
-            saved_match = re.search(
-                r"var SAVED_MODULE_SECRET_FIELDS = (\[[^;]*\]);", html
-            )
-            assert module_match is not None
-            assert saved_match is not None
-            module_fields = json.loads(module_match.group(1))
-            saved_fields = json.loads(saved_match.group(1))
-            assert key in module_fields
-            assert key in saved_fields
+            soup = BeautifulSoup(html, "html.parser")
+            bootstrap = soup.find("script", id="docsight-settings-bootstrap")
+            assert bootstrap is not None
+            assert bootstrap.get("type") == "application/json"
+            bootstrap_data = json.loads(bootstrap.get_text())
+            assert key in bootstrap_data["moduleSecretFields"]
+            assert key in bootstrap_data["savedModuleSecretFields"]
             assert "runtime-secret-value" not in html
         finally:
             config_module.set_module_secret_registry(previous_keys, previous_owners)
