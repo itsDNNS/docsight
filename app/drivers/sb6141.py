@@ -14,12 +14,18 @@ the same transposed table web UI format.
 from __future__ import annotations
 
 import logging
-import re
-
 import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .formats.html_transposed import (
+    extract_transposed_rows,
+    extract_upstream_modulation,
+    get_row_values,
+    parse_sb6141_downstream,
+    parse_sb6141_upstream,
+)
+from .formats.primitives import hz_to_mhz, parse_number
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.sb6141")
@@ -35,6 +41,8 @@ class SB6141Driver(ModemDriver):
     No authentication required. DOCSIS data is scraped from transposed
     HTML tables where each row is a metric and each column is a channel.
     """
+
+    FORMAT_FAMILIES = ("sb6141_transposed_html",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
@@ -126,158 +134,28 @@ class SB6141Driver(ModemDriver):
         """Standalone modem, no connection info."""
         return {}
 
-    # -- Transposed table parsers --
-
     def _parse_downstream(self, ds_table, cw_table) -> list[RawChannel]:
-        """Parse transposed downstream + codewords tables.
-
-        In the SB6141 tables, each row is a metric and each column is a
-        channel. The first cell of each row is the metric label.
-        """
-        if not ds_table:
-            return []
-
-        ds_rows = self._extract_transposed_rows(ds_table)
-        channel_ids = self._get_row_values(ds_rows, "channel id")
-        frequencies = self._get_row_values(ds_rows, "frequency")
-        snrs = self._get_row_values(ds_rows, "signal to noise")
-        modulations = self._get_row_values(ds_rows, "modulation")
-        powers = self._get_row_values(ds_rows, "power level")
-
-        # Get error counts from codewords table
-        corrected = []
-        uncorrected = []
-        if cw_table:
-            cw_rows = self._extract_transposed_rows(cw_table)
-            corrected = self._get_row_values(cw_rows, "correctable")
-            uncorrected = self._get_row_values(cw_rows, "uncorrectable")
-
-        num_channels = len(channel_ids)
-        result = []
-
-        for i in range(num_channels):
-            try:
-                channel_id = int(channel_ids[i])
-                freq = self._parse_freq_hz(frequencies[i] if i < len(frequencies) else "")
-                snr = self._parse_number(snrs[i] if i < len(snrs) else "")
-                power = self._parse_number(powers[i] if i < len(powers) else "")
-                mod = modulations[i].strip() if i < len(modulations) else ""
-                corr = int(self._parse_number(corrected[i])) if i < len(corrected) else 0
-                uncorr = int(self._parse_number(uncorrected[i])) if i < len(uncorrected) else 0
-
-                result.append({
-                    "channelID": channel_id,
-                    "frequency": freq,
-                    "powerLevel": power,
-                    "mer": snr,
-                    "mse": -snr if snr else None,
-                    "modulation": mod,
-                    "corrErrors": corr,
-                    "nonCorrErrors": uncorr,
-                })
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse SB6141 DS channel %d: %s", i, e)
-
-        return result
+        return parse_sb6141_downstream(ds_table, cw_table).value
 
     def _parse_upstream(self, us_table) -> list[RawChannel]:
-        """Parse transposed upstream table."""
-        if not us_table:
-            return []
-
-        us_rows = self._extract_transposed_rows(us_table)
-        channel_ids = self._get_row_values(us_rows, "channel id")
-        frequencies = self._get_row_values(us_rows, "frequency")
-        powers = self._get_row_values(us_rows, "power level")
-        modulations = self._get_row_values(us_rows, "modulation")
-
-        num_channels = len(channel_ids)
-        result = []
-
-        for i in range(num_channels):
-            try:
-                channel_id = int(channel_ids[i])
-                freq = self._parse_freq_hz(frequencies[i] if i < len(frequencies) else "")
-                power = self._parse_number(powers[i] if i < len(powers) else "")
-
-                # Upstream modulation can have multiple BR-separated entries
-                # like "[3] QPSK\n[3] 64QAM". Take the last (highest) one.
-                raw_mod = modulations[i] if i < len(modulations) else ""
-                mod = self._extract_upstream_modulation(raw_mod)
-
-                result.append({
-                    "channelID": channel_id,
-                    "frequency": freq,
-                    "powerLevel": power,
-                    "modulation": mod,
-                    "multiplex": "SC-QAM",
-                })
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse SB6141 US channel %d: %s", i, e)
-
-        return result
-
-    # -- Table helpers --
+        return parse_sb6141_upstream(us_table).value
 
     @staticmethod
     def _extract_transposed_rows(table) -> list[tuple[str, list[str]]]:
-        """Extract rows from a transposed table.
-
-        Returns list of (label, [values]) tuples, skipping the header row.
-        TRs may be inside a TBODY element, so we search recursively.
-        """
-        rows = []
-        for tr in table.find_all("tr"):
-            # Skip header rows (contain TH elements)
-            if tr.find("th"):
-                continue
-            cells = tr.find_all("td", recursive=False)
-            if len(cells) < 2:
-                continue
-            label = cells[0].get_text(strip=True)
-            values = [td.get_text(strip=True) for td in cells[1:]]
-            rows.append((label, values))
-        return rows
+        return extract_transposed_rows(table)
 
     @staticmethod
     def _get_row_values(rows: list[tuple[str, list[str]]], keyword: str) -> list[str]:
-        """Find a row by keyword in the label and return its values."""
-        keyword = keyword.lower()
-        for label, values in rows:
-            if keyword in label.lower():
-                return values
-        return []
+        return get_row_values(rows, keyword)
 
     @staticmethod
     def _extract_upstream_modulation(raw: str) -> str:
-        """Extract modulation from upstream field.
-
-        Input may be "[3] QPSK [3] 64QAM" (BR tags become spaces).
-        Returns the last/highest modulation without the bracket prefix.
-        """
-        if not raw:
-            return ""
-        # Split on common separators and find modulation entries
-        parts = re.split(r'[\n\r]+', raw.strip())
-        last_mod = ""
-        for part in parts:
-            part = part.strip()
-            if not part:
-                continue
-            # Remove bracket prefix like "[3] "
-            cleaned = re.sub(r'^\[\d+\]\s*', '', part)
-            if cleaned:
-                last_mod = cleaned
-        return last_mod
-
-    # -- Value parsers (delegated to shared utils) --
+        return extract_upstream_modulation(raw)
 
     @staticmethod
     def _parse_freq_hz(freq_str: str) -> str:
-        from .utils import hz_to_mhz
         return hz_to_mhz(freq_str)
 
     @staticmethod
     def _parse_number(val_str: str) -> float:
-        from .utils import parse_number
         return parse_number(val_str)

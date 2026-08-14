@@ -34,6 +34,12 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from .base import ModemDriver
+from .formats.primitives import hz_to_mhz
+from .formats.surfboard import (
+    normalize_surfboard_modulation,
+    parse_surfboard_downstream,
+    parse_surfboard_upstream,
+)
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.surfboard")
@@ -98,6 +104,8 @@ class SurfboardDriver(ModemDriver):
     To avoid this, the driver reuses the existing session across polls and only
     re-authenticates when a request fails or when no session exists yet.
     """
+
+    FORMAT_FAMILIES = ("arris_html", "surfboard_hnap")
 
     def __init__(self, url: str, user: str, password: str):
         url = self._normalize_url(url)
@@ -814,133 +822,18 @@ class SurfboardDriver(ModemDriver):
         assert last_err is not None
         raise last_err
 
-    # -- Channel parsers --
+    # Compatibility parser seams.
 
     def _parse_downstream(self, raw: str) -> tuple[list, list]:
-        """Parse downstream channel string into (docsis30, docsis31) lists."""
-        if not raw:
-            return [], []
-
-        ds30 = []
-        ds31 = []
-
-        for entry in raw.split("|+|"):
-            entry = entry.strip()
-            if not entry:
-                continue
-
-            fields = entry.split("^")
-            # Remove trailing empty from trailing "^"
-            if fields and fields[-1] == "":
-                fields = fields[:-1]
-
-            if len(fields) < _DS_FIELDS:
-                continue
-
-            lock = fields[1].strip()
-            if lock != "Locked":
-                continue
-
-            try:
-                modulation = fields[2].strip()
-                channel_id = int(fields[3])
-                freq_hz = int(fields[4])
-                power = float(fields[5].strip())
-                snr = float(fields[6].strip())
-                corr = int(fields[7])
-                uncorr = int(fields[8])
-
-                if "OFDM" in modulation.upper():
-                    ds31.append({
-                        "channelID": channel_id,
-                        "type": "OFDM",
-                        "frequency": self._hz_to_mhz(freq_hz),
-                        "powerLevel": power,
-                        "mer": snr,
-                        "mse": None,
-                        "corrErrors": corr,
-                        "nonCorrErrors": uncorr,
-                    })
-                else:
-                    ds30.append({
-                        "channelID": channel_id,
-                        "frequency": self._hz_to_mhz(freq_hz),
-                        "powerLevel": power,
-                        "mer": snr,
-                        "mse": -snr,
-                        "modulation": self._normalize_modulation(modulation),
-                        "corrErrors": corr,
-                        "nonCorrErrors": uncorr,
-                    })
-            except (ValueError, IndexError) as e:
-                log.warning("Failed to parse SURFboard DS channel: %s", e)
-
-        return ds30, ds31
+        return parse_surfboard_downstream(raw).value
 
     def _parse_upstream(self, raw: str) -> tuple[list, list]:
-        """Parse upstream channel string into (docsis30, docsis31) lists."""
-        if not raw:
-            return [], []
-
-        us30 = []
-        us31 = []
-
-        for entry in raw.split("|+|"):
-            entry = entry.strip()
-            if not entry:
-                continue
-
-            fields = entry.split("^")
-            if fields and fields[-1] == "":
-                fields = fields[:-1]
-
-            if len(fields) < _US_FIELDS:
-                continue
-
-            lock = fields[1].strip()
-            if lock != "Locked":
-                continue
-
-            try:
-                ch_type = fields[2].strip()
-                channel_id = int(fields[3])
-                freq_hz = int(fields[5])
-                power = float(fields[6].strip())
-
-                if "OFDMA" in ch_type.upper():
-                    us31.append({
-                        "channelID": channel_id,
-                        "type": "OFDMA",
-                        "frequency": self._hz_to_mhz(freq_hz),
-                        "powerLevel": power,
-                        "modulation": "OFDMA",
-                        "multiplex": "",
-                    })
-                else:
-                    us30.append({
-                        "channelID": channel_id,
-                        "frequency": self._hz_to_mhz(freq_hz),
-                        "powerLevel": power,
-                        "modulation": ch_type,
-                        "multiplex": ch_type,
-                    })
-            except (ValueError, IndexError) as e:
-                log.warning("Failed to parse SURFboard US channel: %s", e)
-
-        return us30, us31
-
-    # -- Value helpers --
+        return parse_surfboard_upstream(raw).value
 
     @staticmethod
     def _hz_to_mhz(freq_hz: int) -> str:
-        from .utils import hz_to_mhz
         return hz_to_mhz(freq_hz)
 
     @staticmethod
     def _normalize_modulation(mod: str) -> str:
-        """Normalize modulation string.
-
-        "256QAM" -> "256QAM"
-        "OFDM PLC" -> "OFDM PLC"
-        """
-        return mod.strip() if mod else ""
+        return normalize_surfboard_modulation(mod)

@@ -17,7 +17,8 @@ import re
 import weakref
 from enum import Enum
 from .base import ModemDriver
-from .utils import normalize_modulation
+from .formats.primitives import normalize_modulation
+from .formats.xml_payloads import parse_ch7465_xml
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.ch7465")
@@ -49,6 +50,8 @@ class CH7465Driver(ModemDriver):
     Manages authentication based on cookies for a SID and a session token changing after each request.
     DOCSIS data is fetched via XML API endpoints.
     """
+
+    FORMAT_FAMILIES = ("ch7465_xml",)
 
     def __init__(
         self,
@@ -141,62 +144,13 @@ class CH7465Driver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Query DOCSIS channel data."""
-        result = {
-            "docsis": "3.0",
-            "downstream": [],
-            "upstream": [],
-        }
-
-        # Downstream channels
-        xml = self._get_data(Query.DOWNSTREAM_TABLE)
-        root = ET.fromstring(xml)
-        for channel in root.findall("downstream"):
-            # Map to FritzBox-compatible format for analyzer
-            item = {
-                "channelID": int(channel.find("chid").text),
-                "frequency": _node_text(channel.find("freq")),
-                "powerLevel": float(_node_text(channel.find("pow"), "0")),
-            }
-            mer = _node_text(channel.find("RxMER"))
-            modulation = self._normalize_modulation(_node_text(channel.find("mod")))
-            pre_rs = _node_text(channel.find("PreRs"))
-            post_rs = _node_text(channel.find("PostRs"))
-            if mer:
-                item["mer"] = float(mer)
-                item["mse"] = -float(mer)
-            if modulation:
-                item["modulation"] = modulation
-            if pre_rs:
-                item["corrErrors"] = int(pre_rs)
-            if post_rs:
-                item["nonCorrErrors"] = int(post_rs)
-            result["downstream"].append(item)
-
-        # Upstream channels
-        xml = self._get_data(Query.UPSTREAM_TABLE)
-        root = ET.fromstring(xml)
-        for channel in root.findall("upstream"):
-            # Map to FritzBox-compatible format for analyzer
-            item = {
-                "channelID": int(channel.find("usid").text),
-                "frequency": _node_text(channel.find("freq")),
-                "powerLevel": float(_node_text(channel.find("power"), "0")),
-            }
-            modulation = self._normalize_modulation(_node_text(channel.find("mod")))
-            messageType = _node_text(channel.find("messageType"))
-            multiplex = {
-                "2": "tdma", # "1.0"
-                "29": "atdma", # "2.0"
-                "35": "atdma", # "3.0"
-            }.get(messageType, messageType)
-            if modulation:
-                item["modulation"] = modulation
-            if multiplex:
-                item["multiplex"] = multiplex
-            # TODO: estimate "latency" from modulation, "srate", "t1Timeouts", .., "t4Timeouts"
-            result["upstream"].append(item)
-
-        return result
+        parsed = parse_ch7465_xml(
+            self._get_data(Query.DOWNSTREAM_TABLE),
+            self._get_data(Query.UPSTREAM_TABLE),
+        )
+        if parsed.value is None:
+            raise ValueError("invalid CH7465 channel XML")
+        return parsed.value
 
     def get_device_info(self) -> DeviceInfo:
         """Try to get CH7465 model info."""
@@ -319,9 +273,4 @@ class CH7465Driver(ModemDriver):
 
     @staticmethod
     def _normalize_modulation(modulation: str) -> str:
-        """Normalize modulation string to analyzer format.
-
-        Input: "256qam", "64qam", "qpsk", ..
-        Output: "256QAM", "64QAM", "QPSK", ..
-        """
         return normalize_modulation(modulation)

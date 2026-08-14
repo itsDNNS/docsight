@@ -21,13 +21,23 @@ import requests
 
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 from .base import ModemDriver
-from .utils import hz_to_mhz, make_legacy_tls_adapter, normalize_modulation, parse_optional_finite_float
+from .formats.hitron import (
+    parse_coda4680_ds_ofdm,
+    parse_coda4680_ds_scqam,
+    parse_coda4680_us_ofdma,
+    parse_coda4680_us_scqam,
+    parse_hitron_coda4680_json,
+    parse_hitron_ofdma_power,
+)
+from .utils import make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.hitron_coda_4680")
 
 
 class HitronCoda4680Driver(ModemDriver):
     """Driver for authenticated Hitron CODA-4680 modem/router UIs."""
+
+    FORMAT_FAMILIES = ("hitron_coda4680_json",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url.rstrip("/"), user, password)
@@ -75,16 +85,12 @@ class HitronCoda4680Driver(ModemDriver):
         ds_ofdm = self._fetch_payload("/1/Device/CM/DsOfdm")
         us_ofdma = self._fetch_payload("/1/Device/CM/UsOfdm")
 
-        return {
-            "channelDs": {
-                "docsis30": self._parse_ds_scqam(ds_info.get("Freq_List", [])),
-                "docsis31": self._parse_ds_ofdm(ds_ofdm.get("OFDMs_List", [])),
-            },
-            "channelUs": {
-                "docsis30": self._parse_us_scqam(us_info.get("Freq_List", [])),
-                "docsis31": self._parse_us_ofdma(us_ofdma.get("OFDMAs_List", [])),
-            },
-        }
+        return parse_hitron_coda4680_json({
+            "downstream": ds_info,
+            "upstream": us_info,
+            "downstream_ofdm": ds_ofdm,
+            "upstream_ofdma": us_ofdma,
+        }).value
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve model and firmware from the version endpoint."""
@@ -197,93 +203,20 @@ class HitronCoda4680Driver(ModemDriver):
         }
 
     def _parse_ds_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        channels: list[RawChannel] = []
-        for row in rows:
-            try:
-                snr = float(row["snr"])
-                channels.append({
-                    "channelID": int(row["channelId"]),
-                    "frequency": hz_to_mhz(row["frequency"]),
-                    "powerLevel": float(row["signalStrength"]),
-                    "modulation": normalize_modulation(row.get("modulation", "")),
-                    "mer": snr,
-                    "mse": -snr,
-                    "corrErrors": int(row["correcteds"]),
-                    "nonCorrErrors": int(row["uncorrect"]),
-                })
-            except (KeyError, TypeError, ValueError) as exc:
-                log.warning("Failed to parse Hitron CODA-4680 DS row: %s", exc)
-        return channels
+        return parse_coda4680_ds_scqam(rows).value
 
     def _parse_us_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        channels: list[RawChannel] = []
-        for row in rows:
-            try:
-                modulation = normalize_modulation(row.get("modulationType") or row.get("modtype") or "")
-                channel: RawChannel = {
-                    "channelID": int(row["channelId"]),
-                    "frequency": hz_to_mhz(row["frequency"]),
-                    "powerLevel": float(row["signalStrength"]),
-                    "modulation": modulation,
-                    # CODA-4680 does not expose scdmaMode in the captured API;
-                    # ATDMA is the SC-QAM upstream lane DOCSight should score.
-                    "multiplex": "ATDMA",
-                }
-                symbol_rate = row.get("symbolrate")
-                if symbol_rate is not None:
-                    channel["symbolRate"] = int(symbol_rate)
-                channels.append(channel)
-            except (KeyError, TypeError, ValueError) as exc:
-                log.warning("Failed to parse Hitron CODA-4680 US row: %s", exc)
-        return channels
+        return parse_coda4680_us_scqam(rows).value
 
     def _parse_ds_ofdm(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        channels: list[RawChannel] = []
-        for row in rows:
-            try:
-                if str(row.get("plclock", "")).strip().upper() != "YES":
-                    continue
-                channels.append({
-                    "channelID": int(row["receive"]),
-                    "type": "OFDM",
-                    "frequency": hz_to_mhz(row.get("Subcarr0freqFreq", "")),
-                    "powerLevel": float(row["plcpower"]),
-                    "modulation": "OFDM",
-                    "mer": None,
-                    "mse": None,
-                    "corrErrors": None,
-                    "nonCorrErrors": None,
-                })
-            except (KeyError, TypeError, ValueError) as exc:
-                log.warning("Failed to parse Hitron CODA-4680 DS OFDM row: %s", exc)
-        return channels
+        return parse_coda4680_ds_ofdm(rows).value
 
     def _parse_us_ofdma(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        channels: list[RawChannel] = []
-        for row in rows:
-            try:
-                if str(row.get("state", "")).strip().upper() != "OPERATE":
-                    continue
-                channels.append({
-                    "channelID": int(row["uschindex"]),
-                    "type": "OFDMA",
-                    # The captured CODA-4680 OFDMA API does not expose center
-                    # frequency. Preserve unsupported as blank instead of 0 MHz.
-                    "frequency": "",
-                    "powerLevel": self._ofdma_power_1_6(row),
-                    "modulation": "OFDMA",
-                    "multiplex": "OFDMA",
-                })
-            except (KeyError, TypeError, ValueError) as exc:
-                log.warning("Failed to parse Hitron CODA-4680 US OFDMA row: %s", exc)
-        return channels
+        return parse_coda4680_us_ofdma(rows).value
 
     @staticmethod
     def _ofdma_power_1_6(row: dict[str, Any]) -> float | None:
-        if "repPower1_6" not in row:
-            log.warning("Hitron CODA-4680 OFDMA row missing repPower1_6; leaving power unsupported")
-            return None
-        return parse_optional_finite_float(row.get("repPower1_6"))
+        return parse_hitron_ofdma_power(row)
 
     @staticmethod
     def _parse_rate_kbps(value: Any) -> int:

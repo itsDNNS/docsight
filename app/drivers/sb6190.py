@@ -17,6 +17,8 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .formats.html_rows import parse_sb6190_downstream, parse_sb6190_upstream
+from .formats.primitives import normalize_mhz, parse_number
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.sb6190")
@@ -29,6 +31,8 @@ class SB6190Driver(ModemDriver):
     Base64-encoded credentials to /cgi-bin/adv_pwd_cgi. Channel data
     is scraped from /cgi-bin/status where each table row is one channel.
     """
+
+    FORMAT_FAMILIES = ("sb6190_html",)
 
     def __init__(self, url, user, password):
         if url.startswith("http://"):
@@ -124,69 +128,19 @@ class SB6190Driver(ModemDriver):
     # -- Parsers --
 
     def _parse_downstream(self, table) -> list[RawChannel]:
-        """Parse downstream table: each row = one channel.
-
-        Columns: Channel | Lock Status | Modulation | Channel ID |
-                 Frequency | Power | SNR | Corrected | Uncorrectables
-        """
-        if not table:
-            return []
-        result = []
-        for tr in table.find_all("tr"):
-            cells = [td.get_text(strip=True) for td in tr.find_all("td")]
-            if len(cells) < 9 or not cells[3].isdigit() or cells[1].strip().lower() != "locked":
-                continue
-            try:
-                snr = self._parse_number(cells[6])
-                result.append({
-                    "channelID": int(cells[3]),
-                    "frequency": self._normalize_mhz(cells[4]),
-                    "powerLevel": self._parse_number(cells[5]),
-                    "mer": snr,
-                    "mse": -snr if snr else None,
-                    "modulation": cells[2],
-                    "corrErrors": int(self._parse_number(cells[7])),
-                    "nonCorrErrors": int(self._parse_number(cells[8])),
-                })
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse SB6190 DS channel: %s", e)
-        return result
+        return parse_sb6190_downstream(table).value
 
     def _parse_upstream(self, table) -> list[RawChannel]:
-        """Parse upstream table: each row = one channel.
-
-        Columns: Channel | Lock Status | US Channel Type | Channel ID |
-                 Symbol Rate | Frequency | Power
-        """
-        if not table:
-            return []
-        result = []
-        for tr in table.find_all("tr"):
-            cells = [td.get_text(strip=True) for td in tr.find_all("td")]
-            if len(cells) < 7 or not cells[3].isdigit() or cells[1].strip().lower() != "locked":
-                continue
-            try:
-                result.append({
-                    "channelID": int(cells[3]),
-                    "frequency": self._normalize_mhz(cells[5]),
-                    "powerLevel": self._parse_number(cells[6]),
-                    "modulation": cells[2],
-                    "multiplex": cells[2],
-                })
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse SB6190 US channel: %s", e)
-        return result
+        return parse_sb6190_upstream(table).value
 
     # -- Value helpers --
 
     @staticmethod
     def _normalize_mhz(freq_str: str) -> str:
-        from .utils import normalize_mhz
         return normalize_mhz(freq_str)
 
     @staticmethod
     def _parse_number(val_str: str) -> float:
-        from .utils import parse_number
         return parse_number(val_str)
 
     @staticmethod

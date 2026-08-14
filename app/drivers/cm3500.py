@@ -22,6 +22,16 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .formats.html_rows import (
+    find_cm3500_sections,
+    format_cm3500_frequency,
+    parse_cm3500_ds_ofdm,
+    parse_cm3500_ds_qam,
+    parse_cm3500_html,
+    parse_cm3500_us_ofdm,
+    parse_cm3500_us_qam,
+)
+from .formats.primitives import parse_number
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.cm3500")
@@ -33,6 +43,8 @@ class CM3500Driver(ModemDriver):
     Authentication uses form POST (IP-based session, no cookies).
     DOCSIS data is scraped from HTML tables.
     """
+
+    FORMAT_FAMILIES = ("cm3500_html",)
 
     def __init__(self, url: str, user: str, password: str):
         # CM3500B requires HTTPS; upgrade silently if user provided HTTP
@@ -76,27 +88,7 @@ class CM3500Driver(ModemDriver):
         Returns pre-split format so the analyzer correctly labels
         QAM channels as DOCSIS 3.0 and OFDM/OFDMA channels as 3.1.
         """
-        soup = self._fetch_status_page()
-        sections = self._find_table_sections(soup)
-
-        ds30 = []
-        ds31 = []
-        if "downstream qam" in sections:
-            ds30.extend(self._parse_ds_qam(sections["downstream qam"]))
-        if "downstream ofdm" in sections:
-            ds31.extend(self._parse_ds_ofdm(sections["downstream ofdm"]))
-
-        us30 = []
-        us31 = []
-        if "upstream qam" in sections:
-            us30.extend(self._parse_us_qam(sections["upstream qam"]))
-        if "upstream ofdm" in sections:
-            us31.extend(self._parse_us_ofdm(sections["upstream ofdm"]))
-
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        return parse_cm3500_html(self._fetch_status_page()).value
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from status page."""
@@ -207,180 +199,30 @@ class CM3500Driver(ModemDriver):
         return BeautifulSoup(r.text, "html.parser")
 
     def _find_table_sections(self, soup) -> dict[str, object]:
-        """Map <h4> heading text to the following <table> element."""
-        sections = {}
-        for h4 in soup.find_all("h4"):
-            heading = h4.get_text(strip=True).lower()
-            table = h4.find_next_sibling("table")
-            if table:
-                sections[heading] = table
-        return sections
+        return find_cm3500_sections(soup)
 
     # -- Downstream parsers --
 
     def _parse_ds_qam(self, table) -> list[RawChannel]:
-        """Parse Downstream QAM table.
-
-        Columns: (label), DCID, Freq, Power, SNR, Modulation, Octets,
-                 Correcteds, Uncorrectables
-        """
-        rows = table.find_all("tr")
-        if len(rows) < 2:
-            return []
-
-        result = []
-        for row in rows[1:]:
-            cells = [td.get_text(strip=True) for td in row.find_all("td")]
-            if len(cells) < 9:
-                continue
-            try:
-                result.append({
-                    "channelID": int(self._parse_number(cells[1])),
-                    "frequency": self._format_freq(cells[2]),
-                    "powerLevel": self._parse_number(cells[3]),
-                    "mse": -self._parse_number(cells[4]) if cells[4] else None,
-                    "mer": self._parse_number(cells[4]) if cells[4] else None,
-                    "modulation": cells[5],
-                    "corrErrors": int(self._parse_number(cells[7])),
-                    "nonCorrErrors": int(self._parse_number(cells[8])),
-                })
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse CM3500 DS QAM row: %s", e)
-        return result
+        return parse_cm3500_ds_qam(table).value
 
     def _parse_ds_ofdm(self, table) -> list[RawChannel]:
-        """Parse Downstream OFDM table.
-
-        Columns: (label), FFT Type, Channel Width(MHz), # Active Subcarriers,
-                 First Active Subcarrier(MHz), Last Active Subcarrier(MHz),
-                 Average RxMER: Pilot, PLC, Data
-        """
-        rows = table.find("tbody")
-        if not rows:
-            return []
-        data_rows = rows.find_all("tr")
-        if not data_rows:
-            return []
-
-        result = []
-        chan_id = 200
-        for row in data_rows:
-            cells = [td.get_text(strip=True) for td in row.find_all("td")]
-            if len(cells) < 8:
-                continue
-            label = cells[0].lower()
-            if "downstream" not in label:
-                continue
-            try:
-                first_freq = self._parse_number(cells[4])
-                last_freq = self._parse_number(cells[5])
-                mer_data = self._parse_number(cells[8]) if len(cells) > 8 else self._parse_number(cells[7])
-
-                result.append({
-                    "channelID": chan_id,
-                    "type": "OFDM",
-                    "frequency": f"{int(first_freq)}-{int(last_freq)} MHz",
-                    "powerLevel": None,
-                    "mer": mer_data,
-                    "mse": None,
-                    "corrErrors": None,
-                    "nonCorrErrors": None,
-                })
-                chan_id += 1
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse CM3500 DS OFDM row: %s", e)
-        return result
+        return parse_cm3500_ds_ofdm(table).value
 
     # -- Upstream parsers --
 
     def _parse_us_qam(self, table) -> list[RawChannel]:
-        """Parse Upstream QAM table.
-
-        Columns: (label), UCID, Freq, Power, Channel Type, Symbol Rate, Modulation
-        """
-        rows = table.find_all("tr")
-        if len(rows) < 2:
-            return []
-
-        result = []
-        for row in rows[1:]:
-            cells = [td.get_text(strip=True) for td in row.find_all("td")]
-            if len(cells) < 7:
-                continue
-            try:
-                channel_type = cells[4]
-                multiplex = ""
-                if "ATDMA" in channel_type.upper():
-                    multiplex = "ATDMA"
-                elif "TDMA" in channel_type.upper():
-                    multiplex = "TDMA"
-
-                result.append({
-                    "channelID": int(self._parse_number(cells[1])),
-                    "frequency": self._format_freq(cells[2]),
-                    "powerLevel": self._parse_number(cells[3]),
-                    "modulation": cells[6],
-                    "multiplex": multiplex,
-                })
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse CM3500 US QAM row: %s", e)
-        return result
+        return parse_cm3500_us_qam(table).value
 
     def _parse_us_ofdm(self, table) -> list[RawChannel]:
-        """Parse Upstream OFDM table.
-
-        Columns: (label), FFT Type, Channel Width(MHz), # Active Subcarriers,
-                 First Active Subcarrier, Last Active Subcarrier,
-                 Lower Frequency(MHz), Upper Frequency(MHz),
-                 Tx Power(dBmV)
-        """
-        rows = table.find("tbody")
-        if not rows:
-            return []
-        data_rows = rows.find_all("tr")
-
-        result = []
-        chan_id = 200
-        for row in data_rows:
-            cells = [td.get_text(strip=True) for td in row.find_all("td")]
-            if len(cells) < 9:
-                continue
-            label = cells[0].lower()
-            if "upstream" not in label:
-                continue
-            try:
-                first_freq = self._parse_number(cells[6])
-                last_freq = self._parse_number(cells[7])
-                power = self._parse_number(cells[8])
-
-                result.append({
-                    "channelID": chan_id,
-                    "type": "OFDMA",
-                    "frequency": f"{int(first_freq)}-{int(last_freq)} MHz",
-                    "powerLevel": power,
-                    "modulation": "OFDMA",
-                    "multiplex": "",
-                })
-                chan_id += 1
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse CM3500 US OFDM row: %s", e)
-        return result
+        return parse_cm3500_us_ofdm(table).value
 
     # -- Value parsers --
 
     @staticmethod
     def _parse_number(value: str) -> float:
-        from .utils import parse_number
         return parse_number(value)
 
     @staticmethod
     def _format_freq(freq_str: str) -> str:
-        """Normalize frequency string to 'NNN MHz' format (always integer)."""
-        if not freq_str:
-            return ""
-        parts = freq_str.strip().split()
-        try:
-            mhz = float(parts[0])
-            return f"{int(mhz)} MHz"
-        except (ValueError, IndexError):
-            return freq_str
+        return format_cm3500_frequency(freq_str)

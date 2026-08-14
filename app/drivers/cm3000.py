@@ -24,6 +24,16 @@ from urllib.parse import urljoin
 import requests
 
 from .base import ModemDriver
+from .formats.javascript import (
+    extract_cm3000_tag_value_list,
+    normalize_cm3000_modulation,
+    parse_cm3000_ds_ofdm,
+    parse_cm3000_ds_qam,
+    parse_cm3000_us_atdma,
+    parse_cm3000_us_ofdma,
+    split_cm3000_channels,
+)
+from .formats.primitives import hz_to_mhz, parse_number
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.cm3000")
@@ -69,6 +79,8 @@ class CM3000Driver(ModemDriver):
     fallback on newer firmware variants.
     DOCSIS data is extracted from JavaScript variables on /DocsisStatus.htm.
     """
+
+    FORMAT_FAMILIES = ("cm3000_javascript",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
@@ -353,238 +365,48 @@ class CM3000Driver(ModemDriver):
             diag["has_channel_data"],
         )
 
-    # -- Channel parsers --
+    # Compatibility parser seams; each delegates to the pure profile.
 
     def _parse_ds_qam(self, html: str) -> list[RawChannel]:
-        """Parse downstream SC-QAM channels from InitDsTableTagValue().
-
-        Per channel (9 fields):
-        num | lock | modulation | channelID | frequency | power | snr | corrErrors | uncorrErrors
-        """
-        raw = self._extract_tag_value_list(html, "InitDsTableTagValue")
-        if not raw:
-            return []
-
-        channels = self._split_channels(raw, _DS_QAM_FIELDS)
-        result = []
-        for ch in channels:
-            if ch[1] != "Locked":
-                continue
-            try:
-                result.append({
-                    "channelID": int(ch[3]),
-                    "frequency": self._hz_to_mhz(ch[4]),
-                    "powerLevel": float(ch[5]),
-                    "mer": float(ch[6]),
-                    "mse": -float(ch[6]),
-                    "modulation": self._normalize_modulation(ch[2]),
-                    "corrErrors": int(ch[7]),
-                    "nonCorrErrors": int(ch[8]),
-                })
-            except (ValueError, IndexError) as e:
-                log.warning("Failed to parse CM3000 DS QAM channel: %s", e)
-        return result
+        return parse_cm3000_ds_qam(html).value
 
     def _parse_us_atdma(self, html: str) -> list[RawChannel]:
-        """Parse upstream ATDMA channels from InitUsTableTagValue().
-
-        Per channel (7 fields):
-        num | lock | type | channelID | symbolRate | frequency | power
-        """
-        raw = self._extract_tag_value_list(html, "InitUsTableTagValue")
-        if not raw:
-            return []
-
-        channels = self._split_channels(raw, _US_ATDMA_FIELDS)
-        result = []
-        for ch in channels:
-            if ch[1] != "Locked":
-                continue
-            try:
-                result.append({
-                    "channelID": int(ch[3]),
-                    "frequency": self._hz_to_mhz(ch[5]),
-                    "powerLevel": self._parse_number(ch[6]),
-                    "modulation": self._normalize_modulation(ch[2]),
-                    "multiplex": ch[2].upper() if ch[2] else "",
-                })
-            except (ValueError, IndexError) as e:
-                log.warning("Failed to parse CM3000 US ATDMA channel: %s", e)
-        return result
+        return parse_cm3000_us_atdma(html).value
 
     def _parse_ds_ofdm(self, html: str) -> list[RawChannel]:
-        """Parse downstream OFDM channels from InitDsOfdmTableTagValue().
-
-        Per channel (11 fields):
-        num | lock | profiles | channelID | frequency | power | snr | subcarriers | corrErrors | uncorrErrors | unknown
-        """
-        raw = self._extract_tag_value_list(html, "InitDsOfdmTableTagValue")
-        if not raw:
-            return []
-
-        channels = self._split_channels(raw, _DS_OFDM_FIELDS)
-        result = []
-        for ch in channels:
-            if ch[1] != "Locked":
-                continue
-            try:
-                result.append({
-                    "channelID": int(ch[3]),
-                    "type": "OFDM",
-                    "frequency": self._hz_to_mhz(ch[4]),
-                    "powerLevel": self._parse_number(ch[5]),
-                    "mer": self._parse_number(ch[6]),
-                    "mse": None,
-                    "corrErrors": int(ch[8]),
-                    "nonCorrErrors": int(ch[9]),
-                })
-            except (ValueError, IndexError) as e:
-                log.warning("Failed to parse CM3000 DS OFDM channel: %s", e)
-        return result
+        return parse_cm3000_ds_ofdm(html).value
 
     def _parse_us_ofdma(self, html: str) -> list[RawChannel]:
-        """Parse upstream OFDMA channels from InitUsOfdmaTableTagValue().
-
-        Per channel (6 fields):
-        num | lock | profiles | channelID | frequency | power
-        """
-        raw = self._extract_tag_value_list(html, "InitUsOfdmaTableTagValue")
-        if not raw:
-            return []
-
-        channels = self._split_channels(raw, _US_OFDMA_FIELDS)
-        result = []
-        for ch in channels:
-            if ch[1] != "Locked":
-                continue
-            try:
-                result.append({
-                    "channelID": int(ch[3]),
-                    "type": "OFDMA",
-                    "frequency": self._hz_to_mhz(ch[4]),
-                    "powerLevel": self._parse_number(ch[5]),
-                    "modulation": "OFDMA",
-                    "multiplex": "",
-                })
-            except (ValueError, IndexError) as e:
-                log.warning("Failed to parse CM3000 US OFDMA channel: %s", e)
-        return result
-
-    # -- Value parsers --
+        return parse_cm3000_us_ofdma(html).value
 
     @staticmethod
     def _extract_tag_value_list(html: str, function_name: str) -> str | None:
-        """Extract the live tagValueList payload from a firmware JS function.
-
-        CM3000 firmware variants use different quoting styles and may build
-        the string across multiple concatenated literals. We extract the full
-        function body, remove block comments, and then join the string
-        literals from the live tagValueList assignment.
-        """
-        body = CM3000Driver._extract_function_body(html, function_name)
-        if not body:
-            return None
-
-        body = _RE_BLOCK_COMMENT.sub("", body)
-        assign_idx = body.find("var tagValueList")
-        if assign_idx == -1:
-            return None
-
-        assign_expr = body[assign_idx:]
-        assign_expr = assign_expr.split("=", 1)
-        if len(assign_expr) != 2:
-            return None
-
-        assign_expr = assign_expr[1]
-        return_idx = assign_expr.find("return tagValueList.split")
-        if return_idx != -1:
-            assign_expr = assign_expr[:return_idx]
-        assign_expr = assign_expr.strip().rstrip(";").strip()
-
-        singles = _RE_SINGLE_QUOTED.findall(assign_expr)
-        doubles = _RE_DOUBLE_QUOTED.findall(assign_expr)
-        literals = singles + doubles
-        if not literals:
-            return None
-
-        return "".join(bytes(value, "utf-8").decode("unicode_escape") for value in literals)
-
-    @staticmethod
-    def _extract_function_body(html: str, function_name: str) -> str | None:
-        """Return the body text for a named JavaScript function."""
-        for match in _RE_FUNCTION_START.finditer(html):
-            if match.group("name") != function_name:
-                continue
-
-            body_start = match.end()
-            depth = 1
-            idx = body_start
-            while idx < len(html) and depth > 0:
-                char = html[idx]
-                if char == "{":
-                    depth += 1
-                elif char == "}":
-                    depth -= 1
-                idx += 1
-
-            if depth == 0:
-                return html[body_start : idx - 1]
-            return None
-        return None
+        return extract_cm3000_tag_value_list(html, function_name)
 
     @staticmethod
     def _split_channels(raw: str, fields_per_channel: int) -> list[list[str]]:
-        """Split a pipe-delimited tagValueList into per-channel field lists.
-
-        The first value is the channel count, followed by repeating groups
-        of ``fields_per_channel`` fields.
-        """
-        parts = raw.split("|")
-        # First element is the count -- skip it
-        data = parts[1:]
-        # Remove trailing empty element from trailing pipe
-        if data and data[-1] == "":
-            data = data[:-1]
-
-        channels = []
-        for i in range(0, len(data), fields_per_channel):
-            chunk = data[i : i + fields_per_channel]
-            if len(chunk) == fields_per_channel:
-                channels.append(chunk)
-        return channels
+        return split_cm3000_channels(raw, fields_per_channel)
 
     @staticmethod
     def _hz_to_mhz(freq_str: str) -> str:
-        from .utils import hz_to_mhz
         return hz_to_mhz(freq_str)
 
     @staticmethod
     def _parse_number(value: str) -> float:
-        from .utils import parse_number
         return parse_number(value)
 
     @staticmethod
     def _normalize_modulation(mod: str) -> str:
-        """Normalize modulation string.
-
-        'QAM256' -> 'QAM256'
-        'ATDMA' -> 'ATDMA'
-        We preserve the original format since the CM3500 driver does the same.
-        """
-        return mod.strip() if mod else ""
+        return normalize_cm3000_modulation(mod)
 
     @staticmethod
     def _parse_uptime(uptime_str: str) -> int | None:
-        """Parse uptime string to seconds.
-
-        '23 days 09:26:24' -> 2020784
-        """
-        m = re.match(r"(\d+)\s+days?\s+(\d+):(\d+):(\d+)", uptime_str.strip())
-        if m:
-            return (
-                int(m.group(1)) * 86400
-                + int(m.group(2)) * 3600
-                + int(m.group(3)) * 60
-                + int(m.group(4))
-            )
-        return None
+        match = re.match(r"(\d+)\s+days?\s+(\d+):(\d+):(\d+)", uptime_str.strip())
+        if not match:
+            return None
+        return (
+            int(match.group(1)) * 86400
+            + int(match.group(2)) * 3600
+            + int(match.group(3)) * 60
+            + int(match.group(4))
+        )

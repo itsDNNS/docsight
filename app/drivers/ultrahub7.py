@@ -17,6 +17,11 @@ import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 
 from .base import ModemDriver
+from .formats.vodafone import (
+    parse_ultrahub7_downstream,
+    parse_ultrahub7_json,
+    parse_ultrahub7_upstream,
+)
 from .utils import pbkdf2_sha256
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
@@ -29,6 +34,8 @@ class UltraHub7Driver(ModemDriver):
     Authentication uses AES-CCM encryption with PBKDF2-HMAC-SHA256 key derivation.
     DOCSIS data is fetched via clean JSON API endpoints.
     """
+
+    FORMAT_FAMILIES = ("ultrahub7_json",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
@@ -246,14 +253,10 @@ class UltraHub7Driver(ModemDriver):
             us_response.raise_for_status()
             us_data = us_response.json()
 
-            downstream = self._parse_downstream_channels(ds_data.get("channels", []))
-            upstream = self._parse_upstream_channels(us_data.get("channels", []))
-
-            return {
-                "docsis": "3.1",  # Ultra Hub 7 is DOCSIS 3.1
-                "downstream": downstream,
-                "upstream": upstream
-            }
+            return parse_ultrahub7_json({
+                "downstream": ds_data.get("channels", []),
+                "upstream": us_data.get("channels", []),
+            }).value
 
         except requests.RequestException as e:
             log.error("Failed to fetch DOCSIS data: %s", e)
@@ -279,116 +282,7 @@ class UltraHub7Driver(ModemDriver):
         return {}
 
     def _parse_downstream_channels(self, channels: list[dict[str, str]]) -> list[RawChannel]:
-        """Parse downstream channel data from Ultra Hub 7 API format."""
-        result = []
-        
-        for ch in channels:
-            try:
-                channel_id = int(ch.get("ChannelID", "0"))
-                frequency = self._parse_frequency(ch.get("Frequency", "0"))
-                modulation = self._normalize_modulation(ch.get("Modulation", ""))
-                power = self._parse_power(ch.get("PowerLevel", "0"))
-                snr = self._parse_snr(ch.get("SNRLevel", ""))
-
-                # FritzBox-compatible format expected by analyzer
-                result.append({
-                    "channelID": str(channel_id),
-                    "type": modulation,
-                    "frequency": f"{int(frequency)} MHz",
-                    "powerLevel": power,
-                    "mer": snr if snr > 0 else None,  # DOCSIS 3.1 uses MER
-                    "mse": None,  # Not provided
-                    "latency": 0,
-                    "corrErrors": None,  # Not provided by Ultra Hub 7 API
-                    "nonCorrErrors": None  # Not provided by Ultra Hub 7 API
-                })
-
-            except (ValueError, TypeError) as e:
-                log.warning("Failed to parse downstream channel %s: %s", ch, e)
-                continue
-
-        return result
+        return parse_ultrahub7_downstream(channels).value
 
     def _parse_upstream_channels(self, channels: list[dict[str, str]]) -> list[RawChannel]:
-        """Parse upstream channel data from Ultra Hub 7 API format."""
-        result = []
-        
-        for ch in channels:
-            try:
-                channel_id = int(ch.get("ChannelID", "0"))
-                frequency = self._parse_frequency(ch.get("Frequency", "0"))
-                modulation = self._normalize_modulation(ch.get("Modulation", ""))
-                power = self._parse_power(ch.get("PowerLevel", "0"))
-
-                # FritzBox-compatible format expected by analyzer
-                result.append({
-                    "channelID": str(channel_id),
-                    "type": modulation,
-                    "frequency": f"{int(frequency)} MHz",
-                    "powerLevel": power,
-                    "multiplex": ""  # Not relevant for display
-                })
-
-            except (ValueError, TypeError) as e:
-                log.warning("Failed to parse upstream channel %s: %s", ch, e)
-                continue
-
-        return result
-
-    def _parse_frequency(self, freq_str: str) -> float:
-        """Parse frequency string to MHz float.
-        
-        Handles both single and double spaces: "264 MHz" and "51  MHz"
-        """
-        if not freq_str:
-            return 0.0
-        
-        try:
-            parts = freq_str.strip().split()
-            return float(parts[0])
-        except (IndexError, ValueError):
-            log.warning("Failed to parse frequency: %s", freq_str)
-            return 0.0
-
-    def _parse_power(self, power_str: str) -> float:
-        """Parse power string to dBmV float.
-        
-        Format: "15.1 dBmV" → 15.1
-        """
-        if not power_str:
-            return 0.0
-        
-        try:
-            parts = power_str.strip().split()
-            return float(parts[0])
-        except (IndexError, ValueError):
-            log.warning("Failed to parse power: %s", power_str)
-            return 0.0
-
-    def _parse_snr(self, snr_str: str) -> float:
-        """Parse SNR string to dB float.
-        
-        Format: "41.9 dB" → 41.9
-        Empty string → 0.0 (upstream channels don't have SNR)
-        """
-        if not snr_str or snr_str.strip() == "":
-            return 0.0
-        
-        try:
-            # Split on space and take first part
-            parts = snr_str.strip().split()
-            return float(parts[0])
-        except (IndexError, ValueError):
-            log.warning("Failed to parse SNR: %s", snr_str)
-            return 0.0
-
-    def _normalize_modulation(self, modulation: str) -> str:
-        """Normalize modulation string to match analyzer expectations.
-        
-        Ultra Hub 7 API returns: "256QAM", "64QAM", "4096QAM", "OFDM", "OFDMA"
-        Analyzer expects: "256QAM", "64QAM", etc. (uppercase, no hyphens)
-        """
-        if not modulation:
-            return ""
-        
-        return modulation.upper().replace("-", "")
+        return parse_ultrahub7_upstream(channels).value

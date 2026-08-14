@@ -20,8 +20,18 @@ import time
 import requests
 
 from .base import ModemDriver
+from .formats.hitron import (
+    parse_coda56_ds_ofdm,
+    parse_coda56_ds_scqam,
+    parse_coda56_us_ofdma,
+    parse_coda56_us_scqam,
+    parse_hitron_coda56_json,
+    parse_hitron_ofdma_power,
+)
+from .formats.primitives import hz_to_mhz
+from .format_compat import unwrap_hitron
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
-from .utils import make_legacy_tls_adapter, parse_optional_finite_float
+from .utils import make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.hitron")
 
@@ -42,6 +52,8 @@ class HitronDriver(ModemDriver):
     No authentication required.  All data is fetched as JSON arrays from
     ASP endpoints with a cache-buster query parameter.
     """
+
+    FORMAT_FAMILIES = ("hitron_coda56_json",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
@@ -68,15 +80,12 @@ class HitronDriver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from all four endpoints."""
-        ds30 = self._fetch_ds_scqam()
-        us30 = self._fetch_us_scqam()
-        ds31 = self._fetch_ds_ofdm()
-        us31 = self._fetch_us_ofdma()
-
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        return parse_hitron_coda56_json({
+            "downstream": self._fetch_json("/data/dsinfo.asp"),
+            "upstream": self._fetch_json("/data/usinfo.asp"),
+            "downstream_ofdm": self._fetch_json("/data/dsofdminfo.asp"),
+            "upstream_ofdma": self._fetch_json("/data/usofdminfo.asp"),
+        }).value
 
     def get_device_info(self) -> DeviceInfo:
         """Return static device info (model not available via API)."""
@@ -106,93 +115,20 @@ class HitronDriver(ModemDriver):
             return []
 
     def _fetch_ds_scqam(self) -> list[RawChannel]:
-        """Parse downstream SC-QAM channels (DOCSIS 3.0)."""
-        channels = []
-        for ch in self._fetch_json("/data/dsinfo.asp"):
-            try:
-                mod_code = int(ch.get("modulation", -1))
-                modulation = _DS_MODULATION.get(mod_code, f"Unknown({mod_code})")
-                channels.append({
-                    "channelID": int(ch["channelId"]),
-                    "frequency": self._hz_to_mhz(ch["frequency"]),
-                    "powerLevel": float(ch["signalStrength"]),
-                    "modulation": modulation,
-                    "mer": float(ch["snr"]),
-                    "mse": -float(ch["snr"]),
-                    "corrErrors": int(ch["correcteds"]),
-                    "nonCorrErrors": int(ch["uncorrect"]),
-                })
-            except (ValueError, KeyError, TypeError) as e:
-                log.warning("Failed to parse Hitron DS row: %s", e)
-        return channels
+        return parse_coda56_ds_scqam(self._fetch_json("/data/dsinfo.asp")).value
 
     def _fetch_us_scqam(self) -> list[RawChannel]:
-        """Parse upstream SC-QAM channels (DOCSIS 3.0)."""
-        channels = []
-        for ch in self._fetch_json("/data/usinfo.asp"):
-            try:
-                channels.append({
-                    "channelID": int(ch["channelId"]),
-                    "frequency": self._hz_to_mhz(ch["frequency"]),
-                    "powerLevel": float(ch["signalStrength"]),
-                    "modulation": ch.get("modtype", ""),
-                    "multiplex": ch.get("scdmaMode", ""),
-                })
-            except (ValueError, KeyError, TypeError) as e:
-                log.warning("Failed to parse Hitron US row: %s", e)
-        return channels
+        return parse_coda56_us_scqam(self._fetch_json("/data/usinfo.asp")).value
 
     def _fetch_ds_ofdm(self) -> list[RawChannel]:
-        """Parse downstream OFDM channels (DOCSIS 3.1)."""
-        channels = []
-        for ch in self._fetch_json("/data/dsofdminfo.asp"):
-            try:
-                plc_lock = ch.get("plclock", "").strip().upper()
-                if plc_lock != "YES":
-                    continue
-                channels.append({
-                    "channelID": int(ch["receive"]),
-                    "type": "OFDM",
-                    "frequency": self._hz_to_mhz(ch.get("Subcarr0freqFreq", "0")),
-                    "powerLevel": float(ch["plcpower"]),
-                    "modulation": "OFDM",
-                    "mer": float(ch["SNR"]),
-                    "mse": None,
-                    "corrErrors": int(ch["correcteds"]),
-                    "nonCorrErrors": int(ch["uncorrect"]),
-                })
-            except (ValueError, KeyError, TypeError) as e:
-                log.warning("Failed to parse Hitron DS OFDM row: %s", e)
-        return channels
+        return parse_coda56_ds_ofdm(self._fetch_json("/data/dsofdminfo.asp")).value
 
     def _fetch_us_ofdma(self) -> list[RawChannel]:
-        """Parse upstream OFDMA channels (DOCSIS 3.1)."""
-        channels = []
-        for ch in self._fetch_json("/data/usofdminfo.asp"):
-            try:
-                state = ch.get("state", "").strip().upper()
-                if state != "OPERATE":
-                    continue
-                channels.append({
-                    "channelID": int(ch["uschindex"]),
-                    "type": "OFDMA",
-                    "frequency": self._hz_to_mhz(ch.get("frequency", "0")),
-                    "powerLevel": self._ofdma_power_1_6(ch),
-                    "modulation": "OFDMA",
-                    "multiplex": "",
-                })
-            except (ValueError, KeyError, TypeError) as e:
-                log.warning("Failed to parse Hitron US OFDMA row: %s", e)
-        return channels
+        return unwrap_hitron(parse_coda56_us_ofdma(self._fetch_json("/data/usofdminfo.asp")), log)
 
     @staticmethod
     def _ofdma_power_1_6(row: dict[str, str]) -> float | None:
-        if "repPower1_6" not in row:
-            log.warning("Hitron CODA-56 OFDMA row missing repPower1_6; leaving power unsupported")
-            return None
-        return parse_optional_finite_float(row.get("repPower1_6"))
-
-    # -- Helpers --
+        return parse_hitron_ofdma_power(row)
 
     @staticmethod
     def _cache_bust() -> str:
@@ -200,5 +136,4 @@ class HitronDriver(ModemDriver):
 
     @staticmethod
     def _hz_to_mhz(hz_str: str) -> str:
-        from .utils import hz_to_mhz
         return hz_to_mhz(hz_str)

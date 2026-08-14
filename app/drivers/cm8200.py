@@ -48,6 +48,8 @@ class CM8200Driver(ModemDriver):
     hand-crafted Cookie header (malformed Set-Cookie workaround).
     """
 
+    FORMAT_FAMILIES = ("arris_html",)
+
     def __init__(self, url: str, user: str, password: str):
         if url.startswith("http://"):
             url = "https://" + url[len("http://"):]
@@ -226,4 +228,3 @@ class CM8200Driver(ModemDriver):
         self._check_lockout()
         self._credential_auth()
         return BeautifulSoup(self._status_html, "html.parser")
-

@@ -40,10 +40,18 @@ import re
 import requests
 
 from .base import ModemDriver
-from ..docsis_utils import parse_qam_order
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
+from .formats.html_columnar import (
+    _float,
+    _modulation,
+    build_cgm4981_downstream,
+    build_cgm4981_upstream,
+    parse_cgm4981_columnar_html,
+)
 
 log = logging.getLogger("docsis.driver.cgm4981")
+
+__all__ = ["CGM4981Driver", "_float", "_modulation"]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -58,121 +66,6 @@ _MIN_STATUS_PAGE_BYTES = 9_000
 # Cookie name that confirms a valid session.
 _SESSION_COOKIE = "DUKSID"
 
-# HTML markers used to split the page into three sections.
-_MARKER_DS  = ">Downstream<"
-_MARKER_US  = ">Upstream<"
-_MARKER_ERR = "CM Error Codewords"
-
-# Compiled patterns used throughout parsing.
-_RE_TR        = re.compile(r"<tr[^>]*>(.*?)</tr>",               re.DOTALL | re.IGNORECASE)
-_RE_TH        = re.compile(r"<th[^>]*>(.*?)</(?:th|td)>",        re.DOTALL | re.IGNORECASE)
-_RE_NETWIDTH  = re.compile(r'<div[^>]*class="netWidth"[^>]*>(.*?)</div>', re.DOTALL)
-_RE_STRIP     = re.compile(r"<[^>]+>")
-_RE_NUMBER    = re.compile(r"-?\d+\.?\d*")
-
-
-# ---------------------------------------------------------------------------
-# Parsing helpers
-# ---------------------------------------------------------------------------
-
-def _text(html: str) -> str:
-    """Strip HTML tags and return plain text."""
-    return _RE_STRIP.sub("", html).strip()
-
-
-def _float(raw: str) -> float | None:
-    """Return first float found in a string, or None if absent."""
-    m = _RE_NUMBER.search(raw.strip())
-    return float(m.group()) if m else None
-
-
-def _freq_mhz(raw: str) -> str:
-    """Normalise a frequency string to 'NNN MHz'.
-
-    Handles:
-      - '189 MHz'       → '189 MHz'
-      - '300000000'     → '300 MHz'   (raw Hz integer from OFDM row)
-      - '950000000'     → '950 MHz'
-      - '17  MHz'       → '17 MHz'    (extra whitespace)
-    """
-    raw = raw.strip()
-    if re.search(r"[Mm][Hh][Zz]", raw):
-        num = _RE_NUMBER.search(raw)
-        if num:
-            mhz = float(num.group())
-            return f"{int(mhz) if mhz == int(mhz) else mhz} MHz"
-    m = _RE_NUMBER.search(raw)
-    if m:
-        val = float(m.group())
-        if val > 1_000_000:
-            mhz = val / 1_000_000
-            return f"{int(mhz) if mhz == int(mhz) else mhz} MHz"
-        return f"{int(val) if val == int(val) else val} MHz"
-    return raw
-
-
-def _modulation(raw: str) -> str:
-    """Normalise modulation string for DOCSight's analyser.
-
-    Maps common CGM4981 values:
-      '256 QAM' → '256QAM'
-      'OFDM'    → 'OFDM'
-      'OFDMA'   → 'OFDMA'
-      'QAM'     → 'QAM'   (upstream SC-QAM without order)
-    """
-    up = raw.strip().upper()
-    if "OFDMA" in up:
-        return "OFDMA"
-    if "OFDM" in up:
-        return "OFDM"
-    # '256 QAM' → '256QAM', '64 QAM' → '64QAM', etc.
-    qam_order = parse_qam_order(up)
-    if qam_order is not None:
-        return f"{qam_order}QAM"
-    if "QAM" in up:
-        return "QAM"
-    return raw.strip()
-
-
-def _section_rows(html: str) -> dict[str, list[str]]:
-    """Parse all ``<tr>`` rows in an HTML *section* into {label: [values]}.
-
-    Each data row is expected to have:
-      - A ``<th>`` element whose text is the row label.
-      - One or more ``<td>`` cells each containing a
-        ``<div class="netWidth">VALUE</div>`` element.
-
-    Labels are unique within a section (the caller is responsible for
-    passing only one table's HTML, not the whole page).
-    """
-    rows: dict[str, list[str]] = {}
-    for tr_m in _RE_TR.finditer(html):
-        tr = tr_m.group(1)
-        th_m = _RE_TH.search(tr)
-        if not th_m:
-            continue
-        label = _text(th_m.group(1))
-        if not label:
-            continue
-        values = [_text(v) for v in _RE_NETWIDTH.findall(tr)]
-        if values:
-            rows[label] = values
-    return rows
-
-
-def _split_sections(html: str) -> tuple[str, str, str]:
-    """Return (ds_html, us_html, err_html) by finding section markers."""
-    ds_idx  = html.find(_MARKER_DS)
-    us_idx  = html.find(_MARKER_US)
-    err_idx = html.find(_MARKER_ERR)
-
-    ds_html  = html[ds_idx:us_idx]          if ds_idx  >= 0 and us_idx  > ds_idx  else ""
-    us_html  = html[us_idx:err_idx]         if us_idx  >= 0 and err_idx > us_idx  else ""
-    err_html = html[err_idx:]               if err_idx >= 0                        else ""
-
-    return ds_html, us_html, err_html
-
-
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
@@ -185,6 +78,8 @@ class CGM4981Driver(ModemDriver):
     uncorrectable codewords) are read from the separate "CM Error Codewords"
     table on the same page.
     """
+
+    FORMAT_FAMILIES = ("cgm4981_columnar_html",)
 
     def __init__(self, url: str, user: str, password: str) -> None:
         super().__init__(url, user, password)
@@ -217,34 +112,7 @@ class CGM4981Driver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Return parsed downstream and upstream channel data."""
-        html = self._fetch_status_page()
-        ds_html, us_html, err_html = _split_sections(html)
-
-        if not ds_html:
-            log.warning("CGM4981: Downstream section not found in status page")
-        if not us_html:
-            log.warning("CGM4981: Upstream section not found in status page")
-
-        ds_rows  = _section_rows(ds_html)
-        us_rows  = _section_rows(us_html)
-        err_rows = _section_rows(err_html)
-
-        ds_channels = self._build_ds_channels(ds_rows, err_rows)
-        us_channels = self._build_us_channels(us_rows)
-
-        ds30 = [ch for ch in ds_channels if ch.get("modulation") != "OFDM"]
-        ds31 = [ch for ch in ds_channels if ch.get("modulation") == "OFDM"]
-        us30 = [ch for ch in us_channels if ch.get("modulation") != "OFDMA"]
-        us31 = [ch for ch in us_channels if ch.get("modulation") == "OFDMA"]
-
-        log.debug(
-            "CGM4981 parsed: DS SC-QAM=%d OFDM=%d | US SC-QAM=%d OFDMA=%d",
-            len(ds30), len(ds31), len(us30), len(us31),
-        )
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        return parse_cgm4981_columnar_html(self._fetch_status_page()).value
 
     def get_device_info(self) -> DeviceInfo:
         """Return model, firmware version, and uptime from the status page."""
@@ -338,103 +206,8 @@ class CGM4981Driver(ModemDriver):
         ds_rows: dict[str, list[str]],
         err_rows: dict[str, list[str]],
     ) -> list[dict]:
-        """Build downstream channel list from the DS section and error table.
-
-        Error counts from the "CM Error Codewords" table are indexed by
-        channel ID to ensure correct alignment even if row order varies.
-        """
-        ch_ids  = ds_rows.get("Channel ID",  [])
-        locks   = ds_rows.get("Lock Status", [])
-        freqs   = ds_rows.get("Frequency",   [])
-        snrs    = ds_rows.get("SNR",         [])
-        powers  = ds_rows.get("Power Level", [])
-        mods    = ds_rows.get("Modulation",  [])
-
-        if not ch_ids:
-            log.warning("CGM4981: no DS Channel ID row found")
-            return []
-
-        # Build a {channel_id: (corr, uncorr)} map from the error table.
-        err_ch_ids = err_rows.get("Channel ID",              [])
-        err_corr   = err_rows.get("Correctable Codewords",   [])
-        err_uncorr = err_rows.get("Uncorrectable Codewords", [])
-        err_map: dict[str, tuple[int, int]] = {}
-        for i, cid in enumerate(err_ch_ids):
-            corr   = int(err_corr[i])   if i < len(err_corr)   and err_corr[i].lstrip("-").isdigit()   else 0
-            uncorr = int(err_uncorr[i]) if i < len(err_uncorr) and err_uncorr[i].lstrip("-").isdigit() else 0
-            err_map[cid] = (corr, uncorr)
-
-        channels = []
-        for i, cid in enumerate(ch_ids):
-            lock = locks[i] if i < len(locks) else ""
-            if lock.lower() != "locked":
-                continue
-            try:
-                mod  = _modulation(mods[i]  if i < len(mods)   else "")
-                freq = _freq_mhz(freqs[i]   if i < len(freqs)  else "")
-                snr  = _float(snrs[i]       if i < len(snrs)   else "")
-                pwr  = _float(powers[i]     if i < len(powers) else "")
-                corr, uncorr = err_map.get(cid, (0, 0))
-
-                ch: RawChannel = {
-                    "channelID":      int(cid),
-                    "frequency":      freq,
-                    "powerLevel":     pwr,
-                    "mer":            snr,
-                    "mse":            -snr if snr else None,
-                    "modulation":     mod,
-                    "corrErrors":     corr,
-                    "nonCorrErrors":  uncorr,
-                }
-                if mod == "OFDM":
-                    ch["type"] = "OFDM"
-
-                channels.append(ch)
-            except (ValueError, IndexError) as exc:
-                log.warning("CGM4981 DS channel %s parse error: %s", cid, exc)
-
-        return channels
+        return build_cgm4981_downstream(ds_rows, err_rows).value
 
     @staticmethod
     def _build_us_channels(us_rows: dict[str, list[str]]) -> list[dict]:
-        """Build upstream channel list from the US section only."""
-        ch_ids = us_rows.get("Channel ID",  [])
-        locks  = us_rows.get("Lock Status", [])
-        freqs  = us_rows.get("Frequency",   [])
-        powers = us_rows.get("Power Level", [])
-        mods   = us_rows.get("Modulation",  [])
-        types  = us_rows.get("Channel Type",[])
-
-        if not ch_ids:
-            log.warning("CGM4981: no US Channel ID row found")
-            return []
-
-        channels = []
-        for i, cid in enumerate(ch_ids):
-            lock = locks[i] if i < len(locks) else ""
-            if lock.lower() != "locked":
-                continue
-            try:
-                raw_mod = mods[i] if i < len(mods) else ""
-                raw_type = types[i] if i < len(types) else ""
-                mod = _modulation(raw_mod)
-                # OFDMA upstream: modulation field says 'OFDMA' directly.
-                # ATDMA SC-QAM: modulation field says 'QAM' (no order on this device).
-                freq = _freq_mhz(freqs[i]   if i < len(freqs)  else "")
-                pwr  = _float(powers[i]     if i < len(powers) else "")
-
-                ch: RawChannel = {
-                    "channelID":   int(cid),
-                    "frequency":   freq,
-                    "powerLevel":  pwr,
-                    "modulation":  mod,
-                    "multiplex":   raw_type.upper() or mod,
-                }
-                if mod == "OFDMA":
-                    ch["type"] = "OFDMA"
-
-                channels.append(ch)
-            except (ValueError, IndexError) as exc:
-                log.warning("CGM4981 US channel %s parse error: %s", cid, exc)
-
-        return channels
+        return build_cgm4981_upstream(us_rows).value

@@ -427,7 +427,33 @@ create_backup_to_file(data_dir, dest_dir)
 
 ## Driver Architecture
 
-Modem drivers live in `app/drivers/` and implement the `ModemDriver` base class:
+Modem drivers live in `app/drivers/` and implement the `ModemDriver` base
+class. A driver owns device orchestration: network requests, endpoint and
+firmware selection, authentication, sessions, retries, TLS, and cryptography.
+It fetches a raw modem payload and delegates normalization to one of the pure,
+explicit profiles in `app/drivers/formats/`.
+
+The dependency direction is one-way:
+
+```text
+collector -> concrete driver -> named format profile -> parser primitives/types
+                              -> transport helpers (driver code only)
+```
+
+Format modules never depend on a concrete driver, session, request client,
+Flask, clocks, randomness, or cryptography. They return an immutable
+`ParseResult(value, diagnostics)`. Diagnostics contain only the finite safe
+fields `family`, `profile`, `code`, `direction`, `row`, `index`, and `field`.
+Public driver methods unwrap the result and retain the established
+`DocsisData`/channel-list contracts.
+
+`app/drivers/format_compat.py` is a finite compatibility boundary for legacy
+warning messages. `app/drivers/arris_html.py` remains an import-compatible shim
+for the established bonded 8/7-column parser. Existing private parser seams
+that are covered by integrations remain one-statement delegations; format
+grammar is not implemented in concrete drivers.
+
+The base interface is:
 
 ```python
 class ModemDriver(ABC):
@@ -446,27 +472,42 @@ class ModemDriver(ABC):
     def get_connection_info(self) -> dict: ...
 ```
 
-### Supported Drivers
+### Exact driver-to-profile matrix
 
-| Driver | Module | Hardware | Auth |
-|--------|--------|----------|------|
-| `fritzbox` | `fritzbox.py` | AVM FRITZ!Box | SID-based (data.lua) |
-| `tc4400` | `tc4400.py` | Technicolor TC4400 | SNMP |
-| `ultrahub7` | `ultrahub7.py` | Vodafone Ultra Hub 7 | Session cookie |
-| `cm3500` | `cm3500.py` | Arris CM3500B | Form POST (IP-based session) |
-| `connectbox` | `connectbox.py` | Unitymedia Connect Box (CH7465) | Session cookie |
-| `vodafone_station` | `vodafone_station.py` | CGA6444VF, CGA4322DE, TG3442DE | Auto-detected (see below) |
-| `cm1000` | `cm1000.py` | Netgear CM1000 | HTTP Basic or local Genie form |
-| `cm3000` | `cm3000.py` | Netgear CM3000 | HTTP Basic Auth |
-| `surfboard` | `surfboard.py` | Arris SURFboard S33/S34/SB8200 | HNAP1 HMAC-SHA256 |
-| `sb6183` | `sb6183.py` | Arris SB6183 | None (HTTP status pages) |
-| `cm8200` | `cm8200.py` | Arris Touchstone CM8200A | Base64 query string |
-| `hitron_coda_4680` | `hitron_coda_4680.py` | Hitron CODA-4680 | Form POST (`/1/Device/Users/Login`) |
-| `generic` | `generic.py` | Generic Router (no DOCSIS) | None |
+Every registered concrete class exposes a non-empty immutable
+`FORMAT_FAMILIES` tuple. Registry aliases appear together in the first column;
+there are 21 keys, 20 concrete classes, and 22 explicit profiles.
 
-### Driver Registry (`app/drivers/__init__.py`)
+| Registry key(s) | Concrete class | Format profile(s) | Cohesive module / entrypoint |
+|---|---|---|---|
+| `cgm4981` | `CGM4981Driver` | `cgm4981_columnar_html` | `html_columnar.parse_cgm4981_columnar_html` |
+| `ch7465`, `ch7465_play` | `CH7465Driver` | `ch7465_xml` | `xml_payloads.parse_ch7465_xml` |
+| `cm1000` | `CM1000Driver` | `cm1000_html_table`, `cm1000_javascript` | `html_rows.parse_cm1000_html_table`; `javascript.parse_cm1000_javascript` |
+| `cm3000` | `CM3000Driver` | `cm3000_javascript` | `javascript.parse_cm3000_javascript` |
+| `cm3500` | `CM3500Driver` | `cm3500_html` | `html_rows.parse_cm3500_html` |
+| `cm8200` | `CM8200Driver` | `arris_html` | `html_rows.parse_arris_html` |
+| `f3896lg` | `F3896LGDriver` | `f3896lg_rest_json` | `sagemcom.parse_f3896lg_rest_json` |
+| `fritzbox` | `FritzBoxDriver` | `fritzbox_data_lua` | `fritzbox.parse_fritzbox_data_lua` |
+| `generic` | `GenericDriver` | `generic_no_docsis` | `boundaries.parse_generic_no_docsis` |
+| `hitron` | `HitronDriver` | `hitron_coda56_json` | `hitron.parse_hitron_coda56_json` |
+| `hitron_coda_4680` | `HitronCoda4680Driver` | `hitron_coda4680_json` | `hitron.parse_hitron_coda4680_json` |
+| `sagemcom` | `SagemcomDriver` | `sagemcom_xmo_json` | `sagemcom.parse_sagemcom_xmo_json` |
+| `sb6141` | `SB6141Driver` | `sb6141_transposed_html` | `html_transposed.parse_sb6141_transposed_html` |
+| `sb6183` | `SB6183Driver` | `sb6183_html` | `html_rows.parse_sb6183_html` |
+| `sb6190` | `SB6190Driver` | `sb6190_html` | `html_rows.parse_sb6190_html` |
+| `sercom_dm1000` | `SercomDM1000Driver` | `sercom_dm1000_json` | `sercom.parse_sercom_dm1000_json` |
+| `surfboard` | `SurfboardDriver` | `arris_html`, `surfboard_hnap` | `html_rows.parse_arris_html`; `surfboard.parse_surfboard_hnap` |
+| `tc4400` | `TC4400Driver` | `tc4400_html` | `html_rows.parse_tc4400_html` |
+| `ultrahub7` | `UltraHub7Driver` | `ultrahub7_json` | `vodafone.parse_ultrahub7_json` |
+| `vodafone_station` | `VodafoneStationDriver` | `vodafone_station_cga_json`, `vodafone_station_tg_embedded_json` | `vodafone.parse_vodafone_station_cga_json`; `vodafone.parse_vodafone_station_tg_embedded_json` |
 
-Drivers are loaded by name via `load_driver(modem_type, url, user, password)`. The registry maps type strings to fully qualified class paths for lazy importing.
+### Driver Registry (`app/drivers/registry.py`)
+
+Drivers are loaded by name through `load_driver(modem_type, url, user,
+password)`. The registry maps type strings to fully qualified class paths for
+lazy importing. `ch7465` and `ch7465_play` intentionally resolve to the same
+class; the registry applies the Play firmware selection without creating a
+second parser profile.
 
 ### Extension module state
 

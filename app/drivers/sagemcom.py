@@ -22,6 +22,13 @@ import time
 import requests
 
 from .base import ModemDriver
+from .formats.sagemcom import (
+    _sagemcom_frequency,
+    _sagemcom_is_ofdm,
+    _sagemcom_modulation,
+    parse_sagemcom_xmo_downstream,
+    parse_sagemcom_xmo_upstream,
+)
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 
 log = logging.getLogger("docsis.driver.sagemcom")
@@ -55,6 +62,8 @@ class SagemcomDriver(ModemDriver):
 
     Uses XMO JSON-RPC API with SHA-512 digest authentication.
     """
+
+    FORMAT_FAMILIES = ("sagemcom_xmo_json",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url.rstrip("/"), user, password)
@@ -285,126 +294,26 @@ class SagemcomDriver(ModemDriver):
         import json
         return json.dumps(obj, separators=(",", ":"))
 
-    # -- Channel parsers --
+    # Compatibility parser seams.
 
     def _parse_downstream(self, channels: list[dict[str, object]]) -> tuple[list[RawChannel], list[RawChannel]]:
-        ds30 = []
-        ds31 = []
-
-        for ch in channels:
-            if not ch.get("LockStatus", False):
-                continue
-
-            try:
-                channel_id = ch.get("ChannelID", 0)
-                freq_hz = ch.get("Frequency", 0)
-                power = ch.get("PowerLevel", 0)
-                snr = ch.get("SNR", 0)
-                modulation = ch.get("Modulation", "")
-                bandwidth = ch.get("BandWidth", 0)
-                corr = ch.get("CorrectableCodewords", 0)
-                uncorr = ch.get("UncorrectableCodewords", 0)
-
-                freq_mhz = self._hz_to_mhz(freq_hz)
-
-                if self._is_ofdm_downstream(modulation, bandwidth):
-                    ds31.append({
-                        "channelID": channel_id,
-                        "type": "OFDM",
-                        "frequency": freq_mhz,
-                        "powerLevel": power,
-                        "mer": snr,
-                        "mse": None,
-                        "corrErrors": corr,
-                        "nonCorrErrors": uncorr,
-                    })
-                else:
-                    ds30.append({
-                        "channelID": channel_id,
-                        "frequency": freq_mhz,
-                        "powerLevel": power,
-                        "mer": snr,
-                        "mse": -snr if snr else None,
-                        "modulation": self._normalize_modulation(modulation),
-                        "corrErrors": corr,
-                        "nonCorrErrors": uncorr,
-                    })
-            except (ValueError, TypeError) as e:
-                log.warning("Failed to parse Sagemcom DS channel: %s", e)
-
-        return ds30, ds31
+        return parse_sagemcom_xmo_downstream(channels).value
 
     def _parse_upstream(self, channels: list[dict[str, object]]) -> tuple[list[RawChannel], list[RawChannel]]:
-        us30 = []
-        us31 = []
-
-        for ch in channels:
-            if not ch.get("LockStatus", False):
-                continue
-
-            try:
-                channel_id = ch.get("ChannelID", 0)
-                freq_hz = ch.get("Frequency", 0)
-                power = ch.get("PowerLevel", 0)
-                modulation = ch.get("Modulation", "")
-
-                freq_mhz = self._hz_to_mhz(freq_hz)
-
-                if modulation.lower() == "ofdma":
-                    us31.append({
-                        "channelID": channel_id,
-                        "type": "OFDMA",
-                        "frequency": freq_mhz,
-                        "powerLevel": power,
-                        "modulation": "OFDMA",
-                        "multiplex": "",
-                    })
-                else:
-                    us30.append({
-                        "channelID": channel_id,
-                        "frequency": freq_mhz,
-                        "powerLevel": power,
-                        "modulation": self._normalize_us_modulation(modulation),
-                        "multiplex": modulation.upper() if modulation else "",
-                    })
-            except (ValueError, TypeError) as e:
-                log.warning("Failed to parse Sagemcom US channel: %s", e)
-
-        return us30, us31
-
-    # -- Helpers --
+        return parse_sagemcom_xmo_upstream(channels).value
 
     @staticmethod
     def _hz_to_mhz(freq_hz) -> str:
-        """Convert Hz to MHz string. Returns '' for falsy input (0, None, '')."""
-        if not freq_hz:
-            return ""
-        from .utils import hz_to_mhz
-        return hz_to_mhz(freq_hz)
+        return _sagemcom_frequency(freq_hz)
 
     @staticmethod
     def _is_ofdm_downstream(modulation: str, bandwidth: int) -> bool:
-        if bandwidth and bandwidth > 8_000_000:
-            return True
-        if modulation and modulation.startswith("256-QAM"):
-            return True
-        return False
+        return _sagemcom_is_ofdm(modulation, bandwidth)
 
     @staticmethod
-    def _normalize_modulation(mod: str) -> str:
-        if not mod:
-            return ""
-        m = mod.strip()
-        if m.lower().startswith("qam"):
-            n = m[3:]
-            return f"{n}QAM"
-        return m
+    def _normalize_modulation(modulation: str) -> str:
+        return _sagemcom_modulation(modulation)
 
     @staticmethod
-    def _normalize_us_modulation(mod: str) -> str:
-        if not mod:
-            return ""
-        m = mod.strip().upper()
-        if m == "ATDMA":
-            return "ATDMA"
-        return m
+    def _normalize_us_modulation(modulation: str) -> str:
+        return modulation.strip().upper() if modulation else ""

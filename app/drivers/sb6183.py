@@ -14,7 +14,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .utils import hz_to_mhz, parse_number
+from .formats.html_rows import parse_sb6183_downstream, parse_sb6183_upstream
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 
 log = logging.getLogger("docsis.driver.sb6183")
@@ -26,6 +26,8 @@ class SB6183Driver(ModemDriver):
     No authentication is required. DOCSIS channel data is scraped from
     ``/RgConnect.asp`` and product information from ``/RgSwInfo.asp``.
     """
+
+    FORMAT_FAMILIES = ("sb6183_html",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url.rstrip("/"), user, password)
@@ -109,50 +111,10 @@ class SB6183Driver(ModemDriver):
         return {}
 
     def _parse_downstream(self, table) -> list[RawChannel]:
-        """Parse downstream table where each row is one channel."""
-        if not table:
-            return []
-        result: list[RawChannel] = []
-        for tr in table.find_all("tr"):
-            cells = [td.get_text(" ", strip=True) for td in tr.find_all("td")]
-            if len(cells) < 9 or not cells[3].isdigit() or cells[1].strip().lower() != "locked":
-                continue
-            try:
-                snr = parse_number(cells[6])
-                result.append({
-                    "channelID": int(cells[3]),
-                    "frequency": hz_to_mhz(cells[4]),
-                    "powerLevel": parse_number(cells[5]),
-                    "mer": snr,
-                    "mse": -snr if snr else None,
-                    "modulation": cells[2],
-                    "corrErrors": int(parse_number(cells[7])),
-                    "nonCorrErrors": int(parse_number(cells[8])),
-                })
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse SB6183 DS channel: %s", e)
-        return result
+        return parse_sb6183_downstream(table).value
 
     def _parse_upstream(self, table) -> list[RawChannel]:
-        """Parse upstream table where each row is one channel."""
-        if not table:
-            return []
-        result: list[RawChannel] = []
-        for tr in table.find_all("tr"):
-            cells = [td.get_text(" ", strip=True) for td in tr.find_all("td")]
-            if len(cells) < 7 or not cells[3].isdigit() or cells[1].strip().lower() != "locked":
-                continue
-            try:
-                result.append({
-                    "channelID": int(cells[3]),
-                    "frequency": hz_to_mhz(cells[5]),
-                    "powerLevel": parse_number(cells[6]),
-                    "modulation": cells[2],
-                    "multiplex": cells[2],
-                })
-            except (ValueError, TypeError, IndexError) as e:
-                log.warning("Failed to parse SB6183 US channel: %s", e)
-        return result
+        return parse_sb6183_upstream(table).value
 
     @staticmethod
     def _is_status_page(html: str) -> bool:

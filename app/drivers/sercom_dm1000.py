@@ -14,14 +14,20 @@ from __future__ import annotations
 
 import base64
 import logging
-import math
 from typing import Any
 
 import requests
 
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 from .base import ModemDriver
-from .utils import hz_to_mhz, normalize_modulation
+from .formats.sercom import (
+    _profile_modulation,
+    parse_sercom_ds_ofdm,
+    parse_sercom_ds_scqam,
+    parse_sercom_us_ofdma,
+    parse_sercom_us_scqam,
+)
+from .format_compat import unwrap_sercom
 
 log = logging.getLogger("docsis.driver.sercom_dm1000")
 
@@ -37,6 +43,8 @@ _LOGIN_REJECTION_PHRASES = ("redirected to login", "html login page", "login was
 
 class SercomDM1000Driver(ModemDriver):
     """Driver for authenticated Sercom DM1000 cable modem UIs."""
+
+    FORMAT_FAMILIES = ("sercom_dm1000_json",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url.rstrip("/"), user, password)
@@ -386,182 +394,17 @@ class SercomDM1000Driver(ModemDriver):
         return ""
 
     def _parse_ds_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        channels: list[RawChannel] = []
-        for row in rows:
-            try:
-                modulation = normalize_modulation(row.get("qamD", ""))
-                if not modulation or modulation in {"QAM_NONE", "NONE"}:
-                    continue
-                snr = float(row["SNRD"])
-                channels.append({
-                    "channelID": int(row["DCIDD"]),
-                    "frequency": hz_to_mhz(row.get("FreqD", "")),
-                    "powerLevel": float(row["PowerD"]),
-                    "modulation": modulation,
-                    "mer": snr,
-                    # Keep the long-standing DOCSight raw-channel convention:
-                    # drivers expose MSE as the inverse of SNR/MER when the
-                    # modem does not provide a separate MSE counter.
-                    "mse": -snr,
-                    "corrErrors": int(row["correctedsD"]),
-                    "nonCorrErrors": int(row["uncorrectedsD"]),
-                })
-            except (KeyError, TypeError, ValueError) as exc:
-                log.warning("Failed to parse Sercom DM1000 DS row: %s", exc)
-        return channels
+        return parse_sercom_ds_scqam(rows).value
 
     def _parse_ds_ofdm(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        channels: list[RawChannel] = []
-        for row in rows:
-            try:
-                if str(row.get("PLC", "")).strip().upper() != "YES":
-                    continue
-                if str(row.get("MDC1", "")).strip().upper() != "YES":
-                    continue
-                mer = self._optional_float(row.get("AV_Data"))
-                if mer is None:
-                    mer = self._optional_float(row.get("AV_PLC"))
-                if mer is None:
-                    continue
-                channels.append({
-                    "channelID": int(row["num"]),
-                    "type": "OFDM",
-                    "frequency": hz_to_mhz(row.get("OFDMFreq", "")),
-                    "powerLevel": float(row["PLC_power"]),
-                    "modulation": "OFDM",
-                    # The Sercom UI labels these as average OFDM values; use
-                    # data-subcarrier MER first and PLC MER only as a fallback.
-                    "mer": mer,
-                    "mse": None,
-                    "corrErrors": None,
-                    "nonCorrErrors": None,
-                })
-            except (KeyError, TypeError, ValueError) as exc:
-                log.warning("Failed to parse Sercom DM1000 DS OFDM row: %s", exc)
-        return channels
+        return parse_sercom_ds_ofdm(rows).value
 
     def _parse_us_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        channels: list[RawChannel] = []
-        for row in rows:
-            try:
-                modulation = normalize_modulation(row.get("modulation", ""))
-                upstream = str(row.get("upstream", "")).strip()
-                rate_text = str(row.get("rate", "")).strip()
-                power = float(row["rep_power"])
-                if (
-                    not modulation
-                    or modulation in {"QAM_NONE", "NONE"}
-                    or upstream in {"", "---"}
-                    or not math.isfinite(power)
-                    or rate_text.lower() == "invalid"
-                ):
-                    continue
-                channel: RawChannel = {
-                    "channelID": int(upstream),
-                    "frequency": hz_to_mhz(row.get("Freq", "")),
-                    "powerLevel": power,
-                    "modulation": modulation,
-                    "multiplex": "ATDMA",
-                }
-                symbol_rate = self._symbol_rate_ksym(rate_text)
-                if symbol_rate is not None:
-                    channel["symbolRate"] = symbol_rate
-                channels.append(channel)
-            except (KeyError, TypeError, ValueError) as exc:
-                log.warning("Failed to parse Sercom DM1000 US row: %s", exc)
-        return channels
+        return parse_sercom_us_scqam(rows).value
 
     def _parse_us_ofdma(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        channels: list[RawChannel] = []
-        for column in self._pivot_indexed_rows(rows):
-            try:
-                state = str(column.get("STATE", "")).strip().upper()
-                power_state = str(column.get("Power", "")).strip().upper()
-                # Captured active state was RNG3. Treat any explicit non-disabled
-                # state as usable because Sercom firmware may report other
-                # ranging/operational labels while the OFDMA channel is up.
-                if power_state != "ON" or state in {"", "DISABLED", "OFF"}:
-                    continue
-                frequency_value = column.get("Center Freq SC0")
-                frequency_mhz = self._optional_float(frequency_value)
-                if frequency_mhz is None or frequency_mhz <= 0:
-                    continue
-                channel: RawChannel = {
-                    "channelID": int(str(column.get("CH", "")).strip()),
-                    "type": "OFDMA",
-                    # The captured label is SC0 rather than a guaranteed center;
-                    # preserve the modem-exposed frequency instead of inventing one.
-                    "frequency": hz_to_mhz(frequency_value),
-                    "powerLevel": self._ofdma_power(column),
-                    "modulation": "OFDMA",
-                    "multiplex": "OFDMA",
-                }
-                profile_modulation = self._profile_modulation_from_bits(column.get("bit Loading"))
-                if profile_modulation:
-                    channel["profile_modulation"] = profile_modulation
-                channels.append(channel)
-            except (KeyError, TypeError, ValueError) as exc:
-                log.warning("Failed to parse Sercom DM1000 US OFDMA row: %s", exc)
-        return channels
-
-    @staticmethod
-    def _pivot_indexed_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        indexes: list[str] = []
-        pivot: dict[str, dict[str, Any]] = {}
-        for row in rows:
-            name = str(row.get("name") or "").strip()
-            if not name:
-                continue
-            for key, value in row.items():
-                if not key.startswith("index"):
-                    continue
-                if key not in pivot:
-                    pivot[key] = {}
-                    indexes.append(key)
-                pivot[key][name] = value
-        return [pivot[key] for key in sorted(indexes, key=SercomDM1000Driver._index_sort_key)]
-
-    @staticmethod
-    def _index_sort_key(index_name: str) -> int:
-        suffix = index_name.removeprefix("index")
-        try:
-            return int(suffix)
-        except ValueError:
-            return 0
-
-    @staticmethod
-    def _ofdma_power(column: dict[str, Any]) -> float | None:
-        if "rep power1_6" not in column:
-            log.warning("Sercom DM1000 OFDMA row missing rep power1_6; leaving power unsupported")
-            return None
-        return SercomDM1000Driver._optional_float(column.get("rep power1_6"))
-
-    @staticmethod
-    def _optional_float(value: Any) -> float | None:
-        try:
-            number = float(str(value).strip())
-        except (TypeError, ValueError):
-            return None
-        return number if math.isfinite(number) else None
-
-    @staticmethod
-    def _symbol_rate_ksym(value: Any) -> int | None:
-        try:
-            number = float(str(value).strip())
-        except (TypeError, ValueError):
-            return None
-        if not math.isfinite(number):
-            return None
-        return int(round(number * 1000))
+        return unwrap_sercom(parse_sercom_us_ofdma(rows), log)
 
     @staticmethod
     def _profile_modulation_from_bits(value: Any) -> str | None:
-        try:
-            bits = int(float(str(value).strip()))
-        except (TypeError, ValueError):
-            return None
-        if bits == 2:
-            return "QPSK"
-        if bits <= 0 or bits > 12:
-            return None
-        return f"{2 ** bits}QAM"
+        return _profile_modulation(value)

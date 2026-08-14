@@ -34,6 +34,8 @@ import requests
 
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 from .base import ModemDriver
+from .formats.sagemcom import parse_f3896lg_downstream, parse_f3896lg_upstream
+from .format_compat import unwrap_f3896lg
 
 log = logging.getLogger("docsis.driver.f3896lg")
 
@@ -42,6 +44,8 @@ _TIMEOUT = 10
 
 class F3896LGDriver(ModemDriver):
     """Virgin Media Hub 5 / Sagemcom F3896LG (Liberty Global REST API)."""
+
+    FORMAT_FAMILIES = ("f3896lg_rest_json",)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url.rstrip("/"), user, password)
@@ -138,133 +142,10 @@ class F3896LGDriver(ModemDriver):
             log.warning("F3896LG connection info fetch failed: %s", e)
         return out
 
-    # -- parsing --
+    # Compatibility parser seams.
 
     def _parse_downstream(self, channels: list[dict]) -> tuple[list[RawChannel], list[RawChannel]]:
-        ds30: list[RawChannel] = []
-        ds31: list[RawChannel] = []
-        for ch in channels:
-            if not isinstance(ch, dict):
-                continue
-            if not ch.get("lockStatus", False):
-                continue
-            channel_type = ch.get("channelType")
-            if channel_type not in {"sc_qam", "ofdm"}:
-                log.debug("Skipping unknown downstream channel type %r", channel_type)
-                continue
-            try:
-                mer = ch.get("rxMer")
-                if channel_type == "ofdm":
-                    try:
-                        power = self._unscale(ch.get("power"))
-                    except (ValueError, TypeError):
-                        log.warning("Invalid F3896LG OFDM power %r; using no power", ch.get("power"))
-                        power = None
-                    try:
-                        mer = self._unscale(mer)
-                    except (ValueError, TypeError):
-                        log.warning("Invalid F3896LG OFDM rxMer %r; using no MER", mer)
-                        mer = None
-                    if mer == 0:
-                        mer = None
-                    profile_modulation = self._modulation(ch.get("modulation", ""))
-                    # firstActiveSubcarrier is an index; without a subcarrier-zero/base
-                    # frequency from the API, the channel frequency remains unknown.
-                    channel: RawChannel = {
-                        "channelID": ch.get("channelId", 0),
-                        "type": "OFDM",
-                        "frequency": "",
-                        "powerLevel": power,
-                        "mer": mer,
-                        "mse": None,
-                        "modulation": "OFDM",
-                        "corrErrors": ch.get("correctedErrors"),
-                        "nonCorrErrors": ch.get("uncorrectedErrors"),
-                    }
-                    if profile_modulation:
-                        channel["profile_modulation"] = profile_modulation
-                    ds31.append(channel)
-                else:
-                    snr = ch.get("snr") or mer
-                    ds30.append({
-                        "channelID": ch.get("channelId", 0),
-                        "frequency": self._hz_to_mhz(ch.get("frequency")),
-                        "powerLevel": ch.get("power"),
-                        "mer": snr,
-                        "mse": -snr if snr else None,
-                        "modulation": self._modulation(ch.get("modulation", "")),
-                        "corrErrors": ch.get("correctedErrors"),
-                        "nonCorrErrors": ch.get("uncorrectedErrors"),
-                    })
-            except (ValueError, TypeError) as e:
-                log.warning("Failed to parse F3896LG DS channel %s: %s", ch, e)
-        return ds30, ds31
+        return unwrap_f3896lg(parse_f3896lg_downstream(channels), channels, "downstream", log)
 
     def _parse_upstream(self, channels: list[dict]) -> tuple[list[RawChannel], list[RawChannel]]:
-        us30: list[RawChannel] = []
-        us31: list[RawChannel] = []
-        for ch in channels:
-            if not isinstance(ch, dict):
-                continue
-            if not ch.get("lockStatus", False):
-                continue
-            channel_type = ch.get("channelType")
-            if channel_type not in {"atdma", "ofdma"}:
-                log.debug("Skipping unknown upstream channel type %r", channel_type)
-                continue
-            try:
-                if channel_type == "ofdma":
-                    try:
-                        power = self._unscale(ch.get("power"))
-                    except (ValueError, TypeError):
-                        log.warning("Invalid F3896LG OFDMA power %r; using no power", ch.get("power"))
-                        power = None
-                    profile_modulation = self._modulation(ch.get("modulation", ""))
-                    # firstActiveSubcarrier is an index; without a subcarrier-zero/base
-                    # frequency from the API, the channel frequency remains unknown.
-                    channel: RawChannel = {
-                        "channelID": ch.get("channelId", 0),
-                        "type": "OFDMA",
-                        "frequency": "",
-                        "powerLevel": power,
-                        "modulation": "OFDMA",
-                        "multiplex": "",
-                    }
-                    if profile_modulation:
-                        channel["profile_modulation"] = profile_modulation
-                    us31.append(channel)
-                else:
-                    us30.append({
-                        "channelID": ch.get("channelId", 0),
-                        "frequency": self._hz_to_mhz(ch.get("frequency")),
-                        "powerLevel": ch.get("power"),
-                        "modulation": self._modulation(ch.get("modulation", "")),
-                        "multiplex": str(ch.get("channelType", "")).upper(),
-                        "symbolRate": ch.get("symbolRate"),
-                    })
-            except (ValueError, TypeError) as e:
-                log.warning("Failed to parse F3896LG US channel %s: %s", ch, e)
-        return us30, us31
-
-    # -- helpers --
-
-    @staticmethod
-    def _hz_to_mhz(freq_hz) -> str:
-        if not freq_hz:
-            return ""
-        return f"{float(freq_hz) / 1_000_000:g} MHz"
-
-    @staticmethod
-    def _unscale(power) -> float | None:
-        """OFDM/OFDMA power is reported x10 on this firmware."""
-        if power is None:
-            return None
-        return float(power) / 10.0
-
-    @staticmethod
-    def _modulation(raw: str) -> str:
-        """qam_256 -> 256QAM (matches other drivers' display convention)."""
-        raw = (raw or "").lower()
-        if raw.startswith("qam_"):
-            return f"{raw[4:]}QAM"
-        return raw.upper()
+        return unwrap_f3896lg(parse_f3896lg_upstream(channels), channels, "upstream", log)
