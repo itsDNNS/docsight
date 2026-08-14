@@ -261,7 +261,7 @@ class TestModemCollectorSpikeSuppression:
         mock_storage.get_latest_spike_timestamp.return_value = None
         mock_storage.get_device_state.return_value = {}
         mock_web = MagicMock()
-        mock_web._state = {}
+        mock_web.get_state.return_value = {}
 
         fake_analysis = {
             "summary": {"health": "good", "health_issues": [], "ds_total": 0, "us_total": 0},
@@ -391,7 +391,7 @@ class TestDeviceEventSmartCaptureIsolation:
         storage.get_device_state.return_value = initial_state if initial_state is not None else {}
 
         web = MagicMock()
-        web._state = {}
+        web.get_state.return_value = {}
 
         smart_capture = MagicMock()
 

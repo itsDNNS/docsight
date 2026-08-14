@@ -5,23 +5,20 @@ import logging
 from flask import Blueprint, request, jsonify
 
 from app.web import require_auth, get_config_manager, get_state, get_storage
+from app.runtime import current_runtime
 from .storage import WeatherStorage
 
 log = logging.getLogger("docsis.web.weather")
 
 bp = Blueprint("weather_module", __name__)
 
-# Lazy-initialized module-local storage
-_storage = None
-
-
 def _get_weather_storage():
-    global _storage
-    if _storage is None:
-        core_storage = get_storage()
-        if core_storage:
-            _storage = WeatherStorage(core_storage.db_path)
-    return _storage
+    core_storage = get_storage()
+    if not core_storage:
+        return None
+    return current_runtime().derived_storage.get(
+        "weather", lambda: WeatherStorage(core_storage.db_path)
+    )
 
 
 @bp.route("/api/weather")

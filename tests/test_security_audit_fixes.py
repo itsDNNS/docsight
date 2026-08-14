@@ -81,32 +81,22 @@ class TestRestoreRateLimit:
 
     @pytest.fixture
     def client(self):
-        from flask import Flask
+        from app.app_factory import create_app
         from app.config import ConfigManager
         from app.modules.backup.routes import bp as backup_bp
-
-        test_app = Flask(__name__)
-        test_app.config["TESTING"] = True
-        test_app.secret_key = "test-secret"
 
         with tempfile.TemporaryDirectory() as td:
             cfg = ConfigManager(td)
             cfg.save({"demo_mode": False})
+            test_app = create_app(config_manager=cfg, environ={}, testing=True)
+            test_app.register_blueprint(backup_bp)
 
             # Patch the getters that backup routes use
             with patch("app.modules.backup.routes.get_config_manager", return_value=cfg), \
                  patch("app.modules.backup.routes._auth_required", return_value=False), \
                  patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"):
-                test_app.register_blueprint(backup_bp)
                 with test_app.test_client() as c:
                     yield c
-
-    @pytest.fixture(autouse=True)
-    def _clear_rate_limits(self):
-        from app.modules.backup import routes as br
-        br._restore_attempts.clear()
-        yield
-        br._restore_attempts.clear()
 
     def test_restore_validate_rate_limited(self, client):
         """After 5 attempts, further unauthenticated restore/validate should be blocked."""
@@ -145,13 +135,15 @@ class TestRestoreRateLimit:
     def test_restore_without_config_manager_rejected(self):
         """If the config manager is not initialized, /api/restore must bail out
         before touching the filesystem — no fallback to a hardcoded data dir."""
-        from flask import Flask
+        from app.app_factory import create_app
+        from app.config import ConfigManager
+        from app.runtime import get_runtime
         from app.modules.backup import routes as br
         from app.modules.backup.routes import bp as backup_bp
 
-        test_app = Flask(__name__)
-        test_app.config["TESTING"] = True
-        test_app.secret_key = "test-secret"
+        test_app = create_app(
+            config_manager=ConfigManager(tempfile.mkdtemp()), environ={}, testing=True
+        )
 
         with patch("app.modules.backup.routes.get_config_manager", return_value=None), \
              patch("app.modules.backup.routes._auth_required", return_value=False), \
@@ -170,31 +162,23 @@ class TestRestoreRateLimit:
             mock_restore.assert_not_called()
             # Must not count as a rate-limit attempt either — the request never
             # reached the rate-limited code path.
-            assert br._restore_attempts.get("127.0.0.1", []) == []
+            assert get_runtime(test_app).derived_storage.value("backup_restore_attempts", {}) == {}
 
     def test_authenticated_restore_not_rate_limited(self):
         """Configured+authenticated instances skip the rate limit path entirely."""
-        from flask import Flask
+        from app.app_factory import create_app
         from app.config import ConfigManager
         from app.modules.backup import routes as br
-
-        br._restore_attempts.clear()
-
-        test_app = Flask(__name__)
-        test_app.config["TESTING"] = True
-        test_app.secret_key = "test-secret"
 
         with tempfile.TemporaryDirectory() as td:
             cfg = ConfigManager(td)
             cfg.save({"admin_password": "testpass", "modem_type": "demo"})
+            test_app = create_app(config_manager=cfg, environ={}, testing=True)
 
             with patch("app.modules.backup.routes.get_config_manager", return_value=cfg), \
                  patch("app.modules.backup.routes._auth_required", return_value=False), \
                  patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"):
                 from app.modules.backup.routes import bp as backup_bp
-                fresh_bp = type(backup_bp)(backup_bp.name + "_auth_test", backup_bp.import_name)
-                for deferred in backup_bp.deferred_functions:
-                    fresh_bp.record(deferred)
                 test_app.register_blueprint(backup_bp)
                 with test_app.test_client() as c:
                     for i in range(10):

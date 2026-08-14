@@ -14,6 +14,7 @@ from app import config as config_module
 from app import module_loader as module_loader_module
 from app import web
 from app.config import ConfigManager
+from app.runtime import current_runtime
 from app.module_loader import (
     ManifestError,
     ModuleLoader,
@@ -51,10 +52,10 @@ def config_mgr(tmp_path):
 
 @pytest.fixture
 def client(config_mgr):
-    web.init_config(config_mgr)
-    web.init_storage(None)
-    web.app.config["TESTING"] = True
-    with web.app.test_client() as test_client:
+    current_runtime().config_manager = config_mgr
+    current_runtime().storage = None
+    app.config["TESTING"] = True
+    with app.test_client() as test_client:
         yield test_client
 
 
@@ -118,19 +119,19 @@ def reports_settings_module(monkeypatch):
         get_theme_modules=lambda: [],
     )
 
-    old_module_loader = web._module_loader
-    old_jinja_loader = web.app.jinja_loader
-    web.init_modules(loader)
-    web.app.jinja_loader = ChoiceLoader(
+    old_module_loader = current_runtime().module_loader
+    old_jinja_loader = app.jinja_loader
+    current_runtime().module_loader = loader
+    app.jinja_loader = ChoiceLoader(
         [old_jinja_loader, FileSystemLoader(str(REPORTS_DIR / "templates"))]
     )
-    web.app.jinja_env.cache.clear()
+    app.jinja_env.cache.clear()
     try:
         yield info
     finally:
-        web.init_modules(old_module_loader)
-        web.app.jinja_loader = old_jinja_loader
-        web.app.jinja_env.cache.clear()
+        current_runtime().module_loader = old_module_loader
+        app.jinja_loader = old_jinja_loader
+        app.jinja_env.cache.clear()
 
 
 def test_private_keys_encrypt_display_and_clear(tmp_path, monkeypatch):
@@ -282,7 +283,7 @@ def test_reports_settings_panel_renders_saved_values(
         "report_customer_address": "Musterstraße 1\n12345 Musterstadt",
     }
     config_mgr.save(values.copy())
-    web.init_config(config_mgr)
+    current_runtime().config_manager = config_mgr
 
     response = client.get("/settings?lang=en")
 
@@ -328,7 +329,7 @@ def test_demo_settings_and_index_hide_saved_private_values(
         "report_customer_address": "Private Street",
         "demo_mode": True,
     })
-    web.init_config(config_mgr)
+    current_runtime().config_manager = config_mgr
     web.update_state(analysis=sample_analysis)
 
     settings_html = client.get("/settings?lang=en").get_data(as_text=True)
@@ -352,7 +353,7 @@ def test_index_prefills_saved_customer_defaults_with_autoescaping(
         "report_customer_address": '</textarea><img id="address-xss" src=x onerror=alert(1)>\nSecond line',
     }
     config_mgr.save(values.copy())
-    web.init_config(config_mgr)
+    current_runtime().config_manager = config_mgr
     web.update_state(analysis=sample_analysis)
 
     response = client.get("/?lang=en")
@@ -375,7 +376,7 @@ def test_index_prefills_saved_customer_defaults_with_autoescaping(
 
 
 def test_index_report_fields_have_empty_server_defaults(client, config_mgr, sample_analysis):
-    web.init_config(config_mgr)
+    current_runtime().config_manager = config_mgr
     web.update_state(analysis=sample_analysis)
 
     soup = BeautifulSoup(client.get("/?lang=en").get_data(as_text=True), "html.parser")
@@ -438,7 +439,7 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     report_storage = Mock()
     report_storage.get_range_data.return_value = []
 
-    with web.app.test_request_context("/api/report"):
+    with app.test_request_context("/api/report"):
         with patch.object(report_routes, "get_storage", return_value=report_storage), patch.object(
             report_routes, "get_config_manager", return_value=config_manager
         ), patch.object(
@@ -449,7 +450,7 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     assert generate_report.call_args.kwargs["customer_number"] == ""
     assert generate_report.call_args.kwargs["customer_address"] == ""
 
-    with web.app.test_request_context("/api/complaint"):
+    with app.test_request_context("/api/complaint"):
         with patch.object(report_routes, "get_storage", return_value=report_storage), patch.object(
             report_routes, "get_config_manager", return_value=config_manager
         ), patch.object(report_routes, "get_state", return_value={"analysis": analysis}), patch.object(
@@ -467,7 +468,7 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
         "end_date": None,
     }
     incident_storage.get_entries.return_value = []
-    with web.app.test_request_context("/api/incidents/7/report"):
+    with app.test_request_context("/api/incidents/7/report"):
         with patch.object(journal_routes, "_get_journal_storage", return_value=incident_storage), patch.object(
             journal_routes, "get_config_manager", return_value=config_manager
         ), patch.object(journal_routes, "get_state", return_value={"connection_info": {}}), patch(

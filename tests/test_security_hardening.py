@@ -11,6 +11,7 @@ from flask import Flask
 from app.theme_registry import _is_trusted_url, download_theme
 from app.collectors import _ModuleConfigProxy
 from app.config import ConfigManager, SECRET_KEYS, HASH_KEYS
+from app.runtime import current_runtime
 
 
 # ── Reverse proxy / X-Forwarded-For ──
@@ -28,8 +29,7 @@ class TestClientIPWithoutProxy:
 
     def test_rate_limit_uses_remote_addr(self, client):
         """Rate limiting should use real remote_addr, not spoofed XFF."""
-        from app.web import _login_attempts
-        _login_attempts.clear()
+        current_runtime().login_rate_limiter.prune(float("inf"))
 
         # Simulate 6 failed logins with different spoofed IPs
         for i in range(6):
@@ -41,7 +41,7 @@ class TestClientIPWithoutProxy:
 
         # Without proxy trust, all requests come from same remote_addr,
         # so rate limiter should kick in.
-        attempts_keys = list(_login_attempts.keys())
+        attempts_keys = list(current_runtime().login_rate_limiter.snapshot())
         assert len(attempts_keys) == 1, (
             f"Expected 1 IP in rate limiter, got {len(attempts_keys)}: {attempts_keys}"
         )
@@ -359,10 +359,10 @@ def client():
     with tempfile.TemporaryDirectory() as td:
         cfg = ConfigManager(td)
         cfg.save({"admin_password": "testpass", "demo_mode": False, "modem_type": "demo"})
-        web.init_config(cfg)
-        web.init_storage(None)
-        web.init_collector(None)
-        web.init_collectors([])
-        web.app.config["TESTING"] = True
-        with web.app.test_client() as c:
+        current_runtime().config_manager = cfg
+        current_runtime().storage = None
+        current_runtime().modem_collector = None
+        current_runtime().collectors = []
+        app.config["TESTING"] = True
+        with app.test_client() as c:
             yield c

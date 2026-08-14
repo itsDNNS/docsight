@@ -10,7 +10,7 @@ import pytest
 from app.collectors import DemoCollector, discover_collectors
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
-from app.web import app, init_config, init_storage
+from app.runtime import current_runtime
 
 
 @pytest.fixture
@@ -20,8 +20,9 @@ def fresh_demo_client(tmp_path, monkeypatch):
     manager = ConfigManager(str(data_dir))
     storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
     callbacks = []
-    init_config(manager, lambda: callbacks.append("changed"))
-    init_storage(storage)
+    current_runtime().config_manager = manager
+    current_runtime().on_config_changed = lambda: callbacks.append("changed")
+    current_runtime().storage = storage
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client, manager, storage, callbacks, data_dir
@@ -82,8 +83,9 @@ def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypat
         if len(callbacks) == 1:
             raise RuntimeError("activation failed")
 
-    init_config(manager, on_config_changed)
-    init_storage(SnapshotStorage(str(tmp_path / "history.db"), max_days=0))
+    current_runtime().config_manager = manager
+    current_runtime().on_config_changed = on_config_changed
+    current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
     app.config["TESTING"] = True
 
     with app.test_client() as client:
@@ -107,8 +109,9 @@ def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch):
     manager = ConfigManager(str(tmp_path / "data"))
     manager.save({"modem_type": "generic", "modem_url": "http://192.168.100.1"})
     callbacks = []
-    init_config(manager, lambda: callbacks.append("changed"))
-    init_storage(SnapshotStorage(str(tmp_path / "history.db"), max_days=0))
+    current_runtime().config_manager = manager
+    current_runtime().on_config_changed = lambda: callbacks.append("changed")
+    current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
     app.config["TESTING"] = True
 
     with app.test_client() as client:
@@ -127,8 +130,8 @@ def test_demo_start_requires_browser_session_when_auth_is_enabled(tmp_path, monk
     monkeypatch.delenv("DEMO_MODE", raising=False)
     manager = ConfigManager(str(tmp_path / "data"))
     manager.save({"admin_password": "secret"})
-    init_config(manager)
-    init_storage(SnapshotStorage(str(tmp_path / "history.db"), max_days=0))
+    current_runtime().config_manager = manager
+    current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
     app.config["TESTING"] = True
 
     with app.test_client() as client:
@@ -154,8 +157,9 @@ def test_demo_exit_uses_existing_purge_path_and_returns_next_path(
     manager.save({"demo_mode": True})
     storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
     callbacks = []
-    init_config(manager, lambda: callbacks.append("changed"))
-    init_storage(storage)
+    current_runtime().config_manager = manager
+    current_runtime().on_config_changed = lambda: callbacks.append("changed")
+    current_runtime().storage = storage
     app.config["TESTING"] = True
 
     with app.test_client() as client:
@@ -176,8 +180,8 @@ def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeyp
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     manager = ConfigManager(str(tmp_path / "data"))
     manager.save({"demo_mode": True})
-    init_config(manager)
-    init_storage(SnapshotStorage(str(tmp_path / "history.db"), max_days=0))
+    current_runtime().config_manager = manager
+    current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
     app.config["TESTING"] = True
 
     connection_storage = ConnectionMonitorStorage(
@@ -210,8 +214,9 @@ def test_environment_forced_demo_cannot_be_disabled(tmp_path, monkeypatch):
     storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
     storage.purge_demo_data = MagicMock(return_value=0)
     callbacks = []
-    init_config(manager, lambda: callbacks.append("changed"))
-    init_storage(storage)
+    current_runtime().config_manager = manager
+    current_runtime().on_config_changed = lambda: callbacks.append("changed")
+    current_runtime().storage = storage
     app.config["TESTING"] = True
 
     assert manager.is_demo_mode_forced() is True

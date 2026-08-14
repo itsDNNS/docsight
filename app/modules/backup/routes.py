@@ -15,6 +15,7 @@ from app.web import (
     get_config_manager, get_on_config_changed,
     _get_client_ip,
 )
+from app.runtime import current_runtime
 
 from werkzeug.utils import secure_filename
 
@@ -28,24 +29,28 @@ log = logging.getLogger("docsis.web")
 
 bp = Blueprint("backup_bp", __name__)
 
-# Rate-limit unauthenticated restore attempts (setup-race mitigation)
-_restore_attempts: dict[str, list[float]] = defaultdict(list)
 _RESTORE_MAX_ATTEMPTS = 5
 _RESTORE_WINDOW = 3600  # 1 hour
 
 
 def _check_restore_rate_limit() -> bool:
     """Return True if the client has exceeded the restore rate limit."""
+    restore_attempts = current_runtime().derived_storage.get(
+        "backup_restore_attempts", lambda: defaultdict(list)
+    )
     ip = _get_client_ip()
     now = time.time()
-    attempts = _restore_attempts[ip]
-    _restore_attempts[ip] = [t for t in attempts if now - t < _RESTORE_WINDOW]
-    return len(_restore_attempts[ip]) >= _RESTORE_MAX_ATTEMPTS
+    attempts = restore_attempts[ip]
+    restore_attempts[ip] = [t for t in attempts if now - t < _RESTORE_WINDOW]
+    return len(restore_attempts[ip]) >= _RESTORE_MAX_ATTEMPTS
 
 
 def _record_restore_attempt():
     """Record a restore attempt for the current client IP."""
-    _restore_attempts[_get_client_ip()].append(time.time())
+    restore_attempts = current_runtime().derived_storage.get(
+        "backup_restore_attempts", lambda: defaultdict(list)
+    )
+    restore_attempts[_get_client_ip()].append(time.time())
 
 
 def _int_config(config_mgr, key, default):

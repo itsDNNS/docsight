@@ -6,7 +6,7 @@ from pathlib import Path
 
 from app.config import ConfigManager
 from app.i18n import LANGUAGES
-from app.web import app, init_config, init_storage
+from app.runtime import current_runtime
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,8 +79,8 @@ def test_demo_banner_actions_render_on_dashboard_and_settings(tmp_path, monkeypa
     monkeypatch.delenv("DEMO_MODE", raising=False)
     manager = ConfigManager(str(tmp_path / "data"))
     manager.save({"demo_mode": True})
-    init_config(manager)
-    init_storage(None)
+    current_runtime().config_manager = manager
+    current_runtime().storage = None
     app.config["TESTING"] = True
 
     with app.test_client() as client:
@@ -97,8 +97,8 @@ def test_demo_banner_actions_render_on_dashboard_and_settings(tmp_path, monkeypa
 def test_environment_forced_demo_banner_is_locked(tmp_path, monkeypatch):
     monkeypatch.setenv("DEMO_MODE", "1")
     manager = ConfigManager(str(tmp_path / "data"))
-    init_config(manager)
-    init_storage(None)
+    current_runtime().config_manager = manager
+    current_runtime().storage = None
     app.config["TESTING"] = True
 
     with app.test_client() as client:
@@ -117,8 +117,8 @@ def test_environment_forced_demo_banner_is_locked(tmp_path, monkeypatch):
 
 def test_desktop_preview_setup_copy_is_env_gated(tmp_path, monkeypatch):
     manager = ConfigManager(str(tmp_path / "data"))
-    init_config(manager)
-    init_storage(None)
+    current_runtime().config_manager = manager
+    current_runtime().storage = None
     app.config["TESTING"] = True
 
     monkeypatch.delenv("DOCSIGHT_DESKTOP_MODE", raising=False)

@@ -2,7 +2,7 @@
 
 from flask import Blueprint, Response, request
 
-from app.web import get_state, get_modem_collector
+from app.web import get_state, get_modem_collector, get_config_manager, get_storage
 from app.prometheus import format_metrics
 
 metrics_bp = Blueprint("metrics_bp", __name__)
@@ -10,17 +10,13 @@ metrics_bp = Blueprint("metrics_bp", __name__)
 
 def _metrics_token_required() -> bool:
     """Return whether /metrics should require a Bearer API token."""
-    from app import web as _web
-
-    config = getattr(_web, "_config_manager", None)
+    config = get_config_manager()
     return bool(config and config.get("metrics_require_token", False))
 
 
 def _has_valid_bearer_token() -> bool:
     """Validate the request's Bearer token through DOCSight token storage."""
-    from app import web as _web
-
-    storage = getattr(_web, "_storage", None)
+    storage = get_storage()
     auth_header = request.headers.get("Authorization", "")
     if not storage or not auth_header.startswith("Bearer "):
         return False

@@ -10,7 +10,7 @@ from app.config import ConfigManager, PASSWORD_MASK
 from app.notifier import NotificationDispatcher, WebPushChannel
 from app.storage import SnapshotStorage
 from app import web
-from app.web import app
+from app.runtime import current_runtime
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,8 +69,8 @@ def test_pwa_push_status_endpoint_exposes_public_key_without_private_key(tmp_pat
     storage = make_storage(tmp_path)
     storage.upsert_pwa_push_subscription(VALID_SUBSCRIPTION, user_agent="Firefox")
     cfg = make_config(tmp_path)
-    web.init_storage(storage)
-    web.init_config(cfg)
+    current_runtime().storage = storage
+    current_runtime().config_manager = cfg
 
     resp = app.test_client().get("/api/notifications/pwa/status")
 
@@ -89,8 +89,8 @@ def test_pwa_push_status_endpoint_exposes_public_key_without_private_key(tmp_pat
 def test_pwa_push_subscribe_and_unsubscribe_api_validates_subscription(tmp_path):
     storage = make_storage(tmp_path)
     cfg = make_config(tmp_path)
-    web.init_storage(storage)
-    web.init_config(cfg)
+    current_runtime().storage = storage
+    current_runtime().config_manager = cfg
     client = app.test_client()
 
     bad = client.post("/api/notifications/pwa/subscribe", json={"endpoint": "missing keys"})

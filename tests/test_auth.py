@@ -13,14 +13,11 @@ from app.web import (
     _AUTH_STATE_CONTEXT,
     _LOGIN_MAX_TRACKED_IPS,
     _keyed_sha256_hexdigest,
-    _login_attempts,
-    app,
-    init_config,
-    init_storage,
     update_state,
 )
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
+from app.runtime import current_runtime
 
 
 def _login_csrf(client):
@@ -77,8 +74,8 @@ def storage(tmp_path):
 
 @pytest.fixture
 def auth_client(auth_config):
-    init_config(auth_config)
-    init_storage(None)
+    current_runtime().config_manager = auth_config
+    current_runtime().storage = None
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
@@ -86,8 +83,8 @@ def auth_client(auth_config):
 
 @pytest.fixture
 def auth_client_with_storage(auth_config, storage):
-    init_config(auth_config)
-    init_storage(storage)
+    current_runtime().config_manager = auth_config
+    current_runtime().storage = storage
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
@@ -95,8 +92,8 @@ def auth_client_with_storage(auth_config, storage):
 
 @pytest.fixture
 def noauth_client(noauth_config):
-    init_config(noauth_config)
-    init_storage(None)
+    current_runtime().config_manager = noauth_config
+    current_runtime().storage = None
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
@@ -205,7 +202,7 @@ class TestAuthEnabled:
         _login(auth_client)
         original_key = app.secret_key
 
-        init_config(ConfigManager(auth_config.data_dir))
+        current_runtime().config_manager = ConfigManager(auth_config.data_dir)
 
         assert app.secret_key == original_key
         assert auth_client.get("/").status_code == 200
@@ -218,8 +215,8 @@ class TestAuthEnabled:
             encoding="utf-8",
         )
         manager = ConfigManager(str(data_dir))
-        init_config(manager)
-        init_storage(None)
+        current_runtime().config_manager = manager
+        current_runtime().storage = None
         app.config["TESTING"] = True
         client = app.test_client()
 
@@ -229,7 +226,7 @@ class TestAuthEnabled:
         assert manager.get("admin_password").startswith(("scrypt:", "pbkdf2:"))
         assert client.get("/").status_code == 200
 
-        init_config(ConfigManager(str(data_dir)))
+        current_runtime().config_manager = ConfigManager(str(data_dir))
         assert client.get("/").status_code == 200
 
     def test_cookie_fails_after_config_backed_password_changes(self, auth_client, auth_config):
@@ -245,8 +242,8 @@ class TestAuthEnabled:
         monkeypatch.setenv("ADMIN_PASSWORD", "environment-password")
         manager = ConfigManager(str(tmp_path / "env-auth"))
         manager.save({"modem_type": "generic"})
-        init_config(manager)
-        init_storage(None)
+        current_runtime().config_manager = manager
+        current_runtime().storage = None
         app.config["TESTING"] = True
         with app.test_client() as client:
             _login(client, "environment-password")
@@ -259,15 +256,13 @@ class TestAuthEnabled:
         assert "/login" in resp.headers["Location"]
 
     def test_cookie_does_not_revive_after_environment_password_removal_and_reenable(
-        self, tmp_path, monkeypatch
+        self, tmp_path, monkeypatch, make_app
     ):
         monkeypatch.setenv("ADMIN_PASSWORD", "environment-password")
         manager = ConfigManager(str(tmp_path / "env-auth-reenabled"))
         manager.save({"modem_type": "generic"})
-        init_config(manager)
-        init_storage(None)
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        application = make_app(config_manager=manager)
+        with application.test_client() as client:
             _login(client, "environment-password")
             assert client.get("/").status_code == 200
 
@@ -285,20 +280,18 @@ class TestAuthEnabled:
         if os.name != "nt":
             assert os.stat(auth_state_path).st_mode & 0o777 == 0o600
 
-    def test_password_change_invalidates_current_and_other_sessions(self, auth_config):
-        init_config(auth_config)
-        init_storage(None)
-        app.config["TESTING"] = True
-        current = app.test_client()
-        other = app.test_client()
+    def test_password_change_invalidates_current_and_other_sessions(self, auth_config, make_app):
+        application = make_app(config_manager=auth_config)
+        current = application.test_client()
+        other = application.test_client()
         _login(current)
         _login(other)
-        old_key = app.secret_key
+        old_key = application.secret_key
 
         response = current.post("/api/config", json={"admin_password": "replacement-password"})
 
         assert response.status_code == 200
-        assert app.secret_key != old_key
+        assert application.secret_key != old_key
         session_key_path = os.path.join(auth_config.data_dir, ".session_key")
         assert os.path.isfile(session_key_path)
         if os.name != "nt":
@@ -307,8 +300,8 @@ class TestAuthEnabled:
         assert other.get("/").status_code == 302
 
     def test_password_removal_invalidates_sessions_before_password_is_reenabled(self, auth_config):
-        init_config(auth_config)
-        init_storage(None)
+        current_runtime().config_manager = auth_config
+        current_runtime().storage = None
         app.config["TESTING"] = True
         current = app.test_client()
         other = app.test_client()
@@ -335,8 +328,8 @@ class TestAuthEnabled:
         ids=["saved-mask", "omitted-password", "same-password"],
     )
     def test_unchanged_password_saves_do_not_invalidate_sessions(self, auth_config, saved_data):
-        init_config(auth_config)
-        init_storage(None)
+        current_runtime().config_manager = auth_config
+        current_runtime().storage = None
         app.config["TESTING"] = True
         current = app.test_client()
         other = app.test_client()
@@ -385,12 +378,10 @@ class TestAuthEnabled:
         assert resp.status_code == 400
 
     def test_login_attempt_tracking_is_bounded(self):
-        _login_attempts.clear()
+        limiter = current_runtime().login_rate_limiter
         for idx in range(_LOGIN_MAX_TRACKED_IPS + 25):
-            _login_attempts[f"198.51.100.{idx}"] = [idx + 1.0]
-        from app.web import _prune_login_attempts
-        _prune_login_attempts(now=10_000.0)
-        assert len(_login_attempts) <= _LOGIN_MAX_TRACKED_IPS
+            limiter.record_failure(f"198.51.100.{idx}")
+        assert len(limiter.snapshot()) <= _LOGIN_MAX_TRACKED_IPS
 
 
 class TestApiTokenAuth:

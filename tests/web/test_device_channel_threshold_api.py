@@ -2,10 +2,11 @@
 
 import pytest
 
-from app.web import app, update_state, init_storage, init_config
+from app.web import update_state
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
+from app.runtime import current_runtime
 
 class TestChannelsAPI:
     def test_channels_includes_summary(self, client, sample_analysis, tmp_path):
@@ -13,7 +14,7 @@ class TestChannelsAPI:
         db_path = str(tmp_path / "channels_test.db")
         storage = SnapshotStorage(db_path, max_days=7)
         storage.save_snapshot(sample_analysis)
-        init_storage(storage)
+        current_runtime().storage = storage
         resp = client.get("/api/channels")
         assert resp.status_code == 200
         data = resp.get_json()
@@ -27,9 +28,8 @@ class TestChannelsAPI:
         assert "us_capacity_mbps" in data["summary"]
 
     def test_channels_no_storage(self, client):
-        from app.web import _state
-        _state["analysis"] = None
-        init_storage(None)
+        current_runtime().reset_modem_state()
+        current_runtime().storage = None
         resp = client.get("/api/channels")
         assert resp.status_code == 200
         data = resp.get_json()
@@ -52,8 +52,7 @@ class TestDeviceAPI:
         assert data["uptime_seconds"] == 86400
 
     def test_device_not_available(self, client):
-        from app.web import _state
-        _state["device_info"] = None
+        current_runtime().reset_modem_state()
         resp = client.get("/api/device")
         assert resp.status_code == 200
         data = resp.get_json()
@@ -62,8 +61,7 @@ class TestDeviceAPI:
 
 class TestSpeedtestDetailAPI:
     def _reset_speedtest_module(self):
-        import app.modules.speedtest.routes as st_routes
-        st_routes._storage = None
+        pass
 
     @pytest.fixture
     def storage_with_speedtest(self, tmp_path):
@@ -87,7 +85,7 @@ class TestSpeedtestDetailAPI:
 
     def test_speedtest_by_id(self, client, storage_with_speedtest):
         self._reset_speedtest_module()
-        init_storage(storage_with_speedtest)
+        current_runtime().storage = storage_with_speedtest
         resp = client.get("/api/speedtest/42")
         assert resp.status_code == 200
         data = resp.get_json()
@@ -96,7 +94,7 @@ class TestSpeedtestDetailAPI:
 
     def test_speedtest_not_found(self, client, storage_with_speedtest):
         self._reset_speedtest_module()
-        init_storage(storage_with_speedtest)
+        current_runtime().storage = storage_with_speedtest
         resp = client.get("/api/speedtest/9999")
         assert resp.status_code == 404
 
@@ -105,7 +103,7 @@ class TestSpeedtestDetailAPI:
         self._reset_speedtest_module()
         mgr = ConfigManager(str(tmp_path / "data_sq"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox", "booked_download": 1000, "booked_upload": 50})
-        init_config(mgr)
+        current_runtime().config_manager = mgr
         db_path = str(tmp_path / "sq.db")
         storage = SnapshotStorage(db_path, max_days=7)
         ss = SpeedtestStorage(db_path)
@@ -116,7 +114,7 @@ class TestSpeedtestDetailAPI:
             "ping_ms": 10.0, "jitter_ms": 1.0, "packet_loss_pct": 0.0,
             "server_id": 1, "server_name": "Frankfurt",
         }])
-        init_storage(storage)
+        current_runtime().storage = storage
         app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.get("/api/speedtest/1")
@@ -132,7 +130,7 @@ class TestSpeedtestDetailAPI:
         self._reset_speedtest_module()
         mgr = ConfigManager(str(tmp_path / "data_sq2"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox", "booked_download": 1000, "booked_upload": 100})
-        init_config(mgr)
+        current_runtime().config_manager = mgr
         db_path = str(tmp_path / "sq2.db")
         storage = SnapshotStorage(db_path, max_days=7)
         ss = SpeedtestStorage(db_path)
@@ -143,7 +141,7 @@ class TestSpeedtestDetailAPI:
             "ping_ms": 10.0, "jitter_ms": 1.0, "packet_loss_pct": 0.0,
             "server_id": 1, "server_name": "Frankfurt",
         }])
-        init_storage(storage)
+        current_runtime().storage = storage
         app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.get("/api/speedtest/10")
@@ -158,9 +156,8 @@ class TestSpeedtestDetailAPI:
     def test_speedtest_quality_no_booked_speeds(self, client, storage_with_speedtest):
         """Without booked speeds and no connection_info, quality fields should be null."""
         self._reset_speedtest_module()
-        from app.web import _state
-        _state["connection_info"] = None
-        init_storage(storage_with_speedtest)
+        current_runtime().reset_modem_state()
+        current_runtime().storage = storage_with_speedtest
         resp = client.get("/api/speedtest/42")
         data = resp.get_json()
         assert data["speed_health"] is None

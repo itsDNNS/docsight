@@ -9,6 +9,9 @@ import pytest
 from app.modules.connection_monitor.routes import bp
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 from app.modules.connection_monitor.traceroute_probe import TracerouteHop, TracerouteResult
+from app.app_factory import create_app
+from app.config import ConfigManager
+from app.runtime import get_runtime
 
 
 def _make_traceroute_result(hops=None, reached=True, fingerprint="abc123"):
@@ -23,10 +26,7 @@ def _make_traceroute_result(hops=None, reached=True, fingerprint="abc123"):
 
 @pytest.fixture
 def app(tmp_path):
-    from flask import Flask
-    app = Flask(__name__)
-    app.config["TESTING"] = True
-    app.config["SECRET_KEY"] = "test"
+    app = create_app(config_manager=ConfigManager(str(tmp_path / "config")), environ={}, testing=True)
     app.register_blueprint(bp)
 
     db_path = str(tmp_path / "test_cm.db")
@@ -38,17 +38,11 @@ def app(tmp_path):
     mock_tr_probe = MagicMock()
     mock_tr_probe.run.return_value = _make_traceroute_result()
 
-    import app.modules.connection_monitor.routes as routes_mod
-    routes_mod._storage = storage
-    routes_mod._traceroute_probe = mock_tr_probe
-
-    with patch("app.web._config_manager", None), \
+    with patch("app.modules.connection_monitor.routes._get_cm_storage", return_value=storage), \
+         patch("app.modules.connection_monitor.routes._get_traceroute_probe", return_value=mock_tr_probe), \
          patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe), \
          patch("app.modules.connection_monitor.routes._get_tz", return_value="UTC"):
         yield app, storage, mock_tr_probe
-
-    routes_mod._storage = None
-    routes_mod._traceroute_probe = None
 
 
 @pytest.fixture
@@ -100,7 +94,8 @@ class TestManualTraceroute:
             "admin_password": "hashed_pw",
         }.get(key, default)
         mock_cfg.data_dir = os.path.dirname(storage.db_path)
-        with patch("app.web._config_manager", mock_cfg):
+        get_runtime(flask_app).config_manager = mock_cfg
+        with flask_app.app_context():
             from app.web import _init_auth_state
             _init_auth_state()
             c = flask_app.test_client()

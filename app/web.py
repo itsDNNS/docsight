@@ -7,17 +7,14 @@ import math
 import os
 import re
 import secrets
-import stat
-import threading
 import time
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
+from collections.abc import Callable, Mapping
 from urllib.parse import urlencode
 
-import requests as _requests
-
 from cryptography.hazmat.primitives import hashes, hmac
-from flask import Flask, render_template, request, jsonify, redirect, session, send_from_directory, url_for
-from jinja2 import FileSystemLoader, ChoiceLoader
+from flask import current_app, render_template, request, jsonify, redirect, session, send_from_directory, url_for
 from markupsafe import Markup
 from werkzeug.security import check_password_hash
 from zoneinfo import available_timezones
@@ -37,6 +34,7 @@ from .glossary import (
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
 from .module_loader import module_static_url
+from .runtime import current_runtime, _version_newer as _runtime_version_newer
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name as _get_public_tz_name, to_local as _to_local
 from .version import get_app_version
 
@@ -145,8 +143,6 @@ def _build_theme_collections(theme_modules):
 
     return collections
 
-# ── Login rate limiting (in-memory) ──
-_login_attempts = {}  # IP -> [timestamp, ...]
 _LOGIN_MAX_ATTEMPTS = 5
 _LOGIN_WINDOW = 900  # 15 min
 _LOGIN_LOCKOUT_BASE = 30  # seconds, doubles each excess attempt
@@ -174,45 +170,17 @@ def _get_client_ip():
 
 def _prune_login_attempts(now=None):
     """Drop expired and oldest login-attempt buckets to keep memory bounded."""
-    now = now or time.time()
-    expired = [ip for ip, attempts in _login_attempts.items() if not [t for t in attempts if now - t < _LOGIN_WINDOW]]
-    for ip in expired:
-        _login_attempts.pop(ip, None)
-
-    for ip, attempts in list(_login_attempts.items()):
-        _login_attempts[ip] = [t for t in attempts if now - t < _LOGIN_WINDOW]
-
-    if len(_login_attempts) <= _LOGIN_MAX_TRACKED_IPS:
-        return
-
-    oldest_first = sorted(
-        _login_attempts,
-        key=lambda ip: _login_attempts[ip][-1] if _login_attempts[ip] else 0,
-    )
-    for ip in oldest_first[: len(_login_attempts) - _LOGIN_MAX_TRACKED_IPS]:
-        _login_attempts.pop(ip, None)
+    current_runtime().login_rate_limiter.prune(now)
 
 
 def _check_login_rate_limit(ip):
     """Return seconds until retry allowed, or 0 if not limited."""
-    now = time.time()
-    _prune_login_attempts(now)
-    attempts = _login_attempts.get(ip, [])
-    if len(attempts) >= _LOGIN_MAX_ATTEMPTS:
-        excess = len(attempts) - _LOGIN_MAX_ATTEMPTS
-        lockout = _LOGIN_LOCKOUT_BASE * (2 ** min(excess, 8))
-        remaining = lockout - (now - attempts[-1])
-        if remaining > 0:
-            return remaining
-    return 0
+    return current_runtime().login_rate_limiter.retry_after(ip)
 
 
 def _record_failed_login(ip):
     """Record a failed login attempt."""
-    now = time.time()
-    _prune_login_attempts(now)
-    _login_attempts.setdefault(ip, []).append(now)
-    _prune_login_attempts(now)
+    current_runtime().login_rate_limiter.record_failure(ip)
 
 
 def _get_login_csrf_token():
@@ -234,46 +202,11 @@ def _valid_login_csrf_token(candidate):
 
 APP_VERSION = get_app_version()
 
-# GitHub update check (background, never blocks page loads)
-_update_cache = {"latest": None, "checked_at": 0, "checking": False}
 _UPDATE_CACHE_TTL = 3600  # 1 hour
 
 def _check_for_update():
     """Return cached update info. Triggers background check if stale."""
-    update_checks_enabled = getattr(_config_manager, "is_update_check_enabled", None)
-    if not callable(update_checks_enabled) or not update_checks_enabled():
-        return None
-    now = time.time()
-    if now - _update_cache["checked_at"] < _UPDATE_CACHE_TTL:
-        return _update_cache["latest"]
-    if APP_VERSION == "dev":
-        return None
-    if not _update_cache["checking"]:
-        _update_cache["checking"] = True
-        threading.Thread(target=_fetch_update, daemon=True).start()
-    return _update_cache["latest"]
-
-def _fetch_update():
-    """Background thread: fetch latest release from GitHub."""
-    try:
-        r = _requests.get(
-            "https://api.github.com/repos/itsDNNS/docsight/releases/latest",
-            headers={"Accept": "application/vnd.github.v3+json"},
-            timeout=5,
-        )
-        if r.status_code == 200:
-            tag = r.json().get("tag_name", "")
-            cur = APP_VERSION.lstrip("v")
-            lat = tag.lstrip("v")
-            if lat and lat != cur and _version_newer(lat, cur):
-                _update_cache["latest"] = tag
-            else:
-                _update_cache["latest"] = None
-    except Exception:
-        pass  # keep previous cache value
-    finally:
-        _update_cache["checked_at"] = time.time()
-        _update_cache["checking"] = False
+    return current_runtime().update_checker.latest()
 
 def _version_newer(latest, current):
     """Compare date-based version strings (e.g. '2026-02-16.1' > '2026-02-13.8').
@@ -281,29 +214,7 @@ def _version_newer(latest, current):
     Splits on '.' to compare the date part lexicographically and the
     trailing build number numerically so that '.10' > '.9'.
     """
-    def _parts(v):
-        # "2026-02-16.1" -> ("2026-02-16", 1)
-        dot = v.rfind(".")
-        if dot == -1:
-            return (v, 0)
-        date_part = v[:dot]
-        try:
-            build = int(v[dot + 1:])
-        except ValueError:
-            build = 0
-        return (date_part, build)
-
-    return _parts(latest) > _parts(current)
-
-
-app = Flask(__name__, template_folder="templates")
-app.secret_key = os.urandom(32)  # overwritten by _init_session_key
-app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
-    PERMANENT_SESSION_LIFETIME=timedelta(days=_SESSION_LIFETIME_DEFAULT_DAYS),
-    SESSION_REFRESH_EACH_REQUEST=True,
-)
+    return _runtime_version_newer(latest, current)
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -345,7 +256,6 @@ def _clean_tag(match: re.Match) -> str:
     return '<a href="#">'
 
 
-@app.template_filter("safe_html")
 def safe_html_filter(value):
     """Allow only <b>, <a>, <strong>, <em>, <br> tags — strip everything else.
 
@@ -358,7 +268,6 @@ def safe_html_filter(value):
     return Markup(cleaned)
 
 
-@app.template_filter("fmt_k")
 def format_k(value):
     """Format large numbers with k/M suffix: 1200000 -> 1.2M, 132007 -> 132k, 5929 -> 5.9k."""
     try:
@@ -381,7 +290,6 @@ def format_k(value):
     return str(value)
 
 
-@app.template_filter("fmt_speed_value")
 def format_speed_value(value):
     """Format speed value: >= 1000 Mbps -> GBit value."""
     try:
@@ -396,7 +304,6 @@ def format_speed_value(value):
         return str(int(round(value)))
 
 
-@app.template_filter("fmt_speed_unit")
 def format_speed_unit(value):
     """Return speed unit: >= 1000 Mbps -> 'GBit/s', else 'MBit/s'."""
     try:
@@ -406,7 +313,6 @@ def format_speed_unit(value):
     return "GBit/s" if value >= 1000 else "MBit/s"
 
 
-@app.template_filter("fmt_uptime")
 def format_uptime(seconds):
     """Format uptime seconds to human-readable string: '3d 12h 5m'."""
     try:
@@ -427,6 +333,7 @@ def format_uptime(seconds):
 
 def _get_lang():
     """Get language from query param or config."""
+    _config_manager = get_config_manager()
     lang = request.args.get("lang")
     if lang and lang in LANGUAGES:
         return lang
@@ -437,6 +344,7 @@ def _get_lang():
 
 def _get_setup_lang():
     """Resolve and persist the language for the unconfigured setup route."""
+    _config_manager = get_config_manager()
     lang = request.args.get("lang")
     if lang in LANGUAGES:
         if _config_manager:
@@ -466,7 +374,7 @@ def _get_setup_lang():
 
 def _get_tz_name():
     """Get configured IANA timezone name."""
-    return _get_public_tz_name(_config_manager)
+    return _get_public_tz_name(get_config_manager())
 
 
 def _localize_timestamps(data, keys=("timestamp", "created_at", "updated_at", "last_used_at")):
@@ -505,58 +413,34 @@ def _jinja_localiso(value):
     return _jinja_localtime(value)
 
 
-app.jinja_env.filters["localtime"] = _jinja_localtime
-app.jinja_env.filters["localiso"] = _jinja_localiso
-
-
-# Shared state (updated from main loop)
-_state_lock = threading.Lock()
-_state = {
-    "analysis": None,
-    "last_update": None,
-    "poll_interval": 900,
-    "error": None,
-    "connection_info": None,
-    "device_info": None,
-    "speedtest_latest": None,
-}
-
-_storage = None
-_config_manager = None
-_on_config_changed = None
-_modem_collector = None
-_collectors = []
-_last_manual_poll = 0.0
-_module_loader = None
-
-
 def get_storage():
-    """Get the storage instance (set at runtime via init_storage)."""
-    return _storage
+    """Get this application's snapshot storage, if configured."""
+    return current_runtime().storage
 
 
 def get_config_manager():
-    """Get the config manager (set at runtime via init_config)."""
-    return _config_manager
+    """Get this application's configuration manager."""
+    return current_runtime().config_manager
 
 
 def get_modem_collector():
-    """Get the modem collector (set at runtime via init_collector)."""
-    return _modem_collector
+    """Get this application's modem collector, if running."""
+    return current_runtime().modem_collector
 
 
 def get_collectors():
-    """Get all collectors (set at runtime via init_collectors)."""
-    return _collectors
+    """Get this application's collectors."""
+    return current_runtime().collectors
 
 
 def get_module_loader():
     """Get the module loader instance."""
-    return _module_loader
+    return current_runtime().module_loader
 
 
 def _get_dismissed_notice_ids():
     """Return locally persisted maintainer notice dismissals."""
+    _config_manager = get_config_manager()
     if not _config_manager:
         return []
     return coerce_dismissed_notice_ids(_config_manager.get("dismissed_notice_ids", []))
@@ -564,117 +448,31 @@ def _get_dismissed_notice_ids():
 
 def get_on_config_changed():
     """Get the config changed callback."""
-    return _on_config_changed
+    return current_runtime().on_config_changed
 
 
 def get_last_manual_poll():
     """Get the timestamp of the last manual poll."""
-    return _last_manual_poll
+    return current_runtime().get_last_manual_poll()
 
 
 def set_last_manual_poll(value):
     """Set the timestamp of the last manual poll."""
-    global _last_manual_poll
-    _last_manual_poll = value
-
-
-def init_storage(storage):
-    """Set the snapshot storage instance."""
-    global _storage
-    _storage = storage
-
-
-def init_collector(modem_collector):
-    """Set the modem collector instance for manual polling."""
-    global _modem_collector
-    _modem_collector = modem_collector
-
-
-def init_collectors(collectors):
-    """Set the list of all collectors for status reporting."""
-    global _collectors
-    _collectors = collectors
-
-
-def init_modules(module_loader):
-    """Set the module loader instance."""
-    global _module_loader
-    _module_loader = module_loader
-
-
-def setup_module_templates(module_loader):
-    """Add module template directories to Jinja2's search path."""
-    loaders = [app.jinja_loader]  # keep default loader first
-    for mod in module_loader.get_enabled_modules():
-        tpl_dir = os.path.join(mod.path, "templates")
-        if os.path.isdir(tpl_dir):
-            loaders.append(FileSystemLoader(tpl_dir))
-    if len(loaders) > 1:
-        app.jinja_loader = ChoiceLoader(loaders)
-
-
-def _write_private_file(path, value):
-    """Atomically replace a private state file with mode 0600."""
-    data_dir = os.path.dirname(path)
-    os.makedirs(data_dir, exist_ok=True)
-    temp_path = f"{path}.tmp-{os.getpid()}-{secrets.token_hex(8)}"
-    fd = None
-    try:
-        fd = os.open(
-            temp_path,
-            os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-            stat.S_IRUSR | stat.S_IWUSR,
-        )
-        with os.fdopen(fd, "wb") as f:
-            fd = None
-            f.write(value)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(temp_path, path)
-        try:
-            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
-            directory_fd = os.open(data_dir, os.O_RDONLY)
-            try:
-                os.fsync(directory_fd)
-            finally:
-                os.close(directory_fd)
-        except OSError:
-            pass
-    finally:
-        if fd is not None:
-            os.close(fd)
-        try:
-            os.unlink(temp_path)
-        except FileNotFoundError:
-            pass
-
-
-def _init_session_key(data_dir):
-    """Load or generate a persistent session secret key."""
-    key_path = os.path.join(data_dir, ".session_key")
-    if os.path.exists(key_path):
-        with open(key_path, "rb") as f:
-            key = f.read()
-    else:
-        key = os.urandom(32)
-        _write_private_file(key_path, key)
-    app.secret_key = key
+    current_runtime().set_last_manual_poll(value)
 
 
 def _rotate_session_key():
     """Persist and activate a new signing key, invalidating all old cookies."""
-    if not _config_manager:
-        raise RuntimeError("Config not initialized")
-    key = os.urandom(32)
-    _write_private_file(os.path.join(_config_manager.data_dir, ".session_key"), key)
+    key = current_runtime().auth_state.rotate_session_key()
     # In-memory activation assumes today's single-process waitress deployment;
     # a future multi-worker server must coordinate shared signing-key rotation.
-    app.secret_key = key
+    current_app.secret_key = key
 
 
-def _session_lifetime_days():
+def _session_lifetime_days(environ: Mapping[str, str] | None = None):
     """Return the safe, bounded operator-configured session lifetime."""
-    configured = os.environ.get("SESSION_LIFETIME_DAYS", "").strip()
+    env = os.environ if environ is None else environ
+    configured = env.get("SESSION_LIFETIME_DAYS", "").strip()
     if not configured:
         return _SESSION_LIFETIME_DEFAULT_DAYS
     try:
@@ -686,17 +484,6 @@ def _session_lifetime_days():
         )
         return _SESSION_LIFETIME_DEFAULT_DAYS
     return max(_SESSION_LIFETIME_MIN_DAYS, min(_SESSION_LIFETIME_MAX_DAYS, days))
-
-
-def init_config(config_manager, on_config_changed=None):
-    """Set the config manager and optional change callback."""
-    global _config_manager, _on_config_changed
-    _config_manager = config_manager
-    _on_config_changed = on_config_changed
-    _init_session_key(config_manager.data_dir)
-    _init_auth_state()
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=_session_lifetime_days())
-
 
 def _keyed_sha256_hexdigest(key: bytes, message: bytes) -> str:
     """Return the HMAC-SHA256 of message as lowercase hexadecimal."""
@@ -726,33 +513,23 @@ def _admin_password_matches(effective_password, candidate):
 
 def _auth_state_fingerprint(password_representation=None):
     """Return a keyed fingerprint of the effective admin-password state."""
+    _config_manager = get_config_manager()
     if password_representation is None:
         password_representation = (
             _config_manager.get("admin_password", "") if _config_manager else ""
         )
-    key = app.secret_key.encode() if isinstance(app.secret_key, str) else app.secret_key
+    key = current_app.secret_key.encode() if isinstance(current_app.secret_key, str) else current_app.secret_key
     value = _AUTH_STATE_CONTEXT + str(password_representation or "").encode("utf-8")
     return _keyed_sha256_hexdigest(key, value)
 
 
-def _auth_state_path():
-    return os.path.join(_config_manager.data_dir, _AUTH_STATE_FILENAME)
-
-
 def _read_auth_state():
-    try:
-        with open(_auth_state_path(), "r", encoding="ascii") as state_file:
-            value = state_file.read().strip()
-    except (FileNotFoundError, OSError, UnicodeError):
-        return None
-    if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
-        return None
-    return value
+    return current_runtime().auth_state.read_fingerprint()
 
 
 def _write_auth_state():
     fingerprint = _auth_state_fingerprint()
-    _write_private_file(_auth_state_path(), fingerprint.encode("ascii"))
+    current_runtime().auth_state.write_fingerprint(fingerprint)
 
 
 def _init_auth_state():
@@ -766,8 +543,17 @@ def _init_auth_state():
         _write_auth_state()
 
 
+def bootstrap_auth_state(app, runtime):
+    """Initialize durable authentication state for a newly created app."""
+    if app.extensions.get("docsight") is not runtime:
+        raise RuntimeError("DOCSight runtime is not attached to this application")
+    with app.app_context():
+        _init_auth_state()
+
+
 def _sync_auth_state():
     """Observe runtime auth changes and durably invalidate existing cookies."""
+    _config_manager = get_config_manager()
     if not _config_manager:
         return
     stored = _read_auth_state()
@@ -780,13 +566,14 @@ def _sync_auth_state():
 
 def _admin_session_marker(password_representation=None):
     """Create a keyed, non-reversible marker for the effective password state."""
+    _config_manager = get_config_manager()
     if password_representation is None:
         if not _config_manager:
             return ""
         password_representation = _config_manager.get("admin_password", "")
     if not password_representation:
         return ""
-    key = app.secret_key.encode() if isinstance(app.secret_key, str) else app.secret_key
+    key = current_app.secret_key.encode() if isinstance(current_app.secret_key, str) else current_app.secret_key
     value = _AUTH_MARKER_CONTEXT + str(password_representation).encode("utf-8")
     return _keyed_sha256_hexdigest(key, value)
 
@@ -818,6 +605,8 @@ def _auth_required():
     Also checks for valid Bearer token in Authorization header.
     Returns True if authentication is required but not provided.
     """
+    _config_manager = get_config_manager()
+    _storage = get_storage()
     if not _config_manager:
         return False
     _sync_auth_state()
@@ -852,6 +641,7 @@ def _require_session_auth(f):
     """Decorator: only allow session-based login, no API tokens."""
     @functools.wraps(f)
     def decorated(*args, **kwargs):
+        _config_manager = get_config_manager()
         _sync_auth_state()
         if not _config_manager or not _config_manager.get("admin_password", ""):
             return f(*args, **kwargs)
@@ -866,8 +656,8 @@ def _require_session_auth(f):
     return decorated
 
 
-@app.route("/login", methods=["GET", "POST"])
 def login():
+    _config_manager = get_config_manager()
     _sync_auth_state()
     if not _config_manager or not _config_manager.get("admin_password", ""):
         return redirect(url_for("index"))
@@ -903,7 +693,7 @@ def login():
                 _write_auth_state()
                 audit_log.info("Auto-upgraded plaintext password to hash for ip=%s", ip)
         if success:
-            _login_attempts.pop(ip, None)
+            current_runtime().login_rate_limiter.reset(ip)
             session.permanent = True
             session["authenticated"] = True
             session[_AUTH_MARKER_SESSION_KEY] = _admin_session_marker(stored)
@@ -916,13 +706,11 @@ def login():
     return render_template("login.html", t=t, lang=lang, theme=theme, error=error, csrf_token=csrf_token)
 
 
-@app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
 
-@app.context_processor
 def inject_browser_url_bootstrap():
     """Expose only the canonical mount path needed by browser URL sinks."""
     return {
@@ -932,9 +720,10 @@ def inject_browser_url_bootstrap():
     }
 
 
-@app.context_processor
 def inject_auth():
     """Make auth_enabled and module info available in all templates."""
+    _config_manager = get_config_manager()
+    _module_loader = get_module_loader()
     auth_enabled = bool(_config_manager and _config_manager.get("admin_password", ""))
     modules = _module_loader.get_enabled_modules() if _module_loader else []
 
@@ -993,35 +782,25 @@ def inject_auth():
 
 def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None, weather_latest=None):
     """Update the shared web state from the main loop (thread-safe)."""
-    with _state_lock:
-        if analysis is not None:
-            _state["analysis"] = analysis
-            _state["last_update"] = time.strftime("%Y-%m-%d %H:%M:%S")
-            _state["error"] = None
-        if error is not None:
-            _state["error"] = str(error)
-        if poll_interval is not None:
-            _state["poll_interval"] = poll_interval
-        if connection_info is not None:
-            _state["connection_info"] = connection_info
-        if device_info is not None:
-            _state["device_info"] = device_info
-        if speedtest_latest is not None:
-            _state["speedtest_latest"] = speedtest_latest
-        if weather_latest is not None:
-            _state["weather_latest"] = weather_latest
+    current_runtime().update_state(
+        analysis=analysis,
+        error=error,
+        poll_interval=poll_interval,
+        connection_info=connection_info,
+        device_info=device_info,
+        speedtest_latest=speedtest_latest,
+        weather_latest=weather_latest,
+    )
 
 
 def clear_speedtest_latest():
     """Clear the cached speedtest_latest from state (e.g. after server reset)."""
-    with _state_lock:
-        _state["speedtest_latest"] = None
+    current_runtime().clear_speedtest_latest()
 
 
 def get_state() -> dict[str, object]:
     """Return a snapshot of the shared web state (thread-safe)."""
-    with _state_lock:
-        return dict(_state)
+    return current_runtime().get_state()
 
 
 def reset_modem_state():
@@ -1031,12 +810,7 @@ def reset_modem_state():
     the dashboard only drops the modem-derived sections while a new poll
     is starting.
     """
-    with _state_lock:
-        _state["analysis"] = None
-        _state["last_update"] = None
-        _state["error"] = None
-        _state["connection_info"] = None
-        _state["device_info"] = None
+    current_runtime().reset_modem_state()
 
 
 def _to_float(value):
@@ -1537,14 +1311,12 @@ def _build_capacity_context(analysis, booked_download=0, booked_upload=0):
     }
 
 
-@app.route("/sw.js")
 def service_worker():
-    return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
+    return send_from_directory(current_app.static_folder, "sw.js", mimetype="application/javascript")
 
 
-@app.route("/static/manifest.json")
 def web_app_manifest():
-    with open(os.path.join(app.static_folder, "manifest.json"), encoding="utf-8") as handle:
+    with open(os.path.join(current_app.static_folder, "manifest.json"), encoding="utf-8") as handle:
         manifest = json.load(handle)
     manifest["id"] = url_for("index")
     response = jsonify(manifest)
@@ -1570,7 +1342,6 @@ def _build_glossary_context(lang, t, selected_term_id=None):
     }
 
 
-@app.route("/glossary")
 @require_auth
 def glossary_page():
     """Compatibility endpoint for existing glossary deep links."""
@@ -1586,9 +1357,10 @@ def glossary_page():
     )
 
 
-@app.route("/")
 @require_auth
 def index():
+    _config_manager = get_config_manager()
+    _storage = get_storage()
     demo_mode = _config_manager.is_demo_mode() if _config_manager else False
     if _config_manager and not demo_mode and not _config_manager.is_configured():
         return redirect(url_for("setup"))
@@ -1699,15 +1471,14 @@ def index():
     )
 
 
-@app.route("/health")
 def health():
     """Simple health check endpoint."""
-    if _state["analysis"]:
-        return {"status": "ok", "docsis_health": _state["analysis"]["summary"]["health"], "version": APP_VERSION}
+    state = get_state()
+    if state["analysis"]:
+        return {"status": "ok", "docsis_health": state["analysis"]["summary"]["health"], "version": APP_VERSION}
     return {"status": "ok", "docsis_health": "waiting", "version": APP_VERSION}
 
 
-@app.route("/desktop-runtime")
 def desktop_runtime():
     """Return authenticated process identity only for desktop loopback clients."""
     payload, status = desktop_runtime_payload(
@@ -1718,8 +1489,8 @@ def desktop_runtime():
     return jsonify(payload), status
 
 
-@app.route("/setup")
 def setup():
+    _config_manager = get_config_manager()
     if _config_manager and (_config_manager.is_configured() or _config_manager.is_demo_mode()):
         return redirect(url_for("index"))
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
@@ -1734,9 +1505,10 @@ def setup():
     return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, driver_hints=driver_hints, timezones=_get_iana_timezones(), iana_tz=iana_tz, theme=theme)
 
 
-@app.route("/settings")
 @require_auth
 def settings():
+    _config_manager = get_config_manager()
+    _module_loader = get_module_loader()
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     theme = _config_manager.get_theme() if _config_manager else "dark"
     lang = _get_lang()
@@ -1820,7 +1592,6 @@ def settings():
     )
 
 
-@app.after_request
 def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -1838,6 +1609,48 @@ def add_security_headers(response):
     return response
 
 
-# ── Blueprint Registration ──
-from .blueprints import register_blueprints  # noqa: E402
-register_blueprints(app)
+@dataclass(frozen=True)
+class RouteSpec:
+    rule: str
+    endpoint: str
+    view: Callable
+    methods: tuple[str, ...]
+
+
+CORE_ROUTES = (
+    RouteSpec("/login", "login", login, ("GET", "POST")),
+    RouteSpec("/logout", "logout", logout, ("POST",)),
+    RouteSpec("/", "index", index, ("GET",)),
+    RouteSpec("/glossary", "glossary_page", glossary_page, ("GET",)),
+    RouteSpec("/health", "health", health, ("GET",)),
+    RouteSpec("/desktop-runtime", "desktop_runtime", desktop_runtime, ("GET",)),
+    RouteSpec("/setup", "setup", setup, ("GET",)),
+    RouteSpec("/settings", "settings", settings, ("GET",)),
+    RouteSpec("/sw.js", "service_worker", service_worker, ("GET",)),
+    RouteSpec("/static/manifest.json", "web_app_manifest", web_app_manifest, ("GET",)),
+)
+CORE_TEMPLATE_FILTERS = {
+    "safe_html": safe_html_filter,
+    "fmt_k": format_k,
+    "fmt_speed_value": format_speed_value,
+    "fmt_speed_unit": format_speed_unit,
+    "fmt_uptime": format_uptime,
+    "localtime": _jinja_localtime,
+    "localiso": _jinja_localiso,
+}
+
+
+def register_core_routes(app) -> None:
+    """Register DOCSight's stable core HTTP surface on one application."""
+    for spec in CORE_ROUTES:
+        app.add_url_rule(
+            spec.rule,
+            endpoint=spec.endpoint,
+            view_func=spec.view,
+            methods=list(spec.methods),
+        )
+    for name, function in CORE_TEMPLATE_FILTERS.items():
+        app.add_template_filter(function, name)
+    app.context_processor(inject_browser_url_bootstrap)
+    app.context_processor(inject_auth)
+    app.after_request(add_security_headers)

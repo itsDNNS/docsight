@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.web import app, init_config, update_state
+from app.web import update_state
 
 class TestConnectionEndpoint:
     def test_no_connection_info(self, client):
@@ -24,25 +24,15 @@ class TestConnectionEndpoint:
         assert data["max_downstream_kbps"] == 250000
         assert data["max_upstream_kbps"] == 40000
 
-    def test_isp_name_from_config(self, config_mgr):
+    def test_isp_name_from_config(self, config_mgr, make_app):
         config_mgr.save({"isp_name": "Vodafone"})
-        init_config(config_mgr)
-        app.config["TESTING"] = True
+        app = make_app(config_manager=config_mgr)
         with app.test_client() as c:
             data = c.get("/api/connection").get_json()
         assert data["isp_name"] == "Vodafone"
 
 
 class TestGamingScoreEndpoint:
-    @pytest.fixture(autouse=True)
-    def reset_state(self):
-        from app.web import _state
-        _state["analysis"] = None
-        _state["speedtest_latest"] = None
-        yield
-        _state["analysis"] = None
-        _state["speedtest_latest"] = None
-
     def test_no_data_returns_nulls(self, client):
         resp = client.get("/api/gaming-score")
         assert resp.status_code == 200
@@ -95,12 +85,10 @@ class TestGamingScoreEndpoint:
         # Without speedtest data the score may still be partial, but genres key must exist
         assert all(v in ("ok", "warn", "bad") for v in data["genres"].values())
 
-    def test_enabled_flag_reflects_config(self, config_mgr, sample_analysis):
+    def test_enabled_flag_reflects_config(self, config_mgr, sample_analysis, make_app):
         config_mgr.save({"gaming_quality_enabled": True})
-        init_config(config_mgr)
-        update_state(analysis=sample_analysis)
-        app.config["TESTING"] = True
-        with app.test_client() as c:
+        app = make_app(config_manager=config_mgr)
+        with app.app_context(), app.test_client() as c:
+            update_state(analysis=sample_analysis)
             data = c.get("/api/gaming-score").get_json()
         assert data["enabled"] is True
-

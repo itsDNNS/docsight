@@ -2,6 +2,7 @@
 
 import pytest
 from app.module_loader import ModuleInfo
+from app.runtime import current_runtime
 
 
 class TestThemeContext:
@@ -33,19 +34,19 @@ class TestThemeContext:
                     return "test.theme"
                 return default
 
-        old_loader = web._module_loader
-        old_config = web._config_manager
+        old_loader = current_runtime().module_loader
+        old_config = current_runtime().config_manager
         try:
-            web._module_loader = FakeLoader()
-            web._config_manager = FakeConfig()
+            current_runtime().module_loader = FakeLoader()
+            current_runtime().config_manager = FakeConfig()
 
-            with web.app.test_request_context("/"):
+            with app.test_request_context("/"):
                 ctx = web.inject_auth()
                 assert "active_theme_data" in ctx
                 assert ctx["active_theme_data"]["dark"]["--bg"] == "#111"
         finally:
-            web._module_loader = old_loader
-            web._config_manager = old_config
+            current_runtime().module_loader = old_loader
+            current_runtime().config_manager = old_config
 
     def test_no_theme_returns_none(self):
         """Context processor returns None when no theme modules exist."""
@@ -61,19 +62,19 @@ class TestThemeContext:
             def get(self, key, default=""):
                 return default
 
-        old_loader = web._module_loader
-        old_config = web._config_manager
+        old_loader = current_runtime().module_loader
+        old_config = current_runtime().config_manager
         try:
-            web._module_loader = FakeLoader()
-            web._config_manager = FakeConfig()
+            current_runtime().module_loader = FakeLoader()
+            current_runtime().config_manager = FakeConfig()
 
-            with web.app.test_request_context("/"):
+            with app.test_request_context("/"):
                 ctx = web.inject_auth()
                 assert "active_theme_data" in ctx
                 assert ctx["active_theme_data"] is None
         finally:
-            web._module_loader = old_loader
-            web._config_manager = old_config
+            current_runtime().module_loader = old_loader
+            current_runtime().config_manager = old_config
 
     def test_fallback_prefers_classic_over_alphabetical(self):
         """When no active_theme is configured, Classic is chosen over alphabetically first."""
@@ -102,19 +103,19 @@ class TestThemeContext:
             def get(self, key, default=""):
                 return default  # no active_theme set
 
-        old_loader = web._module_loader
-        old_config = web._config_manager
+        old_loader = current_runtime().module_loader
+        old_config = current_runtime().config_manager
         try:
-            web._module_loader = FakeLoader()
-            web._config_manager = FakeConfig()
+            current_runtime().module_loader = FakeLoader()
+            current_runtime().config_manager = FakeConfig()
 
-            with web.app.test_request_context("/"):
+            with app.test_request_context("/"):
                 ctx = web.inject_auth()
                 assert ctx["active_theme_id"] == "docsight.theme_classic"
                 assert ctx["active_theme_data"]["dark"]["--bg"] == "#111"
         finally:
-            web._module_loader = old_loader
-            web._config_manager = old_config
+            current_runtime().module_loader = old_loader
+            current_runtime().config_manager = old_config
 
     def test_theme_collections_are_grouped_for_gallery(self):
         """Theme gallery collections group signature, community, and playful themes."""
@@ -151,13 +152,13 @@ class TestThemeContext:
                     return "docsight.theme_classic"
                 return default
 
-        old_loader = web._module_loader
-        old_config = web._config_manager
+        old_loader = current_runtime().module_loader
+        old_config = current_runtime().config_manager
         try:
-            web._module_loader = FakeLoader()
-            web._config_manager = FakeConfig()
+            current_runtime().module_loader = FakeLoader()
+            current_runtime().config_manager = FakeConfig()
 
-            with web.app.test_request_context("/settings"):
+            with app.test_request_context("/settings"):
                 ctx = web.inject_auth()
                 assert [c["key"] for c in ctx["theme_collections"]] == [
                     "signature",
@@ -168,5 +169,5 @@ class TestThemeContext:
                     "docsight.theme_tokyo_night",
                 ]
         finally:
-            web._module_loader = old_loader
-            web._config_manager = old_config
+            current_runtime().module_loader = old_loader
+            current_runtime().config_manager = old_config

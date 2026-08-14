@@ -8,8 +8,9 @@ from datetime import datetime, timedelta, timezone
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.tz import to_local, utc_now, utc_cutoff
-from app.web import app, update_state, init_config, init_storage, _get_tz_name
+from app.web import update_state, _get_tz_name
 from app.config import ConfigManager
+from app.runtime import current_runtime
 
 
 def _api_response_date(utc_ts: str) -> str:
@@ -61,8 +62,8 @@ def config_mgr(tmp_path):
 
 @pytest.fixture
 def client_with_storage(config_mgr, storage, speedtest_storage):
-    init_config(config_mgr)
-    init_storage(storage)
+    current_runtime().config_manager = config_mgr
+    current_runtime().storage = storage
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client

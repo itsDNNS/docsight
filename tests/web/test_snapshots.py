@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.web import init_storage
 from app.storage import SnapshotStorage
+from app.runtime import current_runtime
 
 class TestSnapshotsAPI:
     @pytest.fixture
@@ -13,7 +13,7 @@ class TestSnapshotsAPI:
         return storage
 
     def test_snapshots_list(self, client, storage_with_data):
-        init_storage(storage_with_data)
+        current_runtime().storage = storage_with_data
         resp = client.get("/api/snapshots")
         assert resp.status_code == 200
         data = resp.get_json()
@@ -21,13 +21,13 @@ class TestSnapshotsAPI:
         assert len(data) >= 1
 
     def test_snapshots_list_no_storage(self, client):
-        init_storage(None)
+        current_runtime().storage = None
         resp = client.get("/api/snapshots")
         assert resp.status_code == 200
         assert resp.get_json() == []
 
     def test_snapshot_by_timestamp(self, client, storage_with_data):
-        init_storage(storage_with_data)
+        current_runtime().storage = storage_with_data
         timestamps = storage_with_data.get_snapshot_list()
         resp = client.get(f"/api/snapshots/{timestamps[0]}")
         assert resp.status_code == 200
@@ -36,7 +36,7 @@ class TestSnapshotsAPI:
         assert "ds_channels" in data
 
     def test_snapshot_not_found(self, client, storage_with_data):
-        init_storage(storage_with_data)
+        current_runtime().storage = storage_with_data
         resp = client.get("/api/snapshots/1999-01-01T00:00:00Z")
         assert resp.status_code == 404
 
@@ -60,7 +60,7 @@ class TestSnapshotsAPI:
         })
         storage = SnapshotStorage(str(tmp_path / "partial.db"), max_days=7)
         storage.save_snapshot(sample_analysis)
-        init_storage(storage)
+        current_runtime().storage = storage
 
         timestamp = storage.get_snapshot_list()[0]
         response = client.get(f"/api/snapshots/{timestamp}")

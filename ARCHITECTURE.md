@@ -25,6 +25,35 @@ Supervisor app information and set an explicit `BASE_PATH` before starting
 DOCSight, but the wrapper owns that platform integration. Core continues to
 use its own authentication and generic reverse-proxy contract.
 
+### Application factory
+
+`app.app_factory.create_app()` is the single production construction path for
+the Flask application. Importing `app.web` defines the core HTTP surface and
+its accessor facade, but does not construct an application. Factory creation
+has a fixed order: configure Flask, establish the durable signing key, attach
+runtime state, synchronize authentication state, register core routes,
+register core blueprints, load module contributions and templates, install
+base-path handling, then apply reverse-proxy handling as the outer WSGI layer.
+
+Each application owns a typed `DocsightRuntime` at
+`app.extensions["docsight"]`. It contains the configuration manager, storage,
+authentication state, rate limiter, update checker, module loader, collector
+references, derived-storage cache, and lock-protected dashboard state. Route
+and module code reaches the current application through the accessors in
+`app.web`; it must not retain app-specific values in module globals.
+
+Collector threads receive the same runtime explicitly through the existing
+`web=` duck-type parameter. The runtime implements `update_state()`,
+`clear_speedtest_latest()`, `get_state()`, `get_module_loader()`, and the
+read-only `_state` snapshot expected by existing collectors, without requiring
+a Flask request or application context.
+
+Module schema registries in `app.config`, analyzer threshold selection,
+translation catalogs, driver/theme registries, and dynamic Python imports are
+process-wide. Per-application configuration values, storage paths, signing and
+authentication state, rate-limit buckets, update caches, module loader,
+templates, collectors, and derived storages remain isolated.
+
 ---
 
 ## System Architecture
@@ -216,7 +245,9 @@ All shared state is protected by locks:
 |------|----------|----------|
 | `_lock` | `Collector` base | Scheduling state (`_last_poll`, `_consecutive_failures`) |
 | `_collect_lock` | `Collector` base | Prevents concurrent `collect()` (manual poll vs auto-poll) |
-| `_state_lock` | `web.py` | Shared `_state` dict (written by collectors, read by Flask) |
+| `RuntimeState._lock` | `runtime.py` | Per-application dashboard state (written by collectors, read by Flask) |
+| `LoginRateLimiter._lock` | `runtime.py` | Per-application login failure buckets |
+| `UpdateChecker._lock` | `runtime.py` | Per-application update-check state |
 | `_lock` | `EventDetector` | Previous snapshot comparison (`_prev`) |
 
 SQLite uses **WAL mode** (`PRAGMA journal_mode=WAL`) for concurrent reads during writes.
@@ -257,7 +288,7 @@ Driver.get_docsis_data()
     → event_detector.check()
       → storage.save_snapshot()
         → mqtt_pub.publish_data()
-          → web.update_state()
+          → runtime.update_state()
 ```
 
 **Output:** `CollectorResult` with channel health assessment
@@ -287,7 +318,7 @@ _generate_data() (base channels + variation)
     → event_detector.check()
       → storage.save_snapshot()
         → mqtt_pub.publish_data()
-          → web.update_state()
+          → runtime.update_state()
 ```
 
 **Features:**

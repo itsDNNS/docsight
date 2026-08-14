@@ -5,7 +5,7 @@ from datetime import timedelta
 
 import pytest
 
-from app.web import app, update_state, init_config
+from app.web import update_state
 from app.config import ConfigManager
 
 class TestSecurityHeaders:
@@ -31,39 +31,31 @@ class TestTimestampValidation:
 
 
 class TestSessionKeyPersistence:
-    def test_session_key_file_created(self, tmp_path):
+    def test_session_key_file_created(self, tmp_path, make_app):
         data_dir = str(tmp_path / "data_sk")
         mgr = ConfigManager(data_dir)
-        init_config(mgr)
+        make_app(config_manager=mgr)
         import os
         assert os.path.exists(os.path.join(data_dir, ".session_key"))
 
-    def test_session_key_persisted(self, tmp_path):
+    def test_session_key_persisted(self, tmp_path, make_app):
         data_dir = str(tmp_path / "data_sk2")
         mgr = ConfigManager(data_dir)
-        init_config(mgr)
-        key1 = app.secret_key
-        # Re-init should load same key
-        init_config(mgr)
-        assert app.secret_key == key1
+        key1 = make_app(config_manager=mgr).secret_key
+        assert make_app(config_manager=mgr).secret_key == key1
 
 
 class TestSessionLifetime:
-    def test_default_is_thirty_days(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("SESSION_LIFETIME_DAYS", raising=False)
-        init_config(ConfigManager(str(tmp_path / "default_lifetime")))
+    def test_default_is_thirty_days(self, tmp_path, make_app):
+        app = make_app(config_manager=ConfigManager(str(tmp_path / "default_lifetime")), environ={})
         assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(days=30)
 
-    def test_operator_override(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("SESSION_LIFETIME_DAYS", "45")
-        init_config(ConfigManager(str(tmp_path / "custom_lifetime")))
+    def test_operator_override(self, tmp_path, make_app):
+        app = make_app(config_manager=ConfigManager(str(tmp_path / "custom_lifetime")), environ={"SESSION_LIFETIME_DAYS": "45"})
         assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(days=45)
 
-    def test_init_config_preserves_reverse_proxy_secure_cookie(self, tmp_path, monkeypatch):
-        monkeypatch.setitem(app.config, "SESSION_COOKIE_SECURE", True)
-
-        init_config(ConfigManager(str(tmp_path / "secure_cookie")))
-
+    def test_factory_enables_reverse_proxy_secure_cookie(self, tmp_path, make_app):
+        app = make_app(config_manager=ConfigManager(str(tmp_path / "secure_cookie")), environ={"REVERSE_PROXY": "1"})
         assert app.config["SESSION_COOKIE_SECURE"] is True
 
     @pytest.mark.parametrize(
@@ -77,8 +69,10 @@ class TestSessionLifetime:
         ],
     )
     def test_invalid_and_unsafe_values_are_defaulted_or_clamped(
-        self, tmp_path, monkeypatch, configured, expected_days
+        self, tmp_path, make_app, configured, expected_days
     ):
-        monkeypatch.setenv("SESSION_LIFETIME_DAYS", configured)
-        init_config(ConfigManager(str(tmp_path / f"lifetime_{expected_days}_{configured}")))
+        app = make_app(
+            config_manager=ConfigManager(str(tmp_path / f"lifetime_{expected_days}_{configured}")),
+            environ={"SESSION_LIFETIME_DAYS": configured},
+        )
         assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(days=expected_days)

@@ -1,28 +1,17 @@
 """Integration tests for the GET /metrics HTTP endpoint."""
 
 import pytest
-import app.web as _web
-from app.web import app, update_state, init_config, init_storage
+from app.web import update_state
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
+from app.runtime import current_runtime
 
 
 @pytest.fixture(autouse=True)
 def reset_web_state():
-    """Reset shared web state before and after each test to prevent state pollution."""
-    _web._state["analysis"] = None
-    _web._state["last_update"] = None
-    _web._state["error"] = None
-    _web._state["connection_info"] = None
-    _web._state["device_info"] = None
-    _web._state["speedtest_latest"] = None
+    current_runtime().reset_modem_state()
+    current_runtime().clear_speedtest_latest()
     yield
-    _web._state["analysis"] = None
-    _web._state["last_update"] = None
-    _web._state["error"] = None
-    _web._state["connection_info"] = None
-    _web._state["device_info"] = None
-    _web._state["speedtest_latest"] = None
 
 
 @pytest.fixture
@@ -52,8 +41,8 @@ def protected_metrics_config(tmp_path):
 @pytest.fixture
 def metrics_client(noauth_config):
     """Flask test client with no authentication configured."""
-    init_config(noauth_config)
-    init_storage(None)
+    current_runtime().config_manager = noauth_config
+    current_runtime().storage = None
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
@@ -62,8 +51,8 @@ def metrics_client(noauth_config):
 @pytest.fixture
 def auth_client(auth_config):
     """Flask test client with authentication configured."""
-    init_config(auth_config)
-    init_storage(None)
+    current_runtime().config_manager = auth_config
+    current_runtime().storage = None
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
@@ -73,8 +62,8 @@ def auth_client(auth_config):
 def protected_metrics_client(protected_metrics_config, tmp_path):
     """Flask test client with token-protected metrics enabled."""
     storage = SnapshotStorage(str(tmp_path / "metrics-tokens.db"), max_days=7)
-    init_config(protected_metrics_config)
-    init_storage(storage)
+    current_runtime().config_manager = protected_metrics_config
+    current_runtime().storage = storage
     app.config["TESTING"] = True
     with app.test_client() as client:
         client._docsight_storage = storage

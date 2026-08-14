@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify
 
 from app.config import parse_config_bool
 from app.web import require_auth, get_config_manager, get_state, get_storage, clear_speedtest_latest
+from app.runtime import current_runtime
 from app.i18n import get_translations
 from app.storage.sqlite import connect_sqlite
 
@@ -18,21 +19,16 @@ log = logging.getLogger("docsis.web.speedtest")
 
 bp = Blueprint("speedtest_module", __name__)
 
-# Lazy-initialized module-local storage
-_storage = None
-
-# Rate-limit: track last manual trigger timestamp
-_last_trigger_ts = 0
 _TRIGGER_COOLDOWN = 60  # seconds
 
 
 def _get_speedtest_storage():
-    global _storage
-    if _storage is None:
-        core_storage = get_storage()
-        if core_storage:
-            _storage = SpeedtestStorage(core_storage.db_path)
-    return _storage
+    core_storage = get_storage()
+    if not core_storage:
+        return None
+    return current_runtime().derived_storage.get(
+        "speedtest", lambda: SpeedtestStorage(core_storage.db_path)
+    )
 
 
 def _classify_speed(actual, booked):
@@ -231,7 +227,6 @@ def api_speedtest_signal(result_id):
 @require_auth
 def api_speedtest_run():
     """Trigger a speedtest run via the Speedtest Tracker API."""
-    global _last_trigger_ts
     _config_manager = get_config_manager()
     if not _config_manager or not _config_manager.is_speedtest_configured():
         return jsonify({"success": False, "error": "Speedtest Tracker not configured"}), 400
@@ -240,8 +235,10 @@ def api_speedtest_run():
         return jsonify({"success": False, "error": "Not available in demo mode"}), 400
 
     now = time.time()
-    if now - _last_trigger_ts < _TRIGGER_COOLDOWN:
-        remaining = int(_TRIGGER_COOLDOWN - (now - _last_trigger_ts))
+    runtime = current_runtime()
+    last_trigger_ts = runtime.derived_storage.value("speedtest_last_trigger", 0.0)
+    if now - last_trigger_ts < _TRIGGER_COOLDOWN:
+        remaining = int(_TRIGGER_COOLDOWN - (now - last_trigger_ts))
         return jsonify({"success": False, "error": f"Rate limited, retry in {remaining}s"}), 429
 
     url = _config_manager.get("speedtest_tracker_url", "").rstrip("/")
@@ -257,7 +254,7 @@ def api_speedtest_run():
             verify=not tls_insecure,
         )
         if resp.status_code == 201:
-            _last_trigger_ts = now
+            runtime.derived_storage.set_value("speedtest_last_trigger", now)
             log.info("Speedtest manually triggered via UI")
             return jsonify({"success": True})
         else:

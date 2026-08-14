@@ -5,26 +5,15 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.web import app, init_config, init_storage
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
+from app.app_factory import create_app, default_module_loader_factory
 
 
 def _ts_days_ago(days):
     """Return a UTC ISO timestamp for N days ago at 10:00."""
     dt = datetime.now(timezone.utc) - timedelta(days=days)
     return dt.replace(hour=10, minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _ensure_blueprint():
-    """Register the modulation blueprint if not already registered."""
-    existing = {b.name for b in app.blueprints.values()}
-    if "modulation_bp" not in existing:
-        from app.modules.modulation.routes import bp
-        app.register_blueprint(bp)
-
-
-_ensure_blueprint()
 
 
 @pytest.fixture
@@ -37,12 +26,13 @@ def config_mgr(tmp_path):
 
 @pytest.fixture
 def client_no_storage(config_mgr):
-    init_config(config_mgr)
-    init_storage(None)
-    app.config["TESTING"] = True
+    app = create_app(
+        config_manager=config_mgr,
+        module_loader_factory=default_module_loader_factory(config_mgr, search_paths=[]),
+        environ={}, testing=True,
+    )
     with app.test_client() as client:
         yield client
-    init_storage(None)
 
 
 @pytest.fixture
@@ -50,12 +40,14 @@ def client_with_storage(tmp_path, config_mgr):
     db_path = str(tmp_path / "modulation_test.db")
     storage = SnapshotStorage(db_path, max_days=7)
     storage.set_timezone("UTC")
-    init_config(config_mgr)
-    init_storage(storage)
-    app.config["TESTING"] = True
+    app = create_app(
+        config_manager=config_mgr,
+        storage=storage,
+        module_loader_factory=default_module_loader_factory(config_mgr, search_paths=[]),
+        environ={}, testing=True,
+    )
     with app.test_client() as client:
         yield client, storage
-    init_storage(None)
 
 
 def _store_snapshot(storage, timestamp, us_channels=None, ds_channels=None):
@@ -197,7 +189,8 @@ class TestDistributionEndpoint:
         client, storage = client_with_storage
         from app.web import reset_modem_state, update_state
 
-        update_state(connection_info={"max_downstream_kbps": 50000, "max_upstream_kbps": 25000})
+        with client.application.app_context():
+            update_state(connection_info={"max_downstream_kbps": 50000, "max_upstream_kbps": 25000})
         day = _ts_days_ago(1)[:10]
         _store_snapshot(
             storage,
@@ -219,7 +212,8 @@ class TestDistributionEndpoint:
             assert us["tariff_met_pct"] == 0.0
             assert us["status"] == "below_some_samples"
         finally:
-            reset_modem_state()
+            with client.application.app_context():
+                reset_modem_state()
 
 
     def test_aggregate_low_qam_pct_weighted_across_protocol_sample_counts(self, client_with_storage):

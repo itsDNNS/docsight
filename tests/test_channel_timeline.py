@@ -7,8 +7,8 @@ import pytest
 from datetime import datetime, timedelta, timezone
 
 from app.storage import SnapshotStorage
-from app.web import app, init_config, init_storage
 from app.config import ConfigManager
+from app.runtime import current_runtime
 
 
 # ── Fixtures ──
@@ -82,8 +82,8 @@ def client(tmp_path):
     data_dir = str(tmp_path / "data")
     mgr = ConfigManager(data_dir)
     mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-    init_config(mgr)
-    init_storage(s)
+    current_runtime().config_manager = mgr
+    current_runtime().storage = s
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c, s
@@ -496,8 +496,8 @@ class TestChannelHistoryEndpoint:
         data_dir = str(tmp_path / "data2")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.get("/api/channel-history?channel_id=1&direction=ds")

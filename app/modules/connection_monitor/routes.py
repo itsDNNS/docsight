@@ -14,6 +14,7 @@ from flask import Blueprint, jsonify, request, Response
 
 from app.tz import local_date_to_utc_range, local_today, to_local_display, _parse_utc
 from app.web import get_config_manager, require_auth, _get_tz_name
+from app.runtime import current_runtime
 
 from .probe import ProbeEngine
 from .storage import ConnectionMonitorStorage
@@ -32,18 +33,14 @@ def _no_cache_api(response):
     return response
 
 
-# Lazy-initialized storage
-_storage = None
-
-
 def _get_cm_storage():
     """Get ConnectionMonitorStorage. Uses DATA_DIR like collector."""
-    global _storage
-    if _storage is None:
-        data_dir = os.environ.get("DATA_DIR", "/data")
-        db_path = os.path.join(data_dir, "connection_monitor.db")
-        _storage = ConnectionMonitorStorage(db_path)
-    return _storage
+    config_manager = get_config_manager()
+    data_dir = config_manager.data_dir if config_manager else os.environ.get("DATA_DIR", "/data")
+    db_path = os.path.join(data_dir, "connection_monitor.db")
+    return current_runtime().derived_storage.get(
+        f"connection_monitor:{db_path}", lambda: ConnectionMonitorStorage(db_path)
+    )
 
 
 def _get_probe_engine():
@@ -53,14 +50,10 @@ def _get_probe_engine():
     return ProbeEngine(method=method)
 
 
-_traceroute_probe = None
-
-
 def _get_traceroute_probe():
-    global _traceroute_probe
-    if _traceroute_probe is None:
-        _traceroute_probe = TracerouteProbe()
-    return _traceroute_probe
+    return current_runtime().derived_storage.get(
+        "connection_monitor_traceroute_probe", TracerouteProbe
+    )
 
 
 def _epoch_to_iso(ts):

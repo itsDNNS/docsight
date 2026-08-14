@@ -28,6 +28,7 @@ Collector Registry → Base Collector (Fail-Safe) → Analyzer/Storage → Web U
 - New modem types must implement the `ModemDriver` base class (`app/drivers/base.py`)
 - Collectors run in **parallel threads** via `ThreadPoolExecutor`. Protect shared state with locks.
 - Use the collector pattern for automatic fail-safe and health monitoring
+- Construct applications only with `app.app_factory.create_app()`. Importing `app.web` must remain free of application construction and app-specific globals.
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation and data flow diagrams.
 
@@ -70,8 +71,10 @@ Open `http://localhost:8765` to access the setup wizard.
 
 ```
 app/
+  app_factory.py     - Deterministic Flask application construction
   main.py            - Entrypoint, ThreadPoolExecutor polling loop
-  web.py             - Flask routes and API endpoints (thread-safe state)
+  runtime.py         - Typed per-application runtime state and locks
+  web.py             - Core routes, filters, auth, and runtime accessors
   analyzer.py        - DOCSIS channel health analysis
   threshold_profiles.py - Built-in analyzer threshold profiles
   event_detector.py  - Signal anomaly detection (thread-safe)
@@ -126,6 +129,14 @@ We prefer new languages to be contributed by people who actually use the tool in
 ## Building Modules
 
 DOCSight supports community modules that extend functionality without modifying core code. Modules can add API endpoints, data collectors, settings panels, dashboard tabs, and more.
+
+Server-side module code should import the established accessors it needs from
+`app.web`, such as `get_config_manager()`, `get_storage()`, `get_state()`, or
+`get_module_loader()`. These accessors resolve the active application's typed
+runtime. Do not import or create a module-level Flask application, and do not
+cache app-derived storage or mutable request/runtime state in module globals.
+Collectors receive their runtime-facing `web` object explicitly and must keep
+working without a Flask application context.
 
 ### Browser URL contract
 

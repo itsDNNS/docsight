@@ -1,26 +1,54 @@
 import io
 import pytest
 
-from app.web import app, init_config, init_storage
+from app.app_factory import create_app
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
+from app.runtime import DerivedStorageCache, LoginRateLimiter, RuntimeState, get_runtime
+from tests.conftest import register_builtin_test_routes
 
 
 @pytest.fixture
 def config_mgr(tmp_path):
-    data_dir = str(tmp_path / "data")
+    data_dir = str(tmp_path / "web-default-data")
     mgr = ConfigManager(data_dir)
     mgr.save({"modem_password": "test", "modem_type": "fritzbox", "isp_name": "Vodafone"})
     return mgr
 
 
+@pytest.fixture(scope="module")
+def app(tmp_path_factory):
+    manager = ConfigManager(str(tmp_path_factory.mktemp("web-factory-app")))
+    application = create_app(
+        config_manager=manager,
+        storage=None,
+        environ={},
+        testing=True,
+    )
+    return register_builtin_test_routes(application)
+
+
+@pytest.fixture(autouse=True)
+def _app_context(app, request, config_mgr):
+    request.module.app = app
+    runtime = get_runtime(app)
+    runtime.config_manager = config_mgr
+    runtime.storage = None
+    runtime.on_config_changed = None
+    runtime.module_loader = None
+    runtime.modem_collector = None
+    runtime.collectors = []
+    runtime.state = RuntimeState()
+    runtime.login_rate_limiter = LoginRateLimiter()
+    runtime.derived_storage = DerivedStorageCache()
+    with app.app_context():
+        yield
+
+
 @pytest.fixture
-def client(config_mgr):
-    init_config(config_mgr)
-    init_storage(None)
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+def client(app):
+    with app.app_context(), app.test_client() as client:
         yield client
 
 
@@ -88,16 +116,10 @@ def no_docsis_analysis():
 
 
 @pytest.fixture
-def storage_client(tmp_path, config_mgr):
+def storage_client(tmp_path, app):
     db_path = str(tmp_path / "test_web.db")
     storage = SnapshotStorage(db_path, max_days=7)
     bnetz_st = BnetzStorage(db_path)
-    init_config(config_mgr)
-    init_storage(storage)
-    import app.modules.bnetz.routes as bnetz_routes
-    bnetz_routes._storage = None
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    get_runtime(app).storage = storage
+    with app.app_context(), app.test_client() as client:
         yield client, storage, bnetz_st
-    init_storage(None)
-    bnetz_routes._storage = None

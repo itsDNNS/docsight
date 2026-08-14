@@ -3,31 +3,45 @@
 import os
 
 import pytest
-from flask import Flask
 
 from app.module_loader import ModuleLoader
+from app.app_factory import create_app
+from app.config import ConfigManager
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
+def _create_module_app(config_manager, search_paths, *, disabled_ids=None):
+    loader_box = []
+
+    def build(application):
+        loader = ModuleLoader(
+            application,
+            search_paths=search_paths,
+            disabled_ids=disabled_ids,
+        )
+        loader.load_all()
+        loader_box.append(loader)
+        return loader
+
+    application = create_app(
+        config_manager=config_manager,
+        module_loader_factory=build,
+        environ={},
+        testing=True,
+    )
+    return application, loader_box[0]
+
+
 @pytest.fixture
-def app_with_modules():
+def app_with_modules(tmp_path):
     """Create a Flask app with modules loaded."""
-    app = Flask(__name__)
-    app.config["TESTING"] = True
-    loader = ModuleLoader(app, search_paths=[FIXTURE_DIR])
-    loader.load_all()
-
-    from app import web
-    web.init_modules(loader)
-
-    from app.blueprints.modules_bp import modules_bp
-    app.register_blueprint(modules_bp)
-
+    app, loader = _create_module_app(
+        ConfigManager(str(tmp_path / "modules-app")),
+        [FIXTURE_DIR],
+    )
     yield app, loader
 
-    # Clean up global state
-    web.init_modules(None)
 
 
 class TestGetModules:
@@ -54,30 +68,19 @@ class TestGetModules:
             for field in ("name", "version", "type", "author", "enabled", "builtin", "error", "description"):
                 assert field in mod
 
-    def test_disabled_module_shown(self):
+    def test_disabled_module_shown(self, tmp_path):
         """Disabled modules appear in the list with enabled=False."""
-        app = Flask(__name__)
-        app.config["TESTING"] = True
-        loader = ModuleLoader(
-            app, search_paths=[FIXTURE_DIR],
+        config = ConfigManager(str(tmp_path / "config"))
+        app, _ = _create_module_app(
+            config,
+            [FIXTURE_DIR],
             disabled_ids={"test.integration"},
         )
-        loader.load_all()
-
-        from app import web
-        web.init_modules(loader)
-
-        from app.blueprints.modules_bp import modules_bp
-        app.register_blueprint(modules_bp)
-
-        try:
-            with app.test_client() as c:
-                resp = c.get("/api/modules")
-                data = resp.get_json()
-                mod = next(m for m in data if m["id"] == "test.integration")
-                assert mod["enabled"] is False
-        finally:
-            web.init_modules(None)
+        with app.test_client() as c:
+            resp = c.get("/api/modules")
+            data = resp.get_json()
+            mod = next(m for m in data if m["id"] == "test.integration")
+            assert mod["enabled"] is False
 
 
 class TestEnableDisable:
@@ -85,33 +88,14 @@ class TestEnableDisable:
 
     @pytest.fixture(autouse=True)
     def setup_app(self, tmp_path):
-        from app.config import ConfigManager
-
-        self.app = Flask(__name__)
-        self.app.config["TESTING"] = True
-
         self.config_mgr = ConfigManager(str(tmp_path))
         self.config_mgr.save({"disabled_modules": ""})
-
-        self.loader = ModuleLoader(
-            self.app, search_paths=[FIXTURE_DIR],
+        self.app, self.loader = _create_module_app(
+            self.config_mgr,
+            [FIXTURE_DIR],
         )
-        self.loader.load_all()
-
-        from app import web
-        self._orig_module_loader = web._module_loader
-        self._orig_config_manager = web._config_manager
-        web.init_modules(self.loader)
-        web.init_config(self.config_mgr)
-
-        from app.blueprints.modules_bp import modules_bp
-        self.app.register_blueprint(modules_bp)
 
         yield
-
-        # Restore global state
-        web._module_loader = self._orig_module_loader
-        web._config_manager = self._orig_config_manager
 
     def test_disable_module(self):
         with self.app.test_client() as c:
@@ -186,28 +170,17 @@ class TestBatchModuleSettings:
             if contributes:
                 (mod_dir / "thresholds.json").write_text(json.dumps(threshold_data))
 
-        self.app = Flask(__name__)
-        self.app.config["TESTING"] = True
         self.config_mgr = ConfigManager(str(tmp_path / "config"))
         self.config_mgr.save({"disabled_modules": "test.thresholds_forum"})
-        self.loader = ModuleLoader(self.app, search_paths=[str(tmp_path)])
         from app import analyzer
         self._orig_thresholds = analyzer._thresholds.copy()
-        self.loader.load_all()
-
-        from app import web
-        self._orig_module_loader = web._module_loader
-        self._orig_config_manager = web._config_manager
-        web.init_modules(self.loader)
-        web.init_config(self.config_mgr)
-
-        from app.blueprints.modules_bp import modules_bp
-        self.app.register_blueprint(modules_bp)
+        self.app, self.loader = _create_module_app(
+            self.config_mgr,
+            [str(tmp_path)],
+        )
 
         yield
 
-        web._module_loader = self._orig_module_loader
-        web._config_manager = self._orig_config_manager
         analyzer._thresholds = self._orig_thresholds
 
     def test_batch_applies_multiple_modules_and_threshold_exclusivity(self):
@@ -269,25 +242,11 @@ class TestThemeMutualExclusion:
                 "light": {"--bg": "#fff", "--text": "#111"},
             }))
 
-        app = Flask(__name__)
-        app.config["TESTING"] = True
-        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
-        loader.load_all()
-
-        from app import web
-        web.init_modules(loader)
-
-        from app.config import ConfigManager
         config = ConfigManager(str(tmp_path / "config"))
         config.save({"disabled_modules": ""})
-        web.init_config(config)
-
-        from app.blueprints.modules_bp import modules_bp
-        app.register_blueprint(modules_bp)
+        app, loader = _create_module_app(config, [str(tmp_path)])
 
         yield app, loader, config
-        web.init_modules(None)
-        web._config_manager = None
 
     def test_enable_theme_disables_other(self, app_with_themes):
         app, loader, config = app_with_themes
@@ -333,19 +292,10 @@ class TestThemesAPI:
             "light": {"--bg": "#fff", "--text": "#111"},
         }))
 
-        app = Flask(__name__)
-        app.config["TESTING"] = True
-        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
-        loader.load_all()
-
-        from app import web
-        web.init_modules(loader)
-
-        from app.blueprints.modules_bp import modules_bp
-        app.register_blueprint(modules_bp)
+        config = ConfigManager(str(tmp_path / "config"))
+        app, loader = _create_module_app(config, [str(tmp_path)])
 
         yield app, loader
-        web.init_modules(None)
 
     def test_get_themes_returns_theme_data(self, app_with_theme):
         app, loader = app_with_theme

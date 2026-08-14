@@ -7,7 +7,7 @@ import pytest
 
 from app.config import ConfigManager
 from app.i18n import LANGUAGES
-from app.web import app, init_config, init_storage
+from app.runtime import current_runtime
 
 
 def _html_lang(response):
@@ -24,8 +24,8 @@ def _stored_config(manager):
 @pytest.fixture
 def fresh_manager(tmp_path):
     manager = ConfigManager(str(tmp_path / "data"))
-    init_config(manager)
-    init_storage(None)
+    current_runtime().config_manager = manager
+    current_runtime().storage = None
     app.config["TESTING"] = True
     return manager
 
@@ -73,7 +73,7 @@ def test_first_inference_survives_new_manager_client_and_changed_header(
         )
 
     reloaded = ConfigManager(fresh_manager.data_dir)
-    init_config(reloaded)
+    current_runtime().config_manager = reloaded
     with app.test_client() as second_client:
         second_response = second_client.get(
             "/setup", headers={"Accept-Language": "fr-FR"}

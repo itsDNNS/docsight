@@ -5,10 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from app.web import app, update_state, init_config, init_storage, _build_metric_ranges, _snr_channel_family
+from app.web import update_state, _build_metric_ranges, _snr_channel_family
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
+from app.runtime import current_runtime
 
 
 def _metric_card(html, label):
@@ -147,7 +148,7 @@ class TestIndexRoute:
 
     def test_redirect_to_setup_when_unconfigured(self, tmp_path):
         mgr = ConfigManager(str(tmp_path / "data2"))
-        init_config(mgr)
+        current_runtime().config_manager = mgr
         app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.get("/")
@@ -1136,9 +1137,9 @@ class TestIndexRoute:
         """Dashboard hides BNetzA card when entry has NULL fields (#148)."""
         mgr = ConfigManager(str(tmp_path / "data_bnetz"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        init_config(mgr)
+        current_runtime().config_manager = mgr
         storage = SnapshotStorage(str(tmp_path / "data_bnetz" / "docsight.db"))
-        init_storage(storage)
+        current_runtime().storage = storage
         app.config["TESTING"] = True
         # Save a BNetzA measurement with all numeric fields as None
         bs = BnetzStorage(storage.db_path)
@@ -1187,8 +1188,8 @@ class TestIndexRoute:
             "booked_download": 250,
             "booked_upload": 50,
         })
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         app.config["TESTING"] = True
 
         analysis = {
@@ -1237,8 +1238,8 @@ class TestIndexRoute:
             "booked_download": 250,
             "booked_upload": 50,
         })
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         app.config["TESTING"] = True
 
         analysis = {
@@ -1284,7 +1285,7 @@ class TestIndexRoute:
 class TestIndexSegmentUtilizationVisibility:
     def test_index_hides_segment_tab_when_disabled(self, client, config_mgr, sample_analysis):
         config_mgr.save({"segment_utilization_enabled": False})
-        init_config(config_mgr)
+        current_runtime().config_manager = config_mgr
         update_state(analysis=sample_analysis)
         resp = client.get("/?lang=en")
         assert resp.status_code == 200

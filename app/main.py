@@ -8,10 +8,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from . import analyzer, web
-from .base_path import configure_base_path
+from .app_factory import create_app, default_module_loader_factory
+from .base_path import validate_base_path_configuration
 from .config import ConfigManager
 from .event_detector import EventDetector
 from .module_paths import get_modules_dir
+from .runtime import DocsightRuntime, get_runtime
 from .server_lifecycle import ServerLifecycleController
 from .storage import SnapshotStorage
 from .tz import guess_iana_timezone, utc_cutoff
@@ -54,6 +56,7 @@ if os.environ.get("DOCSIGHT_AUDIT_JSON", "").strip() == "1":
 
 
 def run_web(
+    application,
     port: int,
     server_lifecycle: ServerLifecycleController | None = None,
 ) -> None:
@@ -63,7 +66,7 @@ def run_web(
     host = get_web_host()
     server = WaitressServerAdapter(
         create_server(
-            web.app,
+            application,
             host=host,
             port=port,
             threads=4,
@@ -131,7 +134,7 @@ def _get_modem_config_key(config_mgr):
     )
 
 
-def polling_loop(config_mgr, storage, stop_event):
+def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
     """Flat orchestrator: tick every second, let each collector decide when to poll."""
     config = config_mgr.get_all()
 
@@ -141,7 +144,7 @@ def polling_loop(config_mgr, storage, stop_event):
     # Connect MQTT (optional, loaded from module if available)
     mqtt_pub = None
     mqtt_cls = None
-    module_loader = web.get_module_loader() if hasattr(web, 'get_module_loader') else None
+    module_loader = runtime.get_module_loader()
     if module_loader:
         for mod in module_loader.get_enabled_modules():
             if mod.publisher_class and mod.id == 'docsight.mqtt':
@@ -216,11 +219,11 @@ def polling_loop(config_mgr, storage, stop_event):
     ))
     log.info("Smart Capture: registered %d trigger(s)", len(smart_capture.triggers))
 
-    web.update_state(poll_interval=config["poll_interval"])
+    runtime.update_state(poll_interval=config["poll_interval"])
 
     event_detector = EventDetector(hysteresis=config_mgr.get("health_hysteresis", 0))
     collectors = discover_collectors(
-        config_mgr, storage, event_detector, mqtt_pub, web, analyzer,
+        config_mgr, storage, event_detector, mqtt_pub, runtime, analyzer,
         notifier=notifier, smart_capture=smart_capture,
     )
 
@@ -243,8 +246,8 @@ def polling_loop(config_mgr, storage, stop_event):
     # Inject collectors into web layer for manual polling and status endpoint
     modem_collector = next((c for c in collectors if c.name in ("modem", "demo")), None)
     if modem_collector:
-        web.init_collector(modem_collector)
-    web.init_collectors(collectors)
+        runtime.modem_collector = modem_collector
+    runtime.collectors = collectors
 
     # Track modem config for driver hot-swap detection
     modem_config_key = (
@@ -315,7 +318,7 @@ def polling_loop(config_mgr, storage, stop_event):
                 collector.record_failure()
                 log.error("%s error: %s", collector.name, e)
                 if collector.name in ("modem", "demo"):
-                    web.update_state(error=e)
+                    runtime.update_state(error=e)
 
     try:
         while not stop_event.is_set():
@@ -338,7 +341,7 @@ def polling_loop(config_mgr, storage, stop_event):
                         event_detector=event_detector,
                         storage=storage,
                         mqtt_pub=mqtt_pub,
-                        web=web,
+                        web=runtime,
                         poll_interval=config_mgr.get("poll_interval", 900),
                         notifier=notifier,
                         smart_capture=smart_capture,
@@ -348,9 +351,9 @@ def polling_loop(config_mgr, storage, stop_event):
                         for c in collectors
                     ]
                     modem_collector = new_modem
-                    web.init_collector(new_modem)
-                    web.init_collectors(collectors)
-                    web.reset_modem_state()
+                    runtime.modem_collector = new_modem
+                    runtime.collectors = collectors
+                    runtime.reset_modem_state()
                     modem_config_key = new_key
                     log.info("Driver hot-swapped to %s", new_key[0])
 
@@ -377,11 +380,10 @@ def polling_loop(config_mgr, storage, stop_event):
 
             # ── Smart Capture expiry check (every 60s) ──
             if smart_capture:
-                if not hasattr(polling_loop, '_sc_expiry_counter'):
-                    polling_loop._sc_expiry_counter = 0
-                polling_loop._sc_expiry_counter += 1
-                if polling_loop._sc_expiry_counter >= 60:
-                    polling_loop._sc_expiry_counter = 0
+                expiry_counter = runtime.derived_storage.value("smart_capture_expiry_counter", 0) + 1
+                runtime.derived_storage.set_value("smart_capture_expiry_counter", expiry_counter)
+                if expiry_counter >= 60:
+                    runtime.derived_storage.set_value("smart_capture_expiry_counter", 0)
                     match_window = config_mgr.get("sc_speedtest_match_window", 900)
                     try:
                         expiry_minutes = max(10, int(match_window) // 60 + 5)
@@ -418,8 +420,7 @@ def polling_loop(config_mgr, storage, stop_event):
 
 
 def main(server_lifecycle: ServerLifecycleController | None = None):
-    configure_base_path(web.app)
-
+    validate_base_path_configuration(os.environ)
     data_dir = os.environ.get("DATA_DIR", "/data")
     config_mgr = ConfigManager(data_dir)
     _apply_timezone(config_mgr)
@@ -434,11 +435,10 @@ def main(server_lifecycle: ServerLifecycleController | None = None):
     storage.migrate_to_utc(tz_name)
     storage.set_timezone(tz_name)
 
-    web.init_storage(storage)
-
     # Polling thread management
     poll_thread = None
     poll_stop = None
+    runtime = None
 
     def stop_polling():
         nonlocal poll_thread, poll_stop
@@ -451,10 +451,10 @@ def main(server_lifecycle: ServerLifecycleController | None = None):
     def start_polling():
         nonlocal poll_thread, poll_stop
         stop_polling()
-        web.reset_modem_state()
+        runtime.reset_modem_state()
         poll_stop = threading.Event()
         poll_thread = threading.Thread(
-            target=polling_loop, args=(config_mgr, storage, poll_stop), daemon=True
+            target=polling_loop, args=(config_mgr, storage, poll_stop, runtime), daemon=True
         )
         poll_thread.start()
         log.info("Polling loop started")
@@ -463,42 +463,20 @@ def main(server_lifecycle: ServerLifecycleController | None = None):
         """Called when config is saved via web UI."""
         _handle_config_changed(config_mgr, storage, stop_polling, start_polling)
 
-    web.init_config(config_mgr, on_config_changed)
-
-    # Module system
-    from .module_loader import ModuleLoader
-
     builtin_path = os.path.join(os.path.dirname(__file__), "modules")
     community_path = get_modules_dir()
-    disabled_raw = config_mgr.get("disabled_modules", "")
-    disabled_ids = {s.strip() for s in disabled_raw.split(",") if s.strip()}
-
-    module_loader = ModuleLoader(
-        web.app,
-        builtin_base_path=builtin_path,
-        search_paths=[community_path],
-        disabled_ids=disabled_ids,
+    application = create_app(
+        config_manager=config_mgr,
+        storage=storage,
+        on_config_changed=on_config_changed,
+        module_loader_factory=default_module_loader_factory(
+            config_mgr,
+            builtin_base_path=builtin_path,
+            search_paths=[community_path],
+        ),
+        environ=os.environ,
     )
-    module_loader.load_all()
-    web.init_modules(module_loader)
-    web.setup_module_templates(module_loader)
-
-    # Reverse proxy support: REVERSE_PROXY=1 (or number of proxy hops)
-    # rewrites request.remote_addr from X-Forwarded-For so rate limiting
-    # and audit logs see the real client IP, not the proxy IP.
-    reverse_proxy = os.environ.get("REVERSE_PROXY", "").strip()
-    if reverse_proxy:
-        from werkzeug.middleware.proxy_fix import ProxyFix
-        num_proxies = int(reverse_proxy) if reverse_proxy.isdigit() else 1
-        web.app.wsgi_app = ProxyFix(
-            web.app.wsgi_app,
-            x_for=num_proxies,
-            x_proto=num_proxies,
-            x_host=0,
-            x_prefix=0,
-        )
-        web.app.config["SESSION_COOKIE_SECURE"] = True
-        log.info("Reverse proxy mode: trusting %d hop(s), secure cookies enabled", num_proxies)
+    runtime = get_runtime(application)
 
     # Start Flask
     web_port = config_mgr.get("web_port", 8765)
@@ -506,7 +484,7 @@ def main(server_lifecycle: ServerLifecycleController | None = None):
     lifecycle = server_lifecycle or ServerLifecycleController()
     web_thread = threading.Thread(
         target=run_web,
-        args=(web_port, lifecycle),
+        args=(application, web_port, lifecycle),
         daemon=True,
     )
     web_thread.start()

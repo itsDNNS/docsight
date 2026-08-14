@@ -10,6 +10,7 @@ from app.web import (
     require_auth,
     get_storage, get_config_manager, _valid_date, _get_client_ip, _get_tz_name,
 )
+from app.runtime import current_runtime
 from app.tz import local_today, utc_now
 
 from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort, fetch_share_csv, is_csv_url
@@ -25,17 +26,13 @@ bp = Blueprint("bqm_module", __name__)
 _TBB_SHARE_PATH = "/broadband/monitoring/quality/share/"
 _TBB_HOSTS = {"thinkbroadband.com", "www.thinkbroadband.com"}
 
-# Lazy-initialized module-local storage
-_storage = None
-
-
 def _get_bqm_storage():
-    global _storage
-    if _storage is None:
-        core_storage = get_storage()
-        if core_storage:
-            _storage = BqmStorage(core_storage.db_path)
-    return _storage
+    core_storage = get_storage()
+    if not core_storage:
+        return None
+    return current_runtime().derived_storage.get(
+        "bqm", lambda: BqmStorage(core_storage.db_path)
+    )
 
 
 def _rows_to_columns(rows):

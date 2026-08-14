@@ -304,7 +304,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = advance_tick
 
-        polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        polling_loop(config_mgr, storage, stop, mock_web)
 
         assert collector.collect_calls == 1
         assert collector.success_calls == 1
@@ -409,7 +411,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = advance_tick
 
-        main.polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        main.polling_loop(config_mgr, storage, stop, mock_web)
 
         assert old_collector.success_calls == 1
         assert replacement_collector.success_calls == 1
@@ -446,7 +450,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = stop_after_one_tick
 
-        polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        polling_loop(config_mgr, storage, stop, mock_web)
 
         mock_driver.login.assert_called()
         mock_driver.get_docsis_data.assert_called()
@@ -480,7 +486,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = stop_after_one_tick
 
-        polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        polling_loop(config_mgr, storage, stop, mock_web)
 
         # Core storage should not have speedtest/bqm methods called
         # (those are now handled by module-internal storage)
@@ -514,7 +522,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = stop_after_one_tick
 
-        polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        polling_loop(config_mgr, storage, stop, mock_web)
 
         mock_web.update_state.assert_any_call(error=mock_driver.login.side_effect)
 
@@ -532,7 +542,9 @@ class TestPollingLoopOrchestrator:
         stop = threading.Event()
         stop.set()  # Pre-set: should exit immediately
 
-        polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        polling_loop(config_mgr, storage, stop, mock_web)
         # If we get here without hanging, the test passes
 
     @patch("app.drivers.driver_registry.load_driver")
@@ -575,7 +587,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = change_modem_after_first_tick
 
-        polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        polling_loop(config_mgr, storage, stop, mock_web)
 
         # load_driver should have been called at least twice:
         # once for initial setup, once for hot-swap
@@ -585,7 +599,7 @@ class TestPollingLoopOrchestrator:
         assert second_call[0][0] == "tc4400"
         # Web state should have been reset for the swap
         mock_web.reset_modem_state.assert_called()
-        mock_web.init_collector.assert_called()
+        assert mock_web.modem_collector.name == "modem"
 
     @patch("app.drivers.driver_registry.load_driver")
     @patch("app.main.web")
@@ -626,7 +640,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = change_url_after_first_tick
 
-        polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        polling_loop(config_mgr, storage, stop, mock_web)
 
         # load_driver called twice: initial + hot-swap for URL change
         assert mock_load.call_count >= 2
@@ -662,7 +678,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = stop_after_ticks
 
-        polling_loop(config_mgr, storage, stop)
+        mock_web.derived_storage.value.return_value = 0
+
+        polling_loop(config_mgr, storage, stop, mock_web)
 
         # load_driver should only be called once (initial setup)
         assert mock_load.call_count == 1

@@ -2,15 +2,14 @@
 
 import json
 
-from app.web import format_k, init_config, app
+from app.web import format_k
+from app.runtime import get_runtime
 from app.config import ConfigManager
 
 class TestPollEndpoint:
-    def test_poll_not_configured(self, tmp_path):
-        from app.web import _state
+    def test_poll_not_configured(self, tmp_path, make_app):
         mgr = ConfigManager(str(tmp_path / "data_poll"))
-        init_config(mgr)
-        app.config["TESTING"] = True
+        app = make_app(config_manager=mgr)
         with app.test_client() as c:
             resp = c.post("/api/poll")
             # Unconfigured -> redirects to setup on GET, but POST /api/poll
@@ -18,18 +17,15 @@ class TestPollEndpoint:
             assert resp.status_code in (302, 500)
 
     def test_poll_rate_limit(self, client, sample_analysis):
-        import app.web as web_module
         from unittest.mock import MagicMock
         mock_collector = MagicMock()
-        web_module._modem_collector = mock_collector
-        web_module._last_manual_poll = __import__('time').time()
+        runtime = get_runtime(client.application)
+        runtime.modem_collector = mock_collector
+        runtime.set_last_manual_poll(__import__('time').time())
         resp = client.post("/api/poll")
         assert resp.status_code == 429
         data = json.loads(resp.data)
         assert data["success"] is False
-        # Reset for other tests
-        web_module._last_manual_poll = 0.0
-        web_module._modem_collector = None
 
 
 class TestFormatK:
@@ -45,4 +41,3 @@ class TestFormatK:
 
         for label, value, expected in cases:
             assert format_k(value) == expected, label
-

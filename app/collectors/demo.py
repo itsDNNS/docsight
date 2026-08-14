@@ -1,6 +1,7 @@
 """Demo collector — generates realistic DOCSIS data for testing without a real modem."""
 
 import copy
+import functools
 import json
 import logging
 import math
@@ -62,17 +63,12 @@ DEMO_TRACEROUTE_TRACE_CONFIGS = (
 )
 
 _FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "..", "fixtures")
-_BASE_DATA = None
-
-
+@functools.lru_cache(maxsize=1)
 def _load_base_data():
     """Load channel definitions from demo_channels.json (once)."""
-    global _BASE_DATA
-    if _BASE_DATA is None:
-        path = os.path.join(_FIXTURES_DIR, "demo_channels.json")
-        with open(path) as f:
-            _BASE_DATA = json.load(f)
-    return _BASE_DATA
+    path = os.path.join(_FIXTURES_DIR, "demo_channels.json")
+    with open(path) as handle:
+        return json.load(handle)
 
 
 class DemoCollector(Collector):
@@ -218,7 +214,7 @@ class DemoCollector(Collector):
                 )
                 self._discovery_published = True
                 time.sleep(1)
-            speedtest = self._web._state.get("speedtest_latest")
+            speedtest = self._web.get_state().get("speedtest_latest")
             gi = compute_gaming_index(analysis, speedtest)
             self._mqtt_pub.publish_data(analysis, gaming_index=gi)
 

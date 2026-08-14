@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 from app.blueprints.modules_bp import _remove_downloaded_module
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
-from app.web import app, init_config, init_storage
+from app.runtime import current_runtime
 
 
 @pytest.fixture
@@ -20,8 +20,8 @@ def storage(tmp_path):
 def client(tmp_path, storage):
     config_mgr = ConfigManager(str(tmp_path / "config"))
     config_mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-    init_config(config_mgr)
-    init_storage(storage)
+    current_runtime().config_manager = config_mgr
+    current_runtime().storage = storage
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c

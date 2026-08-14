@@ -11,7 +11,8 @@ from app.config import ConfigManager
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.storage import SnapshotStorage
-from app.web import app, get_config_manager, init_config, init_storage
+from app.runtime import current_runtime
+from app.web import get_config_manager
 
 
 def _utc_ts(delta: timedelta) -> str:
@@ -64,8 +65,8 @@ def client(tmp_path):
     data_dir = str(tmp_path / "data")
     manager = ConfigManager(data_dir)
     manager.save({"modem_password": "test", "modem_type": "fritzbox"})
-    init_config(manager)
-    init_storage(storage)
+    current_runtime().config_manager = manager
+    current_runtime().storage = storage
     app.config["TESTING"] = True
     with app.test_client() as flask_client:
         yield flask_client, storage

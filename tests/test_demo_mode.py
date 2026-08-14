@@ -24,8 +24,8 @@ from app.modules.speedtest.storage import SpeedtestStorage
 from app.modules.bqm.storage import BqmStorage
 from app.modules.bnetz.storage import BnetzStorage
 from app.modules.journal.storage import JournalStorage
-from app.web import app, init_config, init_storage
 from app.config import ConfigManager
+from app.runtime import current_runtime
 
 
 @pytest.fixture
@@ -83,8 +83,8 @@ def sample_analysis():
 
 @pytest.fixture
 def client(config_mgr, storage):
-    init_config(config_mgr)
-    init_storage(storage)
+    current_runtime().config_manager = config_mgr
+    current_runtime().storage = storage
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
@@ -224,7 +224,7 @@ class TestDemoMarking:
 
     def test_demo_collector_live_poll_rows_are_demo_and_purgeable(self, storage, sample_analysis):
         web = MagicMock()
-        web._state = {}
+        current_runtime().reset_modem_state()
         detector = MagicMock()
         detector.check.return_value = [{
             "timestamp": "2026-07-02T00:00:00Z",

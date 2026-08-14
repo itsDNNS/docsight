@@ -87,35 +87,8 @@ def _configure_server_environment(target: _ServerTarget) -> None:
         os.environ["REVERSE_PROXY_PREFIX"] = str(target.trusted_prefix_hops)
 
 
-def _configure_base_path(target: _ServerTarget, application) -> None:
-    if target.base_path is None and target.trusted_prefix_hops is None:
-        return
-    from app.base_path import configure_base_path
-
-    configure_base_path(application)
-
-
-def _initialize_modules(web, db_path: str) -> None:
-    """Load built-ins and their storage tables exactly as production-like E2E needs."""
-    from app.module_loader import ModuleLoader
-
-    builtin_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "app", "modules")
-    )
-    module_loader = ModuleLoader(
-        web.app, search_paths=[], disabled_ids=set(), builtin_base_path=builtin_path
-    )
-    module_loader.load_all()
-    web.init_modules(module_loader)
-    web.setup_module_templates(module_loader)
-
-    existing = {blueprint.name for blueprint in web.app.blueprints.values()}
-    for module in module_loader.get_enabled_modules():
-        if hasattr(module, "blueprint") and module.blueprint:
-            if module.blueprint.name not in existing:
-                web.app.register_blueprint(module.blueprint)
-                existing.add(module.blueprint.name)
-
+def _initialize_module_storage(db_path: str) -> None:
+    """Initialize module storage tables needed by seeded E2E data."""
     try:
         from app.modules.speedtest.storage import SpeedtestStorage
 
@@ -157,15 +130,14 @@ def _serve_server(target: _ServerTarget) -> None:
 
     _configure_server_environment(target)
 
-    from app import analyzer, web
+    from app import analyzer
+    from app.app_factory import create_app, default_module_loader_factory
     from app.config import ConfigManager
+    from app.runtime import get_runtime
 
     config = ConfigManager(target.data_dir)
     if not target.configured:
-        web.init_config(config)
-        web.init_storage(None)
-        web.init_collector(None)
-        web.init_collectors([])
+        storage = None
     else:
         from app.collectors.demo import DemoCollector
         from app.event_detector import EventDetector
@@ -173,6 +145,7 @@ def _serve_server(target: _ServerTarget) -> None:
 
         config_data = {
             "demo_mode": target.demo_mode,
+            "disabled_modules": "",
             "modem_type": target.modem_type
             or ("demo" if target.demo_mode else "generic"),
         }
@@ -183,30 +156,35 @@ def _serve_server(target: _ServerTarget) -> None:
         db_path = os.path.join(target.data_dir, "docsis_history.db")
         storage = SnapshotStorage(db_path, max_days=7)
         storage.set_timezone("UTC")
-        web.init_storage(storage)
-        web.init_config(config)
-        web.init_collector(None)
-        web.init_collectors([])
-        _initialize_modules(web, db_path)
+        _initialize_module_storage(db_path)
+
+    application = create_app(
+        config_manager=config,
+        storage=storage,
+        module_loader_factory=default_module_loader_factory(config, search_paths=[]),
+        environ=os.environ,
+        testing=True,
+    )
+    runtime = get_runtime(application)
+
+    if target.configured:
 
         collector = DemoCollector(
             analyzer_fn=analyzer.analyze,
             event_detector=EventDetector(),
             storage=storage,
             mqtt_pub=None,
-            web=web,
+            web=runtime,
             poll_interval=300,
         )
         collector.collect()
         if target.post_seed_callback is not None:
             target.post_seed_callback(db_path)
 
-    _configure_base_path(target, web.app)
-
     from waitress import serve
 
     serve(
-        _mounted_app(web.app, target.mount_path),
+        _mounted_app(application, target.mount_path),
         host="127.0.0.1",
         port=target.port,
         **_WAITRESS_KWARGS,

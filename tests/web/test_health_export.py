@@ -2,13 +2,13 @@
 
 import json
 from app.web import update_state, reset_modem_state, get_state
+from app.runtime import current_runtime
 
 class TestHealthEndpoint:
     def test_health_waiting(self, client):
         update_state(analysis=None)
         # Reset state
-        from app.web import _state
-        _state["analysis"] = None
+        current_runtime().reset_modem_state()
         resp = client.get("/health")
         assert resp.status_code == 200
         assert resp.get_json()["docsis_health"] == "waiting"
@@ -42,8 +42,7 @@ class TestHealthEndpoint:
 
 class TestExportEndpoint:
     def test_export_no_data(self, client):
-        from app.web import _state
-        _state["analysis"] = None
+        current_runtime().reset_modem_state()
         resp = client.get("/api/export")
         assert resp.status_code == 404
 

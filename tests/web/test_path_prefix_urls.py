@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 import json
 import re
 from urllib.parse import urljoin, urlsplit
@@ -14,44 +13,12 @@ import app.web as web
 from app.config import ConfigManager
 from app.module_loader import ModuleInfo
 from app.web import (
-    _login_attempts,
-    app,
-    init_config,
-    init_modules,
-    init_storage,
     update_state,
 )
+from app.runtime import current_runtime
 
 
 PREFIX_ENV = {"SCRIPT_NAME": "/docsight"}
-
-
-@pytest.fixture(autouse=True)
-def _restore_app_globals():
-    """Keep this module's singleton app mutations isolated from other tests."""
-    previous_config_manager = web.get_config_manager()
-    previous_config_callback = web.get_on_config_changed()
-    previous_storage = web.get_storage()
-    previous_state = web.get_state()
-    previous_module_loader = web._module_loader
-    previous_login_attempts = deepcopy(_login_attempts)
-    previous_app_config = {
-        key: app.config[key]
-        for key in ("PERMANENT_SESSION_LIFETIME", "SECRET_KEY", "TESTING")
-    }
-
-    yield
-
-    web._config_manager = previous_config_manager
-    web._on_config_changed = previous_config_callback
-    init_modules(previous_module_loader)
-    init_storage(previous_storage)
-    with web._state_lock:
-        web._state.clear()
-        web._state.update(previous_state)
-    _login_attempts.clear()
-    _login_attempts.update(previous_login_attempts)
-    app.config.update(previous_app_config)
 
 
 @pytest.fixture
@@ -82,9 +49,9 @@ def sample_analysis():
 @pytest.fixture
 def client(tmp_path):
     """Create a configured client without relying on tests/web/conftest.py."""
-    init_config(_configured_manager(tmp_path))
-    init_modules(_enabled_bqm_loader())
-    init_storage(None)
+    current_runtime().config_manager = _configured_manager(tmp_path)
+    current_runtime().module_loader = _enabled_bqm_loader()
+    current_runtime().storage = None
     app.config["TESTING"] = True
     with app.test_client() as test_client:
         yield test_client
@@ -207,8 +174,8 @@ def test_dashboard_and_settings_render_prefix_aware_navigation_and_assets(
 def test_login_and_setup_render_prefix_aware_assets_forms_and_navigation(tmp_path):
     credential = "prefix-" + "credential"
     auth_manager = _configured_manager(tmp_path, password=credential)
-    init_config(auth_manager)
-    init_storage(None)
+    current_runtime().config_manager = auth_manager
+    current_runtime().storage = None
     app.config["TESTING"] = True
     with app.test_client() as client:
         login = client.get("/login", environ_overrides=PREFIX_ENV)
@@ -223,7 +190,7 @@ def test_login_and_setup_render_prefix_aware_assets_forms_and_navigation(tmp_pat
     assert 'href="/docsight/static/css/fonts.css?v=' in login_html
 
     setup_manager = ConfigManager(str(tmp_path / "setup-data"))
-    init_config(setup_manager)
+    current_runtime().config_manager = setup_manager
     with app.test_client() as client:
         setup = client.get("/setup", environ_overrides=PREFIX_ENV)
 
@@ -239,11 +206,11 @@ def test_login_and_setup_render_prefix_aware_assets_forms_and_navigation(tmp_pat
 
 
 def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path):
-    _login_attempts.clear()
+    current_runtime().login_rate_limiter.prune(float("inf"))
     credential = "prefix-" + "credential"
     auth_manager = _configured_manager(tmp_path, password=credential)
-    init_config(auth_manager)
-    init_storage(None)
+    current_runtime().config_manager = auth_manager
+    current_runtime().storage = None
     app.config["TESTING"] = True
     with app.test_client() as client:
         auth_redirect = client.get("/settings", environ_overrides=PREFIX_ENV)
@@ -270,7 +237,7 @@ def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path)
     assert logout_redirect.headers["Location"] == "/docsight/login"
 
     configured_manager = _configured_manager(tmp_path / "configured")
-    init_config(configured_manager)
+    current_runtime().config_manager = configured_manager
     with app.test_client() as client:
         setup_redirect = client.get("/setup", environ_overrides=PREFIX_ENV)
         glossary_redirect = client.get(
@@ -283,7 +250,7 @@ def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path)
     )
 
     unconfigured_manager = ConfigManager(str(tmp_path / "unconfigured"))
-    init_config(unconfigured_manager)
+    current_runtime().config_manager = unconfigured_manager
     with app.test_client() as client:
         index_redirect = client.get("/", environ_overrides=PREFIX_ENV)
     assert index_redirect.headers["Location"] == "/docsight/setup"
@@ -355,12 +322,12 @@ def test_browser_url_bootstrap_is_minimal_canonical_and_early(
     ).get_data(as_text=True)
 
     credential = "bootstrap-credential"
-    init_config(_configured_manager(tmp_path / "auth", password=credential))
+    current_runtime().config_manager = _configured_manager(tmp_path / "auth", password=credential)
     login_html = client.get(
         "/login", environ_overrides=PREFIX_ENV
     ).get_data(as_text=True)
 
-    init_config(ConfigManager(str(tmp_path / "setup")))
+    current_runtime().config_manager = ConfigManager(str(tmp_path / "setup"))
     setup_html = client.get(
         "/setup", environ_overrides=PREFIX_ENV
     ).get_data(as_text=True)

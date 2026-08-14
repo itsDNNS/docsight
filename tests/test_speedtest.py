@@ -4,8 +4,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from app.modules.speedtest.client import SpeedtestClient
-from app.web import app, init_config, init_storage
 from app.config import ConfigManager, PASSWORD_MASK
+from app.runtime import current_runtime
 
 
 # ── Sample API responses ──
@@ -265,7 +265,6 @@ class TestSpeedtestConfig:
 def _reset_speedtest_module_storage():
     """Reset the speedtest module's lazy-initialized storage between tests."""
     import app.modules.speedtest.routes as speedtest_routes
-    speedtest_routes._storage = None
 
 
 @pytest.fixture
@@ -278,8 +277,8 @@ def speedtest_client(tmp_path):
         "speedtest_tracker_url": "http://speedtest.local:8999",
         "speedtest_tracker_token": "test-token",
     })
-    init_config(mgr)
-    init_storage(None)
+    current_runtime().config_manager = mgr
+    current_runtime().storage = None
     _reset_speedtest_module_storage()
     app.config["TESTING"] = True
     with app.test_client() as client:
@@ -479,8 +478,8 @@ class TestSpeedtestAPI:
         data_dir = str(tmp_path / "data2")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         _reset_speedtest_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
@@ -494,7 +493,7 @@ class TestSpeedtestRun:
 
     def _reset_rate_limit(self):
         import app.modules.speedtest.routes as sr
-        sr._last_trigger_ts = 0
+        current_runtime().derived_storage.set_value("speedtest_last_trigger", 0.0)
 
     @patch("app.modules.speedtest.routes.requests.post")
     def test_run_success(self, mock_post, speedtest_client):
@@ -564,8 +563,8 @@ class TestSpeedtestRun:
         data_dir = str(tmp_path / "data3")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         _reset_speedtest_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
@@ -583,8 +582,8 @@ class TestSpeedtestRun:
             "speedtest_tracker_url": "http://speedtest.local:8999",
             "speedtest_tracker_token": "[REDACTED]",
         })
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         _reset_speedtest_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:

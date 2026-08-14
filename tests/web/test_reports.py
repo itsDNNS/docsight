@@ -3,7 +3,6 @@
 from unittest.mock import Mock, patch
 from app.analyzer import analyze
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
-from app.web import app
 
 
 def _analyze_downstream_channel(*, docsis, power, quality, modulation, channel_type):

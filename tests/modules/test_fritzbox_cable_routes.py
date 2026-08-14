@@ -5,14 +5,14 @@ import pytest
 
 
 @pytest.fixture
-def app():
-    from flask import Flask
+def app(tmp_path):
+    from app.app_factory import create_app
+    from app.config import ConfigManager
     from app.blueprints import segment_bp as seg_mod
-    seg_mod._storage_instance = None  # reset singleton
-    app = Flask(__name__)
-    app.config["SECRET_KEY"] = "test"
-    app.register_blueprint(seg_mod.segment_bp)
-    return app
+    return create_app(
+        config_manager=ConfigManager(str(tmp_path / "segment-config")),
+        environ={}, testing=True,
+    )
 
 
 @pytest.fixture

@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from app.web import app
 
 
 def _call_route(route, path, *, storage=None, state=None, generated="artifact"):

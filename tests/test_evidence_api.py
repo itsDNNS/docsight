@@ -2,7 +2,7 @@ import builtins
 from unittest.mock import Mock, patch
 
 import app.web as web
-from app.web import app
+from app.runtime import current_runtime
 
 
 class FakeCoreStorage:
@@ -48,8 +48,8 @@ class TestEvidenceChecklistApi:
         config = Mock()
         config.get.side_effect = lambda key, default=None: {"admin_password": "secret"}.get(key, default)
         config.data_dir = str(tmp_path)
-        monkeypatch.setattr(web, "_config_manager", config)
-        monkeypatch.setattr(web, "_storage", None)
+        current_runtime().config_manager = config
+        current_runtime().storage = None
         web._init_auth_state()
         app.config["TESTING"] = True
 

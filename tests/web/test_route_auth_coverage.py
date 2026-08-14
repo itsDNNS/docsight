@@ -7,7 +7,7 @@ from flask import url_for
 
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
-from app.web import app, init_config, init_storage
+from app.runtime import current_runtime
 
 
 # Public routes are intentionally small and documented here so newly added
@@ -58,8 +58,8 @@ def auth_client(tmp_path):
         "modem_password": "test",
         "modem_type": "fritzbox",
     })
-    init_config(config)
-    init_storage(SnapshotStorage(str(tmp_path / "auth-routes.db"), max_days=7))
+    current_runtime().config_manager = config
+    current_runtime().storage = SnapshotStorage(str(tmp_path / "auth-routes.db"), max_days=7)
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client

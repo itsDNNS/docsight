@@ -5,9 +5,10 @@ import shutil
 import sys
 
 import pytest
-from flask import Flask
+from flask import Flask, current_app
 
 from app.module_loader import ModuleLoader
+from app.runtime import current_runtime, get_runtime
 
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -25,9 +26,9 @@ class TestModuleIntegration:
         self._orig_bool_keys = set(cfg.BOOL_KEYS)
         self._orig_int_keys = set(cfg.INT_KEYS)
         self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
-
         # Clean up any leftover dynamic module imports
         self._orig_sys_modules = set(sys.modules.keys())
+        self._runtime = current_runtime()
 
     def teardown_method(self):
         """Restore global state to avoid polluting other tests."""
@@ -51,7 +52,7 @@ class TestModuleIntegration:
 
         # Clean up global module loader to avoid polluting other tests
         from app import web
-        web.init_modules(None)
+        self._runtime.module_loader = None
 
     def test_full_load_cycle(self):
         """Discover -> validate -> load config + i18n + routes -> serve requests."""
@@ -199,6 +200,7 @@ class TestModuleManagementAPI:
         self._orig_int_keys = set(cfg.INT_KEYS)
         self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
         self._orig_sys_modules = set(sys.modules.keys())
+        self._runtime = current_runtime()
 
     def teardown_method(self):
         from app import config as cfg
@@ -218,8 +220,8 @@ class TestModuleManagementAPI:
                 del sys.modules[key]
 
         from app import web
-        web._module_loader = getattr(self, '_orig_module_loader', None)
-        web._config_manager = getattr(self, '_orig_config_manager', None)
+        self._runtime.module_loader = getattr(self, '_orig_module_loader', None)
+        self._runtime.config_manager = getattr(self, '_orig_config_manager', None)
 
     def test_list_enable_disable_cycle(self, tmp_path):
         """Full cycle: list -> disable -> verify persisted -> enable -> verify."""
@@ -228,19 +230,15 @@ class TestModuleManagementAPI:
         config_mgr = ConfigManager(str(tmp_path))
         config_mgr.save({"disabled_modules": ""})
 
-        app = Flask(__name__)
-        app.config["TESTING"] = True
+        app = current_app._get_current_object()
         loader = ModuleLoader(app, search_paths=[FIXTURE_DIR])
         loader.load_all()
 
         from app import web
-        self._orig_module_loader = web._module_loader
-        self._orig_config_manager = web._config_manager
-        web.init_modules(loader)
-        web.init_config(config_mgr)
-
-        from app.blueprints.modules_bp import modules_bp
-        app.register_blueprint(modules_bp)
+        self._orig_module_loader = self._runtime.module_loader
+        self._orig_config_manager = self._runtime.config_manager
+        self._runtime.module_loader = loader
+        self._runtime.config_manager = config_mgr
 
         with app.test_client() as c:
             # List

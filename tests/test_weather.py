@@ -13,13 +13,8 @@ from app.modules.weather.client import OpenMeteoClient
 from app.modules.weather.collector import WeatherCollector
 from app.modules.weather.storage import WeatherStorage
 from app.config import ConfigManager
-from app.web import app, init_config, init_storage, update_state
-
-# Register the weather module blueprint once at import time
-# (must happen before any test_client() calls trigger _got_first_request)
-if "weather_module" not in app.blueprints:
-    from app.modules.weather.routes import bp as _weather_bp
-    app.register_blueprint(_weather_bp)
+from app.web import update_state
+from app.runtime import current_runtime
 
 
 # ── OpenMeteoClient Tests ──
@@ -315,23 +310,21 @@ class TestWeatherAPI:
     def weather_client(self, tmp_path):
         # Reset module-local storage
         from app.modules.weather import routes as weather_routes
-        weather_routes._storage = None
 
         data_dir = str(tmp_path / "data_w")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "modem_type": "fritzbox", "weather_enabled": True,
                    "weather_latitude": "52.52", "weather_longitude": "13.41"})
-        init_config(mgr)
+        current_runtime().config_manager = mgr
         from app.storage import SnapshotStorage
         storage = SnapshotStorage(str(tmp_path / "weather.db"))
-        init_storage(storage)
+        current_runtime().storage = storage
 
         app.config["TESTING"] = True
         with app.test_client() as client:
             yield client, WeatherStorage(str(tmp_path / "weather.db"))
 
         # Cleanup module-local storage
-        weather_routes._storage = None
 
     def test_api_weather_empty(self, weather_client):
         client, _ = weather_client
@@ -353,8 +346,7 @@ class TestWeatherAPI:
 
     def test_api_weather_current_no_data(self, weather_client):
         client, _ = weather_client
-        from app.web import _state
-        _state["weather_latest"] = None
+        current_runtime().state.reset_modem()
         resp = client.get("/api/weather/current")
         assert resp.status_code == 404
 
@@ -386,17 +378,15 @@ class TestWeatherAPI:
 
     def test_api_weather_not_configured(self, tmp_path):
         from app.modules.weather import routes as weather_routes
-        weather_routes._storage = None
         mgr = ConfigManager(str(tmp_path / "data_nc"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.get("/api/weather")
             assert resp.status_code == 200
             assert resp.get_json() == []
-        weather_routes._storage = None
 
     def test_api_weather_count_param(self, weather_client):
         client, storage = weather_client

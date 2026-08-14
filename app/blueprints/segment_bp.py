@@ -8,13 +8,11 @@ from flask import Blueprint, jsonify, request
 from app.i18n import get_translations
 from app.storage.segment_utilization import SegmentUtilizationStorage
 from app.web import get_config_manager, get_storage, require_auth
+from app.runtime import current_runtime
 
 log = logging.getLogger("docsis.web.segment")
 
 segment_bp = Blueprint("segment_bp", __name__)
-
-_storage_instance = None
-
 
 def _get_lang():
     return request.cookies.get("lang", "en")
@@ -22,12 +20,12 @@ def _get_lang():
 
 def _get_storage():
     """Lazy-init segment storage using core DB path."""
-    global _storage_instance
-    if _storage_instance is None:
-        storage = get_storage()
-        if storage:
-            _storage_instance = SegmentUtilizationStorage(storage.db_path)
-    return _storage_instance
+    storage = get_storage()
+    if not storage:
+        return None
+    return current_runtime().derived_storage.get(
+        "segment_utilization", lambda: SegmentUtilizationStorage(storage.db_path)
+    )
 
 
 RANGE_HOURS = {"24h": 24, "7d": 168, "30d": 720, "all": 0}

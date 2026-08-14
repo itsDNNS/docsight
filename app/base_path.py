@@ -183,3 +183,12 @@ def configure_base_path(
         trusted_hops=trusted_hops,
     )
     app.session_interface = RequestScopedCookieSessionInterface()
+
+
+def validate_base_path_configuration(
+    environ: Mapping[str, str] | None = None,
+) -> None:
+    """Validate base-path environment values without constructing an app."""
+    env = os.environ if environ is None else environ
+    normalize_base_path(env.get("BASE_PATH"))
+    parse_trusted_prefix_hops(env.get("REVERSE_PROXY_PREFIX"))

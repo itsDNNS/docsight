@@ -65,7 +65,7 @@ def test_run_web_defaults_to_public_bind(monkeypatch):
     )
     lifecycle = ServerLifecycleController()
 
-    app_main.run_web(8765, lifecycle)
+    app_main.run_web(object(), 8765, lifecycle)
     lifecycle.close()
 
     assert calls == [{"host": "0.0.0.0", "port": 8765, "threads": 4}]
@@ -93,7 +93,7 @@ def test_run_web_honors_web_host_env(monkeypatch):
         types.SimpleNamespace(create_server=fake_create_server),
     )
 
-    app_main.run_web(8770)
+    app_main.run_web(object(), 8770)
 
     assert calls == [
         {"host": "127.0.0.1", "port": 8770, "threads": 4},

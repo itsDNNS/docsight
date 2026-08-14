@@ -6,7 +6,7 @@ import sys
 import pytest
 from unittest.mock import patch, MagicMock
 from flask import Flask
-from app.web import app
+from app.runtime import current_runtime
 
 
 @pytest.fixture
@@ -414,7 +414,7 @@ class TestModuleDiscovery:
                     sys.modules[key] = self._orig_sys_modules[key]
                 else:
                     del sys.modules[key]
-        web.init_modules(None)
+        current_runtime().module_loader = None
 
     def test_comparison_module_discovered(self):
         from app.module_loader import discover_modules

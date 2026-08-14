@@ -6,9 +6,9 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from app.web import init_config, app, _login_attempts
 from app.config import ConfigManager
 from app.module_loader import register_module_config
+from app.runtime import current_runtime
 from app import config as config_module
 
 
@@ -20,7 +20,7 @@ def _rendered_panel(html: str, panel_id: str):
 
 
 def _login(client, password):
-    _login_attempts.clear()
+    current_runtime().login_rate_limiter.prune(float("inf"))
     response = client.get("/login")
     csrf_token = re.search(rb'name="csrf_token" value="([^"]+)"', response.data)
     assert csrf_token
@@ -51,7 +51,7 @@ class TestSettingsRoute:
                 {key: ""}, module_id="community.runtime", builtin=False
             )
             config_mgr.save({key: "runtime-secret-value"})
-            init_config(config_mgr)
+            current_runtime().config_manager = config_mgr
 
             response = client.get("/settings?lang=en")
             html = response.data.decode("utf-8")
@@ -135,7 +135,7 @@ class TestSettingsRoute:
 
     def test_settings_modules_shows_segment_disabled_status(self, client, config_mgr):
         config_mgr.save({"segment_utilization_enabled": False})
-        init_config(config_mgr)
+        current_runtime().config_manager = config_mgr
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200
         assert b"Segment Utilization" in resp.data
@@ -155,7 +155,7 @@ class TestSettingsRoute:
 
     def test_settings_icon_only_controls_have_accessible_names(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
-        init_config(config_mgr)
+        current_runtime().config_manager = config_mgr
         _login(client, "admin-secret-value")
 
         resp = client.get("/settings?lang=en")
@@ -239,7 +239,7 @@ class TestSettingsRoute:
 
     def test_settings_admin_password_field_uses_saved_secret_placeholder(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
-        init_config(config_mgr)
+        current_runtime().config_manager = config_mgr
         _login(client, "admin-secret-value")
 
         resp = client.get("/settings?lang=en")
@@ -263,7 +263,7 @@ class TestSetupRoute:
 
     def test_setup_renders_when_unconfigured(self, tmp_path):
         mgr = ConfigManager(str(tmp_path / "data3"))
-        init_config(mgr)
+        current_runtime().config_manager = mgr
         app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.get("/setup")

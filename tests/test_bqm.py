@@ -12,8 +12,8 @@ from app.modules.bqm.thinkbroadband import fetch_graph
 from app.modules.bqm.storage import BqmStorage
 from app.module_loader import ModuleInfo
 from app.storage import SnapshotStorage
-from app.web import app, init_config, init_modules, init_storage
 from app.config import ConfigManager
+from app.runtime import current_runtime
 
 
 # ── Fetcher Tests ──
@@ -341,7 +341,6 @@ class TestBQMCollector:
 def _reset_bqm_module_storage():
     """Reset the BQM module's lazy-initialized storage between tests."""
     import app.modules.bqm.routes as bqm_routes
-    bqm_routes._storage = None
 
 
 def _enabled_bqm_loader():
@@ -397,17 +396,17 @@ def bqm_client(tmp_path, bqm_api_storage):
     data_dir = str(tmp_path / "data")
     mgr = ConfigManager(data_dir)
     mgr.save({"modem_password": "test", "modem_type": "fritzbox", "bqm_url": "https://example.com/graph.png"})
-    init_config(mgr)
-    init_storage(s)
+    current_runtime().config_manager = mgr
+    current_runtime().storage = s
     previous_module_loader = web.get_module_loader()
-    init_modules(_enabled_bqm_loader())
+    current_runtime().module_loader = _enabled_bqm_loader()
     _reset_bqm_module_storage()
     app.config["TESTING"] = True
     try:
         with app.test_client() as client:
             yield client, today
     finally:
-        init_modules(previous_module_loader)
+        current_runtime().module_loader = previous_module_loader
         _reset_bqm_module_storage()
 
 
@@ -440,8 +439,8 @@ class TestBQMAPI:
         data_dir = str(tmp_path / "data3")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         _reset_bqm_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
@@ -617,8 +616,8 @@ class TestBQMLive:
         data_dir = str(tmp_path / "data_live")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "modem_type": "fritzbox", "bqm_url": "https://example.com/graph.png"})
-        init_config(mgr)
-        init_storage(None)
+        current_runtime().config_manager = mgr
+        current_runtime().storage = None
         _reset_bqm_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
@@ -641,10 +640,10 @@ class TestBqmUiRender:
         client, _ = bqm_client
         enabled_loader = web.get_module_loader()
         try:
-            init_modules(None)
+            current_runtime().module_loader = None
             resp = client.get("/")
         finally:
-            init_modules(enabled_loader)
+            current_runtime().module_loader = enabled_loader
 
         assert resp.status_code == 200
         assert '/modules/docsight.bqm/static/js/bqm-chart.js' not in resp.get_data(

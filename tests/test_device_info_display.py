@@ -3,9 +3,10 @@
 import json
 import pytest
 
-from app.web import app, update_state, init_config, init_storage, format_uptime, _state
+from app.web import update_state, format_uptime
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
+from app.runtime import current_runtime
 
 
 _SAMPLE_ANALYSIS = {
@@ -37,8 +38,8 @@ def storage(tmp_path):
 
 @pytest.fixture
 def client(config_mgr, storage):
-    init_config(config_mgr)
-    init_storage(storage)
+    current_runtime().config_manager = config_mgr
+    current_runtime().storage = storage
     app.config["TESTING"] = True
     # Seed analysis so the dashboard renders the hero card
     update_state(analysis=_SAMPLE_ANALYSIS)
@@ -116,7 +117,7 @@ class TestDeviceInfoAPI:
 
     def test_device_endpoint_no_data(self, client):
         """Device endpoint returns empty dict when no device info."""
-        _state["device_info"] = None
+        current_runtime().reset_modem_state()
         resp = client.get("/api/device")
         data = json.loads(resp.data)
         assert data == {}
@@ -153,7 +154,7 @@ class TestDeviceInfoDashboard:
 
     def test_no_badges_when_no_device_info(self, client):
         """No device badges when device_info is empty."""
-        _state["device_info"] = None
+        current_runtime().reset_modem_state()
         html = self._render_index(client)
         assert 'data-lucide="router"' not in html
 
