@@ -61,6 +61,37 @@ npm test
 
 The Python suite covers analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. The zero-dependency JavaScript lane uses Node 22's built-in test runner for browser bootstrap and pure frontend contracts. Run both suites before submitting a PR.
 
+### Browser E2E suite
+
+Install the browser test dependencies before running this suite:
+
+```bash
+python -m pip install pytest-playwright==0.7.2 playwright==1.58.0
+python -m playwright install chromium
+```
+
+The shard manifest assigns every `tests/e2e/test_*.py` file exactly once. Validate the manifest and collection denominator without launching a browser:
+
+```bash
+python scripts/e2e_shards.py validate
+python -m pytest --collect-only -q tests/e2e
+```
+
+Run one shard, all three shards, one shard in reverse file order, or the canonical unsharded selection:
+
+```bash
+TZ=UTC python scripts/e2e_shards.py run --shard 1 -- -q --tb=short
+for shard in 1 2 3; do TZ=UTC python scripts/e2e_shards.py run --shard "$shard" -- -q --tb=short || exit; done
+TZ=UTC python scripts/e2e_shards.py run --shard 1 --reverse -- -q --tb=short
+TZ=UTC python scripts/e2e_shards.py run --all -- -q --tb=short
+```
+
+The original canonical single-process command also remains available for rollback comparison:
+
+```bash
+TZ=UTC python -m pytest -q tests/e2e --tb=short
+```
+
 ## Running Locally
 
 ```bash

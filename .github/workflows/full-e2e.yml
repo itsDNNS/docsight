@@ -4,6 +4,17 @@ on:
   schedule:
     - cron: "23 3 * * 1"
   workflow_dispatch:
+    inputs:
+      reverse:
+        description: Run each shard's files in reverse order
+        required: false
+        default: false
+        type: boolean
+      single_process:
+        description: Run the canonical unsharded CPU/RAM baseline
+        required: false
+        default: false
+        type: boolean
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
@@ -30,14 +41,19 @@ jobs:
               - 'app/modules/**'
               - 'app/web.py'
               - 'tests/e2e/**'
+              - 'tests/test_e2e_harness.py'
+              - 'tests/test_e2e_shards.py'
+              - 'scripts/e2e_shards.py'
               - 'requirements.txt'
               - 'requirements-test.txt'
               - '.github/workflows/full-e2e.yml'
 
-  full-e2e:
+  e2e-shards:
     needs: changes
     if: >-
+      always() &&
       !cancelled() &&
+      (github.event_name != 'pull_request' || needs.changes.result == 'success') &&
       (
         github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch' ||
@@ -45,6 +61,14 @@ jobs:
         needs.changes.outputs.browser == 'true'
       )
     runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.single_process && 35 || 18 }}
+    env:
+      E2E_REVERSE: ${{ inputs.reverse || 'false' }}
+      E2E_SELECTION: ${{ matrix.shard }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(inputs.single_process && '["all"]' || '["1","2","3"]') }}
 
     steps:
       - name: Checkout
@@ -66,16 +90,109 @@ jobs:
           pip install pytest-playwright==0.7.2 playwright==1.58.0
           python -m playwright install --with-deps chromium
 
-      - name: Run full browser E2E suite
-        run: TZ=UTC python -m pytest -q tests/e2e --tb=short
+      - name: Validate and collect shard
+        run: |
+          selection_args=(--shard "$E2E_SELECTION")
+          if [ "$E2E_SELECTION" = "all" ]; then
+            selection_args=(--all)
+          fi
+          reverse_args=()
+          if [ "$E2E_REVERSE" = "true" ]; then
+            reverse_args+=(--reverse)
+          fi
+          python scripts/e2e_shards.py collect \
+            "${selection_args[@]}" \
+            --output-dir "test-results/shard-${{ matrix.shard }}" \
+            "${reverse_args[@]}"
 
-      - name: Upload E2E artifacts
+      - name: Run browser shard
+        env:
+          TZ: UTC
+          E2E_ARTIFACT_DIR: test-results/shard-${{ matrix.shard }}
+        run: |
+          selection_args=(--shard "$E2E_SELECTION")
+          if [ "$E2E_SELECTION" = "all" ]; then
+            selection_args=(--all)
+          fi
+          reverse_args=()
+          if [ "$E2E_REVERSE" = "true" ]; then
+            reverse_args+=(--reverse)
+          fi
+          python scripts/e2e_shards.py run \
+            "${selection_args[@]}" \
+            "${reverse_args[@]}" \
+            --junit "test-results/shard-${{ matrix.shard }}/junit.xml" \
+            --receipt "test-results/shard-${{ matrix.shard }}/run-receipt.json" \
+            -- \
+            -q \
+            --tb=short \
+            --output="test-results/shard-${{ matrix.shard }}/playwright" \
+            --tracing=retain-on-failure
+
+      - name: Upload shard results, logs, and traces
         if: always()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: full-e2e-artifacts
-          if-no-files-found: ignore
+          name: full-e2e-shard-${{ matrix.shard }}
+          if-no-files-found: error
           path: |
-            test-results/
-            playwright-report/
+            test-results/shard-${{ matrix.shard }}/
             tests/e2e/screenshots/
+            playwright-report/
+
+  full-e2e:
+    name: full-e2e
+    needs: [changes, e2e-shards]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      E2E_REQUIRED: >-
+        ${{
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch' ||
+          contains(github.event.pull_request.labels.*.name, 'full-e2e') ||
+          needs.changes.outputs.browser == 'true'
+        }}
+      SHARD_JOB_RESULT: ${{ needs.e2e-shards.result }}
+      CHANGE_DETECTION_RESULT: ${{ needs.changes.result }}
+
+    steps:
+      - name: Fail closed when PR change detection did not succeed
+        if: github.event_name == 'pull_request'
+        run: |
+          if [ "$CHANGE_DETECTION_RESULT" != "success" ]; then
+            echo "Browser change detection result was $CHANGE_DETECTION_RESULT"
+            exit 1
+          fi
+
+      - name: Checkout
+        if: env.E2E_REQUIRED == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        if: env.E2E_REQUIRED == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Download every shard artifact
+        if: env.E2E_REQUIRED == 'true'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: full-e2e-shard-*
+          path: shard-artifacts
+
+      - name: Verify complete successful 531-case union
+        if: env.E2E_REQUIRED == 'true'
+        run: |
+          if [ "$SHARD_JOB_RESULT" != "success" ]; then
+            echo "E2E shard matrix result was $SHARD_JOB_RESULT"
+            exit 1
+          fi
+          python scripts/e2e_shards.py summarize \
+            --results-root shard-artifacts \
+            --expected-total 531
+
+      - name: Browser gate not required for this change
+        if: env.E2E_REQUIRED != 'true'
+        run: echo "Browser-relevant paths and the full-e2e label were not present."
