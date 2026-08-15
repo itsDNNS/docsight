@@ -5,46 +5,52 @@
   "shards": [
     {
       "id": 1,
-      "collected_cases": 126,
+      "collected_cases": 80,
       "files": [
-        "test_channels.py",
-        "test_comparison.py",
+        "test_connection_monitor.py",
+        "test_event_log_redesign.py",
+        "test_i18n.py",
+        "test_path_prefix_browser.py",
+        "test_real_proxy_path_prefix.py",
+        "test_segment_utilization.py"
+      ]
+    },
+    {
+      "id": 2,
+      "collected_cases": 125,
+      "files": [
+        "test_auth.py",
+        "test_charts.py",
+        "test_dashboard.py",
         "test_evidence_report_scope.py",
         "test_glossary_visual.py",
-        "test_real_proxy_path_prefix.py",
-        "test_responsive.py",
-        "test_segment_utilization.py",
         "test_setup.py",
         "test_theme.py"
       ]
     },
     {
-      "id": 2,
-      "collected_cases": 214,
+      "id": 3,
+      "collected_cases": 158,
       "files": [
-        "test_charts.py",
-        "test_events.py",
-        "test_glossary.py",
+        "test_comparison.py",
+        "test_correlation_ui.py",
         "test_glossary_page.py",
-        "test_i18n.py",
-        "test_mobile_quality_gate.py",
-        "test_modals.py",
-        "test_modulation.py",
+        "test_modulation_visual.py",
+        "test_pwa_gate.py",
+        "test_responsive.py",
         "test_security.py"
       ]
     },
     {
-      "id": 3,
-      "collected_cases": 191,
+      "id": 4,
+      "collected_cases": 168,
       "files": [
-        "test_auth.py",
-        "test_connection_monitor.py",
-        "test_correlation_ui.py",
-        "test_dashboard.py",
-        "test_event_log_redesign.py",
-        "test_modulation_visual.py",
-        "test_path_prefix_browser.py",
-        "test_pwa_gate.py",
+        "test_channels.py",
+        "test_events.py",
+        "test_glossary.py",
+        "test_mobile_quality_gate.py",
+        "test_modals.py",
+        "test_modulation.py",
         "test_settings.py"
       ]
     }

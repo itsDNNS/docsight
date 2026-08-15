@@ -77,11 +77,11 @@ python scripts/e2e_shards.py validate
 python -m pytest --collect-only -q tests/e2e
 ```
 
-Run one shard, all three shards, one shard in reverse file order, or the canonical unsharded selection:
+Run one shard, all four shards, one shard in reverse file order, or the canonical unsharded selection:
 
 ```bash
 TZ=UTC python scripts/e2e_shards.py run --shard 1 -- -q --tb=short
-for shard in 1 2 3; do TZ=UTC python scripts/e2e_shards.py run --shard "$shard" -- -q --tb=short || exit; done
+for shard in 1 2 3 4; do TZ=UTC python scripts/e2e_shards.py run --shard "$shard" -- -q --tb=short || exit; done
 TZ=UTC python scripts/e2e_shards.py run --shard 1 --reverse -- -q --tb=short
 TZ=UTC python scripts/e2e_shards.py run --all -- -q --tb=short
 ```

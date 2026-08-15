@@ -61,6 +61,7 @@ def _write_result(
         "started_utc": "2026-08-15T10:00:00+00:00",
         "ended_utc": "2026-08-15T10:00:01+00:00",
         "wall_seconds": 1.0,
+        "job_wall_seconds": 1.0,
         "cpu_seconds": 1.0,
         "peak_rss_kb": 1024,
         "platform": "test-linux",
@@ -90,9 +91,10 @@ def test_repository_manifest_covers_every_e2e_file_once_and_531_cases():
     assert manifest["expected_total"] == EXPECTED_TOTAL == 531
     assert manifest["baseline_cpu_seconds"] > 0
     assert [shard["collected_cases"] for shard in manifest["shards"]] == [
-        126,
-        214,
-        191,
+        80,
+        125,
+        158,
+        168,
     ]
     assert len(validated) == 27
 
@@ -169,6 +171,7 @@ def test_summary_rejects_cross_shard_nodes_and_failed_junit(tmp_path):
     [
         ("missing-receipt", "invalid run receipt"),
         ("wall", "12-minute"),
+        ("job-wall", "12-minute job wall"),
         ("cpu", "25% budget"),
         ("retry", "used retries"),
         ("process", "process or listener leaks"),
@@ -198,6 +201,9 @@ def test_summary_rejects_incomplete_or_over_budget_run_receipts(
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         if defect == "wall":
             receipt["wall_seconds"] = 720
+            receipt["job_wall_seconds"] = 720
+        elif defect == "job-wall":
+            receipt["job_wall_seconds"] = 720
         elif defect == "cpu":
             manifest["baseline_cpu_seconds"] = 1
         elif defect == "retry":
@@ -227,7 +233,11 @@ def test_single_process_baseline_receipt_may_exceed_shard_wall_limit(tmp_path):
         "all",
         files,
         nodes,
-        receipt_overrides={"wall_seconds": 1800, "cpu_seconds": 1200},
+        receipt_overrides={
+            "wall_seconds": 1800,
+            "job_wall_seconds": 1800,
+            "cpu_seconds": 1200,
+        },
     )
 
     summary = summarize_results(
@@ -235,6 +245,7 @@ def test_single_process_baseline_receipt_may_exceed_shard_wall_limit(tmp_path):
     )
     assert summary.per_shard == (3,)
     assert summary.wall_seconds == (1800.0,)
+    assert summary.job_wall_seconds == (1800.0,)
 
 
 def test_workflow_runs_safe_non_retrying_shards_and_an_always_gate():
@@ -242,7 +253,9 @@ def test_workflow_runs_safe_non_retrying_shards_and_an_always_gate():
 
     assert "fail-fast: false" in workflow
     assert "single_process:" in workflow
-    assert "'[\"1\",\"2\",\"3\"]'" in workflow
+    assert "'[\"1\",\"2\",\"3\",\"4\"]'" in workflow
+    assert "max-parallel: 4" in workflow
+    assert "E2E_JOB_STARTED_EPOCH" in workflow
     assert "python scripts/e2e_shards.py run" in workflow
     assert "python scripts/e2e_shards.py summarize" in workflow
     assert "--expected-total 531" in workflow

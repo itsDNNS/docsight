@@ -40,6 +40,7 @@ class ResultSummary:
     total: int
     per_shard: tuple[int, ...]
     wall_seconds: tuple[float, ...]
+    job_wall_seconds: tuple[float, ...]
     cpu_seconds: float
     peak_rss_kb: int
 
@@ -238,6 +239,7 @@ def summarize_results(
     all_nodes = []
     per_shard = []
     wall_seconds = []
+    job_wall_seconds = []
     total_cpu_seconds = 0.0
     peak_rss_kb = 0
     for shard in expected_shards:
@@ -295,20 +297,26 @@ def summarize_results(
             if not isinstance(receipt.get(field), str) or not receipt[field]:
                 raise ResultError(f"shard {shard_id} run receipt lacks {field}")
         wall = receipt.get("wall_seconds")
+        job_wall = receipt.get("job_wall_seconds")
         cpu = receipt.get("cpu_seconds")
         rss = receipt.get("peak_rss_kb")
         if not isinstance(wall, (int, float)) or wall < 0:
             raise ResultError(f"shard {shard_id} has invalid wall time")
+        if not isinstance(job_wall, (int, float)) or job_wall < wall:
+            raise ResultError(f"shard {shard_id} has invalid job wall time")
         if not isinstance(cpu, (int, float)) or cpu < 0:
             raise ResultError(f"shard {shard_id} has invalid CPU time")
         if not isinstance(rss, int) or rss < 0:
             raise ResultError(f"shard {shard_id} has invalid peak RSS")
         if shard_id != "all" and wall >= 720:
             raise ResultError(f"shard {shard_id} exceeded the 12-minute wall limit")
+        if shard_id != "all" and job_wall >= 720:
+            raise ResultError(f"shard {shard_id} exceeded the 12-minute job wall limit")
 
         per_shard.append(len(nodes))
         all_nodes.extend(nodes)
         wall_seconds.append(float(wall))
+        job_wall_seconds.append(float(job_wall))
         total_cpu_seconds += float(cpu)
         peak_rss_kb = max(peak_rss_kb, rss)
 
@@ -332,6 +340,7 @@ def summarize_results(
         len(all_nodes),
         tuple(per_shard),
         tuple(wall_seconds),
+        tuple(job_wall_seconds),
         total_cpu_seconds,
         peak_rss_kb,
     )
@@ -427,6 +436,14 @@ def _run(args, manifest: dict) -> int:
     started = time.monotonic()
     completed = subprocess.run(command, cwd=ROOT, env=environment, check=False)
     wall_seconds = time.monotonic() - started
+    job_started_epoch = os.environ.get("E2E_JOB_STARTED_EPOCH")
+    if job_started_epoch is None:
+        job_wall_seconds = wall_seconds
+    else:
+        try:
+            job_wall_seconds = time.time() - float(job_started_epoch)
+        except ValueError:
+            job_wall_seconds = wall_seconds
     ended_utc = dt.datetime.now(dt.UTC).isoformat()
     after_user, after_system, peak_rss_kb = _child_usage()
     leaked_processes = []
@@ -451,6 +468,7 @@ def _run(args, manifest: dict) -> int:
         "started_utc": started_utc,
         "ended_utc": ended_utc,
         "wall_seconds": round(wall_seconds, 3),
+        "job_wall_seconds": round(max(job_wall_seconds, wall_seconds), 3),
         "cpu_seconds": round(
             (after_user - before_user) + (after_system - before_system), 3
         ),
@@ -472,6 +490,9 @@ def _run(args, manifest: dict) -> int:
         return 1
     if selection["id"] != "all" and wall_seconds >= 720:
         print("E2E shard exceeded the 12-minute wall limit", file=sys.stderr)
+        return 1
+    if selection["id"] != "all" and job_wall_seconds >= 720:
+        print("E2E shard exceeded the 12-minute job wall limit", file=sys.stderr)
         return 1
     return completed.returncode
 
@@ -533,6 +554,7 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"complete E2E union: {summary.total} cases "
                 f"across shards {summary.per_shard}; wall={summary.wall_seconds}; "
+                f"job-wall={summary.job_wall_seconds}; "
                 f"cpu={summary.cpu_seconds:.2f}s; peak-rss={summary.peak_rss_kb} KiB"
             )
     except (ManifestError, ResultError) as exc:
