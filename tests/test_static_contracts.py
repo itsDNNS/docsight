@@ -57,7 +57,7 @@ STATIC_URL_FOR_RE = re.compile(
     r"url_for\(\s*['\"]static['\"]\s*,\s*filename\s*=\s*['\"]([^'\"]+)['\"]([^)]*)\)"
 )
 SCRIPT_BLOCK_RE = re.compile(
-    r"<script\b(?P<attributes>[^>]*)>(?P<body>.*?)</script>",
+    r"<script\b(?P<attributes>[^>]*)>(?P<body>.*?)</script\s*>",
     re.IGNORECASE | re.DOTALL,
 )
 SCRIPT_ATTRIBUTE_RE = re.compile(
@@ -206,6 +206,15 @@ def test_templates_reference_existing_static_assets() -> None:
                 missing.append(f"{source.relative_to(ROOT)} -> {url}")
 
     assert missing == []
+
+
+def test_inline_script_scanner_accepts_html_whitespace_before_end_tag_close() -> None:
+    source = '<script type="text/javascript">alert(1)</script \t>'
+
+    match = SCRIPT_BLOCK_RE.fullmatch(source)
+
+    assert match is not None
+    assert match.group("body") == "alert(1)"
 
 
 def test_templates_have_no_executable_inline_script_bodies_and_new_assets_exist() -> None:
