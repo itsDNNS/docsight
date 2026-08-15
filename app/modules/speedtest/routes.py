@@ -10,7 +10,7 @@ from app.config import parse_config_bool
 from app.web import require_auth, get_config_manager, get_state, get_storage, clear_speedtest_latest
 from app.runtime import current_runtime
 from app.i18n import get_translations
-from app.storage.sqlite import connect_sqlite
+from app.storage.sqlite import open_read
 
 from .client import SpeedtestClient
 from .storage import SpeedtestStorage
@@ -71,7 +71,7 @@ def _enrich_speedtest(result):
 def _annotate_smart_capture(results, db_path):
     """Annotate speedtest results with smart_capture flag."""
     try:
-        with connect_sqlite(db_path) as conn:
+        with open_read(db_path) as conn:
             rows = conn.execute(
                 "SELECT linked_result_id FROM smart_capture_executions "
                 "WHERE status = 'completed' AND linked_result_id IS NOT NULL"

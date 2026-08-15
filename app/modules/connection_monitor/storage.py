@@ -3,9 +3,10 @@
 import logging
 import math
 import os
-import sqlite3
 
-from app.storage.sqlite import connect_sqlite
+from app.storage.migrations import run_migrations
+from app.storage.sqlite import bulk_write, open_read, write_transaction
+from .migrations import MIGRATIONS
 import time
 
 logger = logging.getLogger(__name__)
@@ -19,134 +20,44 @@ class ConnectionMonitorStorage:
         os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
         self._init_tables()
 
-    def _connect(self) -> sqlite3.Connection:
-        conn = connect_sqlite(self.db_path)
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.row_factory = sqlite3.Row
-        return conn
+    def _connect(self):
+        """Compatibility context for internal test setup writes."""
+        return write_transaction(self.db_path)
+
+    def _read(self):
+        return open_read(self.db_path)
+
+    def _write(self):
+        return write_transaction(self.db_path)
 
     def _init_tables(self):
-        with self._connect() as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS connection_targets (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    label TEXT NOT NULL,
-                    host TEXT NOT NULL,
-                    enabled BOOLEAN NOT NULL DEFAULT 1,
-                    poll_interval_ms INTEGER NOT NULL DEFAULT 5000,
-                    probe_method TEXT NOT NULL DEFAULT 'auto',
-                    tcp_port INTEGER NOT NULL DEFAULT 443,
-                    is_demo INTEGER NOT NULL DEFAULT 0,
-                    created_at REAL NOT NULL
-                )
-            """)
-            target_columns = {
-                row["name"]
-                for row in conn.execute("PRAGMA table_info(connection_targets)")
-            }
-            if "is_demo" not in target_columns:
-                conn.execute(
-                    "ALTER TABLE connection_targets "
-                    "ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0"
-                )
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS connection_samples (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    target_id INTEGER NOT NULL,
-                    timestamp REAL NOT NULL,
-                    latency_ms REAL,
-                    timeout BOOLEAN NOT NULL DEFAULT 0,
-                    probe_method TEXT NOT NULL,
-                    FOREIGN KEY (target_id) REFERENCES connection_targets(id)
-                        ON DELETE CASCADE
-                )
-            """)
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_samples_target_ts
-                ON connection_samples (target_id, timestamp)
-            """)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS connection_samples_aggregated (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    target_id INTEGER NOT NULL,
-                    bucket_start REAL NOT NULL,
-                    bucket_seconds INTEGER NOT NULL,
-                    avg_latency_ms REAL,
-                    min_latency_ms REAL,
-                    max_latency_ms REAL,
-                    p95_latency_ms REAL,
-                    packet_loss_pct REAL NOT NULL,
-                    sample_count INTEGER NOT NULL,
-                    FOREIGN KEY (target_id) REFERENCES connection_targets(id)
-                        ON DELETE CASCADE,
-                    UNIQUE(target_id, bucket_start, bucket_seconds)
-                )
-            """)
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_agg_target_bucket
-                ON connection_samples_aggregated (target_id, bucket_seconds, bucket_start)
-            """)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS connection_monitor_pinned_days (
-                    date TEXT NOT NULL PRIMARY KEY,
-                    label TEXT,
-                    created_at REAL NOT NULL
-                )
-            """)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS traceroute_traces (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    target_id INTEGER NOT NULL,
-                    timestamp REAL NOT NULL,
-                    trigger_reason TEXT NOT NULL,
-                    hop_count INTEGER NOT NULL,
-                    route_fingerprint TEXT,
-                    reached_target INTEGER NOT NULL DEFAULT 0,
-                    is_demo INTEGER NOT NULL DEFAULT 0,
-                    FOREIGN KEY (target_id) REFERENCES connection_targets(id) ON DELETE CASCADE
-                )
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_traces_target_ts ON traceroute_traces(target_id, timestamp)")
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS traceroute_hops (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    trace_id INTEGER NOT NULL,
-                    hop_index INTEGER NOT NULL,
-                    hop_ip TEXT,
-                    hop_host TEXT,
-                    latency_ms REAL,
-                    probes_responded INTEGER NOT NULL DEFAULT 0,
-                    FOREIGN KEY (trace_id) REFERENCES traceroute_traces(id) ON DELETE CASCADE
-                )
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_hops_trace ON traceroute_hops(trace_id)")
+        run_migrations(self.db_path, MIGRATIONS)
 
     # --- Pinned Days ---
 
     def pin_day(self, date: str, label: str | None = None):
-        with self._connect() as conn:
+        with self._write() as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO connection_monitor_pinned_days (date, label, created_at) VALUES (?, ?, ?)",
                 (date, label, time.time()),
             )
 
     def unpin_day(self, date: str) -> bool:
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute(
                 "DELETE FROM connection_monitor_pinned_days WHERE date = ?", (date,)
             )
             return cur.rowcount > 0
 
     def get_pinned_days(self) -> list[dict]:
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT * FROM connection_monitor_pinned_days ORDER BY date DESC"
             ).fetchall()
             return [dict(r) for r in rows]
 
     def is_day_pinned(self, date: str) -> bool:
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT 1 FROM connection_monitor_pinned_days WHERE date = ?", (date,)
             ).fetchone()
@@ -164,7 +75,7 @@ class ConnectionMonitorStorage:
         tcp_port: int = 443,
         is_demo: bool = False,
     ) -> int:
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute(
                 """INSERT INTO connection_targets
                    (label, host, enabled, poll_interval_ms, probe_method, tcp_port,
@@ -178,14 +89,14 @@ class ConnectionMonitorStorage:
             return cur.lastrowid
 
     def get_targets(self) -> list[dict]:
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT * FROM connection_targets ORDER BY id"
             ).fetchall()
             return [dict(r) for r in rows]
 
     def get_target(self, target_id: int) -> dict | None:
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT * FROM connection_targets WHERE id = ?", (target_id,)
             ).fetchone()
@@ -198,7 +109,7 @@ class ConnectionMonitorStorage:
             return False
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         values = list(updates.values()) + [target_id]
-        with self._connect() as conn:
+        with self._write() as conn:
             conn.execute(
                 f"UPDATE connection_targets SET {set_clause} WHERE id = ?",
                 values,
@@ -206,14 +117,14 @@ class ConnectionMonitorStorage:
             return True
 
     def delete_target(self, target_id: int):
-        with self._connect() as conn:
+        with self._write() as conn:
             conn.execute(
                 "DELETE FROM connection_targets WHERE id = ?", (target_id,)
             )
 
     def purge_demo_targets(self) -> int:
         """Delete demo targets and their cascaded samples without touching user targets."""
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute(
                 "DELETE FROM connection_targets WHERE is_demo = 1"
             )
@@ -224,13 +135,13 @@ class ConnectionMonitorStorage:
     def save_samples(self, samples: list[dict]):
         if not samples:
             return
-        with self._connect() as conn:
-            conn.executemany(
-                """INSERT INTO connection_samples
-                   (target_id, timestamp, latency_ms, timeout, probe_method)
-                   VALUES (:target_id, :timestamp, :latency_ms, :timeout, :probe_method)""",
-                samples,
-            )
+        bulk_write(
+            self.db_path,
+            """INSERT INTO connection_samples
+               (target_id, timestamp, latency_ms, timeout, probe_method)
+               VALUES (:target_id, :timestamp, :latency_ms, :timeout, :probe_method)""",
+            samples,
+        )
 
     def _build_sample_where(
         self,
@@ -262,7 +173,7 @@ class ConnectionMonitorStorage:
         if limit > 0:
             query += " LIMIT ?"
             params.append(limit)
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(query, params).fetchall()
             return [dict(r) for r in rows]
 
@@ -273,7 +184,7 @@ class ConnectionMonitorStorage:
         end: float | None = None,
     ) -> dict[str, object]:
         where, params = self._build_sample_where(target_id, start=start, end=end)
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 f"""
                 SELECT
@@ -314,7 +225,7 @@ class ConnectionMonitorStorage:
 
     def get_summary(self, target_id: int, window_seconds: int = 60) -> dict[str, object]:
         cutoff = time.time() - window_seconds
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 """SELECT
                     COUNT(*) as sample_count,
@@ -347,7 +258,7 @@ class ConnectionMonitorStorage:
             clauses.append("timestamp <= ?")
             params.append(end)
         where = " AND ".join(clauses)
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 f"SELECT timestamp, timeout FROM connection_samples WHERE {where} ORDER BY timestamp",
                 params,
@@ -401,7 +312,7 @@ class ConnectionMonitorStorage:
             clauses.append("bucket_start <= ?")
             params.append(end)
         where = " AND ".join(clauses)
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 f"SELECT * FROM connection_samples_aggregated WHERE {where} ORDER BY bucket_start",
                 params,
@@ -417,7 +328,7 @@ class ConnectionMonitorStorage:
         per bucket. Deletes aggregated raw samples. Returns number of
         buckets created.
         """
-        with self._connect() as conn:
+        with self._write() as conn:
             rows = conn.execute(
                 """SELECT timestamp, latency_ms, timeout
                    FROM connection_samples
@@ -496,7 +407,7 @@ class ConnectionMonitorStorage:
         p95 is approximated as MAX(p95) of constituent buckets.
         Returns number of target buckets created.
         """
-        with self._connect() as conn:
+        with self._write() as conn:
             rows = conn.execute(
                 """SELECT bucket_start, avg_latency_ms, min_latency_ms,
                           max_latency_ms, p95_latency_ms, packet_loss_pct,
@@ -601,7 +512,7 @@ class ConnectionMonitorStorage:
 
     def save_trace(self, target_id, timestamp, trigger_reason, hops,
                    route_fingerprint, reached_target, is_demo=False):
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute(
                 """INSERT INTO traceroute_traces
                    (target_id, timestamp, trigger_reason, hop_count,
@@ -612,18 +523,18 @@ class ConnectionMonitorStorage:
             )
             trace_id = cur.lastrowid
             if hops:
-                conn.executemany(
-                    """INSERT INTO traceroute_hops
-                       (trace_id, hop_index, hop_ip, hop_host, latency_ms, probes_responded)
-                       VALUES (?, ?, ?, ?, ?, ?)""",
-                    [(trace_id, h["hop_index"], h["hop_ip"], h.get("hop_host"),
-                      h.get("latency_ms"), h.get("probes_responded", 0)) for h in hops],
-                )
+                for hop in hops:
+                    conn.execute(
+                        """INSERT INTO traceroute_hops
+                           (trace_id, hop_index, hop_ip, hop_host, latency_ms, probes_responded)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        (trace_id, hop["hop_index"], hop["hop_ip"], hop.get("hop_host"),
+                         hop.get("latency_ms"), hop.get("probes_responded", 0)),
+                    )
             return trace_id
 
     def get_traces(self, target_id, start=None, end=None, limit=100):
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._read() as conn:
             sql = "SELECT * FROM traceroute_traces WHERE target_id = ?"
             params = [target_id]
             if start is not None:
@@ -638,16 +549,14 @@ class ConnectionMonitorStorage:
             return [dict(r) for r in rows]
 
     def get_trace(self, trace_id):
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT * FROM traceroute_traces WHERE id = ?", (trace_id,)
             ).fetchone()
             return dict(row) if row else None
 
     def get_trace_hops(self, trace_id):
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT * FROM traceroute_hops WHERE trace_id = ? ORDER BY hop_index",
                 (trace_id,),
@@ -659,7 +568,7 @@ class ConnectionMonitorStorage:
             return
         cutoff = time.time() - (retention_days * 86400)
         pinned = self.get_pinned_days()
-        with self._connect() as conn:
+        with self._write() as conn:
             if pinned:
                 placeholders = ",".join("?" * len(pinned))
                 conn.execute(
@@ -670,7 +579,7 @@ class ConnectionMonitorStorage:
                 conn.execute("DELETE FROM traceroute_traces WHERE timestamp < ?", (cutoff,))
 
     def purge_demo_traces(self):
-        with self._connect() as conn:
+        with self._write() as conn:
             conn.execute("DELETE FROM traceroute_traces WHERE is_demo = 1")
 
     # --- Retention ---
@@ -679,7 +588,7 @@ class ConnectionMonitorStorage:
         if retention_days <= 0:
             return 0
         cutoff = time.time() - (retention_days * 86400)
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute(
                 """DELETE FROM connection_samples WHERE timestamp < ?
                    AND date(timestamp, 'unixepoch', 'localtime')

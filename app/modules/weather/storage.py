@@ -1,9 +1,14 @@
 """Standalone weather data storage."""
 
 import logging
-import sqlite3
-
-from app.storage.sqlite import DEFAULT_SQLITE_BUSY_TIMEOUT_MS, connect_sqlite
+from app.storage.migrations import run_migrations
+from app.storage.sqlite import (
+    DEFAULT_SQLITE_BUSY_TIMEOUT_MS,
+    bulk_write,
+    open_read,
+    write_transaction,
+)
+from .migrations import MIGRATIONS
 import threading
 from collections import defaultdict
 from pathlib import Path
@@ -36,22 +41,13 @@ class WeatherStorage:
         self._ensure_table()
 
     def _connect(self):
-        """Return a connection with WAL mode and busy timeout."""
-        conn = connect_sqlite(self.db_path)
-        conn.execute("PRAGMA journal_mode=WAL")
-        return conn
+        """Compatibility context for internal test setup writes."""
+        return write_transaction(self.db_path)
 
     def _ensure_table(self):
         """Create the weather_data table if it doesn't exist."""
         with self._lock:
-            with self._connect() as conn:
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS weather_data ("
-                    "  timestamp TEXT PRIMARY KEY,"
-                    "  temperature REAL NOT NULL,"
-                    "  is_demo INTEGER DEFAULT 0"
-                    ")"
-                )
+            run_migrations(self.db_path, MIGRATIONS)
 
     def save_weather_data(self, records, is_demo=False):
         """Bulk insert weather records, ignoring duplicates by timestamp.
@@ -64,20 +60,19 @@ class WeatherStorage:
             return
         try:
             with self._lock:
-                with self._connect() as conn:
-                    conn.executemany(
-                        "INSERT OR IGNORE INTO weather_data "
-                        "(timestamp, temperature, is_demo) VALUES (?, ?, ?)",
-                        [(r["timestamp"], r["temperature"], int(is_demo)) for r in records],
-                    )
+                bulk_write(
+                    self.db_path,
+                    "INSERT OR IGNORE INTO weather_data "
+                    "(timestamp, temperature, is_demo) VALUES (?, ?, ?)",
+                    [(r["timestamp"], r["temperature"], int(is_demo)) for r in records],
+                )
             log.debug("Saved %d weather records", len(records))
         except Exception as e:
             log.error("Failed to save weather data: %s", e)
 
     def get_weather_data(self, limit=2000):
         """Return weather data, newest first."""
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, temperature FROM weather_data "
                 "ORDER BY timestamp DESC LIMIT ?",
@@ -89,8 +84,7 @@ class WeatherStorage:
         """Return weather data within a timestamp range, oldest first."""
         start_ts = _normalize_range_ts(start_ts, " ")
         end_ts = _normalize_range_ts(end_ts, " ")
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, temperature FROM weather_data "
                 "WHERE timestamp >= ? AND timestamp <= ? "
@@ -101,6 +95,6 @@ class WeatherStorage:
 
     def get_weather_count(self):
         """Return number of weather records."""
-        with self._connect() as conn:
+        with open_read(self.db_path) as conn:
             row = conn.execute("SELECT COUNT(*) FROM weather_data").fetchone()
         return row[0] if row else 0

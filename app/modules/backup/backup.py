@@ -10,7 +10,12 @@ import os
 import shutil
 import sqlite3
 
-from app.storage.sqlite import connect_sqlite
+from app.storage.sqlite import (
+    consistent_copy,
+    open_readonly,
+    verify_database,
+    write_transaction,
+)
 import tarfile
 import tempfile
 from datetime import datetime, timezone
@@ -46,13 +51,14 @@ def _get_table_counts(db_path):
     """Return {table_name: row_count} for all user tables."""
     counts = {}
     try:
-        conn = connect_sqlite(db_path)
-        tables = [r[0] for r in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-        ).fetchall()]
-        for t in tables:
-            counts[t] = conn.execute(f"SELECT COUNT(*) FROM [{t}]").fetchone()[0]  # noqa: S608
-        conn.close()
+        with open_readonly(db_path) as conn:
+            tables = [r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+            ).fetchall()]
+            for table in tables:
+                counts[table] = conn.execute(
+                    f"SELECT COUNT(*) FROM [{table}]"  # noqa: S608
+                ).fetchone()[0]
     except Exception as e:
         log.warning("Could not read table counts: %s", e)
     return counts
@@ -67,24 +73,22 @@ def _vacuum_db(data_dir, db_name, dest_path):
     if not os.path.exists(src):
         return False
 
-    conn = connect_sqlite(src)
-    conn.execute(f"VACUUM INTO '{dest_path}'")
-    conn.close()
+    consistent_copy(src, dest_path)
 
     # Remove demo data from copy (only relevant for main DB)
     if db_name == "docsis_history.db":
-        copy_conn = connect_sqlite(dest_path)
         demo_tables = [
             "snapshots", "events", "journal_entries", "incidents",
             "speedtest_results", "bqm_graphs", "bnetz_measurements",
         ]
-        for table in demo_tables:
-            try:
-                copy_conn.execute(f"DELETE FROM [{table}] WHERE is_demo = 1")  # noqa: S608
-            except sqlite3.OperationalError:
-                pass  # table may not exist or lack is_demo column
-        copy_conn.commit()
-        copy_conn.close()
+        with write_transaction(dest_path) as conn:
+            for table in demo_tables:
+                try:
+                    conn.execute(
+                        f"DELETE FROM [{table}] WHERE is_demo = 1"  # noqa: S608
+                    )
+                except sqlite3.OperationalError:
+                    pass  # table may not exist or lack is_demo column
     return True
 
 
@@ -233,28 +237,72 @@ def restore_backup(archive_bytes, data_dir):
 
     os.makedirs(data_dir, exist_ok=True)
     restored_files = []
+    database_names = {"docsis_history.db", "connection_monitor.db"}
+    staged = {}
 
-    with tarfile.open(fileobj=archive_bytes, mode="r:gz") as tar:
-        for member in tar.getmembers():
-            if member.name == BACKUP_META_FILE:
-                continue
-            if member.name not in DATA_FILES:
-                log.warning("Skipping unknown file in backup: %s", member.name)
-                continue
+    try:
+        with tarfile.open(fileobj=archive_bytes, mode="r:gz") as tar:
+            for member in tar.getmembers():
+                if member.name == BACKUP_META_FILE:
+                    continue
+                if member.name not in DATA_FILES:
+                    log.warning("Skipping unknown file in backup: %s", member.name)
+                    continue
+                source = tar.extractfile(member)
+                if source is None:
+                    continue
 
-            # Security: ensure no path traversal
-            dest = os.path.join(data_dir, member.name)
-            if not os.path.realpath(dest).startswith(os.path.realpath(data_dir)):
-                log.warning("Skipping path traversal attempt: %s", member.name)
-                continue
+                fd, staged_path = tempfile.mkstemp(
+                    prefix=f".docsight-restore-{member.name}.",
+                    suffix=".tmp",
+                    dir=data_dir,
+                )
+                try:
+                    with os.fdopen(fd, "wb") as destination:
+                        shutil.copyfileobj(source, destination)
+                except BaseException:
+                    try:
+                        os.close(fd)
+                    except OSError:
+                        pass
+                    try:
+                        os.remove(staged_path)
+                    except FileNotFoundError:
+                        pass
+                    raise
+                staged[member.name] = staged_path
 
-            source = tar.extractfile(member)
-            if source is None:
+        for name, staged_path in staged.items():
+            if name not in database_names:
                 continue
+            try:
+                integrity = verify_database(staged_path)
+            except sqlite3.DatabaseError as exc:
+                raise ValueError(f"Restored database failed verification: {name}") from exc
+            if integrity.lower() != "ok":
+                raise ValueError(
+                    f"Restored database failed integrity check: {name}: {integrity}"
+                )
 
-            with open(dest, "wb") as f:
-                shutil.copyfileobj(source, f)
-            restored_files.append(member.name)
+        for name, staged_path in staged.items():
+            destination = os.path.join(data_dir, name)
+            os.replace(staged_path, destination)
+            staged[name] = None
+            if name in database_names:
+                for suffix in ("-wal", "-shm"):
+                    try:
+                        os.remove(destination + suffix)
+                    except FileNotFoundError:
+                        pass
+            restored_files.append(name)
+    finally:
+        for staged_path in staged.values():
+            if staged_path is None:
+                continue
+            try:
+                os.remove(staged_path)
+            except FileNotFoundError:
+                pass
 
     log.info("Restored %d files to %s", len(restored_files), data_dir)
     return {

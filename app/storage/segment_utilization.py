@@ -1,8 +1,7 @@
 """Segment utilization storage (standalone, not a core mixin)."""
 
-import sqlite3
-
-from app.storage.sqlite import connect_sqlite
+from app.storage.migrations import SEGMENT_MIGRATIONS, run_migrations
+from app.storage.sqlite import open_read, write_transaction
 import threading
 from datetime import datetime, timedelta, timezone
 
@@ -50,49 +49,7 @@ class SegmentUtilizationStorage:
         self._ensure_table()
 
     def _ensure_table(self):
-        conn = connect_sqlite(self.db_path)
-        try:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS segment_utilization (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT NOT NULL,
-                    ds_total REAL,
-                    us_total REAL,
-                    ds_own REAL,
-                    us_own REAL
-                )
-            """)
-            conn.execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_segment_util_ts
-                ON segment_utilization(timestamp)
-            """)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS segment_utilization_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    direction TEXT NOT NULL,
-                    start_ts TEXT NOT NULL,
-                    end_ts TEXT NOT NULL,
-                    duration_minutes INTEGER NOT NULL,
-                    peak_total REAL,
-                    peak_own REAL,
-                    peak_neighbor_load REAL,
-                    confidence TEXT,
-                    threshold INTEGER NOT NULL,
-                    min_minutes INTEGER NOT NULL
-                )
-            """)
-            conn.execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_segment_util_events_key
-                ON segment_utilization_events(direction, start_ts, threshold, min_minutes)
-            """)
-            conn.commit()
-        finally:
-            conn.close()
-
-    def _connect(self):
-        conn = connect_sqlite(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
+        run_migrations(self.db_path, SEGMENT_MIGRATIONS)
 
     def save(self, ds_total, us_total, ds_own, us_own):
         """Store a utilization sample with the current UTC timestamp."""
@@ -102,48 +59,37 @@ class SegmentUtilizationStorage:
     def save_at(self, ts, ds_total, us_total, ds_own, us_own):
         """Store a utilization sample at a specific timestamp (ISO format). Skips duplicates."""
         with self._lock:
-            conn = self._connect()
-            try:
+            with write_transaction(self.db_path) as conn:
                 conn.execute(
                     "INSERT OR IGNORE INTO segment_utilization (timestamp, ds_total, us_total, ds_own, us_own) VALUES (?, ?, ?, ?, ?)",
                     (ts, ds_total, us_total, ds_own, us_own),
                 )
-                conn.commit()
-            finally:
-                conn.close()
 
     def get_range(self, start_ts, end_ts):
         """Return records within a time range, sorted by timestamp ascending."""
         start_ts = _normalize_range_ts(start_ts, "T")
         end_ts = _normalize_range_ts(end_ts, "T")
-        conn = self._connect()
-        try:
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, ds_total, us_total, ds_own, us_own FROM segment_utilization WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
                 (start_ts, end_ts),
             ).fetchall()
             return [dict(r) for r in rows]
-        finally:
-            conn.close()
 
     def get_latest(self, n=1):
         """Return the N most recent records, most recent first."""
-        conn = self._connect()
-        try:
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, ds_total, us_total, ds_own, us_own FROM segment_utilization ORDER BY timestamp DESC LIMIT ?",
                 (n,),
             ).fetchall()
             return [dict(r) for r in rows]
-        finally:
-            conn.close()
 
     def get_stats(self, start_ts, end_ts):
         """Return min/max/avg statistics for the given time range."""
         start_ts = _normalize_range_ts(start_ts, "T")
         end_ts = _normalize_range_ts(end_ts, "T")
-        conn = self._connect()
-        try:
+        with open_read(self.db_path) as conn:
             row = conn.execute(
                 """SELECT
                     COUNT(*) as count,
@@ -158,8 +104,6 @@ class SegmentUtilizationStorage:
                 (start_ts, end_ts),
             ).fetchone()
             return dict(row)
-        finally:
-            conn.close()
 
     def downsample(self, fine_after_days=7, fine_bucket_min=5, coarse_after_days=30, coarse_bucket_min=15):
         """Aggregate old samples into time-bucketed averages.
@@ -221,8 +165,7 @@ class SegmentUtilizationStorage:
 
         inserted = 0
         with self._lock:
-            conn = self._connect()
-            try:
+            with write_transaction(self.db_path) as conn:
                 for ev in events:
                     cur = conn.execute(
                         "INSERT OR IGNORE INTO segment_utilization_events "
@@ -237,17 +180,13 @@ class SegmentUtilizationStorage:
                     )
                     if cur.rowcount:
                         inserted += 1
-                conn.commit()
-            finally:
-                conn.close()
         return inserted
 
     def _load_materialized_events(self, start_ts, end_ts, threshold, min_minutes):
         """Return materialized events that fall within the requested range."""
         start_ts = _normalize_range_ts(start_ts, "T")
         end_ts = _normalize_range_ts(end_ts, "T")
-        conn = self._connect()
-        try:
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT direction, start_ts, end_ts, duration_minutes, peak_total, peak_own, "
                 "peak_neighbor_load, confidence "
@@ -270,14 +209,11 @@ class SegmentUtilizationStorage:
                 }
                 for r in rows
             ]
-        finally:
-            conn.close()
 
     def _downsample_range(self, before_ts, bucket_minutes):
         """Aggregate all samples before before_ts into bucket_minutes-wide averages."""
         with self._lock:
-            conn = self._connect()
-            try:
+            with write_transaction(self.db_path) as conn:
                 # Bucket key: floor minute to nearest bucket boundary
                 # timestamp format: 2025-03-02T14:23:45Z
                 # substr(timestamp,1,14) = "2025-03-02T14:"
@@ -321,10 +257,7 @@ class SegmentUtilizationStorage:
                     )
                     removed += deleted - 1  # -1 because we re-inserted one averaged row
 
-                conn.commit()
                 return removed
-            finally:
-                conn.close()
 
     def get_events(self, start_ts, end_ts, threshold=EVENT_DEFAULT_THRESHOLD,
                    min_minutes=EVENT_DEFAULT_MIN_MINUTES):
@@ -416,12 +349,8 @@ class SegmentUtilizationStorage:
         """Delete records older than the given number of days. Returns count deleted."""
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
         with self._lock:
-            conn = self._connect()
-            try:
+            with write_transaction(self.db_path) as conn:
                 cursor = conn.execute(
                     "DELETE FROM segment_utilization WHERE timestamp < ?", (cutoff,)
                 )
-                conn.commit()
                 return cursor.rowcount
-            finally:
-                conn.close()

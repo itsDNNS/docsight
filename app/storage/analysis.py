@@ -1,7 +1,6 @@
 """Channel history and correlation timeline mixin."""
 
 import json
-import sqlite3
 
 from app.channel_selector import match_channel, match_channels
 
@@ -87,8 +86,7 @@ class AnalysisMethods:
                 })
 
         if "events" in sources:
-            with self._connect() as conn:
-                conn.row_factory = sqlite3.Row
+            with self._read() as conn:
                 rows = conn.execute(
                     "SELECT id, timestamp, severity, event_type, message, details "
                     "FROM events WHERE timestamp >= ? AND timestamp <= ? "
@@ -133,8 +131,7 @@ class AnalysisMethods:
         # Smart Capture executions
         if "capture" in sources:
             try:
-                with self._connect() as conn:
-                    conn.row_factory = sqlite3.Row
+                with self._read() as conn:
                     rows = conn.execute(
                         "SELECT * FROM smart_capture_executions "
                         "WHERE created_at >= ? AND created_at <= ? "
@@ -195,7 +192,7 @@ class AnalysisMethods:
         _COL_MAP = {"ds": "ds_channels_json", "us": "us_channels_json"}
         _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
         cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
-        with self._connect() as conn:
+        with self._read() as conn:
             if direction == "ds":
                 rows = conn.execute(
                     "SELECT timestamp, ds_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
@@ -232,7 +229,7 @@ class AnalysisMethods:
         )
         cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
         col = "ds_channels_json" if direction == "ds" else "us_channels_json"
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 f"SELECT timestamp, {col} FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
                 (cutoff,),

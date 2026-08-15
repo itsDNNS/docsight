@@ -18,7 +18,7 @@ class SmartCaptureMethods:
         assigned a DB id at evaluation time. trigger_timestamp is stored
         as a secondary correlation key.
         """
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute(
                 "INSERT INTO smart_capture_executions "
                 "(trigger_event_id, trigger_timestamp, trigger_type, action_type, status, "
@@ -33,8 +33,7 @@ class SmartCaptureMethods:
 
     def get_execution(self, execution_id):
         """Return a single execution record by id, or None."""
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT * FROM smart_capture_executions WHERE id = ?",
                 (execution_id,),
@@ -80,7 +79,7 @@ class SmartCaptureMethods:
         if not updates:
             return
         params.append(execution_id)
-        with self._connect() as conn:
+        with self._write() as conn:
             conn.execute(
                 f"UPDATE smart_capture_executions SET {', '.join(updates)} WHERE id = ?",
                 params,
@@ -89,8 +88,7 @@ class SmartCaptureMethods:
     def get_fired_unmatched(self, action_type):
         """Return FIRED executions without a linked result, filtered by action_type.
         Ordered by fired_at ASC (oldest first) for FIFO matching."""
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT * FROM smart_capture_executions "
                 "WHERE status = 'fired' AND linked_result_id IS NULL "
@@ -110,7 +108,7 @@ class SmartCaptureMethods:
 
     def get_latest_smart_capture_fire(self, action_type):
         """Return the latest fired_at timestamp for accepted Smart Capture actions."""
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT fired_at FROM smart_capture_executions "
                 "WHERE action_type = ? AND fired_at IS NOT NULL "
@@ -121,7 +119,7 @@ class SmartCaptureMethods:
 
     def count_smart_capture_fires_since(self, action_type, since_timestamp):
         """Count accepted Smart Capture actions since a UTC timestamp."""
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT COUNT(*) FROM smart_capture_executions "
                 "WHERE action_type = ? AND fired_at IS NOT NULL AND fired_at >= ?",
@@ -132,7 +130,7 @@ class SmartCaptureMethods:
     def get_latest_speedtest_result_timestamp(self):
         """Return latest cached Speedtest Tracker result timestamp, if present."""
         try:
-            with self._connect() as conn:
+            with self._read() as conn:
                 row = conn.execute(
                     "SELECT timestamp FROM speedtest_results "
                     "WHERE COALESCE(is_demo, 0) = 0 "
@@ -155,7 +153,7 @@ class SmartCaptureMethods:
         if action_type:
             query += " AND action_type = ?"
             params.append(action_type)
-        with self._connect() as conn:
+        with self._write() as conn:
             rowcount = conn.execute(query, params).rowcount
         return rowcount
 
@@ -173,7 +171,7 @@ class SmartCaptureMethods:
             updates.append("linked_result_id = ?")
             params.append(linked_result_id)
         params.extend([execution_id, expected_status])
-        with self._connect() as conn:
+        with self._write() as conn:
             rowcount = conn.execute(
                 f"UPDATE smart_capture_executions SET {', '.join(updates)} "
                 "WHERE id = ? AND status = ?",
@@ -190,8 +188,7 @@ class SmartCaptureMethods:
             params.append(status)
         query += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._read() as conn:
             rows = conn.execute(query, params).fetchall()
         results = []
         for r in rows:
@@ -207,7 +204,7 @@ class SmartCaptureMethods:
     def expire_stale_pending(self, cutoff_timestamp):
         """Bulk-expire PENDING executions with created_at before cutoff.
         Handles orphaned executions when no adapter is registered."""
-        with self._connect() as conn:
+        with self._write() as conn:
             rowcount = conn.execute(
                 "UPDATE smart_capture_executions "
                 "SET status = 'expired', "
@@ -216,4 +213,3 @@ class SmartCaptureMethods:
                 (cutoff_timestamp,),
             ).rowcount
         return rowcount
-

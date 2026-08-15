@@ -23,6 +23,8 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlsplit
 
+from app.storage.sqlite import open_readonly
+
 from .config import (
     DEFAULTS,
     DEMO_HIDE_KEYS,
@@ -302,7 +304,7 @@ def _check_database(data_dir: Path) -> CheckResult:
             details={"path": _safe_path(db_path)},
         )
     try:
-        with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=2) as conn:
+        with open_readonly(db_path, timeout=2) as conn:
             integrity = conn.execute("PRAGMA quick_check").fetchone()
             integrity_value = integrity[0] if integrity else "unknown"
             journal = conn.execute("PRAGMA journal_mode").fetchone()

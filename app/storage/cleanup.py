@@ -49,7 +49,7 @@ class CleanupMethods:
         - Runs in a single transaction (automatic rollback on error)
         - Skips NULL, empty, and already-UTC (Z-suffix) values
         """
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT value FROM _docsight_meta WHERE key = 'tz_migrated'"
             ).fetchone()
@@ -64,7 +64,7 @@ class CleanupMethods:
             log.info("UTC migration: backup created at %s", backup_path)
 
         migrated_count = 0
-        with self._connect() as conn:
+        with self._write() as conn:
             for table, column in self._TIMESTAMP_COLUMNS:
                 # Check table and column exist
                 try:
@@ -155,7 +155,7 @@ class CleanupMethods:
         Order matters: delete attachments for demo journal entries first,
         unassign entries from demo incidents, then delete from each table.
         """
-        with self._connect() as conn:
+        with self._write() as conn:
             # 1. Delete attachments belonging to demo journal entries
             try:
                 conn.execute(
@@ -194,7 +194,7 @@ class CleanupMethods:
         if self.max_days <= 0:
             return
         cutoff = utc_cutoff(days=self.max_days)
-        with self._connect() as conn:
+        with self._write() as conn:
             deleted = self._delete_expired_unprotected_rows(
                 conn, "snapshots", "timestamp", cutoff
             )
@@ -204,7 +204,7 @@ class CleanupMethods:
         today = local_today(tz)
         cutoff_date = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=self.max_days)).strftime("%Y-%m-%d")
         try:
-            with self._connect() as conn:
+            with self._write() as conn:
                 bqm_deleted = conn.execute(
                     "DELETE FROM bqm_graphs WHERE date < ?", (cutoff_date,)
                 ).rowcount
@@ -213,7 +213,7 @@ class CleanupMethods:
         except sqlite3.OperationalError:
             pass  # Table may not exist if BQM module not loaded
         try:
-            with self._connect() as conn:
+            with self._write() as conn:
                 weather_deleted = conn.execute(
                     "DELETE FROM weather_data WHERE timestamp < ?", (cutoff,)
                 ).rowcount
@@ -225,7 +225,7 @@ class CleanupMethods:
         if events_deleted:
             log.info("Cleaned up %d old events (before %s)", events_deleted, cutoff)
         try:
-            with self._connect() as conn:
+            with self._write() as conn:
                 sc_deleted = conn.execute(
                     "DELETE FROM smart_capture_executions WHERE created_at < ?", (cutoff,)
                 ).rowcount

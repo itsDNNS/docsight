@@ -213,7 +213,7 @@ class TestBQMStorage:
         def boom(*args, **kwargs):
             raise sqlite3.OperationalError("database is locked")
 
-        monkeypatch.setattr("app.modules.bqm.storage.sqlite3.connect", boom)
+        monkeypatch.setattr("app.storage.sqlite.sqlite3.connect", boom)
 
         with pytest.raises(sqlite3.OperationalError, match="database is locked"):
             bqm_storage.store_csv_data(sample_csv_rows)

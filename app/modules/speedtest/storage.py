@@ -1,9 +1,10 @@
 """Standalone speedtest result storage."""
 
 import logging
-import sqlite3
 
-from app.storage.sqlite import connect_sqlite
+from app.storage.migrations import run_migrations
+from app.storage.sqlite import bulk_write, open_read, write_transaction
+from .migrations import MIGRATIONS
 from datetime import datetime, timezone
 
 log = logging.getLogger("docsis.storage.speedtest")
@@ -20,122 +21,49 @@ class SpeedtestStorage:
         self._ensure_table()
 
     def _ensure_table(self):
-        """Create the speedtest_results and speedtest_meta tables if they don't exist."""
-        with connect_sqlite(self.db_path) as conn:
+        """Create and migrate the speedtest tables."""
+        run_migrations(self.db_path, MIGRATIONS)
+        self._migrate_timestamps()
+
+    def _migrate_timestamps(self):
+        """Normalize offset-bearing timestamps once, preserving existing behavior."""
+        with write_transaction(self.db_path) as conn:
+            migrated = conn.execute(
+                "SELECT value FROM speedtest_meta WHERE key = 'ts_migrated'"
+            ).fetchone()
+            if migrated:
+                return
+            rows = conn.execute(
+                "SELECT id, timestamp FROM speedtest_results "
+                "WHERE timestamp GLOB '*[+-][0-9][0-9]:[0-9][0-9]'"
+            ).fetchall()
+            updated = 0
+            for row_id, timestamp in rows:
+                try:
+                    parsed = datetime.fromisoformat(timestamp)
+                except (ValueError, TypeError):
+                    continue
+                if parsed.tzinfo is None:
+                    continue
+                normalized = parsed.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                conn.execute(
+                    "UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
+                    (normalized, row_id),
+                )
+                updated += 1
             conn.execute(
-                "CREATE TABLE IF NOT EXISTS speedtest_results ("
-                "  id INTEGER PRIMARY KEY,"
-                "  timestamp TEXT NOT NULL,"
-                "  download_mbps REAL,"
-                "  upload_mbps REAL,"
-                "  download_human TEXT,"
-                "  upload_human TEXT,"
-                "  ping_ms REAL,"
-                "  jitter_ms REAL,"
-                "  packet_loss_pct REAL,"
-                "  server_id INTEGER,"
-                "  server_name TEXT,"
-                "  is_demo INTEGER NOT NULL DEFAULT 0"
-                ")"
+                "INSERT OR REPLACE INTO speedtest_meta (key, value) VALUES ('ts_migrated', '1')"
             )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_speedtest_ts "
-                "ON speedtest_results(timestamp)"
-            )
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS speedtest_meta ("
-                "  key TEXT PRIMARY KEY,"
-                "  value TEXT"
-                ")"
-            )
-            # Migration: add server_id/server_name columns if missing
-            try:
-                conn.execute("ALTER TABLE speedtest_results ADD COLUMN server_id INTEGER")
-            except Exception:
-                pass
-            try:
-                conn.execute("ALTER TABLE speedtest_results ADD COLUMN server_name TEXT")
-            except Exception:
-                pass
-            # Migration: add is_demo column if missing
-            try:
-                cols = [r[1] for r in conn.execute("PRAGMA table_info(speedtest_results)").fetchall()]
-                if "is_demo" not in cols:
-                    conn.execute("ALTER TABLE speedtest_results ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
-            except Exception:
-                pass
-            # Migration: add enriched detail columns if missing
-            try:
-                cols = [r[1] for r in conn.execute("PRAGMA table_info(speedtest_results)").fetchall()]
-                enriched_cols = [
-                    ("isp", "TEXT"),
-                    ("server_host", "TEXT"),
-                    ("server_location", "TEXT"),
-                    ("server_country", "TEXT"),
-                    ("server_ip", "TEXT"),
-                    ("ping_low", "REAL"),
-                    ("ping_high", "REAL"),
-                    ("dl_latency_iqm", "REAL"),
-                    ("dl_latency_jitter", "REAL"),
-                    ("ul_latency_iqm", "REAL"),
-                    ("ul_latency_jitter", "REAL"),
-                    ("dl_bytes", "INTEGER"),
-                    ("ul_bytes", "INTEGER"),
-                    ("dl_elapsed_ms", "INTEGER"),
-                    ("ul_elapsed_ms", "INTEGER"),
-                    ("external_ip", "TEXT"),
-                    ("is_vpn", "INTEGER"),
-                    ("result_url", "TEXT"),
-                ]
-                for col_name, col_type in enriched_cols:
-                    if col_name not in cols:
-                        conn.execute(
-                            f"ALTER TABLE speedtest_results ADD COLUMN {col_name} {col_type}"
-                        )
-            except Exception:
-                pass
-            # One-time migration: normalize offset-bearing timestamps to UTC Z-suffix.
-            # Only runs once, tracked via speedtest_meta to avoid repeated scans.
-            try:
-                migrated = conn.execute(
-                    "SELECT value FROM speedtest_meta WHERE key = 'ts_migrated'"
-                ).fetchone()
-                if not migrated:
-                    # Match only timestamps with explicit +HH:MM or -HH:MM offset
-                    # (not plain ISO like 2026-03-21T12:34:56 or ...Z)
-                    rows = conn.execute(
-                        "SELECT id, timestamp FROM speedtest_results "
-                        "WHERE timestamp GLOB '*[+-][0-9][0-9]:[0-9][0-9]'"
-                    ).fetchall()
-                    if rows:
-                        updates = []
-                        for row_id, ts in rows:
-                            try:
-                                dt = datetime.fromisoformat(ts)
-                                if dt.tzinfo is not None:
-                                    dt = dt.astimezone(timezone.utc)
-                                    updates.append((dt.strftime("%Y-%m-%dT%H:%M:%SZ"), row_id))
-                            except (ValueError, TypeError):
-                                pass
-                        if updates:
-                            conn.executemany(
-                                "UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
-                                updates,
-                            )
-                            log.info("Normalized %d existing timestamps to UTC", len(updates))
-                    conn.execute(
-                        "INSERT OR REPLACE INTO speedtest_meta (key, value) VALUES ('ts_migrated', '1')"
-                    )
-            except Exception:
-                pass
+            if updated:
+                log.info("Normalized %d existing timestamps to UTC", updated)
 
     def save_speedtest_results(self, results):
         """Bulk insert speedtest results, upserting enriched fields on conflict."""
         if not results:
             return
         try:
-            with connect_sqlite(self.db_path) as conn:
-                conn.executemany(
+            bulk_write(
+                self.db_path,
                     "INSERT INTO speedtest_results "
                     "(id, timestamp, download_mbps, upload_mbps, download_human, "
                     "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
@@ -190,8 +118,7 @@ class SpeedtestStorage:
 
     def get_speedtest_results(self, limit=2000):
         """Return cached speedtest results, newest first."""
-        with connect_sqlite(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
                 "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
@@ -203,8 +130,7 @@ class SpeedtestStorage:
 
     def get_speedtest_by_id(self, result_id):
         """Return a single speedtest result by id, or None (includes enriched fields)."""
-        with connect_sqlite(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with open_read(self.db_path) as conn:
             row = conn.execute(
                 "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
                 "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
@@ -220,13 +146,13 @@ class SpeedtestStorage:
 
     def get_speedtest_count(self):
         """Return number of cached speedtest results."""
-        with connect_sqlite(self.db_path) as conn:
+        with open_read(self.db_path) as conn:
             row = conn.execute("SELECT COUNT(*) FROM speedtest_results").fetchone()
         return row[0] if row else 0
 
     def get_latest_speedtest_id(self):
         """Return the highest speedtest result id, or 0 if none."""
-        with connect_sqlite(self.db_path) as conn:
+        with open_read(self.db_path) as conn:
             row = conn.execute(
                 "SELECT MAX(id) FROM speedtest_results"
             ).fetchone()
@@ -238,7 +164,7 @@ class SpeedtestStorage:
 
     def get_meta(self, key):
         """Return a metadata value, or None."""
-        with connect_sqlite(self.db_path) as conn:
+        with open_read(self.db_path) as conn:
             row = conn.execute(
                 "SELECT value FROM speedtest_meta WHERE key = ?", (key,)
             ).fetchone()
@@ -246,7 +172,7 @@ class SpeedtestStorage:
 
     def set_meta(self, key, value):
         """Set a metadata value (upsert)."""
-        with connect_sqlite(self.db_path) as conn:
+        with write_transaction(self.db_path) as conn:
             conn.execute(
                 "INSERT INTO speedtest_meta (key, value) VALUES (?, ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
@@ -292,7 +218,7 @@ class SpeedtestStorage:
 
     def clear_cache(self):
         """Delete all cached speedtest results (non-demo)."""
-        with connect_sqlite(self.db_path) as conn:
+        with write_transaction(self.db_path) as conn:
             count = conn.execute(
                 "SELECT COUNT(*) FROM speedtest_results WHERE is_demo = 0"
             ).fetchone()[0]
@@ -302,8 +228,7 @@ class SpeedtestStorage:
 
     def get_speedtest_in_range(self, start_ts, end_ts):
         """Return speedtest results within a time range, oldest first."""
-        with connect_sqlite(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
                 "upload_human, ping_ms, jitter_ms, packet_loss_pct "

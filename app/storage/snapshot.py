@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import sqlite3
 from datetime import timedelta
 from typing import Any, cast
 
@@ -139,7 +138,7 @@ class SnapshotMethods:
         analysis_meta = get_analysis_metadata(app_version=get_available_app_version())
         raw_json = _dump_raw_data(raw_data)
         try:
-            with self._connect() as conn:
+            with self._write() as conn:
                 cur = conn.execute(
                     "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo, raw_json, analysis_meta_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
@@ -162,7 +161,7 @@ class SnapshotMethods:
 
     def get_snapshot_list(self) -> list[str]:
         """Return list of available snapshot timestamps (newest first)."""
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT timestamp FROM snapshots ORDER BY timestamp DESC"
             ).fetchall()
@@ -170,7 +169,7 @@ class SnapshotMethods:
 
     def get_latest_snapshot(self) -> AnalysisResult | None:
         """Load the latest stored snapshot, or None when no baseline exists."""
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT id, timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
             ).fetchone()
@@ -188,7 +187,7 @@ class SnapshotMethods:
 
     def get_snapshot(self, timestamp: str) -> AnalysisResult | None:
         """Load a single snapshot by timestamp. Returns analysis dict or None."""
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT id, timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots WHERE timestamp = ?",
                 (timestamp,),
@@ -207,7 +206,7 @@ class SnapshotMethods:
 
     def get_snapshot_raw_data(self, timestamp: str) -> dict | None:
         """Return the raw driver payload stored with a snapshot, if available."""
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT raw_json FROM snapshots WHERE timestamp = ?",
                 (timestamp,),
@@ -217,7 +216,7 @@ class SnapshotMethods:
     def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:
         """Get all snapshots between two ISO timestamps (inclusive)."""
         anchor_start = _unwrap_anchor_start(end_ts)
-        with self._connect() as conn:
+        with self._read() as conn:
             anchor_rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp",
@@ -257,7 +256,7 @@ class SnapshotMethods:
         """
         start_utc, end_utc = local_date_to_utc_range(date, self.tz_name)
         anchor_start = _unwrap_anchor_start(end_utc)
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
@@ -303,7 +302,7 @@ class SnapshotMethods:
         """Get summary snapshots from the last N hours."""
         cutoff = utc_cutoff(hours=hours)
         anchor_start = utc_cutoff(hours=_UNWRAP_ANCHOR_DAYS * 24)
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? ORDER BY timestamp",
@@ -319,7 +318,7 @@ class SnapshotMethods:
         range_start, _ = local_date_to_utc_range(start_date, self.tz_name)
         _, range_end = local_date_to_utc_range(end_date, self.tz_name)
         anchor_start = _unwrap_anchor_start(range_end)
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? AND timestamp <= ? "
@@ -342,7 +341,7 @@ class SnapshotMethods:
         start_ts = (center - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
         end_ts = (center + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
         ts_param = center.strftime("%Y-%m-%dT%H:%M:%SZ")
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
                    FROM snapshots
@@ -364,7 +363,7 @@ class SnapshotMethods:
         """Return DS and US channels from the latest snapshot."""
         from app.channel_selector import attach_channel_selectors
 
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute(
                 "SELECT ds_channels_json, us_channels_json FROM snapshots ORDER BY timestamp DESC LIMIT 1"
             ).fetchone()

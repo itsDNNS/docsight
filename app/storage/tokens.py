@@ -1,7 +1,6 @@
 """API token management mixin."""
 
 import secrets
-import sqlite3
 from datetime import datetime, timedelta, timezone
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -39,7 +38,7 @@ class TokenMethods:
         prefix = plaintext[:_TOKEN_PREFIX_LENGTH]
         token_hash = generate_password_hash(plaintext)
         created_at = utc_now()
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute(
                 "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at) VALUES (?, ?, ?, ?)",
                 (name, token_hash, prefix, created_at),
@@ -49,8 +48,7 @@ class TokenMethods:
     def validate_api_token(self, token):
         """Validate a Bearer token. Returns token info dict or None."""
         prefix = (token or "")[:_TOKEN_PREFIX_LENGTH]
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._read() as conn:
             rows = conn.execute(
                 """
                 SELECT id, name, token_hash, token_prefix, created_at, last_used_at
@@ -59,23 +57,26 @@ class TokenMethods:
                 """,
                 (prefix,),
             ).fetchall()
-            for row in rows:
-                if check_password_hash(row["token_hash"], token):
-                    now = utc_now()
-                    if _should_refresh_last_used(row["last_used_at"], now):
-                        conn.execute("UPDATE api_tokens SET last_used_at = ? WHERE id = ?", (now, row["id"]))
-                    return {
-                        "id": row["id"],
-                        "name": row["name"],
-                        "token_prefix": row["token_prefix"],
-                        "created_at": row["created_at"],
-                    }
+        for row in rows:
+            if check_password_hash(row["token_hash"], token):
+                now = utc_now()
+                if _should_refresh_last_used(row["last_used_at"], now):
+                    with self._write() as conn:
+                        conn.execute(
+                            "UPDATE api_tokens SET last_used_at = ? WHERE id = ?",
+                            (now, row["id"]),
+                        )
+                return {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "token_prefix": row["token_prefix"],
+                    "created_at": row["created_at"],
+                }
         return None
 
     def get_api_tokens(self):
         """Return list of all tokens (without hashes) for UI display."""
-        with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._read() as conn:
             rows = conn.execute(
                 "SELECT id, name, token_prefix, created_at, last_used_at, revoked FROM api_tokens ORDER BY created_at DESC"
             ).fetchall()
@@ -83,7 +84,7 @@ class TokenMethods:
 
     def revoke_api_token(self, token_id):
         """Soft-revoke a token. Returns True if a token was revoked."""
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute(
                 "UPDATE api_tokens SET revoked = 1 WHERE id = ? AND revoked = 0",
                 (token_id,),

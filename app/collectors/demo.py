@@ -7,9 +7,8 @@ import logging
 import math
 import os
 import random
-import sqlite3
 
-from app.storage.sqlite import connect_sqlite
+from app.storage.sqlite import bulk_write
 import struct
 import time
 import zlib
@@ -302,12 +301,12 @@ class DemoCollector(Collector):
             ))
 
         # Bulk insert for speed
-        with connect_sqlite(self._storage.db_path) as conn:
-            conn.executemany(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
-                "VALUES (?, ?, ?, ?, ?)",
-                rows,
-            )
+        bulk_write(
+            self._storage.db_path,
+            "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
+            "VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
         log.info("Demo: seeded %d historical snapshots (%d days)", len(rows), days)
 
     def _generate_historical_analysis(self, index, diurnal, seasonal, bad_period, hour=12, day_of_year=1):
@@ -838,21 +837,21 @@ class DemoCollector(Collector):
 
         # Bulk insert with is_demo=1 directly (save_speedtest_results doesn't support is_demo)
         if results:
-            with connect_sqlite(self._storage.db_path) as conn:
-                conn.executemany(
-                    "INSERT OR IGNORE INTO speedtest_results "
-                    "(id, timestamp, download_mbps, upload_mbps, download_human, "
-                    "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
-                    "server_id, server_name, is_demo) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
-                    [
-                        (r["id"], r["timestamp"], r["download_mbps"],
-                         r["upload_mbps"], r["download_human"], r["upload_human"],
-                         r["ping_ms"], r["jitter_ms"], r["packet_loss_pct"],
-                         r["server_id"], r["server_name"])
-                        for r in results
-                    ],
-                )
+            bulk_write(
+                self._storage.db_path,
+                "INSERT OR IGNORE INTO speedtest_results "
+                "(id, timestamp, download_mbps, upload_mbps, download_human, "
+                "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
+                "server_id, server_name, is_demo) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                [
+                    (r["id"], r["timestamp"], r["download_mbps"],
+                     r["upload_mbps"], r["download_human"], r["upload_human"],
+                     r["ping_ms"], r["jitter_ms"], r["packet_loss_pct"],
+                     r["server_id"], r["server_name"])
+                    for r in results
+                ],
+            )
 
         # Set latest result in web state for dashboard card
         if results:
@@ -862,16 +861,18 @@ class DemoCollector(Collector):
 
     def _seed_bqm_graphs(self, now):
         """Seed BQM placeholder graphs for the last 30 days."""
+        rows = []
         for d in range(DEMO_BQM_DAYS):
             date = (now - timedelta(days=d)).strftime("%Y-%m-%d")
             ts = (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%SZ")
             png = self._generate_bqm_png(seed=d)
-            with connect_sqlite(self._storage.db_path) as conn:
-                conn.execute(
-                    "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob, is_demo) "
-                    "VALUES (?, ?, ?, 1)",
-                    (date, ts, png),
-                )
+            rows.append((date, ts, png))
+        bulk_write(
+            self._storage.db_path,
+            "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob, is_demo) "
+            "VALUES (?, ?, ?, 1)",
+            rows,
+        )
         log.info("Demo: seeded 30 BQM graphs")
 
     def _seed_bnetz_measurements(self, now):
@@ -954,17 +955,17 @@ class DemoCollector(Collector):
                 1,                    # is_demo
             ))
 
-        with connect_sqlite(self._storage.db_path) as conn:
-            conn.executemany(
-                "INSERT INTO bnetz_measurements "
-                "(date, timestamp, provider, tariff, "
-                "download_max_tariff, download_normal_tariff, download_min_tariff, "
-                "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
-                "download_measured_avg, upload_measured_avg, measurement_count, "
-                "verdict_download, verdict_upload, measurements_json, pdf_blob, source, is_demo) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                rows,
-            )
+        bulk_write(
+            self._storage.db_path,
+            "INSERT INTO bnetz_measurements "
+            "(date, timestamp, provider, tariff, "
+            "download_max_tariff, download_normal_tariff, download_min_tariff, "
+            "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+            "download_measured_avg, upload_measured_avg, measurement_count, "
+            "verdict_download, verdict_upload, measurements_json, pdf_blob, source, is_demo) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            rows,
+        )
         log.info("Demo: seeded %d BNetzA measurement campaigns", len(rows))
 
     def _seed_weather_data(self, now):
@@ -988,12 +989,12 @@ class DemoCollector(Collector):
                     "timestamp": ts.strftime("%Y-%m-%d %H:%M:%SZ"),
                     "temperature": temp,
                 })
-        with connect_sqlite(self._storage.db_path) as conn:
-            conn.executemany(
-                "INSERT OR IGNORE INTO weather_data "
-                "(timestamp, temperature, is_demo) VALUES (?, ?, 1)",
-                [(r["timestamp"], r["temperature"]) for r in records],
-            )
+        bulk_write(
+            self._storage.db_path,
+            "INSERT OR IGNORE INTO weather_data "
+            "(timestamp, temperature, is_demo) VALUES (?, ?, 1)",
+            [(r["timestamp"], r["temperature"]) for r in records],
+        )
         log.info("Demo: seeded %d weather records (%d days)", len(records), days)
 
     def _seed_connection_monitor_data(self, now):
@@ -1081,12 +1082,12 @@ class DemoCollector(Collector):
                         lat = round(base + rng.uniform(-2, 3), 2)
                         rows.append((tid, ts, lat, False, "tcp"))
 
-        with cm._connect() as conn:
-            conn.executemany(
-                "INSERT INTO connection_samples (target_id, timestamp, latency_ms, timeout, probe_method) "
-                "VALUES (?, ?, ?, ?, ?)",
-                rows,
-            )
+        bulk_write(
+            cm.db_path,
+            "INSERT INTO connection_samples (target_id, timestamp, latency_ms, timeout, probe_method) "
+            "VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
 
         log.info("Demo: seeded %d connection monitor samples (%d days, 3 targets)", len(rows), days)
 

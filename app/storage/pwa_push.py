@@ -39,7 +39,7 @@ class PwaPushMethods:
         endpoint = normalized["endpoint"]
         now = self._utc_now_iso()
         payload = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
-        with self._connect() as conn:
+        with self._write() as conn:
             conn.execute(
                 """
                 INSERT INTO pwa_push_subscriptions
@@ -74,7 +74,7 @@ class PwaPushMethods:
         }
 
     def list_pwa_push_subscriptions(self) -> list[dict]:
-        with self._connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 """
                 SELECT id, endpoint, subscription_json, user_agent, created_at, updated_at
@@ -85,7 +85,7 @@ class PwaPushMethods:
         return [self._row_to_pwa_subscription(row) for row in rows]
 
     def count_pwa_push_subscriptions(self) -> int:
-        with self._connect() as conn:
+        with self._read() as conn:
             row = conn.execute("SELECT COUNT(*) FROM pwa_push_subscriptions").fetchone()
         return int(row[0] if row else 0)
 
@@ -93,6 +93,6 @@ class PwaPushMethods:
         endpoint = str(endpoint or "").strip()
         if not endpoint:
             return False
-        with self._connect() as conn:
+        with self._write() as conn:
             cur = conn.execute("DELETE FROM pwa_push_subscriptions WHERE endpoint = ?", (endpoint,))
         return cur.rowcount > 0

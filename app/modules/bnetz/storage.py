@@ -2,9 +2,10 @@
 
 import json
 import logging
-import sqlite3
 
-from app.storage.sqlite import connect_sqlite
+from app.storage.migrations import run_migrations
+from app.storage.sqlite import open_read, write_transaction
+from .migrations import MIGRATIONS
 
 from app.tz import utc_now
 
@@ -23,40 +24,7 @@ class BnetzStorage:
 
     def _ensure_table(self):
         """Create the bnetz_measurements table if it doesn't exist."""
-        with connect_sqlite(self.db_path) as conn:
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS bnetz_measurements ("
-                "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "  date TEXT NOT NULL,"
-                "  timestamp TEXT NOT NULL,"
-                "  provider TEXT,"
-                "  tariff TEXT,"
-                "  download_max_tariff REAL,"
-                "  download_normal_tariff REAL,"
-                "  download_min_tariff REAL,"
-                "  upload_max_tariff REAL,"
-                "  upload_normal_tariff REAL,"
-                "  upload_min_tariff REAL,"
-                "  download_measured_avg REAL,"
-                "  upload_measured_avg REAL,"
-                "  measurement_count INTEGER,"
-                "  verdict_download TEXT,"
-                "  verdict_upload TEXT,"
-                "  measurements_json TEXT,"
-                "  pdf_blob BLOB,"
-                "  source TEXT DEFAULT 'upload',"
-                "  is_demo INTEGER NOT NULL DEFAULT 0"
-                ")"
-            )
-            # Migration: add source/is_demo columns if missing
-            try:
-                cols = [r[1] for r in conn.execute("PRAGMA table_info(bnetz_measurements)").fetchall()]
-                if "source" not in cols:
-                    conn.execute("ALTER TABLE bnetz_measurements ADD COLUMN source TEXT DEFAULT 'upload'")
-                if "is_demo" not in cols:
-                    conn.execute("ALTER TABLE bnetz_measurements ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
-            except Exception:
-                pass
+        run_migrations(self.db_path, MIGRATIONS)
 
     def save_bnetz_measurement(self, parsed_data, pdf_bytes=None, source="upload"):
         """Save a parsed BNetzA measurement with optional PDF. Returns the new id."""
@@ -65,7 +33,7 @@ class BnetzStorage:
             "download": parsed_data.get("measurements_download", []),
             "upload": parsed_data.get("measurements_upload", []),
         }
-        with connect_sqlite(self.db_path) as conn:
+        with write_transaction(self.db_path) as conn:
             cur = conn.execute(
                 "INSERT INTO bnetz_measurements "
                 "(date, timestamp, provider, tariff, "
@@ -99,8 +67,7 @@ class BnetzStorage:
 
     def get_bnetz_measurements(self, limit=50):
         """Return list of BNetzA measurements (without PDF blob), newest first."""
-        with connect_sqlite(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT id, date, timestamp, provider, tariff, "
                 "download_max_tariff, download_normal_tariff, download_min_tariff, "
@@ -126,7 +93,7 @@ class BnetzStorage:
 
     def get_bnetz_pdf(self, measurement_id):
         """Return the original PDF bytes for a BNetzA measurement, or None."""
-        with connect_sqlite(self.db_path) as conn:
+        with open_read(self.db_path) as conn:
             row = conn.execute(
                 "SELECT pdf_blob FROM bnetz_measurements WHERE id = ?",
                 (measurement_id,),
@@ -135,7 +102,7 @@ class BnetzStorage:
 
     def delete_bnetz_measurement(self, measurement_id):
         """Delete a BNetzA measurement. Returns True if found."""
-        with connect_sqlite(self.db_path) as conn:
+        with write_transaction(self.db_path) as conn:
             rowcount = conn.execute(
                 "DELETE FROM bnetz_measurements WHERE id = ?",
                 (measurement_id,),
@@ -144,8 +111,7 @@ class BnetzStorage:
 
     def get_bnetz_in_range(self, start_ts, end_ts):
         """Return BNetzA measurements within a time range, oldest first."""
-        with connect_sqlite(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT id, date, timestamp, provider, tariff, "
                 "download_max_tariff, download_measured_avg, "
@@ -160,8 +126,7 @@ class BnetzStorage:
 
     def get_latest_bnetz(self):
         """Return the most recent BNetzA measurement (without blob), or None."""
-        with connect_sqlite(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with open_read(self.db_path) as conn:
             row = conn.execute(
                 "SELECT id, date, timestamp, provider, tariff, "
                 "download_max_tariff, download_normal_tariff, download_min_tariff, "
