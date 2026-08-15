@@ -1,23 +1,51 @@
-"""E2E test fixtures — live server via multiprocessing + waitress."""
+"""Declarative E2E fixture and server-profile wiring."""
 
-import multiprocessing
+from __future__ import annotations
+
 import os
-import socket
-import time
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
 from dataclasses import dataclass
 
 import pytest
-import requests
 
-_MP_CTX = multiprocessing.get_context("spawn")
-_WAITRESS_KWARGS = {"threads": 2, "_quiet": True, "asyncore_use_poll": True}
+from tests.e2e.prefix_proxy import serve_prefix_proxy
+from tests.e2e.support.application import (
+    seed_fritzbox_segment_data,
+    serve_server,
+)
+from tests.e2e.support.lifecycle import (
+    ProcessSpec,
+    artifact_log_path,
+    reserve_local_port,
+    running_processes,
+)
+from tests.e2e.support.profiles import ServerProfile, ServerTarget
+
+DEMO_PROFILE = ServerProfile("demo", configured=True, demo_mode=True)
+AUTH_PROFILE = ServerProfile("auth", configured=True, demo_mode=True)
+CONFIGURED_PROFILE = ServerProfile(
+    "configured", configured=True, demo_mode=False
+)
+SETUP_PROFILE = ServerProfile("setup", configured=False, demo_mode=False)
+FIRST_RUN_PROFILE = ServerProfile(
+    "first-run-production-startup",
+    configured=False,
+    demo_mode=False,
+    production_startup=True,
+)
+FRITZBOX_PROFILE = ServerProfile(
+    "fritzbox",
+    configured=True,
+    demo_mode=True,
+    modem_type="fritzbox",
+    post_seed_callback=seed_fritzbox_segment_data,
+)
+AUTH_TEST_CREDENTIAL = "e2e-test-password"
 
 
 @pytest.fixture(scope="session")
 def browser_type_launch_args(browser_type_launch_args):
     """WSL2-friendly Chromium launch arguments to prevent flakiness."""
+
     return {
         **browser_type_launch_args,
         "args": [
@@ -30,243 +58,130 @@ def browser_type_launch_args(browser_type_launch_args):
     }
 
 
-def _find_free_port():
-    """Return an available TCP port on localhost."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-def _not_found(environ, start_response):
-    """Reject every request that escapes a mounted DOCSight application."""
-    from werkzeug.wrappers import Response
-
-    return Response("Not Found\n", status=404)(environ, start_response)
-
-
-def _mounted_app(application, mount_path):
-    if not mount_path:
-        return application
-    from werkzeug.middleware.dispatcher import DispatcherMiddleware
-
-    return DispatcherMiddleware(
-        _not_found,
-        {mount_path: application},
+def _new_target(
+    label,
+    data_dir,
+    profile,
+    *,
+    admin_password=None,
+    readiness_headers=(),
+):
+    reservation = reserve_local_port()
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "gw0")
+    identity = f"{label}-{worker}-{reservation.port}"
+    target = ServerTarget(
+        identity=identity,
+        data_dir=str(data_dir),
+        port=reservation.port,
+        profile=profile,
+        admin_password=admin_password,
     )
-
-
-@dataclass(frozen=True)
-class _ServerTarget:
-    """Pickle-safe configuration for one isolated E2E server process."""
-
-    data_dir: str
-    port: int
-    configured: bool = True
-    admin_password: str | None = None
-    demo_mode: bool = True
-    modem_type: str | None = None
-    mount_path: str = ""
-    base_path: str | None = None
-    trusted_prefix_hops: int | None = None
-    production_startup: bool = False
-    post_seed_callback: Callable[[str], None] | None = None
-
-
-def _configure_server_environment(target: _ServerTarget) -> None:
-    os.environ["DATA_DIR"] = target.data_dir
-    if target.demo_mode:
-        os.environ["DEMO_MODE"] = "1"
-    else:
-        os.environ.pop("DEMO_MODE", None)
-    os.environ["LOG_LEVEL"] = "WARNING"
-    os.environ.pop("BASE_PATH", None)
-    os.environ.pop("REVERSE_PROXY_PREFIX", None)
-    if target.base_path is not None:
-        os.environ["BASE_PATH"] = target.base_path
-    if target.trusted_prefix_hops is not None:
-        os.environ["REVERSE_PROXY_PREFIX"] = str(target.trusted_prefix_hops)
-
-
-def _initialize_module_storage(db_path: str) -> None:
-    """Initialize module storage tables needed by seeded E2E data."""
-    try:
-        from app.modules.speedtest.storage import SpeedtestStorage
-
-        SpeedtestStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.bqm.storage import BqmStorage
-
-        BqmStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.bnetz.storage import BnetzStorage
-
-        BnetzStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.journal.storage import JournalStorage
-
-        JournalStorage(db_path)
-    except ImportError:
-        pass
-
-
-def _serve_server(target: _ServerTarget) -> None:
-    """Boot any E2E DOCSight server variant inside a child process."""
-    if target.production_startup:
-        os.environ["DATA_DIR"] = target.data_dir
-        os.environ["WEB_HOST"] = "127.0.0.1"
-        os.environ["WEB_PORT"] = str(target.port)
-        os.environ.pop("DEMO_MODE", None)
-        os.environ["LOG_LEVEL"] = "WARNING"
-        from app.main import main
-
-        main()
-        return
-
-    _configure_server_environment(target)
-
-    from app import analyzer
-    from app.app_factory import create_app, default_module_loader_factory
-    from app.config import ConfigManager
-    from app.runtime import get_runtime
-
-    config = ConfigManager(target.data_dir)
-    if not target.configured:
-        storage = None
-    else:
-        from app.collectors.demo import DemoCollector
-        from app.event_detector import EventDetector
-        from app.storage import SnapshotStorage
-
-        config_data = {
-            "demo_mode": target.demo_mode,
-            "disabled_modules": "",
-            "modem_type": target.modem_type
-            or ("demo" if target.demo_mode else "generic"),
-        }
-        if target.admin_password:
-            config_data["admin_password"] = target.admin_password
-        config.save(config_data)
-
-        db_path = os.path.join(target.data_dir, "docsis_history.db")
-        storage = SnapshotStorage(db_path, max_days=7)
-        storage.set_timezone("UTC")
-        _initialize_module_storage(db_path)
-
-    application = create_app(
-        config_manager=config,
-        storage=storage,
-        module_loader_factory=default_module_loader_factory(config, search_paths=[]),
-        environ=os.environ,
-        testing=True,
+    spec = ProcessSpec(
+        identity=identity,
+        reservation=reservation,
+        process_target=serve_server,
+        args=(target,),
+        readiness_path=profile.mount_path,
+        readiness_headers=readiness_headers,
+        log_path=artifact_log_path(identity),
+        secrets=(admin_password,) if admin_password else (),
+        data_path=target.data_dir,
     )
-    runtime = get_runtime(application)
+    return target, spec
 
-    if target.configured:
 
-        collector = DemoCollector(
-            analyzer_fn=analyzer.analyze,
-            event_detector=EventDetector(),
-            storage=storage,
-            mqtt_pub=None,
-            web=runtime,
-            poll_interval=300,
-        )
-        collector.collect()
-        if target.post_seed_callback is not None:
-            target.post_seed_callback(db_path)
-
-    from waitress import serve
-
-    serve(
-        _mounted_app(application, target.mount_path),
-        host="127.0.0.1",
-        port=target.port,
-        **_WAITRESS_KWARGS,
+def _new_proxy(label, upstream_port, mount_path, forwarded_prefix_chain):
+    reservation = reserve_local_port()
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "gw0")
+    identity = f"{label}-{worker}-{reservation.port}"
+    spec = ProcessSpec(
+        identity=identity,
+        reservation=reservation,
+        process_target=serve_prefix_proxy,
+        args=(
+            reservation.port,
+            upstream_port,
+            mount_path,
+            forwarded_prefix_chain,
+        ),
+        readiness_path=mount_path,
+        log_path=artifact_log_path(identity),
     )
-
-
-def _wait_for_server(port, timeout=150, mount_path=""):
-    """Poll /health until the server responds or timeout."""
-    url = f"http://127.0.0.1:{port}{mount_path}/health"
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            r = requests.get(url, timeout=2)
-            if r.status_code == 200:
-                return
-        except requests.ConnectionError:
-            pass
-        time.sleep(0.3)
-    raise RuntimeError(f"Live server on port {port} did not start within {timeout}s")
-
-
-@contextmanager
-def _running_processes(
-    process_specs: list[tuple[Callable[..., None], tuple]],
-    readiness_targets: list[tuple[int, str]],
-) -> Iterator[None]:
-    """Start, await, and always terminate an isolated group of child processes."""
-    processes = []
-    try:
-        for process_target, args in process_specs:
-            process = _MP_CTX.Process(target=process_target, args=args, daemon=True)
-            process.start()
-            processes.append(process)
-        for port, mount_path in readiness_targets:
-            _wait_for_server(port, mount_path=mount_path)
-        yield
-    finally:
-        for process in processes:
-            if process.is_alive():
-                process.terminate()
-        for process in processes:
-            process.join(timeout=5)
+    return reservation.port, spec
 
 
 @pytest.fixture(scope="session")
-def _demo_data_dir(tmp_path_factory):
-    """Session-scoped temp directory for the demo server."""
-    return str(tmp_path_factory.mktemp("docsight_e2e"))
-
-
-@pytest.fixture(scope="session")
-def _auth_data_dir(tmp_path_factory):
-    """Session-scoped temp directory for the auth server."""
-    return str(tmp_path_factory.mktemp("docsight_e2e_auth"))
-
-
-@pytest.fixture(scope="session")
-def live_server(_demo_data_dir):
-    """Start a DOCSight demo server (no auth) and return its base URL."""
-    port = _find_free_port()
-    target = _ServerTarget(_demo_data_dir, port)
-    with _running_processes([(_serve_server, (target,))], [(port, "")]):
-        yield f"http://127.0.0.1:{port}"
-
-
-@pytest.fixture(scope="session")
-def auth_server(_auth_data_dir):
-    """Start a DOCSight server with admin password and return its base URL."""
-    port = _find_free_port()
-    credential = "e2e-test-password"
-    target = _ServerTarget(
-        _auth_data_dir,
-        port,
-        admin_password=credential,
+def live_server(tmp_path_factory):
+    target, spec = _new_target(
+        "demo", tmp_path_factory.mktemp("docsight_e2e_demo"), DEMO_PROFILE
     )
-    with _running_processes([(_serve_server, (target,))], [(port, "")]):
-        yield f"http://127.0.0.1:{port}"
+    with running_processes([spec]):
+        yield target.base_url
+
+
+@pytest.fixture(scope="session")
+def auth_server(tmp_path_factory):
+    target, spec = _new_target(
+        "auth",
+        tmp_path_factory.mktemp("docsight_e2e_auth"),
+        AUTH_PROFILE,
+        admin_password=AUTH_TEST_CREDENTIAL,
+    )
+    with running_processes([spec]):
+        yield target.base_url
+
+
+@pytest.fixture(scope="session")
+def configured_server(tmp_path_factory):
+    target, spec = _new_target(
+        "configured",
+        tmp_path_factory.mktemp("docsight_e2e_configured"),
+        CONFIGURED_PROFILE,
+    )
+    with running_processes([spec]):
+        yield target.base_url
+
+
+@pytest.fixture()
+def first_run_server(tmp_path):
+    target, spec = _new_target(
+        "first-run", tmp_path / "first-run", FIRST_RUN_PROFILE
+    )
+    with running_processes([spec]):
+        yield target.base_url
+
+
+@pytest.fixture(scope="session")
+def setup_server(tmp_path_factory):
+    target, spec = _new_target(
+        "setup", tmp_path_factory.mktemp("docsight_e2e_setup"), SETUP_PROFILE
+    )
+    with running_processes([spec]):
+        yield target.base_url
+
+
+@pytest.fixture()
+def isolated_setup_server(tmp_path):
+    target, spec = _new_target(
+        "isolated-setup", tmp_path / "isolated-setup", SETUP_PROFILE
+    )
+    with running_processes([spec]):
+        yield {"url": target.base_url, "data_dir": target.data_dir}
+
+
+@pytest.fixture(scope="session")
+def fritzbox_server(tmp_path_factory):
+    target, spec = _new_target(
+        "fritzbox",
+        tmp_path_factory.mktemp("docsight_e2e_fritzbox"),
+        FRITZBOX_PROFILE,
+    )
+    with running_processes([spec]):
+        yield target.base_url
 
 
 @pytest.fixture()
 def demo_page(page, live_server):
-    """Navigate to the demo server dashboard."""
     page.goto(live_server)
     page.wait_for_load_state("networkidle")
     return page
@@ -274,30 +189,13 @@ def demo_page(page, live_server):
 
 @pytest.fixture()
 def settings_page(page, live_server):
-    """Navigate to the settings page."""
     page.goto(f"{live_server}/settings")
     page.wait_for_load_state("networkidle")
     return page
 
 
-@pytest.fixture(scope="session")
-def _configured_data_dir(tmp_path_factory):
-    """Session-scoped data directory for non-demo persisted-settings tests."""
-    return str(tmp_path_factory.mktemp("docsight_e2e_configured"))
-
-
-@pytest.fixture(scope="session")
-def configured_server(_configured_data_dir):
-    """Start a configured non-demo instance with seeded dashboard data."""
-    port = _find_free_port()
-    target = _ServerTarget(_configured_data_dir, port, demo_mode=False)
-    with _running_processes([(_serve_server, (target,))], [(port, "")]):
-        yield f"http://127.0.0.1:{port}"
-
-
 @pytest.fixture()
 def configured_page(page, configured_server):
-    """Navigate to a configured non-demo dashboard."""
     page.goto(configured_server)
     page.wait_for_load_state("networkidle")
     return page
@@ -305,70 +203,19 @@ def configured_page(page, configured_server):
 
 @pytest.fixture()
 def auth_page(page, auth_server):
-    """Provide a page pointed at the auth-protected server."""
     return page
-
-
-# ── Unconfigured server (setup wizard) ──
-
-
-@pytest.fixture()
-def first_run_server(tmp_path):
-    """Start a fresh production-path instance for one-click activation tests."""
-    port = _find_free_port()
-    target = _ServerTarget(
-        str(tmp_path / "first-run"),
-        port,
-        configured=False,
-        demo_mode=False,
-        production_startup=True,
-    )
-    with _running_processes([(_serve_server, (target,))], [(port, "")]):
-        yield f"http://127.0.0.1:{port}"
-
-
-@pytest.fixture(scope="session")
-def _setup_data_dir(tmp_path_factory):
-    """Session-scoped temp directory for the unconfigured server."""
-    return str(tmp_path_factory.mktemp("docsight_e2e_setup"))
-
-
-@pytest.fixture(scope="session")
-def setup_server(_setup_data_dir):
-    """Start an unconfigured DOCSight server and return its base URL."""
-    port = _find_free_port()
-    target = _ServerTarget(
-        _setup_data_dir,
-        port,
-        configured=False,
-        demo_mode=False,
-    )
-    with _running_processes([(_serve_server, (target,))], [(port, "")]):
-        yield f"http://127.0.0.1:{port}"
-
-
-@pytest.fixture()
-def isolated_setup_server(tmp_path):
-    """Start an unconfigured server with fresh data for one language test."""
-    data_dir = str(tmp_path / "isolated-setup")
-    port = _find_free_port()
-    target = _ServerTarget(
-        data_dir,
-        port,
-        configured=False,
-        demo_mode=False,
-    )
-    with _running_processes([(_serve_server, (target,))], [(port, "")]):
-        yield {
-            "url": f"http://127.0.0.1:{port}",
-            "data_dir": data_dir,
-        }
 
 
 @pytest.fixture()
 def setup_page(page, setup_server):
-    """Navigate to the unconfigured server — lands on /setup."""
     page.goto(setup_server)
+    page.wait_for_load_state("networkidle")
+    return page
+
+
+@pytest.fixture()
+def fritzbox_page(page, fritzbox_server):
+    page.goto(fritzbox_server)
     page.wait_for_load_state("networkidle")
     return page
 
@@ -380,70 +227,80 @@ def setup_page(page, setup_server):
 )
 def path_prefix_servers(request, tmp_path_factory):
     """Serve auth and setup apps through real root/prefix WSGI mounts."""
+
     mount_path = request.param
     label = "root" if not mount_path else "docsight"
-    auth_port = _find_free_port()
-    setup_port = _find_free_port()
     credential = "browser-contract-password"
-    auth_dir = str(tmp_path_factory.mktemp(f"docsight_mount_auth_{label}"))
-    setup_dir = str(tmp_path_factory.mktemp(f"docsight_mount_setup_{label}"))
-    auth_target = _ServerTarget(
-        auth_dir,
-        auth_port,
-        admin_password=credential,
+    auth_profile = ServerProfile(
+        f"path-prefix-auth-{label}",
+        configured=True,
+        demo_mode=True,
         mount_path=mount_path,
     )
-    setup_target = _ServerTarget(
-        setup_dir,
-        setup_port,
+    setup_profile = ServerProfile(
+        f"path-prefix-setup-{label}",
         configured=False,
         demo_mode=False,
         mount_path=mount_path,
     )
-    with _running_processes(
-        [
-            (_serve_server, (auth_target,)),
-            (_serve_server, (setup_target,)),
-        ],
-        [(auth_port, mount_path), (setup_port, mount_path)],
-    ):
+    auth_target, auth_spec = _new_target(
+        f"mount-auth-{label}",
+        tmp_path_factory.mktemp(f"docsight_mount_auth_{label}"),
+        auth_profile,
+        admin_password=credential,
+    )
+    setup_target, setup_spec = _new_target(
+        f"mount-setup-{label}",
+        tmp_path_factory.mktemp(f"docsight_mount_setup_{label}"),
+        setup_profile,
+    )
+    with running_processes([auth_spec, setup_spec]):
         yield {
             "mount_path": mount_path,
-            "app_url": f"http://127.0.0.1:{auth_port}{mount_path}",
-            "setup_url": f"http://127.0.0.1:{setup_port}{mount_path}",
+            "app_url": auth_target.base_url,
+            "setup_url": setup_target.base_url,
             "password": credential,
         }
 
 
+@dataclass(frozen=True)
+class NetworkPrefixCase:
+    label: str
+    mount_path: str
+    base_path: str | None
+    trusted_prefix_hops: int | None
+    forwarded_prefix_chain: str | None
+
+
 _NETWORK_PREFIX_CASES = [
     pytest.param(
-        {
-            "label": "explicit_docsight",
-            "mount_path": "/docsight",
-            "base_path": "/docsight",
-            "trusted_prefix_hops": None,
-            "forwarded_prefix_chain": None,
-        },
+        NetworkPrefixCase(
+            "explicit-docsight",
+            "/docsight",
+            "/docsight",
+            None,
+            None,
+        ),
         id="explicit-docsight-mount",
     ),
     pytest.param(
-        {
-            "label": "trusted_docsight",
-            "mount_path": "/docsight",
-            "base_path": None,
-            "trusted_prefix_hops": 2,
-            "forwarded_prefix_chain": "/docsight, /docsight",
-        },
+        NetworkPrefixCase(
+            "trusted-docsight",
+            "/docsight",
+            None,
+            2,
+            "/docsight, /docsight",
+        ),
         id="trusted-docsight-mount",
     ),
     pytest.param(
-        {
-            "label": "explicit_wrapper_shape",
-            "mount_path": "/api/hassio_ingress/synthetic-test-entry",
-            "base_path": "/api/hassio_ingress/synthetic-test-entry",
-            "trusted_prefix_hops": None,
-            "forwarded_prefix_chain": None,
-        },
+        NetworkPrefixCase(
+            "explicit-wrapper-shape",
+            "/api/hassio_ingress/synthetic-test-entry",
+            "/api/hassio_ingress/synthetic-test-entry",
+            None,
+            None,
+        ),
         id="explicit-wrapper-shaped-mount",
     ),
 ]
@@ -456,129 +313,69 @@ class _RedactedProxyServers(dict):
 
 @pytest.fixture(scope="session", params=_NETWORK_PREFIX_CASES)
 def real_proxy_servers(request, tmp_path_factory):
-    """Run DOCSight behind a separate prefix-stripping HTTP proxy process."""
-    from tests.e2e.prefix_proxy import serve_prefix_proxy
+    """Run DOCSight behind separate prefix-stripping HTTP proxy processes."""
 
     case = request.param
-    auth_upstream_port = _find_free_port()
-    setup_upstream_port = _find_free_port()
-    auth_proxy_port = _find_free_port()
-    setup_proxy_port = _find_free_port()
     credential = "network-proxy-test-password"
-    label = case["label"]
-    auth_dir = str(tmp_path_factory.mktemp(f"network_proxy_auth_{label}"))
-    setup_dir = str(tmp_path_factory.mktemp(f"network_proxy_setup_{label}"))
-
-    auth_target = _ServerTarget(
-        auth_dir,
-        auth_upstream_port,
-        admin_password=credential,
-        base_path=case["base_path"],
-        trusted_prefix_hops=case["trusted_prefix_hops"],
+    auth_profile = ServerProfile(
+        f"network-proxy-auth-{case.label}",
+        configured=True,
+        demo_mode=True,
+        base_path=case.base_path,
+        trusted_prefix_hops=case.trusted_prefix_hops,
     )
-    setup_target = _ServerTarget(
-        setup_dir,
-        setup_upstream_port,
+    setup_profile = ServerProfile(
+        f"network-proxy-setup-{case.label}",
         configured=False,
         demo_mode=False,
-        base_path=case["base_path"],
-        trusted_prefix_hops=case["trusted_prefix_hops"],
+        base_path=case.base_path,
+        trusted_prefix_hops=case.trusted_prefix_hops,
     )
-    with _running_processes(
-        [
-            (_serve_server, (auth_target,)),
-            (_serve_server, (setup_target,)),
-            (
-                serve_prefix_proxy,
-                (
-                    auth_proxy_port,
-                    auth_upstream_port,
-                    case["mount_path"],
-                    case["forwarded_prefix_chain"],
-                ),
-            ),
-            (
-                serve_prefix_proxy,
-                (
-                    setup_proxy_port,
-                    setup_upstream_port,
-                    case["mount_path"],
-                    case["forwarded_prefix_chain"],
-                ),
-            ),
-        ],
-        [
-            (auth_proxy_port, case["mount_path"]),
-            (setup_proxy_port, case["mount_path"]),
-        ],
+    auth_target, auth_spec = _new_target(
+        f"proxy-upstream-auth-{case.label}",
+        tmp_path_factory.mktemp(f"network_proxy_auth_{case.label}"),
+        auth_profile,
+        admin_password=credential,
+        readiness_headers=(
+            (("X-Forwarded-Prefix", case.forwarded_prefix_chain),)
+            if case.forwarded_prefix_chain
+            else ()
+        ),
+    )
+    setup_target, setup_spec = _new_target(
+        f"proxy-upstream-setup-{case.label}",
+        tmp_path_factory.mktemp(f"network_proxy_setup_{case.label}"),
+        setup_profile,
+        readiness_headers=(
+            (("X-Forwarded-Prefix", case.forwarded_prefix_chain),)
+            if case.forwarded_prefix_chain
+            else ()
+        ),
+    )
+    auth_proxy_port, auth_proxy_spec = _new_proxy(
+        f"proxy-auth-{case.label}",
+        auth_target.port,
+        case.mount_path,
+        case.forwarded_prefix_chain,
+    )
+    setup_proxy_port, setup_proxy_spec = _new_proxy(
+        f"proxy-setup-{case.label}",
+        setup_target.port,
+        case.mount_path,
+        case.forwarded_prefix_chain,
+    )
+    with running_processes(
+        [auth_spec, setup_spec, auth_proxy_spec, setup_proxy_spec]
     ):
         yield _RedactedProxyServers(
             {
-                "mount_path": case["mount_path"],
+                "mount_path": case.mount_path,
                 "app_url": (
-                    f"http://127.0.0.1:{auth_proxy_port}{case['mount_path']}"
+                    f"http://127.0.0.1:{auth_proxy_port}{case.mount_path}"
                 ),
                 "setup_url": (
-                    f"http://127.0.0.1:{setup_proxy_port}{case['mount_path']}"
+                    f"http://127.0.0.1:{setup_proxy_port}{case.mount_path}"
                 ),
                 "password": credential,
             }
         )
-
-
-# ── FritzBox server (segment utilization) ──
-
-
-def _seed_fritzbox_segment_data(db_path: str) -> None:
-    """Seed 48 hours of deterministic one-minute segment utilization samples."""
-    import random
-    from datetime import datetime, timedelta, timezone
-
-    from app.storage.segment_utilization import SegmentUtilizationStorage
-
-    segment_storage = SegmentUtilizationStorage(db_path)
-    now = datetime.now(timezone.utc)
-    random.seed(42)
-    for index in range(2880):
-        timestamp = (now - timedelta(minutes=2880 - index)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-        downstream_total = 15.0 + random.uniform(-5, 25)
-        upstream_total = 8.0 + random.uniform(-3, 15)
-        downstream_own = downstream_total * random.uniform(0.01, 0.15)
-        upstream_own = upstream_total * random.uniform(0.01, 0.10)
-        segment_storage.save_at(
-            timestamp,
-            round(downstream_total, 1),
-            round(upstream_total, 1),
-            round(downstream_own, 2),
-            round(upstream_own, 2),
-        )
-
-
-@pytest.fixture(scope="session")
-def _fritzbox_data_dir(tmp_path_factory):
-    """Session-scoped temp directory for the FritzBox server."""
-    return str(tmp_path_factory.mktemp("docsight_e2e_fritzbox"))
-
-
-@pytest.fixture(scope="session")
-def fritzbox_server(_fritzbox_data_dir):
-    """Start a DOCSight server with modem_type=fritzbox and segment data."""
-    port = _find_free_port()
-    target = _ServerTarget(
-        _fritzbox_data_dir,
-        port,
-        modem_type="fritzbox",
-        post_seed_callback=_seed_fritzbox_segment_data,
-    )
-    with _running_processes([(_serve_server, (target,))], [(port, "")]):
-        yield f"http://127.0.0.1:{port}"
-
-
-@pytest.fixture()
-def fritzbox_page(page, fritzbox_server):
-    """Navigate to the FritzBox server dashboard."""
-    page.goto(fritzbox_server)
-    page.wait_for_load_state("networkidle")
-    return page

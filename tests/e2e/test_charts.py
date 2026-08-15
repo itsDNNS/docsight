@@ -5,9 +5,7 @@ Tests cover: hero chart, trend charts, channel charts, compare charts,
 zoom modal, theme switching, responsive sizing, and crosshair sync.
 """
 
-import pytest
 from playwright.sync_api import expect
-
 
 # ── Helpers ──
 
@@ -25,8 +23,8 @@ def navigate_to_channels(page):
 
 
 def wait_for_uplot(page, container_id, timeout=5000):
-    """Wait for a uPlot chart to render inside a container."""
-    page.wait_for_selector(f"#{container_id} .uplot", timeout=timeout)
+    """Wait for a complete uPlot canvas, not its transient empty wrapper."""
+    page.wait_for_selector(f"#{container_id} .uplot canvas", timeout=timeout)
 
 
 def count_uplot_canvases(page, container_id):
@@ -85,7 +83,7 @@ class TestHeroChart:
             var toggle = document.getElementById('theme-toggle-sidebar');
             if (toggle) { toggle.checked = !toggle.checked; toggle.dispatchEvent(new Event('change')); }
         """)
-        demo_page.wait_for_timeout(300)
+        wait_for_uplot(demo_page, "hero-trend-chart")
 
 
 # ── Trend Charts ──

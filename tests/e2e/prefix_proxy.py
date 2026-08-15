@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import http.client
+import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
@@ -86,6 +87,8 @@ def serve_prefix_proxy(
     upstream_port: int,
     mount_path: str,
     forwarded_prefix_chain: str | None,
+    *,
+    listener_socket: socket.socket | None = None,
 ) -> None:
     """Serve one quiet same-origin prefix boundary until terminated."""
 
@@ -225,6 +228,13 @@ def serve_prefix_proxy(
             return
 
     server = QuietThreadingHTTPServer(
-        ("127.0.0.1", listen_port), PrefixProxyHandler
+        ("127.0.0.1", listen_port),
+        PrefixProxyHandler,
+        bind_and_activate=listener_socket is None,
     )
+    if listener_socket is not None:
+        server.socket.close()
+        server.socket = listener_socket
+        server.server_address = listener_socket.getsockname()
+        server.server_activate()
     server.serve_forever()
