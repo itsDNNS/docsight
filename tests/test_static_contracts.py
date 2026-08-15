@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin, urlsplit
 
+from bs4 import BeautifulSoup
 from jinja2 import Template
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,14 +56,6 @@ STATIC_URL_FOR_JS_CSS_TAG_RE = re.compile(
 )
 STATIC_URL_FOR_RE = re.compile(
     r"url_for\(\s*['\"]static['\"]\s*,\s*filename\s*=\s*['\"]([^'\"]+)['\"]([^)]*)\)"
-)
-SCRIPT_BLOCK_RE = re.compile(
-    r"<script\b(?P<attributes>[^>]*)>(?P<body>.*?)</script\s*>",
-    re.IGNORECASE | re.DOTALL,
-)
-SCRIPT_ATTRIBUTE_RE = re.compile(
-    r"\b(?P<name>src|type)\s*=\s*(['\"])(?P<value>.*?)\2",
-    re.IGNORECASE,
 )
 MODULE_STATIC_LITERAL_RE = re.compile(
     r"module_static_url\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]([^)]*)\)"
@@ -115,6 +108,17 @@ def collect_template_asset_urls(text: str) -> set[str]:
         for match in MODULE_STATIC_LITERAL_RE.finditer(text)
     )
     return urls
+
+
+def executable_inline_scripts(text: str):
+    """Return executable inline scripts using an HTML parser, not filtering regexes."""
+    soup = BeautifulSoup(text, "html.parser")
+    return [
+        script
+        for script in soup.find_all("script")
+        if not script.get("src")
+        and str(script.get("type", "")).strip().lower() != "application/json"
+    ]
 
 
 def generated_js_css_reference_is_versioned(value: str) -> bool:
@@ -208,13 +212,13 @@ def test_templates_reference_existing_static_assets() -> None:
     assert missing == []
 
 
-def test_inline_script_scanner_accepts_html_whitespace_before_end_tag_close() -> None:
-    source = '<script type="text/javascript">alert(1)</script \t>'
+def test_inline_script_scanner_handles_malformed_end_tag_variants() -> None:
+    source = '<script type="text/javascript">alert(1)</script\t\n bogus>'
 
-    match = SCRIPT_BLOCK_RE.fullmatch(source)
+    scripts = executable_inline_scripts(source)
 
-    assert match is not None
-    assert match.group("body") == "alert(1)"
+    assert len(scripts) == 1
+    assert "alert(1)" in scripts[0].get_text()
 
 
 def test_templates_have_no_executable_inline_script_bodies_and_new_assets_exist() -> None:
@@ -223,15 +227,8 @@ def test_templates_have_no_executable_inline_script_bodies_and_new_assets_exist(
     offenders = []
     for path in template_paths:
         text = path.read_text(encoding="utf-8")
-        for match in SCRIPT_BLOCK_RE.finditer(text):
-            attributes = {
-                item.group("name").lower(): item.group("value").strip().lower()
-                for item in SCRIPT_ATTRIBUTE_RE.finditer(match.group("attributes"))
-            }
-            body = match.group("body").strip()
-            if body and "src" not in attributes and attributes.get("type") != "application/json":
-                lineno = text.count("\n", 0, match.start()) + 1
-                offenders.append(f"{path.relative_to(ROOT)}:{lineno}")
+        for script in executable_inline_scripts(text):
+            offenders.append(f"{path.relative_to(ROOT)}:{script.sourceline or '?'}")
 
     required_assets = {
         TEMPLATES / "index.html": [
