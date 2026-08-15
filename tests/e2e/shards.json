@@ -1,7 +1,7 @@
 {
   "version": 1,
   "expected_total": 531,
-  "baseline_cpu_seconds": 865.343,
+  "baseline_cpu_seconds": 1534.372,
   "shards": [
     {
       "id": 1,
