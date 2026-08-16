@@ -157,3 +157,26 @@ def test_build_checklist_marks_demo_mode_on_payload():
     )
 
     assert all(item["demo"] is True for item in payload)
+
+
+def test_snapshot_aggregate_preserves_the_existing_signal_item_json():
+    legacy = build_checklist(
+        WINDOW,
+        timeline=[{"timestamp": "2026-06-10T22:55:00Z", "source": "modem"}],
+        journal_entries=[],
+        bqm_rows=[],
+        capabilities={"docsis_supported": True, "speedtest_configured": False, "bqm_configured": False},
+    )
+    aggregated = build_checklist(
+        WINDOW,
+        timeline=[],
+        journal_entries=[],
+        bqm_rows=[],
+        capabilities={"docsis_supported": True, "speedtest_configured": False, "bqm_configured": False},
+        snapshot_aggregate={
+            "snapshot_count": 1,
+            "last_observed_at": "2026-06-10T22:55:00Z",
+        },
+    )
+
+    assert aggregated == legacy

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
-from typing import Any, Iterable
+from typing import Any
+
+from app.aggregation import source_coverage
 
 PRESENT = "present"
 STALE = "stale"
@@ -34,15 +37,7 @@ def _parse_ts(value: str | None) -> datetime | None:
 
 
 def _latest_ts(rows: Iterable[dict[str, Any]], timestamp_key: str = "timestamp") -> str | None:
-    latest: datetime | None = None
-    latest_raw: str | None = None
-    for row in rows:
-        raw = row.get(timestamp_key)
-        parsed = _parse_ts(raw)
-        if parsed is not None and (latest is None or parsed > latest):
-            latest = parsed
-            latest_raw = raw
-    return latest_raw
+    return source_coverage(rows, timestamp_key)["last_observed_at"]
 
 
 def _is_stale(last_ts: str | None, window_end: str | None, hours: int) -> bool:
@@ -84,14 +79,28 @@ def _source_rows(timeline: Iterable[dict[str, Any]], *sources: str) -> list[dict
 
 
 def _row_count(rows: Iterable[dict[str, Any]]) -> int:
-    total = 0
-    for row in rows:
-        count = row.get("sample_count") or row.get("count") or 1
-        try:
-            total += int(count)
-        except (TypeError, ValueError):
-            total += 1
-    return total
+    return source_coverage(rows)["count"]
+
+
+def _evidence_status_values(
+    count: int,
+    last_ts: str | None,
+    *,
+    configured: bool = True,
+    applicable: bool = True,
+    optional_when_unconfigured: bool = True,
+    window_end: str | None,
+    stale_key: str | None = None,
+) -> tuple[str, str | None]:
+    if not applicable:
+        return NOT_APPLICABLE, None
+    if not configured and count == 0:
+        return (OPTIONAL if optional_when_unconfigured else MISSING), None
+    if count == 0:
+        return MISSING, None
+    if stale_key and _is_stale(last_ts, window_end, _STALE_HOURS[stale_key]):
+        return STALE, last_ts
+    return PRESENT, last_ts
 
 
 def _evidence_status(
@@ -103,16 +112,16 @@ def _evidence_status(
     window_end: str | None,
     stale_key: str | None = None,
 ) -> tuple[str, str | None]:
-    if not applicable:
-        return NOT_APPLICABLE, None
-    if not configured and not rows:
-        return (OPTIONAL if optional_when_unconfigured else MISSING), None
-    if not rows:
-        return MISSING, None
-    last_ts = _latest_ts(rows)
-    if stale_key and _is_stale(last_ts, window_end, _STALE_HOURS[stale_key]):
-        return STALE, last_ts
-    return PRESENT, last_ts
+    coverage = source_coverage(rows)
+    return _evidence_status_values(
+        coverage["count"],
+        coverage["last_observed_at"],
+        configured=configured,
+        applicable=applicable,
+        optional_when_unconfigured=optional_when_unconfigured,
+        window_end=window_end,
+        stale_key=stale_key,
+    )
 
 
 def _latency_item(
@@ -189,6 +198,7 @@ def build_checklist(
     bqm_rows: list[dict[str, Any]] | None,
     connection_latency_rows: list[dict[str, Any]] | None = None,
     capabilities: dict[str, Any] | None = None,
+    snapshot_aggregate: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Build the stateless evidence checklist for an incident or selected window."""
     capabilities = capabilities or {}
@@ -205,12 +215,24 @@ def build_checklist(
     event_rows = _source_rows(timeline, "event", "events")
     bnetz_rows = _source_rows(timeline, "bnetz")
 
-    signal_status, signal_last = _evidence_status(
-        signal_rows,
-        applicable=docsis_supported,
-        window_end=window_end,
-        stale_key="signal",
-    )
+    if snapshot_aggregate is None:
+        signal_count = len(signal_rows)
+        signal_status, signal_last = _evidence_status(
+            signal_rows,
+            applicable=docsis_supported,
+            window_end=window_end,
+            stale_key="signal",
+        )
+    else:
+        signal_count = int(snapshot_aggregate.get("snapshot_count") or 0)
+        signal_last = snapshot_aggregate.get("last_observed_at")
+        signal_status, signal_last = _evidence_status_values(
+            signal_count,
+            signal_last,
+            applicable=docsis_supported,
+            window_end=window_end,
+            stale_key="signal",
+        )
     speed_status, speed_last = _evidence_status(
         speedtest_rows,
         configured=speedtest_configured,
@@ -230,7 +252,7 @@ def build_checklist(
     bnetz_last = _latest_ts(bnetz_rows)
 
     items = [
-        _item("signal", signal_status, len(signal_rows), signal_last, {"view": "correlation"}, demo=demo),
+        _item("signal", signal_status, signal_count, signal_last, {"view": "correlation"}, demo=demo),
         _item("speedtest", speed_status, len(speedtest_rows), speed_last, {"view": "speedtest"}, demo=demo),
         _latency_item(
             bqm_rows=bqm_rows,

@@ -3,13 +3,16 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, request, jsonify, make_response
+from flask import Blueprint, jsonify, make_response, request
 
-from app.tz import utc_now, utc_cutoff
+from app.aggregation import select_preferred_bnetz
+from app.tz import utc_cutoff, utc_now
 from app.web import (
-    require_auth,
-    get_storage, get_config_manager, get_state,
     _get_lang,
+    get_config_manager,
+    get_state,
+    get_storage,
+    require_auth,
 )
 
 from .report import generate_complaint_text, generate_report
@@ -211,13 +214,7 @@ def api_complaint():
                 bnetz_data = next((m for m in all_bnetz if m["id"] == bnetz_id), None)
             else:
                 in_range = _bnetz_storage.get_bnetz_in_range(start_ts, end_ts)
-                # Prefer most recent with deviation
-                for m in reversed(in_range):
-                    if m.get("verdict_download") == "deviation" or m.get("verdict_upload") == "deviation":
-                        bnetz_data = m
-                        break
-                if not bnetz_data and in_range:
-                    bnetz_data = in_range[-1]
+                bnetz_data = select_preferred_bnetz(in_range)
         except (ImportError, Exception):
             pass  # BNetzA module not available
 

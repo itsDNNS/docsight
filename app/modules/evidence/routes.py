@@ -5,17 +5,23 @@ from __future__ import annotations
 import logging
 import os
 import sqlite3
-
-from app.storage.sqlite import open_read
 from datetime import datetime, timezone
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request
 
-from app.tz import get_tz_name, local_date_to_utc_range, local_to_utc, local_today
-from app.web import require_auth, get_config_manager, get_storage
+from app.aggregation import (
+    ThresholdContext,
+    Window,
+    aggregate_snapshot_period,
+    canonical_utc_timestamp,
+)
+from app.analyzer import threshold_snapshot
 from app.modules.journal.storage import JournalStorage
+from app.storage.sqlite import open_read
+from app.tz import get_tz_name, local_date_to_utc_range, local_to_utc, local_today
+from app.web import get_config_manager, get_storage, require_auth
 
 from .checklist import build_checklist, summarize_checklist
 
@@ -39,10 +45,8 @@ def _get_tz_name() -> str:
 
 
 def _utc_datetime(value: str) -> datetime:
-    normalized = value.replace("Z", "+00:00")
+    normalized = canonical_utc_timestamp(value).replace("Z", "+00:00")
     parsed = datetime.fromisoformat(normalized)
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
 
 
@@ -89,6 +93,7 @@ def _get_journal_entries_for_window(db_path: str, start_ts: str, end_ts: str) ->
 
 
 def _get_bqm_rows(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, Any]] | None:
+    """Load BQM rows through the external latency-source adapter."""
     try:
         from app.modules.bqm.storage import BqmStorage
         tz_name = _get_tz_name()
@@ -135,7 +140,7 @@ def _get_connection_monitor_db_path() -> str:
 
 
 def _get_connection_latency_rows(start_ts: str, end_ts: str) -> list[dict[str, Any]]:
-    """Return compact Connection Monitor latency evidence rows for a UTC window."""
+    """Load compact rows through the external Connection Monitor source adapter."""
     db_path = _get_connection_monitor_db_path()
     if not os.path.exists(db_path):
         return []
@@ -293,7 +298,18 @@ def api_evidence_checklist():
             return jsonify({"error": "from/to must be valid ISO timestamps"}), 400
         journal_entries = _get_journal_entries_for_window(core.db_path, window["from"], window["to"])
 
-    timeline = core.get_correlation_timeline(window["from"], window["to"])
+    snapshots = core.get_range_data(window["from"], window["to"])
+    thresholds = ThresholdContext.from_analyzer_snapshot(threshold_snapshot())
+    snapshot_aggregate = aggregate_snapshot_period(
+        snapshots,
+        window=Window(window["from"], window["to"]),
+        thresholds=thresholds,
+    )
+    timeline = core.get_correlation_timeline(
+        window["from"],
+        window["to"],
+        sources={"speedtest", "events", "bnetz", "segment", "capture"},
+    )
     bqm_rows = _get_bqm_rows(core.db_path, window["from"], window["to"])
     connection_latency_rows = _get_connection_latency_rows(window["from"], window["to"])
     config_manager = get_config_manager()
@@ -305,6 +321,7 @@ def api_evidence_checklist():
         bqm_rows=bqm_rows,
         connection_latency_rows=connection_latency_rows,
         capabilities=capabilities,
+        snapshot_aggregate=snapshot_aggregate,
     )
     return jsonify({
         "window": window,

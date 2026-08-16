@@ -204,12 +204,12 @@ class TestCompareEndpoint:
 
 
 class TestAggregatePeriod:
-    """Unit tests for the _aggregate_period function."""
+    """Unit tests for the _comparison_period function."""
 
     def test_empty_snapshots(self):
-        from app.modules.comparison.routes import _aggregate_period
+        from app.modules.comparison.routes import _comparison_period
 
-        result = _aggregate_period([])
+        result = _comparison_period([])
         assert result["snapshots"] == 0
         assert result["avg"]["ds_power"] is None
         assert result["errors_supported"] is False
@@ -217,9 +217,9 @@ class TestAggregatePeriod:
         assert result["total"]["uncorr_errors"] is None
 
     def test_single_snapshot(self):
-        from app.modules.comparison.routes import _aggregate_period
+        from app.modules.comparison.routes import _comparison_period
 
-        result = _aggregate_period([SNAPSHOT_A])
+        result = _comparison_period([SNAPSHOT_A])
         assert result["snapshots"] == 1
         assert result["avg"]["ds_power"] == 3.1
         assert result["avg"]["ds_snr"] == 34.2
@@ -227,18 +227,18 @@ class TestAggregatePeriod:
         assert result["total"]["uncorr_errors"] == 0
 
     def test_multiple_snapshots_averages(self):
-        from app.modules.comparison.routes import _aggregate_period
+        from app.modules.comparison.routes import _comparison_period
 
-        result = _aggregate_period([SNAPSHOT_A, SNAPSHOT_B])
+        result = _comparison_period([SNAPSHOT_A, SNAPSHOT_B])
         assert result["snapshots"] == 2
         assert result["avg"]["ds_power"] == pytest.approx(3.65)
         assert result["avg"]["ds_snr"] == pytest.approx(32.85)
         assert result["total"]["corr_errors"] == 300
 
     def test_unsupported_error_counters_remain_none(self):
-        from app.modules.comparison.routes import _aggregate_period
+        from app.modules.comparison.routes import _comparison_period
 
-        result = _aggregate_period([UNSUPPORTED_ERRORS_SNAPSHOT])
+        result = _comparison_period([UNSUPPORTED_ERRORS_SNAPSHOT])
 
         assert result["errors_supported"] is False
         assert result["corr_errors_supported"] is False
@@ -248,7 +248,7 @@ class TestAggregatePeriod:
         assert result["timeseries"][0]["uncorr_errors"] is None
 
     def test_errors_supported_false_zero_counters_remain_unsupported(self):
-        from app.modules.comparison.routes import _aggregate_period
+        from app.modules.comparison.routes import _comparison_period
 
         legacy_zero_snapshot = {
             **UNSUPPORTED_ERRORS_SNAPSHOT,
@@ -259,7 +259,7 @@ class TestAggregatePeriod:
                 "ds_uncorrectable_errors": 0,
             },
         }
-        result = _aggregate_period([legacy_zero_snapshot])
+        result = _comparison_period([legacy_zero_snapshot])
 
         assert result["errors_supported"] is False
         assert result["corr_errors_supported"] is False
@@ -269,9 +269,9 @@ class TestAggregatePeriod:
         assert result["timeseries"][0]["uncorr_errors"] is None
 
     def test_zero_error_counters_stay_supported_zeroes(self):
-        from app.modules.comparison.routes import _aggregate_period
+        from app.modules.comparison.routes import _comparison_period
 
-        result = _aggregate_period([SNAPSHOT_A])
+        result = _comparison_period([SNAPSHOT_A])
 
         assert result["errors_supported"] is True
         assert result["corr_errors_supported"] is True
@@ -280,7 +280,7 @@ class TestAggregatePeriod:
         assert result["total"]["uncorr_errors"] == 0
 
     def test_partially_supported_error_counters_do_not_invent_zeroes(self):
-        from app.modules.comparison.routes import _aggregate_period
+        from app.modules.comparison.routes import _comparison_period
 
         partial = {
             **UNSUPPORTED_ERRORS_SNAPSHOT,
@@ -290,7 +290,7 @@ class TestAggregatePeriod:
                 "ds_uncorrectable_errors": None,
             },
         }
-        result = _aggregate_period([partial])
+        result = _comparison_period([partial])
 
         assert result["errors_supported"] is True
         assert result["corr_errors_supported"] is True
@@ -323,10 +323,10 @@ class TestComputeDelta:
     """Unit tests for the _compute_delta function."""
 
     def test_basic_delta(self):
-        from app.modules.comparison.routes import _aggregate_period, _compute_delta
+        from app.modules.comparison.routes import _comparison_period, _compute_delta
 
-        pa = _aggregate_period([SNAPSHOT_A])
-        pb = _aggregate_period([SNAPSHOT_B])
+        pa = _comparison_period([SNAPSHOT_A])
+        pb = _comparison_period([SNAPSHOT_B])
         delta = _compute_delta(pa, pb)
         assert delta["ds_power"] == pytest.approx(1.1)
         assert delta["ds_snr"] == pytest.approx(-2.7)
@@ -334,29 +334,29 @@ class TestComputeDelta:
         assert delta["uncorr_errors"] == 127
 
     def test_delta_with_empty_period(self):
-        from app.modules.comparison.routes import _aggregate_period, _compute_delta
+        from app.modules.comparison.routes import _comparison_period, _compute_delta
 
-        pa = _aggregate_period([])
-        pb = _aggregate_period([SNAPSHOT_B])
+        pa = _comparison_period([])
+        pb = _comparison_period([SNAPSHOT_B])
         delta = _compute_delta(pa, pb)
         assert delta["ds_power"] is None
         assert delta["ds_snr"] is None
 
     def test_both_periods_empty(self):
-        from app.modules.comparison.routes import _aggregate_period, _compute_delta
+        from app.modules.comparison.routes import _comparison_period, _compute_delta
 
-        pa = _aggregate_period([])
-        pb = _aggregate_period([])
+        pa = _comparison_period([])
+        pb = _comparison_period([])
         delta = _compute_delta(pa, pb)
         assert delta["ds_power"] is None
         assert delta["uncorr_errors"] is None
         assert delta["verdict"] == "unchanged"
 
     def test_delta_ignores_unsupported_error_counters(self):
-        from app.modules.comparison.routes import _aggregate_period, _compute_delta
+        from app.modules.comparison.routes import _comparison_period, _compute_delta
 
-        unsupported_a = _aggregate_period([UNSUPPORTED_ERRORS_SNAPSHOT])
-        unsupported_b = _aggregate_period([
+        unsupported_a = _comparison_period([UNSUPPORTED_ERRORS_SNAPSHOT])
+        unsupported_b = _comparison_period([
             {**UNSUPPORTED_ERRORS_SNAPSHOT, "timestamp": "2026-03-08T06:00:00Z"}
         ])
 
@@ -367,7 +367,7 @@ class TestComputeDelta:
 
     def test_extreme_snr_improvement(self):
         """Large SNR jump should be classified as improved."""
-        from app.modules.comparison.routes import _aggregate_period, _compute_delta
+        from app.modules.comparison.routes import _comparison_period, _compute_delta
 
         great = {
             "timestamp": "2026-03-08T06:00:00Z",
@@ -382,8 +382,8 @@ class TestComputeDelta:
             "ds_channels": [],
             "us_channels": [],
         }
-        pa = _aggregate_period([SNAPSHOT_A])
-        pb = _aggregate_period([great])
+        pa = _comparison_period([SNAPSHOT_A])
+        pb = _comparison_period([great])
         delta = _compute_delta(pa, pb)
         assert delta["verdict"] == "improved"
 

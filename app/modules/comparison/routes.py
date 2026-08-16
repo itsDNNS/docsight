@@ -1,7 +1,15 @@
 """Before/After Comparison module routes."""
 
-from flask import Blueprint, request, jsonify
-from app.web import require_auth, get_storage
+from flask import Blueprint, jsonify, request
+
+from app.aggregation import (
+    ThresholdContext,
+    Window,
+    aggregate_snapshot_period,
+    report_bounds,
+)
+from app.analyzer import threshold_snapshot
+from app.web import get_storage, require_auth
 
 bp = Blueprint("comparison_module", __name__)
 
@@ -10,78 +18,37 @@ def _get_storage():
     return get_storage()
 
 
-def _aggregate_period(snapshots):
-    """Aggregate a list of snapshots into period summary."""
-    if not snapshots:
-        return {
-            "snapshots": 0,
-            "avg": {"ds_power": None, "ds_snr": None, "us_power": None},
-            "total": {"corr_errors": None, "uncorr_errors": None},
-            "errors_supported": False,
-            "corr_errors_supported": False,
-            "uncorr_errors_supported": False,
-            "health_distribution": {},
-            "timeseries": [],
-        }
-
-    ds_power = []
-    ds_snr = []
-    us_power = []
-    corr_total = 0
-    uncorr_total = 0
-    corr_errors_supported = False
-    uncorr_errors_supported = False
-    health_counts = {}
-    timeseries = []
-
-    for snap in snapshots:
-        s = snap.get("summary", {})
-        if s.get("ds_power_avg") is not None:
-            ds_power.append(s["ds_power_avg"])
-        if s.get("ds_snr_avg") is not None:
-            ds_snr.append(s["ds_snr_avg"])
-        if s.get("us_power_avg") is not None:
-            us_power.append(s["us_power_avg"])
-        errors_supported = s.get("errors_supported", True)
-        corr_errors = s.get("ds_correctable_errors") if errors_supported else None
-        uncorr_errors = s.get("ds_uncorrectable_errors") if errors_supported else None
-        if corr_errors is not None:
-            corr_errors_supported = True
-            corr_total += corr_errors
-        if uncorr_errors is not None:
-            uncorr_errors_supported = True
-            uncorr_total += uncorr_errors
-        h = s.get("health", "unknown")
-        health_counts[h] = health_counts.get(h, 0) + 1
-        timeseries.append({
-            "timestamp": snap.get("timestamp", ""),
-            "ds_power_avg": s.get("ds_power_avg"),
-            "ds_snr_avg": s.get("ds_snr_avg"),
-            "us_power_avg": s.get("us_power_avg"),
-            "uncorr_errors": uncorr_errors,
-            "health": h,
-        })
-
-    def avg(lst):
-        return round(sum(lst) / len(lst), 2) if lst else None
-
+def _comparison_view(aggregate):
+    """Map the shared aggregate to the established comparison response shape."""
+    totals = aggregate["totals"]
     return {
-        "snapshots": len(snapshots),
+        "snapshots": aggregate["snapshot_count"],
         "avg": {
-            "ds_power": avg(ds_power),
-            "ds_snr": avg(ds_snr),
-            "us_power": avg(us_power),
+            key: (round(value, 2) if value is not None else None)
+            for key, value in aggregate["averages"].items()
         },
         "total": {
-            "corr_errors": corr_total if corr_errors_supported else None,
-            "uncorr_errors": uncorr_total if uncorr_errors_supported else None,
+            "corr_errors": totals["ds_correctable_errors"],
+            "uncorr_errors": totals["ds_uncorrectable_errors"],
         },
-        "errors_supported": corr_errors_supported or uncorr_errors_supported,
-        "corr_errors_supported": corr_errors_supported,
-        "uncorr_errors_supported": uncorr_errors_supported,
-        "health_distribution": health_counts,
-        "timeseries": timeseries,
+        "errors_supported": totals["errors_supported"],
+        "corr_errors_supported": totals["correctable_supported"],
+        "uncorr_errors_supported": totals["uncorrectable_supported"],
+        "health_distribution": aggregate["health_distribution"],
+        "timeseries": aggregate["samples"],
     }
+
+
+def _comparison_period(snapshots):
+    """Compatibility adapter for comparison helper callers."""
+    bounds = report_bounds(snapshots)
+    thresholds = ThresholdContext.from_analyzer_snapshot(threshold_snapshot())
+    aggregate = aggregate_snapshot_period(
+        snapshots,
+        window=Window(*bounds),
+        thresholds=thresholds,
+    )
+    return _comparison_view(aggregate)
 
 
 def _compute_delta(period_a, period_b):
@@ -139,8 +106,19 @@ def compare_periods(storage, from_a, to_a, from_b, to_b):
     snapshots_a = storage.get_range_data(from_a, to_a)
     snapshots_b = storage.get_range_data(from_b, to_b)
 
-    period_a = _aggregate_period(snapshots_a)
-    period_b = _aggregate_period(snapshots_b)
+    thresholds = ThresholdContext.from_analyzer_snapshot(threshold_snapshot())
+    aggregate_a = aggregate_snapshot_period(
+        snapshots_a,
+        window=Window(from_a, to_a),
+        thresholds=thresholds,
+    )
+    aggregate_b = aggregate_snapshot_period(
+        snapshots_b,
+        window=Window(from_b, to_b),
+        thresholds=thresholds,
+    )
+    period_a = _comparison_view(aggregate_a)
+    period_b = _comparison_view(aggregate_b)
     period_a["from"] = from_a
     period_a["to"] = to_a
     period_b["from"] = from_b

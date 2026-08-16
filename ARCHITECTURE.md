@@ -609,6 +609,31 @@ Return JSON { success: true, analysis: {...} }
 
 ---
 
+### Period aggregation layer
+
+Stored DOCSIS snapshots are reduced through
+`app.aggregation.aggregate_snapshot_period()`. The entry point is pure: callers
+supply inclusive UTC bounds and an independent threshold context, and receive a
+deterministically ordered, JSON-serializable aggregate with coverage,
+provenance-aware diagnostics, averages, totals, worst values, and channel
+drivers. Equal timestamps use a stable content digest as a tiebreaker while
+preserving duplicate multiplicity.
+
+Report PDFs, incident reports, complaint text, before/after comparison, and the
+evidence checklist share this contract. Storage queries remain in their route
+adapters. The evidence checklist loads snapshots once and requests its remaining
+timeline sources without modem data; BQM and Connection Monitor remain explicit
+external evidence adapters.
+
+Threshold resolution remains analyzer-owned. The analyzer exposes copied plain
+threshold data and pure resolution functions; the aggregation layer may call
+only those resolution functions, and the analyzer has no dependency on
+aggregation.
+
+Transition detection, latest-analysis home displays, local-calendar modulation
+analysis, storage trend queries, and journal incident-date windows intentionally
+retain their distinct scopes and semantics.
+
 ## Storage Layer
 
 **Database:** SQLite (`/data/docsis_history.db`) with WAL mode for concurrent access

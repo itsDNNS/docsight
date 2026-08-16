@@ -499,7 +499,7 @@ def test_empty_pdf_prints_requested_window_zero_count_and_neutral_text():
     assert "No stored DOCSIS measurements are available for the requested report period." in text
 
 
-def test_pdf_and_text_complaint_share_one_historical_note_set_per_artifact():
+def test_pdf_and_text_complaint_use_one_period_aggregate_per_artifact():
     from app.modules.reports import report
 
     snapshots = [_snapshot(
@@ -515,27 +515,27 @@ def test_pdf_and_text_complaint_share_one_historical_note_set_per_artifact():
         }],
     )]
     snapshots[0]["analysis_meta"] = _builtin_analysis_meta()
-    real_derive = report.derive_historical_report_data
+    real_aggregate = report.aggregate_snapshot_period
 
     with patch.object(
-        report, "derive_historical_report_data", wraps=real_derive
-    ) as derive:
+        report, "aggregate_snapshot_period", wraps=real_aggregate
+    ) as aggregate:
         pdf_text = _pdf_text(report.generate_report(
             snapshots,
             report_start="2026-05-01T00:00:00Z",
             report_end="2026-05-02T00:00:00Z",
         ))
-    assert derive.call_count == 1
+    assert aggregate.call_count == 1
 
     with patch.object(
-        report, "derive_historical_report_data", wraps=real_derive
-    ) as derive:
+        report, "aggregate_snapshot_period", wraps=real_aggregate
+    ) as aggregate:
         complaint = report.generate_complaint_text(
             snapshots,
             report_start="2026-05-01T00:00:00Z",
             report_end="2026-05-02T00:00:00Z",
         )
-    assert derive.call_count == 1
+    assert aggregate.call_count == 1
 
     expected = (
         "Channel 4 (SC-QAM): downstream power of 30.0 dBmV exceeds expected "

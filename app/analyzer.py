@@ -6,12 +6,18 @@ community threshold profiles loaded through the module system.
 
 from __future__ import annotations
 
+import copy
 import logging
-from typing import Literal
+from collections.abc import Mapping
+from typing import Any, Literal
 
 from .docsis_utils import (
     classify_channel_family as _shared_classify_channel_family,
+)
+from .docsis_utils import (
     modulation_threshold_key as _modulation_threshold_key,
+)
+from .docsis_utils import (
     parse_qam_order as _parse_qam_order,
 )
 from .error_counters import (
@@ -20,7 +26,7 @@ from .error_counters import (
     uncorrectable_percentage,
 )
 from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
-from .tz import utc_now, _parse_utc
+from .tz import _parse_utc, utc_now
 
 log = logging.getLogger("docsis.analyzer")
 
@@ -95,9 +101,14 @@ def _resolve_modulation(modulation, section):
     return _modulation_threshold_key(modulation, section)
 
 
-def _get_ds_power_thresholds(modulation=None, *, channel_family: str | None = None):
-    """Get DS power thresholds for a given modulation."""
-    ds = _t().get("downstream_power", {})
+def resolve_ds_power_thresholds(
+    modulation=None,
+    *,
+    channel_family: str | None = None,
+    thresholds: Mapping[str, Any],
+):
+    """Resolve downstream power thresholds from an explicit plain-data mapping."""
+    ds = thresholds.get("downstream_power", {})
     if channel_family == "ofdm" and "ofdm" in ds:
         t = ds["ofdm"]
     else:
@@ -114,6 +125,13 @@ def _get_ds_power_thresholds(modulation=None, *, channel_family: str | None = No
         "crit_min": crit[0],
         "crit_max": crit[1],
     }
+
+
+def _get_ds_power_thresholds(modulation=None, *, channel_family: str | None = None):
+    """Get DS power thresholds for a given modulation."""
+    return resolve_ds_power_thresholds(
+        modulation, channel_family=channel_family, thresholds=_t()
+    )
 
 
 def _get_us_power_thresholds(channel_type=None):
@@ -138,9 +156,14 @@ def _get_us_power_thresholds(channel_type=None):
     }
 
 
-def _get_snr_thresholds(modulation=None, *, channel_family: str | None = None):
-    """Get SNR thresholds for a given modulation."""
-    snr = _t().get("snr", {})
+def resolve_snr_thresholds(
+    modulation=None,
+    *,
+    channel_family: str | None = None,
+    thresholds: Mapping[str, Any],
+):
+    """Resolve downstream SNR thresholds from an explicit plain-data mapping."""
+    snr = thresholds.get("snr", {})
     if not isinstance(snr, dict):
         snr = {}
     if channel_family == "ofdm" and "ofdm" in snr:
@@ -153,6 +176,13 @@ def _get_snr_thresholds(modulation=None, *, channel_family: str | None = None):
         "warn_min": t.get("warning_min", t.get("good_min", 33.0)),
         "crit_min": t.get("critical_min", 29.0),
     }
+
+
+def _get_snr_thresholds(modulation=None, *, channel_family: str | None = None):
+    """Get SNR thresholds for a given modulation."""
+    return resolve_snr_thresholds(
+        modulation, channel_family=channel_family, thresholds=_t()
+    )
 
 
 def _get_us_modulation_thresholds():
@@ -478,6 +508,14 @@ def get_thresholds():
             return obj
         return {k: _strip(v) for k, v in obj.items() if not k.startswith("_")}
     return _strip(_t())
+
+
+def threshold_snapshot() -> dict[str, Any]:
+    """Return an independent plain-data capture of active thresholds and provenance."""
+    return {
+        "thresholds": copy.deepcopy(_t()),
+        "profile": copy.deepcopy(_threshold_profile),
+    }
 
 
 def _parse_float(val, default=None):
