@@ -91,7 +91,8 @@ class TestThemePathTraversal:
 
         mod = next(m for m in loader.get_modules() if m.id == "test.eviltheme")
         assert mod.error is not None
-        assert "unsafe manifest reference" in mod.error.lower()
+        assert "reference is unsafe" in mod.error.lower()
+        assert "stolen.json" not in mod.error
         assert mod.theme_data is None
 
     def test_slash_in_filename_blocked(self, tmp_path):
@@ -119,7 +120,8 @@ class TestThemePathTraversal:
 
         mod = next(m for m in loader.get_modules() if m.id == "test.slashtheme")
         assert mod.error is not None
-        assert "unsafe manifest reference" in mod.error.lower()
+        assert "reference is unsafe" in mod.error.lower()
+        assert "subdir/theme.json" not in mod.error
 
     def test_valid_theme_filename_works(self, tmp_path):
         """A well-formed theme filename still loads correctly."""
@@ -146,7 +148,7 @@ class TestThemePathTraversal:
         assert mod.theme_data is not None
         assert "--bg" in mod.theme_data["dark"]
 
-    def test_disabled_theme_traversal_blocked(self, tmp_path):
+    def test_disabled_theme_traversal_blocked(self, tmp_path, monkeypatch, caplog):
         """Disabled themes with traversal in contributes.theme must also be blocked."""
         mod_dir = tmp_path / "disabledevil"
         mod_dir.mkdir()
@@ -164,6 +166,15 @@ class TestThemePathTraversal:
             "type": "theme",
             "contributes": {"theme": "../stolen_theme.json"},
         }))
+        real_open = open
+        outside_reads = []
+
+        def tracking_open(file, *args, **kwargs):
+            if os.path.realpath(os.fspath(file)) == os.path.realpath(escape_target):
+                outside_reads.append(file)
+            return real_open(file, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.open", tracking_open)
 
         app = Flask(__name__)
         app.config["TESTING"] = True
@@ -175,7 +186,15 @@ class TestThemePathTraversal:
         loader.load_all()
 
         mod = next(m for m in loader.get_modules() if m.id == "test.disabledevil")
+        diagnostics = caplog.text + "\n" + (mod.error or "")
+        assert mod.enabled is False
+        assert mod.error and "reference is unsafe" in mod.error.lower()
         assert mod.theme_data is None
+        assert outside_reads == []
+        assert str(tmp_path) not in diagnostics
+        assert "stolen_theme.json" not in diagnostics
+        assert "--bg" not in diagnostics
+        assert loader.registration_plan.modules == ()
 
 
 class TestContributesPathTraversal:
@@ -239,7 +258,8 @@ class TestContributesPathTraversal:
 
         mod = next(m for m in loader.get_modules() if m.id == "test.evilmod")
         assert mod.error is not None
-        assert "unsafe manifest reference" in mod.error.lower()
+        assert "reference is unsafe" in mod.error.lower()
+        assert "stolen.json" not in mod.error
 
     def test_i18n_traversal_blocked(self, tmp_path):
         """i18n with traversal must be rejected."""
@@ -263,7 +283,8 @@ class TestContributesPathTraversal:
 
         mod = next(m for m in loader.get_modules() if m.id == "test.i18nmod")
         assert mod.error is not None
-        assert "unsafe manifest subpath" in mod.error.lower()
+        assert "i18n contribution reference is unsafe" in mod.error.lower()
+        assert "../../etc" not in mod.error
 
     def test_publisher_traversal_blocked(self, tmp_path):
         """Publisher spec with traversal filename must be rejected."""
@@ -298,7 +319,8 @@ class TestContributesPathTraversal:
 
         mod = next(m for m in loader.get_modules() if m.id == "test.staticmod")
         assert mod.error is not None
-        assert "unsafe manifest subpath" in mod.error.lower()
+        assert "static contribution reference is unsafe" in mod.error.lower()
+        assert "../../../var/www" not in mod.error
 
 
 def test_driver_is_not_valid_contributes():

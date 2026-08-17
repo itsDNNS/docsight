@@ -1,1009 +1,225 @@
-"""Module loader: discovers, validates, and loads DOCSight modules."""
+"""Module discovery orchestration and compatibility facade."""
 
-import importlib
-import importlib.util
-import json
 import logging
-import os
-import sys
-from collections import defaultdict
-from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import Any, cast
+import os  # Compatibility: callers patch the shared filesystem module here.
 
-from flask import abort, send_file, url_for
-
-from app import analyzer as _analyzer
-from app import config as _cfg
+# Public imports below intentionally preserve the legacy module-loader facade.
+from app import module_registry as _module_registry
 from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
-from app.i18n import _TRANSLATIONS
-from app.manifest_contract import (
-    ID_PATTERN,
-    REQUIRED_FIELDS,
-    VALID_CONTRIBUTES,
-    VALID_TYPES,
-    validate_manifest_contract,
+from app.manifest_contract import ID_PATTERN, REQUIRED_FIELDS, VALID_CONTRIBUTES, VALID_TYPES
+from app.module_config_registry import (
+    evaluate_module_config_ownership,
+    evaluate_module_secret_ownership,
+    register_module_config,
+    reserve_module_secrets,
+)
+from app.module_contributions import (
+    REQUIRED_THEME_SECTIONS, REQUIRED_THRESHOLD_SECTIONS,
+    _PROTECTED_API_PREFIXES, _PROTECTED_ROUTES,
+    _load_module_class, _load_symbol,
+    _read_json_contribution, _redacted_resolution,
+    attach_builtin_python_contributions, load_module_collector,
+    load_module_publisher, load_module_routes, merge_module_i18n,
+    module_static_endpoint, module_static_url, plan_module_static,
+    resolve_module_contribution, resolve_module_i18n, resolve_module_routes,
+    setup_module_static, setup_module_templates, validate_theme,
+    validate_thresholds,
+)
+from app.module_registry import (
+    ManifestError,
+    ModuleInfo,
+    ModuleRegistryError,
+    discover_modules,
+    validate_manifest,
 )
 from app.path_safety import safe_manifest_ref, safe_manifest_subpath
+from app.registration import (
+    ModuleContribution, PlannedBlueprint, PlannedRule, RegistrationError,
+    RegistrationPlan, apply_module_i18n, apply_plan, existing_rules,
+    probe_blueprint, register_plan, validate_plan,
+)
 from app.theme_registry import BUILTIN_THEMES
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 
+
 log = logging.getLogger("docsis.modules")
-
-class ManifestError(Exception):
-    """Raised when a manifest.json is invalid."""
-
-
-@dataclass
-class ModuleInfo:
-    """Validated module metadata from manifest.json."""
-    id: str
-    name: str
-    description: str
-    version: str
-    author: str
-    min_app_version: str
-    type: str
-    contributes: dict[str, str]
-    path: str
-    builtin: bool = False
-    homepage: str = ""
-    license: str = ""
-    config: dict[str, Any] = field(default_factory=dict)
-    config_secrets: list[str] = field(default_factory=list)
-    config_private: list[str] = field(default_factory=list)
-    menu: dict[str, Any] = field(default_factory=dict)
-    enabled: bool = True
-    error: str | None = None
-    template_paths: dict[str, str] = field(default_factory=dict)
-    collector_class: type | None = None
-    publisher_class: type | None = None
-    hints: dict[str, object] = field(default_factory=dict)
-    thresholds_data: dict[str, object] | None = None
-    theme_data: dict[str, object] | None = None
-    has_css: bool = False
-    has_js: bool = False
-
-
-def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | None = None) -> ModuleInfo:
-    """Validate a raw manifest dict and return a ModuleInfo.
-
-    Raises ManifestError if the manifest is invalid.
-    """
-    # Detect builtin unless the caller already knows the module source.
-    if builtin is None:
-        norm = os.path.normpath(module_path).replace("\\", "/")
-        builtin = "/app/modules/" in norm or "\\app\\modules\\" in os.path.normpath(module_path)
-
-    errors = validate_manifest_contract(raw, builtin=builtin)
-    if errors:
-        raise ManifestError(errors[0])
-
-    mod_id = raw["id"]
-    mod_type = raw["type"]
-    contributes = raw["contributes"]
-    config = raw.get("config", {})
-    config_secrets = raw.get("config_secrets", [])
-    config_private = raw.get("configPrivate", [])
-
-    return ModuleInfo(
-        id=mod_id,
-        name=raw["name"],
-        description=raw["description"],
-        version=raw["version"],
-        author=raw["author"],
-        min_app_version=raw["minAppVersion"],
-        type=mod_type,
-        contributes=contributes,
-        path=module_path,
-        builtin=builtin,
-        homepage=raw.get("homepage", ""),
-        license=raw.get("license", ""),
-        config=config,
-        config_secrets=config_secrets,
-        config_private=config_private,
-        menu={**{"order": 999}, **raw.get("menu", {})},
-        hints=raw.get("hints", {}),
-    )
-
-
-def discover_modules(
-    search_paths: list[str] | None = None,
-    disabled_ids: set[str] | None = None,
-    known_ids: set[str] | None = None,
-) -> list[ModuleInfo]:
-    """Scan directories for module manifest.json files.
-
-    Args:
-        search_paths: List of directories to scan. Each directory is expected
-            to contain subdirectories, each with a manifest.json.
-        disabled_ids: Set of module IDs that should be marked as disabled.
-        known_ids: Module IDs that have already been registered by a
-            higher-priority source. Matching manifests are skipped as
-            duplicates.
-
-    Returns:
-        List of validated ModuleInfo objects. Invalid manifests are logged
-        and skipped -- they never raise exceptions.
-    """
-    if search_paths is None:
-        search_paths = []
-    if disabled_ids is None:
-        disabled_ids = set()
-
-    modules: list[ModuleInfo] = []
-    seen_ids: set[str] = set(known_ids or set())
-
-    for search_dir in search_paths:
-        if not os.path.isdir(search_dir):
-            log.debug("Module search path does not exist: %s", search_dir)
-            continue
-
-        for entry in sorted(os.listdir(search_dir)):
-            mod_dir = os.path.join(search_dir, entry)
-            manifest_path = os.path.join(mod_dir, "manifest.json")
-
-            if not os.path.isfile(manifest_path):
-                continue
-
-            try:
-                with open(manifest_path, "r", encoding="utf-8") as f:
-                    raw = json.load(f)
-            except (json.JSONDecodeError, OSError) as e:
-                log.warning("Skipping %s: failed to read manifest: %s", mod_dir, e)
-                continue
-
-            try:
-                info = validate_manifest(raw, mod_dir, builtin=False)
-            except ManifestError:
-                log.warning("Skipping %s: invalid manifest", mod_dir)
-                continue
-
-            if info.id in seen_ids:
-                log.warning(
-                    "Skipping duplicate module '%s' at %s (already loaded from another path)",
-                    info.id, mod_dir,
-                )
-                continue
-
-            info.enabled = info.id not in disabled_ids
-            seen_ids.add(info.id)
-            modules.append(info)
-            log.info(
-                "Discovered module: %s v%s (%s)%s",
-                info.id, info.version, "built-in" if info.builtin else "community",
-                "" if info.enabled else " [disabled]",
-            )
-
-    return modules
 
 
 def discover_builtin_modules(
-    builtin_base_path: str,
+    builtin_base_path: str, disabled_ids: set[str] | None = None
+) -> list[ModuleInfo]:
+    try:
+        return _module_registry.discover_builtin_modules(
+            builtin_base_path,
+            disabled_ids=disabled_ids,
+            module_dirs=BUILTIN_MODULE_DIRS,
+        )
+    except ModuleRegistryError as exc:
+        raise RegistrationError(str(exc)) from exc
+
+
+def discover_builtin_theme_modules(
     disabled_ids: set[str] | None = None,
 ) -> list[ModuleInfo]:
-    """Load built-in module manifests from the static application registry."""
-    if disabled_ids is None:
-        disabled_ids = set()
-
-    modules: list[ModuleInfo] = []
-    seen_ids: set[str] = set()
-    for entry in BUILTIN_MODULE_DIRS:
-        mod_dir = os.path.join(builtin_base_path, entry)
-        manifest_path = os.path.join(mod_dir, "manifest.json")
-        try:
-            with open(manifest_path, "r", encoding="utf-8") as f:
-                raw = json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            log.warning("Skipping built-in module %s: failed to read manifest: %s", entry, e)
-            continue
-
-        try:
-            info = validate_manifest(raw, mod_dir, builtin=True)
-        except ManifestError:
-            log.warning("Skipping built-in module %s: invalid manifest", entry)
-            continue
-
-        if info.id in seen_ids:
-            log.warning("Skipping duplicate built-in module '%s' at %s", info.id, mod_dir)
-            continue
-
-        info.enabled = info.id not in disabled_ids
-        seen_ids.add(info.id)
-        modules.append(info)
-        log.info(
-            "Registered built-in module: %s v%s%s",
-            info.id,
-            info.version,
-            "" if info.enabled else " [disabled]",
-        )
-
-    return modules
-
-
-def discover_builtin_theme_modules(disabled_ids: set[str] | None = None) -> list[ModuleInfo]:
-    """Load application-owned themes from the static theme registry."""
-    if disabled_ids is None:
-        disabled_ids = set()
-
-    modules: list[ModuleInfo] = []
-    seen_ids: set[str] = set()
-    for theme in BUILTIN_THEMES:
-        info = ModuleInfo(
-            id=theme["id"],
-            name=theme["name"],
-            description=theme["description"],
-            version=theme["version"],
-            author=theme["author"],
-            min_app_version=theme["minAppVersion"],
-            type="theme",
-            contributes={"theme": "builtin"},
-            path="",
-            builtin=True,
-            homepage=theme.get("homepage", ""),
-            license=theme.get("license", ""),
-            menu={"order": 999},
-            theme_data=theme["theme_data"],
-        )
-
-        if info.id in seen_ids:
-            log.warning("Skipping duplicate built-in theme '%s'", info.id)
-            continue
-
-        info.enabled = info.id not in disabled_ids
-        seen_ids.add(info.id)
-        modules.append(info)
-        log.info(
-            "Registered built-in theme: %s v%s%s",
-            info.id,
-            info.version,
-            "" if info.enabled else " [disabled]",
-        )
-
-    return modules
-
-
-def discover_builtin_threshold_modules(disabled_ids: set[str] | None = None) -> list[ModuleInfo]:
-    """Load application-owned threshold profiles from the static registry."""
-    if disabled_ids is None:
-        disabled_ids = set()
-
-    modules: list[ModuleInfo] = []
-    seen_ids: set[str] = set()
-    for profile in BUILTIN_THRESHOLD_PROFILES:
-        info = ModuleInfo(
-            id=cast(str, profile["id"]),
-            name=cast(str, profile["name"]),
-            description=cast(str, profile["description"]),
-            version=cast(str, profile["version"]),
-            author=cast(str, profile["author"]),
-            min_app_version=cast(str, profile["minAppVersion"]),
-            type="analysis",
-            contributes={"thresholds": "builtin"},
-            path="",
-            builtin=True,
-            menu={"order": 999},
-            thresholds_data=deepcopy(cast(dict[str, object], profile["thresholds"])),
-        )
-
-        if info.id in seen_ids:
-            log.warning("Skipping duplicate built-in threshold profile '%s'", info.id)
-            continue
-
-        info.enabled = info.id not in disabled_ids
-        seen_ids.add(info.id)
-        modules.append(info)
-        log.info(
-            "Registered built-in threshold profile: %s v%s%s",
-            info.id,
-            info.version,
-            "" if info.enabled else " [disabled]",
-        )
-
-    return modules
-
-
-def register_module_config(
-    config_defaults: dict[str, Any],
-    module_id: str | None = None,
-    builtin: bool = False,
-    config_secrets: list[str] | None = None,
-    config_private: list[str] | None = None,
-) -> set[str]:
-    """Register a module's config defaults into the global config system.
-
-    Private-but-displayable metadata is trusted only for built-in modules.
-    Community secret defaults are accepted only after deterministic ownership
-    reservation. Core secret, private, and hash-backed settings stay
-    unavailable to community modules.
-    """
-    secret_keys = set(config_secrets or [])
-    private_keys = set(config_private or []) if builtin else set()
-    registered_keys: set[str] = set()
-    for key, value in config_defaults.items():
-        if (
-            key in secret_keys
-            and not builtin
-            and _cfg.MODULE_SECRET_OWNERS.get(key) != module_id
-        ):
-            log.warning("Skipping an unreserved module secret config key")
-            continue
-        if key in _cfg.DEFAULTS:
-            if key in private_keys:
-                _cfg.PRIVATE_KEYS.add(key)
-            log.debug("Config key already exists in core, skipping")
-            continue
-        if not builtin and key in (
-            _cfg.SECRET_KEYS | _cfg.PRIVATE_KEYS | _cfg.HASH_KEYS
-        ):
-            log.warning("Skipping a reserved core protected config key")
-            continue
-        _cfg.DEFAULTS[key] = value
-        registered_keys.add(key)
-        if key in secret_keys and builtin:
-            _cfg.SECRET_KEYS.add(key)
-        if key in private_keys:
-            _cfg.PRIVATE_KEYS.add(key)
-        if _cfg.is_secret_key(key):
-            # Secret values are encrypted strings at rest. Never route them
-            # through bool/int coercion even if a non-manifest caller supplied
-            # an invalid non-string default.
-            continue
-        if isinstance(value, bool):
-            _cfg.BOOL_KEYS.add(key)
-        elif isinstance(value, int):
-            _cfg.INT_KEYS.add(key)
-    return registered_keys
-
-
-def evaluate_module_secret_ownership(
-    modules: list[ModuleInfo],
-) -> tuple[set[str], dict[str, str], dict[str, str]]:
-    """Return reserved keys, valid owners, and fail-closed module errors.
-
-    A secret key is valid only when the declaring module is also the sole
-    community module that declares that key in ``config``. This prevents a
-    disabled or newly installed module from taking over another module's plain
-    configuration value by reclassifying the shared key as its own secret.
-    """
-    protected = (
-        set(_cfg.CORE_CONFIG_KEYS)
-        | _cfg.SECRET_KEYS
-        | _cfg.HASH_KEYS
-        | _cfg.PRIVATE_KEYS
-    )
-    for module in modules:
-        if module.builtin:
-            protected.update(module.config)
-
-    secret_claims: dict[str, list[ModuleInfo]] = defaultdict(list)
-    config_claims: dict[str, list[ModuleInfo]] = defaultdict(list)
-    for module in modules:
-        if module.builtin:
-            continue
-        for key in module.config:
-            config_claims[key].append(module)
-        for key in module.config_secrets:
-            secret_claims[key].append(module)
-
-    reserved_keys = {key for key in secret_claims if key not in protected}
-    owners: dict[str, str] = {}
-    errors: dict[str, str] = {}
-    for key, claimants in secret_claims.items():
-        if key in protected:
-            for module in claimants:
-                errors[module.id] = (
-                    "Module secret declaration conflicts with protected configuration"
-                )
-            continue
-
-        config_users = config_claims.get(key, [])
-        valid_owner = (
-            len(claimants) == 1
-            and len(config_users) == 1
-            and config_users[0].id == claimants[0].id
-        )
-        if not valid_owner:
-            for module in [*claimants, *config_users]:
-                errors[module.id] = "Module secret ownership conflict"
-            continue
-
-        owners[key] = claimants[0].id
-
-    return reserved_keys, owners, errors
-
-
-def reserve_module_secrets(modules: list[ModuleInfo]) -> None:
-    """Reserve all community secret declarations before any module loads."""
-    reserved_keys, owners, errors = evaluate_module_secret_ownership(modules)
-    for module in modules:
-        if module.id in errors:
-            module.error = errors[module.id]
-
-    protected_count = sum(
-        1 for error in errors.values() if "protected configuration" in error
-    )
-    conflict_count = len(errors) - protected_count
-    if protected_count:
-        log.warning(
-            "Rejected protected module secret declarations from %d module(s)",
-            protected_count,
-        )
-    if conflict_count:
-        log.warning(
-            "Rejected conflicting module secret declarations affecting %d module(s)",
-            conflict_count,
-        )
-
-    _cfg.set_module_secret_registry(reserved_keys, owners)
-
-
-def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
-    """Merge a module's i18n JSON files into the global translation system.
-
-    Keys are namespaced under the module ID:
-        module i18n key "greeting" -> global key "module_id.greeting"
-
-    Built-in modules keep ``en.json`` as their source catalog.  Any existing
-    core language without a module-specific catalog receives the English module
-    strings as its fallback so templates can keep using one translation dict per
-    request.  If a community module ships its own locale file, those strings
-    overlay the English fallback for that language.
-    """
-    if not os.path.isdir(i18n_dir):
-        log.debug("No i18n directory for module '%s': %s", module_id, i18n_dir)
-        return
-
-    catalogs = {}
-    for fname in sorted(os.listdir(i18n_dir)):
-        if not fname.endswith(".json") or fname == "template.json":
-            continue
-        lang = fname[:-5]  # "en.json" -> "en"
-        fpath = os.path.join(i18n_dir, fname)
-        try:
-            with open(fpath, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            log.warning("Failed to load i18n file %s: %s", fpath, e)
-            continue
-
-        if not isinstance(data, dict):
-            log.warning("Skipping non-object i18n payload in %s", fpath)
-            continue
-        catalogs[lang] = data
-
-    if not catalogs:
-        return
-
-    fallback = catalogs.get("en", {})
-    target_langs = set(_TRANSLATIONS) | set(catalogs)
-    if fallback:
-        target_langs.add("en")
-
-    for lang in sorted(target_langs):
-        data = dict(fallback)
-        if lang != "en":
-            data.update(catalogs.get(lang, {}))
-        elif "en" in catalogs:
-            data = catalogs["en"]
-        elif not data:
-            continue
-
-        if lang not in _TRANSLATIONS:
-            _TRANSLATIONS[lang] = {}
-
-        merged = 0
-        for key, value in data.items():
-            if key.startswith("_"):
-                continue  # skip metadata keys like _meta
-            _TRANSLATIONS[lang][f"{module_id}.{key}"] = value
-            merged += 1
-            # Also add un-namespaced key for backward compat with JS code.
-            if key not in _TRANSLATIONS[lang]:
-                _TRANSLATIONS[lang][key] = value
-
-        log.debug("Merged %d i18n keys for module '%s' lang '%s'", merged, module_id, lang)
-
-
-# Core routes that community modules must not shadow.  These are exact
-# paths (or prefixes ending with /) that protect authentication, config,
-# and core data endpoints from being intercepted by untrusted code.
-_PROTECTED_ROUTES = {
-    "/", "/login", "/logout", "/setup", "/settings", "/health", "/sw.js",
-}
-_PROTECTED_API_PREFIXES = (
-    "/api/config", "/api/data", "/api/tokens", "/api/demo",
-    "/api/poll", "/api/status", "/api/history", "/api/events", "/api/trends",
-    "/api/export", "/api/correlation",
-    "/api/modules/", "/api/themes/",
-)
-
-
-def _load_symbol(spec: str, module_id: str):
-    """Import a trusted built-in Python contribution by module path."""
-    if ":" not in spec:
-        log.warning("Built-in module '%s': invalid Python contribution spec", module_id)
-        return None
-    module_name, attr_name = spec.rsplit(":", 1)
     try:
-        module = importlib.import_module(module_name)
-    except Exception as e:
-        log.error("Built-in module '%s': failed to import %s: %s", module_id, module_name, e)
-        return None
-    value = getattr(module, attr_name, None)
-    if value is None:
-        log.warning("Built-in module '%s': symbol '%s' not found in %s", module_id, attr_name, module_name)
-    return value
+        return _module_registry.discover_builtin_theme_modules(
+            disabled_ids=disabled_ids,
+            themes=BUILTIN_THEMES,
+        )
+    except ModuleRegistryError as exc:
+        raise RegistrationError(str(exc)) from exc
 
 
-def attach_builtin_python_contributions(mod: ModuleInfo) -> None:
-    """Attach statically registered Python entry points for a built-in module."""
-    specs = BUILTIN_PYTHON_CONTRIBUTIONS.get(mod.id)
-    if not specs:
-        specs = None
-
-    for key, attr_name in (
-        ("collector", "collector_class"),
-        ("publisher", "publisher_class"),
-    ):
-        if key not in mod.contributes or getattr(mod, attr_name) is not None:
-            continue
-        spec = getattr(specs, key, None) if specs else None
-        if not spec:
-            raise ManifestError(f"Built-in module '{mod.id}' missing static {key} registration")
-        symbol = _load_symbol(spec, mod.id)
-        if symbol is None:
-            raise ManifestError(f"Built-in module '{mod.id}' failed to import static {key} registration")
-        setattr(mod, attr_name, symbol)
-
-
-def load_module_routes(app, module_id: str, module_path: str, routes_file: str, *, builtin: bool = False) -> None:
-    """Dynamically load a Flask Blueprint from a module's routes file.
-
-    The routes file must export a variable named 'bp' or 'blueprint'
-    that is a Flask Blueprint instance.
-
-    Community modules (builtin=False) are checked for route conflicts
-    with core endpoints before registration.
-    """
-    routes_path = safe_manifest_ref(module_path, routes_file)
-    if not os.path.isfile(routes_path):
-        log.warning("Module '%s': routes file not found: %s", module_id, routes_path)
-        return
-
-    dir_name = os.path.basename(module_path)
-    if builtin:
-        mod_name = f"app.modules.{dir_name}.{os.path.splitext(os.path.basename(routes_file))[0]}"
-        try:
-            mod = importlib.import_module(mod_name)
-        except Exception as e:
-            log.error("Module '%s': failed to import routes: %s", module_id, e)
-            return
-    else:
-        mod_name = f"community_modules.{dir_name}.routes"
-        try:
-            spec = importlib.util.spec_from_file_location(mod_name, routes_path)
-            if spec is None or spec.loader is None:
-                log.warning("Module '%s': could not create import spec for %s", module_id, routes_path)
-                return
-            mod = importlib.util.module_from_spec(spec)
-            sys.modules[mod_name] = mod
-            spec.loader.exec_module(mod)
-        except Exception as e:
-            log.error("Module '%s': failed to import routes: %s", module_id, e)
-            return
-
-    # Find Blueprint
-    blueprint = getattr(mod, "bp", None) or getattr(mod, "blueprint", None)
-    if blueprint is None:
-        log.warning("Module '%s': routes.py does not export 'bp' or 'blueprint'", module_id)
-        return
-
-    # Community module route validation: block blueprints that shadow
-    # core routes (prevents login interception, config hijacking, etc.).
-    if not builtin:
-        rules_before = set(r.rule for r in app.url_map.iter_rules())
-        try:
-            app.register_blueprint(blueprint)
-        except Exception as e:
-            log.error("Module '%s': failed to register blueprint: %s", module_id, e)
-            return
-        rules_after = set(r.rule for r in app.url_map.iter_rules())
-        new_rules = rules_after - rules_before
-        blocked = []
-        for rule in new_rules:
-            if rule in _PROTECTED_ROUTES:
-                blocked.append(rule)
-                continue
-            for prefix in _PROTECTED_API_PREFIXES:
-                if rule.startswith(prefix):
-                    blocked.append(rule)
-                    break
-        if blocked:
-            log.error(
-                "Module '%s': BLOCKED -- routes conflict with core endpoints: %s. "
-                "Community modules must not shadow protected routes.",
-                module_id, ", ".join(sorted(blocked)),
-            )
-            return
-        log.info("Module '%s': registered community routes blueprint (%d routes)", module_id, len(new_rules))
-    else:
-        try:
-            app.register_blueprint(blueprint)
-            log.info("Module '%s': registered routes blueprint", module_id)
-        except Exception as e:
-            log.error("Module '%s': failed to register blueprint: %s", module_id, e)
-
-
-def _load_module_class(module_id: str, module_path: str, spec: str, kind: str):
-    """Load a contributed class from a module-owned Python file."""
-    if ":" not in spec:
-        log.warning("Module '%s': %s spec must be 'file.py:ClassName', got '%s'", module_id, kind, spec)
-        return None
-
-    filename, class_name = spec.rsplit(":", 1)
-    file_path = safe_manifest_ref(module_path, filename)
-
-    if not os.path.isfile(file_path):
-        log.warning("Module '%s': %s file not found: %s", module_id, kind, file_path)
-        return None
-
-    dir_name = os.path.basename(module_path)
-    mod_name = f"app.modules.{dir_name}.{kind}"
+def discover_builtin_threshold_modules(
+    disabled_ids: set[str] | None = None,
+) -> list[ModuleInfo]:
     try:
-        im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
-        if im_spec is None or im_spec.loader is None:
-            log.warning("Module '%s': could not create import spec for %s", module_id, file_path)
-            return None
-        mod = importlib.util.module_from_spec(im_spec)
-        sys.modules[mod_name] = mod
-        im_spec.loader.exec_module(mod)
-    except Exception as e:
-        log.error("Module '%s': failed to import %s: %s", module_id, kind, e)
-        return None
-
-    cls = getattr(mod, class_name, None)
-    if cls is None:
-        log.warning("Module '%s': class '%s' not found in %s", module_id, class_name, file_path)
-        return None
-
-    log.info("Module '%s': loaded %s class '%s'", module_id, kind, class_name)
-    return cls
-
-
-def load_module_collector(module_id: str, module_path: str, spec: str):
-    """Load a Collector class from a module file.
-
-    Args:
-        module_id: The module's unique identifier.
-        module_path: Filesystem path to the module directory.
-        spec: "filename.py:ClassName" format (e.g. "collector.py:WeatherCollector")
-
-    Returns:
-        The Collector subclass, or None if loading failed.
-    """
-    return _load_module_class(module_id, module_path, spec, "collector")
-
-
-def load_module_publisher(module_id: str, module_path: str, spec: str):
-    """Load a Publisher class from a module file.
-
-    Args:
-        module_id: The module's unique identifier.
-        module_path: Filesystem path to the module directory.
-        spec: "filename.py:ClassName" format (e.g. "publisher.py:MQTTPublisher")
-
-    Returns:
-        The Publisher class, or None if loading failed.
-    """
-    return _load_module_class(module_id, module_path, spec, "publisher")
-
-
-def module_static_endpoint(module_id: str) -> str:
-    """Return the stable Flask endpoint name for a module's static files."""
-    return f"module_static_{module_id}"
-
-
-def module_static_url(module_id: str, filename: str, **values: Any) -> str:
-    """Build a module-static URL using the registered endpoint contract."""
-    return url_for(module_static_endpoint(module_id), filename=filename, **values)
-
-
-def setup_module_static(app, module_id: str, module_path: str, static_subdir: str) -> None:
-    """Mount a module's static directory at /modules/<id>/static/."""
-    static_dir = safe_manifest_subpath(module_path, static_subdir.rstrip("/"))
-    if not os.path.isdir(static_dir):
-        log.debug("Module '%s': no static directory at %s", module_id, static_dir)
-        return
-
-    static_root = os.path.realpath(static_dir)
-    static_prefix = static_root + os.sep
-    route = f"/modules/{module_id}/static/<path:filename>"
-
-    def serve_static(filename, _root=static_root, _prefix=static_prefix):
-        try:
-            candidate = os.path.realpath(os.path.join(_root, filename))
-        except (OSError, TypeError, ValueError):
-            return abort(404)
-        if candidate.startswith(_prefix):
-            if not os.path.isfile(candidate):
-                return abort(404)
-            return send_file(candidate)
-        return abort(404)
-
-    # Use a unique endpoint name per module
-    endpoint = module_static_endpoint(module_id)
-    app.add_url_rule(route, endpoint=endpoint, view_func=serve_static)
-    log.info("Module '%s': serving static files at /modules/%s/static/", module_id, module_id)
-
-
-def setup_module_templates(
-    module_id: str, module_path: str, contributes: dict[str, str]
-) -> dict[str, str]:
-    """Resolve module template paths to absolute file paths.
-
-    Args:
-        contributes: Dict with keys like 'tab', 'card', 'settings' mapping to
-            relative template paths within the module directory.
-
-    Returns:
-        Dict of template type -> absolute file path (only for files that exist).
-    """
-    template_keys = {"tab", "card", "settings"}
-    resolved = {}
-
-    for key in template_keys:
-        rel_path = contributes.get(key)
-        if not rel_path:
-            continue
-        abs_path = safe_manifest_subpath(module_path, rel_path)
-        if os.path.isfile(abs_path):
-            # Store just the filename for Jinja2 include (ChoiceLoader resolves it)
-            resolved[key] = os.path.basename(abs_path)
-            log.debug("Module '%s': template '%s' -> %s", module_id, key, abs_path)
-        else:
-            log.warning("Module '%s': template '%s' not found: %s", module_id, key, abs_path)
-
-    return resolved
-
-
-REQUIRED_THRESHOLD_SECTIONS = {"downstream_power", "upstream_power", "snr"}
-
-
-def validate_thresholds(data: dict[str, object]) -> None:
-    """Validate a threshold JSON structure.
-
-    Raises ManifestError if required sections or keys are missing.
-    """
-    missing = REQUIRED_THRESHOLD_SECTIONS - set(data.keys())
-    if missing:
-        raise ManifestError(f"Missing required threshold sections: {', '.join(sorted(missing))}")
-
-    for section in REQUIRED_THRESHOLD_SECTIONS:
-        block = data[section]
-        if not isinstance(block, dict):
-            raise ManifestError(f"Threshold section '{section}' must be a dict")
-        if "_default" not in block:
-            raise ManifestError(f"Threshold section '{section}' missing '_default' key")
-
-
-REQUIRED_THEME_SECTIONS = {"dark", "light"}
-
-
-def validate_theme(data: dict[str, object]) -> None:
-    """Validate a theme.json structure.
-
-    Raises ManifestError if required sections are missing or values are invalid.
-    """
-    missing = REQUIRED_THEME_SECTIONS - set(data.keys())
-    if missing:
-        raise ManifestError(f"Missing required theme sections: {', '.join(sorted(missing))}")
-
-    for section in REQUIRED_THEME_SECTIONS:
-        block = data[section]
-        if not isinstance(block, dict):
-            raise ManifestError(f"Theme section '{section}' must be a dict")
-        if not block:
-            raise ManifestError(f"Theme section '{section}' is empty")
-        for key, value in block.items():
-            if not isinstance(value, str):
-                raise ManifestError(
-                    f"Theme property '{key}' in '{section}' must be a string, got {type(value).__name__}"
-                )
+        return _module_registry.discover_builtin_threshold_modules(
+            disabled_ids=disabled_ids,
+            profiles=BUILTIN_THRESHOLD_PROFILES,
+        )
+    except ModuleRegistryError as exc:
+        raise RegistrationError(str(exc)) from exc
 
 
 class ModuleLoader:
-    """Orchestrates module discovery, validation, and loading.
+    """Discover modules and assemble their complete validated registration plan."""
 
-    Usage:
-        loader = ModuleLoader(app, search_paths=[...])
-        modules = loader.load_all()
-    """
-
-    def __init__(
-        self,
-        app,
-        search_paths: list[str] | None = None,
-        disabled_ids: set[str] | None = None,
-        builtin_base_path: str | None = None,
-    ):
+    def __init__(self, app, search_paths=None, disabled_ids=None, builtin_base_path=None):
         self._app = app
         self._search_paths = search_paths or []
         self._disabled_ids = disabled_ids or set()
         self._builtin_base_path = builtin_base_path
         self._modules: list[ModuleInfo] = []
+        self._registration_plan = RegistrationPlan()
 
     def load_all(self) -> list[ModuleInfo]:
-        """Discover and load all modules.
-
-        Returns list of all discovered ModuleInfo (including disabled).
-        """
+        """Discover, resolve, and deterministically accept complete module plans."""
         modules: list[ModuleInfo] = []
         if self._builtin_base_path:
-            modules.extend(
-                discover_builtin_modules(
-                    self._builtin_base_path,
-                    disabled_ids=self._disabled_ids,
-                )
-            )
-            modules.extend(
-                discover_builtin_threshold_modules(disabled_ids=self._disabled_ids)
-            )
-            modules.extend(
-                discover_builtin_theme_modules(disabled_ids=self._disabled_ids)
-            )
-        modules.extend(
-            discover_modules(
-                search_paths=self._search_paths,
-                disabled_ids=self._disabled_ids,
-                known_ids={m.id for m in modules},
-            )
-        )
+            modules.extend(discover_builtin_modules(
+                self._builtin_base_path, disabled_ids=self._disabled_ids,
+            ))
+            modules.extend(discover_builtin_threshold_modules(self._disabled_ids))
+            modules.extend(discover_builtin_theme_modules(self._disabled_ids))
+        modules.extend(discover_modules(
+            search_paths=self._search_paths, disabled_ids=self._disabled_ids,
+            known_ids={mod.id for mod in modules},
+        ))
         self._modules = modules
-
-        # Built-in private metadata is a separate, displayable classification.
-        # Register it before community secret claims are evaluated.
-        for mod in self._modules:
-            if mod.builtin and mod.config_private:
-                _cfg.PRIVATE_KEYS.update(mod.config_private)
-        reserve_module_secrets(self._modules)
-
-        for mod in self._modules:
-            # Privacy classification must survive module disablement so values
-            # already stored by a built-in module remain encrypted/decryptable.
+        builtin_ids = [mod.id for mod in modules if mod.builtin]
+        if len(builtin_ids) != len(set(builtin_ids)):
+            raise RegistrationError("Duplicate built-in module id")
+        _reserved, _owners, ownership_errors = evaluate_module_secret_ownership(modules)
+        config_errors = evaluate_module_config_ownership(modules)
+        for mod in modules:
+            mod.error = ownership_errors.get(mod.id) or config_errors.get(mod.id)
+        resolved = []
+        for mod in modules:
             if mod.error:
-                log.warning("Module '%s' rejected before load", mod.id)
+                if mod.builtin:
+                    raise RegistrationError(
+                        f"Built-in module {mod.id} failed ownership validation"
+                    )
                 continue
             if not mod.enabled:
-                # Theme modules: load theme_data even when disabled so
-                # the settings gallery can show previews for all themes.
-                if mod.type == "theme" and "theme" in mod.contributes:
+                if not mod.builtin and mod.type == "theme" and "theme" in mod.contributes:
                     try:
-                        theme_path = safe_manifest_ref(
-                            mod.path, mod.contributes["theme"]
+                        mod.theme_data = _read_json_contribution(
+                            mod.path, mod.contributes["theme"], "theme", validate_theme
                         )
-                        if os.path.isfile(theme_path):
-                            with open(theme_path, "r", encoding="utf-8") as f:
-                                tdata = json.load(f)
-                            validate_theme(tdata)
-                            mod.theme_data = tdata
-                    except Exception as e:
-                        log.warning(
-                            "Module '%s': theme preview load failed: %s",
-                            mod.id, e,
+                    except Exception as exc:
+                        mod.error = (
+                            str(exc) if isinstance(exc, ManifestError)
+                            else "theme contribution is invalid"
                         )
+                        log.warning("Module '%s': disabled theme preview rejected", mod.id)
                 log.info("Module '%s' is disabled, skipping load", mod.id)
                 continue
-
             try:
-                self._load_module(mod)
-            except Exception as e:
-                mod.error = str(e)
-                log.error("Module '%s' failed to load: %s", mod.id, e)
-
-        enabled = [m for m in self._modules if m.enabled and not m.error]
+                resolved.append(resolve_module_contribution(mod))
+            except Exception as exc:
+                if mod.builtin:
+                    raise RegistrationError(
+                        f"Built-in module {mod.id} failed contribution preflight: "
+                        f"{type(exc).__name__}"
+                    ) from exc
+                mod.error = str(exc)
+                log.error("Module '%s' failed contribution preflight", mod.id)
+        accepted = self._validate_resolved(resolved)
+        accepted_ids = {item.module_id for item, _http in accepted}
+        registry_modules = [
+            mod for mod in modules
+            if mod.id in accepted_ids or not mod.enabled or mod.id in ownership_errors
+        ]
+        secret_keys, secret_owners, _errors = evaluate_module_secret_ownership(
+            registry_modules
+        )
+        http = RegistrationPlan().combined(*(plan for _item, plan in accepted))
+        self._registration_plan = RegistrationPlan(
+            rules=http.rules, blueprints=http.blueprints,
+            modules=tuple(item for item, _http in accepted),
+            module_secret_keys=tuple(sorted(secret_keys)),
+            module_secret_owners=tuple(sorted(secret_owners.items())),
+            builtin_private_keys=tuple(sorted(
+                key for mod in modules if mod.builtin for key in mod.config_private
+            )),
+        )
+        plan = self._registration_plan
+        if (
+            any((plan.rules, plan.blueprints, plan.modules, plan.module_secret_keys,
+                 plan.builtin_private_keys))
+            and not self._app.extensions.get("docsight_registration_deferred", False)
+        ):
+            register_plan(self._app, plan)
+        enabled = [mod for mod in self._modules if mod.enabled and not mod.error]
         log.info(
             "Module loading complete: %d discovered, %d enabled, %d failed",
-            len(self._modules),
-            len(enabled),
-            len([m for m in self._modules if m.error]),
+            len(self._modules), len(enabled),
+            len([mod for mod in self._modules if mod.error]),
         )
-
         return self._modules
 
-    def _load_module(self, mod: ModuleInfo) -> None:
-        """Load a single module's contributions."""
-        c = mod.contributes
-
-        if mod.builtin:
-            attach_builtin_python_contributions(mod)
-
-        # Config defaults
-        if mod.config:
-            register_module_config(
-                mod.config,
-                module_id=mod.id,
-                builtin=mod.builtin,
-                config_secrets=mod.config_secrets,
-                config_private=mod.config_private,
+    def _validate_resolved(self, resolved):
+        base = self._app.extensions.get(
+            "docsight_registration_base_plan", RegistrationPlan()
+        )
+        accepted = []
+        for item, http in resolved:
+            candidate = base.combined(
+                *(current_http for _current, current_http in accepted), http,
+                RegistrationPlan(modules=tuple(
+                    current for current, _current_http in accepted
+                ) + (item,)),
             )
+            try:
+                validate_plan(
+                    candidate,
+                    existing=existing_rules(self._app),
+                    existing_blueprints=tuple(self._app.blueprints),
+                )
+            except RegistrationError as exc:
+                if item.builtin:
+                    raise RegistrationError(
+                        f"Built-in module {item.module_id} has a registration collision"
+                    ) from exc
+                item.info.error = str(exc)
+                continue
+            accepted.append((item, http))
+        return accepted
 
-        # i18n
-        if "i18n" in c:
-            i18n_dir = safe_manifest_subpath(mod.path, c["i18n"].rstrip("/"))
-            merge_module_i18n(mod.id, i18n_dir)
-
-        # Routes (Blueprint)
-        if "routes" in c:
-            load_module_routes(self._app, mod.id, mod.path, c["routes"], builtin=mod.builtin)
-
-        # Static files and convention-based asset detection
-        static_subdir = c.get("static", "static/").rstrip("/")
-        static_dir = safe_manifest_subpath(mod.path, static_subdir)
-        if os.path.isdir(static_dir):
-            setup_module_static(self._app, mod.id, mod.path, static_subdir)
-            mod.has_css = os.path.isfile(os.path.join(static_dir, "style.css"))
-            mod.has_js = os.path.isfile(os.path.join(static_dir, "main.js"))
-
-        # Template paths
-        mod.template_paths = setup_module_templates(mod.id, mod.path, c)
-
-        # Collector (class loaded but not instantiated -- collector discovery handles that)
-        if "collector" in c and not mod.builtin:
-            mod.collector_class = load_module_collector(mod.id, mod.path, c["collector"])
-
-        # Publisher (class loaded but not instantiated -- main.py handles that)
-        if "publisher" in c and not mod.builtin:
-            mod.publisher_class = load_module_publisher(mod.id, mod.path, c["publisher"])
-
-        # Thresholds
-        if "thresholds" in c:
-            # Built-in profiles preload thresholds_data and use the "builtin" sentinel;
-            # community profiles keep the manifest-relative thresholds file path.
-            if mod.thresholds_data is None:
-                thresholds_path = safe_manifest_ref(mod.path, c["thresholds"])
-                if not os.path.isfile(thresholds_path):
-                    raise ManifestError(f"Thresholds file not found: {c['thresholds']}")
-                with open(thresholds_path, "r", encoding="utf-8") as f:
-                    tdata = json.load(f)
-                validate_thresholds(tdata)
-                mod.thresholds_data = tdata
-            else:
-                tdata = mod.thresholds_data
-                validate_thresholds(tdata)
-            _analyzer.set_thresholds(
-                tdata,
-                profile_id=mod.id,
-                profile_version=mod.version,
-            )
-            log.info("Module '%s': loaded threshold profile", mod.id)
-
-        # Theme
-        if "theme" in c:
-            if mod.theme_data is None:
-                theme_path = safe_manifest_ref(mod.path, c["theme"])
-                if not os.path.isfile(theme_path):
-                    raise ManifestError(f"Theme file not found: {c['theme']}")
-                with open(theme_path, "r", encoding="utf-8") as f:
-                    tdata = json.load(f)
-                validate_theme(tdata)
-                mod.theme_data = tdata
-            else:
-                validate_theme(mod.theme_data)
-            log.info("Module '%s': loaded theme profile", mod.id)
+    @property
+    def registration_plan(self) -> RegistrationPlan:
+        return self._registration_plan
 
     def get_modules(self) -> list[ModuleInfo]:
-        """Return all discovered modules (enabled and disabled)."""
         return list(self._modules)
 
     def get_enabled_modules(self) -> list[ModuleInfo]:
-        """Return only enabled modules without errors."""
-        return [m for m in self._modules if m.enabled and not m.error]
+        return [mod for mod in self._modules if mod.enabled and not mod.error]
 
     def get_threshold_modules(self) -> list[ModuleInfo]:
-        """Return all modules that contribute thresholds."""
-        return [m for m in self._modules if "thresholds" in m.contributes]
+        return [mod for mod in self._modules if "thresholds" in mod.contributes]
 
     def get_theme_modules(self) -> list[ModuleInfo]:
-        """Return all modules that contribute theme definitions."""
-        return [m for m in self._modules if "theme" in m.contributes]
+        return [mod for mod in self._modules if "theme" in mod.contributes]

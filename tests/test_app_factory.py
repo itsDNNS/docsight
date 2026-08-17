@@ -54,3 +54,36 @@ def test_factory_installs_base_path_then_outer_proxy(tmp_path):
     assert isinstance(app.wsgi_app.app, BasePathMiddleware)
     assert isinstance(app.session_interface, RequestScopedCookieSessionInterface)
     assert app.config["SESSION_COOKIE_SECURE"] is True
+
+
+def test_core_only_factory_preserves_process_module_registries(tmp_path):
+    from app import config as config_module
+
+    previous = (
+        set(config_module.MODULE_SECRET_KEYS),
+        dict(config_module.MODULE_SECRET_OWNERS),
+        set(config_module.PRIVATE_KEYS),
+    )
+    secret_key = "preserved_community_secret"
+    private_key = "preserved_builtin_private"
+    try:
+        config_module.set_module_secret_registry(
+            {secret_key}, {secret_key: "community.preserved"}
+        )
+        config_module.PRIVATE_KEYS.add(private_key)
+
+        create_app(
+            config_manager=ConfigManager(str(tmp_path / "core-only")),
+            environ={},
+            testing=True,
+        )
+
+        assert config_module.MODULE_SECRET_KEYS == {secret_key}
+        assert config_module.MODULE_SECRET_OWNERS == {
+            secret_key: "community.preserved"
+        }
+        assert private_key in config_module.PRIVATE_KEYS
+    finally:
+        config_module.set_module_secret_registry(previous[0], previous[1])
+        config_module.PRIVATE_KEYS.clear()
+        config_module.PRIVATE_KEYS.update(previous[2])

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from flask import Flask
 
 from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
@@ -21,6 +22,7 @@ from app.module_loader import (
     validate_theme,
     validate_thresholds,
 )
+from app.registration import RegistrationError
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILTIN_MODULES_DIR = ROOT / "app" / "modules"
@@ -183,6 +185,16 @@ def test_builtin_python_contribution_missing_spec_sets_module_error(monkeypatch)
         raise AssertionError("missing built-in static contribution spec must fail closed")
 
 
+def test_builtin_module_duplicate_ids_fail_closed(monkeypatch):
+    duplicate_dir = BUILTIN_MODULE_DIRS[0]
+    monkeypatch.setattr(
+        "app.module_loader.BUILTIN_MODULE_DIRS", (duplicate_dir, duplicate_dir)
+    )
+
+    with pytest.raises(RegistrationError, match="Duplicate built-in module id"):
+        discover_builtin_modules(str(BUILTIN_MODULES_DIR))
+
+
 def test_discover_builtin_theme_modules_uses_static_registry(monkeypatch):
     """Built-in theme registration must not scan module directories."""
     import app.module_loader as module_loader
@@ -228,14 +240,23 @@ def test_builtin_theme_registry_preserves_optional_metadata():
     assert themes["docsight.theme_tribu"].homepage == "https://github.com/itsDNNS/tribu"
 
 
-def test_builtin_theme_duplicate_ids_are_skipped(monkeypatch):
+def test_builtin_theme_duplicate_ids_fail_closed(monkeypatch):
     duplicate = dict(BUILTIN_THEMES[0])
     monkeypatch.setattr("app.module_loader.BUILTIN_THEMES", (BUILTIN_THEMES[0], duplicate))
 
-    modules = discover_builtin_theme_modules()
+    with pytest.raises(RegistrationError, match="Duplicate built-in theme id"):
+        discover_builtin_theme_modules()
 
-    assert len(modules) == 1
-    assert modules[0].id == BUILTIN_THEMES[0]["id"]
+
+def test_builtin_threshold_duplicate_ids_fail_closed(monkeypatch):
+    duplicate = dict(BUILTIN_THRESHOLD_PROFILES[0])
+    monkeypatch.setattr(
+        "app.module_loader.BUILTIN_THRESHOLD_PROFILES",
+        (BUILTIN_THRESHOLD_PROFILES[0], duplicate),
+    )
+
+    with pytest.raises(RegistrationError, match="Duplicate built-in threshold profile id"):
+        discover_builtin_threshold_modules()
 
 
 def test_full_loader_prevents_community_theme_shadowing_builtin_theme(tmp_path):

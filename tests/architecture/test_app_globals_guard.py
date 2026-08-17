@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 GUARDED_FILES = (
     ROOT / "app" / "web.py",
     ROOT / "app" / "app_factory.py",
+    ROOT / "app" / "registration.py",
     ROOT / "app" / "runtime.py",
     *(ROOT / "app" / "blueprints").glob("*.py"),
     *(ROOT / "app" / "modules").glob("*/routes.py"),
@@ -64,7 +65,11 @@ def test_factory_is_the_only_flask_constructor():
         for node in ast.walk(_tree(path)):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "Flask":
                 calls.append(path.relative_to(ROOT).as_posix())
-    assert calls == ["app/app_factory.py"]
+    assert sorted(calls) == [
+        "app/app_factory.py",
+        "app/app_factory.py",
+        "app/registration.py",
+    ]
 
 
 def test_guarded_modules_have_no_lowercase_state_bindings():

@@ -1,12 +1,11 @@
 import io
 import pytest
 
-from app.app_factory import create_app
+from app.app_factory import create_app, default_module_loader_factory
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
 from app.runtime import DerivedStorageCache, LoginRateLimiter, RuntimeState, get_runtime
-from tests.conftest import register_builtin_test_routes
 
 
 @pytest.fixture
@@ -23,10 +22,11 @@ def app(tmp_path_factory):
     application = create_app(
         config_manager=manager,
         storage=None,
+        module_loader_factory=default_module_loader_factory(manager, search_paths=[]),
         environ={},
         testing=True,
     )
-    return register_builtin_test_routes(application)
+    return application
 
 
 @pytest.fixture(autouse=True)

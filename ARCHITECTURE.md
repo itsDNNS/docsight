@@ -30,10 +30,24 @@ use its own authentication and generic reverse-proxy contract.
 `app.app_factory.create_app()` is the single production construction path for
 the Flask application. Importing `app.web` defines the core HTTP surface and
 its accessor facade, but does not construct an application. Factory creation
-has a fixed order: configure Flask, establish the durable signing key, attach
-runtime state, synchronize authentication state, register core routes,
-register core blueprints, load module contributions and templates, install
-base-path handling, then apply reverse-proxy handling as the outer WSGI layer.
+first resolves one immutable registration plan containing core routes, core
+blueprints, built-in modules, and enabled community modules. Blueprint
+callbacks are preflighted on an isolated application, and URL/config ownership
+collisions are validated before the target application or process-wide module
+catalogs are changed. The validated plan then applies its HTTP, catalog, and
+template contributions once, followed by base-path handling and reverse-proxy
+handling as the outer WSGI layer.
+
+`app.registration` is the only productive Flask registrar. It owns blueprint
+and direct-rule application, endpoint/blueprint/route-method collision checks,
+and the canonical registration manifest. The manifest contains stable public
+identifiers only; its SHA-256 fingerprint is logged at startup and stored in
+the application extensions. Filesystem locations, callables, and configuration
+or secret names and values are excluded. `app.module_registry` owns manifest
+discovery, `app.module_config_registry` owns configuration-schema preflight,
+`app.module_contributions` owns contribution-specific resolution and preflight,
+and `app.module_loader` orchestrates ownership and rejection policy behind its
+compatible public facade.
 
 Each application owns a typed `DocsightRuntime` at
 `app.extensions["docsight"]`. It contains the configuration manager, storage,
@@ -515,7 +529,20 @@ Installed non-theme modules are discovered by `ModuleLoader` and persisted throu
 
 Module manifests can declare module-owned config defaults through the top-level `config` object. Normal module config remains plain local configuration. A community manifest may opt specific declared string-default keys into write-only secret handling with `config_secrets`; the value must be a list of unique strings, every listed key must exist in that manifest's `config`, and each corresponding default must itself be a string so encrypted values never enter scalar coercion paths. The pure-stdlib validator in `app/manifest_contract.py` is the authoritative manifest capability contract used by the runtime loader and can also validate external catalogs without importing Flask.
 
-Before any enabled module loads, `ModuleLoader` reserves secret ownership from every discovered community manifest, including disabled modules. Core secret, hash-backed, private, and core configuration keys cannot be claimed. A secret key must also be exclusive to its declaring module's `config`; claims that overlap another module's plain or secret config fail every affected module and grant no owner. The installer performs the same ownership evaluation against installed modules and rejects a conflicting package before it can be persisted. Valid module secrets are encrypted by `ConfigManager`, masked in Settings responses, and exposed through the community config proxy only to their owning module; other module secrets and all core protected values are removed.
+Before any enabled module loads, `ModuleLoader` resolves secret ownership from every discovered community manifest, including disabled modules, as fail-closed safety metadata. Core secret, hash-backed, private, and core configuration keys cannot be claimed. A secret key must also be exclusive to its declaring module's `config`; claims that overlap another module's plain or secret config fail every affected module and grant no owner. Normal community configuration keys also require one unambiguous owner. No ownership or classification is applied until the complete registration plan validates. The installer performs the same ownership evaluation against installed modules and rejects a conflicting package before it can be persisted. Valid module secrets are encrypted by `ConfigManager`, masked in Settings responses, and exposed through the community config proxy only to their owning module; other module secrets and all core protected values are removed.
+
+Module source order is stable: the explicit built-in directory registry, the
+built-in threshold and theme registries, then configured community search paths
+and lexicographically sorted directories within each path. Duplicate community
+IDs retain the first source for manifest-v1 compatibility and skip later
+sources deterministically. Disabled and rejected modules remain visible as
+metadata but apply no routes, static mounts, templates, config defaults, i18n,
+active themes, thresholds, collectors, or publishers. As a metadata-only
+exception, a disabled community theme's declared `theme.json` is resolved and
+validated through the same safe contribution path so Appearance can render its
+preview. Invalid or unsafe preview data rejects that module, and preview data
+never creates a registration-plan contribution. A built-in planning failure
+aborts application construction; a community failure rejects only that module.
 
 Settings receives the active module-secret and saved-secret key sets from the server, so installed templates from before the explicit field-marker contract still preserve masked values safely during a coordinated catalog rollout. Current templates also represent saved secrets locally with empty password inputs plus explicit `data-config-secret` and `data-saved-secret` metadata. Untouched saved fields submit the standard mask, which `ConfigManager` treats as preserve-existing, while edited fields submit the replacement value. Saved plaintext is never rendered into HTML.
 

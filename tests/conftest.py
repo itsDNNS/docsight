@@ -1,7 +1,5 @@
 """Shared factory fixtures for DOCSight tests."""
 
-import importlib
-import json
 import os
 from pathlib import Path
 
@@ -9,8 +7,6 @@ import pytest
 
 from app.app_factory import create_app, default_module_loader_factory
 from app.config import ConfigManager
-from app.builtin_modules import BUILTIN_MODULE_DIRS
-from app.module_loader import module_static_endpoint, setup_module_static
 from app.runtime import DerivedStorageCache, LoginRateLimiter, RuntimeState, get_runtime
 
 
@@ -36,36 +32,6 @@ def _uses_factory_context(module):
     return canonical in FACTORY_CONTEXT_MODULES
 
 
-def register_builtin_test_routes(app):
-    """Register shipped module route and static contributions on one test app."""
-    module_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "modules"))
-    blueprints = set(app.blueprints)
-    endpoints = {rule.endpoint for rule in app.url_map.iter_rules()}
-    for module_dir in BUILTIN_MODULE_DIRS:
-        manifest_path = os.path.join(module_base, module_dir, "manifest.json")
-        try:
-            with open(manifest_path, "r", encoding="utf-8") as handle:
-                manifest = json.load(handle)
-        except OSError:
-            continue
-        contributes = manifest.get("contributes", {})
-        if "routes" in contributes:
-            try:
-                routes = importlib.import_module(f"app.modules.{module_dir}.routes")
-            except ImportError:
-                routes = None
-            blueprint = getattr(routes, "bp", None) or getattr(routes, "blueprint", None)
-            if blueprint is not None and blueprint.name not in blueprints:
-                app.register_blueprint(blueprint)
-                blueprints.add(blueprint.name)
-        static_subdir = contributes.get("static")
-        endpoint = module_static_endpoint(manifest["id"])
-        if static_subdir and endpoint not in endpoints:
-            setup_module_static(app, manifest["id"], os.path.join(module_base, module_dir), static_subdir)
-            endpoints.add(endpoint)
-    return app
-
-
 @pytest.fixture(autouse=True, scope="module")
 def _factory_context_for_direct_route_tests(request, tmp_path_factory):
     """Give direct route-unit modules an isolated factory app and context."""
@@ -73,11 +39,12 @@ def _factory_context_for_direct_route_tests(request, tmp_path_factory):
         yield
         return
     manager = ConfigManager(str(tmp_path_factory.mktemp("factory-context")))
-    application = register_builtin_test_routes(create_app(
+    application = create_app(
         config_manager=manager,
+        module_loader_factory=default_module_loader_factory(manager, search_paths=[]),
         environ={},
         testing=True,
-    ))
+    )
     request.module.app = application
     with application.app_context():
         yield

@@ -105,6 +105,10 @@ Open `http://localhost:8765` to access the setup wizard.
 ```
 app/
   app_factory.py     - Deterministic Flask application construction
+  registration.py    - Registration planning, collision checks, and application
+  module_registry.py - Stable module manifest discovery and metadata
+  module_config_registry.py - Module configuration ownership preflight
+  module_contributions.py - Module filesystem/import/JSON contribution preflight
   main.py            - Entrypoint, ThreadPoolExecutor polling loop
   runtime.py         - Typed per-application runtime state and locks
   web.py             - Core routes, filters, auth, and runtime accessors
@@ -162,6 +166,25 @@ We prefer new languages to be contributed by people who actually use the tool in
 ## Building Modules
 
 DOCSight supports community modules that extend functionality without modifying core code. Modules can add API endpoints, data collectors, settings panels, dashboard tabs, and more.
+
+Route contributions export a Flask `Blueprint`; they must not call
+`app.register_blueprint()`, `app.add_url_rule()`, or `Blueprint.register()`
+themselves. Routes and decorators recorded on the exported blueprint are the
+module contribution consumed by the registrar.
+Deferred Blueprint record callbacks run once on an isolated application during
+preflight and again during real registration. Community callbacks must
+therefore be idempotent and free of filesystem, network, process, or other
+external side effects.
+The shared application registration contract preflights the complete core and
+module plan before applying it. Endpoint names, blueprint names, route/method
+pairs, module IDs, static mounts, and configuration ownership must therefore be
+globally unique. Add registration-contract tests when changing this surface,
+including a failure case that proves the target application and process-wide
+catalogs remain unchanged.
+Every explicitly declared contribution must resolve and validate during that
+preflight. An unresolved route, static directory, template, catalog, class, or
+JSON contribution rejects the module's complete plan; no partial contribution
+is registered.
 
 Server-side module code should import the established accessors it needs from
 `app.web`, such as `get_config_manager()`, `get_storage()`, `get_state()`, or

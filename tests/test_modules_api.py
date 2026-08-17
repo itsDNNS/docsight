@@ -293,7 +293,10 @@ class TestThemesAPI:
         }))
 
         config = ConfigManager(str(tmp_path / "config"))
-        app, loader = _create_module_app(config, [str(tmp_path)])
+        config.save({"disabled_modules": "test.theme1"})
+        app, loader = _create_module_app(
+            config, [str(tmp_path)], disabled_ids={"test.theme1"}
+        )
 
         yield app, loader
 
@@ -305,5 +308,20 @@ class TestThemesAPI:
             data = resp.get_json()
             assert len(data) == 1
             assert data[0]["id"] == "test.theme1"
+            assert data[0]["enabled"] is False
             assert "dark" in data[0]["theme_data"]
             assert data[0]["theme_data"]["dark"]["--bg"] == "#111"
+            assert loader.registration_plan.modules == ()
+
+    def test_disabled_theme_preview_appears_in_appearance_gallery(self, app_with_theme):
+        from app import web
+
+        app, _loader = app_with_theme
+        response = app.test_client().get("/settings")
+
+        assert response.status_code == 200
+        assert b'data-theme-id="test.theme1"' in response.data
+        with app.test_request_context("/settings"):
+            context = web.inject_auth()
+        assert [theme.id for theme in context["all_theme_modules"]] == ["test.theme1"]
+        assert context["active_theme_id"] != "test.theme1"

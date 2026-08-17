@@ -362,13 +362,16 @@ def test_module_class_loader_keeps_kind_specific_contract(loader, filename, spec
         cls = loader("test.mod", mod_dir, spec)
 
     assert cls is None
-    assert "class 'Missing" in caplog.text
+    assert f"{kind} contribution class not found" in caplog.text
+    assert "MissingCollector" not in caplog.text
+    assert "MissingPublisher" not in caplog.text
 
     caplog.clear()
     cls = loader("test.bad", "/tmp", filename)
 
     assert cls is None
-    assert f"{kind} spec must be 'file.py:ClassName'" in caplog.text
+    assert f"invalid {kind} contribution spec" in caplog.text
+    assert filename not in caplog.text
 
 
 class TestStaticAndTemplates:

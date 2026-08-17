@@ -737,7 +737,7 @@ def inject_auth():
         classic_mod = None
         first_with_data = None
         for m in theme_modules:
-            if m.theme_data:
+            if m.enabled and not m.error and m.theme_data:
                 if first_with_data is None:
                     first_with_data = m
                 if m.id == "docsight.theme_classic":
@@ -1640,15 +1640,8 @@ CORE_TEMPLATE_FILTERS = {
 }
 
 
-def register_core_routes(app) -> None:
-    """Register DOCSight's stable core HTTP surface on one application."""
-    for spec in CORE_ROUTES:
-        app.add_url_rule(
-            spec.rule,
-            endpoint=spec.endpoint,
-            view_func=spec.view,
-            methods=list(spec.methods),
-        )
+def install_core_template_hooks(app) -> None:
+    """Install non-route template and response hooks on one application."""
     for name, function in CORE_TEMPLATE_FILTERS.items():
         app.add_template_filter(function, name)
     app.context_processor(inject_browser_url_bootstrap)

@@ -7,11 +7,26 @@ import sys
 import pytest
 from flask import Flask, current_app
 
+from app.app_factory import create_app
+from app.config import ConfigManager
 from app.module_loader import ModuleLoader
 from app.runtime import current_runtime, get_runtime
 
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+
+
+def _fixture_loader_factory(*, disabled_ids=None):
+    def build(application):
+        loader = ModuleLoader(
+            application,
+            search_paths=[FIXTURE_DIR],
+            disabled_ids=disabled_ids,
+        )
+        loader.load_all()
+        return loader
+
+    return build
 
 
 class TestModuleIntegration:
@@ -54,11 +69,17 @@ class TestModuleIntegration:
         from app import web
         self._runtime.module_loader = None
 
-    def test_full_load_cycle(self):
+    def test_full_load_cycle(self, tmp_path):
         """Discover -> validate -> load config + i18n + routes -> serve requests."""
-        app = Flask(__name__)
-        loader = ModuleLoader(app, search_paths=[FIXTURE_DIR])
-        modules = loader.load_all()
+        manager = ConfigManager(str(tmp_path / "full-load"))
+        app = create_app(
+            config_manager=manager,
+            module_loader_factory=_fixture_loader_factory(),
+            environ={},
+            testing=True,
+        )
+        loader = get_runtime(app).module_loader
+        modules = loader.get_modules()
 
         # Discovery (fixtures dir contains both test_module and ui_module)
         assert len(modules) == 2
@@ -89,15 +110,19 @@ class TestModuleIntegration:
             assert data["pong"] is True
             assert data["module"] == "test.integration"
 
-    def test_disable_skips_loading(self):
+    def test_disable_skips_loading(self, tmp_path):
         """Disabled modules are discovered but their contributions are not loaded."""
-        app = Flask(__name__)
-        loader = ModuleLoader(
-            app,
-            search_paths=[FIXTURE_DIR],
-            disabled_ids={"test.integration"},
+        manager = ConfigManager(str(tmp_path / "disabled-load"))
+        manager.save({"disabled_modules": "test.integration"})
+        app = create_app(
+            config_manager=manager,
+            module_loader_factory=_fixture_loader_factory(
+                disabled_ids={"test.integration"}
+            ),
+            environ={},
+            testing=True,
         )
-        modules = loader.load_all()
+        modules = get_runtime(app).module_loader.get_modules()
 
         mod = next(m for m in modules if m.id == "test.integration")
         assert mod.enabled is False

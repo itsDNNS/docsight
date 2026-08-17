@@ -1,7 +1,7 @@
-"""Flask Blueprint registration."""
+"""Stable providers for DOCSight's core Flask blueprints."""
 
 
-def register_blueprints(app):
+def core_blueprints():
     from .config_bp import config_bp
     from .polling_bp import polling_bp
     from .data_bp import data_bp
@@ -13,13 +13,15 @@ def register_blueprints(app):
     from .segment_bp import segment_bp
     from .smart_capture_bp import smart_capture_bp
 
-    app.register_blueprint(config_bp)
-    app.register_blueprint(polling_bp)
-    app.register_blueprint(data_bp)
-    app.register_blueprint(analysis_bp)
-    app.register_blueprint(events_bp)
-    app.register_blueprint(modules_bp)
-    app.register_blueprint(metrics_bp)
-    app.register_blueprint(notices_bp)
-    app.register_blueprint(segment_bp)
-    app.register_blueprint(smart_capture_bp)
+    return (
+        config_bp,
+        polling_bp,
+        data_bp,
+        analysis_bp,
+        events_bp,
+        modules_bp,
+        metrics_bp,
+        notices_bp,
+        segment_bp,
+        smart_capture_bp,
+    )

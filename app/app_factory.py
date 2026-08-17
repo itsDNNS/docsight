@@ -9,13 +9,20 @@ from datetime import timedelta
 from typing import Any
 
 from flask import Flask
-from jinja2 import ChoiceLoader, FileSystemLoader
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import web
 from .base_path import configure_base_path
-from .blueprints import register_blueprints
 from .module_loader import ModuleLoader
+from .registration import (
+    RegistrationPlan,
+    build_core_plan,
+    canonical_manifest,
+    existing_rules,
+    manifest_fingerprint,
+    register_plan,
+    validate_plan,
+)
 from .runtime import (
     AuthStateStore,
     DocsightRuntime,
@@ -54,19 +61,6 @@ def default_module_loader_factory(
     return build
 
 
-def install_module_template_loader(app: Flask, module_loader) -> None:
-    """Add enabled module template directories to this app's Jinja loader."""
-    if module_loader is None:
-        return
-    loaders = [app.jinja_loader]
-    for module in module_loader.get_enabled_modules():
-        template_dir = os.path.join(module.path, "templates")
-        if os.path.isdir(template_dir):
-            loaders.append(FileSystemLoader(template_dir))
-    if len(loaders) > 1:
-        app.jinja_loader = ChoiceLoader(loaders)
-
-
 def apply_reverse_proxy(app: Flask, environ: Mapping[str, str]) -> None:
     """Install trusted reverse-proxy handling as the outer WSGI layer."""
     reverse_proxy = environ.get("REVERSE_PROXY", "").strip()
@@ -98,15 +92,30 @@ def create_app(
 ) -> Flask:
     """Create one fully isolated DOCSight application in a fixed order.
 
-    Construction configures Flask, attaches runtime state, initializes auth,
-    registers core and blueprint routes, loads modules and templates, then
-    installs base-path and reverse-proxy middleware.
+    Construction resolves and validates the complete core/module plan before
+    configuring the target app or applying process catalogs. It then attaches
+    runtime state, applies the complete registration once, and wraps the
+    base-path and reverse-proxy middleware.
     """
     if config_manager is None:
         raise TypeError("config_manager is required")
     env = os.environ if environ is None else environ
 
+    core_plan = build_core_plan()
+    planning_app = Flask("app.registration_planning", static_folder=None)
+    planning_app.config["TESTING"] = testing
+    planning_app.extensions["docsight_registration_deferred"] = True
+    planning_app.extensions["docsight_registration_base_plan"] = core_plan
+    loader = module_loader_factory(planning_app) if module_loader_factory else None
+    module_plan = getattr(loader, "registration_plan", RegistrationPlan())
+    complete_plan = core_plan.combined(module_plan)
+
     app = Flask("app.web", template_folder="templates")
+    validate_plan(
+        complete_plan,
+        existing=existing_rules(app),
+        existing_blueprints=tuple(app.blueprints),
+    )
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
@@ -137,12 +146,15 @@ def create_app(
     )
     attach_runtime(app, runtime)
     web.bootstrap_auth_state(app, runtime)
-    web.register_core_routes(app)
-    register_blueprints(app)
-
-    loader = module_loader_factory(app) if module_loader_factory else None
+    register_plan(app, complete_plan)
+    web.install_core_template_hooks(app)
     runtime.module_loader = loader
-    install_module_template_loader(app, loader)
     configure_base_path(app, env)
     apply_reverse_proxy(app, env)
+    manifest = canonical_manifest(app, loader)
+    fingerprint = manifest_fingerprint(manifest)
+    app.extensions["docsight_module_loader"] = loader
+    app.extensions["docsight_registration_manifest"] = manifest
+    app.extensions["docsight_registration_fingerprint"] = fingerprint
+    LOG.info("registration manifest sha256=%s", fingerprint)
     return app
