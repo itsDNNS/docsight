@@ -6,22 +6,19 @@ import os  # Compatibility: callers patch the shared filesystem module here.
 # Public imports below intentionally preserve the legacy module-loader facade.
 from app import module_registry as _module_registry
 from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
-from app.manifest_contract import ID_PATTERN, REQUIRED_FIELDS, VALID_CONTRIBUTES, VALID_TYPES
+from app.manifest_contract import ID_PATTERN, VALID_CONTRIBUTES
 from app.module_config_registry import (
     evaluate_module_config_ownership,
     evaluate_module_secret_ownership,
     register_module_config,
-    reserve_module_secrets,
 )
 from app.module_contributions import (
-    REQUIRED_THEME_SECTIONS, REQUIRED_THRESHOLD_SECTIONS,
     _PROTECTED_API_PREFIXES, _PROTECTED_ROUTES,
-    _load_module_class, _load_symbol,
-    _read_json_contribution, _redacted_resolution,
+    _read_json_contribution,
     attach_builtin_python_contributions, load_module_collector,
     load_module_publisher, load_module_routes, merge_module_i18n,
-    module_static_endpoint, module_static_url, plan_module_static,
-    resolve_module_contribution, resolve_module_i18n, resolve_module_routes,
+    module_static_endpoint, module_static_url,
+    resolve_module_contribution,
     setup_module_static, setup_module_templates, validate_theme,
     validate_thresholds,
 )
@@ -32,11 +29,10 @@ from app.module_registry import (
     discover_modules,
     validate_manifest,
 )
-from app.path_safety import safe_manifest_ref, safe_manifest_subpath
 from app.registration import (
-    ModuleContribution, PlannedBlueprint, PlannedRule, RegistrationError,
-    RegistrationPlan, apply_module_i18n, apply_plan, existing_rules,
-    probe_blueprint, register_plan, validate_plan,
+    RegistrationError,
+    RegistrationPlan, existing_rules,
+    register_plan, validate_plan,
 )
 from app.theme_registry import BUILTIN_THEMES
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES

@@ -468,14 +468,6 @@ def _format_customer_closing(s, customer_name="", customer_number="", customer_a
     return "\n".join([label, name, number, *address_lines])
 
 
-def _report_bounds(snapshots, report_start=None, report_end=None):
-    """Compatibility delegate for inclusive report labeling bounds."""
-    return report_bounds(
-        snapshots,
-        window=Window(report_start or "", report_end or ""),
-    )
-
-
 def generate_report(
     snapshots,
     current_analysis=None,

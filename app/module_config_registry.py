@@ -78,15 +78,6 @@ def evaluate_module_secret_ownership(
     return reserved, owners, errors
 
 
-def reserve_module_secrets(modules: list[ModuleInfo]) -> None:
-    """Compatibility adapter for applying preflighted secret ownership."""
-    reserved, owners, errors = evaluate_module_secret_ownership(modules)
-    for module in modules:
-        if module.id in errors:
-            module.error = errors[module.id]
-    _cfg.set_module_secret_registry(reserved, owners)
-
-
 def evaluate_module_config_ownership(modules: list[ModuleInfo]) -> dict[str, str]:
     """Return redacted errors for ambiguous community config ownership."""
     protected = set(_cfg.CORE_CONFIG_KEYS)
