@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>Demo</strong> • <strong>Reports</strong> • <strong>20 modem families</strong> • <strong>MIT</strong>
+  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>Demo</strong> • <strong>Reports</strong> • <strong>21 modem families</strong> • <strong>MIT</strong>
 </p>
 
 <p align="center">
@@ -281,7 +281,7 @@ More views from the product:
 
 ## Supported Hardware
 
-DOCSight supports **20 modem families** out of the box and also offers **Generic Router mode** for fiber, DSL, and satellite connections.
+DOCSight supports **21 modem families** out of the box and also offers **Generic Router mode** for fiber, DSL, and satellite connections.
 
 ### Common setups
 
@@ -293,6 +293,7 @@ DOCSight supports **20 modem families** out of the box and also offers **Generic
 - **Sagemcom F3896LG** (Hub 5 / Liberty Global REST firmware): unauthenticated API, works in modem mode
 - **Technicolor TC4400**
 - **Arris SURFboard** (S33, S34, SB8200): HNAP1 API
+- **Arris SURFboard SB8200** (CBN firmware, `SB8200v3`): XML API, for units that serve the CBN web UI instead of HNAP1
 - **Arris SB6183:** HTTP status pages, no authentication required
 - **Hitron CODA-56 and CODA-4680**
 - **Netgear CM3000**

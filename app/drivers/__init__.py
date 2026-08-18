@@ -36,6 +36,9 @@ driver_registry.register_builtin("sb6183", "app.drivers.sb6183.SB6183Driver",
 driver_registry.register_builtin("sb6190", "app.drivers.sb6190.SB6190Driver",
                                  "Arris SB6190",
                                  hints={"default_url": "https://192.168.100.1", "default_user": "admin"})
+driver_registry.register_builtin("sb8200_cbn", "app.drivers.sb8200_cbn.SB8200CBNDriver",
+                                 "Arris SURFboard SB8200 (CBN firmware)",
+                                 hints={"default_url": "https://192.168.100.1", "default_user": "admin"})
 driver_registry.register_builtin("cm8200", "app.drivers.cm8200.CM8200Driver",
                                  "Arris Touchstone CM8200A",
                                  hints={"default_url": "https://192.168.100.1", "default_user": "admin"})

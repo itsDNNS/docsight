@@ -490,7 +490,7 @@ class ModemDriver(ABC):
 
 Every registered concrete class exposes a non-empty immutable
 `FORMAT_FAMILIES` tuple. Registry aliases appear together in the first column;
-there are 21 keys, 20 concrete classes, and 22 explicit profiles.
+there are 22 keys, 21 concrete classes, and 23 explicit profiles.
 
 | Registry key(s) | Concrete class | Format profile(s) | Cohesive module / entrypoint |
 |---|---|---|---|
@@ -509,6 +509,7 @@ there are 21 keys, 20 concrete classes, and 22 explicit profiles.
 | `sb6141` | `SB6141Driver` | `sb6141_transposed_html` | `html_transposed.parse_sb6141_transposed_html` |
 | `sb6183` | `SB6183Driver` | `sb6183_html` | `html_rows.parse_sb6183_html` |
 | `sb6190` | `SB6190Driver` | `sb6190_html` | `html_rows.parse_sb6190_html` |
+| `sb8200_cbn` | `SB8200CBNDriver` | `sb8200_cbn_xml` | `xml_payloads.parse_sb8200_cbn_xml` |
 | `sercom_dm1000` | `SercomDM1000Driver` | `sercom_dm1000_json` | `sercom.parse_sercom_dm1000_json` |
 | `surfboard` | `SurfboardDriver` | `arris_html`, `surfboard_hnap` | `html_rows.parse_arris_html`; `surfboard.parse_surfboard_hnap` |
 | `tc4400` | `TC4400Driver` | `tc4400_html` | `html_rows.parse_tc4400_html` |

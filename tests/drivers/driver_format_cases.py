@@ -33,6 +33,7 @@ from app.drivers.sagemcom import SagemcomDriver
 from app.drivers.sb6141 import SB6141Driver
 from app.drivers.sb6183 import SB6183Driver
 from app.drivers.sb6190 import SB6190Driver
+from app.drivers.sb8200_cbn import Query as SB8200Query, SB8200CBNDriver
 from app.drivers.sercom_dm1000 import SercomDM1000Driver
 from app.drivers.surfboard import SurfboardDriver
 from app.drivers.tc4400 import TC4400Driver
@@ -170,6 +171,20 @@ def _ch7465(ds_xml: str, us_xml: str) -> Any:
         return ds_xml if query is Query.DOWNSTREAM_TABLE else us_xml
 
     with patch.object(driver, "_get_data", side_effect=get_data):
+        return driver.get_docsis_data()
+
+
+def _sb8200_cbn(ds: str, us: str, ofdm: str, ofdma: str, signal: str) -> Any:
+    driver = SB8200CBNDriver("https://modem.invalid", "admin", "password")
+    payloads = {
+        SB8200Query.DOWNSTREAM_TABLE: ds,
+        SB8200Query.UPSTREAM_TABLE: us,
+        SB8200Query.DOWNSTREAM_OFDM_TABLE: ofdm,
+        SB8200Query.UPSTREAM_OFDMA_TABLE: ofdma,
+        SB8200Query.SIGNAL_TABLE: signal,
+    }
+
+    with patch.object(driver, "_get_data", side_effect=lambda query: payloads[query]):
         return driver.get_docsis_data()
 
 
@@ -428,6 +443,20 @@ def _cases() -> list[DriverFormatCase]:
     add("ch7465_xml.success_duplicate_ids", "ch7465,ch7465_play", "ch7465_xml", "minimal-synthetic-existing-fields", lambda: _ch7465(ch_ds, ch_us), ch_expected)
     add("ch7465_xml.empty_roots", "ch7465,ch7465_play", "ch7465_xml", "minimal-empty", lambda: _ch7465("<root/>", "<root/>"), {"docsis": "3.0", "downstream": [], "upstream": []})
     add("ch7465_xml.malformed_xml", "ch7465,ch7465_play", "ch7465_xml", "minimal-synthetic-malformed", lambda: _ch7465("<root>", "<root/>"), None)
+
+    sb_ds = '<downstream_table><ds_num>2</ds_num><downstream><freq>567000000</freq><pow>2.300</pow><snr>33</snr><mod>256QAM</mod><chid>32</chid><IsLocked>1</IsLocked></downstream><downstream><freq>417000000</freq><pow>0.100</pow><snr>34</snr><mod>256QAM</mod><chid>9</chid><IsLocked>0</IsLocked></downstream></downstream_table>'
+    sb_us = '<upstream_table><us_num>1</us_num><upstream><usid>56</usid><freq>37000000</freq><power>49</power><srate>5.120</srate><mod>64QAM</mod><channeltype>ATDMA</channeltype><bandwidth>6400000</bandwidth><usLocked>1</usLocked></upstream></upstream_table>'
+    sb_ofdm = '<downstreamOFDM_table><downstream><Receiver>1</Receiver><Subcarr0Frequency>605600000</Subcarr0Frequency><PLCLocked>YES</PLCLocked><MDC1Locked>YES</MDC1Locked><PLCPower>1.100</PLCPower><DataScAvgMer>33</DataScAvgMer><ofdmModulation>QAM4096</ofdmModulation><dsid>25</dsid><ofdmCorrected>904607089</ofdmCorrected><ofdmUncorrectable>2612685723</ofdmUncorrectable><ofdmIsLocked>1</ofdmIsLocked><ofdmIsActive>1</ofdmIsActive></downstream><ds_num>1</ds_num></downstreamOFDM_table>'
+    sb_ofdma = '<upstreamOFDMA_table><us_num>0</us_num></upstreamOFDMA_table>'
+    sb_signal = '<signal_table><sig_num>2</sig_num><signal><dsid>25</dsid><unerrored>0</unerrored><correctable>0</correctable><uncorrectable>0</uncorrectable></signal><signal><dsid>32</dsid><unerrored>54275570015</unerrored><correctable>226053938</correctable><uncorrectable>1212</uncorrectable></signal></signal_table>'
+    sb_expected = _split(
+        [{"channelID": 32, "frequency": "567 MHz", "powerLevel": 2.3, "mer": 33.0, "mse": -33.0, "modulation": "256QAM", "symbolRate": 5361, "corrErrors": 226053938, "nonCorrErrors": 1212}],
+        [{"channelID": 25, "type": "OFDM", "frequency": "605.6 MHz", "powerLevel": 1.1, "mse": None, "mer": 33.0, "modulation": "4096QAM"}],
+        [{"channelID": 56, "frequency": "37 MHz", "powerLevel": 49.0, "modulation": "64QAM", "type": "ATDMA", "multiplex": "ATDMA", "symbolRate": 5120}],
+    )
+    add("sb8200_cbn_xml.success_all_lanes", "sb8200_cbn", "sb8200_cbn_xml", "captured-subset", lambda: _sb8200_cbn(sb_ds, sb_us, sb_ofdm, sb_ofdma, sb_signal), sb_expected)
+    add("sb8200_cbn_xml.empty_tables", "sb8200_cbn", "sb8200_cbn_xml", "minimal-empty", lambda: _sb8200_cbn("<downstream_table/>", "<upstream_table/>", "<downstreamOFDM_table/>", sb_ofdma, "<signal_table/>"), EMPTY_SPLIT)
+    add("sb8200_cbn_xml.malformed_xml", "sb8200_cbn", "sb8200_cbn_xml", "minimal-synthetic-malformed", lambda: _sb8200_cbn("<downstream_table>", "<upstream_table/>", sb_ofdm, sb_ofdma, sb_signal), None)
 
     cm3000_expected = _split(
         [{"channelID": 7, "frequency": "591 MHz", "powerLevel": -2.5, "mer": 40.0, "mse": -40.0, "modulation": "QAM256", "corrErrors": 1234, "nonCorrErrors": 5}],

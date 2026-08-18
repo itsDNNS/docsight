@@ -24,6 +24,7 @@ FORMAT_PROFILE_MODULES = MappingProxyType({
     "sb6141_transposed_html": "app.drivers.formats.html_transposed",
     "sb6183_html": "app.drivers.formats.html_rows",
     "sb6190_html": "app.drivers.formats.html_rows",
+    "sb8200_cbn_xml": "app.drivers.formats.xml_payloads",
     "sercom_dm1000_json": "app.drivers.formats.sercom",
     "surfboard_hnap": "app.drivers.formats.surfboard",
     "tc4400_html": "app.drivers.formats.html_rows",

@@ -24,6 +24,7 @@ EXPECTED_FAMILIES = {
     "sb6141_transposed_html",
     "sb6183_html",
     "sb6190_html",
+    "sb8200_cbn_xml",
     "sercom_dm1000_json",
     "surfboard_hnap",
     "tc4400_html",
@@ -43,6 +44,7 @@ FAMILIES_WITH_DOCSIS_31_CHANNELS = {
     "hitron_coda4680_json",
     "hitron_coda56_json",
     "sagemcom_xmo_json",
+    "sb8200_cbn_xml",
     "sercom_dm1000_json",
     "surfboard_hnap",
     "tc4400_html",
@@ -66,7 +68,7 @@ def test_case_registry_is_complete_and_has_three_boundary_cases_per_family():
     counts = Counter(case.family for case in CASES)
     assert set(counts) == EXPECTED_FAMILIES
     assert counts == {family: 3 for family in EXPECTED_FAMILIES}
-    assert len(CASE_BY_ID) == len(CASES) == 66
+    assert len(CASE_BY_ID) == len(CASES) == 69
     assert list(CASE_BY_ID) == sorted(CASE_BY_ID)
 
 

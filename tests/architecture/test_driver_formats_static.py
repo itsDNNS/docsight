@@ -34,6 +34,7 @@ PROFILE_ENTRYPOINTS = {
     "sb6141_transposed_html": "parse_sb6141_transposed_html",
     "sb6183_html": "parse_sb6183_html",
     "sb6190_html": "parse_sb6190_html",
+    "sb8200_cbn_xml": "parse_sb8200_cbn_xml",
     "sercom_dm1000_json": "parse_sercom_dm1000_json",
     "surfboard_hnap": "parse_surfboard_hnap",
     "tc4400_html": "parse_tc4400_html",
@@ -130,8 +131,8 @@ def test_registry_matrix_is_complete_and_alias_safe_in_both_directions():
         for profile in profiles
     }
     assert matrix_profiles == set(FORMAT_PROFILE_MODULES)
-    assert len(EXPECTED_CLASS_FAMILIES) == 20
-    assert len(PROFILE_ENTRYPOINTS) == 22
+    assert len(EXPECTED_CLASS_FAMILIES) == 21
+    assert len(PROFILE_ENTRYPOINTS) == 23
 
 
 def test_migrated_private_methods_are_finite_one_statement_delegations():
