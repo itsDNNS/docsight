@@ -226,7 +226,8 @@
     "NetCologne",
     "M-net",
     "Wilhelm.tel",
-    "Comcast/Xfinity"
+    "Comcast/Xfinity",
+    "Charter/Spectrum"
   ],
   "tariff": "Tariff",
   "max_downstream": "Max nedströms",

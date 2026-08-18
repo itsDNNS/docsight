@@ -221,7 +221,8 @@
     "Euskaltel",
     "R",
     "Telecable",
-    "Comcast/Xfinity"
+    "Comcast/Xfinity",
+    "Charter/Spectrum"
   ],
   "tariff": "Tarifa",
   "max_downstream": "Bajada máxima",

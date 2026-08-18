@@ -218,7 +218,8 @@
   "isp_select": "Choisir un fournisseur",
   "isp_options": [
     "SFR",
-    "Comcast/Xfinity"
+    "Comcast/Xfinity",
+    "Charter/Spectrum"
   ],
   "tariff": "Forfait",
   "max_downstream": "Débit descendant max",
