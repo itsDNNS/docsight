@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import base64
+import gzip
 import hashlib
+import io
+import logging
+import re
 from unittest.mock import MagicMock
 
 from cryptography.hazmat.primitives import padding
@@ -11,6 +15,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 import pytest
 import requests
+import urllib3
 
 from app.drivers.formats.xml_payloads import parse_sb8200_cbn_xml
 from app.drivers.sb8200_cbn import MAX_RESPONSE_BYTES, Query, SB8200CBNDriver
@@ -82,11 +87,25 @@ GLOBAL_SETTINGS_XML = (
     "<HwModel>SB8200v3</HwModel></GlobalSettings>"
 )
 
-SESSION_TOKEN = "1132952832"
-# Independently produced with:
-#   openssl enc -aes-256-cbc -K sha256(token) -iv md5(token) -nosalt
-ENCRYPTED_ADMIN = "SFM6U0I4MjAwdjM6YjBmY2RlMmUwN2I3ZTlmN2Q3NzZkNTg2ZjE1MTcwZWI="
-ENCRYPTED_PASSWORD = "SFM6U0I4MjAwdjM6MDkzM2M4ZGI1YzMzYWU2ZWVhYjgzZGNiYzMwZTUxZjE="
+# The firmware issues a rotating numeric CSRF token and a numeric SID. Both
+# fixtures are synthetic counters rather than values captured from a device.
+FIRST_SESSION_TOKEN = 1234567890
+LOGIN_SID = "syntheticsid0001"
+
+# The made-up credentials the fake driver is built with, keyed by the login
+# field that carries them.
+LOGIN_PLAINTEXT = {"Username": "admin", "Password": "s3cr3t-pw"}
+
+# The envelopes the driver must post for FIRST_SESSION_TOKEN, produced
+# independently of the driver with:
+#   key=$(printf %s 1234567890 | openssl dgst -sha256 -r | cut -d' ' -f1)
+#   iv=$(printf %s 1234567890 | openssl dgst -md5 -r | cut -d' ' -f1)
+#   printf %s admin | openssl enc -aes-256-cbc -K $key -iv $iv -nosalt
+# hex-encoded, wrapped as HS:<HwModel>:<hex>, then base64-encoded.
+OPENSSL_LOGIN_FIELDS = {
+    "Username": "SFM6U0I4MjAwdjM6ODBmZDM5ZjI3MzE3OGQ0MDc4MDFhMmU1MjQ3Y2YzYjE=",
+    "Password": "SFM6U0I4MjAwdjM6YjNjNzk0ZDcxZjQ2YTEyMGU4ZTAzMjcyMjc5MjZkOTY=",
+}
 
 GETTER_PAYLOADS = {
     str(Query.GLOBAL_SETTINGS.value): GLOBAL_SETTINGS_XML,
@@ -99,12 +118,44 @@ GETTER_PAYLOADS = {
 }
 
 
-def _response(text: str, status: int = 200) -> MagicMock:
-    response = MagicMock()
-    response.text = text
-    response.content = text.encode()
+class _Socket(io.BytesIO):
+    """A stream that records how many bytes were actually pulled from it."""
+
+    def __init__(self, payload: bytes) -> None:
+        super().__init__(payload)
+        self.bytes_read = 0
+
+    def read(self, size: int | None = -1, /) -> bytes:
+        chunk = super().read(size)
+        self.bytes_read += len(chunk)
+        return chunk
+
+
+def _response(
+    body: str | bytes | _Socket = "",
+    status: int = 200,
+    headers: dict[str, str] | None = None,
+) -> requests.Response:
+    """Build a real `requests.Response` over a real urllib3 stream.
+
+    The transport bound has to hold against urllib3's own read and decode
+    behaviour, so the fake stops at the socket rather than at the response
+    object: `raw.read()` is the genuine implementation throughout.
+    """
+    if isinstance(body, _Socket):
+        stream = body
+    else:
+        stream = _Socket(body.encode() if isinstance(body, str) else body)
+    response = requests.Response()
     response.status_code = status
-    response.raw.read.return_value = text.encode()
+    response.url = "https://modem.invalid/xml/getter.xml"
+    response.headers.update(headers or {})
+    response.raw = urllib3.HTTPResponse(
+        body=stream,
+        headers=headers or {},
+        status=status,
+        preload_content=False,
+    )
     return response
 
 
@@ -130,29 +181,29 @@ def _driver(url: str = "https://modem.invalid", *, rotate: bool = False) -> SB82
     With `rotate`, the fake reproduces the firmware's behaviour of issuing a
     new CSRF token on every response.
     """
-    driver = SB8200CBNDriver(url, "admin", "s3cr3t-pw")
+    driver = SB8200CBNDriver(url, LOGIN_PLAINTEXT["Username"], LOGIN_PLAINTEXT["Password"])
     session = MagicMock()
     session.cookies = requests.cookies.RequestsCookieJar()
     counter = {"n": 0}
 
     def next_token() -> str:
         if not rotate:
-            return SESSION_TOKEN
+            return str(FIRST_SESSION_TOKEN)
         counter["n"] += 1
-        return f"{int(SESSION_TOKEN) + counter['n']}"
+        return str(FIRST_SESSION_TOKEN + counter["n"])
 
     def get(_url: str, **kwargs):
         session.cookies.set("sessionToken", next_token())
         return _response("<html></html>")
 
     session.get.side_effect = get
-    session.cookies.set("sessionToken", SESSION_TOKEN)
+    session.cookies.set("sessionToken", str(FIRST_SESSION_TOKEN))
     driver._session = session
     driver._rotate_token = next_token
     return driver
 
 
-def _serve(driver: SB8200CBNDriver, login_body: str = "successful;SID=2134823424") -> list[dict]:
+def _serve(driver: SB8200CBNDriver, login_body: str = f"successful;SID={LOGIN_SID}") -> list[dict]:
     """Answer getter/setter posts from the captured payloads, recording calls."""
     calls: list[dict] = []
 
@@ -165,6 +216,32 @@ def _serve(driver: SB8200CBNDriver, login_body: str = "successful;SID=2134823424
         # The modem rotates its CSRF token on every response.
         driver._session.cookies.set("sessionToken", driver._rotate_token())
         return response
+
+    driver._session.post.side_effect = post
+    return calls
+
+
+def _serve_except(
+    driver: SB8200CBNDriver, broken: dict[Query, tuple[str, int] | Exception]
+) -> list[dict]:
+    """Serve the captured payloads, answering `broken` tables with a failure.
+
+    A failure is either a `(body, status)` pair to return or an exception the
+    transport raises.
+    """
+    calls: list[dict] = []
+    codes = {str(query.value): failure for query, failure in broken.items()}
+
+    def post(url: str, data: dict, **kwargs):
+        calls.append(dict(data))
+        if url.endswith("setter.xml"):
+            return _response(f"successful;SID={LOGIN_SID}")
+        failure = codes.get(data["fun"])
+        if isinstance(failure, Exception):
+            raise failure
+        if failure is not None:
+            return _response(failure[0], status=failure[1])
+        return _response(GETTER_PAYLOADS.get(data["fun"], ""))
 
     driver._session.post.side_effect = post
     return calls
@@ -197,6 +274,20 @@ class TestParser:
                 "symbolRate": 5057, "corrErrors": 7, "nonCorrErrors": 3,
             },
         ]
+
+    def test_downstream_symbol_rates_follow_the_captured_6_mhz_raster(self):
+        """The table omits the symbol rate, so the profile supplies it.
+
+        The capture's adjacent SC-QAM carriers sit 6 MHz apart, which is the
+        Annex B raster. Without those rates the analyzer falls back to the
+        EuroDOCSIS 8 MHz default and every downstream capacity estimate reads
+        about 30% high.
+        """
+        carriers = sorted(int(f) for f in re.findall(r"<freq>(\d+)</freq>", DOWNSTREAM_XML))
+        spacings = [b - a for a, b in zip(carriers, carriers[1:])]
+
+        assert min(spacings) == 6_000_000
+        assert [c["symbolRate"] for c in _parse().value["channelDs"]["docsis30"]] == [5361, 5057]
 
     def test_unlocked_channels_are_skipped_in_both_directions(self):
         result = _parse()
@@ -381,9 +472,8 @@ class TestDriver:
         driver.login()
 
         login = next(c for c in calls if c["data"]["fun"] == "15")
-        assert login["data"]["Username"] == ENCRYPTED_ADMIN
-        assert login["data"]["Password"] == ENCRYPTED_PASSWORD
-        assert driver._session.cookies.get("SID") == "2134823424"
+        assert {k: login["data"][k] for k in OPENSSL_LOGIN_FIELDS} == OPENSSL_LOGIN_FIELDS
+        assert driver._session.cookies.get("SID") == LOGIN_SID
 
     def test_credentials_are_keyed_with_the_token_the_request_carries(self):
         """The token rotates on every response, including the model lookup.
@@ -398,8 +488,10 @@ class TestDriver:
 
         login = next(c for c in calls if c["data"]["fun"] == "15")
         token = login["data"]["token"]
-        assert _decrypt_envelope(login["data"]["Username"], token) == "admin"
-        assert _decrypt_envelope(login["data"]["Password"], token) == "s3cr3t-pw"
+        assert {
+            field: _decrypt_envelope(login["data"][field], token)
+            for field in LOGIN_PLAINTEXT
+        } == LOGIN_PLAINTEXT
 
     def test_login_is_not_repeated_while_a_session_is_held(self):
         driver = _driver()
@@ -571,32 +663,29 @@ class TestDriver:
 
     def test_transport_errors_propagate(self):
         driver = _driver()
-        failing = _response("")
-        failing.raise_for_status.side_effect = requests.HTTPError("boom")
-        driver._session.post.side_effect = lambda url, data, **kw: failing
+        driver._session.post.side_effect = lambda url, data, **kw: _response("", status=500)
 
         with pytest.raises(requests.HTTPError):
             driver._get_data(Query.DOWNSTREAM_TABLE)
 
-    def test_oversized_response_is_refused_before_parsing(self):
+    def test_a_modem_issued_sid_cookie_is_replaced_rather_than_duplicated(self):
+        """The login body carries the SID, and the modem may also set it.
+
+        `RequestsCookieJar.set` only replaces a cookie with the same domain
+        and path, so a hand-built SID would coexist with the modem's own, be
+        sent as two values, and make every later read raise
+        `CookieConflictError`.
+        """
         driver = _driver()
-        oversized = _response("<downstream_table/>")
-        oversized.raw.read.return_value = b"x" * (MAX_RESPONSE_BYTES + 1)
-        driver._session.post.side_effect = lambda url, data, **kw: oversized
+        _serve(driver)
+        driver._session.cookies.set_cookie(requests.cookies.create_cookie(
+            "SID", "set-by-the-modem", domain="modem.invalid", path="/",
+        ))
 
-        with pytest.raises(RuntimeError, match="size limit"):
-            driver.get_docsis_data()
+        driver.login()
 
-    def test_only_the_bounded_prefix_is_read_from_the_socket(self):
-        driver = _driver()
-        payload = _response(DOWNSTREAM_XML)
-        driver._session.post.side_effect = lambda url, data, **kw: payload
-
-        driver._get_data(Query.DOWNSTREAM_TABLE)
-
-        payload.raw.read.assert_called_once_with(
-            MAX_RESPONSE_BYTES + 1, decode_content=True
-        )
+        assert [c.value for c in driver._session.cookies if c.name == "SID"] == [LOGIN_SID]
+        assert driver._session.cookies.get("SID") == LOGIN_SID
 
     def test_cleanup_releases_the_single_web_ui_session(self):
         driver = _driver()
@@ -632,3 +721,141 @@ class TestDriver:
     ])
     def test_uptime_parsing(self, uptime, expected):
         assert SB8200CBNDriver._uptime_seconds(uptime) == expected
+
+
+class TestOptionalTables:
+    """One unreadable enrichment table must not discard measured channels.
+
+    The SC-QAM tables carry the channels; the OFDM, OFDMA, and codeword tables
+    only enrich them. A firmware that does not serve one of the three, or an
+    endpoint that fails, has to degrade rather than raise a false outage.
+    """
+
+    OPTIONAL = (Query.DOWNSTREAM_OFDM_TABLE, Query.UPSTREAM_OFDMA_TABLE, Query.SIGNAL_TABLE)
+
+    @staticmethod
+    def _polling_driver() -> SB8200CBNDriver:
+        driver = _driver()
+        driver._logged_in = True
+        driver._hw_model = "SB8200v3"
+        return driver
+
+    @pytest.mark.parametrize("optional", OPTIONAL)
+    def test_an_empty_optional_table_costs_no_login(self, optional):
+        """A 200 with an empty body means the firmware does not serve it.
+
+        Reading that as session loss would spend a login on the modem's rate
+        limiter on every single poll.
+        """
+        driver = self._polling_driver()
+        calls = _serve_except(driver, {optional: ("", 200)})
+
+        data = driver.get_docsis_data()
+
+        assert [c["channelID"] for c in data["channelDs"]["docsis30"]] == [32, 8]
+        assert [c["channelID"] for c in data["channelUs"]["docsis30"]] == [56]
+        assert [c["fun"] for c in calls].count("15") == 0
+
+    @pytest.mark.parametrize("failure", [
+        requests.ConnectionError("connection reset"),
+        ("", 500),
+    ])
+    def test_an_unreadable_optional_table_keeps_the_measured_channels(self, failure):
+        driver = self._polling_driver()
+        calls = _serve_except(driver, {Query.SIGNAL_TABLE: failure})
+
+        downstream = driver.get_docsis_data()["channelDs"]
+
+        assert [c["channelID"] for c in downstream["docsis30"]] == [32, 8]
+        assert all("corrErrors" not in c for c in downstream["docsis30"])
+        assert [c["channelID"] for c in downstream["docsis31"]] == [25]
+        assert [c["fun"] for c in calls].count("15") == 0
+
+    def test_an_unreadable_optional_table_logs_without_echoing_the_response(self, caplog):
+        driver = self._polling_driver()
+        _serve_except(driver, {Query.SIGNAL_TABLE: ("<error>SID=leaked-session</error>", 500)})
+
+        with caplog.at_level(logging.WARNING, logger="docsis.driver.sb8200_cbn"):
+            driver.get_docsis_data()
+
+        assert "fun=19" in caplog.text
+        assert "leaked-session" not in caplog.text
+
+    def test_optional_redirects_cost_at_most_one_reauthentication(self):
+        """A 302 is session loss, and the poll may spend one login on it."""
+        driver = self._polling_driver()
+        calls = _serve_except(driver, {optional: ("", 302) for optional in self.OPTIONAL})
+
+        data = driver.get_docsis_data()
+
+        assert [c["channelID"] for c in data["channelDs"]["docsis30"]] == [32, 8]
+        assert data["channelDs"]["docsis31"] == []
+        assert data["channelUs"]["docsis31"] == []
+        assert [c["fun"] for c in calls].count("15") == 1
+
+    @pytest.mark.parametrize("required", [Query.DOWNSTREAM_TABLE, Query.UPSTREAM_TABLE])
+    def test_a_required_table_failure_is_not_reported_as_empty_channels(self, required):
+        """A missing SC-QAM table is an outage, not a modem without channels."""
+        driver = self._polling_driver()
+        _serve_except(driver, {required: ("", 302)})
+
+        with pytest.raises(RuntimeError, match="after re-authentication"):
+            driver.get_docsis_data()
+
+
+class TestResponseBound:
+    """The size limit has to bound the bytes the process actually holds."""
+
+    def test_the_transport_asks_the_modem_not_to_compress(self):
+        driver = SB8200CBNDriver("https://modem.invalid", "admin", "pw")
+
+        assert driver._session.headers["Accept-Encoding"] == "identity"
+
+    def test_a_response_at_the_limit_is_accepted(self):
+        driver = _driver()
+        driver._session.post.side_effect = (
+            lambda url, data, **kw: _response(b"x" * MAX_RESPONSE_BYTES)
+        )
+
+        body, status = driver._request(Query.DOWNSTREAM_TABLE)
+
+        assert (len(body), status) == (MAX_RESPONSE_BYTES, 200)
+
+    def test_one_byte_over_the_limit_is_refused(self):
+        driver = _driver()
+        driver._session.post.side_effect = (
+            lambda url, data, **kw: _response(b"x" * (MAX_RESPONSE_BYTES + 1))
+        )
+
+        with pytest.raises(RuntimeError, match="size limit"):
+            driver._request(Query.DOWNSTREAM_TABLE)
+
+    def test_a_compressed_response_is_refused_before_it_can_inflate(self):
+        """A post-read length check cannot see a decompression bomb coming.
+
+        `raw.read(n, decode_content=True)` bounds the bytes taken off the
+        socket, not the bytes they expand to, so a payload that is far below
+        the limit on the wire and far above it in memory has to be rejected on
+        its `Content-Encoding` before anything is buffered.
+        """
+        bomb = gzip.compress(b"\0" * (MAX_RESPONSE_BYTES * 32))
+        assert len(bomb) < MAX_RESPONSE_BYTES < len(gzip.decompress(bomb))
+        socket = _Socket(bomb)
+        driver = _driver()
+        driver._session.post.side_effect = (
+            lambda url, data, **kw: _response(socket, headers={"Content-Encoding": "gzip"})
+        )
+
+        with pytest.raises(RuntimeError, match="gzip-encoded"):
+            driver._request(Query.DOWNSTREAM_TABLE)
+        assert socket.bytes_read == 0
+
+    def test_an_identity_encoded_response_is_read_normally(self):
+        driver = _driver()
+        driver._session.post.side_effect = (
+            lambda url, data, **kw: _response(
+                DOWNSTREAM_XML, headers={"Content-Encoding": "identity"}
+            )
+        )
+
+        assert driver._request(Query.DOWNSTREAM_TABLE)[0] == DOWNSTREAM_XML

@@ -184,7 +184,12 @@ def _sb8200_cbn(ds: str, us: str, ofdm: str, ofdma: str, signal: str) -> Any:
         SB8200Query.SIGNAL_TABLE: signal,
     }
 
-    with patch.object(driver, "_get_data", side_effect=lambda query: payloads[query]):
+    # The OFDM, OFDMA, and codeword tables travel the optional path, which
+    # degrades to None rather than raising, so both fetchers must be served.
+    with (
+        patch.object(driver, "_get_data", side_effect=lambda query: payloads[query]),
+        patch.object(driver, "_get_optional_data", side_effect=lambda query: payloads[query]),
+    ):
         return driver.get_docsis_data()
 
 
