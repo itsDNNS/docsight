@@ -7,8 +7,10 @@ from `/xml/getter.xml` with numeric function codes and normalized by the
 `sb8200_cbn_xml` profile.
 
 Login mirrors the firmware's `CBN_Encrypt()` helper: username and password are
-each AES-256-CBC encrypted with a key and IV derived from the rotating
-`sessionToken` cookie, then wrapped in a `HS:<HwModel>:<hex>` envelope.
+each AES-256-CBC encrypted with a key and IV derived from the `sessionToken`
+cookie, then wrapped in a `HS:<HwModel>:<hex>` envelope. That cookie rotates on
+every response, so the credentials must be keyed with the token the login
+request itself carries.
 """
 
 from __future__ import annotations
@@ -31,11 +33,16 @@ from ..types import ConnectionInfo, DeviceInfo, DocsisData
 
 log = logging.getLogger("docsis.driver.sb8200_cbn")
 
-# The status tables top out around 9 KB. Bound the response so a hostile or
-# broken endpoint cannot feed an unbounded document to the XML parser.
+# The status tables top out around 9 KB. Bound the response so a broken or
+# hostile endpoint cannot stream an unbounded document into memory.
 MAX_RESPONSE_BYTES = 1_048_576
 
 _UPTIME_RE = re.compile(r"(\d+)\s*day\(s\)\s*(\d+)h:(\d+)m:(\d+)s")
+_SID_RE = re.compile(r"[A-Za-z0-9]{1,64}")
+_UNREADABLE = (requests.RequestException, RuntimeError, ValueError, ET.ParseError)
+_FALLBACK_DEVICE: DeviceInfo = {
+    "manufacturer": "ARRIS", "model": "SB8200", "sw_version": "",
+}
 
 
 class Query(Enum):
@@ -67,9 +74,9 @@ def _node_text(node: ET.Element | None, default: str = "") -> str:
 class SB8200CBNDriver(ModemDriver):
     """Driver for ARRIS SURFboard SB8200 modems running CBN firmware.
 
-    The firmware allows one Web-UI session at a time and rotates its CSRF
-    token on every response, so the session is held open across polls and
-    released on shutdown.
+    The firmware allows one Web-UI session at a time, rotates its CSRF token on
+    every response, and rate-limits repeated logins, so the session is held
+    across polls and released on shutdown.
     """
 
     FORMAT_FAMILIES = ("sb8200_cbn_xml",)
@@ -84,75 +91,88 @@ class SB8200CBNDriver(ModemDriver):
         session.verify = False
         session.headers["Referer"] = url.rstrip("/") + "/"
         session.headers["X-Requested-With"] = "XMLHttpRequest"
-        # The session is locked to one IP plus User-Agent, so this must stay
-        # stable for the lifetime of the login.
+        # The session is bound to the client address and User-Agent, so this
+        # must stay stable for the lifetime of the login.
         session.headers["User-Agent"] = "docsight/2"
         self._session: requests.Session = session
         self._logged_in = False
         self._hw_model: str | None = None
         # Release the single Web-UI session so the operator is not locked out
-        # of their own modem when DOCSight exits.
+        # of their own modem when DOCSight exits or swaps drivers.
         self._finalizer = weakref.finalize(self, SB8200CBNDriver._cleanup, url, session)
         self._finalizer.atexit = True
 
     @staticmethod
     def _cleanup(url: str, session: requests.Session) -> None:
         """Close the Web-UI session so another client can connect."""
-        if "SID" not in session.cookies:
-            return
         try:
-            session.post(
-                f"{url}/xml/setter.xml",
-                data={
-                    "token": session.cookies.get("sessionToken", ""),
-                    "fun": str(Action.LOGOUT.value),
-                },
-                timeout=10,
-            )
-        except requests.RequestException:
+            if session.cookies.get("SID"):
+                session.post(
+                    f"{url}/xml/setter.xml",
+                    data={
+                        "token": session.cookies.get("sessionToken", ""),
+                        "fun": str(Action.LOGOUT.value),
+                    },
+                    timeout=10,
+                    stream=True,
+                ).close()
+            # clear(name=...) requires a domain and path, and a duplicate SID
+            # makes __delitem__ raise, so each match is dropped explicitly.
+            for cookie in list(session.cookies):
+                if cookie.name == "SID":
+                    session.cookies.clear(cookie.domain, cookie.path, cookie.name)
+        except Exception:  # noqa: BLE001 - must never raise from a finalizer
             pass
-        session.cookies.pop("SID", None)
+        finally:
+            session.close()
 
     def login(self) -> None:
-        """Authenticate with the modem, reusing an already-open session.
-
-        The firmware rate-limits repeated login attempts, so an established
-        session is kept rather than re-authenticated on every poll.
-        """
+        """Authenticate with the modem, reusing an already-open session."""
         if self._logged_in:
             return
 
-        self._session.cookies.clear()
-        response = self._session.get(f"{self._url}/common_page/login.html", timeout=10)
-        response.raise_for_status()
-        response.close()
+        # Release a session this driver still holds before discarding the
+        # cookies that identify it, so a failed login cannot strand an open
+        # session on a modem that permits only one.
+        self._release_session()
 
+        # Only the rotating session cookie is needed, so the login page body
+        # is never downloaded.
+        response = self._session.get(
+            f"{self._url}/common_page/login.html", timeout=10, stream=True
+        )
+        response.close()
+        response.raise_for_status()
+
+        # Resolve the hardware model first: that request rotates the session
+        # token, and the credentials must be keyed with the token the login
+        # request will carry.
+        hw_model = self._hardware_model()
         token = self._session_token()
         if not token:
             raise RuntimeError("Modem did not issue a session token")
 
-        hw_model = self._hardware_model()
         body = self._set_data(Action.LOGIN, {
             "Username": self._encrypt(self._user or "admin", token, hw_model),
             "Password": self._encrypt(self._password, token, hw_model),
         })
-
-        if "successful" not in body or "SID=" not in body:
+        sid = body.split("SID=", 1)[1].strip() if "SID=" in body else ""
+        if not body.lstrip().startswith("successful") or not _SID_RE.fullmatch(sid):
             # The response body can echo account state, so it is not logged.
             raise RuntimeError("Modem authentication failed: check username and password")
 
-        self._session.cookies.set("SID", body.split("SID=", 1)[1].strip())
+        self._session.cookies.set("SID", sid)
         self._logged_in = True
         log.info("Auth OK (%s)", hw_model)
 
     def get_docsis_data(self) -> DocsisData:
         """Query the SC-QAM, OFDM, OFDMA, and codeword tables."""
         parsed = parse_sb8200_cbn_xml(
-            self._get_data(Query.DOWNSTREAM_TABLE),
-            self._get_data(Query.UPSTREAM_TABLE),
-            self._get_data(Query.DOWNSTREAM_OFDM_TABLE),
-            self._get_data(Query.UPSTREAM_OFDMA_TABLE),
-            self._get_data(Query.SIGNAL_TABLE),
+            downstream_xml=self._get_data(Query.DOWNSTREAM_TABLE),
+            upstream_xml=self._get_data(Query.UPSTREAM_TABLE),
+            downstream_ofdm_xml=self._get_data(Query.DOWNSTREAM_OFDM_TABLE),
+            upstream_ofdma_xml=self._get_data(Query.UPSTREAM_OFDMA_TABLE),
+            signal_xml=self._get_data(Query.SIGNAL_TABLE),
         )
         if parsed.value is None:
             raise ValueError("invalid SB8200 channel XML")
@@ -165,21 +185,24 @@ class SB8200CBNDriver(ModemDriver):
         """
         try:
             root = self._xml(self._get_data(Query.SYSTEM_INFO))
-            if root is None:
-                raise ValueError("missing system info")
-            info: DeviceInfo = {
-                "manufacturer": "ARRIS",
-                "model": _node_text(root.find("HwModel"), "SB8200"),
-                "hw_version": _node_text(root.find("cm_hardware_version")),
-                "sw_version": _node_text(root.find("SwVersion")),
-                "docsis_status": _node_text(root.find("cm_status")),
-            }
-            uptime = self._uptime_seconds(_node_text(root.find("cm_system_uptime")))
-            if uptime is not None:
-                info["uptime_seconds"] = uptime
-            return info
-        except Exception:
-            return {"manufacturer": "ARRIS", "model": "SB8200", "sw_version": ""}
+        except _UNREADABLE as e:
+            log.warning("Failed to get device info: %s", e)
+            return dict(_FALLBACK_DEVICE)
+        if root is None:
+            log.warning("Modem returned unreadable system info")
+            return dict(_FALLBACK_DEVICE)
+
+        info: DeviceInfo = {
+            "manufacturer": "ARRIS",
+            "model": _node_text(root.find("HwModel"), "SB8200"),
+            "hw_version": _node_text(root.find("cm_hardware_version")),
+            "sw_version": _node_text(root.find("SwVersion")),
+            "docsis_status": _node_text(root.find("cm_status")),
+        }
+        uptime = self._uptime_seconds(_node_text(root.find("cm_system_uptime")))
+        if uptime is not None:
+            info["uptime_seconds"] = uptime
+        return info
 
     def get_connection_info(self) -> ConnectionInfo:
         """Report the DOCSIS mode.
@@ -189,11 +212,11 @@ class SB8200CBNDriver(ModemDriver):
         """
         try:
             root = self._xml(self._get_data(Query.SYSTEM_INFO))
-            mode = _node_text(root.find("cm_docsis_mode")) if root is not None else ""
-            return {"connection_type": mode} if mode else {}
-        except Exception as e:
+        except _UNREADABLE as e:
             log.warning("Failed to get connection info: %s", e)
             return {}
+        mode = _node_text(root.find("cm_docsis_mode")) if root is not None else ""
+        return {"connection_type": mode} if mode else {}
 
     @staticmethod
     def _encrypt(value: str, token: str, hw_model: str) -> str:
@@ -226,20 +249,33 @@ class SB8200CBNDriver(ModemDriver):
         """Read the CSRF token the modem rotates on every response."""
         return self._session.cookies.get("sessionToken", "")
 
+    def _release_session(self) -> None:
+        """Close a session this driver still holds, then drop its cookies."""
+        if self._session.cookies.get("SID"):
+            try:
+                self._request(Action.LOGOUT)
+            except _UNREADABLE as e:
+                log.debug("Logout before re-authentication failed: %s", e)
+        self._session.cookies.clear()
+        self._logged_in = False
+
     def _hardware_model(self) -> str:
         """Read the hardware model that keys the login envelope."""
         if self._hw_model:
             return self._hw_model
-        root = self._xml(self._request("getter.xml", Query.GLOBAL_SETTINGS.value)[0])
+        root = self._xml(self._request(Query.GLOBAL_SETTINGS)[0])
         model = _node_text(root.find("HwModel")) if root is not None else ""
         if not model:
             raise RuntimeError("Modem did not report a hardware model")
         self._hw_model = model
         return model
 
-    def _request(self, endpoint: str, function: int, data: dict[str, str] | None = None) -> tuple[str, int]:
+    def _request(
+        self, function: Query | Action, data: dict[str, str] | None = None
+    ) -> tuple[str, int]:
         """Post one function call, returning its body and HTTP status."""
-        payload = {"token": self._session_token(), "fun": str(function)}
+        endpoint = "getter.xml" if isinstance(function, Query) else "setter.xml"
+        payload = {"token": self._session_token(), "fun": str(function.value)}
         if data:
             payload |= data
         response = self._session.post(
@@ -247,26 +283,53 @@ class SB8200CBNDriver(ModemDriver):
             data=payload,
             timeout=10,
             allow_redirects=False,
+            stream=True,
         )
-        response.raise_for_status()
-        if len(response.content) > MAX_RESPONSE_BYTES:
-            raise RuntimeError(f"Modem response for fun={function} exceeds the size limit")
-        return response.text, response.status_code
+        try:
+            response.raise_for_status()
+            body = response.raw.read(MAX_RESPONSE_BYTES + 1, decode_content=True)
+        finally:
+            response.close()
+        if len(body) > MAX_RESPONSE_BYTES:
+            raise RuntimeError(f"Modem response for fun={function.value} exceeds the size limit")
+        return body.decode("utf-8", errors="replace"), response.status_code
+
+    @staticmethod
+    def _session_lost(body: str, status: int) -> bool:
+        """Report whether an answer means the session is no longer valid.
+
+        Measured against the device: once the session lapses, every table code
+        answers `302` with an empty body while `fun=1` still returns 200. Any
+        request carrying a stale CSRF token drops the session, so this is a
+        routine condition rather than an error.
+        """
+        return status == 302 or not body.strip()
 
     def _get_data(self, query: Query) -> str:
-        """Query one table, re-authenticating once if the session expired."""
-        body, status = self._request("getter.xml", query.value)
-        if status == 302:
-            log.info("Session expired, re-authenticating")
-            self._logged_in = False
-            self.login()
-            body, status = self._request("getter.xml", query.value)
-            if status == 302:
-                raise RuntimeError(f"Modem rejected fun={query.value} after re-authentication")
+        """Query one table, re-authenticating at most once per call.
+
+        Only a session this driver believed it held is re-established, which
+        keeps a failing login off the modem's rate limiter when a table is
+        unreadable for any other reason.
+        """
+        body, status = self._request(query)
+        if not self._session_lost(body, status):
+            return body
+        if not self._logged_in:
+            raise RuntimeError(f"Modem returned no data for fun={query.value}")
+
+        log.info("Session lost, re-authenticating")
+        self._logged_in = False
+        self.login()
+        body, status = self._request(query)
+        if self._session_lost(body, status):
+            raise RuntimeError(
+                f"Modem returned no data for fun={query.value} after re-authentication"
+            )
         return body
 
     def _set_data(self, action: Action, data: dict[str, str]) -> str:
         """Execute one action on the modem."""
         if "fun" in data or "token" in data:
             raise ValueError("invalid data key in SB8200 command")
-        return self._request("setter.xml", action.value, data)[0]
+        return self._request(action, data)[0]

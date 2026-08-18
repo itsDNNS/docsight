@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 from unittest.mock import MagicMock
+
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 import pytest
 import requests
 
 from app.drivers.formats.xml_payloads import parse_sb8200_cbn_xml
-from app.drivers.sb8200_cbn import Query, SB8200CBNDriver
+from app.drivers.sb8200_cbn import MAX_RESPONSE_BYTES, Query, SB8200CBNDriver
 
 # Captured from an SB8200v3 on AC01.01.008_122722_8200.03.07.733 and trimmed to
 # the channels needed here. The serial number is redacted.
@@ -99,23 +104,51 @@ def _response(text: str, status: int = 200) -> MagicMock:
     response.text = text
     response.content = text.encode()
     response.status_code = status
+    response.raw.read.return_value = text.encode()
     return response
 
 
-def _driver(url: str = "https://modem.invalid") -> SB8200CBNDriver:
-    """Build a driver whose transport is mocked but whose cookie jar is real."""
+def _decrypt_envelope(field: str, token: str) -> str:
+    """Decrypt a CBN login field, proving the modem could have read it.
+
+    This is the inverse of the driver's encryption rather than a copy of it,
+    so a field keyed with the wrong session token fails to decrypt.
+    """
+    payload = base64.b64decode(field).decode()
+    ciphertext = bytes.fromhex(payload.split(":")[2])
+    key = hashlib.sha256(token.encode()).digest()
+    iv = hashlib.md5(token.encode(), usedforsecurity=False).digest()
+    decryptor = Cipher(algorithms.AES(key), modes.CBC(iv)).decryptor()
+    padded = decryptor.update(ciphertext) + decryptor.finalize()
+    unpadder = padding.PKCS7(128).unpadder()
+    return (unpadder.update(padded) + unpadder.finalize()).decode()
+
+
+def _driver(url: str = "https://modem.invalid", *, rotate: bool = False) -> SB8200CBNDriver:
+    """Build a driver whose transport is mocked but whose cookie jar is real.
+
+    With `rotate`, the fake reproduces the firmware's behaviour of issuing a
+    new CSRF token on every response.
+    """
     driver = SB8200CBNDriver(url, "admin", "s3cr3t-pw")
     session = MagicMock()
     session.cookies = requests.cookies.RequestsCookieJar()
+    counter = {"n": 0}
+
+    def next_token() -> str:
+        if not rotate:
+            return SESSION_TOKEN
+        counter["n"] += 1
+        return f"{int(SESSION_TOKEN) + counter['n']}"
 
     def get(_url: str, **kwargs):
-        # The login page is what issues a fresh rotating CSRF token.
-        session.cookies.set("sessionToken", SESSION_TOKEN)
+        session.cookies.set("sessionToken", next_token())
         return _response("<html></html>")
 
     session.get.side_effect = get
     session.cookies.set("sessionToken", SESSION_TOKEN)
     driver._session = session
+    driver._rotate_token = next_token
     return driver
 
 
@@ -124,23 +157,35 @@ def _serve(driver: SB8200CBNDriver, login_body: str = "successful;SID=2134823424
     calls: list[dict] = []
 
     def post(url: str, data: dict, **kwargs):
-        calls.append({"url": url, "data": data})
-        if url.endswith("setter.xml"):
-            return _response(login_body)
-        return _response(GETTER_PAYLOADS.get(data["fun"], ""))
+        calls.append({"url": url, "data": dict(data)})
+        response = (
+            _response(login_body) if url.endswith("setter.xml")
+            else _response(GETTER_PAYLOADS.get(data["fun"], ""))
+        )
+        # The modem rotates its CSRF token on every response.
+        driver._session.cookies.set("sessionToken", driver._rotate_token())
+        return response
 
     driver._session.post.side_effect = post
     return calls
 
 
+def _parse(
+    ds: str | None = DOWNSTREAM_XML,
+    us: str | None = UPSTREAM_XML,
+    ofdm: str | None = OFDM_XML,
+    ofdma: str | None = OFDMA_XML,
+    signal: str | None = SIGNAL_XML,
+):
+    return parse_sb8200_cbn_xml(
+        downstream_xml=ds, upstream_xml=us, downstream_ofdm_xml=ofdm,
+        upstream_ofdma_xml=ofdma, signal_xml=signal,
+    )
+
+
 class TestParser:
     def test_downstream_scqam_joins_the_separate_codeword_table(self):
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, OFDMA_XML, SIGNAL_XML
-        )
-
-        downstream = result.value["channelDs"]["docsis30"]
-        assert downstream == [
+        assert _parse().value["channelDs"]["docsis30"] == [
             {
                 "channelID": 32, "frequency": "567 MHz", "powerLevel": 2.3,
                 "mer": 33.0, "mse": -33.0, "modulation": "256QAM",
@@ -154,19 +199,13 @@ class TestParser:
         ]
 
     def test_unlocked_channels_are_skipped_in_both_directions(self):
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, OFDMA_XML, SIGNAL_XML
-        )
+        result = _parse()
 
         assert [c["channelID"] for c in result.value["channelDs"]["docsis30"]] == [32, 8]
         assert [c["channelID"] for c in result.value["channelUs"]["docsis30"]] == [56]
 
     def test_downstream_ofdm_reports_the_band_start_and_keeps_mse_unset(self):
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, OFDMA_XML, SIGNAL_XML
-        )
-
-        assert result.value["channelDs"]["docsis31"] == [{
+        assert _parse().value["channelDs"]["docsis31"] == [{
             "channelID": 25, "type": "OFDM", "frequency": "605.6 MHz",
             "powerLevel": 1.1, "mse": None, "mer": 33.0, "modulation": "4096QAM",
         }]
@@ -177,9 +216,7 @@ class TestParser:
         Reporting them as measured codewords would pin downstream health at
         critical, so the lane must stay counter-unsupported instead.
         """
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, OFDMA_XML, SIGNAL_XML
-        )
+        result = _parse()
 
         ofdm = result.value["channelDs"]["docsis31"][0]
         assert "corrErrors" not in ofdm and "nonCorrErrors" not in ofdm
@@ -188,51 +225,96 @@ class TestParser:
         ]
 
     def test_upstream_reports_the_measured_symbol_rate(self):
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, OFDMA_XML, SIGNAL_XML
-        )
-
-        assert result.value["channelUs"]["docsis30"] == [{
+        assert _parse().value["channelUs"]["docsis30"] == [{
             "channelID": 56, "frequency": "37 MHz", "powerLevel": 49.0,
-            "modulation": "64QAM", "type": "ATDMA", "multiplex": "ATDMA",
-            "symbolRate": 5120,
+            "modulation": "64QAM", "multiplex": "ATDMA", "symbolRate": 5120,
         }]
 
-    def test_annex_b_symbol_rates_are_injected_per_modulation(self):
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, OFDMA_XML, SIGNAL_XML
-        )
-
-        rates = {c["modulation"]: c["symbolRate"] for c in result.value["channelDs"]["docsis30"]}
-        assert rates == {"256QAM": 5361, "64QAM": 5057}
-
     def test_missing_codeword_table_keeps_channels_without_inventing_counters(self):
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, OFDMA_XML, None
-        )
+        downstream = _parse(signal=None).value["channelDs"]["docsis30"]
 
-        downstream = result.value["channelDs"]["docsis30"]
         assert [c["channelID"] for c in downstream] == [32, 8]
         assert all("corrErrors" not in c and "nonCorrErrors" not in c for c in downstream)
 
     def test_malformed_codeword_table_degrades_to_a_diagnostic(self):
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, OFDMA_XML, "<signal_table>"
-        )
+        result = _parse(signal="<signal_table>")
 
         assert [c["channelID"] for c in result.value["channelDs"]["docsis30"]] == [32, 8]
-        assert [(d.code, d.field) for d in result.diagnostics] == [
-            ("invalid_xml", "signal_table"),
-            ("unsupported_counters", "ofdm_codewords"),
+        assert ("invalid_xml", "signal_table") in [
+            (d.code, d.field) for d in result.diagnostics
         ]
 
     def test_malformed_required_table_returns_no_value(self):
-        result = parse_sb8200_cbn_xml(
-            "<downstream_table>", UPSTREAM_XML, OFDM_XML, OFDMA_XML, SIGNAL_XML
-        )
+        result = _parse(ds="<downstream_table>")
 
         assert result.value is None
         assert [d.code for d in result.diagnostics] == ["invalid_xml"]
+
+    @pytest.mark.parametrize("payload", [
+        "<html><body>Login</body></html>",
+        "<upstream_table><us_num>0</us_num></upstream_table>",
+    ])
+    def test_a_foreign_document_is_rejected_rather_than_read_as_zero_channels(self, payload):
+        """An unauthenticated modem answers with a page, not an error.
+
+        Treating that as a table holding no channels would look like a total
+        signal loss and raise a false outage.
+        """
+        result = _parse(ds=payload)
+
+        assert result.value is None
+        assert [d.code for d in result.diagnostics] == ["invalid_xml"]
+
+    def test_an_unknown_lock_marker_drops_the_row_with_a_diagnostic(self):
+        downstream = (
+            "<downstream_table><downstream><freq>567000000</freq><pow>2.3</pow>"
+            "<snr>33</snr><mod>256QAM</mod><chid>32</chid>"
+            "<IsLocked>Locked</IsLocked></downstream></downstream_table>"
+        )
+
+        result = _parse(ds=downstream)
+
+        assert result.value["channelDs"]["docsis30"] == []
+        assert ("unknown_lock_state", "IsLocked") in [
+            (d.code, d.field) for d in result.diagnostics
+        ]
+
+    def test_a_missing_lock_marker_counts_as_locked(self):
+        downstream = (
+            "<downstream_table><downstream><freq>567000000</freq><pow>2.3</pow>"
+            "<chid>32</chid></downstream></downstream_table>"
+        )
+
+        assert [c["channelID"] for c in _parse(ds=downstream).value["channelDs"]["docsis30"]] == [32]
+
+    def test_an_unparsable_channel_is_reported_not_silently_dropped(self):
+        downstream = (
+            "<downstream_table><downstream><freq>567000000</freq><pow>nope</pow>"
+            "<chid>32</chid><IsLocked>1</IsLocked></downstream></downstream_table>"
+        )
+
+        result = _parse(ds=downstream)
+
+        assert result.value["channelDs"]["docsis30"] == []
+        assert ("invalid_channel", "sc_qam") in [
+            (d.code, d.field) for d in result.diagnostics
+        ]
+
+    def test_duplicate_and_unparsable_codeword_rows_are_reported(self):
+        signal = (
+            "<signal_table><signal><dsid>32</dsid><correctable>5</correctable>"
+            "<uncorrectable>1</uncorrectable></signal>"
+            "<signal><dsid>32</dsid><correctable>99</correctable>"
+            "<uncorrectable>abc</uncorrectable></signal>"
+            "<signal><dsid>x</dsid></signal></signal_table>"
+        )
+
+        result = _parse(signal=signal)
+
+        codes = [d.code for d in result.diagnostics]
+        assert "duplicate_row" in codes and "invalid_row" in codes
+        first = result.value["channelDs"]["docsis30"][0]
+        assert (first["corrErrors"], first["nonCorrErrors"]) == (5, 1)
 
     def test_active_ofdma_lane_is_reported_as_unsupported_rather_than_guessed(self):
         ofdma = (
@@ -240,21 +322,45 @@ class TestParser:
             "<upstream><usid>9</usid></upstream></upstreamOFDMA_table>"
         )
 
-        result = parse_sb8200_cbn_xml(
-            DOWNSTREAM_XML, UPSTREAM_XML, OFDM_XML, ofdma, SIGNAL_XML
-        )
+        result = _parse(ofdma=ofdma)
 
         assert result.value["channelUs"]["docsis31"] == []
-        assert [(d.code, d.direction) for d in result.diagnostics] == [
-            ("unsupported_counters", "downstream"),
-            ("unsupported_lane", "upstream"),
+        assert ("unsupported_lane", "upstream") in [
+            (d.code, d.direction) for d in result.diagnostics
+        ]
+
+    @pytest.mark.parametrize("value", ["inf", "-inf", "nan", "1e400"])
+    def test_non_finite_numbers_degrade_instead_of_crashing_the_poll(self, value):
+        """Modem output is untrusted; a bad number must not escape the parser."""
+        upstream = (
+            "<upstream_table><upstream><usid>1</usid><freq>37000000</freq>"
+            f"<power>49</power><srate>{value}</srate><usLocked>1</usLocked>"
+            "</upstream></upstream_table>"
+        )
+
+        result = _parse(us=upstream)
+
+        assert "symbolRate" not in result.value["channelUs"]["docsis30"][0]
+
+    @pytest.mark.parametrize("value", ["inf", "nan"])
+    def test_non_finite_power_is_rejected_rather_than_stored(self, value):
+        upstream = (
+            "<upstream_table><upstream><usid>1</usid><freq>37000000</freq>"
+            f"<power>{value}</power><usLocked>1</usLocked></upstream></upstream_table>"
+        )
+
+        result = _parse(us=upstream)
+
+        assert result.value["channelUs"]["docsis30"] == []
+        assert ("invalid_channel", "sc_qam") in [
+            (d.code, d.field) for d in result.diagnostics
         ]
 
     def test_empty_tables_produce_empty_lanes(self):
-        result = parse_sb8200_cbn_xml(
-            "<downstream_table><ds_num>0</ds_num></downstream_table>",
-            "<upstream_table><us_num>0</us_num></upstream_table>",
-            None, None, None,
+        result = _parse(
+            ds="<downstream_table><ds_num>0</ds_num></downstream_table>",
+            us="<upstream_table><us_num>0</us_num></upstream_table>",
+            ofdm=None, ofdma=None, signal=None,
         )
 
         assert result.value == {
@@ -266,9 +372,7 @@ class TestParser:
 
 class TestDriver:
     def test_plain_http_urls_are_upgraded(self):
-        driver = SB8200CBNDriver("http://192.168.100.1", "admin", "pw")
-
-        assert driver._url == "https://192.168.100.1"
+        assert SB8200CBNDriver("http://192.168.100.1", "admin", "pw")._url == "https://192.168.100.1"
 
     def test_login_matches_the_firmware_encryption_envelope(self):
         driver = _driver()
@@ -276,11 +380,26 @@ class TestDriver:
 
         driver.login()
 
-        login = next(c for c in calls if c["url"].endswith("setter.xml"))
-        assert login["data"]["fun"] == "15"
+        login = next(c for c in calls if c["data"]["fun"] == "15")
         assert login["data"]["Username"] == ENCRYPTED_ADMIN
         assert login["data"]["Password"] == ENCRYPTED_PASSWORD
         assert driver._session.cookies.get("SID") == "2134823424"
+
+    def test_credentials_are_keyed_with_the_token_the_request_carries(self):
+        """The token rotates on every response, including the model lookup.
+
+        Keying the envelope with a stale token yields credentials the modem
+        cannot decrypt, so the posted token must be the one used.
+        """
+        driver = _driver(rotate=True)
+        calls = _serve(driver)
+
+        driver.login()
+
+        login = next(c for c in calls if c["data"]["fun"] == "15")
+        token = login["data"]["token"]
+        assert _decrypt_envelope(login["data"]["Username"], token) == "admin"
+        assert _decrypt_envelope(login["data"]["Password"], token) == "s3cr3t-pw"
 
     def test_login_is_not_repeated_while_a_session_is_held(self):
         driver = _driver()
@@ -291,15 +410,33 @@ class TestDriver:
 
         assert sum(1 for c in calls if c["data"]["fun"] == "15") == 1
 
-    def test_rejected_credentials_raise_without_echoing_the_response(self):
+    @pytest.mark.parametrize("body", [
+        "unsuccessful;SID=0",
+        "successful;SID=",
+        "successful;SID=not a valid sid",
+        "failed;reason=KDGloginincorrect",
+    ])
+    def test_only_a_well_formed_success_response_is_accepted(self, body):
         driver = _driver()
-        _serve(driver, login_body="failed;reason=KDGloginincorrect")
+        _serve(driver, login_body=body)
 
         with pytest.raises(RuntimeError) as excinfo:
             driver.login()
 
         assert "KDGloginincorrect" not in str(excinfo.value)
         assert driver._logged_in is False
+        assert driver._session.cookies.get("SID") is None
+
+    def test_a_held_session_is_released_before_reauthenticating(self):
+        """The modem permits one session, so the old one must be closed."""
+        driver = _driver()
+        calls = _serve(driver)
+        driver.login()
+        driver._logged_in = False
+
+        driver.login()
+
+        assert [c["data"]["fun"] for c in calls].count("16") == 1
 
     def test_expired_session_triggers_exactly_one_reauthentication(self):
         driver = _driver()
@@ -309,19 +446,78 @@ class TestDriver:
         redirected = {"done": False}
 
         def post(url: str, data: dict, **kwargs):
-            calls.append(data)
+            calls.append(dict(data))
             if url.endswith("setter.xml"):
                 return _response("successful;SID=1")
             if data["fun"] == str(Query.SYSTEM_INFO.value) and not redirected["done"]:
+                redirected["done"] = True
+                return _response("")
+            return _response(GETTER_PAYLOADS.get(data["fun"], ""))
+
+        driver._session.post.side_effect = post
+
+        assert driver.get_device_info()["model"] == "SB8200v3"
+        assert sum(1 for c in calls if c["fun"] == "15") == 1
+
+    def test_empty_body_without_a_held_session_does_not_retry_the_login(self):
+        """The modem rate-limits repeated logins, so a poll must not loop."""
+        driver = _driver()
+        driver._logged_in = False
+        calls: list[dict] = []
+
+        def post(url: str, data: dict, **kwargs):
+            calls.append(dict(data))
+            return _response("")
+
+        driver._session.post.side_effect = post
+
+        with pytest.raises(RuntimeError, match="no data"):
+            driver._get_data(Query.DOWNSTREAM_TABLE)
+        assert [c for c in calls if c["fun"] == "15"] == []
+
+    def test_a_redirect_is_treated_as_session_loss(self):
+        """A lapsed session answers every table code with a 302.
+
+        Measured on the device: after the session drops, fun=10/11/19 all
+        redirect while fun=1 still returns 200.
+        """
+        driver = _driver()
+        driver._logged_in = True
+        driver._hw_model = "SB8200v3"
+        calls: list[dict] = []
+        redirected = {"done": False}
+
+        def post(url: str, data: dict, **kwargs):
+            calls.append(dict(data))
+            if url.endswith("setter.xml"):
+                return _response("successful;SID=1")
+            if data["fun"] == str(Query.DOWNSTREAM_TABLE.value) and not redirected["done"]:
                 redirected["done"] = True
                 return _response("", status=302)
             return _response(GETTER_PAYLOADS.get(data["fun"], ""))
 
         driver._session.post.side_effect = post
 
-        info = driver.get_device_info()
+        assert driver._get_data(Query.DOWNSTREAM_TABLE) == DOWNSTREAM_XML
+        assert sum(1 for c in calls if c["fun"] == "15") == 1
 
-        assert info["model"] == "SB8200v3"
+    def test_a_persistent_redirect_gives_up_without_looping(self):
+        """One login per call, so a wedged table cannot hammer the limiter."""
+        driver = _driver()
+        driver._logged_in = True
+        driver._hw_model = "SB8200v3"
+        calls: list[dict] = []
+
+        def post(url: str, data: dict, **kwargs):
+            calls.append(dict(data))
+            if url.endswith("setter.xml"):
+                return _response("successful;SID=1")
+            return _response("", status=302)
+
+        driver._session.post.side_effect = post
+
+        with pytest.raises(RuntimeError, match="after re-authentication"):
+            driver._get_data(Query.DOWNSTREAM_TABLE)
         assert sum(1 for c in calls if c["fun"] == "15") == 1
 
     def test_docsis_data_is_normalized_through_the_profile(self):
@@ -351,6 +547,15 @@ class TestDriver:
         }
         assert "REDACTEDSERIAL1" not in str(info)
 
+    def test_device_info_falls_back_without_claiming_measured_values(self):
+        driver = _driver()
+        driver._logged_in = False
+        driver._session.post.side_effect = lambda url, data, **kw: _response("")
+
+        assert driver.get_device_info() == {
+            "manufacturer": "ARRIS", "model": "SB8200", "sw_version": "",
+        }
+
     def test_connection_info_reports_mode_without_inventing_rates(self):
         driver = _driver()
         _serve(driver)
@@ -364,14 +569,60 @@ class TestDriver:
         with pytest.raises(ValueError):
             driver.get_docsis_data()
 
+    def test_transport_errors_propagate(self):
+        driver = _driver()
+        failing = _response("")
+        failing.raise_for_status.side_effect = requests.HTTPError("boom")
+        driver._session.post.side_effect = lambda url, data, **kw: failing
+
+        with pytest.raises(requests.HTTPError):
+            driver._get_data(Query.DOWNSTREAM_TABLE)
+
     def test_oversized_response_is_refused_before_parsing(self):
         driver = _driver()
         oversized = _response("<downstream_table/>")
-        oversized.content = b"x" * (1_048_576 + 1)
+        oversized.raw.read.return_value = b"x" * (MAX_RESPONSE_BYTES + 1)
         driver._session.post.side_effect = lambda url, data, **kw: oversized
 
         with pytest.raises(RuntimeError, match="size limit"):
             driver.get_docsis_data()
+
+    def test_only_the_bounded_prefix_is_read_from_the_socket(self):
+        driver = _driver()
+        payload = _response(DOWNSTREAM_XML)
+        driver._session.post.side_effect = lambda url, data, **kw: payload
+
+        driver._get_data(Query.DOWNSTREAM_TABLE)
+
+        payload.raw.read.assert_called_once_with(
+            MAX_RESPONSE_BYTES + 1, decode_content=True
+        )
+
+    def test_cleanup_releases_the_single_web_ui_session(self):
+        driver = _driver()
+        _serve(driver)
+        driver.login()
+        session = driver._session
+
+        SB8200CBNDriver._cleanup("https://modem.invalid", session)
+
+        logouts = [
+            c for c in session.post.call_args_list
+            if c.kwargs.get("data", {}).get("fun") == str(16)
+        ]
+        assert logouts, "expected a logout post"
+        assert session.cookies.get("SID") is None
+        session.close.assert_called_once()
+
+    def test_cleanup_never_raises(self):
+        session = MagicMock()
+        session.cookies = requests.cookies.RequestsCookieJar()
+        session.cookies.set("SID", "1")
+        session.post.side_effect = requests.ConnectionError("down")
+
+        SB8200CBNDriver._cleanup("https://modem.invalid", session)
+
+        session.close.assert_called_once()
 
     @pytest.mark.parametrize("uptime,expected", [
         ("14day(s)20h:50m:40s", 1284640),

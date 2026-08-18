@@ -7,7 +7,7 @@ from types import MappingProxyType
 
 from ...types import DocsisDataFritz, RawChannel
 from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split
-from .primitives import hz_to_mhz, normalize_modulation
+from .primitives import hz_to_mhz, normalize_modulation, parse_optional_finite_float
 
 _XML_FAMILY = "xml_payloads"
 _SB8200_PROFILE = "sb8200_cbn_xml"
@@ -97,29 +97,11 @@ def parse_ch7465_xml(
     )
 
 
-def _optional_int(value: str) -> int | None:
+def _optional_int(value: object) -> int | None:
     """Parse an optional counter, keeping a missing value distinct from zero."""
     try:
-        return int(value.strip())
-    except (AttributeError, ValueError):
-        return None
-
-
-def _optional_float(value: str) -> float | None:
-    """Parse an optional measurement, keeping a missing value distinct from zero."""
-    try:
-        return float(value.strip())
-    except (AttributeError, ValueError):
-        return None
-
-
-def _sb8200_root(payload: str | None) -> ET.Element | None:
-    """Return the parsed table root, or None for an absent or malformed table."""
-    if not payload:
-        return None
-    try:
-        return ET.fromstring(payload)
-    except ET.ParseError:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
         return None
 
 
@@ -134,6 +116,37 @@ def _sb8200_issue(
         _SB8200_PROFILE, code, family=_XML_FAMILY,
         direction=direction, index=index, field=field,
     )
+
+
+def _sb8200_root(payload: str | None, expected_tag: str) -> ET.Element | None:
+    """Return the named table root, or None when absent, malformed, or foreign.
+
+    The modem answers an unauthenticated request with a login page rather than
+    an error, so a document that parses but is not the expected table must not
+    be reported as a table holding no channels.
+    """
+    if not payload:
+        return None
+    try:
+        root = ET.fromstring(payload)
+    except ET.ParseError:
+        return None
+    return root if root.tag == expected_tag else None
+
+
+def _sb8200_optional_root(
+    payload: str | None,
+    expected_tag: str,
+    diagnostics: list[ParseDiagnostic],
+    *,
+    direction: str,
+    field: str,
+) -> ET.Element | None:
+    """Resolve an enrichment table, recording why it could not be used."""
+    root = _sb8200_root(payload, expected_tag)
+    if root is None and payload:
+        diagnostics.append(_sb8200_issue("invalid_xml", direction=direction, field=field))
+    return root
 
 
 def _sb8200_error_counters(
@@ -153,16 +166,43 @@ def _sb8200_error_counters(
                 "invalid_row", direction="downstream", index=index, field="dsid",
             ))
             continue
-        counters[dsid] = (
-            _optional_int(_text(entry.find("correctable"))),
-            _optional_int(_text(entry.find("uncorrectable"))),
-        )
+        if dsid in counters:
+            diagnostics.append(_sb8200_issue(
+                "duplicate_row", direction="downstream", index=index, field="dsid",
+            ))
+            continue
+        corrected = _optional_int(_text(entry.find("correctable")))
+        uncorrected = _optional_int(_text(entry.find("uncorrectable")))
+        if corrected is None or uncorrected is None:
+            diagnostics.append(_sb8200_issue(
+                "invalid_row", direction="downstream", index=index, field="codewords",
+            ))
+        counters[dsid] = (corrected, uncorrected)
     return counters, diagnostics
 
 
-def _sb8200_locked(channel: ET.Element, field: str) -> bool:
-    """Treat only an explicit unlocked marker as unlocked."""
-    return _text(channel.find(field)).strip() in ("", "1")
+def _sb8200_locked(
+    channel: ET.Element,
+    field: str,
+    diagnostics: list[ParseDiagnostic],
+    *,
+    direction: str,
+    index: int,
+) -> bool:
+    """Report lock state, treating only a known marker as authoritative.
+
+    A missing marker counts as locked; ``0`` counts as unlocked; anything else
+    is a firmware spelling this profile has never seen, so the row is dropped
+    with a diagnostic rather than silently disappearing.
+    """
+    state = _text(channel.find(field)).strip()
+    if state in ("", "1"):
+        return True
+    if state != "0":
+        diagnostics.append(_sb8200_issue(
+            "unknown_lock_state", direction=direction, index=index, field=field,
+        ))
+    return False
 
 
 def _sb8200_ofdm_locked(channel: ET.Element) -> bool:
@@ -183,13 +223,15 @@ def _sb8200_downstream_scqam(
     channels: list[RawChannel] = []
     diagnostics: list[ParseDiagnostic] = []
     for index, entry in enumerate(root.findall("downstream")):
-        if not _sb8200_locked(entry, "IsLocked"):
+        if not _sb8200_locked(
+            entry, "IsLocked", diagnostics, direction="downstream", index=index
+        ):
             continue
         channel_id = _optional_int(_text(entry.find("chid")))
-        power = _optional_float(_text(entry.find("pow")))
+        power = parse_optional_finite_float(_text(entry.find("pow")))
         if channel_id is None or power is None:
             diagnostics.append(_sb8200_issue(
-                "invalid_channel", direction="downstream", index=index,
+                "invalid_channel", direction="downstream", index=index, field="sc_qam",
             ))
             continue
         channel: RawChannel = {
@@ -197,7 +239,7 @@ def _sb8200_downstream_scqam(
             "frequency": hz_to_mhz(_text(entry.find("freq"))),
             "powerLevel": power,
         }
-        snr = _optional_float(_text(entry.find("snr")))
+        snr = parse_optional_finite_float(_text(entry.find("snr")))
         if snr is not None:
             channel["mer"] = snr
             channel["mse"] = -snr
@@ -225,10 +267,10 @@ def _sb8200_downstream_ofdm(
         if not _sb8200_ofdm_locked(entry):
             continue
         channel_id = _optional_int(_text(entry.find("dsid")))
-        power = _optional_float(_text(entry.find("PLCPower")))
+        power = parse_optional_finite_float(_text(entry.find("PLCPower")))
         if channel_id is None or power is None:
             diagnostics.append(_sb8200_issue(
-                "invalid_channel", direction="downstream", index=index,
+                "invalid_channel", direction="downstream", index=index, field="ofdm",
             ))
             continue
         channel: RawChannel = {
@@ -238,7 +280,7 @@ def _sb8200_downstream_ofdm(
             "powerLevel": power,
             "mse": None,
         }
-        mer = _optional_float(_text(entry.find("DataScAvgMer")))
+        mer = parse_optional_finite_float(_text(entry.find("DataScAvgMer")))
         if mer is not None:
             channel["mer"] = mer
         modulation = normalize_modulation(_text(entry.find("ofdmModulation")))
@@ -266,13 +308,15 @@ def _sb8200_upstream_scqam(
     channels: list[RawChannel] = []
     diagnostics: list[ParseDiagnostic] = []
     for index, entry in enumerate(root.findall("upstream")):
-        if not _sb8200_locked(entry, "usLocked"):
+        if not _sb8200_locked(
+            entry, "usLocked", diagnostics, direction="upstream", index=index
+        ):
             continue
         channel_id = _optional_int(_text(entry.find("usid")))
-        power = _optional_float(_text(entry.find("power")))
+        power = parse_optional_finite_float(_text(entry.find("power")))
         if channel_id is None or power is None:
             diagnostics.append(_sb8200_issue(
-                "invalid_channel", direction="upstream", index=index,
+                "invalid_channel", direction="upstream", index=index, field="sc_qam",
             ))
             continue
         channel: RawChannel = {
@@ -285,11 +329,11 @@ def _sb8200_upstream_scqam(
             channel["modulation"] = modulation
         multiplex = _text(entry.find("channeltype")).strip().upper()
         if multiplex:
-            channel["type"] = multiplex
             channel["multiplex"] = multiplex
-        symbol_rate = _optional_float(_text(entry.find("srate")))
+        # The table reports the symbol rate in Msym/s; channels carry ksym/s.
+        symbol_rate = parse_optional_finite_float(_text(entry.find("srate")))
         if symbol_rate is not None:
-            channel["symbolRate"] = int(round(symbol_rate * 1000))
+            channel["symbolRate"] = round(symbol_rate * 1000)
         channels.append(channel)
     return channels, diagnostics
 
@@ -302,6 +346,7 @@ def _sb8200_ofdma_present(root: ET.Element) -> bool:
 
 
 def parse_sb8200_cbn_xml(
+    *,
     downstream_xml: str | None,
     upstream_xml: str | None,
     downstream_ofdm_xml: str | None,
@@ -314,21 +359,19 @@ def parse_sb8200_cbn_xml(
     and codeword tables enrich the result and degrade to a diagnostic so a
     partially reachable modem still reports the channels it did return.
     """
-    downstream_root = _sb8200_root(downstream_xml)
-    upstream_root = _sb8200_root(upstream_xml)
+    downstream_root = _sb8200_root(downstream_xml, "downstream_table")
+    upstream_root = _sb8200_root(upstream_xml, "upstream_table")
     if downstream_root is None or upstream_root is None:
         return ParseResult(None, (_sb8200_issue("invalid_xml"),))
 
     diagnostics: list[ParseDiagnostic] = []
 
     counters: dict[int, tuple[int | None, int | None]] = {}
-    signal_root = _sb8200_root(signal_xml)
-    if signal_root is None:
-        if signal_xml:
-            diagnostics.append(_sb8200_issue(
-                "invalid_xml", direction="downstream", field="signal_table",
-            ))
-    else:
+    signal_root = _sb8200_optional_root(
+        signal_xml, "signal_table", diagnostics,
+        direction="downstream", field="signal_table",
+    )
+    if signal_root is not None:
         counters, counter_issues = _sb8200_error_counters(signal_root)
         diagnostics.extend(counter_issues)
 
@@ -336,13 +379,11 @@ def parse_sb8200_cbn_xml(
     diagnostics.extend(ds30_issues)
 
     ds31: list[RawChannel] = []
-    ofdm_root = _sb8200_root(downstream_ofdm_xml)
-    if ofdm_root is None:
-        if downstream_ofdm_xml:
-            diagnostics.append(_sb8200_issue(
-                "invalid_xml", direction="downstream", field="ofdm_table",
-            ))
-    else:
+    ofdm_root = _sb8200_optional_root(
+        downstream_ofdm_xml, "downstreamOFDM_table", diagnostics,
+        direction="downstream", field="ofdm_table",
+    )
+    if ofdm_root is not None:
         ds31, ds31_issues = _sb8200_downstream_ofdm(ofdm_root)
         diagnostics.extend(ds31_issues)
 
@@ -352,13 +393,11 @@ def parse_sb8200_cbn_xml(
     # The observed firmware reports us_num=0 and no OFDMA rows. The lane is
     # reported as unsupported rather than guessed from field names that no
     # captured payload has ever shown.
-    ofdma_root = _sb8200_root(upstream_ofdma_xml)
-    if ofdma_root is None:
-        if upstream_ofdma_xml:
-            diagnostics.append(_sb8200_issue(
-                "invalid_xml", direction="upstream", field="ofdma_table",
-            ))
-    elif _sb8200_ofdma_present(ofdma_root):
+    ofdma_root = _sb8200_optional_root(
+        upstream_ofdma_xml, "upstreamOFDMA_table", diagnostics,
+        direction="upstream", field="ofdma_table",
+    )
+    if ofdma_root is not None and _sb8200_ofdma_present(ofdma_root):
         diagnostics.append(_sb8200_issue(
             "unsupported_lane", direction="upstream", field="ofdma_table",
         ))

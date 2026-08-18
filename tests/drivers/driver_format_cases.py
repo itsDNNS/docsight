@@ -452,7 +452,7 @@ def _cases() -> list[DriverFormatCase]:
     sb_expected = _split(
         [{"channelID": 32, "frequency": "567 MHz", "powerLevel": 2.3, "mer": 33.0, "mse": -33.0, "modulation": "256QAM", "symbolRate": 5361, "corrErrors": 226053938, "nonCorrErrors": 1212}],
         [{"channelID": 25, "type": "OFDM", "frequency": "605.6 MHz", "powerLevel": 1.1, "mse": None, "mer": 33.0, "modulation": "4096QAM"}],
-        [{"channelID": 56, "frequency": "37 MHz", "powerLevel": 49.0, "modulation": "64QAM", "type": "ATDMA", "multiplex": "ATDMA", "symbolRate": 5120}],
+        [{"channelID": 56, "frequency": "37 MHz", "powerLevel": 49.0, "modulation": "64QAM", "multiplex": "ATDMA", "symbolRate": 5120}],
     )
     add("sb8200_cbn_xml.success_all_lanes", "sb8200_cbn", "sb8200_cbn_xml", "captured-subset", lambda: _sb8200_cbn(sb_ds, sb_us, sb_ofdm, sb_ofdma, sb_signal), sb_expected)
     add("sb8200_cbn_xml.empty_tables", "sb8200_cbn", "sb8200_cbn_xml", "minimal-empty", lambda: _sb8200_cbn("<downstream_table/>", "<upstream_table/>", "<downstreamOFDM_table/>", sb_ofdma, "<signal_table/>"), EMPTY_SPLIT)
