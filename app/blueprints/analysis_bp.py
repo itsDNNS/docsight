@@ -255,5 +255,4 @@ def api_correlation():
                 entry["modem_ds_snr_min"] = closest.get("ds_snr_min")
                 entry["modem_ds_power_avg"] = closest.get("ds_power_avg")
 
-    _localize_timestamps(timeline)
     return jsonify(timeline)

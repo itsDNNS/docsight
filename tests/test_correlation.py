@@ -4,19 +4,19 @@ import json
 import sqlite3
 import pytest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
-from app.tz import to_local, utc_now, utc_cutoff
-from app.web import update_state, _get_tz_name
+from app.tz import utc_now, utc_cutoff
+from app.web import update_state
 from app.config import ConfigManager
 from app.runtime import current_runtime
 
 
 def _api_response_date(utc_ts: str) -> str:
-    """Return the date part expected from APIs that localize UTC timestamps."""
-    tz_name = _get_tz_name()
-    return (to_local(utc_ts, tz_name) if tz_name else utc_ts.rstrip("Z"))[:10]
+    """Return the UTC date part expected from the correlation API."""
+    return utc_ts[:10]
 
 
 @pytest.fixture
@@ -293,6 +293,51 @@ class TestCorrelationAPI:
         sources = set(e["source"] for e in data)
         assert "modem" in sources
         assert "speedtest" in sources
+
+    def test_correlation_preserves_utc_timestamps_with_configured_timezone(
+        self, client_with_storage, config_mgr, storage
+    ):
+        """Machine-readable correlation timestamps remain UTC across a DST boundary."""
+        config_mgr.save({"timezone": "Europe/Berlin"})
+        timeline = [
+            {
+                "timestamp": "2026-10-25T00:30:00Z",
+                "source": "modem",
+                "health": "good",
+                "ds_snr_min": 38.0,
+                "ds_power_avg": 1.0,
+            },
+            {
+                "timestamp": "2026-10-25T00:45:00Z",
+                "source": "speedtest",
+                "download_mbps": 500.0,
+            },
+            {
+                "timestamp": "2026-10-25T01:00:00Z",
+                "source": "event",
+                "severity": "warning",
+                "event_type": "health_change",
+                "message": "Health changed",
+            },
+            {
+                "timestamp": "2026-10-25T01:15:00Z",
+                "source": "capture",
+                "status": "completed",
+                "trigger_type": "health_change",
+                "action_type": "capture",
+            },
+        ]
+        expected_timestamps = {
+            entry["source"]: entry["timestamp"] for entry in timeline
+        }
+
+        with patch.object(storage, "get_correlation_timeline", return_value=timeline):
+            response = client_with_storage.get("/api/correlation?hours=24")
+
+        assert response.status_code == 200
+        assert {
+            entry["source"]: entry["timestamp"] for entry in response.get_json()
+        } == expected_timestamps
 
     def test_correlation_source_filter(self, client_with_storage, storage, sample_analysis):
         """Correlation endpoint respects sources filter."""

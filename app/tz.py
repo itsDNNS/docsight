@@ -6,7 +6,7 @@ Conversion to local time happens only at the display boundary (web/charts/report
 
 import os
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # Canonical UTC format used throughout the application
 _UTC_FMT = "%Y-%m-%dT%H:%M:%SZ"
@@ -121,22 +121,49 @@ def get_tz_name(config_manager=None):
     return guess_iana_timezone()
 
 
+def _valid_iana_timezone(value):
+    """Return a normalized, loadable ZoneInfo key or an empty string."""
+    if not isinstance(value, str):
+        return ""
+    candidate = value.strip()
+    if candidate.startswith(":"):
+        candidate = candidate[1:]
+    if not candidate:
+        return ""
+    try:
+        ZoneInfo(candidate)
+    except (OSError, UnicodeError, ValueError, ZoneInfoNotFoundError):
+        return ""
+    return candidate
+
+
 def guess_iana_timezone():
     """Best-effort guess of the current IANA timezone from the system.
 
     Returns an IANA name like 'Europe/Berlin' or '' if detection fails.
     No Flask dependency — safe to call from main.py or storage.py.
     """
+    tz_env = _valid_iana_timezone(os.environ.get("TZ", ""))
+    if tz_env:
+        return tz_env
+
     try:
         link = os.readlink("/etc/localtime")
         for marker in ("/zoneinfo/",):
             if marker in link:
-                return link.split(marker, 1)[1]
+                localtime_tz = _valid_iana_timezone(link.split(marker, 1)[1])
+                if localtime_tz:
+                    return localtime_tz
     except (OSError, ValueError):
         pass
-    tz_env = os.environ.get("TZ", "")
-    if "/" in tz_env:
-        return tz_env
+
+    try:
+        with open("/etc/timezone", encoding="utf-8") as timezone_file:
+            timezone_tz = _valid_iana_timezone(timezone_file.read())
+            if timezone_tz:
+                return timezone_tz
+    except (OSError, UnicodeError):
+        pass
     return ""
 
 

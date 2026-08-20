@@ -3,7 +3,7 @@
 import os
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 from zoneinfo import ZoneInfo
 
 from app.tz import (
@@ -190,25 +190,84 @@ class TestLocalDateToUtcRange:
 
 
 class TestGuessIanaTimezone:
-    def test_from_tz_env(self):
-        with patch.dict(os.environ, {"TZ": "Europe/Berlin"}):
-            with patch("os.readlink", side_effect=OSError):
-                result = guess_iana_timezone()
-                assert result == "Europe/Berlin"
+    @pytest.mark.parametrize("tz_env", ["Europe/Berlin", "Etc/UTC"])
+    def test_valid_tz_env_wins_over_localtime(self, tz_env):
+        localtime = "Etc/UTC" if tz_env == "Europe/Berlin" else "Europe/Berlin"
+        with patch.dict(os.environ, {"TZ": tz_env}, clear=True):
+            with patch("os.readlink", return_value=f"/usr/share/zoneinfo/{localtime}") as readlink:
+                with patch("builtins.open", mock_open(read_data="America/New_York\n")) as timezone_file:
+                    assert guess_iana_timezone() == tz_env
+        readlink.assert_not_called()
+        timezone_file.assert_not_called()
 
-    def test_non_iana_tz(self):
-        with patch.dict(os.environ, {"TZ": "CET"}):
-            with patch("os.readlink", side_effect=OSError):
-                result = guess_iana_timezone()
-                assert result == ""  # CET has no slash
+    def test_leading_colon_tz_env(self):
+        with patch.dict(os.environ, {"TZ": ":Europe/Berlin"}, clear=True):
+            with patch("os.readlink") as readlink:
+                with patch("builtins.open") as timezone_file:
+                    assert guess_iana_timezone() == "Europe/Berlin"
+        readlink.assert_not_called()
+        timezone_file.assert_not_called()
 
-    def test_from_localtime_symlink(self):
-        with patch("os.readlink", return_value="/usr/share/zoneinfo/Europe/Berlin"):
-            result = guess_iana_timezone()
-            assert result == "Europe/Berlin"
+    def test_zoneinfo_key_without_slash(self):
+        with patch.dict(os.environ, {"TZ": "UTC"}, clear=True):
+            with patch("os.readlink") as readlink:
+                with patch("builtins.open") as timezone_file:
+                    assert guess_iana_timezone() == "UTC"
+        readlink.assert_not_called()
+        timezone_file.assert_not_called()
 
-    def test_no_detection(self):
-        with patch.dict(os.environ, {"TZ": ""}, clear=False):
+    @pytest.mark.parametrize(
+        "tz_env",
+        [
+            "Foo/Bar",
+            "/usr/share/zoneinfo/Europe/Berlin",
+            "CET-1CEST,M3.5.0/2,M10.5.0/3",
+        ],
+    )
+    def test_invalid_tz_env_falls_back_without_raising(self, tz_env):
+        with patch.dict(os.environ, {"TZ": tz_env}, clear=True):
+            with patch("os.readlink", return_value="/usr/share/zoneinfo/Etc/UTC"):
+                with patch("builtins.open") as timezone_file:
+                    assert guess_iana_timezone() == "Etc/UTC"
+        timezone_file.assert_not_called()
+
+    def test_invalid_tz_env_with_no_valid_fallback_returns_empty(self):
+        with patch.dict(os.environ, {"TZ": "Foo/Bar"}, clear=True):
             with patch("os.readlink", side_effect=OSError):
-                result = guess_iana_timezone()
-                assert result == ""
+                with patch("builtins.open", mock_open(read_data="Also/Invalid\n")):
+                    assert guess_iana_timezone() == ""
+
+    @pytest.mark.parametrize("tz_env", [None, ""])
+    def test_missing_or_empty_tz_falls_back_to_localtime_symlink(self, tz_env):
+        environ = {} if tz_env is None else {"TZ": tz_env}
+        with patch.dict(os.environ, environ, clear=True):
+            with patch("os.readlink", return_value="/usr/share/zoneinfo/Europe/Berlin"):
+                with patch("builtins.open") as timezone_file:
+                    assert guess_iana_timezone() == "Europe/Berlin"
+        timezone_file.assert_not_called()
+
+    def test_invalid_localtime_symlink_falls_back_to_etc_timezone(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("os.readlink", return_value="/usr/share/zoneinfo/Foo/Bar"):
+                with patch("builtins.open", mock_open(read_data="Europe/Berlin\n")) as timezone_file:
+                    assert guess_iana_timezone() == "Europe/Berlin"
+        timezone_file.assert_called_once_with("/etc/timezone", encoding="utf-8")
+
+    def test_etc_timezone_used_when_localtime_is_not_a_zoneinfo_symlink(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("os.readlink", side_effect=OSError):
+                with patch("builtins.open", mock_open(read_data="Europe/Berlin\n")):
+                    assert guess_iana_timezone() == "Europe/Berlin"
+
+    @pytest.mark.parametrize("timezone_value", ["Foo/Bar\n", "/etc/localtime\n"])
+    def test_invalid_etc_timezone_fails_closed(self, timezone_value):
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("os.readlink", side_effect=OSError):
+                with patch("builtins.open", mock_open(read_data=timezone_value)):
+                    assert guess_iana_timezone() == ""
+
+    def test_unreadable_etc_timezone_fails_closed(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("os.readlink", side_effect=OSError):
+                with patch("builtins.open", side_effect=OSError):
+                    assert guess_iana_timezone() == ""
