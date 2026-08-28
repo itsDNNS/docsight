@@ -223,6 +223,7 @@ DOCSight is built around an evidence-first workflow, then extended with deeper a
 | **[Event Log](https://github.com/itsDNNS/docsight/wiki/Features-Event-Log)** | Automatically record anomalies like modulation drops and modem restarts |
 | **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Add notes, attachments, reviewed imports, and incident groupings |
 | **Evidence Journey** | Review an incident or custom time window, see ready/stale/missing evidence, and carry that exact fixed period into complaint and PDF generation |
+| **DE · TKG compensation** | Confirm complete-outage calendar days or calculate an independent missed-appointment claim, inspect the versioned TKG §58 calculation, and export an editable German claim letter locally; supporting telemetry remains an unconfirmed proposal |
 | **[Before/After Comparison](https://github.com/itsDNNS/docsight/wiki/Features-Before-After-Comparison)** | Show whether a technician visit or ISP change actually improved anything |
 | **[Correlation Analysis](https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis)** | Combine signal, speed, and event history in one timeline |
 | **[Complaint Generator](https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint)** | Build ISP-ready evidence packages with letter text, checklist, and PDF output |

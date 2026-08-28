@@ -175,7 +175,7 @@ class CleanupMethods:
             # 3. Delete from each demo-seeded table
             tables = ["journal_entries", "incidents", "events", "snapshots",
                        "speedtest_results", "bqm_graphs", "bnetz_measurements",
-                       "weather_data"]
+                       "weather_data", "de_tkg_claim_drafts"]
             total = 0
             for tbl in tables:
                 try:

@@ -123,7 +123,7 @@ def serve_server(
 
         config_data = {
             "demo_mode": target.profile.demo_mode,
-            "disabled_modules": "",
+            "disabled_modules": target.profile.disabled_modules,
             "modem_type": target.profile.modem_type
             or ("demo" if target.profile.demo_mode else "generic"),
         }

@@ -32,6 +32,26 @@ FIRST_RUN_PROFILE = ServerProfile(
     demo_mode=False,
     production_startup=True,
 )
+TKG_CORE_PROFILE = ServerProfile(
+    "tkg-core",
+    configured=True,
+    demo_mode=True,
+    disabled_modules=",".join(
+        (
+            "docsight.reports",
+            "docsight.evidence",
+            "docsight.journal",
+            "docsight.connection_monitor",
+            "docsight.bnetz",
+        )
+    ),
+)
+TKG_DISABLED_PROFILE = ServerProfile(
+    "tkg-disabled",
+    configured=True,
+    demo_mode=True,
+    disabled_modules="docsight.de_tkg_compensation",
+)
 FRITZBOX_PROFILE = ServerProfile(
     "fritzbox",
     configured=True,
@@ -180,6 +200,26 @@ def fritzbox_server(tmp_path_factory):
         yield target.base_url
 
 
+@pytest.fixture(scope="session")
+def tkg_core_server(tmp_path_factory):
+    target, spec = _new_target(
+        "tkg-core", tmp_path_factory.mktemp("docsight_e2e_tkg_core"), TKG_CORE_PROFILE
+    )
+    with running_processes([spec]):
+        yield target.base_url
+
+
+@pytest.fixture(scope="session")
+def tkg_disabled_server(tmp_path_factory):
+    target, spec = _new_target(
+        "tkg-disabled",
+        tmp_path_factory.mktemp("docsight_e2e_tkg_disabled"),
+        TKG_DISABLED_PROFILE,
+    )
+    with running_processes([spec]):
+        yield target.base_url
+
+
 @pytest.fixture()
 def demo_page(page, live_server):
     page.goto(live_server)
@@ -216,6 +256,13 @@ def setup_page(page, setup_server):
 @pytest.fixture()
 def fritzbox_page(page, fritzbox_server):
     page.goto(fritzbox_server)
+    page.wait_for_load_state("networkidle")
+    return page
+
+
+@pytest.fixture()
+def tkg_core_page(page, tkg_core_server):
+    page.goto(tkg_core_server)
     page.wait_for_load_state("networkidle")
     return page
 

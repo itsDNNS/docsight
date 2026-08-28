@@ -24,6 +24,7 @@ from app.modules.speedtest.storage import SpeedtestStorage
 from app.modules.bqm.storage import BqmStorage
 from app.modules.bnetz.storage import BnetzStorage
 from app.modules.journal.storage import JournalStorage
+from app.modules.de_tkg_compensation.storage import ClaimStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
 
@@ -93,12 +94,13 @@ def client(config_mgr, storage):
 # ── Helper: seed some demo rows via storage directly ──
 
 def _seed_demo_rows(storage):
-    """Insert demo-flagged rows into all 7 tables."""
+    """Insert demo-flagged rows into every demo-aware main-DB table."""
     # Ensure module tables exist
     SpeedtestStorage(storage.db_path)
     BqmStorage(storage.db_path)
     BnetzStorage(storage.db_path)
     _js = JournalStorage(storage.db_path)
+    _claims = ClaimStorage(storage.db_path)
     with sqlite3.connect(storage.db_path) as conn:
         conn.execute(
             "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
@@ -110,6 +112,7 @@ def _seed_demo_rows(storage):
         )
     _js.save_entry("2025-01-01", "Demo Entry", "demo desc", is_demo=True)
     _js.save_incident(name="Demo Incident", description="demo", is_demo=True)
+    _claims.create({"ticket_ref": "SYNTHETIC-DEMO"}, is_demo=True)
     with sqlite3.connect(storage.db_path) as conn:
         conn.execute(
             "INSERT OR IGNORE INTO speedtest_results "
@@ -135,6 +138,7 @@ def _seed_demo_rows(storage):
 def _seed_user_rows(storage):
     """Insert user-created rows (is_demo=0) into key tables."""
     _js = JournalStorage(storage.db_path)
+    _claims = ClaimStorage(storage.db_path)
     with sqlite3.connect(storage.db_path) as conn:
         conn.execute(
             "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
@@ -146,6 +150,7 @@ def _seed_user_rows(storage):
         )
     _js.save_entry("2025-06-01", "User Entry", "user desc", is_demo=False)
     _js.save_incident(name="User Incident", description="user inc", is_demo=False)
+    _claims.create({"ticket_ref": "SYNTHETIC-USER"}, is_demo=False)
 
 
 def _count_rows(storage, table, is_demo=None):
@@ -169,8 +174,10 @@ class TestIsDemoColumn:
         BqmStorage(storage.db_path)
         BnetzStorage(storage.db_path)
         JournalStorage(storage.db_path)
+        ClaimStorage(storage.db_path)
         tables = ["snapshots", "events", "journal_entries", "incidents",
-                   "speedtest_results", "bqm_graphs", "bnetz_measurements"]
+                   "speedtest_results", "bqm_graphs", "bnetz_measurements",
+                   "de_tkg_claim_drafts"]
         with sqlite3.connect(storage.db_path) as conn:
             for tbl in tables:
                 cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
@@ -307,12 +314,14 @@ class TestPurgeDemoData:
         assert _count_rows(storage, "speedtest_results", is_demo=1) == 0
         assert _count_rows(storage, "bqm_graphs", is_demo=1) == 0
         assert _count_rows(storage, "bnetz_measurements", is_demo=1) == 0
+        assert _count_rows(storage, "de_tkg_claim_drafts", is_demo=1) == 0
 
         # User rows survive
         assert _count_rows(storage, "snapshots", is_demo=0) == 1
         assert _count_rows(storage, "events", is_demo=0) == 1
         assert _count_rows(storage, "journal_entries", is_demo=0) == 1
         assert _count_rows(storage, "incidents", is_demo=0) == 1
+        assert _count_rows(storage, "de_tkg_claim_drafts", is_demo=0) == 1
 
     def test_purge_returns_count(self, storage):
         _seed_demo_rows(storage)
