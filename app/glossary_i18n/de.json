@@ -94,6 +94,12 @@
         "eli5": "Kabelinternet teilt Teile des Zugangsnetzes in der Nachbarschaft mit anderen Nutzern.",
         "technician": "Unterscheiden Sie saubere HF-Belege von Überlastungs-Belegen. Korrelieren Sie Tageszeitmuster, Speedtest-/BQM-/Monitoring-Daten und Provider-Rückmeldungen, bevor Sie das geteilte Medium als Grundursache behandeln."
       },
+      "media": [
+        {
+          "alt": "Mehrere Haushalte sind mit demselben gemeinsam genutzten Kabelsegment im Viertel verbunden",
+          "caption": "Haushalte im selben Kabelsegment teilen sich einen Teil des Zugangsnetzes. Ein einzelnes Modem kann die Gesamtauslastung des Segments nicht messen."
+        }
+      ],
       "misconceptions": [
         "Ein guter Signalpegel beweist nicht, dass das Anbietersegment nicht überlastet ist."
       ],

@@ -94,6 +94,12 @@
         "eli5": "Kabelinternett deler deler av nabolagets tilgangsnett med andre brukere.",
         "technician": "Skill rent RF-bevis fra bevis på overbelastning. Korreler tid-på-døgnet-mønstre, speedtest-/BQM-/overvåkingsdata og tilbakemelding fra tilbyder før delt medium behandles som rotårsak."
       },
+      "media": [
+        {
+          "alt": "Flere hjem koblet til det samme delte kabelsegmentet i nabolaget",
+          "caption": "Hjem på det samme kabelsegmentet deler en del av aksessnettet. Ett modem kan ikke måle segmentets samlede utnyttelse."
+        }
+      ],
       "misconceptions": [
         "Et godt signalnivå beviser ikke at leverandørsegmentet er ubelastet."
       ],

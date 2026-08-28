@@ -94,6 +94,12 @@
         "eli5": "A kábelinternet a környék hozzáférési hálózatának egy részét más felhasználókkal osztja meg.",
         "technician": "Válaszd külön a tiszta RF-bizonyítékokat a torlódásra utaló bizonyítékoktól. Vesd össze a napszak szerinti mintázatokat, a speedtest/BQM/monitoring adatokat és a szolgáltatói visszajelzéseket, mielőtt a megosztott közeget tennéd meg gyökérokként."
       },
+      "media": [
+        {
+          "alt": "Több háztartás csatlakozik ugyanahhoz a közösen használt környékbeli kábelszegmenshez",
+          "caption": "Az azonos kábelszegmensen lévő háztartások megosztják a hozzáférési hálózat egy részét. Egyetlen modem nem képes mérni a szegmens teljes kihasználtságát."
+        }
+      ],
       "misconceptions": [
         "A jó jelszint nem bizonyítja, hogy a szolgáltatói szegmens nem túlterhelt."
       ],

@@ -94,6 +94,12 @@
         "eli5": "Káblový internet zdieľa časti prístupovej siete vo vašej štvrti s ostatnými používateľmi.",
         "technician": "Rozlišujte čisté RF dôkazy od dôkazov o preťažení. Pred označením zdieľaného média za koreňovú príčinu porovnajte vzorce podľa dennej doby, dáta zo speedtestu/BQM/monitoringu a spätnú väzbu poskytovateľa."
       },
+      "media": [
+        {
+          "alt": "Viacero domácností pripojených k jednému zdieľanému káblovému segmentu v okolí",
+          "caption": "Domácnosti v rovnakom káblovom segmente zdieľajú časť prístupovej siete. Jeden modem nedokáže zmerať celkové využitie segmentu."
+        }
+      ],
       "misconceptions": [
         "Dobrá úroveň signálu nedokazuje, že segment poskytovateľa nie je preťažený."
       ],

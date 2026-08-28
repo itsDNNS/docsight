@@ -94,6 +94,12 @@
         "eli5": "A internet a cabo compartilha partes da rede de acesso do bairro com outros usuários.",
         "technician": "Distinga evidência de RF limpa de evidência de congestionamento. Correlacione padrões por horário do dia, dados de speedtest/BQM/monitoramento e feedback do provedor antes de tratar o meio compartilhado como causa raiz."
       },
+      "media": [
+        {
+          "alt": "Várias casas ligadas ao mesmo segmento de cabo compartilhado do bairro",
+          "caption": "As casas no mesmo segmento de cabo compartilham parte da rede de acesso. Um único modem não consegue medir a utilização total do segmento."
+        }
+      ],
       "misconceptions": [
         "Um bom nível de sinal não prova que o segmento do provedor esteja descongestionado."
       ],

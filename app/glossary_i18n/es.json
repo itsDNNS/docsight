@@ -94,6 +94,12 @@
         "eli5": "El internet por cable comparte partes de la red de acceso del vecindario con otros usuarios.",
         "technician": "Distingue la evidencia de RF limpia de la evidencia de congestión. Correlaciona los patrones según la hora del día, los datos de speedtest/BQM/monitoreo y la retroalimentación del proveedor antes de considerar el medio compartido como causa raíz."
       },
+      "media": [
+        {
+          "alt": "Varios hogares conectados a un mismo segmento de cable compartido del vecindario",
+          "caption": "Los hogares del mismo segmento de cable comparten parte de la red de acceso. Un solo módem no puede medir la utilización total del segmento."
+        }
+      ],
       "misconceptions": [
         "Un buen nivel de señal no prueba que el segmento de proveedores esté descongestionado."
       ],

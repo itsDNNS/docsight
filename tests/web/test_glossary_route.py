@@ -63,6 +63,34 @@ def test_index_glossary_renders_simple_summary_and_explanation(client, sample_an
     assert 'class="glossary-media-card"' not in html
 
 
+def test_index_glossary_renders_shared_medium_media(client, sample_analysis):
+    update_state(analysis=sample_analysis)
+
+    resp = client.get("/?lang=en&term=shared_medium")
+
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    active_article = html.split(
+        'class="glossary-term-article" data-glossary-article data-term-id="shared_medium"', 1
+    )[1].split('class="glossary-term-article" data-glossary-article', 1)[0]
+    assert 'class="glossary-card glossary-media-card"' in active_article
+    assert 'src="/static/glossary/shared-medium.svg"' in active_article
+    assert 'alt="Several homes connected to one shared neighborhood cable segment"' in active_article
+    assert "A single modem cannot measure total segment utilization." in active_article
+
+
+def test_index_glossary_renders_localized_media_metadata(client, sample_analysis):
+    update_state(analysis=sample_analysis)
+
+    resp = client.get("/?lang=de&term=shared_medium")
+
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert 'src="/static/glossary/shared-medium.svg"' in html
+    assert 'alt="Mehrere Haushalte sind mit demselben gemeinsam genutzten Kabelsegment im Viertel verbunden"' in html
+    assert "Ein einzelnes Modem kann die Gesamtauslastung des Segments nicht messen." in html
+
+
 def test_index_glossary_exposes_wiki_source_search_metadata(client, sample_analysis):
     update_state(analysis=sample_analysis)
 

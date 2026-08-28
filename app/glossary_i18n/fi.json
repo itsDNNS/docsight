@@ -94,6 +94,12 @@
         "eli5": "Kaapeli-internet jakaa osan naapuruston liityntäverkosta muiden käyttäjien kanssa.",
         "technician": "Erota puhdas RF-näyttö ruuhkanäytöstä. Vertaa vuorokaudenajan kuvioita, nopeustesti-/BQM-/valvontatietoja ja operaattorin palautetta ennen kuin pidät jaettua välinettä juurisyynä."
       },
+      "media": [
+        {
+          "alt": "Useita koteja yhdistettynä samaan naapuruston jaettuun kaapelisegmenttiin",
+          "caption": "Saman kaapelisegmentin kodit jakavat osan liityntäverkosta. Yksi modeemi ei voi mitata koko segmentin käyttöastetta."
+        }
+      ],
       "misconceptions": [
         "Hyvä signaalitaso ei todista, että palveluntarjoajasegmentti on ruuhkaton."
       ],

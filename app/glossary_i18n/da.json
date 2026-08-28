@@ -94,6 +94,12 @@
         "eli5": "Kabel-internet deler dele af nabo-access-netværket med andre brugere.",
         "technician": "Skeln rent RF-bevis fra overbelastnings-bevis. Korreler tid-på-dag-mønstre, speedtest/BQM/monitor-data og leverandørfeedback før behandling af delt medium som grundårsag."
       },
+      "media": [
+        {
+          "alt": "Flere hjem, der er forbundet til det samme delte kabelsegment i kvarteret",
+          "caption": "Hjem på det samme kabelsegment deler en del af adgangsnettet. Et enkelt modem kan ikke måle segmentets samlede udnyttelse."
+        }
+      ],
       "misconceptions": [
         "Et godt signalniveau beviser ikke, at udbydersegmentet er ubelastet."
       ],

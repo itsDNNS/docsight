@@ -94,6 +94,12 @@
         "eli5": "Kabelski internet si del omrežja v soseski deli z drugimi uporabniki.",
         "technician": "Ločite čiste RF dokaze od dokazov o zasičenosti. Pred obravnavo skupnega medija kot temeljnega vzroka primerjajte vzorce glede na uro dneva, podatke iz speedtest/BQM/monitoringa in povratne informacije ponudnika."
       },
+      "media": [
+        {
+          "alt": "Več gospodinjstev je povezanih z istim skupnim kabelskim segmentom v soseski",
+          "caption": "Gospodinjstva na istem kabelskem segmentu si delijo del dostopovnega omrežja. En sam modem ne more izmeriti skupne izkoriščenosti segmenta."
+        }
+      ],
       "misconceptions": [
         "Dobra raven signala ne dokazuje, da segment ponudnika ni preobremenjen."
       ],

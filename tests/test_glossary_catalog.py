@@ -1,5 +1,8 @@
 """Tests for the canonical in-app glossary catalog."""
 
+from pathlib import Path
+from xml.etree import ElementTree
+
 from app.glossary import (
     GLOSSARY_LEVELS,
     GlossaryTerm,
@@ -29,13 +32,38 @@ def _media_test_term(media):
     )
 
 
-def test_glossary_media_schema_accepts_local_static_media():
+def test_glossary_media_schema_accepts_existing_local_static_media(tmp_path):
+    media_path = tmp_path / "glossary" / "ofdm.svg"
+    media_path.parent.mkdir()
+    media_path.write_text("<svg xmlns=\"http://www.w3.org/2000/svg\"/>", encoding="utf-8")
     term = _media_test_term(({"src": "/static/glossary/ofdm.svg", "alt": "OFDM diagram"},))
 
-    assert validate_glossary_catalog((term,)) == []
+    assert validate_glossary_catalog((term,), static_root=tmp_path) == []
 
 
-def test_glossary_media_schema_rejects_external_or_unsafe_media():
+def test_glossary_media_schema_decodes_safe_local_static_media_paths(tmp_path):
+    media_path = tmp_path / "glossary" / "shared diagram.svg"
+    media_path.parent.mkdir()
+    media_path.write_text("<svg xmlns=\"http://www.w3.org/2000/svg\"/>", encoding="utf-8")
+    term = _media_test_term(
+        ({"src": "/static/glossary/shared%20diagram.svg", "alt": "Shared cable diagram"},)
+    )
+
+    assert validate_glossary_catalog((term,), static_root=tmp_path) == []
+
+
+def test_glossary_media_payload_canonicalizes_safe_encoded_paths():
+    term = _media_test_term(
+        ({"src": "/static/glossary/shared%20diagram.svg", "alt": "Shared cable diagram"},)
+    )
+
+    assert term.localized("en")["media"][0]["src"] == "/static/glossary/shared diagram.svg"
+
+
+def test_glossary_media_schema_rejects_external_or_unsafe_media(tmp_path):
+    media_path = tmp_path / "glossary" / "ofdm.svg"
+    media_path.parent.mkdir()
+    media_path.write_text("<svg xmlns=\"http://www.w3.org/2000/svg\"/>", encoding="utf-8")
     invalid_cases = [
         ({"src": "https://example.test/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
         ({"src": "//cdn.example.test/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
@@ -49,7 +77,14 @@ def test_glossary_media_schema_rejects_external_or_unsafe_media():
         ({"src": "../private/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
         ({"src": "/static/../private/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
         ({"src": "/static/%2e%2e/private/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/%252e%252e/private/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/glossary/ofdm.svg?download=1", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/glossary/ofdm.svg%3Fdownload=1", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/glossary/ofdm.svg#preview", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/glossary/%ZZ.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/glossary/%FF.svg", "alt": "OFDM diagram"}, "local static path"),
         ({"src": "/static/glossary/ofdm.svg", "alt": ""}, "missing alt"),
+        ({"src": "/static/glossary/ofdm.svg", "alt": "OFDM diagram", "caption": ""}, "empty caption"),
         ({"src": "", "alt": "OFDM diagram"}, "missing src"),
         ({"src": None, "alt": "OFDM diagram"}, "missing src"),
         ({"src": "/static/glossary/ofdm.svg", "alt": None}, "missing alt"),
@@ -58,8 +93,64 @@ def test_glossary_media_schema_rejects_external_or_unsafe_media():
 
     for media_item, expected_error in invalid_cases:
         term = _media_test_term((media_item,))
-        errors = validate_glossary_catalog((term,))
+        errors = validate_glossary_catalog((term,), static_root=tmp_path)
         assert any(expected_error in error for error in errors), errors
+
+
+def test_glossary_media_schema_rejects_missing_files_and_directories(tmp_path):
+    (tmp_path / "glossary").mkdir()
+    (tmp_path / "glossary" / "directory").mkdir()
+    cases = [
+        "/static/glossary/missing.svg",
+        "/static/glossary/directory",
+    ]
+
+    for src in cases:
+        term = _media_test_term(({"src": src, "alt": "Neighborhood cable diagram"},))
+        errors = validate_glossary_catalog((term,), static_root=tmp_path)
+        assert any("existing regular file" in error for error in errors), errors
+
+
+def test_glossary_media_schema_rejects_files_resolving_outside_static_root(tmp_path):
+    static_root = tmp_path / "static"
+    static_root.mkdir()
+    outside_file = tmp_path / "outside.svg"
+    outside_file.write_text("<svg xmlns=\"http://www.w3.org/2000/svg\"/>", encoding="utf-8")
+    (static_root / "escaped.svg").symlink_to(outside_file)
+    term = _media_test_term(({"src": "/static/escaped.svg", "alt": "Escaped diagram"},))
+
+    errors = validate_glossary_catalog((term,), static_root=static_root)
+
+    assert any("local static path" in error for error in errors), errors
+
+
+def test_shared_medium_has_canonical_english_media():
+    term = get_glossary_term("shared_medium", "en")
+
+    assert term is not None
+    assert term["media"] == [
+        {
+            "src": "/static/glossary/shared-medium.svg",
+            "alt": "Several homes connected to one shared neighborhood cable segment",
+            "caption": (
+                "Homes on the same cable segment share part of the access network. "
+                "A single modem cannot measure total segment utilization."
+            ),
+        }
+    ]
+
+
+def test_shared_medium_svg_is_compact_and_text_free():
+    svg_path = Path(__file__).parents[1] / "app" / "static" / "glossary" / "shared-medium.svg"
+    source = svg_path.read_text(encoding="utf-8")
+    root = ElementTree.fromstring(source)
+
+    assert root.attrib["viewBox"]
+    assert not "".join(root.itertext()).strip()
+    assert not root.findall(".//{http://www.w3.org/2000/svg}text")
+    assert not root.findall(".//{http://www.w3.org/2000/svg}script")
+    assert "data:image" not in source
+    assert "http://" not in source.removeprefix('<svg xmlns="http://www.w3.org/2000/svg"')
 
 
 def test_core_glossary_contains_only_docsis_terms_and_docsight_features():

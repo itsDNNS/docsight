@@ -434,7 +434,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 
 .glossary-media-item figcaption {
   margin-top: 8px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   line-height: 1.45;
 }

@@ -73,7 +73,7 @@
             <section class="glossary-card glossary-media-card" aria-label="{{ term.title }} media">
                 {% for item in term.media %}
                 <figure class="glossary-media-item">
-                    <img src="{{ item.src }}" alt="{{ item.alt }}" loading="lazy">
+                    <img src="{{ url_for('static', filename=item.src[8:]) }}" alt="{{ item.alt }}" loading="lazy">
                     {% if item.caption %}<figcaption>{{ item.caption }}</figcaption>{% endif %}
                 </figure>
                 {% endfor %}

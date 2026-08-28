@@ -5,8 +5,10 @@ import os
 
 import pytest
 
+import app.glossary as glossary_module
 from app.glossary import (
     GLOSSARY_LEVELS,
+    GlossaryTerm,
     get_glossary_categories,
     get_glossary_localization_languages,
     get_glossary_term,
@@ -265,6 +267,94 @@ def test_glossary_i18n_catalogs_define_fields_without_field_level_fallbacks():
                 text = str(levels.get(level, "")).strip()
                 assert len(text) > 40, f"Missing or too-short raw {level} for {term_id} in {lang}"
                 assert text != english_term["levels"][level], f"English raw {level} fallback leaked for {term_id} in {lang}"
+
+
+def test_shared_medium_media_is_localized_without_duplicating_canonical_src():
+    english = get_glossary_term("shared_medium", "en")
+    assert english is not None
+
+    for lang in get_glossary_localization_languages():
+        raw_term = next(
+            term for term in _load_glossary_locale(lang)["terms"]
+            if term["id"] == "shared_medium"
+        )
+        localized = get_glossary_term("shared_medium", lang)
+        assert localized is not None
+        assert isinstance(raw_term.get("media"), list)
+        assert len(raw_term["media"]) == len(english["media"])
+        assert len(localized["media"]) == len(english["media"])
+        for raw_item, english_item, localized_item in zip(
+            raw_term["media"], english["media"], localized["media"], strict=True
+        ):
+            assert "src" not in raw_item, f"Canonical media src duplicated in {lang}"
+            assert localized_item["src"] == english_item["src"]
+            assert str(raw_item.get("alt", "")).strip()
+            assert str(raw_item.get("caption", "")).strip()
+            assert localized_item["alt"] == raw_item["alt"]
+            assert localized_item["caption"] == raw_item["caption"]
+            assert localized_item["alt"] != english_item["alt"], f"English media alt leaked in {lang}"
+            assert localized_item["caption"] != english_item["caption"], f"English media caption leaked in {lang}"
+
+
+@pytest.mark.parametrize(
+    ("localized_media", "message"),
+    [
+        ([], "must match canonical media length"),
+        ([{"src": "/static/other.svg", "alt": "Localized"}], "must not override src"),
+        ([{"alt": "Localized"}], "missing caption"),
+    ],
+)
+def test_localized_media_contract_rejects_incomplete_or_src_overrides(
+    monkeypatch, localized_media, message
+):
+    term = GlossaryTerm(
+        id="media_contract",
+        category="docsis_terms",
+        title={"en": "Media contract"},
+        aliases={"en": ("Media",)},
+        levels={"en": {level: f"English {level}" for level in GLOSSARY_LEVELS}},
+        misconceptions={},
+        related=(),
+        protected_terms=(),
+        media=(
+            {
+                "src": "/static/glossary/example.svg",
+                "alt": "English alt",
+                "caption": "English caption",
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        glossary_module,
+        "_localized_term_payload",
+        lambda _term_id, _lang: {"media": localized_media},
+    )
+
+    with pytest.raises(ValueError, match=message):
+        term.localized("de")
+
+
+def test_localized_media_keeps_future_captions_optional(monkeypatch):
+    term = GlossaryTerm(
+        id="caption_optional",
+        category="docsis_terms",
+        title={"en": "Caption optional"},
+        aliases={"en": ("Optional caption",)},
+        levels={"en": {level: f"English {level}" for level in GLOSSARY_LEVELS}},
+        misconceptions={},
+        related=(),
+        protected_terms=(),
+        media=({"src": "/static/glossary/example.svg", "alt": "English alt"},),
+    )
+    monkeypatch.setattr(
+        glossary_module,
+        "_localized_term_payload",
+        lambda _term_id, _lang: {"media": [{"alt": "Lokalisierte Beschreibung"}]},
+    )
+
+    assert term.localized("de")["media"] == [
+        {"src": "/static/glossary/example.svg", "alt": "Lokalisierte Beschreibung"}
+    ]
 
 
 def test_glossary_level_texts_do_not_repeat_lower_level_copy():

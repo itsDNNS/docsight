@@ -94,6 +94,12 @@
         "eli5": "Kabelový internet sdílí části přístupové sítě v okolí s dalšími uživateli.",
         "technician": "Rozlišujte čisté RF důkazy od důkazů o přetížení. Korelujte vzorce podle denní doby, data speedtest/BQM/monitoringu a zpětnou vazbu poskytovatele předtím, než budete sdílené médium považovat za kořenovou příčinu."
       },
+      "media": [
+        {
+          "alt": "Několik domácností připojených k jednomu sdílenému kabelovému segmentu v okolí",
+          "caption": "Domácnosti ve stejném kabelovém segmentu sdílejí část přístupové sítě. Jeden modem nemůže měřit celkové využití segmentu."
+        }
+      ],
       "misconceptions": [
         "Dobrá úroveň signálu nedokazuje, že segment poskytovatelů není přetížený."
       ],

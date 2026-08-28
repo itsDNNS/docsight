@@ -33,6 +33,65 @@ def _active_article(page):
     return page.locator("#view-glossary .glossary-term-article:not([hidden])")
 
 
+def _assert_no_horizontal_overflow(page):
+    overflow = page.evaluate(
+        """() => ({
+          document: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          media: [...document.querySelectorAll(
+            '#view-glossary .glossary-term-article:not([hidden]) .glossary-media-card'
+          )].some(node => node.scrollWidth > node.clientWidth)
+        })"""
+    )
+    assert overflow == {"document": False, "media": False}
+
+
+def _assert_shared_medium_image_loaded(page, expected_alt, expected_caption):
+    article = _active_article(page)
+    image = article.locator('.glossary-media-card img[src="/static/glossary/shared-medium.svg"]')
+    image.scroll_into_view_if_needed()
+    expect(image).to_have_attribute("alt", expected_alt)
+    caption = article.locator(".glossary-media-card figcaption")
+    expect(caption).to_have_text(expected_caption)
+    contrast_ratio = caption.evaluate(
+        r"""node => {
+          const parseRgb = value => value.match(/\d+(?:\.\d+)?/g).slice(0, 3).map(Number);
+          const luminance = rgb => {
+            const channels = rgb.map(value => {
+              const normalized = value / 255;
+              return normalized <= 0.04045
+                ? normalized / 12.92
+                : Math.pow((normalized + 0.055) / 1.055, 2.4);
+            });
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+          };
+          const foreground = luminance(parseRgb(getComputedStyle(node).color));
+          const background = luminance(
+            parseRgb(getComputedStyle(node.closest('.glossary-card')).backgroundColor)
+          );
+          return (Math.max(foreground, background) + 0.05)
+            / (Math.min(foreground, background) + 0.05);
+        }"""
+    )
+    assert contrast_ratio >= 4.5
+    expect(image).to_be_visible()
+    assert image.evaluate(
+        """node => node.complete
+          ? node.naturalWidth > 0 && node.naturalHeight > 0
+          : new Promise(resolve => {
+              node.addEventListener(
+                'load',
+                () => resolve(node.naturalWidth > 0 && node.naturalHeight > 0),
+                { once: true }
+              );
+              node.addEventListener('error', () => resolve(false), { once: true });
+            })"""
+    )
+    _assert_visible_boxes_do_not_overlap(
+        page, "#view-glossary .glossary-term-article:not([hidden]) > .glossary-card"
+    )
+    _assert_no_horizontal_overflow(page)
+
+
 def test_glossary_app_view_renders_inside_shell(page, live_server):
     page.goto(f"{live_server}/?lang=en&term=docsis#glossary?term=docsis")
     page.wait_for_selector("#view-glossary.active", state="visible")
@@ -91,6 +150,36 @@ def test_glossary_mobile_layout_has_no_horizontal_overflow(page, live_server):
     has_overflow = page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
     assert has_overflow is False
     _assert_visible_boxes_do_not_overlap(page, "#view-glossary .glossary-term-article:not([hidden]) > .glossary-card")
+
+
+def test_glossary_shared_medium_media_desktop(page, live_server):
+    page.set_viewport_size({"width": 1440, "height": 950})
+    page.goto(f"{live_server}/?lang=de&term=shared_medium#glossary?term=shared_medium")
+    page.wait_for_selector("#view-glossary.active", state="visible")
+
+    _assert_shared_medium_image_loaded(
+        page,
+        "Mehrere Haushalte sind mit demselben gemeinsam genutzten Kabelsegment im Viertel verbunden",
+        (
+            "Haushalte im selben Kabelsegment teilen sich einen Teil des Zugangsnetzes. "
+            "Ein einzelnes Modem kann die Gesamtauslastung des Segments nicht messen."
+        ),
+    )
+
+
+def test_glossary_shared_medium_media_mobile(page, live_server):
+    page.set_viewport_size({"width": 393, "height": 852})
+    page.goto(f"{live_server}/?lang=fr&term=shared_medium#glossary?term=shared_medium")
+    page.wait_for_selector("#view-glossary.active", state="visible")
+
+    _assert_shared_medium_image_loaded(
+        page,
+        "Plusieurs foyers reliés à un même segment de câble partagé dans le quartier",
+        (
+            "Les foyers d’un même segment de câble partagent une partie du réseau d’accès. "
+            "Un seul modem ne peut pas mesurer l’utilisation totale du segment."
+        ),
+    )
 
 
 def test_glossary_search_filters_alphabetical_terms(page, live_server):

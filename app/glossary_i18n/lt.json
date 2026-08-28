@@ -94,6 +94,12 @@
         "eli5": "Kabelinis internetas dalijasi kaimynystės prieigos tinklo dalimis su kitais naudotojais.",
         "technician": "Atskirkite švarius RF įrodymus nuo perkrovos įrodymų. Prieš laikant bendrą terpę pagrindine priežastimi, susiekite paros meto tendencijas, spartos testo / BQM / stebėsenos duomenis ir tiekėjo atsiliepimus."
       },
+      "media": [
+        {
+          "alt": "Keli namai prijungti prie vieno bendro rajono kabelio segmento",
+          "caption": "To paties kabelio segmento namai dalijasi dalimi prieigos tinklo. Vienas modemas negali išmatuoti bendro segmento panaudojimo."
+        }
+      ],
       "misconceptions": [
         "Geras signalo lygis neįrodo, kad teikėjo segmentas nėra perkrautas."
       ],

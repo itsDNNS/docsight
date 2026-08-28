@@ -94,6 +94,12 @@
         "eli5": "L'internet via cavo condivide parti della rete di accesso del quartiere con altri utenti.",
         "technician": "Distingui le evidenze RF pulite dalle evidenze di congestione. Correla i pattern per fascia oraria, i dati di speedtest/BQM/monitoraggio e il feedback del provider prima di considerare il mezzo condiviso come causa principale."
       },
+      "media": [
+        {
+          "alt": "Più abitazioni collegate allo stesso segmento di cavo condiviso del quartiere",
+          "caption": "Le abitazioni sullo stesso segmento di cavo condividono parte della rete di accesso. Un singolo modem non può misurare l’utilizzo totale del segmento."
+        }
+      ],
       "misconceptions": [
         "Un buon livello del segnale non dimostra che il segmento del fornitore non sia congestionato."
       ],

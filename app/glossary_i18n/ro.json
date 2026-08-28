@@ -94,6 +94,12 @@
         "eli5": "Internetul prin cablu partajează o parte din rețeaua de acces din cartier cu alți utilizatori.",
         "technician": "Distingeți dovezile RF curate de dovezile de congestie. Corelați tiparele orare, datele speedtest/BQM/monitorizare și feedback-ul furnizorului înainte de a considera mediul partajat drept cauză principală."
       },
+      "media": [
+        {
+          "alt": "Mai multe locuințe conectate la același segment de cablu partajat din cartier",
+          "caption": "Locuințele din același segment de cablu partajează o parte a rețelei de acces. Un singur modem nu poate măsura utilizarea totală a segmentului."
+        }
+      ],
       "misconceptions": [
         "Un nivel bun de semnal nu dovedește că segmentul furnizorului este neaglomerat."
       ],

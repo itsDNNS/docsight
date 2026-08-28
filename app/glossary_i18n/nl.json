@@ -94,6 +94,12 @@
         "eli5": "Kabelinternet deelt delen van het toegangsnetwerk in de buurt met andere gebruikers.",
         "technician": "Onderscheid schoon RF-bewijs van congestiebewijs. Correleer patronen naar tijdstip van de dag, speedtest-/BQM-/monitoringgegevens en providerfeedback voordat een gedeeld medium als hoofdoorzaak wordt aangewezen."
       },
+      "media": [
+        {
+          "alt": "Meerdere woningen verbonden met hetzelfde gedeelde kabelsegment in de buurt",
+          "caption": "Woningen op hetzelfde kabelsegment delen een deel van het toegangsnetwerk. Eén modem kan de totale benutting van het segment niet meten."
+        }
+      ],
       "misconceptions": [
         "Een goed signaalniveau bewijst niet dat het providersegment niet overbelast is."
       ],

@@ -94,6 +94,12 @@
         "eli5": "Kabelinternet delar delar av grannskapets accessnät med andra användare.",
         "technician": "Skilj rena RF-bevis från belastningsbevis. Korrelera mönster utifrån tid på dygnet, speedtest-/BQM-/övervakningsdata och återkoppling från leverantören innan delat medium betraktas som grundorsak."
       },
+      "media": [
+        {
+          "alt": "Flera hem anslutna till samma delade kabelsegment i grannskapet",
+          "caption": "Hem på samma kabelsegment delar en del av accessnätet. Ett enskilt modem kan inte mäta segmentets totala utnyttjande."
+        }
+      ],
       "misconceptions": [
         "En bra signalnivå bevisar inte att leverantörssegmentet är obelastat."
       ],

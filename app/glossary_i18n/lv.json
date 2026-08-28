@@ -94,6 +94,12 @@
         "eli5": "Kabeļinternets izmanto koplietotu piekļuves tīklu kopā ar citiem kaimiņiem.",
         "technician": "Nošķiriet tīru RF pierādījumu no sastrēguma pierādījuma. Pirms koplietotā tīkla kā pamatcēloņa noteikšanas salīdziniet diennakts laika modeļus, speedtest/BQM/monitoringa datus un operatora atgriezenisko saiti."
       },
+      "media": [
+        {
+          "alt": "Vairākas mājas ir pieslēgtas vienam kopīgam apkaimes kabeļa segmentam",
+          "caption": "Mājas vienā kabeļa segmentā koplieto daļu piekļuves tīkla. Viens modems nevar izmērīt segmenta kopējo noslodzi."
+        }
+      ],
       "misconceptions": [
         "Labs signāla līmenis nepierāda, ka pakalpojumu sniedzēja segments nav pārslogots."
       ],

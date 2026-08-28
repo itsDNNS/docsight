@@ -94,6 +94,12 @@
         "eli5": "Internet kablowy współdzieli część sieci dostępowej osiedla z innymi użytkownikami.",
         "technician": "Odróżniaj czyste dowody RF od dowodów przeciążenia. Skoreluj wzorce pory dnia, dane ze speedtestów/BQM/monitoringu oraz informację zwrotną od operatora, zanim uznasz współdzielone medium za przyczynę źródłową."
       },
+      "media": [
+        {
+          "alt": "Kilka gospodarstw domowych podłączonych do jednego współdzielonego segmentu kablowego w okolicy",
+          "caption": "Gospodarstwa domowe w tym samym segmencie kablowym współdzielą część sieci dostępowej. Pojedynczy modem nie może zmierzyć całkowitego wykorzystania segmentu."
+        }
+      ],
       "misconceptions": [
         "Dobry poziom sygnału nie świadczy o tym, że segment dostawcy nie jest przeciążony."
       ],

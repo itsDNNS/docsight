@@ -94,6 +94,12 @@
         "eli5": "Kaabelinternet jagab osa naabruskonna juurdepääsuvõrgust teiste kasutajatega.",
         "technician": "Erista puhast RF-tõendusmaterjali ülekoormuse tõenditest. Seosta kellaajapõhised mustrid, speedtest/BQM/seiretulemused ja operaatori tagasiside, enne kui käsitled jagatud keskkonda algpõhjusena."
       },
+      "media": [
+        {
+          "alt": "Mitu kodu on ühendatud ühe ühise naabruskonna kaablisegmendiga",
+          "caption": "Sama kaablisegmendi kodud jagavad osa juurdepääsuvõrgust. Üks modem ei saa mõõta kogu segmendi kasutust."
+        }
+      ],
       "misconceptions": [
         "Hea signaalitase ei tõenda, et teenusepakkuja segment on ülekoormatud."
       ],

@@ -94,6 +94,12 @@
         "eli5": "L'internet par câble partage certaines parties du réseau d'accès de quartier avec d'autres utilisateurs.",
         "technician": "Distinguez les preuves RF propres des preuves de congestion. Corrélez les tendances horaires, les données de speedtest/BQM/monitoring et les retours du fournisseur avant de considérer le support partagé comme cause principale."
       },
+      "media": [
+        {
+          "alt": "Plusieurs foyers reliés à un même segment de câble partagé dans le quartier",
+          "caption": "Les foyers d’un même segment de câble partagent une partie du réseau d’accès. Un seul modem ne peut pas mesurer l’utilisation totale du segment."
+        }
+      ],
       "misconceptions": [
         "Un bon niveau de signal ne prouve pas que le segment des fournisseurs n'est pas encombré."
       ],

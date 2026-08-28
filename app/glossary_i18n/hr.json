@@ -94,6 +94,12 @@
         "eli5": "Kabelski internet dijeli dijelove pristupne mreže susjedstva s drugim korisnicima.",
         "technician": "Razlikujte čiste RF dokaze od dokaza zagušenja. Prije nego dijeljeni medij proglasite uzrokom problema, korelirajte obrasce prema dobu dana, podatke speedtesta/BQM-a/monitoringa i povratne informacije providera."
       },
+      "media": [
+        {
+          "alt": "Više kućanstava povezano na isti dijeljeni kabelski segment u susjedstvu",
+          "caption": "Kućanstva na istom kabelskom segmentu dijele dio pristupne mreže. Jedan modem ne može izmjeriti ukupnu iskorištenost segmenta."
+        }
+      ],
       "misconceptions": [
         "Dobra razina signala ne dokazuje da segment pružatelja usluga nije zagušen."
       ],

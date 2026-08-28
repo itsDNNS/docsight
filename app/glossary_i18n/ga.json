@@ -94,6 +94,12 @@
         "eli5": "Roinneann idirlíon cábla codanna de líonra rochtana na comharsanachta le húsáideoirí eile.",
         "technician": "Déan idirdhealú idir fianaise RF ghlan agus fianaise brú tráchta. Comhcheangail patrúin ama an lae, sonraí speedtest/BQM/monitóireachta, agus aiseolas ón soláthraí sula ndéantar an meán roinnte a mheas mar bhunchúis."
       },
+      "media": [
+        {
+          "alt": "Roinnt tithe ceangailte le deighleog cábla chomhroinnte amháin sa chomharsanacht",
+          "caption": "Roinneann tithe ar an deighleog cábla chéanna cuid den líonra rochtana. Ní féidir le móideim amháin úsáid iomlán na deighleoige a thomhas."
+        }
+      ],
       "misconceptions": [
         "Ní chruthaíonn leibhéal comhartha maith go bhfuil an deighleog soláthraí gan phlódú."
       ],
