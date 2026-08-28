@@ -132,6 +132,88 @@ def test_route_counts_report_receipt_as_day_zero(
     ]
 
 
+def test_known_validation_error_uses_public_stable_code_and_message(
+    make_app, make_config, builtin_module_loader_factory, core_storage
+):
+    config = make_config()
+    client = make_app(
+        config_manager=config,
+        storage=core_storage,
+        module_loader_factory=builtin_module_loader_factory(config),
+    ).test_client()
+
+    response = client.post(
+        "/api/de-tkg/claims", json=_claim_payload(status="not-a-status")
+    )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "code": "technical_status_invalid",
+        "error": "Status must be draft or completed",
+    }
+
+
+@pytest.mark.parametrize(
+    ("sink", "expected_status"),
+    [
+        ("create", 400),
+        ("update", 400),
+        ("calculate", 422),
+        ("letter_rules", 409),
+        ("letter_calculate", 422),
+    ],
+)
+def test_unknown_validation_errors_never_expose_exception_data(
+    sink,
+    expected_status,
+    make_app,
+    make_config,
+    builtin_module_loader_factory,
+    core_storage,
+    monkeypatch,
+):
+    import app.modules.de_tkg_compensation.routes as routes
+
+    config = make_config()
+    client = make_app(
+        config_manager=config,
+        storage=core_storage,
+        module_loader_factory=builtin_module_loader_factory(config),
+    ).test_client()
+    claim = client.post("/api/de-tkg/claims", json=_claim_payload()).get_json()
+    secret_code = "technical_secret_code_DO_NOT_EXPOSE"
+    secret_message = "secret-message-DO_NOT_EXPOSE"
+
+    def fail_with_secret(*_args, **_kwargs):
+        raise routes.RuleValidationError(secret_code, secret_message)
+
+    if sink in {"create", "update"}:
+        monkeypatch.setattr(routes, "_normalise_claim_payload", fail_with_secret)
+        response = (
+            client.post("/api/de-tkg/claims", json={})
+            if sink == "create"
+            else client.put(f"/api/de-tkg/claims/{claim['id']}", json={})
+        )
+    elif sink == "calculate":
+        monkeypatch.setattr(routes, "_calculate_claim", fail_with_secret)
+        response = client.post(f"/api/de-tkg/claims/{claim['id']}/calculate")
+    elif sink == "letter_rules":
+        monkeypatch.setattr(routes, "resolve_ruleset", fail_with_secret)
+        response = client.get(f"/api/de-tkg/claims/{claim['id']}/letter")
+    else:
+        monkeypatch.setattr(routes, "_calculate_claim", fail_with_secret)
+        response = client.post(f"/api/de-tkg/claims/{claim['id']}/letter", json={})
+
+    assert response.status_code == expected_status
+    assert response.get_json() == {
+        "code": "technical_validation_failed",
+        "error": "The request could not be validated",
+    }
+    serialized = response.get_data(as_text=True)
+    assert secret_code not in serialized
+    assert secret_message not in serialized
+
+
 def test_is_demo_is_server_owned_and_demo_claim_is_marked(
     make_app, make_config, builtin_module_loader_factory, core_storage
 ):

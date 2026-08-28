@@ -50,10 +50,70 @@ _ELIGIBILITY_FIELDS = {
 }
 MAX_MISSED_APPOINTMENTS = 100
 _LETTER_FACT_FIELDS = _CLAIM_FIELDS - {"status", "letter_text"}
+_GENERIC_VALIDATION_ERROR = (
+    "technical_validation_failed",
+    "The request could not be validated",
+)
+_PUBLIC_VALIDATION_ERRORS = {
+    "eligibility_claim_basis_required": "Confirm a complete outage or at least one missed appointment",
+    "eligibility_confirmed_days_required": "Confirm each complete-outage calendar day before calculating",
+    "eligibility_statutory_exclusion_confirmed": "A confirmed statutory exclusion prevents this calculation",
+    "technical_claim_window_invalid": "Claim-window bounds must be calendar dates",
+    "technical_claim_window_required": "A selected claim window is required for an outage calculation",
+    "technical_claim_window_reversed": "Claim-window end cannot precede its start",
+    "technical_complete_outage_invalid": "Complete-outage confirmation must be boolean",
+    "technical_confirmed_day_invalid": "Confirmed day must be YYYY-MM-DD",
+    "technical_confirmed_day_outside_claim_window": "Confirmed day lies outside the selected claim window",
+    "technical_confirmed_day_outside_window": "Confirmed day lies outside the reported outage window",
+    "technical_confirmed_days_invalid": "Confirmed days must be a list",
+    "technical_date_invalid": "Dates must be calendar dates",
+    "technical_eligibility_field_unknown": "Unknown eligibility field",
+    "technical_eligibility_invalid": "Eligibility must be an object",
+    "technical_fault_report_channel_invalid": "Invalid fault-report channel",
+    "technical_fault_report_received_date_invalid": "Fault-report receipt date must be YYYY-MM-DD",
+    "technical_force_majeure_invalid": "Force-majeure confirmation must be boolean",
+    "technical_json_object_required": "JSON object required",
+    "technical_lawful_interruption_invalid": "Lawful-interruption confirmation must be boolean",
+    "technical_letter_text_invalid": "Invalid letter text",
+    "technical_missed_appointments_invalid": "Missed appointment count must be a non-negative integer",
+    "technical_missed_appointments_limit": "Missed appointment count exceeds the technical maximum of 100",
+    "technical_monthly_fee_invalid": "Monthly fee must be integer cents",
+    "technical_monthly_fee_negative": "Monthly fee cannot be negative",
+    "technical_monthly_fee_required": "Monthly fee is required",
+    "technical_origin_invalid": "Unknown candidate origin",
+    "technical_prior_credit_classification_invalid": "Prior credit classification is invalid",
+    "technical_prior_credit_field_unknown": "Unknown prior credit field",
+    "technical_prior_credit_invalid": "Prior credit is invalid",
+    "technical_replacement_day_unconfirmed": "Replacement-solution days must also be confirmed outage days",
+    "technical_replacement_solution_day_invalid": "Replacement-solution day must be YYYY-MM-DD",
+    "technical_replacement_solution_days_invalid": "Replacement-solution days must be a list",
+    "technical_report_in_future": "Fault-report date cannot be in the future",
+    "technical_restored_date_invalid": "Restoration date must be YYYY-MM-DD",
+    "technical_restored_before_report": "Restoration date cannot be before fault-report receipt",
+    "technical_restored_in_future": "Restoration date cannot be in the future",
+    "technical_rules_version_unsupported": "Stored rules version is unsupported",
+    "technical_status_invalid": "Status must be draft or completed",
+    "technical_ticket_ref_invalid": "Invalid ticket reference",
+    "technical_unknown_field": "Unknown claim field",
+    "technical_user_responsibility_invalid": "User-responsibility confirmation must be boolean",
+    "technical_window_from_invalid": "Claim-window start must be a timestamp",
+    "technical_window_from_timezone_invalid": "Claim-window start cannot be interpreted in the configured timezone",
+    "technical_window_reversed": "Window end cannot precede window start",
+    "technical_window_to_invalid": "Claim-window end must be a timestamp",
+    "technical_window_to_timezone_invalid": "Claim-window end cannot be interpreted in the configured timezone",
+}
 
 
 def _error(code: str, message: str, status: int = 400):
     return jsonify({"error": message, "code": code}), status
+
+
+def _validation_error_response(exc: RuleValidationError, status: int = 400):
+    exception_code = getattr(exc, "code", None)
+    for allowed_code, allowed_message in _PUBLIC_VALIDATION_ERRORS.items():
+        if exception_code == allowed_code:
+            return _error(allowed_code, allowed_message, status)
+    return _error(_GENERIC_VALIDATION_ERROR[0], _GENERIC_VALIDATION_ERROR[1], status)
 
 
 def _storage() -> ClaimStorage | None:
@@ -417,7 +477,7 @@ def api_claims_create():
         tz_name = get_tz_name(get_config_manager())
         payload = _normalise_claim_payload(request.get_json(silent=True), tz_name)
     except RuleValidationError as exc:
-        return _error(exc.code, str(exc))
+        return _validation_error_response(exc)
     if payload.get("letter_text"):
         return _error(
             "technical_letter_not_generated",
@@ -449,7 +509,7 @@ def api_claim_update(claim_id):
         tz_name = get_tz_name(get_config_manager())
         payload = _normalise_claim_payload(request.get_json(silent=True), tz_name)
     except RuleValidationError as exc:
-        return _error(exc.code, str(exc))
+        return _validation_error_response(exc)
     existing = storage.get(claim_id)
     if not existing:
         return _error("technical_claim_not_found", "Claim not found", 404)
@@ -494,7 +554,7 @@ def api_claim_calculate(claim_id):
     try:
         breakdown, appointments = _calculate_claim(claim)
     except RuleValidationError as exc:
-        return _error(exc.code, str(exc), 422)
+        return _validation_error_response(exc, 422)
     return jsonify(_calculation_response(claim, breakdown, appointments))
 
 
@@ -508,7 +568,9 @@ def api_claim_letter(claim_id):
     try:
         ruleset = resolve_ruleset(claim.get("rules_version"))
     except RuleValidationError as exc:
-        return _error(exc.code, str(exc), 409 if request.method == "GET" else 422)
+        return _validation_error_response(
+            exc, 409 if request.method == "GET" else 422
+        )
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not isinstance(data, dict) or set(data) - {"customer"}:
@@ -519,7 +581,7 @@ def api_claim_letter(claim_id):
         try:
             breakdown, appointments = _calculate_claim(claim)
         except RuleValidationError as exc:
-            return _error(exc.code, str(exc), 422)
+            return _validation_error_response(exc, 422)
         customer = customer if customer is not None else _customer_defaults(_capabilities())
         safe_customer = {}
         for key in ("name", "customer_number", "address"):
