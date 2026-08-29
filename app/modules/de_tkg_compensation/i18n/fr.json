@@ -107,5 +107,6 @@
   "excluded_days": "Jours confirmés exclus",
   "waiting_period": "La date de réception du signalement de panne est le jour 0 ; aucun droit au titre de TKG §58(3) n’est calculé avant le troisième jour calendaire suivant la réception.",
   "evidence_checklist": "Liste de contrôle des preuves",
-  "disclaimer": "Il ne s’agit pas d’un conseil juridique ni d’une garantie de succès. Le fournisseur ou les tribunaux peuvent apprécier les faits différemment."
+  "disclaimer": "Il ne s’agit pas d’un conseil juridique ni d’une garantie de succès. Le fournisseur ou les tribunaux peuvent apprécier les faits différemment.",
+  "glossary_link": "Vos droits expliqués — article du glossaire TKG avec le texte légal original"
 }

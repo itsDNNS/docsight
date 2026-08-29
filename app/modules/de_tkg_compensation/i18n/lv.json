@@ -107,5 +107,6 @@
   "excluded_days": "Izslēgtās apstiprinātās dienas",
   "waiting_period": "Bojājuma pieteikuma saņemšanas datums ir 0. diena; pirms trešās kalendārās dienas pēc saņemšanas tiesības saskaņā ar TKG §58(3) netiek aprēķinātas.",
   "evidence_checklist": "Pierādījumu kontrolsaraksts",
-  "disclaimer": "Šī nav juridiska konsultācija vai panākumu garantija. Pakalpojuma sniedzējs vai tiesa var faktus vērtēt citādi."
+  "disclaimer": "Šī nav juridiska konsultācija vai panākumu garantija. Pakalpojuma sniedzējs vai tiesa var faktus vērtēt citādi.",
+  "glossary_link": "Jūsu tiesību skaidrojums — TKG glosārija raksts ar oriģinālo likuma tekstu"
 }

@@ -107,5 +107,6 @@
   "excluded_days": "Pois jätetyt vahvistetut päivät",
   "waiting_period": "Vikailmoituksen vastaanottopäivä on päivä 0; TKG §58(3):n mukaista korvausoikeutta ei lasketa ennen vastaanottoa seuraavaa kolmatta kalenteripäivää.",
   "evidence_checklist": "Todisteiden tarkistuslista",
-  "disclaimer": "Tämä ei ole oikeudellista neuvontaa eikä lupaus menestyksestä. Palveluntarjoaja tai tuomioistuin voi arvioida tiedot toisin."
+  "disclaimer": "Tämä ei ole oikeudellista neuvontaa eikä lupaus menestyksestä. Palveluntarjoaja tai tuomioistuin voi arvioida tiedot toisin.",
+  "glossary_link": "Oikeutesi selitettynä — TKG-sanastoartikkeli alkuperäisellä lakitekstillä"
 }

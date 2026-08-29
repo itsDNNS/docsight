@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Destinos observados",
   "correlation_reachability_scope": "Âmbito dos destinos",
   "correlation_reachability_drilldown": "Abrir detalhes do Monitor de ligação",
-  "correlation_reachability_aria": "Resumo da acessibilidade"
+  "correlation_reachability_aria": "Resumo da acessibilidade",
+  "glossary_law_heading": "Texto legal alemão original (Gesetzestext)",
+  "glossary_law_hint": "O texto legal é apresentado em alemão em todos os idiomas; apenas a redação alemã é válida.",
+  "glossary_law_excerpt_note": "Excerto: é apresentado apenas o número citado.",
+  "glossary_law_source_label": "Fonte oficial",
+  "glossary_law_reviewed_label": "Fonte verificada",
+  "glossary_law_disclaimer": "Informação geral, não aconselhamento jurídico."
 }

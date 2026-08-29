@@ -107,5 +107,6 @@
   "excluded_days": "Isključeni potvrđeni dani",
   "waiting_period": "Datum primitka prijave kvara jest dan 0; pravo prema TKG §58(3) ne izračunava se prije trećeg kalendarskog dana nakon primitka.",
   "evidence_checklist": "Kontrolni popis dokaza",
-  "disclaimer": "Ovo nije pravni savjet ni jamstvo uspjeha. Pružatelj ili sud mogu drukčije ocijeniti činjenice."
+  "disclaimer": "Ovo nije pravni savjet ni jamstvo uspjeha. Pružatelj ili sud mogu drukčije ocijeniti činjenice.",
+  "glossary_link": "Objašnjenje vaših prava — članak TKG pojmovnika s izvornim zakonskim tekstom"
 }

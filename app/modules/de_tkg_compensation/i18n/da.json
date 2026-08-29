@@ -107,5 +107,6 @@
   "excluded_days": "Udelukkede bekræftede dage",
   "waiting_period": "Datoen for modtagelsen af fejlmeldingen er dag 0; der beregnes ikke et krav efter TKG §58(3) før den tredje kalenderdag efter modtagelsen.",
   "evidence_checklist": "Tjekliste for dokumentation",
-  "disclaimer": "Dette er ikke juridisk rådgivning eller en garanti for medhold. Udbyderen eller en domstol kan vurdere oplysningerne anderledes."
+  "disclaimer": "Dette er ikke juridisk rådgivning eller en garanti for medhold. Udbyderen eller en domstol kan vurdere oplysningerne anderledes.",
+  "glossary_link": "Få dine rettigheder forklaret — TKG-ordbogsartikel med den originale lovtekst"
 }

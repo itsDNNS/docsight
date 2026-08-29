@@ -9,6 +9,11 @@
       "description": "DOCSight teikiami rodiniai, integracijos ir įrodymų įrankiai.",
       "id": "docsight_features",
       "title": "DOCSight funkcijos"
+    },
+    {
+      "description": "Vokietijos telekomunikacijų teisės paaiškintos praktiniame DOCSight kontekste.",
+      "id": "consumer_rights",
+      "title": "Vartotojų teisės"
     }
   ],
   "terms": [
@@ -415,6 +420,28 @@
         "DOCSight"
       ],
       "title": "Segmento panaudojimas"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Teisė į kompensaciją"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Pagal Vokietijos interneto ar telefono sutartį TKG § 58 gali suteikti kompensaciją už visišką sutrikimą arba tiekėjo praleistą vizitą; TKG § 57 gali padėti, kai paslauga nuolat lėta ar nestabili.",
+        "basic": "Pagal TKG § 58 kompensacija už visišką sutrikimą gali būti skaičiuojama nuo dienos po dviejų kalendorinių dienų, praėjusių nuo tada, kai tiekėjas gavo pranešimą apie gedimą. Už praleistą sutartą aptarnavimo ar įrengimo laiką gali priklausyti atskira įstatymo ir mėnesinio mokesčio nustatyta kompensacija.",
+        "advanced": "TKG § 57 Abs. 4 taikomas reikšmingiems nuolatiniams ar pasikartojantiems veikimo nuokrypiams, įskaitant nustatytus Bundesnetzagentur matavimo mechanizmu, ir gali leisti sumažinti kainą arba neeiliniu būdu nutraukti sutartį. TKG § 58 taikomas gedimų šalinimui, visiškiems sutrikimams ir praleistiems vizitams.",
+        "technician": "Naudokite DOCSight TKG asistentą galimai § 58 sumai ir laiškui tiekėjui parengti. Saugokite gedimų pranešimus, vizitų įrašus, ryšio stebėsenos duomenis ir incidentų žurnalą; § 57 reikalavimui laikykitės Bundesnetzagentur matavimo procedūros."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Teisės pagal TKG § 57 ir § 58"
     }
   ]
 }

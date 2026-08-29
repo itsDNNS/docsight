@@ -9,6 +9,11 @@
       "description": "Ansichten, Integrationen und Evidenzwerkzeuge, die DOCSight selbst bereitstellt.",
       "id": "docsight_features",
       "title": "DOCSight-Funktionen"
+    },
+    {
+      "description": "Rechte nach deutschem Telekommunikationsrecht im praktischen DOCSight-Kontext erklärt.",
+      "id": "consumer_rights",
+      "title": "Verbraucherrechte"
     }
   ],
   "terms": [
@@ -414,6 +419,28 @@
         "DOCSight"
       ],
       "title": "Segmentauslastung"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Entschädigungsanspruch"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Bei deutschen Internet- oder Telefonverträgen kann TKG § 58 bei einem vollständigen Ausfall oder einem versäumten Anbietertermin eine Entschädigung vorsehen; TKG § 57 kann bei dauerhaft zu langsamer oder instabiler Leistung helfen.",
+        "basic": "Nach TKG § 58 kann die Entschädigung für einen vollständigen Ausfall am Tag nach Ablauf von zwei Kalendertagen seit Eingang der Störungsmeldung beim Anbieter beginnen. Für einen versäumten vereinbarten Kundendienst- oder Installationstermin kann unabhängig davon eine gesetzliche Entschädigung anhand des Monatsentgelts zustehen.",
+        "advanced": "TKG § 57 Abs. 4 betrifft erhebliche kontinuierliche oder regelmäßig wiederkehrende Leistungsabweichungen, darunter solche, die mit einem Messmechanismus der Bundesnetzagentur festgestellt wurden, und kann Minderung oder außerordentliche Kündigung ermöglichen. TKG § 58 regelt dagegen Entstörung, vollständige Ausfälle und versäumte Termine.",
+        "technician": "Mit dem TKG-Assistenten von DOCSight lassen sich ein möglicher Betrag nach § 58 und ein Anbieterschreiben strukturieren. Störungsmeldungen, Terminbelege, Verbindungsmonitor und Vorfalljournal sollten aufbewahrt werden; für einen Anspruch nach § 57 ist das Messverfahren der Bundesnetzagentur maßgeblich."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Rechte nach TKG § 57 und § 58"
     }
   ]
 }

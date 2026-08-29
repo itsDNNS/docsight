@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Opaženi cilji",
   "correlation_reachability_scope": "Obseg ciljev",
   "correlation_reachability_drilldown": "Odpri podrobnosti Nadzornika povezave",
-  "correlation_reachability_aria": "Povzetek dosegljivosti"
+  "correlation_reachability_aria": "Povzetek dosegljivosti",
+  "glossary_law_heading": "Izvirno nemško zakonsko besedilo (Gesetzestext)",
+  "glossary_law_hint": "Zakonsko besedilo je v vseh jezikih prikazano v nemščini; veljavno je le nemško besedilo.",
+  "glossary_law_excerpt_note": "Izvleček: prikazan je samo navedeni odstavek.",
+  "glossary_law_source_label": "Uradni vir",
+  "glossary_law_reviewed_label": "Vir preverjen",
+  "glossary_law_disclaimer": "Splošne informacije, ne pravni nasvet."
 }

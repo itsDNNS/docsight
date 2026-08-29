@@ -107,5 +107,6 @@
   "excluded_days": "Kizárt megerősített napok",
   "waiting_period": "A hibabejelentés beérkezésének napja a 0. nap; a beérkezést követő harmadik naptári nap előtt nem számítunk ki jogosultságot a TKG §58(3) alapján.",
   "evidence_checklist": "Bizonyíték-ellenőrző lista",
-  "disclaimer": "Ez nem jogi tanács és nem ígéret a sikerre. A szolgáltató vagy a bíróság eltérően értékelheti a tényeket."
+  "disclaimer": "Ez nem jogi tanács és nem ígéret a sikerre. A szolgáltató vagy a bíróság eltérően értékelheti a tényeket.",
+  "glossary_link": "Jogainak magyarázata — TKG-szójegyzékcikk az eredeti jogszabályszöveggel"
 }

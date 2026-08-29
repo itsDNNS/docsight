@@ -9,6 +9,11 @@
       "description": "Vistas, integraciones y herramientas de evidencia proporcionadas por DOCSight.",
       "id": "docsight_features",
       "title": "Funciones de DOCSight"
+    },
+    {
+      "description": "Derechos de la legislación alemana de telecomunicaciones explicados en el contexto práctico de DOCSight.",
+      "id": "consumer_rights",
+      "title": "Derechos del consumidor"
     }
   ],
   "terms": [
@@ -415,6 +420,28 @@
         "DOCSight"
       ],
       "title": "Utilización del segmento"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Derecho a indemnización"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "En un contrato alemán de internet o teléfono, TKG § 58 puede dar derecho a indemnización por una interrupción total o una cita incumplida por el proveedor; TKG § 57 puede ayudar si el servicio es persistentemente lento o inestable.",
+        "basic": "Según TKG § 58, la indemnización por una interrupción total puede comenzar el día posterior al transcurso de dos días naturales desde que el proveedor recibió el aviso de avería. Una cita acordada de servicio o instalación que el proveedor incumpla puede generar una indemnización independiente conforme a la ley y la cuota mensual.",
+        "advanced": "TKG § 57 Abs. 4 trata las desviaciones importantes, continuas o recurrentes del rendimiento, incluidas las determinadas mediante un mecanismo de medición de la Bundesnetzagentur, y puede permitir reducir el precio o resolver el contrato de forma extraordinaria. TKG § 58 se ocupa de la reparación, los cortes totales y las citas incumplidas.",
+        "technician": "Utiliza el asistente TKG de DOCSight para estructurar un posible importe según § 58 y una carta al proveedor. Conserva avisos de avería, registros de citas, datos del monitor de conexión y el diario de incidencias; para una reclamación según § 57 sigue el procedimiento de medición de la Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Derechos según TKG § 57 y § 58"
     }
   ]
 }

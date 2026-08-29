@@ -9,6 +9,11 @@
       "description": "Vistas, integrações e ferramentas de evidência fornecidas pelo DOCSight.",
       "id": "docsight_features",
       "title": "Funções DOCSight"
+    },
+    {
+      "description": "Direitos da legislação alemã de telecomunicações explicados no contexto prático do DOCSight.",
+      "id": "consumer_rights",
+      "title": "Direitos dos consumidores"
     }
   ],
   "terms": [
@@ -415,6 +420,28 @@
         "DOCSight"
       ],
       "title": "Utilização do segmento"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Direito a compensação"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Num contrato alemão de internet ou telefone, o TKG § 58 pode dar compensação por uma falha total ou por uma marcação não cumprida pelo fornecedor; o TKG § 57 pode ajudar quando o serviço é persistentemente lento ou instável.",
+        "basic": "Ao abrigo do TKG § 58, a compensação por uma falha total pode começar no dia seguinte ao decurso de dois dias de calendário desde que o fornecedor recebeu a comunicação da avaria. Uma marcação acordada de assistência ou instalação que não seja cumprida pode gerar compensação separada conforme a lei e a mensalidade.",
+        "advanced": "O TKG § 57 Abs. 4 trata de desvios de desempenho significativos, contínuos ou recorrentes, incluindo os apurados por um mecanismo de medição da Bundesnetzagentur, e pode permitir redução do preço ou rescisão extraordinária. O TKG § 58 trata da reparação de avarias, falhas totais e marcações não cumpridas.",
+        "technician": "Use o assistente TKG do DOCSight para estruturar um possível montante segundo o § 58 e uma carta ao fornecedor. Guarde comunicações de avaria, registos de marcações, dados do monitor de ligação e diário de incidentes; para uma reclamação segundo o § 57 siga o procedimento de medição da Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Direitos ao abrigo do TKG § 57 e § 58"
     }
   ]
 }

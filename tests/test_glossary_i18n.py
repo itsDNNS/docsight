@@ -53,6 +53,12 @@ GLOSSARY_PAGE_KEYS = [
     "glossary_alphabetical_terms",
     "glossary_close_picker",
     "glossary_aliases_heading",
+    "glossary_law_heading",
+    "glossary_law_hint",
+    "glossary_law_excerpt_note",
+    "glossary_law_source_label",
+    "glossary_law_reviewed_label",
+    "glossary_law_disclaimer",
 ]
 
 MOD_GLOSSARY_KEYS = [

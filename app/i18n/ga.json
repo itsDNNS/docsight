@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Spriocanna breathnaithe",
   "correlation_reachability_scope": "Raon na spriocanna",
   "correlation_reachability_drilldown": "Oscail sonraí an Mhonatóra Ceangail",
-  "correlation_reachability_aria": "Achoimre infhaighteachta"
+  "correlation_reachability_aria": "Achoimre infhaighteachta",
+  "glossary_law_heading": "Buntéacs dlíthiúil Gearmáinise (Gesetzestext)",
+  "glossary_law_hint": "Taispeántar an téacs reachtúil i nGearmáinis i ngach teanga; níl ach an fhoclaíocht Ghearmáinise údarásach.",
+  "glossary_law_excerpt_note": "Sliocht: ní thaispeántar ach an fo-alt a luaitear.",
+  "glossary_law_source_label": "Foinse oifigiúil",
+  "glossary_law_reviewed_label": "Foinse seiceáilte",
+  "glossary_law_disclaimer": "Eolas ginearálta, ní comhairle dlí."
 }

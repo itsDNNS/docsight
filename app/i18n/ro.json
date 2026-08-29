@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Ținte observate",
   "correlation_reachability_scope": "Domeniul țintelor",
   "correlation_reachability_drilldown": "Deschide detaliile Monitorului conexiunii",
-  "correlation_reachability_aria": "Rezumatul accesibilității"
+  "correlation_reachability_aria": "Rezumatul accesibilității",
+  "glossary_law_heading": "Textul legal german original (Gesetzestext)",
+  "glossary_law_hint": "Textul legal este afișat în germană în toate limbile; numai formularea germană este autoritară.",
+  "glossary_law_excerpt_note": "Extras: este afișat numai alineatul citat.",
+  "glossary_law_source_label": "Sursă oficială",
+  "glossary_law_reviewed_label": "Sursă verificată",
+  "glossary_law_disclaimer": "Informații generale, nu consultanță juridică."
 }

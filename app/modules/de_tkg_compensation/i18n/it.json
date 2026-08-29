@@ -107,5 +107,6 @@
   "excluded_days": "Giorni confermati esclusi",
   "waiting_period": "La data di ricezione della segnalazione del guasto è il giorno 0; prima del terzo giorno di calendario successivo alla ricezione non viene calcolato alcun diritto ai sensi di TKG §58(3).",
   "evidence_checklist": "Elenco di controllo delle prove",
-  "disclaimer": "Non si tratta di consulenza legale né di una garanzia di successo. Il fornitore o i tribunali possono valutare diversamente i fatti."
+  "disclaimer": "Non si tratta di consulenza legale né di una garanzia di successo. Il fornitore o i tribunali possono valutare diversamente i fatti.",
+  "glossary_link": "I tuoi diritti spiegati — voce del glossario TKG con il testo legale originale"
 }

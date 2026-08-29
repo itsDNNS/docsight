@@ -9,6 +9,11 @@
       "description": "Vyer, integrationer och evidensverktyg som DOCSight själv tillhandahåller.",
       "id": "docsight_features",
       "title": "DOCSight-funktioner"
+    },
+    {
+      "description": "Rättigheter enligt tysk telekommunikationsrätt förklarade i ett praktiskt DOCSight-sammanhang.",
+      "id": "consumer_rights",
+      "title": "Konsumenträttigheter"
     }
   ],
   "terms": [
@@ -414,6 +419,28 @@
         "DOCSight"
       ],
       "title": "Segmentanvändning"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Rätt till ersättning"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "För ett tyskt internet- eller telefonavtal kan TKG § 58 ge ersättning vid ett fullständigt avbrott eller ett missat leverantörsbesök; TKG § 57 kan hjälpa när tjänsten är varaktigt långsam eller instabil.",
+        "basic": "Enligt TKG § 58 kan ersättning för ett fullständigt avbrott börja dagen efter att två kalenderdagar har gått sedan leverantören tog emot felanmälan. Ett missat avtalat service- eller installationsbesök kan ge separat ersättning enligt lagen och månadsavgiften.",
+        "advanced": "TKG § 57 Abs. 4 gäller betydande kontinuerliga eller återkommande prestandaavvikelser, även sådana som fastställts med en mätmekanism från Bundesnetzagentur, och kan möjliggöra prisavdrag eller extraordinär uppsägning. TKG § 58 gäller felavhjälpning, fullständiga avbrott och missade besök.",
+        "technician": "Använd TKG-assistenten i DOCSight för att strukturera ett möjligt belopp enligt § 58 och ett brev till leverantören. Spara felanmälningar, besöksuppgifter, data från anslutningsmonitorn och incidentjournalen; följ Bundesnetzagentur-mätförfarandet för ett krav enligt § 57."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Rättigheter enligt TKG § 57 och § 58"
     }
   ]
 }

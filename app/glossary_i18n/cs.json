@@ -9,6 +9,11 @@
       "description": "Zobrazení, integrace a nástroje pro důkazy poskytované samotným DOCSight.",
       "id": "docsight_features",
       "title": "Funkce DOCSight"
+    },
+    {
+      "description": "Práva podle německého telekomunikačního práva vysvětlená v praktickém kontextu DOCSight.",
+      "id": "consumer_rights",
+      "title": "Práva spotřebitelů"
     }
   ],
   "terms": [
@@ -415,6 +420,28 @@
         "DOCSight"
       ],
       "title": "Využití segmentu"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Právo na náhradu"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "U německé smlouvy na internet nebo telefon může TKG § 58 přiznat náhradu za úplný výpadek či zmeškaný termín poskytovatele; TKG § 57 může pomoci při trvale pomalé nebo nestabilní službě.",
+        "basic": "Podle TKG § 58 může náhrada za úplný výpadek začít dnem následujícím po uplynutí dvou kalendářních dnů od přijetí hlášení poruchy poskytovatelem. Za zmeškaný sjednaný servisní nebo instalační termín může náležet samostatná náhrada podle zákona a měsíční ceny.",
+        "advanced": "TKG § 57 Abs. 4 řeší významné trvalé nebo opakované odchylky výkonu, včetně odchylek zjištěných měřicím mechanismem Bundesnetzagentur, a může umožnit snížení ceny nebo mimořádné ukončení. TKG § 58 se naopak týká odstraňování poruch, úplných výpadků a zmeškaných termínů.",
+        "technician": "Asistent TKG v DOCSight pomůže strukturovat možnou částku podle § 58 a dopis poskytovateli. Uchovejte hlášení poruch, záznamy termínů, údaje monitoru připojení a deník incidentů; pro nárok podle § 57 použijte měřicí postup Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Práva podle TKG § 57 a § 58"
     }
   ]
 }

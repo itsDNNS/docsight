@@ -9,6 +9,11 @@
       "description": "Vizualizări, integrări și instrumente de evidență oferite de DOCSight.",
       "id": "docsight_features",
       "title": "Funcții DOCSight"
+    },
+    {
+      "description": "Drepturi din legislația germană a telecomunicațiilor explicate în contextul practic DOCSight.",
+      "id": "consumer_rights",
+      "title": "Drepturile consumatorilor"
     }
   ],
   "terms": [
@@ -414,6 +419,28 @@
         "DOCSight"
       ],
       "title": "Utilizarea segmentului"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Drept la despăgubire"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Pentru un contract german de internet sau telefonie, TKG § 58 poate acorda despăgubiri pentru o întrerupere totală ori o programare ratată de furnizor; TKG § 57 poate ajuta când serviciul este persistent lent sau instabil.",
+        "basic": "Conform TKG § 58, despăgubirea pentru o întrerupere totală poate începe în ziua de după împlinirea a două zile calendaristice de când furnizorul a primit sesizarea defecțiunii. O programare convenită de service sau instalare ratată poate genera o despăgubire separată potrivit legii și tarifului lunar.",
+        "advanced": "TKG § 57 Abs. 4 privește abateri semnificative, continue sau recurente ale performanței, inclusiv cele stabilite printr-un mecanism de măsurare Bundesnetzagentur, și poate permite reducerea prețului ori încetarea extraordinară. TKG § 58 privește remedierea defecțiunilor, întreruperile totale și programările ratate.",
+        "technician": "Folosiți asistentul TKG din DOCSight pentru a structura o posibilă sumă conform § 58 și o scrisoare către furnizor. Păstrați sesizările, evidența programărilor, datele monitorului conexiunii și jurnalul incidentelor; pentru o cerere conform § 57 urmați procedura de măsurare Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Drepturi conform TKG § 57 și § 58"
     }
   ]
 }

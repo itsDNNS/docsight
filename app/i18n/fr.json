@@ -1136,5 +1136,11 @@
   "correlation_reachability_targets": "Cibles observées",
   "correlation_reachability_scope": "Périmètre des cibles",
   "correlation_reachability_drilldown": "Ouvrir les détails du Moniteur de connexion",
-  "correlation_reachability_aria": "Résumé de l’accessibilité"
+  "correlation_reachability_aria": "Résumé de l’accessibilité",
+  "glossary_law_heading": "Texte légal allemand original (Gesetzestext)",
+  "glossary_law_hint": "Le texte légal est affiché en allemand dans toutes les langues ; seule la formulation allemande fait autorité.",
+  "glossary_law_excerpt_note": "Extrait : seul le paragraphe cité est affiché.",
+  "glossary_law_source_label": "Source officielle",
+  "glossary_law_reviewed_label": "Source vérifiée",
+  "glossary_law_disclaimer": "Informations générales, pas de conseil juridique."
 }

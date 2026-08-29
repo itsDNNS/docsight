@@ -9,6 +9,11 @@
       "description": "Radhairc, comhtháthuithe agus uirlisí fianaise a sholáthraíonn DOCSight.",
       "id": "docsight_features",
       "title": "Gnéithe DOCSight"
+    },
+    {
+      "description": "Cearta faoi dhlí teileachumarsáide na Gearmáine mínithe i gcomhthéacs praiticiúil DOCSight.",
+      "id": "consumer_rights",
+      "title": "Cearta tomhaltóirí"
     }
   ],
   "terms": [
@@ -415,6 +420,28 @@
         "DOCSight"
       ],
       "title": "Úsáid deighleog"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Ceart chun cúitimh"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "I gcás conradh idirlín nó teileafóin sa Ghearmáin, féadfaidh TKG § 58 cúiteamh a thabhairt as briseadh iomlán nó coinne a chaill an soláthraí; féadfaidh TKG § 57 cabhrú nuair atá an tseirbhís mall nó éagobhsaí go leanúnach.",
+        "basic": "Faoi TKG § 58, féadfaidh cúiteamh as briseadh iomlán tosú an lá tar éis dhá lá féilire a bheith caite ó fuair an soláthraí an tuairisc locht. D’fhéadfadh cúiteamh ar leith a bheith dlite as coinne seirbhíse nó suiteála chomhaontaithe a chailltear, de réir an dlí agus na táille míosúla.",
+        "advanced": "Baineann TKG § 57 Abs. 4 le diallais shuntasacha leanúnacha nó athfhillteacha sa fheidhmíocht, lena n-áirítear cinn a aimsítear le meicníocht tomhais Bundesnetzagentur, agus d’fhéadfadh sé laghdú praghais nó foirceannadh urghnách a cheadú. Baineann TKG § 58 le deisiú lochtanna, bristeacha iomlána agus coinní caillte.",
+        "technician": "Úsáid cúntóir TKG DOCSight chun méid féideartha faoi § 58 agus litir don soláthraí a struchtúrú. Coinnigh tuairiscí locht, taifid choinne, sonraí monatóra ceangail agus dialann teagmhas; le haghaidh éilimh faoi § 57 lean nós imeachta tomhais Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Cearta faoi TKG § 57 agus § 58"
     }
   ]
 }

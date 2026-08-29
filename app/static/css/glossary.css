@@ -416,6 +416,75 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   margin-top: 12px;
 }
 
+.glossary-law-card {
+  padding: 0;
+}
+
+.glossary-law-details > summary {
+  padding: 22px;
+  color: var(--text-primary);
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.glossary-law-details > summary:focus-visible {
+  outline: 3px solid var(--amethyst-light);
+  outline-offset: -5px;
+  border-radius: var(--radius-lg);
+}
+
+.glossary-law-content {
+  padding: 0 22px 22px;
+}
+
+.glossary-law-hint,
+.glossary-law-excerpt-note,
+.glossary-law-footer {
+  color: var(--text-secondary);
+}
+
+.glossary-law-statute {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.glossary-law-statute h5 {
+  margin: 0 0 12px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.glossary-law-statute p {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.glossary-law-statute p + p {
+  margin-top: 12px;
+}
+
+.glossary-law-source a {
+  color: var(--amethyst-light);
+  font-weight: 700;
+}
+
+.glossary-law-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
 .glossary-media-card {
   display: grid;
   gap: 14px;
@@ -604,6 +673,14 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   .glossary-card {
     padding: 18px;
     border-radius: var(--radius-lg);
+  }
+
+  .glossary-law-details > summary {
+    padding: 18px;
+  }
+
+  .glossary-law-content {
+    padding: 0 18px 18px;
   }
 
   .glossary-term-header-card h2 {

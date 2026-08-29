@@ -420,6 +420,20 @@ def test_disabled_module_has_no_tab_route_or_static_asset(page, tkg_disabled_ser
     ).status == 404
 
 
+def test_tkg_first_step_links_to_glossary_article(tkg_core_page):
+    root = _open_tkg(tkg_core_page)
+
+    root.locator("#tkg-glossary-link").click()
+
+    expect(tkg_core_page).to_have_url(re.compile(r"#glossary\?term=tkg_rights_de$"))
+    expect(tkg_core_page.locator("#view-glossary")).to_have_class(re.compile(r"active"))
+    expect(
+        tkg_core_page.locator(
+            '#view-glossary .glossary-term-article[data-term-id="tkg_rights_de"]:not([hidden])'
+        ).get_by_role("heading", name="Rights under TKG § 57 and § 58")
+    ).to_be_visible()
+
+
 def test_full_appointment_only_api_copy_and_export_flow_at_root_and_prefix(
     page, path_prefix_servers
 ):

@@ -9,6 +9,11 @@
       "description": "Pogledi, integracije in dokazna orodja, ki jih zagotavlja DOCSight.",
       "id": "docsight_features",
       "title": "Funkcije DOCSight"
+    },
+    {
+      "description": "Pravice po nemškem telekomunikacijskem pravu, pojasnjene v praktičnem okviru DOCSight.",
+      "id": "consumer_rights",
+      "title": "Pravice potrošnikov"
     }
   ],
   "terms": [
@@ -414,6 +419,28 @@
         "DOCSight"
       ],
       "title": "Uporaba segmenta"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Pravica do odškodnine"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Pri nemški pogodbi za internet ali telefon lahko TKG § 58 omogoča odškodnino za popoln izpad ali zamujeni termin ponudnika; TKG § 57 lahko pomaga, kadar je storitev trajno počasna ali nestabilna.",
+        "basic": "Po TKG § 58 se lahko odškodnina za popoln izpad začne dan po preteku dveh koledarskih dni od prejema prijave napake pri ponudniku. Za zamujeni dogovorjeni servisni ali namestitveni termin lahko pripada ločena odškodnina po zakonu in mesečni naročnini.",
+        "advanced": "TKG § 57 Abs. 4 obravnava pomembna stalna ali ponavljajoča se odstopanja zmogljivosti, tudi tista, ugotovljena z merilnim mehanizmom Bundesnetzagentur, in lahko omogoča znižanje cene ali izredno odpoved. TKG § 58 ureja odpravo napak, popolne izpade in zamujene termine.",
+        "technician": "Uporabite pomočnika TKG v DOCSight za pripravo možnega zneska po § 58 in pisma ponudniku. Hranite prijave napak, evidence terminov, podatke nadzora povezave in dnevnik incidentov; za zahtevek po § 57 upoštevajte merilni postopek Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Pravice po TKG § 57 in § 58"
     }
   ]
 }

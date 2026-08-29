@@ -416,6 +416,28 @@ def test_module_itself_can_be_disabled_with_routes_and_assets_absent(
     assert b"tkg-compensation-root" not in dashboard.data
 
 
+def test_glossary_link_uses_script_name_prefix(
+    make_app, make_config, builtin_module_loader_factory, core_storage
+):
+    config = make_config({"modem_type": "demo", "demo_mode": True})
+    client = make_app(
+        config_manager=config,
+        storage=core_storage,
+        module_loader_factory=builtin_module_loader_factory(config),
+    ).test_client()
+
+    response = client.get(
+        "/?lang=en", environ_overrides={"SCRIPT_NAME": "/docsight"}
+    )
+
+    assert response.status_code == 200
+    assert (
+        b'id="tkg-glossary-link" '
+        b'href="/docsight/?lang=en#glossary?term=tkg_rights_de"'
+        in response.data
+    )
+
+
 def test_existing_module_apis_toggle_tkg_module_state(
     make_app, make_config, builtin_module_loader_factory, core_storage
 ):

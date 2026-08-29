@@ -107,5 +107,6 @@
   "excluded_days": "Ausgeschlossene bestätigte Tage",
   "waiting_period": "Der Eingangstag der Störungsmeldung ist Tag 0; vor dem dritten Kalendertag nach Eingang wird kein Anspruch nach TKG §58(3) berechnet.",
   "evidence_checklist": "Nachweis-Checkliste",
-  "disclaimer": "Keine Rechtsberatung und keine Erfolgsgarantie. Anbieter oder Gerichte können den Sachverhalt anders bewerten."
+  "disclaimer": "Keine Rechtsberatung und keine Erfolgsgarantie. Anbieter oder Gerichte können den Sachverhalt anders bewerten.",
+  "glossary_link": "Ihre Rechte erklärt — TKG-Glossarartikel mit dem originalen Gesetzestext"
 }

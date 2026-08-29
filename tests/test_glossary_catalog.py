@@ -153,7 +153,7 @@ def test_shared_medium_svg_is_compact_and_text_free():
     assert "http://" not in source.removeprefix('<svg xmlns="http://www.w3.org/2000/svg"')
 
 
-def test_core_glossary_contains_only_docsis_terms_and_docsight_features():
+def test_core_glossary_contains_expected_terms_by_category():
     terms = {term["id"]: term for term in get_glossary_terms("en")}
     expected_docsis_terms = {
         "docsis", "downstream", "upstream", "channel_bonding", "sc_qam", "ofdm", "ofdma",
@@ -168,10 +168,11 @@ def test_core_glossary_contains_only_docsis_terms_and_docsight_features():
         "smart_capture", "speedtest", "bqm", "smokeping", "bnetza", "gaming_index",
         "llm_export", "doctor_diagnostics", "pwa_offline",
     }
+    expected_consumer_rights = {"tkg_rights_de"}
 
-    assert set(terms) == expected_docsis_terms | expected_docsight_features
+    assert set(terms) == expected_docsis_terms | expected_docsight_features | expected_consumer_rights
     for term in terms.values():
-        assert term["category"] in {"docsis_terms", "docsight_features"}
+        assert term["category"] in {"docsis_terms", "docsight_features", "consumer_rights"}
         assert term["title"]
         assert term["aliases"]
         assert term["source_pages"]
@@ -201,7 +202,7 @@ def test_related_glossary_terms_resolve_to_existing_terms():
 
 def test_categories_are_localized_and_used_by_terms():
     categories = {category["id"]: category for category in get_glossary_categories("en")}
-    assert set(categories) == {"docsis_terms", "docsight_features"}
+    assert set(categories) == {"docsis_terms", "docsight_features", "consumer_rights"}
     for category in categories.values():
         assert category["title"]
         assert category["description"]

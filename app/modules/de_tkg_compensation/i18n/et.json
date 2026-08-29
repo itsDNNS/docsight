@@ -107,5 +107,6 @@
   "excluded_days": "Välistatud kinnitatud päevad",
   "waiting_period": "Rikketeate kättesaamise kuupäev on päev 0; enne kättesaamisele järgnevat kolmandat kalendripäeva TKG §58(3) alusel hüvitist ei arvutata.",
   "evidence_checklist": "Tõendite kontrollnimekiri",
-  "disclaimer": "See ei ole õigusnõu ega edu lubadus. Teenusepakkuja või kohus võib asjaolusid teisiti hinnata."
+  "disclaimer": "See ei ole õigusnõu ega edu lubadus. Teenusepakkuja või kohus võib asjaolusid teisiti hinnata.",
+  "glossary_link": "Teie õiguste selgitus — TKG sõnastikuartikkel seaduse algtekstiga"
 }

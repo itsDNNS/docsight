@@ -107,5 +107,6 @@
   "excluded_days": "Vyloučené potvrzené dny",
   "waiting_period": "Datum přijetí hlášení poruchy je den 0; před třetím kalendářním dnem po přijetí se nárok podle TKG §58(3) nepočítá.",
   "evidence_checklist": "Kontrolní seznam důkazů",
-  "disclaimer": "Nejde o právní poradenství ani záruku úspěchu. Poskytovatel nebo soud mohou skutečnosti posoudit jinak."
+  "disclaimer": "Nejde o právní poradenství ani záruku úspěchu. Poskytovatel nebo soud mohou skutečnosti posoudit jinak.",
+  "glossary_link": "Vysvětlení vašich práv — článek slovníku TKG s původním zněním zákona"
 }

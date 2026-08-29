@@ -69,6 +69,31 @@
                 {% endif %}
             </section>
 
+            {% if term.legal_texts %}
+            <section class="glossary-card glossary-law-card">
+                <details class="glossary-law-details">
+                    <summary>{{ t.get('glossary_law_heading', 'Original German legal text (Gesetzestext)') }}</summary>
+                    <div class="glossary-law-content">
+                        <p class="glossary-law-hint">{{ t.get('glossary_law_hint', 'The statutory text is shown in German in every language; only the German wording is authoritative.') }}</p>
+                        {% for statute in term.legal_texts %}
+                        <section class="glossary-law-statute">
+                            <h5 lang="de">{{ statute.label }}{% if statute.excerpt %} — Abs. 4{% endif %}</h5>
+                            {% if statute.excerpt %}<p class="glossary-law-excerpt-note">{{ t.get('glossary_law_excerpt_note', 'Excerpt: only the quoted subsection is shown.') }}</p>{% endif %}
+                            <div class="glossary-law-verbatim" lang="de">
+                                {% for paragraph in statute.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+                            </div>
+                            <p class="glossary-law-source"><a href="{{ statute.source_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('glossary_law_source_label', 'Official source') }}</a></p>
+                        </section>
+                        {% endfor %}
+                        <footer class="glossary-law-footer">
+                            <span>{{ t.get('glossary_law_reviewed_label', 'Source checked') }}: {{ term.legal_review_date }}</span>
+                            <span>{{ t.get('glossary_law_disclaimer', 'General information, not legal advice.') }}</span>
+                        </footer>
+                    </div>
+                </details>
+            </section>
+            {% endif %}
+
             {% if term.media %}
             <section class="glossary-card glossary-media-card" aria-label="{{ term.title }} media">
                 {% for item in term.media %}

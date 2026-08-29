@@ -9,6 +9,11 @@
       "description": "Vues, intégrations et outils de preuve fournis par DOCSight.",
       "id": "docsight_features",
       "title": "Fonctions DOCSight"
+    },
+    {
+      "description": "Droits issus du droit allemand des télécommunications expliqués dans le contexte pratique de DOCSight.",
+      "id": "consumer_rights",
+      "title": "Droits des consommateurs"
     }
   ],
   "terms": [
@@ -416,6 +421,28 @@
         "DOCSight"
       ],
       "title": "Utilisation du segment"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Droit à indemnisation"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Pour un contrat allemand d’accès à internet ou de téléphone, le TKG § 58 peut ouvrir droit à une indemnisation en cas de panne totale ou de rendez-vous manqué par le fournisseur ; le TKG § 57 peut aider si le service reste trop lent ou instable.",
+        "basic": "Selon le TKG § 58, l’indemnisation d’une panne totale peut commencer le jour suivant l’écoulement de deux jours calendaires depuis la réception du signalement par le fournisseur. Un rendez-vous de service ou d’installation convenu et manqué peut donner lieu à une indemnisation distincte calculée selon la loi et le prix mensuel.",
+        "advanced": "Le TKG § 57 Abs. 4 vise les écarts de performance importants, continus ou récurrents, notamment ceux établis par un mécanisme de mesure de la Bundesnetzagentur, et peut permettre une réduction du prix ou une résiliation extraordinaire. Le TKG § 58 concerne le dépannage, les pannes totales et les rendez-vous manqués.",
+        "technician": "Utilisez l’assistant TKG de DOCSight pour structurer un montant possible selon le § 58 et une lettre au fournisseur. Conservez les signalements, preuves de rendez-vous, données du moniteur de connexion et journal des incidents ; pour une demande selon le § 57, suivez la procédure de mesure de la Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Droits selon le TKG § 57 et § 58"
     }
   ]
 }

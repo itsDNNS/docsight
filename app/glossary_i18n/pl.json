@@ -9,6 +9,11 @@
       "description": "Widoki, integracje i narzędzia dowodowe dostarczane przez DOCSight.",
       "id": "docsight_features",
       "title": "Funkcje DOCSight"
+    },
+    {
+      "description": "Prawa wynikające z niemieckiego prawa telekomunikacyjnego wyjaśnione w praktycznym kontekście DOCSight.",
+      "id": "consumer_rights",
+      "title": "Prawa konsumenta"
     }
   ],
   "terms": [
@@ -415,6 +420,28 @@
         "DOCSight"
       ],
       "title": "Wykorzystanie segmentu"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Prawo do odszkodowania"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Przy niemieckiej umowie na internet lub telefon TKG § 58 może zapewniać odszkodowanie za całkowitą awarię albo niedotrzymany termin dostawcy; TKG § 57 może pomóc, gdy usługa jest stale zbyt wolna lub niestabilna.",
+        "basic": "Na podstawie TKG § 58 odszkodowanie za całkowitą awarię może rozpocząć się w dniu następującym po upływie dwóch dni kalendarzowych od otrzymania zgłoszenia przez dostawcę. Niedotrzymany uzgodniony termin serwisu lub instalacji może dawać odrębne odszkodowanie według ustawy i miesięcznej opłaty.",
+        "advanced": "TKG § 57 Abs. 4 dotyczy znacznych ciągłych lub powtarzających się odchyleń wydajności, w tym stwierdzonych mechanizmem pomiarowym Bundesnetzagentur, i może umożliwiać obniżenie ceny albo nadzwyczajne rozwiązanie umowy. TKG § 58 reguluje usuwanie usterek, całkowite awarie i niedotrzymane terminy.",
+        "technician": "Użyj asystenta TKG w DOCSight, aby uporządkować możliwą kwotę z § 58 i pismo do dostawcy. Zachowaj zgłoszenia usterek, zapisy terminów, dane monitora połączenia i dziennik incydentów; przy roszczeniu z § 57 zastosuj procedurę pomiarową Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Prawa na podstawie TKG § 57 i § 58"
     }
   ]
 }

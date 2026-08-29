@@ -9,6 +9,11 @@
       "description": "Weergaven, integraties en bewijsinstrumenten die DOCSight zelf levert.",
       "id": "docsight_features",
       "title": "DOCSight-functies"
+    },
+    {
+      "description": "Rechten uit het Duitse telecommunicatierecht uitgelegd in de praktische context van DOCSight.",
+      "id": "consumer_rights",
+      "title": "Consumentenrechten"
     }
   ],
   "terms": [
@@ -414,6 +419,28 @@
         "DOCSight"
       ],
       "title": "Segmentgebruik"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Recht op vergoeding"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Bij een Duits internet- of telefooncontract kan TKG § 58 recht geven op vergoeding bij een volledige storing of een gemiste afspraak van de aanbieder; TKG § 57 kan helpen wanneer de dienst blijvend traag of instabiel is.",
+        "basic": "Volgens TKG § 58 kan vergoeding voor een volledige storing ingaan op de dag nadat twee kalenderdagen zijn verstreken sinds de aanbieder de storingsmelding ontving. Voor een gemiste afgesproken service- of installatieafspraak kan een afzonderlijke vergoeding gelden op basis van de wet en het maandbedrag.",
+        "advanced": "TKG § 57 Abs. 4 gaat over aanzienlijke voortdurende of terugkerende prestatieafwijkingen, waaronder afwijkingen die met een meetmechanisme van de Bundesnetzagentur zijn vastgesteld, en kan prijsvermindering of buitengewone beëindiging mogelijk maken. TKG § 58 betreft storingsherstel, volledige uitval en gemiste afspraken.",
+        "technician": "Gebruik de TKG-assistent van DOCSight om een mogelijk bedrag volgens § 58 en een brief aan de aanbieder op te bouwen. Bewaar storingsmeldingen, afspraakregistraties, gegevens van de verbindingsmonitor en het incidentjournaal; volg voor een claim volgens § 57 de meetprocedure van de Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Rechten volgens TKG § 57 en § 58"
     }
   ]
 }

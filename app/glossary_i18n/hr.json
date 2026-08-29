@@ -9,6 +9,11 @@
       "description": "Prikazi, integracije i alati za dokaze koje pruža DOCSight.",
       "id": "docsight_features",
       "title": "DOCSight funkcije"
+    },
+    {
+      "description": "Prava iz njemačkog telekomunikacijskog prava objašnjena u praktičnom kontekstu DOCSight.",
+      "id": "consumer_rights",
+      "title": "Prava potrošača"
     }
   ],
   "terms": [
@@ -414,6 +419,28 @@
         "DOCSight"
       ],
       "title": "Iskorištenje segmenta"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Pravo na naknadu"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Za njemački ugovor o internetu ili telefonu TKG § 58 može omogućiti naknadu zbog potpunog prekida ili propuštenog termina pružatelja, dok TKG § 57 može pomoći kada je usluga trajno spora ili nestabilna.",
+        "basic": "Prema TKG § 58, naknada za potpuni prekid može početi dan nakon isteka dva kalendarska dana od primitka prijave kvara kod pružatelja. Za propušteni dogovoreni servisni ili instalacijski termin može pripadati zasebna naknada prema zakonu i mjesečnoj naknadi.",
+        "advanced": "TKG § 57 Abs. 4 uređuje značajna stalna ili ponavljajuća odstupanja izvedbe, uključujući ona utvrđena mjernim mehanizmom Bundesnetzagentur, te može omogućiti sniženje cijene ili izvanredni raskid. TKG § 58 odnosi se na otklanjanje kvarova, potpune prekide i propuštene termine.",
+        "technician": "Upotrijebite TKG asistenta u DOCSight za strukturiranje mogućeg iznosa prema § 58 i pisma pružatelju. Sačuvajte prijave kvara, zapise termina, podatke nadzora veze i dnevnik incidenata; za zahtjev prema § 57 slijedite mjerni postupak Bundesnetzagentur."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Prava prema TKG § 57 i § 58"
     }
   ]
 }

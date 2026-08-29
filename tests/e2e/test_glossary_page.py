@@ -152,6 +152,27 @@ def test_glossary_mobile_layout_has_no_horizontal_overflow(page, live_server):
     _assert_visible_boxes_do_not_overlap(page, "#view-glossary .glossary-term-article:not([hidden]) > .glossary-card")
 
 
+def test_tkg_law_appendix_expands_by_keyboard_without_mobile_overflow(page, live_server):
+    page.set_viewport_size({"width": 393, "height": 852})
+    page.goto(f"{live_server}/?lang=en&term=tkg_rights_de#glossary?term=tkg_rights_de")
+    page.wait_for_selector("#view-glossary.active", state="visible")
+
+    article = _active_article(page)
+    details = article.locator(".glossary-law-details")
+    summary = details.locator("summary")
+    expect(details).not_to_have_attribute("open", "")
+    summary.focus()
+    expect(summary).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(details).to_have_attribute("open", "")
+    expect(article.locator('.glossary-law-verbatim[lang="de"]')).to_have_count(2)
+    expect(article).to_contain_text("Der Verbraucher kann von einem Anbieter")
+    _assert_no_horizontal_overflow(page)
+    _assert_visible_boxes_do_not_overlap(
+        page, "#view-glossary .glossary-term-article:not([hidden]) > .glossary-card"
+    )
+
+
 def test_glossary_shared_medium_media_desktop(page, live_server):
     page.set_viewport_size({"width": 1440, "height": 950})
     page.goto(f"{live_server}/?lang=de&term=shared_medium#glossary?term=shared_medium")

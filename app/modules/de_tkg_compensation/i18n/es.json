@@ -107,5 +107,6 @@
   "excluded_days": "Días confirmados excluidos",
   "waiting_period": "La fecha de recepción del aviso de avería es el día 0; no se calcula ningún derecho conforme a TKG §58(3) antes del tercer día natural posterior a la recepción.",
   "evidence_checklist": "Lista de comprobación de pruebas",
-  "disclaimer": "No es asesoramiento jurídico ni una garantía de éxito. El proveedor o los tribunales pueden valorar los hechos de otro modo."
+  "disclaimer": "No es asesoramiento jurídico ni una garantía de éxito. El proveedor o los tribunales pueden valorar los hechos de otro modo.",
+  "glossary_link": "Tus derechos explicados — artículo del glosario TKG con el texto legal original"
 }

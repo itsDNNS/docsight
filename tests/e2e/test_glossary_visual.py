@@ -86,6 +86,18 @@ class TestGlossaryVisualMobile:
             full_page=False,
         )
 
+    def test_screenshot_mobile_tkg_law_appendix(self, mobile_page):
+        origin = mobile_page.evaluate("location.origin")
+        mobile_page.goto(f"{origin}/?lang=de&term=tkg_rights_de#glossary?term=tkg_rights_de")
+        mobile_page.wait_for_selector("#view-glossary.active", state="visible")
+        mobile_page.locator(
+            '#view-glossary .glossary-term-article[data-term-id="tkg_rights_de"] summary'
+        ).click()
+        mobile_page.screenshot(
+            path=os.path.join(SCREENSHOT_DIR, "mobile_tkg_law_appendix.png"),
+            full_page=True,
+        )
+
 
 class TestGlossaryVisualLightTheme:
     """Light theme screenshots."""
@@ -105,4 +117,18 @@ class TestGlossaryVisualLightTheme:
         light_page.screenshot(
             path=os.path.join(SCREENSHOT_DIR, "light_popover.png"),
             full_page=False,
+        )
+
+    def test_screenshot_light_tkg_law_appendix(self, light_page):
+        light_page.set_viewport_size({"width": 1440, "height": 950})
+        origin = light_page.evaluate("location.origin")
+        light_page.goto(f"{origin}/?lang=de&term=tkg_rights_de#glossary?term=tkg_rights_de")
+        light_page.wait_for_selector("#view-glossary.active", state="visible")
+        light_page.evaluate("document.documentElement.setAttribute('data-theme', 'light')")
+        light_page.locator(
+            '#view-glossary .glossary-term-article[data-term-id="tkg_rights_de"] summary'
+        ).click()
+        light_page.screenshot(
+            path=os.path.join(SCREENSHOT_DIR, "light_tkg_law_appendix.png"),
+            full_page=True,
         )

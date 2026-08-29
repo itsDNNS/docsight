@@ -17,8 +17,9 @@
 .tkg-rights-case p, .tkg-outcome p { margin: 0; color: var(--text-secondary, var(--muted)); line-height: 1.5; }
 .tkg-outcome { margin-top: var(--space-md, 16px); padding: 12px; border-left: 3px solid var(--accent); background: var(--accent-muted); }
 .tkg-outcome .tkg-privacy { margin-top: 6px; font-weight: 600; }
-.tkg-performance-path, .tkg-legal-note { margin: var(--space-md, 16px) 0 0; color: var(--text-secondary, var(--muted)); line-height: 1.5; }
+.tkg-performance-path, .tkg-glossary-link, .tkg-legal-note { margin: var(--space-md, 16px) 0 0; color: var(--text-secondary, var(--muted)); line-height: 1.5; }
 .tkg-performance-path a { font-weight: 600; }
+.tkg-glossary-link a { font-weight: 700; overflow-wrap: anywhere; }
 .tkg-legal-note { font-size: .85rem; }
 .tkg-status { background: var(--elevated, var(--card)); color: var(--text); }
 .tkg-status:empty { display: none; }

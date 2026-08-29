@@ -9,6 +9,11 @@
       "description": "Vaated, integratsioonid ja tõendusvahendid, mida DOCSight ise pakub.",
       "id": "docsight_features",
       "title": "DOCSighti funktsioonid"
+    },
+    {
+      "description": "Saksamaa telekommunikatsiooniõigused selgitatud DOCSighti praktilises kontekstis.",
+      "id": "consumer_rights",
+      "title": "Tarbija õigused"
     }
   ],
   "terms": [
@@ -415,6 +420,28 @@
         "DOCSight"
       ],
       "title": "Segmendi kasutus"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Hüvitise õigus"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Saksamaa interneti- või telefonilepingu puhul võib TKG § 58 anda hüvitise täieliku katkestuse või teenusepakkuja ärajäänud kohtumise eest; TKG § 57 võib aidata püsivalt aeglase või ebastabiilse teenuse korral.",
+        "basic": "TKG § 58 järgi võib täieliku katkestuse hüvitis alata päeval pärast seda, kui teenusepakkuja rikketeate saamisest on möödunud kaks kalendripäeva. Kokkulepitud hooldus- või paigaldusaja ärajäämine võib anda eraldi hüvitise seaduses sätestatud summa ja kuutasu alusel.",
+        "advanced": "TKG § 57 Abs. 4 käsitleb olulisi pidevaid või korduvaid jõudlushälbeid, sealhulgas Bundesnetzagenturi mõõtemehhanismiga tuvastatuid, ning võib võimaldada hinna vähendamist või erakorralist lõpetamist. TKG § 58 käsitleb rikete kõrvaldamist, täielikke katkestusi ja ärajäänud kohtumisi.",
+        "technician": "Kasutage DOCSighti TKG assistenti võimaliku § 58 summa ja teenusepakkujale saadetava kirja koostamiseks. Säilitage rikketeated, kohtumiste tõendid, ühendusmonitori andmed ja juhtumipäevik; § 57 nõude puhul järgige Bundesnetzagenturi mõõtmismenetlust."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Õigused TKG § 57 ja § 58 alusel"
     }
   ]
 }

@@ -9,6 +9,11 @@
       "description": "A DOCSight által biztosított nézetek, integrációk és bizonyítékeszközök.",
       "id": "docsight_features",
       "title": "DOCSight funkciók"
+    },
+    {
+      "description": "A német távközlési jog szerinti jogosultságok a DOCSight gyakorlati összefüggésében.",
+      "id": "consumer_rights",
+      "title": "Fogyasztói jogok"
     }
   ],
   "terms": [
@@ -414,6 +419,28 @@
         "DOCSight"
       ],
       "title": "Szegmens kihasználtság"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Kártalanítási jog"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Német internet- vagy telefonszerződésnél a TKG § 58 kártalanítást biztosíthat teljes kiesés vagy a szolgáltató által elmulasztott időpont esetén; a TKG § 57 tartósan lassú vagy instabil szolgáltatásnál segíthet.",
+        "basic": "A TKG § 58 alapján a teljes kiesés miatti kártalanítás a hibabejelentés szolgáltató általi kézhezvételétől számított két naptári nap letelte utáni napon kezdődhet. Az elmulasztott egyeztetett szerviz- vagy telepítési időpontért külön, a törvény és a havi díj szerinti kártalanítás járhat.",
+        "advanced": "A TKG § 57 Abs. 4 a jelentős, folyamatos vagy rendszeresen visszatérő teljesítményeltéréseket kezeli, beleértve a Bundesnetzagentur mérési mechanizmusával kimutatottakat, és díjcsökkentést vagy rendkívüli felmondást tehet lehetővé. A TKG § 58 a hibaelhárításra, teljes kiesésre és elmulasztott időpontokra vonatkozik.",
+        "technician": "A DOCSight TKG-asszisztensével strukturálható a § 58 szerinti lehetséges összeg és a szolgáltatónak szóló levél. Őrizze meg a hibabejelentéseket, időpont-nyilvántartásokat, a kapcsolatfigyelő adatait és az eseménynaplót; § 57 szerinti igénynél kövesse a Bundesnetzagentur mérési eljárását."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Jogok a TKG § 57 és § 58 alapján"
     }
   ]
 }

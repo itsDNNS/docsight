@@ -5,10 +5,13 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import unquote
+
+from app.glossary_legal_texts import TKG_57_ABS_4, TKG_58, TKG_LEGAL_REVIEW_DATE
 
 GLOSSARY_LEVELS: tuple[str, ...] = ("eli5", "basic", "advanced", "technician")
 
@@ -45,6 +48,8 @@ class GlossaryTerm:
     source_pages: tuple[str, ...] = ()
     ui_contexts: tuple[str, ...] = ()
     media: tuple[dict[str, Any], ...] = ()
+    legal_texts: tuple[dict[str, Any], ...] = ()
+    legal_review_date: str = ""
 
     def localized(self, lang: str = "en") -> dict[str, Any]:
         """Return a template-friendly localized term, falling back to English."""
@@ -77,6 +82,8 @@ class GlossaryTerm:
             "source_pages": list(_unique((*self.source_pages, *metadata.get("source_pages", ())))),
             "ui_contexts": list(_unique((*self.ui_contexts, *metadata.get("ui_contexts", ())))),
             "media": media,
+            "legal_texts": [dict(item) for item in self.legal_texts],
+            "legal_review_date": self.legal_review_date,
         }
 
 
@@ -100,6 +107,7 @@ class GlossaryCategory:
 _CATEGORY_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
     ("docsis_terms", "DOCSIS terms", "Cable/DOCSIS protocol, signal, channel, and event terms that DOCSight explains."),
     ("docsight_features", "DOCSight features", "Views, integrations, and evidence tools provided by DOCSight itself."),
+    ("consumer_rights", "Consumer rights", "German telecommunications rights explained in practical DOCSight context."),
 )
 
 _CATEGORIES: tuple[GlossaryCategory, ...] = tuple(
@@ -120,6 +128,8 @@ def _term(
     technician: str,
     misconceptions: tuple[str, ...] = (),
     media: tuple[dict[str, Any], ...] = (),
+    legal_texts: tuple[dict[str, Any], ...] = (),
+    legal_review_date: str = "",
 ) -> GlossaryTerm:
     """Create an English glossary term without repeating the locale container shape."""
     return GlossaryTerm(
@@ -139,6 +149,8 @@ def _term(
         },
         misconceptions={"en": misconceptions} if misconceptions else {},
         media=media,
+        legal_texts=legal_texts,
+        legal_review_date=legal_review_date,
     )
 
 _TERMS: tuple[GlossaryTerm, ...] = (
@@ -660,6 +672,20 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         'Offline behavior is a freshness boundary. Cached pages can explain terms or show saved structure, but live modem status requires current collection data.',
         'When troubleshooting from an installed PWA, verify whether the view is online and freshly updated before using it as evidence. Do not escalate cached stale data as current status.',
     ),
+    _term(
+        'tkg_rights_de',
+        'consumer_rights',
+        'Rights under TKG § 57 and § 58',
+        ('TKG § 58', 'TKG § 57', 'Entschädigung', 'Compensation rights', 'Internet outage rights'),
+        ('TKG', 'DOCSight', 'Bundesnetzagentur'),
+        ('bnetza', 'connection_monitor', 'incident_journal'),
+        'For German internet or telephone contracts, TKG § 58 may provide compensation after a complete outage or a missed provider appointment; TKG § 57 may help when service is persistently too slow or unstable.',
+        'Under TKG § 58, compensation for a complete outage can start on the day after two calendar days have passed since the provider received the fault report. Separate compensation may apply when an agreed service or installation appointment is missed; the statutory amount depends on the day or appointment and the contractual monthly fee.',
+        'TKG § 57 Abs. 4 addresses significant continuous or recurring performance deviations, including those established through a Bundesnetzagentur measurement mechanism, and may support a price reduction or extraordinary termination. TKG § 58 instead covers fault handling, complete outages, and missed appointments, with statutory rules preventing double recovery where claims overlap.',
+        'Use the DOCSight TKG assistant to structure the possible § 58 amount and a provider letter, then retain fault reports, appointment records, connection-monitor evidence, and incident-journal timestamps. For a § 57 performance claim, follow the Bundesnetzagentur measurement procedure; DOCSight evidence can add context but does not replace the required proof.',
+        legal_texts=(TKG_58, TKG_57_ABS_4),
+        legal_review_date=TKG_LEGAL_REVIEW_DATE,
+    ),
 )
 
 _GLOSSARY_WIKI_INDEX: dict[str, dict[str, tuple[str, ...]]] = {
@@ -878,6 +904,11 @@ _GLOSSARY_WIKI_INDEX: dict[str, dict[str, tuple[str, ...]]] = {
         'tags': ('docsight-feature', 'app-function'),
         'ui_contexts': ('pwa_offline',),
     },
+    'tkg_rights_de': {
+        'source_pages': ('Features-TKG-Compensation.md',),
+        'tags': ('tkg', 'consumer-rights', 'de', 'wiki-term'),
+        'ui_contexts': ('de_tkg_compensation',),
+    },
 }
 
 
@@ -991,6 +1022,12 @@ def _load_glossary_localizations() -> dict[str, dict[str, Any]]:
             continue
         with path.open(encoding="utf-8-sig") as handle:
             data = json.load(handle)
+        for item in data.get("terms", []):
+            if not isinstance(item, dict):
+                continue
+            for field in ("legal_texts", "legal_review_date"):
+                if field in item:
+                    raise ValueError(f"{item.get('id', '<unknown>')}: glossary localization must not localize {field}")
         categories = {item["id"]: item for item in data.get("categories", [])}
         terms = {item["id"]: item for item in data.get("terms", [])}
         catalogs[lang] = {"categories": categories, "terms": terms}
@@ -1107,6 +1144,40 @@ def validate_glossary_catalog(
             if not token:
                 errors.append(f"{term.id}: empty protected term")
         errors.extend(_validate_media_entries(term.id, term.media, static_root or _STATIC_ROOT))
+        if term.legal_texts:
+            if not term.legal_review_date:
+                errors.append(f"{term.id}: legal texts requires legal review date")
+            else:
+                try:
+                    date.fromisoformat(term.legal_review_date)
+                except (TypeError, ValueError):
+                    errors.append(f"{term.id}: invalid legal review date")
+            for index, legal_text in enumerate(term.legal_texts):
+                if not isinstance(legal_text, dict):
+                    errors.append(f"{term.id}: legal text {index} must be an object")
+                    continue
+                for field in ("id", "label"):
+                    value = legal_text.get(field)
+                    if not isinstance(value, str) or not value.strip():
+                        errors.append(f"{term.id}: legal text {index} missing {field}")
+                if not isinstance(legal_text.get("excerpt"), bool):
+                    errors.append(f"{term.id}: legal text {index} excerpt must be a bool")
+                source_url = legal_text.get("source_url")
+                if not isinstance(source_url, str) or not source_url.startswith(
+                    "https://www.gesetze-im-internet.de/"
+                ):
+                    errors.append(f"{term.id}: legal text {index} must use an official HTTPS source")
+                paragraphs = legal_text.get("paragraphs")
+                if not isinstance(paragraphs, (tuple, list)) or not paragraphs:
+                    errors.append(f"{term.id}: legal text {index} requires non-empty paragraphs")
+                else:
+                    for paragraph_index, paragraph in enumerate(paragraphs):
+                        if not isinstance(paragraph, str) or not paragraph.strip():
+                            errors.append(
+                                f"{term.id}: legal text {index} requires non-empty paragraph {paragraph_index}"
+                            )
+        elif term.legal_review_date:
+            errors.append(f"{term.id}: orphan legal review date")
         metadata = _metadata_for_term(term.id)
         for field in ("tags", "source_pages", "ui_contexts"):
             values = metadata.get(field, ())

@@ -107,5 +107,6 @@
   "excluded_days": "Wykluczone potwierdzone dni",
   "waiting_period": "Data otrzymania zgłoszenia usterki to dzień 0; przed trzecim dniem kalendarzowym po otrzymaniu zgłoszenia nie oblicza się uprawnienia na podstawie TKG §58(3).",
   "evidence_checklist": "Lista kontrolna dowodów",
-  "disclaimer": "To nie jest porada prawna ani gwarancja powodzenia. Dostawca lub sąd mogą inaczej ocenić fakty."
+  "disclaimer": "To nie jest porada prawna ani gwarancja powodzenia. Dostawca lub sąd mogą inaczej ocenić fakty.",
+  "glossary_link": "Wyjaśnienie Twoich praw — artykuł glosariusza TKG z oryginalnym tekstem ustawy"
 }

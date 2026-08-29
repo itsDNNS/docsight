@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Opažena odredišta",
   "correlation_reachability_scope": "Opseg odredišta",
   "correlation_reachability_drilldown": "Otvori pojedinosti Nadzora veze",
-  "correlation_reachability_aria": "Sažetak dostupnosti"
+  "correlation_reachability_aria": "Sažetak dostupnosti",
+  "glossary_law_heading": "Izvorni njemački zakonski tekst (Gesetzestext)",
+  "glossary_law_hint": "Zakonski tekst prikazuje se na njemačkom na svim jezicima; mjerodavan je samo njemački tekst.",
+  "glossary_law_excerpt_note": "Izvadak: prikazan je samo citirani stavak.",
+  "glossary_law_source_label": "Službeni izvor",
+  "glossary_law_reviewed_label": "Izvor provjeren",
+  "glossary_law_disclaimer": "Opće informacije, ne pravni savjet."
 }

@@ -153,6 +153,9 @@ def test_german_first_step_is_rights_first_and_keeps_accessible_start_paths():
     )
     assert 'class="tkg-legal-note"' in first_step
     assert "docsight.de_tkg_compensation.disclaimer" in first_step
+    assert 'id="tkg-glossary-link"' in first_step
+    assert "docsight.de_tkg_compensation.glossary_link" in first_step
+    assert "_anchor='glossary?term=tkg_rights_de'" in first_step
     assert re.search(
         r'<button class="btn btn-accent" id="tkg-next"[^>]*>.*next_first',
         template,

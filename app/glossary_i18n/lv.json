@@ -9,6 +9,11 @@
       "description": "DOCSight nodrošinātie skati, integrācijas un pierādījumu rīki.",
       "id": "docsight_features",
       "title": "DOCSight funkcijas"
+    },
+    {
+      "description": "Vācijas telekomunikāciju tiesību normas izskaidrotas praktiskā DOCSight kontekstā.",
+      "id": "consumer_rights",
+      "title": "Patērētāju tiesības"
     }
   ],
   "terms": [
@@ -415,6 +420,28 @@
         "DOCSight"
       ],
       "title": "Segmenta izmantošana"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Tiesības uz kompensāciju"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Vācijas interneta vai tālruņa līgumam TKG § 58 var paredzēt kompensāciju par pilnīgu pārtraukumu vai pakalpojumu sniedzēja nokavētu vizīti; TKG § 57 var palīdzēt, ja pakalpojums pastāvīgi ir lēns vai nestabils.",
+        "basic": "Saskaņā ar TKG § 58 kompensācija par pilnīgu pārtraukumu var sākties dienā pēc divu kalendāro dienu beigām kopš pakalpojumu sniedzējs saņēma bojājuma pieteikumu. Par nokavētu saskaņotu apkopes vai uzstādīšanas vizīti var pienākties atsevišķa kompensācija atbilstoši likumam un mēneša maksai.",
+        "advanced": "TKG § 57 Abs. 4 attiecas uz būtiskām pastāvīgām vai regulāri atkārtotām veiktspējas novirzēm, tostarp tām, ko nosaka ar Bundesnetzagentur mērīšanas mehānismu, un var ļaut samazināt cenu vai ārkārtēji izbeigt līgumu. TKG § 58 aptver bojājumu novēršanu, pilnīgus pārtraukumus un nokavētas vizītes.",
+        "technician": "Izmantojiet DOCSight TKG asistentu, lai strukturētu iespējamo § 58 summu un vēstuli pakalpojumu sniedzējam. Saglabājiet bojājumu pieteikumus, vizīšu ierakstus, savienojuma monitora datus un incidentu žurnālu; § 57 prasībai ievērojiet Bundesnetzagentur mērīšanas procedūru."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Tiesības saskaņā ar TKG § 57 un § 58"
     }
   ]
 }

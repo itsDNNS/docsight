@@ -9,6 +9,11 @@
       "description": "DOCSightin tarjoamat näkymät, integraatiot ja evidenssityökalut.",
       "id": "docsight_features",
       "title": "DOCSight-ominaisuudet"
+    },
+    {
+      "description": "Saksan televiestintälainsäädännön oikeudet selitettynä DOCSightin käytännön yhteydessä.",
+      "id": "consumer_rights",
+      "title": "Kuluttajan oikeudet"
     }
   ],
   "terms": [
@@ -414,6 +419,28 @@
         "DOCSight"
       ],
       "title": "Segmenttien käyttö"
+    },
+    {
+      "aliases": [
+        "TKG § 58",
+        "TKG § 57",
+        "Oikeus korvaukseen"
+      ],
+      "category": "consumer_rights",
+      "id": "tkg_rights_de",
+      "levels": {
+        "eli5": "Saksalaisessa internet- tai puhelinsopimuksessa TKG § 58 voi oikeuttaa korvaukseen täydestä katkoksesta tai palveluntarjoajan väliin jääneestä tapaamisesta; TKG § 57 voi auttaa jatkuvasti hitaassa tai epävakaassa palvelussa.",
+        "basic": "TKG § 58:n mukaan täyden katkoksen korvaus voi alkaa päivänä, joka seuraa kahta kalenteripäivää palveluntarjoajan vastaanottamasta vikailmoituksesta. Sovitun huolto- tai asennusajan laiminlyönti voi oikeuttaa erilliseen korvaukseen lain ja kuukausimaksun perusteella.",
+        "advanced": "TKG § 57 Abs. 4 koskee merkittäviä jatkuvia tai toistuvia suorituspoikkeamia, myös Bundesnetzagenturin mittausmekanismilla todettuja, ja voi mahdollistaa hinnanalennuksen tai ylimääräisen irtisanomisen. TKG § 58 koskee vikojen korjaamista, täysiä katkoksia ja laiminlyötyjä tapaamisia.",
+        "technician": "DOCSightin TKG-avustajalla voi jäsentää mahdollisen § 58 -summan ja kirjeen palveluntarjoajalle. Säilytä vikailmoitukset, tapaamistiedot, yhteysmonitorin tiedot ja tapahtumapäiväkirja; § 57 -vaatimusta varten noudata Bundesnetzagenturin mittausmenettelyä."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "TKG",
+        "DOCSight",
+        "Bundesnetzagentur"
+      ],
+      "title": "Oikeudet TKG § 57:n ja § 58:n nojalla"
     }
   ]
 }

@@ -107,5 +107,6 @@
   "excluded_days": "Excluded confirmed days",
   "waiting_period": "The report-receipt date is day 0; no TKG §58(3) entitlement is calculated before the third calendar day after receipt.",
   "evidence_checklist": "Evidence checklist",
-  "disclaimer": "Not legal advice and no promise of success. Providers or courts may assess the facts differently."
+  "disclaimer": "Not legal advice and no promise of success. Providers or courts may assess the facts differently.",
+  "glossary_link": "Your rights explained — TKG glossary article with the original legal text"
 }

@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Stebėti tikslai",
   "correlation_reachability_scope": "Tikslų aprėptis",
   "correlation_reachability_drilldown": "Atverti Ryšio stebėjimo informaciją",
-  "correlation_reachability_aria": "Pasiekiamumo suvestinė"
+  "correlation_reachability_aria": "Pasiekiamumo suvestinė",
+  "glossary_law_heading": "Originalus vokiškas įstatymo tekstas (Gesetzestext)",
+  "glossary_law_hint": "Įstatymo tekstas visomis kalbomis rodomas vokiškai; autentiška yra tik vokiška formuluotė.",
+  "glossary_law_excerpt_note": "Ištrauka: rodoma tik cituojama dalis.",
+  "glossary_law_source_label": "Oficialus šaltinis",
+  "glossary_law_reviewed_label": "Šaltinis patikrintas",
+  "glossary_law_disclaimer": "Bendroji informacija, ne teisinė konsultacija."
 }

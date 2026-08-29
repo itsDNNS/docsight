@@ -107,5 +107,6 @@
   "excluded_days": "Uteslutna bekräftade dagar",
   "waiting_period": "Datumet då felanmälan togs emot är dag 0; ingen rätt enligt TKG §58(3) beräknas före den tredje kalenderdagen efter mottagandet.",
   "evidence_checklist": "Checklista för bevisning",
-  "disclaimer": "Detta är inte juridisk rådgivning eller en garanti för framgång. Leverantören eller en domstol kan bedöma uppgifterna annorlunda."
+  "disclaimer": "Detta är inte juridisk rådgivning eller en garanti för framgång. Leverantören eller en domstol kan bedöma uppgifterna annorlunda.",
+  "glossary_link": "Dina rättigheter förklarade — TKG-ordlisteartikel med den ursprungliga lagtexten"
 }

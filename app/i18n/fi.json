@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Havaitut kohteet",
   "correlation_reachability_scope": "Kohteiden laajuus",
   "correlation_reachability_drilldown": "Avaa Yhteysmonitorin tiedot",
-  "correlation_reachability_aria": "Tavoitettavuuden yhteenveto"
+  "correlation_reachability_aria": "Tavoitettavuuden yhteenveto",
+  "glossary_law_heading": "Alkuperäinen saksankielinen lakiteksti (Gesetzestext)",
+  "glossary_law_hint": "Lakiteksti näytetään saksaksi kaikilla kielillä; vain saksankielinen sanamuoto on määräävä.",
+  "glossary_law_excerpt_note": "Ote: vain lainattu momentti näytetään.",
+  "glossary_law_source_label": "Virallinen lähde",
+  "glossary_law_reviewed_label": "Lähde tarkistettu",
+  "glossary_law_disclaimer": "Yleistä tietoa, ei oikeudellista neuvontaa."
 }
