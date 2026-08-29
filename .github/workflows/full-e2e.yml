@@ -186,7 +186,7 @@ jobs:
           pattern: full-e2e-shard-*
           path: shard-artifacts
 
-      - name: Verify complete successful 545-case union
+      - name: Verify complete successful 549-case union
         if: env.E2E_REQUIRED == 'true'
         run: |
           if [ "$SHARD_JOB_RESULT" != "success" ]; then
@@ -195,7 +195,7 @@ jobs:
           fi
           python scripts/e2e_shards.py summarize \
             --results-root shard-artifacts \
-            --expected-total 545
+            --expected-total 549
 
       - name: Browser gate not required for this change
         if: env.E2E_REQUIRED != 'true'

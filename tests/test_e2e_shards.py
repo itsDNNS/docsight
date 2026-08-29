@@ -84,16 +84,16 @@ def _write_result(
     )
 
 
-def test_repository_manifest_covers_every_e2e_file_once_and_545_cases():
+def test_repository_manifest_covers_every_e2e_file_once_and_549_cases():
     manifest = load_manifest(MANIFEST)
     validated = validate_manifest(manifest, E2E_DIR)
 
-    assert manifest["expected_total"] == EXPECTED_TOTAL == 545
+    assert manifest["expected_total"] == EXPECTED_TOTAL == 549
     assert manifest["baseline_cpu_seconds"] > 0
     assert [shard["collected_cases"] for shard in manifest["shards"]] == [
         80,
-        137,
-        160,
+        140,
+        161,
         168,
     ]
     assert len(validated) == 28
@@ -258,7 +258,7 @@ def test_workflow_runs_safe_non_retrying_shards_and_an_always_gate():
     assert "E2E_JOB_STARTED_EPOCH" in workflow
     assert "python scripts/e2e_shards.py run" in workflow
     assert "python scripts/e2e_shards.py summarize" in workflow
-    assert "--expected-total 545" in workflow
+    assert "--expected-total 549" in workflow
     assert "--receipt" in workflow
     assert "run-receipt.json" in workflow
     assert "if: always()" in workflow
