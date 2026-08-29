@@ -8,12 +8,29 @@ from urllib.parse import urlsplit
 import pytest
 from playwright.sync_api import expect
 
+from app.theme_registry import BUILTIN_THEMES
+
 
 def _open_tkg(page):
     page.evaluate("switchView('mod-docsight-de_tkg_compensation')")
     root = page.locator("#tkg-compensation-root")
     expect(root).to_be_visible()
     return root
+
+
+def _apply_builtin_theme(page, name, mode):
+    theme = next(item for item in BUILTIN_THEMES if item["name"] == name)
+    page.locator("html").evaluate(
+        """
+        (element, config) => {
+            element.setAttribute('data-theme', config.mode);
+            for (const [key, value] of Object.entries(config.values)) {
+                element.style.setProperty(key, value);
+            }
+        }
+        """,
+        {"mode": mode, "values": theme["theme_data"][mode]},
+    )
 
 
 def _enter_outage_and_calculate(page, *, fee="40.00"):
@@ -102,6 +119,57 @@ def test_manual_claim_calculation_copy_download_and_focus_flow(tkg_core_page, vi
     )
     assert overflow["root"] <= 1
     assert overflow["document"] <= 1
+
+
+@pytest.mark.parametrize(
+    ("theme_name", "mode"),
+    [("Tribu", "dark"), ("Tribu", "light"), ("Amber Terminal", "dark")],
+)
+def test_tkg_controls_follow_builtin_theme_tokens(tkg_core_page, theme_name, mode):
+    _apply_builtin_theme(tkg_core_page, theme_name, mode)
+    root = _open_tkg(tkg_core_page)
+
+    styles = root.evaluate(
+        """
+        (root) => {
+            const resolveBackground = (token) => {
+                const probe = document.createElement('span');
+                probe.style.backgroundColor = `var(${token})`;
+                document.body.appendChild(probe);
+                const value = getComputedStyle(probe).backgroundColor;
+                probe.remove();
+                return value;
+            };
+            const panel = root.querySelector('[data-tkg-step="1"]');
+            const primary = root.querySelector('#tkg-next');
+            const secondary = root.querySelector('#tkg-load-candidates');
+            const input = root.querySelector('#tkg-window-from');
+            return {
+                expectedAccent: resolveBackground('--accent'),
+                expectedCard: resolveBackground('--card'),
+                expectedCardBorder: resolveBackground('--card-border'),
+                expectedControl: resolveBackground('--elevated'),
+                panelBackground: getComputedStyle(panel).backgroundColor,
+                panelBorder: getComputedStyle(panel).borderColor,
+                panelOutlineColor: getComputedStyle(panel).outlineColor,
+                panelOutline: getComputedStyle(panel).outlineStyle,
+                primaryBackground: getComputedStyle(primary).backgroundColor,
+                secondaryBackground: getComputedStyle(secondary).backgroundColor,
+                inputBackground: getComputedStyle(input).backgroundColor,
+                inputColorScheme: getComputedStyle(input).colorScheme,
+            };
+        }
+        """
+    )
+
+    assert styles["panelBackground"] == styles["expectedCard"]
+    assert styles["panelBorder"] == styles["expectedCardBorder"]
+    assert styles["panelOutline"] == "solid"
+    assert styles["panelOutlineColor"] == styles["expectedAccent"]
+    assert styles["primaryBackground"] == styles["expectedAccent"]
+    assert styles["secondaryBackground"] == styles["expectedControl"]
+    assert styles["inputBackground"] == styles["expectedControl"]
+    assert styles["inputColorScheme"] == mode
 
 
 def test_candidate_application_is_keyboard_accessible_and_keeps_legal_facts_blank(demo_page):
