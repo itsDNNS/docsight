@@ -250,11 +250,13 @@ def _parse_cm3000_lane(html: str, function_name: str) -> ParseResult[list[RawCha
                     "multiplex": channel[2].upper() if channel[2] else "",
                 })
             elif function_name == "InitDsOfdmTableTagValue":
+                # number|lock|profiles|channel ID|frequency|power|SNR/MER|
+                # active subcarriers|unerrored|correctable|uncorrectable
                 result.append({
                     "channelID": int(channel[3]), "type": "OFDM",
                     "frequency": hz_to_mhz(channel[4]), "powerLevel": parse_number(channel[5]),
                     "mer": parse_number(channel[6]), "mse": None,
-                    "corrErrors": int(channel[8]), "nonCorrErrors": int(channel[9]),
+                    "corrErrors": int(channel[9]), "nonCorrErrors": int(channel[10]),
                 })
             else:
                 result.append({
