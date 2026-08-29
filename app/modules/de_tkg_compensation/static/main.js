@@ -64,7 +64,11 @@
             else item.removeAttribute('aria-current');
         });
         document.getElementById('tkg-previous').disabled = state.step === 1;
-        document.getElementById('tkg-next').hidden = state.step === 5;
+        var nextButton = document.getElementById('tkg-next');
+        nextButton.hidden = state.step === 5;
+        nextButton.textContent = state.step === 1
+            ? t('next_first', 'Continue to details')
+            : t('next', 'Next');
         var active = document.querySelector('#tkg-compensation-root [data-tkg-step="' + state.step + '"]');
         if (active) active.focus({preventScroll: true});
     }
@@ -136,7 +140,7 @@
             if (state.proposals.indexOf(day) !== -1) {
                 var badge = document.createElement('span');
                 badge.className = 'tkg-badge';
-                badge.textContent = t('candidate_derived', 'Derived proposal · not confirmed');
+                badge.textContent = t('candidate_derived', 'Found in measurements · please review');
                 dayLabel.append(document.createTextNode(' '), badge);
             }
             row.append(dayLabel, completeLabel, replacementLabel);
@@ -154,7 +158,7 @@
         invalidateDerivedState();
         renderDays();
         if (candidate.ongoing) {
-            status(t('candidate_ongoing', 'Ongoing proposal through the latest available evidence; no restoration is inferred.'));
+            status(t('candidate_ongoing', 'Ongoing outage period through the latest available evidence; no restoration is inferred.'));
         }
         showStep(2);
     }
@@ -178,7 +182,7 @@
         if (!payload.candidates.length) {
             var empty = document.createElement('p');
             empty.className = 'tkg-muted';
-            empty.textContent = t('candidate_empty', 'No supporting proposal is available. Enter the window manually.');
+            empty.textContent = t('candidate_empty', 'No clear outage period was found. Enter the period yourself.');
             container.append(empty);
             return;
         }
@@ -186,35 +190,38 @@
             var row = document.createElement('div');
             row.className = 'tkg-candidate';
             var text = document.createElement('span');
-            text.textContent = (candidate.label || candidate.window_from + ' – ' + candidate.window_to) + ' · ' + t('candidate_derived', 'Derived proposal · not confirmed');
+            text.textContent = (candidate.label || candidate.window_from + ' – ' + candidate.window_to) + ' · ' + t('candidate_derived', 'Found in measurements · please review');
             var use = document.createElement('button');
             use.className = 'btn';
             use.type = 'button';
-            use.textContent = t('candidate_use', 'Use proposal');
-            use.setAttribute('aria-label', t('candidate_use', 'Use proposal') + ': ' + (candidate.label || candidate.window_from + ' – ' + candidate.window_to));
+            use.textContent = t('candidate_use', 'Use outage period');
+            use.setAttribute('aria-label', t('candidate_use', 'Use outage period') + ': ' + (candidate.label || candidate.window_from + ' – ' + candidate.window_to));
             use.addEventListener('click', function() { applyCandidate(candidate); });
             row.append(text, use);
             container.append(row);
         });
     }
 
-    function loadCandidates() {
+    function loadCandidates(announce) {
         if (state.candidatesLoading) return;
         state.candidatesLoading = true;
         var button = document.getElementById('tkg-load-candidates');
+        var container = document.getElementById('tkg-candidates');
         button.disabled = true;
         button.setAttribute('aria-busy', 'true');
-        status(t('status_loading', 'Loading…'));
+        container.setAttribute('aria-busy', 'true');
+        if (announce) status(t('status_loading', 'Loading…'));
+        else status('');
         return api('/api/de-tkg/candidates').then(function(payload) {
             renderCandidates(payload);
-            var result = t('status_candidates_loaded', 'Proposals loaded: {count}.');
-            status(result.split('{count}').join(String(payload.candidates.length)));
+            if (announce) status(t('status_candidates_loaded', 'Outage periods updated.'));
         }).catch(function() {
             status(t('status_error', 'The request could not be completed.'), 'error');
         }).finally(function() {
             state.candidatesLoading = false;
             button.disabled = false;
             button.setAttribute('aria-busy', 'false');
+            container.setAttribute('aria-busy', 'false');
         });
     }
 
@@ -483,7 +490,7 @@
     function initDeTkgCompensation() {
         if (state.initialized) return;
         state.initialized = true;
-        document.getElementById('tkg-load-candidates').addEventListener('click', loadCandidates);
+        document.getElementById('tkg-load-candidates').addEventListener('click', function() { loadCandidates(true); });
         document.getElementById('tkg-calculate').addEventListener('click', calculate);
         document.getElementById('tkg-generate-letter').addEventListener('click', generateLetter);
         document.getElementById('tkg-copy').addEventListener('click', copyLetter);
@@ -506,7 +513,7 @@
         });
         document.getElementById('tkg-monthly-fee').addEventListener('input', function(event) { document.getElementById('tkg-zero-fee').hidden = event.target.value !== '0' && event.target.value !== '0.00'; });
         showStep(1);
-        loadCandidates();
+        loadCandidates(false);
     }
 
     window.initDeTkgCompensation = initDeTkgCompensation;

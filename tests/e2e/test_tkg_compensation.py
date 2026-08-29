@@ -81,6 +81,14 @@ def _assert_download(page, expected_text):
     assert download.path().read_bytes().decode("utf-8") == expected_text
 
 
+def _assert_no_horizontal_overflow(root):
+    overflow = root.evaluate(
+        "el => ({root: el.scrollWidth - el.clientWidth, document: document.documentElement.scrollWidth - window.innerWidth})"
+    )
+    assert overflow["root"] <= 1
+    assert overflow["document"] <= 1
+
+
 @pytest.mark.parametrize(
     "viewport",
     [{"width": 1280, "height": 900}, {"width": 393, "height": 852}],
@@ -89,8 +97,61 @@ def _assert_download(page, expected_text):
 def test_manual_claim_calculation_copy_download_and_focus_flow(tkg_core_page, viewport):
     tkg_core_page.set_viewport_size(viewport)
     root = _open_tkg(tkg_core_page)
-    expect(root).to_contain_text("Germany-specific")
+    first_step = root.locator('[data-tkg-step="1"]')
+    expect(
+        root.get_by_role("heading", name="Check possible compensation", exact=True)
+    ).to_be_visible()
+    expect(root).to_contain_text(
+        "Internet or telephone completely down? Provider appointment missed? "
+        "You may be entitled to statutory compensation."
+    )
+    expect(root).to_contain_text("For contracts in Germany · TKG § 58")
+
+    rights = root.get_by_role(
+        "region", name="Compensation may be available in these cases"
+    )
+    expect(rights).to_be_visible()
+    expect(
+        rights.get_by_role("heading", name="Complete outage", exact=True)
+    ).to_be_visible()
+    expect(
+        rights.get_by_role("heading", name="Missed provider appointment", exact=True)
+    ).to_be_visible()
+    expect(rights).to_contain_text("third calendar day")
+    expect(rights).to_contain_text("provider received the fault report")
+    expect(rights).to_contain_text("independently")
+
+    expect(root).to_contain_text("calculates a possible amount")
+    expect(root).to_contain_text("editable provider letter")
+    expect(root).to_contain_text("on this DOCSight system")
+    expect(first_step).to_contain_text("Not legal advice and no promise of success.")
+    expect(
+        root.get_by_role("link", name="Breitbandmessung", exact=True)
+    ).to_be_visible()
+
+    automatic = root.get_by_role(
+        "region", name="Find an outage automatically"
+    )
+    manual = root.get_by_role("region", name="Enter outage period yourself")
+    expect(automatic).to_be_visible()
+    expect(automatic.get_by_role("button", name="Check measurements again")).to_be_visible()
+    expect(manual).to_be_visible()
+    expect(manual.get_by_label("Outage started")).to_be_visible()
+    expect(manual.get_by_label("Outage ended")).to_be_visible()
+
+    columns = root.locator(".tkg-start-grid").evaluate(
+        "el => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length"
+    )
+    assert columns == (2 if viewport["width"] > 800 else 1)
+
+    primary_actions = root.locator(".btn-accent:visible")
+    expect(primary_actions).to_have_count(1)
+    expect(primary_actions).to_have_attribute("id", "tkg-next")
+    expect(primary_actions).to_have_text("Continue to details")
+    _assert_no_horizontal_overflow(root)
+
     _enter_outage_and_calculate(tkg_core_page)
+    expect(tkg_core_page.locator("#tkg-next")).to_have_text("Next")
 
     calculation = tkg_core_page.locator("#tkg-calculation")
     expect(calculation).to_contain_text("20,00 €")
@@ -114,11 +175,7 @@ def test_manual_claim_calculation_copy_download_and_focus_flow(tkg_core_page, vi
     tkg_core_page.locator("#tkg-previous").click()
     _assert_download(tkg_core_page, expected_text)
 
-    overflow = root.evaluate(
-        "el => ({root: el.scrollWidth - el.clientWidth, document: document.documentElement.scrollWidth - window.innerWidth})"
-    )
-    assert overflow["root"] <= 1
-    assert overflow["document"] <= 1
+    _assert_no_horizontal_overflow(root)
 
 
 @pytest.mark.parametrize(
@@ -199,7 +256,7 @@ def test_candidate_application_is_keyboard_accessible_and_keeps_legal_facts_blan
     )
     _open_tkg(demo_page)
 
-    action = demo_page.get_by_role("button", name="Use proposal: Ongoing incident")
+    action = demo_page.get_by_role("button", name="Use outage period: Ongoing incident")
     expect(action).to_be_visible()
     action.focus()
     demo_page.keyboard.press("Enter")
@@ -237,7 +294,12 @@ def test_candidate_reload_keeps_result_visible_and_exposes_busy_state(demo_page)
     _open_tkg(demo_page)
     load = demo_page.locator("#tkg-load-candidates")
     status = demo_page.locator("#tkg-status")
-    expect(status).to_have_text("Proposals loaded: 0.")
+    expect(demo_page.locator("#tkg-candidates")).to_contain_text(
+        "Enter the period yourself"
+    )
+    expect(status).to_have_attribute("role", "status")
+    expect(status).to_have_attribute("aria-live", "polite")
+    expect(status).to_have_text("")
 
     demo_page.evaluate(
         """
@@ -262,7 +324,7 @@ def test_candidate_reload_keeps_result_visible_and_exposes_busy_state(demo_page)
 
     expect(load).to_be_enabled()
     expect(load).to_have_attribute("aria-busy", "false")
-    expect(status).to_have_text("Proposals loaded: 0.")
+    expect(status).to_have_text("Outage periods updated.")
 
     responses["candidates"] = [
         {
@@ -282,9 +344,9 @@ def test_candidate_reload_keeps_result_visible_and_exposes_busy_state(demo_page)
     demo_page.evaluate("window.fetch = window.__tkgOriginalFetch")
     load.click()
 
-    expect(status).to_have_text("Proposals loaded: 1.")
+    expect(status).to_have_text("Outage periods updated.")
     expect(
-        demo_page.get_by_role("button", name="Use proposal: Resolved incident")
+        demo_page.get_by_role("button", name="Use outage period: Resolved incident")
     ).to_be_enabled()
 
     responses["fails"] = True
@@ -293,6 +355,7 @@ def test_candidate_reload_keeps_result_visible_and_exposes_busy_state(demo_page)
     expect(load).to_be_enabled()
     expect(load).to_have_attribute("aria-busy", "false")
     expect(status).to_have_text("The request could not be completed.")
+    expect(status).to_have_attribute("data-kind", "error")
 
 
 def test_fact_edit_invalidates_calculation_links_and_letter_until_regenerated(tkg_core_page):

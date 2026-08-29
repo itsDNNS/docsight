@@ -18,6 +18,147 @@ PROTECTED_LITERALS = (
 )
 
 
+def test_german_first_step_is_rights_first_and_keeps_accessible_start_paths():
+    module = Path("app/modules/de_tkg_compensation")
+    german = json.loads(
+        (module / "i18n" / "de.json").read_text(encoding="utf-8")
+    )
+    template = (module / "templates" / "tkg_tab.html").read_text(encoding="utf-8")
+
+    rights_first_strings = {
+        key: german.get(key)
+        for key in (
+            "title",
+            "subtitle",
+            "de_scope",
+            "rights_heading",
+            "case_complete_title",
+            "case_appointment_title",
+            "step_candidate",
+            "automatic_title",
+            "candidate_help",
+            "candidate_empty",
+            "candidate_derived",
+            "candidate_use",
+            "load_candidates",
+            "manual_window",
+            "window_from",
+            "window_to",
+            "appointment_only_help",
+            "performance_path",
+            "next_first",
+        )
+    }
+    assert rights_first_strings == {
+        "title": "Mögliche Entschädigung prüfen",
+        "subtitle": (
+            "Internet oder Telefon komplett ausgefallen? Anbietertermin versäumt? "
+            "Dann kann eine gesetzliche Entschädigung zustehen."
+        ),
+        "de_scope": "Für Verträge in Deutschland · TKG § 58",
+        "rights_heading": "In diesen Fällen kann eine Entschädigung zustehen",
+        "case_complete_title": "Vollständiger Ausfall",
+        "case_appointment_title": "Versäumter Anbietertermin",
+        "step_candidate": "1 · Ausfall oder Termin",
+        "automatic_title": "Ausfall automatisch finden",
+        "candidate_help": (
+            "DOCSight durchsucht die gespeicherten Messwerte nach einem möglichen "
+            "Ausfallzeitraum. Sie entscheiden selbst, ob Sie ihn übernehmen."
+        ),
+        "candidate_empty": (
+            "Kein eindeutiger Ausfallzeitraum erkannt. Tragen Sie den Zeitraum "
+            "selbst ein."
+        ),
+        "candidate_derived": "In Messdaten erkannt · bitte prüfen",
+        "candidate_use": "Ausfallzeitraum übernehmen",
+        "load_candidates": "Messdaten erneut prüfen",
+        "manual_window": "Ausfallzeitraum selbst eintragen",
+        "window_from": "Ausfall begann",
+        "window_to": "Ausfall endete",
+        "appointment_only_help": (
+            "Nur einen versäumten Anbietertermin prüfen? Beide Zeitfelder leer "
+            "lassen und mit „Weiter zu den Angaben“ fortfahren."
+        ),
+        "performance_path": (
+            "Nur langsam oder instabil? Für eine mögliche Minderung gilt das "
+            "offizielle Messverfahren der Bundesnetzagentur."
+        ),
+        "next_first": "Weiter zu den Angaben",
+    }, rights_first_strings
+
+    complete_case = german["case_complete_body"]
+    assert "Internet oder Telefon" in complete_case
+    assert "dritten Kalendertag" in complete_case
+    assert "Störungsmeldung" in complete_case and "Anbieter" in complete_case
+    assert "kann" in complete_case and "Entschädigung" in complete_case
+
+    appointment_case = german["case_appointment_body"]
+    assert "Kundendienst- oder Installationstermin" in appointment_case
+    assert "unabhängig" in appointment_case
+    assert "kann" in appointment_case and "Entschädigung" in appointment_case
+
+    outcome = german["outcome_copy"]
+    for wording in ("prüft", "berechnet", "möglichen Betrag", "bearbeitbares Schreiben"):
+        assert wording in outcome
+    assert "DOCSight" in outcome and "Anbieter" in outcome
+    assert "Daten" in german["privacy_copy"]
+    assert "diesem DOCSight-System" in german["privacy_copy"]
+    assert "Keine Rechtsberatung" in german["disclaimer"]
+    assert "keine Erfolgsgarantie" in german["disclaimer"]
+    assert "Ausfallzeitraum" in german["manual_window"]
+    assert "Ausfall" in german["window_from"]
+    assert "Ausfall" in german["window_to"]
+    for key in (
+        "candidate_help",
+        "candidate_empty",
+        "candidate_derived",
+        "candidate_use",
+        "candidate_ongoing",
+        "status_candidates_loaded",
+    ):
+        assert "Vorschlag" not in german[key]
+
+    first_step = template.split('data-tkg-step="1"', 1)[1].split(
+        'data-tkg-step="2"', 1
+    )[0]
+    assert (
+        '<section class="tkg-rights-overview" '
+        'aria-labelledby="tkg-rights-heading">'
+    ) in first_step
+    assert 'id="tkg-rights-heading"' in first_step
+    assert first_step.count('class="tkg-rights-case"') == 2
+    assert (
+        '<section class="tkg-outcome" aria-labelledby="tkg-outcome-heading">'
+    ) in first_step
+    assert 'id="tkg-outcome-heading"' in first_step
+    assert 'class="tkg-privacy"' in first_step
+    assert (
+        'id="tkg-performance-link" href="https://www.breitbandmessung.de/"'
+    ) in first_step
+    assert ">Breitbandmessung</a>" in first_step
+
+    assert 'class="tkg-start-grid tkg-grid tkg-grid-2"' in first_step
+    assert first_step.count('class="tkg-start-option"') == 2
+    for element_id in (
+        "tkg-load-candidates",
+        "tkg-candidates",
+        "tkg-window-from",
+        "tkg-window-to",
+    ):
+        assert f'id="{element_id}"' in first_step
+
+    assert (
+        'id="tkg-status" class="tkg-status" role="status" aria-live="polite"'
+        in template
+    )
+    assert 'class="tkg-legal-note"' in first_step
+    assert "docsight.de_tkg_compensation.disclaimer" in first_step
+    assert re.search(
+        r'<button class="btn btn-accent" id="tkg-next"[^>]*>.*next_first',
+        template,
+    )
+
+
 def test_all_natural_locale_catalogs_have_the_complete_key_set():
     directory = Path("app/modules/de_tkg_compensation/i18n")
     catalogs = {

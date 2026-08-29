@@ -1,42 +1,69 @@
 <div class="view-content tkg-view" id="tkg-compensation-root">
     <header class="view-page-header tkg-header">
         <div class="view-page-header-left">
-            <h2 class="view-page-title">{{ t.get('docsight.de_tkg_compensation.title', 'DE · TKG compensation') }}</h2>
-            <p class="view-page-subtitle">{{ t.get('docsight.de_tkg_compensation.subtitle', 'Prepare a transparent prospective claim for a complete outage in Germany.') }}</p>
-            <span class="tkg-scope">{{ t.get('docsight.de_tkg_compensation.de_scope', 'Germany-specific · TKG §58 · no legal advice or promise of success') }}</span>
+            <h2 class="view-page-title">{{ t.get('docsight.de_tkg_compensation.title', 'Check possible compensation') }}</h2>
+            <p class="view-page-subtitle">{{ t.get('docsight.de_tkg_compensation.subtitle', 'Internet or telephone completely down? Provider appointment missed? You may be entitled to statutory compensation.') }}</p>
+            <span class="tkg-scope">{{ t.get('docsight.de_tkg_compensation.de_scope', 'For contracts in Germany · TKG § 58') }}</span>
         </div>
     </header>
 
     <ol class="tkg-steps" aria-label="{{ t.get('docsight.de_tkg_compensation.wizard_label', 'TKG compensation steps') }}">
-        <li data-tkg-step-indicator="1" aria-current="step">{{ t.get('docsight.de_tkg_compensation.step_candidate', '1 · Choose window') }}</li>
-        <li data-tkg-step-indicator="2">{{ t.get('docsight.de_tkg_compensation.step_facts', '2 · Confirm facts') }}</li>
-        <li data-tkg-step-indicator="3">{{ t.get('docsight.de_tkg_compensation.step_calculation', '3 · Review calculation') }}</li>
-        <li data-tkg-step-indicator="4">{{ t.get('docsight.de_tkg_compensation.step_letter', '4 · Edit letter') }}</li>
-        <li data-tkg-step-indicator="5">{{ t.get('docsight.de_tkg_compensation.step_finish', '5 · Export') }}</li>
+        <li data-tkg-step-indicator="1" aria-current="step">{{ t.get('docsight.de_tkg_compensation.step_candidate', '1 · Outage or appointment') }}</li>
+        <li data-tkg-step-indicator="2">{{ t.get('docsight.de_tkg_compensation.step_facts', '2 · Details') }}</li>
+        <li data-tkg-step-indicator="3">{{ t.get('docsight.de_tkg_compensation.step_calculation', '3 · Possible amount') }}</li>
+        <li data-tkg-step-indicator="4">{{ t.get('docsight.de_tkg_compensation.step_letter', '4 · Letter') }}</li>
+        <li data-tkg-step-indicator="5">{{ t.get('docsight.de_tkg_compensation.step_finish', '5 · Done') }}</li>
     </ol>
 
     <div id="tkg-status" class="tkg-status" role="status" aria-live="polite"></div>
 
     <section class="tkg-panel" data-tkg-step="1" tabindex="-1">
-        <h3>{{ t.get('docsight.de_tkg_compensation.candidate_title', 'Start with a proposal or a manual window') }}</h3>
-        <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.candidate_help', 'Monitoring and incidents are proposals, not legal evidence. A manual window always works.') }}</p>
-        <p class="tkg-callout">{{ t.get('docsight.de_tkg_compensation.appointment_only_help', 'For a missed-appointment-only claim, leave the window blank and continue to the facts step.') }}</p>
-        <button class="btn" id="tkg-load-candidates" type="button" aria-busy="false">{{ t.get('docsight.de_tkg_compensation.load_candidates', 'Load proposals') }}</button>
-        <div id="tkg-candidates" class="tkg-candidates"></div>
-        <fieldset class="tkg-fieldset">
-            <legend>{{ t.get('docsight.de_tkg_compensation.manual_window', 'Manual window') }}</legend>
-            <div class="tkg-grid tkg-grid-2">
-                <label><span>{{ t.get('docsight.de_tkg_compensation.window_from', 'Window from') }}</span><input id="tkg-window-from" data-tkg-fact type="datetime-local"></label>
-                <label><span>{{ t.get('docsight.de_tkg_compensation.window_to', 'Window to') }}</span><input id="tkg-window-to" data-tkg-fact type="datetime-local"></label>
+        <section class="tkg-rights-overview" aria-labelledby="tkg-rights-heading">
+            <h3 id="tkg-rights-heading">{{ t.get('docsight.de_tkg_compensation.rights_heading', 'Compensation may be available in these cases') }}</h3>
+            <div class="tkg-rights-grid">
+                <article class="tkg-rights-case">
+                    <h4>{{ t.get('docsight.de_tkg_compensation.case_complete_title', 'Complete outage') }}</h4>
+                    <p>{{ t.get('docsight.de_tkg_compensation.case_complete_body', 'If internet or telephone did not work at all, compensation may be possible from the third calendar day after the provider received the fault report.') }}</p>
+                </article>
+                <article class="tkg-rights-case">
+                    <h4>{{ t.get('docsight.de_tkg_compensation.case_appointment_title', 'Missed provider appointment') }}</h4>
+                    <p>{{ t.get('docsight.de_tkg_compensation.case_appointment_body', 'A missed agreed service or installation appointment may qualify independently of an outage.') }}</p>
+                </article>
             </div>
-        </fieldset>
+        </section>
+
+        <section class="tkg-outcome" aria-labelledby="tkg-outcome-heading">
+            <h3 id="tkg-outcome-heading">{{ t.get('docsight.de_tkg_compensation.outcome_heading', 'What DOCSight does next') }}</h3>
+            <p>{{ t.get('docsight.de_tkg_compensation.outcome_copy', 'DOCSight checks the details, calculates a possible amount, and creates an editable provider letter.') }}</p>
+            <p class="tkg-privacy">{{ t.get('docsight.de_tkg_compensation.privacy_copy', 'Your data stays on this DOCSight system.') }}</p>
+        </section>
+
+        <p class="tkg-performance-path">{{ t.get('docsight.de_tkg_compensation.performance_path', 'Only slow or unstable? For a possible price reduction, use the official Bundesnetzagentur measurement procedure.') }} <a id="tkg-performance-link" href="https://www.breitbandmessung.de/" target="_blank" rel="noopener noreferrer">Breitbandmessung</a></p>
+
+        <div class="tkg-start-grid tkg-grid tkg-grid-2">
+            <section class="tkg-start-option" aria-labelledby="tkg-automatic-heading">
+                <h3 id="tkg-automatic-heading">{{ t.get('docsight.de_tkg_compensation.automatic_title', 'Find an outage automatically') }}</h3>
+                <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.candidate_help', 'DOCSight searches the saved measurements for a possible outage period. You decide whether to use it.') }}</p>
+                <button class="btn" id="tkg-load-candidates" type="button" aria-busy="false">{{ t.get('docsight.de_tkg_compensation.load_candidates', 'Check measurements again') }}</button>
+                <div id="tkg-candidates" class="tkg-candidates" aria-live="polite" aria-atomic="true"></div>
+            </section>
+            <section class="tkg-start-option" aria-labelledby="tkg-manual-heading">
+                <h3 id="tkg-manual-heading">{{ t.get('docsight.de_tkg_compensation.manual_window', 'Enter outage period yourself') }}</h3>
+                <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.appointment_only_help', 'Only checking a missed provider appointment? Leave both time fields empty and continue with “Continue to details”.') }}</p>
+                <div class="tkg-grid tkg-grid-2">
+                    <label><span>{{ t.get('docsight.de_tkg_compensation.window_from', 'Outage started') }}</span><input id="tkg-window-from" data-tkg-fact type="datetime-local"></label>
+                    <label><span>{{ t.get('docsight.de_tkg_compensation.window_to', 'Outage ended') }}</span><input id="tkg-window-to" data-tkg-fact type="datetime-local"></label>
+                </div>
+            </section>
+        </div>
+
+        <p class="tkg-legal-note">{{ t.get('docsight.de_tkg_compensation.disclaimer', 'Not legal advice and no promise of success. Providers or courts may assess the facts differently.') }}</p>
     </section>
 
     <section class="tkg-panel" data-tkg-step="2" tabindex="-1" hidden>
         <h3>{{ t.get('docsight.de_tkg_compensation.facts_title', 'Confirm the legally relevant facts') }}</h3>
         <label class="tkg-check"><input id="tkg-complete-outage" data-tkg-fact type="checkbox"> <span>{{ t.get('docsight.de_tkg_compensation.complete_outage', 'I confirm a complete outage, not merely slow or unstable service.') }}</span></label>
         <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.independent_claims_help', 'Complete-outage compensation and missed-appointment compensation are independent. Outage details are required only when complete outage is selected.') }}</p>
-        <p class="tkg-callout">{{ t.get('docsight.de_tkg_compensation.performance_path', 'For slow, unstable, or reduced service, use the official Bundesnetzagentur measurement procedure instead.') }} <a id="tkg-performance-link" href="https://www.breitbandmessung.de/" target="_blank" rel="noopener noreferrer">Breitbandmessung</a></p>
         <div class="tkg-grid tkg-grid-2">
             <label><span>{{ t.get('docsight.de_tkg_compensation.fault_report_date', 'Provider received fault report on') }}</span><input id="tkg-report-date" data-tkg-fact type="date"></label>
             <label><span>{{ t.get('docsight.de_tkg_compensation.restored_date', 'Restoration date (leave empty if ongoing)') }}</span><input id="tkg-restored-date" data-tkg-fact type="date"></label>
@@ -88,5 +115,5 @@
         <p>{{ t.get('docsight.de_tkg_compensation.escalation', 'Further guidance: Bundesnetzagentur consumer portal and Verbraucherzentrale.') }} <a href="https://www.bundesnetzagentur.de/DE/Vportal/TK/InternetTelefon/Stoerung/start.html" target="_blank" rel="noopener noreferrer">Bundesnetzagentur</a> · <a href="https://www.verbraucherzentrale.de/infothek/was-tun-bei-stoerungen-von-internet-und-telefon-38208" target="_blank" rel="noopener noreferrer">Verbraucherzentrale</a></p>
     </section>
 
-    <nav class="tkg-nav" aria-label="{{ t.get('docsight.de_tkg_compensation.wizard_navigation', 'Wizard navigation') }}"><button class="btn" id="tkg-previous" type="button" disabled>{{ t.get('docsight.de_tkg_compensation.previous', 'Previous') }}</button><button class="btn btn-accent" id="tkg-next" type="button">{{ t.get('docsight.de_tkg_compensation.next', 'Next') }}</button></nav>
+    <nav class="tkg-nav" aria-label="{{ t.get('docsight.de_tkg_compensation.wizard_navigation', 'Wizard navigation') }}"><button class="btn" id="tkg-previous" type="button" disabled>{{ t.get('docsight.de_tkg_compensation.previous', 'Previous') }}</button><button class="btn btn-accent" id="tkg-next" type="button">{{ t.get('docsight.de_tkg_compensation.next_first', 'Continue to details') }}</button></nav>
 </div>
