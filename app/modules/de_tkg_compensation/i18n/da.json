@@ -72,6 +72,7 @@
   "previous": "Tilbage",
   "next": "Næste",
   "status_loading": "Indlæser…",
+  "status_candidates_loaded": "Indlæste forslag: {count}.",
   "status_saved": "Kladden er gemt.",
   "status_calculated": "Beregningen er opdateret.",
   "status_letter": "Det tyske brev er oprettet. Gennemgå og rediger det.",

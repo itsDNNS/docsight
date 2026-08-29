@@ -21,7 +21,7 @@
         <h3>{{ t.get('docsight.de_tkg_compensation.candidate_title', 'Start with a proposal or a manual window') }}</h3>
         <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.candidate_help', 'Monitoring and incidents are proposals, not legal evidence. A manual window always works.') }}</p>
         <p class="tkg-callout">{{ t.get('docsight.de_tkg_compensation.appointment_only_help', 'For a missed-appointment-only claim, leave the window blank and continue to the facts step.') }}</p>
-        <button class="btn" id="tkg-load-candidates" type="button">{{ t.get('docsight.de_tkg_compensation.load_candidates', 'Load proposals') }}</button>
+        <button class="btn" id="tkg-load-candidates" type="button" aria-busy="false">{{ t.get('docsight.de_tkg_compensation.load_candidates', 'Load proposals') }}</button>
         <div id="tkg-candidates" class="tkg-candidates"></div>
         <fieldset class="tkg-fieldset">
             <legend>{{ t.get('docsight.de_tkg_compensation.manual_window', 'Manual window') }}</legend>

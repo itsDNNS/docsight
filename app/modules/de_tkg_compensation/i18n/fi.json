@@ -72,6 +72,7 @@
   "previous": "Edellinen",
   "next": "Seuraava",
   "status_loading": "Ladataan…",
+  "status_candidates_loaded": "Ladattuja ehdotuksia: {count}.",
   "status_saved": "Luonnos tallennettu.",
   "status_calculated": "Laskelma päivitetty.",
   "status_letter": "Saksankielinen kirje luotu. Tarkista ja muokkaa sitä.",

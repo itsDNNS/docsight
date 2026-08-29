@@ -67,6 +67,17 @@ def test_protected_legal_and_technical_literals_are_not_localized():
                 )
 
 
+def test_localized_placeholders_match_english_catalog():
+    directory = Path("app/modules/de_tkg_compensation/i18n")
+    english = json.loads((directory / "en.json").read_text(encoding="utf-8"))
+    for path in directory.glob("*.json"):
+        catalog = json.loads(path.read_text(encoding="utf-8"))
+        for key, source in english.items():
+            expected = Counter(re.findall(r"\{[A-Za-z_][A-Za-z0-9_]*\}", source))
+            actual = Counter(re.findall(r"\{[A-Za-z_][A-Za-z0-9_]*\}", catalog[key]))
+            assert actual == expected, f"placeholder parity failed for {path.stem}.{key}"
+
+
 def test_non_english_catalogs_do_not_retain_multiword_english_fragments():
     directory = Path("app/modules/de_tkg_compensation/i18n")
     catalogs = {

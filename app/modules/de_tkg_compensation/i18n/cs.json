@@ -72,6 +72,7 @@
   "previous": "Zpět",
   "next": "Další",
   "status_loading": "Načítání…",
+  "status_candidates_loaded": "Načtené návrhy: {count}.",
   "status_saved": "Koncept byl uložen.",
   "status_calculated": "Výpočet byl aktualizován.",
   "status_letter": "Německý dopis byl vytvořen. Zkontrolujte jej a upravte.",

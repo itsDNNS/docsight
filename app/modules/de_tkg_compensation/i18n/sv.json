@@ -72,6 +72,7 @@
   "previous": "Föregående",
   "next": "Nästa",
   "status_loading": "Läser in…",
+  "status_candidates_loaded": "Inlästa förslag: {count}.",
   "status_saved": "Utkastet har sparats.",
   "status_calculated": "Beräkningen har uppdaterats.",
   "status_letter": "Det tyska brevet har skapats. Granska och redigera det.",

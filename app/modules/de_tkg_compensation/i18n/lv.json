@@ -72,6 +72,7 @@
   "previous": "Atpakaļ",
   "next": "Tālāk",
   "status_loading": "Ielādē…",
+  "status_candidates_loaded": "Ielādētie priekšlikumi: {count}.",
   "status_saved": "Melnraksts saglabāts.",
   "status_calculated": "Aprēķins atjaunināts.",
   "status_letter": "Vēstule vācu valodā ir izveidota. Pārbaudiet un rediģējiet to.",

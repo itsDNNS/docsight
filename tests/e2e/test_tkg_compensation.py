@@ -147,6 +147,86 @@ def test_candidate_application_is_keyboard_accessible_and_keeps_legal_facts_blan
     expect(demo_page.locator("#tkg-status")).to_contain_text("no restoration is inferred")
 
 
+def test_candidate_reload_keeps_result_visible_and_exposes_busy_state(demo_page):
+    responses = {"candidates": [], "fails": False}
+
+    def fulfill_candidates(route):
+        if responses["fails"]:
+            route.fulfill(status=503, json={})
+            return
+        route.fulfill(
+            json={
+                "candidates": responses["candidates"],
+                "capabilities": {"bnetz": False},
+                "customer_defaults": {},
+                "local_today": "2026-03-30",
+                "rules_version": "de-tkg58-2026.1",
+                "jurisdiction": "DE",
+            }
+        )
+
+    demo_page.route(re.compile(r".*/api/de-tkg/candidates$"), fulfill_candidates)
+    _open_tkg(demo_page)
+    load = demo_page.locator("#tkg-load-candidates")
+    status = demo_page.locator("#tkg-status")
+    expect(status).to_have_text("Proposals loaded: 0.")
+
+    demo_page.evaluate(
+        """
+        window.__tkgOriginalFetch = window.fetch;
+        window.fetch = function(input, init) {
+            if (String(input).endsWith('/api/de-tkg/candidates')) {
+                return new Promise(function(resolve) {
+                    window.__tkgFinishCandidateFetch = function() {
+                        resolve(window.__tkgOriginalFetch(input, init));
+                    };
+                });
+            }
+            return window.__tkgOriginalFetch(input, init);
+        };
+        """
+    )
+    load.click()
+    expect(load).to_be_disabled()
+    expect(load).to_have_attribute("aria-busy", "true")
+    expect(status).to_have_text("Loading…")
+    demo_page.evaluate("window.__tkgFinishCandidateFetch()")
+
+    expect(load).to_be_enabled()
+    expect(load).to_have_attribute("aria-busy", "false")
+    expect(status).to_have_text("Proposals loaded: 0.")
+
+    responses["candidates"] = [
+        {
+            "id": "incident-8",
+            "label": "Resolved incident",
+            "origin": "incident",
+            "derived": True,
+            "ongoing": False,
+            "restoration_suggested": True,
+            "window_from": "2026-03-27T23:00:00Z",
+            "window_to": "2026-03-29T21:59:59Z",
+            "window_from_local": "2026-03-28T00:00",
+            "window_to_local": "2026-03-29T23:59",
+            "suggested_days": ["2026-03-28", "2026-03-29"],
+        },
+    ]
+    demo_page.evaluate("window.fetch = window.__tkgOriginalFetch")
+    load.click()
+
+    expect(status).to_have_text("Proposals loaded: 1.")
+    expect(
+        demo_page.get_by_role("button", name="Use proposal: Resolved incident")
+    ).to_be_enabled()
+
+    responses["fails"] = True
+    load.click()
+
+    expect(load).to_be_enabled()
+    expect(load).to_have_attribute("aria-busy", "false")
+    expect(status).to_have_text("The request could not be completed.")
+
+
 def test_fact_edit_invalidates_calculation_links_and_letter_until_regenerated(tkg_core_page):
     _open_tkg(tkg_core_page)
     _enter_outage_and_calculate(tkg_core_page)

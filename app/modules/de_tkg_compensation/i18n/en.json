@@ -72,6 +72,7 @@
   "previous": "Previous",
   "next": "Next",
   "status_loading": "Loading…",
+  "status_candidates_loaded": "Proposals loaded: {count}.",
   "status_saved": "Draft saved.",
   "status_calculated": "Calculation updated.",
   "status_letter": "German letter generated. Review and edit it.",

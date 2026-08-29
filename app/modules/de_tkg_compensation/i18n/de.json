@@ -72,6 +72,7 @@
   "previous": "Zurück",
   "next": "Weiter",
   "status_loading": "Wird geladen…",
+  "status_candidates_loaded": "Geladene Vorschläge: {count}.",
   "status_saved": "Entwurf gespeichert.",
   "status_calculated": "Berechnung aktualisiert.",
   "status_letter": "Deutsches Schreiben erstellt. Bitte prüfen und bearbeiten.",

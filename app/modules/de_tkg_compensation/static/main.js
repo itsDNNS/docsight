@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var state = { initialized: false, step: 1, claimId: null, calculation: null, proposals: [], origin: 'manual', customerDefaults: {}, localToday: '' };
+    var state = { initialized: false, candidatesLoading: false, step: 1, claimId: null, calculation: null, proposals: [], origin: 'manual', customerDefaults: {}, localToday: '' };
 
     function t(key, fallback) {
         return (window.T && window.T['docsight.de_tkg_compensation.' + key]) || fallback;
@@ -199,11 +199,23 @@
     }
 
     function loadCandidates() {
+        if (state.candidatesLoading) return;
+        state.candidatesLoading = true;
+        var button = document.getElementById('tkg-load-candidates');
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
         status(t('status_loading', 'Loading…'));
-        api('/api/de-tkg/candidates').then(function(payload) {
+        return api('/api/de-tkg/candidates').then(function(payload) {
             renderCandidates(payload);
-            status('');
-        }).catch(function(error) { status(error.message, 'error'); });
+            var result = t('status_candidates_loaded', 'Proposals loaded: {count}.');
+            status(result.split('{count}').join(String(payload.candidates.length)));
+        }).catch(function() {
+            status(t('status_error', 'The request could not be completed.'), 'error');
+        }).finally(function() {
+            state.candidatesLoading = false;
+            button.disabled = false;
+            button.setAttribute('aria-busy', 'false');
+        });
     }
 
     function selectedDays(kind) {

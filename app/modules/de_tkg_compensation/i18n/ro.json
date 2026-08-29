@@ -72,6 +72,7 @@
   "previous": "Înapoi",
   "next": "Înainte",
   "status_loading": "Se încarcă…",
+  "status_candidates_loaded": "Propuneri încărcate: {count}.",
   "status_saved": "Ciorna a fost salvată.",
   "status_calculated": "Calculul a fost actualizat.",
   "status_letter": "Scrisoarea în limba germană a fost generată. Verificați-o și editați-o.",

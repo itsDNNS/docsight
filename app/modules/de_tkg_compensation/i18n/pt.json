@@ -72,6 +72,7 @@
   "previous": "Anterior",
   "next": "Seguinte",
   "status_loading": "A carregar…",
+  "status_candidates_loaded": "Propostas carregadas: {count}.",
   "status_saved": "Rascunho guardado.",
   "status_calculated": "Cálculo atualizado.",
   "status_letter": "A carta em alemão foi gerada. Reveja-a e edite-a.",

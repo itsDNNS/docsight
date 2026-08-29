@@ -72,6 +72,7 @@
   "previous": "Tagasi",
   "next": "Edasi",
   "status_loading": "Laadimine…",
+  "status_candidates_loaded": "Laaditud ettepanekuid: {count}.",
   "status_saved": "Mustand salvestatud.",
   "status_calculated": "Arvutus uuendatud.",
   "status_letter": "Saksakeelne kiri on koostatud. Kontrolli ja muuda seda.",
