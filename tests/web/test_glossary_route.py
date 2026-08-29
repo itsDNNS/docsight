@@ -63,6 +63,76 @@ def test_index_glossary_renders_simple_summary_and_explanation(client, sample_an
     assert 'class="glossary-media-card"' not in html
 
 
+def test_index_glossary_renders_shared_medium_media(client, sample_analysis):
+    update_state(analysis=sample_analysis)
+
+    resp = client.get("/?lang=en&term=shared_medium")
+
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    active_article = html.split(
+        'class="glossary-term-article" data-glossary-article data-term-id="shared_medium"', 1
+    )[1].split('class="glossary-term-article" data-glossary-article', 1)[0]
+    assert 'class="glossary-card glossary-media-card"' in active_article
+    assert 'src="/static/glossary/shared-medium.svg"' in active_article
+    assert 'alt="Several homes connected to one shared neighborhood cable segment"' in active_article
+    assert "A single modem cannot measure total segment utilization." in active_article
+
+
+def test_index_glossary_renders_localized_media_metadata(client, sample_analysis):
+    update_state(analysis=sample_analysis)
+
+    resp = client.get("/?lang=de&term=shared_medium")
+
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert 'src="/static/glossary/shared-medium.svg"' in html
+    assert 'alt="Mehrere Haushalte sind mit demselben gemeinsam genutzten Kabelsegment im Viertel verbunden"' in html
+    assert "Ein einzelnes Modem kann die Gesamtauslastung des Segments nicht messen." in html
+
+
+def test_index_glossary_renders_tkg_rights_with_collapsed_german_law_appendix(client, sample_analysis):
+    update_state(analysis=sample_analysis)
+
+    resp = client.get("/?lang=en&term=tkg_rights_de")
+
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    active_article = html.split(
+        'class="glossary-term-article" data-glossary-article data-term-id="tkg_rights_de"', 1
+    )[1].split('class="glossary-term-article" data-glossary-article', 1)[0]
+    summary_index = active_article.index("Quick summary")
+    explanation_index = active_article.index("Explanation")
+    details_index = active_article.index('<details class="glossary-law-details">')
+    assert summary_index < explanation_index < details_index
+    details_tag = active_article[details_index:active_article.index(">", details_index) + 1]
+    assert " open" not in details_tag
+    assert active_article.count('class="glossary-card glossary-summary-card"') == 1
+    assert active_article.count('class="glossary-card glossary-explanation-card"') == 1
+    assert active_article.count('class="glossary-law-verbatim" lang="de"') == 2
+    assert active_article.count('<h5 lang="de">') == 2
+    assert "Der Verbraucher kann von einem Anbieter eines öffentlich zugänglichen" in active_article
+    assert "(4) Im Falle von" in active_article
+    assert "(3) Anbieter beraten" not in active_article
+    assert "2026-08-29" in active_article
+    assert "General information, not legal advice." in active_article
+    for path in ("__58.html", "__57.html"):
+        assert f'href="https://www.gesetze-im-internet.de/tkg_2021/{path}"' in active_article
+    assert active_article.count('target="_blank" rel="noopener noreferrer"') == 2
+
+
+def test_index_glossary_keeps_tkg_law_german_in_localized_article(client, sample_analysis):
+    update_state(analysis=sample_analysis)
+
+    resp = client.get("/?lang=fr&term=tkg_rights_de")
+
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "Résumé rapide" in html
+    assert "Der Verbraucher kann von einem Anbieter eines öffentlich zugänglichen" in html
+    assert 'class="glossary-law-verbatim" lang="de"' in html
+
+
 def test_index_glossary_exposes_wiki_source_search_metadata(client, sample_analysis):
     update_state(analysis=sample_analysis)
 

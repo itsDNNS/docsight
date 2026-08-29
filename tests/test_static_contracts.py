@@ -655,9 +655,9 @@ def test_european_language_pack_files_cover_core_catalogs() -> None:
 
 
 def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
-    """Built-in module catalogs are intentional: reports and modulation ship locales."""
+    """Built-in module catalogs are intentional and limited to runtime sources."""
     offenders = []
-    allowed_locale_modules = {"reports", "modulation"}
+    allowed_locale_modules = {"reports", "modulation", "de_tkg_compensation"}
     for i18n_dir in sorted(MODULES.glob("*/i18n")):
         if not (i18n_dir / "en.json").exists():
             continue
@@ -725,9 +725,14 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
             if source_placeholders != target_placeholders:
                 offenders.append(f"{path_label}: placeholder mismatch")
 
-    i18n_dirs = [APP_I18N_DIR, MODULES / "reports" / "i18n", MODULES / "modulation" / "i18n"]
+    i18n_dirs = [
+        APP_I18N_DIR,
+        MODULES / "reports" / "i18n",
+        MODULES / "modulation" / "i18n",
+        MODULES / "de_tkg_compensation" / "i18n",
+    ]
     module_i18n_dirs = sorted(MODULES.glob("*/i18n"))
-    allowed_locale_modules = {"reports", "modulation"}
+    allowed_locale_modules = {"reports", "modulation", "de_tkg_compensation"}
     for i18n_dir in module_i18n_dirs:
         if i18n_dir.parent.name in allowed_locale_modules:
             continue

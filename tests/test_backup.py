@@ -45,6 +45,16 @@ def data_dir(tmp_path):
     # Add a demo row that should be excluded
     conn.execute("ALTER TABLE snapshots ADD COLUMN is_demo INTEGER DEFAULT 0")
     conn.execute("INSERT INTO snapshots (id, timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) VALUES (2, '2026-01-02', '{}', '[]', '[]', 1)")
+    conn.execute(
+        "CREATE TABLE de_tkg_claim_drafts "
+        "(id INTEGER PRIMARY KEY, ticket_ref TEXT, is_demo INTEGER NOT NULL DEFAULT 0)"
+    )
+    conn.execute(
+        "INSERT INTO de_tkg_claim_drafts VALUES (1, 'SYNTHETIC-REAL', 0)"
+    )
+    conn.execute(
+        "INSERT INTO de_tkg_claim_drafts VALUES (2, 'SYNTHETIC-DEMO', 1)"
+    )
     conn.commit()
     conn.close()
 
@@ -110,6 +120,10 @@ class TestCreateBackup:
             # Non-demo data should still be there
             total = conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
             assert total == 1
+            claim_rows = conn.execute(
+                "SELECT ticket_ref, is_demo FROM de_tkg_claim_drafts ORDER BY id"
+            ).fetchall()
+            assert claim_rows == [("SYNTHETIC-REAL", 0)]
             conn.close()
         finally:
             os.unlink(tmp_path)
@@ -457,6 +471,9 @@ class TestRestore:
         conn = sqlite3.connect(os.path.join(restore_dir, "docsis_history.db"))
         count = conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
         assert count == 1  # demo row was excluded
+        assert conn.execute(
+            "SELECT ticket_ref FROM de_tkg_claim_drafts"
+        ).fetchall() == [("SYNTHETIC-REAL",)]
         conn.close()
 
     def test_accepts_bytes(self, backup_path, tmp_path):

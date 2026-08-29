@@ -40,14 +40,6 @@ log = logging.getLogger("docsis.driver.cm3000")
 
 _STATUS_PATH = "/DocsisStatus.htm"
 
-# Match the single-quoted live tagValueList in each function.
-# Commented-out examples use double quotes or /* */ blocks, so
-# targeting single quotes skips them reliably.
-# Uses .*? (lazy) instead of [^}]*? to support nested braces in
-# function bodies (e.g. if-blocks in some firmware versions).
-_RE_FUNCTION_START = re.compile(r"function\s+(?P<name>\w+)\s*\(\)\s*\{", re.DOTALL)
-_RE_SINGLE_QUOTED = re.compile(r"'([^'\\]*(?:\\.[^'\\]*)*)'", re.DOTALL)
-_RE_DOUBLE_QUOTED = re.compile(r'"([^"\\]*(?:\\.[^"\\]*)*)"', re.DOTALL)
 _LOGIN_MARKERS = (
     "login.htm",
     "login.html",
@@ -63,13 +55,6 @@ _RE_FORM_BLOCK = re.compile(
 )
 _RE_INPUT = re.compile(r"<input\b(?P<attrs>[^>]*)>", re.IGNORECASE | re.DOTALL)
 _RE_ATTR = re.compile(r"(?P<name>[A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*['\"](?P<value>[^'\"]*)['\"]")
-
-# Fields per channel for each section (after the leading count value).
-_DS_QAM_FIELDS = 9   # num|lock|mod|chID|freq|power|snr|corrErr|uncorrErr
-_US_ATDMA_FIELDS = 7  # num|lock|type|chID|symbolRate|freq|power
-_DS_OFDM_FIELDS = 11  # num|lock|profiles|chID|freq|power|snr|subcarriers|corrErr|uncorrErr|unknown
-_US_OFDMA_FIELDS = 6  # num|lock|profiles|chID|freq|power
-_RE_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 
 class CM3000Driver(ModemDriver):

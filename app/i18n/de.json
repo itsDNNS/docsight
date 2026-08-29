@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Beobachtete Ziele",
   "correlation_reachability_scope": "Zielbereich",
   "correlation_reachability_drilldown": "Details des Verbindungsmonitors öffnen",
-  "correlation_reachability_aria": "Zusammenfassung der Erreichbarkeit"
+  "correlation_reachability_aria": "Zusammenfassung der Erreichbarkeit",
+  "glossary_law_heading": "Originaler deutscher Gesetzestext",
+  "glossary_law_hint": "Der Gesetzestext wird in jeder Sprache auf Deutsch angezeigt; maßgeblich ist nur der deutsche Wortlaut.",
+  "glossary_law_excerpt_note": "Auszug: Angezeigt wird nur der zitierte Absatz.",
+  "glossary_law_source_label": "Amtliche Quelle",
+  "glossary_law_reviewed_label": "Quelle geprüft",
+  "glossary_law_disclaimer": "Allgemeine Information, keine Rechtsberatung."
 }

@@ -333,7 +333,7 @@ TG_SUCCESS = """<script>json_dsData = [{"ChannelID":"7","ChannelType":"SC-QAM","
 CM3000_SUCCESS = _cm3000_html(
     "1|1|Locked|QAM256|7|591000000 Hz|-2.5|40.0|1234|5|",
     "1|1|Locked|ATDMA|3|5120 Ksym/sec|29200000 Hz|43.5 dBmV|",
-    "1|1|Locked|0 ,1 ,2 ,3|193|690000000 Hz|-0.32 dBmV|41.8 dB|388 ~ 3707|9|1|0|",
+    "1|1|Locked|0 ,1 ,2 ,3|193|690000000 Hz|-0.32 dBmV|41.8 dB|388 ~ 3707|9000|9|1|",
     "1|1|Locked|12 ,13|41|36200000 Hz|36.5 dBmV|",
 )
 

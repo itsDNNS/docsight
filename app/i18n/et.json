@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Vaadeldud sihtmärgid",
   "correlation_reachability_scope": "Sihtmärkide ulatus",
   "correlation_reachability_drilldown": "Ava Ühenduse jälgija üksikasjad",
-  "correlation_reachability_aria": "Kättesaadavuse kokkuvõte"
+  "correlation_reachability_aria": "Kättesaadavuse kokkuvõte",
+  "glossary_law_heading": "Saksa seaduse algtekst (Gesetzestext)",
+  "glossary_law_hint": "Seaduse tekst kuvatakse kõigis keeltes saksa keeles; siduv on üksnes saksakeelne sõnastus.",
+  "glossary_law_excerpt_note": "Väljavõte: näidatud on ainult tsiteeritud lõige.",
+  "glossary_law_source_label": "Ametlik allikas",
+  "glossary_law_reviewed_label": "Allikas kontrollitud",
+  "glossary_law_disclaimer": "Üldteave, mitte õigusnõustamine."
 }

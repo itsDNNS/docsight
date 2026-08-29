@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Παρατηρούμενοι στόχοι",
   "correlation_reachability_scope": "Εύρος στόχων",
   "correlation_reachability_drilldown": "Άνοιγμα λεπτομερειών Παρακολούθησης σύνδεσης",
-  "correlation_reachability_aria": "Σύνοψη προσβασιμότητας"
+  "correlation_reachability_aria": "Σύνοψη προσβασιμότητας",
+  "glossary_law_heading": "Πρωτότυπο γερμανικό νομικό κείμενο (Gesetzestext)",
+  "glossary_law_hint": "Το νομικό κείμενο εμφανίζεται στα γερμανικά σε κάθε γλώσσα· αυθεντική είναι μόνο η γερμανική διατύπωση.",
+  "glossary_law_excerpt_note": "Απόσπασμα: εμφανίζεται μόνο η παρατιθέμενη παράγραφος.",
+  "glossary_law_source_label": "Επίσημη πηγή",
+  "glossary_law_reviewed_label": "Η πηγή ελέγχθηκε",
+  "glossary_law_disclaimer": "Γενικές πληροφορίες, όχι νομική συμβουλή."
 }

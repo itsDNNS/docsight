@@ -551,6 +551,49 @@ Built-in manifests may separately mark declared config keys with the built-in-on
 
 Threshold profiles are mutually exclusive. The bundled VF/KD profile is registered from the static analyzer profile registry in `app/threshold_profiles.py`; installed community threshold profiles still use the module manifest `thresholds` contribution. The UI renders threshold profiles as a single radio group, and the batch API validates the invariant server-side so exactly one threshold profile remains active after save.
 
+### German outage-compensation assistant
+
+`docsight.de_tkg_compensation` is a default-enabled built-in analysis module. It
+has no collector, publisher, or remote service. Its `rules.py`,
+`rules_data.py`, and `letter.py` layers are deterministic and Flask-free;
+authenticated routes adapt those layers to one module-owned claim table. The
+module calculates only user-confirmed local complete-outage calendar days.
+Connection Monitor intervals and open incidents are proposals and never become
+confirmed facts automatically.
+
+For § 58(3) day counting, the fault-report receipt date is day 0. Calculation
+can first include the third local calendar day after receipt (day index 3), and
+only when the user confirms that entire calendar day as a complete outage day.
+
+Missed service or installation appointments under § 58(4) are an independent
+claim basis and do not require an outage window or outage assertions. Candidate
+timestamps are converted with DOCSight's configured timezone. They never fill
+the legally relevant fault-report or restoration dates; those remain explicit
+user facts.
+
+Reports, Evidence Journey, Incident Journal, Connection Monitor, and BNetzA are
+optional supporting capabilities. Each adapter checks the enabled module set
+before touching the other module's data. The manual claim, calculation, German
+text letter, copy action, and `.txt` export remain available when every support
+module is disabled. Reports longer than 90 days are linked as deterministic
+report-sized chunks; this technical PDF boundary never limits or truncates the
+claim calculation.
+
+The Connection Monitor candidate adapter uses indexed queries with explicit
+proposal-only lookback, target, sample, and result limits. Open timeout runs and
+open Journal incidents are marked as ongoing through the latest available
+evidence and never imply restoration. These resource bounds apply only to
+candidate generation and do not cap a manually entered claim or its confirmed
+calendar days.
+
+The ruleset ships with the application release and records jurisdiction,
+version, review date, and source URLs. Percentage results use integer-cent
+outputs and documented `Decimal ROUND_HALF_UP` sub-cent rounding. That rounding
+mode is a product calculation rule, not represented as statutory wording.
+Persisted rule versions are resolved through the ruleset registry; unsupported
+versions fail explicitly. Upgrade migration to a current rules version clears
+any previously generated letter atomically.
+
 ### Vodafone Station Auto-Detection
 
 The Vodafone Station driver supports two hardware variants with different auth flows:
@@ -771,6 +814,24 @@ CREATE TABLE bnetz_measurements (
     pdf_blob BLOB,               -- NULL for CSV imports
     source TEXT DEFAULT 'upload'  -- 'upload', 'watcher', 'csv_import'
 );
+
+-- User-owned German TKG claim drafts (module-owned migration)
+CREATE TABLE de_tkg_claim_drafts (
+    id INTEGER PRIMARY KEY,
+    status TEXT NOT NULL,              -- draft|completed
+    window_from TEXT, window_to TEXT,  -- UTC Z timestamps
+    origin TEXT NOT NULL,              -- manual|telemetry|incident
+    fault_report_received_date TEXT, fault_report_channel TEXT,
+    ticket_ref TEXT, restored_date TEXT,
+    monthly_fee_cents INTEGER,
+    confirmed_days_json TEXT NOT NULL,
+    eligibility_json TEXT NOT NULL,
+    prior_credit_json TEXT NOT NULL,
+    letter_text TEXT,
+    rules_version TEXT NOT NULL,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+    is_demo INTEGER NOT NULL DEFAULT 0
+);
 ```
 
 **Retention:** Configurable via `history_days` setting (default: 7 days)
@@ -812,6 +873,11 @@ CREATE TABLE bnetz_measurements (
 | `/api/export` | GET | AI/LLM-oriented markdown export; browser UI applies local preview, scope, and redaction controls |
 | `/api/report` | GET | PDF evidence package from stored snapshots; accepts rolling `days` or an exact timezone-aware `from`/`to` window (maximum 90 days) |
 | `/api/complaint` | GET | Localized complaint text from the same stored-snapshot window; returns the normalized UTC window with the generated text |
+| `/api/de-tkg/candidates` | GET | Capability-gated outage and incident proposals; proposals remain unconfirmed |
+| `/api/de-tkg/claims` | GET/POST | List or create local German TKG claim drafts |
+| `/api/de-tkg/claims/<id>` | GET/PUT/DELETE | Read, edit, complete, or explicitly delete one claim draft |
+| `/api/de-tkg/claims/<id>/calculate` | POST | Calculate confirmed complete-outage days and missed appointments using the shipped ruleset |
+| `/api/de-tkg/claims/<id>/letter` | GET/POST | Generate, retrieve, or download an editable German `.txt` claim letter |
 | `/api/bnetz/upload` | POST | Upload BNetzA measurement (PDF or CSV) |
 | `/api/bnetz/measurements` | GET | List BNetzA measurements |
 | `/api/bnetz/pdf/<id>` | GET | Download original measurement PDF |

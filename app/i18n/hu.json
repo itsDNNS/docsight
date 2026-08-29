@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Megfigyelt célok",
   "correlation_reachability_scope": "Célok köre",
   "correlation_reachability_drilldown": "Kapcsolatfigyelő részleteinek megnyitása",
-  "correlation_reachability_aria": "Elérhetőségi összefoglaló"
+  "correlation_reachability_aria": "Elérhetőségi összefoglaló",
+  "glossary_law_heading": "Eredeti német jogszabályszöveg (Gesetzestext)",
+  "glossary_law_hint": "A jogszabályszöveg minden nyelven németül jelenik meg; kizárólag a német megfogalmazás irányadó.",
+  "glossary_law_excerpt_note": "Kivonat: csak az idézett bekezdés látható.",
+  "glossary_law_source_label": "Hivatalos forrás",
+  "glossary_law_reviewed_label": "Forrás ellenőrizve",
+  "glossary_law_disclaimer": "Általános tájékoztatás, nem jogi tanácsadás."
 }

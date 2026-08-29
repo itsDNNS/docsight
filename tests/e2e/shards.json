@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 531,
+  "expected_total": 549,
   "baseline_cpu_seconds": 1534.372,
   "shards": [
     {
@@ -17,7 +17,7 @@
     },
     {
       "id": 2,
-      "collected_cases": 125,
+      "collected_cases": 140,
       "files": [
         "test_auth.py",
         "test_charts.py",
@@ -25,12 +25,13 @@
         "test_evidence_report_scope.py",
         "test_glossary_visual.py",
         "test_setup.py",
+        "test_tkg_compensation.py",
         "test_theme.py"
       ]
     },
     {
       "id": 3,
-      "collected_cases": 158,
+      "collected_cases": 161,
       "files": [
         "test_comparison.py",
         "test_correlation_ui.py",

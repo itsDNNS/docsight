@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Zaobserwowane cele",
   "correlation_reachability_scope": "Zakres celów",
   "correlation_reachability_drilldown": "Otwórz szczegóły Monitora połączenia",
-  "correlation_reachability_aria": "Podsumowanie osiągalności"
+  "correlation_reachability_aria": "Podsumowanie osiągalności",
+  "glossary_law_heading": "Oryginalny niemiecki tekst ustawy (Gesetzestext)",
+  "glossary_law_hint": "Tekst ustawy jest wyświetlany po niemiecku w każdym języku; wiążące jest wyłącznie niemieckie brzmienie.",
+  "glossary_law_excerpt_note": "Wyciąg: pokazano tylko cytowany ustęp.",
+  "glossary_law_source_label": "Oficjalne źródło",
+  "glossary_law_reviewed_label": "Źródło sprawdzone",
+  "glossary_law_disclaimer": "Informacje ogólne, nie porada prawna."
 }

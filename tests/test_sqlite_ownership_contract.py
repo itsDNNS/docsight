@@ -15,7 +15,8 @@ DDL_OWNERS = {
     Path("app/storage/schema.py"),
     MIGRATION_OWNER,
     *(Path(f"app/modules/{name}/migrations.py") for name in (
-        "weather", "journal", "speedtest", "bqm", "bnetz", "connection_monitor"
+        "weather", "journal", "speedtest", "bqm", "bnetz", "connection_monitor",
+        "de_tkg_compensation",
     )),
 }
 DDL_PATTERN = re.compile(

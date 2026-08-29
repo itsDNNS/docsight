@@ -1,8 +1,13 @@
 """Tests for Netgear CM3000 modem driver."""
 
+from copy import deepcopy
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
+from app.analyzer import ANALYZER_SCHEMA_VERSION, analyze, apply_cumulative_error_baseline
 from app.drivers.cm3000 import CM3000Driver
+from app.event_detector import EventDetector
 
 
 # -- Embedded tagValueList strings from real CM3000 HAR capture --
@@ -441,8 +446,9 @@ class TestDownstreamOFDM:
         assert ch["powerLevel"] == -0.32
         assert ch["mer"] == 41.8
         assert ch["mse"] is None
-        assert ch["corrErrors"] == 21375387957
-        assert ch["nonCorrErrors"] == 10237586972
+        assert ch["corrErrors"] == 10237586972
+        assert ch["nonCorrErrors"] == 18675397
+        assert 21375387957 not in (ch["corrErrors"], ch["nonCorrErrors"])
 
     def test_second_channel_fields(self, mock_status):
         data = mock_status.get_docsis_data()
@@ -451,6 +457,44 @@ class TestDownstreamOFDM:
         assert ch["frequency"] == "957 MHz"
         assert ch["powerLevel"] == -5.92
         assert ch["mer"] == 38.6
+        assert ch["corrErrors"] == 19395421307
+        assert ch["nonCorrErrors"] == 378
+        assert 21728350102 not in (ch["corrErrors"], ch["nonCorrErrors"])
+
+    def test_issue_815_mapping_transition_starts_fresh_counter_baseline(self, mock_status):
+        current_data = mock_status.get_docsis_data()
+        previous_data = deepcopy(current_data)
+        old_ofdm_counters = {
+            193: (21375387957, 10237586972),
+            194: (21728350102, 19395421307),
+        }
+        for channel in previous_data["channelDs"]["docsis31"]:
+            channel["corrErrors"], channel["nonCorrErrors"] = old_ofdm_counters[
+                channel["channelID"]
+            ]
+
+        previous = analyze(previous_data)
+        previous["analysis_meta"] = {"analyzer_schema": ANALYZER_SCHEMA_VERSION}
+        current = analyze(current_data)
+
+        apply_cumulative_error_baseline(current, previous)
+
+        baseline = current["summary"]["error_baseline"]
+        assert baseline["schema_baseline"] is False
+        assert baseline["comparable_counter_reset"] is True
+        assert baseline["raw_uncorrectable_counter_reset"] is True
+        assert baseline["ds_comparable_correctable_recent_delta"] == 0
+        assert baseline["ds_comparable_uncorrectable_recent_delta"] == 0
+        assert baseline["ds_comparable_correctable_delta"] == 0
+        assert baseline["ds_comparable_uncorrectable_delta"] == 0
+        assert baseline["ds_raw_uncorrectable_recent_delta"] == 0
+        assert baseline["ds_raw_uncorrectable_delta"] == 0
+
+        detector = EventDetector()
+        detector.seed(previous)
+        event_types = {event["event_type"] for event in detector.check(current)}
+        assert "error_spike" not in event_types
+        assert "modem_restart_detected" not in event_types
 
 
 # -- Upstream OFDMA --

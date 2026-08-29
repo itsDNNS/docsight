@@ -80,6 +80,7 @@ def _vacuum_db(data_dir, db_name, dest_path):
         demo_tables = [
             "snapshots", "events", "journal_entries", "incidents",
             "speedtest_results", "bqm_graphs", "bnetz_measurements",
+            "de_tkg_claim_drafts",
         ]
         with write_transaction(dest_path) as conn:
             for table in demo_tables:

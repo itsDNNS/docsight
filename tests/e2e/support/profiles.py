@@ -32,6 +32,7 @@ class ServerProfile:
     base_path: str | None = None
     trusted_prefix_hops: int | None = None
     production_startup: bool = False
+    disabled_modules: str = ""
     post_seed_callback: Callable[[str], None] | None = field(
         default=None, repr=False, compare=False
     )

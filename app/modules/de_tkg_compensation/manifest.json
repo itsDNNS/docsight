@@ -1,0 +1,20 @@
+{
+  "id": "docsight.de_tkg_compensation",
+  "name": "DE · TKG Outage Compensation",
+  "description": "Calculate and document a prospective German TKG outage-compensation claim",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.8",
+  "type": "analysis",
+  "contributes": {
+    "routes": "routes.py",
+    "tab": "templates/tkg_tab.html",
+    "static": "static/",
+    "i18n": "i18n/"
+  },
+  "menu": {
+    "label_key": "docsight.de_tkg_compensation.title",
+    "icon": "scale",
+    "order": 18
+  }
+}

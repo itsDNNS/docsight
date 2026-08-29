@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Pozorované ciele",
   "correlation_reachability_scope": "Rozsah cieľov",
   "correlation_reachability_drilldown": "Otvoriť podrobnosti Monitoru pripojenia",
-  "correlation_reachability_aria": "Súhrn dostupnosti"
+  "correlation_reachability_aria": "Súhrn dostupnosti",
+  "glossary_law_heading": "Pôvodné nemecké znenie zákona (Gesetzestext)",
+  "glossary_law_hint": "Znenie zákona sa vo všetkých jazykoch zobrazuje po nemecky; rozhodujúce je iba nemecké znenie.",
+  "glossary_law_excerpt_note": "Výňatok: zobrazený je iba citovaný odsek.",
+  "glossary_law_source_label": "Oficiálny zdroj",
+  "glossary_law_reviewed_label": "Zdroj skontrolovaný",
+  "glossary_law_disclaimer": "Všeobecné informácie, nie právne poradenstvo."
 }

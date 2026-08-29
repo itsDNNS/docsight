@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Observerte mål",
   "correlation_reachability_scope": "Målomfang",
   "correlation_reachability_drilldown": "Åpne detaljer i Tilkoblingsmonitoren",
-  "correlation_reachability_aria": "Sammendrag av tilgjengelighet"
+  "correlation_reachability_aria": "Sammendrag av tilgjengelighet",
+  "glossary_law_heading": "Original tysk lovtekst (Gesetzestext)",
+  "glossary_law_hint": "Lovteksten vises på tysk på alle språk; bare den tyske ordlyden er autoritativ.",
+  "glossary_law_excerpt_note": "Utdrag: Bare det siterte leddet vises.",
+  "glossary_law_source_label": "Offisiell kilde",
+  "glossary_law_reviewed_label": "Kilde kontrollert",
+  "glossary_law_disclaimer": "Generell informasjon, ikke juridisk rådgivning."
 }

@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Observed targets",
   "correlation_reachability_scope": "Target scope",
   "correlation_reachability_drilldown": "Open Connection Monitor details",
-  "correlation_reachability_aria": "Reachability summary"
+  "correlation_reachability_aria": "Reachability summary",
+  "glossary_law_heading": "Original German legal text (Gesetzestext)",
+  "glossary_law_hint": "The statutory text is shown in German in every language; only the German wording is authoritative.",
+  "glossary_law_excerpt_note": "Excerpt: only the quoted subsection is shown.",
+  "glossary_law_source_label": "Official source",
+  "glossary_law_reviewed_label": "Source checked",
+  "glossary_law_disclaimer": "General information, not legal advice."
 }

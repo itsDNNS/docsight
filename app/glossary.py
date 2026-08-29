@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import unquote
+
+from app.glossary_legal_texts import TKG_57_ABS_4, TKG_58, TKG_LEGAL_REVIEW_DATE
 
 GLOSSARY_LEVELS: tuple[str, ...] = ("eli5", "basic", "advanced", "technician")
 
@@ -44,6 +48,8 @@ class GlossaryTerm:
     source_pages: tuple[str, ...] = ()
     ui_contexts: tuple[str, ...] = ()
     media: tuple[dict[str, Any], ...] = ()
+    legal_texts: tuple[dict[str, Any], ...] = ()
+    legal_review_date: str = ""
 
     def localized(self, lang: str = "en") -> dict[str, Any]:
         """Return a template-friendly localized term, falling back to English."""
@@ -62,7 +68,7 @@ class GlossaryTerm:
             for level in GLOSSARY_LEVELS
         }
         misconceptions = tuple(translation.get("misconceptions") or self.misconceptions.get(lang) or self.misconceptions.get("en", ()))
-        media = translation.get("media") if isinstance(translation.get("media"), list) else list(self.media)
+        media = _merge_localized_media(self.id, self.media, translation, lang)
         return {
             "id": self.id,
             "category": self.category,
@@ -76,6 +82,8 @@ class GlossaryTerm:
             "source_pages": list(_unique((*self.source_pages, *metadata.get("source_pages", ())))),
             "ui_contexts": list(_unique((*self.ui_contexts, *metadata.get("ui_contexts", ())))),
             "media": media,
+            "legal_texts": [dict(item) for item in self.legal_texts],
+            "legal_review_date": self.legal_review_date,
         }
 
 
@@ -99,6 +107,7 @@ class GlossaryCategory:
 _CATEGORY_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
     ("docsis_terms", "DOCSIS terms", "Cable/DOCSIS protocol, signal, channel, and event terms that DOCSight explains."),
     ("docsight_features", "DOCSight features", "Views, integrations, and evidence tools provided by DOCSight itself."),
+    ("consumer_rights", "Consumer rights", "German telecommunications rights explained in practical DOCSight context."),
 )
 
 _CATEGORIES: tuple[GlossaryCategory, ...] = tuple(
@@ -118,6 +127,9 @@ def _term(
     advanced: str,
     technician: str,
     misconceptions: tuple[str, ...] = (),
+    media: tuple[dict[str, Any], ...] = (),
+    legal_texts: tuple[dict[str, Any], ...] = (),
+    legal_review_date: str = "",
 ) -> GlossaryTerm:
     """Create an English glossary term without repeating the locale container shape."""
     return GlossaryTerm(
@@ -136,6 +148,9 @@ def _term(
             }
         },
         misconceptions={"en": misconceptions} if misconceptions else {},
+        media=media,
+        legal_texts=legal_texts,
+        legal_review_date=legal_review_date,
     )
 
 _TERMS: tuple[GlossaryTerm, ...] = (
@@ -394,6 +409,16 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         'Shared-medium behavior depends on service-group size, scheduling, channel capacity, active demand, and provider policy. One modem cannot measure the whole segment directly.',
         'Distinguish clean RF evidence from congestion evidence. Correlate time-of-day patterns, speedtest/BQM/monitoring data, and provider feedback before treating shared medium as the root cause.',
         ('A good signal level does not prove that the provider segment is uncongested.',),
+        media=(
+            {
+                'src': '/static/glossary/shared-medium.svg',
+                'alt': 'Several homes connected to one shared neighborhood cable segment',
+                'caption': (
+                    'Homes on the same cable segment share part of the access network. '
+                    'A single modem cannot measure total segment utilization.'
+                ),
+            },
+        ),
     ),
     _term(
         'health_status',
@@ -647,6 +672,20 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         'Offline behavior is a freshness boundary. Cached pages can explain terms or show saved structure, but live modem status requires current collection data.',
         'When troubleshooting from an installed PWA, verify whether the view is online and freshly updated before using it as evidence. Do not escalate cached stale data as current status.',
     ),
+    _term(
+        'tkg_rights_de',
+        'consumer_rights',
+        'Rights under TKG § 57 and § 58',
+        ('TKG § 58', 'TKG § 57', 'Entschädigung', 'Compensation rights', 'Internet outage rights'),
+        ('TKG', 'DOCSight', 'Bundesnetzagentur'),
+        ('bnetza', 'connection_monitor', 'incident_journal'),
+        'For German internet or telephone contracts, TKG § 58 may provide compensation after a complete outage or a missed provider appointment; TKG § 57 may help when service is persistently too slow or unstable.',
+        'Under TKG § 58, compensation for a complete outage can start on the day after two calendar days have passed since the provider received the fault report. Separate compensation may apply when an agreed service or installation appointment is missed; the statutory amount depends on the day or appointment and the contractual monthly fee.',
+        'TKG § 57 Abs. 4 addresses significant continuous or recurring performance deviations, including those established through a Bundesnetzagentur measurement mechanism, and may support a price reduction or extraordinary termination. TKG § 58 instead covers fault handling, complete outages, and missed appointments, with statutory rules preventing double recovery where claims overlap.',
+        'Use the DOCSight TKG assistant to structure the possible § 58 amount and a provider letter, then retain fault reports, appointment records, connection-monitor evidence, and incident-journal timestamps. For a § 57 performance claim, follow the Bundesnetzagentur measurement procedure; DOCSight evidence can add context but does not replace the required proof.',
+        legal_texts=(TKG_58, TKG_57_ABS_4),
+        legal_review_date=TKG_LEGAL_REVIEW_DATE,
+    ),
 )
 
 _GLOSSARY_WIKI_INDEX: dict[str, dict[str, tuple[str, ...]]] = {
@@ -865,6 +904,11 @@ _GLOSSARY_WIKI_INDEX: dict[str, dict[str, tuple[str, ...]]] = {
         'tags': ('docsight-feature', 'app-function'),
         'ui_contexts': ('pwa_offline',),
     },
+    'tkg_rights_de': {
+        'source_pages': ('Features-TKG-Compensation.md',),
+        'tags': ('tkg', 'consumer-rights', 'de', 'wiki-term'),
+        'ui_contexts': ('de_tkg_compensation',),
+    },
 }
 
 
@@ -872,7 +916,63 @@ def _metadata_for_term(term_id: str) -> dict[str, tuple[str, ...]]:
     return _GLOSSARY_WIKI_INDEX.get(term_id, {})
 
 
-def _validate_media_entries(term_id: str, media: Iterable[dict[str, Any]]) -> list[str]:
+_STATIC_ROOT = Path(__file__).with_name("static")
+_MALFORMED_PERCENT_ESCAPE = re.compile(r"%(?![0-9A-Fa-f]{2})")
+
+
+def _decode_static_media_src(src: str) -> str | None:
+    """Decode a root-relative static URL while rejecting ambiguous URL syntax."""
+    decoded = src
+    for _ in range(4):
+        if _MALFORMED_PERCENT_ESCAPE.search(decoded):
+            return None
+        try:
+            next_value = unquote(decoded, errors="strict")
+        except UnicodeDecodeError:
+            return None
+        if next_value == decoded:
+            break
+        decoded = next_value
+    else:
+        return None
+    if _MALFORMED_PERCENT_ESCAPE.search(decoded):
+        return None
+    return decoded
+
+
+def _static_media_file(src: str, static_root: Path) -> Path | None:
+    """Map a validated static URL to a contained regular file."""
+    decoded_src = _decode_static_media_src(src)
+    if (
+        decoded_src is None
+        or not decoded_src.startswith("/static/")
+        or decoded_src.startswith("//")
+        or "\\" in decoded_src
+        or "?" in decoded_src
+        or "#" in decoded_src
+        or "\x00" in decoded_src
+    ):
+        return None
+    relative_parts = decoded_src.removeprefix("/static/").split("/")
+    if not relative_parts or any(part in {"", ".", ".."} for part in relative_parts):
+        return None
+    try:
+        root = static_root.resolve()
+        candidate = root.joinpath(*relative_parts).resolve()
+    except (OSError, RuntimeError):
+        return None
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return None
+    return candidate
+
+
+def _validate_media_entries(
+    term_id: str,
+    media: Iterable[dict[str, Any]],
+    static_root: Path,
+) -> list[str]:
     """Validate optional glossary media stays local, explicit, and accessible."""
     errors: list[str] = []
     for index, item in enumerate(media):
@@ -881,21 +981,22 @@ def _validate_media_entries(term_id: str, media: Iterable[dict[str, Any]]) -> li
             continue
         raw_src = item.get("src", "")
         raw_alt = item.get("alt", "")
+        raw_caption = item.get("caption", "")
         src = raw_src.strip() if isinstance(raw_src, str) else ""
-        decoded_src = unquote(src)
         alt = raw_alt.strip() if isinstance(raw_alt, str) else ""
+        caption = raw_caption.strip() if isinstance(raw_caption, str) else ""
         if not src:
             errors.append(f"{term_id}: media {index} missing src")
-        elif (
-            not src.startswith("/static/")
-            or decoded_src.startswith(("http://", "https://", "//"))
-            or ":" in decoded_src.split("/", 1)[0]
-            or "\\" in decoded_src
-            or ".." in Path(decoded_src).parts
-        ):
-            errors.append(f"{term_id}: media {index} src must be a local static path")
+        else:
+            media_file = _static_media_file(src, static_root)
+            if media_file is None:
+                errors.append(f"{term_id}: media {index} src must be a local static path")
+            elif not media_file.is_file():
+                errors.append(f"{term_id}: media {index} src must resolve to an existing regular file")
         if not alt:
             errors.append(f"{term_id}: media {index} missing alt")
+        if "caption" in item and not caption:
+            errors.append(f"{term_id}: media {index} empty caption")
     return errors
 
 
@@ -921,6 +1022,12 @@ def _load_glossary_localizations() -> dict[str, dict[str, Any]]:
             continue
         with path.open(encoding="utf-8-sig") as handle:
             data = json.load(handle)
+        for item in data.get("terms", []):
+            if not isinstance(item, dict):
+                continue
+            for field in ("legal_texts", "legal_review_date"):
+                if field in item:
+                    raise ValueError(f"{item.get('id', '<unknown>')}: glossary localization must not localize {field}")
         categories = {item["id"]: item for item in data.get("categories", [])}
         terms = {item["id"]: item for item in data.get("terms", [])}
         catalogs[lang] = {"categories": categories, "terms": terms}
@@ -938,6 +1045,51 @@ def _localized_term_payload(term_id: str, lang: str) -> dict[str, Any]:
     return term if isinstance(term, dict) else {}
 
 
+def _merge_localized_media(
+    term_id: str,
+    canonical_media: tuple[dict[str, Any], ...],
+    translation: dict[str, Any],
+    lang: str,
+) -> list[dict[str, Any]]:
+    """Merge localized descriptions onto canonical media without duplicating paths."""
+    canonical: list[dict[str, Any]] = []
+    for source_item in canonical_media:
+        item = dict(source_item)
+        src = item.get("src")
+        if isinstance(src, str):
+            decoded_src = _decode_static_media_src(src.strip())
+            if decoded_src is not None:
+                item["src"] = decoded_src
+        canonical.append(item)
+    normalized_lang = _normalize_lang(lang)
+    if normalized_lang == "en" or normalized_lang not in _load_glossary_localizations():
+        return canonical
+    if not canonical:
+        return canonical
+
+    localized = translation.get("media")
+    if not isinstance(localized, list) or len(localized) != len(canonical):
+        raise ValueError(f"{term_id}: localized media must match canonical media length for {normalized_lang}")
+
+    merged: list[dict[str, Any]] = []
+    for index, (canonical_item, localized_item) in enumerate(zip(canonical, localized, strict=True)):
+        if not isinstance(localized_item, dict):
+            raise ValueError(f"{term_id}: localized media {index} must be an object for {normalized_lang}")
+        if "src" in localized_item:
+            raise ValueError(f"{term_id}: localized media {index} must not override src for {normalized_lang}")
+        alt = localized_item.get("alt")
+        if not isinstance(alt, str) or not alt.strip():
+            raise ValueError(f"{term_id}: localized media {index} missing alt for {normalized_lang}")
+        item = {**canonical_item, "alt": alt.strip()}
+        caption = localized_item.get("caption")
+        if canonical_item.get("caption") and (not isinstance(caption, str) or not caption.strip()):
+            raise ValueError(f"{term_id}: localized media {index} missing caption for {normalized_lang}")
+        if isinstance(caption, str) and caption.strip():
+            item["caption"] = caption.strip()
+        merged.append(item)
+    return merged
+
+
 def _localized_category_payload(category_id: str, lang: str) -> dict[str, Any]:
     catalog = _load_glossary_localizations().get(_normalize_lang(lang), {})
     category = catalog.get("categories", {}).get(category_id, {})
@@ -953,7 +1105,11 @@ def _term_ids() -> set[str]:
     return {term.id for term in _TERMS}
 
 
-def validate_glossary_catalog(terms: Iterable[GlossaryTerm] = _TERMS) -> list[str]:
+def validate_glossary_catalog(
+    terms: Iterable[GlossaryTerm] = _TERMS,
+    *,
+    static_root: Path | None = None,
+) -> list[str]:
     """Return schema/link validation errors for the glossary catalog."""
     errors: list[str] = []
     seen: set[str] = set()
@@ -987,7 +1143,41 @@ def validate_glossary_catalog(terms: Iterable[GlossaryTerm] = _TERMS) -> list[st
         for token in term.protected_terms:
             if not token:
                 errors.append(f"{term.id}: empty protected term")
-        errors.extend(_validate_media_entries(term.id, term.media))
+        errors.extend(_validate_media_entries(term.id, term.media, static_root or _STATIC_ROOT))
+        if term.legal_texts:
+            if not term.legal_review_date:
+                errors.append(f"{term.id}: legal texts requires legal review date")
+            else:
+                try:
+                    date.fromisoformat(term.legal_review_date)
+                except (TypeError, ValueError):
+                    errors.append(f"{term.id}: invalid legal review date")
+            for index, legal_text in enumerate(term.legal_texts):
+                if not isinstance(legal_text, dict):
+                    errors.append(f"{term.id}: legal text {index} must be an object")
+                    continue
+                for field in ("id", "label"):
+                    value = legal_text.get(field)
+                    if not isinstance(value, str) or not value.strip():
+                        errors.append(f"{term.id}: legal text {index} missing {field}")
+                if not isinstance(legal_text.get("excerpt"), bool):
+                    errors.append(f"{term.id}: legal text {index} excerpt must be a bool")
+                source_url = legal_text.get("source_url")
+                if not isinstance(source_url, str) or not source_url.startswith(
+                    "https://www.gesetze-im-internet.de/"
+                ):
+                    errors.append(f"{term.id}: legal text {index} must use an official HTTPS source")
+                paragraphs = legal_text.get("paragraphs")
+                if not isinstance(paragraphs, (tuple, list)) or not paragraphs:
+                    errors.append(f"{term.id}: legal text {index} requires non-empty paragraphs")
+                else:
+                    for paragraph_index, paragraph in enumerate(paragraphs):
+                        if not isinstance(paragraph, str) or not paragraph.strip():
+                            errors.append(
+                                f"{term.id}: legal text {index} requires non-empty paragraph {paragraph_index}"
+                            )
+        elif term.legal_review_date:
+            errors.append(f"{term.id}: orphan legal review date")
         metadata = _metadata_for_term(term.id)
         for field in ("tags", "source_pages", "ui_contexts"):
             values = metadata.get(field, ())

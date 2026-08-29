@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Waargenomen doelen",
   "correlation_reachability_scope": "Doelbereik",
   "correlation_reachability_drilldown": "Details van Verbindingsmonitor openen",
-  "correlation_reachability_aria": "Samenvatting bereikbaarheid"
+  "correlation_reachability_aria": "Samenvatting bereikbaarheid",
+  "glossary_law_heading": "Oorspronkelijke Duitse wettekst (Gesetzestext)",
+  "glossary_law_hint": "De wettekst wordt in elke taal in het Duits getoond; alleen de Duitse formulering is gezaghebbend.",
+  "glossary_law_excerpt_note": "Uittreksel: alleen het aangehaalde lid wordt getoond.",
+  "glossary_law_source_label": "Officiële bron",
+  "glossary_law_reviewed_label": "Bron gecontroleerd",
+  "glossary_law_disclaimer": "Algemene informatie, geen juridisch advies."
 }

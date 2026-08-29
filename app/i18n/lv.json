@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Novērotie mērķi",
   "correlation_reachability_scope": "Mērķu tvērums",
   "correlation_reachability_drilldown": "Atvērt Savienojuma pārrauga informāciju",
-  "correlation_reachability_aria": "Sasniedzamības kopsavilkums"
+  "correlation_reachability_aria": "Sasniedzamības kopsavilkums",
+  "glossary_law_heading": "Oriģinālais Vācijas likuma teksts (Gesetzestext)",
+  "glossary_law_hint": "Likuma teksts visās valodās tiek rādīts vāciski; noteicošs ir tikai vācu formulējums.",
+  "glossary_law_excerpt_note": "Izvilkums: parādīta tikai citētā daļa.",
+  "glossary_law_source_label": "Oficiālais avots",
+  "glossary_law_reviewed_label": "Avots pārbaudīts",
+  "glossary_law_disclaimer": "Vispārīga informācija, ne juridiska konsultācija."
 }

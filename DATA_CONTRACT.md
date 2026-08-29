@@ -22,6 +22,7 @@ Typical locations and contents:
 | Connection Monitor samples | `/data/connection_monitor.db` | SQLite database with latency probes, outage evidence, traceroute-related state, and raw or aggregated ping evidence. |
 | Backups | User-configured backup path or generated backup archives | Backups can contain databases, configuration, encrypted secrets, session keys, and metadata. Treat them as private. |
 | Incident journal | Stored in DOCSight data databases | User-entered descriptions, notes, timestamps, reviewed events, imported evidence, and incident groupings. |
+| German TKG claim drafts | `de_tkg_claim_drafts` in `/data/docsis_history.db` | User-confirmed outage days, report/ticket context, fee and credit classification, eligibility answers, and editable letter text. These records are user facts, not retention-managed monitoring cache. |
 | Attachments | User-selected files or imported evidence where enabled | May include screenshots, CSV/PDF imports, BQM images, or other support evidence. Redact before sharing. |
 | API tokens | Token metadata and hashes in local storage | Plaintext tokens are shown once at creation and are not stored as reusable plaintext. |
 
@@ -52,6 +53,7 @@ Examples:
 - CSV, JSON, Markdown, and raw ping log exports.
 - Backup archives and restore validation output.
 - Downloaded BNetzA, Speedtest, BQM, Smokeping, event, or journal exports.
+- German TKG claim-letter `.txt` exports. Filenames are PII-free, but letter contents can contain customer and ticket details.
 - Screenshots or support snippets created by the user.
 
 Generated artifacts should be reviewed before sharing. They may include provider names, timestamps, public or private IP addresses, MAC addresses, serial numbers, modem model and firmware details, incident notes, customer details, ticket numbers, webhook destination hints, or other account-specific information.
@@ -108,6 +110,23 @@ They may contain:
 - local device names, modem models, serial numbers, MAC addresses, IP addresses, and firmware versions
 
 DOCSight may help organize and export this evidence, but the user chooses what to send to an ISP, regulator, community thread, or maintainer.
+
+German TKG claim drafts follow the same local ownership boundary. DOCSight does
+not send a claim, contact a provider, scrape a provider portal, or promise a
+legal outcome. Monitoring and incident data can propose a window only; the user
+must confirm each complete-outage calendar day and all eligibility facts. Prior
+provider credits are stored and displayed separately and are not automatically
+classified or deducted. Claim drafts are removed only by explicit deletion;
+normal history retention does not delete them. Demo-created claims are marked
+server-side, removed by demo migration, and scrubbed from backup copies, while
+non-demo claims remain part of normal backup and restore.
+
+Outage facts and missed-appointment facts are independent. A missed-appointment
+claim can be stored without an outage period. Any change to a persisted claim
+fact clears the generated provider letter; letter-only edits and safe status-only
+updates preserve it. Completion and `.txt` download require a current generated
+letter. Connection Monitor and Journal lookback/sample/result bounds protect
+proposal generation only and never impose a legal or date cap on manual claims.
 
 ## AI/LLM export and redaction controls
 

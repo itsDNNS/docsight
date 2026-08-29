@@ -1144,5 +1144,11 @@
   "correlation_reachability_targets": "Наблюдавани цели",
   "correlation_reachability_scope": "Обхват на целите",
   "correlation_reachability_drilldown": "Отваряне на подробностите в Монитор на връзката",
-  "correlation_reachability_aria": "Обобщение на достъпността"
+  "correlation_reachability_aria": "Обобщение на достъпността",
+  "glossary_law_heading": "Оригинален германски законов текст (Gesetzestext)",
+  "glossary_law_hint": "Законовият текст се показва на немски на всички езици; меродавна е само немската формулировка.",
+  "glossary_law_excerpt_note": "Извадка: показана е само цитираната алинея.",
+  "glossary_law_source_label": "Официален източник",
+  "glossary_law_reviewed_label": "Източникът е проверен",
+  "glossary_law_disclaimer": "Обща информация, не правен съвет."
 }
