@@ -4,7 +4,21 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    # GitHub does not evaluate path filters for tag pushes, so v* builds
+    # remain unconditional while main pushes stay limited to image inputs.
+    paths:
+      - 'app/**'
+      - 'tools/**'
+      - 'requirements.txt'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'entrypoint.sh'
+      - '.github/workflows/docker.yml'
   workflow_dispatch:
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
 
 env:
   REGISTRY: ghcr.io
@@ -38,6 +52,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
             type=ref,event=tag
+            type=sha,enable=${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4

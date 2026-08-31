@@ -5,12 +5,143 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      docs: ${{ steps.filter.outputs.docs }}
+      python: ${{ steps.filter.outputs.python }}
+      windows: ${{ steps.filter.outputs.windows }}
+      browser: ${{ steps.filter.outputs.browser }}
+      js: ${{ steps.filter.outputs.js }}
+      i18n: ${{ steps.filter.outputs.i18n }}
+      deps: ${{ steps.filter.outputs.deps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Filter test-relevant changes
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          predicate-quantifier: some-with-excludes
+          filters: |
+            docs:
+              - '*.md'
+              - 'docs/**'
+              - 'packaging/windows/*.md'
+            python:
+              - 'app/**'
+              - 'tests/**'
+              - 'scripts/**'
+              - 'tools/**'
+              - 'packaging/windows/**'
+              - '!packaging/windows/*.md'
+              - 'requirements.txt'
+              - 'requirements-test.txt'
+              - 'pytest.ini'
+              - '.github/workflows/*.yml'
+            windows:
+              - 'app/**'
+              - 'tests/**'
+              - 'scripts/**'
+              - 'tools/**'
+              - 'packaging/windows/**'
+              - '!packaging/windows/*.md'
+              - 'requirements.txt'
+              - 'requirements-test.txt'
+              - 'packaging/windows/requirements-runtime-windows.txt'
+              - 'packaging/windows/requirements-test-windows.txt'
+              - 'pytest.ini'
+              - '.github/workflows/*.yml'
+            browser:
+              - 'app/templates/**'
+              - 'app/static/**'
+              - 'app/modules/**'
+              - 'app/web.py'
+              - 'app/blueprints/**'
+              - 'app/tz.py'
+              - 'app/i18n/**'
+              - 'app/app_factory.py'
+              - 'app/base_path.py'
+              - 'app/glossary.py'
+              - 'tests/e2e/**'
+              - 'tests/test_e2e_harness.py'
+              - 'tests/test_e2e_shards.py'
+              - 'scripts/e2e_shards.py'
+              - 'requirements.txt'
+              - 'requirements-test.txt'
+              - '.github/workflows/full-e2e.yml'
+              - '.github/workflows/test.yml'
+            js:
+              - 'package.json'
+              - 'package-lock.json'
+              - 'app/static/js/**'
+              - 'app/static/sw.js'
+              - 'app/static/vendor/**'
+              - 'tests/js/**'
+              - '.github/workflows/test.yml'
+            i18n:
+              - 'app/i18n/**'
+              - 'app/modules/**/i18n/**'
+              - 'scripts/i18n_check.py'
+              - 'tests/test_i18n_check.py'
+              - '.github/workflows/test.yml'
+            deps:
+              - 'requirements.txt'
+              - '.github/workflows/test.yml'
+
+  docs:
+    needs: changes
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-test.txt
+
+      - name: Install dependencies
+        run: |
+          pip install --require-hashes -r requirements.txt
+          pip install --require-hashes -r requirements-test.txt
+
+      - name: Run documentation contract tests
+        run: >-
+          python -m pytest -q
+          tests/test_public_launch_surface.py
+          tests/test_defensive_review_docs.py
+          tests/test_windows_packaging.py
+
   test:
+    needs: changes
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -45,6 +176,12 @@ jobs:
         run: python -m pytest tests/ -v --tb=short --ignore=tests/e2e
 
   test-js:
+    needs: changes
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.js == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -65,6 +202,12 @@ jobs:
         run: npm test
 
   test-windows:
+    needs: changes
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.windows == 'true'
     runs-on: windows-latest
 
     steps:
@@ -89,6 +232,12 @@ jobs:
         run: python -m pytest tests/ -v --tb=short --ignore=tests/e2e -m "not linux_only"
 
   mobile-e2e:
+    needs: changes
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.browser == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -115,6 +264,17 @@ jobs:
         run: TZ=UTC python -m pytest -q tests/e2e/test_mobile_quality_gate.py --tb=short
 
   audit:
+    needs: changes
+    if: >-
+      always() &&
+      !cancelled() &&
+      (
+        github.event_name == 'schedule' ||
+        (
+          needs.changes.result == 'success' &&
+          needs.changes.outputs.deps == 'true'
+        )
+      )
     runs-on: ubuntu-latest
 
     steps:
@@ -129,6 +289,12 @@ jobs:
           inputs: requirements.txt
 
   i18n:
+    needs: changes
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.i18n == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -142,3 +308,67 @@ jobs:
 
       - name: Validate translations
         run: python scripts/i18n_check.py --validate
+
+  tests-summary:
+    name: tests-summary
+    needs: [changes, docs, test, test-windows, mobile-e2e, test-js, i18n, audit]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify routed test results
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+          PYTHON_CHANGED: ${{ needs.changes.outputs.python }}
+          WINDOWS_CHANGED: ${{ needs.changes.outputs.windows }}
+          BROWSER_CHANGED: ${{ needs.changes.outputs.browser }}
+          JS_CHANGED: ${{ needs.changes.outputs.js }}
+          I18N_CHANGED: ${{ needs.changes.outputs.i18n }}
+          DEPS_CHANGED: ${{ needs.changes.outputs.deps }}
+          DOCS_RESULT: ${{ needs.docs.result }}
+          PYTHON_RESULT: ${{ needs.test.result }}
+          WINDOWS_RESULT: ${{ needs.test-windows.result }}
+          BROWSER_RESULT: ${{ needs.mobile-e2e.result }}
+          JS_RESULT: ${{ needs.test-js.result }}
+          I18N_RESULT: ${{ needs.i18n.result }}
+          DEPS_RESULT: ${{ needs.audit.result }}
+        run: |
+          python - <<'PY'
+          import os
+
+          event_name = os.environ["EVENT_NAME"]
+          changes_result = os.environ["CHANGES_RESULT"]
+          routes = {
+              "docs": (os.environ["DOCS_CHANGED"], os.environ["DOCS_RESULT"]),
+              "python": (os.environ["PYTHON_CHANGED"], os.environ["PYTHON_RESULT"]),
+              "windows": (os.environ["WINDOWS_CHANGED"], os.environ["WINDOWS_RESULT"]),
+              "browser": (os.environ["BROWSER_CHANGED"], os.environ["BROWSER_RESULT"]),
+              "js": (os.environ["JS_CHANGED"], os.environ["JS_RESULT"]),
+              "i18n": (os.environ["I18N_CHANGED"], os.environ["I18N_RESULT"]),
+              "deps": (os.environ["DEPS_CHANGED"], os.environ["DEPS_RESULT"]),
+          }
+
+          failed = [name for name, (_, result) in routes.items()
+                    if result in {"failure", "cancelled"}]
+          if failed:
+              raise SystemExit(f"Failed or cancelled jobs: {', '.join(failed)}")
+
+          if event_name == "schedule":
+              if routes["deps"][1] != "success":
+                  raise SystemExit("Scheduled dependency audit did not succeed")
+              raise SystemExit(0)
+
+          if changes_result != "success":
+              raise SystemExit(
+                  f"Change detection did not succeed: {changes_result}"
+              )
+
+          for name, (changed, result) in routes.items():
+              if changed not in {"true", "false"}:
+                  raise SystemExit(f"Missing detector output for {name}: {changed!r}")
+              if changed == "true" and result != "success":
+                  raise SystemExit(
+                      f"{name} changes require a successful job; result was {result}"
+                  )
+          PY

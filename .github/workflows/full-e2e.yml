@@ -21,6 +21,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: full-e2e-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: >-
+    ${{
+      github.event_name == 'pull_request' &&
+      (
+        github.event.action != 'labeled' ||
+        github.event.label.name == 'full-e2e'
+      )
+    }}
+
 jobs:
   changes:
     if: github.event_name == 'pull_request'
@@ -40,6 +51,12 @@ jobs:
               - 'app/static/**'
               - 'app/modules/**'
               - 'app/web.py'
+              - 'app/blueprints/**'
+              - 'app/tz.py'
+              - 'app/i18n/**'
+              - 'app/app_factory.py'
+              - 'app/base_path.py'
+              - 'app/glossary.py'
               - 'tests/e2e/**'
               - 'tests/test_e2e_harness.py'
               - 'tests/test_e2e_shards.py'
@@ -57,8 +74,19 @@ jobs:
       (
         github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch' ||
-        contains(github.event.pull_request.labels.*.name, 'full-e2e') ||
-        needs.changes.outputs.browser == 'true'
+        (
+          github.event_name == 'pull_request' &&
+          (
+            (github.event.action == 'labeled' && github.event.label.name == 'full-e2e') ||
+            (
+              github.event.action != 'labeled' &&
+              (
+                contains(github.event.pull_request.labels.*.name, 'full-e2e') ||
+                needs.changes.outputs.browser == 'true'
+              )
+            )
+          )
+        )
       )
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.single_process && 35 || 18 }}
@@ -154,8 +182,19 @@ jobs:
         ${{
           github.event_name == 'schedule' ||
           github.event_name == 'workflow_dispatch' ||
-          contains(github.event.pull_request.labels.*.name, 'full-e2e') ||
-          needs.changes.outputs.browser == 'true'
+          (
+            github.event_name == 'pull_request' &&
+            (
+              (github.event.action == 'labeled' && github.event.label.name == 'full-e2e') ||
+              (
+                github.event.action != 'labeled' &&
+                (
+                  contains(github.event.pull_request.labels.*.name, 'full-e2e') ||
+                  needs.changes.outputs.browser == 'true'
+                )
+              )
+            )
+          )
         }}
       SHARD_JOB_RESULT: ${{ needs.e2e-shards.result }}
       CHANGE_DETECTION_RESULT: ${{ needs.changes.result }}

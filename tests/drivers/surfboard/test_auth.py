@@ -4,7 +4,7 @@ import hashlib
 import hmac
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import call, patch, MagicMock
 from app.drivers.surfboard import SurfboardDriver, _HNAP_PRELOGIN_KEY
 from ._data import HNAP_LOGIN_PHASE1, HNAP_LOGIN_PHASE2
 
@@ -109,9 +109,13 @@ class TestLogin:
         def mock_post(action, body, **kwargs):
             return {"LoginResponse": {"Challenge": "", "PublicKey": "", "Cookie": ""}}
 
-        with patch.object(driver, "_hnap_post", side_effect=mock_post):
+        with patch.object(driver, "_hnap_post", side_effect=mock_post) as hnap_post, \
+             patch("app.drivers.surfboard.time") as mock_time:
             with pytest.raises(RuntimeError, match="no challenge received"):
                 driver.login()
+
+        assert hnap_post.call_count == 3
+        assert mock_time.sleep.call_args_list == [call(5), call(15)]
 
     def test_login_retries_on_connection_error(self, driver):
         import requests as req
@@ -416,4 +420,3 @@ class TestHnapAuth:
 
 
 # -- Downstream SC-QAM --
-

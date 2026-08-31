@@ -186,6 +186,19 @@ class TestEventStorage:
         assert events[0]["timestamp"] == ts2
         assert events[1]["timestamp"] == ts1
 
+    def test_get_events_limit(self, storage):
+        for index in range(3):
+            storage.save_event(
+                f"2026-01-0{index + 1}T00:00:00Z",
+                "info",
+                "channel_change",
+                f"Event {index}",
+            )
+
+        events = storage.get_events(limit=2)
+
+        assert [event["message"] for event in events] == ["Event 2", "Event 1"]
+
     def test_save_events_empty_list(self, storage):
         assert storage.save_events([]) == 0
 
@@ -332,9 +345,27 @@ class TestEventExportApi:
         assert resp.status_code == 401
         assert resp.get_json() == {"error": "Authentication required"}
 
-    def test_events_export_csv_sets_truncation_header_when_limited(self, events_client, storage):
-        for index in range(10001):
-            storage.save_event(f"2026-04-29T22:{index % 60:02d}:26Z", "info", "channel_change", f"Event {index}")
+    def test_events_export_csv_sets_truncation_header_when_limited(
+        self, events_client, storage, monkeypatch
+    ):
+        requested_limits = []
+
+        def get_events(**kwargs):
+            requested_limits.append(kwargs["limit"])
+            return [
+                {
+                    "id": index + 1,
+                    "timestamp": f"2026-04-29T22:{index % 60:02d}:26Z",
+                    "severity": "info",
+                    "event_type": "channel_change",
+                    "message": f"Event {index}",
+                    "details": {"channel_count": 32, "sequence": index},
+                    "acknowledged": index % 2,
+                }
+                for index in range(kwargs["limit"])
+            ]
+
+        monkeypatch.setattr(storage, "get_events", get_events)
 
         resp = events_client.get("/api/events/export.csv")
 
@@ -343,6 +374,7 @@ class TestEventExportApi:
         assert resp.headers["X-DOCSight-Export-Truncated"] == "true"
         rows = list(csv.DictReader(io.StringIO(resp.get_data(as_text=True))))
         assert len(rows) == 10000
+        assert requested_limits == [10001]
 
 
 # ── EventDetector Tests ──
