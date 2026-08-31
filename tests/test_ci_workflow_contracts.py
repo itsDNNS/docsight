@@ -151,6 +151,10 @@ def test_full_e2e_paths_concurrency_and_summary_contract():
         }}
     """)
     assert workflow["jobs"]["full-e2e"]["name"] == "full-e2e"
+    assert workflow["jobs"]["full-e2e"]["permissions"] == {
+        "contents": "read",
+        "checks": "read",
+    }
 
     required = compact(workflow["jobs"]["full-e2e"]["env"]["E2E_REQUIRED"])
     expected = compact("""
@@ -184,6 +188,26 @@ def test_full_e2e_paths_concurrency_and_summary_contract():
         if step["name"].startswith("Verify complete successful")
     )["run"]
     assert "--expected-total 549" in summarize
+
+    preserve = next(
+        step for step in workflow["jobs"]["full-e2e"]["steps"]
+        if step["name"] == "Preserve prior browser gate on unrelated labels"
+    )
+    preserve_if = compact(preserve["if"])
+    assert "github.event.action == 'labeled'" in preserve_if
+    assert "github.event.label.name != 'full-e2e'" in preserve_if
+    assert re.fullmatch(r"actions/github-script@[0-9a-f]{40}", preserve["uses"])
+    preserve_script = preserve["with"]["script"]
+    for contract in (
+        "check_name: 'full-e2e'",
+        "filter: 'all'",
+        "run.status === 'completed'",
+        "run.app?.slug === 'github-actions'",
+        "if (!previous)",
+        "previous.conclusion !== 'success'",
+        "core.setFailed",
+    ):
+        assert contract in preserve_script
 
 
 @pytest.mark.parametrize(

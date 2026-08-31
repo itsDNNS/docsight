@@ -177,6 +177,9 @@ jobs:
     needs: [changes, e2e-shards]
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
     env:
       E2E_REQUIRED: >-
         ${{
@@ -207,6 +210,42 @@ jobs:
             echo "Browser change detection result was $CHANGE_DETECTION_RESULT"
             exit 1
           fi
+
+      - name: Preserve prior browser gate on unrelated labels
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.action == 'labeled' &&
+          github.event.label.name != 'full-e2e'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const ref = context.payload.pull_request.head.sha;
+            const {data} = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref,
+              check_name: 'full-e2e',
+              filter: 'all',
+              per_page: 100,
+            });
+            const previous = data.check_runs
+              .filter(run =>
+                run.status === 'completed' &&
+                run.app?.slug === 'github-actions'
+              )
+              .sort((left, right) =>
+                new Date(right.completed_at) - new Date(left.completed_at)
+              )[0];
+            if (!previous) {
+              core.setFailed('No completed browser gate exists for this commit.');
+            } else if (previous.conclusion !== 'success') {
+              core.setFailed(
+                `Previous browser gate concluded ${previous.conclusion}.`
+              );
+            } else {
+              core.info('Previous browser gate succeeded; preserving that result.');
+            }
 
       - name: Checkout
         if: env.E2E_REQUIRED == 'true'
