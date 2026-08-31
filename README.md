@@ -12,8 +12,7 @@
   <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="DATA_CONTRACT.md">Data contract</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="CODE_SIGNING.md">Code signing</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
-  <a href="https://github.com/itsDNNS/docsight/releases">Releases</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
-  <a href="https://github.com/itsDNNS/docsight/wiki/Roadmap">Roadmap</a>
+  <a href="https://github.com/itsDNNS/docsight/releases">Releases</a>
 </p>
 
 <p align="center">
@@ -392,10 +391,6 @@ TZ=UTC python -m pytest -q tests/e2e/test_mobile_quality_gate.py --tb=short
 ```
 
 The test does not commit screenshot artifacts by default. Use the broader E2E suite when changing shared modal, navigation, chart, or journal behavior.
-
-## Roadmap
-
-See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
 
 ## Changelog
 
