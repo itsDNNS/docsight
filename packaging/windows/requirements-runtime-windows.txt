@@ -510,9 +510,9 @@ fonttools==4.62.1 \
     # via
     #   -r packaging/windows/../../requirements.txt
     #   fpdf2
-fpdf2==2.8.7 \
-    --hash=sha256:7060ccee5a9c7ab0a271fb765a36a23639f83ef8996c34e3d46af0a17ede57f9 \
-    --hash=sha256:d391fc508a3ce02fc43a577c830cda4fe6f37646f2d143d489839940932fbc19
+fpdf2==2.8.8 \
+    --hash=sha256:3557a478fc577a929c94aace9666aed4dcc432b5ab6764232e6a59f1ccd75f17 \
+    --hash=sha256:9e94e155e85e8053329a9a1fce8b566fd7a7c5bb79e98a1a3952d379b947c5b9
     # via -r packaging/windows/../../requirements.txt
 frozenlist==1.8.0 \
     --hash=sha256:0325024fe97f94c41c08872db482cf8ac4800d80e79222c6b0b7b162d5b13686 \
@@ -1157,16 +1157,16 @@ pycparser==3.0 \
     # via
     #   -r packaging/windows/../../requirements.txt
     #   cffi
-pypdf==6.15.0 \
-    --hash=sha256:14e001d6504822cb1ca9c7ed9a69bccb320f59b320730f55af804361abe4d5ee \
-    --hash=sha256:d39c4d955a76409284a905e2d65b40076d77ab76129e0faaeeb6612403ecfc79
+pypdf==6.16.2 \
+    --hash=sha256:595647f6191de6f402cfde1d0c455d6cbccbd509aac32b34783009c032de5d6e \
+    --hash=sha256:c8b09a59399062fb45a1b8156c18a787a10a3dae03ac9674397a226712c94604
     # via -r packaging/windows/../../requirements.txt
 pystray==0.19.5 \
     --hash=sha256:a0c2229d02cf87207297c22d86ffc57c86c227517b038c0d3c59df79295ac617
     # via -r packaging/windows/requirements-runtime-windows.in
-pywebpush==2.3.0 \
-    --hash=sha256:3d97469fb14d4323c362319d438183737249a4115b50e146ce233e7f01e3cf98 \
-    --hash=sha256:d1e27db8de9e6757c1875f67292554bd54c41874c36f4b5c4ebb5442dce204f2
+pywebpush==2.4.0 \
+    --hash=sha256:4ecc775d45aec868eecd0bf8ab723270fa0ae4d63952d550b0d17877373275f2 \
+    --hash=sha256:512594cc579a2a878ed558e75586fa3b15f521811f0c3b1d4671a9a6d8f41472
     # via -r packaging/windows/../../requirements.txt
 requests==2.34.2 \
     --hash=sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0 \
