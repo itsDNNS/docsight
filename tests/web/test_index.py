@@ -5,7 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from app.web import update_state, _build_metric_ranges, _snr_channel_family
+from app.analyzer import analyze
+from app.web import (
+    update_state,
+    _build_home_snr_display_context,
+    _build_metric_ranges,
+    _snr_channel_family,
+)
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -134,17 +140,119 @@ def _configure_speedtest(config_mgr):
 
 
 class TestIndexRoute:
+    @pytest.mark.parametrize("family", ["sc_qam", "ofdm"])
+    @pytest.mark.parametrize("legacy_fields", [
+        {"type": "OFDM", "modulation": "4096QAM", "docsis_version": "3.1"},
+        {"type": "SC-QAM", "modulation": "256QAM", "docsis_version": "3.0"},
+        {"profile_modulation": "256QAM", "docsis_version": "3.1"},
+    ])
+    def test_snr_channel_family_metadata_is_authoritative(self, family, legacy_fields):
+        assert _snr_channel_family({**legacy_fields, "channel_family": family}) == family
+
     @pytest.mark.parametrize(
         ("channel", "family"),
         [
             ({"modulation": "256QAM", "docsis_version": "3.1"}, "sc_qam"),
-            ({"type": "256QAM", "docsis_version": "3.1"}, "sc_qam"),
+            ({"type": "256QAM", "docsis_version": "3.1"}, "ofdm"),
+            ({"type": "SC-QAM", "docsis_version": "3.1"}, "sc_qam"),
+            ({"modulation": "1024QAM", "docsis_version": "3.1"}, "ofdm"),
             ({"modulation": "4096QAM", "docsis_version": "3.1"}, "ofdm"),
+            ({"type": "OFDM", "modulation": "1024QAM", "docsis_version": "3.1"}, "ofdm"),
             ({"type": "OFDM", "modulation": "4096QAM", "docsis_version": "3.1"}, "ofdm"),
+            ({"profile_modulation": "256QAM", "docsis_version": "3.1"}, "ofdm"),
+            ({"channel_type": "OFDM", "modulation": "256QAM"}, "ofdm"),
+            ({}, "unknown"),
         ],
     )
-    def test_snr_channel_family_preserves_explicit_basis(self, channel, family):
+    def test_snr_channel_family_legacy_fallback(self, channel, family):
         assert _snr_channel_family(channel) == family
+
+    @pytest.mark.parametrize("metadata", [None, "unknown", "invalid", "ofdma", "OFDM", [], {}])
+    @pytest.mark.parametrize(("channel", "family"), [
+        ({"profile_modulation": "256QAM", "docsis_version": "3.1"}, "ofdm"),
+        ({"modulation": "256QAM", "docsis_version": "3.0"}, "sc_qam"),
+        ({}, "unknown"),
+    ])
+    def test_snr_channel_family_invalid_metadata_falls_back(self, metadata, channel, family):
+        assert _snr_channel_family({**channel, "channel_family": metadata}) == family
+
+    def test_home_snr_preserves_analyzer_ofdm_profile_family(self):
+        raw = {
+            "channelDs": {"docsis31": [{
+                "channelID": 1,
+                "powerLevel": 0,
+                "mer": 35,
+                "profile_modulation": "256QAM",
+                "corrErrors": 0,
+                "nonCorrErrors": 0,
+            }]},
+            "channelUs": {},
+        }
+
+        analysis = analyze(raw)
+        context = _build_home_snr_display_context(analysis)
+
+        assert analysis["ds_channels"][0]["channel_family"] == "ofdm"
+        assert context == {
+            "kind": "ofdm",
+            "label_key": "metric_snr_label_ofdm",
+            "channels": analysis["ds_channels"],
+            "value": 35.0, "min": 35.0, "max": 35.0,
+            "total": 1, "selected": 1, "sc_qam": 0, "ofdm": 1, "unknown": 0,
+        }
+
+    def test_home_snr_mixed_families_selects_sc_qam_and_excludes_missing_values(self):
+        channels = [
+            {"channel_family": "ofdm", "profile_modulation": "256QAM", "docsis_version": "3.1", "snr": 41.0},
+            {"channel_family": "sc_qam", "docsis_version": "3.1", "snr": 34.0},
+            {"modulation": "256QAM", "snr": 37.0},
+            {"type": "OFDM", "snr": 43.0},
+            {"channel_family": "unknown", "snr": 20.0},
+            {"channel_family": "sc_qam", "snr": None},
+            {"channel_family": "ofdm"},
+        ]
+
+        context = _build_home_snr_display_context({"ds_channels": channels})
+
+        assert context == {
+            "kind": "sc_qam",
+            "label_key": "metric_snr_label_sc_qam",
+            "channels": channels[1:3],
+            "value": 35.5, "min": 34.0, "max": 37.0,
+            "total": 5, "selected": 2, "sc_qam": 2, "ofdm": 2, "unknown": 1,
+        }
+
+        channels[1]["snr"] = None
+        channels[2]["snr"] = None
+        context = _build_home_snr_display_context({"ds_channels": channels})
+        assert context == {
+            "kind": "ofdm",
+            "label_key": "metric_snr_label_ofdm",
+            "channels": [channels[0], channels[3]],
+            "value": 42.0, "min": 41.0, "max": 43.0,
+            "total": 3, "selected": 2, "sc_qam": 0, "ofdm": 2, "unknown": 1,
+        }
+
+    def test_home_snr_missing_analyzer_snr_and_mer_stay_unavailable(self):
+        analysis = analyze({
+            "channelDs": {
+                "docsis30": [{"channelID": "1", "modulation": "256QAM"}],
+                "docsis31": [{"channelID": "33", "profile_modulation": "256QAM"}],
+            },
+            "channelUs": {},
+        })
+
+        assert all(channel["snr"] is None for channel in analysis["ds_channels"])
+        assert _build_home_snr_display_context(analysis) == {
+            "kind": "unavailable",
+            "label_key": "metric_snr_label_fallback",
+            "channels": [],
+            "value": None, "min": None, "max": None,
+            "total": 0, "selected": 0, "sc_qam": 0, "ofdm": 0, "unknown": 0,
+        }
+        ranges = _build_metric_ranges(analysis)
+        assert "ds_sc_qam_snr" not in ranges
+        assert "ds_ofdm_mer" not in ranges
 
     def test_redirect_to_setup_when_unconfigured(self, tmp_path):
         mgr = ConfigManager(str(tmp_path / "data2"))

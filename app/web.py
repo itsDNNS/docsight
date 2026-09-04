@@ -22,7 +22,7 @@ from zoneinfo import available_timezones
 from .config import DEFAULTS, MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
 from .base_path import normalize_base_path
-from .docsis_utils import qam_rank
+from .docsis_utils import classify_channel_family, qam_rank
 from .desktop_runtime import desktop_runtime_payload
 from .desktop_runtime_contract import DESKTOP_MODE_ENV
 from .gaming_index import compute_gaming_index
@@ -1102,43 +1102,13 @@ def _build_metric_ranges(analysis):
 
 
 def _snr_channel_family(channel):
-    """Infer the SNR/MER channel family from explicit channel data first."""
-    type_text = str(channel.get("type", "") or "").upper()
-    modulation_text = str(channel.get("modulation", "") or "").upper()
-    docsis_version = str(channel.get("docsis_version", "") or "").upper()
-
-    if "OFDM" in type_text or "OFDMA" in type_text:
-        return "ofdm"
-    if "SC-QAM" in type_text or type_text in {"QAM", "SCQAM"}:
-        return "sc_qam"
-    type_rank = qam_rank(type_text)
-    if type_rank:
-        if type_rank >= qam_rank("1024QAM") and ("3.1" in docsis_version or "4.0" in docsis_version):
-            return "ofdm"
-        return "sc_qam"
-    if "OFDM" in modulation_text or "OFDMA" in modulation_text:
-        return "ofdm"
-
-    modulation_rank = qam_rank(modulation_text)
-    if modulation_rank:
-        if modulation_rank >= qam_rank("1024QAM") and ("3.1" in docsis_version or "4.0" in docsis_version):
-            return "ofdm"
-        return "sc_qam"
-
-    profile_text = str(channel.get("profile_modulation", "") or "").upper()
-    if "OFDM" in profile_text or "OFDMA" in profile_text:
-        return "ofdm"
-    profile_rank = qam_rank(profile_text)
-    if profile_rank:
-        if profile_rank >= qam_rank("1024QAM") and ("3.1" in docsis_version or "4.0" in docsis_version):
-            return "ofdm"
-        return "sc_qam"
-
-    if "3.1" in docsis_version or "4.0" in docsis_version:
-        return "ofdm"
-    if "3.0" in docsis_version:
-        return "sc_qam"
-    return None
+    """Use normalized analyzer metadata, with shared classification for legacy data."""
+    family = channel.get("channel_family")
+    # Only normalized downstream values are authoritative; unknown or invalid
+    # metadata must take the same shared fallback path as legacy snapshots.
+    if family in ("sc_qam", "ofdm"):
+        return family
+    return classify_channel_family("ds", channel)
 
 
 def _snr_channel_items(analysis):
