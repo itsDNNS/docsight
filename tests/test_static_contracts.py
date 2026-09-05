@@ -509,6 +509,8 @@ def test_snapshot_storage_uses_single_storage_base() -> None:
 
 def test_shared_modals_use_native_dialog_contract() -> None:
     index = (TEMPLATES / "index.html").read_text(encoding="utf-8")
+    for name in ("journal", "bqm", "speedtest"):
+        index += (MODULES / name / "templates" / f"{name}_dialogs.html").read_text(encoding="utf-8")
     backup_settings = (
         MODULES / "backup" / "templates" / "backup_settings.html"
     ).read_text(encoding="utf-8")
@@ -544,8 +546,8 @@ def test_shared_modals_use_native_dialog_contract() -> None:
 
 def test_modal_consumers_have_no_absent_api_fallbacks() -> None:
     consumers = [
-        STATIC / "js" / "bqm.js",
-        STATIC / "js" / "journal.js",
+        MODULES / "bqm" / "static" / "main.js",
+        MODULES / "journal" / "static" / "main.js",
         STATIC / "js" / "utils.js",
         STATIC / "js" / "demo-banner.js",
         MODULES / "smokeping" / "static" / "main.js",

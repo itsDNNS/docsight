@@ -11,7 +11,9 @@
     "routes": "routes.py",
     "settings": "templates/bqm_settings.html",
     "static": "static/",
-    "i18n": "i18n/"
+    "i18n": "i18n/",
+    "tab": "templates/bqm_tab.html",
+    "dialogs": "templates/bqm_dialogs.html"
   },
   "config": {
     "bqm_url": "",

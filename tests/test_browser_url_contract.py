@@ -18,7 +18,7 @@ EXPECTED_CONTRACT_CALLS = {
     "app/static/js/dashboard.js": 1,
     "app/static/js/service-worker-registration.js": 3,
     "app/static/js/setup.js": 8,
-    "app/static/js/bqm.js": 9,
+    "app/modules/bqm/static/main.js": 9,
     "app/static/js/channels.js": 7,
     "app/static/js/correlation.js": 5,
     "app/static/js/demo-banner.js": 3,
@@ -26,12 +26,12 @@ EXPECTED_CONTRACT_CALLS = {
     "app/static/js/glossary.js": 1,
     "app/static/js/hero-chart.js": 1,
     "app/static/js/integrations.js": 5,
-    "app/static/js/journal.js": 22,
+    "app/modules/journal/static/main.js": 22,
     "app/static/js/notices.js": 1,
     "app/static/js/segment-utilization.js": 2,
     "app/static/js/settings.js": 25,
     "app/static/js/sparklines.js": 1,
-    "app/static/js/speedtest.js": 6,
+    "app/modules/speedtest/static/main.js": 6,
     "app/static/js/trends.js": 2,
     "app/static/js/utils.js": 3,
     "app/modules/comparison/static/main.js": 1,
@@ -320,7 +320,7 @@ def test_demo_redirect_fails_closed_on_unexpected_api_destination(response_next)
 REPRESENTATIVE_SITES = [
     (
         "direct fetch",
-        ROOT / "app/static/js/bqm.js",
+        ROOT / "app/modules/bqm/static/main.js",
         "fetch(docsightUrl('/api/bqm/data/dates'))",
     ),
     (

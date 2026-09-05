@@ -1,0 +1,73 @@
+{% if speedtest_configured %}
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.speedtest_tracker }}</h2>
+        </div>
+        <div class="view-page-actions speedtest-controls">
+            <div class="trend-tabs" id="speedtest-tabs">
+                <button class="trend-tab" data-value="1" onclick="selectPill(this, filterSpeedtestData)">1d</button>
+                <button class="trend-tab active" data-value="7" onclick="selectPill(this, filterSpeedtestData)">7d</button>
+                <button class="trend-tab" data-value="14" onclick="selectPill(this, filterSpeedtestData)">14d</button>
+                <button class="trend-tab" data-value="30" onclick="selectPill(this, filterSpeedtestData)">30d</button>
+                <button class="trend-tab" data-value="90" onclick="selectPill(this, filterSpeedtestData)">90d</button>
+                <button class="trend-tab" data-value="all" onclick="selectPill(this, filterSpeedtestData)">{{ t.fetch_all }}</button>
+            </div>
+            {% if not demo_mode %}<button class="btn btn-primary btn-sm" id="speedtest-run-btn" onclick="runSpeedtest()"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
+            <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" onclick="loadSpeedtestHistory()"><i data-lucide="refresh-cw"></i></button>
+        </div>
+    </div>
+    <div id="speedtest-loading" class="waiting" style="display:none;">
+        <div class="skeleton skel-chart"></div>
+    </div>
+    <div id="speedtest-no-data" class="no-data-msg speedtest-empty-state" style="display:none;">
+        <i data-lucide="wifi-off" style="width:40px;height:40px;color:var(--text-muted);margin-bottom:12px;"></i>
+        <div class="speedtest-empty-title">{{ t.speedtest_empty_title or 'No speedtest results yet' }}</div>
+        <div class="speedtest-empty-desc">{{ t.speedtest_empty_desc or 'Automated tests will appear here once the schedule runs. You can also start a manual test.' }}</div>
+        {% if not demo_mode %}<button class="btn btn-primary btn-sm" onclick="runSpeedtest()" style="margin-top:12px;"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
+    </div>
+    <div id="speedtest-chart-container" style="display:none;">
+        <!-- Phase 4.2: Modern card wrapper for speedtest chart -->
+        <div class="speedtest-chart-card">
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <div class="chart-label">{{ t.speedtest_history }}</div>
+                </div>
+            </div>
+            <div class="speedtest-chart-wrap">
+                <canvas id="speedtest-chart"></canvas>
+                <div class="speedtest-chart-tooltip" id="speedtest-chart-tooltip"></div>
+                <div class="speedtest-chart-legend">
+                    <span class="legend-dl">{{ t.legend_download }}</span>
+                    <span class="legend-ul">{{ t.legend_upload }}</span>
+                    <span class="legend-ping">{{ t.legend_ping }}</span>
+                    <span class="legend-thresh">{{ t.legend_threshold }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Phase 4.2: Table card wrapper -->
+    <div id="speedtest-table-wrap" class="table-card">
+        <table id="speedtest-table" class="sortable" style="display:none;">
+            <thead><tr>
+                <th class="st-expand-col"></th>
+                <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
+                <th data-col="server_id">{{ t.server or 'Server' }}<span class="sort-indicator"></span></th>
+                <th data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
+                <th data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
+                <th data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>
+                <th data-col="jitter_ms">{{ t.jitter }}<span class="sort-indicator"></span></th>
+                <th data-col="packet_loss_pct">{{ t.packet_loss }}<span class="sort-indicator"></span></th>
+                <th class="st-sc-col"></th>
+            </tr></thead>
+            <tbody id="speedtest-tbody"></tbody>
+        </table>
+        <div id="speedtest-show-more" style="text-align:center; padding:12px; display:none;">
+            <button class="btn btn-muted" id="speedtest-more-btn" onclick="showMoreSpeedtest()"></button>
+        </div>
+    </div>
+
+{% endif %}

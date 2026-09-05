@@ -268,7 +268,7 @@ def setup_module_templates(
 ) -> dict[str, str]:
     """Resolve declared template files for Jinja includes."""
     resolved = {}
-    for key in {"tab", "card", "settings"}:
+    for key in {"tab", "card", "settings", "dialogs"}:
         rel_path = contributes.get(key)
         if not rel_path:
             continue
@@ -383,7 +383,7 @@ def resolve_module_contribution(
         "template", lambda: setup_module_templates(mod.id, mod.path, contributes)
     )
     declared_templates = {
-        key for key in ("tab", "card", "settings") if key in contributes
+        key for key in ("tab", "card", "settings", "dialogs") if key in contributes
     }
     if declared_templates != set(template_paths):
         missing_kind = sorted(declared_templates - set(template_paths))[0]

@@ -24,6 +24,7 @@ VALID_CONTRIBUTES = frozenset(
         "routes",
         "settings",
         "tab",
+        "dialogs",
         "card",
         "i18n",
         "static",
