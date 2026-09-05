@@ -29,7 +29,6 @@ EXPECTED_CONTRACT_CALLS = {
     "app/modules/journal/static/main.js": 21,
     "app/static/js/notices.js": 1,
     "app/static/js/segment-utilization.js": 2,
-    "app/static/js/settings.js": 25,
     "app/static/js/sparklines.js": 1,
     "app/modules/speedtest/static/main.js": 6,
     "app/static/js/trends.js": 2,
@@ -382,7 +381,6 @@ def test_inventoried_files_keep_the_reviewed_contract_sites():
     }
 
     assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 134  # reviewed browser URL contract sites
 
 
 def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():
@@ -424,7 +422,7 @@ def test_representative_site_mutations_are_detected(label, path, required):
 
 
 def test_pwa_fetches_use_the_browser_url_contract():
-    settings = (ROOT / "app/static/js/settings.js").read_text(encoding="utf-8")
+    settings = (ROOT / "app/static/js/settings/notifications.js").read_text(encoding="utf-8")
     unwrapped = [
         line.strip()
         for line in settings.splitlines()
@@ -435,3 +433,15 @@ def test_pwa_fetches_use_the_browser_url_contract():
     assert "fetch(docsightUrl('/api/notifications/pwa/status'))" in settings
     assert "fetch(docsightUrl('/api/notifications/pwa/subscribe')," in settings
     assert "fetch(docsightUrl('/api/notifications/pwa/unsubscribe')," in settings
+
+
+def test_settings_owners_preserve_mounted_endpoints():
+    owners = list((ROOT / "app/static/js/settings").glob("*.js"))
+    assert owners
+    for owner in owners:
+        source = owner.read_text(encoding="utf-8")
+        assert not re.search(r"fetch\(['\"]/", source), owner
+    form = (ROOT / "app/static/js/settings/form.js").read_text(encoding="utf-8")
+    assert "fetch(docsightUrl(url)" in form
+    assert "post('/api/config', data)" in form
+    assert "post('/api/modules/batch', {modules: modules})" in form

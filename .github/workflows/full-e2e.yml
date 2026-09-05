@@ -273,7 +273,7 @@ jobs:
           fi
           python scripts/e2e_shards.py summarize \
             --results-root shard-artifacts \
-            --expected-total 551
+            --expected-total 554
 
       - name: Browser gate not required for this change
         if: env.E2E_REQUIRED != 'true'

@@ -402,7 +402,7 @@ def test_report_modal_reset_uses_default_values_without_persistence_side_channel
 
 
 def test_settings_form_serializer_includes_textareas():
-    source = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
+    source = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
     start = source.index("function getFormData()")
     end = source.index("\nfunction ", start + 1)
 
