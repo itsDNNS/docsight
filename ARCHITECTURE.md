@@ -526,7 +526,7 @@ second parser profile.
 
 ### Extension module state
 
-Installed non-theme modules are discovered by `ModuleLoader` and persisted through the comma-separated `disabled_modules` config key. The Settings Extensions panel treats installed module toggles as pending form state: users can change multiple modules and save them once through `POST /api/modules/batch`. Built-in themes are registered from the static theme registry in `app/theme_registry.py`; installed community themes still use their manifest and `theme.json` package format and remain on the dedicated theme APIs because preview and active-theme handling are separate flows.
+Installed non-theme modules are discovered by `ModuleLoader` and persisted through the comma-separated `disabled_modules` config key. The Settings Extensions panel treats installed module toggles as pending form state: each toggle queues a full-form config save followed by pending changes through `POST /api/modules/batch`. Built-in themes are registered from the static theme registry in `app/theme_registry.py`; installed community themes still use their manifest and `theme.json` package format and remain on the dedicated theme APIs because preview and active-theme handling are separate flows.
 
 Module manifests can declare module-owned config defaults through the top-level `config` object. Normal module config remains plain local configuration. A community manifest may opt specific declared string-default keys into write-only secret handling with `config_secrets`; the value must be a list of unique strings, every listed key must exist in that manifest's `config`, and each corresponding default must itself be a string so encrypted values never enter scalar coercion paths. The pure-stdlib validator in `app/manifest_contract.py` is the authoritative manifest capability contract used by the runtime loader and can also validate external catalogs without importing Flask.
 
@@ -544,6 +544,24 @@ validated through the same safe contribution path so Appearance can render its
 preview. Invalid or unsafe preview data rejects that module, and preview data
 never creates a registration-plan contribution. A built-in planning failure
 aborts application construction; a community failure rejects only that module.
+
+Settings scripts under `app/static/js/settings/` have explicit component owners: navigation,
+tokens, connections, notifications, backups, themes, smart capture, and the module catalog.
+`settings.js` composes these owners and exports the handlers used by templates and module scripts.
+Bootstrap validation and shared utilities load first; versioned component assets load before the
+entry point and remain covered by the service worker's runtime cache.
+
+`form-state.js` is the pure comparison owner. Records use tuple identities that distinguish
+hidden inputs, checkboxes, and repeated fields. One baseline supplies both full and manual
+projections. Secret records contain edit versions only, including initially unsaved secrets.
+`form.js` owns DOM capture, the separate API payload adapter, and the FIFO save queue.
+Manual submits and instant controls save the entire form, captured when each queued job starts.
+Config and module requests acknowledge their sent records independently: a failed module batch
+leaves config confirmed and modules pending for retry. Later edits remain dirty, including secret
+reedits; confirmed secrets are cleared only if their edit version still matches. Instant saves
+stay silent, with a retry footer on failure. Language/timezone reloads require confirmed values,
+no queued saves, and no unsaved changes when the reload timer runs. Component callbacks use this
+single save owner and unsaved guard; no component maintains another form baseline.
 
 Settings receives the active module-secret and saved-secret key sets from the server, so installed templates from before the explicit field-marker contract still preserve masked values safely during a coordinated catalog rollout. Current templates also represent saved secrets locally with empty password inputs plus explicit `data-config-secret` and `data-saved-secret` metadata. Untouched saved fields submit the standard mask, which `ConfigManager` treats as preserve-existing, while edited fields submit the replacement value. Saved plaintext is never rendered into HTML.
 

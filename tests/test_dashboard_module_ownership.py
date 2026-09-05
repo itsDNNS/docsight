@@ -78,6 +78,17 @@ def test_configured_modules_render_once_with_versioned_scripts(dashboard, prefix
             assert positions("js/dashboard.js") < positions("docsight.bqm/static/js/bqm-chart.js") < positions("docsight.bqm/static/main.js") < positions("js/dashboard-routing.js")
             assert soup.select_one("#view-bqm #bqm-csv-import-section") is not None
             assert soup.select_one("#view-correlation") is not None
+        else:
+            owned = ["form-state", "form", "navigation", "tokens", "connections", "notifications",
+                     "backups", "themes", "smart-capture", "module-registry"]
+            paths = ["js/settings-bootstrap.js", "js/utils.js"] + [f"js/settings/{name}.js" for name in owned] + ["js/settings.js"]
+            positions = []
+            for path in paths:
+                urls = [url for url in scripts if f"/static/{path}?v=" in url]
+                assert len(urls) == 1
+                assert client.get(urls[0].removeprefix(prefix)).status_code == 200
+                positions.append(scripts.index(urls[0]))
+            assert positions == sorted(positions)
 
 
 @pytest.mark.parametrize("prefix", ["", "/docsight"])
@@ -98,4 +109,4 @@ def test_unconfigured_modules_keep_setup_without_empty_views(dashboard, prefix):
 
 
 def test_module_asset_cache_generation():
-    assert (ROOT / "app/static/sw.js").read_text().startswith("var CACHE_VERSION = 'v90';")
+    assert (ROOT / "app/static/sw.js").read_text().startswith("var CACHE_VERSION = 'v91';")

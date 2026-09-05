@@ -168,6 +168,9 @@ def test_dashboard_and_settings_render_prefix_aware_navigation_and_assets(
         in dashboard_html
     )
     assert 'href="/docsight/" class="sidebar-header"' in settings_html
+    for owner in ("form-state", "form", "navigation", "tokens", "connections", "notifications",
+                  "backups", "themes", "smart-capture", "module-registry"):
+        assert f'src="/docsight/static/js/settings/{owner}.js?v=' in settings_html
     assert 'src="/docsight/static/js/settings.js?v=' in settings_html
 
 

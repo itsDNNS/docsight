@@ -15,7 +15,7 @@ from app.runtime import current_runtime
 
 ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_TEMPLATE = ROOT / "app" / "templates" / "settings" / "notifications.html"
-SETTINGS_JS = ROOT / "app" / "static" / "js" / "settings.js"
+SETTINGS_JS = ROOT / "app" / "static" / "js" / "settings" / "notifications.js"
 
 
 VALID_SUBSCRIPTION = {

@@ -18,6 +18,18 @@ EXPECTED_CONTRACT_CALLS = {
     "app/static/js/dashboard.js": 1,
     "app/static/js/service-worker-registration.js": 3,
     "app/static/js/setup.js": 8,
+    "app/static/js/settings.js": 0,
+    "app/static/js/settings-bootstrap.js": 0,
+    "app/static/js/settings/backups.js": 5,
+    "app/static/js/settings/connections.js": 6,
+    "app/static/js/settings/form-state.js": 0,
+    "app/static/js/settings/form.js": 1,
+    "app/static/js/settings/module-registry.js": 2,
+    "app/static/js/settings/navigation.js": 0,
+    "app/static/js/settings/notifications.js": 3,
+    "app/static/js/settings/smart-capture.js": 1,
+    "app/static/js/settings/themes.js": 3,
+    "app/static/js/settings/tokens.js": 3,
     "app/modules/bqm/static/main.js": 9,
     "app/static/js/channels.js": 7,
     "app/static/js/correlation.js": 5,
@@ -29,7 +41,6 @@ EXPECTED_CONTRACT_CALLS = {
     "app/modules/journal/static/main.js": 21,
     "app/static/js/notices.js": 1,
     "app/static/js/segment-utilization.js": 2,
-    "app/static/js/settings.js": 25,
     "app/static/js/sparklines.js": 1,
     "app/modules/speedtest/static/main.js": 6,
     "app/static/js/trends.js": 2,
@@ -319,6 +330,11 @@ def test_demo_redirect_fails_closed_on_unexpected_api_destination(response_next)
 
 REPRESENTATIVE_SITES = [
     (
+        "settings provider icon",
+        ROOT / "app/static/js/settings/connections.js",
+        "icon.src = docsightUrl(iconMap[isp] || '/static/img/providers/generic.svg');",
+    ),
+    (
         "direct fetch",
         ROOT / "app/modules/bqm/static/main.js",
         "fetch(docsightUrl('/api/bqm/data/dates'))",
@@ -376,13 +392,15 @@ def test_representative_real_url_sites_use_the_contract():
 
 
 def test_inventoried_files_keep_the_reviewed_contract_sites():
+    settings_files = {path.relative_to(ROOT).as_posix() for path in (ROOT / "app/static/js/settings").glob("*.js")}
+    assert settings_files == {path for path in EXPECTED_CONTRACT_CALLS if path.startswith("app/static/js/settings/")}
     actual = {
         relative: (ROOT / relative).read_text(encoding="utf-8").count("docsightUrl(")
         for relative in EXPECTED_CONTRACT_CALLS
     }
 
     assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 134  # reviewed browser URL contract sites
+    assert sum(actual.values()) == 133  # reviewed browser URL contract sites
 
 
 def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():
@@ -410,6 +428,15 @@ def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():
         for form in forbidden_forms:
             if form in source:
                 offenders.append(f"{relative}: {form}")
+        # Include assets and DOM/navigation assignments, including fallback expressions.
+        for match in re.finditer(
+            r"(?:\b(?:href|src)\s*=(?:(?!docsightUrl\()[^;\n])*?"
+            r"|(?:\breturn\b|\b(?:var|let|const)\s+\w+\s*="
+            r"|\b(?:window\.)?location(?:\.href)?\s*="
+            r"|\b(?:fetch|(?:window\.)?location\.(?:assign|replace))\s*\()\s*)"
+            r"['\"]/(?:api|static|modules)\b", source
+        ):
+            offenders.append(f"{relative}: {match.group()}")
 
     assert offenders == []
 
@@ -424,7 +451,7 @@ def test_representative_site_mutations_are_detected(label, path, required):
 
 
 def test_pwa_fetches_use_the_browser_url_contract():
-    settings = (ROOT / "app/static/js/settings.js").read_text(encoding="utf-8")
+    settings = (ROOT / "app/static/js/settings/notifications.js").read_text(encoding="utf-8")
     unwrapped = [
         line.strip()
         for line in settings.splitlines()
@@ -435,3 +462,15 @@ def test_pwa_fetches_use_the_browser_url_contract():
     assert "fetch(docsightUrl('/api/notifications/pwa/status'))" in settings
     assert "fetch(docsightUrl('/api/notifications/pwa/subscribe')," in settings
     assert "fetch(docsightUrl('/api/notifications/pwa/unsubscribe')," in settings
+
+
+def test_settings_owners_preserve_mounted_endpoints():
+    owners = list((ROOT / "app/static/js/settings").glob("*.js"))
+    assert owners
+    for owner in owners:
+        source = owner.read_text(encoding="utf-8")
+        assert not re.search(r"fetch\(['\"]/", source), owner
+    form = (ROOT / "app/static/js/settings/form.js").read_text(encoding="utf-8")
+    assert "fetch(docsightUrl(url)" in form
+    assert "post('/api/config', data)" in form
+    assert "post('/api/modules/batch', {modules: modules})" in form
