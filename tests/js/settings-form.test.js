@@ -234,3 +234,65 @@ test('all settings owners initialize together and expose only the legacy handler
     }
     assert.equal(f.dirty(), false);
 });
+
+test('theme installation localizes conflicts and preserves success and other failures', async t => {
+    const T = JSON.parse(fs.readFileSync('app/i18n/de.json', 'utf8'));
+    const theme = {id: 'community.example', name: 'Example', version: '1.0.0',
+        download_url: 'https://api.github.com/repos/example/themes/contents/theme'};
+    for (const scenario of [
+        {name: '409 conflict', status: 409, data: {success: false, error: 'Theme already installed'}, expected: T.theme_install_failed},
+        {name: '409 without message', status: 409, data: {success: false}, expected: T.theme_install_failed},
+        {name: '400 retains API message', status: 400, data: {success: false, error: 'Theme already installed'}, expected: 'Theme already installed'},
+        {name: '500 retains API message', status: 500, data: {success: false, error: 'Download failed'}, expected: 'Download failed'},
+        {name: '500 without message', status: 500, data: {success: false}, expected: T.theme_install_failed},
+        {name: 'successful install', status: 200, data: {success: true, restart_required: true}, expected: T.theme_installed, success: true},
+        {name: 'network failure', failure: new Error('offline'), expected: T.error_prefix + ': offline'},
+        {name: 'invalid response JSON', status: 500, jsonFailure: new Error('invalid JSON'), expected: T.error_prefix + ': invalid JSON'},
+    ]) {
+        await t.test(scenario.name, async () => {
+            const requests = [], toasts = [], buttons = [];
+            const element = () => ({appendChild() {}, addEventListener(event, fn) {
+                assert.equal(event, 'click');
+                this.click = fn;
+            }});
+            const gallery = element();
+            const context = vm.createContext({DOCSightSettings: {}, T,
+                document: {
+                    getElementById: id => id === 'registry-gallery' ? gallery : null,
+                    createElement(tag) {
+                        const node = element();
+                        if (tag === 'button') buttons.push(node);
+                        return node;
+                    }
+                },
+                docsightUrl: path => '/prefix' + path, lucide: {createIcons() {}},
+                async fetch(url, options) {
+                    requests.push({url, options});
+                    if (url === '/prefix/api/themes/registry') return {json: async () => [theme]};
+                    assert.equal(url, '/prefix/api/themes/install');
+                    if (scenario.failure) throw scenario.failure;
+                    return {status: scenario.status, json: async () => {
+                        if (scenario.jsonFailure) throw scenario.jsonFailure;
+                        return {...scenario.data};
+                    }};
+                }
+            });
+            vm.runInContext(fs.readFileSync('app/static/js/settings/themes.js', 'utf8'), context);
+            const owner = context.DOCSightSettings.themes({showToast: (...args) => toasts.push(args)});
+            owner.refreshRegistry();
+            await tick();
+            assert.equal(buttons.length, 1);
+            buttons[0].click();
+            await tick();
+            assert.equal(requests[1].options.method, 'POST');
+            assert.equal(requests[1].options.headers['Content-Type'], 'application/json');
+            assert.deepEqual(JSON.parse(requests[1].options.body), {id: theme.id, download_url: theme.download_url});
+            assert.deepEqual(toasts, [[scenario.expected, !!scenario.success]]);
+            assert.deepEqual(requests.map(request => request.url), [
+                '/prefix/api/themes/registry', '/prefix/api/themes/install',
+                ...(scenario.success ? ['/prefix/api/themes/registry'] : [])
+            ]);
+            assert.equal(buttons.length, scenario.success ? 2 : 1);
+        });
+    }
+});
