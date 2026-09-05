@@ -167,6 +167,12 @@ def test_productive_flask_registration_has_one_owner():
         ("app/module_registry.py", "app.registration"),
         ("app/web_auth.py", "app.web"),
         ("app/web_auth.py", "app.app_factory"),
+        ("app/signal_health_view.py", "flask"),
+        ("app/signal_health_view.py", "app.web"),
+        ("app/signal_health_view.py", "app.runtime"),
+        ("app/signal_health_view.py", "app.analyzer"),
+        ("app/signal_health_view.py", "app.registration"),
+        ("app/signal_health_view.py", "app.app_factory"),
     ],
 )
 def test_registration_dependencies_have_no_reverse_imports(relative_path, forbidden):
@@ -182,7 +188,7 @@ def test_registration_dependencies_have_no_reverse_imports(relative_path, forbid
             imported.add(base)
             if base == "app":
                 imported.update(f"app.{alias.name}" for alias in node.names)
-    assert forbidden not in imported
+    assert not any(name == forbidden or name.startswith(forbidden + ".") for name in imported)
 
 
 def test_manual_builtin_test_registrar_is_removed():

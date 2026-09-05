@@ -111,7 +111,7 @@ app/
   module_contributions.py - Module filesystem/import/JSON contribution preflight
   main.py            - Entrypoint, ThreadPoolExecutor polling loop
   runtime.py         - Typed per-application runtime state and locks
-  web.py             - Core routes, filters, and runtime accessors
+  web.py / signal_health_view.py - HTTP adapter / pure dashboard signal presentation
   analyzer.py        - DOCSIS channel health analysis
   threshold_profiles.py - Built-in analyzer threshold profiles
   event_detector.py  - Signal anomaly detection (thread-safe)

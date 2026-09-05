@@ -31,6 +31,8 @@ PROCESS_REGISTRY_ALLOWLIST = {
 FORBIDDEN_WEB_EXPORTS = {
     "app", "init_config", "init_storage", "init_collector", "init_collectors",
     "init_modules", "setup_module_templates",
+    "_build_metric_ranges", "_build_home_snr_display_context", "_build_home_modulation_context",
+    "_build_capacity_context", "_snr_channel_family", "_power_metric_health", "_snr_metric_health",
 }
 
 

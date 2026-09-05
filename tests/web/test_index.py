@@ -1,15 +1,17 @@
 """Tests for index/dashboard rendering paths."""
 
 import json
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
 
-from app.analyzer import analyze
-from app.web import (
-    update_state,
-    _build_home_snr_display_context,
-    _build_metric_ranges,
+from app.analyzer import analyze, get_thresholds
+from app.web import update_state
+from app.signal_health_view import (
+    build_home_snr_display_context,
+    build_metric_ranges,
     _snr_channel_family,
 )
 from app.config import ConfigManager
@@ -123,6 +125,21 @@ def _add_mixed_signal_families(analysis):
     return analysis
 
 
+def _snr_render_channel(channel_id, frequency, power, snr, modulation, docsis_version):
+    return {
+        "channel_id": channel_id,
+        "frequency": frequency,
+        "power": power,
+        "snr": snr,
+        "modulation": modulation,
+        "docsis_version": docsis_version,
+        "correctable_errors": 0,
+        "uncorrectable_errors": 0,
+        "health": "good",
+        "health_detail": "",
+    }
+
+
 def _latest_speedtest():
     return {
         "download_mbps": 812.4,
@@ -190,7 +207,7 @@ class TestIndexRoute:
         }
 
         analysis = analyze(raw)
-        context = _build_home_snr_display_context(analysis)
+        context = build_home_snr_display_context(analysis)
 
         assert analysis["ds_channels"][0]["channel_family"] == "ofdm"
         assert context == {
@@ -212,7 +229,7 @@ class TestIndexRoute:
             {"channel_family": "ofdm"},
         ]
 
-        context = _build_home_snr_display_context({"ds_channels": channels})
+        context = build_home_snr_display_context({"ds_channels": channels})
 
         assert context == {
             "kind": "sc_qam",
@@ -224,7 +241,7 @@ class TestIndexRoute:
 
         channels[1]["snr"] = None
         channels[2]["snr"] = None
-        context = _build_home_snr_display_context({"ds_channels": channels})
+        context = build_home_snr_display_context({"ds_channels": channels})
         assert context == {
             "kind": "ofdm",
             "label_key": "metric_snr_label_ofdm",
@@ -243,14 +260,14 @@ class TestIndexRoute:
         })
 
         assert all(channel["snr"] is None for channel in analysis["ds_channels"])
-        assert _build_home_snr_display_context(analysis) == {
+        assert build_home_snr_display_context(analysis) == {
             "kind": "unavailable",
             "label_key": "metric_snr_label_fallback",
             "channels": [],
             "value": None, "min": None, "max": None,
             "total": 0, "selected": 0, "sc_qam": 0, "ofdm": 0, "unknown": 0,
         }
-        ranges = _build_metric_ranges(analysis)
+        ranges = build_metric_ranges(analysis, get_thresholds())
         assert "ds_sc_qam_snr" not in ranges
         assert "ds_ofdm_mer" not in ranges
 
@@ -561,30 +578,8 @@ class TestIndexRoute:
             "ds_snr_max": 37.0,
         })
         sample_analysis["ds_channels"] = [
-            {
-                "channel_id": 1,
-                "frequency": "602 MHz",
-                "power": 3.0,
-                "snr": 35.0,
-                "modulation": "256QAM",
-                "docsis_version": "3.1",
-                "correctable_errors": 0,
-                "uncorrectable_errors": 0,
-                "health": "good",
-                "health_detail": "",
-            },
-            {
-                "channel_id": 2,
-                "frequency": "610 MHz",
-                "power": 3.1,
-                "snr": 37.0,
-                "modulation": "256QAM",
-                "docsis_version": "3.1",
-                "correctable_errors": 0,
-                "uncorrectable_errors": 0,
-                "health": "good",
-                "health_detail": "",
-            },
+            _snr_render_channel(1, '602 MHz', 3.0, 35.0, '256QAM', '3.1'),
+            _snr_render_channel(2, '610 MHz', 3.1, 37.0, '256QAM', '3.1'),
         ]
         update_state(analysis=sample_analysis)
 
@@ -605,18 +600,7 @@ class TestIndexRoute:
             "ds_snr_max": 41.0,
         })
         sample_analysis["ds_channels"] = [
-            {
-                "channel_id": 33,
-                "frequency": "774 MHz",
-                "power": 1.0,
-                "snr": 41.0,
-                "modulation": "OFDM",
-                "docsis_version": "3.1",
-                "correctable_errors": 0,
-                "uncorrectable_errors": 0,
-                "health": "good",
-                "health_detail": "",
-            },
+            _snr_render_channel(33, '774 MHz', 1.0, 41.0, 'OFDM', '3.1'),
         ]
         update_state(analysis=sample_analysis)
 
@@ -636,30 +620,8 @@ class TestIndexRoute:
             "ds_snr_max": 41.0,
         })
         sample_analysis["ds_channels"] = [
-            {
-                "channel_id": 1,
-                "frequency": "602 MHz",
-                "power": 3.0,
-                "snr": 36.0,
-                "modulation": "256QAM",
-                "docsis_version": "3.1",
-                "correctable_errors": 0,
-                "uncorrectable_errors": 0,
-                "health": "good",
-                "health_detail": "",
-            },
-            {
-                "channel_id": 33,
-                "frequency": "774 MHz",
-                "power": 1.0,
-                "snr": 41.0,
-                "modulation": "OFDM",
-                "docsis_version": "3.1",
-                "correctable_errors": 0,
-                "uncorrectable_errors": 0,
-                "health": "good",
-                "health_detail": "",
-            },
+            _snr_render_channel(1, '602 MHz', 3.0, 36.0, '256QAM', '3.1'),
+            _snr_render_channel(33, '774 MHz', 1.0, 41.0, 'OFDM', '3.1'),
         ]
         update_state(analysis=sample_analysis)
 
@@ -679,18 +641,7 @@ class TestIndexRoute:
             "ds_snr_max": 42.0,
         })
         sample_analysis["ds_channels"] = [
-            {
-                "channel_id": 33,
-                "frequency": "774 MHz",
-                "power": 1.0,
-                "snr": 42.0,
-                "modulation": "4096QAM",
-                "docsis_version": "3.1",
-                "correctable_errors": 0,
-                "uncorrectable_errors": 0,
-                "health": "good",
-                "health_detail": "",
-            },
+            _snr_render_channel(33, '774 MHz', 1.0, 42.0, '4096QAM', '3.1'),
         ]
         update_state(analysis=sample_analysis)
 
@@ -709,18 +660,7 @@ class TestIndexRoute:
             "ds_snr_max": 39.0,
         })
         sample_analysis["ds_channels"] = [
-            {
-                "channel_id": 1,
-                "frequency": "602 MHz",
-                "power": 1.0,
-                "snr": 39.0,
-                "modulation": "",
-                "docsis_version": "",
-                "correctable_errors": 0,
-                "uncorrectable_errors": 0,
-                "health": "good",
-                "health_detail": "",
-            },
+            _snr_render_channel(1, '602 MHz', 1.0, 39.0, '', ''),
         ]
         update_state(analysis=sample_analysis)
 
@@ -855,7 +795,7 @@ class TestIndexRoute:
         assert "Ch 194" in card
         assert "MER 25.0 dB" in card
 
-    def test_reported_ofdm_fixture_web_range_agrees_with_good_family_mer_health(self):
+    def test_reported_ofdm_fixture_web_range_agrees_with_good_family_mer_health(self, monkeypatch):
         analysis = {
             "summary": {
                 "ds_ofdm_mer_avg": 35.5,
@@ -884,7 +824,11 @@ class TestIndexRoute:
             "us_channels": [],
         }
 
-        metric_ranges = _build_metric_ranges(analysis)
+        thresholds = get_thresholds()
+        monkeypatch.setattr("app.analyzer._thresholds", {})
+        monkeypatch.setattr("app.analyzer.get_thresholds", lambda: pytest.fail("ambient thresholds"))
+        with ThreadPoolExecutor() as executor:
+            metric_ranges = executor.submit(build_metric_ranges, analysis, thresholds).result()
 
         family = analysis["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
         family_mer_health = family["mer"]["health"]
@@ -895,6 +839,13 @@ class TestIndexRoute:
         assert family["health"] == "good"
         assert family["health_cause"] is None
         assert family["health_driver"] is None
+        strict_thresholds = deepcopy(thresholds)
+        strict_thresholds["snr"]["ofdm"] = {"critical_min": 40, "warning_min": 42, "good_min": 45}
+        with ThreadPoolExecutor() as executor:
+            injected_ranges = executor.submit(build_metric_ranges, analysis, strict_thresholds).result()
+        assert injected_ranges["ds_ofdm_mer"]["health"] == "crit"
+        assert injected_ranges["ds_ofdm_mer"]["good_label"] == "≥ 45 dB"
+        assert injected_ranges["ds_ofdm_mer"]["bands"] != metric_ranges["ds_ofdm_mer"]["bands"]
 
     def test_legacy_metric_card_keeps_generic_status_label(self, client, sample_analysis):
         update_state(analysis=sample_analysis)
