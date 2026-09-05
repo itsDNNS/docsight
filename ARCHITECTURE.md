@@ -6,7 +6,7 @@ This document describes the technical architecture of DOCSight.
 
 ## Overview
 
-DOCSight is built around a **modular collector pattern** that separates data collection, analysis, storage, and presentation into independent, testable components.
+DOCSight is built around a **modular collector pattern** that separates data collection, analysis, storage, and presentation into independent, testable components. `app.signal_health_view` projects explicit analysis/threshold/tariff inputs into dashboard presentation.
 
 ### Reverse-proxy mount contract and wrapper boundary
 
