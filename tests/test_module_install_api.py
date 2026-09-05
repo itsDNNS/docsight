@@ -1,9 +1,12 @@
 """Tests for community module install/uninstall API endpoints."""
 
 import json
+import ntpath
 import os
+import posixpath
 import shutil
 from io import BytesIO
+from types import SimpleNamespace
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -262,6 +265,37 @@ class TestModulesInstall:
 
 class TestThemesInstall:
     download_url = "https://api.github.com/repos/example/themes/contents/theme"
+
+    @pytest.mark.parametrize("path_module,base,expected", [
+        (posixpath, "/", "/root_alias"),
+        (posixpath, "//", "//root_alias"),
+        (posixpath, "/Modules/../Themes/", "/Themes/root_alias"),
+        (ntpath, "C:\\", "c:\\root_alias"),
+        (ntpath, "C:/Modules/../Themes/", "c:\\themes\\root_alias"),
+        (ntpath, "//SERVER/Share/", "\\\\server\\share\\root_alias"),
+        (ntpath, "//SERVER/Share/Modules/../Themes/", "\\\\server\\share\\themes\\root_alias"),
+    ])
+    def test_occupied_check_uses_absolute_unresolved_path(self, client, monkeypatch, path_module, base, expected):
+        from app.blueprints import modules_bp
+
+        occupied = MagicMock(return_value=True)
+        path_ops = SimpleNamespace(
+            join=path_module.join, abspath=path_module.abspath,
+            normcase=path_module.normcase, lexists=occupied,
+        )
+        # Keep foreign path operations local; resolving the entry is not allowed.
+        monkeypatch.setattr(modules_bp, "os", SimpleNamespace(path=path_ops, sep=path_module.sep))
+        monkeypatch.setattr(modules_bp, "get_modules_dir", lambda: base)
+        with patch.object(modules_bp, "safe_child_path") as resolve, \
+             patch.object(modules_bp, "download_theme") as download:
+            response = client.post("/api/themes/install", json={
+                "id": "root.alias", "download_url": self.download_url,
+            })
+        assert response.status_code == 409
+        assert response.get_json() == {"success": False, "error": "Theme already installed"}
+        occupied.assert_called_once_with(expected)
+        resolve.assert_not_called()
+        download.assert_not_called()
 
     @pytest.fixture
     def modules_dir(self, tmp_path, monkeypatch):

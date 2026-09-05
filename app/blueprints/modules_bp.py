@@ -268,8 +268,13 @@ def api_themes_install():
     modules_dir = get_modules_dir()
     dir_name = theme_id.replace(".", "_")
 
-    # Check the entry before resolving symlinks, including dangling/root aliases.
-    if os.path.lexists(os.path.join(modules_dir, dir_name)):
+    # Guard the unresolved entry before checking even dangling/root symlinks.
+    entry_path = os.path.normcase(os.path.abspath(os.path.join(modules_dir, dir_name)))
+    entry_root = os.path.normcase(os.path.abspath(modules_dir))
+    if entry_path == entry_root or not entry_path.startswith(entry_root.rstrip(os.sep) + os.sep):
+        return jsonify({"success": False, "error": "Invalid theme ID"}), 400
+
+    if os.path.lexists(entry_path):
         return jsonify({"success": False, "error": "Theme already installed"}), 409
 
     try:
