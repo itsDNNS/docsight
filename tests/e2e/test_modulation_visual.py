@@ -40,11 +40,11 @@ def modulation_page_mobile(page, live_server):
     return page
 
 
-def _wait_for_distribution_chart(page, *, direction, min_samples):
+def _wait_for_distribution_chart(page, *, direction, min_samples, previous=None):
     """Wait until the requested distribution chart has replaced stale content."""
     page.wait_for_function(
         """
-        ({direction, minSamples}) => {
+        ({direction, minSamples, previous}) => {
             const container = document.querySelector("[id^='mod-dist-chart-']");
             if (!container || !container.isConnected) return false;
 
@@ -60,13 +60,27 @@ def _wait_for_distribution_chart(page, *, direction, min_samples):
                     ? chart.data[0].length
                     : 0;
                 return root && root.isConnected && container.contains(root)
-                    && samples >= minSamples;
+                    && samples >= minSamples
+                    && (!previous || (chart !== previous.chart
+                        && JSON.stringify(chart.data) !== previous.data));
             });
         }
         """,
-        arg={"direction": direction, "minSamples": min_samples},
+        arg={"direction": direction, "minSamples": min_samples, "previous": previous},
         timeout=150_000,
     )
+
+
+def _switch_distribution(page, selector, *, direction, min_samples):
+    previous = page.evaluate_handle(
+        "() => ({chart: window._modCharts[0], data: JSON.stringify(window._modCharts[0].data)})"
+    )
+    try:
+        page.locator(selector).click()
+        _wait_for_distribution_chart(page, direction=direction,
+                                     min_samples=min_samples, previous=previous)
+    finally:
+        previous.dispose()
 
 
 # ── Full Page Screenshots ──
@@ -83,8 +97,8 @@ class TestFullPageScreenshots:
         expect(view).to_be_visible()
 
     def test_screenshot_desktop_ds_7d(self, modulation_page):
-        modulation_page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]').click()
-        modulation_page.wait_for_timeout(1500)
+        _switch_distribution(modulation_page, '#modulation-direction-tabs .trend-tab[data-dir="ds"]',
+                             direction='ds', min_samples=7)
         modulation_page.screenshot(
             path=os.path.join(SCREENSHOT_DIR, "desktop_ds_7d.png"),
             full_page=False,
@@ -94,15 +108,18 @@ class TestFullPageScreenshots:
 
     def test_screenshot_desktop_us_1d(self, modulation_page):
         modulation_page.locator('#modulation-range-tabs .trend-tab[data-days="1"]').click()
-        modulation_page.wait_for_timeout(1500)
+        modulation_page.wait_for_function(
+            "() => document.querySelector('#modulation-intraday-content .mod-channel-summary, #modulation-intraday-content .no-data-msg')",
+            timeout=150_000,
+        )
         modulation_page.screenshot(
             path=os.path.join(SCREENSHOT_DIR, "desktop_us_1d.png"),
             full_page=False,
         )
 
     def test_screenshot_desktop_us_30d(self, modulation_page):
-        modulation_page.locator('#modulation-range-tabs .trend-tab[data-days="30"]').click()
-        modulation_page.wait_for_timeout(1500)
+        _switch_distribution(modulation_page, '#modulation-range-tabs .trend-tab[data-days="30"]',
+                             direction='us', min_samples=30)
         modulation_page.screenshot(
             path=os.path.join(SCREENSHOT_DIR, "desktop_us_30d.png"),
             full_page=False,
@@ -147,9 +164,8 @@ class TestChartRendering:
         assert box is not None
 
     def test_charts_rerender_on_direction_switch(self, modulation_page):
-        modulation_page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]').click()
-        _wait_for_distribution_chart(
-            modulation_page,
+        _switch_distribution(
+            modulation_page, '#modulation-direction-tabs .trend-tab[data-dir="ds"]',
             direction="ds",
             min_samples=7,
         )
@@ -158,9 +174,8 @@ class TestChartRendering:
         assert box is not None and box["width"] > 50
 
     def test_charts_rerender_on_range_switch(self, modulation_page):
-        modulation_page.locator('#modulation-range-tabs .trend-tab[data-days="30"]').click()
-        _wait_for_distribution_chart(
-            modulation_page,
+        _switch_distribution(
+            modulation_page, '#modulation-range-tabs .trend-tab[data-days="30"]',
             direction="us",
             min_samples=30,
         )
