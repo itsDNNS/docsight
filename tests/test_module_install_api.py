@@ -54,6 +54,135 @@ def test_download_cleanup_is_confined_to_module_root(tmp_path):
     assert modules_dir.is_dir()
 
 
+@pytest.mark.parametrize("path_module,base,target,canonical_target,allowed", [
+    (posixpath, "/", "/child", "/child", True),
+    (posixpath, "/", "/", "/", False),
+    (posixpath, "//", "//child", "//child", True),
+    (posixpath, "//", "//", "//", False),
+    (posixpath, "/modules/", "/modules/child", "/modules/child", True),
+    (posixpath, "/modules", "/modules_sibling/child", "/modules_sibling/child", False),
+    (ntpath, "C:\\", "C:\\child", "C:\\child", True),
+    (ntpath, "C:\\", "c:\\", "C:\\", False),
+    (ntpath, "C:\\Modules\\", "c:\\MODULES\\MiXeD", "C:\\Modules\\MiXeD", True),
+    (ntpath, "C:\\Modules", "c:\\MODULES", "C:\\Modules", False),
+    (ntpath, "C:\\Modules", "C:\\Modules_sibling\\child", "C:\\Modules_sibling\\child", False),
+    (ntpath, "C:\\Modules", "D:\\Modules\\child", "D:\\Modules\\child", False),
+    (ntpath, "//server/share/", "\\\\SERVER\\SHARE\\child", "\\\\server\\share\\child", True),
+    (ntpath, "//server/share/", "\\\\SERVER\\SHARE\\", "\\\\server\\share\\", False),
+])
+def test_download_cleanup_path_boundaries(monkeypatch, path_module, base, target, canonical_target, allowed):
+    from app.blueprints import modules_bp
+
+    # Existing Windows paths resolve to their on-disk spelling, including parents.
+    canonical_base = path_module.normpath(base)
+    canonical_paths = {
+        path_module.normcase(canonical_base): canonical_base,
+        path_module.normcase(canonical_target): canonical_target,
+    }
+
+    def realpath(path):
+        normalized = path_module.normpath(path)
+        return canonical_paths.get(path_module.normcase(normalized), normalized)
+
+    isdir = MagicMock(return_value=True)
+    path_ops = SimpleNamespace(
+        realpath=realpath, normcase=path_module.normcase,
+        abspath=path_module.abspath, join=path_module.join,
+        dirname=path_module.dirname, basename=path_module.basename,
+        isdir=isdir,
+    )
+    monkeypatch.setattr(modules_bp, "os", SimpleNamespace(path=path_ops, sep=path_module.sep))
+    with patch("shutil.rmtree") as remove:
+        _remove_downloaded_module(base, target)
+        if allowed:
+            remove.assert_called_once_with(
+                canonical_target, ignore_errors=True,
+            )
+        else:
+            remove.assert_not_called()
+            isdir.assert_not_called()
+
+
+@pytest.mark.parametrize("parent_name", ["Modules", "modules"])
+def test_download_cleanup_preserves_canonical_windows_spelling(monkeypatch, parent_name):
+    from app.blueprints import modules_bp
+
+    # Model case-sensitive Windows directories: realpath retains on-disk case.
+    base = "C:\\Modules"
+    target = f"C:\\{parent_name}\\MiXeD"
+    resolve = MagicMock(side_effect=ntpath.normpath)
+    isdir = MagicMock(return_value=True)
+    path_ops = SimpleNamespace(
+        realpath=resolve, normcase=ntpath.normcase, abspath=ntpath.abspath,
+        join=ntpath.join, dirname=ntpath.dirname, basename=ntpath.basename,
+        isdir=isdir,
+    )
+    monkeypatch.setattr(modules_bp, "os", SimpleNamespace(path=path_ops, sep=ntpath.sep))
+    with patch("shutil.rmtree") as remove:
+        _remove_downloaded_module(base, target)
+        if parent_name == "Modules":
+            remove.assert_called_once_with(target, ignore_errors=True)
+            isdir.assert_called_once_with(target)
+        else:
+            remove.assert_not_called()
+            isdir.assert_not_called()
+    assert resolve.call_args.args == (target,)
+
+
+@pytest.mark.parametrize("suffix", ["", os.sep])
+@pytest.mark.parametrize("destination", ["inside", "root", "outside", "modules_sibling"])
+def test_download_cleanup_does_not_follow_target_symlinks(tmp_path, destination, suffix):
+    modules_dir = tmp_path / "modules"
+    modules_dir.mkdir()
+    target = {"inside": modules_dir / "existing", "root": modules_dir}.get(
+        destination, tmp_path / destination,
+    )
+    target.mkdir(exist_ok=True)
+    sentinel = target / "keep.txt"
+    sentinel.write_text("keep", encoding="utf-8")
+    alias = modules_dir / "failed"
+    alias.symlink_to(target, target_is_directory=True)
+
+    with patch("shutil.rmtree") as remove:
+        _remove_downloaded_module(str(modules_dir), str(alias) + suffix)
+        remove.assert_not_called()
+    assert alias.is_symlink()
+    assert sentinel.read_text(encoding="utf-8") == "keep"
+
+
+def test_download_cleanup_accepts_configured_root_alias(tmp_path):
+    modules_dir = tmp_path / "modules"
+    target = modules_dir / "failed"
+    target.mkdir(parents=True)
+    sentinel = modules_dir / "keep.txt"
+    sentinel.write_text("keep", encoding="utf-8")
+    alias = tmp_path / "configured_modules"
+    alias.symlink_to(modules_dir, target_is_directory=True)
+
+    _remove_downloaded_module(str(alias), str(alias / "failed"))
+
+    assert not target.exists()
+    assert alias.is_symlink()
+    assert sentinel.read_text(encoding="utf-8") == "keep"
+
+
+def test_download_cleanup_rejects_final_canonical_redirect(monkeypatch):
+    from app.blueprints import modules_bp
+
+    # Model a Windows junction: it resolves to another directory but is not a symlink.
+    target = "C:\\Modules\\failed"
+    path_ops = SimpleNamespace(
+        abspath=ntpath.abspath, join=ntpath.join, dirname=ntpath.dirname,
+        basename=ntpath.basename, normcase=ntpath.normcase,
+        realpath=lambda path: "C:\\Modules\\existing" if ntpath.normcase(path) == ntpath.normcase(target) else path,
+        isdir=lambda path: True,
+    )
+    monkeypatch.setattr(modules_bp, "os", SimpleNamespace(path=path_ops, sep=ntpath.sep))
+    with patch("shutil.rmtree") as remove:
+        _remove_downloaded_module("C:\\Modules", target)
+        remove.assert_not_called()
+
+
 class TestModulesRegistry:
     def test_registry_returns_list(self, client):
         with patch("app.blueprints.modules_bp.current_runtime") as mock_cfg:
@@ -270,10 +399,10 @@ class TestThemesInstall:
         (posixpath, "/", "/root_alias"),
         (posixpath, "//", "//root_alias"),
         (posixpath, "/Modules/../Themes/", "/Themes/root_alias"),
-        (ntpath, "C:\\", "c:\\root_alias"),
-        (ntpath, "C:/Modules/../Themes/", "c:\\themes\\root_alias"),
-        (ntpath, "//SERVER/Share/", "\\\\server\\share\\root_alias"),
-        (ntpath, "//SERVER/Share/Modules/../Themes/", "\\\\server\\share\\themes\\root_alias"),
+        (ntpath, "C:\\", "C:\\root_alias"),
+        (ntpath, "C:/Modules/../Themes/", "C:\\Themes\\root_alias"),
+        (ntpath, "//SERVER/Share/", "\\\\SERVER\\Share\\root_alias"),
+        (ntpath, "//SERVER/Share/Modules/../Themes/", "\\\\SERVER\\Share\\Themes\\root_alias"),
     ])
     def test_occupied_check_uses_absolute_unresolved_path(self, client, monkeypatch, path_module, base, expected):
         from app.blueprints import modules_bp
@@ -296,6 +425,35 @@ class TestThemesInstall:
         occupied.assert_called_once_with(expected)
         resolve.assert_not_called()
         download.assert_not_called()
+
+    @pytest.mark.parametrize("base,target", [
+        ("C:\\Modules", "C:\\Modules\\root_alias"),
+        ("\\\\SERVER\\Share\\Modules", "\\\\SERVER\\Share\\Modules\\root_alias"),
+    ])
+    def test_existing_windows_target_preserves_probe_spelling(self, client, monkeypatch, base, target):
+        from app.blueprints import modules_bp
+
+        # Model case-sensitive Windows: only the original spelling is occupied.
+        occupied = MagicMock(side_effect=lambda path: path == target)
+        path_ops = SimpleNamespace(
+            join=ntpath.join, abspath=ntpath.abspath,
+            normcase=ntpath.normcase, lexists=occupied,
+        )
+        monkeypatch.setattr(modules_bp, "os", SimpleNamespace(path=path_ops, sep=ntpath.sep))
+        monkeypatch.setattr(modules_bp, "get_modules_dir", lambda: base)
+        with patch.object(modules_bp, "safe_child_path", return_value=target) as resolve, \
+             patch.object(modules_bp, "download_theme", return_value=True) as download, \
+             patch.object(modules_bp, "_remove_downloaded_module") as remove:
+            response = client.post("/api/themes/install", json={
+                "id": "root.alias", "download_url": self.download_url,
+            })
+
+        assert response.status_code == 409
+        assert response.get_json() == {"success": False, "error": "Theme already installed"}
+        occupied.assert_called_once_with(target)
+        resolve.assert_not_called()
+        download.assert_not_called()
+        remove.assert_not_called()
 
     @pytest.fixture
     def modules_dir(self, tmp_path, monkeypatch):
@@ -380,6 +538,26 @@ class TestThemesInstall:
             assert response.get_json() == {"success": False, "error": "Download failed"}
             transport.assert_called_once_with(self.download_url, timeout=30)
             remove.assert_called_once_with(str(modules_dir.resolve() / "fresh_theme"), ignore_errors=True)
+        assert not (modules_dir / "fresh_theme").exists()
+        assert sentinel.read_text(encoding="utf-8") == "keep"
+
+    def test_install_owns_failed_theme_cleanup(self, client, modules_dir):
+        sentinel = modules_dir / "keep.txt"
+        sentinel.write_text("keep", encoding="utf-8")
+
+        def invalid_download(_url, target_dir):
+            os.mkdir(target_dir)
+            with open(os.path.join(target_dir, "partial.json"), "w") as partial:
+                partial.write("{}")
+            return False
+
+        with patch("app.blueprints.modules_bp.download_theme", side_effect=invalid_download):
+            response = client.post("/api/themes/install", json={
+                "id": "fresh.theme", "download_url": self.download_url,
+            })
+
+        assert response.status_code == 500
+        assert response.get_json() == {"success": False, "error": "Download failed"}
         assert not (modules_dir / "fresh_theme").exists()
         assert sentinel.read_text(encoding="utf-8") == "keep"
 
