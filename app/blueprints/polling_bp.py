@@ -6,11 +6,11 @@ import time
 from flask import Blueprint, request, jsonify
 
 from app.web import (
-    require_auth,
     get_config_manager, get_storage, get_modem_collector, get_collectors,
     get_last_manual_poll, set_last_manual_poll,
     _get_lang,
 )
+from app.web_auth import require_auth
 from app.config import PASSWORD_MASK, parse_config_bool
 from app.i18n import get_translations
 

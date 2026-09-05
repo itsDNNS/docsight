@@ -2,7 +2,8 @@
 
 from flask import Blueprint, jsonify, request
 
-from ..web import require_auth, get_storage
+from ..web import get_storage
+from ..web_auth import require_auth
 
 smart_capture_bp = Blueprint("smart_capture", __name__)
 

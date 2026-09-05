@@ -4,7 +4,8 @@ import logging
 
 from flask import Blueprint, request, jsonify
 
-from app.web import require_auth, get_config_manager, get_state, get_storage
+from app.web import get_config_manager, get_state, get_storage
+from app.web_auth import require_auth
 from app.runtime import current_runtime
 from .storage import WeatherStorage
 

@@ -9,7 +9,8 @@ from app.aggregation import (
     report_bounds,
 )
 from app.analyzer import threshold_snapshot
-from app.web import get_storage, require_auth
+from app.web import get_storage
+from app.web_auth import require_auth
 
 bp = Blueprint("comparison_module", __name__)
 

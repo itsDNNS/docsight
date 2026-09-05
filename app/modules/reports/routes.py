@@ -12,8 +12,8 @@ from app.web import (
     get_config_manager,
     get_state,
     get_storage,
-    require_auth,
 )
+from app.web_auth import require_auth
 
 from .report import generate_complaint_text, generate_report
 

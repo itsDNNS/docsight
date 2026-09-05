@@ -11,10 +11,9 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, redirect, send_file, url_for
 
 from app.web import (
-    require_auth, _auth_required,
     get_config_manager, get_on_config_changed,
-    _get_client_ip,
 )
+from app.web_auth import require_auth, _auth_required, _get_client_ip
 from app.runtime import current_runtime
 
 from werkzeug.utils import secure_filename

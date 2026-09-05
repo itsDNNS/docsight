@@ -7,7 +7,8 @@ from flask import Blueprint, jsonify, request
 
 from app.i18n import get_translations
 from app.storage.segment_utilization import SegmentUtilizationStorage
-from app.web import get_config_manager, get_storage, require_auth
+from app.web import get_config_manager, get_storage
+from app.web_auth import require_auth
 from app.runtime import current_runtime
 
 log = logging.getLogger("docsis.web.segment")

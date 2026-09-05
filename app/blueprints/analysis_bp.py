@@ -9,10 +9,10 @@ from app.analyzer import get_thresholds
 from app.time_ranges import parse_time_range_hours
 from app.tz import utc_now, utc_cutoff
 from app.web import (
-    require_auth,
     get_storage, get_config_manager, get_state,
     _localize_timestamps,
 )
+from app.web_auth import require_auth
 from app.gaming_index import compute_gaming_index
 
 log = logging.getLogger("docsis.web")

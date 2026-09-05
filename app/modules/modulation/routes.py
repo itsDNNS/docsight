@@ -6,7 +6,8 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 
 from app.tz import to_local, utc_now, utc_cutoff
-from app.web import require_auth, get_storage, get_config_manager, get_state
+from app.web import get_storage, get_config_manager, get_state
+from app.web_auth import require_auth
 
 from .engine import (
     compute_capacity_history,

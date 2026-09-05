@@ -45,7 +45,7 @@ def _auth_session(c, marker_source=None):
     with c.session_transaction() as sess:
         sess["authenticated"] = True
         if marker_source:
-            from app.web import _admin_session_marker
+            from app.web_auth import _admin_session_marker
             sess["auth_marker"] = _admin_session_marker(marker_source)
 
 
@@ -724,7 +724,7 @@ class TestAuthProtection:
         mock_cfg.data_dir = os.path.dirname(storage.db_path)
         get_runtime(flask_app).config_manager = mock_cfg
         with flask_app.app_context():
-            from app.web import _init_auth_state
+            from app.web_auth import _init_auth_state
             _init_auth_state()
             yield flask_app.test_client(), storage
 

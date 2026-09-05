@@ -9,10 +9,10 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, Response
 
 from app.web import (
-    require_auth,
     get_storage,
     _localize_timestamps,
 )
+from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.web")
 

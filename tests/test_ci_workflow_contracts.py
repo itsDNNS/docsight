@@ -22,7 +22,7 @@ E2E_BROWSER_PATHS = [
     "app/templates/**",
     "app/static/**",
     "app/modules/**",
-    "app/web.py",
+    "app/web*.py",
     "app/blueprints/**",
     "app/tz.py",
     "app/i18n/**",

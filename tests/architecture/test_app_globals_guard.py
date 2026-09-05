@@ -3,12 +3,12 @@
 import ast
 from pathlib import Path
 
-import app.web as web
+from app import web, web_auth
 
 
 ROOT = Path(__file__).resolve().parents[2]
 GUARDED_FILES = (
-    ROOT / "app" / "web.py",
+    *(ROOT / "app").glob("web*.py"),
     ROOT / "app" / "app_factory.py",
     ROOT / "app" / "registration.py",
     ROOT / "app" / "runtime.py",
@@ -51,8 +51,6 @@ def test_guard_scope_excludes_documented_process_registries():
 def test_guarded_modules_have_no_global_or_nonlocal_statements():
     violations = []
     for path in GUARDED_FILES:
-        if not path.exists():
-            continue
         for node in ast.walk(_tree(path)):
             if isinstance(node, (ast.Global, ast.Nonlocal)):
                 violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
@@ -75,8 +73,6 @@ def test_factory_is_the_only_flask_constructor():
 def test_guarded_modules_have_no_lowercase_state_bindings():
     violations = []
     for path in GUARDED_FILES:
-        if not path.exists():
-            continue
         for node in _tree(path).body:
             if not isinstance(node, (ast.Assign, ast.AnnAssign)):
                 continue
@@ -92,4 +88,5 @@ def test_guarded_modules_have_no_lowercase_state_bindings():
 
 
 def test_web_has_no_legacy_application_or_initializer_exports():
-    assert FORBIDDEN_WEB_EXPORTS.isdisjoint(vars(web))
+    assert FORBIDDEN_WEB_EXPORTS.isdisjoint(vars(web).keys() | vars(web_auth).keys())
+    assert web.require_auth is web_auth.require_auth

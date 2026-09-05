@@ -8,10 +8,10 @@ from flask import Blueprint, request, jsonify
 
 from app.time_ranges import parse_time_range_hours
 from app.web import (
-    require_auth,
     get_storage, get_config_manager, get_state,
     _localize_timestamps,
 )
+from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.web")
 

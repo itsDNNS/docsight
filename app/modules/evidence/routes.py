@@ -21,7 +21,8 @@ from app.analyzer import threshold_snapshot
 from app.modules.journal.storage import JournalStorage
 from app.storage.sqlite import open_read
 from app.tz import get_tz_name, local_date_to_utc_range, local_to_utc, local_today
-from app.web import get_config_manager, get_storage, require_auth
+from app.web import get_config_manager, get_storage
+from app.web_auth import require_auth
 
 from .checklist import build_checklist, summarize_checklist
 

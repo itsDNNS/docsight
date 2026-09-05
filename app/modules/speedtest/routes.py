@@ -7,7 +7,8 @@ import requests
 from flask import Blueprint, request, jsonify
 
 from app.config import parse_config_bool
-from app.web import require_auth, get_config_manager, get_state, get_storage, clear_speedtest_latest
+from app.web import get_config_manager, get_state, get_storage, clear_speedtest_latest
+from app.web_auth import require_auth
 from app.runtime import current_runtime
 from app.i18n import get_translations
 from app.storage.sqlite import open_read

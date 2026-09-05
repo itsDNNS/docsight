@@ -9,11 +9,11 @@ from email.utils import parsedate_to_datetime
 
 import pytest
 from werkzeug.security import generate_password_hash
-from app.web import (
+from app.web import update_state
+from app.web_auth import (
     _AUTH_STATE_CONTEXT,
     _LOGIN_MAX_TRACKED_IPS,
     _keyed_sha256_hexdigest,
-    update_state,
 )
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
