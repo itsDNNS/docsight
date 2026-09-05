@@ -186,6 +186,20 @@ preflight. An unresolved route, static directory, template, catalog, class, or
 JSON contribution rejects the module's complete plan; no partial contribution
 is registered.
 
+Modules declare dashboard content with `contributes.tab` and dialogs with
+`contributes.dialogs`, each pointing to a module template such as
+`templates/example_tab.html` or `templates/example_dialogs.html`. Empty rendered
+tabs receive no view wrapper. Dialogs render outside hidden views, so an enabled
+integration can keep its setup dialog available before it is configured. Missing
+or unsafe dialog templates reject the complete module contribution plan.
+
+The module static directory's `main.js` loads automatically, with a versioned URL,
+on both Dashboard and Settings when the module is enabled. Top-level execution
+must tolerate missing dashboard elements and globals. Expose an idempotent view
+initialization hook (for example `window.initExampleView`) and wire it into the
+existing dashboard routing convention. Guard absent view elements and ensure
+repeated activation does not accumulate listeners, timers, or fetch loops.
+
 Server-side module code should import the established accessors it needs from
 `app.web`, such as `get_config_manager()`, `get_storage()`, `get_state()`, or
 `get_module_loader()`. These accessors resolve the active application's typed

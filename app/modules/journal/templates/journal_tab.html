@@ -1,0 +1,126 @@
+    <div class="view-page-header journal-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.incident_journal }}</h2>
+        </div>
+        <div class="view-page-actions journal-header-actions">
+            <button class="btn-new-entry" onclick="openEntryModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                    <path d="M12 5v14m-7-7h14"/>
+                </svg>
+                {{ t.new_entry }}
+            </button>
+            <button class="btn-new-entry btn-import" onclick="openImportModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                {{ t.import }}
+            </button>
+            <div class="journal-export-wrapper" style="position:relative;display:inline-block;">
+                <button class="btn-new-entry btn-import" onclick="toggleExportDropdown(event)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    {{ t.export_journal }}
+                </button>
+                <div class="journal-export-dropdown" id="journal-export-dropdown">
+                    <button onclick="exportJournal('csv')">CSV</button>
+                    <button onclick="exportJournal('json')">JSON</button>
+                    <button onclick="exportJournal('md')">Markdown</button>
+                </div>
+            </div>
+            <button class="btn-danger btn-delete-all" id="btn-delete-all-entries" onclick="deleteAllEntries()" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+                {{ t.delete_all }}
+            </button>
+        </div>
+    </div>
+    <div class="incident-filter-bar" id="incident-filter-bar" style="display:none;"></div>
+    <div class="incident-summary" id="incident-summary" style="display:none;"></div>
+    <div class="journal-bulk-bar" id="journal-bulk-bar" style="display:none;">
+        <span class="journal-bulk-count" id="journal-bulk-count"></span>
+        <select id="journal-bulk-incident-select" class="journal-bulk-select">
+            <option value="" disabled selected>{{ t.incident_assign }}…</option>
+        </select>
+        <button class="btn-small btn-accent" onclick="bulkAssign()">{{ t.bulk_assign }}</button>
+        <button class="btn-small btn-muted" onclick="bulkUnassign()">{{ t.bulk_unassign }}</button>
+        <span class="journal-bulk-sep"></span>
+        <button class="btn-small btn-ghost" onclick="clearBulkSelection()">{{ t.bulk_deselect }}</button>
+    </div>
+    <div class="journal-search-wrap" id="journal-search-wrap" style="display:none;">
+        <div class="journal-search-box">
+            <svg class="journal-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="journal-search-input" placeholder="{{ t.search_placeholder }}" autocomplete="off" spellcheck="false">
+            <button class="journal-search-clear" id="journal-search-clear" onclick="clearJournalSearch()" style="display:none;">&times;</button>
+        </div>
+        <span class="journal-search-count" id="journal-search-count"></span>
+    </div>
+    <div id="journal-loading" class="waiting" style="display:none;">
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row"></div>
+    </div>
+    <div id="journal-empty" class="journal-empty" style="display:none;"></div>
+
+    <!-- Phase 4.5: Card wrapper for journal table -->
+    <div id="journal-table-card" class="table-card" style="display:none;">
+        <div class="table-card-header">
+            <div class="table-card-title">
+                <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>
+                    <path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+                <span>{{ t.incident_journal }}</span>
+            </div>
+            <button class="btn-bulk-toggle" id="btn-bulk-toggle" onclick="toggleBulkMode()" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <polyline points="9 11 12 14 22 4"/>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+                <span id="btn-bulk-toggle-label">{{ t.bulk_select }}</span>
+            </button>
+        </div>
+        <table id="journal-table">
+            <thead><tr id="journal-thead-row">
+                <th style="width:36px;"></th>
+                <th data-col="date">{{ t.incident_date }}<span class="sort-indicator"></span></th>
+                <th data-col="title">{{ t.incident_title }}<span class="sort-indicator"></span></th>
+                <th data-col="description" class="journal-hide-mobile">{{ t.incident_description }}<span class="sort-indicator"></span></th>
+                <th>&#128206;</th>
+            </tr></thead>
+            <tbody id="journal-tbody"></tbody>
+        </table>
+    </div>
+
+    <!-- ═══ Incident Timeline View (replaces journal table) ═══ -->
+    <div id="incident-timeline-view" style="display:none;">
+        <button class="incident-timeline-back" onclick="closeIncidentTimeline()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            <span data-i18n="incident_back_journal">{{ t.incident_back_journal }}</span>
+        </button>
+        <div id="incident-timeline-header" class="incident-timeline-card"></div>
+        <div id="incident-timeline-entries" class="incident-timeline-card"></div>
+        <div id="incident-timeline-chart-card" class="incident-timeline-card">
+            <div class="incident-timeline-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <span data-i18n="incident_signal_timeline">{{ t.incident_signal_timeline }}</span>
+            </div>
+            <div class="incident-timeline-chart-wrap">
+                <canvas id="incident-timeline-canvas"></canvas>
+            </div>
+        </div>
+        <div id="incident-timeline-signals" class="incident-timeline-card"></div>
+        <div id="incident-timeline-bnetz" class="incident-timeline-card" style="display:none;"></div>
+    </div>

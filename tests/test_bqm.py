@@ -354,6 +354,8 @@ def _enabled_bqm_loader():
         type="integration",
         contributes={},
         path="",
+        template_paths={"tab": "bqm_tab.html", "dialogs": "bqm_dialogs.html"},
+        has_js=True,
     )
 
     class Loader:
@@ -684,7 +686,7 @@ class TestBqmUiRender:
         assert "bulk import" in html.lower()
 
     def test_bqm_setup_modal_points_to_csv_yesterday_and_bulk_import(self, bqm_client):
-        with open("app/templates/index.html", "r", encoding="utf-8") as f:
+        with open("app/modules/bqm/templates/bqm_dialogs.html", "r", encoding="utf-8") as f:
             html = f.read()
         assert "CSV Yesterday share URL" in html
         assert "CSV Live is for spot checks only" in html
@@ -694,9 +696,9 @@ class TestBqmUiRender:
         assert "A public or shareable BQM monitor URL" not in html
 
     def test_bqm_calendar_buttons_are_accessible(self):
-        with open("app/templates/index.html", "r", encoding="utf-8") as f:
+        with open("app/modules/bqm/templates/bqm_tab.html", "r", encoding="utf-8") as f:
             html = f.read()
-        with open("app/static/js/bqm.js", "r", encoding="utf-8") as f:
+        with open("app/modules/bqm/static/main.js", "r", encoding="utf-8") as f:
             js = f.read()
         assert 'aria-label="{{ t.bqm_import_title }}"' in html
         assert 'aria-label="{{ t.get(\'bqm_csv_import\', \'Import CSV\') }}"' in html
@@ -736,8 +738,8 @@ class TestBqmChartConfig:
         assert "u.series[seriesIdx].show === false" in plugin_body
 
     def test_toggle_logic_in_bqm_js(self):
-        """bqm.js must contain toggle handler wiring."""
-        with open("app/static/js/bqm.js", "r", encoding="utf-8") as f:
+        """BQM main.js must contain toggle handler wiring."""
+        with open("app/modules/bqm/static/main.js", "r", encoding="utf-8") as f:
             js = f.read()
         assert "bqm-toggle-uplot" in js
         assert "bqm-toggle-png" in js
@@ -745,15 +747,15 @@ class TestBqmChartConfig:
 
     def test_live_badge_labels_cached_png_without_claiming_live(self):
         """Cached fallback status must not be labelled as live freshness."""
-        with open("app/static/js/bqm.js", "r", encoding="utf-8") as f:
+        with open("app/modules/bqm/static/main.js", "r", encoding="utf-8") as f:
             js = f.read()
         assert "T.bqm_cached_png" in js
         assert "T.bqm_cached_png_loaded" in js
         assert "source === 'live' ? 'inline' : 'none'" not in js
 
     def test_no_slideshow_in_bqm_js(self):
-        """bqm.js must not contain any slideshow references."""
-        with open("app/static/js/bqm.js", "r", encoding="utf-8") as f:
+        """BQM main.js must not contain any slideshow references."""
+        with open("app/modules/bqm/static/main.js", "r", encoding="utf-8") as f:
             js = f.read()
         assert "slideshow" not in js.lower()
         assert "bqm-play" not in js

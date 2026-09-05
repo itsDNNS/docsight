@@ -8,6 +8,11 @@ var _speedtestSortDir = 'desc';
 var _signalCache = {};
 var _enrichedCache = {};
 
+window.initSpeedtestView = function() {
+    if (!document.getElementById('view-speedtest')) return;
+    loadSpeedtestHistory();
+};
+
 function formatSpeedtestTimestamp(ts) {
     if (!ts) return '';
     var d = new Date(ts);

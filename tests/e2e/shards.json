@@ -1,15 +1,16 @@
 {
   "version": 1,
-  "expected_total": 549,
+  "expected_total": 551,
   "baseline_cpu_seconds": 1534.372,
   "shards": [
     {
       "id": 1,
-      "collected_cases": 80,
+      "collected_cases": 82,
       "files": [
         "test_connection_monitor.py",
         "test_event_log_redesign.py",
         "test_i18n.py",
+        "test_module_views.py",
         "test_path_prefix_browser.py",
         "test_real_proxy_path_prefix.py",
         "test_segment_utilization.py"

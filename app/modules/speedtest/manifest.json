@@ -11,7 +11,9 @@
     "routes": "routes.py",
     "settings": "templates/speedtest_settings.html",
     "static": "static/",
-    "i18n": "i18n/"
+    "i18n": "i18n/",
+    "tab": "templates/speedtest_tab.html",
+    "dialogs": "templates/speedtest_dialogs.html"
   },
   "config": {
     "speedtest_tracker_url": "",
