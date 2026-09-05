@@ -232,6 +232,10 @@ Maintainers use this checklist when reviewing changes that touch integration or 
 - **Token, credential, and private config metadata storage** — Fernet-at-rest storage for modem, webhook, Apprise sidecar, and PWA Web Push VAPID private-key secrets plus report customer defaults, hash-only persistence for the admin password and API tokens, and config redaction.
 - **MQTT/Home Assistant integration payloads** — outbound notifier payload shaping, severity mapping, length limits, and log redaction for webhook URLs.
 - **Module/plugin manifest loading** — manifest validation and the install/list API surface.
+  Theme installs return HTTP 409 for existing destination files, directories, or
+  symlinks before downloading. Installation paths must resolve strictly below
+  `MODULES_DIR`, rejecting aliases to the root or outside it. Installers must pass
+  new targets to the downloader because failed downloads can remove that tree.
 - **Docker/self-hosted runtime defaults** — bundled image defaults, secret bootstrap, and end-to-end auth on a fresh deployment.
 - **Rate limiting or abuse resistance** — login backoff and capture guardrails.
 - **Test fixtures and documentation examples** — fixtures and public docs should avoid reusable-looking secrets so that example values cannot be mistaken for credentials.

@@ -1,8 +1,11 @@
 """Tests for security hardening: proxy trust, theme SSRF, module isolation."""
 
 import json
+import ntpath
 import os
+import posixpath
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -232,6 +235,70 @@ class TestSafeChildPath:
 
         with pytest.raises(ValueError, match="Invalid ID"):
             safe_child_path(str(tmp_path), "a/b")
+
+    @pytest.mark.parametrize("child_name", [None, 12, "", "/absolute", r"a\b", r"C:\child"])
+    def test_rejects_invalid_ids(self, tmp_path, child_name):
+        from app.path_safety import safe_child_path
+
+        with pytest.raises(ValueError, match="Invalid ID"):
+            safe_child_path(str(tmp_path), child_name)
+
+    @pytest.mark.parametrize("destination", ["base", "outside", "modules_sibling"])
+    def test_rejects_symlink_to_base_or_outside(self, tmp_path, destination):
+        from app.path_safety import safe_child_path
+
+        base = tmp_path / "modules"
+        base.mkdir()
+        target = base if destination == "base" else tmp_path / destination
+        target.mkdir(exist_ok=True)
+        sentinel = target / "keep.txt"
+        sentinel.write_text("keep", encoding="utf-8")
+        alias = base / "root_alias"
+        alias.symlink_to(target, target_is_directory=True)
+
+        with patch("shutil.rmtree") as remove:
+            with pytest.raises(ValueError):
+                resolved = safe_child_path(str(base), alias.name)
+                # Intercept the sink so the vulnerable baseline cannot delete data.
+                import shutil
+                shutil.rmtree(resolved)
+            remove.assert_not_called()
+        assert sentinel.read_text(encoding="utf-8") == "keep"
+        assert alias.is_symlink()
+
+    @pytest.mark.parametrize("path_module,base,candidate,allowed", [
+        (posixpath, "/", "/child", True),
+        (posixpath, "/", "/", False),
+        (posixpath, "/modules/", "/modules/child", True),
+        (posixpath, "/modules", "/modules_sibling/child", False),
+        (ntpath, "C:\\", "C:\\child", True),
+        (ntpath, "C:\\", "c:\\", False),
+        (ntpath, "C:\\Modules\\", "c:\\modules\\child", True),
+        (ntpath, "C:\\Users\\Tester\\Modules", "C:\\Users\\Tester\\Modules\\MiXeD", True),
+        (ntpath, "C:\\Modules", "c:\\MODULES", False),
+        (ntpath, "C:\\Modules", "C:\\Modules_sibling\\child", False),
+        (ntpath, "C:\\Modules", "D:\\Modules\\child", False),
+        (ntpath, "//server/share/", "\\\\SERVER\\SHARE\\child", True),
+        (ntpath, "//server/share/", "\\\\SERVER\\SHARE\\", False),
+    ])
+    def test_resolved_path_boundaries(self, monkeypatch, path_module, base, candidate, allowed):
+        from app import path_safety
+
+        # Substitute only this module's path operations, never the host's os.path.
+        path_ops = SimpleNamespace(
+            join=path_module.join,
+            realpath=lambda path: path_module.normpath(base if path == base else candidate),
+            normcase=path_module.normcase,
+            commonpath=path_module.commonpath,
+        )
+        monkeypatch.setattr(path_safety, "os", SimpleNamespace(path=path_ops, sep=path_module.sep))
+        if allowed:
+            result = path_safety.safe_child_path(base, "child")
+            assert path_module.normcase(result) == path_module.normcase(path_module.normpath(candidate))
+            assert result == path_module.normpath(candidate)
+        else:
+            with pytest.raises(ValueError):
+                path_safety.safe_child_path(base, "child")
 
 
 class TestSafeChildFile:

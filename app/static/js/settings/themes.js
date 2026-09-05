@@ -208,7 +208,12 @@ function installTheme(themeId, downloadUrl) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: themeId, download_url: downloadUrl }),
     })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            return r.json().then(function(data) {
+                if (r.status === 409) data.error = T.theme_install_failed || 'Install failed';
+                return data;
+            });
+        })
         .then(function(data) {
             if (data.success) {
                 showToast(T.theme_installed || 'Theme installed — restart required', true);

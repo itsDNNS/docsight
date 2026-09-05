@@ -266,9 +266,14 @@ def api_themes_install():
         return jsonify({"success": False, "error": "Invalid theme ID"}), 400
 
     modules_dir = get_modules_dir()
+    dir_name = theme_id.replace(".", "_")
+
+    # Check the entry before resolving symlinks, including dangling/root aliases.
+    if os.path.lexists(os.path.join(modules_dir, dir_name)):
+        return jsonify({"success": False, "error": "Theme already installed"}), 409
 
     try:
-        theme_dir = safe_child_path(modules_dir, theme_id.replace(".", "_"))
+        theme_dir = safe_child_path(modules_dir, dir_name)
     except ValueError:
         return jsonify({"success": False, "error": "Invalid theme ID"}), 400
 
