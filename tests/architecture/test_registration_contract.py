@@ -165,6 +165,8 @@ def test_productive_flask_registration_has_one_owner():
     [
         ("app/registration.py", "app.module_loader"),
         ("app/module_registry.py", "app.registration"),
+        ("app/web_auth.py", "app.web"),
+        ("app/web_auth.py", "app.app_factory"),
     ],
 )
 def test_registration_dependencies_have_no_reverse_imports(relative_path, forbidden):

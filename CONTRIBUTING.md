@@ -111,7 +111,7 @@ app/
   module_contributions.py - Module filesystem/import/JSON contribution preflight
   main.py            - Entrypoint, ThreadPoolExecutor polling loop
   runtime.py         - Typed per-application runtime state and locks
-  web.py             - Core routes, filters, auth, and runtime accessors
+  web.py             - Core routes, filters, and runtime accessors
   analyzer.py        - DOCSIS channel health analysis
   threshold_profiles.py - Built-in analyzer threshold profiles
   event_detector.py  - Signal anomaly detection (thread-safe)
@@ -200,10 +200,10 @@ initialization hook (for example `window.initExampleView`) and wire it into the
 existing dashboard routing convention. Guard absent view elements and ensure
 repeated activation does not accumulate listeners, timers, or fetch loops.
 
-Server-side module code should import the established accessors it needs from
-`app.web`, such as `get_config_manager()`, `get_storage()`, `get_state()`, or
-`get_module_loader()`. These accessors resolve the active application's typed
-runtime. Do not import or create a module-level Flask application, and do not
+Community modules must keep using the stable, supported `app.web` imports:
+`require_auth`, `get_config_manager`, `get_storage`, `get_state`, and `get_module_loader`.
+Built-in modules use `app.web_auth` for authentication policy. Runtime accessors
+resolve the active application's runtime. Do not import or create a module-level Flask app or
 cache app-derived storage or mutable request/runtime state in module globals.
 Collectors receive their runtime-facing `web` object explicitly and must keep
 working without a Flask application context.

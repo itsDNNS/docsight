@@ -11,7 +11,7 @@ from typing import Any
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import web
+from . import web, web_auth
 from .base_path import configure_base_path
 from .module_loader import ModuleLoader
 from .registration import (
@@ -119,7 +119,7 @@ def create_app(
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
-        PERMANENT_SESSION_LIFETIME=timedelta(days=web._session_lifetime_days(env)),
+        PERMANENT_SESSION_LIFETIME=timedelta(days=web_auth._session_lifetime_days(env)),
         SESSION_REFRESH_EACH_REQUEST=True,
         TESTING=testing,
     )
@@ -133,10 +133,10 @@ def create_app(
         on_config_changed=on_config_changed,
         auth_state=auth_state,
         login_rate_limiter=LoginRateLimiter(
-            max_attempts=web._LOGIN_MAX_ATTEMPTS,
-            window=web._LOGIN_WINDOW,
-            lockout_base=web._LOGIN_LOCKOUT_BASE,
-            max_tracked_ips=web._LOGIN_MAX_TRACKED_IPS,
+            max_attempts=web_auth._LOGIN_MAX_ATTEMPTS,
+            window=web_auth._LOGIN_WINDOW,
+            lockout_base=web_auth._LOGIN_LOCKOUT_BASE,
+            max_tracked_ips=web_auth._LOGIN_MAX_TRACKED_IPS,
         ),
         update_checker=UpdateChecker(
             app_version=web.APP_VERSION,
@@ -145,7 +145,7 @@ def create_app(
         ),
     )
     attach_runtime(app, runtime)
-    web.bootstrap_auth_state(app, runtime)
+    web_auth.bootstrap_auth_state(app, runtime)
     register_plan(app, complete_plan)
     web.install_core_template_hooks(app)
     runtime.module_loader = loader

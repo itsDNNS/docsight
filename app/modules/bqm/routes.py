@@ -7,9 +7,9 @@ from urllib.parse import urlparse
 from flask import Blueprint, request, jsonify, make_response
 
 from app.web import (
-    require_auth,
-    get_storage, get_config_manager, _valid_date, _get_client_ip, _get_tz_name,
+    get_storage, get_config_manager, _valid_date, _get_tz_name,
 )
+from app.web_auth import require_auth, _get_client_ip
 from app.runtime import current_runtime
 from app.tz import local_today, utc_now
 

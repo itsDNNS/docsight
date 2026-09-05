@@ -12,6 +12,7 @@ from app.theme_registry import _is_trusted_url, download_theme
 from app.collectors import _ModuleConfigProxy
 from app.config import ConfigManager, SECRET_KEYS, HASH_KEYS
 from app.runtime import current_runtime
+from tests.test_auth import _login_csrf
 
 
 # ── Reverse proxy / X-Forwarded-For ──
@@ -33,14 +34,15 @@ class TestClientIPWithoutProxy:
 
         # Simulate 6 failed logins with different spoofed IPs
         for i in range(6):
-            client.post(
+            response = client.post(
                 "/login",
-                data={"password": "wrong"},
+                data={"password": "wrong", "csrf_token": _login_csrf(client)},
                 headers={"X-Forwarded-For": f"10.0.0.{i}"},
             )
 
         # Without proxy trust, all requests come from same remote_addr,
         # so rate limiter should kick in.
+        assert b"Too many attempts. Please try again later." in response.data
         attempts_keys = list(current_runtime().login_rate_limiter.snapshot())
         assert len(attempts_keys) == 1, (
             f"Expected 1 IP in rate limiter, got {len(attempts_keys)}: {attempts_keys}"
@@ -352,7 +354,6 @@ class TestSafeManifestRef:
 @pytest.fixture
 def client():
     """Flask test client with minimal config for auth testing."""
-    from app import web
     from app.config import ConfigManager
     import tempfile
 

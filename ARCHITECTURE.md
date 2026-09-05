@@ -53,8 +53,8 @@ Each application owns a typed `DocsightRuntime` at
 `app.extensions["docsight"]`. It contains the configuration manager, storage,
 authentication state, rate limiter, update checker, module loader, collector
 references, derived-storage cache, and lock-protected dashboard state. Route
-and module code reaches the current application through the accessors in
-`app.web`; it must not retain app-specific values in module globals.
+and module code uses `app.web` runtime accessors; auth policy and factory bootstrap
+use `app.web_auth`, which accesses runtime directly and never imports `app.web`.
 
 Collector threads receive the same runtime explicitly through the existing
 `web=` duck-type parameter. The runtime implements `update_state()`,
@@ -860,7 +860,7 @@ CREATE TABLE de_tkg_claim_drafts (
 
 **Framework:** Flask  
 **Port:** 8765 (configurable)  
-**Auth:** Optional password protection (bcrypt hashing) + API token authentication (Bearer tokens)
+**Auth:** `app.web_auth` owns optional password protection (scrypt/pbkdf2), login CSRF/rate limits, persisted session policy, and Bearer authentication; `app.web` orchestrates login/logout routes.
 
 ### API Endpoints
 

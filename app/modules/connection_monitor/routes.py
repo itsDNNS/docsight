@@ -13,7 +13,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, jsonify, request, Response
 
 from app.tz import local_date_to_utc_range, local_today, to_local_display, _parse_utc
-from app.web import get_config_manager, require_auth, _get_tz_name
+from app.web import get_config_manager, _get_tz_name
+from app.web_auth import require_auth
 from app.runtime import current_runtime
 
 from .probe import ProbeEngine

@@ -253,7 +253,7 @@ class TestBackupDownloadRoute:
         test_app.config.update(TESTING=True, SECRET_KEY="test-secret")
         test_app.register_blueprint(routes.bp)
         monkeypatch.setattr(routes, "get_config_manager", lambda: config_mgr)
-        monkeypatch.setattr("app.web._auth_required", lambda: False)
+        monkeypatch.setattr("app.web_auth._auth_required", lambda **kwargs: False)
         return test_app
 
     def test_download_is_file_backed_and_cleans_up_on_close(

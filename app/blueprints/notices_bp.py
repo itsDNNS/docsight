@@ -9,7 +9,8 @@ from app.maintainer_notices import (
     get_active_notices,
     is_valid_notice_id,
 )
-from app.web import get_config_manager, require_auth
+from app.web import get_config_manager
+from app.web_auth import require_auth
 
 notices_bp = Blueprint("notices_bp", __name__)
 

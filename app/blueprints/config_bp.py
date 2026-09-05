@@ -8,10 +8,12 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, request, jsonify
 
 from app.web import (
-    require_auth, _require_session_auth, _admin_password_matches,
-    _invalidate_admin_sessions, _secret_values_match,
     get_config_manager, get_storage, get_on_config_changed,
-    _get_client_ip, _localize_timestamps,
+    _localize_timestamps,
+)
+from app.web_auth import (
+    require_auth, _require_session_auth, _admin_password_matches,
+    _invalidate_admin_sessions, _secret_values_match, _get_client_ip,
 )
 from app.config import (
     PASSWORD_MASK,

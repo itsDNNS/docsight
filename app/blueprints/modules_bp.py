@@ -18,7 +18,8 @@ from app.module_loader import (
 from app.module_paths import get_modules_dir
 from app.path_safety import safe_child_path
 from app.theme_registry import download_theme, fetch_registry as fetch_theme_registry
-from app.web import get_config_manager, get_module_loader, require_auth
+from app.web import get_config_manager, get_module_loader
+from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.modules")
 

@@ -7,9 +7,9 @@ import requests as _requests
 from flask import Blueprint, jsonify, make_response
 
 from app.web import (
-    require_auth,
     get_config_manager,
 )
+from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.web")
 

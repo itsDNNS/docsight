@@ -1,7 +1,7 @@
 import builtins
 from unittest.mock import Mock, patch
 
-import app.web as web
+from app import web_auth
 from app.runtime import current_runtime
 
 
@@ -94,7 +94,7 @@ class TestEvidenceChecklistApi:
         config.data_dir = str(tmp_path)
         current_runtime().config_manager = config
         current_runtime().storage = None
-        web._init_auth_state()
+        web_auth._init_auth_state()
         app.config["TESTING"] = True
 
         with app.test_client() as client:

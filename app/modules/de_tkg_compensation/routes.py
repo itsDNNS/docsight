@@ -11,7 +11,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, jsonify, request, send_file
 
 from app.tz import get_tz_name, local_to_utc, local_today
-from app.web import get_config_manager, get_module_loader, get_storage, require_auth
+from app.web import get_config_manager, get_module_loader, get_storage
+from app.web_auth import require_auth
 
 from .candidates import (
     CONNECTION_CANDIDATE_LOOKBACK_DAYS,

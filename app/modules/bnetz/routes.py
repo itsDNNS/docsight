@@ -5,7 +5,8 @@ from io import BytesIO
 
 from flask import Blueprint, request, jsonify, send_file
 
-from app.web import require_auth, get_storage, _get_client_ip, _get_lang
+from app.web import get_storage, _get_lang
+from app.web_auth import require_auth, _get_client_ip
 from app.runtime import current_runtime
 from app.storage import MAX_ATTACHMENT_SIZE
 from app.i18n import get_translations
