@@ -392,7 +392,7 @@ def test_representative_real_url_sites_use_the_contract():
 
 
 def test_inventoried_files_keep_the_reviewed_contract_sites():
-    settings_files = {str(path.relative_to(ROOT)) for path in (ROOT / "app/static/js/settings").glob("*.js")}
+    settings_files = {path.relative_to(ROOT).as_posix() for path in (ROOT / "app/static/js/settings").glob("*.js")}
     assert settings_files == {path for path in EXPECTED_CONTRACT_CALLS if path.startswith("app/static/js/settings/")}
     actual = {
         relative: (ROOT / relative).read_text(encoding="utf-8").count("docsightUrl(")
