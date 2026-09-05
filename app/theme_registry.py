@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import shutil
 from typing import Any
 
 from .module_download import (
@@ -870,7 +869,9 @@ def download_theme(download_url: str, target_dir: str, timeout: int = 30) -> boo
     """Download a theme module from the registry into target_dir.
 
     Uses the generic directory downloader, then validates that both
-    manifest.json and theme.json exist.
+    manifest.json and theme.json exist. The caller must provide a fresh,
+    validated target and owns cleanup of an invalid theme using its trusted
+    module root. Generic downloader cleanup on transport failure is unchanged.
     """
     if not download_github_directory(download_url, target_dir, timeout):
         return False
@@ -879,7 +880,6 @@ def download_theme(download_url: str, target_dir: str, timeout: int = 30) -> boo
     theme_path = safe_child_file(target_dir, "theme.json")
     if not os.path.isfile(manifest_path) or not os.path.isfile(theme_path):
         log.error("Downloaded theme missing manifest.json or theme.json")
-        shutil.rmtree(target_dir, ignore_errors=True)
         return False
 
     return True

@@ -27,10 +27,24 @@ modules_bp = Blueprint("modules_bp", __name__)
 
 
 def _remove_downloaded_module(modules_dir, target_dir):
-    """Remove a failed download only when it resolves below the module root."""
+    """Remove an owned directory below the independently configured module root.
+
+    The caller must establish ownership (a fresh install or an authorized
+    uninstall). A final alias does not confer ownership of its destination.
+    """
     real_base = os.path.realpath(modules_dir)
-    real_target = os.path.realpath(target_dir)
-    if real_target.startswith(real_base + os.sep):
+    # Resolve parent aliases but retain the final entry for the ownership check.
+    target_dir = os.path.abspath(target_dir)
+    entry_path = os.path.join(
+        os.path.realpath(os.path.dirname(target_dir)), os.path.basename(target_dir),
+    )
+    real_target = os.path.realpath(entry_path)
+    # Guard the actual filesystem spelling against the independent root.
+    # Existing paths canonicalize root case; any mismatch fails closed.
+    if (os.path.normcase(real_target) == os.path.normcase(entry_path)
+            and real_target != real_base
+            and real_target.startswith(real_base.rstrip(os.sep) + os.sep)
+            and os.path.isdir(real_target)):
         shutil.rmtree(real_target, ignore_errors=True)
 
 
@@ -269,8 +283,9 @@ def api_themes_install():
     dir_name = theme_id.replace(".", "_")
 
     # Guard the unresolved entry before checking even dangling/root symlinks.
-    entry_path = os.path.normcase(os.path.abspath(os.path.join(modules_dir, dir_name)))
-    entry_root = os.path.normcase(os.path.abspath(modules_dir))
+    # Preserve spelling for lexists; both paths use the same configured root.
+    entry_path = os.path.abspath(os.path.join(modules_dir, dir_name))
+    entry_root = os.path.abspath(modules_dir)
     if entry_path == entry_root or not entry_path.startswith(entry_root.rstrip(os.sep) + os.sep):
         return jsonify({"success": False, "error": "Invalid theme ID"}), 400
 
@@ -285,6 +300,7 @@ def api_themes_install():
     if download_theme(data["download_url"], theme_dir):
         return jsonify({"success": True, "restart_required": True})
     else:
+        _remove_downloaded_module(modules_dir, theme_dir)
         return jsonify({"success": False, "error": "Download failed"}), 500
 
 
