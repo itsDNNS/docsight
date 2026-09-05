@@ -391,27 +391,51 @@ function closeEntryModal() {
 }
 
 function renderAttachments(attachments, container, incidentId) {
-    container.innerHTML = '';
+    container.textContent = '';
     attachments.forEach(function(att) {
         var item = document.createElement('div');
         item.className = 'attachment-item';
         var isImage = att.mime_type && att.mime_type.indexOf('image/') === 0;
-        var thumbHtml = '';
+        var attachmentUrl = docsightUrl('/api/attachments/' + att.id);
+        var thumb;
         if (isImage) {
-            thumbHtml = '<img class="attachment-thumb" src="' + docsightUrl('/api/attachments/' + att.id) + '" alt="">';
-        } else if (att.mime_type === 'application/pdf') {
-            thumbHtml = '<div class="attachment-icon">&#128196;</div>';
+            thumb = document.createElement('img');
+            thumb.className = 'attachment-thumb';
+            thumb.src = attachmentUrl;
+            thumb.alt = '';
         } else {
-            thumbHtml = '<div class="attachment-icon">&#128462;</div>';
+            thumb = document.createElement('div');
+            thumb.className = 'attachment-icon';
+            thumb.textContent = att.mime_type === 'application/pdf' ? '\uD83D\uDCC4' : '\uD83D\uDDCE';
         }
-        item.innerHTML = thumbHtml +
-            '<div class="attachment-info">' +
-                '<span class="attachment-name">' + escapeHtml(att.filename) + '</span>' +
-                '<div class="attachment-actions">' +
-                    '<a href="' + docsightUrl('/api/attachments/' + att.id) + '" download title="Download">&#11015;</a>' +
-                    '<button onclick="deleteAttachment(' + att.id + ', ' + incidentId + ')" title="Delete">&#128465;</button>' +
-                '</div>' +
-            '</div>';
+        item.appendChild(thumb);
+
+        var info = document.createElement('div');
+        info.className = 'attachment-info';
+        var name = document.createElement('span');
+        name.className = 'attachment-name';
+        name.textContent = att.filename;
+        info.appendChild(name);
+
+        var actions = document.createElement('div');
+        actions.className = 'attachment-actions';
+        var download = document.createElement('a');
+        download.href = attachmentUrl;
+        download.download = '';
+        download.title = 'Download';
+        download.textContent = '\u2B07';
+        actions.appendChild(download);
+
+        var deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.title = 'Delete';
+        deleteBtn.textContent = '\uD83D\uDDD1';
+        deleteBtn.addEventListener('click', function() {
+            deleteAttachment(att.id, incidentId);
+        });
+        actions.appendChild(deleteBtn);
+        info.appendChild(actions);
+        item.appendChild(info);
         container.appendChild(item);
     });
 }
@@ -1005,9 +1029,13 @@ window.closeIncidentTimeline = function() {
     loadJournal();
 };
 
+function renderIncidentPdfButton(btn) {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+    btn.appendChild(document.createTextNode(' ' + (T.incident_download_pdf || 'Download PDF Report')));
+}
+
 window.downloadIncidentPdf = function(incidentId, incidentName) {
     var btn = document.querySelector('.incident-timeline-pdf-btn');
-    var origHtml = btn ? btn.innerHTML : '';
     var params = new URLSearchParams();
     var langInput = document.getElementById('report-lang');
     var nameInput = document.getElementById('report-name');
@@ -1034,7 +1062,7 @@ window.downloadIncidentPdf = function(incidentId, incidentName) {
             showToast(T.network_error || 'Error generating report', 'error');
         })
         .finally(function() {
-            if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+            if (btn) { btn.disabled = false; renderIncidentPdfButton(btn); }
         });
 };
 
@@ -1088,11 +1116,15 @@ function renderIncidentTimeline(data) {
     if (inc.description) {
         hHtml += '<div class="incident-timeline-desc">' + escapeHtml(inc.description) + '</div>';
     }
-    hHtml += '<button class="incident-timeline-pdf-btn" onclick="downloadIncidentPdf(' + inc.id + ', \'' + escapeHtml(inc.name).replace(/'/g, "\\'") + '\')">';
-    hHtml += '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ';
-    hHtml += (T.incident_download_pdf || 'Download PDF Report');
-    hHtml += '</button>';
     header.innerHTML = hHtml;
+    var pdfBtn = document.createElement('button');
+    pdfBtn.type = 'button';
+    pdfBtn.className = 'incident-timeline-pdf-btn';
+    renderIncidentPdfButton(pdfBtn);
+    pdfBtn.addEventListener('click', function() {
+        downloadIncidentPdf(inc.id, inc.name);
+    });
+    header.appendChild(pdfBtn);
 
     // -- 2. Journal Entries as Cards --
     var entriesDiv = document.getElementById('incident-timeline-entries');

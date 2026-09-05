@@ -98,4 +98,4 @@ def test_unconfigured_modules_keep_setup_without_empty_views(dashboard, prefix):
 
 
 def test_module_asset_cache_generation():
-    assert (ROOT / "app/static/sw.js").read_text().startswith("var CACHE_VERSION = 'v89';")
+    assert (ROOT / "app/static/sw.js").read_text().startswith("var CACHE_VERSION = 'v90';")
