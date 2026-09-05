@@ -24,7 +24,7 @@ E2E_BROWSER_PATHS = [
     "app/modules/**",
     "app/{web*,signal_health_view}.py",
     "app/blueprints/**",
-    "app/tz.py",
+    "app/{tz,theme_registry,runtime,version}.py",
     "app/i18n/**",
     "app/app_factory.py",
     "app/base_path.py",

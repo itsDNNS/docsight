@@ -13,7 +13,6 @@ from app.modules.weather.client import OpenMeteoClient
 from app.modules.weather.collector import WeatherCollector
 from app.modules.weather.storage import WeatherStorage
 from app.config import ConfigManager
-from app.web import update_state
 from app.runtime import current_runtime
 
 
@@ -352,7 +351,7 @@ class TestWeatherAPI:
 
     def test_api_weather_current_with_state(self, weather_client):
         client, _ = weather_client
-        update_state(weather_latest={"timestamp": "2026-02-27 12:00:00Z", "temperature": 7.5})
+        current_runtime().update_state(weather_latest={"timestamp": "2026-02-27 12:00:00Z", "temperature": 7.5})
         resp = client.get("/api/weather/current")
         assert resp.status_code == 200
         data = resp.get_json()

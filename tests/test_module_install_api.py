@@ -50,9 +50,9 @@ def test_download_cleanup_is_confined_to_module_root(tmp_path):
 
 class TestModulesRegistry:
     def test_registry_returns_list(self, client):
-        with patch("app.blueprints.modules_bp.get_config_manager") as mock_cfg:
-            mock_cfg.return_value = MagicMock()
-            mock_cfg.return_value.get = MagicMock(return_value="https://raw.githubusercontent.com/itsDNNS/docsight-modules/main/registry.json")
+        with patch("app.blueprints.modules_bp.current_runtime") as mock_cfg:
+            mock_cfg.return_value.config_manager = MagicMock()
+            mock_cfg.return_value.config_manager.get = MagicMock(return_value="https://raw.githubusercontent.com/itsDNNS/docsight-modules/main/registry.json")
             resp = client.get("/api/modules/registry")
             assert resp.status_code == 200
             data = json.loads(resp.data)
@@ -74,10 +74,10 @@ class TestModulesInstall:
         assert data["success"] is False
 
     def test_rejects_duplicate_builtin(self, client):
-        with patch("app.blueprints.modules_bp.get_module_loader") as mock_loader:
+        with patch("app.blueprints.modules_bp.current_runtime") as mock_loader:
             mock_mod = MagicMock()
             mock_mod.id = "docsight.speedtest"
-            mock_loader.return_value.get_modules.return_value = [mock_mod]
+            mock_loader.return_value.module_loader.get_modules.return_value = [mock_mod]
             resp = client.post("/api/modules/install",
                                data=json.dumps({"id": "docsight.speedtest", "download_url": "https://api.github.com/test"}),
                                content_type="application/json")
@@ -284,12 +284,12 @@ class TestModulesUninstall:
 
     def test_rejects_builtin_uninstall(self, client):
         with patch("app.blueprints.modules_bp._scan_installed_community_ids") as mock_scan, \
-             patch("app.blueprints.modules_bp.get_module_loader") as mock_loader:
+             patch("app.blueprints.modules_bp.current_runtime") as mock_loader:
             mock_scan.return_value = {"docsight.speedtest": "docsight_speedtest"}
             mock_mod = MagicMock()
             mock_mod.id = "docsight.speedtest"
             mock_mod.builtin = True
-            mock_loader.return_value.get_modules.return_value = [mock_mod]
+            mock_loader.return_value.module_loader.get_modules.return_value = [mock_mod]
             resp = client.post("/api/modules/uninstall",
                                data=json.dumps({"id": "docsight.speedtest"}),
                                content_type="application/json")

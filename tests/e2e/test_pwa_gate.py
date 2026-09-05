@@ -1,10 +1,10 @@
 """PWA installability and offline behavior gate."""
 
+from app.version import get_app_version
 from urllib.parse import urlsplit
 
 from playwright.sync_api import Error as PlaywrightError, expect
 
-from app.web import APP_VERSION
 
 
 def _open_authenticated_pwa(page, servers):
@@ -129,7 +129,7 @@ def test_static_js_and_css_requests_include_app_version(page, live_server):
                     && url.searchParams.get('v') !== expectedVersion;
             })
         """,
-        APP_VERSION,
+        get_app_version(),
     )
 
     assert offenders == []

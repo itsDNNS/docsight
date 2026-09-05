@@ -7,7 +7,6 @@ from flask import Blueprint, jsonify, request
 
 from app.i18n import get_translations
 from app.storage.segment_utilization import SegmentUtilizationStorage
-from app.web import get_config_manager, get_storage
 from app.web_auth import require_auth
 from app.runtime import current_runtime
 
@@ -21,7 +20,7 @@ def _get_lang():
 
 def _get_storage():
     """Lazy-init segment storage using core DB path."""
-    storage = get_storage()
+    storage = current_runtime().storage
     if not storage:
         return None
     return current_runtime().derived_storage.get(
@@ -43,7 +42,7 @@ def _normalize_range_key(raw, default):
 @require_auth
 def api_segment_utilization():
     """Return stored segment utilization data for the tab view."""
-    config = get_config_manager()
+    config = current_runtime().config_manager
     t = get_translations(_get_lang())
     if not config:
         return jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503
@@ -92,7 +91,7 @@ def _clamp_int(value, default, lo, hi):
 @require_auth
 def api_segment_utilization_events():
     """Return detected segment saturation events for the requested range."""
-    config = get_config_manager()
+    config = current_runtime().config_manager
     t = get_translations(_get_lang())
     if not config:
         return jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503
@@ -135,7 +134,7 @@ def api_segment_utilization_range():
     This matches ``/api/weather/range`` so the correlation view degrades
     gracefully when optional data sources are absent.
     """
-    config = get_config_manager()
+    config = current_runtime().config_manager
     if not config or config.get("modem_type") != "fritzbox" or not config.is_segment_utilization_enabled():
         return jsonify([])
     storage = _get_storage()

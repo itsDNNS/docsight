@@ -2,7 +2,7 @@
 
 from flask import Blueprint, jsonify, request
 
-from ..web import get_storage
+from ..runtime import current_runtime
 from ..web_auth import require_auth
 
 smart_capture_bp = Blueprint("smart_capture", __name__)
@@ -12,7 +12,7 @@ smart_capture_bp = Blueprint("smart_capture", __name__)
 @require_auth
 def api_smart_capture_executions():
     """Return Smart Capture execution history."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"executions": []})
     limit = request.args.get("limit", 50, type=int)

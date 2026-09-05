@@ -1,14 +1,12 @@
 """Smokeping module routes."""
 
+from app.runtime import current_runtime
 import logging
 
 import requests as _requests
 
 from flask import Blueprint, jsonify, make_response
 
-from app.web import (
-    get_config_manager,
-)
 from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.web")
@@ -30,7 +28,7 @@ SMOKEPING_TIMESPANS = {
 @require_auth
 def api_smokeping_targets():
     """Return list of configured Smokeping targets."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager or not _config_manager.is_smokeping_configured():
         return jsonify([])
     raw = _config_manager.get("smokeping_targets", "")
@@ -42,7 +40,7 @@ def api_smokeping_targets():
 @require_auth
 def api_smokeping_graph(target, timespan):
     """Proxy a Smokeping graph PNG."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager or not _config_manager.is_smokeping_configured():
         return jsonify({"error": "Smokeping not configured"}), 404
 

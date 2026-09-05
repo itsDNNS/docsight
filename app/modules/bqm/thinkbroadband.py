@@ -1,9 +1,9 @@
 """Fetch ThinkBroadband BQM quality graphs."""
 
+from app.version import get_app_version
 import logging
 import urllib.request
 
-from app.web import APP_VERSION
 
 log = logging.getLogger("docsis.thinkbroadband")
 
@@ -13,7 +13,7 @@ def fetch_graph(url, timeout=30):
     if not url:
         return None
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": f"DOCSight/{APP_VERSION} (+https://github.com/itsDNNS/docsight)"})
+        req = urllib.request.Request(url, headers={"User-Agent": f"DOCSight/{get_app_version()} (+https://github.com/itsDNNS/docsight)"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = resp.read()
         if len(data) < 100:

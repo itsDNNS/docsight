@@ -6,7 +6,6 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-import app.web as web
 from app.modules.bqm.collector import BQMCollector
 from app.modules.bqm.thinkbroadband import fetch_graph
 from app.modules.bqm.storage import BqmStorage
@@ -400,7 +399,7 @@ def bqm_client(tmp_path, bqm_api_storage):
     mgr.save({"modem_password": "test", "modem_type": "fritzbox", "bqm_url": "https://example.com/graph.png"})
     current_runtime().config_manager = mgr
     current_runtime().storage = s
-    previous_module_loader = web.get_module_loader()
+    previous_module_loader = current_runtime().module_loader
     current_runtime().module_loader = _enabled_bqm_loader()
     _reset_bqm_module_storage()
     app.config["TESTING"] = True
@@ -640,7 +639,7 @@ class TestBqmUiRender:
 
     def test_index_omits_chart_script_when_bqm_module_is_disabled(self, bqm_client):
         client, _ = bqm_client
-        enabled_loader = web.get_module_loader()
+        enabled_loader = current_runtime().module_loader
         try:
             current_runtime().module_loader = None
             resp = client.get("/")

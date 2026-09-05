@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 
 from app.analyzer import analyze, get_thresholds
-from app.web import update_state
 from app.signal_health_view import (
     build_home_snr_display_context,
     build_metric_ranges,
@@ -281,18 +280,18 @@ class TestIndexRoute:
             assert "/setup" in resp.headers["Location"]
 
     def test_index_renders(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/")
         assert resp.status_code == 200
         assert b"DOCSight" in resp.data
 
     def test_index_with_lang(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
 
     def test_dashboard_exposes_docsis_basics_help_in_english_and_german(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
         assert resp.status_code == 200
@@ -333,7 +332,7 @@ class TestIndexRoute:
                 "health_detail": "",
             },
         ]
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -360,7 +359,7 @@ class TestIndexRoute:
                 "upstream": {"calculated": 1, "total": 1, "unsupported": 0},
             },
         })
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -403,7 +402,7 @@ class TestIndexRoute:
 
     def test_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, sample_analysis):
         _configure_speedtest(config_mgr)
-        update_state(analysis=sample_analysis, speedtest_latest=_latest_speedtest())
+        current_runtime().update_state(analysis=sample_analysis, speedtest_latest=_latest_speedtest())
 
         resp = client.get("/?lang=en")
 
@@ -420,7 +419,7 @@ class TestIndexRoute:
 
     def test_no_docsis_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, no_docsis_analysis):
         _configure_speedtest(config_mgr)
-        update_state(analysis=no_docsis_analysis, speedtest_latest=_latest_speedtest())
+        current_runtime().update_state(analysis=no_docsis_analysis, speedtest_latest=_latest_speedtest())
 
         resp = client.get("/?lang=en")
 
@@ -441,7 +440,7 @@ class TestIndexRoute:
         sample_analysis["summary"]["ds_uncorrectable_errors"] = 0
         sample_analysis["ds_channels"][0]["correctable_errors"] = None
         sample_analysis["ds_channels"][0]["uncorrectable_errors"] = None
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/")
 
@@ -453,7 +452,7 @@ class TestIndexRoute:
         sample_analysis["summary"]["errors_supported"] = False
         sample_analysis["summary"]["ds_correctable_errors"] = None
         sample_analysis["summary"]["ds_uncorrectable_errors"] = None
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/")
 
@@ -474,7 +473,7 @@ class TestIndexRoute:
             "unsupported_channels": 0,
             "families": {},
         }
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/")
 
@@ -506,7 +505,7 @@ class TestIndexRoute:
                 "families": {},
             },
         })
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/")
 
@@ -554,7 +553,7 @@ class TestIndexRoute:
                 "health_detail": "power critical; snr critical",
             }
         ]
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -581,7 +580,7 @@ class TestIndexRoute:
             _snr_render_channel(1, '602 MHz', 3.0, 35.0, '256QAM', '3.1'),
             _snr_render_channel(2, '610 MHz', 3.1, 37.0, '256QAM', '3.1'),
         ]
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -602,7 +601,7 @@ class TestIndexRoute:
         sample_analysis["ds_channels"] = [
             _snr_render_channel(33, '774 MHz', 1.0, 41.0, 'OFDM', '3.1'),
         ]
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -623,7 +622,7 @@ class TestIndexRoute:
             _snr_render_channel(1, '602 MHz', 3.0, 36.0, '256QAM', '3.1'),
             _snr_render_channel(33, '774 MHz', 1.0, 41.0, 'OFDM', '3.1'),
         ]
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -643,7 +642,7 @@ class TestIndexRoute:
         sample_analysis["ds_channels"] = [
             _snr_render_channel(33, '774 MHz', 1.0, 42.0, '4096QAM', '3.1'),
         ]
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -662,7 +661,7 @@ class TestIndexRoute:
         sample_analysis["ds_channels"] = [
             _snr_render_channel(1, '602 MHz', 1.0, 39.0, '', ''),
         ]
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -674,7 +673,7 @@ class TestIndexRoute:
     def test_home_renders_downstream_signal_family_cards_without_mixed_average(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
         sample_analysis["summary"].update({"ds_snr_avg": 38.5})
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -704,7 +703,7 @@ class TestIndexRoute:
 
     def test_home_signal_family_cards_follow_ds_us_order(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -724,7 +723,7 @@ class TestIndexRoute:
     def test_home_signal_family_cards_explain_average_context_without_title_spam(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
         sample_analysis["summary"]["signal_families"]["downstream"]["families"]["sc_qam"]["count"] = 2
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -747,7 +746,7 @@ class TestIndexRoute:
         ofdma["power"].update({"available": True, "avg": 49.5, "min": 49.5, "max": 49.5, "health": "warning"})
         ofdma["modulation"].update({"value": "32QAM", "distinct": ["32QAM"], "health": "critical"})
         sample_analysis["summary"]["us_ofdma_power_avg"] = 49.5
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -783,7 +782,7 @@ class TestIndexRoute:
         })
         ofdm["mer"].update({"avg": 27.0, "min": 25.0, "max": 29.0, "health": "warning"})
         sample_analysis["summary"]["ds_ofdm_mer_avg"] = 27.0
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -848,7 +847,7 @@ class TestIndexRoute:
         assert injected_ranges["ds_ofdm_mer"]["bands"] != metric_ranges["ds_ofdm_mer"]["bands"]
 
     def test_legacy_metric_card_keeps_generic_status_label(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -887,7 +886,7 @@ class TestIndexRoute:
             "health": "critical",
         })
         sample_analysis["summary"]["us_scqam_power_avg"] = 41.9
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -925,7 +924,7 @@ class TestIndexRoute:
             "health": "critical",
         })
         sample_analysis["summary"]["us_ofdma_power_avg"] = 49.5
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -952,7 +951,7 @@ class TestIndexRoute:
             "values": [{"value": "64QAM", "health": "good"}],
             "health": "good",
         })
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -969,7 +968,7 @@ class TestIndexRoute:
         ofdm = sample_analysis["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
         ofdm["health"] = "warning"
         ofdm["health_cause"] = "mer"
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -982,7 +981,7 @@ class TestIndexRoute:
 
     def test_home_signal_family_cards_show_metric_health_bars(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1006,7 +1005,7 @@ class TestIndexRoute:
         family_metric = sample_analysis["summary"]["signal_families"]["downstream"]["families"]["sc_qam"]["snr"]
         family_metric.pop("min")
         family_metric.pop("max")
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1019,7 +1018,7 @@ class TestIndexRoute:
 
     def test_home_renders_upstream_signal_family_cards_separately(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1036,7 +1035,7 @@ class TestIndexRoute:
 
     def test_home_family_cards_expose_family_sparkline_keys(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1051,7 +1050,7 @@ class TestIndexRoute:
 
     def test_home_family_cards_use_direction_icons_and_spark_colors(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1073,7 +1072,7 @@ class TestIndexRoute:
 
     def test_home_removes_modulation_context_when_family_cards_include_ranges(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1082,7 +1081,7 @@ class TestIndexRoute:
         assert 'class="hero-modulation-context"' not in html
 
     def test_home_surfaces_normal_modulation_context(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1106,7 +1105,7 @@ class TestIndexRoute:
             "health": "warning",
             "health_detail": "modulation marginal",
         })
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1139,7 +1138,7 @@ class TestIndexRoute:
             "health": "critical" if issue == "ds_modulation_critical" else "warning",
             "health_detail": detail,
         })
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=de")
 
@@ -1159,7 +1158,7 @@ class TestIndexRoute:
             "health": "critical",
             "health_detail": "modulation critical",
         })
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1175,7 +1174,7 @@ class TestIndexRoute:
             channel["health"] = "good"
             channel["health_detail"] = ""
         sample_analysis["summary"].update({"health": "good", "health_issues": []})
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
@@ -1207,7 +1206,7 @@ class TestIndexRoute:
             "measurements_download": [],
             "measurements_upload": [],
         })
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         with app.test_client() as c:
             resp = c.get("/")
         assert resp.status_code == 200
@@ -1229,7 +1228,7 @@ class TestIndexRoute:
             "ds_channels": [],
             "us_channels": [],
         }
-        update_state(analysis=analysis)
+        current_runtime().update_state(analysis=analysis)
         resp = client.get("/")
         assert resp.status_code == 200
         assert b"no-docsis-placeholder" in resp.data
@@ -1265,7 +1264,7 @@ class TestIndexRoute:
             "ds_channels": [],
             "us_channels": [],
         }
-        update_state(
+        current_runtime().update_state(
             analysis=analysis,
             speedtest_latest={
                 "download_mbps": 230.5,
@@ -1315,7 +1314,7 @@ class TestIndexRoute:
             "ds_channels": [],
             "us_channels": [],
         }
-        update_state(
+        current_runtime().update_state(
             analysis=analysis,
             speedtest_latest={
                 "download_mbps": 230.5,
@@ -1345,7 +1344,7 @@ class TestIndexSegmentUtilizationVisibility:
     def test_index_hides_segment_tab_when_disabled(self, client, config_mgr, sample_analysis):
         config_mgr.save({"segment_utilization_enabled": False})
         current_runtime().config_manager = config_mgr
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/?lang=en")
         assert resp.status_code == 200
         assert b'data-view="segment-utilization"' not in resp.data

@@ -47,8 +47,8 @@ class TestEvidenceChecklistApi:
         with app.test_request_context(
             "/api/evidence/checklist?from=2026-06-10T18:00:00Z&to=2026-06-10T23:00:00Z"
         ):
-            with patch.object(routes, "get_storage", return_value=core), \
-                 patch.object(routes, "get_config_manager", return_value=config), \
+            with patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes.current_runtime(), "config_manager", config), \
                  patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
                  patch.object(routes, "_get_bqm_rows", return_value=[]), \
                  patch.object(routes, "_get_connection_latency_rows", return_value=[]):
@@ -123,8 +123,8 @@ class TestEvidenceChecklistApi:
         config.is_demo_mode.return_value = False
 
         with app.test_request_context("/api/evidence/checklist?incident_id=7"):
-            with patch.object(routes, "get_storage", return_value=core), \
-                 patch.object(routes, "get_config_manager", return_value=config), \
+            with patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes.current_runtime(), "config_manager", config), \
                  patch.object(routes, "_get_journal_storage", return_value=journal), \
                  patch.object(routes, "_get_bqm_rows", return_value=[]), \
                  patch.object(routes, "_get_connection_latency_rows", return_value=[]), \
@@ -153,8 +153,8 @@ class TestEvidenceChecklistApi:
         config.is_demo_mode.return_value = False
 
         with app.test_request_context("/api/evidence/checklist?from=2026-06-10T18:00:00Z&to=2026-06-10T23:00:00Z"):
-            with patch.object(routes, "get_storage", return_value=core), \
-                 patch.object(routes, "get_config_manager", return_value=config), \
+            with patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes.current_runtime(), "config_manager", config), \
                  patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
                  patch.object(routes, "_get_bqm_rows", return_value=[]), \
                  patch.object(routes, "_get_connection_latency_rows", return_value=[]):
@@ -178,8 +178,8 @@ class TestEvidenceChecklistApi:
         config.is_demo_mode.return_value = False
 
         with app.test_request_context("/api/evidence/checklist?from=2026-06-10T18:00:00Z&to=2026-06-10T23:00:00Z"):
-            with patch.object(routes, "get_storage", return_value=core), \
-                 patch.object(routes, "get_config_manager", return_value=config), \
+            with patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes.current_runtime(), "config_manager", config), \
                  patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
                  patch.object(routes, "_get_bqm_rows", return_value=[]), \
                  patch.object(routes, "_get_connection_latency_rows", return_value=[
@@ -229,8 +229,8 @@ class TestEvidenceChecklistApi:
         config.is_demo_mode.return_value = False
 
         with app.test_request_context("/api/evidence/checklist?from=2026-06-10T19:00:00&to=2026-06-10T23:00:00"):
-            with patch.object(routes, "get_storage", return_value=core), \
-                 patch.object(routes, "get_config_manager", return_value=config), \
+            with patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes.current_runtime(), "config_manager", config), \
                  patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
                  patch.object(routes, "_get_bqm_rows", return_value=[]), \
                  patch.object(routes, "_get_connection_latency_rows", return_value=[]), \
@@ -253,8 +253,8 @@ class TestEvidenceChecklistApi:
         config.is_demo_mode.return_value = False
 
         with app.test_request_context("/api/evidence/checklist?from=2026-06-10T19:00:00%2B02:00&to=2026-06-10T23:00:00%2B02:00"):
-            with patch.object(routes, "get_storage", return_value=core), \
-                 patch.object(routes, "get_config_manager", return_value=config), \
+            with patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes.current_runtime(), "config_manager", config), \
                  patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
                  patch.object(routes, "_get_bqm_rows", return_value=[]), \
                  patch.object(routes, "_get_connection_latency_rows", return_value=[]), \
@@ -395,8 +395,8 @@ class TestEvidenceChecklistApi:
         config.is_demo_mode.return_value = False
 
         with app.test_request_context("/api/evidence/checklist?from=not-a-date&to=2026-06-10T23:00:00Z"):
-            with patch.object(routes, "get_storage", return_value=core), \
-                 patch.object(routes, "get_config_manager", return_value=config), \
+            with patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes.current_runtime(), "config_manager", config), \
                  patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"):
                 response, status = getattr(routes.api_evidence_checklist, "__wrapped__")()
 
@@ -411,7 +411,7 @@ class TestEvidenceChecklistApi:
         journal.get_incident.return_value = {"id": 7, "name": "Bad evening"}
 
         with app.test_request_context("/api/evidence/checklist?incident_id=7"):
-            with patch.object(routes, "get_storage", return_value=core), \
+            with patch.object(routes.current_runtime(), "storage", core), \
                  patch.object(routes, "_get_journal_storage", return_value=journal):
                 response, status = getattr(routes.api_evidence_checklist, "__wrapped__")()
 

@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 from app.config import ConfigManager, PASSWORD_MASK
 from app.notifier import NotificationDispatcher, WebPushChannel
 from app.storage import SnapshotStorage
-from app import web
+
 from app.runtime import current_runtime
 
 

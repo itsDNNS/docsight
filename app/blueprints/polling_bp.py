@@ -1,15 +1,12 @@
 """Polling and connectivity test routes."""
 
+from app.runtime import current_runtime
+from app.web_locale import get_lang
 import logging
 import time
 
 from flask import Blueprint, request, jsonify
 
-from app.web import (
-    get_config_manager, get_storage, get_modem_collector, get_collectors,
-    get_last_manual_poll, set_last_manual_poll,
-    _get_lang,
-)
 from app.web_auth import require_auth
 from app.config import PASSWORD_MASK, parse_config_bool
 from app.i18n import get_translations
@@ -42,7 +39,7 @@ def _pwa_push_configured(config_mgr):
 @require_auth
 def api_test_modem():
     """Test modem connection."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     try:
         data = request.get_json()
         # Resolve masked passwords to real values
@@ -71,7 +68,7 @@ def api_test_modem():
 @require_auth
 def api_test_mqtt():
     """Test MQTT broker connection."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     try:
         data = request.get_json()
         # Resolve masked passwords to real values
@@ -96,11 +93,11 @@ def api_test_mqtt():
 @require_auth
 def api_notifications_test():
     """Send a test notification to all configured channels."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager or not _config_manager.is_notify_configured():
         return jsonify({"success": False, "error": "Notifications not configured"}), 400
     from app.notifier import NotificationDispatcher
-    dispatcher = NotificationDispatcher(_config_manager, storage=get_storage())
+    dispatcher = NotificationDispatcher(_config_manager, storage=current_runtime().storage)
     result = dispatcher.test()
     return jsonify(result)
 
@@ -109,8 +106,8 @@ def api_notifications_test():
 @require_auth
 def api_pwa_push_status():
     """Return browser Push API readiness without exposing private VAPID material."""
-    _config_manager = get_config_manager()
-    storage = get_storage()
+    _config_manager = current_runtime().config_manager
+    storage = current_runtime().storage
     configured = _pwa_push_configured(_config_manager)
     public_key = ""
     if _config_manager and _config_manager.get("notify_pwa_push_enabled"):
@@ -128,7 +125,7 @@ def api_pwa_push_status():
 @require_auth
 def api_pwa_push_subscribe():
     """Persist the current browser's Push API subscription."""
-    storage = get_storage()
+    storage = current_runtime().storage
     if not storage:
         return jsonify({"success": False, "error": "Storage unavailable"}), 503
     data = request.get_json(silent=True) or {}
@@ -149,7 +146,7 @@ def api_pwa_push_subscribe():
 @require_auth
 def api_pwa_push_unsubscribe():
     """Remove the current browser's Push API subscription by endpoint."""
-    storage = get_storage()
+    storage = current_runtime().storage
     if not storage:
         return jsonify({"success": False, "error": "Storage unavailable"}), 503
     data = request.get_json(silent=True) or {}
@@ -164,7 +161,7 @@ def api_pwa_push_unsubscribe():
 @require_auth
 def api_test_speedtest():
     """Test Speedtest Tracker connection."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     try:
         data = request.get_json(silent=True) or {}
         submitted_url = data.get("speedtest_tracker_url", "")
@@ -213,14 +210,14 @@ def api_poll():
     consistent behavior and fail-safe application.
     Uses _collect_lock to prevent collision with parallel auto-poll.
     """
-    _modem_collector = get_modem_collector()
+    _modem_collector = current_runtime().modem_collector
 
     if not _modem_collector:
         return jsonify({"success": False, "error": "Collector not initialized"}), 500
 
     now = time.time()
-    if now - get_last_manual_poll() < 10:
-        lang = _get_lang()
+    if now - current_runtime().get_last_manual_poll() < 10:
+        lang = get_lang()
         t = get_translations(lang)
         return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
 
@@ -233,7 +230,7 @@ def api_poll():
         if not result.success:
             return jsonify({"success": False, "error": result.error}), 500
 
-        set_last_manual_poll(time.time())
+        current_runtime().set_last_manual_poll(time.time())
 
         # Return the analysis data from the collector result
         # (ModemCollector already updated web state and saved snapshot)
@@ -254,7 +251,7 @@ def api_collectors_status():
     Provides monitoring info: failure counts, penalties, next poll times.
     Useful for debugging collector issues and fail-safe behavior.
     """
-    _collectors = get_collectors()
+    _collectors = current_runtime().collectors
     if not _collectors:
         return jsonify([])
 

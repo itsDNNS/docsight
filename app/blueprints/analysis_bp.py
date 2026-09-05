@@ -1,5 +1,7 @@
 """Analysis routes: connection, channels, device, thresholds, gaming, channel history, correlation."""
 
+from app.runtime import current_runtime
+from app.tz import localize_timestamps, get_tz_name
 import logging
 from datetime import datetime
 
@@ -8,10 +10,6 @@ from flask import Blueprint, request, jsonify
 from app.analyzer import get_thresholds
 from app.time_ranges import parse_time_range_hours
 from app.tz import utc_now, utc_cutoff
-from app.web import (
-    get_storage, get_config_manager, get_state,
-    _localize_timestamps,
-)
 from app.web_auth import require_auth
 from app.gaming_index import compute_gaming_index
 
@@ -42,9 +40,9 @@ def api_connection():
     isp_name comes from user config. The remaining fields are populated
     by the modem driver and may be absent if the modem has not been polled yet.
     """
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
-    conn_info = get_state().get("connection_info") or {}
+    conn_info = current_runtime().get_state().get("connection_info") or {}
     return jsonify({
         "isp_name": isp_name or None,
         "connection_type": conn_info.get("connection_type"),
@@ -57,8 +55,8 @@ def api_connection():
 @require_auth
 def api_channels():
     """Return current DS and US channels with overall health summary."""
-    _storage = get_storage()
-    state = get_state()
+    _storage = current_runtime().storage
+    state = current_runtime().get_state()
     analysis = state.get("analysis")
     summary = analysis["summary"] if analysis else None
     if not _storage:
@@ -72,7 +70,7 @@ def api_channels():
 @require_auth
 def api_device():
     """Return modem device information."""
-    state = get_state()
+    state = current_runtime().get_state()
     return jsonify(state.get("device_info") or {})
 
 
@@ -97,9 +95,9 @@ def api_gaming_score():
       genres       - suitability verdict (ok/warn/bad) per game genre
       raw          - raw measured values that fed into the calculation
     """
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
-    state = get_state()
+    state = current_runtime().get_state()
     analysis = state.get("analysis")
     speedtest_latest = state.get("speedtest_latest")
     result = compute_gaming_index(analysis, speedtest_latest)
@@ -149,7 +147,7 @@ def api_channel_history():
     ?selector=X selects an exact channel identity; legacy ?channel_id=N remains
     supported for IDs that uniquely identify a channel. ?days=N also remains
     supported as a legacy time window."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify([])
     selector = request.args.get("selector")
@@ -166,7 +164,7 @@ def api_channel_history():
     data = _storage.get_channel_history(
         channel_id, direction, selector=selector, **window_args
     )
-    _localize_timestamps(data)
+    localize_timestamps(data, get_tz_name(current_runtime().config_manager))
     return jsonify(data)
 
 
@@ -176,7 +174,7 @@ def api_channel_compare():
     """Return per-channel time series for multiple channels.
     ?selectors=X,Y selects exact channel identities; legacy ?channels=1,2,3
     remains supported for unique IDs. ?days=N also remains supported."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({})
     channels_param = request.args.get("channels", "")
@@ -219,7 +217,7 @@ def api_correlation():
       hours: int (default 24, max 2160 / 90d)
       sources: comma-separated list of modem,speedtest,events,bnetz,capture,segment (default all)
     """
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify([])
     hours = request.args.get("hours", 24, type=int)

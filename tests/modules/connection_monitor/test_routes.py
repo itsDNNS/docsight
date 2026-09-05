@@ -571,7 +571,7 @@ class TestSummaryAPI:
         mock_cfg.get.side_effect = lambda key, default=None: (
             False if key == "connection_monitor_enabled" else default
         )
-        with patch("app.modules.connection_monitor.routes.get_config_manager", return_value=mock_cfg):
+        with patch.object(get_runtime(c.application), "config_manager", mock_cfg):
             resp = c.get("/api/connection-monitor/summary")
 
         assert resp.status_code == 200

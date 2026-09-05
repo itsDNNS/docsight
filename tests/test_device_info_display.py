@@ -3,7 +3,7 @@
 import json
 import pytest
 
-from app.web import update_state, format_uptime
+from app.web import format_uptime
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.runtime import current_runtime
@@ -42,7 +42,7 @@ def client(config_mgr, storage):
     current_runtime().storage = storage
     app.config["TESTING"] = True
     # Seed analysis so the dashboard renders the hero card
-    update_state(analysis=_SAMPLE_ANALYSIS)
+    current_runtime().update_state(analysis=_SAMPLE_ANALYSIS)
     with app.test_client() as c:
         yield c
 
@@ -89,7 +89,7 @@ class TestFormatUptime:
 class TestDeviceInfoAPI:
     def test_device_endpoint_returns_full_info(self, client):
         """Device endpoint returns all fields from driver."""
-        update_state(device_info={
+        current_runtime().update_state(device_info={
             "manufacturer": "Compal",
             "model": "CH7465LG",
             "sw_version": "1.2.3",
@@ -104,7 +104,7 @@ class TestDeviceInfoAPI:
 
     def test_device_endpoint_partial_info(self, client):
         """Device endpoint returns partial info when driver doesn't provide all fields."""
-        update_state(device_info={
+        current_runtime().update_state(device_info={
             "manufacturer": "Arris",
             "model": "CM8200A",
             "sw_version": "",
@@ -134,21 +134,21 @@ class TestDeviceInfoDashboard:
 
     def test_model_badge_rendered(self, client):
         """Model badge appears when device_info has model."""
-        update_state(device_info={"model": "CH7465LG", "manufacturer": "Compal"})
+        current_runtime().update_state(device_info={"model": "CH7465LG", "manufacturer": "Compal"})
         html = self._render_index(client)
         assert "CH7465LG" in html
         assert 'data-lucide="router"' in html
 
     def test_firmware_badge_rendered(self, client):
         """Firmware badge appears when sw_version is non-empty."""
-        update_state(device_info={"model": "TC4400", "sw_version": "2.1.0beta3"})
+        current_runtime().update_state(device_info={"model": "TC4400", "sw_version": "2.1.0beta3"})
         html = self._render_index(client)
         assert "2.1.0beta3" in html
         assert 'data-lucide="package"' in html
 
     def test_uptime_badge_rendered(self, client):
         """Uptime badge appears when uptime_seconds is present."""
-        update_state(device_info={"model": "CH7465LG", "uptime_seconds": 259200})
+        current_runtime().update_state(device_info={"model": "CH7465LG", "uptime_seconds": 259200})
         html = self._render_index(client)
         assert "3d 0h 0m" in html
 
@@ -160,14 +160,14 @@ class TestDeviceInfoDashboard:
 
     def test_no_firmware_badge_when_empty(self, client):
         """No firmware badge when sw_version is empty string."""
-        update_state(device_info={"model": "Hitron CODA-56", "sw_version": ""})
+        current_runtime().update_state(device_info={"model": "Hitron CODA-56", "sw_version": ""})
         html = self._render_index(client)
         assert "Hitron CODA-56" in html
         assert 'data-lucide="package"' not in html
 
     def test_no_uptime_badge_when_missing(self, client):
         """No uptime badge when uptime_seconds is not in device_info."""
-        update_state(device_info={"model": "CM8200A"})
+        current_runtime().update_state(device_info={"model": "CM8200A"})
         html = self._render_index(client)
         assert "CM8200A" in html
         # Extract hero-meta section and verify no clock badge
@@ -178,6 +178,6 @@ class TestDeviceInfoDashboard:
 
     def test_zero_uptime_rendered(self, client):
         """Uptime badge shows '0m' when uptime_seconds is 0 (falsy but valid)."""
-        update_state(device_info={"model": "DemoRouter", "uptime_seconds": 0})
+        current_runtime().update_state(device_info={"model": "DemoRouter", "uptime_seconds": 0})
         html = self._render_index(client)
         assert "0m" in html

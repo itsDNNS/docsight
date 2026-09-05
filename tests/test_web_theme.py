@@ -8,7 +8,7 @@ from app.runtime import current_runtime
 class TestThemeContext:
     """Test active theme module is available in template context."""
 
-    def test_active_theme_in_context(self):
+    def test_active_theme_in_context(self, monkeypatch):
         """Context processor includes active_theme_data when theme module is active."""
         from app import web
 
@@ -34,21 +34,15 @@ class TestThemeContext:
                     return "test.theme"
                 return default
 
-        old_loader = current_runtime().module_loader
-        old_config = current_runtime().config_manager
-        try:
-            current_runtime().module_loader = FakeLoader()
-            current_runtime().config_manager = FakeConfig()
+        monkeypatch.setattr(current_runtime(), "module_loader", FakeLoader())
+        monkeypatch.setattr(current_runtime(), "config_manager", FakeConfig())
 
-            with app.test_request_context("/"):
-                ctx = web.inject_auth()
-                assert "active_theme_data" in ctx
-                assert ctx["active_theme_data"]["dark"]["--bg"] == "#111"
-        finally:
-            current_runtime().module_loader = old_loader
-            current_runtime().config_manager = old_config
+        with app.test_request_context("/"):
+            ctx = web.inject_auth()
+            assert "active_theme_data" in ctx
+            assert ctx["active_theme_data"]["dark"]["--bg"] == "#111"
 
-    def test_no_theme_returns_none(self):
+    def test_no_theme_returns_none(self, monkeypatch):
         """Context processor returns None when no theme modules exist."""
         from app import web
 
@@ -62,21 +56,15 @@ class TestThemeContext:
             def get(self, key, default=""):
                 return default
 
-        old_loader = current_runtime().module_loader
-        old_config = current_runtime().config_manager
-        try:
-            current_runtime().module_loader = FakeLoader()
-            current_runtime().config_manager = FakeConfig()
+        monkeypatch.setattr(current_runtime(), "module_loader", FakeLoader())
+        monkeypatch.setattr(current_runtime(), "config_manager", FakeConfig())
 
-            with app.test_request_context("/"):
-                ctx = web.inject_auth()
-                assert "active_theme_data" in ctx
-                assert ctx["active_theme_data"] is None
-        finally:
-            current_runtime().module_loader = old_loader
-            current_runtime().config_manager = old_config
+        with app.test_request_context("/"):
+            ctx = web.inject_auth()
+            assert "active_theme_data" in ctx
+            assert ctx["active_theme_data"] is None
 
-    def test_fallback_prefers_classic_over_alphabetical(self):
+    def test_fallback_prefers_classic_over_alphabetical(self, monkeypatch):
         """When no active_theme is configured, Classic is chosen over alphabetically first."""
         from app import web
 
@@ -103,21 +91,15 @@ class TestThemeContext:
             def get(self, key, default=""):
                 return default  # no active_theme set
 
-        old_loader = current_runtime().module_loader
-        old_config = current_runtime().config_manager
-        try:
-            current_runtime().module_loader = FakeLoader()
-            current_runtime().config_manager = FakeConfig()
+        monkeypatch.setattr(current_runtime(), "module_loader", FakeLoader())
+        monkeypatch.setattr(current_runtime(), "config_manager", FakeConfig())
 
-            with app.test_request_context("/"):
-                ctx = web.inject_auth()
-                assert ctx["active_theme_id"] == "docsight.theme_classic"
-                assert ctx["active_theme_data"]["dark"]["--bg"] == "#111"
-        finally:
-            current_runtime().module_loader = old_loader
-            current_runtime().config_manager = old_config
+        with app.test_request_context("/"):
+            ctx = web.inject_auth()
+            assert ctx["active_theme_id"] == "docsight.theme_classic"
+            assert ctx["active_theme_data"]["dark"]["--bg"] == "#111"
 
-    def test_theme_collections_are_grouped_for_gallery(self):
+    def test_theme_collections_are_grouped_for_gallery(self, monkeypatch):
         """Theme gallery collections group signature, community, and playful themes."""
         from app import web
 
@@ -152,22 +134,16 @@ class TestThemeContext:
                     return "docsight.theme_classic"
                 return default
 
-        old_loader = current_runtime().module_loader
-        old_config = current_runtime().config_manager
-        try:
-            current_runtime().module_loader = FakeLoader()
-            current_runtime().config_manager = FakeConfig()
+        monkeypatch.setattr(current_runtime(), "module_loader", FakeLoader())
+        monkeypatch.setattr(current_runtime(), "config_manager", FakeConfig())
 
-            with app.test_request_context("/settings"):
-                ctx = web.inject_auth()
-                assert [c["key"] for c in ctx["theme_collections"]] == [
-                    "signature",
-                    "community",
-                    "playful",
-                ]
-                assert [m.id for m in ctx["theme_collections"][1]["modules"]] == [
-                    "docsight.theme_tokyo_night",
-                ]
-        finally:
-            current_runtime().module_loader = old_loader
-            current_runtime().config_manager = old_config
+        with app.test_request_context("/settings"):
+            ctx = web.inject_auth()
+            assert [c["key"] for c in ctx["theme_collections"]] == [
+                "signature",
+                "community",
+                "playful",
+            ]
+            assert [m.id for m in ctx["theme_collections"][1]["modules"]] == [
+                "docsight.theme_tokyo_night",
+            ]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.runtime import current_runtime
 import logging
 import os
 import sqlite3
@@ -21,7 +22,6 @@ from app.analyzer import threshold_snapshot
 from app.modules.journal.storage import JournalStorage
 from app.storage.sqlite import open_read
 from app.tz import get_tz_name, local_date_to_utc_range, local_to_utc, local_today
-from app.web import get_config_manager, get_storage
 from app.web_auth import require_auth
 
 from .checklist import build_checklist, summarize_checklist
@@ -34,7 +34,7 @@ _INCIDENT_ID_ERROR = "incident_id must be a positive integer"
 
 
 def _get_journal_storage():
-    core = get_storage()
+    core = current_runtime().storage
     if not core:
         return None
     return JournalStorage(core.db_path)
@@ -42,7 +42,7 @@ def _get_journal_storage():
 
 def _get_tz_name() -> str:
     """Return the configured timezone without depending on app.web privates."""
-    return get_tz_name(get_config_manager())
+    return get_tz_name(current_runtime().config_manager)
 
 
 def _utc_datetime(value: str) -> datetime:
@@ -275,7 +275,7 @@ def api_evidence_checklist():
     if incident_id is None and not has_range:
         return jsonify({"error": "incident_id or from/to required"}), 400
 
-    core = get_storage()
+    core = current_runtime().storage
     if not core:
         return jsonify({"error": "storage not available"}), 503
 
@@ -313,7 +313,7 @@ def api_evidence_checklist():
     )
     bqm_rows = _get_bqm_rows(core.db_path, window["from"], window["to"])
     connection_latency_rows = _get_connection_latency_rows(window["from"], window["to"])
-    config_manager = get_config_manager()
+    config_manager = current_runtime().config_manager
     capabilities = _capabilities(config_manager)
     items = build_checklist(
         window,

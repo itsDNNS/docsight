@@ -5,6 +5,7 @@ Conversion to local time happens only at the display boundary (web/charts/report
 """
 
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -178,3 +179,33 @@ def _parse_utc(ts):
         ts_clean = ts_clean.split(".")[0]
     naive = datetime.strptime(ts_clean, _LOCAL_FMT)
     return naive.replace(tzinfo=timezone.utc)
+
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def valid_date(date_str):
+    """Validate date string format AND actual calendar validity."""
+    if not date_str or not _DATE_RE.match(date_str):
+        return False
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+
+def localize_timestamps(data, tz_name, keys=("timestamp", "created_at", "updated_at", "last_used_at")):
+    """Convert UTC timestamps to local time in-place for API responses.
+
+    Works on dicts and lists of dicts. Modifies data in-place and returns it.
+    """
+    if not tz_name:
+        return data
+    items = data if isinstance(data, list) else [data]
+    for item in items:
+        if isinstance(item, dict):
+            for k in keys:
+                if k in item and item[k] and isinstance(item[k], str) and item[k].endswith("Z"):
+                    item[k] = to_local(item[k], tz_name)
+    return data

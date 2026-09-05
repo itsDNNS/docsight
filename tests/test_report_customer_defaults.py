@@ -12,7 +12,7 @@ from jinja2 import ChoiceLoader, FileSystemLoader
 
 from app import config as config_module
 from app import module_loader as module_loader_module
-from app import web
+
 from app.config import ConfigManager
 from app.runtime import current_runtime
 from app.module_loader import (
@@ -330,7 +330,7 @@ def test_demo_settings_and_index_hide_saved_private_values(
         "demo_mode": True,
     })
     current_runtime().config_manager = config_mgr
-    web.update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     settings_html = client.get("/settings?lang=en").get_data(as_text=True)
     index_html = client.get("/?lang=en").get_data(as_text=True)
@@ -354,7 +354,7 @@ def test_index_prefills_saved_customer_defaults_with_autoescaping(
     }
     config_mgr.save(values.copy())
     current_runtime().config_manager = config_mgr
-    web.update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     response = client.get("/?lang=en")
 
@@ -377,7 +377,7 @@ def test_index_prefills_saved_customer_defaults_with_autoescaping(
 
 def test_index_report_fields_have_empty_server_defaults(client, config_mgr, sample_analysis):
     current_runtime().config_manager = config_mgr
-    web.update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     soup = BeautifulSoup(client.get("/?lang=en").get_data(as_text=True), "html.parser")
 
@@ -440,10 +440,8 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     report_storage.get_range_data.return_value = []
 
     with app.test_request_context("/api/report"):
-        with patch.object(report_routes, "get_storage", return_value=report_storage), patch.object(
-            report_routes, "get_config_manager", return_value=config_manager
-        ), patch.object(
-            report_routes, "get_state", return_value={"analysis": analysis, "connection_info": {}}
+        with patch.object(report_routes.current_runtime(), "storage", report_storage), patch.object(report_routes.current_runtime(), "config_manager", config_manager
+        ), patch.object(report_routes.current_runtime(), "get_state", return_value={"analysis": analysis, "connection_info": {}}
         ), patch.object(report_routes, "generate_report", return_value=b"%PDF") as generate_report:
             getattr(report_routes.api_report, "__wrapped__")()
     assert generate_report.call_args.kwargs["customer_name"] == ""
@@ -451,9 +449,8 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     assert generate_report.call_args.kwargs["customer_address"] == ""
 
     with app.test_request_context("/api/complaint"):
-        with patch.object(report_routes, "get_storage", return_value=report_storage), patch.object(
-            report_routes, "get_config_manager", return_value=config_manager
-        ), patch.object(report_routes, "get_state", return_value={"analysis": analysis}), patch.object(
+        with patch.object(report_routes.current_runtime(), "storage", report_storage), patch.object(report_routes.current_runtime(), "config_manager", config_manager
+        ), patch.object(report_routes.current_runtime(), "get_state", return_value={"analysis": analysis}), patch.object(
             report_routes, "generate_complaint_text", return_value="letter"
         ) as generate_complaint:
             getattr(report_routes.api_complaint, "__wrapped__")()
@@ -469,9 +466,8 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     }
     incident_storage.get_entries.return_value = []
     with app.test_request_context("/api/incidents/7/report"):
-        with patch.object(journal_routes, "_get_journal_storage", return_value=incident_storage), patch.object(
-            journal_routes, "get_config_manager", return_value=config_manager
-        ), patch.object(journal_routes, "get_state", return_value={"connection_info": {}}), patch(
+        with patch.object(journal_routes, "_get_journal_storage", return_value=incident_storage), patch.object(journal_routes.current_runtime(), "config_manager", config_manager
+        ), patch.object(journal_routes.current_runtime(), "get_state", return_value={"connection_info": {}}), patch(
             "app.modules.reports.report.generate_incident_report", return_value=b"%PDF"
         ) as generate_incident:
             getattr(journal_routes.api_incident_report, "__wrapped__")(7)

@@ -319,9 +319,9 @@ class TestComplaintRoutes:
             "&number=KD-123456"
             "&address=Musterstra%C3%9Fe%201%0A12345%20Musterstadt"
         ):
-            with patch.object(routes, "get_storage", return_value=storage), \
-                 patch.object(routes, "get_config_manager", return_value=config_manager), \
-                 patch.object(routes, "get_state", return_value={"analysis": analysis, "connection_info": {}}), \
+            with patch.object(routes.current_runtime(), "storage", storage), \
+                 patch.object(routes.current_runtime(), "config_manager", config_manager), \
+                 patch.object(routes.current_runtime(), "get_state", return_value={"analysis": analysis, "connection_info": {}}), \
                  patch.object(routes, "generate_report", return_value=pdf_bytes) as generate_report:
                 response = getattr(routes.api_report, "__wrapped__")()
 
@@ -358,8 +358,8 @@ class TestComplaintRoutes:
             "&address=Musterstra%C3%9Fe%201%0A12345%20Musterstadt"
         ):
             with patch.object(routes, "_get_journal_storage", return_value=storage), \
-                 patch.object(routes, "get_config_manager", return_value=config_manager), \
-                 patch.object(routes, "get_state", return_value={"connection_info": {}}), \
+                 patch.object(routes.current_runtime(), "config_manager", config_manager), \
+                 patch.object(routes.current_runtime(), "get_state", return_value={"connection_info": {}}), \
                  patch("app.modules.reports.report.generate_incident_report", return_value=pdf_bytes) as generate_incident_report:
                 response = getattr(routes.api_incident_report, "__wrapped__")(7)
 

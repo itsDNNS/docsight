@@ -1,5 +1,7 @@
 """Report generation routes."""
 
+from app.runtime import current_runtime
+from app.web_locale import get_lang
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -7,12 +9,6 @@ from flask import Blueprint, jsonify, make_response, request
 
 from app.aggregation import select_preferred_bnetz
 from app.tz import utc_cutoff, utc_now
-from app.web import (
-    _get_lang,
-    get_config_manager,
-    get_state,
-    get_storage,
-)
 from app.web_auth import require_auth
 
 from .report import generate_complaint_text, generate_report
@@ -128,8 +124,8 @@ def _get_comparison_data(storage):
 @require_auth
 def api_report():
     """Generate a PDF incident report."""
-    _storage = get_storage()
-    _config_manager = get_config_manager()
+    _storage = current_runtime().storage
+    _config_manager = current_runtime().config_manager
     window, error = _get_report_window()
     if error:
         return error
@@ -146,8 +142,8 @@ def api_report():
             "modem_type": _config_manager.get("modem_type", ""),
         }
 
-    conn_info = (get_state().get("connection_info") or {})
-    lang = request.args.get("lang", _get_lang())
+    conn_info = (current_runtime().get_state().get("connection_info") or {})
+    lang = request.args.get("lang", get_lang())
     comparison_data = _get_comparison_data(_storage)
     customer_name = request.args.get("name", "")
     customer_number = request.args.get("number", "")
@@ -177,8 +173,8 @@ def api_report():
 @require_auth
 def api_complaint():
     """Generate ISP complaint letter as text."""
-    _storage = get_storage()
-    _config_manager = get_config_manager()
+    _storage = current_runtime().storage
+    _config_manager = current_runtime().config_manager
     window, error = _get_report_window()
     if error:
         return error
@@ -195,7 +191,7 @@ def api_complaint():
             "modem_type": _config_manager.get("modem_type", ""),
         }
 
-    lang = request.args.get("lang", _get_lang())
+    lang = request.args.get("lang", get_lang())
     customer_name = request.args.get("name", "")
     customer_number = request.args.get("number", "")
     customer_address = request.args.get("address", "")

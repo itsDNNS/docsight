@@ -49,18 +49,18 @@ discovery, `app.module_config_registry` owns configuration-schema preflight,
 and `app.module_loader` orchestrates ownership and rejection policy behind its
 compatible public facade.
 
-Each application owns a typed `DocsightRuntime` at
-`app.extensions["docsight"]`. It contains the configuration manager, storage,
-authentication state, rate limiter, update checker, module loader, collector
-references, derived-storage cache, and lock-protected dashboard state. Route
-and module code uses `app.web` runtime accessors; auth policy and factory bootstrap
-use `app.web_auth`, which accesses runtime directly and never imports `app.web`.
-
-Collector threads receive the same runtime explicitly through the existing
-`web=` duck-type parameter. The runtime implements `update_state()`,
-`clear_speedtest_latest()`, `get_state()`, `get_module_loader()`, and the
-read-only `_state` snapshot expected by existing collectors, without requiring
-a Flask request or application context.
+Internal routes/modules use `app.runtime.current_runtime()` to access the `DocsightRuntime` at `app.extensions["docsight"]`, which owns per-application configuration, storage, auth state, rate limiter, update checker, module loader, collectors, derived storage, and lock-protected state.
+`get_state()` retains its lock-protected snapshot. Collectors receive that runtime through existing `web=` parameters;
+its collector-thread duck contract provides `update_state()`, `clear_speedtest_latest()`, `get_state()`, `get_module_loader()`, and the read-only `_state` snapshot without requiring a Flask request or application context.
+`app.web_locale` owns request/setup language; `app.tz` owns pure date validation
+and timestamp localization with explicit timezone input. `app.theme_registry`
+owns curated collections and active-theme resolution; `app.version` owns version lookup.
+`app.web` retains HTTP/Jinja/setup/settings/glossary/desktop adapters and community
+compatibility: `get_storage`, `get_config_manager`, `get_collectors`, `get_modem_collector`,
+`get_module_loader`, `get_on_config_changed`, `get_state`, `get_last_manual_poll`,
+`set_last_manual_poll`, `update_state`, `clear_speedtest_latest`, `reset_modem_state`,
+`APP_VERSION`, and `require_auth`. Existing community imports remain supported.
+Auth policy/bootstrap use `app.web_auth`; lower-level owners never import `app.web`.
 
 Module schema registries in `app.config`, analyzer threshold selection,
 translation catalogs, driver/theme registries, and dynamic Python imports are

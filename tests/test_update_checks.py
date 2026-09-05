@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock
 
 from app.config import ConfigManager
-from app import web
 from app.runtime import UpdateChecker, current_runtime
 
 
@@ -30,7 +29,7 @@ def test_update_check_disabled_by_default_does_not_start_fetch_thread(tmp_path, 
         spawn=lambda target: _ThreadProbe(target, daemon=True).start(),
     )
 
-    assert web._check_for_update() is None
+    assert current_runtime().update_checker.latest() is None
 
     assert _ThreadProbe.calls == []
     assert current_runtime().update_checker.snapshot()["checking"] is False
@@ -47,7 +46,7 @@ def test_update_check_enabled_starts_background_fetch_thread(tmp_path, monkeypat
         spawn=lambda target: _ThreadProbe(target, daemon=True).start(),
     )
 
-    assert web._check_for_update() is None
+    assert current_runtime().update_checker.latest() is None
 
     assert len(_ThreadProbe.calls) == 1
     assert _ThreadProbe.calls[0].daemon is True

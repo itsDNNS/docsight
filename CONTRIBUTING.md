@@ -28,7 +28,7 @@ Collector Registry → Base Collector (Fail-Safe) → Analyzer/Storage → Web U
 - New modem types must implement the `ModemDriver` base class (`app/drivers/base.py`)
 - Collectors run in **parallel threads** via `ThreadPoolExecutor`. Protect shared state with locks.
 - Use the collector pattern for automatic fail-safe and health monitoring
-- Construct applications only with `app.app_factory.create_app()`. Importing `app.web` must remain free of application construction and app-specific globals.
+- Construct apps with `app.app_factory.create_app()`; internal consumers use `current_runtime()` and the language/time/theme/version owners in [ARCHITECTURE.md](ARCHITECTURE.md). Community `app.web` accessors, mutations, `APP_VERSION`, and `require_auth` remain supported; importing it creates no app or app-specific globals.
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation and data flow diagrams.
 

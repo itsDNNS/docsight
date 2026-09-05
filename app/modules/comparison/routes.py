@@ -1,5 +1,6 @@
 """Before/After Comparison module routes."""
 
+from app.runtime import current_runtime
 from flask import Blueprint, jsonify, request
 
 from app.aggregation import (
@@ -9,14 +10,13 @@ from app.aggregation import (
     report_bounds,
 )
 from app.analyzer import threshold_snapshot
-from app.web import get_storage
 from app.web_auth import require_auth
 
 bp = Blueprint("comparison_module", __name__)
 
 
 def _get_storage():
-    return get_storage()
+    return current_runtime().storage
 
 
 def _comparison_view(aggregate):

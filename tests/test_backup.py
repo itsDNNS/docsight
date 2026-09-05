@@ -243,16 +243,15 @@ class TestCreateBackup:
 class TestBackupDownloadRoute:
     @staticmethod
     def _app(data_dir, monkeypatch):
-        from flask import Flask
+        from app.app_factory import create_app
         from app.modules.backup import routes
 
         config_mgr = MagicMock()
         config_mgr.data_dir = data_dir
 
-        test_app = Flask(__name__)
+        test_app = create_app(config_manager=config_mgr, environ={}, testing=True)
         test_app.config.update(TESTING=True, SECRET_KEY="test-secret")
         test_app.register_blueprint(routes.bp)
-        monkeypatch.setattr(routes, "get_config_manager", lambda: config_mgr)
         monkeypatch.setattr("app.web_auth._auth_required", lambda **kwargs: False)
         return test_app
 

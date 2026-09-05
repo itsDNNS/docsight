@@ -1,5 +1,7 @@
 """Configuration and API token management routes."""
 
+from app.runtime import current_runtime
+from app.tz import localize_timestamps, get_tz_name
 import logging
 import os
 from urllib.parse import urlparse
@@ -7,10 +9,6 @@ from zoneinfo import ZoneInfo
 
 from flask import Blueprint, request, jsonify
 
-from app.web import (
-    get_config_manager, get_storage, get_on_config_changed,
-    _localize_timestamps,
-)
 from app.web_auth import (
     require_auth, _require_session_auth, _admin_password_matches,
     _invalidate_admin_sessions, _secret_values_match, _get_client_ip,
@@ -54,7 +52,7 @@ def run_bqm_initial_fetch(config_manager=None, storage=None):
 @_require_session_auth
 def api_config():
     """Save configuration."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
     try:
@@ -98,12 +96,12 @@ def api_config():
         if admin_password_changed:
             _invalidate_admin_sessions()
         audit_log.info("Config changed: ip=%s", _get_client_ip())
-        _on_config_changed = get_on_config_changed()
+        _on_config_changed = current_runtime().on_config_changed
         if _on_config_changed:
             _on_config_changed()
         response = {"success": True}
         if should_fetch_bqm:
-            response["bqm_initial_fetch"] = run_bqm_initial_fetch(_config_manager, get_storage())
+            response["bqm_initial_fetch"] = run_bqm_initial_fetch(_config_manager, current_runtime().storage)
         return jsonify(response)
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
@@ -118,11 +116,11 @@ def api_config():
 @require_auth
 def api_tokens_list():
     """List all API tokens (without hashes)."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"error": "Storage not available"}), 500
     tokens = _storage.get_api_tokens()
-    _localize_timestamps(tokens)
+    localize_timestamps(tokens, get_tz_name(current_runtime().config_manager))
     return jsonify({"tokens": tokens})
 
 
@@ -130,7 +128,7 @@ def api_tokens_list():
 @_require_session_auth
 def api_tokens_create():
     """Create a new API token. Session-only (no token auth)."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"error": "Storage not available"}), 500
     data = request.get_json()
@@ -146,7 +144,7 @@ def api_tokens_create():
 @_require_session_auth
 def api_tokens_revoke(token_id):
     """Revoke an API token. Session-only (no token auth)."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"error": "Storage not available"}), 500
     revoked = _storage.revoke_api_token(token_id)
@@ -166,7 +164,7 @@ def api_demo_start():
             "demo_mode": False,
             "status": "invalid_request",
         }), 415
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager:
         return jsonify({
             "success": False,
@@ -186,7 +184,7 @@ def api_demo_start():
             "status": "live_configured",
         }), 409
 
-    _on_config_changed = get_on_config_changed()
+    _on_config_changed = current_runtime().on_config_changed
     activated = False
     try:
         _config_manager.save({"demo_mode": True})
@@ -219,8 +217,8 @@ def api_demo_start():
 @require_auth
 def api_demo_migrate():
     """Switch from demo to live mode. Removes demo data, keeps user data."""
-    _config_manager = get_config_manager()
-    _storage = get_storage()
+    _config_manager = current_runtime().config_manager
+    _storage = current_runtime().storage
     if not _config_manager or not _config_manager.is_demo_mode():
         return jsonify({"success": False, "error": "Not in demo mode"}), 400
     if _config_manager.is_demo_mode_forced():
@@ -250,7 +248,7 @@ def api_demo_migrate():
         _config_manager.save({"demo_mode": False})
         _storage.max_days = _config_manager.get("history_days", 7)
         audit_log.info("Demo migration: ip=%s purged=%d rows", _get_client_ip(), purged)
-        _on_config_changed = get_on_config_changed()
+        _on_config_changed = current_runtime().on_config_changed
         if _on_config_changed:
             _on_config_changed()
         return jsonify({

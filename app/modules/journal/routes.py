@@ -1,5 +1,8 @@
 """Journal and incident management routes."""
 
+from app.runtime import current_runtime
+from app.tz import valid_date, localize_timestamps, get_tz_name
+from app.web_locale import get_lang
 import csv
 import json
 import logging
@@ -11,10 +14,6 @@ from io import BytesIO
 from flask import Blueprint, request, jsonify, send_file, make_response
 
 from app.tz import local_date_to_utc_range
-from app.web import (
-    get_config_manager, get_state, get_storage,
-    _valid_date, _localize_timestamps, _get_lang, _get_tz_name,
-)
 from app.web_auth import require_auth, _get_client_ip
 from app.storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_ENTRY
 
@@ -33,7 +32,7 @@ _VALID_INCIDENT_STATUSES = {"open", "resolved", "escalated"}
 
 def _get_journal_storage():
     """Get JournalStorage for journal-specific queries."""
-    core = get_storage()
+    core = current_runtime().storage
     if not core:
         return None
     return JournalStorage(core.db_path)
@@ -59,7 +58,7 @@ def api_journal_list():
         except (ValueError, TypeError):
             pass
     entries = _storage.get_entries(limit=limit, offset=offset, search=search, incident_id=incident_id)
-    _localize_timestamps(entries)
+    localize_timestamps(entries, get_tz_name(current_runtime().config_manager))
     return jsonify(entries)
 
 
@@ -163,7 +162,7 @@ def api_journal_create():
     date = (data.get("date") or "").strip()
     title = (data.get("title") or "").strip()
     description = (data.get("description") or "").strip()
-    if not _valid_date(date):
+    if not valid_date(date):
         return jsonify({"error": "Invalid date format (YYYY-MM-DD)"}), 400
     if not title:
         return jsonify({"error": "Title is required"}), 400
@@ -209,7 +208,7 @@ def api_journal_update(entry_id):
     date = (data.get("date") or "").strip()
     title = (data.get("title") or "").strip()
     description = (data.get("description") or "").strip()
-    if not _valid_date(date):
+    if not valid_date(date):
         return jsonify({"error": "Invalid date format (YYYY-MM-DD)"}), 400
     if not title:
         return jsonify({"error": "Title is required"}), 400
@@ -374,7 +373,7 @@ def api_journal_import_confirm():
         title = (row.get("title") or "").strip()
         description = (row.get("description") or "").strip()
 
-        if not _valid_date(date):
+        if not valid_date(date):
             continue
         if not title:
             continue
@@ -460,7 +459,7 @@ def api_incidents_list():
     if status and status not in _VALID_INCIDENT_STATUSES:
         status = None
     incidents = _storage.get_incidents(status=status)
-    _localize_timestamps(incidents)
+    localize_timestamps(incidents, get_tz_name(current_runtime().config_manager))
     return jsonify(incidents)
 
 
@@ -487,9 +486,9 @@ def api_incidents_create():
         return jsonify({"error": "Invalid status (open, resolved, escalated)"}), 400
     start_date = (data.get("start_date") or "").strip() or None
     end_date = (data.get("end_date") or "").strip() or None
-    if start_date and not _valid_date(start_date):
+    if start_date and not valid_date(start_date):
         return jsonify({"error": "Invalid start_date format (YYYY-MM-DD)"}), 400
-    if end_date and not _valid_date(end_date):
+    if end_date and not valid_date(end_date):
         return jsonify({"error": "Invalid end_date format (YYYY-MM-DD)"}), 400
     icon = (data.get("icon") or "").strip() or None
     incident_id = _storage.save_incident(name, description, status, start_date, end_date, icon)
@@ -533,9 +532,9 @@ def api_incident_update(incident_id):
         return jsonify({"error": "Invalid status (open, resolved, escalated)"}), 400
     start_date = (data.get("start_date") or "").strip() or None
     end_date = (data.get("end_date") or "").strip() or None
-    if start_date and not _valid_date(start_date):
+    if start_date and not valid_date(start_date):
         return jsonify({"error": "Invalid start_date format (YYYY-MM-DD)"}), 400
-    if end_date and not _valid_date(end_date):
+    if end_date and not valid_date(end_date):
         return jsonify({"error": "Invalid end_date format (YYYY-MM-DD)"}), 400
     icon = (data.get("icon") or "").strip() or None
     if not _storage.update_incident(incident_id, name, description, status, start_date, end_date, icon):
@@ -573,11 +572,11 @@ def api_incident_timeline(incident_id):
     timeline = []
     bnetz = []
     if incident.get("start_date"):
-        tz = _get_tz_name()
+        tz = get_tz_name(current_runtime().config_manager)
         start_ts, _ = local_date_to_utc_range(incident["start_date"], tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
         _, end_ts = local_date_to_utc_range(end_date, tz)
-        _core = get_storage()
+        _core = current_runtime().storage
         if _core:
             timeline = _core.get_correlation_timeline(start_ts, end_ts)
         try:
@@ -587,10 +586,10 @@ def api_incident_timeline(incident_id):
         except (ImportError, Exception):
             bnetz = []
 
-    _localize_timestamps(timeline)
-    _localize_timestamps(entries)
-    _localize_timestamps(incident)
-    _localize_timestamps(bnetz)
+    localize_timestamps(timeline, get_tz_name(current_runtime().config_manager))
+    localize_timestamps(entries, get_tz_name(current_runtime().config_manager))
+    localize_timestamps(incident, get_tz_name(current_runtime().config_manager))
+    localize_timestamps(bnetz, get_tz_name(current_runtime().config_manager))
     return jsonify({
         "incident": incident,
         "entries": entries,
@@ -606,7 +605,7 @@ def api_incident_report(incident_id):
     from app.modules.reports.report import generate_incident_report
 
     _storage = _get_journal_storage()
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
 
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
@@ -627,11 +626,11 @@ def api_incident_report(incident_id):
     speedtests = []
     bnetz = []
     if incident.get("start_date"):
-        _tz = _get_tz_name()
+        _tz = get_tz_name(current_runtime().config_manager)
         start_ts, _ = local_date_to_utc_range(incident["start_date"], _tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
         _, end_ts = local_date_to_utc_range(end_date, _tz)
-        _core = get_storage()
+        _core = current_runtime().storage
         snapshots = _core.get_range_data(start_ts, end_ts) if _core else []
         try:
             from app.modules.speedtest.storage import SpeedtestStorage
@@ -653,8 +652,8 @@ def api_incident_report(incident_id):
             "modem_type": _config_manager.get("modem_type", ""),
         }
 
-    conn_info = get_state().get("connection_info") or {}
-    lang = _get_lang()
+    conn_info = current_runtime().get_state().get("connection_info") or {}
+    lang = get_lang()
     customer_name = request.args.get("name", "")
     customer_number = request.args.get("number", "")
     customer_address = request.args.get("address", "")

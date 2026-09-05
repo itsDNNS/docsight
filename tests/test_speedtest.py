@@ -371,9 +371,8 @@ class TestSpeedtestAPI:
 
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_api_test_speedtest_passes_insecure_tls_flag(self, mock_get, speedtest_client):
-        from app.web import get_config_manager
 
-        get_config_manager().save({"speedtest_tracker_url": "https://speedtest.local:8443"})
+        current_runtime().config_manager.save({"speedtest_tracker_url": "https://speedtest.local:8443"})
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
@@ -433,7 +432,7 @@ class TestSpeedtestAPI:
                 }
 
         monkeypatch.setattr(speedtest_routes, "_get_speedtest_storage", lambda: SpeedtestStorage())
-        monkeypatch.setattr(speedtest_routes, "get_storage", lambda: CoreStorage())
+        monkeypatch.setattr(speedtest_routes.current_runtime(), "storage", CoreStorage())
 
         resp = speedtest_client.get("/api/speedtest/1/signal")
 
@@ -464,7 +463,7 @@ class TestSpeedtestAPI:
                 }
 
         monkeypatch.setattr(speedtest_routes, "_get_speedtest_storage", lambda: SpeedtestStorage())
-        monkeypatch.setattr(speedtest_routes, "get_storage", lambda: CoreStorage())
+        monkeypatch.setattr(speedtest_routes.current_runtime(), "storage", CoreStorage())
 
         resp = speedtest_client.get("/api/speedtest/1/signal")
 
@@ -515,9 +514,8 @@ class TestSpeedtestRun:
         mock_resp = MagicMock()
         mock_resp.status_code = 201
         mock_post.return_value = mock_resp
-        from app.web import get_config_manager
 
-        get_config_manager().save({"speedtest_tls_insecure": True})
+        current_runtime().config_manager.save({"speedtest_tls_insecure": True})
 
         resp = speedtest_client.post("/api/speedtest/run")
 

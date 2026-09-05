@@ -1,11 +1,11 @@
 """BNetzA module routes."""
 
+from app.web_locale import get_lang
 import logging
 from io import BytesIO
 
 from flask import Blueprint, request, jsonify, send_file
 
-from app.web import get_storage, _get_lang
 from app.web_auth import require_auth, _get_client_ip
 from app.runtime import current_runtime
 from app.storage import MAX_ATTACHMENT_SIZE
@@ -20,7 +20,7 @@ log = logging.getLogger("docsis.web.bnetz")
 bp = Blueprint("bnetz_module", __name__)
 
 def _get_bnetz_storage():
-    core_storage = get_storage()
+    core_storage = current_runtime().storage
     if not core_storage:
         return None
     return current_runtime().derived_storage.get(
@@ -52,7 +52,7 @@ def api_bnetz_upload():
     if len(file_bytes) > MAX_ATTACHMENT_SIZE:
         return jsonify({"error": "File too large (max 10 MB)"}), 400
 
-    lang = _get_lang()
+    lang = get_lang()
     t = get_translations(lang)
 
     if is_csv:

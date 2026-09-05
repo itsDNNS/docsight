@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.module_download import fetch_registry, is_trusted_url
+from app.runtime import get_runtime
 
 
 # ── Finding 1: SSRF via registry URL ──
@@ -92,7 +93,7 @@ class TestRestoreRateLimit:
             test_app.register_blueprint(backup_bp)
 
             # Patch the getters that backup routes use
-            with patch("app.modules.backup.routes.get_config_manager", return_value=cfg), \
+            with patch.object(get_runtime(test_app), "config_manager", cfg), \
                  patch("app.modules.backup.routes._auth_required", return_value=False), \
                  patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"):
                 with test_app.test_client() as c:
@@ -137,7 +138,6 @@ class TestRestoreRateLimit:
         before touching the filesystem — no fallback to a hardcoded data dir."""
         from app.app_factory import create_app
         from app.config import ConfigManager
-        from app.runtime import get_runtime
         from app.modules.backup import routes as br
         from app.modules.backup.routes import bp as backup_bp
 
@@ -145,7 +145,7 @@ class TestRestoreRateLimit:
             config_manager=ConfigManager(tempfile.mkdtemp()), environ={}, testing=True
         )
 
-        with patch("app.modules.backup.routes.get_config_manager", return_value=None), \
+        with patch.object(get_runtime(test_app), "config_manager", None), \
              patch("app.modules.backup.routes._auth_required", return_value=False), \
              patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"), \
              patch("app.modules.backup.routes.restore_backup") as mock_restore:
@@ -175,7 +175,7 @@ class TestRestoreRateLimit:
             cfg.save({"admin_password": "testpass", "modem_type": "demo"})
             test_app = create_app(config_manager=cfg, environ={}, testing=True)
 
-            with patch("app.modules.backup.routes.get_config_manager", return_value=cfg), \
+            with patch.object(get_runtime(test_app), "config_manager", cfg), \
                  patch("app.modules.backup.routes._auth_required", return_value=False), \
                  patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"):
                 from app.modules.backup.routes import bp as backup_bp

@@ -7,7 +7,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import analyzer, web
+from . import analyzer
 from .app_factory import create_app, default_module_loader_factory
 from .base_path import validate_base_path_configuration
 from .config import ConfigManager

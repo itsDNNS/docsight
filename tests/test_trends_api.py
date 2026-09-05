@@ -12,7 +12,6 @@ from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.storage import SnapshotStorage
 from app.runtime import current_runtime
-from app.web import get_config_manager
 
 
 def _utc_ts(delta: timedelta) -> str:
@@ -154,7 +153,7 @@ class TestTrendsRangeEndpoint:
         flask_client, storage = client
         _insert_snapshot(storage, _analysis(2.0), _utc_ts(timedelta(minutes=20)))
 
-        manager = get_config_manager()
+        manager = current_runtime().config_manager
         assert manager is not None
         cm_storage = ConnectionMonitorStorage(str(Path(manager.data_dir) / "connection_monitor.db"))
         target_id = cm_storage.create_target("Gateway", "192.0.2.1", enabled=True)

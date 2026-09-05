@@ -1,12 +1,12 @@
 """Modulation performance API routes (v2)."""
 
+from app.runtime import current_runtime
 import logging
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
 
 from app.tz import to_local, utc_now, utc_cutoff
-from app.web import get_storage, get_config_manager, get_state
 from app.web_auth import require_auth
 
 from .engine import (
@@ -23,7 +23,7 @@ bp = Blueprint("modulation_bp", __name__)
 
 def _get_tz():
     """Get the configured timezone name."""
-    cm = get_config_manager()
+    cm = current_runtime().config_manager
     if cm:
         return cm.get("timezone", "")
     return ""
@@ -42,13 +42,13 @@ def _positive_number(value):
 
 def _get_capacity_tariffs():
     """Return configured or detected tariff values for capacity comparison."""
-    cm = get_config_manager()
+    cm = current_runtime().config_manager
     booked_download = _positive_number(cm.get("booked_download")) if cm else None
     booked_upload = _positive_number(cm.get("booked_upload")) if cm else None
     if booked_download and booked_upload:
         return booked_download, booked_upload
 
-    state = get_state()
+    state = current_runtime().get_state()
     conn_info = state.get("connection_info") if isinstance(state, dict) else {}
     conn_info = conn_info or {}
     detected_download = _positive_number(conn_info.get("max_downstream_kbps"))
@@ -65,7 +65,7 @@ def _get_capacity_tariffs():
 @require_auth
 def api_modulation_distribution():
     """Return per-protocol-group distribution, health index, and trend per day."""
-    storage = get_storage()
+    storage = current_runtime().storage
     if not storage:
         return jsonify({"error": "No storage available"}), 503
 
@@ -96,7 +96,7 @@ def api_modulation_distribution():
 @require_auth
 def api_modulation_intraday():
     """Return per-channel modulation timeline for a single day."""
-    storage = get_storage()
+    storage = current_runtime().storage
     if not storage:
         return jsonify({"error": "No storage available"}), 503
 
@@ -139,7 +139,7 @@ def api_modulation_intraday():
 @require_auth
 def api_modulation_trend():
     """Return per-day trend data (health index + low-QAM %) for the trend chart."""
-    storage = get_storage()
+    storage = current_runtime().storage
     if not storage:
         return jsonify({"error": "No storage available"}), 503
 

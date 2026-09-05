@@ -9,7 +9,6 @@ from unittest.mock import patch
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.tz import utc_now, utc_cutoff
-from app.web import update_state
 from app.config import ConfigManager
 from app.runtime import current_runtime
 
