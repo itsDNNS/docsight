@@ -1,7 +1,6 @@
 """Integration tests for the GET /metrics HTTP endpoint."""
 
 import pytest
-from app.web import update_state
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.runtime import current_runtime
@@ -73,7 +72,7 @@ def protected_metrics_client(protected_metrics_config, tmp_path):
 @pytest.fixture
 def metrics_client_with_data(metrics_client):
     """Flask test client with realistic modem analysis state populated."""
-    update_state(
+    current_runtime().update_state(
         analysis={
             "summary": {
                 "ds_total": 2,
@@ -136,7 +135,7 @@ class TestMetricsEndpoint:
 
     def test_no_data_returns_health_unknown(self, metrics_client):
         """Without analysis data, response contains health_status 3 (unknown)."""
-        update_state()  # reset to no analysis
+        current_runtime().update_state()  # reset to no analysis
         resp = metrics_client.get("/metrics")
         assert resp.status_code == 200
         body = resp.data.decode("utf-8")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.runtime import current_runtime
 import os
 from datetime import date, datetime, timezone
 from io import BytesIO
@@ -11,7 +12,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, jsonify, request, send_file
 
 from app.tz import get_tz_name, local_to_utc, local_today
-from app.web import get_config_manager, get_module_loader, get_storage
 from app.web_auth import require_auth
 
 from .candidates import (
@@ -118,7 +118,7 @@ def _validation_error_response(exc: RuleValidationError, status: int = 400):
 
 
 def _storage() -> ClaimStorage | None:
-    core = get_storage()
+    core = current_runtime().storage
     return ClaimStorage(core.db_path) if core else None
 
 
@@ -128,7 +128,7 @@ def _connection_db_path() -> str:
 
 def _capabilities() -> dict[str, bool]:
     return get_capabilities(
-        get_config_manager(), get_module_loader(), connection_db_path=_connection_db_path()
+        current_runtime().config_manager, current_runtime().module_loader, connection_db_path=_connection_db_path()
     )
 
 
@@ -317,7 +317,7 @@ def _calculate_claim(claim: dict):
             "eligibility_claim_basis_required",
             "Confirm a complete outage or at least one missed appointment",
         )
-    tz_name = get_tz_name(get_config_manager())
+    tz_name = get_tz_name(current_runtime().config_manager)
     ruleset = resolve_ruleset(claim.get("rules_version"))
     if has_outage:
         if any(
@@ -370,7 +370,7 @@ def _calculate_claim(claim: dict):
 
 
 def _customer_defaults(capabilities: dict[str, bool]) -> dict[str, str]:
-    config = get_config_manager()
+    config = current_runtime().config_manager
     if not capabilities["reports"] or capabilities["demo_mode"] or not config:
         return {}
     return {
@@ -428,11 +428,11 @@ def _calculation_response(claim: dict, breakdown, appointments) -> dict:
 def api_candidates():
     capabilities = _capabilities()
     candidates = []
-    tz_name = get_tz_name(get_config_manager())
+    tz_name = get_tz_name(current_runtime().config_manager)
     today_value = local_today(tz_name)
     if capabilities["connection_monitor_source"]:
         candidates.extend(load_connection_monitor_candidates(_connection_db_path(), tz_name))
-    core = get_storage()
+    core = current_runtime().storage
     if capabilities["journal"] and core:
         candidates.extend(
             load_incident_candidates(
@@ -475,7 +475,7 @@ def api_claims_create():
     if not storage:
         return _error("technical_storage_unavailable", "Storage unavailable", 500)
     try:
-        tz_name = get_tz_name(get_config_manager())
+        tz_name = get_tz_name(current_runtime().config_manager)
         payload = _normalise_claim_payload(request.get_json(silent=True), tz_name)
     except RuleValidationError as exc:
         return _validation_error_response(exc)
@@ -485,7 +485,7 @@ def api_claims_create():
             "Generate the letter from calculated claim facts before editing it",
             409,
         )
-    config = get_config_manager()
+    config = current_runtime().config_manager
     claim = storage.create(
         payload, is_demo=bool(config and config.is_demo_mode())
     )
@@ -507,7 +507,7 @@ def api_claim_update(claim_id):
     if not storage:
         return _error("technical_storage_unavailable", "Storage unavailable", 500)
     try:
-        tz_name = get_tz_name(get_config_manager())
+        tz_name = get_tz_name(current_runtime().config_manager)
         payload = _normalise_claim_payload(request.get_json(silent=True), tz_name)
     except RuleValidationError as exc:
         return _validation_error_response(exc)

@@ -402,7 +402,7 @@ class TestModuleDiscovery:
 
     def teardown_method(self):
         from app.i18n import _TRANSLATIONS
-        from app import web
+
 
         _TRANSLATIONS.clear()
         _TRANSLATIONS.update(self._orig_translations)

@@ -1,5 +1,6 @@
 """Tests for modulation performance API routes (v2)."""
 
+from app.runtime import current_runtime
 import json
 from datetime import datetime, timedelta, timezone
 
@@ -187,10 +188,9 @@ class TestDistributionEndpoint:
 
     def test_capacity_history_uses_detected_connection_speed_when_booked_tariff_empty(self, client_with_storage):
         client, storage = client_with_storage
-        from app.web import reset_modem_state, update_state
 
         with client.application.app_context():
-            update_state(connection_info={"max_downstream_kbps": 50000, "max_upstream_kbps": 25000})
+            current_runtime().update_state(connection_info={"max_downstream_kbps": 50000, "max_upstream_kbps": 25000})
         day = _ts_days_ago(1)[:10]
         _store_snapshot(
             storage,
@@ -213,7 +213,7 @@ class TestDistributionEndpoint:
             assert us["status"] == "below_some_samples"
         finally:
             with client.application.app_context():
-                reset_modem_state()
+                current_runtime().reset_modem_state()
 
 
     def test_aggregate_low_qam_pct_weighted_across_protocol_sample_counts(self, client_with_storage):

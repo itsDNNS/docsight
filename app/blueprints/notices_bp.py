@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.runtime import current_runtime
 from flask import Blueprint, jsonify, request
 
 from app.maintainer_notices import (
@@ -9,7 +10,6 @@ from app.maintainer_notices import (
     get_active_notices,
     is_valid_notice_id,
 )
-from app.web import get_config_manager
 from app.web_auth import require_auth
 
 notices_bp = Blueprint("notices_bp", __name__)
@@ -28,7 +28,7 @@ def api_notices_list():
     if location not in (None, "dashboard", "settings"):
         return jsonify({"success": False, "error": "Invalid notice location"}), 400
 
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     notices = get_active_notices(
         dismissed_ids=_dismissed_ids(config_mgr),
         location=location,
@@ -43,7 +43,7 @@ def api_notice_dismiss(notice_id):
     if not is_valid_notice_id(notice_id):
         return jsonify({"success": False, "error": "Invalid notice id"}), 400
 
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     if not config_mgr:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
 

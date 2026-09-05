@@ -1,5 +1,7 @@
 """Event log routes."""
 
+from app.runtime import current_runtime
+from app.tz import localize_timestamps, get_tz_name
 import csv
 import io
 import json
@@ -8,10 +10,6 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, Response
 
-from app.web import (
-    get_storage,
-    _localize_timestamps,
-)
 from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.web")
@@ -87,7 +85,7 @@ def _events_csv_response(events, truncated=False):
 @require_auth
 def api_events_list():
     """Return list of events with optional filters."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"events": [], "unacknowledged_count": 0})
     limit = request.args.get("limit", 200, type=int)
@@ -108,7 +106,7 @@ def api_events_list():
         event_prefix=filters["event_prefix"],
         severity=filters["severity"]
     )
-    _localize_timestamps(events)
+    localize_timestamps(events, get_tz_name(current_runtime().config_manager))
     return jsonify({"events": events, "unacknowledged_count": unack})
 
 
@@ -116,7 +114,7 @@ def api_events_list():
 @require_auth
 def api_events_export_csv():
     """Export all events matching the current event-log filters as CSV."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return _events_csv_response([])
     try:
@@ -140,7 +138,7 @@ def api_events_export_csv():
 @require_auth
 def api_events_count():
     """Return unacknowledged event count (for badge)."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"count": 0})
     event_prefix = request.args.get("event_prefix") or None
@@ -159,7 +157,7 @@ def api_events_count():
 @require_auth
 def api_event_acknowledge(event_id):
     """Acknowledge a single event."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     if not _storage.acknowledge_event(event_id):
@@ -171,7 +169,7 @@ def api_event_acknowledge(event_id):
 @require_auth
 def api_events_acknowledge_all():
     """Acknowledge all unacknowledged events."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     count = _storage.acknowledge_all_events()

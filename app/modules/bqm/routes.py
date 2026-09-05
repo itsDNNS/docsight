@@ -1,14 +1,12 @@
 """BQM module routes."""
 
+from app.tz import valid_date, get_tz_name
 import logging
 from datetime import datetime
 from urllib.parse import urlparse
 
 from flask import Blueprint, request, jsonify, make_response
 
-from app.web import (
-    get_storage, get_config_manager, _valid_date, _get_tz_name,
-)
 from app.web_auth import require_auth, _get_client_ip
 from app.runtime import current_runtime
 from app.tz import local_today, utc_now
@@ -27,7 +25,7 @@ _TBB_SHARE_PATH = "/broadband/monitoring/quality/share/"
 _TBB_HOSTS = {"thinkbroadband.com", "www.thinkbroadband.com"}
 
 def _get_bqm_storage():
-    core_storage = get_storage()
+    core_storage = current_runtime().storage
     if not core_storage:
         return None
     return current_runtime().derived_storage.get(
@@ -61,8 +59,8 @@ def _is_thinkbroadband_share_url(url):
 
 def run_bqm_initial_fetch(config_manager=None, storage=None):
     """Fetch and store BQM data immediately after setup or manual request."""
-    config_manager = config_manager or get_config_manager()
-    core_storage = storage or get_storage()
+    config_manager = config_manager or current_runtime().config_manager
+    core_storage = storage or current_runtime().storage
     if not config_manager or not core_storage:
         return {"success": False, "error": "BQM storage is not ready"}
 
@@ -74,7 +72,7 @@ def run_bqm_initial_fetch(config_manager=None, storage=None):
         return {"success": False, "error": "Use a ThinkBroadband CSV Yesterday share URL for fetch now"}
 
     bs = BqmStorage(core_storage.db_path)
-    collection_date = local_today(_get_tz_name())
+    collection_date = local_today(get_tz_name(current_runtime().config_manager))
 
     if is_csv_url(bqm_url):
         share_id = extract_share_id(bqm_url)
@@ -154,7 +152,7 @@ def api_bqm_dates():
 def api_bqm_data(date):
     """Return column-oriented BQM CSV data for a single day."""
     bs = _get_bqm_storage()
-    if not _valid_date(date):
+    if not valid_date(date):
         return jsonify({"error": "Invalid date format"}), 400
     if not bs:
         return jsonify({"error": "No storage"}), 404
@@ -173,7 +171,7 @@ def api_bqm_data_range():
     bs = _get_bqm_storage()
     start = request.args.get("start", "")
     end = request.args.get("end", "")
-    if not _valid_date(start) or not _valid_date(end):
+    if not valid_date(start) or not valid_date(end):
         return jsonify({"error": "Invalid date format"}), 400
     start_dt = datetime.strptime(start, "%Y-%m-%d").date()
     end_dt = datetime.strptime(end, "%Y-%m-%d").date()
@@ -212,7 +210,7 @@ def api_bqm_data_dates():
 def api_bqm_image(date):
     """Return BQM graph PNG for a given date."""
     bs = _get_bqm_storage()
-    if not _valid_date(date):
+    if not valid_date(date):
         return jsonify({"error": "Invalid date format"}), 400
     if not bs:
         return jsonify({"error": "No storage"}), 404
@@ -229,7 +227,7 @@ def api_bqm_image(date):
 @require_auth
 def api_bqm_live():
     """Fetch live BQM graph PNG from ThinkBroadband, fallback to today's cached."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     bs = _get_bqm_storage()
     bqm_url = _config_manager.get("bqm_url") if _config_manager else None
     image = None
@@ -245,7 +243,7 @@ def api_bqm_live():
             ts = utc_now()
 
     if not image and bs:
-        today = local_today(_get_tz_name())
+        today = local_today(get_tz_name(current_runtime().config_manager))
         image = bs.get_bqm_graph(today)
         if image:
             source = "cached"
@@ -315,7 +313,7 @@ def api_bqm_import():
     for f, date in zip(files, dates):
         fname = f.filename or "unknown"
 
-        if not _valid_date(date):
+        if not valid_date(date):
             errors.append({"filename": fname, "error": "Invalid date"})
             continue
 
@@ -429,7 +427,7 @@ def api_bqm_delete():
     start = data.get("start")
     end = data.get("end")
     if start and end:
-        if not _valid_date(start) or not _valid_date(end):
+        if not valid_date(start) or not valid_date(end):
             return jsonify({"error": "Invalid date format"}), 400
         deleted = bs.delete_bqm_graphs_range(start, end)
         audit_log.info("BQM images deleted range: ip=%s start=%s end=%s count=%d", _get_client_ip(), start, end, deleted)
@@ -437,7 +435,7 @@ def api_bqm_delete():
 
     date = data.get("date")
     if date:
-        if not _valid_date(date):
+        if not valid_date(date):
             return jsonify({"error": "Invalid date format"}), 400
         deleted = 1 if bs.delete_bqm_graph(date) else 0
         audit_log.info("BQM image deleted: ip=%s date=%s", _get_client_ip(), date)

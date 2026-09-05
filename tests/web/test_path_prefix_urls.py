@@ -12,9 +12,6 @@ import pytest
 import app.web as web
 from app.config import ConfigManager
 from app.module_loader import ModuleInfo
-from app.web import (
-    update_state,
-)
 from app.runtime import current_runtime
 
 
@@ -143,7 +140,7 @@ def _enabled_bqm_loader():
 def test_dashboard_and_settings_render_prefix_aware_navigation_and_assets(
     client, sample_analysis
 ):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     dashboard = client.get("/?lang=en", environ_overrides=PREFIX_ENV)
     settings = client.get("/settings?lang=en", environ_overrides=PREFIX_ENV)
@@ -292,7 +289,7 @@ def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path)
 def test_root_mount_keeps_existing_effective_server_generated_paths(
     client, sample_analysis
 ):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     response = client.get("/?lang=en")
 
@@ -311,7 +308,7 @@ def test_root_mount_keeps_existing_effective_server_generated_paths(
 def test_pwa_routes_and_manifest_identity_follow_effective_mount(
     client, sample_analysis, environ, mount_path
 ):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     dashboard = client.get("/", environ_overrides=environ)
     service_worker = client.get("/sw.js", environ_overrides=environ)
@@ -346,7 +343,7 @@ def test_pwa_routes_and_manifest_identity_follow_effective_mount(
 def test_browser_url_bootstrap_is_minimal_canonical_and_early(
     client, sample_analysis, tmp_path
 ):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
     dashboard_html = client.get(
         "/?lang=en", environ_overrides=PREFIX_ENV
     ).get_data(as_text=True)
@@ -373,7 +370,7 @@ def test_browser_url_bootstrap_is_minimal_canonical_and_early(
 
 
 def test_root_browser_url_bootstrap_preserves_root_deployment(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     html = client.get("/?lang=en").get_data(as_text=True)
     bootstrap, _ = _browser_bootstrap(html)

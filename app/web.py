@@ -14,7 +14,7 @@ from flask import current_app, render_template, request, jsonify, redirect, sess
 from markupsafe import Markup
 from zoneinfo import available_timezones
 
-from .config import DEFAULTS, MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
+from .config import MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
 from .base_path import normalize_base_path
 from . import signal_health_view
@@ -29,8 +29,10 @@ from .glossary import (
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
 from .module_loader import module_static_url
-from .runtime import current_runtime, _version_newer as _runtime_version_newer
-from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name as _get_public_tz_name, to_local as _to_local
+from .runtime import current_runtime
+from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name, to_local as _to_local
+from .theme_registry import build_theme_collections, resolve_active_theme
+from .web_locale import get_lang, get_setup_lang
 from .version import get_app_version
 from .web_auth import require_auth, _get_admin_password, _authenticate_login, _get_login_csrf_token, _sync_auth_state
 
@@ -61,111 +63,8 @@ def is_desktop_preview_mode() -> bool:
     return os.environ.get(DESKTOP_MODE_ENV) == "1"
 
 
-_THEME_COLLECTIONS = [
-    {
-        "key": "signature",
-        "title_key": "theme_collection_signature",
-        "title_fallback": "Signature Themes",
-        "description_key": "theme_collection_signature_desc",
-        "description_fallback": "DOCSight's built-in identity themes",
-        "ids": (
-            "docsight.theme_classic",
-            "docsight.theme_tribu",
-            "docsight.theme_ocean",
-        ),
-    },
-    {
-        "key": "community",
-        "title_key": "theme_collection_community",
-        "title_fallback": "Community Favorites",
-        "description_key": "theme_collection_community_desc",
-        "description_fallback": "Popular palettes inspired by widely loved developer themes",
-        "ids": (
-            "docsight.theme_one_dark",
-            "docsight.theme_dracula",
-            "docsight.theme_catppuccin_mocha",
-            "docsight.theme_tokyo_night",
-            "docsight.theme_nord",
-            "docsight.theme_synthwave",
-            "docsight.theme_gruvbox",
-        ),
-    },
-    {
-        "key": "playful",
-        "title_key": "theme_collection_playful",
-        "title_fallback": "Easter Eggs",
-        "description_key": "theme_collection_playful_desc",
-        "description_fallback": "Delight-first themes for fun installs and screenshots",
-        "ids": (
-            "docsight.theme_matrix",
-            "docsight.theme_amber_terminal",
-            "docsight.theme_gameboy",
-            "docsight.theme_doom",
-        ),
-    },
-]
-
-_THEME_COLLECTION_INDEX = {
-    theme_id: (collection["key"], position)
-    for collection in _THEME_COLLECTIONS
-    for position, theme_id in enumerate(collection["ids"])
-}
-
-
-def _build_theme_collections(theme_modules):
-    """Group theme modules into curated gallery collections."""
-    grouped = {collection["key"]: [] for collection in _THEME_COLLECTIONS}
-
-    for mod in theme_modules:
-        collection_key = _THEME_COLLECTION_INDEX.get(mod.id, ("community", 999))[0]
-        grouped.setdefault(collection_key, []).append(mod)
-
-    collections = []
-    for collection in _THEME_COLLECTIONS:
-        modules = grouped.get(collection["key"], [])
-        if not modules:
-            continue
-        modules.sort(
-            key=lambda mod: (
-                _THEME_COLLECTION_INDEX.get(mod.id, (collection["key"], 999))[1],
-                mod.name.lower(),
-            )
-        )
-        collections.append({
-            **collection,
-            "modules": modules,
-        })
-
-    return collections
-
 APP_VERSION = get_app_version()
 
-_UPDATE_CACHE_TTL = 3600  # 1 hour
-
-def _check_for_update():
-    """Return cached update info. Triggers background check if stale."""
-    return current_runtime().update_checker.latest()
-
-def _version_newer(latest, current):
-    """Compare date-based version strings (e.g. '2026-02-16.1' > '2026-02-13.8').
-
-    Splits on '.' to compare the date part lexicographically and the
-    trailing build number numerically so that '.10' > '.9'.
-    """
-    return _runtime_version_newer(latest, current)
-
-_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-
-def _valid_date(date_str):
-    """Validate date string format AND actual calendar validity."""
-    if not date_str or not _DATE_RE.match(date_str):
-        return False
-    try:
-        datetime.strptime(date_str, "%Y-%m-%d")
-        return True
-    except ValueError:
-        return False
 _STRIP_TAGS_RE = re.compile(r"<(?!/?(?:b|a|strong|em|br)\b)[^>]+>", re.IGNORECASE)
 _CLOSE_TAG_RE = re.compile(r"</(a|b|strong|em|br)\s[^>]*>", re.IGNORECASE)
 _OPEN_TAG_RE = re.compile(r"<(a|b|strong|em|br)([\s/][^>]*)?>", re.IGNORECASE)
@@ -269,80 +168,13 @@ def format_uptime(seconds):
     return f"{minutes}m"
 
 
-def _get_lang():
-    """Get language from query param or config."""
-    _config_manager = get_config_manager()
-    lang = request.args.get("lang")
-    if lang and lang in LANGUAGES:
-        return lang
-    if _config_manager:
-        return _config_manager.get("language", "en")
-    return "en"
-
-
-def _get_setup_lang():
-    """Resolve and persist the language for the unconfigured setup route."""
-    _config_manager = get_config_manager()
-    lang = request.args.get("lang")
-    if lang in LANGUAGES:
-        if _config_manager:
-            _config_manager.save({"language": lang})
-        return lang
-
-    if _config_manager and _config_manager.has_stored_value("language"):
-        return _config_manager.get("language", DEFAULTS["language"])
-
-    inferred = DEFAULTS["language"]
-    for requested, quality in request.accept_languages:
-        if quality <= 0:
-            continue
-        normalized = requested.lower().replace("_", "-")
-        if normalized in LANGUAGES:
-            inferred = normalized
-            break
-        base = normalized.split("-", 1)[0]
-        if base in LANGUAGES:
-            inferred = base
-            break
-
-    if _config_manager:
-        _config_manager.save({"language": inferred})
-    return inferred
-
-
-def _get_tz_name():
-    """Get configured IANA timezone name."""
-    return _get_public_tz_name(get_config_manager())
-
-
-def _localize_timestamps(data, keys=("timestamp", "created_at", "updated_at", "last_used_at")):
-    """Convert UTC timestamps to local time in-place for API responses.
-
-    Works on dicts and lists of dicts. Modifies data in-place and returns it.
-    """
-    tz = _get_tz_name()
-    if not tz:
-        return data
-    if isinstance(data, dict):
-        for k in keys:
-            if k in data and data[k] and isinstance(data[k], str) and data[k].endswith("Z"):
-                data[k] = _to_local(data[k], tz)
-    elif isinstance(data, list):
-        for item in data:
-            if isinstance(item, dict):
-                for k in keys:
-                    if k in item and item[k] and isinstance(item[k], str) and item[k].endswith("Z"):
-                        item[k] = _to_local(item[k], tz)
-    return data
-
-
 # ── Jinja2 Filters for timestamp display ──
 
 def _jinja_localtime(value):
     """Jinja2 filter: convert UTC timestamp to local display time."""
     if not value or not isinstance(value, str):
         return value
-    tz = _get_tz_name()
+    tz = get_tz_name(current_runtime().config_manager)
     return _to_local(value, tz) if tz else value.rstrip("Z")
 
 
@@ -378,7 +210,7 @@ def get_module_loader():
 
 def _get_dismissed_notice_ids():
     """Return locally persisted maintainer notice dismissals."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager:
         return []
     return coerce_dismissed_notice_ids(_config_manager.get("dismissed_notice_ids", []))
@@ -400,11 +232,11 @@ def set_last_manual_poll(value):
 
 
 def login():
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     _sync_auth_state()
     if not _get_admin_password():
         return redirect(url_for("index"))
-    lang = _get_lang()
+    lang = get_lang()
     t = get_translations(lang)
     theme = _config_manager.get_theme() if _config_manager else "dark"
     error = None
@@ -438,48 +270,29 @@ def inject_browser_url_bootstrap():
 
 def inject_auth():
     """Make auth_enabled and module info available in all templates."""
-    _config_manager = get_config_manager()
-    _module_loader = get_module_loader()
+    _config_manager = current_runtime().config_manager
+    _module_loader = current_runtime().module_loader
     auth_enabled = bool(_get_admin_password())
     modules = _module_loader.get_enabled_modules() if _module_loader else []
 
-    # Resolve active theme module's CSS variables
-    active_theme_data = None
-    active_theme_id = ""
-    if _module_loader and _config_manager:
-        active_id = _config_manager.get("active_theme", "")
-        theme_modules = _module_loader.get_theme_modules()
-        active_mod = None
-        classic_mod = None
-        first_with_data = None
-        for m in theme_modules:
-            if m.enabled and not m.error and m.theme_data:
-                if first_with_data is None:
-                    first_with_data = m
-                if m.id == "docsight.theme_classic":
-                    classic_mod = m
-                if m.id == active_id:
-                    active_mod = m
-                    break
-        if active_mod is None:
-            active_mod = classic_mod or first_with_data
-        if active_mod:
-            active_theme_data = active_mod.theme_data
-            active_theme_id = active_mod.id
+    active_theme_data, active_theme_id = (
+        resolve_active_theme(_config_manager.get("active_theme", ""), _module_loader.get_theme_modules())
+        if _module_loader and _config_manager else (None, "")
+    )
 
     # All themes with loaded data (enabled + disabled) for settings gallery
     all_theme_modules = [
         m for m in (_module_loader.get_theme_modules() if _module_loader else [])
         if m.theme_data
     ]
-    theme_collections = _build_theme_collections(all_theme_modules)
+    theme_collections = build_theme_collections(all_theme_modules)
 
     desktop_mode = is_desktop_preview_mode()
     return {
         "auth_enabled": auth_enabled,
         "module_static_url": module_static_url,
         "version": APP_VERSION,
-        "update_available": _check_for_update(),
+        "update_available": current_runtime().update_checker.latest(),
         "modules": modules,
         "all_theme_modules": all_theme_modules,
         "theme_collections": theme_collections,
@@ -563,7 +376,7 @@ def _build_glossary_context(lang, t, selected_term_id=None):
 @require_auth
 def glossary_page():
     """Compatibility endpoint for existing glossary deep links."""
-    lang = _get_lang()
+    lang = get_lang()
     terms = {term["id"] for term in get_glossary_terms(lang)}
     hash_params = {}
     term_id = request.args.get("term", "")
@@ -577,14 +390,14 @@ def glossary_page():
 
 @require_auth
 def index():
-    _config_manager = get_config_manager()
-    _storage = get_storage()
+    _config_manager = current_runtime().config_manager
+    _storage = current_runtime().storage
     demo_mode = _config_manager.is_demo_mode() if _config_manager else False
     if _config_manager and not demo_mode and not _config_manager.is_configured():
         return redirect(url_for("setup"))
 
     theme = _config_manager.get_theme() if _config_manager else "dark"
-    lang = _get_lang()
+    lang = get_lang()
     t = get_translations(lang)
 
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
@@ -609,7 +422,7 @@ def index():
     segment_utilization_enabled = _config_manager.is_segment_utilization_enabled() if _config_manager else False
     is_fritzbox = (_config_manager.get("modem_type") == "fritzbox") if _config_manager else False
     bnetz_enabled = _config_manager.is_bnetz_enabled() if _config_manager else True
-    state = get_state()
+    state = current_runtime().get_state()
     speedtest_latest = state.get("speedtest_latest")
     booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
     booked_upload = _config_manager.get("booked_upload", 0) if _config_manager else 0
@@ -675,7 +488,7 @@ def index():
 
 def health():
     """Simple health check endpoint."""
-    state = get_state()
+    state = current_runtime().get_state()
     if state["analysis"]:
         return {"status": "ok", "docsis_health": state["analysis"]["summary"]["health"], "version": APP_VERSION}
     return {"status": "ok", "docsis_health": "waiting", "version": APP_VERSION}
@@ -692,11 +505,11 @@ def desktop_runtime():
 
 
 def setup():
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if _config_manager and (_config_manager.is_configured() or _config_manager.is_demo_mode()):
         return redirect(url_for("index"))
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
-    lang = _get_setup_lang()
+    lang = get_setup_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
     from .drivers import driver_registry
@@ -709,11 +522,11 @@ def setup():
 
 @require_auth
 def settings():
-    _config_manager = get_config_manager()
-    _module_loader = get_module_loader()
+    _config_manager = current_runtime().config_manager
+    _module_loader = current_runtime().module_loader
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     theme = _config_manager.get_theme() if _config_manager else "dark"
-    lang = _get_lang()
+    lang = get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
     from .drivers import driver_registry

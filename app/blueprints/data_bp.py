@@ -1,4 +1,6 @@
 """Data retrieval routes: trends, export, snapshots."""
+from app.runtime import current_runtime
+from app.tz import localize_timestamps, get_tz_name
 import logging
 import os
 from collections import defaultdict
@@ -7,10 +9,6 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 
 from app.time_ranges import parse_time_range_hours
-from app.web import (
-    get_storage, get_config_manager, get_state,
-    _localize_timestamps,
-)
 from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.web")
@@ -63,7 +61,7 @@ def _append_connection_monitor_trends(data: list[dict], hours: int) -> None:
     a lightweight latency series here without coupling the card to a second
     request path.
     """
-    cfg = get_config_manager()
+    cfg = current_runtime().config_manager
     data_dir = getattr(cfg, "data_dir", None)
     if not data_dir:
         return
@@ -146,7 +144,7 @@ def api_trends():
     The date query parameter anchors only legacy day/week/month requests;
     normalized ranges are rolling windows ending at the current snapshot time.
     """
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify([])
     range_type = (request.args.get("range", "1d") or "1d").strip().lower()
@@ -176,7 +174,7 @@ def api_trends():
         _append_speedtest_trends(data, _storage.db_path, hours)
         _append_connection_monitor_trends(data, hours)
         data.sort(key=lambda row: row.get("timestamp") or "")
-    _localize_timestamps(data)
+    localize_timestamps(data, get_tz_name(current_runtime().config_manager))
     return jsonify(data)
 
 
@@ -184,9 +182,9 @@ def api_trends():
 @require_auth
 def api_export():
     """Generate a structured markdown report for LLM analysis."""
-    _storage = get_storage()
-    _config_manager = get_config_manager()
-    state = get_state()
+    _storage = current_runtime().storage
+    _config_manager = current_runtime().config_manager
+    state = current_runtime().get_state()
     analysis = state.get("analysis")
     if not analysis:
         return jsonify({"error": "No data available"}), 404
@@ -414,7 +412,7 @@ def api_export():
 @require_auth
 def api_snapshots():
     """Return list of available snapshot timestamps."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if _storage:
         return jsonify(_storage.get_snapshot_list())
     return jsonify([])
@@ -424,7 +422,7 @@ def api_snapshots():
 @require_auth
 def api_snapshot(timestamp):
     """Return full analysis for a specific snapshot."""
-    _storage = get_storage()
+    _storage = current_runtime().storage
     if not _storage:
         return jsonify({"error": "No storage"}), 500
     snap = _storage.get_snapshot(timestamp)

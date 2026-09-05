@@ -9,7 +9,6 @@ from email.utils import parsedate_to_datetime
 
 import pytest
 from werkzeug.security import generate_password_hash
-from app.web import update_state
 from app.web_auth import (
     _AUTH_STATE_CONTEXT,
     _LOGIN_MAX_TRACKED_IPS,
@@ -101,7 +100,7 @@ def noauth_client(noauth_config):
 
 class TestAuthDisabled:
     def test_index_accessible(self, noauth_client):
-        update_state(analysis={"summary": {"ds_total": 1, "us_total": 1, "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0, "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0, "ds_snr_min": 0, "ds_snr_avg": 0, "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0, "health": "good", "health_issues": []}, "ds_channels": [], "us_channels": []})
+        current_runtime().update_state(analysis={"summary": {"ds_total": 1, "us_total": 1, "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0, "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0, "ds_snr_min": 0, "ds_snr_avg": 0, "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0, "health": "good", "health_issues": []}, "ds_channels": [], "us_channels": []})
         resp = noauth_client.get("/")
         assert resp.status_code == 200
 
@@ -126,7 +125,7 @@ class TestAuthEnabled:
         assert "/login" in resp.headers["Location"]
 
     def test_health_always_accessible(self, auth_client):
-        update_state(analysis={"summary": {"ds_total": 1, "us_total": 1, "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0, "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0, "ds_snr_min": 0, "ds_snr_avg": 0, "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0, "health": "good", "health_issues": []}, "ds_channels": [], "us_channels": []})
+        current_runtime().update_state(analysis={"summary": {"ds_total": 1, "us_total": 1, "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0, "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0, "ds_snr_min": 0, "ds_snr_avg": 0, "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0, "health": "good", "health_issues": []}, "ds_channels": [], "us_channels": []})
         resp = auth_client.get("/health")
         assert resp.status_code == 200
 
@@ -180,7 +179,7 @@ class TestAuthEnabled:
 
     def test_session_persists(self, auth_client):
         auth_client.post("/login", data={"password": "secret123", "csrf_token": _login_csrf(auth_client)})
-        update_state(analysis={"summary": {"ds_total": 1, "us_total": 1, "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0, "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0, "ds_snr_min": 0, "ds_snr_avg": 0, "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0, "health": "good", "health_issues": []}, "ds_channels": [], "us_channels": []})
+        current_runtime().update_state(analysis={"summary": {"ds_total": 1, "us_total": 1, "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0, "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0, "ds_snr_min": 0, "ds_snr_avg": 0, "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0, "health": "good", "health_issues": []}, "ds_channels": [], "us_channels": []})
         resp = auth_client.get("/")
         assert resp.status_code == 200
 
@@ -605,7 +604,7 @@ class TestApiTokenAuth:
 
     def test_health_stays_public(self, auth_client_with_storage):
         """/health remains accessible without any auth."""
-        update_state(analysis={
+        current_runtime().update_state(analysis={
             "summary": {"ds_total": 1, "us_total": 1, "ds_power_min": 0,
                         "ds_power_max": 0, "ds_power_avg": 0, "us_power_min": 0,
                         "us_power_max": 0, "us_power_avg": 0, "ds_snr_min": 0,

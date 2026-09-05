@@ -1,16 +1,16 @@
 """Tests for security-related web behavior."""
 
+from app.runtime import current_runtime
 import os
 from datetime import timedelta
 
 import pytest
 
-from app.web import update_state
 from app.config import ConfigManager
 
 class TestSecurityHeaders:
     def test_headers_present(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/")
         assert resp.headers["X-Content-Type-Options"] == "nosniff"
         assert resp.headers["X-Frame-Options"] == "DENY"
@@ -24,7 +24,7 @@ class TestSecurityHeaders:
 
 class TestTimestampValidation:
     def test_valid_timestamp_accepted(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         # No storage, so snapshot lookup returns None and falls through to live view
         resp = client.get("/?t=2026-01-01T06:00:00")
         assert resp.status_code == 200

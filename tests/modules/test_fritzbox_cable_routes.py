@@ -22,13 +22,13 @@ def client(app):
 
 class TestSegmentDataEndpoint:
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
-    def test_returns_stored_data(self, mock_get_storage, mock_get_config, client):
+    def test_returns_stored_data(self, mock_get_storage, mock_runtime, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
         mock_cfg.is_demo_mode.return_value = False
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
 
         mock_storage = MagicMock()
         mock_storage.get_range.return_value = [
@@ -53,13 +53,13 @@ class TestSegmentDataEndpoint:
 
 class TestSegmentEventsEndpoint:
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
-    def test_returns_events_payload(self, mock_get_storage, mock_get_config, client):
+    def test_returns_events_payload(self, mock_get_storage, mock_runtime, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
         mock_cfg.is_segment_utilization_enabled.return_value = True
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
 
         mock_storage = MagicMock()
         mock_storage.get_events.return_value = [
@@ -89,13 +89,13 @@ class TestSegmentEventsEndpoint:
         assert data.get("min_minutes") == 3
 
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
-    def test_clamps_invalid_threshold_and_min_minutes(self, mock_get_storage, mock_get_config, client):
+    def test_clamps_invalid_threshold_and_min_minutes(self, mock_get_storage, mock_runtime, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
         mock_cfg.is_segment_utilization_enabled.return_value = True
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
 
         mock_storage = MagicMock()
         mock_storage.get_events.return_value = []
@@ -115,25 +115,25 @@ class TestSegmentEventsEndpoint:
         assert data["min_minutes"] == 1440
 
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
-    def test_rejects_when_driver_unsupported(self, mock_get_storage, mock_get_config, client):
+    def test_rejects_when_driver_unsupported(self, mock_get_storage, mock_runtime, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "arris"
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
         mock_get_storage.return_value = MagicMock()
 
         resp = client.get("/api/fritzbox/segment-utilization/events")
         assert resp.status_code == 400
 
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
-    def test_passes_range_to_storage(self, mock_get_storage, mock_get_config, client):
+    def test_passes_range_to_storage(self, mock_get_storage, mock_runtime, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
         mock_cfg.is_segment_utilization_enabled.return_value = True
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
 
         mock_storage = MagicMock()
         mock_storage.get_events.return_value = []
@@ -147,15 +147,15 @@ class TestSegmentEventsEndpoint:
         assert kwargs.get("min_minutes") == 5
 
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
-    def test_invalid_range_is_normalized_in_echo(self, mock_get_storage, mock_get_config, client):
+    def test_invalid_range_is_normalized_in_echo(self, mock_get_storage, mock_runtime, client):
         """An unrecognized range string must not be echoed verbatim —
         the response reports the default the server actually used."""
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
         mock_cfg.is_segment_utilization_enabled.return_value = True
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
 
         mock_storage = MagicMock()
         mock_storage.get_events.return_value = []
@@ -169,13 +169,13 @@ class TestSegmentEventsEndpoint:
 
 class TestSegmentDataEndpointRange:
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
-    def test_invalid_range_normalizes_to_default(self, mock_get_storage, mock_get_config, client):
+    def test_invalid_range_normalizes_to_default(self, mock_get_storage, mock_runtime, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
         mock_cfg.is_segment_utilization_enabled.return_value = True
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
 
         mock_storage = MagicMock()
         mock_storage.get_range.return_value = []
@@ -191,13 +191,13 @@ class TestSegmentDataEndpointRange:
 
 class TestSegmentRangeEndpoint:
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
-    def test_range_endpoint_for_correlation(self, mock_get_storage, mock_get_config, client):
+    def test_range_endpoint_for_correlation(self, mock_get_storage, mock_runtime, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
         mock_cfg.is_segment_utilization_enabled.return_value = True
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
 
         mock_storage = MagicMock()
         mock_storage.get_range.return_value = [
@@ -212,10 +212,10 @@ class TestSegmentRangeEndpoint:
         assert data[0]["ds_total"] == pytest.approx(6.2)
 
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
     def test_range_endpoint_returns_empty_when_driver_unsupported(
-        self, mock_get_storage, mock_get_config, client,
+        self, mock_get_storage, mock_runtime, client,
     ):
         """The correlation graph fetches this range endpoint opportunistically.
         When the modem driver isn't fritzbox, the endpoint must return an
@@ -223,7 +223,7 @@ class TestSegmentRangeEndpoint:
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "arris"
         mock_cfg.is_segment_utilization_enabled.return_value = True
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
         mock_get_storage.return_value = MagicMock()
 
         resp = client.get(
@@ -234,15 +234,15 @@ class TestSegmentRangeEndpoint:
         assert resp.get_json() == []
 
     @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
-    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp.current_runtime")
     @patch("app.blueprints.segment_bp._get_storage")
     def test_range_endpoint_returns_empty_when_feature_disabled(
-        self, mock_get_storage, mock_get_config, client,
+        self, mock_get_storage, mock_runtime, client,
     ):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
         mock_cfg.is_segment_utilization_enabled.return_value = False
-        mock_get_config.return_value = mock_cfg
+        mock_runtime.return_value.config_manager = mock_cfg
         mock_get_storage.return_value = MagicMock()
 
         resp = client.get(

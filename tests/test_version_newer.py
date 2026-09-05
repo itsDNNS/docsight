@@ -1,8 +1,8 @@
 """Tests for _version_newer date-based version comparison."""
 
+from app.runtime import _version_newer
 import pytest
 
-from app.web import _version_newer
 
 
 class TestVersionNewer:

@@ -7,7 +7,6 @@ import requests
 from flask import Blueprint, request, jsonify
 
 from app.config import parse_config_bool
-from app.web import get_config_manager, get_state, get_storage, clear_speedtest_latest
 from app.web_auth import require_auth
 from app.runtime import current_runtime
 from app.i18n import get_translations
@@ -24,7 +23,7 @@ _TRIGGER_COOLDOWN = 60  # seconds
 
 
 def _get_speedtest_storage():
-    core_storage = get_storage()
+    core_storage = current_runtime().storage
     if not core_storage:
         return None
     return current_runtime().derived_storage.get(
@@ -46,11 +45,11 @@ def _classify_speed(actual, booked):
 
 def _enrich_speedtest(result):
     """Add speed_health, download_class, upload_class to a speedtest result."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     booked_dl = _config_manager.get("booked_download", 0) if _config_manager else 0
     booked_ul = _config_manager.get("booked_upload", 0) if _config_manager else 0
     if not booked_dl or not booked_ul:
-        conn_info = get_state().get("connection_info") or {}
+        conn_info = current_runtime().get_state().get("connection_info") or {}
         if not booked_dl:
             booked_dl = conn_info.get("max_downstream_kbps", 0) // 1000 if conn_info.get("max_downstream_kbps") else 0
         if not booked_ul:
@@ -93,7 +92,7 @@ def _get_lang():
 @require_auth
 def api_speedtest():
     """Return speedtest results from local cache, with delta fetch from STT."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     ss = _get_speedtest_storage()
     if not _config_manager or not _config_manager.is_speedtest_configured():
         return jsonify([])
@@ -126,7 +125,7 @@ def api_speedtest():
                     # Remote is reachable but empty — server was wiped
                     log.info("Remote has no results but cache has %d, clearing", cached_count)
                     ss.clear_cache()
-                    clear_speedtest_latest()
+                    current_runtime().clear_speedtest_latest()
                     cached_count = 0
                 elif remote_latest and remote_latest[0].get("id", 0) < last_id:
                     log.info(
@@ -177,7 +176,7 @@ def api_speedtest_detail(result_id):
 def api_speedtest_signal(result_id):
     """Return the closest DOCSIS snapshot signal data for a speedtest result."""
     ss = _get_speedtest_storage()
-    core_storage = get_storage()
+    core_storage = current_runtime().storage
     if not ss:
         return jsonify({"error": "Storage not initialized"}), 500
     result = ss.get_speedtest_by_id(result_id)
@@ -228,7 +227,7 @@ def api_speedtest_signal(result_id):
 @require_auth
 def api_speedtest_run():
     """Trigger a speedtest run via the Speedtest Tracker API."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager or not _config_manager.is_speedtest_configured():
         return jsonify({"success": False, "error": "Speedtest Tracker not configured"}), 400
 
@@ -279,6 +278,6 @@ def api_speedtest_clear_cache():
     if not ss:
         return jsonify({"success": False, "error": "Storage not initialized"}), 500
     count = ss.clear_cache()
-    clear_speedtest_latest()
+    current_runtime().clear_speedtest_latest()
     log.info("Speedtest cache cleared via API (%d results removed)", count)
     return jsonify({"success": True, "cleared": count})

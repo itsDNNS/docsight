@@ -883,3 +883,93 @@ def download_theme(download_url: str, target_dir: str, timeout: int = 30) -> boo
         return False
 
     return True
+
+
+_THEME_COLLECTIONS = [
+    {
+        "key": "signature",
+        "title_key": "theme_collection_signature",
+        "title_fallback": "Signature Themes",
+        "description_key": "theme_collection_signature_desc",
+        "description_fallback": "DOCSight's built-in identity themes",
+        "ids": (
+            "docsight.theme_classic",
+            "docsight.theme_tribu",
+            "docsight.theme_ocean",
+        ),
+    },
+    {
+        "key": "community",
+        "title_key": "theme_collection_community",
+        "title_fallback": "Community Favorites",
+        "description_key": "theme_collection_community_desc",
+        "description_fallback": "Popular palettes inspired by widely loved developer themes",
+        "ids": (
+            "docsight.theme_one_dark",
+            "docsight.theme_dracula",
+            "docsight.theme_catppuccin_mocha",
+            "docsight.theme_tokyo_night",
+            "docsight.theme_nord",
+            "docsight.theme_synthwave",
+            "docsight.theme_gruvbox",
+        ),
+    },
+    {
+        "key": "playful",
+        "title_key": "theme_collection_playful",
+        "title_fallback": "Easter Eggs",
+        "description_key": "theme_collection_playful_desc",
+        "description_fallback": "Delight-first themes for fun installs and screenshots",
+        "ids": (
+            "docsight.theme_matrix",
+            "docsight.theme_amber_terminal",
+            "docsight.theme_gameboy",
+            "docsight.theme_doom",
+        ),
+    },
+]
+
+_THEME_COLLECTION_INDEX = {
+    theme_id: (collection["key"], position)
+    for collection in _THEME_COLLECTIONS
+    for position, theme_id in enumerate(collection["ids"])
+}
+
+
+def build_theme_collections(theme_modules):
+    """Group theme modules into curated gallery collections."""
+    grouped = {collection["key"]: [] for collection in _THEME_COLLECTIONS}
+
+    for mod in theme_modules:
+        collection_key = _THEME_COLLECTION_INDEX.get(mod.id, ("community", 999))[0]
+        grouped.setdefault(collection_key, []).append(mod)
+
+    collections = []
+    for collection in _THEME_COLLECTIONS:
+        modules = grouped.get(collection["key"], [])
+        if not modules:
+            continue
+        modules.sort(
+            key=lambda mod: (
+                _THEME_COLLECTION_INDEX.get(mod.id, (collection["key"], 999))[1],
+                mod.name.lower(),
+            )
+        )
+        collections.append({
+            **collection,
+            "modules": modules,
+        })
+
+    return collections
+
+
+def resolve_active_theme(active_id, theme_modules):
+    """Return active theme data and ID, falling back to Classic then first usable."""
+    fallback = None
+    for mod in theme_modules:
+        if mod.enabled and not mod.error and mod.theme_data:
+            if mod.id == active_id:
+                return mod.theme_data, mod.id
+            if fallback is None or mod.id == "docsight.theme_classic":
+                fallback = mod
+    return (fallback.theme_data, fallback.id) if fallback else (None, "")

@@ -14,6 +14,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from . import web, web_auth
 from .base_path import configure_base_path
 from .module_loader import ModuleLoader
+from .version import get_app_version
 from .registration import (
     RegistrationPlan,
     build_core_plan,
@@ -139,9 +140,8 @@ def create_app(
             max_tracked_ips=web_auth._LOGIN_MAX_TRACKED_IPS,
         ),
         update_checker=UpdateChecker(
-            app_version=web.APP_VERSION,
+            app_version=get_app_version(),
             is_enabled=enabled_check if callable(enabled_check) else lambda: False,
-            ttl=web._UPDATE_CACHE_TTL,
         ),
     )
     attach_runtime(app, runtime)

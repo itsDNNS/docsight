@@ -10,9 +10,6 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify, redirect, send_file, url_for
 
-from app.web import (
-    get_config_manager, get_on_config_changed,
-)
 from app.web_auth import require_auth, _auth_required, _get_client_ip
 from app.runtime import current_runtime
 
@@ -65,7 +62,7 @@ def _int_config(config_mgr, key, default):
 @require_auth
 def api_backup_download():
     """Create a backup and stream it as download."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager:
         return jsonify({"error": "Not initialized"}), 500
     temp_dir = None
@@ -113,7 +110,7 @@ def api_backup_download():
 @require_auth
 def api_backup_scheduled():
     """Create a backup in the configured backup path."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager:
         return jsonify({"error": "Not initialized"}), 500
     backup_path = _config_manager.get("backup_path", "/backup")
@@ -132,7 +129,7 @@ def api_backup_scheduled():
 @require_auth
 def api_backup_list():
     """List backups in the configured backup path."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager:
         return jsonify([])
     backup_path = _config_manager.get("backup_path", "/backup")
@@ -143,7 +140,7 @@ def api_backup_list():
 @require_auth
 def api_backup_delete(filename):
     """Delete a backup file."""
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if not _config_manager:
         return jsonify({"error": "Not initialized"}), 500
     backup_path = _config_manager.get("backup_path", "/backup")
@@ -169,7 +166,7 @@ def api_restore_validate():
     No auth required during initial setup (not configured yet).
     Auth required if already configured.
     """
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if _config_manager and _config_manager.is_configured() and _auth_required():
         return redirect(url_for("login"))
     if not (_config_manager and _config_manager.is_configured()):
@@ -199,7 +196,7 @@ def api_restore():
     No auth required during initial setup (not configured yet).
     Auth required if already configured.
     """
-    _config_manager = get_config_manager()
+    _config_manager = current_runtime().config_manager
     if _config_manager is None:
         return jsonify({"error": "Not initialized"}), 500
     if _config_manager.is_configured() and _auth_required():
@@ -225,7 +222,7 @@ def api_restore():
         )
         # Reload config so the app recognizes the restored state
         _config_manager._load()
-        _on_config_changed = get_on_config_changed()
+        _on_config_changed = current_runtime().on_config_changed
         if _on_config_changed:
             _on_config_changed()
         return jsonify({

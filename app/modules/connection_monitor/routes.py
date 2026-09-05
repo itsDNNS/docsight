@@ -1,5 +1,6 @@
 """API routes for Connection Monitor."""
 
+from app.tz import get_tz_name
 import csv
 import io
 import logging
@@ -13,7 +14,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, jsonify, request, Response
 
 from app.tz import local_date_to_utc_range, local_today, to_local_display, _parse_utc
-from app.web import get_config_manager, _get_tz_name
 from app.web_auth import require_auth
 from app.runtime import current_runtime
 
@@ -36,7 +36,7 @@ def _no_cache_api(response):
 
 def _get_cm_storage():
     """Get ConnectionMonitorStorage. Uses DATA_DIR like collector."""
-    config_manager = get_config_manager()
+    config_manager = current_runtime().config_manager
     data_dir = config_manager.data_dir if config_manager else os.environ.get("DATA_DIR", "/data")
     db_path = os.path.join(data_dir, "connection_monitor.db")
     return current_runtime().derived_storage.get(
@@ -46,7 +46,7 @@ def _get_cm_storage():
 
 def _get_probe_engine():
     """Get ProbeEngine for capability info using configured method."""
-    cfg = get_config_manager()
+    cfg = current_runtime().config_manager
     method = cfg.get("connection_monitor_probe_method", "auto") if cfg else "auto"
     return ProbeEngine(method=method)
 
@@ -128,7 +128,7 @@ _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _get_tz():
-    return _get_tz_name()
+    return get_tz_name(current_runtime().config_manager)
 
 
 def _date_to_epoch_range(date_str, tz_name):
@@ -453,7 +453,7 @@ def api_get_range_stats():
 @bp.route("/api/connection-monitor/summary")
 @require_auth
 def api_get_summary():
-    cfg = get_config_manager()
+    cfg = current_runtime().config_manager
     if cfg is not None and not cfg.get("connection_monitor_enabled", False):
         return jsonify({})
 
@@ -478,7 +478,7 @@ def api_get_outages(target_id):
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
     end = request.args.get("end", type=float)
-    cfg = get_config_manager()
+    cfg = current_runtime().config_manager
     default_threshold = int(cfg.get("connection_monitor_outage_threshold", 5)) if cfg else 5
     threshold = request.args.get("threshold", default_threshold, type=int)
     outages = storage.get_outages(target_id, threshold=threshold, start=start, end=end)
