@@ -159,7 +159,7 @@ function capture() {
         var value;
         if (!secret) {
             if (el.type === 'checkbox' || el.type === 'radio') value = el.checked ? '1' : '0';
-            else if (el.multiple) value = Array.from(el.selectedOptions, function(opt) { return opt.value; }).sort();
+            else if (el.tagName === 'SELECT' && el.multiple) value = Array.from(el.selectedOptions, function(opt) { return opt.value; }).sort();
             else value = el.value || '';
         }
         return state.record({name: name, id: id, type: el.type, index: identities.get(el),
@@ -201,7 +201,7 @@ function post(url, data) {
         body: JSON.stringify(data)
     }).then(function(response) {
         return response.json().then(function(result) {
-            if (!response.ok || !result.success) throw new Error(T.save_failed || 'Save failed');
+            if (!response.ok || !result.success) throw new Error(result.error || T.save_failed || 'Save failed');
             return result;
         });
     });
@@ -251,8 +251,8 @@ function save(options) {
     queue = queue.catch(function() {}).then(function() {
         var error = document.getElementById('global-error');
         error.style.display = 'none';
-        return saveAll(options || {}).catch(function() {
-            error.textContent = T.save_failed || T.network_error || 'Save failed';
+        return saveAll(options || {}).catch(function(err) {
+            error.textContent = err.message || T.save_failed || T.network_error || 'Save failed';
             error.style.display = 'block';
             failed = true;
             syncSaveFooter();

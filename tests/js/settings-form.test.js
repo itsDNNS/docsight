@@ -40,7 +40,9 @@ function fixture(bootstrap = false) {
     const language = element('language', 'select-one', 'en');
     const timezone = element('timezone', 'select-one', 'UTC');
     const isp = element('isp_select');
-    const fields = [url, secret, fresh, toggle, hidden, module, language, timezone, isp];
+    const email = element('community_email', 'email', 'a@example.org,b@example.org');
+    email.multiple = true;
+    const fields = [url, secret, fresh, toggle, hidden, module, language, timezone, isp, email];
     const form = {elements: fields, events: {},
         addEventListener(name, fn) { (this.events[name] ||= []).push(fn); },
         querySelectorAll(selector) {
@@ -51,6 +53,7 @@ function fixture(bootstrap = false) {
     fields.forEach(el => { el.form = form; });
     nodes.set('settings-form', form);
     const footer = element('save-footer'), error = element('global-error');
+    Object.defineProperty(error, 'innerHTML', {set() { assert.fail('Errors must use textContent'); }});
     element('toast'); element('module-restart-banner');
     element('isp-other-row'); element('isp-icon-preview');
     const document = {getElementById: id => nodes.get(id) || null, querySelectorAll: () => [], querySelector: () => null,
@@ -61,7 +64,7 @@ function fixture(bootstrap = false) {
         docsightConfirm: () => Promise.resolve(true),
         fetch: (url, options) => new Promise((resolve, reject) => requests.push({url,
             data: JSON.parse(options.body), reject,
-            finish: (success = true) => resolve({ok: success, json: () => Promise.resolve({success})})})),
+            finish: (success = true, error) => resolve({ok: success, json: () => Promise.resolve({success, error})})})),
         localStorage: {getItem: () => null}, SECTION_TITLES: {}, history: {replaceState() {}, pushState() {}},
         location: {hash: '', reload: () => { context.reloads++; }}, reloads: 0,
         addEventListener: (name, fn) => listeners.set(name, fn)});
@@ -107,8 +110,10 @@ test('partial failure acknowledges config and secrets, retries modules, and pres
     await tick();
     assert.equal(f.secret.value, '');
     assert.equal(f.requests[1].url, '/prefix/api/modules/batch');
-    f.requests[1].finish(false);
+    f.requests[1].finish(false, 'Exactly one threshold profile must be active.');
     assert.equal(await first, false);
+    assert.equal(f.error.textContent, 'Exactly one threshold profile must be active.');
+    assert.equal(f.error.style.display, 'block');
     assert.equal(f.footer.classList.contains('visible'), true);
     const retry = f.owner.saveInstantly();
     await tick();
@@ -143,6 +148,30 @@ test('secret reedit, hidden companion and manual edits after dispatch survive ac
     assert.equal(f.dirty(), false);
     assert.equal(f.fresh.value, '');
     assert.equal(f.fresh.dataset.savedSecret, 'true');
+});
+
+test('config validation messages and missing-message fallbacks render as text and allow retry', async () => {
+    const f = fixture();
+    f.context.T.save_failed = 'Speichern fehlgeschlagen';
+    f.edit(f.url, 'invalid');
+    for (const message of ['Invalid timezone', "Invalid URL scheme 'javascript' for modem_url. Only http and https are allowed.", undefined, null]) {
+        const job = f.owner.saveInstantly();
+        await tick();
+        assert.equal(f.requests.at(-1).url, '/prefix/api/config');
+        if (message === null) f.requests.at(-1).reject(new Error());
+        else f.requests.at(-1).finish(false, message);
+        assert.equal(await job, false);
+        assert.equal(f.error.textContent, message || 'Speichern fehlgeschlagen');
+        assert.equal(f.error.style.display, 'block');
+        assert.equal(f.dirty(), true);
+    }
+    const retry = f.owner.saveInstantly();
+    await tick();
+    assert.equal(f.requests.at(-1).data.community_email, 'a@example.org,b@example.org');
+    f.requests.at(-1).finish();
+    assert.equal(await retry, true);
+    assert.equal(f.dirty(), false);
+    assert.equal(f.error.style.display, 'none');
 });
 
 test('instant-only saves never show a footer or success toast, autofill stays masked', async () => {
