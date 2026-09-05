@@ -1,5 +1,10 @@
 """Tests for report/comparison helpers exposed through web routes."""
 
+import io
+
+import pytest
+
+from pypdf import PdfReader
 from unittest.mock import Mock, patch
 from app.analyzer import analyze
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
@@ -31,10 +36,26 @@ def _add_builtin_analysis_meta(analysis):
     return analysis
 
 
-class TestReportHelpers:
-    def test_compute_worst_values_preserves_unsupported_error_counters(self):
-        from app.modules.reports.report import _compute_worst_values
+def _report_text(snapshots):
+    from app.modules.reports.report import generate_report
 
+    return "\n".join(page.extract_text() for page in
+                     PdfReader(io.BytesIO(generate_report(snapshots))).pages)
+
+
+class TestReportHelpers:
+    @pytest.mark.parametrize("counters,correctable,uncorrectable", [
+        ({}, "N/A", "N/A"),
+        ({"ds_correctable_errors": 5}, "5", "N/A"),
+        ({"ds_uncorrectable_errors": 7}, "N/A", "7"),
+        ({"ds_correctable_errors": 0, "ds_uncorrectable_errors": None}, "0", "N/A"),
+    ])
+    def test_report_projects_missing_and_partial_counters(self, counters, correctable, uncorrectable):
+        text = _report_text([{"summary": {"health": "good", **counters}}])
+        assert f"Correctable Errors (max): {correctable}" in text
+        assert f"Uncorrectable Errors (max): {uncorrectable}" in text
+
+    def test_report_preserves_unsupported_error_counters(self):
         snapshots = [
             {"summary": {
                 "errors_supported": False,
@@ -44,14 +65,12 @@ class TestReportHelpers:
             }},
         ]
 
-        worst = _compute_worst_values(snapshots)
+        text = _report_text(snapshots)
 
-        assert worst["ds_correctable_max"] is None
-        assert worst["ds_uncorrectable_max"] is None
+        assert "Correctable Errors (max): N/A" in text
+        assert "Uncorrectable Errors (max): N/A" in text
 
-    def test_compute_worst_values_treats_legacy_unsupported_zeroes_as_unavailable(self):
-        from app.modules.reports.report import _compute_worst_values
-
+    def test_report_treats_legacy_unsupported_zeroes_as_unavailable(self):
         snapshots = [
             {"summary": {
                 "errors_supported": False,
@@ -61,14 +80,12 @@ class TestReportHelpers:
             }},
         ]
 
-        worst = _compute_worst_values(snapshots)
+        text = _report_text(snapshots)
 
-        assert worst["ds_correctable_max"] is None
-        assert worst["ds_uncorrectable_max"] is None
+        assert "Correctable Errors (max): N/A" in text
+        assert "Uncorrectable Errors (max): N/A" in text
 
-    def test_compute_worst_values_keeps_supported_zero_error_counters(self):
-        from app.modules.reports.report import _compute_worst_values
-
+    def test_report_keeps_supported_zero_error_counters(self):
         snapshots = [
             {"summary": {
                 "errors_supported": False,
@@ -84,10 +101,10 @@ class TestReportHelpers:
             }},
         ]
 
-        worst = _compute_worst_values(snapshots)
+        text = _report_text(snapshots)
 
-        assert worst["ds_correctable_max"] == 0
-        assert worst["ds_uncorrectable_max"] == 0
+        assert "Correctable Errors (max): 0" in text
+        assert "Uncorrectable Errors (max): 0" in text
 
     def test_report_count_formatter_preserves_unsupported_values(self):
         from app.modules.reports.report import _format_optional_count
@@ -198,8 +215,6 @@ class TestReportHelpers:
         assert notes[1]["spec_min"] == 29.0
 
     def test_ofdm_historical_minimum_uses_ofdm_warning_reference(self):
-        from app.modules.reports.report import _compute_worst_values, _default_warn_thresholds
-
         snapshots = [{
             "summary": {"ds_snr_min": 32.0, "health": "good"},
             "ds_channels": [{
@@ -211,15 +226,11 @@ class TestReportHelpers:
             }],
         }]
 
-        worst = _compute_worst_values(snapshots)
+        text = _report_text(snapshots)
 
-        assert worst["ds_snr_min"] == 32.0
-        assert worst["ds_snr_warn_min"] == 25.5
-        assert _default_warn_thresholds(worst["ds_snr_warn_min"])["snr"] == ">= 25.5 dB"
+        assert "32.0 dB (threshold: >= 25.5 dB)" in text
 
     def test_mixed_family_historical_minimum_uses_supplying_channel_reference(self):
-        from app.modules.reports.report import _compute_worst_values, _default_warn_thresholds
-
         snapshots = [
             {
                 "summary": {"ds_snr_min": 34.0, "health": "good"},
@@ -261,22 +272,16 @@ class TestReportHelpers:
             },
         ]
 
-        worst = _compute_worst_values(snapshots)
+        text = _report_text(snapshots)
 
-        assert worst["ds_snr_min"] == 32.0
-        assert worst["ds_snr_warn_min"] == 25.5
-        assert _default_warn_thresholds(worst["ds_snr_warn_min"])["snr"] == ">= 25.5 dB"
+        assert "32.0 dB (threshold: >= 25.5 dB)" in text
 
     def test_legacy_historical_minimum_keeps_256qam_fallback(self):
-        from app.modules.reports.report import _compute_worst_values, _default_warn_thresholds
-
-        worst = _compute_worst_values([{
+        text = _report_text([{
             "summary": {"ds_snr_min": 32.0, "health": "good"},
         }])
 
-        assert worst["ds_snr_min"] == 32.0
-        assert worst["ds_snr_warn_min"] is None
-        assert _default_warn_thresholds(worst["ds_snr_warn_min"])["snr"] == ">= 31.0 dB"
+        assert "32.0 dB (threshold: >= 31.0 dB)" in text
 
     def test_complaint_historical_summary_uses_ofdm_warning_reference(self):
         from app.modules.reports.report import generate_complaint_text

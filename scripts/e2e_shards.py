@@ -24,7 +24,7 @@ except ImportError:  # pragma: no cover - Windows can validate manifests only
 ROOT = Path(__file__).resolve().parents[1]
 E2E_DIR = ROOT / "tests" / "e2e"
 DEFAULT_MANIFEST = E2E_DIR / "shards.json"
-EXPECTED_TOTAL = 554
+EXPECTED_TOTAL = 555
 
 
 class ManifestError(ValueError):

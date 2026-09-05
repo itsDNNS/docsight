@@ -187,7 +187,7 @@ def test_full_e2e_paths_concurrency_and_summary_contract():
         step for step in workflow["jobs"]["full-e2e"]["steps"]
         if step["name"].startswith("Verify complete successful")
     )["run"]
-    assert "--expected-total 554" in summarize
+    assert "--expected-total 555" in summarize
 
     preserve = next(
         step for step in workflow["jobs"]["full-e2e"]["steps"]

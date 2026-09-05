@@ -59,6 +59,24 @@ UNSUPPORTED_ERRORS_SNAPSHOT = {
 }
 
 
+def _storage(snapshots):
+    storage = MagicMock()
+    storage.get_range_data.side_effect = lambda start, end: [
+        snapshot for snapshot in snapshots if start <= snapshot["timestamp"] <= end
+    ]
+    return storage
+
+
+def _compare(snapshots, other=None):
+    from app.modules.comparison.routes import compare_periods
+
+    if other is None:
+        return compare_periods(_storage(snapshots), "2026-03-01", "2026-03-31",
+                               "2026-04-01", "2026-04-30")
+    return compare_periods(_storage(snapshots + other), "2026-03-01", "2026-03-07",
+                           "2026-03-08", "2026-03-31")
+
+
 class TestCompareEndpoint:
     def test_missing_params_returns_400(self, app_client):
         resp = app_client.get("/api/comparison")
@@ -70,11 +88,7 @@ class TestCompareEndpoint:
 
     def test_valid_request_returns_periods_and_delta(self, app_client):
         with patch("app.modules.comparison.routes._get_storage") as mock_storage:
-            storage = MagicMock()
-            storage.get_range_data.side_effect = [
-                [SNAPSHOT_A],
-                [SNAPSHOT_B],
-            ]
+            storage = _storage([SNAPSHOT_A, SNAPSHOT_B])
             mock_storage.return_value = storage
             resp = app_client.get(
                 "/api/comparison"
@@ -93,8 +107,7 @@ class TestCompareEndpoint:
 
     def test_empty_period_returns_zero_snapshots(self, app_client):
         with patch("app.modules.comparison.routes._get_storage") as mock_storage:
-            storage = MagicMock()
-            storage.get_range_data.side_effect = [[], [SNAPSHOT_B]]
+            storage = _storage([SNAPSHOT_B])
             mock_storage.return_value = storage
             resp = app_client.get(
                 "/api/comparison"
@@ -108,8 +121,7 @@ class TestCompareEndpoint:
     def test_delta_verdict_degraded(self, app_client):
         """Lower SNR + higher errors = degraded."""
         with patch("app.modules.comparison.routes._get_storage") as mock_storage:
-            storage = MagicMock()
-            storage.get_range_data.side_effect = [[SNAPSHOT_A], [SNAPSHOT_B]]
+            storage = _storage([SNAPSHOT_A, SNAPSHOT_B])
             mock_storage.return_value = storage
             resp = app_client.get(
                 "/api/comparison"
@@ -135,8 +147,7 @@ class TestCompareEndpoint:
             "us_channels": [],
         }
         with patch("app.modules.comparison.routes._get_storage") as mock_storage:
-            storage = MagicMock()
-            storage.get_range_data.side_effect = [[SNAPSHOT_A], [better_b]]
+            storage = _storage([SNAPSHOT_A, better_b])
             mock_storage.return_value = storage
             resp = app_client.get(
                 "/api/comparison"
@@ -149,8 +160,7 @@ class TestCompareEndpoint:
     def test_delta_verdict_unchanged(self, app_client):
         """Same values = unchanged."""
         with patch("app.modules.comparison.routes._get_storage") as mock_storage:
-            storage = MagicMock()
-            storage.get_range_data.side_effect = [[SNAPSHOT_A], [SNAPSHOT_A]]
+            storage = _storage([SNAPSHOT_A, {**SNAPSHOT_A, "timestamp": SNAPSHOT_B["timestamp"]}])
             mock_storage.return_value = storage
             resp = app_client.get(
                 "/api/comparison"
@@ -162,8 +172,7 @@ class TestCompareEndpoint:
 
     def test_timeseries_included(self, app_client):
         with patch("app.modules.comparison.routes._get_storage") as mock_storage:
-            storage = MagicMock()
-            storage.get_range_data.side_effect = [[SNAPSHOT_A], [SNAPSHOT_B]]
+            storage = _storage([SNAPSHOT_A, SNAPSHOT_B])
             mock_storage.return_value = storage
             resp = app_client.get(
                 "/api/comparison"
@@ -176,8 +185,7 @@ class TestCompareEndpoint:
 
     def test_health_distribution(self, app_client):
         with patch("app.modules.comparison.routes._get_storage") as mock_storage:
-            storage = MagicMock()
-            storage.get_range_data.side_effect = [[SNAPSHOT_A, SNAPSHOT_A], [SNAPSHOT_B]]
+            storage = _storage([SNAPSHOT_A, SNAPSHOT_A, SNAPSHOT_B])
             mock_storage.return_value = storage
             resp = app_client.get(
                 "/api/comparison"
@@ -190,8 +198,7 @@ class TestCompareEndpoint:
 
     def test_period_from_to_echoed(self, app_client):
         with patch("app.modules.comparison.routes._get_storage") as mock_storage:
-            storage = MagicMock()
-            storage.get_range_data.side_effect = [[], []]
+            storage = _storage([])
             mock_storage.return_value = storage
             resp = app_client.get(
                 "/api/comparison"
@@ -204,12 +211,10 @@ class TestCompareEndpoint:
 
 
 class TestAggregatePeriod:
-    """Unit tests for the _comparison_period function."""
+    """Period projection through public comparison and real window selection."""
 
     def test_empty_snapshots(self):
-        from app.modules.comparison.routes import _comparison_period
-
-        result = _comparison_period([])
+        result = _compare([])["period_a"]
         assert result["snapshots"] == 0
         assert result["avg"]["ds_power"] is None
         assert result["errors_supported"] is False
@@ -217,9 +222,7 @@ class TestAggregatePeriod:
         assert result["total"]["uncorr_errors"] is None
 
     def test_single_snapshot(self):
-        from app.modules.comparison.routes import _comparison_period
-
-        result = _comparison_period([SNAPSHOT_A])
+        result = _compare([SNAPSHOT_A])["period_a"]
         assert result["snapshots"] == 1
         assert result["avg"]["ds_power"] == 3.1
         assert result["avg"]["ds_snr"] == 34.2
@@ -227,18 +230,14 @@ class TestAggregatePeriod:
         assert result["total"]["uncorr_errors"] == 0
 
     def test_multiple_snapshots_averages(self):
-        from app.modules.comparison.routes import _comparison_period
-
-        result = _comparison_period([SNAPSHOT_A, SNAPSHOT_B])
+        result = _compare([SNAPSHOT_A, SNAPSHOT_B])["period_a"]
         assert result["snapshots"] == 2
         assert result["avg"]["ds_power"] == pytest.approx(3.65)
         assert result["avg"]["ds_snr"] == pytest.approx(32.85)
         assert result["total"]["corr_errors"] == 300
 
     def test_unsupported_error_counters_remain_none(self):
-        from app.modules.comparison.routes import _comparison_period
-
-        result = _comparison_period([UNSUPPORTED_ERRORS_SNAPSHOT])
+        result = _compare([UNSUPPORTED_ERRORS_SNAPSHOT])["period_a"]
 
         assert result["errors_supported"] is False
         assert result["corr_errors_supported"] is False
@@ -248,8 +247,6 @@ class TestAggregatePeriod:
         assert result["timeseries"][0]["uncorr_errors"] is None
 
     def test_errors_supported_false_zero_counters_remain_unsupported(self):
-        from app.modules.comparison.routes import _comparison_period
-
         legacy_zero_snapshot = {
             **UNSUPPORTED_ERRORS_SNAPSHOT,
             "summary": {
@@ -259,7 +256,7 @@ class TestAggregatePeriod:
                 "ds_uncorrectable_errors": 0,
             },
         }
-        result = _comparison_period([legacy_zero_snapshot])
+        result = _compare([legacy_zero_snapshot])["period_a"]
 
         assert result["errors_supported"] is False
         assert result["corr_errors_supported"] is False
@@ -269,9 +266,7 @@ class TestAggregatePeriod:
         assert result["timeseries"][0]["uncorr_errors"] is None
 
     def test_zero_error_counters_stay_supported_zeroes(self):
-        from app.modules.comparison.routes import _comparison_period
-
-        result = _comparison_period([SNAPSHOT_A])
+        result = _compare([SNAPSHOT_A])["period_a"]
 
         assert result["errors_supported"] is True
         assert result["corr_errors_supported"] is True
@@ -279,18 +274,16 @@ class TestAggregatePeriod:
         assert result["total"]["corr_errors"] == 100
         assert result["total"]["uncorr_errors"] == 0
 
-    def test_partially_supported_error_counters_do_not_invent_zeroes(self):
-        from app.modules.comparison.routes import _comparison_period
-
+    @pytest.mark.parametrize("counter", [{"ds_uncorrectable_errors": None}, {}])
+    def test_partially_supported_error_counters_do_not_invent_zeroes(self, counter):
         partial = {
             **UNSUPPORTED_ERRORS_SNAPSHOT,
             "summary": {
-                **UNSUPPORTED_ERRORS_SNAPSHOT["summary"],
                 "ds_correctable_errors": 5,
-                "ds_uncorrectable_errors": None,
+                **counter,
             },
         }
-        result = _comparison_period([partial])
+        result = _compare([partial])["period_a"]
 
         assert result["errors_supported"] is True
         assert result["corr_errors_supported"] is True
@@ -299,11 +292,17 @@ class TestAggregatePeriod:
         assert result["total"]["uncorr_errors"] is None
         assert result["timeseries"][0]["uncorr_errors"] is None
 
+    def test_historical_windows_exclude_outside_snapshots(self):
+        result = _compare([SNAPSHOT_A, {**SNAPSHOT_A, "timestamp": "2026-02-28T23:59:59Z"}], [SNAPSHOT_B])
+        assert result["period_a"]["snapshots"] == 1
+        assert result["period_b"]["snapshots"] == 1
+        assert result["period_a"]["timeseries"][0]["timestamp"] == SNAPSHOT_A["timestamp"]
+        assert result["period_b"]["total"]["uncorr_errors"] == 127
+
     def test_compare_periods_helper(self):
         from app.modules.comparison.routes import compare_periods
 
-        storage = MagicMock()
-        storage.get_range_data.side_effect = [[SNAPSHOT_A], [SNAPSHOT_B]]
+        storage = _storage([SNAPSHOT_A, SNAPSHOT_B])
 
         result = compare_periods(
             storage,
@@ -320,55 +319,39 @@ class TestAggregatePeriod:
 
 
 class TestComputeDelta:
-    """Unit tests for the _compute_delta function."""
+    """Delta semantics through public period comparison."""
 
     def test_basic_delta(self):
-        from app.modules.comparison.routes import _comparison_period, _compute_delta
-
-        pa = _comparison_period([SNAPSHOT_A])
-        pb = _comparison_period([SNAPSHOT_B])
-        delta = _compute_delta(pa, pb)
+        delta = _compare([SNAPSHOT_A], [SNAPSHOT_B])["delta"]
         assert delta["ds_power"] == pytest.approx(1.1)
         assert delta["ds_snr"] == pytest.approx(-2.7)
         assert delta["us_power"] == pytest.approx(0.3)
         assert delta["uncorr_errors"] == 127
 
     def test_delta_with_empty_period(self):
-        from app.modules.comparison.routes import _comparison_period, _compute_delta
-
-        pa = _comparison_period([])
-        pb = _comparison_period([SNAPSHOT_B])
-        delta = _compute_delta(pa, pb)
+        delta = _compare([], [SNAPSHOT_B])["delta"]
         assert delta["ds_power"] is None
         assert delta["ds_snr"] is None
 
     def test_both_periods_empty(self):
-        from app.modules.comparison.routes import _comparison_period, _compute_delta
-
-        pa = _comparison_period([])
-        pb = _comparison_period([])
-        delta = _compute_delta(pa, pb)
+        delta = _compare([], [])["delta"]
         assert delta["ds_power"] is None
         assert delta["uncorr_errors"] is None
         assert delta["verdict"] == "unchanged"
 
     def test_delta_ignores_unsupported_error_counters(self):
-        from app.modules.comparison.routes import _comparison_period, _compute_delta
-
-        unsupported_a = _comparison_period([UNSUPPORTED_ERRORS_SNAPSHOT])
-        unsupported_b = _comparison_period([
+        unsupported_a = [UNSUPPORTED_ERRORS_SNAPSHOT]
+        unsupported_b = [
             {**UNSUPPORTED_ERRORS_SNAPSHOT, "timestamp": "2026-03-08T06:00:00Z"}
-        ])
+        ]
 
-        delta = _compute_delta(unsupported_a, unsupported_b)
+        delta = _compare(unsupported_a, unsupported_b)["delta"]
 
         assert delta["uncorr_errors"] is None
         assert delta["verdict"] == "unchanged"
 
     def test_extreme_snr_improvement(self):
         """Large SNR jump should be classified as improved."""
-        from app.modules.comparison.routes import _comparison_period, _compute_delta
-
         great = {
             "timestamp": "2026-03-08T06:00:00Z",
             "summary": {
@@ -382,9 +365,7 @@ class TestComputeDelta:
             "ds_channels": [],
             "us_channels": [],
         }
-        pa = _comparison_period([SNAPSHOT_A])
-        pb = _comparison_period([great])
-        delta = _compute_delta(pa, pb)
+        delta = _compare([SNAPSHOT_A], [great])["delta"]
         assert delta["verdict"] == "improved"
 
 
