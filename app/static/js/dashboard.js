@@ -395,9 +395,14 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
         if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
     }
 
+    var htmlRefreshId = 0;
     function refreshData() {
+        var refreshId = ++htmlRefreshId;
+        var generation = window.DOCSightSignalSeries.invalidate();
         fetch(window.location.href)
             .then(function(r) {
+                if (refreshId !== htmlRefreshId) throw new Error('Stale dashboard HTML');
+                if (!r.ok) throw new Error('Dashboard refresh failed: ' + r.status);
                 if (r.headers && r.headers.get('X-DOCSight-Offline-Shell') === 'true') {
                     window.__DOCSIGHT_OFFLINE_SHELL__ = true;
                     if (typeof window.updateOfflineStatus === 'function') window.updateOfflineStatus();
@@ -406,6 +411,7 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
                 return r.text();
             })
             .then(function(html) {
+                if (refreshId !== htmlRefreshId) return;
                 var doc = new DOMParser().parseFromString(html, 'text/html');
 
                 // Save expanded metric cards by index
@@ -425,7 +431,12 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
                 var freshDash = doc.querySelector('#view-dashboard');
                 var currentDash = document.querySelector('#view-dashboard');
                 if (freshDash && currentDash) {
-                    currentDash.innerHTML = freshDash.innerHTML;
+                    // Move the actual rendered Hero node into the new tree.
+                    // Serializing innerHTML would discard the canvas bitmap.
+                    var hero = currentDash.querySelector('#hero-trend-chart');
+                    var freshHero = freshDash.querySelector('#hero-trend-chart');
+                    if (hero && freshHero) freshHero.replaceWith(hero);
+                    currentDash.replaceChildren.apply(currentDash, Array.from(freshDash.childNodes));
                 }
 
                 // Update topbar timestamp
@@ -457,14 +468,14 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
                 // Re-init sortable tables (event listeners lost on innerHTML replace)
                 initSortableTables();
 
-                // Re-init hero chart (instance lost on innerHTML replace)
+                // Fetch current signals while preserving the rendered Hero
                 if (typeof window.refreshHeroChart === 'function') {
-                    window.refreshHeroChart();
+                    window.refreshHeroChart(generation);
                 }
 
                 // Re-init sparklines (canvas lost on innerHTML replace)
                 if (typeof window.refreshSparklines === 'function') {
-                    window.refreshSparklines();
+                    window.refreshSparklines(generation);
                 }
 
                 // Re-init channel health donuts (instances lost on innerHTML replace)

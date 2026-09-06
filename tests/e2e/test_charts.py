@@ -1226,3 +1226,111 @@ class TestNonMigratedCharts:
         if sparklines.count() > 0:
             # Sparklines are custom canvas — should still be canvas
             assert sparklines.first.evaluate("el => el.tagName") == "CANVAS"
+
+
+class TestSignalLifecycle:
+    def test_shared_request_paints_before_legacy_and_theme_never_fetches(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, wait_count, toggle_theme, rows, wait_js
+        requests = start(page, live_server, legacy=lambda route: None)
+        painted(page)
+        wait_count(page, requests['legacy'], 1)
+        assert len(requests['signal']) == 1
+        toggle_theme(page)
+        wait_js(page, '() => dashboardTrendsProbe.paints.length >= 2')
+        assert len(requests['signal']) == len(requests['legacy']) == 1
+        requests['legacy'][0].fulfill(json=rows())
+        page.wait_for_load_state('networkidle')
+        assert page.evaluate('dashboardTrendsProbe.charts.filter(c => !c.destroyed).length') == 1
+        assert page.locator('body > .uplot-tooltip').count() == 1
+
+    def test_hero_filter_preserves_nulls_and_excludes_all_null_rows(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, rows
+        data = rows()
+        data[0]['ds_power_avg'] = 0
+        data[1]['ds_power_avg'] = None
+        data.insert(1, {'timestamp': data[0]['timestamp']})
+        start(page, live_server, signal=lambda route: route.fulfill(json=data))
+        painted(page)
+        assert page.evaluate('dashboardTrendsProbe.charts.at(-1).data') == [
+            [0, 1, 2], [0, None, 3], [42, 43, 44], [36, 37, 38]]
+
+    def test_failure_does_not_block_modules_and_public_refresh_recovers(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, wait_count, spark_pixels, rows
+        attempts = []
+        def signals(route):
+            attempts.append(route)
+            route.fulfill(status=503, json={}) if len(attempts) == 1 else route.fulfill(json=rows(9))
+        requests = start(page, live_server, signal=signals)
+        wait_count(page, requests['legacy'], 1)
+        page.wait_for_load_state('networkidle')
+        expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.network_error'))
+        assert spark_pixels(page, '#spark-errors')
+        assert spark_pixels(page, '#spark-speed')
+        # Existing public API, no dashboard-only test hook.
+        page.evaluate('Promise.all([refreshHeroChart(), refreshSparklines()])')
+        painted(page, 9)
+        assert len(requests['signal']) == len(requests['legacy']) == 2
+        observers = page.evaluate('dashboardTrendsProbe.activeObservers')
+        for _ in range(3):
+            page.evaluate('Promise.all([refreshHeroChart(), refreshSparklines()])')
+        assert page.evaluate('dashboardTrendsProbe.activeObservers') == observers
+        assert page.evaluate('dashboardTrendsProbe.charts.filter(c => !c.destroyed).length') == 1
+        assert page.locator('body > .uplot-tooltip').count() == 1
+
+    def test_empty_and_legacy_failure_retry(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, wait_count, rows, spark_pixels
+        attempts = []
+        def legacy(route):
+            attempts.append(route)
+            route.fulfill(status=503, json={}) if len(attempts) == 1 else route.fulfill(json=rows())
+        requests = start(page, live_server, signal=lambda route: route.fulfill(json=[]), legacy=legacy)
+        wait_count(page, requests['legacy'], 1)
+        page.wait_for_load_state('networkidle')
+        expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.chart_no_history'))
+        assert not page.evaluate('dashboardTrendsProbe.paints.length')
+        page.evaluate('refreshSparklines()')
+        assert spark_pixels(page, '#spark-errors')
+        assert len(attempts) == 2
+
+    def test_stale_legacy_cannot_replace_current_sparse_module_data(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, wait_count, rows, spark_pixels
+        held = []
+        start(page, live_server, legacy=lambda route: held.append(route))
+        painted(page)
+        wait_count(page, held, 1)
+        page.evaluate('''() => { refreshHeroChart(); refreshSparklines(); }''')
+        wait_count(page, held, 2)
+        sparse = [{'timestamp': row['timestamp'], 'speedtest_download': value,
+                   'connection_monitor_latency_ms': value, 'ds_uncorrectable_errors': value}
+                  for row, value in zip(rows(), [10, 30, 12])]
+        held[1].fulfill(json=sparse)
+        page.wait_for_timeout(100)
+        assert spark_pixels(page, '#spark-speed')
+        bitmap = page.locator('#spark-speed').evaluate('c => c.toDataURL()')
+        held[0].fulfill(json=rows(1))
+        page.wait_for_load_state('networkidle')
+        assert page.locator('#spark-speed').evaluate('c => c.toDataURL()') == bitmap
+        # A successful empty update must remove stale pixels, not cache them forever.
+        page.evaluate('''() => { refreshHeroChart(); refreshSparklines(); }''')
+        wait_count(page, held, 3)
+        held[2].fulfill(json=[])
+        page.wait_for_load_state('networkidle')
+        assert not spark_pixels(page, '#spark-speed')
+
+    def test_modules_disabled_still_share_and_paint(self, page, tkg_core_server):
+        from tests.e2e.support.signal_trends import start, painted, wait_count
+        requests = start(page, tkg_core_server)
+        painted(page)
+        wait_count(page, requests['legacy'], 1)
+        assert len(requests['signal']) == 1
+        assert page.locator('#spark-connection-monitor').count() == 0
+
+    def test_theme_preserves_error_after_previously_empty_history(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, toggle_theme
+        start(page, live_server, signal=lambda route: route.fulfill(json=[]))
+        expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.chart_no_history'))
+        page.route('**/api/trends/signal?*', lambda route: route.fulfill(status=503, json={}))
+        page.evaluate('refreshHeroChart()')
+        expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.network_error'))
+        toggle_theme(page)
+        expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.network_error'))

@@ -546,3 +546,52 @@ class TestBnetzStorage:
         )
         assert len(timeline) == 1
         assert timeline[0]["source"] == "bnetz"
+
+
+class TestSignalSummary:
+    def test_window_projection_parity_and_bounded_decode(self, storage, monkeypatch):
+        monkeypatch.setattr(snapshot_module, 'utc_cutoff', lambda **kw: (
+            '2026-09-05T12:00:00Z' if kw['hours'] == 24 else '2026-06-06T12:00:00Z'
+        ))
+        visible = [
+            ('2026-09-05T12:00:00Z', {'ds_power_avg': 0, 'us_power_avg': 42, 'ds_snr_avg': 38}),
+            ('2026-09-06T00:00:00Z', {'ds_power_avg': None, 'ds_snr_avg': 37}),
+            ('2026-09-06T01:00:00Z', {}),
+        ]
+        def insert(rows):
+            with sqlite3.connect(storage.db_path) as conn:
+                conn.executemany(
+                    'INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)',
+                    [(ts, json.dumps({**s, 'unneeded': ['large'] * 100}), '[]', '[]') for ts, s in rows],
+                )
+        insert(reversed(visible))
+        expected = [{'timestamp': ts, **{k: s.get(k) for k in ('ds_power_avg', 'us_power_avg', 'ds_snr_avg')}} for ts, s in visible]
+        assert storage.get_signal_summary_since(24) == expected
+        insert([('2026-06-07T00:00:00Z', {'ds_power_avg': 999})] * 500)
+        legacy = storage.get_summary_since(24)
+        assert [{k: row.get(k) for k in expected[0]} for row in legacy] == expected
+        loads = json.loads
+        decoded = []
+        def track(value, *args, **kwargs):
+            decoded.append(value)
+            return loads(value, *args, **kwargs)
+        monkeypatch.setattr(snapshot_module.json, 'loads', track)
+        # Count rows materialized by SQLite as well as Python JSON decoding.
+        # This catches a wide SQL projection followed by a Python time filter.
+        from contextlib import contextmanager
+        read = storage._read
+        materialized = []
+        @contextmanager
+        def tracked_read():
+            with read() as conn:
+                factory = conn.row_factory
+                def row_factory(cursor, row):
+                    materialized.append(row)
+                    return factory(cursor, row)
+                conn.row_factory = row_factory
+                yield conn
+        monkeypatch.setattr(storage, '_read', tracked_read)
+        assert storage.get_signal_summary_since(24) == expected
+        assert len(materialized) == len(visible)
+        assert len(decoded) <= len(visible)
+        assert all('999' not in value for value in decoded)

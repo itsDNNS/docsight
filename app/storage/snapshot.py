@@ -298,6 +298,23 @@ class SnapshotMethods:
             if _timestamp_in_range(entry["timestamp"], start_ts, end_ts)
         ]
 
+    def get_signal_summary_since(self, hours):
+        """Project signal values only inside the requested rolling window.
+
+        Signal values need no historical error-counter anchors. Keep every
+        window row, including unsupported/missing values as null.
+        """
+        with self._read() as conn:
+            rows = conn.execute(
+                "SELECT timestamp, "
+                "json_extract(summary_json, '$.ds_power_avg') AS ds_power_avg, "
+                "json_extract(summary_json, '$.us_power_avg') AS us_power_avg, "
+                "json_extract(summary_json, '$.ds_snr_avg') AS ds_snr_avg "
+                "FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
+                (utc_cutoff(hours=hours),),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def get_summary_since(self, hours):
         """Get summary snapshots from the last N hours."""
         cutoff = utc_cutoff(hours=hours)

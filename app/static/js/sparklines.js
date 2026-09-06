@@ -2,7 +2,7 @@
  * Sparklines — Mini trend charts inside metric cards
  *
  * Renders 24h Canvas sparklines for the 4 core metric cards.
- * Reuses /api/trends data (same endpoint as hero chart).
+ * Shares the compact Hero series; error/family/module data follows separately.
  */
 (function() {
     'use strict';
@@ -87,36 +87,81 @@
         ctx.stroke();
     }
 
-    function refresh() {
-        fetch(docsightUrl('/api/trends'))
-            .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
-            .then(function(data) {
-                if (!Array.isArray(data) || data.length === 0) return;
+    var signalKeys = ['ds_power_avg', 'us_power_avg', 'ds_snr_avg'];
+    var cachedSignals = [];
+    var cachedLegacy = [];
+    var legacyGeneration = -1;
+    var legacyPromise = null;
+    var requestId = 0;
 
-                // Filter to last 24h
-                var now = new Date();
-                var cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                var filtered = data.filter(function(d) {
-                    return new Date(d.timestamp) >= cutoff;
-                });
-                if (filtered.length < 2) return;
-
-                collectSparks().forEach(function(s) {
-                    var canvas = document.getElementById(s.id);
-                    if (!canvas) return;
-                    var vals = filtered.map(function(d) { return d[s.key]; }).filter(function(v) { return v != null; });
-                    if (vals.length >= 2) drawSparkline(canvas, vals, s.color);
-                });
-            })
-            .catch(function(err) {
-                console.warn('[Sparklines] Failed to load data:', err);
-            });
+    function render(data, signals) {
+        var cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        var filtered = data.filter(function(row) { return new Date(row.timestamp) >= cutoff; });
+        collectSparks().forEach(function(s) {
+            if ((signalKeys.indexOf(s.key) !== -1) !== signals) return;
+            var canvas = document.getElementById(s.id);
+            if (!canvas) return;
+            var values = filtered.map(function(row) { return row[s.key]; }).filter(function(v) { return v != null; });
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            if (values.length >= 2) drawSparkline(canvas, values, s.color);
+        });
     }
 
-    window.refreshSparklines = refresh;
+    function getLegacy(generation) {
+        if (legacyGeneration === generation && legacyPromise) return legacyPromise;
+        legacyGeneration = generation;
+        var promise = fetch(docsightUrl('/api/trends?range=1d'))
+            .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+            .then(function(rows) {
+                if (!Array.isArray(rows)) throw new Error('Invalid trend series');
+                return rows;
+            }).catch(function(error) {
+                if (legacyPromise === promise) legacyPromise = null;
+                throw error;
+            });
+        legacyPromise = promise;
+        return promise;
+    }
+
+    function refresh(generation) {
+        var series = window.DOCSightSignalSeries;
+        if (generation == null) generation = series.generation();
+        var id = ++requestId;
+        function current() { return id === requestId && series.isCurrent(generation); }
+        // The HTML swap replaces canvases. Restore the last successful sparse
+        // data while fetching, including module rows at different timestamps.
+        render(cachedSignals, true);
+        render(cachedLegacy, false);
+        return series.get().then(function(rows) {
+            if (!current()) return;
+            cachedSignals = rows;
+            render(rows, true);
+        }).catch(function(error) {
+            if (current()) console.warn('[Sparklines] Failed to load signals:', error);
+        }).then(function() {
+            // Allow the signal render to paint before starting legacy CPU work.
+            // Failure also reaches this path so errors/modules can recover alone.
+            return new Promise(function(resolve) {
+                requestAnimationFrame(function() { setTimeout(resolve, 0); });
+            });
+        }).then(function() {
+            if (!current()) return;
+            return getLegacy(generation).then(function(rows) {
+                if (!current()) return;
+                cachedLegacy = rows;
+                render(rows, false);
+            }).catch(function(error) {
+                if (current()) console.warn('[Sparklines] Failed to load data:', error);
+            });
+        });
+    }
+
+    window.refreshSparklines = function(generation) {
+        return refresh(generation == null ? window.DOCSightSignalSeries.refresh() : generation);
+    };
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', refresh);
+        document.addEventListener('DOMContentLoaded', function() { refresh(); });
     } else {
         refresh();
     }

@@ -134,6 +134,19 @@ def _append_speedtest_trends(data: list[dict], db_path: str, hours: int) -> None
         log.debug("Unable to append Speedtest trend data", exc_info=True)
 
 
+@data_bp.route("/api/trends/signal")
+@require_auth
+def api_signal_trends():
+    """Return timestamp and three signal averages, without module/error work."""
+    hours = parse_time_range_hours(request.args.get("range"), default="1d")
+    if hours is None:
+        return jsonify({"error": "Invalid range (use 1h, 6h, 1d, 2d, 3d, 7d, 30d, 90d)"}), 400
+    runtime = current_runtime()
+    data = runtime.storage.get_signal_summary_since(hours) if runtime.storage else []
+    localize_timestamps(data, get_tz_name(runtime.config_manager))
+    return jsonify(data)
+
+
 @data_bp.route("/api/trends")
 @require_auth
 def api_trends():
