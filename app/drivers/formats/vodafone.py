@@ -212,7 +212,7 @@ def parse_vodafone_station_tg_embedded_json(html: str) -> ParseResult[DocsisData
         try:
             channel_type = row.get("ChannelType", "SC-QAM")
             frequency = parse_tg_frequency(row.get("Frequency", "0"))
-            snr = abs(parse_number(row.get("SNRLevel", "0")))
+            snr = abs(parse_vodafone_number(row.get("SNRLevel", "0")))
             modulation = normalize_modulation(row.get("Modulation", ""))
             ofdm = "OFDM" in channel_type.upper()
             if ofdm:
