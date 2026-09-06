@@ -5,6 +5,7 @@ Tests cover: hero chart, trend charts, channel charts, compare charts,
 zoom modal, theme switching, responsive sizing, and crosshair sync.
 """
 
+import pytest
 from playwright.sync_api import expect
 
 # ── Helpers ──
@@ -1334,3 +1335,63 @@ class TestSignalLifecycle:
         expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.network_error'))
         toggle_theme(page)
         expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.network_error'))
+
+
+def _assert_curve_points_hidden(page, expression):
+    """Resolve uPlot's normalized points.show callback for each plotted series."""
+    points = page.evaluate(
+        """charts => charts.map(chart => chart.series.slice(1).map((series, i) =>
+            typeof series.points.show === 'function'
+                ? series.points.show(chart, i + 1) : series.points.show))""",
+        page.evaluate_handle(expression),
+    )
+    assert points and all(points), "Expected plotted data series"
+    assert all(value is False for series in points for value in series), points
+
+
+def _assert_curve_zoom_and_tooltip(page, chart_id):
+    page.locator(f'.chart-expand-btn[data-chart="{chart_id}"]').click()
+    wait_for_uplot(page, "chart-zoom-canvas")
+    _assert_curve_points_hidden(page, "[window.zoomChart]")
+    page.locator('#chart-zoom-canvas .u-over').hover()
+    expect(page.locator('#chart-zoom-canvas .uplot-tooltip')).to_be_visible()
+    page.keyboard.press("Escape")
+    expect(page.locator('#chart-zoom-overlay')).not_to_be_visible()
+
+
+@pytest.mark.parametrize("range_value", ["1h", "6h", "1d", "2d"])
+def test_signal_curves_without_points_keep_zoom_and_tooltip(demo_page, range_value):
+    demo_page.locator('.nav-item[data-view="trends"]').click()
+    wait_for_uplot(demo_page, "chart-ds-power")
+    tab = demo_page.locator(f'.trend-tab[data-range="{range_value}"]')
+    if "active" not in (tab.get_attribute("class") or ""):
+        previous = demo_page.locator('#chart-ds-power .uplot canvas').element_handle()
+        tab.click()
+        wait_for_uplot_replacement(demo_page, "chart-ds-power", previous)
+        previous.dispose()
+    _assert_curve_points_hidden(demo_page,
+        "['chart-ds-power', 'chart-ds-snr', 'chart-us-power'].map(id => window.charts[id])")
+    _assert_curve_zoom_and_tooltip(demo_page, "chart-ds-power")
+
+
+@pytest.mark.parametrize("preset", ["yesterday_today", "peak_offpeak", "custom"])
+def test_comparison_curves_without_points_keep_zoom_and_tooltip(demo_page, preset):
+    from tests.e2e.test_comparison import _comparison_payload, navigate_to_comparison
+
+    payload = _comparison_payload(True, 0)
+    # Sparse periods reproduce the marker default while allowing a visible curve.
+    for key in ("period_a", "period_b"):
+        row = payload[key]["timeseries"][0]
+        payload[key]["timeseries"].append(dict(row, timestamp=row["timestamp"].replace("06:00", "12:00")))
+    demo_page.route("**/api/comparison**", lambda route: route.fulfill(json=payload))
+    navigate_to_comparison(demo_page)
+    demo_page.locator('#comparison-preset').select_option(preset)
+    if preset == 'custom':
+        for suffix, value in [('from-a', '2026-03-01T00:00'), ('to-a', '2026-03-01T23:59'),
+                              ('from-b', '2026-03-08T00:00'), ('to-b', '2026-03-08T23:59')]:
+            demo_page.locator(f'#comparison-{suffix}').fill(value)
+    demo_page.locator('#comparison-run-btn').click()
+    wait_for_uplot(demo_page, "cmp-chart-ds-power")
+    _assert_curve_points_hidden(demo_page,
+        "['cmp-chart-ds-power', 'cmp-chart-ds-snr', 'cmp-chart-us-power'].map(id => window.charts[id])")
+    _assert_curve_zoom_and_tooltip(demo_page, "cmp-chart-ds-power")

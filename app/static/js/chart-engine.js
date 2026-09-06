@@ -455,7 +455,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
 
     allDatasets.forEach(function(ds) {
         var showPoints = ds.showPoints;
-        if (showPoints === undefined) showPoints = n <= 30 && !isBar;
+        if (showPoints === undefined) showPoints = false;
         var s = {
             label: ds.label,
             stroke: ds.color || 'rgba(168,85,247,0.9)',
@@ -773,7 +773,7 @@ function openChartZoom(canvasId) {
         var uSeries = [{ label: 'X', value: function(u, v) { return params.labels[v] || ''; } }];
         params.datasets.forEach(function(ds) {
             var zoomShowPoints = ds.showPoints;
-            if (zoomShowPoints === undefined) zoomShowPoints = n <= 30 && !isBar;
+            if (zoomShowPoints === undefined) zoomShowPoints = false;
             var s = {
                 label: ds.label,
                 stroke: ds.color || 'rgba(168,85,247,0.9)',
@@ -796,7 +796,7 @@ function openChartZoom(canvasId) {
                 width: 1.5,
                 dash: [5, 3],
                 scale: 'temp',
-                points: { show: n <= 30, size: 4 },
+                points: { show: false, size: 4 },
                 spanGaps: true
             };
             ts._docsightAxisID = 'y-temp';

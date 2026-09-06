@@ -698,7 +698,7 @@ function renderGroupTrendChart(pg, idx) {
                 fill: 'rgba(34,197,94,0.1)',
                 width: 2,
                 scale: 'health',
-                points: { show: true, size: 6 }
+                points: { show: false }
             },
             {
                 label: T['docsight.modulation.low_qam_pct'] || 'Low-QAM %',
@@ -706,7 +706,7 @@ function renderGroupTrendChart(pg, idx) {
                 fill: 'rgba(239,68,68,0.1)',
                 width: 2,
                 scale: 'lowqam',
-                points: { show: true, size: 6 }
+                points: { show: false }
             }
         ],
         cursor: { show: true, x: true, y: false, points: { show: false } },
@@ -998,7 +998,7 @@ function renderChannelTimeline(canvasId, timeline) {
                 stroke: '#ffab40',
                 width: 2,
                 paths: uPlot.paths.stepped({ align: -1 }),
-                points: { show: true, size: 8, stroke: '#ffab40', fill: '#ffab40' }
+                points: { show: false }
             }
         ],
         cursor: { show: true, x: true, y: false, points: { show: false } },

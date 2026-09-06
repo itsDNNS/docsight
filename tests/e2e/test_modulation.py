@@ -497,3 +497,27 @@ class TestNoConsoleErrors:
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(2000)
         assert len(errors) == 0, f"JS errors: {errors}"
+
+
+@pytest.mark.parametrize("direction", ["us", "ds"])
+@pytest.mark.parametrize("days", [7, 30])
+def test_modulation_curves_without_points_keep_tooltip_and_drilldown(demo_page, direction, days):
+    from tests.e2e.test_charts import _assert_curve_points_hidden
+
+    demo_page.locator('.nav-item[data-view="modulation"]').click()
+    demo_page.wait_for_function("() => window._modCharts.length >= 2", timeout=150_000)
+    if direction == "ds":
+        _switch_distribution(demo_page, '#modulation-direction-tabs [data-dir="ds"]',
+                             direction=direction, min_samples=7)
+    if days == 30:
+        _switch_distribution(demo_page, '#modulation-range-tabs [data-days="30"]',
+                             direction=direction, min_samples=30)
+    _assert_curve_points_hidden(demo_page, "window._modCharts")
+    demo_page.locator('[id^="mod-trend-chart-"] .u-over').first.hover()
+    expect(demo_page.locator('[id^="mod-trend-chart-"] .uplot-tooltip').first).to_be_visible()
+
+    with demo_page.expect_response(lambda response: "/api/modulation/intraday?" in response.url) as response:
+        demo_page.locator('#modulation-range-tabs [data-days="1"]').click()
+    expect(demo_page.locator('#mod-intraday-title')).to_contain_text(response.value.json()["date"])
+    expect(demo_page.locator('#modulation-intraday')).to_be_visible()
+    expect(demo_page.locator('#modulation-overview')).not_to_be_visible()

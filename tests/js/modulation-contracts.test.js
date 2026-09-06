@@ -47,7 +47,7 @@ function browser(lang = 'en', translations = {}) {
         this.destroy = () => { this.destroyed = true; };
         charts.push(this);
     }
-    Chart.paths = {bars: () => () => {}};
+    Chart.paths = {bars: () => () => {}, stepped: () => () => {}};
     const context = {
         document: {getElementById: id => ids.get(id), createElement: () => element(),
             querySelectorAll: selector => selector.includes('direction') ? directions : ranges},
@@ -58,7 +58,7 @@ function browser(lang = 'en', translations = {}) {
     };
     context.window = context;
     vm.runInNewContext(read('app/modules/modulation/static/main.js'), context);
-    return {ids, charts, requests, directions, ranges, init: () => context.initModulation(),
+    return {ids, charts, requests, directions, ranges, context, init: () => context.initModulation(),
         async reply(data, index = requests.length - 1) {
             requests[index].resolve({json: async () => data});
             await new Promise(resolve => setImmediate(resolve));
@@ -215,3 +215,30 @@ for (const lang of ['en', 'de']) {
         assert.equal(b.ids.get('modulation-capacity-panel').style.display, 'none');
     });
 }
+
+for (const direction of ['us', 'ds']) {
+    for (const count of [7, 30]) {
+        test(`${direction} ${count}d modulation curves have no persistent points`, async () => {
+            const b = browser();
+            b.init();
+            await b.reply(overview(direction, '3.0', count));
+            assert.equal(b.charts.length, 2);
+            for (const chart of b.charts) {
+                for (const series of chart.options.series.slice(1)) {
+                    assert.equal(series.points.show, false, series.label);
+                }
+            }
+        });
+    }
+}
+
+test('intraday stepped modulation curve has no persistent points', () => {
+    const b = browser();
+    b.context.renderChannelTimeline('modulation-intraday-content', [
+        {time: '12:00', modulation: '64QAM'}, {time: '12:05', modulation: '16QAM'},
+    ]);
+    const chart = b.charts[0];
+    assert.equal(chart.options.series[1].points.show, false);
+    assert.equal(typeof chart.options.series[1].paths, 'function');
+    assert.equal(chart.options.cursor.show, true);
+});
