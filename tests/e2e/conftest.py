@@ -19,6 +19,7 @@ from tests.e2e.support.lifecycle import (
     running_processes,
 )
 from tests.e2e.support.profiles import ServerProfile, ServerTarget
+from tests.e2e.support.vodafone import seed_vodafone_tg_data
 
 DEMO_PROFILE = ServerProfile("demo", configured=True, demo_mode=True)
 AUTH_PROFILE = ServerProfile("auth", configured=True, demo_mode=True)
@@ -60,6 +61,10 @@ FRITZBOX_PROFILE = ServerProfile(
     post_seed_callback=seed_fritzbox_segment_data,
 )
 AUTH_TEST_CREDENTIAL = "e2e-test-password"
+VODAFONE_TG_PROFILE = ServerProfile(
+    "vodafone-tg", configured=True, demo_mode=False,
+    modem_type="vodafone_station", seed_callback=seed_vodafone_tg_data,
+)
 
 
 @pytest.fixture(scope="session")
@@ -137,6 +142,15 @@ def live_server(tmp_path_factory):
     )
     with running_processes([spec]):
         yield target.base_url
+
+
+@pytest.fixture(scope="session")
+def vodafone_tg_server(tmp_path_factory):
+    target, spec = _new_target(
+        "vodafone-tg", tmp_path_factory.mktemp("docsight_e2e_tg"), VODAFONE_TG_PROFILE
+    )
+    with running_processes([spec]):
+        yield target
 
 
 @pytest.fixture(scope="session")
