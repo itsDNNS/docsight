@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 555,
+  "expected_total": 566,
   "baseline_cpu_seconds": 1534.372,
   "shards": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "id": 2,
-      "collected_cases": 140,
+      "collected_cases": 151,
       "files": [
         "test_auth.py",
         "test_charts.py",

@@ -343,3 +343,80 @@ class TestHealthEndpoint:
         page.goto(f"{live_server}/health")
         content = page.text_content("body")
         assert '"status": "ok"' in content or '"status":"ok"' in content
+
+
+class TestSignalRefresh:
+    def test_refresh_keeps_real_hero_and_cached_sparse_sparks_then_updates(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, spark_pixels, toggle_theme
+        requests = start(page, live_server)
+        painted(page)
+        page.wait_for_load_state('networkidle')
+        page.evaluate("window.savedHero = document.querySelector('#hero-trend-chart'); window.savedCanvas = savedHero.querySelector('canvas'); window.savedBitmap = savedCanvas.toDataURL();")
+        held = []
+        page.route('**/api/trends/signal?*', lambda route: held.append(route))
+        click_refresh(page)
+        wait_count(page, held, 1)
+        assert page.evaluate("savedHero === document.querySelector('#hero-trend-chart') && savedCanvas.isConnected && savedCanvas.toDataURL() === savedBitmap")
+        assert spark_pixels(page, '#spark-speed')
+        assert spark_pixels(page, '#spark-errors')
+        toggle_theme(page)
+        assert len(held) == 1
+        held[0].fulfill(json=rows(8))
+        painted(page, 8)
+        wait_count(page, requests['legacy'], 2)
+        assert page.evaluate('!savedCanvas.isConnected')
+        assert page.locator('body > .uplot-tooltip').count() == 1
+
+    def test_stale_signal_and_theme_during_fetch_cannot_overwrite_newer_data(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, toggle_theme
+        held = []
+        requests = start(page, live_server, signal=lambda route: held.append(route))
+        wait_count(page, held, 1)
+        toggle_theme(page)
+        assert len(held) == 1
+        click_refresh(page)
+        wait_count(page, held, 2)
+        toggle_theme(page)
+        held[1].fulfill(json=rows(20))
+        painted(page, 20)
+        held[0].fulfill(json=rows(1))
+        page.wait_for_load_state('networkidle')
+        assert page.evaluate('dashboardTrendsProbe.charts.at(-1).data[1][0]') == 20
+        assert len(held) == 2
+        assert len(requests['legacy']) == 1
+
+    def test_html_refresh_race_uses_latest_response(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, wait_count, click_refresh, wait_js
+        start(page, live_server)
+        painted(page)
+        page.wait_for_load_state('networkidle')
+        html = page.request.get(live_server).text()
+        held = []
+        page.route(live_server + '/', lambda route: held.append(route))
+        page.clock.install()
+        click_refresh(page)
+        wait_count(page, held, 1)
+        page.clock.run_for(10001)  # Existing user refresh cooldown.
+        click_refresh(page)
+        wait_count(page, held, 2)
+        newer = html.replace('24h signal trend', 'Newest trend marker')
+        held[1].fulfill(content_type='text/html', body=newer)
+        wait_js(page, "() => document.querySelector('#view-dashboard').textContent.includes('Newest trend marker')")
+        held[0].fulfill(content_type='text/html', body=html.replace('24h signal trend', 'Stale trend marker'))
+        page.wait_for_timeout(100)
+        assert 'Newest trend marker' in page.locator('#view-dashboard').text_content()
+        assert 'Stale trend marker' not in page.locator('#view-dashboard').text_content()
+
+    def test_refresh_failure_retains_chart_and_modules_still_update(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, spark_pixels
+        requests = start(page, live_server)
+        painted(page)
+        page.wait_for_load_state('networkidle')
+        page.evaluate("window.savedCanvas = document.querySelector('#hero-trend-chart canvas')")
+        page.route('**/api/trends/signal?*', lambda route: route.fulfill(status=503, json={}))
+        click_refresh(page)
+        wait_count(page, requests['legacy'], 2)
+        page.wait_for_load_state('networkidle')
+        assert page.evaluate('savedCanvas.isConnected')
+        assert spark_pixels(page, '#spark-errors')
+        assert spark_pixels(page, '#spark-speed')

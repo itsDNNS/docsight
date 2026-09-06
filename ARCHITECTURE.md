@@ -1183,3 +1183,35 @@ MIT
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guide
 - [Wiki](https://github.com/itsDNNS/docsight/wiki) - User documentation
 - [Roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap) - Future plans
+
+### Dashboard signal data path
+
+`GET /api/trends/signal?range=1d` is an authenticated, additive API. It accepts
+only normalized rolling ranges (`1h`, `6h`, `1d`, `2d`, `3d`, `7d`, `30d`, `90d`),
+defaulting to `1d`. Calendar `date` anchors are not used. Each chronological row
+contains `timestamp`, `ds_power_avg`, `us_power_avg`, and `ds_snr_avg`; missing
+values are `null`. All window rows are returned, including all-null rows.
+Timestamps use the same configured display-time localization as `/api/trends`.
+The Hero retains its existing client-side time and all-null row filters.
+
+Snapshot storage restricts the timestamp window in SQL and projects these three
+values without decoding full historical summaries in Python. The generic
+`/api/trends` contract and its 92-day error-counter unwrap anchors are unchanged.
+
+`signal-series.js` shares one pending/completed request between Hero and signal
+sparklines per dashboard generation. Invalidating advances the generation;
+failed requests can retry and stale completions cannot populate the new cache.
+HTML refreshes also reject older responses. Refresh moves the actual Hero node
+into the replacement dashboard, retaining its canvas bitmap until valid data
+arrives. Replacement and theme rendering clean up the old chart, observer and
+tooltip. Theme changes use rendered data without fetching or invalidating.
+Existing public `refreshHeroChart()` and `refreshSparklines()` calls request a
+fresh generation, coalescing calls in the same JavaScript turn.
+
+Error, signal-family and module sparklines retain a separate, single generic
+trend request per generation, scheduled after signal rendering gets a paint
+opportunity (also after signal failure). They restore cached sparse rows after
+a dashboard DOM swap and replace them when current results arrive. This legacy
+request still incurs historical decoding and module work; it remains part of
+the full-dashboard and parallel benchmarks. See
+[scripts/benchmark_dashboard_trends.md](scripts/benchmark_dashboard_trends.md).

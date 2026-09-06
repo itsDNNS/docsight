@@ -9,6 +9,9 @@
 
     var heroChartInstance = null;
     var heroResizeObs = null;
+    var renderedData = null;
+    var lastLoadFailed = false;
+    var requestId = 0;
 
     function getThemeColors() {
         var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
@@ -38,43 +41,38 @@
             el.parentNode.replaceChild(div, el);
             return div;
         }
-        el.textContent = '';
         el.style.width = '100%';
         el.style.height = '100%';
         return el;
     }
 
-    function initHeroChart() {
-        destroyHero();
+    function initHeroChart(generation) {
+        var series = window.DOCSightSignalSeries;
+        if (generation == null) generation = series.generation();
+        var id = ++requestId;
         var container = getContainer();
-        if (!container) return;
-
-        // The hero card is a 24h sparkline, so fetch the normalized 1d trend range directly.
-        fetch(docsightUrl('/api/trends?range=1d'))
-            .then(function(r) {
-                if (!r.ok) throw new Error('API error: ' + r.status);
-                return r.json();
-            })
-            .then(function(data) {
-                if (!data || !Array.isArray(data) || data.length === 0) {
-                    renderEmptyChart(container);
-                    return;
-                }
-                var now = new Date();
-                var cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                var filtered = data.filter(function(d) {
-                    return isDocsisTrendRow(d) && new Date(d.timestamp) >= cutoff;
-                });
-                if (filtered.length === 0) {
-                    renderEmptyChart(container);
-                    return;
-                }
-                renderChart(container, filtered);
-            })
-            .catch(function(err) {
-                console.error('[HeroChart] Failed to load data:', err);
-                renderEmptyChart(container);
+        if (!container) { destroyHero(); renderedData = null; return Promise.resolve(); }
+        return series.get().then(function(data) {
+            if (id !== requestId || !series.isCurrent(generation) || !container.isConnected) return;
+            var cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            // Preserve the Hero's existing all-null row and local-time filtering.
+            var filtered = data.filter(function(row) {
+                return isDocsisTrendRow(row) && new Date(row.timestamp) >= cutoff;
             });
+            renderedData = filtered;
+            lastLoadFailed = false;
+            destroyHero();
+            container.textContent = '';
+            if (filtered.length) renderChart(container, filtered);
+            else renderEmptyChart(container);
+        }).catch(function(err) {
+            if (id !== requestId || !series.isCurrent(generation) || !container.isConnected) return;
+            console.error('[HeroChart] Failed to load data:', err);
+            if (!heroChartInstance) {
+                lastLoadFailed = true;
+                renderEmptyChart(container, true);
+            }
+        });
     }
 
     function isDocsisTrendRow(row) {
@@ -246,34 +244,43 @@
         heroResizeObs = new ResizeObserver(function(entries) {
             var w = Math.round(entries[0].contentRect.width);
             var h = Math.round(entries[0].contentRect.height);
-            if (w > 0 && h > 0 && (Math.abs(w - heroChartInstance.width) > 5 || Math.abs(h - heroChartInstance.height) > 5)) {
+            if (heroChartInstance && w > 0 && h > 0 && (Math.abs(w - heroChartInstance.width) > 5 || Math.abs(h - heroChartInstance.height) > 5)) {
                 heroChartInstance.setSize({width: w, height: h});
             }
         });
         heroResizeObs.observe(container);
     }
 
-    function renderEmptyChart(container) {
+    function renderEmptyChart(container, failed) {
         var c = getThemeColors();
         container.textContent = '';
         container.style.position = 'relative';
         var placeholder = document.createElement('div');
         placeholder.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:' + c.placeholder + ';font-size:13px;text-align:center;';
-        placeholder.textContent = T.chart_no_history || 'No trend data available';
+        placeholder.textContent = failed ? (T.network_error || 'Network error') : (T.chart_no_history || 'No trend data available');
         container.appendChild(placeholder);
     }
 
-    window.refreshHeroChart = initHeroChart;
+    window.refreshHeroChart = function(generation) {
+        return initHeroChart(generation == null ? window.DOCSightSignalSeries.refresh() : generation);
+    };
 
     var themeToggle = document.getElementById('theme-toggle-sidebar');
     if (themeToggle) {
         themeToggle.addEventListener('change', function() {
-            setTimeout(initHeroChart, 50);
+            // Repaint cached values; a pending data request remains valid.
+            if (renderedData === null && !lastLoadFailed) return;
+            var container = getContainer();
+            if (!container) return;
+            destroyHero();
+            container.textContent = '';
+            if (renderedData && renderedData.length) renderChart(container, renderedData);
+            else renderEmptyChart(container, lastLoadFailed);
         });
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initHeroChart);
+        document.addEventListener('DOMContentLoaded', function() { initHeroChart(); });
     } else {
         initHeroChart();
     }

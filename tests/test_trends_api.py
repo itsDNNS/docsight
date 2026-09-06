@@ -322,3 +322,47 @@ class TestTrendsRangeEndpoint:
                 ).fetchall()
             ]
         assert raw_summaries_after_api == raw_summaries_before_api
+
+
+class TestSignalTrendsEndpoint:
+    @pytest.mark.parametrize('range_name,hours', [('1h', 1), ('6h', 6), ('1d', 24), ('2d', 48), ('3d', 72), ('7d', 168), ('30d', 720), ('90d', 2160), (' 1D ', 24)])
+    def test_normalized_ranges(self, client, monkeypatch, range_name, hours):
+        flask_client, storage = client
+        calls = []
+        monkeypatch.setattr(storage, 'get_signal_summary_since', lambda h: calls.append(h) or [])
+        response = flask_client.get('/api/trends/signal', query_string={'range': range_name, 'date': 'ignored'})
+        assert response.status_code == 200
+        assert response.json == []
+        assert calls == [hours]
+
+    @pytest.mark.parametrize('range_name', ['day', 'week', 'month', '24h', 'invalid'])
+    def test_rejects_non_normalized_ranges_even_without_storage(self, client, range_name):
+        flask_client, _ = client
+        current_runtime().storage = None
+        assert flask_client.get('/api/trends/signal', query_string={'range': range_name}).status_code == 400
+
+    @pytest.mark.parametrize('tz_name', ['UTC', 'Europe/Berlin', 'America/New_York'])
+    def test_projection_localization_and_all_null_parity(self, client, monkeypatch, tz_name):
+        flask_client, storage = client
+        current_runtime().config_manager.save({'timezone': tz_name})
+        _insert_snapshot(storage, _analysis(0), _utc_ts(timedelta(hours=1)))
+        _insert_snapshot(storage, {'summary': {}, 'ds_channels': [], 'us_channels': []}, _utc_ts(timedelta(minutes=10)))
+        legacy = flask_client.get('/api/trends?range=1d').json
+        def forbidden(*args, **kwargs):
+            raise AssertionError('signal route must not run legacy processing')
+        monkeypatch.setattr(storage, 'get_summary_since', forbidden)
+        from app.blueprints import data_bp
+        monkeypatch.setattr(data_bp, '_append_speedtest_trends', forbidden)
+        monkeypatch.setattr(data_bp, '_append_connection_monitor_trends', forbidden)
+        response = flask_client.get('/api/trends/signal')
+        assert response.status_code == 200
+        keys = ('timestamp', 'ds_power_avg', 'us_power_avg', 'ds_snr_avg')
+        assert response.json == [{key: row.get(key) for key in keys} for row in legacy]
+        assert len(response.json) == 2
+
+    def test_missing_storage(self, client):
+        flask_client, _ = client
+        current_runtime().storage = None
+        response = flask_client.get('/api/trends/signal')
+        assert response.status_code == 200
+        assert response.json == []
