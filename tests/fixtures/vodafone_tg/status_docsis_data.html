@@ -1,0 +1,13 @@
+<!-- Synthetic regression fixture for #835, not a captured modem response.
+     SC-QAM SNR values are JSON numbers; OFDM SNR is a string. -->
+<script>
+json_dsData = [
+  {"ChannelID":7,"ChannelType":"SC-QAM","Frequency":591000000,"Modulation":"256QAM","PowerLevel":-1.2,"SNRLevel":40},
+  {"ChannelID":8,"ChannelType":"SC-QAM","Frequency":599000000,"Modulation":"256QAM","PowerLevel":"-1.5 dBmV/58.5 dBuV","SNRLevel":40.5},
+  {"ChannelID":193,"ChannelType":"OFDM","Frequency":"275600000~472950000","Modulation":"OFDM","PowerLevel":"3.2 dBmV","SNRLevel":"38 dB"}
+];
+json_usData = [
+  {"ChannelID":6,"ChannelType":"SC-QAM","Frequency":25900000,"Modulation":"64QAM","PowerLevel":35},
+  {"ChannelID":41,"ChannelType":"OFDMA","Frequency":42000000,"Modulation":"","PowerLevel":37.75}
+];
+</script>

@@ -362,23 +362,6 @@ def _aggregate_report_period(snapshots, report_start=None, report_end=None):
     return aggregate, start, end
 
 
-def _legacy_worst_values(snapshots):
-    """Compatibility adapter for existing report-helper callers."""
-    aggregate, _, _ = _aggregate_report_period(snapshots)
-    return aggregate["worst"]
-
-
-def _legacy_worst_channels(snapshots):
-    """Compatibility adapter for existing report-helper callers."""
-    aggregate, _, _ = _aggregate_report_period(snapshots)
-    channels = aggregate["worst_channels"]
-    return channels["ds"], channels["us"]
-
-
-_compute_worst_values = _legacy_worst_values
-_find_worst_channels = _legacy_worst_channels
-
-
 def _comparison_label(s, key):
     labels = {
         "good": s.get("comparison_health_good", "Good"),

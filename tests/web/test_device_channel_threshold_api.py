@@ -2,7 +2,6 @@
 
 import pytest
 
-from app.web import update_state
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
@@ -10,7 +9,7 @@ from app.runtime import current_runtime
 
 class TestChannelsAPI:
     def test_channels_includes_summary(self, client, sample_analysis, tmp_path):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         db_path = str(tmp_path / "channels_test.db")
         storage = SnapshotStorage(db_path, max_days=7)
         storage.save_snapshot(sample_analysis)
@@ -39,7 +38,7 @@ class TestChannelsAPI:
 
 class TestDeviceAPI:
     def test_device_returns_info(self, client):
-        update_state(device_info={
+        current_runtime().update_state(device_info={
             "model": "FRITZ!Box 6690 Cable",
             "manufacturer": "AVM",
             "sw_version": "7.57",

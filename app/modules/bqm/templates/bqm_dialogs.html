@@ -1,0 +1,79 @@
+<!-- ═══ BQM Import Modal ═══ -->
+<dialog class="modal-overlay" id="bqm-import-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-import-modal-title" onclick="if(event.target===this)closeBqmImportModal()" oncancel="event.preventDefault(); closeBqmImportModal()">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header">
+            <h2 id="bqm-import-modal-title">{{ t.bqm_import_title }}</h2>
+            <button class="modal-close" onclick="closeBqmImportModal()" aria-label="{{ t.close }}">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto;">
+            <!-- Drop zone -->
+            <div id="bqm-import-dropzone" class="import-upload-zone bqm-import-dropzone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;color:var(--muted);">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p>{{ t.bqm_import_drop }}</p>
+                <p style="font-size:0.8em;color:var(--muted);">{{ t.bqm_import_formats }}</p>
+                <button type="button" class="btn btn-muted import-browse-btn" onclick="event.stopPropagation(); document.getElementById('bqm-import-file-input').click();">{{ t.get('bqm_import_browse', 'Browse BQM images') }}</button>
+                <input type="file" id="bqm-import-file-input" style="display:none;" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple>
+            </div>
+            <div id="bqm-import-validation-state" class="import-validation-state" role="status" aria-live="polite"></div>
+            <!-- Options: overwrite + date offset -->
+            <div id="bqm-import-options" style="display:none; margin:10px 0;">
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;cursor:pointer;">
+                        <input type="checkbox" id="bqm-import-overwrite">
+                        {{ t.bqm_import_overwrite }}
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;">
+                        {{ t.bqm_import_offset }}:
+                        <input type="number" id="bqm-import-offset" class="bqm-offset-input" min="-30" max="30" value="0" step="1">
+                    </label>
+                </div>
+            </div>
+            <!-- Status line -->
+            <div id="bqm-import-status" class="import-info" style="display:none;"></div>
+            <!-- Preview table -->
+            <div id="bqm-import-preview" style="display:none;">
+                <div class="import-table-wrap">
+                    <table class="bqm-import-table">
+                        <thead><tr>
+                            <th style="width:70px;"></th>
+                            <th>{{ t.incident_title }}</th>
+                            <th style="width:160px;">{{ t.incident_date }}</th>
+                            <th style="width:36px;"></th>
+                        </tr></thead>
+                        <tbody id="bqm-import-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="incident-modal-footer" id="bqm-import-footer" style="display:none;">
+            <div class="modal-footer-left"></div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-muted" onclick="closeBqmImportModal()">{{ t.cancel }}</button>
+                <button class="btn btn-accent" id="bqm-import-confirm-btn" onclick="executeBqmImport()" disabled>{{ t.bqm_import }}</button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<!-- BQM Setup Modal -->
+<dialog class="modal-overlay" id="bqm-setup-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-setup-modal-title">
+    <div class="modal modal-wide setup-guide-modal">
+        <div class="modal-header">
+            <h2 id="bqm-setup-modal-title">📈 {{ t.get('bqm_setup_guided_title', 'ThinkBroadband BQM setup') }}</h2>
+            <button class="modal-close" onclick="closeBqmSetupModal()" aria-label="{{ t.close }}">&times;</button>
+        </div>
+        <p class="modal-hint">{{ t.get('bqm_setup_guided_intro', 'Link an existing ThinkBroadband Broadband Quality Monitor so DOCSight can show latency and packet loss beside modem evidence.') }}</p>
+        <div class="modal-body setup-guide-body">
+            <section class="setup-guide-card"><h3>{{ t.get('setup_why_title', 'Why connect it') }}</h3><ul><li>{{ t.get('bqm_setup_benefit_1', 'Track latency, packet loss, and outages') }}</li><li>{{ t.get('bqm_setup_benefit_2', 'Compare external reachability with modem signal state') }}</li><li>{{ t.get('bqm_setup_benefit_3', 'Attach graphs to ISP evidence packages') }}</li></ul></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3><ul><li>{{ t.get('bqm_setup_requirement_monitor', 'A ThinkBroadband CSV Yesterday share URL') }}</li><li>{{ t.get('bqm_setup_requirement_static_ip', 'A stable public IP or DDNS target monitored by BQM') }}</li></ul></section>
+            <section class="setup-guide-card setup-guide-command"><h3>{{ t.get('setup_configure_title', 'Configure') }}</h3><p>{{ t.get('bqm_setup_configure_text', 'Create or open your BQM monitor, copy the CSV Yesterday share URL, then save it in Settings. CSV Live is for spot checks only.') }}</p><code id="bqm-setup-url">https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456789012345678901234567890abcd-2-y.csv</code><button class="btn btn-secondary" onclick="copySetupSnippet('bqm-setup-url', 'bqm-setup-status')">{{ t.get('bqm_setup_copy_url', 'Copy example URL format') }}</button></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('bqm_setup_validate_text', 'After saving a CSV Yesterday URL, DOCSight performs one initial fetch. Use CSV bulk import for up to 12 months of history or longer gaps.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('bqm-setup-status', 'bqm')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
+        </div>
+        <div id="bqm-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
+        <div class="modal-footer"><button class="btn btn-muted" onclick="closeBqmSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_bqm') }}">⚙ {{ t.get('bqm_setup_open_settings', 'Open BQM settings') }}</a></div>
+    </div>
+</dialog>

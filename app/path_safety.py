@@ -13,8 +13,8 @@ def safe_child_path(base_dir: str, child_name: str) -> str:
     """Resolve *child_name* inside *base_dir* safely.
 
     Validates *child_name* against ``ID_PATTERN`` (lowercase alphanum,
-    dots, underscores) and ensures the resolved path is actually inside
-    *base_dir* via ``os.path.commonpath``.
+    dots, underscores) and ensures the resolved path is a strict descendant
+    of *base_dir*, using a normalized, separator-aware prefix check.
 
     Returns the resolved absolute path on success.
     Raises ``ValueError`` for any invalid or escaping name.
@@ -26,7 +26,9 @@ def safe_child_path(base_dir: str, child_name: str) -> str:
     real_base = os.path.realpath(base_dir)
     real_candidate = os.path.realpath(candidate)
 
-    if os.path.commonpath([real_base, real_candidate]) != real_base:
+    if os.path.normcase(real_candidate) == os.path.normcase(real_base) or not os.path.normcase(real_candidate).startswith(
+        os.path.normcase(real_base).rstrip(os.sep) + os.sep
+    ):
         raise ValueError(f"Path escapes base directory: {child_name!r}")
 
     return real_candidate

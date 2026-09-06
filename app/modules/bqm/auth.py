@@ -1,11 +1,11 @@
 """ThinkBroadband BQM CSV download via public share URLs."""
 
+from app.version import get_app_version
 import logging
 import re
 
 import requests
 
-from app.web import APP_VERSION
 
 log = logging.getLogger("docsis.bqm.auth")
 
@@ -63,7 +63,7 @@ def fetch_share_csv(share_id: str, variant: str = "y") -> str:
         response = requests.get(
             url,
             headers={
-                "User-Agent": f"DOCSight/{APP_VERSION} (+https://github.com/itsDNNS/docsight)",
+                "User-Agent": f"DOCSight/{get_app_version()} (+https://github.com/itsDNNS/docsight)",
                 "Accept": "text/csv,text/plain;q=0.9,*/*;q=0.8",
             },
             timeout=30,

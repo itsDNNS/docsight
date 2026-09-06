@@ -96,7 +96,7 @@ class TestManualTraceroute:
         mock_cfg.data_dir = os.path.dirname(storage.db_path)
         get_runtime(flask_app).config_manager = mock_cfg
         with flask_app.app_context():
-            from app.web import _init_auth_state
+            from app.web_auth import _init_auth_state
             _init_auth_state()
             c = flask_app.test_client()
             resp = c.post(f"/api/connection-monitor/traceroute/{tid}")

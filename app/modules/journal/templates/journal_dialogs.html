@@ -1,0 +1,189 @@
+<!-- ═══ Entry Modal ═══ -->
+<dialog class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" onclick="if(event.target===this)closeEntryModal()">
+    <div class="modal" style="max-width:640px;">
+        <div class="modal-header">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span id="entry-modal-icon" class="incident-modal-icon"></span>
+                <h2 id="entry-modal-title"></h2>
+            </div>
+            <button class="modal-close" onclick="closeEntryModal()" aria-label="{{ t.close }}">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto;">
+            <p class="incident-modal-intro">{{ t.get('entry_modal_intro', 'Capture what happened and link the evidence DOCSight can turn into an ISP-ready timeline.') }}</p>
+            <input type="hidden" id="entry-id">
+            <div class="incident-form-group">
+                <label for="entry-date">{{ t.incident_date }}</label>
+                <input type="date" id="entry-date">
+            </div>
+            <div class="incident-form-group">
+                <label for="entry-title-input">{{ t.incident_title }}</label>
+                <input type="text" id="entry-title-input" maxlength="200" placeholder="{{ t.incident_title }}">
+            </div>
+            <div class="incident-form-group">
+                <label>{{ t.icon }}</label>
+                <p class="incident-field-hint">{{ t.get('entry_icon_hint', 'Choose a visible category such as outage, packet loss, speed degradation, maintenance, or contact with your ISP.') }}</p>
+                <input type="hidden" id="entry-icon-value">
+                <div class="icon-picker" id="entry-icon-picker"></div>
+            </div>
+            <div class="incident-form-group">
+                <label for="entry-desc">{{ t.incident_description }}</label>
+                <p class="incident-field-hint">{{ t.get('entry_description_hint', 'Add concrete symptoms, times, support references, modem states, or what changed for the connection.') }}</p>
+                <textarea id="entry-desc" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
+            </div>
+            <div class="incident-form-group">
+                <label for="entry-incident-select">{{ t.incident_assign }}</label>
+                <select id="entry-incident-select" class="entry-incident-select">
+                    <option value="">{{ t.incident_none }}</option>
+                </select>
+            </div>
+            <div class="incident-form-group" id="entry-attachments-section">
+                <label>{{ t.attachments }}</label>
+                <p class="incident-field-hint">{{ t.get('entry_evidence_hint', 'Evidence can include modem screenshots, BQM images, Speedtest results, SmokePing charts, or support letters.') }}</p>
+                <div class="attachment-list" id="entry-attachment-list"></div>
+                <button class="btn-upload" id="entry-upload-btn" onclick="document.getElementById('entry-file-input').click()">
+                    &#128206; {{ t.upload_file }}
+                </button>
+                <p class="incident-field-hint" id="entry-upload-hint"></p>
+                <span id="entry-upload-spinner" style="display:none;"><span class="upload-spinner"></span></span>
+                <input type="file" id="entry-file-input" style="display:none;" multiple
+                       accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain"
+                       onchange="handleEntryFileUpload(this)">
+            </div>
+        </div>
+        <div class="incident-modal-footer">
+            <div class="modal-footer-left">
+                <button class="btn-danger" id="entry-delete-btn" onclick="deleteEntry()" style="display:none;">{{ t.delete_incident }}</button>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-muted" onclick="closeEntryModal()">{{ t.cancel }}</button>
+                <button class="btn btn-accent" id="entry-save-btn" onclick="saveEntry()">{{ t.get('entry_create_action', 'Create entry') }}</button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<!-- ═══ Incident Container Modal ═══ -->
+<dialog class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title" onclick="if(event.target===this)closeIncidentModal()">
+    <div class="modal incident-container-modal" style="max-width:560px;">
+        <div class="modal-header">
+            <h2 id="incident-container-modal-title"></h2>
+            <button class="modal-close" onclick="closeIncidentModal()" aria-label="{{ t.close }}">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto;">
+            <p class="incident-modal-intro">{{ t.get('incident_modal_intro', 'Group related entries and evidence so DOCSight can build one clear incident timeline and report path.') }}</p>
+            <input type="hidden" id="incident-container-id">
+            <div class="incident-form-group">
+                <label for="incident-container-name">{{ t.incident_name }}</label>
+                <input type="text" id="incident-container-name" maxlength="200" placeholder="{{ t.incident_name }}">
+            </div>
+            <div class="incident-form-group">
+                <label for="incident-container-status">{{ t.incident_status }}</label>
+                <select id="incident-container-status">
+                    <option value="open">{{ t.incident_status_open }}</option>
+                    <option value="resolved">{{ t.incident_status_resolved }}</option>
+                    <option value="escalated">{{ t.incident_status_escalated }}</option>
+                </select>
+            </div>
+            <div class="incident-form-group" style="display:flex;gap:12px;">
+                <div style="flex:1;">
+                    <label for="incident-container-start">{{ t.incident_start_date }}</label>
+                    <input type="date" id="incident-container-start">
+                </div>
+                <div style="flex:1;">
+                    <label for="incident-container-end">{{ t.incident_end_date }}</label>
+                    <input type="date" id="incident-container-end">
+                </div>
+            </div>
+            <div class="incident-form-group">
+                <label>{{ t.icon }}</label>
+                <p class="incident-field-hint">{{ t.get('incident_icon_hint', 'Pick the category users will recognize later in filters, timelines, and exports.') }}</p>
+                <input type="hidden" id="incident-container-icon-value">
+                <div class="icon-picker" id="incident-container-icon-picker"></div>
+            </div>
+            <div class="incident-form-group">
+                <label for="incident-container-desc">{{ t.incident_description }}</label>
+                <textarea id="incident-container-desc" maxlength="5000" placeholder="{{ t.incident_description }}"></textarea>
+            </div>
+            <div class="incident-form-group" id="incident-container-entry-count-section" style="display:none;">
+                <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
+                <div class="incident-evidence-summary">
+                    <span id="incident-container-entry-count" style="font-weight:600;"></span>
+                    <span>{{ t.get('incident_linked_entries_hint', 'journal entries linked to this incident') }}</span>
+                </div>
+                <button type="button" class="btn-small btn-accent" id="incident-container-report-btn" onclick="openIncidentReportFromModal()">{{ t.get('incident_build_report', 'Build report') }}</button>
+            </div>
+            <div class="incident-form-group" id="incident-container-empty-evidence-section">
+                <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
+                <p class="incident-field-hint">{{ t.get('incident_empty_evidence_hint', 'Assign journal entries, screenshots, modem snapshots, BQM images, Speedtest results, or SmokePing charts as the incident develops.') }}</p>
+            </div>
+        </div>
+        <div class="incident-modal-footer">
+            <div class="modal-footer-left">
+                <button class="btn-danger" id="incident-container-delete-btn" onclick="deleteIncident()" style="display:none;">{{ t.delete }}</button>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-muted" onclick="closeIncidentModal()">{{ t.cancel }}</button>
+                <button class="btn btn-accent" id="incident-container-save-btn" onclick="saveIncident()">{{ t.get('incident_create_action', 'Create incident') }}</button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<!-- ═══ Import Modal ═══ -->
+<dialog class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onclick="if(event.target===this)closeImportModal()">
+    <div class="modal" style="max-width:900px;">
+        <div class="modal-header">
+            <h2 id="import-modal-title">{{ t.import_incidents }}</h2>
+            <button class="modal-close" onclick="closeImportModal()" aria-label="{{ t.close }}">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto;">
+            <!-- Upload zone -->
+            <div id="import-upload-zone" class="import-upload-zone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;color:var(--muted);">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p>{{ t.import_upload_hint }}</p>
+                <p style="font-size:0.8em;color:var(--muted);">{{ t.import_file_types }}</p>
+                <button type="button" class="btn btn-muted import-browse-btn" onclick="event.stopPropagation(); document.getElementById('import-file-input').click();">{{ t.get('import_browse_file', 'Browse CSV or Excel file') }}</button>
+                <input type="file" id="import-file-input" style="display:none;" accept=".xlsx,.csv" onchange="handleImportFile(this)">
+            </div>
+            <div id="import-validation-state" class="import-validation-state" role="status" aria-live="polite"></div>
+            <!-- Loading -->
+            <div id="import-loading" style="display:none;text-align:center;padding:20px;">
+                <div class="spinner"></div>
+                <p style="margin-top:10px;color:var(--muted);">{{ t.import_parsing }}</p>
+            </div>
+            <!-- Preview -->
+            <div id="import-preview" style="display:none;">
+                <div class="import-info" id="import-info"></div>
+                <div class="import-controls">
+                    <label class="import-select-all">
+                        <input type="checkbox" id="import-select-all" checked onchange="toggleImportAll(this.checked)">
+                        {{ t.import_select_all }}
+                    </label>
+                </div>
+                <div class="import-table-wrap">
+                    <table class="import-table" id="import-table">
+                        <thead><tr>
+                            <th style="width:40px;"></th>
+                            <th style="width:36px;"></th>
+                            <th>{{ t.incident_date }}</th>
+                            <th>{{ t.incident_title }}</th>
+                            <th class="journal-hide-mobile">{{ t.incident_description }}</th>
+                        </tr></thead>
+                        <tbody id="import-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="incident-modal-footer" id="import-footer" style="display:none;">
+            <div class="modal-footer-left"></div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-muted" onclick="closeImportModal()">{{ t.cancel }}</button>
+                <button class="btn btn-accent" id="import-confirm-btn" onclick="confirmImport()">{{ t.import_selected }}</button>
+            </div>
+        </div>
+    </div>
+</dialog>

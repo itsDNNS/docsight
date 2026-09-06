@@ -159,9 +159,11 @@ function _evidenceRenderItems(items) {
         var sources = _evidenceRenderSourceBreakdown(item);
         var last = item.last_ts ? '<span class="evidence-muted">' + _evidenceEscape(item.last_ts) + '</span>' : '';
         var action = '';
-        if (item.action && item.action.view) {
+        if (item.action && item.action.view && document.getElementById(
+            item.action.view === 'live' ? 'view-dashboard' : 'view-' + item.action.view
+        )) {
             action = '<button class="evidence-action" type="button" data-evidence-view="' + _evidenceEscape(item.action.view) + '">' + _evidenceEscape(_evidenceActionLabel(item)) + '</button>';
-        } else if (item.action && item.action.action) {
+        } else if (item.action && item.action.action === 'report') {
             action = '<button class="evidence-action" type="button" data-evidence-action="' + _evidenceEscape(item.action.action) + '">' + _evidenceEscape(_evidenceActionLabel(item)) + '</button>';
         }
         return '<article class="evidence-item evidence-status-' + status + '">' +

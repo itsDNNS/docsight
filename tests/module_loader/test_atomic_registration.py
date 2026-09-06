@@ -260,6 +260,7 @@ bp.add_url_rule("/api/modules/community.owned/status", "status", lambda: "ok")
         ("static", "missing-static/"),
         ("i18n", "missing-i18n/"),
         ("tab", "templates/missing.html"),
+        ("dialogs", "templates/missing.html"),
         ("collector", "missing.py:MissingCollector"),
         ("publisher", "missing.py:MissingPublisher"),
     ],
@@ -287,6 +288,41 @@ def test_implicit_static_directory_remains_optional(tmp_path):
 
     assert module.error is None
     assert module.has_css is False and module.has_js is False
+
+
+@pytest.mark.parametrize("reference", ["templates/dialogs.html", "templates/missing.html", "../outside.html", "/outside.html", "templates/escape.html"])
+def test_dialogs_resolve_or_reject_complete_plan(tmp_path, reference):
+    module = _write_module(
+        tmp_path, "dialogs", _manifest("community.dialogs", {
+            "dialogs": reference, "static": "static/", "i18n": "i18n/",
+            "routes": "routes.py",
+        }, config={"community_dialogs_setting": "value"}),
+        'from flask import Blueprint\nbp = Blueprint("dialogs_bp", __name__)\nbp.add_url_rule("/dialogs-ok", "ok", lambda: "ok")\n',
+    )
+    (module / "templates").mkdir()
+    (module / "templates/dialogs.html").write_text('<dialog id="contributed-dialog"></dialog>')
+    outside = tmp_path / "outside.html"
+    outside.write_text("outside")
+    (module / "templates/escape.html").symlink_to(outside)
+    (module / "static").mkdir()
+    (module / "static/main.js").write_text("/* dialogs */")
+    (module / "i18n").mkdir()
+    (module / "i18n/en.json").write_text('{"label": "Dialogs"}')
+    app = Flask(__name__)
+    before = _snapshot(app)
+    loader = ModuleLoader(app, search_paths=[str(tmp_path)])
+    info = loader.load_all()[0]
+    if reference == "templates/dialogs.html":
+        assert info.error is None
+        assert info.template_paths == {"dialogs": "dialogs.html"}
+        with app.app_context():
+            assert 'id="contributed-dialog"' in app.jinja_env.get_template(info.template_paths["dialogs"]).render()
+        assert app.test_client().get("/dialogs-ok").status_code == 200
+    else:
+        assert info.error
+        assert info.template_paths == {} and not info.has_js
+        assert _snapshot(app) == before
+        assert loader.registration_plan == type(loader.registration_plan)()
 
 
 def test_contribution_failure_diagnostics_are_redacted(tmp_path, caplog):

@@ -28,6 +28,12 @@ def _valid_manifest() -> dict:
     }
 
 
+def test_dialogs_are_a_template_contribution():
+    manifest = _valid_manifest()
+    manifest["contributes"] = {"dialogs": "templates/dialogs.html"}
+    assert validate_manifest_contract(manifest) == []
+
+
 def test_contract_cli_validates_manifests_without_loading_application(tmp_path):
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(_valid_manifest()), encoding="utf-8")

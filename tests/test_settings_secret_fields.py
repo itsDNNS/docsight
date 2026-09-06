@@ -30,7 +30,7 @@ def test_saved_secret_inputs_use_stable_marker():
 
 def test_frontend_secret_fields_cover_saved_secret_inputs():
     """Every core saved-secret input must be covered by the frontend masking list."""
-    js = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
+    js = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
     match = re.search(r"SECRET_FIELDS\s*=\s*\[(?P<fields>[^\]]+)\]", js)
     assert match is not None
 
@@ -50,7 +50,7 @@ def test_frontend_secret_fields_cover_saved_secret_inputs():
 
 def test_frontend_masks_saved_secret_inputs_without_hardcoded_module_names():
     """Runtime module-secret metadata must cover old and current templates."""
-    js = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
+    js = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
     template = (ROOT / "app" / "templates" / "settings.html").read_text(
         encoding="utf-8"
     )
@@ -73,7 +73,7 @@ def test_frontend_masks_saved_secret_inputs_without_hardcoded_module_names():
 
 def test_saved_secret_detection_does_not_parse_placeholder_text():
     """Saved state is explicit metadata, independent of localized copy."""
-    js = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
+    js = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
 
     saved_secret_function = js.split(
         "function _isSavedSecretField", 1
@@ -84,7 +84,7 @@ def test_saved_secret_detection_does_not_parse_placeholder_text():
 
 def test_saved_secret_dirty_detection_requires_active_field_before_user_edit():
     """Password-manager autofill events on inactive saved secrets must stay clean."""
-    js = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
+    js = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
 
     assert "function _shouldTreatSavedSecretEventAsUserEdit" in js
     assert "document.activeElement === target" in js

@@ -75,7 +75,7 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
     /* currentView is global — defined in chart-engine.js */
     /* charts registry is global — defined in chart-engine.js */
     /* _trendRange → trends.js */
-    /* BQM state variables → bqm.js */
+    /* BQM state variables → BQM module */
     /* todayStr, pad, formatDateDE → chart-engine.js */
 
     /* ── Sortable Tables ── */
@@ -276,6 +276,14 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
     };
 
     function switchView(view, skipHash) {
+        var targetId = view === 'live' ? 'view-dashboard' : 'view-' + view;
+        var target = document.getElementById(targetId);
+        if (!target) {
+            view = 'live';
+            target = document.getElementById('view-dashboard');
+            history.replaceState(null, '', location.pathname + location.search);
+            skipHash = true;
+        }
         currentView = view;
         if (!skipHash) location.hash = view === 'live' ? '' : view;
         syncNavActiveState(view);
@@ -283,8 +291,6 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
         document.querySelectorAll('.main-content > .view').forEach(function(v) {
             v.classList.remove('active');
         });
-        var targetId = view === 'live' ? 'view-dashboard' : 'view-' + view;
-        var target = document.getElementById(targetId);
         if (target) target.classList.add('active');
 
         stopAutoRefresh();
@@ -294,15 +300,13 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
         if (view === 'live') {
             startAutoRefresh();
         } else if (view === 'bqm') {
-            if (typeof initBqmView === 'function') initBqmView();
+            if (typeof window.initBqmView === 'function') window.initBqmView();
         } else if (view === 'smokeping') {
             if (typeof loadSmokepingGraphs === 'function') loadSmokepingGraphs();
         } else if (view === 'speedtest') {
-            loadSpeedtestHistory();
+            if (typeof window.initSpeedtestView === 'function') window.initSpeedtestView();
         } else if (view === 'journal') {
-            if (typeof _timelineActive !== 'undefined' && _timelineActive && typeof closeIncidentTimeline === 'function') closeIncidentTimeline();
-            if (typeof loadIncidents === 'function') loadIncidents();
-            if (typeof loadJournal === 'function') loadJournal();
+            if (typeof window.initJournalView === 'function') window.initJournalView();
         } else if (view === 'events') {
             if (typeof loadEvents === 'function') loadEvents();
         } else if (view === 'channels') {
@@ -342,21 +346,20 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
     /* ── Hash-based view routing ── */
     function viewFromHash() {
         var h = location.hash.replace('#', '');
-        if (!h) return null;
+        if (!h) return 'live';
         // Strip query params (e.g. #channels?mode=timeline → channels)
         var view = h.split('?')[0];
-        // Accept any view that exists in DOM (supports module views)
-        var el = document.getElementById('view-' + view) || (view === 'live' && document.getElementById('view-dashboard'));
-        return el ? view : null;
+        return view;
     }
     window.addEventListener('hashchange', function() {
         var v = viewFromHash();
-        if (v && v !== currentView) switchView(v, true);
+        var targetId = v === 'live' ? 'view-dashboard' : 'view-' + v;
+        if (v !== currentView || !document.getElementById(targetId)) switchView(v, true);
     });
 
     /* BNetzA Breitbandmessung → integrations.js */
 
-    /* BQM Calendar, Live → bqm.js */
+    /* BQM Calendar, Live → BQM module */
 
     /* ── Auto Refresh with Countdown ── */
     var refreshTimer = null;
@@ -540,9 +543,9 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
 
     /* Trend Charts, expand buttons, zoom shortcuts → trends.js */
 
-    /* BQM keyboard shortcuts → bqm.js */
+    /* BQM keyboard shortcuts → BQM module */
 
-    /* BQM Graph + Import → bqm.js */
+    /* BQM Graph + Import → BQM module */
 
     /* Smokeping Graphs → integrations.js */
 
@@ -552,7 +555,7 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
     window._pendingView = (_initHash && _initHash !== 'live') ? _initHash : null;
 
 
-    /* ── Incident Journal, Incidents, Timeline, Import, Bulk, Search → journal.js ── */
+    /* ── Incident Journal, Incidents, Timeline, Import, Bulk, Search → Journal module ── */
 
 
     // Sidebar resize handler (clean up state on viewport change)

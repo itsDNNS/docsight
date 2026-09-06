@@ -66,7 +66,7 @@ class TestModuleIntegration:
                 del sys.modules[key]
 
         # Clean up global module loader to avoid polluting other tests
-        from app import web
+
         self._runtime.module_loader = None
 
     def test_full_load_cycle(self, tmp_path):
@@ -244,7 +244,6 @@ class TestModuleManagementAPI:
             if key not in self._orig_sys_modules:
                 del sys.modules[key]
 
-        from app import web
         self._runtime.module_loader = getattr(self, '_orig_module_loader', None)
         self._runtime.config_manager = getattr(self, '_orig_config_manager', None)
 
@@ -259,7 +258,6 @@ class TestModuleManagementAPI:
         loader = ModuleLoader(app, search_paths=[FIXTURE_DIR])
         loader.load_all()
 
-        from app import web
         self._orig_module_loader = self._runtime.module_loader
         self._orig_config_manager = self._runtime.config_manager
         self._runtime.module_loader = loader

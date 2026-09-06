@@ -211,6 +211,16 @@
 <script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/form-state.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/form.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/navigation.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/tokens.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/connections.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/notifications.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/backups.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/themes.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/smart-capture.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/module-registry.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings.js', v=version) }}"></script>
 {% for mod in modules if mod.has_js %}
 <script src="{{ module_static_url(mod.id, 'main.js', v=version) }}"></script>

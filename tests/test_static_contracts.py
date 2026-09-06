@@ -409,7 +409,7 @@ def test_service_worker_precache_references_existing_public_assets() -> None:
 def test_dead_static_js_helpers_stay_removed() -> None:
     assert not (STATIC / "js" / "icons.js").exists()
 
-    settings_js = (STATIC / "js" / "settings.js").read_text(encoding="utf-8")
+    settings_js = "\n".join(path.read_text(encoding="utf-8") for path in (STATIC / "js" / "settings").glob("*.js"))
     utils_js = (STATIC / "js" / "utils.js").read_text(encoding="utf-8")
     sw_js = (STATIC / "sw.js").read_text(encoding="utf-8")
     templates = "\n".join(
@@ -509,6 +509,8 @@ def test_snapshot_storage_uses_single_storage_base() -> None:
 
 def test_shared_modals_use_native_dialog_contract() -> None:
     index = (TEMPLATES / "index.html").read_text(encoding="utf-8")
+    for name in ("journal", "bqm", "speedtest"):
+        index += (MODULES / name / "templates" / f"{name}_dialogs.html").read_text(encoding="utf-8")
     backup_settings = (
         MODULES / "backup" / "templates" / "backup_settings.html"
     ).read_text(encoding="utf-8")
@@ -544,8 +546,8 @@ def test_shared_modals_use_native_dialog_contract() -> None:
 
 def test_modal_consumers_have_no_absent_api_fallbacks() -> None:
     consumers = [
-        STATIC / "js" / "bqm.js",
-        STATIC / "js" / "journal.js",
+        MODULES / "bqm" / "static" / "main.js",
+        MODULES / "journal" / "static" / "main.js",
         STATIC / "js" / "utils.js",
         STATIC / "js" / "demo-banner.js",
         MODULES / "smokeping" / "static" / "main.js",
@@ -558,7 +560,7 @@ def test_modal_consumers_have_no_absent_api_fallbacks() -> None:
 
 
 def test_frontend_simplifications_keep_single_owners() -> None:
-    settings = (STATIC / "js" / "settings.js").read_text(encoding="utf-8")
+    settings = (STATIC / "js" / "settings" / "module-registry.js").read_text(encoding="utf-8")
     connection_charts = (
         MODULES
         / "connection_monitor"
