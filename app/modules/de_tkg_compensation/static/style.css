@@ -1,9 +1,10 @@
 .tkg-view { display: flex; flex-direction: column; gap: var(--space-md, 16px); min-width: 0; }
 .tkg-view > * { min-width: 0; }
+.tkg-view [hidden] { display: none !important; }
 .tkg-header { margin-bottom: 0; }
 .tkg-muted { color: var(--text-secondary, var(--muted)); line-height: 1.5; }
-.tkg-scope, .tkg-badge { display: inline-flex; align-self: flex-start; max-width: 100%; padding: 4px 9px; border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); border-radius: var(--radius-pill, 999px); background: var(--accent-muted); color: var(--accent); font-size: .82rem; line-height: 1.4; }
-.tkg-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-sm, 8px); padding: 0; margin: 0; list-style: none; }
+.tkg-scope { display: inline-flex; align-self: flex-start; max-width: 100%; padding: 4px 9px; border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); border-radius: var(--radius-pill, 999px); background: var(--accent-muted); color: var(--accent); font-size: .82rem; line-height: 1.4; }
+.tkg-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-sm, 8px); padding: 0; margin: 0; list-style: none; }
 .tkg-steps li { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-md, 14px); background: var(--tint-subtle, transparent); color: var(--text-secondary, var(--muted)); font-size: .85rem; }
 .tkg-steps li[aria-current="step"] { border-color: var(--accent); color: var(--text); background: var(--accent-muted); }
 .tkg-panel, .tkg-status { border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-md, 14px); background: var(--card-bg, var(--card)); padding: var(--space-lg, 24px); }
@@ -26,7 +27,6 @@
 .tkg-status[data-kind="error"] { border-color: var(--crit); background: var(--crit-muted); color: var(--crit); }
 .tkg-grid { display: grid; gap: var(--space-md, 16px); margin: var(--space-md, 16px) 0; }
 .tkg-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.tkg-start-grid { align-items: stretch; margin-bottom: 0; }
 .tkg-start-option { min-width: 0; border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-md, 14px); background: var(--tint-subtle, transparent); padding: var(--space-md, 16px); }
 .tkg-start-option > .tkg-grid { margin-bottom: 0; }
 .tkg-grid label, .tkg-fieldset label { display: flex; flex-direction: column; gap: 6px; color: var(--text-secondary, var(--muted)); }
@@ -47,9 +47,6 @@
 .tkg-days { display: grid; gap: var(--space-sm, 8px); max-height: 420px; overflow: auto; }
 .tkg-day { display: grid; grid-template-columns: minmax(110px, .5fr) 1fr 1.4fr; gap: 10px; align-items: center; border-bottom: 1px solid var(--card-border, var(--input-border)); padding: 8px 0; }
 .tkg-day label { flex-direction: row; align-items: center; }
-.tkg-candidates { display: grid; gap: var(--space-sm, 8px); min-width: 0; margin: 12px 0 0; }
-.tkg-candidate { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-sm, 10px); background: var(--tint-subtle, transparent); }
-.tkg-candidate > span { min-width: 0; overflow-wrap: anywhere; }
 .tkg-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .tkg-summary > div { border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-sm, 10px); background: var(--tint-subtle, transparent); padding: 12px; }
 .tkg-table { width: 100%; border-collapse: collapse; margin: var(--space-md, 16px) 0; }

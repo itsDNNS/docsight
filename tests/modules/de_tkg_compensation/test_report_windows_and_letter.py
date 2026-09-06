@@ -2,16 +2,9 @@
 
 from __future__ import annotations
 
-import sqlite3
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 
-from app.modules.de_tkg_compensation.candidates import (
-    CONNECTION_CANDIDATE_MAX_RESULTS,
-    CONNECTION_CANDIDATE_MAX_SAMPLES_PER_TARGET,
-    chunk_report_windows,
-    load_connection_monitor_candidates,
-    load_incident_candidates,
-)
+from app.modules.de_tkg_compensation.report_windows import chunk_report_windows
 from app.modules.de_tkg_compensation.letter import render_claim_letter
 from app.modules.de_tkg_compensation.rules import (
     compute_missed_appointment,
@@ -84,25 +77,6 @@ def test_long_window_letter_contains_the_same_complete_120_day_breakdown():
     assert letter.count("; TKG §58 Abs.3") == 120
     assert confirmed[-1].isoformat() in letter
     assert "Voraussichtlicher Anspruch aus vollständigem Ausfall: 1190,00 €" in letter
-
-
-def test_connection_monitor_candidates_keep_local_days_stable_across_dst(tmp_path):
-    db_path = tmp_path / "connection_monitor.db"
-    start = datetime(2026, 10, 24, 22, 30, tzinfo=timezone.utc).timestamp()
-    end = datetime(2026, 10, 25, 23, 30, tzinfo=timezone.utc).timestamp()
-    with sqlite3.connect(db_path) as conn:
-        conn.execute("CREATE TABLE connection_targets (id INTEGER PRIMARY KEY, enabled INTEGER)")
-        conn.execute("CREATE TABLE connection_samples (target_id INTEGER, timestamp REAL, timeout INTEGER)")
-        conn.execute("INSERT INTO connection_targets VALUES (1, 1)")
-        conn.executemany(
-            "INSERT INTO connection_samples VALUES (1, ?, 1)",
-            [(start + offset,) for offset in range(5)],
-        )
-        conn.execute("INSERT INTO connection_samples VALUES (1, ?, 0)", (end,))
-
-    candidates = load_connection_monitor_candidates(str(db_path), "Europe/Berlin")
-
-    assert candidates[0]["suggested_days"] == ["2026-10-25", "2026-10-26"]
 
 
 def test_appointment_only_letter_has_no_outage_assertion_for_flat_and_percentage_rates():
@@ -221,94 +195,3 @@ def test_letter_rows_show_full_max_comparison_and_natural_credit_labels():
         assert f"Nutzerseitige Einordnung: {label}" in letter
 
 
-def test_open_incident_runs_through_configured_local_today_without_restoration(tmp_path):
-    db_path = tmp_path / "docsis_history.db"
-    with sqlite3.connect(db_path) as conn:
-        conn.execute(
-            "CREATE TABLE incidents (id INTEGER PRIMARY KEY, name TEXT, start_date TEXT, "
-            "end_date TEXT, status TEXT)"
-        )
-        conn.execute(
-            "INSERT INTO incidents VALUES (1, 'Open incident', '2026-03-27', NULL, 'open')"
-        )
-
-    candidate = load_incident_candidates(
-        str(db_path), "Europe/Berlin", local_today_value="2026-03-30"
-    )[0]
-
-    assert candidate["ongoing"] is True
-    assert candidate["suggested_days"] == [
-        "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30"
-    ]
-    assert candidate["restoration_suggested"] is False
-
-
-def test_ongoing_timeout_run_is_explicit_and_uses_latest_evidence(tmp_path):
-    db_path = tmp_path / "connection_monitor.db"
-    start = datetime(2026, 7, 1, 21, 59, tzinfo=timezone.utc).timestamp()
-    with sqlite3.connect(db_path) as conn:
-        conn.execute("CREATE TABLE connection_targets (id INTEGER PRIMARY KEY, enabled INTEGER)")
-        conn.execute("CREATE TABLE connection_samples (target_id INTEGER, timestamp REAL, timeout INTEGER)")
-        conn.execute("CREATE INDEX idx_samples_target_ts ON connection_samples(target_id, timestamp)")
-        conn.execute("INSERT INTO connection_targets VALUES (1, 1)")
-        conn.executemany(
-            "INSERT INTO connection_samples VALUES (1, ?, 1)",
-            [(start + offset * 60,) for offset in range(7)],
-        )
-
-    candidate = load_connection_monitor_candidates(str(db_path), "Europe/Berlin")[0]
-
-    assert candidate["ongoing"] is True
-    assert candidate["restoration_suggested"] is False
-    assert candidate["window_to"] == "2026-07-01T22:05:00Z"
-    assert candidate["suggested_days"] == ["2026-07-01", "2026-07-02"]
-
-
-def test_connection_monitor_candidate_generation_is_bounded_on_large_database(
-    tmp_path, monkeypatch
-):
-    from contextlib import contextmanager
-
-    import app.modules.de_tkg_compensation.candidates as candidate_module
-
-    db_path = tmp_path / "connection_monitor.db"
-    base = datetime(2026, 1, 1, tzinfo=timezone.utc).timestamp()
-    sample_count = CONNECTION_CANDIDATE_MAX_SAMPLES_PER_TARGET * 3
-    with sqlite3.connect(db_path) as conn:
-        conn.execute("CREATE TABLE connection_targets (id INTEGER PRIMARY KEY, enabled INTEGER)")
-        conn.execute("CREATE TABLE connection_samples (target_id INTEGER, timestamp REAL, timeout INTEGER)")
-        conn.execute("CREATE INDEX idx_samples_target_ts ON connection_samples(target_id, timestamp)")
-        conn.execute("INSERT INTO connection_targets VALUES (1, 1)")
-        conn.executemany(
-            "INSERT INTO connection_samples VALUES (1, ?, ?)",
-            ((base + offset, 1 if offset % 7 else 0) for offset in range(sample_count)),
-        )
-        plan = conn.execute(
-            "EXPLAIN QUERY PLAN SELECT timestamp, timeout FROM connection_samples "
-            "WHERE target_id = ? AND timestamp >= (SELECT COALESCE(MAX(timestamp), 0) - ? "
-            "FROM connection_samples WHERE target_id = ?) ORDER BY timestamp DESC LIMIT ?",
-            (1, 30 * 86_400, 1, CONNECTION_CANDIDATE_MAX_SAMPLES_PER_TARGET),
-        ).fetchall()
-
-    traces = []
-    real_open_read = candidate_module.open_read
-
-    @contextmanager
-    def observed_open_read(path):
-        with real_open_read(path) as conn:
-            conn.set_trace_callback(traces.append)
-            yield conn
-
-    monkeypatch.setattr(candidate_module, "open_read", observed_open_read)
-
-    candidates = load_connection_monitor_candidates(str(db_path), "Europe/Berlin")
-
-    assert any("idx_samples_target_ts" in row[3] for row in plan)
-    sample_queries = [query for query in traces if "FROM connection_samples" in query]
-    assert sample_queries
-    assert all("LIMIT 2000" in query for query in sample_queries)
-    assert len(candidates) <= CONNECTION_CANDIDATE_MAX_RESULTS
-    assert all(
-        candidate["proposal_sample_limit"] == CONNECTION_CANDIDATE_MAX_SAMPLES_PER_TARGET
-        for candidate in candidates
-    )

@@ -73,7 +73,8 @@ def _generate_letter(page):
 
 
 def _assert_download(page, expected_text):
-    page.locator("#tkg-next").click()
+    expect(page.locator('[data-tkg-step="4"]')).to_be_visible()
+    expect(page.locator("#tkg-next")).to_be_hidden()
     with page.expect_download() as download_info:
         page.locator("#tkg-download").click()
     download = download_info.value
@@ -129,20 +130,10 @@ def test_manual_claim_calculation_copy_download_and_focus_flow(tkg_core_page, vi
         root.get_by_role("link", name="Breitbandmessung", exact=True)
     ).to_be_visible()
 
-    automatic = root.get_by_role(
-        "region", name="Find an outage automatically"
-    )
     manual = root.get_by_role("region", name="Enter outage period yourself")
-    expect(automatic).to_be_visible()
-    expect(automatic.get_by_role("button", name="Check measurements again")).to_be_visible()
     expect(manual).to_be_visible()
     expect(manual.get_by_label("Outage started")).to_be_visible()
     expect(manual.get_by_label("Outage ended")).to_be_visible()
-
-    columns = root.locator(".tkg-start-grid").evaluate(
-        "el => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length"
-    )
-    assert columns == (2 if viewport["width"] > 800 else 1)
 
     primary_actions = root.locator(".btn-accent:visible")
     expect(primary_actions).to_have_count(1)
@@ -162,17 +153,17 @@ def test_manual_claim_calculation_copy_download_and_focus_flow(tkg_core_page, vi
     expect(first_day_row.locator("td").nth(1)).to_have_text("3")
     expected_text = _generate_letter(tkg_core_page)
     assert "max(5,00 €; 10 % = 4,00 €) = 5,00 €" in expected_text
+    expected_text += "\nErgänzung: Bitte antworten Sie schriftlich."
+    tkg_core_page.locator("#tkg-letter").fill(expected_text)
 
     parsed = urlsplit(tkg_core_page.url)
     origin = f"{parsed.scheme}://{parsed.netloc}"
     tkg_core_page.context.grant_permissions(
         ["clipboard-read", "clipboard-write"], origin=origin
     )
-    tkg_core_page.locator("#tkg-next").click()
     tkg_core_page.locator("#tkg-copy").click()
     expect(tkg_core_page.locator("#tkg-status")).to_contain_text("copied")
     assert tkg_core_page.evaluate("navigator.clipboard.readText()") == expected_text
-    tkg_core_page.locator("#tkg-previous").click()
     _assert_download(tkg_core_page, expected_text)
 
     _assert_no_horizontal_overflow(root)
@@ -199,7 +190,6 @@ def test_tkg_controls_follow_builtin_theme_tokens(tkg_core_page, theme_name, mod
             };
             const panel = root.querySelector('[data-tkg-step="1"]');
             const primary = root.querySelector('#tkg-next');
-            const secondary = root.querySelector('#tkg-load-candidates');
             const input = root.querySelector('#tkg-window-from');
             return {
                 expectedAccent: resolveBackground('--accent'),
@@ -211,7 +201,6 @@ def test_tkg_controls_follow_builtin_theme_tokens(tkg_core_page, theme_name, mod
                 panelOutlineColor: getComputedStyle(panel).outlineColor,
                 panelOutline: getComputedStyle(panel).outlineStyle,
                 primaryBackground: getComputedStyle(primary).backgroundColor,
-                secondaryBackground: getComputedStyle(secondary).backgroundColor,
                 inputBackground: getComputedStyle(input).backgroundColor,
                 inputColorScheme: getComputedStyle(input).colorScheme,
             };
@@ -224,138 +213,44 @@ def test_tkg_controls_follow_builtin_theme_tokens(tkg_core_page, theme_name, mod
     assert styles["panelOutline"] == "solid"
     assert styles["panelOutlineColor"] == styles["expectedAccent"]
     assert styles["primaryBackground"] == styles["expectedAccent"]
-    assert styles["secondaryBackground"] == styles["expectedControl"]
     assert styles["inputBackground"] == styles["expectedControl"]
     assert styles["inputColorScheme"] == mode
 
 
-def test_candidate_application_is_keyboard_accessible_and_keeps_legal_facts_blank(demo_page):
-    candidate_payload = {
-        "candidates": [{
-            "id": "incident-7",
-            "label": "Ongoing incident",
-            "origin": "incident",
-            "derived": True,
-            "ongoing": True,
-            "restoration_suggested": False,
-            "window_from": "2026-03-26T23:00:00Z",
-            "window_to": "2026-03-30T21:59:59Z",
-            "window_from_local": "2026-03-27T00:00",
-            "window_to_local": "2026-03-30T23:59",
-            "suggested_days": ["2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30"],
-        }],
-        "capabilities": {"bnetz": False},
-        "customer_defaults": {},
-        "local_today": "2026-03-30",
-        "rules_version": "de-tkg58-2026.1",
-        "jurisdiction": "DE",
-    }
-    demo_page.route(
-        re.compile(r".*/api/de-tkg/candidates$"),
-        lambda route: route.fulfill(json=candidate_payload),
+def test_manual_days_respect_window_report_restoration_and_local_today(tkg_core_page):
+    tkg_core_page.route(
+        re.compile(r".*/api/de-tkg/context$"),
+        lambda route: route.fulfill(json={
+            "customer_defaults": {}, "local_today": "2026-03-30",
+        }),
     )
-    _open_tkg(demo_page)
-
-    action = demo_page.get_by_role("button", name="Use outage period: Ongoing incident")
-    expect(action).to_be_visible()
-    action.focus()
-    demo_page.keyboard.press("Enter")
-
-    expect(demo_page.locator('[data-tkg-step="2"]')).to_be_focused()
-    expect(demo_page.locator("#tkg-window-from")).to_have_value("2026-03-27T00:00")
-    expect(demo_page.locator("#tkg-window-to")).to_have_value("2026-03-30T23:59")
-    expect(demo_page.locator("#tkg-report-date")).to_have_value("")
-    expect(demo_page.locator("#tkg-restored-date")).to_have_value("")
-    day_boxes = demo_page.locator('#tkg-days [data-kind="complete"]')
-    assert day_boxes.count() == 4
-    assert day_boxes.evaluate_all("nodes => nodes.every(node => !node.checked)")
-    expect(demo_page.locator("#tkg-status")).to_contain_text("no restoration is inferred")
-
-
-def test_candidate_reload_keeps_result_visible_and_exposes_busy_state(demo_page):
-    responses = {"candidates": [], "fails": False}
-
-    def fulfill_candidates(route):
-        if responses["fails"]:
-            route.fulfill(status=503, json={})
-            return
-        route.fulfill(
-            json={
-                "candidates": responses["candidates"],
-                "capabilities": {"bnetz": False},
-                "customer_defaults": {},
-                "local_today": "2026-03-30",
-                "rules_version": "de-tkg58-2026.1",
-                "jurisdiction": "DE",
-            }
-        )
-
-    demo_page.route(re.compile(r".*/api/de-tkg/candidates$"), fulfill_candidates)
-    _open_tkg(demo_page)
-    load = demo_page.locator("#tkg-load-candidates")
-    status = demo_page.locator("#tkg-status")
-    expect(demo_page.locator("#tkg-candidates")).to_contain_text(
-        "Enter the period yourself"
-    )
-    expect(status).to_have_attribute("role", "status")
-    expect(status).to_have_attribute("aria-live", "polite")
-    expect(status).to_have_text("")
-
-    demo_page.evaluate(
-        """
-        window.__tkgOriginalFetch = window.fetch;
-        window.fetch = function(input, init) {
-            if (String(input).endsWith('/api/de-tkg/candidates')) {
-                return new Promise(function(resolve) {
-                    window.__tkgFinishCandidateFetch = function() {
-                        resolve(window.__tkgOriginalFetch(input, init));
-                    };
-                });
-            }
-            return window.__tkgOriginalFetch(input, init);
-        };
-        """
-    )
-    load.click()
-    expect(load).to_be_disabled()
-    expect(load).to_have_attribute("aria-busy", "true")
-    expect(status).to_have_text("Loading…")
-    demo_page.evaluate("window.__tkgFinishCandidateFetch()")
-
-    expect(load).to_be_enabled()
-    expect(load).to_have_attribute("aria-busy", "false")
-    expect(status).to_have_text("Outage periods updated.")
-
-    responses["candidates"] = [
-        {
-            "id": "incident-8",
-            "label": "Resolved incident",
-            "origin": "incident",
-            "derived": True,
-            "ongoing": False,
-            "restoration_suggested": True,
-            "window_from": "2026-03-27T23:00:00Z",
-            "window_to": "2026-03-29T21:59:59Z",
-            "window_from_local": "2026-03-28T00:00",
-            "window_to_local": "2026-03-29T23:59",
-            "suggested_days": ["2026-03-28", "2026-03-29"],
-        },
+    _open_tkg(tkg_core_page)
+    tkg_core_page.locator("#tkg-window-from").fill("2026-03-27T00:00")
+    tkg_core_page.locator("#tkg-window-to").fill("2026-04-02T23:59")
+    tkg_core_page.locator("#tkg-next").click()
+    expect(tkg_core_page.locator("#tkg-report-date")).to_have_value("")
+    expect(tkg_core_page.locator("#tkg-restored-date")).to_have_value("")
+    rows = tkg_core_page.locator("#tkg-days .tkg-day")
+    expect(rows).to_have_count(4)
+    assert rows.evaluate_all("nodes => nodes.map(node => node.dataset.date)") == [
+        "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30",
     ]
-    demo_page.evaluate("window.fetch = window.__tkgOriginalFetch")
-    load.click()
+    assert tkg_core_page.locator('#tkg-days input').evaluate_all(
+        "nodes => nodes.every(node => !node.checked)"
+    )
 
-    expect(status).to_have_text("Outage periods updated.")
-    expect(
-        demo_page.get_by_role("button", name="Use outage period: Resolved incident")
-    ).to_be_enabled()
-
-    responses["fails"] = True
-    load.click()
-
-    expect(load).to_be_enabled()
-    expect(load).to_have_attribute("aria-busy", "false")
-    expect(status).to_have_text("The request could not be completed.")
-    expect(status).to_have_attribute("data-kind", "error")
+    tkg_core_page.locator("#tkg-report-date").fill("2026-03-28")
+    expect(rows).to_have_count(3)
+    confirmed = tkg_core_page.locator(
+        '.tkg-day[data-date="2026-03-29"] [data-kind="complete"]'
+    )
+    confirmed.check()
+    tkg_core_page.locator("#tkg-restored-date").fill("2026-03-29")
+    expect(rows).to_have_count(2)
+    expect(confirmed).to_be_checked()
+    assert rows.evaluate_all("nodes => nodes.map(node => node.dataset.date)") == [
+        "2026-03-28", "2026-03-29",
+    ]
 
 
 def test_fact_edit_invalidates_calculation_links_and_letter_until_regenerated(tkg_core_page):
@@ -388,7 +283,6 @@ def test_clipboard_fallback_copies_exact_text_without_clipboard_api(tkg_core_pag
     _open_tkg(tkg_core_page)
     _enter_appointment_only_and_calculate(tkg_core_page, fee="40.00", expected="10,00 €")
     expected_text = _generate_letter(tkg_core_page)
-    tkg_core_page.locator("#tkg-next").click()
     tkg_core_page.evaluate(
         """
         Object.defineProperty(navigator, 'clipboard', {value: undefined, configurable: true});
@@ -414,7 +308,7 @@ def test_disabled_module_has_no_tab_route_or_static_asset(page, tkg_disabled_ser
 
     assert page.locator("#tkg-compensation-root").count() == 0
     assert page.locator('[data-view="mod-docsight-de_tkg_compensation"]').count() == 0
-    assert page.request.get(f"{tkg_disabled_server}/api/de-tkg/candidates").status == 404
+    assert page.request.get(f"{tkg_disabled_server}/api/de-tkg/context").status == 404
     assert page.request.get(
         f"{tkg_disabled_server}/modules/docsight.de_tkg_compensation/static/main.js"
     ).status == 404
@@ -456,14 +350,12 @@ def test_full_appointment_only_api_copy_and_export_flow_at_root_and_prefix(
         ["clipboard-read", "clipboard-write"],
         origin=f"{parsed.scheme}://{parsed.netloc}",
     )
-    page.locator("#tkg-next").click()
     page.locator("#tkg-copy").click()
     assert page.evaluate("navigator.clipboard.readText()") == text
-    page.locator("#tkg-previous").click()
     _assert_download(page, text)
 
-    response = page.request.get(f"{app_url}/api/de-tkg/candidates")
+    response = page.request.get(f"{app_url}/api/de-tkg/context")
     assert response.status == 200
-    assert page.evaluate("docsightUrl('/api/de-tkg/candidates')") == (
-        f"{path_prefix_servers['mount_path']}/api/de-tkg/candidates"
+    assert page.evaluate("docsightUrl('/api/de-tkg/context')") == (
+        f"{path_prefix_servers['mount_path']}/api/de-tkg/context"
     )
