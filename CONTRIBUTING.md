@@ -28,7 +28,7 @@ Collector Registry → Base Collector (Fail-Safe) → Analyzer/Storage → Web U
 - New modem types must implement the `ModemDriver` base class (`app/drivers/base.py`)
 - Collectors run in **parallel threads** via `ThreadPoolExecutor`. Protect shared state with locks.
 - Use the collector pattern for automatic fail-safe and health monitoring
-- Construct applications only with `app.app_factory.create_app()`. Importing `app.web` must remain free of application construction and app-specific globals.
+- Construct apps with `app.app_factory.create_app()`; internal consumers use `current_runtime()` and the language/time/theme/version owners in [ARCHITECTURE.md](ARCHITECTURE.md). Community `app.web` accessors, mutations, `APP_VERSION`, and `require_auth` remain supported; importing it creates no app or app-specific globals.
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation and data flow diagrams.
 
@@ -111,7 +111,7 @@ app/
   module_contributions.py - Module filesystem/import/JSON contribution preflight
   main.py            - Entrypoint, ThreadPoolExecutor polling loop
   runtime.py         - Typed per-application runtime state and locks
-  web.py             - Core routes, filters, auth, and runtime accessors
+  web.py / signal_health_view.py - HTTP adapter / pure dashboard signal presentation
   analyzer.py        - DOCSIS channel health analysis
   threshold_profiles.py - Built-in analyzer threshold profiles
   event_detector.py  - Signal anomaly detection (thread-safe)
@@ -186,10 +186,24 @@ preflight. An unresolved route, static directory, template, catalog, class, or
 JSON contribution rejects the module's complete plan; no partial contribution
 is registered.
 
-Server-side module code should import the established accessors it needs from
-`app.web`, such as `get_config_manager()`, `get_storage()`, `get_state()`, or
-`get_module_loader()`. These accessors resolve the active application's typed
-runtime. Do not import or create a module-level Flask application, and do not
+Modules declare dashboard content with `contributes.tab` and dialogs with
+`contributes.dialogs`, each pointing to a module template such as
+`templates/example_tab.html` or `templates/example_dialogs.html`. Empty rendered
+tabs receive no view wrapper. Dialogs render outside hidden views, so an enabled
+integration can keep its setup dialog available before it is configured. Missing
+or unsafe dialog templates reject the complete module contribution plan.
+
+The module static directory's `main.js` loads automatically, with a versioned URL,
+on both Dashboard and Settings when the module is enabled. Top-level execution
+must tolerate missing dashboard elements and globals. Expose an idempotent view
+initialization hook (for example `window.initExampleView`) and wire it into the
+existing dashboard routing convention. Guard absent view elements and ensure
+repeated activation does not accumulate listeners, timers, or fetch loops.
+
+Community modules must keep using the stable, supported `app.web` imports:
+`require_auth`, `get_config_manager`, `get_storage`, `get_state`, and `get_module_loader`.
+Built-in modules use `app.web_auth` for authentication policy. Runtime accessors
+resolve the active application's runtime. Do not import or create a module-level Flask app or
 cache app-derived storage or mutable request/runtime state in module globals.
 Collectors receive their runtime-facing `web` object explicitly and must keep
 working without a Flask application context.

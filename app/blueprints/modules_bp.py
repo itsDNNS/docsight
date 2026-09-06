@@ -1,5 +1,6 @@
 """Module management API endpoints."""
 
+from app.runtime import current_runtime
 import json
 import logging
 import os
@@ -18,7 +19,7 @@ from app.module_loader import (
 from app.module_paths import get_modules_dir
 from app.path_safety import safe_child_path
 from app.theme_registry import download_theme, fetch_registry as fetch_theme_registry
-from app.web import get_config_manager, get_module_loader, require_auth
+from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.modules")
 
@@ -26,10 +27,24 @@ modules_bp = Blueprint("modules_bp", __name__)
 
 
 def _remove_downloaded_module(modules_dir, target_dir):
-    """Remove a failed download only when it resolves below the module root."""
+    """Remove an owned directory below the independently configured module root.
+
+    The caller must establish ownership (a fresh install or an authorized
+    uninstall). A final alias does not confer ownership of its destination.
+    """
     real_base = os.path.realpath(modules_dir)
-    real_target = os.path.realpath(target_dir)
-    if real_target.startswith(real_base + os.sep):
+    # Resolve parent aliases but retain the final entry for the ownership check.
+    target_dir = os.path.abspath(target_dir)
+    entry_path = os.path.join(
+        os.path.realpath(os.path.dirname(target_dir)), os.path.basename(target_dir),
+    )
+    real_target = os.path.realpath(entry_path)
+    # Guard the actual filesystem spelling against the independent root.
+    # Existing paths canonicalize root case; any mismatch fails closed.
+    if (os.path.normcase(real_target) == os.path.normcase(entry_path)
+            and real_target != real_base
+            and real_target.startswith(real_base.rstrip(os.sep) + os.sep)
+            and os.path.isdir(real_target)):
         shutil.rmtree(real_target, ignore_errors=True)
 
 
@@ -55,7 +70,7 @@ def _serialize_module(mod):
 @require_auth
 def api_modules_list():
     """List all discovered modules with metadata and status."""
-    loader = get_module_loader()
+    loader = current_runtime().module_loader
     if not loader:
         return jsonify([])
     modules = loader.get_modules()
@@ -66,7 +81,7 @@ def api_modules_list():
 @require_auth
 def api_module_enable(module_id):
     """Enable a disabled module (persisted, requires restart)."""
-    loader = get_module_loader()
+    loader = current_runtime().module_loader
     if not loader:
         return jsonify({"success": False, "error": "Module system not initialized"}), 500
 
@@ -74,7 +89,7 @@ def api_module_enable(module_id):
     if not module:
         return jsonify({"success": False, "error": f"Module '{module_id}' not found"}), 404
 
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     if not config_mgr:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
 
@@ -109,7 +124,7 @@ def api_module_enable(module_id):
 @require_auth
 def api_module_disable(module_id):
     """Disable a module (persisted, requires restart)."""
-    loader = get_module_loader()
+    loader = current_runtime().module_loader
     if not loader:
         return jsonify({"success": False, "error": "Module system not initialized"}), 500
 
@@ -117,7 +132,7 @@ def api_module_disable(module_id):
     if not module:
         return jsonify({"success": False, "error": f"Module '{module_id}' not found"}), 404
 
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     if not config_mgr:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
 
@@ -162,11 +177,11 @@ def api_module_disable(module_id):
 @require_auth
 def api_modules_batch():
     """Apply multiple non-theme module enable/disable states in one save."""
-    loader = get_module_loader()
+    loader = current_runtime().module_loader
     if not loader:
         return jsonify({"success": False, "error": "Module system not initialized"}), 500
 
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     if not config_mgr:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
 
@@ -216,7 +231,7 @@ def api_modules_batch():
 @require_auth
 def api_themes_list():
     """List all theme modules with their CSS variable data."""
-    loader = get_module_loader()
+    loader = current_runtime().module_loader
     if not loader:
         return jsonify([])
     themes = loader.get_theme_modules()
@@ -232,7 +247,7 @@ def api_themes_list():
 @require_auth
 def api_themes_registry():
     """Fetch available themes from the remote registry."""
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     if not config_mgr:
         return jsonify([])
 
@@ -243,7 +258,7 @@ def api_themes_registry():
 
     themes = fetch_theme_registry(registry_url)
 
-    loader = get_module_loader()
+    loader = current_runtime().module_loader
     installed_ids = set()
     if loader:
         installed_ids = {m.id for m in loader.get_theme_modules()}
@@ -265,15 +280,27 @@ def api_themes_install():
         return jsonify({"success": False, "error": "Invalid theme ID"}), 400
 
     modules_dir = get_modules_dir()
+    dir_name = theme_id.replace(".", "_")
+
+    # Guard the unresolved entry before checking even dangling/root symlinks.
+    # Preserve spelling for lexists; both paths use the same configured root.
+    entry_path = os.path.abspath(os.path.join(modules_dir, dir_name))
+    entry_root = os.path.abspath(modules_dir)
+    if entry_path == entry_root or not entry_path.startswith(entry_root.rstrip(os.sep) + os.sep):
+        return jsonify({"success": False, "error": "Invalid theme ID"}), 400
+
+    if os.path.lexists(entry_path):
+        return jsonify({"success": False, "error": "Theme already installed"}), 409
 
     try:
-        theme_dir = safe_child_path(modules_dir, theme_id.replace(".", "_"))
+        theme_dir = safe_child_path(modules_dir, dir_name)
     except ValueError:
         return jsonify({"success": False, "error": "Invalid theme ID"}), 400
 
     if download_theme(data["download_url"], theme_dir):
         return jsonify({"success": True, "restart_required": True})
     else:
+        _remove_downloaded_module(modules_dir, theme_dir)
         return jsonify({"success": False, "error": "Download failed"}), 500
 
 
@@ -305,7 +332,7 @@ def _scan_installed_community_ids():
 @require_auth
 def api_modules_registry():
     """Fetch available community modules from the registry."""
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     if not config_mgr:
         return jsonify([])
 
@@ -352,7 +379,7 @@ def api_modules_install():
         return jsonify({"success": False, "error": "Module already installed"}), 409
 
     # Reject if ID conflicts with existing modules
-    loader = get_module_loader()
+    loader = current_runtime().module_loader
     if loader:
         existing_ids = {m.id for m in loader.get_modules()}
         if mod_id in existing_ids:
@@ -409,7 +436,7 @@ def api_modules_install():
         return jsonify({"success": False, "error": "Module validation failed"}), 500
 
     # Persist as disabled-by-default
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     if config_mgr:
         disabled_raw = config_mgr.get("disabled_modules", "")
         disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
@@ -444,7 +471,7 @@ def api_modules_uninstall():
         return jsonify({"success": False, "error": "Invalid module path"}), 400
 
     # Only allow uninstalling non-builtin modules
-    loader = get_module_loader()
+    loader = current_runtime().module_loader
     if loader:
         mod = next((m for m in loader.get_modules() if m.id == mod_id), None)
         if mod and mod.builtin:
@@ -453,7 +480,7 @@ def api_modules_uninstall():
     _remove_downloaded_module(modules_dir, target_dir)
 
     # Remove from disabled_modules if present
-    config_mgr = get_config_manager()
+    config_mgr = current_runtime().config_manager
     if config_mgr:
         disabled_raw = config_mgr.get("disabled_modules", "")
         disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}

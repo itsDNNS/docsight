@@ -1,8 +1,8 @@
 """Tests for connection and gaming score endpoints."""
 
+from app.runtime import current_runtime
 import pytest
 
-from app.web import update_state
 
 class TestConnectionEndpoint:
     def test_no_connection_info(self, client):
@@ -14,7 +14,7 @@ class TestConnectionEndpoint:
         assert data["max_upstream_kbps"] is None
 
     def test_with_connection_info(self, client):
-        update_state(connection_info={
+        current_runtime().update_state(connection_info={
             "connection_type": "DOCSIS 3.1",
             "max_downstream_kbps": 250000,
             "max_upstream_kbps": 40000,
@@ -45,7 +45,7 @@ class TestGamingScoreEndpoint:
         assert set(data["genres"].keys()) == {"fps", "moba", "mmo", "strategy"}
 
     def test_with_analysis_no_speedtest(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/api/gaming-score")
         assert resp.status_code == 200
         data = resp.get_json()
@@ -59,7 +59,7 @@ class TestGamingScoreEndpoint:
         assert "ping_ms" not in data["raw"]
 
     def test_with_analysis_and_speedtest(self, client, sample_analysis):
-        update_state(
+        current_runtime().update_state(
             analysis=sample_analysis,
             speedtest_latest={"ping_ms": 15, "jitter_ms": 3, "packet_loss_pct": 0},
         )
@@ -80,7 +80,7 @@ class TestGamingScoreEndpoint:
         # Simulate a poor connection: zero SNR headroom, no speedtest
         sample_analysis["summary"]["health"] = "poor"
         sample_analysis["summary"]["ds_snr_min"] = 25.0
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         data = client.get("/api/gaming-score").get_json()
         # Without speedtest data the score may still be partial, but genres key must exist
         assert all(v in ("ok", "warn", "bad") for v in data["genres"].values())
@@ -89,6 +89,6 @@ class TestGamingScoreEndpoint:
         config_mgr.save({"gaming_quality_enabled": True})
         app = make_app(config_manager=config_mgr)
         with app.app_context(), app.test_client() as c:
-            update_state(analysis=sample_analysis)
+            current_runtime().update_state(analysis=sample_analysis)
             data = c.get("/api/gaming-score").get_json()
         assert data["enabled"] is True

@@ -1,14 +1,57 @@
 import json
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+import pytest
 import requests
 
+from app.drivers.formats.vodafone import parse_vodafone_station_tg_embedded_json
 from app.drivers.vodafone_station import (
     VodafoneStationDriver,
     _aes_ccm_decrypt_hex,
     _aes_ccm_encrypt_hex,
 )
 from app.drivers.utils import pbkdf2_sha256
+
+
+@pytest.mark.parametrize("channel_type,version", [("SC-QAM", "docsis30"), ("OFDM", "docsis31")])
+@pytest.mark.parametrize("snr,expected", [
+    (40, 40.0), (40.5, 40.5), (-40.5, 40.5),
+    ("40.5", 40.5), ("40.5 dB", 40.5), (0, None), (None, None),
+])
+def test_tg_downstream_accepts_numeric_and_string_snr(channel_type, version, snr, expected):
+    row = {
+        "ChannelID": 7, "ChannelType": channel_type, "Frequency": 591000000,
+        "Modulation": "256QAM", "PowerLevel": -1.2, "SNRLevel": snr,
+    }
+    parsed = parse_vodafone_station_tg_embedded_json(
+        f"json_dsData = {json.dumps([row])};"
+    )
+
+    assert parsed.diagnostics == ()
+    channels = parsed.value["channelDs"][version]
+    assert len(channels) == 1
+    assert channels[0]["channelID"] == 7
+    assert channels[0]["mer"] == expected
+    assert channels[0]["mse"] == (-expected if expected is not None else None)
+
+
+def test_tg_driver_preserves_all_lanes_with_mixed_snr_types():
+    html = (Path(__file__).parent / "fixtures/vodafone_tg/status_docsis_data.html").read_text()
+    driver = VodafoneStationDriver("http://dummy", "admin", "dummy")
+    driver._variant = driver.VARIANT_TG
+    driver._tg_nonce = "test-session"
+    response = MagicMock(status_code=200, text=html)
+
+    with patch.object(driver._session, "get", return_value=response) as get:
+        data = driver.get_docsis_data()
+
+    get.assert_called_once_with("http://dummy/php/status_docsis_data.php", timeout=10)
+    assert [ch["channelID"] for ch in data["channelDs"]["docsis30"]] == [7, 8]
+    assert [ch["mer"] for ch in data["channelDs"]["docsis30"]] == [40.0, 40.5]
+    assert [ch["channelID"] for ch in data["channelDs"]["docsis31"]] == [193]
+    assert [ch["channelID"] for ch in data["channelUs"]["docsis30"]] == [6]
+    assert [ch["channelID"] for ch in data["channelUs"]["docsis31"]] == [41]
 
 # ===== Embedded fixture HTML =====
 # Two pages are fetched per call:

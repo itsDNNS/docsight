@@ -6,7 +6,7 @@ This document describes the technical architecture of DOCSight.
 
 ## Overview
 
-DOCSight is built around a **modular collector pattern** that separates data collection, analysis, storage, and presentation into independent, testable components.
+DOCSight is built around a **modular collector pattern** that separates data collection, analysis, storage, and presentation into independent, testable components. `app.signal_health_view` projects explicit analysis/threshold/tariff inputs into dashboard presentation.
 
 ### Reverse-proxy mount contract and wrapper boundary
 
@@ -49,18 +49,18 @@ discovery, `app.module_config_registry` owns configuration-schema preflight,
 and `app.module_loader` orchestrates ownership and rejection policy behind its
 compatible public facade.
 
-Each application owns a typed `DocsightRuntime` at
-`app.extensions["docsight"]`. It contains the configuration manager, storage,
-authentication state, rate limiter, update checker, module loader, collector
-references, derived-storage cache, and lock-protected dashboard state. Route
-and module code reaches the current application through the accessors in
-`app.web`; it must not retain app-specific values in module globals.
-
-Collector threads receive the same runtime explicitly through the existing
-`web=` duck-type parameter. The runtime implements `update_state()`,
-`clear_speedtest_latest()`, `get_state()`, `get_module_loader()`, and the
-read-only `_state` snapshot expected by existing collectors, without requiring
-a Flask request or application context.
+Internal routes/modules use `app.runtime.current_runtime()` to access the `DocsightRuntime` at `app.extensions["docsight"]`, which owns per-application configuration, storage, auth state, rate limiter, update checker, module loader, collectors, derived storage, and lock-protected state.
+`get_state()` retains its lock-protected snapshot. Collectors receive that runtime through existing `web=` parameters;
+its collector-thread duck contract provides `update_state()`, `clear_speedtest_latest()`, `get_state()`, `get_module_loader()`, and the read-only `_state` snapshot without requiring a Flask request or application context.
+`app.web_locale` owns request/setup language; `app.tz` owns pure date validation
+and timestamp localization with explicit timezone input. `app.theme_registry`
+owns curated collections and active-theme resolution; `app.version` owns version lookup.
+`app.web` retains HTTP/Jinja/setup/settings/glossary/desktop adapters and community
+compatibility: `get_storage`, `get_config_manager`, `get_collectors`, `get_modem_collector`,
+`get_module_loader`, `get_on_config_changed`, `get_state`, `get_last_manual_poll`,
+`set_last_manual_poll`, `update_state`, `clear_speedtest_latest`, `reset_modem_state`,
+`APP_VERSION`, and `require_auth`. Existing community imports remain supported.
+Auth policy/bootstrap use `app.web_auth`; lower-level owners never import `app.web`.
 
 Module schema registries in `app.config`, analyzer threshold selection,
 translation catalogs, driver/theme registries, and dynamic Python imports are
@@ -526,7 +526,7 @@ second parser profile.
 
 ### Extension module state
 
-Installed non-theme modules are discovered by `ModuleLoader` and persisted through the comma-separated `disabled_modules` config key. The Settings Extensions panel treats installed module toggles as pending form state: users can change multiple modules and save them once through `POST /api/modules/batch`. Built-in themes are registered from the static theme registry in `app/theme_registry.py`; installed community themes still use their manifest and `theme.json` package format and remain on the dedicated theme APIs because preview and active-theme handling are separate flows.
+Installed non-theme modules are discovered by `ModuleLoader` and persisted through the comma-separated `disabled_modules` config key. The Settings Extensions panel treats installed module toggles as pending form state: each toggle queues a full-form config save followed by pending changes through `POST /api/modules/batch`. Built-in themes are registered from the static theme registry in `app/theme_registry.py`; installed community themes still use their manifest and `theme.json` package format and remain on the dedicated theme APIs because preview and active-theme handling are separate flows.
 
 Module manifests can declare module-owned config defaults through the top-level `config` object. Normal module config remains plain local configuration. A community manifest may opt specific declared string-default keys into write-only secret handling with `config_secrets`; the value must be a list of unique strings, every listed key must exist in that manifest's `config`, and each corresponding default must itself be a string so encrypted values never enter scalar coercion paths. The pure-stdlib validator in `app/manifest_contract.py` is the authoritative manifest capability contract used by the runtime loader and can also validate external catalogs without importing Flask.
 
@@ -544,6 +544,24 @@ validated through the same safe contribution path so Appearance can render its
 preview. Invalid or unsafe preview data rejects that module, and preview data
 never creates a registration-plan contribution. A built-in planning failure
 aborts application construction; a community failure rejects only that module.
+
+Settings scripts under `app/static/js/settings/` have explicit component owners: navigation,
+tokens, connections, notifications, backups, themes, smart capture, and the module catalog.
+`settings.js` composes these owners and exports the handlers used by templates and module scripts.
+Bootstrap validation and shared utilities load first; versioned component assets load before the
+entry point and remain covered by the service worker's runtime cache.
+
+`form-state.js` is the pure comparison owner. Records use tuple identities that distinguish
+hidden inputs, checkboxes, and repeated fields. One baseline supplies both full and manual
+projections. Secret records contain edit versions only, including initially unsaved secrets.
+`form.js` owns DOM capture, the separate API payload adapter, and the FIFO save queue.
+Manual submits and instant controls save the entire form, captured when each queued job starts.
+Config and module requests acknowledge their sent records independently: a failed module batch
+leaves config confirmed and modules pending for retry. Later edits remain dirty, including secret
+reedits; confirmed secrets are cleared only if their edit version still matches. Instant saves
+stay silent, with a retry footer on failure. Language/timezone reloads require confirmed values,
+no queued saves, and no unsaved changes when the reload timer runs. Component callbacks use this
+single save owner and unsaved guard; no component maintains another form baseline.
 
 Settings receives the active module-secret and saved-secret key sets from the server, so installed templates from before the explicit field-marker contract still preserve masked values safely during a coordinated catalog rollout. Current templates also represent saved secrets locally with empty password inputs plus explicit `data-config-secret` and `data-saved-secret` metadata. Untouched saved fields submit the standard mask, which `ConfigManager` treats as preserve-existing, while edited fields submit the replacement value. Saved plaintext is never rendered into HTML.
 
@@ -842,7 +860,7 @@ CREATE TABLE de_tkg_claim_drafts (
 
 **Framework:** Flask  
 **Port:** 8765 (configurable)  
-**Auth:** Optional password protection (bcrypt hashing) + API token authentication (Bearer tokens)
+**Auth:** `app.web_auth` owns optional password protection (scrypt/pbkdf2), login CSRF/rate limits, persisted session policy, and Bearer authentication; `app.web` orchestrates login/logout routes.
 
 ### API Endpoints
 

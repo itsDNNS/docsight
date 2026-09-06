@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.modules.reports.report import (
     IncidentReport, generate_report, generate_incident_report, generate_complaint_text,
-    _compute_worst_values, _find_worst_channels,
     _format_threshold_table, _default_warn_thresholds,
 )
 
@@ -71,10 +70,9 @@ def test_report_worst_values_keep_raw_mixed_counter_totals():
         },
     }
 
-    worst = _compute_worst_values([analysis])
-
-    assert worst["ds_correctable_max"] == 9900
-    assert worst["ds_uncorrectable_max"] == 1100
+    text = _report_text([analysis])
+    assert "Correctable Errors (max): 9,900" in text
+    assert "Uncorrectable Errors (max): 1,100" in text
 
 
 def test_generate_report_with_config():
@@ -160,20 +158,25 @@ def test_generate_report_wraps_long_german_health_issues(monkeypatch):
     }
 
 
-def test_compute_worst_values():
-    worst = _compute_worst_values(MOCK_SNAPSHOTS)
-    assert worst["health_critical_count"] == 1
-    assert worst["total_snapshots"] == 2
-    assert worst["us_power_max"] == 55.0
-    assert worst["ds_snr_min"] == 22.0
-    assert worst["ds_uncorrectable_max"] == 50000
+def _report_text(snapshots, **kwargs):
+    return "\n".join(page.extract_text() for page in
+                     PdfReader(io.BytesIO(generate_report(snapshots, **kwargs))).pages)
 
 
-def test_find_worst_channels():
-    ds_worst, us_worst = _find_worst_channels(MOCK_SNAPSHOTS)
-    # Channel 2 should appear as problematic (health: warning in both snapshots)
-    assert len(ds_worst) > 0
-    assert ds_worst[0][0] == 2  # channel_id 2
+def test_report_projects_historical_worst_values():
+    text = _report_text(MOCK_SNAPSHOTS)
+    assert "CRITICAL health: 1" in text
+    assert "Total Measurements: 2" in text
+    assert "55.0 dBmV (threshold:" in text
+    assert "22.0 dB (threshold:" in text
+    assert "Uncorrectable Errors (max): 50,000" in text
+
+
+def test_report_projects_worst_channels():
+    text = _report_text(MOCK_SNAPSHOTS)
+    section = text.split("Most Problematic Downstream Channels", 1)[1]
+    assert "Channel 2: unhealthy in 2/2 measurements (100%)" in section
+    assert "Channel 1: unhealthy" not in section
 
 
 def test_format_threshold_table_uses_real_values():

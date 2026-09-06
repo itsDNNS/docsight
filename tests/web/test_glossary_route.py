@@ -1,13 +1,13 @@
 """Tests for glossary app-shell routing."""
 
+from app.runtime import current_runtime
 import re
 
 from app.glossary import get_glossary_terms
-from app.web import update_state
 
 
 def test_glossary_route_redirects_to_in_app_glossary(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/glossary?lang=en&term=sc_qam&level=basic")
 
@@ -16,7 +16,7 @@ def test_glossary_route_redirects_to_in_app_glossary(client, sample_analysis):
 
 
 def test_glossary_route_drops_invalid_deep_link_values(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/glossary?lang=en&term=https://evil.example/&level=invalid")
 
@@ -25,7 +25,7 @@ def test_glossary_route_drops_invalid_deep_link_values(client, sample_analysis):
 
 
 def test_index_renders_glossary_inside_app_shell(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/?lang=en&term=docsis")
 
@@ -42,7 +42,7 @@ def test_index_renders_glossary_inside_app_shell(client, sample_analysis):
 
 
 def test_index_glossary_renders_simple_summary_and_explanation(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/?lang=en&term=sc_qam")
 
@@ -64,7 +64,7 @@ def test_index_glossary_renders_simple_summary_and_explanation(client, sample_an
 
 
 def test_index_glossary_renders_shared_medium_media(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/?lang=en&term=shared_medium")
 
@@ -80,7 +80,7 @@ def test_index_glossary_renders_shared_medium_media(client, sample_analysis):
 
 
 def test_index_glossary_renders_localized_media_metadata(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/?lang=de&term=shared_medium")
 
@@ -92,7 +92,7 @@ def test_index_glossary_renders_localized_media_metadata(client, sample_analysis
 
 
 def test_index_glossary_renders_tkg_rights_with_collapsed_german_law_appendix(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/?lang=en&term=tkg_rights_de")
 
@@ -122,7 +122,7 @@ def test_index_glossary_renders_tkg_rights_with_collapsed_german_law_appendix(cl
 
 
 def test_index_glossary_keeps_tkg_law_german_in_localized_article(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/?lang=fr&term=tkg_rights_de")
 
@@ -134,7 +134,7 @@ def test_index_glossary_keeps_tkg_law_german_in_localized_article(client, sample
 
 
 def test_index_glossary_exposes_wiki_source_search_metadata(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/?lang=en&term=docsis")
 
@@ -152,7 +152,7 @@ def test_index_glossary_exposes_wiki_source_search_metadata(client, sample_analy
 
 
 def test_index_glossary_lists_terms_alphabetically(client, sample_analysis):
-    update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=sample_analysis)
 
     resp = client.get("/?lang=en&term=docsis")
 
@@ -182,7 +182,7 @@ def test_contextual_glossary_links_target_existing_terms(client, sample_analysis
             },
         ],
     }
-    update_state(analysis=docsis31_analysis)
+    current_runtime().update_state(analysis=docsis31_analysis)
     valid_terms = {term["id"] for term in get_glossary_terms("en")}
 
     resp = client.get("/?lang=en")

@@ -9,7 +9,9 @@
   "contributes": {
     "routes": "routes.py",
     "static": "static/",
-    "i18n": "i18n/"
+    "i18n": "i18n/",
+    "tab": "templates/journal_tab.html",
+    "dialogs": "templates/journal_dialogs.html"
   },
   "menu": {
     "label_key": "docsight.journal.incident_journal",

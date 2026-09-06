@@ -1,3 +1,12 @@
+{% set builtin_module_views = {
+    'docsight.journal': 'journal',
+    'docsight.bqm': 'bqm',
+    'docsight.speedtest': 'speedtest',
+    'docsight.modulation': 'modulation',
+    'docsight.comparison': 'comparison',
+    'docsight.connection_monitor': 'connection-monitor',
+    'docsight.evidence': 'evidence'
+} %}
 <!DOCTYPE html>
 <html lang="{{ lang }}" data-theme="{{ theme|default('dark') }}">
 <head>
@@ -225,7 +234,7 @@
             </div>
         </div>
         {% set tab_modules = [] %}
-        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in ('docsight.modulation', 'docsight.comparison', 'docsight.connection_monitor', 'docsight.evidence') %}
+        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in builtin_module_views %}
             {% if tab_modules.append(mod) %}{% endif %}
         {% endfor %}
         {% if tab_modules %}
@@ -1466,146 +1475,6 @@
     </div>
 </div>
 
-<!-- ═══ View: BQM Graphs ═══ -->
-{% if bqm_configured %}
-<div id="view-bqm" class="view">
-    <div class="view-page-header">
-        <div class="view-page-header-left">
-            <h2 class="view-page-title">{{ t.bqm_title }}</h2>
-        </div>
-        <!-- BQM Toolbar: quick-jump + month nav -->
-        <div id="bqm-toolbar" class="view-page-actions bqm-toolbar">
-        <button class="trend-tab bqm-quick" id="bqm-today-btn">{{ t.bqm_today }}</button>
-        <button class="trend-tab bqm-quick" id="bqm-yesterday-btn">{{ t.bqm_yesterday }}</button>
-        <button class="trend-tab bqm-quick" id="bqm-7d-btn">{{ t.bqm_range_7d or '7d' }}</button>
-        <button class="trend-tab bqm-quick" id="bqm-30d-btn">{{ t.bqm_range_30d or '30d' }}</button>
-        <div class="bqm-month-nav">
-            <button id="bqm-month-prev" class="bqm-nav-btn" aria-label="{{ t.get('previous_month', 'Previous month') }}">&#8249;</button>
-            <span id="bqm-month-label" class="bqm-month-label"></span>
-            <button id="bqm-month-next" class="bqm-nav-btn" aria-label="{{ t.get('next_month', 'Next month') }}">&#8250;</button>
-        </div>
-        <button class="bqm-nav-btn bqm-import-btn" onclick="openBqmImportModal()" title="{{ t.bqm_import_title }}" aria-label="{{ t.bqm_import_title }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-        </button>
-        <button class="bqm-nav-btn bqm-import-btn" onclick="var s=document.getElementById('bqm-csv-import-section');s.style.display=s.style.display==='none'?'':'none'" title="{{ t.get('bqm_csv_import', 'Import CSV') }}" aria-label="{{ t.get('bqm_csv_import', 'Import CSV') }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
-        </button>
-        <button class="bqm-nav-btn bqm-import-btn bqm-delete-btn" onclick="deleteBqmImages()" title="{{ t.bqm_delete }}" aria-label="{{ t.bqm_delete }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-            </svg>
-        </button>
-        </div>
-    </div>
-    <!-- Calendar grid -->
-    <div id="bqm-calendar" class="bqm-calendar">
-        <div class="bqm-weekday-header">
-            <span>{{ t.weekday_mo }}</span><span>{{ t.weekday_tu }}</span><span>{{ t.weekday_we }}</span><span>{{ t.weekday_th }}</span><span>{{ t.weekday_fr }}</span><span>{{ t.weekday_sa }}</span><span>{{ t.weekday_su }}</span>
-        </div>
-        <div id="bqm-calendar-grid" class="bqm-calendar-grid"></div>
-    </div>
-    <span id="bqm-range-label" class="bqm-range-label"></span>
-    <div id="bqm-content">
-        <div id="bqm-card" class="bqm-card" style="display:none;">
-            <div class="chart-card-header">
-                <div class="chart-header-content">
-                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 3v18h18"/>
-                        <path d="M7 12l4-4 4 4 4-4"/>
-                    </svg>
-                    <div class="chart-label">{{ t.bqm_title }}</div>
-                    <span id="bqm-live-badge" class="bqm-live-badge" style="display:none;">{{ t.bqm_live }}</span>
-                    <span id="bqm-last-updated" class="bqm-last-updated" style="display:none;"></span>
-                </div>
-                <div id="bqm-view-toggle" class="trend-tabs" style="display:none;">
-                    <button class="trend-tab active" id="bqm-toggle-uplot">uPlot</button>
-                    <button class="trend-tab" id="bqm-toggle-png">PNG</button>
-                </div>
-            </div>
-            <div id="bqm-chart-container" class="bqm-chart-container" style="display:none;"></div>
-            <div id="bqm-image-wrap" style="text-align:center;">
-                <img id="bqm-image" style="max-width:100%; border-radius:8px;" alt="BQM Graph">
-            </div>
-        </div>
-        <div id="bqm-no-data" class="no-data-msg" style="display:none;"></div>
-    </div>
-</div>
-{% endif %}
-
-<!-- ═══ BQM Import Modal ═══ -->
-<dialog class="modal-overlay" id="bqm-import-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-import-modal-title" onclick="if(event.target===this)closeBqmImportModal()" oncancel="event.preventDefault(); closeBqmImportModal()">
-    <div class="modal" style="max-width:800px;">
-        <div class="modal-header">
-            <h2 id="bqm-import-modal-title">{{ t.bqm_import_title }}</h2>
-            <button class="modal-close" onclick="closeBqmImportModal()" aria-label="{{ t.close }}">&times;</button>
-        </div>
-        <div class="modal-body" style="overflow-y:auto;">
-            <!-- Drop zone -->
-            <div id="bqm-import-dropzone" class="import-upload-zone bqm-import-dropzone">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;color:var(--muted);">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <p>{{ t.bqm_import_drop }}</p>
-                <p style="font-size:0.8em;color:var(--muted);">{{ t.bqm_import_formats }}</p>
-                <button type="button" class="btn btn-muted import-browse-btn" onclick="event.stopPropagation(); document.getElementById('bqm-import-file-input').click();">{{ t.get('bqm_import_browse', 'Browse BQM images') }}</button>
-                <input type="file" id="bqm-import-file-input" style="display:none;" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple>
-            </div>
-            <div id="bqm-import-validation-state" class="import-validation-state" role="status" aria-live="polite"></div>
-            <!-- Options: overwrite + date offset -->
-            <div id="bqm-import-options" style="display:none; margin:10px 0;">
-                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;cursor:pointer;">
-                        <input type="checkbox" id="bqm-import-overwrite">
-                        {{ t.bqm_import_overwrite }}
-                    </label>
-                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;">
-                        {{ t.bqm_import_offset }}:
-                        <input type="number" id="bqm-import-offset" class="bqm-offset-input" min="-30" max="30" value="0" step="1">
-                    </label>
-                </div>
-            </div>
-            <!-- Status line -->
-            <div id="bqm-import-status" class="import-info" style="display:none;"></div>
-            <!-- Preview table -->
-            <div id="bqm-import-preview" style="display:none;">
-                <div class="import-table-wrap">
-                    <table class="bqm-import-table">
-                        <thead><tr>
-                            <th style="width:70px;"></th>
-                            <th>{{ t.incident_title }}</th>
-                            <th style="width:160px;">{{ t.incident_date }}</th>
-                            <th style="width:36px;"></th>
-                        </tr></thead>
-                        <tbody id="bqm-import-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div class="incident-modal-footer" id="bqm-import-footer" style="display:none;">
-            <div class="modal-footer-left"></div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-muted" onclick="closeBqmImportModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" id="bqm-import-confirm-btn" onclick="executeBqmImport()" disabled>{{ t.bqm_import }}</button>
-            </div>
-        </div>
-    </div>
-</dialog>
-
-<!-- BQM CSV Import (inline, below calendar) -->
-<div id="bqm-csv-import-section" class="bqm-csv-import" style="display:none; margin:16px auto; max-width:480px; text-align:center;">
-    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center;">
-        <input type="file" id="bqm-csv-file" accept=".csv" style="font-size:0.85em;">
-        <button class="btn btn-primary btn-sm" id="bqm-csv-import-btn" onclick="importBqmCsv()">{{ t.get('bqm_csv_import', 'Import CSV') }}</button>
-    </div>
-    <div id="bqm-csv-import-status" class="bqm-csv-status" style="margin-top:8px; font-size:0.85em;"></div>
-</div>
-
 <!-- ═══ View: Smokeping Graphs ═══ -->
 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list and smokeping_configured %}
 <div id="view-smokeping" class="view">
@@ -1714,136 +1583,6 @@
     </div>
 </div>
 {% endif %}
-
-<!-- ═══ View: Incident Journal ═══ -->
-<div id="view-journal" class="view">
-    <div class="view-page-header journal-header">
-        <div class="view-page-header-left">
-            <h2 class="view-page-title">{{ t.incident_journal }}</h2>
-        </div>
-        <div class="view-page-actions journal-header-actions">
-            <button class="btn-new-entry" onclick="openEntryModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                    <path d="M12 5v14m-7-7h14"/>
-                </svg>
-                {{ t.new_entry }}
-            </button>
-            <button class="btn-new-entry btn-import" onclick="openImportModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                {{ t.import }}
-            </button>
-            <div class="journal-export-wrapper" style="position:relative;display:inline-block;">
-                <button class="btn-new-entry btn-import" onclick="toggleExportDropdown(event)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    {{ t.export_journal }}
-                </button>
-                <div class="journal-export-dropdown" id="journal-export-dropdown">
-                    <button onclick="exportJournal('csv')">CSV</button>
-                    <button onclick="exportJournal('json')">JSON</button>
-                    <button onclick="exportJournal('md')">Markdown</button>
-                </div>
-            </div>
-            <button class="btn-danger btn-delete-all" id="btn-delete-all-entries" onclick="deleteAllEntries()" style="display:none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                </svg>
-                {{ t.delete_all }}
-            </button>
-        </div>
-    </div>
-    <div class="incident-filter-bar" id="incident-filter-bar" style="display:none;"></div>
-    <div class="incident-summary" id="incident-summary" style="display:none;"></div>
-    <div class="journal-bulk-bar" id="journal-bulk-bar" style="display:none;">
-        <span class="journal-bulk-count" id="journal-bulk-count"></span>
-        <select id="journal-bulk-incident-select" class="journal-bulk-select">
-            <option value="" disabled selected>{{ t.incident_assign }}…</option>
-        </select>
-        <button class="btn-small btn-accent" onclick="bulkAssign()">{{ t.bulk_assign }}</button>
-        <button class="btn-small btn-muted" onclick="bulkUnassign()">{{ t.bulk_unassign }}</button>
-        <span class="journal-bulk-sep"></span>
-        <button class="btn-small btn-ghost" onclick="clearBulkSelection()">{{ t.bulk_deselect }}</button>
-    </div>
-    <div class="journal-search-wrap" id="journal-search-wrap" style="display:none;">
-        <div class="journal-search-box">
-            <svg class="journal-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input type="text" id="journal-search-input" placeholder="{{ t.search_placeholder }}" autocomplete="off" spellcheck="false">
-            <button class="journal-search-clear" id="journal-search-clear" onclick="clearJournalSearch()" style="display:none;">&times;</button>
-        </div>
-        <span class="journal-search-count" id="journal-search-count"></span>
-    </div>
-    <div id="journal-loading" class="waiting" style="display:none;">
-        <div class="skeleton skel-row"></div>
-        <div class="skeleton skel-row"></div>
-        <div class="skeleton skel-row"></div>
-        <div class="skeleton skel-row"></div>
-    </div>
-    <div id="journal-empty" class="journal-empty" style="display:none;"></div>
-
-    <!-- Phase 4.5: Card wrapper for journal table -->
-    <div id="journal-table-card" class="table-card" style="display:none;">
-        <div class="table-card-header">
-            <div class="table-card-title">
-                <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>
-                    <path d="M16 2v4M8 2v4M3 10h18"/>
-                </svg>
-                <span>{{ t.incident_journal }}</span>
-            </div>
-            <button class="btn-bulk-toggle" id="btn-bulk-toggle" onclick="toggleBulkMode()" style="display:none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                    <polyline points="9 11 12 14 22 4"/>
-                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                </svg>
-                <span id="btn-bulk-toggle-label">{{ t.bulk_select }}</span>
-            </button>
-        </div>
-        <table id="journal-table">
-            <thead><tr id="journal-thead-row">
-                <th style="width:36px;"></th>
-                <th data-col="date">{{ t.incident_date }}<span class="sort-indicator"></span></th>
-                <th data-col="title">{{ t.incident_title }}<span class="sort-indicator"></span></th>
-                <th data-col="description" class="journal-hide-mobile">{{ t.incident_description }}<span class="sort-indicator"></span></th>
-                <th>&#128206;</th>
-            </tr></thead>
-            <tbody id="journal-tbody"></tbody>
-        </table>
-    </div>
-
-    <!-- ═══ Incident Timeline View (replaces journal table) ═══ -->
-    <div id="incident-timeline-view" style="display:none;">
-        <button class="incident-timeline-back" onclick="closeIncidentTimeline()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                <polyline points="15 18 9 12 15 6"/>
-            </svg>
-            <span data-i18n="incident_back_journal">{{ t.incident_back_journal }}</span>
-        </button>
-        <div id="incident-timeline-header" class="incident-timeline-card"></div>
-        <div id="incident-timeline-entries" class="incident-timeline-card"></div>
-        <div id="incident-timeline-chart-card" class="incident-timeline-card">
-            <div class="incident-timeline-section-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                <span data-i18n="incident_signal_timeline">{{ t.incident_signal_timeline }}</span>
-            </div>
-            <div class="incident-timeline-chart-wrap">
-                <canvas id="incident-timeline-canvas"></canvas>
-            </div>
-        </div>
-        <div id="incident-timeline-signals" class="incident-timeline-card"></div>
-        <div id="incident-timeline-bnetz" class="incident-timeline-card" style="display:none;"></div>
-    </div>
-</div>
 
 <!-- ═══ View: Glossary ═══ -->
 <div id="view-glossary" class="view glossary-app-view">
@@ -2081,272 +1820,6 @@
     </div>
 </div>
 
-<!-- ═══ Entry Modal ═══ -->
-<dialog class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" onclick="if(event.target===this)closeEntryModal()">
-    <div class="modal" style="max-width:640px;">
-        <div class="modal-header">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span id="entry-modal-icon" class="incident-modal-icon"></span>
-                <h2 id="entry-modal-title"></h2>
-            </div>
-            <button class="modal-close" onclick="closeEntryModal()" aria-label="{{ t.close }}">&times;</button>
-        </div>
-        <div class="modal-body" style="overflow-y:auto;">
-            <p class="incident-modal-intro">{{ t.get('entry_modal_intro', 'Capture what happened and link the evidence DOCSight can turn into an ISP-ready timeline.') }}</p>
-            <input type="hidden" id="entry-id">
-            <div class="incident-form-group">
-                <label for="entry-date">{{ t.incident_date }}</label>
-                <input type="date" id="entry-date">
-            </div>
-            <div class="incident-form-group">
-                <label for="entry-title-input">{{ t.incident_title }}</label>
-                <input type="text" id="entry-title-input" maxlength="200" placeholder="{{ t.incident_title }}">
-            </div>
-            <div class="incident-form-group">
-                <label>{{ t.icon }}</label>
-                <p class="incident-field-hint">{{ t.get('entry_icon_hint', 'Choose a visible category such as outage, packet loss, speed degradation, maintenance, or contact with your ISP.') }}</p>
-                <input type="hidden" id="entry-icon-value">
-                <div class="icon-picker" id="entry-icon-picker"></div>
-            </div>
-            <div class="incident-form-group">
-                <label for="entry-desc">{{ t.incident_description }}</label>
-                <p class="incident-field-hint">{{ t.get('entry_description_hint', 'Add concrete symptoms, times, support references, modem states, or what changed for the connection.') }}</p>
-                <textarea id="entry-desc" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
-            </div>
-            <div class="incident-form-group">
-                <label for="entry-incident-select">{{ t.incident_assign }}</label>
-                <select id="entry-incident-select" class="entry-incident-select">
-                    <option value="">{{ t.incident_none }}</option>
-                </select>
-            </div>
-            <div class="incident-form-group" id="entry-attachments-section">
-                <label>{{ t.attachments }}</label>
-                <p class="incident-field-hint">{{ t.get('entry_evidence_hint', 'Evidence can include modem screenshots, BQM images, Speedtest results, SmokePing charts, or support letters.') }}</p>
-                <div class="attachment-list" id="entry-attachment-list"></div>
-                <button class="btn-upload" id="entry-upload-btn" onclick="document.getElementById('entry-file-input').click()">
-                    &#128206; {{ t.upload_file }}
-                </button>
-                <p class="incident-field-hint" id="entry-upload-hint"></p>
-                <span id="entry-upload-spinner" style="display:none;"><span class="upload-spinner"></span></span>
-                <input type="file" id="entry-file-input" style="display:none;" multiple
-                       accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain"
-                       onchange="handleEntryFileUpload(this)">
-            </div>
-        </div>
-        <div class="incident-modal-footer">
-            <div class="modal-footer-left">
-                <button class="btn-danger" id="entry-delete-btn" onclick="deleteEntry()" style="display:none;">{{ t.delete_incident }}</button>
-            </div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-muted" onclick="closeEntryModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" id="entry-save-btn" onclick="saveEntry()">{{ t.get('entry_create_action', 'Create entry') }}</button>
-            </div>
-        </div>
-    </div>
-</dialog>
-
-<!-- ═══ Incident Container Modal ═══ -->
-<dialog class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title" onclick="if(event.target===this)closeIncidentModal()">
-    <div class="modal incident-container-modal" style="max-width:560px;">
-        <div class="modal-header">
-            <h2 id="incident-container-modal-title"></h2>
-            <button class="modal-close" onclick="closeIncidentModal()" aria-label="{{ t.close }}">&times;</button>
-        </div>
-        <div class="modal-body" style="overflow-y:auto;">
-            <p class="incident-modal-intro">{{ t.get('incident_modal_intro', 'Group related entries and evidence so DOCSight can build one clear incident timeline and report path.') }}</p>
-            <input type="hidden" id="incident-container-id">
-            <div class="incident-form-group">
-                <label for="incident-container-name">{{ t.incident_name }}</label>
-                <input type="text" id="incident-container-name" maxlength="200" placeholder="{{ t.incident_name }}">
-            </div>
-            <div class="incident-form-group">
-                <label for="incident-container-status">{{ t.incident_status }}</label>
-                <select id="incident-container-status">
-                    <option value="open">{{ t.incident_status_open }}</option>
-                    <option value="resolved">{{ t.incident_status_resolved }}</option>
-                    <option value="escalated">{{ t.incident_status_escalated }}</option>
-                </select>
-            </div>
-            <div class="incident-form-group" style="display:flex;gap:12px;">
-                <div style="flex:1;">
-                    <label for="incident-container-start">{{ t.incident_start_date }}</label>
-                    <input type="date" id="incident-container-start">
-                </div>
-                <div style="flex:1;">
-                    <label for="incident-container-end">{{ t.incident_end_date }}</label>
-                    <input type="date" id="incident-container-end">
-                </div>
-            </div>
-            <div class="incident-form-group">
-                <label>{{ t.icon }}</label>
-                <p class="incident-field-hint">{{ t.get('incident_icon_hint', 'Pick the category users will recognize later in filters, timelines, and exports.') }}</p>
-                <input type="hidden" id="incident-container-icon-value">
-                <div class="icon-picker" id="incident-container-icon-picker"></div>
-            </div>
-            <div class="incident-form-group">
-                <label for="incident-container-desc">{{ t.incident_description }}</label>
-                <textarea id="incident-container-desc" maxlength="5000" placeholder="{{ t.incident_description }}"></textarea>
-            </div>
-            <div class="incident-form-group" id="incident-container-entry-count-section" style="display:none;">
-                <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
-                <div class="incident-evidence-summary">
-                    <span id="incident-container-entry-count" style="font-weight:600;"></span>
-                    <span>{{ t.get('incident_linked_entries_hint', 'journal entries linked to this incident') }}</span>
-                </div>
-                <button type="button" class="btn-small btn-accent" id="incident-container-report-btn" onclick="openIncidentReportFromModal()">{{ t.get('incident_build_report', 'Build report') }}</button>
-            </div>
-            <div class="incident-form-group" id="incident-container-empty-evidence-section">
-                <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
-                <p class="incident-field-hint">{{ t.get('incident_empty_evidence_hint', 'Assign journal entries, screenshots, modem snapshots, BQM images, Speedtest results, or SmokePing charts as the incident develops.') }}</p>
-            </div>
-        </div>
-        <div class="incident-modal-footer">
-            <div class="modal-footer-left">
-                <button class="btn-danger" id="incident-container-delete-btn" onclick="deleteIncident()" style="display:none;">{{ t.delete }}</button>
-            </div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-muted" onclick="closeIncidentModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" id="incident-container-save-btn" onclick="saveIncident()">{{ t.get('incident_create_action', 'Create incident') }}</button>
-            </div>
-        </div>
-    </div>
-</dialog>
-
-<!-- ═══ Import Modal ═══ -->
-<dialog class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onclick="if(event.target===this)closeImportModal()">
-    <div class="modal" style="max-width:900px;">
-        <div class="modal-header">
-            <h2 id="import-modal-title">{{ t.import_incidents }}</h2>
-            <button class="modal-close" onclick="closeImportModal()" aria-label="{{ t.close }}">&times;</button>
-        </div>
-        <div class="modal-body" style="overflow-y:auto;">
-            <!-- Upload zone -->
-            <div id="import-upload-zone" class="import-upload-zone">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;color:var(--muted);">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <p>{{ t.import_upload_hint }}</p>
-                <p style="font-size:0.8em;color:var(--muted);">{{ t.import_file_types }}</p>
-                <button type="button" class="btn btn-muted import-browse-btn" onclick="event.stopPropagation(); document.getElementById('import-file-input').click();">{{ t.get('import_browse_file', 'Browse CSV or Excel file') }}</button>
-                <input type="file" id="import-file-input" style="display:none;" accept=".xlsx,.csv" onchange="handleImportFile(this)">
-            </div>
-            <div id="import-validation-state" class="import-validation-state" role="status" aria-live="polite"></div>
-            <!-- Loading -->
-            <div id="import-loading" style="display:none;text-align:center;padding:20px;">
-                <div class="spinner"></div>
-                <p style="margin-top:10px;color:var(--muted);">{{ t.import_parsing }}</p>
-            </div>
-            <!-- Preview -->
-            <div id="import-preview" style="display:none;">
-                <div class="import-info" id="import-info"></div>
-                <div class="import-controls">
-                    <label class="import-select-all">
-                        <input type="checkbox" id="import-select-all" checked onchange="toggleImportAll(this.checked)">
-                        {{ t.import_select_all }}
-                    </label>
-                </div>
-                <div class="import-table-wrap">
-                    <table class="import-table" id="import-table">
-                        <thead><tr>
-                            <th style="width:40px;"></th>
-                            <th style="width:36px;"></th>
-                            <th>{{ t.incident_date }}</th>
-                            <th>{{ t.incident_title }}</th>
-                            <th class="journal-hide-mobile">{{ t.incident_description }}</th>
-                        </tr></thead>
-                        <tbody id="import-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div class="incident-modal-footer" id="import-footer" style="display:none;">
-            <div class="modal-footer-left"></div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-muted" onclick="closeImportModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" id="import-confirm-btn" onclick="confirmImport()">{{ t.import_selected }}</button>
-            </div>
-        </div>
-    </div>
-</dialog>
-
-<!-- ═══ View: Speedtest ═══ -->
-{% if speedtest_configured %}
-<div id="view-speedtest" class="view">
-    <div class="view-page-header">
-        <div class="view-page-header-left">
-            <h2 class="view-page-title">{{ t.speedtest_tracker }}</h2>
-        </div>
-        <div class="view-page-actions speedtest-controls">
-            <div class="trend-tabs" id="speedtest-tabs">
-                <button class="trend-tab" data-value="1" onclick="selectPill(this, filterSpeedtestData)">1d</button>
-                <button class="trend-tab active" data-value="7" onclick="selectPill(this, filterSpeedtestData)">7d</button>
-                <button class="trend-tab" data-value="14" onclick="selectPill(this, filterSpeedtestData)">14d</button>
-                <button class="trend-tab" data-value="30" onclick="selectPill(this, filterSpeedtestData)">30d</button>
-                <button class="trend-tab" data-value="90" onclick="selectPill(this, filterSpeedtestData)">90d</button>
-                <button class="trend-tab" data-value="all" onclick="selectPill(this, filterSpeedtestData)">{{ t.fetch_all }}</button>
-            </div>
-            {% if not demo_mode %}<button class="btn btn-primary btn-sm" id="speedtest-run-btn" onclick="runSpeedtest()"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
-            <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" onclick="loadSpeedtestHistory()"><i data-lucide="refresh-cw"></i></button>
-        </div>
-    </div>
-    <div id="speedtest-loading" class="waiting" style="display:none;">
-        <div class="skeleton skel-chart"></div>
-    </div>
-    <div id="speedtest-no-data" class="no-data-msg speedtest-empty-state" style="display:none;">
-        <i data-lucide="wifi-off" style="width:40px;height:40px;color:var(--text-muted);margin-bottom:12px;"></i>
-        <div class="speedtest-empty-title">{{ t.speedtest_empty_title or 'No speedtest results yet' }}</div>
-        <div class="speedtest-empty-desc">{{ t.speedtest_empty_desc or 'Automated tests will appear here once the schedule runs. You can also start a manual test.' }}</div>
-        {% if not demo_mode %}<button class="btn btn-primary btn-sm" onclick="runSpeedtest()" style="margin-top:12px;"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
-    </div>
-    <div id="speedtest-chart-container" style="display:none;">
-        <!-- Phase 4.2: Modern card wrapper for speedtest chart -->
-        <div class="speedtest-chart-card">
-            <div class="chart-card-header">
-                <div class="chart-header-content">
-                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 6v6l4 2"/>
-                    </svg>
-                    <div class="chart-label">{{ t.speedtest_history }}</div>
-                </div>
-            </div>
-            <div class="speedtest-chart-wrap">
-                <canvas id="speedtest-chart"></canvas>
-                <div class="speedtest-chart-tooltip" id="speedtest-chart-tooltip"></div>
-                <div class="speedtest-chart-legend">
-                    <span class="legend-dl">{{ t.legend_download }}</span>
-                    <span class="legend-ul">{{ t.legend_upload }}</span>
-                    <span class="legend-ping">{{ t.legend_ping }}</span>
-                    <span class="legend-thresh">{{ t.legend_threshold }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Phase 4.2: Table card wrapper -->
-    <div id="speedtest-table-wrap" class="table-card">
-        <table id="speedtest-table" class="sortable" style="display:none;">
-            <thead><tr>
-                <th class="st-expand-col"></th>
-                <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
-                <th data-col="server_id">{{ t.server or 'Server' }}<span class="sort-indicator"></span></th>
-                <th data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
-                <th data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
-                <th data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>
-                <th data-col="jitter_ms">{{ t.jitter }}<span class="sort-indicator"></span></th>
-                <th data-col="packet_loss_pct">{{ t.packet_loss }}<span class="sort-indicator"></span></th>
-                <th class="st-sc-col"></th>
-            </tr></thead>
-            <tbody id="speedtest-tbody"></tbody>
-        </table>
-        <div id="speedtest-show-more" style="text-align:center; padding:12px; display:none;">
-            <button class="btn btn-muted" id="speedtest-more-btn" onclick="showMoreSpeedtest()"></button>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 {% if gaming_quality_enabled %}
 <div id="view-gaming" class="view">
     <div class="view-page-header">
@@ -2507,77 +1980,21 @@
    MODULE VIEWS - Dynamically rendered from enabled modules with tab template
    ══════════════════════════════════════════════════════════════════════════ #}
 {% for mod in modules if mod.template_paths.get('tab') %}
-<div id="{% if mod.id == 'docsight.modulation' %}view-modulation{% elif mod.id == 'docsight.comparison' %}view-comparison{% elif mod.id == 'docsight.connection_monitor' %}view-connection-monitor{% elif mod.id == 'docsight.evidence' %}view-evidence{% else %}view-mod-{{ mod.id|replace('.', '-') }}{% endif %}" class="view">
-    {% include mod.template_paths['tab'] %}
+{% set tab_content %}{% include mod.template_paths['tab'] %}{% endset %}
+{% if tab_content|trim %}
+<div id="view-{{ builtin_module_views.get(mod.id, 'mod-' ~ mod.id|replace('.', '-')) }}" class="view">
+    {{ tab_content }}
 </div>
+{% endif %}
 {% endfor %}
 
 </div><!-- /main-content -->
 </main><!-- /app-main -->
 </div><!-- /app-layout -->
 
-<!-- Speedtest Setup Modal -->
-<dialog class="modal-overlay" id="speedtest-setup-modal" role="dialog" aria-modal="true" aria-labelledby="speedtest-setup-modal-title">
-    <div class="modal modal-wide setup-guide-modal">
-        <div class="modal-header">
-            <h2 id="speedtest-setup-modal-title">⚡ {{ t.get('speedtest_setup_guided_title', 'Speedtest Tracker setup') }}</h2>
-            <button class="modal-close" onclick="closeSpeedtestSetupModal()" aria-label="{{ t.close }}">&times;</button>
-        </div>
-        <p class="modal-hint">{{ t.get('speedtest_setup_guided_intro', 'Connect your existing Speedtest Tracker instance so DOCSight can correlate real throughput with modem signal health.') }}</p>
-        <div class="modal-body setup-guide-body">
-            <section class="setup-guide-card">
-                <h3>{{ t.get('setup_why_title', 'Why connect it') }}</h3>
-                <ul>
-                    <li>{{ t.get('speedtest_setup_benefit_1', 'Correlate speed tests with DOCSIS signal levels') }}</li>
-                    <li>{{ t.get('speedtest_setup_benefit_2', 'Spot peak-hour performance drops') }}</li>
-                    <li>{{ t.get('speedtest_setup_benefit_3', 'Add throughput evidence to reports') }}</li>
-                </ul>
-            </section>
-            <section class="setup-guide-card">
-                <h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3>
-                <ul>
-                    <li>{{ t.get('speedtest_setup_requirement_url', 'A reachable Speedtest Tracker URL') }}</li>
-                    <li>{{ t.get('speedtest_setup_requirement_api', 'API access enabled in Speedtest Tracker') }}</li>
-                </ul>
-            </section>
-            <section class="setup-guide-card setup-guide-command">
-                <h3>{{ t.get('setup_configure_title', 'Configure') }}</h3>
-                <p>{{ t.get('speedtest_setup_configure_text', 'Paste the Speedtest Tracker base URL in Settings, then save the integration.') }}</p>
-                <code id="speedtest-setup-command">docker run --name speedtest-tracker -p 8080:80 lscr.io/linuxserver/speedtest-tracker:latest</code>
-                <button class="btn btn-secondary" onclick="copySetupSnippet('speedtest-setup-command', 'speedtest-setup-status')">{{ t.get('speedtest_setup_copy_command', 'Copy Docker command') }}</button>
-            </section>
-            <section class="setup-guide-card">
-                <h3>{{ t.get('setup_validate_title', 'Validate') }}</h3>
-                <p>{{ t.get('speedtest_setup_validate_text', 'Use Settings to save the URL, then confirm DOCSight can read recent speed test results.') }}</p>
-                <button class="btn btn-muted" onclick="validateSetupGuidance('speedtest-setup-status', 'speedtest')">{{ t.get('speedtest_setup_test_guidance', 'Review validation path') }}</button>
-            </section>
-        </div>
-        <div id="speedtest-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
-        <div class="modal-footer">
-            <button class="btn btn-muted" onclick="closeSpeedtestSetupModal()">{{ t.close }}</button>
-            <a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_speedtest') }}">⚙ {{ t.get('speedtest_setup_open_settings', 'Open Speedtest settings') }}</a>
-        </div>
-    </div>
-</dialog>
-
-<!-- BQM Setup Modal -->
-<dialog class="modal-overlay" id="bqm-setup-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-setup-modal-title">
-    <div class="modal modal-wide setup-guide-modal">
-        <div class="modal-header">
-            <h2 id="bqm-setup-modal-title">📈 {{ t.get('bqm_setup_guided_title', 'ThinkBroadband BQM setup') }}</h2>
-            <button class="modal-close" onclick="closeBqmSetupModal()" aria-label="{{ t.close }}">&times;</button>
-        </div>
-        <p class="modal-hint">{{ t.get('bqm_setup_guided_intro', 'Link an existing ThinkBroadband Broadband Quality Monitor so DOCSight can show latency and packet loss beside modem evidence.') }}</p>
-        <div class="modal-body setup-guide-body">
-            <section class="setup-guide-card"><h3>{{ t.get('setup_why_title', 'Why connect it') }}</h3><ul><li>{{ t.get('bqm_setup_benefit_1', 'Track latency, packet loss, and outages') }}</li><li>{{ t.get('bqm_setup_benefit_2', 'Compare external reachability with modem signal state') }}</li><li>{{ t.get('bqm_setup_benefit_3', 'Attach graphs to ISP evidence packages') }}</li></ul></section>
-            <section class="setup-guide-card"><h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3><ul><li>{{ t.get('bqm_setup_requirement_monitor', 'A ThinkBroadband CSV Yesterday share URL') }}</li><li>{{ t.get('bqm_setup_requirement_static_ip', 'A stable public IP or DDNS target monitored by BQM') }}</li></ul></section>
-            <section class="setup-guide-card setup-guide-command"><h3>{{ t.get('setup_configure_title', 'Configure') }}</h3><p>{{ t.get('bqm_setup_configure_text', 'Create or open your BQM monitor, copy the CSV Yesterday share URL, then save it in Settings. CSV Live is for spot checks only.') }}</p><code id="bqm-setup-url">https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456789012345678901234567890abcd-2-y.csv</code><button class="btn btn-secondary" onclick="copySetupSnippet('bqm-setup-url', 'bqm-setup-status')">{{ t.get('bqm_setup_copy_url', 'Copy example URL format') }}</button></section>
-            <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('bqm_setup_validate_text', 'After saving a CSV Yesterday URL, DOCSight performs one initial fetch. Use CSV bulk import for up to 12 months of history or longer gaps.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('bqm-setup-status', 'bqm')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
-        </div>
-        <div id="bqm-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
-        <div class="modal-footer"><button class="btn btn-muted" onclick="closeBqmSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_bqm') }}">⚙ {{ t.get('bqm_setup_open_settings', 'Open BQM settings') }}</a></div>
-    </div>
-</dialog>
+{% for mod in modules if mod.template_paths.get('dialogs') %}
+{% include mod.template_paths['dialogs'] %}
+{% endfor %}
 
 <!-- Smokeping Setup Modal -->
 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
@@ -2805,11 +2222,9 @@
 <script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/journal.js', v=version) }}"></script>
 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
 <script src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/bqm.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/trends.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/channels.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/integrations.js', v=version) }}"></script>
@@ -2817,7 +2232,6 @@
 <script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/speedtest.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/correlation.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/segment-utilization.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/glossary-page.js', v=version) }}"></script>

@@ -198,6 +198,11 @@ class TestDiscoverCollectors:
         mock_load.assert_called_once_with("fritzbox", "http://fritz.box", "admin", "pass")
 
 
+@pytest.fixture
+def mock_runtime():
+    return MagicMock()
+
+
 class TestPollingLoopOrchestrator:
     def _make_storage(self):
         import tempfile, os
@@ -234,9 +239,8 @@ class TestPollingLoopOrchestrator:
         return mgr
 
     @patch("app.main.discover_collectors")
-    @patch("app.main.web")
     def test_long_running_collector_is_tracked_until_result(
-        self, mock_web, mock_discover, caplog, monkeypatch
+        self, mock_discover, mock_runtime, caplog, monkeypatch
     ):
         """A collector crossing the old observation window is not resubmitted."""
         from app import main
@@ -304,9 +308,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = advance_tick
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, storage, stop, mock_web)
+        polling_loop(config_mgr, storage, stop, mock_runtime)
 
         assert collector.collect_calls == 1
         assert collector.success_calls == 1
@@ -321,9 +325,8 @@ class TestPollingLoopOrchestrator:
     @patch("app.drivers.driver_registry.load_driver")
     @patch("app.collectors.modem.ModemCollector")
     @patch("app.main.discover_collectors")
-    @patch("app.main.web")
     def test_hot_swap_waits_for_in_flight_collector_with_same_name(
-        self, mock_web, mock_discover, mock_modem_cls, mock_load, monkeypatch
+        self, mock_discover, mock_modem_cls, mock_load, mock_runtime, monkeypatch
     ):
         """A replacement modem waits for the prior modem future to finish."""
         from app import main
@@ -411,16 +414,15 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = advance_tick
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        main.polling_loop(config_mgr, storage, stop, mock_web)
+        main.polling_loop(config_mgr, storage, stop, mock_runtime)
 
         assert old_collector.success_calls == 1
         assert replacement_collector.success_calls == 1
 
     @patch("app.drivers.driver_registry.load_driver")
-    @patch("app.main.web")
-    def test_orchestrator_calls_enabled_collectors(self, mock_web, mock_load):
+    def test_orchestrator_calls_enabled_collectors(self, mock_load, mock_runtime):
         """Orchestrator should call collect() for enabled collectors."""
         import threading
         from app.main import polling_loop
@@ -450,16 +452,15 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = stop_after_one_tick
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, storage, stop, mock_web)
+        polling_loop(config_mgr, storage, stop, mock_runtime)
 
         mock_driver.login.assert_called()
         mock_driver.get_docsis_data.assert_called()
 
     @patch("app.drivers.driver_registry.load_driver")
-    @patch("app.main.web")
-    def test_orchestrator_skips_disabled_collectors(self, mock_web, mock_load):
+    def test_orchestrator_skips_disabled_collectors(self, mock_load, mock_runtime):
         """Speedtest/BQM collectors should be skipped when not configured."""
         import threading
         from app.main import polling_loop
@@ -486,9 +487,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = stop_after_one_tick
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, storage, stop, mock_web)
+        polling_loop(config_mgr, storage, stop, mock_runtime)
 
         # Core storage should not have speedtest/bqm methods called
         # (those are now handled by module-internal storage)
@@ -496,8 +497,7 @@ class TestPollingLoopOrchestrator:
         storage.save_bqm_graph.assert_not_called()
 
     @patch("app.drivers.driver_registry.load_driver")
-    @patch("app.main.web")
-    def test_orchestrator_handles_collector_exception(self, mock_web, mock_load):
+    def test_orchestrator_handles_collector_exception(self, mock_load, mock_runtime):
         """Orchestrator should catch exceptions and continue running."""
         import threading
         from app.main import polling_loop
@@ -522,15 +522,14 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = stop_after_one_tick
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, storage, stop, mock_web)
+        polling_loop(config_mgr, storage, stop, mock_runtime)
 
-        mock_web.update_state.assert_any_call(error=mock_driver.login.side_effect)
+        mock_runtime.update_state.assert_any_call(error=mock_driver.login.side_effect)
 
     @patch("app.drivers.driver_registry.load_driver")
-    @patch("app.main.web")
-    def test_orchestrator_stops_on_event(self, mock_web, mock_load):
+    def test_orchestrator_stops_on_event(self, mock_load, mock_runtime):
         """Orchestrator should exit when stop_event is set."""
         import threading
         from app.main import polling_loop
@@ -542,14 +541,13 @@ class TestPollingLoopOrchestrator:
         stop = threading.Event()
         stop.set()  # Pre-set: should exit immediately
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, storage, stop, mock_web)
+        polling_loop(config_mgr, storage, stop, mock_runtime)
         # If we get here without hanging, the test passes
 
     @patch("app.drivers.driver_registry.load_driver")
-    @patch("app.main.web")
-    def test_driver_hot_swap_on_modem_type_change(self, mock_web, mock_load):
+    def test_driver_hot_swap_on_modem_type_change(self, mock_load, mock_runtime):
         """Polling loop should hot-swap the modem driver when modem_type changes."""
         import threading
         from app.main import polling_loop
@@ -587,9 +585,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = change_modem_after_first_tick
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, storage, stop, mock_web)
+        polling_loop(config_mgr, storage, stop, mock_runtime)
 
         # load_driver should have been called at least twice:
         # once for initial setup, once for hot-swap
@@ -598,12 +596,11 @@ class TestPollingLoopOrchestrator:
         second_call = mock_load.call_args_list[1]
         assert second_call[0][0] == "tc4400"
         # Web state should have been reset for the swap
-        mock_web.reset_modem_state.assert_called()
-        assert mock_web.modem_collector.name == "modem"
+        mock_runtime.reset_modem_state.assert_called()
+        assert mock_runtime.modem_collector.name == "modem"
 
     @patch("app.drivers.driver_registry.load_driver")
-    @patch("app.main.web")
-    def test_driver_hot_swap_on_url_change(self, mock_web, mock_load):
+    def test_driver_hot_swap_on_url_change(self, mock_load, mock_runtime):
         """Hot-swap should trigger when modem URL changes, not just type."""
         import threading
         from app.main import polling_loop
@@ -640,9 +637,9 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = change_url_after_first_tick
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, storage, stop, mock_web)
+        polling_loop(config_mgr, storage, stop, mock_runtime)
 
         # load_driver called twice: initial + hot-swap for URL change
         assert mock_load.call_count >= 2
@@ -650,8 +647,7 @@ class TestPollingLoopOrchestrator:
         assert second_call[0][1] == "http://192.168.100.1"
 
     @patch("app.drivers.driver_registry.load_driver")
-    @patch("app.main.web")
-    def test_no_hot_swap_when_config_unchanged(self, mock_web, mock_load):
+    def test_no_hot_swap_when_config_unchanged(self, mock_load, mock_runtime):
         """No hot-swap should occur when modem config hasn't changed."""
         import threading
         from app.main import polling_loop
@@ -678,11 +674,11 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = stop_after_ticks
 
-        mock_web.derived_storage.value.return_value = 0
+        mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, storage, stop, mock_web)
+        polling_loop(config_mgr, storage, stop, mock_runtime)
 
         # load_driver should only be called once (initial setup)
         assert mock_load.call_count == 1
         # reset_modem_state should NOT have been called (no swap)
-        mock_web.reset_modem_state.assert_not_called()
+        mock_runtime.reset_modem_state.assert_not_called()

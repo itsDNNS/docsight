@@ -1,12 +1,11 @@
 """Tests for health, export, and state reset endpoints."""
 
 import json
-from app.web import update_state, reset_modem_state, get_state
 from app.runtime import current_runtime
 
 class TestHealthEndpoint:
     def test_health_waiting(self, client):
-        update_state(analysis=None)
+        current_runtime().update_state(analysis=None)
         # Reset state
         current_runtime().reset_modem_state()
         resp = client.get("/health")
@@ -14,7 +13,7 @@ class TestHealthEndpoint:
         assert resp.get_json()["docsis_health"] == "waiting"
 
     def test_health_ok(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/health")
         assert resp.status_code == 200
         data = json.loads(resp.data)
@@ -22,15 +21,15 @@ class TestHealthEndpoint:
         assert data["docsis_health"] == "good"
 
     def test_reset_modem_state_clears_stale_dashboard_data(self, client, sample_analysis):
-        update_state(
+        current_runtime().update_state(
             analysis=sample_analysis,
             device_info={"model": "Generic Router"},
             connection_info={"connection_type": "generic"},
             speedtest_latest={"download_mbps": 230.5},
         )
 
-        reset_modem_state()
-        state = get_state()
+        current_runtime().reset_modem_state()
+        state = current_runtime().get_state()
 
         assert state["analysis"] is None
         assert state["device_info"] is None
@@ -47,7 +46,7 @@ class TestExportEndpoint:
         assert resp.status_code == 404
 
     def test_export_returns_markdown(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/api/export")
         assert resp.status_code == 200
         data = json.loads(resp.data)
@@ -61,7 +60,7 @@ class TestExportEndpoint:
             "ds_correctable_errors": None,
             "ds_uncorrectable_errors": None,
         })
-        update_state(analysis=sample_analysis)
+        current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/api/export")
 

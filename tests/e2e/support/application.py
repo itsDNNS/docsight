@@ -147,15 +147,18 @@ def serve_server(
     )
     runtime = get_runtime(application)
     if target.profile.configured:
-        collector = DemoCollector(
-            analyzer_fn=analyzer.analyze,
-            event_detector=EventDetector(),
-            storage=storage,
-            mqtt_pub=None,
-            web=runtime,
-            poll_interval=300,
-        )
-        collector.collect()
+        if target.profile.seed_callback is not None:
+            target.profile.seed_callback(runtime)
+        else:
+            collector = DemoCollector(
+                analyzer_fn=analyzer.analyze,
+                event_detector=EventDetector(),
+                storage=storage,
+                mqtt_pub=None,
+                web=runtime,
+                poll_interval=300,
+            )
+            collector.collect()
         if target.profile.post_seed_callback is not None:
             target.profile.post_seed_callback(db_path)
 

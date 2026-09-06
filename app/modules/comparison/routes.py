@@ -1,21 +1,21 @@
 """Before/After Comparison module routes."""
 
+from app.runtime import current_runtime
 from flask import Blueprint, jsonify, request
 
 from app.aggregation import (
     ThresholdContext,
     Window,
     aggregate_snapshot_period,
-    report_bounds,
 )
 from app.analyzer import threshold_snapshot
-from app.web import get_storage, require_auth
+from app.web_auth import require_auth
 
 bp = Blueprint("comparison_module", __name__)
 
 
 def _get_storage():
-    return get_storage()
+    return current_runtime().storage
 
 
 def _comparison_view(aggregate):
@@ -37,18 +37,6 @@ def _comparison_view(aggregate):
         "health_distribution": aggregate["health_distribution"],
         "timeseries": aggregate["samples"],
     }
-
-
-def _comparison_period(snapshots):
-    """Compatibility adapter for comparison helper callers."""
-    bounds = report_bounds(snapshots)
-    thresholds = ThresholdContext.from_analyzer_snapshot(threshold_snapshot())
-    aggregate = aggregate_snapshot_period(
-        snapshots,
-        window=Window(*bounds),
-        thresholds=thresholds,
-    )
-    return _comparison_view(aggregate)
 
 
 def _compute_delta(period_a, period_b):

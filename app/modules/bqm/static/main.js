@@ -8,7 +8,7 @@ if (typeof BQMChart === 'undefined') {
 }
 
 /* ── BQM State ── */
-var bqmDate = todayStr();
+var bqmDate = typeof todayStr === 'function' ? todayStr() : null;
 var _bqmAvailableDates = new Set();
 var _bqmCsvDates = new Set();
 var _bqmPngDates = new Set();
@@ -843,7 +843,9 @@ function deleteBqmImages() {
 }
 
 /* ── BQM View Init (called from switchView) ── */
-function initBqmView() {
+window.initBqmView = function() {
+    if (!document.getElementById('view-bqm')) return;
+    if (!bqmDate) bqmDate = todayStr();
     // Cross-view date linking (Phase 4)
     if (window._selectedDateRange) {
         _bqmRangeStart = window._selectedDateRange.start;
@@ -865,4 +867,4 @@ function initBqmView() {
     } else {
         loadBqmGraph(bqmDate);
     }
-}
+};
