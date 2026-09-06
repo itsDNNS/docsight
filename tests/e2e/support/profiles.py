@@ -5,6 +5,10 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.runtime import DocsightRuntime
 
 _INHERITED_ENVIRONMENT = {
     "HOME",
@@ -34,6 +38,9 @@ class ServerProfile:
     production_startup: bool = False
     disabled_modules: str = ""
     post_seed_callback: Callable[[str], None] | None = field(
+        default=None, repr=False, compare=False
+    )
+    seed_callback: Callable[[DocsightRuntime], None] | None = field(
         default=None, repr=False, compare=False
     )
 

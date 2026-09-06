@@ -1,7 +1,7 @@
+from app.runtime import current_runtime
 import pytest
 
 from app import maintainer_notices
-from app.web import reset_modem_state
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def test_notice_api_rejects_invalid_location_and_id(client, local_notices):
 
 
 def test_dashboard_renders_notice_until_dismissed(client, config_mgr, local_notices):
-    reset_modem_state()
+    current_runtime().reset_modem_state()
 
     response = client.get("/")
     assert response.status_code == 200

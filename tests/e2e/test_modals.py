@@ -54,6 +54,12 @@ def test_settings_backup_browser_uses_accessible_modal_contract(settings_page):
     if not backup_enabled.is_checked():
         backup_enabled.evaluate("el => { el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); }")
     opener = settings_page.get_by_role("button", name="Browse")
+    def browse_response(route):
+        path = parse_qs(urlparse(route.request.url).query)["path"][0]
+        route.fulfill(json={"path": path, "parent": None, "directories": [
+            {"name": "tmp", "path": "/tmp"}
+        ] if path == "/" else []})
+    settings_page.route("**/api/browse?*", browse_response)
     settings_page.locator("#backup_path").evaluate("el => { el.value = '/'; }")
     opener.click()
 
@@ -74,22 +80,15 @@ def test_settings_backup_browser_uses_accessible_modal_contract(settings_page):
         """
     )
 
-    settings_page.evaluate(
-        """
-        () => {
-            const dirs = document.querySelector('#browse-dirs');
-            dirs.textContent = '';
-            dirs.appendChild(_createBrowseItem('tmp', '/tmp', 'folder', false));
-        }
-        """
-    )
     first_dir = modal.locator(".browse-item").first
     expect(first_dir).to_be_visible()
     expect(first_dir).to_have_attribute("role", "button")
     expect(first_dir).to_have_attribute("tabindex", "0")
     first_dir.focus()
     assert first_dir.evaluate("el => el === document.activeElement")
-    first_dir.press("Enter")
+    with settings_page.expect_request(lambda request: parse_qs(urlparse(request.url).query).get("path") == ["/tmp"]):
+        first_dir.press("Enter")
+    expect(modal.locator("#browse-selected-path")).to_have_text("/tmp")
     expect(modal.locator("#browse-status")).not_to_have_text("Loading...")
 
     settings_page.keyboard.press("Escape")

@@ -3,6 +3,8 @@
 import pytest
 from playwright.sync_api import expect
 
+from tests.e2e.test_modulation_visual import _switch_distribution
+
 
 # ── Navigation ──
 
@@ -206,8 +208,8 @@ class TestModulationControls:
 
     def test_switch_to_ds(self):
         ds = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]')
-        ds.click()
-        self.page.wait_for_timeout(300)
+        _switch_distribution(self.page, '#modulation-direction-tabs [data-dir="ds"]',
+                             direction="ds", min_samples=7)
         assert "active" in ds.get_attribute("class")
         us = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="us"]')
         assert "active" not in us.get_attribute("class")
@@ -215,13 +217,13 @@ class TestModulationControls:
     def test_switch_to_today(self):
         today = self.page.locator('#modulation-range-tabs .trend-tab[data-days="1"]')
         today.click()
-        self.page.wait_for_timeout(300)
+        expect(self.page.locator("#mod-intraday-title")).to_contain_text("Channel Detail")
         assert "active" in today.get_attribute("class")
 
     def test_switch_to_30_days(self):
         d30 = self.page.locator('#modulation-range-tabs .trend-tab[data-days="30"]')
-        d30.click()
-        self.page.wait_for_timeout(300)
+        _switch_distribution(self.page, '#modulation-range-tabs [data-days="30"]',
+                             direction="us", min_samples=30)
         assert "active" in d30.get_attribute("class")
 
     def test_30_day_charts_bound_x_axis_labels(self):
@@ -257,34 +259,71 @@ class TestModulationControls:
     def test_switch_direction_then_back(self):
         ds = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]')
         us = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="us"]')
-        ds.click()
-        self.page.wait_for_timeout(200)
-        us.click()
-        self.page.wait_for_timeout(200)
+        _switch_distribution(self.page, '#modulation-direction-tabs [data-dir="ds"]',
+                             direction="ds", min_samples=7)
+        _switch_distribution(self.page, '#modulation-direction-tabs [data-dir="us"]',
+                             direction="us", min_samples=7)
         assert "active" in us.get_attribute("class")
         assert "active" not in ds.get_attribute("class")
 
     def test_today_shows_intraday(self):
         today = self.page.locator('#modulation-range-tabs .trend-tab[data-days="1"]')
         today.click()
-        self.page.wait_for_timeout(1000)
+        expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("Selected day")
         intraday = self.page.locator("#modulation-intraday")
         expect(intraday).to_be_visible()
         overview = self.page.locator("#modulation-overview")
         expect(overview).not_to_be_visible()
 
+    def test_distribution_day_click_and_pointer(self):
+        chart = self.page.locator("[id^='mod-dist-chart-']").first
+        expect(chart).to_have_css("cursor", "pointer")
+        chart.scroll_into_view_if_needed()
+        position = self.page.evaluate("""() => {
+            const chart = window._modCharts[0];
+            const rect = chart.over.getBoundingClientRect();
+            return {x: rect.left + chart.valToPos(1, 'x'), y: rect.top + rect.height / 2};
+        }""")
+        with self.page.expect_response(lambda response: "/api/modulation/intraday?" in response.url) as response:
+            self.page.mouse.click(position["x"], position["y"])
+        data = response.value.json()
+        expect(self.page.locator("#mod-intraday-title")).to_contain_text(data["date"])
+        expect(self.page.locator("#modulation-intraday")).to_be_visible()
+        expect(self.page.locator("#modulation-overview")).not_to_be_visible()
+
     def test_capacity_panel_updates_for_selected_range_and_today(self):
         panel = self.page.locator("#modulation-capacity-panel")
         expect(panel).to_be_visible()
+        expect(panel).to_contain_text("Calculated SC-QAM gross capacity")
+        expect(panel).to_contain_text("Not speedtest throughput")
+        expect(panel).to_contain_text("not tariff speed")
+        expect(panel).to_have_css("border-top-width", "1px")
+        expect(self.page.locator(".mod-capacity-warning-list")).to_have_css("display", "flex")
         expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("7d")
         expect(self.page.locator("#mod-cap-ds-min")).to_contain_text("Mbps")
         expect(self.page.locator("#mod-cap-us-tariff")).not_to_have_text("—")
 
+        def partial_capacity(route):
+            response = route.fetch()
+            data = response.json()
+            data["capacity_history"]["downstream"].update(
+                status="below_some_samples", unsupported_channel_samples=1,
+                unsupported_channel_families={"ofdm": 1},
+            )
+            route.fulfill(response=response, json=data)
+
+        self.page.route("**/api/modulation/distribution?*", partial_capacity)
+        _switch_distribution(self.page, '#modulation-range-tabs [data-days="30"]',
+                             direction="us", min_samples=30)
+        expect(self.page.locator("#mod-capacity-downstream")).to_have_css("border-left-color", "rgb(239, 68, 68)")
+        caveat = self.page.locator("#mod-cap-ds-caveat")
+        expect(caveat).to_be_visible()
+        expect(caveat).to_contain_text("OFDM")
+        expect(caveat).to_have_css("border-top-width", "1px")
         today = self.page.locator('#modulation-range-tabs .trend-tab[data-days="1"]')
         today.click()
-        self.page.wait_for_timeout(1000)
-        expect(panel).to_be_visible()
         expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("Selected day")
+        expect(panel).to_be_visible()
 
 
 # ── API Integration ──
@@ -441,8 +480,8 @@ class TestProtocolGroups:
                 )
             ).to_be_visible()
 
-        self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]').click()
-        self.page.wait_for_timeout(1500)
+        _switch_distribution(self.page, '#modulation-direction-tabs [data-dir="ds"]',
+                             direction="ds", min_samples=7)
         expect(self.page.locator(".modulation-custom-legend-hint")).to_have_count(0)
 
 

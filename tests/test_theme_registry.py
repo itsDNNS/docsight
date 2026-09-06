@@ -4,8 +4,31 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from app.theme_registry import fetch_registry
+from app.theme_registry import download_theme, fetch_registry
 from app.module_download import validate_registry_entry
+
+
+@pytest.mark.parametrize("files,valid", [
+    ([], False),
+    (["manifest.json"], False),
+    (["theme.json"], False),
+    (["manifest.json", "theme.json"], True),
+])
+def test_download_theme_validation_leaves_cleanup_to_caller(tmp_path, files, valid):
+    target = tmp_path / "theme"
+    target.mkdir()
+    sentinel = target / "partial.json"
+    sentinel.write_text("{}", encoding="utf-8")
+    for name in files:
+        (target / name).write_text("{}", encoding="utf-8")
+    url = "https://api.github.com/repos/example/themes/contents/theme"
+
+    with patch("app.theme_registry.download_github_directory", return_value=True) as download, \
+         patch("shutil.rmtree") as remove:
+        assert download_theme(url, str(target), 17) is valid
+        download.assert_called_once_with(url, str(target), 17)
+        remove.assert_not_called()
+    assert sentinel.read_text(encoding="utf-8") == "{}"
 
 
 class TestValidateRegistryEntry:

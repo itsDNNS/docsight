@@ -22,9 +22,9 @@ E2E_BROWSER_PATHS = [
     "app/templates/**",
     "app/static/**",
     "app/modules/**",
-    "app/web.py",
+    "app/{web*,signal_health_view}.py",
     "app/blueprints/**",
-    "app/tz.py",
+    "app/{tz,theme_registry,runtime,version}.py",
     "app/i18n/**",
     "app/app_factory.py",
     "app/base_path.py",
@@ -187,7 +187,7 @@ def test_full_e2e_paths_concurrency_and_summary_contract():
         step for step in workflow["jobs"]["full-e2e"]["steps"]
         if step["name"].startswith("Verify complete successful")
     )["run"]
-    assert "--expected-total 549" in summarize
+    assert "--expected-total 555" in summarize
 
     preserve = next(
         step for step in workflow["jobs"]["full-e2e"]["steps"]
