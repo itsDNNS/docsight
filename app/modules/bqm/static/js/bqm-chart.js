@@ -2,8 +2,8 @@
 var BQMChart = (function() {
     'use strict';
 
-    function formatTick(ts) {
-        return docsightFormatXAxisLabel(ts, 'bqm');
+    function formatTick(ts, dateAxis) {
+        return docsightFormatXAxisLabel(ts, dateAxis ? '30d' : 'bqm');
     }
 
     function toUnixSeries(timestamps) {
@@ -61,8 +61,11 @@ var BQMChart = (function() {
         var sentMax = sentPolls.length ? Math.max.apply(null, sentPolls) : 100;
         if (sentMax < 1) sentMax = 100;
         var xData = toUnixSeries(timestamps);
-        var labels = timestamps.map(function(ts) {
-            return formatTick(Math.floor(new Date(ts).getTime() / 1000));
+        // Use the selected view, not the payload span: ranges can contain only one day.
+        var dateAxis = opts.dateAxis === true;
+        var labels = xData.map(function(ts) {
+            var time = formatTick(ts, false);
+            return dateAxis ? formatTick(ts, true) + ' ' + time : time;
         });
 
         renderChart(el.id, labels, [
@@ -95,7 +98,7 @@ var BQMChart = (function() {
             },
         ], 'line', null, {
             xData: xData,
-            xValueCallback: formatTick,
+            xValueCallback: function(ts) { return formatTick(ts, dateAxis); },
             zoomable: true,
             yMin: 0,
             heightRatio: 0.48,

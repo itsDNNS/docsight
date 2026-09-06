@@ -38,13 +38,38 @@ function fetchBqmDates(cb) {
 
 function updateBqmQuickButtons() {
     var hasCsv = _bqmCsvDates.size > 0;
+    var today = typeof todayStr === 'function' ? todayStr() : null;
+    var selected = null;
+    if (today) {
+        var relativeDate = function(daysAgo) {
+            var d = new Date(today + 'T12:00:00');
+            d.setDate(d.getDate() - daysAgo);
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        };
+        if (_bqmRangeStart && _bqmRangeEnd && _bqmRangeStart !== _bqmRangeEnd) {
+            if (_bqmRangeEnd === today) {
+                if (_bqmRangeStart === relativeDate(6)) selected = '7d';
+                else if (_bqmRangeStart === relativeDate(29)) selected = '30d';
+            }
+        } else {
+            var date = _bqmRangeStart || bqmDate;
+            if (date === today) selected = 'today';
+            else if (date === relativeDate(1)) selected = 'yesterday';
+        }
+    }
     ['bqm-today-btn', 'bqm-yesterday-btn', 'bqm-7d-btn', 'bqm-30d-btn'].forEach(function(id) {
         var btn = document.getElementById(id);
-        if (btn) btn.style.display = hasCsv ? 'inline-flex' : 'none';
+        if (btn) {
+            btn.style.display = hasCsv ? 'inline-flex' : 'none';
+            var active = id === 'bqm-' + selected + '-btn';
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', String(active));
+        }
     });
 }
 
 function renderBqmCalendar(year, month) {
+    updateBqmQuickButtons();
     var grid = document.getElementById('bqm-calendar-grid');
     var label = document.getElementById('bqm-month-label');
     if (!grid || !label) return;
@@ -163,7 +188,7 @@ function loadBqmChart(date) {
                 showBqmNoData(T.bqm_no_csv_data || 'No CSV data for this date.');
                 return;
             }
-            BQMChart.render('bqm-chart-container', data);
+            BQMChart.render('bqm-chart-container', data, { dateAxis: false });
             showBqmCard();
         })
         .catch(function() {
@@ -183,7 +208,7 @@ function loadBqmRangeChart(start, end) {
                 showBqmNoData(T.bqm_csv_dates_only || 'This range only has PNG fallback data.');
                 return;
             }
-            BQMChart.render('bqm-chart-container', data);
+            BQMChart.render('bqm-chart-container', data, { dateAxis: start !== end });
             showBqmCard();
         })
         .catch(function() {
