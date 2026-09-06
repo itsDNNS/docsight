@@ -439,8 +439,8 @@ def test_build_lock_contains_windows_pyinstaller_dependencies():
 def test_runtime_windows_lock_contains_windows_marked_dependencies():
     lock_text = (WINDOWS_PACKAGING / "requirements-runtime-windows.txt").read_text(encoding="utf-8")
 
-    assert "click==8.4.2" in lock_text
-    assert "colorama==0.4.6" in lock_text
+    assert "click==8.5.0" in lock_text
+    assert "colorama==" not in lock_text
     assert "tzdata==2026.2" in lock_text
     assert "pystray==0.19.5" in lock_text
 
@@ -456,7 +456,8 @@ def test_windows_runtime_and_test_locks_keep_separate_hashed_ownership():
     assert "pystray==0.19.5 \\\n    --hash=sha256:" in runtime_lock
     assert "six==1.17.0 \\\n    --hash=sha256:" in runtime_lock
     assert re.search(r"(?m)^pytest==\S+ \\\n    --hash=sha256:", test_lock)
-    for runtime_package in ("colorama", "pystray", "six", "tzdata"):
+    assert "colorama==0.4.6 \\\n    --hash=sha256:" in test_lock
+    for runtime_package in ("pystray", "six", "tzdata"):
         assert not re.search(rf"(?m)^{runtime_package}==", test_lock)
 
 
