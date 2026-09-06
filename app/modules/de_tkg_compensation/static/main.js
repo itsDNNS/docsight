@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var state = { initialized: false, candidatesLoading: false, step: 1, claimId: null, calculation: null, proposals: [], origin: 'manual', customerDefaults: {}, localToday: '' };
+    var state = { initialized: false, step: 1, claimId: null, calculation: null, localToday: '' };
 
     function t(key, fallback) {
         return (window.T && window.T['docsight.de_tkg_compensation.' + key]) || fallback;
@@ -55,7 +55,7 @@
     }
 
     function showStep(number) {
-        state.step = Math.max(1, Math.min(5, number));
+        state.step = Math.max(1, Math.min(4, number));
         document.querySelectorAll('#tkg-compensation-root [data-tkg-step]').forEach(function(panel) {
             panel.hidden = Number(panel.dataset.tkgStep) !== state.step;
         });
@@ -65,7 +65,7 @@
         });
         document.getElementById('tkg-previous').disabled = state.step === 1;
         var nextButton = document.getElementById('tkg-next');
-        nextButton.hidden = state.step === 5;
+        nextButton.hidden = state.step === 4;
         nextButton.textContent = state.step === 1
             ? t('next_first', 'Continue to details')
             : t('next', 'Next');
@@ -103,13 +103,14 @@
             };
         });
         container.replaceChildren();
-        var start = document.getElementById('tkg-report-date').value;
-        var end = document.getElementById('tkg-restored-date').value || state.localToday;
-        var days = start ? dateRange(start, end) : [];
-        state.proposals.forEach(function(day) {
-            if (days.indexOf(day) === -1) days.push(day);
-        });
-        days.sort().forEach(function(day) {
+        var start = document.getElementById('tkg-window-from').value.slice(0, 10);
+        var end = document.getElementById('tkg-window-to').value.slice(0, 10);
+        var report = document.getElementById('tkg-report-date').value;
+        var restored = document.getElementById('tkg-restored-date').value;
+        if (report > start) start = report;
+        if (restored && restored < end) end = restored;
+        if (state.localToday && state.localToday < end) end = state.localToday;
+        dateRange(start, end).forEach(function(day) {
             var row = document.createElement('div');
             row.className = 'tkg-day';
             row.dataset.date = day;
@@ -137,92 +138,21 @@
                 invalidateDerivedState();
             });
             replacementLabel.append(replacement, document.createTextNode(' ' + t('day_replacement', 'Provider replacement solution actually made available')));
-            if (state.proposals.indexOf(day) !== -1) {
-                var badge = document.createElement('span');
-                badge.className = 'tkg-badge';
-                badge.textContent = t('candidate_derived', 'Found in measurements · please review');
-                dayLabel.append(document.createTextNode(' '), badge);
-            }
             row.append(dayLabel, completeLabel, replacementLabel);
             container.append(row);
         });
     }
 
-    function applyCandidate(candidate) {
-        document.getElementById('tkg-window-from').value = candidate.window_from_local;
-        document.getElementById('tkg-window-to').value = candidate.window_to_local;
-        document.getElementById('tkg-report-date').value = '';
-        document.getElementById('tkg-restored-date').value = '';
-        state.proposals = candidate.suggested_days || [];
-        state.origin = candidate.origin || 'manual';
-        invalidateDerivedState();
-        renderDays();
-        if (candidate.ongoing) {
-            status(t('candidate_ongoing', 'Ongoing outage period through the latest available evidence; no restoration is inferred.'));
-        }
-        showStep(2);
-    }
-
-    function renderCandidates(payload) {
-        var container = document.getElementById('tkg-candidates');
-        container.replaceChildren();
-        state.customerDefaults = payload.customer_defaults || {};
-        state.localToday = payload.local_today || '';
-        document.getElementById('tkg-customer-name').value = state.customerDefaults.name || '';
-        document.getElementById('tkg-customer-number').value = state.customerDefaults.customer_number || '';
-        document.getElementById('tkg-customer-address').value = state.customerDefaults.address || '';
-        var performanceLink = document.getElementById('tkg-performance-link');
-        if (payload.capabilities.bnetz) {
-            performanceLink.removeAttribute('target');
-            performanceLink.onclick = function(event) {
-                event.preventDefault();
-                if (typeof window.switchView === 'function') window.switchView('bnetz');
-            };
-        }
-        if (!payload.candidates.length) {
-            var empty = document.createElement('p');
-            empty.className = 'tkg-muted';
-            empty.textContent = t('candidate_empty', 'No clear outage period was found. Enter the period yourself.');
-            container.append(empty);
-            return;
-        }
-        payload.candidates.forEach(function(candidate) {
-            var row = document.createElement('div');
-            row.className = 'tkg-candidate';
-            var text = document.createElement('span');
-            text.textContent = (candidate.label || candidate.window_from + ' – ' + candidate.window_to) + ' · ' + t('candidate_derived', 'Found in measurements · please review');
-            var use = document.createElement('button');
-            use.className = 'btn';
-            use.type = 'button';
-            use.textContent = t('candidate_use', 'Use outage period');
-            use.setAttribute('aria-label', t('candidate_use', 'Use outage period') + ': ' + (candidate.label || candidate.window_from + ' – ' + candidate.window_to));
-            use.addEventListener('click', function() { applyCandidate(candidate); });
-            row.append(text, use);
-            container.append(row);
-        });
-    }
-
-    function loadCandidates(announce) {
-        if (state.candidatesLoading) return;
-        state.candidatesLoading = true;
-        var button = document.getElementById('tkg-load-candidates');
-        var container = document.getElementById('tkg-candidates');
-        button.disabled = true;
-        button.setAttribute('aria-busy', 'true');
-        container.setAttribute('aria-busy', 'true');
-        if (announce) status(t('status_loading', 'Loading…'));
-        else status('');
-        return api('/api/de-tkg/candidates').then(function(payload) {
-            renderCandidates(payload);
-            if (announce) status(t('status_candidates_loaded', 'Outage periods updated.'));
-        }).catch(function() {
-            status(t('status_error', 'The request could not be completed.'), 'error');
-        }).finally(function() {
-            state.candidatesLoading = false;
-            button.disabled = false;
-            button.setAttribute('aria-busy', 'false');
-            container.setAttribute('aria-busy', 'false');
-        });
+    function loadContext() {
+        return api('/api/de-tkg/context').then(function(payload) {
+            state.localToday = payload.local_today || '';
+            var customer = payload.customer_defaults || {};
+            ['name', 'number', 'address'].forEach(function(field) {
+                var input = document.getElementById('tkg-customer-' + field);
+                if (!input.value) input.value = customer[field === 'number' ? 'customer_number' : field] || '';
+            });
+            renderDays();
+        }).catch(function(error) { status(error.message, 'error'); });
     }
 
     function selectedDays(kind) {
@@ -236,7 +166,6 @@
         var credit = centsFromInput('tkg-prior-credit', false);
         return {
             status: 'draft',
-            origin: state.origin,
             window_from: document.getElementById('tkg-window-from').value || null,
             window_to: document.getElementById('tkg-window-to').value || null,
             fault_report_received_date: document.getElementById('tkg-report-date').value || null,
@@ -366,16 +295,13 @@
             item.append(link); sourceList.append(item);
         });
         container.append(sourceList);
-        var review = document.createElement('p'); review.className = 'tkg-muted'; review.textContent = t('rounding_note', result.source_review_note) + ' ' + t('replacement_help', 'A confirmed replacement solution excludes only that day conservatively. Acceptance or suitability is not inferred.'); container.append(review);
         renderReportLinks(result);
     }
 
     function renderReportLinks(result) {
         var container = document.getElementById('tkg-report-links');
         container.replaceChildren();
-        if (!result || !result.report_chunks || !result.report_chunks.length) {
-            var unavailable = document.createElement('p'); unavailable.textContent = t('no_reports', 'The Reports module is unavailable. Copy and .txt export remain available.'); container.append(unavailable);
-        } else {
+        if (result && result.report_chunks && result.report_chunks.length) {
             var heading = document.createElement('h4'); heading.textContent = t('report_attachments', 'Evidence report attachments'); container.append(heading);
             result.report_chunks.forEach(function(chunk) {
                 var link = document.createElement('a'); link.href = window.docsightUrl(chunk.url); link.textContent = t('report_attachments', 'Evidence report attachments') + ' ' + chunk.index; container.append(link);
@@ -466,13 +392,6 @@
         }).catch(function(error) { status(error.message, 'error'); });
     }
 
-    function completeClaim() {
-        if (!state.claimId) return;
-        saveEditedLetter().then(function() {
-            return api('/api/de-tkg/claims/' + state.claimId, {method: 'PUT', body: JSON.stringify({status: 'completed'})});
-        }).then(function() { status(t('status_completed', 'Draft marked completed.')); }).catch(function(error) { status(error.message, 'error'); });
-    }
-
     function next() {
         if (state.step === 1) {
             var from = document.getElementById('tkg-window-from').value;
@@ -481,8 +400,6 @@
             renderDays();
         } else if (state.step === 2 && !state.calculation) {
             status(t('calculation_empty', 'Confirm and calculate the facts first.'), 'error'); return;
-        } else if (state.step === 4 && !document.getElementById('tkg-letter').value) {
-            status(t('letter_placeholder', 'Generate the letter after reviewing the calculation.'), 'error'); return;
         }
         showStep(state.step + 1);
     }
@@ -490,30 +407,22 @@
     function initDeTkgCompensation() {
         if (state.initialized) return;
         state.initialized = true;
-        document.getElementById('tkg-load-candidates').addEventListener('click', function() { loadCandidates(true); });
         document.getElementById('tkg-calculate').addEventListener('click', calculate);
         document.getElementById('tkg-generate-letter').addEventListener('click', generateLetter);
         document.getElementById('tkg-copy').addEventListener('click', copyLetter);
         document.getElementById('tkg-download').addEventListener('click', downloadLetter);
-        document.getElementById('tkg-complete').addEventListener('click', completeClaim);
         document.getElementById('tkg-previous').addEventListener('click', function() { showStep(state.step - 1); });
         document.getElementById('tkg-next').addEventListener('click', next);
         ['tkg-report-date', 'tkg-restored-date'].forEach(function(id) { document.getElementById(id).addEventListener('change', renderDays); });
         document.querySelectorAll('#tkg-compensation-root [data-tkg-fact]').forEach(function(element) {
             element.addEventListener(element.type === 'checkbox' || element.tagName === 'SELECT' ? 'change' : 'input', invalidateDerivedState);
         });
-        ['tkg-window-from', 'tkg-window-to'].forEach(function(id) {
-            document.getElementById(id).addEventListener('input', function() {
-                state.proposals = [];
-                state.origin = 'manual';
-            });
-        });
         ['tkg-customer-name', 'tkg-customer-number', 'tkg-customer-address'].forEach(function(id) {
             document.getElementById(id).addEventListener('input', invalidateLetter);
         });
         document.getElementById('tkg-monthly-fee').addEventListener('input', function(event) { document.getElementById('tkg-zero-fee').hidden = event.target.value !== '0' && event.target.value !== '0.00'; });
         showStep(1);
-        loadCandidates(false);
+        loadContext();
     }
 
     window.initDeTkgCompensation = initDeTkgCompensation;

@@ -576,33 +576,30 @@ has no collector, publisher, or remote service. Its `rules.py`,
 `rules_data.py`, and `letter.py` layers are deterministic and Flask-free;
 authenticated routes adapt those layers to one module-owned claim table. The
 module calculates only user-confirmed local complete-outage calendar days.
-Connection Monitor intervals and open incidents are proposals and never become
-confirmed facts automatically.
+Outage dates are entered by the user; the assistant does not infer service
+outages from ping timeouts or open journal incidents.
 
 For § 58(3) day counting, the fault-report receipt date is day 0. Calculation
 can first include the third local calendar day after receipt (day index 3), and
 only when the user confirms that entire calendar day as a complete outage day.
 
 Missed service or installation appointments under § 58(4) are an independent
-claim basis and do not require an outage window or outage assertions. Candidate
-timestamps are converted with DOCSight's configured timezone. They never fill
-the legally relevant fault-report or restoration dates; those remain explicit
-user facts.
+claim basis and do not require an outage window or outage assertions. Manually
+entered timestamps use DOCSight's configured timezone. Fault-report receipt,
+restoration, and each complete-outage day remain explicit user facts.
 
-Reports, Evidence Journey, Incident Journal, Connection Monitor, and BNetzA are
-optional supporting capabilities. Each adapter checks the enabled module set
-before touching the other module's data. The manual claim, calculation, German
-text letter, copy action, and `.txt` export remain available when every support
-module is disabled. Reports longer than 90 days are linked as deterministic
+Reports, Evidence Journey, and Incident Journal provide optional evidence
+exports. Links are offered only when the corresponding module is enabled. The
+manual claim, calculation, German text letter, copy action, and `.txt` export
+remain available when every support module is disabled. Reports longer than
+90 days are linked as deterministic
 report-sized chunks; this technical PDF boundary never limits or truncates the
 claim calculation.
 
-The Connection Monitor candidate adapter uses indexed queries with explicit
-proposal-only lookback, target, sample, and result limits. Open timeout runs and
-open Journal incidents are marked as ongoing through the latest available
-evidence and never imply restoration. These resource bounds apply only to
-candidate generation and do not cap a manually entered claim or its confirmed
-calendar days.
+The four-step flow ends with the editable letter and its copy/download actions.
+The authenticated context endpoint supplies the configured local date and
+optional report customer defaults. Saved drafts and their existing status API
+remain supported; the wizard does not track whether a claim has been sent.
 
 The ruleset ships with the application release and records jurisdiction,
 version, review date, and source URLs. Percentage results use integer-cent
@@ -891,7 +888,7 @@ CREATE TABLE de_tkg_claim_drafts (
 | `/api/export` | GET | AI/LLM-oriented markdown export; browser UI applies local preview, scope, and redaction controls |
 | `/api/report` | GET | PDF evidence package from stored snapshots; accepts rolling `days` or an exact timezone-aware `from`/`to` window (maximum 90 days) |
 | `/api/complaint` | GET | Localized complaint text from the same stored-snapshot window; returns the normalized UTC window with the generated text |
-| `/api/de-tkg/candidates` | GET | Capability-gated outage and incident proposals; proposals remain unconfirmed |
+| `/api/de-tkg/context` | GET | Configured local date, optional evidence capabilities, and customer defaults |
 | `/api/de-tkg/claims` | GET/POST | List or create local German TKG claim drafts |
 | `/api/de-tkg/claims/<id>` | GET/PUT/DELETE | Read, edit, complete, or explicitly delete one claim draft |
 | `/api/de-tkg/claims/<id>/calculate` | POST | Calculate confirmed complete-outage days and missed appointments using the shipped ruleset |

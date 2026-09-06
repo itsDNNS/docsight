@@ -39,7 +39,7 @@ def _claim_payload(**overrides):
 
 
 def test_manual_core_flow_works_with_all_supporting_modules_disabled(
-    make_app, make_config, builtin_module_loader_factory, core_storage, monkeypatch
+    make_app, make_config, builtin_module_loader_factory, core_storage
 ):
     disabled = ",".join([
         "docsight.reports", "docsight.evidence", "docsight.journal",
@@ -53,23 +53,11 @@ def test_manual_core_flow_works_with_all_supporting_modules_disabled(
     )
     client = application.test_client()
 
-    import app.modules.de_tkg_compensation.routes as routes
-
-    monkeypatch.setattr(
-        routes, "load_connection_monitor_candidates",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("disabled data read")),
-    )
-    monkeypatch.setattr(
-        routes, "load_incident_candidates",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("disabled data read")),
-    )
-
-    candidates = client.get("/api/de-tkg/candidates")
-    assert candidates.status_code == 200
-    assert candidates.get_json()["candidates"] == []
+    context = client.get("/api/de-tkg/context")
+    assert context.status_code == 200
     assert not any(
-        candidates.get_json()["capabilities"][name]
-        for name in ("reports", "evidence", "journal", "connection_monitor", "bnetz")
+        context.get_json()["capabilities"][name]
+        for name in ("reports", "evidence", "journal")
     )
 
     created = client.post("/api/de-tkg/claims", json=_claim_payload())
@@ -93,6 +81,40 @@ def test_manual_core_flow_works_with_all_supporting_modules_disabled(
     disposition = downloaded.headers["Content-Disposition"]
     assert "docsight_tkg_entschaedigung_" in disposition
     assert "SYNTHETIC-42" not in disposition
+
+
+@pytest.mark.parametrize("mode", ["reports", "disabled", "demo"])
+def test_context_uses_configured_date_and_respects_customer_privacy(
+    mode, make_app, make_config, builtin_module_loader_factory, core_storage, monkeypatch
+):
+    import app.modules.de_tkg_compensation.routes as routes
+
+    def local_date(tz_name):
+        assert tz_name == "Europe/Berlin"
+        return "2026-03-30"
+
+    monkeypatch.setattr(routes, "local_today", local_date)
+    config = make_config({
+        "timezone": "Europe/Berlin",
+        "demo_mode": mode == "demo",
+        "disabled_modules": "docsight.reports" if mode == "disabled" else "",
+        "report_customer_name": "Test Person",
+        "report_customer_number": "CUSTOMER-42",
+        "report_customer_address": "Test Street",
+    })
+    client = make_app(
+        config_manager=config,
+        storage=core_storage,
+        module_loader_factory=builtin_module_loader_factory(config),
+    ).test_client()
+
+    response = client.get("/api/de-tkg/context")
+
+    assert response.status_code == 200
+    assert response.get_json()["local_today"] == "2026-03-30"
+    assert response.get_json()["customer_defaults"] == ({
+        "name": "Test Person", "customer_number": "CUSTOMER-42", "address": "Test Street",
+    } if mode == "reports" else {})
 
 
 def test_route_counts_report_receipt_as_day_zero(
@@ -275,61 +297,8 @@ def test_reports_capability_returns_deterministic_90_day_chunks(
     assert "technical 90-day" in result["report_chunk_note"]
 
 
-def test_only_connection_monitor_active_produces_unconfirmed_proposals(
-    make_app, make_config, builtin_module_loader_factory, core_storage, tmp_path, monkeypatch
-):
-    connection_db = tmp_path / "connection_monitor.db"
-    with sqlite3.connect(connection_db) as conn:
-        conn.execute("CREATE TABLE connection_targets (id INTEGER PRIMARY KEY, enabled INTEGER)")
-        conn.execute("CREATE TABLE connection_samples (target_id INTEGER, timestamp REAL, timeout INTEGER)")
-        conn.execute("INSERT INTO connection_targets VALUES (1, 1)")
-        conn.executemany(
-            "INSERT INTO connection_samples VALUES (1, ?, ?)",
-            [(1_767_225_600 + offset, 1) for offset in range(5)] + [(1_767_312_000, 0)],
-        )
-    monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    disabled = ",".join([
-        "docsight.reports", "docsight.evidence", "docsight.journal", "docsight.bnetz",
-    ])
-    config = make_config({"disabled_modules": disabled})
-    client = make_app(
-        config_manager=config,
-        storage=core_storage,
-        module_loader_factory=builtin_module_loader_factory(config),
-    ).test_client()
-
-    payload = client.get("/api/de-tkg/candidates").get_json()
-
-    assert payload["capabilities"]["connection_monitor"] is True
-    assert payload["capabilities"]["connection_monitor_source"] is True
-    assert len(payload["candidates"]) == 1
-    assert payload["candidates"][0]["origin"] == "telemetry"
-    assert payload["candidates"][0]["derived"] is True
-
-
-def test_enabled_connection_monitor_with_missing_source_is_graceful(
-    make_app, make_config, builtin_module_loader_factory, core_storage, tmp_path, monkeypatch
-):
-    monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    disabled = ",".join([
-        "docsight.reports", "docsight.evidence", "docsight.journal", "docsight.bnetz",
-    ])
-    config = make_config({"disabled_modules": disabled})
-    client = make_app(
-        config_manager=config,
-        storage=core_storage,
-        module_loader_factory=builtin_module_loader_factory(config),
-    ).test_client()
-
-    payload = client.get("/api/de-tkg/candidates").get_json()
-
-    assert payload["capabilities"]["connection_monitor"] is True
-    assert payload["capabilities"]["connection_monitor_source"] is False
-    assert payload["candidates"] == []
-
-
 def test_only_reports_active_returns_chunks_without_reading_other_sources(
-    make_app, make_config, builtin_module_loader_factory, core_storage, monkeypatch
+    make_app, make_config, builtin_module_loader_factory, core_storage
 ):
     disabled = ",".join([
         "docsight.evidence", "docsight.journal", "docsight.connection_monitor", "docsight.bnetz",
@@ -340,11 +309,6 @@ def test_only_reports_active_returns_chunks_without_reading_other_sources(
         storage=core_storage,
         module_loader_factory=builtin_module_loader_factory(config),
     ).test_client()
-    import app.modules.de_tkg_compensation.routes as routes
-    monkeypatch.setattr(
-        routes, "load_incident_candidates",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("disabled data read")),
-    )
     created = client.post("/api/de-tkg/claims", json=_claim_payload()).get_json()
 
     result = client.post(f"/api/de-tkg/claims/{created['id']}/calculate").get_json()
@@ -409,7 +373,7 @@ def test_module_itself_can_be_disabled_with_routes_and_assets_absent(
         module_loader_factory=builtin_module_loader_factory(config),
     ).test_client()
 
-    assert client.get("/api/de-tkg/candidates").status_code == 404
+    assert client.get("/api/de-tkg/context").status_code == 404
     assert client.get("/modules/docsight.de_tkg_compensation/static/main.js").status_code == 404
     dashboard = client.get("/")
     assert dashboard.status_code == 200
@@ -728,87 +692,7 @@ def test_upgrade_migrates_old_rules_version_and_clears_derived_letter(core_stora
     assert migrated["letter_text"] is None
 
 
-def test_ongoing_connection_candidate_api_marks_latest_evidence_without_restoration(
-    make_app, make_config, builtin_module_loader_factory, core_storage, tmp_path, monkeypatch
-):
-    connection_db = tmp_path / "connection_monitor.db"
-    with sqlite3.connect(connection_db) as conn:
-        conn.execute("CREATE TABLE connection_targets (id INTEGER PRIMARY KEY, enabled INTEGER)")
-        conn.execute("CREATE TABLE connection_samples (target_id INTEGER, timestamp REAL, timeout INTEGER)")
-        conn.execute("CREATE INDEX idx_samples_target_ts ON connection_samples(target_id, timestamp)")
-        conn.execute("INSERT INTO connection_targets VALUES (1, 1)")
-        conn.executemany(
-            "INSERT INTO connection_samples VALUES (1, ?, 1)",
-            [(1_783_201_540 + offset * 60,) for offset in range(6)],
-        )
-    monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    config = make_config({
-        "timezone": "Europe/Berlin",
-        "disabled_modules": ",".join([
-            "docsight.reports", "docsight.evidence", "docsight.journal", "docsight.bnetz",
-        ]),
-    })
-    client = make_app(
-        config_manager=config,
-        storage=core_storage,
-        module_loader_factory=builtin_module_loader_factory(config),
-    ).test_client()
-
-    payload = client.get("/api/de-tkg/candidates").get_json()
-    candidate = payload["candidates"][0]
-
-    assert candidate["ongoing"] is True
-    assert candidate["restoration_suggested"] is False
-    assert candidate["window_from_local"].startswith("2026-07-")
-    assert payload["timezone"] == "Europe/Berlin"
-    assert "never cap a manual legal claim" in payload["proposal_limits_note"]
-    assert payload["proposal_limits"] == {
-        "connection_lookback_days": 30,
-        "connection_max_results": 64,
-        "connection_max_samples_per_target": 2_000,
-        "connection_max_targets": 16,
-        "incident_max_results": 64,
-    }
-
-
-def test_open_journal_candidate_api_extends_to_configured_local_today(
-    make_app, make_config, builtin_module_loader_factory, core_storage, monkeypatch
-):
-    from app.modules.journal.storage import JournalStorage
-
-    JournalStorage(core_storage.db_path)
-    with sqlite3.connect(core_storage.db_path) as conn:
-        conn.execute(
-            "INSERT INTO incidents (name, description, start_date, end_date, status, "
-            "created_at, updated_at, is_demo) VALUES (?, ?, ?, NULL, 'open', ?, ?, 0)",
-            ("Open incident", "", "2026-03-27", "2026-03-27T00:00:00Z", "2026-03-27T00:00:00Z"),
-        )
-    import app.modules.de_tkg_compensation.routes as routes
-
-    monkeypatch.setattr(routes, "local_today", lambda _tz: "2026-03-30")
-    config = make_config({
-        "timezone": "Europe/Berlin",
-        "disabled_modules": ",".join([
-            "docsight.reports", "docsight.evidence", "docsight.connection_monitor", "docsight.bnetz",
-        ]),
-    })
-    client = make_app(
-        config_manager=config,
-        storage=core_storage,
-        module_loader_factory=builtin_module_loader_factory(config),
-    ).test_client()
-
-    payload = client.get("/api/de-tkg/candidates").get_json()
-    candidate = next(item for item in payload["candidates"] if item["origin"] == "incident")
-
-    assert candidate["ongoing"] is True
-    assert candidate["restoration_suggested"] is False
-    assert candidate["suggested_days"] == [
-        "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30"
-    ]
-
-
-def test_all_tkg_claim_and_candidate_routes_require_authentication(
+def test_all_tkg_claim_and_context_routes_require_authentication(
     make_app, make_config, builtin_module_loader_factory, core_storage
 ):
     config = make_config({"admin_password": "secret123"})
@@ -819,7 +703,7 @@ def test_all_tkg_claim_and_candidate_routes_require_authentication(
     ).test_client()
 
     requests = (
-        client.get("/api/de-tkg/candidates"),
+        client.get("/api/de-tkg/context"),
         client.get("/api/de-tkg/claims"),
         client.post("/api/de-tkg/claims", json=_claim_payload()),
         client.get("/api/de-tkg/claims/1"),

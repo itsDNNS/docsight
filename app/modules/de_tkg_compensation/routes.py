@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from app.runtime import current_runtime
-import os
 from datetime import date, datetime, timezone
 from io import BytesIO
 from urllib.parse import urlencode
@@ -14,25 +13,16 @@ from flask import Blueprint, jsonify, request, send_file
 from app.tz import get_tz_name, local_to_utc, local_today
 from app.web_auth import require_auth
 
-from .candidates import (
-    CONNECTION_CANDIDATE_LOOKBACK_DAYS,
-    CONNECTION_CANDIDATE_MAX_RESULTS,
-    CONNECTION_CANDIDATE_MAX_SAMPLES_PER_TARGET,
-    CONNECTION_CANDIDATE_MAX_TARGETS,
-    INCIDENT_CANDIDATE_MAX_RESULTS,
-    chunk_report_windows,
-    load_connection_monitor_candidates,
-    load_incident_candidates,
-)
 from .capabilities import get_capabilities
 from .letter import render_claim_letter
+from .report_windows import chunk_report_windows
 from .rules import (
     RuleValidationError,
     compute_missed_appointment,
     compute_outage_compensation,
     empty_compensation_breakdown,
 )
-from .rules_data import RULESET_DE_TKG58, resolve_ruleset
+from .rules_data import resolve_ruleset
 from .storage import ClaimStorage
 
 
@@ -122,13 +112,9 @@ def _storage() -> ClaimStorage | None:
     return ClaimStorage(core.db_path) if core else None
 
 
-def _connection_db_path() -> str:
-    return os.path.join(os.environ.get("DATA_DIR", "/data"), "connection_monitor.db")
-
-
 def _capabilities() -> dict[str, bool]:
     return get_capabilities(
-        current_runtime().config_manager, current_runtime().module_loader, connection_db_path=_connection_db_path()
+        current_runtime().config_manager, current_runtime().module_loader
     )
 
 
@@ -423,41 +409,15 @@ def _calculation_response(claim: dict, breakdown, appointments) -> dict:
     return response
 
 
-@bp.route("/api/de-tkg/candidates", methods=["GET"])
+@bp.route("/api/de-tkg/context", methods=["GET"])
 @require_auth
-def api_candidates():
+def api_context():
     capabilities = _capabilities()
-    candidates = []
     tz_name = get_tz_name(current_runtime().config_manager)
-    today_value = local_today(tz_name)
-    if capabilities["connection_monitor_source"]:
-        candidates.extend(load_connection_monitor_candidates(_connection_db_path(), tz_name))
-    core = current_runtime().storage
-    if capabilities["journal"] and core:
-        candidates.extend(
-            load_incident_candidates(
-                core.db_path, tz_name, local_today_value=today_value
-            )
-        )
     return jsonify({
-        "candidates": candidates,
         "capabilities": capabilities,
         "customer_defaults": _customer_defaults(capabilities),
-        "rules_version": RULESET_DE_TKG58.rules_version,
-        "jurisdiction": "DE",
-        "timezone": tz_name,
-        "local_today": today_value,
-        "proposal_limits_note": (
-            "Source lookback, sample, target, and result limits apply only to "
-            "technical candidate generation and never cap a manual legal claim."
-        ),
-        "proposal_limits": {
-            "connection_lookback_days": CONNECTION_CANDIDATE_LOOKBACK_DAYS,
-            "connection_max_targets": CONNECTION_CANDIDATE_MAX_TARGETS,
-            "connection_max_samples_per_target": CONNECTION_CANDIDATE_MAX_SAMPLES_PER_TARGET,
-            "connection_max_results": CONNECTION_CANDIDATE_MAX_RESULTS,
-            "incident_max_results": INCIDENT_CANDIDATE_MAX_RESULTS,
-        },
+        "local_today": local_today(tz_name),
     })
 
 

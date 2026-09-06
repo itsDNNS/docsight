@@ -22,8 +22,8 @@ test('TKG wizard routes every local API and generated link through docsightUrl',
     assert.doesNotMatch(source, /https?:\/\//);
 });
 
-test('TKG wizard keeps five accessible steps and a live status region', () => {
-    for (let step = 1; step <= 5; step += 1) {
+test('TKG wizard keeps four accessible steps and a live status region', () => {
+    for (let step = 1; step <= 4; step += 1) {
         assert.match(template, new RegExp(`data-tkg-step="${step}"`));
     }
     assert.match(template, /role="status" aria-live="polite"/);
@@ -38,14 +38,6 @@ test('TKG wizard invalidates derived output after every claim-fact edit', () => 
     assert.match(source, /state\.calculation = null/);
     assert.match(source, /document\.getElementById\('tkg-letter'\)\.value = ''/);
     assert.match(source, /data-tkg-fact/);
-});
-
-test('TKG wizard uses server-local candidate values and never infers legal dates', () => {
-    assert.match(source, /candidate\.window_from_local/);
-    assert.match(source, /candidate\.window_to_local/);
-    assert.doesNotMatch(source, /candidate\.window_from\.slice\(0, 10\)/);
-    assert.doesNotMatch(source, /candidate\.window_to\.slice\(0, 10\)/);
-    assert.doesNotMatch(source, /new Date\(value\)\.toISOString/);
 });
 
 test('TKG clipboard export feature-detects the API and has a user-gesture fallback', () => {
@@ -69,10 +61,4 @@ test('prior-credit classifications are rendered through localized labels', () =>
     }
     assert.match(source, /creditLabels\[result\.prior_credit\.classification\] \|\| creditLabels\.unclear/);
     assert.doesNotMatch(source, /result\.prior_credit\.classification \|\| t\('credit_unclear'/);
-});
-
-test('candidate actions have a specific accessible name', () => {
-    assert.match(source, /candidate_use/);
-    assert.match(source, /setAttribute\('aria-label'/);
-    assert.doesNotMatch(source, /use\.textContent = t\('next'/);
 });

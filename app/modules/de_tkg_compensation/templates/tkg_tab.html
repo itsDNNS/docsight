@@ -12,7 +12,6 @@
         <li data-tkg-step-indicator="2">{{ t.get('docsight.de_tkg_compensation.step_facts', '2 · Details') }}</li>
         <li data-tkg-step-indicator="3">{{ t.get('docsight.de_tkg_compensation.step_calculation', '3 · Possible amount') }}</li>
         <li data-tkg-step-indicator="4">{{ t.get('docsight.de_tkg_compensation.step_letter', '4 · Letter') }}</li>
-        <li data-tkg-step-indicator="5">{{ t.get('docsight.de_tkg_compensation.step_finish', '5 · Done') }}</li>
     </ol>
 
     <div id="tkg-status" class="tkg-status" role="status" aria-live="polite"></div>
@@ -40,22 +39,14 @@
 
         <p class="tkg-performance-path">{{ t.get('docsight.de_tkg_compensation.performance_path', 'Only slow or unstable? For a possible price reduction, use the official Bundesnetzagentur measurement procedure.') }} <a id="tkg-performance-link" href="https://www.breitbandmessung.de/" target="_blank" rel="noopener noreferrer">Breitbandmessung</a></p>
 
-        <div class="tkg-start-grid tkg-grid tkg-grid-2">
-            <section class="tkg-start-option" aria-labelledby="tkg-automatic-heading">
-                <h3 id="tkg-automatic-heading">{{ t.get('docsight.de_tkg_compensation.automatic_title', 'Find an outage automatically') }}</h3>
-                <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.candidate_help', 'DOCSight searches the saved measurements for a possible outage period. You decide whether to use it.') }}</p>
-                <button class="btn" id="tkg-load-candidates" type="button" aria-busy="false">{{ t.get('docsight.de_tkg_compensation.load_candidates', 'Check measurements again') }}</button>
-                <div id="tkg-candidates" class="tkg-candidates" aria-live="polite" aria-atomic="true"></div>
-            </section>
-            <section class="tkg-start-option" aria-labelledby="tkg-manual-heading">
-                <h3 id="tkg-manual-heading">{{ t.get('docsight.de_tkg_compensation.manual_window', 'Enter outage period yourself') }}</h3>
-                <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.appointment_only_help', 'Only checking a missed provider appointment? Leave both time fields empty and continue with “Continue to details”.') }}</p>
-                <div class="tkg-grid tkg-grid-2">
-                    <label><span>{{ t.get('docsight.de_tkg_compensation.window_from', 'Outage started') }}</span><input id="tkg-window-from" data-tkg-fact type="datetime-local"></label>
-                    <label><span>{{ t.get('docsight.de_tkg_compensation.window_to', 'Outage ended') }}</span><input id="tkg-window-to" data-tkg-fact type="datetime-local"></label>
-                </div>
-            </section>
-        </div>
+        <section class="tkg-start-option" aria-labelledby="tkg-manual-heading">
+            <h3 id="tkg-manual-heading">{{ t.get('docsight.de_tkg_compensation.manual_window', 'Enter outage period yourself') }}</h3>
+            <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.appointment_only_help', 'Only checking a missed provider appointment? Leave both time fields empty and continue with “Continue to details”.') }}</p>
+            <div class="tkg-grid tkg-grid-2">
+                <label><span>{{ t.get('docsight.de_tkg_compensation.window_from', 'Outage started') }}</span><input id="tkg-window-from" data-tkg-fact type="datetime-local"></label>
+                <label><span>{{ t.get('docsight.de_tkg_compensation.window_to', 'Outage ended') }}</span><input id="tkg-window-to" data-tkg-fact type="datetime-local"></label>
+            </div>
+        </section>
 
         <p class="tkg-glossary-link"><a id="tkg-glossary-link" href="{{ url_for('index', lang=lang, _anchor='glossary?term=tkg_rights_de') }}">{{ t.get('docsight.de_tkg_compensation.glossary_link', 'Your rights explained — TKG glossary article with the original legal text') }}</a></p>
         <p class="tkg-legal-note">{{ t.get('docsight.de_tkg_compensation.disclaimer', 'Not legal advice and no promise of success. Providers or courts may assess the facts differently.') }}</p>
@@ -106,11 +97,8 @@
         </div>
         <button class="btn btn-accent" id="tkg-generate-letter" type="button">{{ t.get('docsight.de_tkg_compensation.generate_letter', 'Generate letter') }}</button>
         <textarea id="tkg-letter" class="tkg-letter" rows="22" placeholder="{{ t.get('docsight.de_tkg_compensation.letter_placeholder', 'Generate the letter after reviewing the calculation.') }}"></textarea>
-    </section>
-
-    <section class="tkg-panel" data-tkg-step="5" tabindex="-1" hidden>
         <h3>{{ t.get('docsight.de_tkg_compensation.finish_title', 'Copy, download, and send yourself') }}</h3>
-        <div class="tkg-actions"><button class="btn" id="tkg-copy" type="button">{{ t.get('docsight.de_tkg_compensation.copy_letter', 'Copy letter') }}</button><button class="btn btn-accent" id="tkg-download" type="button">{{ t.get('docsight.de_tkg_compensation.download_text', 'Download .txt') }}</button><button class="btn" id="tkg-complete" type="button">{{ t.get('docsight.de_tkg_compensation.mark_completed', 'Mark draft completed') }}</button></div>
+        <div class="tkg-actions"><button class="btn" id="tkg-copy" type="button">{{ t.get('docsight.de_tkg_compensation.copy_letter', 'Copy letter') }}</button><button class="btn btn-accent" id="tkg-download" type="button">{{ t.get('docsight.de_tkg_compensation.download_text', 'Download .txt') }}</button></div>
         <div id="tkg-report-links" class="tkg-report-links"></div>
         <p>{{ t.get('docsight.de_tkg_compensation.send_yourself', 'DOCSight does not send anything. Review the text, then use the provider portal, email, or post yourself.') }}</p>
         <p>{{ t.get('docsight.de_tkg_compensation.escalation', 'Further guidance: Bundesnetzagentur consumer portal and Verbraucherzentrale.') }} <a href="https://www.bundesnetzagentur.de/DE/Vportal/TK/InternetTelefon/Stoerung/start.html" target="_blank" rel="noopener noreferrer">Bundesnetzagentur</a> · <a href="https://www.verbraucherzentrale.de/infothek/was-tun-bei-stoerungen-von-internet-und-telefon-38208" target="_blank" rel="noopener noreferrer">Verbraucherzentrale</a></p>
