@@ -129,3 +129,72 @@ def test_prefixed_module_hash_navigation_and_script_urls(page, prefixed_module_s
         expect(page).to_have_url(base + "/" + expected_hash)
         assert errors == []
     assert errors == []
+
+
+@pytest.mark.parametrize("theme,width", [("light", 1280), ("dark", 1280), ("light", 390), ("dark", 390)])
+def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, width):
+    """Real controls and uPlot callbacks retain the selected view with sparse CSV data."""
+    from datetime import datetime, timezone
+
+    page.clock.install(time=datetime(2026, 6, 15, 12, tzinfo=timezone.utc))
+    page.set_viewport_size({"width": width, "height": 844})
+    dates = ["2026-06-15", "2026-06-14", "2026-06-12"]
+    page.route("**/api/bqm/data/dates", lambda route: route.fulfill(json={
+        "csv_dates": dates, "png_dates": [],
+    }))
+    # Both multi-day selections deliberately contain only a single day's samples.
+    payload = {"points": 2, "data": {
+        "timestamps": ["2026-06-15T12:00:00", "2026-06-15T12:05:00"],
+        "latency_avg": [10, 11], "latency_min": [8, 9], "latency_max": [12, 13],
+        "lost_polls": [0, 1], "sent_polls": [100, 100],
+    }}
+    page.route("**/api/bqm/data/range?*", lambda route: route.fulfill(json=payload))
+    page.route("**/api/bqm/data/2026-*", lambda route: route.fulfill(json=payload))
+    page.goto(live_server + "/#bqm")
+    page.evaluate("theme => document.documentElement.setAttribute('data-theme', theme)", theme)
+    expect(page.locator("#bqm-today-btn")).to_have_attribute("aria-pressed", "true")
+    page.locator("#bqm-today-btn").click()
+    page.wait_for_function("() => !!charts['bqm-chart-container']")
+    page.wait_for_load_state("networkidle")
+
+    def selection(name):
+        for key in ("today", "yesterday", "7d", "30d"):
+            button = page.locator(f"#bqm-{key}-btn")
+            expect(button).to_have_attribute("aria-pressed", str(key == name).lower())
+            assert button.evaluate("el => el.classList.contains('active')") == (key == name)
+        if name:
+            active = page.locator(f"#bqm-{name}-btn")
+            inactive = page.locator(".bqm-quick:not(.active)").first
+            assert active.evaluate("el => getComputedStyle(el).backgroundColor") != inactive.evaluate(
+                "el => getComputedStyle(el).backgroundColor")
+
+    def click_chart(selector, modifiers=None):
+        page.evaluate("window.previousBqmChart = charts['bqm-chart-container']")
+        page.locator(selector).click(modifiers=modifiers or [])
+        page.wait_for_function("() => charts['bqm-chart-container'] !== window.previousBqmChart")
+
+    def axis(dates_mode):
+        values = page.evaluate("""() => {
+            const chart = charts['bqm-chart-container'];
+            return chart.axes[0].values(chart, chart.data[0]);
+        }""")
+        assert values == (["06-15", "06-15"] if dates_mode else ["12:00", "12:05"])
+        expect(page.locator("#bqm-chart-container .uplot canvas").first).to_be_visible()
+
+    selection("today")
+    for name in ("today", "yesterday", "7d", "30d"):
+        click_chart(f"#bqm-{name}-btn")
+        selection(name)
+        axis(name in ("7d", "30d"))
+    page.locator("#bqm-month-prev").click()
+    selection("30d")
+    page.locator("#bqm-month-next").click()
+    click_chart('.bqm-day[data-date="2026-06-12"]')
+    selection(None)
+    axis(False)
+    click_chart('.bqm-day[data-date="2026-06-14"]', ["Shift"])
+    selection(None)
+    axis(True)
+    click_chart("#bqm-yesterday-btn")
+    selection("yesterday")
+    axis(False)
