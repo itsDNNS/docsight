@@ -1,6 +1,7 @@
 """E2E tests for theme (dark/light) support."""
 
 import pytest
+from playwright.sync_api import expect
 
 
 class TestTheme:
@@ -59,3 +60,80 @@ class TestTheme:
         auth_page.goto(f"{auth_server}/login")
         theme = auth_page.locator("html").get_attribute("data-theme")
         assert theme in ("dark", "light")
+
+    @pytest.mark.parametrize("leave_section", [False, True])
+    def test_changing_previews_restores_original_colors(self, settings_page, leave_section):
+        settings_page.locator('button[data-section="appearance"]').click()
+        root = settings_page.locator("html")
+        colors = "el => ['--bg', '--accent', '--text'].map(key => getComputedStyle(el).getPropertyValue(key).trim())"
+        original = root.evaluate(colors)
+
+        for theme in ("amber_terminal", "ocean"):
+            settings_page.locator(
+                f'[data-theme-id="docsight.theme_{theme}"] .theme-preview-btn'
+            ).click()
+        assert root.evaluate(colors) != original
+
+        if leave_section:
+            settings_page.locator('button[data-section="general"]').click()
+        else:
+            settings_page.locator("#theme-preview-overlay button", has_text="Cancel").click()
+
+        assert root.evaluate(colors) == original
+        expect(settings_page.locator("#theme-preview-overlay")).to_be_hidden()
+
+    def test_preview_follows_color_mode_and_cancel_restores_that_mode(self, settings_page):
+        settings_page.locator('button[data-section="appearance"]').click()
+        root = settings_page.locator("html")
+        mode = settings_page.get_by_label("Dark Mode", exact=True)
+        toggle = settings_page.locator('label[for="theme-toggle-appearance"]')
+        toggle.click()
+        background = "el => getComputedStyle(el).getPropertyValue('--bg').trim()"
+        original_light = root.evaluate(background)
+        toggle.click()
+        card = settings_page.locator('[data-theme-id="docsight.theme_amber_terminal"]')
+        card.locator(".theme-preview-btn").click()
+        toggle.click()
+
+        expected = card.evaluate("el => JSON.parse(el.dataset.themeLight)['--bg']")
+        assert root.evaluate(background) == expected
+        settings_page.locator("#theme-preview-overlay button", has_text="Cancel").click()
+        assert root.evaluate(background) == original_light
+
+        settings_page.reload()
+        expect(mode).not_to_be_checked()
+        palette = card.locator(".palette-dot").first
+        expected_rgb = settings_page.evaluate("color => { const el = document.createElement('span'); el.style.background = color; return el.style.background; }", expected)
+        assert palette.evaluate("el => el.style.background") == expected_rgb
+
+    @pytest.mark.parametrize("preview_first", [False, True])
+    def test_activate_theme_survives_reload_and_applies_to_dashboard(self, settings_page, live_server, preview_first):
+        page = settings_page
+        page.locator('button[data-section="appearance"]').click()
+        original = page.locator('#theme-gallery .theme-card.active').get_attribute('data-theme-id')
+        card = page.locator('[data-theme-id="docsight.theme_ocean"]')
+        expected = card.evaluate("el => JSON.parse(el.dataset.themeDark)['--bg']")
+        try:
+            if preview_first:
+                response = page.request.post(f'{live_server}/api/modules/docsight.theme_amber_terminal/enable')
+                assert response.ok
+                page.reload()
+                card.locator('.theme-preview-btn').click()
+                preview_font = page.locator('html').evaluate("el => getComputedStyle(el).getPropertyValue('--font-sans').trim()")
+                button = page.locator('#preview-apply-btn')
+            else:
+                button = card.locator('.theme-apply-btn')
+            with page.expect_response('**/api/modules/docsight.theme_ocean/enable') as response:
+                button.click()
+            assert response.value.ok
+            expect(card).to_have_class('theme-card glass active')
+            expect(page.locator('#theme-preview-overlay')).to_be_hidden()
+            if preview_first:
+                assert page.locator('html').evaluate("el => getComputedStyle(el).getPropertyValue('--font-sans').trim()") == preview_font
+            page.reload()
+            expect(page.locator('#theme-gallery .theme-card').first).to_have_attribute('data-theme-id', 'docsight.theme_ocean')
+            page.locator('.sidebar-header').click()
+            assert page.locator('html').evaluate("el => getComputedStyle(el).getPropertyValue('--bg').trim()") == expected
+        finally:
+            response = page.request.post(f'{live_server}/api/modules/{original}/enable')
+            assert response.ok

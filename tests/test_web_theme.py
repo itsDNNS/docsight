@@ -99,8 +99,8 @@ class TestThemeContext:
             assert ctx["active_theme_id"] == "docsight.theme_classic"
             assert ctx["active_theme_data"]["dark"]["--bg"] == "#111"
 
-    def test_theme_collections_are_grouped_for_gallery(self, monkeypatch):
-        """Theme gallery collections group signature, community, and playful themes."""
+    def test_gallery_lists_active_theme_first_then_names(self, monkeypatch):
+        """The gallery needs only the active selection and alphabetical ordering."""
         from app import web
 
         signature = ModuleInfo(
@@ -139,11 +139,8 @@ class TestThemeContext:
 
         with app.test_request_context("/settings"):
             ctx = web.inject_auth()
-            assert [c["key"] for c in ctx["theme_collections"]] == [
-                "signature",
-                "community",
-                "playful",
-            ]
-            assert [m.id for m in ctx["theme_collections"][1]["modules"]] == [
+            assert [m.id for m in ctx["all_theme_modules"]] == [
+                "docsight.theme_classic",
+                "docsight.theme_matrix",
                 "docsight.theme_tokyo_night",
             ]

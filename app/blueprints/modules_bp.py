@@ -80,7 +80,7 @@ def api_modules_list():
 @modules_bp.route("/api/modules/<module_id>/enable", methods=["POST"])
 @require_auth
 def api_module_enable(module_id):
-    """Enable a disabled module (persisted, requires restart)."""
+    """Enable a module; loaded theme palettes apply without a restart."""
     loader = current_runtime().module_loader
     if not loader:
         return jsonify({"success": False, "error": "Module system not initialized"}), 500
@@ -92,6 +92,9 @@ def api_module_enable(module_id):
     config_mgr = current_runtime().config_manager
     if not config_mgr:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
+
+    if module.type == "theme" and (module.error or not module.theme_data):
+        return jsonify({"success": False, "error": "Theme data is unavailable"}), 409
 
     disabled_raw = config_mgr.get("disabled_modules", "")
     disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
@@ -116,8 +119,9 @@ def api_module_enable(module_id):
         updates["active_theme"] = module_id
     config_mgr.save(updates)
 
-    log.info("Module '%s' enabled (restart required)", module_id)
-    return jsonify({"success": True, "restart_required": True})
+    restart_required = module.type != "theme"
+    log.info("Module '%s' enabled (restart required: %s)", module_id, restart_required)
+    return jsonify({"success": True, "restart_required": restart_required})
 
 
 @modules_bp.route("/api/modules/<module_id>/disable", methods=["POST"])

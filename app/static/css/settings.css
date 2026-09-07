@@ -1648,55 +1648,10 @@ button.notification-collapse-button {
   gap: var(--space-xs);
 }
 
-.theme-collection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.theme-collection + .theme-collection {
-  margin-top: var(--space-xl);
-  padding-top: var(--space-xl);
-  border-top: 1px solid var(--tint-active);
-}
-
-.theme-collection-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-md);
-}
-
-.theme-collection-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.theme-collection-desc {
-  margin-top: 6px;
-  max-width: 60ch;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.theme-collection-count {
-  min-width: 2rem;
-  padding: 6px 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--glass-border);
-  background: var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 0.78rem;
-  font-family: var(--font-mono);
-  text-align: center;
-}
-
 /* Theme Gallery */
 .theme-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: var(--space-md);
 }
 
@@ -1756,6 +1711,7 @@ button.notification-collapse-button {
 
 .theme-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   align-items: center;
   margin-top: auto;
@@ -1788,6 +1744,7 @@ button.notification-collapse-button {
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-md);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
@@ -1810,14 +1767,6 @@ button.notification-collapse-button {
 
 [data-theme="light"] .theme-card:hover {
   background: var(--border-subtle);
-}
-
-[data-theme="light"] .theme-collection + .theme-collection {
-  border-top-color: var(--border-tint);
-}
-
-[data-theme="light"] .theme-collection-count {
-  background: var(--tint-subtle);
 }
 
 [data-theme="light"] .theme-card.active {
