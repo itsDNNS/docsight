@@ -366,6 +366,8 @@ class CollectorStatus(TypedDict):
     poll_interval: int
     effective_interval: float
     last_poll: float
+    last_success: float
+    poll_success: bool
     next_poll_in: int
 
 

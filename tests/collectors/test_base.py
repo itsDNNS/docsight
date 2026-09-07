@@ -161,3 +161,26 @@ class TestModemDriverBase:
         assert d._user == "admin"
         assert d._password == "secret"
 
+
+
+def test_poll_freshness_survives_failure_skip_and_recovery():
+    c = ConcreteCollector(60)
+    assert c.get_status()['last_success'] == 0
+    assert c.get_status()['poll_success'] is False
+    with patch('app.collectors.base.time.time', return_value=1000):
+        c.record_success()
+    with patch('app.collectors.base.time.time', return_value=2000):
+        c.record_failure()
+        assert c.get_status()['last_success'] == 1000
+        assert c.get_status()['last_poll'] == 2000
+        assert c.get_status()['poll_success'] is False
+        assert not c.should_poll()
+    with patch('app.collectors.base.time.time', return_value=3000):
+        c.record_skip()
+        assert c.get_status()['last_success'] == 1000
+        assert c.get_status()['poll_success'] is False
+        c.record_success()
+        assert c.get_status()['last_success'] == 3000
+        assert c.get_status()['poll_success'] is True
+        c.record_skip()
+        assert c.get_status()['poll_success'] is True

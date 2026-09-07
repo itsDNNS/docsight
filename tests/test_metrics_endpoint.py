@@ -188,3 +188,24 @@ class TestMetricsEndpoint:
         resp = protected_metrics_client.get("/metrics", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 200
         assert resp.content_type == "text/plain; version=0.0.4; charset=utf-8"
+
+
+def test_failed_poll_keeps_last_success_and_exposes_failure(metrics_client_with_data):
+    from unittest.mock import patch
+    from app.collectors.base import Collector
+
+    class ModemCollector(Collector):
+        name = 'modem'
+
+    collector = ModemCollector(60)
+    current_runtime().modem_collector = collector
+    with patch('app.collectors.base.time.time', return_value=1000):
+        collector.record_success()
+    with patch('app.collectors.base.time.time', return_value=2000):
+        collector.record_failure()
+    current_runtime().update_state(error='timeout')
+    response = metrics_client_with_data.get('/metrics')
+    assert response.status_code == 200
+    assert b'docsight_last_poll_timestamp_seconds 1000.0' in response.data
+    assert b'docsight_modem_poll_success 0' in response.data
+    assert b'docsight_downstream_power_dbmv' in response.data

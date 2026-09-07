@@ -96,6 +96,7 @@ def format_metrics(
     device_info: DeviceInfo | None,
     connection_info: ConnectionInfo | None,
     last_poll_timestamp: float,
+    poll_success: bool = False,
 ) -> str:
     """Format DOCSight state as Prometheus text exposition format.
 
@@ -342,5 +343,8 @@ def format_metrics(
         "docsight_last_poll_timestamp_seconds",
         float(last_poll_timestamp),
     )
+
+    _metric(lines, "Whether the latest completed modem poll succeeded (0 before first success)", "gauge",
+           "docsight_modem_poll_success", int(poll_success))
 
     return "\n".join(lines) + "\n"

@@ -44,10 +44,9 @@ def metrics():
     connection_info = state.get("connection_info")
 
     collector = current_runtime().modem_collector
-    if collector is not None:
-        last_poll_timestamp = collector.get_status().get("last_poll", 0.0)
-    else:
-        last_poll_timestamp = 0.0
-
-    output = format_metrics(analysis, device_info, connection_info, last_poll_timestamp)
+    status = collector.get_status() if collector is not None else {}
+    output = format_metrics(
+        analysis, device_info, connection_info,
+        status.get("last_success", 0.0), status.get("poll_success", False),
+    )
     return Response(output, status=200, content_type="text/plain; version=0.0.4; charset=utf-8")

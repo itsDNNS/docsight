@@ -36,6 +36,8 @@ class Collector:
     def __init__(self, poll_interval_seconds: int):
         self._poll_interval_seconds = poll_interval_seconds
         self._last_poll: float = 0.0
+        self._last_success: float = 0.0
+        self._poll_success = False
         self._consecutive_failures: int = 0
         self._last_failure_time: float = 0.0
         self._lock = threading.Lock()          # guards scheduling state
@@ -116,6 +118,8 @@ class Collector:
             self._consecutive_failures = 0
             self._last_failure_time = 0.0
             self._last_poll = time.time()
+            self._last_success = self._last_poll
+            self._poll_success = True
 
     def record_skip(self):
         """Advance poll timestamp without penalty or failure count.
@@ -133,6 +137,7 @@ class Collector:
     def record_failure(self):
         """Increment penalty counter and update last poll timestamp."""
         with self._lock:
+            self._poll_success = False
             self._consecutive_failures += 1
             self._last_failure_time = time.time()
             self._last_poll = time.time()
@@ -163,5 +168,7 @@ class Collector:
                 "poll_interval": self._poll_interval_seconds,
                 "effective_interval": eff,
                 "last_poll": self._last_poll,
+                "last_success": self._last_success,
+                "poll_success": self._poll_success,
                 "next_poll_in": int(time_until_next),
             }
