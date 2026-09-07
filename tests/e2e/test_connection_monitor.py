@@ -1,5 +1,8 @@
 """E2E coverage for Connection Monitor workflows."""
 
+import time
+
+import pytest
 from playwright.sync_api import expect
 
 
@@ -69,3 +72,41 @@ def test_connection_monitor_mobile_surfaces_raw_ping_log_without_deep_scroll(dem
     assert 0 <= button_box["y"]
     assert panel_box["y"] < chart_box["y"], "raw log panel should appear before the long chart stack"
     assert button_box["y"] + button_box["height"] <= 844, "raw log download actions should be fully visible without deep mobile scrolling"
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_connection_monitor_keeps_observations_per_target_without_fault_inference(demo_page, width):
+    page = demo_page
+    page.set_viewport_size({"width": width, "height": 900})
+    now = time.time()
+    targets = [
+        {"id": 1, "enabled": True, "label": "Local probe", "host": "10.0.0.10"},
+        {"id": 2, "enabled": True, "label": "Public probe", "host": "example.net"},
+    ]
+    page.route("**/api/connection-monitor/targets", lambda route: route.fulfill(json=targets))
+    page.route("**/api/connection-monitor/samples/1?**", lambda route: route.fulfill(json={"samples": [], "meta": {"resolution": "raw"}}))
+    page.route("**/api/connection-monitor/samples/2?**", lambda route: route.fulfill(json={
+        "samples": [
+            {"timestamp": now - 10, "latency_ms": 10, "packet_loss_pct": 0, "sample_count": 1},
+            {"timestamp": now - 5, "latency_ms": None, "packet_loss_pct": 100, "sample_count": 1},
+            {"timestamp": now, "latency_ms": 30, "packet_loss_pct": 0, "sample_count": 1},
+        ],
+        "meta": {"resolution": "raw"},
+    }))
+    page.route("**/api/connection-monitor/stats?**", lambda route: route.fulfill(json={
+        "1": {"sample_count": 0, "avg_latency_ms": None, "p95_latency_ms": None, "packet_loss_pct": None},
+        "2": {"sample_count": 120, "avg_latency_ms": 21.5, "p95_latency_ms": 48, "packet_loss_pct": 5},
+    }))
+    page.route("**/api/connection-monitor/outages/*?**", lambda route: route.fulfill(json=[]))
+    page.reload(wait_until="networkidle")
+    page.evaluate("switchView('connection-monitor')")
+
+    rows = page.locator('#cm-per-target-stats tbody tr')
+    expect(rows).to_have_count(2)
+    expect(rows.nth(0).locator('td')).to_have_text(['Local probe(10.0.0.10)', '-', '-', '-', '0'])
+    expect(rows.nth(1).locator('td')).to_have_text(['Public probe(example.net)', '21.5 ms', '48.0 ms', '5.00%', '120'])
+    expect(page.locator('#cm-combined-chart .uplot')).to_be_visible()
+    expect(page.locator('#cm-export-links .cm-chip-btn')).to_have_count(2)
+    expect(page.locator('#cm-raw-log-links .cm-chip-btn')).to_have_count(2)
+    expect(page.locator('.cm-diagnosis, #cm-stats-cards, #cm-availability')).to_have_count(0)
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1')
