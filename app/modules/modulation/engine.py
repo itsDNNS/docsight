@@ -105,28 +105,7 @@ def _snapshot_capacity(channels, direction):
     }
 
 
-def _capacity_status(tariff_mbps, capacity_samples, below_count):
-    if capacity_samples <= 0:
-        return "unavailable"
-    if tariff_mbps:
-        if below_count > 0:
-            return "below_some_samples"
-        return "above_tariff_throughout"
-    return "observed"
-
-
-def _capacity_tariff_value(raw):
-    if raw in (None, ""):
-        return None
-    try:
-        value = float(raw)
-    except (TypeError, ValueError):
-        return None
-    return value if value > 0 else None
-
-
-def _capacity_history_for_direction(snapshots, direction, tariff_mbps, tz_name, target_date=None):
-    tariff_mbps = _capacity_tariff_value(tariff_mbps)
+def _capacity_history_for_direction(snapshots, direction, tz_name, target_date=None):
     channel_key = "ds_channels" if direction == "ds" else "us_channels"
     capacities = []
     sample_count = 0
@@ -157,21 +136,10 @@ def _capacity_history_for_direction(snapshots, direction, tariff_mbps, tz_name, 
             last_capacity = snapshot["capacity_mbps"]
 
     capacity_samples = len(capacities)
-    below_count = 0
-    met_count = 0
-    if tariff_mbps and capacity_samples:
-        below_count = sum(1 for capacity in capacities if capacity < tariff_mbps)
-        met_count = capacity_samples - below_count
-
     coverage_pct = (
         round(calculated_channel_samples / total_channel_samples * 100, 1)
         if total_channel_samples else 0
     )
-    tariff_met_pct = (
-        round(met_count / capacity_samples * 100, 1)
-        if tariff_mbps and capacity_samples else None
-    )
-
     return {
         "direction": "downstream" if direction == "ds" else "upstream",
         "sample_count": sample_count,
@@ -180,34 +148,28 @@ def _capacity_history_for_direction(snapshots, direction, tariff_mbps, tz_name, 
         "capacity_avg_mbps": round(sum(capacities) / capacity_samples, 1) if capacities else None,
         "capacity_max_mbps": round(max(capacities), 1) if capacities else None,
         "capacity_current_mbps": last_capacity,
-        "tariff_mbps": tariff_mbps,
-        "tariff_met_sample_count": met_count if tariff_mbps else None,
-        "below_tariff_sample_count": below_count if tariff_mbps else None,
-        "tariff_met_pct": tariff_met_pct,
         "calculated_channel_samples": calculated_channel_samples,
         "total_channel_samples": total_channel_samples,
         "unsupported_channel_samples": max(0, total_channel_samples - calculated_channel_samples),
         "unsupported_channel_families": dict(sorted(unsupported_family_samples.items())),
         "coverage_pct": coverage_pct,
         "full_coverage_sample_count": snapshots_with_full_coverage,
-        "status": _capacity_status(tariff_mbps, capacity_samples, below_count),
+        "status": "observed" if capacity_samples else "unavailable",
     }
 
 
 def compute_capacity_history(
     snapshots,
     tz_name,
-    booked_download=None,
-    booked_upload=None,
     target_date=None,
 ):
     """Compute range-aware theoretical SC-QAM capacity summaries."""
     return {
         "downstream": _capacity_history_for_direction(
-            snapshots, "ds", booked_download, tz_name, target_date=target_date
+            snapshots, "ds", tz_name, target_date=target_date
         ),
         "upstream": _capacity_history_for_direction(
-            snapshots, "us", booked_upload, tz_name, target_date=target_date
+            snapshots, "us", tz_name, target_date=target_date
         ),
     }
 
@@ -355,8 +317,6 @@ def compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold=16)
             "protocol_groups": [],
             "aggregate": {"health_index": None, "low_qam_pct": 0},
             "sample_count": 0,
-            "expected_samples": 0,
-            "sample_density": 0,
             "disclaimer": DISCLAIMER,
         }
 
@@ -384,23 +344,6 @@ def compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold=16)
 
     # Total samples = number of snapshots (each snapshot is one poll)
     total_sample_count = sum(len(groups) for groups in by_date.values())
-    num_days = len(sorted_dates)
-
-    # Estimate expected samples from actual poll cadence rather than assuming 15min
-    if num_days >= 2:
-        # Use median daily count from complete days (exclude first/last partial days)
-        daily_counts = sorted(len(by_date[d]) for d in sorted_dates)
-        # Use the median of all days as the expected per-day rate
-        mid = len(daily_counts) // 2
-        expected_per_day = daily_counts[mid] if daily_counts else 96
-    elif num_days == 1 and total_sample_count > 0:
-        expected_per_day = total_sample_count
-    else:
-        expected_per_day = 96
-    expected_samples = num_days * expected_per_day
-    density = round(total_sample_count / expected_samples, 2) if expected_samples > 0 else 0
-    density = min(density, 1.0)
-
     # Weighted aggregate across groups
     agg_hi = _weighted_avg(all_health_indices)
     total_low_qam_samples = sum(
@@ -419,8 +362,6 @@ def compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold=16)
             "low_qam_pct": round(agg_lq, 1) if agg_lq is not None else 0,
         },
         "sample_count": total_sample_count,
-        "expected_samples": expected_samples,
-        "sample_density": density,
         "disclaimer": DISCLAIMER,
     }
 
@@ -871,8 +812,6 @@ def compute_distribution(snapshots, direction, tz_name, low_qam_threshold=16):
             "end": days[-1]["date"] if days else None,
         },
         "sample_count": v2["sample_count"],
-        "expected_samples": v2["expected_samples"],
-        "sample_density": v2["sample_density"],
         "low_qam_threshold": low_qam_threshold,
         "days": days,
         "aggregate": {

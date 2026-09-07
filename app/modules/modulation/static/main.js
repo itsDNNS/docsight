@@ -233,7 +233,6 @@ function updateOverviewKPIs(data) {
     var agg = data.aggregate || {};
     var hi = agg.health_index;
     var lq = agg.low_qam_pct || 0;
-    var density = data.sample_density || 0;
 
     var hiEl = document.getElementById('mod-kpi-health');
     if (hiEl) {
@@ -254,16 +253,9 @@ function updateOverviewKPIs(data) {
             'Unknown samples stay in the total';
     }
 
-    var dEl = document.getElementById('mod-kpi-density');
-    if (dEl) {
-        dEl.textContent = (density * 100).toFixed(0) + '%';
-        dEl.className = 'mod-kpi-item-value ' + densityClass(density);
-    }
-    var dHint = document.getElementById('mod-kpi-density-hint');
-    if (dHint) {
-        dHint.textContent = data.sample_count + ' / ' + data.expected_samples +
-            ' ' + (T['docsight.modulation.samples'] || T.samples || 'samples');
-    }
+    var samples = document.getElementById('mod-kpi-samples');
+    if (samples) samples.textContent = String(data.sample_count || 0);
+
 }
 
 function capacityUnitLabel() {
@@ -331,8 +323,6 @@ function capacityStatusText(summary) {
     if (!summary) return '\u2014';
     var key = 'docsight.modulation.capacity_status_' + summary.status;
     var fallback = {
-        above_tariff_throughout: 'Above tariff throughout selected period',
-        below_some_samples: 'Below tariff in some samples',
         observed: 'Observed for selected period',
         unavailable: 'No calculated SC-QAM capacity in selected period'
     }[summary.status] || summary.status || '\u2014';
@@ -341,17 +331,6 @@ function capacityStatusText(summary) {
         text = (T['docsight.modulation.capacity_partial_coverage'] || 'Partial estimate') + ' · ' + text;
     }
     return text;
-}
-
-function capacityTariffText(summary) {
-    if (!summary || !summary.tariff_mbps) {
-        return T['docsight.modulation.capacity_no_tariff'] || 'No tariff configured';
-    }
-    if (summary.tariff_met_pct === null || summary.tariff_met_pct === undefined) {
-        return '\u2014';
-    }
-    return Number(summary.tariff_met_pct).toFixed(1) + '% · ' +
-        (summary.tariff_met_sample_count || 0) + '/' + (summary.capacity_sample_count || 0);
 }
 
 function updateCapacityCard(direction, summary) {
@@ -367,7 +346,6 @@ function updateCapacityCard(direction, summary) {
     var min = document.getElementById('mod-cap-' + prefix + '-min');
     var avg = document.getElementById('mod-cap-' + prefix + '-avg');
     var max = document.getElementById('mod-cap-' + prefix + '-max');
-    var tariff = document.getElementById('mod-cap-' + prefix + '-tariff');
     var coverage = document.getElementById('mod-cap-' + prefix + '-coverage');
     var status = document.getElementById('mod-cap-' + prefix + '-status');
     var caveat = document.getElementById('mod-cap-' + prefix + '-caveat');
@@ -376,7 +354,6 @@ function updateCapacityCard(direction, summary) {
     if (min) min.textContent = formatCapacityMbps(summary.capacity_min_mbps);
     if (avg) avg.textContent = formatCapacityMbps(summary.capacity_avg_mbps);
     if (max) max.textContent = formatCapacityMbps(summary.capacity_max_mbps);
-    if (tariff) tariff.textContent = capacityTariffText(summary);
     if (coverage) {
         coverage.textContent = capacityCoverageText(summary);
     }
@@ -1030,11 +1007,6 @@ function healthClass(v) {
 function lowQamClass(v) {
     if (v < 5) return 'good';
     if (v < 15) return 'warning';
-    return 'critical';
-}
-function densityClass(v) {
-    if (v > 0.9) return 'good';
-    if (v > 0.75) return 'warning';
     return 'critical';
 }
 function modSortOrder(mod) {

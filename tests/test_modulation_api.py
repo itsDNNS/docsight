@@ -117,14 +117,14 @@ class TestDistributionEndpoint:
         assert "protocol_groups" in data
         assert "aggregate" in data
         assert "sample_count" in data
-        assert "expected_samples" in data
-        assert "sample_density" in data
+        assert "expected_samples" not in data
+        assert "sample_density" not in data
         assert "disclaimer" in data
         assert "capacity_history" in data
         assert "downstream" in data["capacity_history"]
         assert "upstream" in data["capacity_history"]
 
-    def test_capacity_history_includes_both_directions_and_tariff_status(self, client_with_storage, config_mgr):
+    def test_capacity_history_is_independent_of_booked_tariff(self, client_with_storage, config_mgr):
         client, storage = client_with_storage
         config_mgr.save({
             "modem_password": "test",
@@ -153,10 +153,14 @@ class TestDistributionEndpoint:
         ds = data["capacity_history"]["downstream"]
         us = data["capacity_history"]["upstream"]
         assert ds["capacity_min_mbps"] == 41.7
-        assert ds["tariff_met_pct"] == 50.0
-        assert ds["status"] == "below_some_samples"
+        assert "tariff_met_pct" not in ds
+        assert ds["status"] == "observed"
         assert us["capacity_max_mbps"] == 30.7
-        assert us["tariff_met_pct"] == 50.0
+        assert "tariff_met_pct" not in us
+
+        config_mgr.save({"booked_download": 5, "booked_upload": 5000})
+        again = client.get("/api/modulation/distribution?days=7&direction=us").get_json()
+        assert again["capacity_history"] == data["capacity_history"]
 
     def test_capacity_history_reports_unsupported_channel_families_for_partial_estimates(self, client_with_storage):
         client, storage = client_with_storage
@@ -186,7 +190,7 @@ class TestDistributionEndpoint:
         assert us["unsupported_channel_samples"] == 1
         assert us["unsupported_channel_families"] == {"ofdma": 1}
 
-    def test_capacity_history_uses_detected_connection_speed_when_booked_tariff_empty(self, client_with_storage):
+    def test_capacity_history_does_not_treat_detected_speed_as_capacity(self, client_with_storage):
         client, storage = client_with_storage
 
         with client.application.app_context():
@@ -205,12 +209,12 @@ class TestDistributionEndpoint:
 
             ds = data["capacity_history"]["downstream"]
             us = data["capacity_history"]["upstream"]
-            assert ds["tariff_mbps"] == 50.0
-            assert ds["tariff_met_pct"] == 0.0
-            assert ds["status"] == "below_some_samples"
-            assert us["tariff_mbps"] == 25.0
-            assert us["tariff_met_pct"] == 0.0
-            assert us["status"] == "below_some_samples"
+            assert "tariff_mbps" not in ds
+            assert "tariff_met_pct" not in ds
+            assert ds["status"] == "observed"
+            assert "tariff_mbps" not in us
+            assert "tariff_met_pct" not in us
+            assert us["status"] == "observed"
         finally:
             with client.application.app_context():
                 current_runtime().reset_modem_state()
