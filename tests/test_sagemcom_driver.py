@@ -736,3 +736,27 @@ def test_failed_optional_action_preserves_other_metadata(driver):
     assert 'uptime_seconds' not in info
     assert info['docsis_status'] == 'online'
     assert info['model'] == 'FAST3896_WIFIHUBC4'
+
+
+@pytest.mark.parametrize('snr,valid', [(0, False), (None, False), ('bad', False),
+                                      (float('nan'), False), (True, False), (40, True), ('40', True)])
+@pytest.mark.parametrize('bandwidth', [8000000, 96000000])
+def test_snr_validity_keeps_channel_and_counters(driver, snr, valid, bandwidth):
+    from app.analyzer import analyze
+    from app.prometheus import format_metrics
+
+    ds30, ds31 = driver._parse_downstream([{
+        'ChannelID': 21, 'LockStatus': True, 'Frequency': 562000000,
+        'PowerLevel': 2.3, 'SNR': snr, 'Modulation': 'Qam256', 'BandWidth': bandwidth,
+        'CorrectableCodewords': 123, 'UncorrectableCodewords': 4,
+    }])
+    analysis = analyze({'channelDs': {'docsis30': ds30, 'docsis31': ds31}, 'channelUs': {}})
+    channel = analysis['ds_channels'][0]
+    assert channel['correctable_errors'] == 123
+    assert channel['uncorrectable_errors'] == 4
+    assert (channel['snr'] is not None) == valid
+    if not valid:
+        assert channel['health'] != 'good'
+        assert 'unavailable' in channel['health_detail']
+    output = format_metrics(analysis, {}, {}, 1000)
+    assert f'docsight_downstream_snr_valid{{channel_id="21",frequency="562"}} {int(valid)}' in output

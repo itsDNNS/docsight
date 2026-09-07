@@ -27,6 +27,8 @@ class RawChannel(TypedDict, total=False):
     powerLevel: float | str | None
     modulation: str
     type: str
+    snr_valid: bool
+    snr_raw: float
     mse: float | str | None          # DS 3.0 signal-to-noise (negative dB)
     mer: float | str | None           # DS 3.1 MER
     corrErrors: int | None
@@ -73,6 +75,7 @@ class DownstreamChannel(TypedDict):
     frequency: str
     power: float | None
     modulation: str
+    snr_valid: NotRequired[bool]
     snr: float | None
     correctable_errors: int | None
     uncorrectable_errors: int | None

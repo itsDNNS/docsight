@@ -807,6 +807,8 @@ def _assess_ds_channel(
             elif power < pt["good_min"] or power > pt["good_max"]:
                 issues.append("power tolerated")
 
+    if ch.get("snr_valid") is False:
+        issues.append("snr warning (unavailable)")
     snr_val = None
     raw_mse = ch.get("mse")
     raw_mer = ch.get("mer")
@@ -938,6 +940,8 @@ def analyze(data: DocsisData) -> AnalysisResult:
         }
         if profile_modulation:
             channel["profile_modulation"] = profile_modulation
+        if "snr_valid" in ch:
+            channel["snr_valid"] = ch["snr_valid"]
         ds_channels.append(channel)
     for ch in ds31:
         raw_power = ch.get("powerLevel")
@@ -987,6 +991,8 @@ def analyze(data: DocsisData) -> AnalysisResult:
         }
         if profile_modulation:
             channel["profile_modulation"] = profile_modulation
+        if "snr_valid" in ch:
+            channel["snr_valid"] = ch["snr_valid"]
         ds_channels.append(channel)
 
     ds_channels.sort(key=lambda c: c["channel_id"])

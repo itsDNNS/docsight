@@ -177,6 +177,12 @@ def format_metrics(
                 _metric_value(lines, "docsight_downstream_snr_db", ch["snr"],
                               _channel_labels(ch))
 
+        _metric_family_open(lines, "Whether downstream SNR is a usable measurement", "gauge",
+                            "docsight_downstream_snr_valid")
+        for ch in ds_channels:
+            valid = ch.get("snr_valid", ch.get("snr") is not None)
+            _metric_value(lines, "docsight_downstream_snr_valid", int(valid), _channel_labels(ch))
+
         _metric_family_open(
             lines,
             "Downstream channel correctable codeword errors (cumulative)",

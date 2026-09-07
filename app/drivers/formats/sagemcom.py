@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from ...types import DocsisDataFritz, RawChannel
@@ -45,20 +46,30 @@ def parse_sagemcom_xmo_downstream(
             channel_id = row.get("ChannelID", 0)
             frequency = _sagemcom_frequency(row.get("Frequency", 0))
             power = row.get("PowerLevel", 0)
-            snr = row.get("SNR", 0)
+            raw_snr = row.get("SNR")
+            try:
+                snr = float(raw_snr) if not isinstance(raw_snr, bool) else None
+            except (TypeError, ValueError):
+                snr = None
+            quality = {}
+            if snr is None or not math.isfinite(snr) or snr <= 0:
+                quality = {"snr_valid": False}
+                if snr == 0:
+                    quality["snr_raw"] = 0.0
+                snr = None
             modulation = row.get("Modulation", "")
             corrected = row.get("CorrectableCodewords", 0)
             uncorrected = row.get("UncorrectableCodewords", 0)
             if _sagemcom_is_ofdm(modulation, row.get("BandWidth", 0)):
                 docsis31.append({
                     "channelID": channel_id, "type": "OFDM", "frequency": frequency,
-                    "powerLevel": power, "mer": snr, "mse": None,
+                    "powerLevel": power, "mer": snr, "mse": None, **quality,
                     "corrErrors": corrected, "nonCorrErrors": uncorrected,
                 })
             else:
                 docsis30.append({
                     "channelID": channel_id, "frequency": frequency, "powerLevel": power,
-                    "mer": snr, "mse": -snr if snr else None,
+                    "mer": snr, "mse": -snr if snr else None, **quality,
                     "modulation": _sagemcom_modulation(modulation),
                     "corrErrors": corrected, "nonCorrErrors": uncorrected,
                 })
