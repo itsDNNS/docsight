@@ -336,8 +336,8 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
         // Re-initialize Lucide icons after view switch
         lucide.createIcons();
 
-        // Refresh event badge to reflect view context (filtered vs global)
-        if (typeof refreshEventBadge === 'function') refreshEventBadge();
+        // The events feed response already includes its filtered badge count.
+        if (view !== 'events' && typeof refreshEventBadge === 'function') refreshEventBadge();
     }
     window.switchView = switchView;
 

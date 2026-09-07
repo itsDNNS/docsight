@@ -1,7 +1,6 @@
 /* ═══ DOCSight Event Log ═══ */
 
 /* ── State ── */
-var _eventsOffset = 0;
 var _eventsPageSize = 50;
 var _eventsRequestCount = 0;
 var _badgeRequestCount = 0;
@@ -23,11 +22,9 @@ var _sevLabels = {
     critical: T.event_severity_critical || 'Critical'
 };
 
-/* Phase 4.3: Pill filter toggle function */
 var _currentSeverityFilter = '';
 var _deviceOnlyFilter = false;
 var _hideOperational = true;
-var _OPERATIONAL_EVENT_TYPES = { monitoring_started: true, monitoring_stopped: true };
 
 function _eventTypeLabel(eventType) {
     var explicit = _eventTypeLabels[eventType];
@@ -53,14 +50,13 @@ function _eventSeverityBadge(meta) {
     return '<span class="' + meta.className + '"><span class="sev-text">' + escapeHtml(meta.label) + '</span><i data-lucide="' + meta.icon + '" class="sev-icon"></i></span>';
 }
 
-function _eventAckMarkup(ev, compact) {
+function _eventAckMarkup(ev) {
     if (ev.acknowledged) {
         var acknowledged = escapeHtml(T.event_acknowledged || 'Acknowledged');
-        return compact ? '<span class="ev-ack-mark">&#10003;</span>' : '<span class="ev-ack-mark">&#10003; ' + acknowledged + '</span>';
+        return '<span class="ev-ack-mark">&#10003; ' + acknowledged + '</span>';
     }
     var label = escapeHtml(T.event_acknowledge || 'Acknowledge');
-    var visible = compact ? '&#10003;' : '&#10003; ' + label;
-    return '<button class="btn-ack" type="button" aria-label="' + label + '" onclick="acknowledgeEvent(' + ev.id + ', event)">' + visible + '</button>';
+    return '<button class="btn-ack" type="button" aria-label="' + label + '" onclick="acknowledgeEvent(' + ev.id + ', event)">&#10003; ' + label + '</button>';
 }
 
 function updateEventsExportLink() {
@@ -208,7 +204,6 @@ function toggleHideOperational() {
         btn.setAttribute('aria-pressed', String(_hideOperational));
     }
     loadEvents();
-    refreshEventBadge();
 }
 
 function filterEventsBySeverity(severity) {
@@ -223,7 +218,6 @@ function filterEventsBySeverity(severity) {
         }
     });
     loadEvents();
-    refreshEventBadge();
 }
 
 function filterEventsByDevice() {
@@ -243,40 +237,44 @@ function filterEventsByDevice() {
         }
     });
     loadEvents();
-    refreshEventBadge();
 }
 
 function loadEvents(append) {
-    if (!append) _eventsOffset = 0;
+    var feed = document.getElementById('events-feed');
+    var offset = append ? feed.children.length : 0;
     var feedRequestId = ++_eventsRequestCount;
     var badgeRequestId = ++_badgeRequestCount;
     var severity = _currentSeverityFilter;
-    var params = '?limit=' + _eventsPageSize + '&offset=' + _eventsOffset;
+    var params = '?limit=' + _eventsPageSize + '&offset=' + offset;
     if (severity) params += '&severity=' + severity;
     if (_hideOperational) params += '&exclude_operational=true';
     if (_deviceOnlyFilter) params += '&event_prefix=device_';
 
     updateEventsExportLink();
 
-    var feed = document.getElementById('events-feed');
     var feedCard = document.getElementById('events-feed-card');
     var empty = document.getElementById('events-empty');
     var loading = document.getElementById('events-loading');
     var moreBtn = document.getElementById('events-show-more');
     var ackAllBtn = document.getElementById('btn-ack-all');
 
+    moreBtn.style.display = 'none';
     if (!append) {
         loading.style.display = '';
         feed.innerHTML = '';
         feedCard.style.display = 'none';
         empty.style.display = 'none';
-        moreBtn.style.display = 'none';
     }
 
     fetch(docsightUrl('/api/events' + params))
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            if (!r.ok) throw new Error('Event request failed');
+            return r.json();
+        })
         .then(function(data) {
+            if (feedRequestId !== _eventsRequestCount) return;
             loading.style.display = 'none';
+            empty.style.display = 'none';
             var events = data.events || [];
             var unack = data.unacknowledged_count || 0;
 
@@ -284,42 +282,42 @@ function loadEvents(append) {
             var eventsViewEl = document.getElementById('view-events');
             if (badgeRequestId === _badgeRequestCount && eventsViewEl && eventsViewEl.classList.contains('active')) {
                 updateEventBadge(unack);
-                ackAllBtn.style.display = unack > 0 ? '' : 'none';
             }
 
-            if (feedRequestId === _eventsRequestCount) {
-                if (events.length === 0 && !append) {
-                    feedCard.style.display = '';
-                    empty.textContent = T.event_no_events || 'No events detected yet.';
-                    empty.style.display = '';
-                    return;
-                }
-                events.forEach(function(ev) {
-                    var sevMeta = _eventSeverityMeta(ev);
-                    var typeLabel = _eventTypeLabel(ev.event_type);
-                    var card = document.createElement('article');
-                    card.className = 'event-feed-item' + (ev.acknowledged ? ' event-acked' : '');
-                    card.setAttribute('role', 'listitem');
-                    card.setAttribute('data-event-id', ev.id);
-                    card.innerHTML =
-                        '<div class="event-feed-main">' +
-                            '<div class="event-feed-topline">' +
-                                _eventSeverityBadge(sevMeta) +
-                                '<span class="event-feed-time">' + _eventTimestampLabel(ev.timestamp) + '</span>' +
-                            '</div>' +
-                            '<div class="event-feed-title">' + escapeHtml(typeLabel) + '</div>' +
-                            '<div class="event-feed-message">' + formatEventMessage(ev) + '</div>' +
-                        '</div>' +
-                        '<div class="event-feed-action">' + _eventAckMarkup(ev, false) + '</div>';
-                    feed.appendChild(card);
-                });
+            ackAllBtn.style.display = unack > 0 ? '' : 'none';
+            if (events.length === 0 && !append) {
                 feedCard.style.display = '';
-                updateEventsExportLink();
-                moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
-                if (typeof lucide !== 'undefined') lucide.createIcons();
+                empty.textContent = T.event_no_events || 'No events detected yet.';
+                empty.style.display = '';
+                return;
             }
+            events.forEach(function(ev) {
+                var sevMeta = _eventSeverityMeta(ev);
+                var typeLabel = _eventTypeLabel(ev.event_type);
+                var card = document.createElement('article');
+                card.className = 'event-feed-item' + (ev.acknowledged ? ' event-acked' : '');
+                card.setAttribute('role', 'listitem');
+                card.setAttribute('data-event-id', ev.id);
+                card.innerHTML =
+                    '<div class="event-feed-main">' +
+                        '<div class="event-feed-topline">' +
+                            _eventSeverityBadge(sevMeta) +
+                            '<span class="event-feed-time">' + _eventTimestampLabel(ev.timestamp) + '</span>' +
+                        '</div>' +
+                        '<div class="event-feed-title">' + escapeHtml(typeLabel) + '</div>' +
+                        '<div class="event-feed-message">' + formatEventMessage(ev) + '</div>' +
+                    '</div>' +
+                    '<div class="event-feed-action">' + _eventAckMarkup(ev) + '</div>';
+                feed.appendChild(card);
+            });
+            feedCard.style.display = '';
+            updateEventsExportLink();
+            moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         })
         .catch(function() {
+            if (feedRequestId !== _eventsRequestCount) return;
+            moreBtn.style.display = append ? '' : 'none';
             loading.style.display = 'none';
             empty.textContent = T.network_error || 'Error';
             empty.style.display = '';
@@ -327,7 +325,6 @@ function loadEvents(append) {
 }
 
 function loadMoreEvents() {
-    _eventsOffset += _eventsPageSize;
     loadEvents(true);
 }
 
