@@ -273,6 +273,7 @@ class TestDashboardSections:
                         "host": "1.1.1.1",
                         "enabled": True,
                         "avg_latency_ms": 39.9,
+                        "sample_count": 12,
                         "min_latency_ms": 37.2,
                         "max_latency_ms": 43.6,
                         "packet_loss_pct": 0,

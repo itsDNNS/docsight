@@ -41,6 +41,7 @@
 
     function setEmpty(elements) {
         setText(elements.latency, '–');
+        if (elements.latency) elements.latency.style.color = 'var(--muted)';
         setText(elements.avg, '');
         setText(elements.badge, '–');
         if (elements.badge) elements.badge.className = 'badge badge-info';
@@ -69,7 +70,7 @@
                 max: isFinite(max) ? max : avg
             };
         }).filter(Boolean);
-        var losses = enabled.map(function(t) { return Number(t.packet_loss_pct || 0); }).filter(function(v) { return isFinite(v); });
+        var losses = enabled.map(function(t) { return Number(t.packet_loss_pct); }).filter(function(v) { return isFinite(v); });
 
         var avgLatency = null;
         if (latencies.length > 0) {
@@ -77,60 +78,62 @@
         }
         var minLatency = ranges.length ? Math.min.apply(null, ranges.map(function(r) { return r.min; })) : avgLatency;
         var maxLatency = ranges.length ? Math.max.apply(null, ranges.map(function(r) { return r.max; })) : avgLatency;
-        var jitter = null;
-        if (ranges.length) {
-            jitter = ranges.reduce(function(sum, r) { return sum + Math.max(0, r.max - r.min); }, 0) / ranges.length;
-        }
         var packetLoss = losses.length ? losses.reduce(function(a, b) { return a + b; }, 0) / losses.length : 0;
 
         return {
             avgLatency: avgLatency,
             minLatency: minLatency,
             maxLatency: maxLatency,
-            jitter: jitter,
             packetLoss: packetLoss
         };
     }
 
-    function healthFor(enabled, down, degraded) {
+    function healthFor(down, degraded, complete) {
         if (down.length > 0) {
             return { key: 'crit', badge: translate('health_critical', 'Critical') };
         }
         if (degraded.length > 0) {
             return { key: 'warn', badge: translate('health_marginal', 'Marginal') };
         }
+        if (!complete) return { key: 'muted', badge: '–' };
         return { key: 'good', badge: translate('health_good', 'Good') };
     }
 
     function updateCard() {
-        fetch(docsightUrl('/api/connection-monitor/summary'))
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                var elements = {
-                    latency: document.getElementById('cm-card-latency') || document.getElementById('cm-card-status'),
-                    avg: document.getElementById('cm-card-avg'),
-                    badge: document.getElementById('cm-card-badge'),
-                    modRow: document.getElementById('cm-card-mod-row') || document.getElementById('cm-card-details'),
-                    range: document.getElementById('cm-card-range'),
-                    rangeContext: document.getElementById('cm-card-range-context')
-                };
-                if (!elements.latency) return;
+        var elements = {
+            latency: document.getElementById('cm-card-latency'),
+            avg: document.getElementById('cm-card-avg'),
+            badge: document.getElementById('cm-card-badge'),
+            modRow: document.getElementById('cm-card-mod-row'),
+            range: document.getElementById('cm-card-range'),
+            rangeContext: document.getElementById('cm-card-range-context')
+        };
+        if (!elements.latency) return;
 
+        fetch(docsightUrl('/api/connection-monitor/summary'))
+            .then(function(r) {
+                if (!r.ok) throw new Error('Connection Monitor summary unavailable');
+                return r.json();
+            })
+            .then(function(data) {
                 var targets = Object.values(data || {});
                 var enabled = targets.filter(function(t) { return t && t.enabled; });
-                if (enabled.length === 0) {
+                var observed = enabled.filter(function(t) {
+                    return t.sample_count > 0 && t.packet_loss_pct != null;
+                });
+                if (observed.length === 0) {
                     setEmpty(elements);
                     return;
                 }
 
-                var ok = enabled.filter(function(t) { return (t.packet_loss_pct || 0) === 0; });
-                var degraded = enabled.filter(function(t) {
-                    var loss = t.packet_loss_pct || 0;
+                var ok = observed.filter(function(t) { return t.packet_loss_pct === 0; });
+                var degraded = observed.filter(function(t) {
+                    var loss = t.packet_loss_pct;
                     return loss > 0 && loss < 100;
                 });
-                var down = enabled.filter(function(t) { return (t.packet_loss_pct || 0) >= 100; });
-                var health = healthFor(enabled, down, degraded);
-                var stats = collectStats(enabled);
+                var down = observed.filter(function(t) { return t.packet_loss_pct >= 100; });
+                var health = healthFor(down, degraded, observed.length === enabled.length);
+                var stats = collectStats(observed);
 
                 if (stats.avgLatency != null) {
                     setText(elements.latency, fmtNumber(stats.avgLatency, 1));
@@ -142,14 +145,11 @@
 
                 setText(elements.avg, translate('metric_average_label', 'Avg') + ' · ' + ok.length + '/' + enabled.length + ' OK');
                 setText(elements.badge, health.badge);
-                if (elements.badge) elements.badge.className = 'badge badge-' + health.key;
+                if (elements.badge) elements.badge.className = 'badge badge-' + (health.key === 'muted' ? 'info' : health.key);
 
                 clear(elements.modRow);
                 appendText(elements.modRow, translate('packet_loss', 'Packet Loss') + ' ', 'metric-sub-label');
                 appendText(elements.modRow, fmtNumber(stats.packetLoss, 1) + '%', 'range');
-                appendText(elements.modRow, ' · ', 'metric-separator');
-                appendText(elements.modRow, translate('jitter', 'Jitter') + ' ', 'metric-sub-label');
-                appendText(elements.modRow, (stats.jitter == null ? '–' : fmtNumber(stats.jitter, 1) + ' ms'), 'range');
 
                 if (elements.range) {
                     var marker = pct(stats.avgLatency, LATENCY_RANGE_MAX_MS);
@@ -168,7 +168,7 @@
                     }
                 }
             })
-            .catch(function() {}); // silent on error
+            .catch(function() { setEmpty(elements); });
     }
 
     // Initial load + periodic refresh
