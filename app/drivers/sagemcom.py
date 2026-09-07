@@ -176,26 +176,43 @@ class SagemcomDriver(ModemDriver):
              "options": {"capability-flags": {"interface": True}}},
         ]
         resp = self._api_call(actions)
-        reply_actions = resp.get("reply", {}).get("actions", [])
-
-        ds_raw = []
-        us_raw = []
-        for action in reply_actions:
-            for cb in action.get("callbacks", []):
-                xpath = cb.get("xpath", "")
-                values = cb.get("parameters", {}).get("value", [])
-                if "Downstreams" in xpath:
-                    ds_raw = values
-                elif "Upstreams" in xpath:
-                    us_raw = values
-
+        paths = [action["xpath"] for action in actions]
+        values = self._response_values(resp, required=paths)
+        ds_raw, us_raw = (values[path] for path in paths)
+        if any(not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows)
+               for rows in (ds_raw, us_raw)):
+            raise RuntimeError("Sagemcom returned malformed channel data")
         ds30, ds31 = self._parse_downstream(ds_raw)
         us30, us31 = self._parse_upstream(us_raw)
+        if not (ds30 or ds31 or us30 or us31):
+            raise RuntimeError("Sagemcom returned no locked channels")
 
         return {
             "channelDs": {"docsis30": ds30, "docsis31": ds31},
             "channelUs": {"docsis30": us30, "docsis31": us31},
         }
+
+    @staticmethod
+    def _response_values(resp, *, required=()):
+        values = {}
+        try:
+            reply = resp["reply"]
+            if reply["error"]["description"] != "XMO_REQUEST_NO_ERR":
+                raise ValueError("request failed")
+            for action in reply["actions"]:
+                if action.get("error", {}).get("description") != "XMO_NO_ERR":
+                    continue
+                for callback in action.get("callbacks", []):
+                    if callback.get("result", {}).get("description") != "XMO_NO_ERR":
+                        continue
+                    parameters = callback.get("parameters", {})
+                    if "value" in parameters:
+                        values[callback["xpath"]] = parameters["value"]
+        except (KeyError, TypeError, AttributeError, ValueError) as exc:
+            raise RuntimeError("Sagemcom returned a malformed XMO response") from exc
+        if any(path not in values for path in required):
+            raise RuntimeError("Sagemcom response is missing required channel values")
+        return values
 
     def get_device_info(self) -> DeviceInfo:
         try:

@@ -661,3 +661,25 @@ class TestRegistration:
         from app.drivers import driver_registry
         d = driver_registry.load_driver("sagemcom", "http://192.168.100.1", "admin", "pass")
         assert isinstance(d, SagemcomDriver)
+
+
+@pytest.mark.parametrize('fault', ['action', 'callback', 'missing', 'malformed', 'empty', 'unlocked'])
+def test_rejects_unusable_channel_response(driver, fault):
+    row = {'ChannelID': 1, 'LockStatus': True, 'SNR': 40, 'Modulation': 'Qam256'}
+    response = _docsis_response([row], [])
+    action = response['reply']['actions'][0]
+    if fault == 'action':
+        action['error']['description'] = 'XMO_UNKNOWN_PATH_ERR'
+    elif fault == 'callback':
+        action['callbacks'][0]['result']['description'] = 'XMO_UNKNOWN_PATH_ERR'
+    elif fault == 'missing':
+        response['reply']['actions'].pop()
+    elif fault == 'malformed':
+        action['callbacks'][0]['parameters']['value'] = 'invalid'
+    elif fault == 'empty':
+        action['callbacks'][0]['parameters']['value'] = []
+    else:
+        row['LockStatus'] = False
+    driver._session.post = _mock_post([response])
+    with pytest.raises(RuntimeError, match='Sagemcom'):
+        driver._fetch_docsis_data()
