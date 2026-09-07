@@ -293,7 +293,7 @@
                 var statsByTarget = results[2] || {};
 
                 allTargetData.forEach(function(td) {
-                    td.stats = statsByTarget[String(td.target.id)] || statsByTarget[td.target.id] || null;
+                    td.stats = statsByTarget[td.target.id] || null;
                 });
 
                 var hasSamples = allTargetData.some(function(td) {
@@ -304,11 +304,9 @@
                 var meta = allTargetData.length > 0 ? allTargetData[0].meta : null;
                 if (meta && meta.resolution) lastResolution = meta.resolution;
                 hideNoData();
-                CMCharts.renderStatsCards('cm-stats-cards', allTargetData);
                 CMCharts.renderPerTargetStats('cm-per-target-stats', allTargetData);
                 var chartRange = pinnedDayView ? 86400 : currentRange;
                 CMCharts.renderCombinedChart('cm-combined-chart', allTargetData, chartRange);
-                CMCharts.renderAvailabilityBand('cm-availability', allTargetData);
                 renderOutages(allOutageData);
                 renderExportLinks();
                 renderRawLogLinks();
@@ -471,9 +469,7 @@
     function showNoData() {
         var noData = document.getElementById('cm-no-data');
         var chartsEl = document.getElementById('cm-charts-section');
-        var statsEl = document.getElementById('cm-stats-cards');
         var perTargetEl = document.getElementById('cm-per-target-stats');
-        var availabilityEl = document.getElementById('cm-availability');
         var outagePanel = document.getElementById('cm-outage-panel');
         var outageBody = document.getElementById('cm-outage-tbody');
         var exportLinks = document.getElementById('cm-export-links');
@@ -484,14 +480,9 @@
         if (chartsEl) chartsEl.style.display = 'none';
         if (outagePanel) outagePanel.style.display = 'none';
         if (rawLogPanel) rawLogPanel.style.display = 'none';
-        [statsEl, perTargetEl, outageBody, exportLinks, rawLogLinks, resolutionEl].forEach(function(el) {
+        [perTargetEl, outageBody, exportLinks, rawLogLinks, resolutionEl].forEach(function(el) {
             if (el) el.textContent = '';
         });
-        if (availabilityEl) {
-            availabilityEl.textContent = '';
-            availabilityEl.removeAttribute('role');
-            availabilityEl.removeAttribute('aria-label');
-        }
         if (resolutionEl) resolutionEl.style.display = 'none';
     }
 
