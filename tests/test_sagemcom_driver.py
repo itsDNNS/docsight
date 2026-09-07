@@ -683,3 +683,56 @@ def test_rejects_unusable_channel_response(driver, fault):
     driver._session.post = _mock_post([response])
     with pytest.raises(RuntimeError, match='Sagemcom'):
         driver._fetch_docsis_data()
+
+
+def _metadata_response(uptime, status):
+    response = _device_info_response()
+    for index, (path, value) in enumerate([
+        ('Device/DeviceInfo/UpTime', uptime),
+        ('Device/Docsis/CableModem/Status', status),
+    ], start=2):
+        response['reply']['actions'].append({
+            'id': index, 'error': {'description': 'XMO_NO_ERR'},
+            'callbacks': [{'result': {'description': 'XMO_NO_ERR'},
+                           'xpath': path, 'parameters': {'value': value}}],
+        })
+    return response
+
+
+@pytest.mark.parametrize('uptime,expected', [(170015, 170015), ('170015', 170015), (0, 0),
+                                            (-1, None), (True, None), ('bad', None), (1.5, None)])
+def test_uptime_normalization(driver, uptime, expected):
+    driver._session.post = _mock_post([_metadata_response(uptime, 'OPERATIONAL')])
+    assert driver.get_device_info().get('uptime_seconds') == expected
+
+
+@pytest.mark.parametrize('status,expected', [('OPERATIONAL', 'online'), ('ONLINE', 'online'),
+    ('FORWARDING_DISABLED', 'offline'), ('UNRECOGNIZED', None), (None, None), ([], None)])
+def test_docsis_status_normalization(driver, status, expected):
+    driver._session.post = _mock_post([_metadata_response(170015, status)])
+    assert driver.get_device_info().get('docsis_status') == expected
+
+
+def test_metadata_reboot_and_missing_values_are_not_cached(driver):
+    driver._session.post = _mock_post([
+        _metadata_response(170015, 'OPERATIONAL'), _metadata_response(2, 'FORWARDING_DISABLED'),
+        _device_info_response(),
+    ])
+    assert driver.get_device_info()['uptime_seconds'] == 170015
+    info = driver.get_device_info()
+    assert info['uptime_seconds'] == 2
+    assert info['docsis_status'] == 'offline'
+    info = driver.get_device_info()
+    assert 'uptime_seconds' not in info
+    assert 'docsis_status' not in info
+    assert info['model'] == 'FAST3896_WIFIHUBC4'
+
+
+def test_failed_optional_action_preserves_other_metadata(driver):
+    response = _metadata_response(170015, 'OPERATIONAL')
+    response['reply']['actions'][2]['error']['description'] = 'XMO_UNKNOWN_PATH_ERR'
+    driver._session.post = _mock_post([response])
+    info = driver.get_device_info()
+    assert 'uptime_seconds' not in info
+    assert info['docsis_status'] == 'online'
+    assert info['model'] == 'FAST3896_WIFIHUBC4'

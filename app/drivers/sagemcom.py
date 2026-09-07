@@ -215,35 +215,36 @@ class SagemcomDriver(ModemDriver):
         return values
 
     def get_device_info(self) -> DeviceInfo:
+        info = {"manufacturer": "Sagemcom", "model": "", "sw_version": ""}
+        paths = {
+            "model": "Device/DeviceInfo/ModelName",
+            "sw_version": "Device/DeviceInfo/SoftwareVersion",
+            "uptime_seconds": "Device/DeviceInfo/UpTime",
+            "docsis_status": "Device/Docsis/CableModem/Status",
+        }
         try:
-            actions = [
-                {"id": 0, "method": "getValue",
-                 "xpath": "Device/DeviceInfo/ModelName"},
-                {"id": 1, "method": "getValue",
-                 "xpath": "Device/DeviceInfo/SoftwareVersion"},
-            ]
-            resp = self._api_call(actions)
-            reply_actions = resp.get("reply", {}).get("actions", [])
-
-            model = ""
-            sw_version = ""
-            for action in reply_actions:
-                for cb in action.get("callbacks", []):
-                    xpath = cb.get("xpath", "")
-                    value = cb.get("parameters", {}).get("value", "")
-                    if "ModelName" in xpath:
-                        model = value
-                    elif "SoftwareVersion" in xpath:
-                        sw_version = value
-
-            return {
-                "manufacturer": "Sagemcom",
-                "model": model,
-                "sw_version": sw_version,
-            }
+            actions = [{"id": index, "method": "getValue", "xpath": path}
+                       for index, path in enumerate(paths.values())]
+            values = self._response_values(self._api_call(actions))
+            for field in ("model", "sw_version"):
+                value = values.get(paths[field])
+                if isinstance(value, str):
+                    info[field] = value
+            uptime = values.get(paths["uptime_seconds"])
+            if isinstance(uptime, int) and not isinstance(uptime, bool) and uptime >= 0:
+                info["uptime_seconds"] = uptime
+            elif isinstance(uptime, str) and uptime.isascii() and uptime.isdecimal():
+                info["uptime_seconds"] = int(uptime)
+            status = values.get(paths["docsis_status"])
+            # These states are named by the FAST3896 DNA firmware's GUI constants.
+            states = {"OPERATIONAL": "online", "ONLINE": "online",
+                      "FORWARDING_DISABLED": "offline"}
+            if isinstance(status, str) and status.upper() in states:
+                info["docsis_status"] = states[status.upper()]
+            return info
         except Exception:
             self._logged_in = False
-            return {"manufacturer": "Sagemcom", "model": "", "sw_version": ""}
+            return info
 
     def get_connection_info(self) -> ConnectionInfo:
         return {}
