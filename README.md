@@ -24,15 +24,15 @@
 </p>
 
 <p align="center">
-  <strong>Your ISP says everything is fine. DOCSight shows the timeline.</strong>
+  <strong>Local monitoring and diagnostic reports for your internet connection.</strong>
 </p>
 
 <p align="center">
-  Track signal issues, slowdowns, packet loss, and modem events locally so bad evenings do not disappear into "looks fine from here".
+  Keep DOCSIS signal history, speed tests, latency, events, and incident notes together to investigate intermittent problems and share reports with your ISP.
 </p>
 
 <p align="center">
-  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>Demo</strong> • <strong>Reports</strong> • <strong>21 modem families</strong> • <strong>MIT</strong>
+  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>MIT</strong>
 </p>
 
 <p align="center">
@@ -47,11 +47,11 @@
 
 ## Get Started
 
-Start with the fastest path for your setup. On Windows 10/11, download the unsigned portable [Windows Desktop Preview from the latest release](https://github.com/itsDNNS/docsight/releases/latest) for a quick first look without Docker. For continuous monitoring, use the [Windows quick start](docs/windows-quick-start.md).
+The commands below require a running Docker engine. For Windows setup, see the [Windows quick start](docs/windows-quick-start.md). To try DOCSight without Docker, use the unsigned portable [Windows Desktop Preview](docs/windows-desktop-preview.md); for a native Python installation, see [INSTALL.md](INSTALL.md#bare-metal--systemd).
 
 ### Option 1: Try the demo
 
-No router required. Demo mode generates 9 months of realistic DOCSIS data so you can explore the workflow immediately.
+No router required. Demo mode generates synthetic DOCSIS history so you can explore the app.
 
 ```bash
 docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:latest
@@ -63,21 +63,9 @@ docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnn
 docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
 ```
 
-Windows PowerShell users can paste the same command as one line. Before running it, make sure Docker Desktop is installed and the Docker engine is running.
-
-Open `http://localhost:8765`, then explore the populated local demo in one click or connect a supported DOCSIS modem or Generic Router. Backup restore remains available from the same first-run page.
+Open `http://localhost:8765`. For your own connection, follow the setup wizard to select a [supported modem or Generic Router](#supported-hardware). Configuration and history are stored in the `docsight_data` volume.
 
 [Windows quick start](docs/windows-quick-start.md) | [Full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation) | [Example Compose Stacks](https://github.com/itsDNNS/docsight/wiki/Example-Compose-Stacks)
-
----
-
-## Why DOCSight exists
-
-The line looks normal when support checks.
-
-The bad evenings happen later. A speedtest screenshot shows the symptom, and a modem screenshot shows one moment. DOCSight keeps the timeline: signal history, speed tests, latency, modem events, incident notes, and report output in one local evidence trail.
-
-DOCSight is for the support loop where you know something is wrong, but the problem disappears before anyone else looks.
 
 ---
 
@@ -88,129 +76,30 @@ A few key views from the workflow:
 | See what is happening now | Find the pattern |
 |---|---|
 | ![DOCSight dashboard with current signal health, speed, and active issue cards](docs/screenshots/dashboard-dark.png) | ![DOCSight signal trends showing long-term signal patterns](docs/screenshots/trends.png) |
-| Current signal health, speed, latency, and active issues sit in one view. | Bad evenings stop looking random when the history is visible. |
+| Current signal health, speed, latency, and active issues sit in one view. | Review signal changes over time. |
 
 | Connect the signals | Bring something useful to support |
 |---|---|
 | ![DOCSight correlation view lining up signal, speed, and event history](docs/screenshots/correlation.png) | ![DOCSight evidence package workflow for local report generation](docs/screenshots/complaint-workflow.png) |
-| Signal drops, packet loss, speed dips, modem events, and notes line up in one timeline. | Turn the timeline into a report, checklist, and support-ready evidence package. |
+| Signal drops, packet loss, speed dips, modem events, and notes line up in one timeline. | Export a report for a selected incident or time window. |
 
 ---
 
 ## Public proof pack
 
-Use the demo-safe proof pack to understand the output before connecting real hardware.
-
-![DOCSight bad evening evidence timeline](docs/screenshots/bad-day-evidence.png)
-
-- [Germany-oriented demo complaint report PDF](docs/samples/demo-complaint-report.pdf)
-- [Public proof-pack notes](docs/proof-pack.md)
-- [Community proof templates](docs/community-proof-templates.md)
-
-The screenshot and sample report use synthetic data only. They show a bad evening case without exposing a real ISP, customer, IP address, MAC address, serial number, or ticket.
-
----
-
-## What DOCSight connects
-
-The value is not another chart. The value is putting the pieces of the cable problem in the same place.
-
-- **DOCSIS signal:** power, SNR, channels, and modulation
-- **Speed tests:** download, upload, ping, and jitter history
-- **Latency:** packet loss, outages, and route checks
-- **Modem events:** restarts, drops, and signal anomalies
-- **Alerts:** severity-filtered notifications through direct webhooks, Discord, optional PWA Web Push, or an optional Apprise sidecar
-- **Incident notes:** what you saw, when it happened, and what changed
-- **Before/after:** compare technician visits or ISP changes
-- **Reports:** PDF output and complaint-ready text
-- **Local storage:** evidence stays on your own hardware
-
----
-
-## How DOCSight compares
-
-DOCSight works well alongside existing monitoring tools. The difference is the evidence workflow.
-
-| Tool type | Good at | Where DOCSight adds value |
-|---|---|---|
-| Uptime monitors like Uptime Kuma | Reachability, status pages, alerts | Cable signal history, modem events, incident notes, and report output |
-| Speedtest history tools | Download and upload trend tracking | Showing whether speed dips line up with signal, latency, packet loss, or events |
-| SmokePing and BQM | Latency and packet-loss visibility | Adding the local DOCSIS view and turning the timeline into an evidence package |
-| Prometheus or Grafana scrapers | Custom metrics for existing monitoring stacks | A ready-made workflow for people who do not want to build dashboards before calling the ISP |
-| Modem screenshots | One moment in time | A searchable timeline with before/after comparison and exports |
-
-Short version: **a speedtest shows the symptom. DOCSight helps build the case.**
-
----
-
-## Fit and boundaries
-
-DOCSight is not a generic uptime monitor and not just a speedtest dashboard. It is the missing evidence layer for cable problems: DOCSIS signal history, modem events, speed and latency data, incident notes, before/after comparisons, and ISP-ready exports in one local timeline.
-
-DOCSight is a strong fit if:
-
-- your cable internet drops, slows down, or becomes unstable at random times
-- your ISP says the line looks normal when you call
-- speedtest screenshots are not enough
-- you want modem signal values, speed tests, latency, events, and notes in one place
-- you want local data and exportable evidence instead of another cloud dashboard
-
-It is probably not the right tool if:
-
-- you only need a public status page
-- you only need HTTP uptime alerts
-- you do not have cable internet and do not care about local signal diagnostics
-- you want a managed cloud service
-- you need a promised legal or ISP outcome
-
-Generic Router mode still works for fiber, DSL, satellite, and other routers, but DOCSight is strongest when it can see DOCSIS cable signal data.
-
-### DOCSIS basics for new cable users
-
-Cable internet is **DOCSIS over coax**, not DSL. DOCSight reads modem, channel, and signal data from supported cable gateways. Signal health, modulation, and SC-QAM capacity estimates are diagnostics for the physical/channel layer; they are not the same as a Speedtest, your tariff speed, or guaranteed usable throughput. Cable is also a shared medium, so segment utilization and provider/network conditions can affect real-world speeds.
-
----
-
-## Start in the way that fits you
-
-- **Want to see the product first?** Start with the [demo](#option-1-try-the-demo) and explore 9 months of realistic DOCSIS data instantly.
-- **Want it running fast on your own hardware?** Use [Get Started](#get-started) and then follow the [full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation).
-- **Want to confirm your hardware path first?** Jump to [Supported Hardware](#supported-hardware).
-- **Want to inspect the architecture before you trust it?** Read [ARCHITECTURE.md](ARCHITECTURE.md).
-- **Want versioned builds and release notes?** Check [GitHub Releases](https://github.com/itsDNNS/docsight/releases).
-
----
-
-## Connection Types and Use Cases
-
-| | |
-|---|---|
-| ✅ You have **cable internet** (coax/DOCSIS) | DOCSight is built for this, with full signal monitoring |
-| ✅ You have **fiber, DSL, or satellite** | Generic Router mode still gives you speed tracking, latency monitoring, incident logging, evidence reports, and modules |
-| ✅ Your internet **drops out or is slower** than what you're paying for | DOCSight documents it over time |
-| ✅ Your ISP says **"everything is fine on our end"** | DOCSight gives you the data to push back with confidence |
+See the [sample complaint report PDF](docs/samples/demo-complaint-report.pdf) and [proof-pack notes](docs/proof-pack.md) for an example using synthetic data. Complaint templates and BNetzA workflows focus on Germany; reports do not guarantee an ISP or legal outcome.
 
 ---
 
 ## Your Data Stays With You
 
-| | |
-|---|---|
-| 🏠 **Runs 100% locally** | Your monitoring stays on your own hardware |
-| 🔒 **No silent uploads** | Signal history, incident timelines, reports, logs, credentials, tokens, and installation IDs are not uploaded automatically |
-| 📖 **Open source** | All code is public and verifiable |
-| 🔐 **Credentials encrypted** | Router login encrypted at rest (AES-128) |
+Monitoring history and generated reports stay on your own hardware. Optional integrations communicate with the services you configure. Review exports before sharing: they can contain connection details and incident notes.
 
-For the detailed ownership and sharing boundary, see the [Data contract](DATA_CONTRACT.md). For supported versions, vulnerability reporting, and security boundaries, see the [Security policy](SECURITY.md).
-
-- **Optional integrations are user-configured:** Speedtest, BQM, Smokeping, Home Assistant, MQTT, Apprise, Web Push, webhooks, module registries, and similar integrations use the destinations or sources you configure. See the data contract for integration-specific boundaries.
-- **Exports and reports are generated locally and reviewed by you before sharing:** PDF reports, complaint text, AI/LLM exports, CSV/JSON downloads, screenshots, and backups are local artifacts first.
+See the [Data contract](DATA_CONTRACT.md) for storage and sharing boundaries, and the [Security policy](SECURITY.md) for supported versions and vulnerability reporting.
 
 ---
 
 ## Features
-
-DOCSight is built around an evidence-first workflow, then extended with deeper analysis and integrations.
 
 ### Core Evidence Workflow
 
@@ -223,7 +112,7 @@ DOCSight is built around an evidence-first workflow, then extended with deeper a
 | **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Add notes, attachments, reviewed imports, and incident groupings |
 | **Evidence Journey** | Review an incident or custom time window, see ready/stale/missing evidence, and carry that exact fixed period into complaint and PDF generation |
 | **[DE · TKG compensation](https://github.com/itsDNNS/docsight/wiki/Features-TKG-Compensation)** | Check possible compensation for a complete outage or missed provider appointment, calculate a possible amount, and prepare an editable provider letter locally |
-| **[Before/After Comparison](https://github.com/itsDNNS/docsight/wiki/Features-Before-After-Comparison)** | Show whether a technician visit or ISP change actually improved anything |
+| **[Before/After Comparison](https://github.com/itsDNNS/docsight/wiki/Features-Before-After-Comparison)** | Compare measurements before and after a technician visit or ISP change |
 | **[Correlation Analysis](https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis)** | Combine signal, speed, and event history in one timeline |
 | **[Complaint Generator](https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint)** | Build ISP-ready evidence packages with letter text, checklist, and PDF output |
 
@@ -236,21 +125,11 @@ DOCSight is built around an evidence-first workflow, then extended with deeper a
 | **Platform features** | [Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant), [Notifications](https://github.com/itsDNNS/docsight/wiki/Notifications), [Backup & Restore](https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore), setup wizard, optional authentication, API tokens |
 | **Usability and extensibility** | [Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode), [Theme Engine](https://github.com/itsDNNS/docsight/wiki/Themes), [Community Modules](https://github.com/itsDNNS/docsight-modules), [In-App Glossary](https://github.com/itsDNNS/docsight/wiki/Features-Glossary), [AI/LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export) with local redaction controls |
 
-Also includes a 24-language European language pack for the core interface (BG/CS/DA/DE/EL/EN/ES/ET/FI/FR/GA/HR/HU/IT/LT/LV/NB/NL/PL/PT/RO/SK/SL/SV), light/dark mode, PWA/offline support, and a system font toggle.
+The core interface supports 24 languages, light/dark themes, and PWA/offline use.
 
 ---
 
 ## Extended screenshot gallery
-
-More views from the product:
-
-| Dashboard | Signal Trends |
-|---|---|
-| ![Dashboard](docs/screenshots/dashboard-dark.png) | ![Signal Trends](docs/screenshots/trends.png) |
-
-| Incident Journal | Complaint Workflow |
-|---|---|
-| ![Incident Journal](docs/screenshots/journal.png) | ![Complaint Workflow](docs/screenshots/complaint-workflow.png) |
 
 <details>
 <summary>See the extended screenshot gallery</summary>
@@ -281,7 +160,9 @@ More views from the product:
 
 ## Supported Hardware
 
-DOCSight supports **21 modem families** out of the box and also offers **Generic Router mode** for fiber, DSL, and satellite connections.
+DOCSight supports **21 modem families** out of the box. DOCSIS signal monitoring requires a supported cable modem. **Generic Router mode** supports other connections, including fiber, DSL, and satellite, with speed tests, latency monitoring, notes, and reports but no DOCSIS signal data.
+
+Signal health and SC-QAM capacity estimates describe the physical/channel layer; they are not measurements of internet throughput or tariff speed.
 
 ### Common setups
 
@@ -298,124 +179,28 @@ DOCSight supports **21 modem families** out of the box and also offers **Generic
 - **Hitron CODA-56 and CODA-4680**
 - **Netgear CM3000**
 - **Netgear CM1000**
-- **Generic Router mode:** no DOCSIS signal pages, but still supports speed tracking, latency monitoring, incident logging, reports, and modules
 
 [See the full compatibility and setup docs in the wiki →](https://github.com/itsDNNS/docsight/wiki)
 
-DOCSight works with DOCSIS cable providers worldwide. Community drivers and extensions live in [docsight-modules](https://github.com/itsDNNS/docsight-modules), and you can also [add your own modem support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support).
-
-> **Currently focused on the German cable market** for complaint templates, BNetzA measurements, and VFKD thresholds. The core monitoring stack is usable beyond Germany, and community contributions for other markets are welcome.
+Community drivers and extensions live in [docsight-modules](https://github.com/itsDNNS/docsight-modules), and you can also [add your own modem support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support).
 
 ---
-
-## Architecture
-
-DOCSight uses a **modular collector-based architecture** for reliable data gathering from multiple sources:
-
-```mermaid
-flowchart TD
-    subgraph CR["Collector Registry"]
-        MC["Modem Collector"]
-        DC["Demo Collector"]
-        SC["Speedtest Collector"]
-        BC["BQM Collector"]
-        SP["Smokeping Proxy"]
-        BN["BNetzA Watcher"]
-        BK["Backup Collector"]
-    end
-
-    MC --> BASE
-    DC --> BASE
-    SC --> BASE
-    BC --> BASE
-    SP --> BASE
-    BN --> BASE
-    BK --> BASE
-
-    BASE["Base Collector (Fail Safe)<br/>Exponential backoff<br/>Auto reset after idle<br/>Health status monitoring"]
-    BASE --> EVT["Event Detector<br/>Anomaly detection and alerting"]
-    EVT --> STORE["SQLite Storage + MQTT<br/>Snapshots, trends, Home Assistant"]
-    STORE --> UI["Web UI (Flask)<br/>Dashboard, charts, reports"]
-```
-
-Architecture layers:
-
-- `Collectors`: modem, demo, speedtest, BQM, Smokeping, BNetzA, and backup inputs
-- `Base Collector`: shared fail-safe behavior like backoff, reset, and health handling
-- `Event Detector`: turns raw state changes into anomaly and alert events
-- `Storage + MQTT`: persists snapshots and exposes data to Home Assistant
-- `Web UI`: presents dashboards, trends, reports, and complaint workflows
-
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation.
-
----
-
-## Requirements
-
-- Docker (or any OCI-compatible container runtime), or see [Running without Docker](https://github.com/itsDNNS/docsight/wiki/Running-without-Docker) for a native Python setup
-- A supported DOCSIS cable modem/router (see above), or any router via Generic Router mode
-- MQTT broker (optional, for Home Assistant)
 
 ## Community and Support
 
-Use the right channel so questions, bug reports, modem requests, and real-world examples do not get mixed together.
-
-| Need | Best place |
-| --- | --- |
-| Setup help and troubleshooting | [GitHub Discussions: Q&A](https://github.com/itsDNNS/docsight/discussions/categories/q-a) |
-| Feature ideas and roadmap feedback | [GitHub Discussions: Ideas](https://github.com/itsDNNS/docsight/discussions/categories/ideas) |
-| Share your setup, exports, or evidence workflow | [GitHub Discussions: Show and tell](https://github.com/itsDNNS/docsight/discussions/categories/show-and-tell) |
-| Confirmed bugs and regressions | [Bug report issue form](https://github.com/itsDNNS/docsight/issues/new?template=bug_report.yml) |
-| Documentation gaps or stale screenshots | [Documentation improvement form](https://github.com/itsDNNS/docsight/issues/new?template=documentation.yml) |
-| New modem support requests | [Modem support request form](https://github.com/itsDNNS/docsight/issues/new?template=modem_support.yml) |
-| Security vulnerabilities | [Private security advisory](https://github.com/itsDNNS/docsight/security/advisories/new) |
-
-For the full routing guide, see [SUPPORT.md](SUPPORT.md).
+For setup help, use [GitHub Discussions](https://github.com/itsDNNS/docsight/discussions/categories/q-a). See [SUPPORT.md](SUPPORT.md) for troubleshooting steps, the local doctor command, and where to report bugs or request modem support. Report vulnerabilities through the [Security policy](SECURITY.md).
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue or start an Ideas discussion before working on new features.**
 
-### Mobile viewport quality gate
-
-DOCSight includes a focused Playwright gate for mobile regressions across the main blades and high-value modals. It uses an iPhone-sized `393x852` viewport and checks for horizontal overflow, off-screen controls, modal/footer overlap, console errors, and representative 44 px touch targets.
-
-To run the same gate locally:
-
-```bash
-python -m pip install --require-hashes -r requirements.txt
-python -m pip install --require-hashes -r requirements-test.txt
-python -m pip install pytest-playwright==0.7.2 playwright==1.58.0
-python -m playwright install chromium
-TZ=UTC python -m pytest -q tests/e2e/test_mobile_quality_gate.py --tb=short
-```
-
-The test does not commit screenshot artifacts by default. Use the broader E2E suite when changing shared modal, navigation, chart, or journal behavior.
-
-## Changelog
-
-See [GitHub Releases](https://github.com/itsDNNS/docsight/releases).
-
-## Troubleshooting
-
-For self-hosted setup checks, run the local doctor command from the same environment that runs DOCSight:
-
-```bash
-docker exec docsight python -m app.doctor
-docker exec docsight python -m app.doctor --json > docsight-doctor.json
-```
-
-The command is passive by default. It checks runtime, config, storage, local secret-file state, database readability, and optional integration configuration without contacting the modem, DNS, MQTT, webhooks, Apprise, or other external services. Output is redacted by default for support threads.
-
 ## Support
 
-If DOCSight helped you prove an issue, understand your connection better, or save time with your ISP, consider supporting development:
+You can support development through:
 
 <a href="https://github.com/sponsors/itsDNNS"><img src="https://img.shields.io/badge/GitHub%20Sponsors-Support%20DOCSight-24292f?logo=github&logoColor=white" alt="GitHub Sponsors"></a>
 <a href="https://ko-fi.com/itsdnns"><img src="https://img.shields.io/badge/Ko--fi-Support%20DOCSight-ff5e5b?logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
 <a href="https://paypal.me/itsDNNS"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white" alt="PayPal"></a>
-
-DOCSight is actively maintained and tested against real hardware. Support helps fund development time, hardware access, documentation, testing, and long-term maintenance.
 
 ## Brand Use
 
@@ -428,11 +213,11 @@ See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 | Document | Scope |
 |---|---|
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
-| [Proof pack](docs/proof-pack.md) | Demo-safe public screenshots, sample report, and claim-proof notes |
-| [Data contract](DATA_CONTRACT.md) | Local data ownership, generated artifacts, export boundaries, diagnostics, backups, and redaction expectations |
+| [Data contract](DATA_CONTRACT.md) | Local storage, integrations, and export boundaries |
 | [Apprise notification sidecar](docs/notifications-apprise.md) | Optional alert fan-out through an Apprise API sidecar |
 | [PWA Web Push notifications](docs/notifications-pwa-web-push.md) | Optional browser/app push alerts through the installed PWA |
 | [Community proof templates](docs/community-proof-templates.md) | Public-safe templates for setup stories, modem reports, and ISP evidence outcomes |
+| [Installation](INSTALL.md) | Docker, native Python, and reverse-proxy setup |
 | [GitHub Releases](https://github.com/itsDNNS/docsight/releases) | Versioned builds and release notes |
 | [SUPPORT.md](SUPPORT.md) | Support routing, community channels, and issue guidance |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and extension guide |

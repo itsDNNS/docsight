@@ -92,6 +92,16 @@ The original canonical single-process command also remains available for rollbac
 TZ=UTC python -m pytest -q tests/e2e --tb=short
 ```
 
+### Mobile viewport quality gate
+
+For a focused mobile check after installing the browser test dependencies above:
+
+```bash
+TZ=UTC python -m pytest -q tests/e2e/test_mobile_quality_gate.py --tb=short
+```
+
+The gate checks a `393x852` viewport for overflow, off-screen controls, modal/footer overlap, console errors, and representative 44 px touch targets. Use the broader E2E suite when changing shared modal, navigation, chart, or journal behavior.
+
 ## Running Locally
 
 ```bash
