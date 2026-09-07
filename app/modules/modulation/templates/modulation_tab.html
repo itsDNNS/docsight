@@ -41,9 +41,9 @@
             <span>{{ t.get('docsight.modulation.capacity_warning_sc_qam_only', 'SC-QAM only; OFDM/OFDMA excluded when unsupported') }}</span>
         </div>
         <div class="mod-capacity-grid">
-            {% for direction, card_id, current_id, min_id, avg_id, max_id, tariff_id, coverage_id, status_id in [
-                ('downstream', 'mod-capacity-downstream', 'mod-cap-ds-current', 'mod-cap-ds-min', 'mod-cap-ds-avg', 'mod-cap-ds-max', 'mod-cap-ds-tariff', 'mod-cap-ds-coverage', 'mod-cap-ds-status'),
-                ('upstream', 'mod-capacity-upstream', 'mod-cap-us-current', 'mod-cap-us-min', 'mod-cap-us-avg', 'mod-cap-us-max', 'mod-cap-us-tariff', 'mod-cap-us-coverage', 'mod-cap-us-status')
+            {% for direction, card_id, current_id, min_id, avg_id, max_id, coverage_id, status_id in [
+                ('downstream', 'mod-capacity-downstream', 'mod-cap-ds-current', 'mod-cap-ds-min', 'mod-cap-ds-avg', 'mod-cap-ds-max', 'mod-cap-ds-coverage', 'mod-cap-ds-status'),
+                ('upstream', 'mod-capacity-upstream', 'mod-cap-us-current', 'mod-cap-us-min', 'mod-cap-us-avg', 'mod-cap-us-max', 'mod-cap-us-coverage', 'mod-cap-us-status')
             ] %}
             {% set cap_label = t.get('docsight.modulation.downstream', 'Downstream') if direction == 'downstream' else t.get('docsight.modulation.upstream', 'Upstream') %}
             <div class="mod-capacity-card" id="{{ card_id }}" data-capacity-dir="{{ direction }}">
@@ -55,10 +55,6 @@
                     <span>{{ t.get('docsight.modulation.capacity_min', 'Min') }}</span><strong id="{{ min_id }}">—</strong>
                     <span>{{ t.get('docsight.modulation.capacity_avg', 'Avg') }}</span><strong id="{{ avg_id }}">—</strong>
                     <span>{{ t.get('docsight.modulation.capacity_max', 'Max') }}</span><strong id="{{ max_id }}">—</strong>
-                </div>
-                <div class="mod-capacity-subline">
-                    <span>{{ t.get('docsight.modulation.capacity_tariff_reached', 'Above tariff samples') }}</span>
-                    <strong id="{{ tariff_id }}">—</strong>
                 </div>
                 <div class="mod-capacity-subline">
                     <span>{{ t.get('docsight.modulation.capacity_coverage', 'Calculated channels') }}</span>
@@ -95,12 +91,8 @@
                 <span class="mod-kpi-item-sub" id="mod-kpi-lowqam-hint"></span>
             </div>
             <div class="mod-kpi-item">
-                {% if t.get('docsight.modulation.glossary_sample_density') %}
-                <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.get('docsight.modulation.glossary_sample_density') }}</div></span>
-                {% endif %}
-                <span class="mod-kpi-item-label">{{ t.get('docsight.modulation.sample_density', 'Sample Density') }}</span>
-                <span class="mod-kpi-item-value" id="mod-kpi-density">—</span>
-                <span class="mod-kpi-item-sub" id="mod-kpi-density-hint"></span>
+                <span class="mod-kpi-item-label">{{ t.get('samples', 'Samples') }}</span>
+                <span class="mod-kpi-item-value" id="mod-kpi-samples">—</span>
             </div>
         </div>
 

@@ -220,10 +220,10 @@ class TestKPICardVisuals:
         text = val.text_content().strip()
         assert "%" in text or text == "\u2014", f"Unexpected lowqam value: {text}"
 
-    def test_density_kpi_has_percent(self, modulation_page):
-        val = modulation_page.locator("#mod-kpi-density")
+    def test_sample_kpi_has_count(self, modulation_page):
+        val = modulation_page.locator("#mod-kpi-samples")
         text = val.text_content().strip()
-        assert "%" in text or text == "\u2014", f"Unexpected density value: {text}"
+        assert text.isdigit(), f"Unexpected sample count: {text}"
 
 
 # ── Protocol Group Visual Checks ──

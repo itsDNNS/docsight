@@ -17,7 +17,7 @@ from tests.modulation.factories import (
 
 
 class TestCapacityHistory:
-    def test_range_summary_tracks_min_average_current_and_tariff_samples(self):
+    def test_range_summary_tracks_sc_qam_capacity_without_tariff_verdicts(self):
         snaps = [
             _make_snapshot(
                 "2026-05-01T10:00:00Z",
@@ -54,8 +54,6 @@ class TestCapacityHistory:
         result = compute_capacity_history(
             snaps,
             "UTC",
-            booked_download="50",
-            booked_upload="25",
         )
 
         ds = result["downstream"]
@@ -63,15 +61,12 @@ class TestCapacityHistory:
         assert ds["capacity_min_mbps"] == 41.7
         assert ds["capacity_avg_mbps"] == 48.7
         assert ds["capacity_current_mbps"] == 41.7
-        assert ds["tariff_met_pct"] == 50.0
-        assert ds["below_tariff_sample_count"] == 1
-        assert ds["status"] == "below_some_samples"
+        assert ds["status"] == "observed"
 
         us = result["upstream"]
         assert us["capacity_min_mbps"] == 20.5
         assert us["capacity_max_mbps"] == 30.7
-        assert us["tariff_met_pct"] == 50.0
-        assert us["status"] == "below_some_samples"
+        assert us["status"] == "observed"
 
     def test_capacity_history_counts_ofdm_ofdma_as_unsupported(self):
         snaps = [
@@ -98,7 +93,7 @@ class TestCapacityHistory:
             )
         ]
 
-        result = compute_capacity_history(snaps, "UTC", booked_download=50, booked_upload=10)
+        result = compute_capacity_history(snaps, "UTC")
 
         assert result["downstream"]["capacity_sample_count"] == 0
         assert result["downstream"]["capacity_min_mbps"] is None
@@ -134,13 +129,12 @@ class TestCapacityHistory:
         result = compute_capacity_history(
             snaps,
             "UTC",
-            booked_download=50,
             target_date="2026-05-02",
         )
 
         assert result["downstream"]["sample_count"] == 1
         assert result["downstream"]["capacity_current_mbps"] == 41.7
-        assert result["downstream"]["status"] == "below_some_samples"
+        assert result["downstream"]["status"] == "observed"
 
 
 # ── _parse_qam_order ──
@@ -433,16 +427,15 @@ class TestComputeDistributionV2:
         pg = result["protocol_groups"][0]
         assert pg["dominant_modulation"] == "64QAM"
 
-    def test_sample_density(self):
+    def test_single_poll_does_not_imply_complete_coverage(self):
         snaps = [_make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["64QAM"]))]
         result = compute_distribution_v2(snaps, "us", "UTC")
-        # Single day with 1 snapshot: expected = 1 * 1 = 1
-        assert result["expected_samples"] == 1
+        assert "expected_samples" not in result
         assert result["sample_count"] == 1
-        assert result["sample_density"] == 1.0
+        assert "sample_density" not in result
 
-    def test_sample_density_multi_day(self):
-        # 3 days, 10 snapshots each — expected uses median (10)
+    def test_counts_polls_across_observed_days(self):
+        # Three observed days with ten polls each.
         snaps = []
         for day in range(1, 4):
             for hour in range(10):
@@ -450,8 +443,8 @@ class TestComputeDistributionV2:
                 snaps.append(_make_snapshot(ts, us_channels=_make_channels(["64QAM"])))
         result = compute_distribution_v2(snaps, "us", "UTC")
         assert result["sample_count"] == 30
-        assert result["expected_samples"] == 30  # 3 days * median(10) = 30
-        assert result["sample_density"] == 1.0
+        assert "expected_samples" not in result
+        assert "sample_density" not in result
 
     def test_disclaimer_present(self):
         result = compute_distribution_v2([], "us", "UTC")
@@ -667,13 +660,14 @@ class TestComputeDistribution:
         assert result["date_range"]["start"] == "2026-03-01"
         assert result["date_range"]["end"] == "2026-03-05"
 
-    def test_density_capped_at_1(self):
+    def test_legacy_distribution_preserves_actual_poll_count(self):
         snaps = [
             _make_snapshot(f"2026-03-01T{i:02d}:00:00Z", us_channels=_make_channels(["64QAM"]))
             for i in range(24)
         ] * 5
         result = compute_distribution(snaps, "us", "UTC")
-        assert result["sample_density"] == 1.0
+        assert result["sample_count"] == 120
+        assert "sample_density" not in result
 
 
 # ── compute_trend ──

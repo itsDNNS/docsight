@@ -375,7 +375,7 @@ class TestIndexRoute:
         assert "55.6 Mbit/s" in html_de
         assert "30.7 Mbit/s" in html_de
 
-    def test_modulation_template_shows_capacity_vs_tariff_context(self):
+    def test_modulation_template_shows_capacity_scope_and_caveats(self):
         template_path = (
             Path(__file__).resolve().parents[2]
             / "app" / "modules" / "modulation" / "templates" / "modulation_tab.html"
@@ -397,7 +397,7 @@ class TestIndexRoute:
         assert "not Speedtest/IP throughput or tariff speed" in html
         assert 'id="mod-cap-ds-current"' in html
         assert 'id="mod-cap-us-current"' in html
-        assert "Above tariff samples" in html
+        assert "Above tariff samples" not in html
         assert "Selected period" in html
 
     def test_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, sample_analysis):

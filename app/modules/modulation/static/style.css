@@ -155,22 +155,10 @@
     border-left: 3px solid var(--muted, #6b7280);
 }
 
-.mod-capacity-card.mod-capacity-headroom,
-.mod-capacity-card.mod-capacity-calculated,
-.mod-capacity-card.mod-capacity-above_tariff_throughout,
-.mod-capacity-card.mod-capacity-observed {
-    border-left-color: var(--good, #10b981);
-}
-
-.mod-capacity-card.mod-capacity-close,
 .mod-capacity-card.mod-capacity-partial {
     border-left-color: var(--warn, #f59e0b);
 }
 
-.mod-capacity-card.mod-capacity-below,
-.mod-capacity-card.mod-capacity-below_some_samples {
-    border-left-color: var(--crit, #ef4444);
-}
 
 .mod-capacity-card-top,
 .mod-capacity-subline {

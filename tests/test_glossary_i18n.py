@@ -64,7 +64,6 @@ GLOSSARY_PAGE_KEYS = [
 MOD_GLOSSARY_KEYS = [
     "glossary_health_index",
     "glossary_low_qam",
-    "glossary_sample_density",
 ]
 
 LANGUAGES = ["en", "de", "fr", "es"]
