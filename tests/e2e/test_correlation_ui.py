@@ -36,7 +36,6 @@ def _sample_correlation_data():
             "upload_mbps": 48.2,
             "ping_ms": 12.5,
             "jitter_ms": 1.7,
-            "modem_health": "good",
         },
         {
             "source": "event",
@@ -1004,6 +1003,50 @@ def test_correlation_renders_sparse_speedtests_as_unconnected_point_measurements
     assert max(speed_operation_indexes) < min(signal_indexes)
     assert max(speed_operation_indexes) < min(error_indexes)
     assert max(speed_operation_indexes) < min(event_indexes)
+
+
+def test_correlation_draws_unsmoothed_observations_and_keeps_health_on_modem_rows(demo_page):
+    page = demo_page
+    payload = _sample_correlation_data()
+    first = payload[0]
+    payload.append({**first, "timestamp": payload[2]["timestamp"], "ds_snr_min": 30.0, "us_power_avg": 48.0})
+    payload.append({**first, "timestamp": payload[3]["timestamp"], "ds_snr_min": 37.0, "us_power_avg": 43.0})
+    payload.sort(key=lambda entry: entry["timestamp"])
+    weather = [
+        {"timestamp": entry["timestamp"], "temperature": temperature}
+        for entry, temperature in zip(
+            (entry for entry in payload if entry["source"] == "modem"),
+            (10.0, 20.0, 12.0),
+        )
+    ]
+    _record_correlation_canvas_operations(page)
+    _route_correlation(page, payload)
+    page.route("**/api/weather/range?**", lambda route: route.fulfill(json=weather))
+    _open_correlation(page)
+
+    series = page.evaluate(
+        """() => {
+            const st = window._corrChartState;
+            return [
+                ['snr', st.modem, 'ds_snr_min', st.ySnr],
+                ['txPower', st.modem, 'us_power_avg', st.yTx],
+                ['temperature', st.weather, 'temperature', st.yTemp],
+            ].map(([metric, samples, field, scale]) => ({
+                expected: samples.map(sample => [st.xScale(new Date(sample.timestamp).getTime()), scale(sample[field])]),
+                paths: window.__corrCanvasOps.filter(op => op.kind === 'stroke' && op.strokeStyle === st.colors[metric]).map(op => op.path),
+            }));
+        }"""
+    )
+    for rendered in series:
+        assert len(rendered["paths"]) == 1
+        path = rendered["paths"][0]
+        assert [part["kind"] for part in path] == ["moveTo", "lineTo", "lineTo"]
+        for part, expected in zip(path, rendered["expected"]):
+            assert part["args"] == pytest.approx(expected)
+
+    expect(page.locator('#correlation-tbody tr[data-src="modem"] .st-health-badge')).to_have_count(1)
+    expect(page.locator('#correlation-tbody tr[data-src="speedtest"] .st-health-badge')).to_have_count(0)
+    expect(page.locator('#correlation-tbody tr[data-src="speedtest"]')).to_contain_text("280.4 / 48.2 Mbps")
 
 
 def test_correlation_single_speedtest_uses_stem_and_larger_head(demo_page):

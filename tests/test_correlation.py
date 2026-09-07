@@ -353,13 +353,18 @@ class TestCorrelationAPI:
         data = json.loads(resp.data)
         assert all(e["source"] == "event" for e in data)
 
-    def test_correlation_speedtest_enrichment(self, client_with_storage, storage, speedtest_storage, sample_analysis):
-        """Speedtest entries get enriched with modem_health."""
-        ts = utc_now()
+    @pytest.mark.parametrize("modem_age_minutes", [-90, 0, 90])
+    def test_correlation_speedtest_keeps_its_own_observations(
+        self, client_with_storage, storage, speedtest_storage, sample_analysis,
+        modem_age_minutes,
+    ):
+        """Selecting modem data must not attach its health to a speedtest."""
+        ts = utc_cutoff(hours=3)
+        modem_ts = utc_cutoff(hours=3, minutes=modem_age_minutes)
         with sqlite3.connect(storage.db_path) as conn:
             conn.execute(
                 "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                (ts, json.dumps(sample_analysis["summary"]),
+                (modem_ts, json.dumps(sample_analysis["summary"]),
                  json.dumps(sample_analysis["ds_channels"]),
                  json.dumps(sample_analysis["us_channels"])),
             )
@@ -370,11 +375,16 @@ class TestCorrelationAPI:
             "download_human": "480 Mbps", "upload_human": "48 Mbps",
             "ping_ms": 11.0, "jitter_ms": 1.5, "packet_loss_pct": 0.0,
         }])
-        resp = client_with_storage.get("/api/correlation?hours=1")
+        resp = client_with_storage.get("/api/correlation?hours=24")
         data = json.loads(resp.data)
         speedtest_entries = [e for e in data if e["source"] == "speedtest"]
         assert len(speedtest_entries) == 1
-        assert speedtest_entries[0].get("modem_health") == "good"
+        assert any(e["source"] == "modem" for e in data)
+        speedtest_only = client_with_storage.get(
+            "/api/correlation?hours=24&sources=speedtest"
+        ).get_json()
+        assert speedtest_entries == speedtest_only
+        assert not any(key.startswith("modem_") for key in speedtest_entries[0])
 
     def test_correlation_hours_clamped(self, client_with_storage):
         """Hours parameter is clamped to 1-2160 (90d)."""

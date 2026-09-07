@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signaalin kunto",
   "correlation_speed_vs_signal": "Nopeus vs. signaali",
   "correlation_all_sources": "Kaikki lähteet",
-  "correlation_modem_health_good": "Signaali terve nopeustestin aikaan",
-  "correlation_modem_health_poor": "Signaali heikkeni nopeustestin aikana",
   "correlation_chart_title": "Signaalin kunnon aikajana",
   "correlation_timeline": "Yhtenäinen aikajana",
   "demo_mode": "DEMO",

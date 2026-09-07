@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signāla veselība",
   "correlation_speed_vs_signal": "Ātrums pret signālu",
   "correlation_all_sources": "Visi avoti",
-  "correlation_modem_health_good": "Signāls ir veselīgs ātruma pārbaudes laikā",
-  "correlation_modem_health_poor": "Signāls ir pasliktināts ātruma pārbaudes laikā",
   "correlation_chart_title": "Signāla veselības laika skala",
   "correlation_timeline": "Vienota laika skala",
   "demo_mode": "DEMO",

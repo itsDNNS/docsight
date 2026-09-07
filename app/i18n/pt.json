@@ -417,8 +417,6 @@
   "correlation_signal_health": "Sinal de Saúde",
   "correlation_speed_vs_signal": "Velocidade vs. Sinal",
   "correlation_all_sources": "Todas as fontes",
-  "correlation_modem_health_good": "Sinal saudável no momento do teste de velocidade",
-  "correlation_modem_health_poor": "Sinal degradado no tempo de teste de velocidade",
   "correlation_chart_title": "Cronograma de integridade do sinal",
   "correlation_timeline": "Linha do tempo unificada",
   "demo_mode": "DEMONSTRAÇÃO",

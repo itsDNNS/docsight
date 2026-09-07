@@ -417,8 +417,6 @@
   "correlation_signal_health": "Sygnał zdrowia",
   "correlation_speed_vs_signal": "Prędkość a sygnał",
   "correlation_all_sources": "Wszystkie źródła",
-  "correlation_modem_health_good": "Sygnał jest sprawny w czasie testu prędkości",
-  "correlation_modem_health_poor": "Sygnał uległ obniżeniu w czasie testu prędkości",
   "correlation_chart_title": "Oś czasu stanu sygnału",
   "correlation_timeline": "Ujednolicona oś czasu",
   "demo_mode": "DEMO",

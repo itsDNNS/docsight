@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signalo sveikata",
   "correlation_speed_vs_signal": "Greitis ir signalas",
   "correlation_all_sources": "Visi šaltiniai",
-  "correlation_modem_health_good": "Signalizuokite sveiką greitį",
-  "correlation_modem_health_poor": "Signalas pablogėjo greičio bandymo metu",
   "correlation_chart_title": "Signalo būklės laiko juosta",
   "correlation_timeline": "Vieninga laiko juosta",
   "demo_mode": "DEMO",
