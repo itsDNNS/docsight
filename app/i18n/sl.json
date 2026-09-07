@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signal Health",
   "correlation_speed_vs_signal": "Hitrost proti signalu",
   "correlation_all_sources": "Vsi viri",
-  "correlation_modem_health_good": "Signal zdrav v najhitrejšem času",
-  "correlation_modem_health_poor": "Signal se je poslabšal v času hitrosti",
   "correlation_chart_title": "Časovnica stanja signala",
   "correlation_timeline": "Enotna časovnica",
   "demo_mode": "DEMO",

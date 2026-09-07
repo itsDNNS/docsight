@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signal Health",
   "correlation_speed_vs_signal": "Ταχύτητα έναντι σήματος",
   "correlation_all_sources": "Όλες οι πηγές",
-  "correlation_modem_health_good": "Σήμα υγιές σε χρόνο δοκιμής ταχύτητας",
-  "correlation_modem_health_poor": "Το σήμα υποβαθμίστηκε στον χρόνο δοκιμής της ταχύτητας",
   "correlation_chart_title": "Χρονοδιάγραμμα Signal Health",
   "correlation_timeline": "Ενοποιημένο χρονοδιάγραμμα",
   "demo_mode": "DEMO",

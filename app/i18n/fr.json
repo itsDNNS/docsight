@@ -409,8 +409,6 @@
   "correlation_signal_health": "Sante du signal",
   "correlation_speed_vs_signal": "Vitesse vs. Signal",
   "correlation_all_sources": "Toutes les sources",
-  "correlation_modem_health_good": "Signal sain au moment du speedtest",
-  "correlation_modem_health_poor": "Signal degrade au moment du speedtest",
   "correlation_chart_title": "Chronologie de santé du signal",
   "correlation_timeline": "Chronologie unifiée",
   "demo_mode": "DÉMO",

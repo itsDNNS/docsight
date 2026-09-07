@@ -2,7 +2,6 @@
 
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
-var _correlationChart = null;
 var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: false, temperature: true, segmentDs: true, segmentUs: false, reachability: true };
 var _corrWeatherData = [];
 var _corrSegmentData = [];
@@ -667,7 +666,8 @@ function renderCorrelationChart(data) {
         upload: _corrVisible.upload
     });
 
-    // Draw modem SNR line without an area fill to keep the chart uncluttered
+    // Connect observations directly; smoothed curves imply unmeasured trends.
+    // Keep SNR unfilled so other evidence remains visible.
     if (_corrVisible.snr && modem.length > 1) {
         ctx.beginPath();
         for (var i = 0; i < modem.length; i++) {
@@ -676,10 +676,7 @@ function renderCorrelationChart(data) {
             if (i === 0) {
                 ctx.moveTo(x, y);
             } else {
-                var x0 = xScale(new Date(modem[i - 1].timestamp).getTime());
-                var y0 = ySnr(modem[i - 1].ds_snr_min || snrMin);
-                var cpx = x0 + (x - x0) * 0.4;
-                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+                ctx.lineTo(x, y);
             }
         }
         ctx.strokeStyle = snrColor;
@@ -690,26 +687,19 @@ function renderCorrelationChart(data) {
     // Draw upstream TX power line
     if (_corrVisible.txPower && modem.length > 1 && txValues.length > 0) {
         ctx.beginPath();
+        var txStarted = false;
         for (var i = 0; i < modem.length; i++) {
             var txVal = modem[i].us_power_avg;
             if (!txVal) continue;
             var x = xScale(new Date(modem[i].timestamp).getTime());
             var y = yTx(txVal);
-            if (ctx._txStarted) {
-                var x0 = ctx._txLastX;
-                var y0 = ctx._txLastY;
-                var cpx = x0 + (x - x0) * 0.4;
-                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+            if (txStarted) {
+                ctx.lineTo(x, y);
             } else {
                 ctx.moveTo(x, y);
-                ctx._txStarted = true;
+                txStarted = true;
             }
-            ctx._txLastX = x;
-            ctx._txLastY = y;
         }
-        delete ctx._txStarted;
-        delete ctx._txLastX;
-        delete ctx._txLastY;
         ctx.strokeStyle = txColor;
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 3]);
@@ -788,10 +778,7 @@ function renderCorrelationChart(data) {
             var y = yTemp(weather[i].temperature);
             if (!started) { ctx.moveTo(x, y); started = true; }
             else {
-                var x0 = xScale(new Date(weather[i - 1].timestamp).getTime());
-                var y0 = yTemp(weather[i - 1].temperature);
-                var cpx = x0 + (x - x0) * 0.4;
-                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+                ctx.lineTo(x, y);
             }
         }
         ctx.strokeStyle = tempColor;
@@ -1712,9 +1699,6 @@ function renderCorrelationTable(data) {
     var tbody = document.getElementById('correlation-tbody');
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
-    // Show newest first in table
-    var sorted = data.slice().reverse();
-
     var healthLabels = {
         good: T.health_good,
         tolerated: T.health_tolerated,
@@ -1751,7 +1735,8 @@ function renderCorrelationTable(data) {
         }
     }
 
-    var sorted = data.slice().reverse();
+    // Show newest first in table.
+    var sorted = chronological.slice().reverse();
     var maxRows = 200;
     var count = 0;
     for (var i = 0; i < sorted.length && count < maxRows; i++) {
@@ -1789,12 +1774,7 @@ function renderCorrelationTable(data) {
         } else if (src === 'speedtest') {
             src = '<span style="color:var(--good);">Speedtest</span>';
             msg = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');
-            var mhBadge = '';
-            if (e.modem_health) {
-                mhBadge = ' <span class="st-health-badge health-' + e.modem_health + '" style="font-size:0.75em;">'
-                    + (healthLabels[e.modem_health] || e.modem_health) + '</span>';
-            }
-            details = (T.speedtest_ping || 'Ping') + ' ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms' + mhBadge;
+            details = (T.speedtest_ping || 'Ping') + ' ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms';
         } else if (src === 'capture') {
             var scStatus = e.status || '';
             var scColor = scStatus === 'completed' ? 'var(--good)'

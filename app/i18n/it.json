@@ -417,8 +417,6 @@
   "correlation_signal_health": "Stato del segnale",
   "correlation_speed_vs_signal": "Velocità e segnale",
   "correlation_all_sources": "Tutte le fonti",
-  "correlation_modem_health_good": "Segnale sano al momento dello speedtest",
-  "correlation_modem_health_poor": "Segnale degradato durante il test di velocità",
   "correlation_chart_title": "Cronologia della salute del segnale",
   "correlation_timeline": "Cronologia unificata",
   "demo_mode": "DEMO",

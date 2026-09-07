@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signaali tervis",
   "correlation_speed_vs_signal": "Kiirus vs signaal",
   "correlation_all_sources": "Kõik allikad",
-  "correlation_modem_health_good": "Anna kiiruskatse ajal terve signaal",
-  "correlation_modem_health_poor": "Signaal on kiirustesti ajal halvenenud",
   "correlation_chart_title": "Signaali tervise ajaskaala",
   "correlation_timeline": "Ühtne ajaskaala",
   "demo_mode": "DEMO",
