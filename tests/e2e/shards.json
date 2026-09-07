@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "expected_total": 585,
+  "expected_total": 588,
   "baseline_cpu_seconds": 1534.372,
   "shards": [
     {
       "id": 1,
-      "collected_cases": 86,
+      "collected_cases": 88,
       "files": [
         "test_connection_monitor.py",
         "test_event_log_redesign.py",
@@ -32,7 +32,7 @@
     },
     {
       "id": 3,
-      "collected_cases": 161,
+      "collected_cases": 162,
       "files": [
         "test_comparison.py",
         "test_correlation_ui.py",

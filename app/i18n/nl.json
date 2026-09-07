@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signaalgezondheid",
   "correlation_speed_vs_signal": "Snelheid versus signaal",
   "correlation_all_sources": "Alle bronnen",
-  "correlation_modem_health_good": "Signaal gezond op snelheidstesttijd",
-  "correlation_modem_health_poor": "Signaal verslechterd tijdens de speedtesttijd",
   "correlation_chart_title": "Signaalgezondheidstijdlijn",
   "correlation_timeline": "Uniforme tijdlijn",
   "demo_mode": "DEMO",

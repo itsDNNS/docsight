@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signalhälsa",
   "correlation_speed_vs_signal": "Hastighet vs. signal",
   "correlation_all_sources": "Alla källor",
-  "correlation_modem_health_good": "Signalen frisk vid hastighetstesttid",
-  "correlation_modem_health_poor": "Signalen försämrades vid hastighetstestningstid",
   "correlation_chart_title": "Signal Health Timeline",
   "correlation_timeline": "Unified Timeline",
   "demo_mode": "DEMO",

@@ -417,8 +417,6 @@
   "correlation_signal_health": "Signal Health",
   "correlation_speed_vs_signal": "Brzina u odnosu na signal",
   "correlation_all_sources": "Svi izvori",
-  "correlation_modem_health_good": "Signal ispravan u najvećem vremenu",
-  "correlation_modem_health_poor": "Signal je oslabio u vremenu najveće brzine",
   "correlation_chart_title": "Vremenska traka stanja signala",
   "correlation_timeline": "Unified Timeline",
   "demo_mode": "DEMO",

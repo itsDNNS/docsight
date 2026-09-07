@@ -54,8 +54,6 @@
         <span>{{ t.get('docsight.connection_monitor.cm_no_data', 'No data yet. Enable the Connection Monitor in settings to start collecting.') }}</span>
     </div>
 
-    <div id="cm-stats-cards" class="cm-stats-grid"></div>
-
     <div id="cm-charts-section" class="cm-workspace">
         <section class="glass cm-panel cm-chart-panel">
             <div class="cm-panel-header">
@@ -73,45 +71,21 @@
             <div id="cm-combined-chart" class="cm-chart-mount"></div>
         </section>
 
-        <aside class="cm-side-stack">
-            <section class="glass cm-panel">
-                <div class="cm-panel-header">
-                    <div class="cm-panel-title">
-                        <i data-lucide="list-tree"></i>
-                        <h3>{{ t.get('docsight.connection_monitor.cm_per_target_title', 'Per-Target Statistics') }}</h3>
-                    </div>
+        <section class="glass cm-panel">
+            <div class="cm-panel-header">
+                <div class="cm-panel-title">
+                    <i data-lucide="list-tree"></i>
+                    <h3>{{ t.get('docsight.connection_monitor.cm_per_target_title', 'Per-Target Statistics') }}</h3>
                 </div>
-                <div id="cm-per-target-stats"
-                     data-l-target="{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}"
-                     data-l-avg="{{ t.get('docsight.connection_monitor.cm_avg_latency', 'Avg') }}"
-                     data-l-p95="P95"
-                     data-l-loss="{{ t.get('docsight.connection_monitor.cm_packet_loss', 'Packet Loss') }}"
-                     data-l-samples="{{ t.get('docsight.connection_monitor.cm_per_target_samples', 'Samples') }}"
-                     data-diag-external="{{ t.get('docsight.connection_monitor.cm_diag_external', 'External issue - gateway OK but external targets show packet loss') }}"
-                     data-diag-internal="{{ t.get('docsight.connection_monitor.cm_diag_internal', 'Internal/ISP issue - gateway also affected') }}"
-                ></div>
-            </section>
-
-            <section class="glass cm-panel cm-availability-panel">
-                <div class="cm-panel-header">
-                    <div class="cm-panel-title">
-                        <i data-lucide="signal"></i>
-                        <h3>{{ t.get('docsight.connection_monitor.cm_availability_chart', 'Availability') }}</h3>
-                    </div>
-                </div>
-                <div id="cm-availability" class="cm-availability-band"
-                     data-l-availability="{{ t.get('docsight.connection_monitor.cm_availability_chart', 'Availability') }}"
-                     data-l-ok="{{ t.get('docsight.connection_monitor.cm_status_ok', 'OK') }}"
-                     data-l-degraded="{{ t.get('docsight.connection_monitor.cm_status_degraded', 'Degraded') }}"
-                     data-l-down="{{ t.get('docsight.connection_monitor.cm_status_down', 'Down') }}"
-                ></div>
-                <div class="cm-availability-legend">
-                    <span><i class="ok"></i>{{ t.get('docsight.connection_monitor.cm_status_ok', 'OK') }}</span>
-                    <span><i class="degraded"></i>{{ t.get('docsight.connection_monitor.cm_status_degraded', 'Degraded') }}</span>
-                    <span><i class="down"></i>{{ t.get('docsight.connection_monitor.cm_status_down', 'Down') }}</span>
-                </div>
-            </section>
-        </aside>
+            </div>
+            <div id="cm-per-target-stats"
+                 data-l-target="{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}"
+                 data-l-avg="{{ t.get('docsight.connection_monitor.cm_avg_latency', 'Avg') }}"
+                 data-l-p95="P95"
+                 data-l-loss="{{ t.get('docsight.connection_monitor.cm_packet_loss', 'Packet Loss') }}"
+                 data-l-samples="{{ t.get('docsight.connection_monitor.cm_per_target_samples', 'Samples') }}"
+            ></div>
+        </section>
     </div>
 
     <div class="cm-log-grid">

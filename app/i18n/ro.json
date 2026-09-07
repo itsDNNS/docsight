@@ -417,8 +417,6 @@
   "correlation_signal_health": "Sănătatea semnalului",
   "correlation_speed_vs_signal": "Viteză vs. semnal",
   "correlation_all_sources": "Toate sursele",
-  "correlation_modem_health_good": "Semnal sănătos la cea mai mare viteză",
-  "correlation_modem_health_poor": "Semnal degradat la cea mai mare viteză",
   "correlation_chart_title": "Cronologie pentru sănătatea semnalului",
   "correlation_timeline": "Cronologie unificată",
   "demo_mode": "DEMO",
