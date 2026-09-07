@@ -417,8 +417,6 @@
   "correlation_signal_health": "Здраве на сигнала",
   "correlation_speed_vs_signal": "Скорост срещу сигнал",
   "correlation_all_sources": "Всички източници",
-  "correlation_modem_health_good": "Сигналът е здрав в най-бързото време",
-  "correlation_modem_health_poor": "Сигналът се влоши при тестово време",
   "correlation_chart_title": "Хронология на здравето на сигнала",
   "correlation_timeline": "Унифицирана хронология",
   "demo_mode": "ДЕМО",

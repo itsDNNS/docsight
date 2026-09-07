@@ -417,8 +417,6 @@
   "correlation_signal_health": "Jelállapot",
   "correlation_speed_vs_signal": "Sebesség kontra jel",
   "correlation_all_sources": "Minden forrás",
-  "correlation_modem_health_good": "Adjon egészséges jelet a sebességteszt idején",
-  "correlation_modem_health_poor": "A jel leromlott a sebességteszt idején",
   "correlation_chart_title": "Jelállapot idővonala",
   "correlation_timeline": "Egységes idővonal",
   "demo_mode": "DEMO",

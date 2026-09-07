@@ -417,8 +417,6 @@
   "correlation_signal_health": "Sláinte Comhartha",
   "correlation_speed_vs_signal": "Luas vs Comhartha",
   "correlation_all_sources": "Gach Foinse",
-  "correlation_modem_health_good": "Comhartha sláintiúil ag an am is tapúla",
-  "correlation_modem_health_poor": "Comhartha díghrádaithe ag an am is tapúla",
   "correlation_chart_title": "Amlíne Sláinte Comhartha",
   "correlation_timeline": "Amlíne Aontaithe",
   "demo_mode": "DEMO",
