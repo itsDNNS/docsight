@@ -21,6 +21,7 @@ docs/**/*.md
 !docs/notifications-apprise.md
 !docs/windows-desktop-preview.md
 !docs/reverse-proxy.md
+!docs/sagemcom-monitoring.md
 docs/superpowers/
 
 # Internal development docs (belong in workspace, not repo)
