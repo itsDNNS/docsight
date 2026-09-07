@@ -249,6 +249,7 @@ class TestLegacyTLSFallback:
             raise req.ConnectionError("connection refused")
 
         with patch.object(driver, "_do_login", side_effect=mock_do_login), \
+             patch.object(driver, "_html_login", side_effect=RuntimeError("HTML unavailable")), \
              patch("app.drivers.surfboard.time"):
             with pytest.raises(
                 RuntimeError,
@@ -363,6 +364,7 @@ class TestLegacyTLSFallback:
             raise req.ConnectionError("Connection reset by peer")
 
         with patch.object(driver, "_hnap_post", side_effect=mock_hnap_post), \
+             patch.object(driver, "_html_login", side_effect=RuntimeError("HTML unavailable")), \
              patch("app.drivers.surfboard.time"):
             with pytest.raises(
                 RuntimeError,
