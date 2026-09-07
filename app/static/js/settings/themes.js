@@ -10,6 +10,7 @@ function initThemeToggle() {
         document.documentElement.setAttribute('data-theme', saved);
         if (appearanceCheck) appearanceCheck.checked = (saved === 'dark');
     }
+    updatePaletteDots(document.documentElement.getAttribute('data-theme'));
 }
 
 function toggleThemeFromAppearance(checked) {
@@ -48,18 +49,20 @@ function updatePaletteDots(mode) {
 
 /* ── Theme System ── */
 var _previewingThemeId = null;
-var _originalStyles = {};
 
 function previewTheme(card) {
+    cancelPreview();
     var themeId = card.getAttribute('data-theme-id');
-    var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    var mode = isDark ? 'dark' : 'light';
-    var vars = JSON.parse(card.getAttribute('data-theme-' + mode));
-
-    _originalStyles = {};
-    Object.keys(vars).forEach(function(key) {
-        _originalStyles[key] = document.documentElement.style.getPropertyValue(key);
-        document.documentElement.style.setProperty(key, vars[key]);
+    var preview = document.createElement('style');
+    preview.id = 'theme-preview-vars';
+    document.head.appendChild(preview);
+    var active = document.getElementById('theme-module-vars');
+    if (active) active.disabled = true;
+    ['dark', 'light'].forEach(function(mode) {
+        var vars = JSON.parse(card.getAttribute('data-theme-' + mode) || '{}');
+        var index = preview.sheet.insertRule('[data-theme="' + mode + '"] {}', preview.sheet.cssRules.length);
+        var style = preview.sheet.cssRules[index].style;
+        Object.keys(vars).forEach(function(key) { style.setProperty(key, vars[key]); });
     });
 
     _previewingThemeId = themeId;
@@ -70,14 +73,10 @@ function previewTheme(card) {
 }
 
 function cancelPreview() {
-    Object.keys(_originalStyles).forEach(function(key) {
-        if (_originalStyles[key]) {
-            document.documentElement.style.setProperty(key, _originalStyles[key]);
-        } else {
-            document.documentElement.style.removeProperty(key);
-        }
-    });
-    _originalStyles = {};
+    var preview = document.getElementById('theme-preview-vars');
+    if (preview) preview.remove();
+    var active = document.getElementById('theme-module-vars');
+    if (active) active.disabled = false;
     _previewingThemeId = null;
     var overlay = document.getElementById('theme-preview-overlay');
     if (overlay) overlay.style.display = 'none';
@@ -96,11 +95,6 @@ function applyTheme(themeId) {
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.success) {
-                    localStorage.setItem('docsight-active-theme', themeId);
-                    var overlay = document.getElementById('theme-preview-overlay');
-                    if (overlay) overlay.style.display = 'none';
-                    _previewingThemeId = null;
-                    _originalStyles = {};
                     location.reload();
                 } else {
                     showToast(data.error || (T.theme_apply_failed || 'Failed to apply theme'), false);

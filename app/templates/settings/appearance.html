@@ -1,7 +1,7 @@
 <!-- ═══ Panel: Appearance ═══ -->
 <div class="settings-panel" id="panel-appearance">
 
-    <!-- Color Mode -->
+    <!-- Readability -->
     <div class="settings-card glass">
         <div class="card-header">
             <div class="card-title-group">
@@ -9,14 +9,13 @@
                     <i data-lucide="sun-moon"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t.color_mode }}</div>
-                    <div class="card-subtitle">{{ t.color_mode_desc }}</div>
+                    <div class="card-title">{{ t.appearance }}</div>
                 </div>
             </div>
         </div>
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title">{{ t.dark_mode }}</span>
+                <label class="toggle-title" for="theme-toggle-appearance">{{ t.dark_mode }}</label>
                 <span class="toggle-desc">{{ t.dark_mode_hint }}</span>
             </div>
             <label class="toggle">
@@ -24,24 +23,9 @@
                 <span class="toggle-slider"></span>
             </label>
         </div>
-    </div>
-
-    <!-- Font -->
-    <div class="settings-card glass">
-        <div class="card-header">
-            <div class="card-title-group">
-                <div class="card-icon purple">
-                    <i data-lucide="type"></i>
-                </div>
-                <div>
-                    <div class="card-title">{{ t.font_family }}</div>
-                    <div class="card-subtitle">{{ t.font_family_desc }}</div>
-                </div>
-            </div>
-        </div>
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title">{{ t.use_system_font }}</span>
+                <label class="toggle-title" for="font-toggle">{{ t.use_system_font }}</label>
                 <span class="toggle-desc">{{ t.use_system_font_hint }}</span>
             </div>
             <label class="toggle">
@@ -69,70 +53,45 @@
             </div>
         </div>
 
-        <div id="theme-gallery">
-            {% if theme_collections %}
-                {% for collection in theme_collections %}
-                <section class="theme-collection" data-theme-collection="{{ collection.key }}">
-                    <div class="theme-collection-header">
-                        <div>
-                            <div class="theme-collection-title">
-                                {{ t.get(collection.title_key, collection.title_fallback) }}
-                            </div>
-                            <div class="theme-collection-desc">
-                                {{ t.get(collection.description_key, collection.description_fallback) }}
-                            </div>
-                        </div>
-                        <span class="theme-collection-count">{{ collection.modules|length }}</span>
+        <div class="theme-gallery" id="theme-gallery">
+            {% if all_theme_modules %}
+                {% for mod in all_theme_modules %}
+                <div class="theme-card glass {% if mod.id == active_theme_id %}active{% endif %}"
+                     data-theme-id="{{ mod.id }}"
+                     data-theme-name="{{ mod.name }}"
+                     data-theme-dark='{{ mod.theme_data.get("dark", {})|tojson }}'
+                     data-theme-light='{{ mod.theme_data.get("light", {})|tojson }}'>
+                    <div class="theme-palette">
+                        {% set colors = mod.theme_data.get(theme, mod.theme_data.get('dark', {})) %}
+                        <span class="palette-dot" style="background: {{ colors.get('--bg', '#111') }}"></span>
+                        <span class="palette-dot" style="background: {{ colors.get('--surface', '#222') }}"></span>
+                        <span class="palette-dot" style="background: {{ colors.get('--accent', '#7c3aed') }}"></span>
+                        <span class="palette-dot" style="background: {{ colors.get('--good', '#10b981') }}"></span>
+                        <span class="palette-dot" style="background: {{ colors.get('--crit', '#ef4444') }}"></span>
                     </div>
-
-                    <div class="theme-gallery">
-                        {% for mod in collection.modules %}
-                        <div class="theme-card glass {% if mod.id == active_theme_id %}active{% endif %}"
-                             data-theme-id="{{ mod.id }}"
-                             data-theme-name="{{ mod.name }}"
-                             data-theme-dark='{{ mod.theme_data.get("dark", {})|tojson }}'
-                             data-theme-light='{{ mod.theme_data.get("light", {})|tojson }}'>
-                            <div class="theme-palette">
-                                {% set colors = mod.theme_data.get(theme, mod.theme_data.get('dark', {})) %}
-                                <span class="palette-dot" style="background: {{ colors.get('--bg', '#111') }}"></span>
-                                <span class="palette-dot" style="background: {{ colors.get('--surface', '#222') }}"></span>
-                                <span class="palette-dot" style="background: {{ colors.get('--accent', '#7c3aed') }}"></span>
-                                <span class="palette-dot" style="background: {{ colors.get('--good', '#10b981') }}"></span>
-                                <span class="palette-dot" style="background: {{ colors.get('--crit', '#ef4444') }}"></span>
-                            </div>
-                            <div class="theme-info">
-                                <div class="theme-name">{{ mod.name }}</div>
-                                <div class="theme-desc">{{ mod.description }}</div>
-                                <div class="theme-meta">
-                                    <span>v{{ mod.version }}</span>
-                                    <span>{{ mod.author }}</span>
-                                    {% if mod.homepage %}
-                                    <a href="{{ mod.homepage }}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:3px;"><i data-lucide="external-link" style="width:12px;height:12px;"></i> GitHub</a>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="theme-actions">
-                                {% if mod.id == active_theme_id %}
-                                <span class="theme-active-badge">
-                                    <i data-lucide="check-circle" style="width:14px;height:14px;"></i>
-                                    {{ t.active }}
-                                </span>
-                                {% else %}
-                                <button type="button" class="btn btn-ghost btn-sm theme-preview-btn"
-                                        onclick="previewTheme(this.closest('.theme-card'))">
-                                    <i data-lucide="eye" style="width:14px;height:14px;"></i>
-                                    {{ t.preview }}
-                                </button>
-                                <button type="button" class="btn btn-primary btn-sm theme-apply-btn"
-                                        onclick="applyTheme('{{ mod.id }}')">
-                                    {{ t.activate }}
-                                </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
+                    <div class="theme-info">
+                        <div class="theme-name">{{ mod.name }}</div>
+                        <div class="theme-desc">{{ mod.description }}</div>
                     </div>
-                </section>
+                    <div class="theme-actions">
+                        {% if mod.id == active_theme_id %}
+                        <span class="theme-active-badge">
+                            <i data-lucide="check-circle" style="width:14px;height:14px;"></i>
+                            {{ t.active }}
+                        </span>
+                        {% else %}
+                        <button type="button" class="btn btn-ghost btn-sm theme-preview-btn"
+                                onclick="previewTheme(this.closest('.theme-card'))">
+                            <i data-lucide="eye" style="width:14px;height:14px;"></i>
+                            {{ t.preview }}
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm theme-apply-btn"
+                                onclick="applyTheme('{{ mod.id }}')">
+                            {{ t.activate }}
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
                 {% endfor %}
             {% else %}
                 <div class="empty-state">

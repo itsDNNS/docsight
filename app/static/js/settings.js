@@ -13,6 +13,7 @@
         if (id === 'security') tokens.loadApiTokens();
         if (panel && panel.querySelector('#backup-list')) backups.loadBackupList();
         if (id === 'appearance') themes.loadThemeRegistryIfNeeded();
+        else themes.cancelPreview();
         if (id === 'smart_capture') smartCapture.loadSmartCaptureHistory();
         if (id === 'extensions') registry.refreshModuleRegistry();
     }});

@@ -31,7 +31,7 @@ from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
 from .module_loader import module_static_url
 from .runtime import current_runtime
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name, to_local as _to_local
-from .theme_registry import build_theme_collections, resolve_active_theme
+from .theme_registry import resolve_active_theme
 from .web_locale import get_lang, get_setup_lang
 from .version import get_app_version
 from .web_auth import require_auth, _get_admin_password, _authenticate_login, _get_login_csrf_token, _sync_auth_state
@@ -285,7 +285,7 @@ def inject_auth():
         m for m in (_module_loader.get_theme_modules() if _module_loader else [])
         if m.theme_data
     ]
-    theme_collections = build_theme_collections(all_theme_modules)
+    all_theme_modules.sort(key=lambda mod: (mod.id != active_theme_id, mod.name.casefold()))
 
     desktop_mode = is_desktop_preview_mode()
     return {
@@ -295,7 +295,6 @@ def inject_auth():
         "update_available": current_runtime().update_checker.latest(),
         "modules": modules,
         "all_theme_modules": all_theme_modules,
-        "theme_collections": theme_collections,
         "active_theme_data": active_theme_data,
         "active_theme_id": active_theme_id,
         "desktop_mode": desktop_mode,

@@ -325,3 +325,50 @@ class TestThemesAPI:
             context = web.inject_auth()
         assert [theme.id for theme in context["all_theme_modules"]] == ["test.theme1"]
         assert context["active_theme_id"] != "test.theme1"
+
+    def test_activate_startup_disabled_theme_applies_without_restart(self, app_with_theme, tmp_path):
+        from app import web
+        from app.runtime import get_runtime
+
+        app, loader = app_with_theme
+        client = app.test_client()
+        response = client.post("/api/modules/test.theme1/enable")
+
+        assert response.status_code == 200
+        assert response.get_json() == {"success": True, "restart_required": False}
+        config = get_runtime(app).config_manager
+        assert config.get("active_theme") == "test.theme1"
+        assert "test.theme1" not in config.get("disabled_modules").split(",")
+        # The running module plan still reflects startup. Rendering must use
+        # the newly persisted selection, even before rebuilding that plan.
+        assert loader.get_theme_modules()[0].enabled is False
+        with app.test_request_context("/settings"):
+            context = web.inject_auth()
+        assert context["active_theme_id"] == "test.theme1"
+        assert context["active_theme_data"]["dark"]["--bg"] == "#111"
+        assert b"theme-card glass active" in client.get("/settings").data
+
+        saved_config = ConfigManager(str(tmp_path / "config"))
+        restarted, _ = _create_module_app(saved_config, [str(tmp_path)], disabled_ids=set())
+        with restarted.test_request_context("/settings"):
+            assert web.inject_auth()["active_theme_id"] == "test.theme1"
+
+    @pytest.mark.parametrize("invalid", ["missing", "error"])
+    def test_unusable_theme_cannot_be_activated(self, app_with_theme, invalid):
+        from app.runtime import get_runtime
+
+        app, loader = app_with_theme
+        theme = loader.get_theme_modules()[0]
+        if invalid == "missing":
+            theme.theme_data = None
+        else:
+            theme.error = "Invalid theme"
+        config = get_runtime(app).config_manager
+        previous = config.get("active_theme")
+
+        response = app.test_client().post("/api/modules/test.theme1/enable")
+
+        assert response.status_code == 409
+        assert response.get_json()["success"] is False
+        assert config.get("active_theme") == previous
+        assert "test.theme1" in config.get("disabled_modules").split(",")
