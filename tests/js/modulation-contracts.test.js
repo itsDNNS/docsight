@@ -33,7 +33,7 @@ function browser(lang = 'en', translations = {}) {
         ids.set(match[1], element());
     }
     for (const dir of ['ds', 'us']) {
-        for (const field of ['current', 'min', 'avg', 'max', 'tariff', 'coverage', 'status', 'caveat']) {
+        for (const field of ['current', 'min', 'avg', 'max', 'coverage', 'status', 'caveat']) {
             ids.set(`mod-cap-${dir}-${field}`, element());
         }
     }
@@ -66,7 +66,7 @@ function browser(lang = 'en', translations = {}) {
 }
 
 function overview(direction = 'us', version = '3.1', count = 7) {
-    return {direction, sample_count: count, expected_samples: count, sample_density: 1,
+    return {direction, sample_count: count,
         aggregate: {health_index: 80, low_qam_pct: 12}, protocol_groups: [{
             docsis_version: version, max_qam: '1024QAM', channel_count: 1,
             health_index: 80, low_qam_pct: 12, degraded_channel_count: 1,
@@ -77,6 +77,20 @@ function overview(direction = 'us', version = '3.1', count = 7) {
 }
 
 const red = new Set(['#ef4444', '#dc2626', '#b91c1c', '#f87171', '#fb7185']);
+for (const count of [1, 30]) {
+    test(`${count} observed polls display as a count, without inferred completeness`, async () => {
+        const b = browser();
+        b.init();
+        const data = overview();
+        data.sample_count = count;
+        await b.reply(data);
+        assert.equal(b.ids.get('mod-kpi-samples').textContent, String(count));
+        assert.equal(b.ids.get('mod-kpi-samples').className.includes('good'), false);
+        assert.equal(b.ids.has('mod-kpi-density'), false);
+        assert.equal(b.ids.has('mod-cap-ds-tariff'), false);
+    });
+}
+
 const amber = new Set(['#f59e0b', '#fbbf24', '#d97706', '#f97316']);
 const green = new Set(['#22c55e', '#16a34a', '#15803d', '#86efac', '#14b8a6']);
 for (const [direction, version] of [['us', '3.1'], ['us', '3.0'], ['ds', '3.0'], ['ds', '3.1'], ['us', 'other']]) {
@@ -171,12 +185,12 @@ for (const lang of ['en', 'de']) {
         T['docsight.modulation.low_qam_denominator_hint'] = 'Translated denominator';
         T['docsight.modulation.low_qam_legend_hint_d31_us'] = 'Translated context';
         const b = browser(lang, T), data = overview();
-        const summary = {status: 'below_some_samples', capacity_current_mbps: 123.45,
+        const summary = {status: 'observed', capacity_current_mbps: 123.45,
             capacity_min_mbps: 100, capacity_avg_mbps: 120, capacity_max_mbps: 140,
             calculated_channel_samples: 3, total_channel_samples: 4, coverage_pct: 75,
             unsupported_channel_samples: 1, unsupported_channel_families: {ofdm: 1, ofdma: 0},
-            tariff_mbps: 130, tariff_met_pct: 50, tariff_met_sample_count: 1, capacity_sample_count: 2};
-        data.capacity_history = {downstream: summary, upstream: {...summary, status: 'above_tariff_throughout', unsupported_channel_samples: 0}};
+            capacity_sample_count: 2};
+        data.capacity_history = {downstream: summary, upstream: {...summary, status: 'observed', unsupported_channel_samples: 0}};
         b.init();
         await b.reply(data);
         const text = id => b.ids.get(id).textContent;
@@ -185,12 +199,11 @@ for (const lang of ['en', 'de']) {
             assert.equal(text('mod-cap-ds-' + field), value + (lang === 'de' ? ' Mbit/s' : ' Mbps'));
         }
         assert.equal(text('mod-cap-ds-coverage'), 'Coverage 3/4 = 75.0%');
-        assert.equal(text('mod-cap-ds-tariff'), '50.0% · 1/2');
         assert.equal(text('mod-cap-ds-caveat'), 'Excluded: OFDM');
         assert.equal(b.ids.get('mod-cap-ds-caveat').hidden, false);
         assert.equal(b.ids.get('mod-cap-us-caveat').hidden, true);
-        assert.equal(text('mod-cap-us-status'), catalog.capacity_status_above_tariff_throughout);
-        assert.ok(b.ids.get('mod-capacity-downstream').className.includes('mod-capacity-below_some_samples'));
+        assert.equal(text('mod-cap-us-status'), catalog.capacity_status_observed);
+        assert.ok(b.ids.get('mod-capacity-downstream').className.includes('mod-capacity-observed'));
         assert.equal(text('mod-kpi-lowqam-hint'), 'Translated denominator');
         assert.ok(text('mod-dist-legend-0').includes('Translated context'));
         b.ranges[2].click();
@@ -202,13 +215,11 @@ for (const lang of ['en', 'de']) {
         assert.equal(text('mod-capacity-range-label'), 'Selected day: 2026-03-03');
         summary.unsupported_channel_families = {};
         summary.capacity_current_mbps = null;
-        summary.tariff_mbps = null;
-        delete T['docsight.modulation.capacity_status_above_tariff_throughout'];
+        delete T['docsight.modulation.capacity_status_observed'];
         b.ranges[1].click();
         await b.reply(data);
-        assert.equal(text('mod-cap-us-status'), 'Above tariff throughout selected period');
+        assert.equal(text('mod-cap-us-status'), 'Observed for selected period');
         assert.equal(text('mod-cap-ds-current'), '—');
-        assert.equal(text('mod-cap-ds-tariff'), catalog.capacity_no_tariff);
         assert.equal(text('mod-cap-ds-caveat'), catalog.capacity_partial_caveat_generic);
         b.ranges[1].click();
         await b.reply(overview());

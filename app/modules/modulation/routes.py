@@ -29,38 +29,6 @@ def _get_tz():
     return ""
 
 
-def _positive_number(value):
-    """Return positive numeric config/state values, else None."""
-    if value in (None, ""):
-        return None
-    try:
-        parsed = float(value)
-    except (TypeError, ValueError):
-        return None
-    return parsed if parsed > 0 else None
-
-
-def _get_capacity_tariffs():
-    """Return configured or detected tariff values for capacity comparison."""
-    cm = current_runtime().config_manager
-    booked_download = _positive_number(cm.get("booked_download")) if cm else None
-    booked_upload = _positive_number(cm.get("booked_upload")) if cm else None
-    if booked_download and booked_upload:
-        return booked_download, booked_upload
-
-    state = current_runtime().get_state()
-    conn_info = state.get("connection_info") if isinstance(state, dict) else {}
-    conn_info = conn_info or {}
-    detected_download = _positive_number(conn_info.get("max_downstream_kbps"))
-    detected_upload = _positive_number(conn_info.get("max_upstream_kbps"))
-    if detected_download is not None:
-        detected_download = detected_download / 1000
-    if detected_upload is not None:
-        detected_upload = detected_upload / 1000
-
-    return booked_download or detected_download, booked_upload or detected_upload
-
-
 @bp.route("/api/modulation/distribution")
 @require_auth
 def api_modulation_distribution():
@@ -82,12 +50,9 @@ def api_modulation_distribution():
     tz_name = _get_tz()
 
     result = compute_distribution_v2(snapshots, direction, tz_name)
-    booked_download, booked_upload = _get_capacity_tariffs()
     result["capacity_history"] = compute_capacity_history(
         snapshots,
         tz_name,
-        booked_download=booked_download,
-        booked_upload=booked_upload,
     )
     return jsonify(result)
 
@@ -123,12 +88,9 @@ def api_modulation_intraday():
     snapshots = storage.get_range_data(start_ts, end_ts)
 
     result = compute_intraday(snapshots, direction, tz_name, date_str)
-    booked_download, booked_upload = _get_capacity_tariffs()
     result["capacity_history"] = compute_capacity_history(
         snapshots,
         tz_name,
-        booked_download=booked_download,
-        booked_upload=booked_upload,
         target_date=date_str,
     )
     return jsonify(result)
