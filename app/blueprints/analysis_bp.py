@@ -17,20 +17,6 @@ log = logging.getLogger("docsis.web")
 analysis_bp = Blueprint("analysis_bp", __name__)
 
 
-def _gaming_genres(grade):
-    """Return genre suitability verdicts for a given grade.
-
-    Verdicts: 'ok', 'warn', or 'bad'.
-    """
-    g = (grade or "").lower()
-    return {
-        "fps":      "ok"   if g in ("a", "b")           else "bad",
-        "moba":     "ok"   if g in ("a", "b", "c")      else "bad",
-        "mmo":      "ok"   if g in ("a", "b", "c", "d") else "bad",
-        "strategy": "ok"   if g in ("a", "b", "c")      else ("warn" if g == "d" else "bad"),
-    }
-
-
 @analysis_bp.route("/api/connection")
 @require_auth
 def api_connection():
@@ -90,16 +76,14 @@ def api_gaming_score():
       score        - 0-100 numeric score (null if no data)
       grade        - letter grade A-F (null if no data)
       has_speedtest - whether speedtest data was included in the calculation
-      components   - per-component scores and weights used for calculation
-      genres       - suitability verdict (ok/warn/bad) per game genre
+      components   - measured values, units, and heuristic component scores
       raw          - raw measured values that fed into the calculation
     """
     _config_manager = current_runtime().config_manager
     enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
     state = current_runtime().get_state()
-    analysis = state.get("analysis")
     speedtest_latest = state.get("speedtest_latest")
-    result = compute_gaming_index(analysis, speedtest_latest)
+    result = compute_gaming_index(speedtest_latest)
     if result is None:
         return jsonify({
             "enabled": enabled,
@@ -107,22 +91,13 @@ def api_gaming_score():
             "grade": None,
             "has_speedtest": False,
             "components": {},
-            "genres": _gaming_genres(None),
             "raw": {},
         })
-    summary = (analysis or {}).get("summary", {})
-    raw = {
-        "docsis_health": summary.get("health"),
-        "ds_snr_min": summary.get("ds_snr_min"),
-    }
-    if result.get("has_speedtest") and speedtest_latest:
-        raw["ping_ms"] = speedtest_latest.get("ping_ms")
-        raw["jitter_ms"] = speedtest_latest.get("jitter_ms")
-        raw["packet_loss_pct"] = speedtest_latest.get("packet_loss_pct")
+    raw = {field: speedtest_latest[field]
+           for field in ("ping_ms", "jitter_ms", "packet_loss_pct")}
     return jsonify({
         "enabled": enabled,
         **result,
-        "genres": _gaming_genres(result.get("grade")),
         "raw": raw,
     })
 

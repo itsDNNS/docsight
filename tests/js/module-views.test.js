@@ -60,6 +60,24 @@ function run(context, file) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, {filename: file});
 }
 
+test('Speedtest rows distinguish missing measurements from measured zero', () => {
+    const {context, elements} = browser(['speedtest-tbody']);
+    const rows = [];
+    context.document.createElement = () => element();
+    elements['speedtest-tbody'].appendChild = row => rows.push(row.innerHTML);
+    context.escapeHtml = value => String(value);
+    run(context, 'app/modules/speedtest/static/main.js');
+    context._speedtestAllData = [
+        {id: 1, download_mbps: 100, upload_mbps: 20, ping_ms: null, jitter_ms: null, packet_loss_pct: null},
+        {id: 2, download_mbps: 100, upload_mbps: 20, ping_ms: 0, jitter_ms: 0, packet_loss_pct: 0},
+    ];
+    context.renderSpeedtestRows();
+    assert.equal((rows[0].match(/&#8212;/g) || []).length, 3);
+    assert.doesNotMatch(rows[0], /null|0%/);
+    assert.match(rows[1], /0 ms/);
+    assert.match(rows[1], /0%/);
+});
+
 for (const name of ['journal', 'bqm', 'speedtest']) {
     test(`${name} loads on Settings and its hook is safe without dashboard globals`, () => {
         const {context, timers} = browser();

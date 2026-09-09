@@ -374,7 +374,8 @@ class CollectorStatus(TypedDict):
 
 class GamingIndexComponent(TypedDict):
     score: int
-    weight: int
+    value: float
+    unit: str
 
 
 class GamingIndex(TypedDict):

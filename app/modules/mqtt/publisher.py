@@ -361,15 +361,10 @@ class MQTTPublisher:
             )
 
         # Gaming Quality Index
-        if gaming_index:
+        for field in ("score", "grade"):
             self.client.publish(
-                f"{self.topic_prefix}/gaming_quality_score",
-                str(gaming_index["score"]),
-                retain=True,
-            )
-            self.client.publish(
-                f"{self.topic_prefix}/gaming_quality_grade",
-                gaming_index["grade"],
+                f"{self.topic_prefix}/gaming_quality_{field}",
+                str(gaming_index[field]) if gaming_index else "",
                 retain=True,
             )
 

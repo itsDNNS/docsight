@@ -838,9 +838,9 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
             ts = st.get("timestamp", "")[:16].replace("T", " ")
             dl = st.get("download_mbps") or st.get("download_human", "")
             ul = st.get("upload_mbps") or st.get("upload_human", "")
-            ping = st.get("ping_ms", "-")
-            jitter = st.get("jitter_ms", "-")
-            loss = st.get("packet_loss_pct", "-")
+            ping = st["ping_ms"] if st.get("ping_ms") is not None else "-"
+            jitter = st["jitter_ms"] if st.get("jitter_ms") is not None else "-"
+            loss = st["packet_loss_pct"] if st.get("packet_loss_pct") is not None else "-"
             dl_display = f"{dl}" if dl else "-"
             ul_display = f"{ul}" if ul else "-"
             pdf._table_row([ts, dl_display, ul_display, str(ping), str(jitter), f"{loss}%"], widths)

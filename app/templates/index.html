@@ -590,7 +590,7 @@
                         {% set _g = gaming_index.grade|upper %}
                         {% set _badge_class = 'badge-good' if _g in ('A', 'B') else ('badge-warn' if _g == 'C' else 'badge-crit') %}
                         <span class="hero-meta-item" style="cursor:help;"
-                            title="{{ gaming_index.score }}/100 — {{ t['gaming_tooltip_' ~ gaming_index.grade|lower] }}{% if not gaming_index.has_speedtest %} ({{ t.gaming_no_speedtest }}){% endif %}">
+                            title="{{ gaming_index.score }}/100 — {{ t['gaming_grade_' ~ gaming_index.grade|lower] }}">
                             <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i> {{ t.gaming_badge_label }} <span class="badge {{ _badge_class }}" style="margin-left:2px;">{{ gaming_index.grade }}</span>
                         </span>
                         {% endif %}
@@ -1094,9 +1094,9 @@
                 <span class="metric-sub-label">{{ t.upload }}:</span>
                 <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
                 <span class="metric-sub-label">{{ t.ping }}:</span>
-                <span class="range">{{ speedtest_latest.ping_ms|round(0)|int }} ms</span>
+                <span class="range">{{ (speedtest_latest.ping_ms|round(0)|int ~ ' ms') if speedtest_latest.ping_ms is not none else '—' }}</span>
                 <span class="metric-sub-label">{{ t.jitter }}:</span>
-                <span class="range">{{ speedtest_latest.jitter_ms|round(1) }} ms</span>
+                <span class="range">{{ (speedtest_latest.jitter_ms|round(1) ~ ' ms') if speedtest_latest.jitter_ms is not none else '—' }}</span>
             </div>
             {{ metric_range_viz(speed_range_data, speed_health_key, t.health_good, t.get('metric_download_contract', 'Download vs contract'), speed_pct_caption) }}
         </div>
@@ -1344,9 +1344,9 @@
                 <span class="metric-sub-label">{{ t.upload }}:</span>
                 <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
                 <span class="metric-sub-label">{{ t.ping }}:</span>
-                <span class="range">{{ speedtest_latest.ping_ms|round(0)|int }} ms</span>
+                <span class="range">{{ (speedtest_latest.ping_ms|round(0)|int ~ ' ms') if speedtest_latest.ping_ms is not none else '—' }}</span>
                 <span class="metric-sub-label">{{ t.jitter }}:</span>
-                <span class="range">{{ speedtest_latest.jitter_ms|round(1) }} ms</span>
+                <span class="range">{{ (speedtest_latest.jitter_ms|round(1) ~ ' ms') if speedtest_latest.jitter_ms is not none else '—' }}</span>
             </div>
             {{ metric_range_viz(speed_range_data, speed_health_key, t.health_good, t.get('metric_download_contract', 'Download vs contract'), speed_pct_caption) }}
         </div>
@@ -1827,51 +1827,29 @@
             <h2 class="view-page-title">{{ t.gaming_quality_label }}</h2>
         </div>
     </div>
+    <p class="gaming-no-speedtest-hint">{{ t.glossary_gaming_index }}</p>
     {% if gaming_index %}
-    {% set s = gaming_index.score %}
+    <p class="gaming-no-speedtest-hint">{{ t.timestamp }}: {{ speedtest_latest.timestamp }}</p>
     {% set g = gaming_index.grade|lower %}
-    <!-- Gauge hero -->
-    <div class="gaming-overview">
-        <div class="gaming-gauge">
-            <div class="gaming-gauge-band">
-                <div class="gaming-gauge-segment gauge-f"><span>F</span></div>
-                <div class="gaming-gauge-segment gauge-d"><span>D</span></div>
-                <div class="gaming-gauge-segment gauge-c"><span>C</span></div>
-                <div class="gaming-gauge-segment gauge-b"><span>B</span></div>
-                <div class="gaming-gauge-segment gauge-a"><span>A</span></div>
-            </div>
-            <div class="gaming-gauge-track">
-                <div class="gaming-gauge-marker" style="left:{{ s }}%;">
-                    <div class="gaming-gauge-needle"></div>
-                    <div class="gaming-gauge-score">{{ s }}</div>
-                </div>
-            </div>
-            {% if not gaming_index.has_speedtest %}
-            <p class="gaming-no-speedtest-hint"><i data-lucide="info"></i> {{ t.gaming_no_speedtest_detail }}</p>
-            {% endif %}
-        </div>
-        <div class="gaming-grade-big gaming-{{ g }}">
-            <span class="gaming-grade-letter">{{ gaming_index.grade }}</span>
-            <span class="gaming-grade-text">{{ t['gaming_grade_' ~ g] }}</span>
-        </div>
+    <div class="gaming-grade-big gaming-{{ g }}">
+        <span class="gaming-grade-letter">{{ gaming_index.grade }}</span>
+        <span class="gaming-grade-text">{{ t['gaming_grade_' ~ g] }} &middot; {{ gaming_index.score }}/100</span>
     </div>
 
     <!-- Compact score breakdown (collapsed descriptions) -->
     <div class="gaming-components">
         <h3 class="gaming-section-title">{{ t.gaming_components_title }}</h3>
         <div class="gaming-comp-grid">
-        {% for key, comp in gaming_index.components.items()|sort(attribute='1.weight', reverse=true) %}
+        {% for key, comp in gaming_index.components.items() %}
             <div class="gaming-comp-row" tabindex="0" role="button" aria-expanded="false" onclick="this.classList.toggle('open');this.setAttribute('aria-expanded',this.classList.contains('open'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 <span class="gaming-comp-icon">
                     {% if key == 'latency' %}<i data-lucide="timer"></i>
                     {% elif key == 'jitter' %}<i data-lucide="waves"></i>
                     {% elif key == 'packet_loss' %}<i data-lucide="package-x"></i>
-                    {% elif key == 'docsis_health' %}<i data-lucide="heart-pulse"></i>
-                    {% elif key == 'snr_headroom' %}<i data-lucide="signal"></i>
                     {% endif %}
                 </span>
                 <span class="gaming-comp-name">{{ t['gaming_comp_' ~ key] }}</span>
-                <span class="gaming-comp-weight">{{ comp.weight }}%</span>
+                <span class="gaming-comp-value">{{ comp.value }} {{ comp.unit }}</span>
                 <div class="gaming-comp-bar-inline">
                     <div class="gaming-comp-fill {% if comp.score >= 80 %}fill-good{% elif comp.score >= 50 %}fill-warn{% else %}fill-crit{% endif %}" style="width:{{ comp.score }}%;"></div>
                 </div>
@@ -1883,45 +1861,8 @@
         </div>
     </div>
 
-    <!-- Game compatibility (collapsed when all green) -->
-    <div class="gaming-genres">
-        <h3 class="gaming-section-title">{{ t.gaming_genres_title }}</h3>
-        {% set all_ok = g in ['a', 'b'] %}
-        {% if all_ok %}
-        <div class="gaming-genres-summary genre-ok">
-            <i data-lucide="check-circle"></i>
-            <span>{{ t.get('gaming_genres_all_ok', 'All game genres: Excellent connection for all types of online gaming.') }}</span>
-        </div>
-        {% endif %}
-        <div class="gaming-genre-cards {% if all_ok %}gaming-genres-collapsed{% endif %}">
-            <div class="gaming-genre-card {% if g in ['a', 'b'] %}genre-ok{% elif g in ['c'] %}genre-warn{% else %}genre-bad{% endif %}">
-                <span class="gaming-genre-icon"><i data-lucide="crosshair"></i></span>
-                <span class="gaming-genre-name">{{ t.gaming_genre_fps }}</span>
-                <span class="gaming-genre-examples">CS2, Valorant, Fortnite</span>
-                <span class="gaming-genre-verdict">{{ t['gaming_genre_fps_' ~ g] }}</span>
-            </div>
-            <div class="gaming-genre-card {% if g in ['a', 'b', 'c'] %}genre-ok{% else %}genre-bad{% endif %}">
-                <span class="gaming-genre-icon"><i data-lucide="swords"></i></span>
-                <span class="gaming-genre-name">{{ t.gaming_genre_moba }}</span>
-                <span class="gaming-genre-examples">LoL, Dota 2, HotS</span>
-                <span class="gaming-genre-verdict">{{ t['gaming_genre_moba_' ~ g] }}</span>
-            </div>
-            <div class="gaming-genre-card {% if g in ['a', 'b', 'c', 'd'] %}genre-ok{% else %}genre-bad{% endif %}">
-                <span class="gaming-genre-icon"><i data-lucide="globe"></i></span>
-                <span class="gaming-genre-name">{{ t.gaming_genre_mmo }}</span>
-                <span class="gaming-genre-examples">WoW, FFXIV, GW2</span>
-                <span class="gaming-genre-verdict">{{ t['gaming_genre_mmo_' ~ g] }}</span>
-            </div>
-            <div class="gaming-genre-card {% if g in ['a', 'b', 'c'] %}genre-ok{% elif g in ['d'] %}genre-warn{% else %}genre-bad{% endif %}">
-                <span class="gaming-genre-icon"><i data-lucide="crown"></i></span>
-                <span class="gaming-genre-name">{{ t.gaming_genre_strategy }}</span>
-                <span class="gaming-genre-examples">Civilization, AoE, Chess</span>
-                <span class="gaming-genre-verdict">{{ t['gaming_genre_strategy_' ~ g] }}</span>
-            </div>
-        </div>
-    </div>
     {% else %}
-    <div class="no-data-msg">{{ t.gaming_no_data }}</div>
+    <div class="no-data-msg">{{ t.gaming_no_speedtest_detail }}</div>
     {% endif %}
 </div>
 {% endif %}
