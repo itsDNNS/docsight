@@ -1,13 +1,14 @@
 """Gaming Quality Index - rates connection quality for online gaming.
 
-Combines DOCSIS signal health with Speedtest Tracker latency data
-to produce a 0-100 score and A-F grade.
+A heuristic summary of one complete Speedtest result. It does not measure
+performance to game servers or predict compatibility with individual games.
 """
 
 from __future__ import annotations
 
-from .analyzer import _get_snr_thresholds
-from .types import AnalysisResult, GamingIndex
+from math import isfinite
+
+from .types import GamingIndex
 
 
 def _score_latency(ping_ms):
@@ -49,30 +50,6 @@ def _score_packet_loss(loss_pct):
     return 0
 
 
-def _score_docsis_health(health):
-    """Score DOCSIS health status."""
-    if health == "good":
-        return 100
-    if health == "tolerated":
-        return 90
-    if health == "marginal":
-        return 50
-    return 0
-
-
-def _score_snr_headroom(min_snr, modulation=None):
-    """Score SNR headroom above threshold."""
-    threshold = _get_snr_thresholds(modulation)["good_min"]
-    headroom = min_snr - threshold
-    if headroom > 6:
-        return 100
-    if headroom >= 3:
-        return 85
-    if headroom >= 1:
-        return 55
-    return 0
-
-
 def _grade(score):
     """Convert numeric score to letter grade."""
     if score >= 90:
@@ -86,65 +63,33 @@ def _grade(score):
     return "F"
 
 
-def compute_gaming_index(analysis: AnalysisResult | None, speedtest: dict | None) -> GamingIndex | None:
-    """Compute gaming quality index from DOCSIS analysis and speedtest data.
-
-    Args:
-        analysis: AnalysisResult from analyzer.analyze() or None
-        speedtest: dict with ping_ms, jitter_ms, packet_loss_pct or None
-
-    Returns:
-        GamingIndex with score, grade, components, has_speedtest or None if no data
-    """
-    if not analysis:
+def compute_gaming_index(speedtest: dict | None) -> GamingIndex | None:
+    """Score complete measured latency data; missing values never imply zero."""
+    if not speedtest:
         return None
 
-    summary = analysis.get("summary", {})
-    health = summary.get("health", "poor")
-    min_snr = summary.get("ds_snr_min", 0)
-
     components = {}
-    total_score = 0
-    total_weight = 0
+    for name, field, unit, scorer in (
+        ("latency", "ping_ms", "ms", _score_latency),
+        ("jitter", "jitter_ms", "ms", _score_jitter),
+        ("packet_loss", "packet_loss_pct", "%", _score_packet_loss),
+    ):
+        value = speedtest.get(field)
+        if value is None or isinstance(value, bool):
+            return None
+        try:
+            value = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not isfinite(value) or value < 0 or (name == "packet_loss" and value > 100):
+            return None
+        components[name] = {"score": scorer(value), "value": value, "unit": unit}
 
-    # DOCSIS components (always available)
-    docsis_score = _score_docsis_health(health)
-    components["docsis_health"] = {"score": docsis_score, "weight": 15}
-    total_score += docsis_score * 15
-    total_weight += 15
-
-    snr_score = _score_snr_headroom(min_snr)
-    components["snr_headroom"] = {"score": snr_score, "weight": 10}
-    total_score += snr_score * 10
-    total_weight += 10
-
-    has_speedtest = speedtest is not None and "ping_ms" in (speedtest or {})
-
-    if has_speedtest:
-        ping = float(speedtest.get("ping_ms", 0))
-        jitter = float(speedtest.get("jitter_ms", 0))
-        loss = float(speedtest.get("packet_loss_pct", 0))
-
-        lat_score = _score_latency(ping)
-        components["latency"] = {"score": lat_score, "weight": 30}
-        total_score += lat_score * 30
-        total_weight += 30
-
-        jit_score = _score_jitter(jitter)
-        components["jitter"] = {"score": jit_score, "weight": 25}
-        total_score += jit_score * 25
-        total_weight += 25
-
-        loss_score = _score_packet_loss(loss)
-        components["packet_loss"] = {"score": loss_score, "weight": 20}
-        total_score += loss_score * 20
-        total_weight += 20
-
-    score = round(total_score / total_weight) if total_weight > 0 else 0
-
+    # Good latency cannot compensate for packet loss or unstable response times.
+    score = min(component["score"] for component in components.values())
     return {
         "score": score,
         "grade": _grade(score),
         "components": components,
-        "has_speedtest": has_speedtest,
+        "has_speedtest": True,
     }

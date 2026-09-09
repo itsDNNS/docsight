@@ -8,6 +8,22 @@ DOCSight does not upload modem data, logs, credentials, tokens, reports, or inst
 
 Local monitoring, storage, report generation, backups, and dismissal state remain on the user's own machine unless the user deliberately configures an integration or exports a file. Optional integrations may send the specific payloads they are configured to send to the destinations chosen by the user.
 
+## Gaming Quality
+
+Gaming Quality is a heuristic summary of the latest Speedtest Tracker result.
+It requires finite, non-negative latency, jitter and packet-loss measurements
+(packet loss must not exceed 100%). Missing inputs produce no score or grade.
+The overall score is the lowest of the three component scores; DOCSIS health
+does not contribute. This is not a measurement of performance to game servers.
+
+`/api/gaming-score` exposes component `score`, measured `value`, and `unit`.
+The former `weight`, DOCSIS/SNR components, and `genres` predictions have been
+removed. MQTT score and grade retained messages are cleared when unavailable.
+
+New Speedtest results preserve missing measurements as null, including storage
+and display. Previously stored zeros cannot be distinguished from real zero
+measurements and are not rewritten.
+
 ## User-owned local data
 
 User-owned local data is created by running DOCSight against a real setup or by entering information in the app. Updates must preserve it unless the user explicitly deletes, migrates, restores, or replaces it.

@@ -632,7 +632,7 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         (),
         ('dashboard', 'speedtest', 'health_status'),
         'Gaming Index is a quick signal for latency-sensitive quality.',
-        'It combines latency-sensitive evidence with DOCSIS health when available, so gaming-style problems are easier to spot.',
+        'Heuristic based on the weakest measured latency, jitter or packet-loss rating in the latest Speedtest result. Performance to game servers can differ.',
         'The index is a summary signal, not a replacement for the underlying latency, jitter, loss, and modem-health data. Missing inputs should stay explicit.',
         'Use the index as a triage shortcut, then verify the raw latency/loss window, DOCSIS status, and external measurements before drawing conclusions for real-time applications.',
     ),

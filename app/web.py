@@ -434,7 +434,7 @@ def index():
             booked_upload = conn_info.get("max_upstream_kbps", 40000) // 1000
     dev_info = state.get("device_info") or {}
     analysis = state["analysis"]
-    gaming_index = compute_gaming_index(analysis, speedtest_latest) if gaming_quality_enabled else None
+    gaming_index = compute_gaming_index(speedtest_latest) if gaming_quality_enabled else None
     bnetz_latest = None
     if _storage and bnetz_enabled:
         try:
@@ -545,7 +545,7 @@ def settings():
             "name": t.get("gaming_quality_label", "Gaming Quality Index"),
             "description": t.get(
                 "gaming_quality_hint",
-                "Show a gaming quality badge in the dashboard hero card based on latency, jitter, and signal health.",
+                "Heuristic based on the weakest measured latency, jitter or packet-loss rating in the latest Speedtest result. Performance to game servers can differ.",
             ),
             "icon": "gamepad-2",
             "status_label": t.get("modules_enabled" if gaming_quality_enabled else "modules_disabled", "Enabled" if gaming_quality_enabled else "Disabled"),

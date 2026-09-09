@@ -65,9 +65,9 @@ class SpeedtestClient:
             "upload_mbps": round(item.get("upload_bits", 0) / 1_000_000, 2),
             "download_human": item.get("download_bits_human", ""),
             "upload_human": item.get("upload_bits_human", ""),
-            "ping_ms": round(float(item.get("ping", 0)), 2),
-            "jitter_ms": round(float(ping_obj.get("jitter", 0)), 2),
-            "packet_loss_pct": round(float(data.get("packetLoss") or 0), 2),
+            "ping_ms": _round2(item.get("ping")),
+            "jitter_ms": _round2(ping_obj.get("jitter")),
+            "packet_loss_pct": _round2(data.get("packetLoss")),
             "server_id": server.get("id"),
             "server_name": server.get("name", ""),
             # enriched fields

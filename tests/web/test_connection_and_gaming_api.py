@@ -42,21 +42,18 @@ class TestGamingScoreEndpoint:
         assert data["components"] == {}
         assert data["has_speedtest"] is False
         assert data["raw"] == {}
-        assert set(data["genres"].keys()) == {"fps", "moba", "mmo", "strategy"}
+        assert "genres" not in data
 
     def test_with_analysis_no_speedtest(self, client, sample_analysis):
         current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/api/gaming-score")
         assert resp.status_code == 200
         data = resp.get_json()
-        assert isinstance(data["score"], int)
-        assert data["grade"] in ("A", "B", "C", "D", "F")
+        assert data["score"] is None
+        assert data["grade"] is None
         assert data["has_speedtest"] is False
-        assert "docsis_health" in data["components"]
-        assert "snr_headroom" in data["components"]
-        assert data["raw"]["docsis_health"] == "good"
-        assert data["raw"]["ds_snr_min"] == 35.0
-        assert "ping_ms" not in data["raw"]
+        assert data["components"] == {}
+        assert data["raw"] == {}
 
     def test_with_analysis_and_speedtest(self, client, sample_analysis):
         current_runtime().update_state(
@@ -74,16 +71,30 @@ class TestGamingScoreEndpoint:
         assert data["raw"]["ping_ms"] == 15
         assert data["raw"]["jitter_ms"] == 3
         assert data["raw"]["packet_loss_pct"] == 0
-        assert data["genres"]["fps"] == "ok"
+        assert "genres" not in data
 
-    def test_genres_degrade_with_grade(self, client, sample_analysis):
-        # Simulate a poor connection: zero SNR headroom, no speedtest
-        sample_analysis["summary"]["health"] = "poor"
-        sample_analysis["summary"]["ds_snr_min"] = 25.0
-        current_runtime().update_state(analysis=sample_analysis)
+    def test_speedtest_can_be_scored_without_modem_data(self, client):
+        current_runtime().update_state(
+            analysis=None,
+            speedtest_latest={"ping_ms": 15, "jitter_ms": 3, "packet_loss_pct": 0},
+        )
         data = client.get("/api/gaming-score").get_json()
-        # Without speedtest data the score may still be partial, but genres key must exist
-        assert all(v in ("ok", "warn", "bad") for v in data["genres"].values())
+        assert data["score"] == 100
+        assert set(data["components"]) == {"latency", "jitter", "packet_loss"}
+
+    def test_incomplete_speedtest_does_not_break_dashboard(self, client, sample_analysis):
+        from bs4 import BeautifulSoup
+
+        current_runtime().update_state(
+            analysis=sample_analysis,
+            speedtest_latest={"download_mbps": 100, "upload_mbps": 20,
+                              "ping_ms": None, "jitter_ms": None, "packet_loss_pct": None},
+        )
+        assert client.get("/api/gaming-score").get_json()["score"] is None
+        response = client.get("/")
+        assert response.status_code == 200
+        soup = BeautifulSoup(response.data, "html.parser")
+        assert soup.select_one("#view-gaming .gaming-grade-big") is None
 
     def test_enabled_flag_reflects_config(self, config_mgr, sample_analysis, make_app):
         config_mgr.save({"gaming_quality_enabled": True})

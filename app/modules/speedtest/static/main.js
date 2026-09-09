@@ -178,9 +178,9 @@ function renderSpeedtestRows() {
             + serverCell
             + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
             + '<td><strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
-            + '<td' + pingClass + '>' + escapeHtml(String(r.ping_ms)) + ' ms</td>'
-            + '<td' + jitterClass + '>' + escapeHtml(String(r.jitter_ms)) + ' ms</td>'
-            + '<td>' + (r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>'
+            + '<td' + pingClass + '>' + (r.ping_ms == null ? '&#8212;' : escapeHtml(String(r.ping_ms)) + ' ms') + '</td>'
+            + '<td' + jitterClass + '>' + (r.jitter_ms == null ? '&#8212;' : escapeHtml(String(r.jitter_ms)) + ' ms') + '</td>'
+            + '<td>' + (r.packet_loss_pct == null ? '&#8212;' : r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>'
             + scBadge;
         tbody.appendChild(tr);
     }
@@ -482,7 +482,8 @@ function renderSpeedtestChart() {
     for (var i = 0; i < data.length; i++) {
         dls.push(parseFloat(data[i].download_mbps) || 0);
         uls.push(parseFloat(data[i].upload_mbps) || 0);
-        pings.push(parseFloat(data[i].ping_ms) || 0);
+        var ping = data[i].ping_ms == null ? NaN : Number(data[i].ping_ms);
+        pings.push(Number.isFinite(ping) ? ping : null);
         times.push(new Date(data[i].timestamp));
     }
     // Scales
@@ -564,48 +565,56 @@ function renderSpeedtestChart() {
     ctx.setLineDash([]);
     // Helper: draw filled line with gradient (Phase 4.2)
     function drawLine(values, yFn, color, gradientColors) {
-        // Filled area with gradient
-        ctx.beginPath();
-        ctx.moveTo(xPos(0), padT + ch);
-        for (var i = 0; i < values.length; i++) {
-            ctx.lineTo(xPos(i), yFn(values[i]));
-        }
-        ctx.lineTo(xPos(values.length - 1), padT + ch);
-        ctx.closePath();
-        
-        // Create gradient if provided
-        if (gradientColors && gradientColors.length === 2) {
-            var gradient = ctx.createLinearGradient(0, padT, 0, padT + ch);
-            gradient.addColorStop(0, gradientColors[0]);
-            gradient.addColorStop(1, gradientColors[1]);
-            ctx.fillStyle = gradient;
-        } else {
-            ctx.fillStyle = gradientColors;
-        }
-        ctx.fill();
-        
-        // Line with smooth curves
-        ctx.beginPath();
-        for (var i = 0; i < values.length; i++) {
-            if (i === 0) {
-                ctx.moveTo(xPos(i), yFn(values[i]));
+        var start = 0;
+        while (start < values.length) {
+            while (start < values.length && values[start] == null) start++;
+            if (start === values.length) break;
+            var end = start + 1;
+            while (end < values.length && values[end] != null) end++;
+            // Filled area with gradient
+            ctx.beginPath();
+            ctx.moveTo(xPos(start), padT + ch);
+            for (var i = start; i < end; i++) {
+                ctx.lineTo(xPos(i), yFn(values[i]));
+            }
+            ctx.lineTo(xPos(end - 1), padT + ch);
+            ctx.closePath();
+
+            // Create gradient if provided
+            if (gradientColors && gradientColors.length === 2) {
+                var gradient = ctx.createLinearGradient(0, padT, 0, padT + ch);
+                gradient.addColorStop(0, gradientColors[0]);
+                gradient.addColorStop(1, gradientColors[1]);
+                ctx.fillStyle = gradient;
             } else {
-                // Smooth curve approximation using quadratic curves
-                var prevX = xPos(i - 1);
-                var prevY = yFn(values[i - 1]);
-                var currX = xPos(i);
-                var currY = yFn(values[i]);
-                var cpX = (prevX + currX) / 2;
-                var cpY = (prevY + currY) / 2;
-                ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
-                if (i === values.length - 1) {
-                    ctx.lineTo(currX, currY);
+                ctx.fillStyle = gradientColors;
+            }
+            ctx.fill();
+
+            // Line with smooth curves
+            ctx.beginPath();
+            for (var i = start; i < end; i++) {
+                if (i === start) {
+                    ctx.moveTo(xPos(i), yFn(values[i]));
+                } else {
+                    // Smooth curve approximation using quadratic curves
+                    var prevX = xPos(i - 1);
+                    var prevY = yFn(values[i - 1]);
+                    var currX = xPos(i);
+                    var currY = yFn(values[i]);
+                    var cpX = (prevX + currX) / 2;
+                    var cpY = (prevY + currY) / 2;
+                    ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
+                    if (i === end - 1) {
+                        ctx.lineTo(currX, currY);
+                    }
                 }
             }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            start = end;
         }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.stroke();
     }
     
     // Phase 4.2: Purple gradient for download, green for upload, amber line for ping
@@ -638,7 +647,7 @@ function renderSpeedtestChart() {
         var lines = [
             {color: '#a855f7', sym: '\u25BC', label: T.speedtest_dl || 'DL', val: dls[idx].toFixed(2) + ' Mbps'},
             {color: '#22c55e', sym: '\u25B2', label: T.speedtest_ul || 'UL', val: uls[idx].toFixed(2) + ' Mbps'},
-            {color: '#f59e0b', sym: '\u25CF', label: T.speedtest_ping || 'Ping', val: pings[idx].toFixed(1) + ' ms'}
+            {color: '#f59e0b', sym: '\u25CF', label: T.speedtest_ping || 'Ping', val: pings[idx] == null ? '\u2014' : pings[idx].toFixed(1) + ' ms'}
         ];
         lines.forEach(function(line) {
             tooltip.appendChild(document.createElement('br'));

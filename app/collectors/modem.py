@@ -201,7 +201,7 @@ class ModemCollector(Collector):
                 self._discovery_published = True
                 time.sleep(1)
             speedtest = self._web.get_state().get("speedtest_latest")
-            gi = compute_gaming_index(analysis, speedtest)
+            gi = compute_gaming_index(speedtest)
             self._mqtt_pub.publish_data(analysis, gaming_index=gi)
 
         # Web state + persistent storage

@@ -129,13 +129,21 @@ class TestSpeedtestClient:
         assert len(results) == 1
         r = results[0]
         assert r["ping_ms"] == 8.0
-        assert r["jitter_ms"] == 0
-        assert r["packet_loss_pct"] == 0
+        assert r["jitter_ms"] is None
+        assert r["packet_loss_pct"] is None
 
     def test_auth_headers(self):
         client = self._make_client()
         assert client.session.headers["Authorization"] == "Bearer test-token"
         assert client.session.headers["Accept"] == "application/json"
+
+    def test_explicit_null_measurements_stay_unknown(self):
+        result = self._make_client()._parse_result({
+            "ping": None, "data": {"ping": {"jitter": None}, "packetLoss": None},
+        })
+        assert result["ping_ms"] is None
+        assert result["jitter_ms"] is None
+        assert result["packet_loss_pct"] is None
 
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_insecure_tls_disables_certificate_verification(self, mock_get):
