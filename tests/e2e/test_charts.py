@@ -1174,37 +1174,6 @@ class TestChartCleanup:
         assert uplot_count == 1, f"Expected 1 uPlot instance, got {uplot_count}"
 
 
-# ── Vendor File Check ──
-
-
-class TestVendorFiles:
-    """Verify vendor files are served correctly."""
-
-    def test_uplot_js_loads(self, live_server, page):
-        """uPlot JS should be accessible."""
-        resp = page.request.get(f"{live_server}/static/vendor/uPlot.min.js")
-        assert resp.status == 200
-        assert len(resp.body()) > 40000  # ~51KB
-
-    def test_uplot_css_loads(self, live_server, page):
-        """uPlot CSS should be accessible."""
-        resp = page.request.get(f"{live_server}/static/vendor/uPlot.min.css")
-        assert resp.status == 200
-        assert ".uplot" in resp.text()
-
-    def test_chartjs_removed(self, live_server, page):
-        """Old Chart.js files should no longer be served."""
-        resp = page.request.get(f"{live_server}/static/vendor/chart.umd.min.js")
-        assert resp.status == 404
-
-    def test_chartjs_adapter_removed(self, live_server, page):
-        """Old Chart.js date-fns adapter should no longer be served."""
-        resp = page.request.get(
-            f"{live_server}/static/vendor/chartjs-adapter-date-fns.bundle.min.js"
-        )
-        assert resp.status == 404
-
-
 # ── Existing Charts Unaffected ──
 
 

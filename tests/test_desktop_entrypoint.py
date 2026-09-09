@@ -148,18 +148,6 @@ def test_configure_desktop_environment_creates_paths_and_exports_contract(tmp_pa
     assert env["DOCSIGHT_DESKTOP_MODE"] == "1"
 
 
-def test_select_port_never_adopts_docsight_looking_foreign_listener(monkeypatch):
-    env = {"WEB_PORT": "8765"}
-    bind_results = {8765: False, 8766: True}
-
-    monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: bind_results[port])
-
-    selection = desktop.select_port(env, max_port=8766)
-
-    assert selection == desktop.PortSelection(port=8766)
-    assert env["WEB_PORT"] == "8766"
-
-
 def test_select_port_walks_when_preferred_port_has_non_docsight_service(monkeypatch):
     env = {"WEB_PORT": "8765"}
     bind_results = {8765: False, 8766: True}

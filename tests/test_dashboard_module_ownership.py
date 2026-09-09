@@ -47,7 +47,7 @@ def test_disabled_module_delivers_no_ui_or_script(dashboard, name, prefix):
         assert soup.select_one(f'.nav-item[onclick="open{name.title()}SetupModal()"]') is None
         for dialog in MODULES[name]:
             assert soup.select_one(f"#{dialog}") is None
-        assert not soup.select(f'script[src*="/modules/docsight.{name}/static/main.js"]')
+        assert not soup.select(f'script[src*="/modules/docsight.{name}/static/"]')
         assert not soup.select(f'script[src*="/static/js/{name}.js"]')
     assert client.get(f"/modules/docsight.{name}/static/main.js", environ_overrides=env).status_code == 404
 

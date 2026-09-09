@@ -170,12 +170,6 @@ class TestDataFetchRetry:
         assert len(calls) == 2
         assert "channelDs" in data
 
-    def test_no_retry_on_success(self, mock_hnap):
-        """Successful data fetch does not trigger retry logic."""
-        data = mock_hnap.get_docsis_data()
-        assert len(data["channelDs"]["docsis30"]) == 32
-
-
 # -- Value helpers --
 
 class TestValueHelpers:

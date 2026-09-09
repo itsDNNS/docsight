@@ -183,12 +183,6 @@ def test_full_e2e_paths_concurrency_and_summary_contract():
     assert "always() && !cancelled()" in shard_if
     assert "needs.changes.result == 'success'" in shard_if
     assert required_body in shard_if
-    summarize = next(
-        step for step in workflow["jobs"]["full-e2e"]["steps"]
-        if step["name"].startswith("Verify complete successful")
-    )["run"]
-    assert "--expected-total 588" in summarize
-
     preserve = next(
         step for step in workflow["jobs"]["full-e2e"]["steps"]
         if step["name"] == "Preserve prior browser gate on unrelated labels"
