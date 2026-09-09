@@ -251,12 +251,15 @@ class VodafoneStationDriver(ModemDriver):
         if method.upper() == "GET":
             params["_"] = int(time.time() * 1000)
 
+        # CGA DOCSIS responses can take over 10 seconds; keep connection waits short.
+        timeout = (10, 30) if method.upper() == "GET" and path == "/api/v1/sta_docsis_status" else 10
+
         r = self._session.request(
             method,
             f"{self._url}{path}",
             headers=headers,
             params=params,
-            timeout=10,
+            timeout=timeout,
             **kwargs,
         )
         r.raise_for_status()
