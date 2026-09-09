@@ -1178,17 +1178,18 @@ class TestChartCleanup:
 
 
 class TestNonMigratedCharts:
-    """Custom canvas charts that should NOT be affected by the migration."""
+    """Dashboard health indicators and sparklines remain independent of uPlot."""
 
-    def test_donut_charts_still_render(self, demo_page):
-        """Channel health donut charts should still work."""
-        ds_donut = demo_page.locator("#ds-health-donut")
-        us_donut = demo_page.locator("#us-health-donut")
-        # Donuts are raw canvas, not uPlot — should still be canvas elements
-        if ds_donut.count() > 0:
-            assert ds_donut.evaluate("el => el.tagName") == "CANVAS"
-        if us_donut.count() > 0:
-            assert us_donut.evaluate("el => el.tagName") == "CANVAS"
+    def test_channel_health_bars_match_counts(self, demo_page):
+        """Both directions show health bars proportional to the displayed counts."""
+        cards = demo_page.locator(".hero-health-card")
+        assert cards.count() == 2
+        for card in cards.all():
+            assert card.is_visible()
+            for health in ("good", "tolerated", "warn", "crit"):
+                count = int(card.locator(f".hero-health-stat.{health} strong").inner_text())
+                segment = card.locator(f".hero-health-bar > .{health}")
+                assert segment.evaluate("el => Number(getComputedStyle(el).flexGrow)") == count
 
     def test_sparklines_still_render(self, demo_page):
         """Sparkline canvases should still be present and rendered."""

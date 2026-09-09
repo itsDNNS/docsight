@@ -65,10 +65,6 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
         localStorage.setItem('docsis-theme', next);
         var mc = document.querySelector('meta[name="theme-color"]');
         if (mc) mc.setAttribute('content', next === 'dark' ? '#06080f' : '#f8f6f3');
-        // Re-render charts with updated theme colors
-        if (typeof window.refreshDonuts === 'function') {
-            setTimeout(window.refreshDonuts, 50);
-        }
     });
 
     /* ── State ── */
@@ -362,10 +358,8 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
     /* BQM Calendar, Live → BQM module */
 
     /* ── Auto Refresh with Countdown ── */
-    var refreshTimer = null;
     var countdownTimer = null;
     var countdownSeconds = 60;
-    var secondsSinceUpdate = 0;
     var REFRESH_INTERVAL = 60;
     function updateCountdown() {
         var countdownEl = document.getElementById('topbar-countdown');
@@ -377,12 +371,10 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
     function startAutoRefresh() {
         stopAutoRefresh();
         countdownSeconds = REFRESH_INTERVAL;
-        secondsSinceUpdate = 0;
         updateCountdown();
         countdownTimer = setInterval(function() {
             if (currentView !== 'live' || document.hidden) return;
             countdownSeconds--;
-            secondsSinceUpdate++;
             if (countdownSeconds <= 0) {
                 countdownSeconds = REFRESH_INTERVAL;
                 refreshData();
@@ -392,7 +384,6 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
     }
     function stopAutoRefresh() {
         if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-        if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
     }
 
     var htmlRefreshId = 0;
@@ -413,12 +404,6 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
             .then(function(html) {
                 if (refreshId !== htmlRefreshId) return;
                 var doc = new DOMParser().parseFromString(html, 'text/html');
-
-                // Save expanded metric cards by index
-                var openCardIndices = [];
-                document.querySelectorAll('.metric-card').forEach(function(el, i) {
-                    if (el.classList.contains('open')) openCardIndices.push(i);
-                });
 
                 // Save expanded channel groups by label text
                 var openGroupLabels = [];
@@ -448,13 +433,7 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
 
                 // Reset countdown after refresh
                 countdownSeconds = REFRESH_INTERVAL;
-                secondsSinceUpdate = 0;
                 updateCountdown();
-
-                // Restore expanded metric cards
-                document.querySelectorAll('.metric-card').forEach(function(el, i) {
-                    if (openCardIndices.indexOf(i) !== -1) el.classList.add('open');
-                });
 
                 // Restore expanded channel groups
                 document.querySelectorAll('details.channel-group, .docsis-group').forEach(function(el) {
@@ -476,11 +455,6 @@ var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
                 // Re-init sparklines (canvas lost on innerHTML replace)
                 if (typeof window.refreshSparklines === 'function') {
                     window.refreshSparklines(generation);
-                }
-
-                // Re-init channel health donuts (instances lost on innerHTML replace)
-                if (typeof window.refreshDonuts === 'function') {
-                    window.refreshDonuts();
                 }
 
                 // Re-init Lucide icons (lost on innerHTML replace)

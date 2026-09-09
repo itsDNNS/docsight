@@ -232,7 +232,6 @@ def test_templates_have_no_executable_inline_script_bodies_and_new_assets_exist(
     required_assets = {
         TEMPLATES / "index.html": [
             STATIC / "js" / "browser-contracts.js",
-            STATIC / "js" / "dashboard-donuts.js",
             STATIC / "js" / "dashboard.js",
             STATIC / "js" / "dashboard-routing.js",
             STATIC / "js" / "service-worker-registration.js",
