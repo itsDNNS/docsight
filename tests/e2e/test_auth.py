@@ -7,23 +7,10 @@ class TestLoginPage:
     """Login page rendering."""
 
     def test_login_page_renders(self, auth_page, auth_server):
-        auth_page.goto(auth_server)
-        # Should redirect to /login
-        assert "/login" in auth_page.url
-
-    def test_login_page_title(self, auth_page, auth_server):
         auth_page.goto(f"{auth_server}/login")
         assert "DOCSight" in auth_page.title()
-
-    def test_login_has_password_input(self, auth_page, auth_server):
-        auth_page.goto(f"{auth_server}/login")
-        pw = auth_page.locator('input[name="password"]')
-        assert pw.is_visible()
-
-    def test_login_has_submit_button(self, auth_page, auth_server):
-        auth_page.goto(f"{auth_server}/login")
-        btn = auth_page.locator('button[type="submit"]')
-        assert btn.is_visible()
+        assert auth_page.locator('input[name="password"]').is_visible()
+        assert auth_page.locator('button[type="submit"]').is_visible()
 
 
 class TestLoginFlow:

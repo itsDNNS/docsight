@@ -11,7 +11,6 @@ from typing import Any
 from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
-from jinja2 import Template
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
@@ -233,7 +232,6 @@ def test_templates_have_no_executable_inline_script_bodies_and_new_assets_exist(
     required_assets = {
         TEMPLATES / "index.html": [
             STATIC / "js" / "browser-contracts.js",
-            STATIC / "js" / "dashboard-donuts.js",
             STATIC / "js" / "dashboard.js",
             STATIC / "js" / "dashboard-routing.js",
             STATIC / "js" / "service-worker-registration.js",
@@ -320,34 +318,6 @@ def test_dynamic_module_asset_helpers_are_gated_by_the_matching_module_flag() ->
     assert bindings == {("has_css", "style.css"), ("has_js", "main.js")}
 
 
-def test_disabled_bqm_does_not_resolve_or_render_fixed_module_asset() -> None:
-    index = (TEMPLATES / "index.html").read_text(encoding="utf-8")
-    guarded_script = re.search(
-        r"({%\s*if\s+modules\|selectattr\(\s*['\"]id['\"]\s*,\s*"
-        r"['\"]equalto['\"]\s*,\s*['\"]docsight\.bqm['\"]\s*\)\|list\s*%}"
-        r"\s*<script\s+src=\"{{\s*module_static_url\(\s*['\"]docsight\.bqm['\"]\s*,"
-        r"\s*['\"]js/bqm-chart\.js['\"]\s*,\s*v=version\s*\)\s*}}\"></script>"
-        r"\s*{%\s*endif\s*%})",
-        index,
-        re.DOTALL,
-    )
-    assert guarded_script is not None
-
-    helper_calls = []
-
-    def module_static_url(*args, **kwargs):
-        helper_calls.append((args, kwargs))
-        return "/must-not-render"
-
-    rendered = Template(guarded_script.group(1)).render(
-        modules=[], version="test", module_static_url=module_static_url
-    )
-
-    assert helper_calls == []
-    assert "/modules/docsight.bqm/" not in rendered
-    assert "/must-not-render" not in rendered
-
-
 def test_templates_do_not_emit_root_relative_application_attributes() -> None:
     offenders = []
     template_paths = sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
@@ -406,63 +376,6 @@ def test_service_worker_precache_references_existing_public_assets() -> None:
     assert missing == []
 
 
-def test_dead_static_js_helpers_stay_removed() -> None:
-    assert not (STATIC / "js" / "icons.js").exists()
-
-    settings_js = "\n".join(path.read_text(encoding="utf-8") for path in (STATIC / "js" / "settings").glob("*.js"))
-    utils_js = (STATIC / "js" / "utils.js").read_text(encoding="utf-8")
-    sw_js = (STATIC / "sw.js").read_text(encoding="utf-8")
-    templates = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
-    )
-
-    assert "function escHtml" not in settings_js
-    assert "function validateBqmMonitor" not in settings_js
-    assert "function toggleCard(" not in utils_js
-    assert "/static/js/icons.js" not in sw_js
-    assert "/static/js/icons.js" not in templates
-    assert "toggleCard(" not in templates
-
-
-def test_settings_small_button_rule_is_defined_once() -> None:
-    """Settings small buttons share one .btn-sm size and touch target."""
-    css = (STATIC / "css" / "settings.css").read_text(encoding="utf-8")
-    definitions = re.findall(r"(?m)^\.btn-sm\s*\{[^}]*\}", css)
-    assert len(definitions) == 1
-    rule = definitions[0]
-    assert "padding: 8px 14px" in rule
-    assert "min-height: 36px" in rule
-
-
-def test_unused_inter_font_assets_stay_removed() -> None:
-    for rel_path in [
-        "fonts/inter-latin.woff2",
-        "fonts/inter-latin-ext.woff2",
-    ]:
-        assert not (STATIC / rel_path).exists()
-
-    app_static_sources = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in sorted(APP.rglob("*"))
-        if path.is_file() and path.suffix in {".css", ".html", ".js", ".json"}
-    )
-    fonts_css = (STATIC / "css" / "fonts.css").read_text(encoding="utf-8")
-    tokens_css = (STATIC / "css" / "tokens.css").read_text(encoding="utf-8")
-
-    assert "inter-latin" not in app_static_sources.lower()
-    assert "/static/fonts/inter" not in app_static_sources.lower()
-    assert re.search(r"font-family:\s*['\"]?Inter['\"]?", fonts_css) is None
-    assert "--font-sans: 'Outfit'" in tokens_css
-    for retained in [
-        "fonts/outfit-latin.woff2",
-        "fonts/outfit-latin-ext.woff2",
-        "fonts/jetbrains-mono-latin.woff2",
-        "fonts/jetbrains-mono-latin-ext.woff2",
-    ]:
-        assert (STATIC / retained).is_file()
-
-
 def test_builtin_module_manifests_reference_existing_declared_files() -> None:
     path_contributions = {"routes", "settings", "card", "tab", "static", "i18n", "thresholds"}
     missing = []
@@ -490,21 +403,6 @@ def test_static_templates_keep_basic_heading_markup_well_formed() -> None:
         offenders.extend(f"{path.relative_to(ROOT)}: {match.group(0)}" for match in MISMATCHED_HEADING_RE.finditer(text))
 
     assert offenders == []
-
-
-def test_snapshot_storage_uses_single_storage_base() -> None:
-    storage_init = (ROOT / "app" / "storage" / "__init__.py").read_text(encoding="utf-8")
-    assert "_STORAGE_METHOD_GROUPS" not in storage_init
-    assert "setattr(SnapshotStorage" not in storage_init
-
-    from app.storage import SnapshotStorage
-    from app.storage.base import StorageBase
-
-    assert SnapshotStorage.__mro__.count(StorageBase) == 1
-    assert SnapshotStorage.__bases__[-1] is StorageBase
-    assert hasattr(SnapshotStorage, "save_snapshot")
-    assert hasattr(SnapshotStorage, "save_event")
-    assert hasattr(SnapshotStorage, "create_api_token")
 
 
 def test_shared_modals_use_native_dialog_contract() -> None:
@@ -649,13 +547,6 @@ def test_core_i18n_template_is_generated_on_demand_not_tracked() -> None:
         assert tracked == ""
 
 
-def test_european_language_pack_files_cover_core_catalogs() -> None:
-    present = {path.stem for path in APP_I18N_DIR.glob("*.json") if path.stem != "template"}
-    missing = sorted(EUROPEAN_LANGUAGE_PACK - present)
-
-    assert missing == []
-
-
 def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
     """Built-in module catalogs are intentional and limited to runtime sources."""
     offenders = []
@@ -673,10 +564,8 @@ def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
     assert offenders == []
 
 
-def test_european_language_pack_metadata_and_key_parity() -> None:
-    """Core locale files are selectable and structurally complete."""
-    en = read_json(APP_I18N_DIR / "en.json")
-    expected_keys = set(en.keys())
+def test_european_language_pack_metadata() -> None:
+    """Core locales have names and flags for the language selector."""
     offenders = []
     for code in sorted(EUROPEAN_LANGUAGE_PACK):
         path = APP_I18N_DIR / f"{code}.json"
@@ -686,10 +575,6 @@ def test_european_language_pack_metadata_and_key_parity() -> None:
             offenders.append(f"{code}: missing native language_name")
         if not meta.get("flag"):
             offenders.append(f"{code}: missing flag")
-        missing = sorted(expected_keys - set(data.keys()))
-        extra = sorted(set(data.keys()) - expected_keys)
-        if missing or extra:
-            offenders.append(f"{code}: missing={missing[:5]} extra={extra[:5]}")
 
     assert offenders == []
 

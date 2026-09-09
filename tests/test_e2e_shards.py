@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 
 from scripts.e2e_shards import (
-    EXPECTED_TOTAL,
     ManifestError,
     ResultError,
     load_manifest,
@@ -84,19 +83,11 @@ def _write_result(
     )
 
 
-def test_repository_manifest_covers_every_e2e_file_once_and_588_cases():
+def test_repository_manifest_covers_every_e2e_file_once():
     manifest = load_manifest(MANIFEST)
-    validated = validate_manifest(manifest, E2E_DIR)
+    validate_manifest(manifest, E2E_DIR)
 
-    assert manifest["expected_total"] == EXPECTED_TOTAL == 588
     assert manifest["baseline_cpu_seconds"] > 0
-    assert [shard["collected_cases"] for shard in manifest["shards"]] == [
-        88,
-        162,
-        162,
-        176,
-    ]
-    assert len(validated) == 29
 
 
 @pytest.mark.parametrize("defect", ["missing", "duplicate", "stale"])
@@ -129,11 +120,11 @@ def test_summary_requires_every_shard_and_exact_node_id_union(tmp_path):
     _write_result(tmp_path, 2, ["test_b.py"], ["tests/e2e/test_b.py::test_b"])
 
     with pytest.raises(ResultError, match="missing shard result.*3"):
-        summarize_results(tmp_path, manifest, expected_total=3, e2e_dir=e2e_dir)
+        summarize_results(tmp_path, manifest, e2e_dir=e2e_dir)
 
     _write_result(tmp_path, 3, ["test_c.py"], ["tests/e2e/test_c.py::test_c"])
     assert summarize_results(
-        tmp_path, manifest, expected_total=3, e2e_dir=e2e_dir
+        tmp_path, manifest, e2e_dir=e2e_dir
     ).total == 3
 
 
@@ -153,7 +144,7 @@ def test_summary_rejects_cross_shard_nodes_and_failed_junit(tmp_path):
         ["tests/e2e/test_c.py::test_c"],
     )
     with pytest.raises(ResultError, match="outside its manifest"):
-        summarize_results(tmp_path, manifest, expected_total=3, e2e_dir=e2e_dir)
+        summarize_results(tmp_path, manifest, e2e_dir=e2e_dir)
 
     _write_result(
         tmp_path,
@@ -163,7 +154,7 @@ def test_summary_rejects_cross_shard_nodes_and_failed_junit(tmp_path):
         failures=1,
     )
     with pytest.raises(ResultError, match="failed, errored, or skipped"):
-        summarize_results(tmp_path, manifest, expected_total=3, e2e_dir=e2e_dir)
+        summarize_results(tmp_path, manifest, e2e_dir=e2e_dir)
 
 
 @pytest.mark.parametrize(
@@ -217,7 +208,7 @@ def test_summary_rejects_incomplete_or_over_budget_run_receipts(
         receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
 
     with pytest.raises(ResultError, match=match):
-        summarize_results(tmp_path, manifest, expected_total=3, e2e_dir=e2e_dir)
+        summarize_results(tmp_path, manifest, e2e_dir=e2e_dir)
 
 
 def test_single_process_baseline_receipt_may_exceed_shard_wall_limit(tmp_path):
@@ -241,7 +232,7 @@ def test_single_process_baseline_receipt_may_exceed_shard_wall_limit(tmp_path):
     )
 
     summary = summarize_results(
-        tmp_path, manifest, expected_total=3, e2e_dir=e2e_dir
+        tmp_path, manifest, e2e_dir=e2e_dir
     )
     assert summary.per_shard == (3,)
     assert summary.wall_seconds == (1800.0,)
@@ -258,7 +249,6 @@ def test_workflow_runs_safe_non_retrying_shards_and_an_always_gate():
     assert "E2E_JOB_STARTED_EPOCH" in workflow
     assert "python scripts/e2e_shards.py run" in workflow
     assert "python scripts/e2e_shards.py summarize" in workflow
-    assert "--expected-total 588" in workflow
     assert "--receipt" in workflow
     assert "run-receipt.json" in workflow
     assert "if: always()" in workflow

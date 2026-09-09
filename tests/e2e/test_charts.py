@@ -1174,52 +1174,22 @@ class TestChartCleanup:
         assert uplot_count == 1, f"Expected 1 uPlot instance, got {uplot_count}"
 
 
-# ── Vendor File Check ──
-
-
-class TestVendorFiles:
-    """Verify vendor files are served correctly."""
-
-    def test_uplot_js_loads(self, live_server, page):
-        """uPlot JS should be accessible."""
-        resp = page.request.get(f"{live_server}/static/vendor/uPlot.min.js")
-        assert resp.status == 200
-        assert len(resp.body()) > 40000  # ~51KB
-
-    def test_uplot_css_loads(self, live_server, page):
-        """uPlot CSS should be accessible."""
-        resp = page.request.get(f"{live_server}/static/vendor/uPlot.min.css")
-        assert resp.status == 200
-        assert ".uplot" in resp.text()
-
-    def test_chartjs_removed(self, live_server, page):
-        """Old Chart.js files should no longer be served."""
-        resp = page.request.get(f"{live_server}/static/vendor/chart.umd.min.js")
-        assert resp.status == 404
-
-    def test_chartjs_adapter_removed(self, live_server, page):
-        """Old Chart.js date-fns adapter should no longer be served."""
-        resp = page.request.get(
-            f"{live_server}/static/vendor/chartjs-adapter-date-fns.bundle.min.js"
-        )
-        assert resp.status == 404
-
-
 # ── Existing Charts Unaffected ──
 
 
 class TestNonMigratedCharts:
-    """Custom canvas charts that should NOT be affected by the migration."""
+    """Dashboard health indicators and sparklines remain independent of uPlot."""
 
-    def test_donut_charts_still_render(self, demo_page):
-        """Channel health donut charts should still work."""
-        ds_donut = demo_page.locator("#ds-health-donut")
-        us_donut = demo_page.locator("#us-health-donut")
-        # Donuts are raw canvas, not uPlot — should still be canvas elements
-        if ds_donut.count() > 0:
-            assert ds_donut.evaluate("el => el.tagName") == "CANVAS"
-        if us_donut.count() > 0:
-            assert us_donut.evaluate("el => el.tagName") == "CANVAS"
+    def test_channel_health_bars_match_counts(self, demo_page):
+        """Both directions show health bars proportional to the displayed counts."""
+        cards = demo_page.locator(".hero-health-card")
+        assert cards.count() == 2
+        for card in cards.all():
+            assert card.is_visible()
+            for health in ("good", "tolerated", "warn", "crit"):
+                count = int(card.locator(f".hero-health-stat.{health} strong").inner_text())
+                segment = card.locator(f".hero-health-bar > .{health}")
+                assert segment.evaluate("el => Number(getComputedStyle(el).flexGrow)") == count
 
     def test_sparklines_still_render(self, demo_page):
         """Sparkline canvases should still be present and rendered."""

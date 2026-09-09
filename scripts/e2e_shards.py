@@ -24,7 +24,6 @@ except ImportError:  # pragma: no cover - Windows can validate manifests only
 ROOT = Path(__file__).resolve().parents[1]
 E2E_DIR = ROOT / "tests" / "e2e"
 DEFAULT_MANIFEST = E2E_DIR / "shards.json"
-EXPECTED_TOTAL = 588
 
 
 class ManifestError(ValueError):
@@ -202,10 +201,10 @@ def summarize_results(
     results_root: Path,
     manifest: dict,
     *,
-    expected_total: int,
     e2e_dir: Path = E2E_DIR,
 ) -> ResultSummary:
     canonical_files = list(validate_manifest(manifest, e2e_dir))
+    expected_total = manifest["expected_total"]
     metadata_paths = sorted(results_root.rglob("shard-metadata.json"))
     by_shard = {}
     for metadata_path in metadata_paths:
@@ -524,7 +523,6 @@ def _parser() -> argparse.ArgumentParser:
 
     summary_parser = subparsers.add_parser("summarize")
     summary_parser.add_argument("--results-root", type=Path, required=True)
-    summary_parser.add_argument("--expected-total", type=int, default=EXPECTED_TOTAL)
     return parser
 
 
@@ -549,7 +547,6 @@ def main(argv: list[str] | None = None) -> int:
             summary = summarize_results(
                 args.results_root,
                 manifest,
-                expected_total=args.expected_total,
             )
             print(
                 f"complete E2E union: {summary.total} cases "
