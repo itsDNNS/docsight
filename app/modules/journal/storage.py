@@ -74,6 +74,11 @@ class JournalStorage:
           0 -> only unassigned (WHERE incident_id IS NULL)
           N -> only entries for incident N
         """
+        return self._query_entries(limit=limit, offset=offset, search=search, incident_id=incident_id)
+
+    def _query_entries(self, *, limit=-1, offset=0, search=None, incident_id=None,
+                       date_from=None, date_to=None):
+        """Select entries for lists and exports; SQLite LIMIT -1 means no limit."""
         query = (
             "SELECT i.id, i.date, i.title, i.description, i.icon, i.incident_id, i.created_at, i.updated_at, "
             "(SELECT COUNT(*) FROM journal_attachments WHERE entry_id = i.id) AS attachment_count "
@@ -81,6 +86,12 @@ class JournalStorage:
         )
         conditions = []
         params = []
+        if date_from:
+            conditions.append("i.date >= ?")
+            params.append(date_from)
+        if date_to:
+            conditions.append("i.date <= ?")
+            params.append(date_to)
         if search:
             conditions.append("(i.title LIKE ? OR i.description LIKE ? OR i.date LIKE ?)")
             like = "%" + search + "%"
@@ -196,31 +207,9 @@ class JournalStorage:
             date_to: Optional end date (YYYY-MM-DD), inclusive.
             incident_id: None=all, 0=unassigned, N=specific incident.
         """
-        query = (
-            "SELECT i.id, i.date, i.title, i.description, i.icon, i.incident_id, i.created_at, i.updated_at, "
-            "(SELECT COUNT(*) FROM journal_attachments WHERE entry_id = i.id) AS attachment_count "
-            "FROM journal_entries i"
+        return self._query_entries(
+            date_from=date_from, date_to=date_to, incident_id=incident_id,
         )
-        conditions = []
-        params = []
-        if date_from:
-            conditions.append("i.date >= ?")
-            params.append(date_from)
-        if date_to:
-            conditions.append("i.date <= ?")
-            params.append(date_to)
-        if incident_id is not None:
-            if incident_id == 0:
-                conditions.append("i.incident_id IS NULL")
-            else:
-                conditions.append("i.incident_id = ?")
-                params.append(incident_id)
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY i.date DESC, i.created_at DESC"
-        with self._read() as conn:
-            rows = conn.execute(query, params).fetchall()
-        return [dict(r) for r in rows]
 
     # ── Incident Containers ──
 
@@ -301,15 +290,7 @@ class JournalStorage:
 
     def unassign_entries(self, entry_ids):
         """Remove incident assignment from journal entries. Returns count."""
-        if not entry_ids:
-            return 0
-        placeholders = ",".join("?" for _ in entry_ids)
-        with self._write() as conn:
-            rowcount = conn.execute(
-                "UPDATE journal_entries SET incident_id = NULL WHERE id IN (%s)" % placeholders,
-                list(entry_ids),
-            ).rowcount
-        return rowcount
+        return self.assign_entries_to_incident(entry_ids, None)
 
     def assign_entries_by_date_range(self, incident_id, start_date, end_date):
         """Assign all journal entries in a date range to an incident. Returns count."""
