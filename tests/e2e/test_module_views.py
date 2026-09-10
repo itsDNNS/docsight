@@ -132,16 +132,27 @@ def test_prefixed_module_hash_navigation_and_script_urls(page, prefixed_module_s
 
 
 @pytest.mark.parametrize("theme,width", [("light", 1280), ("dark", 1280), ("light", 390), ("dark", 390)])
-def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, width):
+@pytest.mark.parametrize("has_png", [False, True], ids=["csv-only", "csv-and-png"])
+def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, width, has_png):
     """Real controls and uPlot callbacks retain the selected view with sparse CSV data."""
     from datetime import datetime, timezone
+    from io import BytesIO
 
+    from PIL import Image
+
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
     page.clock.install(time=datetime(2026, 6, 15, 12, tzinfo=timezone.utc))
     page.set_viewport_size({"width": width, "height": 844})
     dates = ["2026-06-15", "2026-06-14", "2026-06-12"]
     page.route("**/api/bqm/data/dates", lambda route: route.fulfill(json={
-        "csv_dates": dates, "png_dates": [],
+        "csv_dates": dates, "png_dates": dates if has_png else [],
     }))
+    png = BytesIO()
+    Image.new("RGB", (64, 32), "blue").save(png, format="PNG")
+    page.route("**/api/bqm/image/2026-*", lambda route: route.fulfill(
+        content_type="image/png", body=png.getvalue(),
+    ))
     # Both multi-day selections deliberately contain only a single day's samples.
     payload = {"points": 2, "data": {
         "timestamps": ["2026-06-15T12:00:00", "2026-06-15T12:05:00"],
@@ -183,9 +194,29 @@ def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, wid
 
     selection("today")
     for name in ("today", "yesterday", "7d", "30d"):
+        if name == "yesterday":
+            page.evaluate("startBqmLiveRefresh()")
         click_chart(f"#bqm-{name}-btn")
         selection(name)
         axis(name in ("7d", "30d"))
+        if name in ("today", "yesterday"):
+            date = dates[0] if name == "today" else dates[1]
+            assert page.evaluate("[_bqmRangeStart, _bqmRangeEnd]") == [date, date]
+            assert page.evaluate("_bqmLiveTimer === null")
+            if has_png:
+                expect(page.locator("#bqm-view-toggle")).to_be_visible()
+                page.locator("#bqm-toggle-png").click()
+                image = page.locator("#bqm-image")
+                expect(image).to_be_visible()
+                expect(image).to_have_attribute("src", "/api/bqm/image/" + date)
+                page.wait_for_function("() => document.getElementById('bqm-image').naturalWidth === 64")
+                assert page.evaluate("!charts['bqm-chart-container']")
+                click_chart("#bqm-toggle-uplot")
+                axis(False)
+            else:
+                expect(page.locator("#bqm-view-toggle")).not_to_be_visible()
+        else:
+            expect(page.locator("#bqm-view-toggle")).not_to_be_visible()
     page.locator("#bqm-month-prev").click()
     selection("30d")
     page.locator("#bqm-month-next").click()
@@ -198,3 +229,4 @@ def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, wid
     click_chart("#bqm-yesterday-btn")
     selection("yesterday")
     axis(False)
+    assert errors == []

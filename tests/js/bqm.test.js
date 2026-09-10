@@ -15,16 +15,22 @@ function setup() {
     }
     for (const id of ['today', 'yesterday', '7d', '30d']) element('bqm-' + id + '-btn');
     element('bqm-calendar-grid'); element('bqm-month-label');
+    element('bqm-view-toggle'); element('bqm-range-label');
+    const requests = [];
+    class FixedDate extends Date {
+        constructor(...args) { super(...(args.length ? args : ['2026-01-02T12:00:00'])); }
+    }
     const c = vm.createContext({document: {getElementById: id => elements[id], createElement: () => element('cell')},
+        Date: FixedDate,
         T: {}, todayStr: () => '2026-01-02', pad: n => String(n).padStart(2, '0'),
         formatDateDE: s => s, clearTimeout() {}, docsightUrl: s => s,
-        fetch: async () => ({json: async () => ({points: 1, data: {}})}),
+        fetch: async url => { requests.push(url); return {json: async () => ({points: 1, data: {}})}; },
         BQMChart: {render(...args) { c.rendered = args; }}});
     c.window = c;
     run(c, 'app/modules/bqm/static/main.js');
     c._bqmCsvDates = new Set(['2026-01-02', '2026-01-01', '2025-12-30']);
     c._bqmAvailableDates = c._bqmCsvDates;
-    return {c, elements};
+    return {c, elements, requests};
 }
 function selected(elements, expected) {
     for (const name of ['today', 'yesterday', '7d', '30d']) {
@@ -57,6 +63,44 @@ test('loaders pass selected date mode even for sparse responses', async () => {
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(c.rendered[2].dateAxis, false);
 });
+for (const [name, date] of [['today', '2026-01-02'], ['yesterday', '2026-01-01']]) {
+    test(name + ' shows both formats, stops live refresh and retains the image deletion range', async () => {
+        const {c, elements, requests} = setup();
+        const clearedTimers = [];
+        c.clearTimeout = timer => clearedTimers.push(timer);
+        c._bqmPngDates = new Set([date]);
+        c._bqmLiveTimer = 42;
+        c._bqmRangeStart = '2025-12-04';
+        c._bqmRangeEnd = '2026-01-02';
+        c.bqmMonthNav(-1);
+
+        elements['bqm-' + name + '-btn'].click();
+        await new Promise(resolve => setImmediate(resolve));
+
+        assert.equal(c._bqmLiveTimer, null);
+        assert.equal(elements['bqm-view-toggle'].style.display, 'flex');
+        assert.deepEqual(requests, ['/api/bqm/data/' + date]);
+        assert.equal(c.bqmDate, date);
+        assert.equal(c._bqmRangeStart, date);
+        assert.equal(c._bqmRangeEnd, date);
+        assert.deepEqual(clearedTimers, [42]);
+        assert.equal(elements['bqm-range-label'].textContent, date + ' \u2013 ' + date + ' (1)');
+        assert.equal(elements['bqm-month-label'].textContent, 'January 2026');
+        assert.equal(c.rendered[2].dateAxis, false);
+        selected(elements, name);
+
+        let deletion;
+        c.docsightConfirm = async () => true;
+        c.showToast = () => {};
+        c.fetch = async (url, opts) => {
+            if (opts && opts.method === 'DELETE') deletion = {url, body: JSON.parse(opts.body)};
+            return {json: async () => ({deleted: 1})};
+        };
+        c.deleteBqmImages();
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(deletion, {url: '/api/bqm/images', body: {start: date, end: date}});
+    });
+}
 test('BQM axis uses dates for sparse ranges and retains time in tooltip labels', () => {
     let rendered;
     const c = vm.createContext({window: {}, document: {getElementById: id => ({id})}, T: {},

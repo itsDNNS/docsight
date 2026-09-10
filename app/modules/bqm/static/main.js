@@ -197,6 +197,10 @@ function loadBqmChart(date) {
 }
 
 function loadBqmRangeChart(start, end) {
+    if (start === end) {
+        loadBqmChart(start);
+        return;
+    }
     setBqmViewMode('chart');
     hideBqmLiveBadge();
     var toggle = document.getElementById('bqm-view-toggle');
@@ -208,7 +212,7 @@ function loadBqmRangeChart(start, end) {
                 showBqmNoData(T.bqm_csv_dates_only || 'This range only has PNG fallback data.');
                 return;
             }
-            BQMChart.render('bqm-chart-container', data, { dateAxis: start !== end });
+            BQMChart.render('bqm-chart-container', data, { dateAxis: true });
             showBqmCard();
         })
         .catch(function() {
@@ -253,8 +257,8 @@ function initBqmCalendar() {
     });
 }
 
-function setBqmQuickRange(days) {
-    var endDate = todayStr();
+function setBqmQuickRange(days, endDate) {
+    endDate = endDate || todayStr();
     var end = new Date(endDate + 'T12:00:00');
     var start = new Date(end);
     start.setDate(start.getDate() - (days - 1));
@@ -297,14 +301,7 @@ if (bqmYesterdayBtn) bqmYesterdayBtn.addEventListener('click', function() {
         selectBqmQuickDate(yd);
         return;
     }
-    _bqmRangeStart = yd;
-    _bqmRangeEnd = yd;
-    bqmDate = yd;
-    _bqmCalYear = d.getFullYear();
-    _bqmCalMonth = d.getMonth();
-    updateBqmRangeLabel();
-    renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
-    loadBqmRangeChart(yd, yd);
+    setBqmQuickRange(1, yd);
 });
 if (bqm7dBtn) bqm7dBtn.addEventListener('click', function() { setBqmQuickRange(7); });
 if (bqm30dBtn) bqm30dBtn.addEventListener('click', function() { setBqmQuickRange(30); });
