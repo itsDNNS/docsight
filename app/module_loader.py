@@ -16,7 +16,7 @@ from app.module_contributions import (
     _PROTECTED_API_PREFIXES, _PROTECTED_ROUTES,
     _read_json_contribution,
     attach_builtin_python_contributions, load_module_collector,
-    load_module_publisher, load_module_routes, merge_module_i18n,
+    load_module_driver, load_module_publisher, load_module_routes, merge_module_i18n,
     module_static_endpoint, module_static_url,
     resolve_module_contribution,
     setup_module_static, setup_module_templates, validate_theme,

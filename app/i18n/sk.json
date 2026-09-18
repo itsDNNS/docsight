@@ -575,6 +575,7 @@
   "modules_none": "Nie sú nainštalované žiadne moduly",
   "modules_builtin": "Vstavané",
   "modules_community": "komunita",
+  "modules_type_driver": "Ovládač",
   "modules_error": "Chyba",
   "modules_active_profile": "Aktívny profil",
   "modules_restart_banner": "Zmeny modulu vyžadujú reštart, aby sa prejavili.",

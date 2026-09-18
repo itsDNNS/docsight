@@ -62,6 +62,7 @@ class ModuleContribution:
     template_dir: str | None = field(default=None, compare=False, repr=False)
     collector_class: type | None = field(default=None, compare=False, repr=False)
     publisher_class: type | None = field(default=None, compare=False, repr=False)
+    driver_class: type | None = field(default=None, compare=False, repr=False)
     thresholds_data: dict[str, object] | None = field(default=None, compare=False, repr=False)
     theme_data: dict[str, object] | None = field(default=None, compare=False, repr=False)
     has_css: bool = False
@@ -242,6 +243,13 @@ def register_plan(app: Flask, plan: RegistrationPlan) -> None:
     validate_plan(
         plan, existing=existing_rules(app), existing_blueprints=tuple(app.blueprints)
     )
+    complete = previous.combined(plan)
+    from .drivers import create_driver_registry
+    drivers = create_driver_registry()
+    for contribution in complete.modules:
+        if contribution.driver_class is not None:
+            drivers.register_module_driver(contribution.module_id, contribution.driver_class,
+                                    contribution.info.name, contribution.info.hints)
     for rule in plan.rules:
         app.add_url_rule(
             rule.rule, endpoint=rule.endpoint, view_func=rule.view,
@@ -250,7 +258,6 @@ def register_plan(app: Flask, plan: RegistrationPlan) -> None:
     for blueprint in plan.blueprints:
         app.register_blueprint(blueprint.blueprint)
 
-    complete = previous.combined(plan)
     if any((complete.modules, complete.module_secret_keys,
             complete.module_secret_owners, complete.builtin_private_keys)):
         cfg.set_module_secret_registry(
@@ -270,7 +277,7 @@ def register_plan(app: Flask, plan: RegistrationPlan) -> None:
         info = contribution.info
         info.template_paths = dict(contribution.template_paths)
         for name in (
-            "collector_class", "publisher_class", "thresholds_data",
+            "collector_class", "publisher_class", "driver_class", "thresholds_data",
             "theme_data", "has_css", "has_js",
         ):
             setattr(info, name, getattr(contribution, name))
@@ -286,6 +293,9 @@ def register_plan(app: Flask, plan: RegistrationPlan) -> None:
             template_dirs.add(directory)
     if len(template_loaders) > 1:
         app.jinja_loader = ChoiceLoader(template_loaders)
+    app.extensions["docsight_driver_registry"] = drivers
+    if "docsight" in app.extensions:
+        app.extensions["docsight"].driver_registry = drivers
     app.extensions["docsight_registration_plan"] = complete
     app.extensions["docsight_applied_registration_plans"] = (*applied, plan)
 

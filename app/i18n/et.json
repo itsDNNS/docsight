@@ -575,6 +575,7 @@
   "modules_none": "Mooduleid pole installitud",
   "modules_builtin": "Sisseehitatud",
   "modules_community": "Kogukond",
+  "modules_type_driver": "Draiver",
   "modules_error": "Viga",
   "modules_active_profile": "Aktiivne profiil",
   "modules_restart_banner": "Mooduli muudatuste jõustumiseks on vaja taaskäivitamist.",

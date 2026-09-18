@@ -235,4 +235,19 @@ See the **[DOCSight Community Modules](https://github.com/itsDNNS/docsight-modul
 
 ## Adding Modem Support
 
+Community modem driver support is restored on main and in images built from this fix. The tagged v2026-09-16.1 release does not include this restoration.
+Use `type: driver` and `contributes.driver: driver.py:ClassName` with a concrete
+`ModemDriver` subclass. The manifest ID is the selection key. An exact built-in
+key explicitly overrides that driver in the application registry. The module
+name replaces its display name; absent or empty hints inherit the built-in
+hints, while nonempty hints replace them entirely. Disabling or removing the
+override restores the original built-in driver, name and hints after restart.
+Install only trusted Python code: modules receive credentials and are not
+sandboxed. Install modules under `/data/modules` (or set
+`MODULES_DIR=/modules` for a legacy mount). Driver classes resolve in module
+preflight and register only when the complete plan is applied to an app.
+Do not mutate the global built-in registry or add a second startup hook.
+Test discovery, application isolation, setup/settings selection, connection
+testing and polling with an inert driver.
+
 See the **[Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support)** wiki page for the full guide, including raw data format, analyzer output reference, and wanted drivers.

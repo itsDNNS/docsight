@@ -575,6 +575,7 @@
   "modules_none": "Ni nameščenih modulov",
   "modules_builtin": "Vgrajen",
   "modules_community": "Skupnost",
+  "modules_type_driver": "Gonilnik",
   "modules_error": "Napaka",
   "modules_active_profile": "Aktivni profil",
   "modules_restart_banner": "Spremembe modula zahtevajo ponovni zagon, da začnejo veljati.",

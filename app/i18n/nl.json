@@ -575,6 +575,7 @@
   "modules_none": "Geen modules geïnstalleerd",
   "modules_builtin": "Ingebouwd",
   "modules_community": "Gemeenschap",
+  "modules_type_driver": "Stuurprogramma",
   "modules_error": "Fout",
   "modules_active_profile": "Actief profiel",
   "modules_restart_banner": "Modulewijzigingen vereisen een herstart om van kracht te worden.",

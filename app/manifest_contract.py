@@ -12,14 +12,17 @@ if __package__ in (None, ""):
 
 import argparse
 import json
+import ipaddress
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 
-VALID_TYPES = frozenset({"integration", "analysis", "theme"})
+VALID_TYPES = frozenset({"driver", "integration", "analysis", "theme"})
 VALID_CONTRIBUTES = frozenset(
     {
+        "driver",
         "collector",
         "routes",
         "settings",
@@ -58,6 +61,44 @@ OPTIONAL_FIELDS = frozenset(
 )
 ALLOWED_FIELDS = REQUIRED_FIELDS | OPTIONAL_FIELDS
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
+
+
+def valid_driver_hints(module_id: object, hints: object) -> bool:
+    """Match the settings/setup browser contract before publishing driver hints."""
+    if (not isinstance(module_id, str) or len(module_id) > 128
+            or module_id in {"constructor", "prototype", "__proto__"}
+            or not isinstance(hints, dict)):
+        return False
+    booleans = {"needs_user", "needs_password", "username_required", "credentials_required"}
+    strings = {"default_url", "default_user", "url_hint", "user_hint", "password_hint"}
+    for key, value in hints.items():
+        if key in booleans:
+            if not isinstance(value, bool):
+                return False
+        elif key in strings:
+            if value is not None and (not isinstance(value, str) or len(value.encode("utf-16-le", errors="surrogatepass")) > 40000):
+                return False
+        else:
+            return False
+    url = hints.get("default_url")
+    if url:
+        try:
+            parsed = urlsplit(url)
+            if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+                    or parsed.username or parsed.password
+                    or any(c.isspace() or ord(c) < 32 or c == "\\" for c in url)):
+                return False
+            parsed.port
+            host = parsed.hostname.encode("idna").decode("ascii").rstrip(".")
+            if "%" in host:
+                return False
+            if ":" in host or host.rsplit(".", 1)[-1].isdigit() or host.rsplit(".", 1)[-1].startswith("0x"):
+                ipaddress.ip_address(host)
+            elif not re.fullmatch(r"[A-Za-z0-9_.-]+", host):
+                return False
+        except (ValueError, UnicodeError):
+            return False
+    return True
 
 
 def _validate_unique_string_list(
@@ -135,7 +176,7 @@ def validate_manifest_contract(
                 )
             if module_type == "theme":
                 forbidden = sorted(
-                    {"collector", "routes", "publisher"} & set(contributes)
+                    {"collector", "routes", "publisher", "driver"} & set(contributes)
                 )
                 if forbidden:
                     errors.append(
@@ -143,6 +184,13 @@ def validate_manifest_contract(
                         + ", ".join(forbidden)
                         + " (security)"
                     )
+
+            if module_type == "driver" or "driver" in contributes:
+                forbidden = sorted({"collector", "publisher"} & set(contributes))
+                if forbidden:
+                    errors.append("Driver modules must not contribute " + ", ".join(forbidden))
+                if not valid_driver_hints(module_id, raw.get("hints", {})):
+                    errors.append("Invalid driver hints or driver key")
 
     config = raw.get("config", {})
     if not isinstance(config, dict):

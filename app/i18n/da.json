@@ -575,6 +575,7 @@
   "modules_none": "Ingen moduler installeret",
   "modules_builtin": "Indbygget",
   "modules_community": "Fællesskab",
+  "modules_type_driver": "Driver",
   "modules_error": "Fejl",
   "modules_active_profile": "Aktiv profil",
   "modules_restart_banner": "Modulændringer kræver en genstart for at træde i kraft.",

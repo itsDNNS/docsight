@@ -575,6 +575,7 @@
   "modules_none": "Nu există module instalate",
   "modules_builtin": "Încorporat",
   "modules_community": "Comunitate",
+  "modules_type_driver": "Driver",
   "modules_error": "Eroare",
   "modules_active_profile": "Profil activ",
   "modules_restart_banner": "Modificările la modul necesită o repornire pentru a intra în vigoare.",

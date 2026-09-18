@@ -575,6 +575,7 @@
   "modules_none": "Nejsou nainstalovány žádné moduly",
   "modules_builtin": "Vestavěný",
   "modules_community": "Komunita",
+  "modules_type_driver": "Ovladač",
   "modules_error": "Chyba",
   "modules_active_profile": "Aktivní profil",
   "modules_restart_banner": "Změny modulu vyžadují restart, aby se projevily.",

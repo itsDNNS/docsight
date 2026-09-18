@@ -58,6 +58,33 @@ class TestDriverRegistry:
         assert self.reg.get_all_type_keys() == {"fake"}
 
 
+    @pytest.mark.parametrize("hints", [None, {}, {"default_user": "community"}])
+    def test_matching_key_override_inherits_or_replaces_hints(self, hints):
+        builtin_hints = {"default_user": "builtin", "needs_password": True}
+        self.reg.register_builtin(
+            "flagged", "tests.test_driver_registry.FlagDriver", "Builtin",
+            hints=builtin_hints, init_kwargs={"force_mode": True},
+        )
+        app_registry = self.reg.copy_builtins()
+        app_registry.register_module_driver("flagged", FakeDriver, "Community", hints)
+        assert app_registry.get_available_drivers() == [("flagged", "Community")]
+        assert app_registry.get_driver_hints()["flagged"] == (hints or builtin_hints)
+        assert not app_registry.is_builtin("flagged")
+        driver = app_registry.load_driver("flagged", "http://example.invalid", "user", "password")
+        assert type(driver) is FakeDriver
+        assert (driver._url, driver._user, driver._password) == (
+            "http://example.invalid", "user", "password")
+        assert self.reg.is_builtin("flagged")
+        assert self.reg.get_available_drivers() == [("flagged", "Builtin")]
+        assert self.reg.get_driver_hints()["flagged"] == builtin_hints
+        assert self.reg.load_driver("flagged", "", "", "").force_mode is True
+        if hints:
+            hints["default_user"] = "changed"
+            assert app_registry.get_driver_hints()["flagged"]["default_user"] == "community"
+        with pytest.raises(ValueError, match="already registered"):
+            app_registry.register_module_driver("flagged", FlagDriver, "Duplicate")
+
+
 class TestGenericDriver:
     def setup_method(self):
         from app.drivers.generic import GenericDriver

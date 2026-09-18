@@ -86,10 +86,11 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
         )]
     # Modem collector (available if modem configured)
     if config_mgr.is_configured():
-        from ..drivers import driver_registry
+        from ..drivers import get_driver_registry
+        driver_registry = get_driver_registry(web)
 
         modem_type = config.get("modem_type", "fritzbox")
-        driver = driver_registry.load_driver(
+        driver = driver_registry.load_for_polling(
             modem_type,
             config["modem_url"],
             config["modem_user"],
