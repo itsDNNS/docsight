@@ -323,38 +323,23 @@ class TestContributesPathTraversal:
         assert "../../../var/www" not in mod.error
 
 
-def test_driver_is_not_valid_contributes():
-    from app.module_loader import VALID_CONTRIBUTES
-    assert "driver" not in VALID_CONTRIBUTES
+@pytest.mark.parametrize("module_type", ["driver", "integration", "analysis", "theme"])
+@pytest.mark.parametrize("extra", ["collector", "publisher"])
+def test_driver_contributions_cannot_combine_collectors_or_publishers(module_type, extra):
+    raw = {
+        "id": "community.example", "name": "Example", "description": "Example",
+        "version": "1.0", "author": "Test", "minAppVersion": "2026.2",
+        "type": module_type, "contributes": {"driver": "driver.py:Example", extra: "code.py:Example"},
+    }
+    with pytest.raises(ManifestError, match="must not contribute"):
+        validate_manifest(raw, "/path")
 
 
-class TestDriverModuleSecurity:
-    def test_driver_module_type_is_not_supported(self):
-        raw = {
-            "id": "community.mydriver",
-            "name": "My Driver",
-            "description": "A driver",
-            "version": "1.0.0",
-            "author": "Test",
-            "minAppVersion": "2026.2",
-            "type": "driver",
-            "contributes": {},
-        }
-
-        with pytest.raises(ManifestError, match="Invalid type"):
-            validate_manifest(raw, "/path")
-
-    def test_driver_contribution_is_not_supported(self):
-        raw = {
-            "id": "community.mydriver",
-            "name": "My Driver",
-            "description": "A driver",
-            "version": "1.0.0",
-            "author": "Test",
-            "minAppVersion": "2026.2",
-            "type": "integration",
-            "contributes": {"driver": "driver.py:MyDriver"},
-        }
-
-        with pytest.raises(ManifestError, match="Unknown contributes keys"):
-            validate_manifest(raw, "/path")
+def test_theme_cannot_contribute_driver():
+    raw = {
+        "id": "community.example", "name": "Example", "description": "Example",
+        "version": "1.0", "author": "Test", "minAppVersion": "2026.2",
+        "type": "theme", "contributes": {"driver": "driver.py:Example"},
+    }
+    with pytest.raises(ManifestError, match="Theme modules must not contribute driver"):
+        validate_manifest(raw, "/path")

@@ -575,6 +575,7 @@
   "modules_none": "Δεν έχουν εγκατασταθεί λειτουργικές μονάδες",
   "modules_builtin": "Ενσωματωμένη",
   "modules_community": "Κοινότητα",
+  "modules_type_driver": "Πρόγραμμα οδήγησης",
   "modules_error": "Σφάλμα",
   "modules_active_profile": "Ενεργό προφίλ",
   "modules_restart_banner": "Οι αλλαγές της ενότητας απαιτούν επανεκκίνηση για να ισχύσουν.",

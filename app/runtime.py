@@ -15,6 +15,9 @@ from typing import Any, TypeVar
 import requests
 from flask import Flask, current_app
 
+from .drivers import create_driver_registry
+from .drivers.registry import DriverRegistry
+
 
 DOCSIGHT_EXTENSION_KEY = "docsight"
 _GITHUB_RELEASE_URL = "https://api.github.com/repos/itsDNNS/docsight/releases/latest"
@@ -350,6 +353,7 @@ class DocsightRuntime:
     login_rate_limiter: LoginRateLimiter = field(default_factory=LoginRateLimiter, repr=False)
     derived_storage: DerivedStorageCache = field(default_factory=DerivedStorageCache, repr=False)
     module_loader: Any | None = field(default=None, repr=False)
+    driver_registry: DriverRegistry = field(default_factory=create_driver_registry, repr=False)
     modem_collector: Any | None = field(default=None, repr=False)
     collectors: list[Any] = field(default_factory=list, repr=False)
     last_manual_poll: float = field(default=0.0, repr=False)

@@ -575,6 +575,7 @@
   "modules_none": "Níl aon mhodúil suiteáilte",
   "modules_builtin": "Insuite",
   "modules_community": "Pobail",
+  "modules_type_driver": "Tiománaí",
   "modules_error": "Earráid",
   "modules_active_profile": "Próifíl Ghníomhach",
   "modules_restart_banner": "Teastaíonn atosú ó athruithe modúil le go dtiocfaidh siad i bhfeidhm.",

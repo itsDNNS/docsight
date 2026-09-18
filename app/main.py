@@ -333,8 +333,8 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
                         modem_config_key[0], new_key[0],
                     )
                     from .collectors.modem import ModemCollector
-                    from .drivers import driver_registry
-                    new_driver = driver_registry.load_driver(*new_key)
+                    from .drivers import get_driver_registry
+                    new_driver = get_driver_registry(runtime).load_for_polling(*new_key)
                     new_modem = ModemCollector(
                         driver=new_driver,
                         analyzer_fn=analyzer.analyze,

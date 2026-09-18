@@ -575,6 +575,7 @@
   "modules_none": "Nincsenek telepítve modulok",
   "modules_builtin": "Beépített",
   "modules_community": "közösség",
+  "modules_type_driver": "Illesztőprogram",
   "modules_error": "Hiba",
   "modules_active_profile": "Aktív profil",
   "modules_restart_banner": "A modul módosításai újraindítást igényelnek, hogy életbe lépjenek.",

@@ -575,6 +575,7 @@
   "modules_none": "Brak zainstalowanych modułów",
   "modules_builtin": "Wbudowane",
   "modules_community": "Społeczność",
+  "modules_type_driver": "Sterownik",
   "modules_error": "Błąd",
   "modules_active_profile": "Aktywny profil",
   "modules_restart_banner": "Zmiany modułów wymagają ponownego uruchomienia, aby zaczęły obowiązywać.",

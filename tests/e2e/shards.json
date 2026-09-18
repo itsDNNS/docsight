@@ -1,12 +1,13 @@
 {
   "version": 1,
-  "expected_total": 585,
+  "expected_total": 586,
   "baseline_cpu_seconds": 1534.372,
   "shards": [
     {
       "id": 1,
-      "collected_cases": 92,
+      "collected_cases": 93,
       "files": [
+        "test_community_drivers.py",
         "test_connection_monitor.py",
         "test_event_log_redesign.py",
         "test_i18n.py",

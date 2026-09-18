@@ -65,6 +65,22 @@ driver_registry.register_builtin("generic", "app.drivers.generic.GenericDriver",
                                  hints={"credentials_required": False})
 
 
+def create_driver_registry():
+    """Start an application with the unchanged built-in catalog."""
+    return driver_registry.copy_builtins()
+
+
+def get_driver_registry(runtime=None):
+    """Resolve explicit collector ownership or the active HTTP application."""
+    if runtime is None:
+        from flask import has_app_context
+        if has_app_context():
+            from ..runtime import current_runtime
+            runtime = current_runtime()
+    registry = getattr(runtime, "driver_registry", None)
+    return registry if isinstance(registry, DriverRegistry) else driver_registry
+
+
 def load_driver(modem_type, url, user, password):
     """Backward-compatible wrapper around driver_registry.load_driver()."""
-    return driver_registry.load_driver(modem_type, url, user, password)
+    return get_driver_registry().load_driver(modem_type, url, user, password)

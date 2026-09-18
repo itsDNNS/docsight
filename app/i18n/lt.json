@@ -575,6 +575,7 @@
   "modules_none": "Modulių neįdiegta",
   "modules_builtin": "Integruota",
   "modules_community": "bendruomenė",
+  "modules_type_driver": "Tvarkyklė",
   "modules_error": "Klaida",
   "modules_active_profile": "Aktyvus profilis",
   "modules_restart_banner": "Norint, kad modulio pakeitimai įsigaliotų, reikia paleisti iš naujo.",

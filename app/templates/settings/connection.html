@@ -21,6 +21,9 @@
             <div class="form-field" style="grid-column: 1 / -1">
                 <label class="form-label" for="modem_type">{{ t.modem_type }}</label>
                 <select class="form-input form-select" id="modem_type" name="modem_type">
+                    {% if not (config.demo_mode and config.modem_type == 'demo') and config.modem_type not in modem_types|map(attribute=0)|list %}
+                    <option value="{{ config.modem_type }}" selected>{{ config.modem_type }} ({{ t.modules_error }})</option>
+                    {% endif %}
                     {% for key, name in modem_types %}
                     <option value="{{ key }}" {% if config.modem_type == key %}selected{% endif %}>{{ name }}</option>
                     {% endfor %}

@@ -575,6 +575,7 @@
   "modules_none": "Ingen moduler installert",
   "modules_builtin": "Innebygd",
   "modules_community": "Fellesskap",
+  "modules_type_driver": "Driver",
   "modules_error": "Feil",
   "modules_active_profile": "Aktiv profil",
   "modules_restart_banner": "Modulendringer krever en omstart for å tre i kraft.",

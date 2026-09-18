@@ -511,7 +511,8 @@ def setup():
     lang = get_setup_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    from .drivers import driver_registry
+    from .drivers import get_driver_registry
+    driver_registry = get_driver_registry()
     modem_types = driver_registry.get_available_drivers()
     driver_hints = driver_registry.get_driver_hints()
     iana_tz = _guess_iana_timezone()
@@ -528,7 +529,8 @@ def settings():
     lang = get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    from .drivers import driver_registry
+    from .drivers import get_driver_registry
+    driver_registry = get_driver_registry()
     modem_types = driver_registry.get_available_drivers()
     driver_hints = driver_registry.get_driver_hints()
     demo_mode = _config_manager.is_demo_mode() if _config_manager else False

@@ -51,6 +51,7 @@ class ModuleInfo:
     template_paths: dict[str, str] = field(default_factory=dict)
     collector_class: type | None = None
     publisher_class: type | None = None
+    driver_class: type | None = None
     hints: dict[str, object] = field(default_factory=dict)
     thresholds_data: dict[str, object] | None = None
     theme_data: dict[str, object] | None = None

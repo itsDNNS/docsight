@@ -40,13 +40,15 @@ def _pwa_push_configured(config_mgr):
 def api_test_modem():
     """Test modem connection."""
     _config_manager = current_runtime().config_manager
+    from app.drivers import get_driver_registry
+    driver_registry = get_driver_registry()
+    modem_type = "fritzbox"
     try:
         data = request.get_json()
         # Resolve masked passwords to real values
         password = data.get("modem_password", "")
         if password == PASSWORD_MASK and _config_manager:
             password = _config_manager.get("modem_password", "")
-        from app.drivers import driver_registry
         modem_type = data.get("modem_type", "fritzbox")
         driver = driver_registry.load_driver(
             modem_type,
@@ -57,11 +59,11 @@ def api_test_modem():
         driver.login()
         info = driver.get_device_info()
         return jsonify({"success": True, "model": info.get("model", "OK")})
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)})
-    except Exception as e:
-        log.warning("Modem test failed: %s", e)
-        return jsonify({"success": False, "error": type(e).__name__ + ": " + str(e).split("\n")[0][:200]})
+    except Exception:
+        log.warning("Modem test failed")
+        if not driver_registry.is_builtin(modem_type):
+            return jsonify({"success": False, "error": "Community modem connection failed"})
+        return jsonify({"success": False, "error": "Modem connection failed"})
 
 
 @polling_bp.route("/api/test-mqtt", methods=["POST"])
