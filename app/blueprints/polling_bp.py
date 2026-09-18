@@ -59,16 +59,11 @@ def api_test_modem():
         driver.login()
         info = driver.get_device_info()
         return jsonify({"success": True, "model": info.get("model", "OK")})
-    except ValueError as e:
+    except Exception:
+        log.warning("Modem test failed")
         if not driver_registry.is_builtin(modem_type):
             return jsonify({"success": False, "error": "Community modem connection failed"})
-        return jsonify({"success": False, "error": str(e)})
-    except Exception as e:
-        if not driver_registry.is_builtin(modem_type):
-            log.warning("Community modem test failed")
-            return jsonify({"success": False, "error": "Community modem connection failed"})
-        log.warning("Modem test failed: %s", e)
-        return jsonify({"success": False, "error": type(e).__name__ + ": " + str(e).split("\n")[0][:200]})
+        return jsonify({"success": False, "error": "Modem connection failed"})
 
 
 @polling_bp.route("/api/test-mqtt", methods=["POST"])
