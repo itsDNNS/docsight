@@ -575,6 +575,7 @@
   "modules_none": "Nema instaliranih modula",
   "modules_builtin": "Ugrađen",
   "modules_community": "Zajednica",
+  "modules_type_driver": "Upravljački program",
   "modules_error": "Greška",
   "modules_active_profile": "Aktivni profil",
   "modules_restart_banner": "Promjene modula zahtijevaju ponovno pokretanje kako bi stupile na snagu.",

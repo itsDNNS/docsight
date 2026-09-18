@@ -575,6 +575,7 @@
   "modules_none": "Moduuleja ei ole asennettu",
   "modules_builtin": "Sisäänrakennettu",
   "modules_community": "yhteisö",
+  "modules_type_driver": "Ajuri",
   "modules_error": "Virhe",
   "modules_active_profile": "Aktiivinen profiili",
   "modules_restart_banner": "Moduulimuutokset vaativat uudelleenkäynnistyksen, jotta ne tulevat voimaan.",

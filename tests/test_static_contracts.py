@@ -502,26 +502,14 @@ def test_smart_capture_uses_direct_speedtest_execution_wiring() -> None:
     assert "register_speedtest_adapter(stt_adapter)" in main
 
 
-def test_module_driver_registration_path_is_not_supported() -> None:
-    """Module manifests should not expose modem-driver registration plumbing."""
-    module_loader = (ROOT / "app" / "module_loader.py").read_text(encoding="utf-8")
-    driver_registry = (ROOT / "app" / "drivers" / "registry.py").read_text(encoding="utf-8")
-    main = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
-    for removed in [
-        "load_module_driver",
-        "driver_class",
-        "get_driver_modules",
-        "register_module_drivers",
-        "register_module_driver",
-        "_module_drivers",
-    ]:
-        assert removed not in module_loader
-        assert removed not in driver_registry
-        assert removed not in main
+def test_builtin_threshold_profiles_remain_analysis_modules() -> None:
+    from app.module_registry import discover_builtin_threshold_modules
 
-    assert '"driver"' not in module_loader
-    assert not (MODULES / "thresholds_vfkd" / "manifest.json").exists()
-    assert "BUILTIN_THRESHOLD_PROFILES" in (ROOT / "app" / "threshold_profiles.py").read_text(encoding="utf-8")
+    profiles = discover_builtin_threshold_modules()
+    assert profiles
+    assert all(profile.type == "analysis" for profile in profiles)
+    assert all("thresholds" in profile.contributes and "driver" not in profile.contributes
+               for profile in profiles)
 
 
 def test_core_i18n_template_is_generated_on_demand_not_tracked() -> None:

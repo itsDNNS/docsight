@@ -570,6 +570,7 @@
   "modules_none": "No hay módulos instalados",
   "modules_builtin": "Integrado",
   "modules_community": "Comunidad",
+  "modules_type_driver": "Controlador",
   "modules_error": "Error",
   "modules_active_profile": "Perfil activo",
   "modules_restart_banner": "Los cambios de módulos requieren un reinicio.",

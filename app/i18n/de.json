@@ -575,6 +575,7 @@
   "modules_none": "Keine Module installiert",
   "modules_builtin": "Integriert",
   "modules_community": "Community",
+  "modules_type_driver": "Treiber",
   "modules_error": "Fehler",
   "modules_active_profile": "Aktives Profil",
   "modules_restart_banner": "Modul-Änderungen erfordern einen Neustart.",

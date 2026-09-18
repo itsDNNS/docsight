@@ -60,6 +60,11 @@ def api_config():
         if not data:
             return jsonify({"success": False, "error": "No data"}), 400
         data = dict(data)
+        if "modem_type" in data and data["modem_type"] != _config_manager.get("modem_type"):
+            registry = current_runtime().driver_registry
+            key = data["modem_type"]
+            if not isinstance(key, str) or not (registry.has_driver(key) or key == "demo"):
+                return jsonify({"success": False, "error": "Unavailable modem type"}), 400
         previous_admin_password = _config_manager.get("admin_password", "")
         admin_password_requested = "admin_password" in data
         if admin_password_requested and (

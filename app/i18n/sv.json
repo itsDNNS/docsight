@@ -575,6 +575,7 @@
   "modules_none": "Inga moduler installerade",
   "modules_builtin": "Inbyggd",
   "modules_community": "Community",
+  "modules_type_driver": "Drivrutin",
   "modules_error": "Fel",
   "modules_active_profile": "Aktiv profil",
   "modules_restart_banner": "Moduländringar kräver en omstart för att träda i kraft.",

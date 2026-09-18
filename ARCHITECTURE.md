@@ -63,8 +63,10 @@ compatibility: `get_storage`, `get_config_manager`, `get_collectors`, `get_modem
 Auth policy/bootstrap use `app.web_auth`; lower-level owners never import `app.web`.
 
 Module schema registries in `app.config`, analyzer threshold selection,
-translation catalogs, driver/theme registries, and dynamic Python imports are
-process-wide. Per-application configuration values, storage paths, signing and
+translation catalogs, the built-in driver catalog, theme registries, and dynamic
+Python imports are process-wide. Community driver registrations and hints belong
+to each application runtime. The registrar applies resolved driver contributions
+only after complete preflight; HTTP routes and polling use that runtime registry. Per-application configuration values, storage paths, signing and
 authentication state, rate-limit buckets, update caches, module loader,
 templates, collectors, and derived storages remain isolated.
 

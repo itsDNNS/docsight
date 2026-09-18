@@ -2,11 +2,14 @@
 
 import importlib
 import importlib.util
+import inspect
 import json
 import logging
 import os
 import sys
+from types import ModuleType
 from typing import Any
+from uuid import uuid4
 
 from flask import abort, send_file, url_for
 
@@ -191,6 +194,16 @@ def _load_module_class(module_id: str, module_path: str, spec: str, kind: str):
         return None
     dir_name = os.path.basename(module_path)
     mod_name = f"app.modules.{dir_name}.{kind}"
+    package_name = None
+    if kind == "driver":
+        # A fresh, real package preserves sibling imports without reusing classes
+        # or helper modules from another application or a previous load.
+        package_name = "_docsight_driver_" + uuid4().hex
+        package = ModuleType(package_name)
+        package.__path__ = [os.path.realpath(module_path)]
+        package.__package__ = package_name
+        sys.modules[package_name] = package
+        mod_name = f"{package_name}.{kind}"
     try:
         im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
         if im_spec is None or im_spec.loader is None:
@@ -200,6 +213,10 @@ def _load_module_class(module_id: str, module_path: str, spec: str, kind: str):
         sys.modules[mod_name] = mod
         im_spec.loader.exec_module(mod)
     except Exception:
+        if package_name:
+            for name in list(sys.modules):
+                if name == package_name or name.startswith(package_name + "."):
+                    del sys.modules[name]
         log.error("Module '%s': %s contribution import failed", module_id, kind)
         return None
     cls = getattr(mod, class_name, None)
@@ -207,6 +224,26 @@ def _load_module_class(module_id: str, module_path: str, spec: str, kind: str):
         log.warning("Module '%s': %s contribution class not found", module_id, kind)
         return None
     log.info("Module '%s': loaded %s contribution", module_id, kind)
+    return cls
+
+
+def load_module_driver(module_id: str, module_path: str, spec: str):
+    """Resolve a concrete ModemDriver implementation without registering it."""
+    from .drivers.base import ModemDriver
+
+    try:
+        cls = _load_module_class(module_id, module_path, spec, "driver")
+        methods = ("login", "get_docsis_data", "get_device_info", "get_connection_info")
+        if (not isinstance(cls, type) or not issubclass(cls, ModemDriver)
+                or inspect.isabstract(cls)
+                or any(not callable(getattr(cls, name, None))
+                       or getattr(getattr(cls, name), "__isabstractmethod__", False)
+                       or getattr(cls, name) is getattr(ModemDriver, name) for name in methods)):
+            raise TypeError("Invalid driver class")
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ManifestError("driver contribution is invalid") from exc
     return cls
 
 
@@ -346,7 +383,7 @@ def resolve_module_contribution(
     """Resolve and validate one complete contribution set without target mutation."""
     contributes = mod.contributes
     http = RegistrationPlan()
-    collector_class = publisher_class = None
+    collector_class = publisher_class = driver_class = None
     if mod.builtin:
         attach_builtin_python_contributions(mod)
         collector_class, publisher_class = mod.collector_class, mod.publisher_class
@@ -388,6 +425,10 @@ def resolve_module_contribution(
     if declared_templates != set(template_paths):
         missing_kind = sorted(declared_templates - set(template_paths))[0]
         raise ManifestError(f"{missing_kind} template contribution file not found")
+    if "driver" in contributes:
+        driver_class = _redacted_resolution(
+            "driver", lambda: load_module_driver(mod.id, mod.path, contributes["driver"])
+        )
     if "collector" in contributes and not mod.builtin:
         collector_class = _redacted_resolution(
             "collector",
@@ -444,6 +485,7 @@ def resolve_module_contribution(
         template_dir=template_dir if os.path.isdir(template_dir) else None,
         collector_class=collector_class,
         publisher_class=publisher_class,
+        driver_class=driver_class,
         thresholds_data=thresholds_data,
         theme_data=theme_data,
         has_css=has_css,

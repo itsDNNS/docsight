@@ -575,6 +575,7 @@
   "modules_none": "Moduļi nav instalēti",
   "modules_builtin": "Iebūvēts",
   "modules_community": "kopiena",
+  "modules_type_driver": "Draiveris",
   "modules_error": "Kļūda",
   "modules_active_profile": "Aktīvs profils",
   "modules_restart_banner": "Lai moduļa izmaiņas stātos spēkā, ir nepieciešama restartēšana.",

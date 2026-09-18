@@ -30,7 +30,7 @@
         {% set modules_list = [] %}
         {% if all_modules %}
         {% for mod in all_modules|selectattr('type', 'ne', 'theme')|list %}
-        {% if modules_list.append({'name': mod.name, 'desc': mod.description, 'mod_id': mod.id, 'checked': mod.enabled, 'disabled': false, 'error': mod.error, 'is_threshold': 'thresholds' in mod.contributes}) %}{% endif %}
+        {% if modules_list.append({'name': mod.name, 'desc': mod.description, 'mod_id': mod.id, 'checked': mod.enabled, 'disabled': false, 'error': mod.error, 'is_threshold': 'thresholds' in mod.contributes, 'builtin': mod.builtin, 'is_driver': 'driver' in mod.contributes}) %}{% endif %}
         {% endfor %}
         {% endif %}
 
@@ -61,6 +61,8 @@
             <div class="toggle-info">
                 <span class="toggle-title" id="{{ module_label_id }}">
                     {{ ext.name }}
+                    {% if not ext.builtin %}<span class="module-badge">{{ t.get('modules_community', 'Community') }}</span>{% endif %}
+                    {% if ext.is_driver %}<span class="module-badge">{{ t.get('modules_type_driver', 'Driver') }}</span>{% endif %}
                     {% if ext.error is defined and ext.error %}<span class="module-badge badge-error">{{ t.modules_error }}</span>{% endif %}
                 </span>
                 <span class="toggle-desc" id="{{ module_desc_id }}">{{ ext.desc }}</span>

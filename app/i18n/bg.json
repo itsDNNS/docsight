@@ -575,6 +575,7 @@
   "modules_none": "Няма инсталирани модули",
   "modules_builtin": "Вграден",
   "modules_community": "Общност",
+  "modules_type_driver": "Драйвер",
   "modules_error": "Грешка",
   "modules_active_profile": "Активен профил",
   "modules_restart_banner": "Промените в модула изискват рестартиране, за да влязат в сила.",
