@@ -8,6 +8,7 @@ import pytest
 from app.drivers.formats.boundaries import parse_generic_no_docsis
 from app.drivers.formats.contract import ParseResult
 from app.drivers.formats.fritzbox import parse_fritzbox_data_lua
+from app.drivers.formats.pyur import parse_pyur_api_v1
 from app.drivers.formats.hitron import (
     parse_hitron_coda4680_json,
     parse_hitron_coda56_json,
@@ -93,6 +94,10 @@ def _columnar_success() -> str:
 
 
 SUCCESS_PROFILES = {
+    "pyur_api_v1": lambda: parse_pyur_api_v1([{
+        "Downstreams": [{"ChannelID": "21", "Modulation": "OFDM", "Frequency": "171 MHz"}],
+        "Upstreams": [{"ChannelID": "1", "Modulation": "QAM"}],
+    }]),
     "arris_html": lambda: parse_arris_html(ARRIS_SUCCESS),
     "cgm4981_columnar_html": lambda: parse_cgm4981_columnar_html(_columnar_success()),
     "ch7465_xml": lambda: parse_ch7465_xml(
@@ -158,6 +163,7 @@ def test_each_explicit_profile_is_directly_callable_without_transport(profile):
 
 
 EMPTY_OR_MISSING_PROFILES = {
+    "pyur_api_v1": lambda: parse_pyur_api_v1([{"Downstreams": [], "Upstreams": []}]),
     "arris_html": lambda: parse_arris_html(""),
     "cgm4981_columnar_html": lambda: parse_cgm4981_columnar_html(""),
     "ch7465_xml": lambda: parse_ch7465_xml("<root/>", "<root/>"),

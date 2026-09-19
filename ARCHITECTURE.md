@@ -492,7 +492,7 @@ class ModemDriver(ABC):
 
 Every registered concrete class exposes a non-empty immutable
 `FORMAT_FAMILIES` tuple. Registry aliases appear together in the first column;
-there are 22 keys, 21 concrete classes, and 23 explicit profiles.
+there are 23 keys, 22 concrete classes, and 24 explicit profiles.
 
 | Registry key(s) | Concrete class | Format profile(s) | Cohesive module / entrypoint |
 |---|---|---|---|
@@ -507,6 +507,7 @@ there are 22 keys, 21 concrete classes, and 23 explicit profiles.
 | `generic` | `GenericDriver` | `generic_no_docsis` | `boundaries.parse_generic_no_docsis` |
 | `hitron` | `HitronDriver` | `hitron_coda56_json` | `hitron.parse_hitron_coda56_json` |
 | `hitron_coda_4680` | `HitronCoda4680Driver` | `hitron_coda4680_json` | `hitron.parse_hitron_coda4680_json` |
+| `pyur_fast3896` | `PyurFast3896Driver` | `pyur_api_v1` | `pyur.parse_pyur_api_v1` |
 | `sagemcom` | `SagemcomDriver` | `sagemcom_xmo_json` | `sagemcom.parse_sagemcom_xmo_json` |
 | `sb6141` | `SB6141Driver` | `sb6141_transposed_html` | `html_transposed.parse_sb6141_transposed_html` |
 | `sb6183` | `SB6183Driver` | `sb6183_html` | `html_rows.parse_sb6183_html` |
@@ -525,6 +526,45 @@ password)`. The registry maps type strings to fully qualified class paths for
 lazy importing. `ch7465` and `ch7465_play` intentionally resolve to the same
 class; the registry applies the Play firmware selection without creating a
 second parser profile.
+
+### Experimental PYUR FAST3896-15
+
+`pyur_fast3896` owns the `/api/v1` session and form login; `formats.pyur`
+normalizes connection data and allowlists device model, running firmware
+(falling back to main firmware) and uptime. This is a separate protocol from
+Sagemcom XMO and Liberty Global REST. It is capture-based and awaits hardware
+validation; [setup and limitations](README.md#pyur-fast3896-15-experimental).
+
+The examined frontend computes `e = SHA512-crypt(password, salt)`, then
+`f = SHA512(username + ":" + nonce + ":" + e[3:])` and
+`auth_key = SHA512(f + ":0:" + cnonce)` using hex SHA512 digests.
+Removing `$6$` preserves `salt$digest`. `pyur_auth` implements only the fixed
+5000-round SHA512-crypt algorithm using `hashlib`, with no extra dependencies,
+stdlib `crypt`, libc calls or executable tools. It is checked against the
+[published SHA-crypt vector](https://www.akkadia.org/drepper/SHA-crypt.txt) and
+hardcoded synthetic vectors independently generated with Passlib's builtin
+backend. The actual firmware helper was not captured; these tests establish
+the standard algorithm, not hardware compatibility.
+
+The driver accepts raw salts of 1–16 characters (`[./A-Za-z0-9]`), bounds the
+numeric nonce to 32 characters and generates a 19-digit zero-padded random
+client nonce. Salt settings cannot select expensive rounds. Password input is
+limited to 1024 UTF-8 bytes. Login verifies `/authenticated` after both empty
+201 responses. Cookies persist within one `requests.Session`; each request
+selects the current matching CSRF cookie. Requests disable redirects and
+ambient netrc/proxy settings, use 5-second connect / 15-second read timeouts,
+and limit JSON bodies to 1 MiB. A data request receiving 401 can reauthenticate
+and retry once; other HTTP failures and invalid JSON fail without relogin.
+Exceptions contain fixed diagnostics, never response text or auth material.
+
+The connection profile requires one object with downstream/upstream arrays.
+It uses explicit frequency units, finite measurements, and exact integer
+counters without 32-bit wrapping. Separate error rows join on unique `id`
+values on both sides; channel identity comes from `ChannelID`. Missing or
+ambiguous counters stay null. No LockStatus, QAM order, OFDM profile,
+multiplex mode or service rate is inferred from the capture. Optional symbol
+rate appears only when supplied. `/docsis-info/network_parameters` is not
+queried because it includes subscriber addresses and is unnecessary here.
 
 ### Extension module state
 

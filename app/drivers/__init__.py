@@ -55,6 +55,10 @@ driver_registry.register_builtin("f3896lg", "app.drivers.f3896lg.F3896LGDriver",
                                  "Sagemcom F3896LG (Virgin Media Hub 5 / Liberty Global)",
                                  hints={"default_url": "https://192.168.100.1",
                                         "credentials_required": False})
+driver_registry.register_builtin("pyur_fast3896", "app.drivers.pyur_fast3896.PyurFast3896Driver",
+                                 "PYUR FAST3896-15 (experimental)",
+                                 hints={"default_url": "http://192.168.100.1", "default_user": "admin",
+                                        "credentials_required": True, "username_required": False})
 driver_registry.register_builtin("sercom_dm1000", "app.drivers.sercom_dm1000.SercomDM1000Driver",
                                  "Sercom DM1000",
                                  hints={"default_url": "http://192.168.100.1", "default_user": "technician"})

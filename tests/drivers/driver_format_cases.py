@@ -20,6 +20,7 @@ from bs4 import BeautifulSoup
 
 from app.drivers.arris_html import parse_arris_channel_tables
 from app.drivers.cgm4981 import CGM4981Driver
+from app.drivers.pyur_fast3896 import PyurFast3896Driver
 from app.drivers.ch7465 import CH7465Driver, Query
 from app.drivers.cm1000 import CM1000Driver
 from app.drivers.cm3000 import CM3000Driver
@@ -296,6 +297,12 @@ def _f3896(ds: list[dict[str, Any]], us: list[dict[str, Any]]) -> Any:
     return _split(ds30, ds31, us30, us31)
 
 
+def _pyur(payload: Any) -> Any:
+    driver = PyurFast3896Driver("http://modem.invalid", "", "synthetic")
+    with patch.object(driver, "_get", return_value=payload):
+        return driver.get_docsis_data()
+
+
 def _sercom(
     ds: list[dict[str, Any]],
     ds_ofdm: list[dict[str, Any]],
@@ -396,6 +403,21 @@ def _cases() -> list[DriverFormatCase]:
     add("fritzbox_data_lua.empty", "fritzbox", "fritzbox_data_lua", "minimal-empty", lambda: _fritz(json.loads(json.dumps(EMPTY_SPLIT))), EMPTY_SPLIT)
     fritz_bad = _split(us31=[{"channelID": 5, "powerLevel": "not-a-number"}])
     add("fritzbox_data_lua.malformed_power", "fritzbox", "fritzbox_data_lua", "minimal-synthetic-malformed", lambda: _fritz(json.loads(json.dumps(fritz_bad))), fritz_bad)
+
+    pyur = json.loads((Path(__file__).resolve().parents[1] / "fixtures/pyur_fast3896/connection.json").read_text())[0]
+    pyur_sample = [{
+        "Downstreams": [pyur["Downstreams"][0], pyur["Downstreams"][-1]],
+        "Upstreams": pyur["Upstreams"][:1],
+        "CMErrorCodewords": list(reversed(pyur["CMErrorCodewords"])),
+    }]
+    pyur_expected = _split(
+        ds30=[{"channelID": 1, "frequency": "618 MHz", "powerLevel": 1.4, "modulation": "256QAM", "mer": 41.1, "mse": -41.1, "corrErrors": 233, "nonCorrErrors": 0}],
+        ds31=[{"channelID": 21, "type": "OFDM", "frequency": "171 MHz", "powerLevel": 5.0, "modulation": "OFDM", "mer": 43.1, "mse": None, "corrErrors": 312809955, "nonCorrErrors": 286}],
+        us30=[{"channelID": 1, "frequency": "41 MHz", "powerLevel": 49.0, "modulation": "QAM", "symbolRate": 5120}],
+    )
+    add("pyur_api_v1.success_capture_rows_permuted_counters", "pyur_fast3896", "pyur_api_v1", "allowlisted-capture", lambda: _pyur(pyur_sample), pyur_expected)
+    add("pyur_api_v1.empty_arrays", "pyur_fast3896", "pyur_api_v1", "minimal-empty", lambda: _pyur([{"Downstreams": [], "Upstreams": []}]), EMPTY_SPLIT)
+    add("pyur_api_v1.malformed_top_level", "pyur_fast3896", "pyur_api_v1", "minimal-synthetic-malformed", lambda: _pyur([{}]), None)
 
     tc_expected = _flat(
         [
