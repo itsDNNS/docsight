@@ -1,0 +1,344 @@
+[
+  {
+    "Downstreams": [
+      {
+        "id": "1",
+        "ChannelID": "1",
+        "Frequency": "618 MHz",
+        "SNR": "41.1 dB",
+        "PowerLevel": "1.4 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "2",
+        "ChannelID": "2",
+        "Frequency": "626 MHz",
+        "SNR": "40.2 dB",
+        "PowerLevel": "1.2 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "3",
+        "ChannelID": "3",
+        "Frequency": "634 MHz",
+        "SNR": "40.5 dB",
+        "PowerLevel": "0.7 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "4",
+        "ChannelID": "4",
+        "Frequency": "642 MHz",
+        "SNR": "39.9 dB",
+        "PowerLevel": "1.0 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "5",
+        "ChannelID": "5",
+        "Frequency": "650 MHz",
+        "SNR": "40.6 dB",
+        "PowerLevel": "0.9 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "6",
+        "ChannelID": "6",
+        "Frequency": "658 MHz",
+        "SNR": "40.0 dB",
+        "PowerLevel": "1.3 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "7",
+        "ChannelID": "7",
+        "Frequency": "666 MHz",
+        "SNR": "40.4 dB",
+        "PowerLevel": "1.5 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "8",
+        "ChannelID": "8",
+        "Frequency": "674 MHz",
+        "SNR": "40.3 dB",
+        "PowerLevel": "1.5 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "9",
+        "ChannelID": "9",
+        "Frequency": "682 MHz",
+        "SNR": "40.8 dB",
+        "PowerLevel": "1.3 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "10",
+        "ChannelID": "10",
+        "Frequency": "690 MHz",
+        "SNR": "40.5 dB",
+        "PowerLevel": "1.1 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "11",
+        "ChannelID": "11",
+        "Frequency": "698 MHz",
+        "SNR": "40.4 dB",
+        "PowerLevel": "0.9 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "12",
+        "ChannelID": "12",
+        "Frequency": "706 MHz",
+        "SNR": "40.1 dB",
+        "PowerLevel": "0.7 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "13",
+        "ChannelID": "13",
+        "Frequency": "714 MHz",
+        "SNR": "40.6 dB",
+        "PowerLevel": "0.6 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "14",
+        "ChannelID": "14",
+        "Frequency": "722 MHz",
+        "SNR": "40.6 dB",
+        "PowerLevel": "0.6 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "15",
+        "ChannelID": "15",
+        "Frequency": "730 MHz",
+        "SNR": "40.4 dB",
+        "PowerLevel": "0.7 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "16",
+        "ChannelID": "16",
+        "Frequency": "738 MHz",
+        "SNR": "39.9 dB",
+        "PowerLevel": "0.7 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "17",
+        "ChannelID": "17",
+        "Frequency": "746 MHz",
+        "SNR": "40.5 dB",
+        "PowerLevel": "0.6 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "18",
+        "ChannelID": "18",
+        "Frequency": "754 MHz",
+        "SNR": "40.4 dB",
+        "PowerLevel": "0.5 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "19",
+        "ChannelID": "19",
+        "Frequency": "762 MHz",
+        "SNR": "39.5 dB",
+        "PowerLevel": "0.1 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "20",
+        "ChannelID": "20",
+        "Frequency": "770 MHz",
+        "SNR": "38.0 dB",
+        "PowerLevel": "0.6 dBmV",
+        "Modulation": "256 QAM"
+      },
+      {
+        "id": "21",
+        "ChannelID": "21",
+        "Frequency": "171 MHz",
+        "SNR": "43.1 dB",
+        "PowerLevel": "5.0 dBmV",
+        "Modulation": "OFDM"
+      }
+    ],
+    "Upstreams": [
+      {
+        "id": "1",
+        "ChannelID": "1",
+        "Frequency": "41  MHz",
+        "SymbolRate": "5120",
+        "PowerLevel": "49.0 dBmV",
+        "Modulation": "QAM"
+      },
+      {
+        "id": "2",
+        "ChannelID": "2",
+        "Frequency": "48  MHz",
+        "SymbolRate": "5120",
+        "PowerLevel": "49.3 dBmV",
+        "Modulation": "QAM"
+      },
+      {
+        "id": "3",
+        "ChannelID": "3",
+        "Frequency": "54  MHz",
+        "SymbolRate": "5120",
+        "PowerLevel": "48.8 dBmV",
+        "Modulation": "QAM"
+      },
+      {
+        "id": "4",
+        "ChannelID": "4",
+        "Frequency": "61  MHz",
+        "SymbolRate": "5120",
+        "PowerLevel": "48.8 dBmV",
+        "Modulation": "QAM"
+      },
+      {
+        "id": "5",
+        "ChannelID": "5",
+        "Frequency": "35  MHz",
+        "SymbolRate": "5120",
+        "PowerLevel": "49.0 dBmV",
+        "Modulation": "QAM"
+      }
+    ],
+    "CMErrorCodewords": [
+      {
+        "id": "1",
+        "UnerroredCodewords": "955396505",
+        "CorrectableCodewords": "233",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "2",
+        "UnerroredCodewords": "954620057",
+        "CorrectableCodewords": "226",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "3",
+        "UnerroredCodewords": "954622315",
+        "CorrectableCodewords": "274",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "4",
+        "UnerroredCodewords": "954612451",
+        "CorrectableCodewords": "186",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "5",
+        "UnerroredCodewords": "954611465",
+        "CorrectableCodewords": "184",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "6",
+        "UnerroredCodewords": "954591453",
+        "CorrectableCodewords": "119",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "7",
+        "UnerroredCodewords": "954615352",
+        "CorrectableCodewords": "106",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "8",
+        "UnerroredCodewords": "954640897",
+        "CorrectableCodewords": "146",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "9",
+        "UnerroredCodewords": "954673541",
+        "CorrectableCodewords": "182",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "10",
+        "UnerroredCodewords": "954653140",
+        "CorrectableCodewords": "189",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "11",
+        "UnerroredCodewords": "954665601",
+        "CorrectableCodewords": "205",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "12",
+        "UnerroredCodewords": "954700868",
+        "CorrectableCodewords": "219",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "13",
+        "UnerroredCodewords": "947077320",
+        "CorrectableCodewords": "3431815",
+        "UncorrectableCodewords": "1151649"
+      },
+      {
+        "id": "14",
+        "UnerroredCodewords": "950855671",
+        "CorrectableCodewords": "1087284",
+        "UncorrectableCodewords": "647955"
+      },
+      {
+        "id": "15",
+        "UnerroredCodewords": "954687346",
+        "CorrectableCodewords": "215",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "16",
+        "UnerroredCodewords": "954707164",
+        "CorrectableCodewords": "221",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "17",
+        "UnerroredCodewords": "954685453",
+        "CorrectableCodewords": "266",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "18",
+        "UnerroredCodewords": "954692241",
+        "CorrectableCodewords": "268",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "19",
+        "UnerroredCodewords": "954634992",
+        "CorrectableCodewords": "415",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "20",
+        "UnerroredCodewords": "954723633",
+        "CorrectableCodewords": "4248",
+        "UncorrectableCodewords": "0"
+      },
+      {
+        "id": "21",
+        "UnerroredCodewords": "43991369",
+        "CorrectableCodewords": "312809955",
+        "UncorrectableCodewords": "286"
+      }
+    ]
+  }
+]

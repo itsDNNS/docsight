@@ -31,6 +31,7 @@ PROFILE_ENTRYPOINTS = {
     "hitron_coda4680_json": "parse_hitron_coda4680_json",
     "hitron_coda56_json": "parse_hitron_coda56_json",
     "sagemcom_xmo_json": "parse_sagemcom_xmo_json",
+    "pyur_api_v1": "parse_pyur_api_v1",
     "sb6141_transposed_html": "parse_sb6141_transposed_html",
     "sb6183_html": "parse_sb6183_html",
     "sb6190_html": "parse_sb6190_html",
@@ -131,8 +132,8 @@ def test_registry_matrix_is_complete_and_alias_safe_in_both_directions():
         for profile in profiles
     }
     assert matrix_profiles == set(FORMAT_PROFILE_MODULES)
-    assert len(EXPECTED_CLASS_FAMILIES) == 21
-    assert len(PROFILE_ENTRYPOINTS) == 23
+    assert len(EXPECTED_CLASS_FAMILIES) == 22
+    assert len(PROFILE_ENTRYPOINTS) == 24
 
 
 def test_migrated_private_methods_are_finite_one_statement_delegations():
