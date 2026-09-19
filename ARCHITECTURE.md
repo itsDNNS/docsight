@@ -546,7 +546,7 @@ hardcoded synthetic vectors independently generated with Passlib's builtin
 backend. The actual firmware helper was not captured; these tests establish
 the standard algorithm, not hardware compatibility.
 
-The driver accepts the captured raw eight-character salt form, bounds the
+The driver accepts raw salts of 1–16 characters (`[./A-Za-z0-9]`), bounds the
 numeric nonce to 32 characters and generates a 19-digit zero-padded random
 client nonce. Salt settings cannot select expensive rounds. Password input is
 limited to 1024 UTF-8 bytes. Login verifies `/authenticated` after both empty

@@ -23,6 +23,8 @@ VECTORS = [
     ("a" * 80, "salt1234", "sVQf9BkNRs3iCl2PVubL4MFlbMZ3NJMeqE8C66epqCfPxFej17B95qGWsRfYkE8UhDPKFYaxdd7AukFdxUKOa1"),
     # Published default-round vector: https://www.akkadia.org/drepper/SHA-crypt.txt
     ("Hello world!", "saltstring", "svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1"),
+    # OpenSSL 3.6.4: passwd -6 -salt './Ab0123456789z' -stdin (5000 rounds).
+    ("synthetic-password", "./Ab0123456789z", "Ku3usnuDiQTyqMADFk3Ogk1qbj6i.59HSazRAX49x0zFQ9G7vjWSiOPnUfLqehbSm5tH1e2VO8XFR8VwAU2ux0"),
 ]
 
 
@@ -64,9 +66,9 @@ class Session:
         return response
 
 
-def login_steps(*, verify=None, csrf=True):
+def login_steps(*, verify=None, csrf=True, salt="salt1234"):
     return [
-        ("POST", "login-params", Response(201, body=b"", cookies={"salt": "salt1234", "nonce": "1234567890", "BBOX_ID": "synthetic-session-1", **({"Host-csrf_token": "csrf-params"} if csrf else {})})),
+        ("POST", "login-params", Response(201, body=b"", cookies={"salt": salt, "nonce": "1234567890", "BBOX_ID": "synthetic-session-1", **({"Host-csrf_token": "csrf-params"} if csrf else {})})),
         ("POST", "login", Response(201, body=b"", cookies={"BBOX_ID": "synthetic-session-2", **({"Host-csrf_token": "csrf-login"} if csrf else {})})),
         ("GET", "authenticated", verify or Response(payload=[{"authenticated": "true"}])),
     ]
@@ -96,8 +98,16 @@ def test_salt_cannot_select_rounds_or_unbounded_work(salt):
         sha512_crypt("synthetic-password", salt)
 
 
-def test_login_form_hash_empty_201_cookie_rotation_and_reuse(make_driver):
-    steps = login_steps() + [
+# Synthetic payloads generated with OpenSSL 3.6.4 passwd -6 and dgst -sha512;
+# the oracle is development-only, never called by these tests or the driver.
+@pytest.mark.parametrize("salt,auth_key", [
+    (".", "49765c4c8b7e06b9703a2da8dd3e0491c7c65d5c197271461e100e022471ea7075625d8eac2fe34e3f2fe8e4d0bbfc6044036b7befdd9b0a05268f9186a636b8"),
+    ("salt1234", AUTH_KEY),
+    ("./Ab0123456789z", "42f2498ac53f4673200cc497fb8550a24ce5184fa6700231dd9986651ca64718ac8081d1bd74c03443444ac026f86d62577160def4869fc7dd9ac75e5f08d8cd"),
+    ("./Ab0123456789zZ", "c6105a74afd8045cb97c0e2167cd46dff17750c3f6e25d0951a302e41cb5ee2b562cdaa2dc66c20e4b13e29c161780e0fe314e356b5e1b7d26781b8ceb650e12"),
+], ids=["salt-1", "salt-8", "salt-15", "salt-16"])
+def test_login_form_hash_empty_201_cookie_rotation_and_reuse(make_driver, salt, auth_key):
+    steps = login_steps(salt=salt) + [
         ("GET", "docsis-info/connection", Response(payload=json.loads(FIXTURE.read_text()), cookies={"Host-csrf_token": "csrf-poll"})),
         ("GET", "device", Response(payload=[{"device": {}}])),
     ]
@@ -107,7 +117,7 @@ def test_login_form_hash_empty_201_cookie_rotation_and_reuse(make_driver):
     driver.get_docsis_data()
     driver.get_device_info()
     assert session.calls[0][2]["data"] == {"login": "admin"}
-    assert session.calls[1][2]["data"] == {"login": "admin", "auth_key": AUTH_KEY, "cnonce": "0000000000000000042"}
+    assert session.calls[1][2]["data"] == {"login": "admin", "auth_key": auth_key, "cnonce": "0000000000000000042"}
     assert [call[2]["headers"].get("X-Csrf-Token") for call in session.calls] == [None, "csrf-params", "csrf-login", "csrf-login", "csrf-poll"]
     assert session.cookies.get("BBOX_ID") == "synthetic-session-2"
     assert session.cookie_snapshots[1]["BBOX_ID"] == "synthetic-session-1"
@@ -172,12 +182,24 @@ def test_redirects_are_rejected_without_following(make_driver, path, method):
     assert len(session.calls) == index + 1
 
 
-@pytest.mark.parametrize("cookies", [{}, {"salt": "rounds=999999999$salt1234", "nonce": "1234567890"}, {"salt": "salt1234", "nonce": "not-a-nonce"}, {"salt": "salt1234", "nonce": "1" * 1000}])
-def test_invalid_challenges_fail_before_sending_hash(make_driver, cookies):
+@pytest.mark.parametrize("cookies", [
+    {},
+    {"salt": "salt1234", "nonce": "not-a-nonce"},
+    {"salt": "salt1234", "nonce": "1" * 1000},
+] + [{"salt": salt, "nonce": "1234567890"} for salt in (
+    "", "a" * 17, "$6$salt1234", "rounds=999999999$salt1234",
+    "rounds=5000$a", "rounds=5000", "bad salt", "salt_1234",
+    "salt-1234", "salt%2F12", "sält1234", "a\nb",
+)])
+def test_invalid_challenges_fail_before_sending_hash(make_driver, cookies, monkeypatch):
     driver, session = make_driver([("POST", "login-params", Response(201, cookies=cookies))])
-    with pytest.raises(RuntimeError, match="PYUR"):
+    hash_password = Mock(side_effect=AssertionError("invalid challenge reached hashing"))
+    monkeypatch.setattr("app.drivers.pyur_fast3896.sha512_crypt", hash_password)
+    with pytest.raises(RuntimeError, match="PYUR invalid login challenge"):
         driver.login()
+    hash_password.assert_not_called()
     assert len(session.calls) == 1
+    assert not driver._authenticated
 
 
 def test_cookies_are_origin_scoped_and_csrf_is_optional(make_driver):

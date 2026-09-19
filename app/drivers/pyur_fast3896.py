@@ -100,7 +100,7 @@ class PyurFast3896Driver(ModemDriver):
         if status == 401:
             raise RuntimeError("PYUR login challenge rejected")
         salt, nonce = self._cookie("salt", "login"), self._cookie("nonce", "login")
-        if not re.fullmatch(r"[./A-Za-z0-9]{8}", salt) or not re.fullmatch(r"[0-9]{1,32}", nonce):
+        if not re.fullmatch(r"[./A-Za-z0-9]{1,16}", salt) or not re.fullmatch(r"[0-9]{1,32}", nonce):
             raise RuntimeError("PYUR invalid login challenge")
         try:
             encrypted = sha512_crypt(self._password, salt)
