@@ -9,5 +9,8 @@ device identifiers, subscriber addresses or wireless configuration.
 `id` joins counter rows to downstream rows; `ChannelID` is channel identity.
 Tests permute the counter order and exercise missing and duplicate join IDs.
 All auth/session/device test inputs elsewhere are synthetic. The original
-HAR and frontend source are intentionally not included. Automated tests do
-not establish hardware compatibility; reporter validation is pending.
+HAR and frontend source are intentionally not included. Automated tests alone
+do not establish universal firmware compatibility. In
+[#865](https://github.com/itsDNNS/docsight/issues/865), the reporter confirmed
+successful login and data collection with image `sha-208d8b4`, followed by
+nominal operation after one day.

@@ -160,7 +160,7 @@ The core interface supports 24 languages, light/dark themes, and PWA/offline use
 
 ## Supported Hardware
 
-DOCSight includes drivers for **22 modem families**, including the experimental PYUR FAST3896-15 driver awaiting hardware validation. DOCSIS signal monitoring requires a supported cable modem. **Generic Router mode** supports other connections, including fiber, DSL, and satellite, with speed tests, latency monitoring, notes, and reports but no DOCSIS signal data.
+DOCSight includes drivers for **22 modem families**, including the experimental PYUR FAST3896-15 driver with reported hardware success. DOCSIS signal monitoring requires a supported cable modem. **Generic Router mode** supports other connections, including fiber, DSL, and satellite, with speed tests, latency monitoring, notes, and reports but no DOCSIS signal data.
 
 Signal health and SC-QAM capacity estimates describe the physical/channel layer; they are not measurements of internet throughput or tariff speed.
 
@@ -172,7 +172,7 @@ Signal health and SC-QAM capacity estimates describe the physical/channel layer;
 - **CH7465 Connect Box family**
 - **Sagemcom F@st 3896:** JSON-RPC API
 - **Sagemcom F3896LG** (Hub 5 / Liberty Global REST firmware): unauthenticated API, works in modem mode
-- **PYUR FAST3896-15** (`pyur_fast3896`): experimental `/api/v1` driver, awaiting hardware validation; see setup notes below
+- **PYUR FAST3896-15** (`pyur_fast3896`): experimental `/api/v1` driver with reported login and collection success; see setup notes below
 - **Technicolor TC4400**
 - **Arris SURFboard** (S33, S34, SB8200): HNAP1 API
 - **Arris SURFboard SB8200** (CBN firmware, `SB8200v3`): XML API, for units that serve the CBN web UI instead of HNAP1
@@ -193,12 +193,17 @@ UI password. The UI is password-only; the driver uses `admin` by default.
 This firmware uses `/api/v1`, unlike the Sagemcom XMO `/cgi/json-req` and
 Liberty Global `/rest/v1` drivers. Select the PYUR entry for this firmware.
 
-Support is based on an examined capture from `FAST3896-15_PYUR-RDK_83.2.4`
-and automated tests, **not a successful hardware test**. Login uses a portable
-SHA512-crypt implementation checked against independent vectors. The captured
-frontend references an unavailable helper, so its compatibility with this
-implementation still needs confirmation on the modem. Session renewal,
-channel values and device uptime/firmware also await reporter validation.
+Support was developed using an examined capture from `FAST3896-15_PYUR-RDK_83.2.4`
+and automated tests. With image `sha-208d8b4`, the reporter confirmed
+[successful login and data collection](https://github.com/itsDNNS/docsight/issues/865#issuecomment-5740844992),
+followed by [nominal operation after one day](https://github.com/itsDNNS/docsight/issues/865#issuecomment-5750455023).
+
+Login uses a portable SHA512-crypt implementation checked against independent
+vectors. The captured frontend references an unavailable helper; the reported
+login provides hardware evidence for this implementation on the tested modem.
+Automated tests alone do not establish universal firmware compatibility.
+Reboot recovery, session expiry, channel accuracy and device uptime/firmware
+were not individually confirmed by the reporter.
 Upstream `QAM` has no known order; OFDM has no known profile modulation.
 Unavailable counters and connection rates remain unknown. Subscriber network
 parameters are not requested.

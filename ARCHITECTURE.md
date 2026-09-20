@@ -532,8 +532,11 @@ second parser profile.
 `pyur_fast3896` owns the `/api/v1` session and form login; `formats.pyur`
 normalizes connection data and allowlists device model, running firmware
 (falling back to main firmware) and uptime. This is a separate protocol from
-Sagemcom XMO and Liberty Global REST. It is capture-based and awaits hardware
-validation; [setup and limitations](README.md#pyur-fast3896-15-experimental).
+Sagemcom XMO and Liberty Global REST. It was developed from a capture; the
+reporter has since confirmed successful login, data collection and nominal
+operation after one day with image `sha-208d8b4` in
+[#865](https://github.com/itsDNNS/docsight/issues/865).
+See [setup and limitations](README.md#pyur-fast3896-15-experimental).
 
 The examined frontend computes `e = SHA512-crypt(password, salt)`, then
 `f = SHA512(username + ":" + nonce + ":" + e[3:])` and
