@@ -21,6 +21,7 @@ FORMAT_PROFILE_MODULES = MappingProxyType({
     "hitron_coda4680_json": "app.drivers.formats.hitron",
     "hitron_coda56_json": "app.drivers.formats.hitron",
     "sagemcom_xmo_json": "app.drivers.formats.sagemcom",
+    "pyur_api_v1": "app.drivers.formats.pyur",
     "sb6141_transposed_html": "app.drivers.formats.html_transposed",
     "sb6183_html": "app.drivers.formats.html_rows",
     "sb6190_html": "app.drivers.formats.html_rows",

@@ -8,6 +8,7 @@ from tests.drivers.driver_format_cases import CASES, CASE_BY_ID
 
 
 EXPECTED_FAMILIES = {
+    "pyur_api_v1",
     "arris_html",
     "cgm4981_columnar_html",
     "ch7465_xml",
@@ -34,6 +35,7 @@ EXPECTED_FAMILIES = {
 }
 
 FAMILIES_WITH_DOCSIS_31_CHANNELS = {
+    "pyur_api_v1",
     "arris_html",
     "cgm4981_columnar_html",
     "cm1000_html_table",
@@ -68,7 +70,7 @@ def test_case_registry_is_complete_and_has_three_boundary_cases_per_family():
     counts = Counter(case.family for case in CASES)
     assert set(counts) == EXPECTED_FAMILIES
     assert counts == {family: 3 for family in EXPECTED_FAMILIES}
-    assert len(CASE_BY_ID) == len(CASES) == 69
+    assert len(CASE_BY_ID) == len(CASES) == 72
     assert list(CASE_BY_ID) == sorted(CASE_BY_ID)
 
 
