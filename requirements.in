@@ -9,6 +9,6 @@ pywebpush>=2.5.0
 fpdf2>=2.8.8
 pillow>=12.3.0  # security floor for fpdf2 transitive dependency
 beautifulsoup4>=4.15.0
-soupsieve>=2.9  # security floor for BeautifulSoup transitive dependency
+soupsieve>=2.9.2  # security floor for BeautifulSoup transitive dependency
 pypdf>=6.18.1
 openpyxl>=3.1.5
