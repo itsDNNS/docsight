@@ -386,3 +386,70 @@ class TestConfigUrlValidation:
         with pytest.raises(ValueError):
             config.save({"modem_user": "after", "modem_url": "file:///etc/passwd"})
         assert config.get("modem_user") == "before"
+
+
+class TestConfigIntegerValidation:
+    """Integer settings only store whole numbers; stored garbage never breaks reads (#875)."""
+
+    @pytest.mark.parametrize("value,expected", [
+        ("180", 180), (" 180 ", 180), (180, 180), (180.0, 180), ("-5", -5),
+    ])
+    def test_whole_numbers_accepted(self, config, value, expected):
+        config.save({"history_days": value})
+        assert config.get("history_days") == expected
+
+    def test_empty_value_still_means_unset(self, config):
+        config.save({"history_days": ""})
+        assert config.get("history_days") == 0
+
+    @pytest.mark.parametrize("value", ["1500.5", "1e3", "abc", "1,5", 1500.5, [], {}])
+    def test_non_integers_rejected_without_saving_anything(self, config, value):
+        config.save({"modem_user": "before", "history_days": 30})
+        with pytest.raises(ValueError, match="history_days must be a whole number"):
+            config.save({"modem_user": "after", "history_days": value})
+        assert config.get("modem_user") == "before"
+        assert config.get("history_days") == 30
+
+    def test_module_integer_keys_are_validated(self, config, monkeypatch):
+        import app.config as config_module
+
+        key = "connection_monitor_poll_interval_ms"
+        monkeypatch.setattr(config_module, "INT_KEYS", config_module.INT_KEYS | {key})
+        with pytest.raises(ValueError, match=f"{key} must be a whole number"):
+            config.save({key: "1500.5"})
+
+    @pytest.mark.parametrize("stored", ["1500.5", "abc", [1]])
+    def test_invalid_stored_value_falls_back_to_default(self, tmp_data_dir, stored, caplog, monkeypatch):
+        import app.config as config_module
+
+        monkeypatch.setattr(config_module, "_INVALID_INT_WARNED", set())
+        os.makedirs(tmp_data_dir, exist_ok=True)
+        with open(os.path.join(tmp_data_dir, "config.json"), "w") as f:
+            json.dump({"poll_interval": stored}, f)
+        config = ConfigManager(tmp_data_dir)
+        assert config.get("poll_interval") == DEFAULTS["poll_interval"]
+        assert config.get("poll_interval", 123) == 123
+        assert config.get_all()["poll_interval"] == DEFAULTS["poll_interval"]
+        assert "invalid stored integer setting" in caplog.text
+        assert "poll_interval" not in caplog.text and str(stored) not in caplog.text
+
+    def test_invalid_stored_value_is_logged_once(self, tmp_data_dir, caplog, monkeypatch):
+        import app.config as config_module
+
+        monkeypatch.setattr(config_module, "_INVALID_INT_WARNED", set())
+        os.makedirs(tmp_data_dir, exist_ok=True)
+        with open(os.path.join(tmp_data_dir, "config.json"), "w") as f:
+            json.dump({"web_port": "80.5"}, f)
+        config = ConfigManager(tmp_data_dir)
+        for _ in range(3):
+            config.get("web_port")
+        assert caplog.text.count("invalid stored integer setting") == 1
+
+    def test_unrelated_save_does_not_truncate_hand_edited_fraction(self, tmp_data_dir):
+        os.makedirs(tmp_data_dir, exist_ok=True)
+        with open(os.path.join(tmp_data_dir, "config.json"), "w") as f:
+            json.dump({"history_days": 1500.5}, f)
+        config = ConfigManager(tmp_data_dir)
+        config.save({"modem_user": "x"})
+        with open(os.path.join(tmp_data_dir, "config.json")) as f:
+            assert json.load(f)["history_days"] == 1500.5

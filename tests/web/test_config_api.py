@@ -45,3 +45,29 @@ class TestConfigAPI:
         resp = client.post("/api/config", content_type="application/json")
         assert resp.status_code in (400, 500)
 
+    def test_save_rejects_non_integer_for_integer_setting(self, client):
+        resp = client.post(
+            "/api/config",
+            data=json.dumps({"history_days": "1.5"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+        body = json.loads(resp.data)
+        assert body["success"] is False
+        assert body["error"] == "history_days must be a whole number"
+
+    def test_save_rejects_non_numeric_poll_interval(self, client):
+        resp = client.post(
+            "/api/config",
+            data=json.dumps({"poll_interval": "abc"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+
+    def test_save_rejects_fractional_json_number_for_poll_interval(self, client):
+        resp = client.post(
+            "/api/config",
+            data=json.dumps({"poll_interval": 900.7}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 400

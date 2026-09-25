@@ -181,8 +181,8 @@ class ConnectionMonitorCollector(Collector):
     def _configured_interval_ms(self) -> int:
         """Probe interval from settings, bounded; unreadable values use the default."""
         try:
-            # ConfigManager.get() itself casts INT keys and raises for values
-            # such as "1500.5" that the settings form can still save.
+            # ConfigManager.get() casts INT keys itself and can still raise,
+            # e.g. for an invalid environment variable override.
             interval_ms = int(self._config_mgr.get(
                 "connection_monitor_poll_interval_ms", _DEFAULT_PROBE_INTERVAL_MS
             ))

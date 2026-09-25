@@ -44,6 +44,25 @@ def parse_config_bool(value) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def parse_config_int(value) -> int:
+    """Parse a whole number supplied by config, JSON, or form input.
+
+    Raises ValueError or TypeError for anything else, including fractional
+    numbers, which int() would silently truncate.
+    """
+    if isinstance(value, float):
+        if not value.is_integer():
+            raise ValueError(f"not a whole number: {value!r}")
+        return int(value)
+    if isinstance(value, (int, str)):
+        return int(value.strip() if isinstance(value, str) else value)
+    raise TypeError(f"not a whole number: {type(value).__name__}")
+
+
+# Integer keys whose stored value was unreadable; each is logged only once.
+_INVALID_INT_WARNED: set[str] = set()
+
+
 def set_module_secret_registry(keys: set[str], owners: dict[str, str]) -> None:
     """Replace module-secret reservations while retaining shared set objects."""
     MODULE_SECRET_KEYS.clear()
@@ -336,7 +355,15 @@ class ConfigManager:
             if key in INT_KEYS and not isinstance(val, int):
                 if val == "" or val is None:
                     return default if default is not None else 0
-                return int(val)
+                # Unreadable values (hand edits, older versions) use the key's default.
+                try:
+                    return parse_config_int(val)
+                except (ValueError, TypeError, OverflowError):
+                    if key not in _INVALID_INT_WARNED:
+                        _INVALID_INT_WARNED.add(key)
+                        # Key names stay out of logs, like elsewhere in config handling.
+                        log.warning("Ignoring an invalid stored integer setting; using its default")
+                    return default if default is not None else DEFAULTS.get(key, 0)
             if key in HASH_KEYS:
                 # Return werkzeug hash as-is; legacy Fernet-encrypted values get decrypted
                 if val and (val.startswith("scrypt:") or val.startswith("pbkdf2:")):
@@ -378,6 +405,14 @@ class ConfigManager:
             if key in data and data[key]:
                 self._validate_url(key, data[key])
 
+        # Integer keys only accept whole numbers; an empty value still means unset
+        for key in INT_KEYS:
+            if key in data and data[key] not in ("", None):
+                try:
+                    data[key] = parse_config_int(data[key])
+                except (ValueError, TypeError, OverflowError):
+                    raise ValueError(f"{key} must be a whole number") from None
+
         # Don't overwrite passwords with the mask placeholder
         for key in MODULE_SECRET_KEYS | SECRET_KEYS | HASH_KEYS:
             if key in data and data[key] == PASSWORD_MASK:
@@ -408,8 +443,8 @@ class ConfigManager:
         for key in INT_KEYS:
             if key in self._file_config:
                 try:
-                    self._file_config[key] = int(self._file_config[key])
-                except (ValueError, TypeError):
+                    self._file_config[key] = parse_config_int(self._file_config[key])
+                except (ValueError, TypeError, OverflowError):
                     pass
 
         # Cast bool keys
