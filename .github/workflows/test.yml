@@ -173,7 +173,7 @@ jobs:
           PY
 
       - name: Run tests
-        run: python -m pytest tests/ -v --tb=short --ignore=tests/e2e
+        run: python -m pytest tests/ -n auto --tb=short --ignore=tests/e2e
 
   test-js:
     needs: changes
@@ -209,6 +209,7 @@ jobs:
       needs.changes.result == 'success' &&
       needs.changes.outputs.windows == 'true'
     runs-on: windows-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -229,7 +230,7 @@ jobs:
           pip install --require-hashes -r packaging/windows/requirements-test-windows.txt
 
       - name: Run portable Windows tests
-        run: python -m pytest tests/ -v --tb=short --ignore=tests/e2e -m "not linux_only"
+        run: python -m pytest tests/ -n auto --tb=short --ignore=tests/e2e -m "not linux_only"
 
   mobile-e2e:
     needs: changes
