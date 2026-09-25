@@ -361,7 +361,8 @@ class ConfigManager:
                 except (ValueError, TypeError, OverflowError):
                     if key not in _INVALID_INT_WARNED:
                         _INVALID_INT_WARNED.add(key)
-                        log.warning("Ignoring invalid stored value for %s; using the default", key)
+                        # Key names stay out of logs, like elsewhere in config handling.
+                        log.warning("Ignoring an invalid stored integer setting; using its default")
                     return default if default is not None else DEFAULTS.get(key, 0)
             if key in HASH_KEYS:
                 # Return werkzeug hash as-is; legacy Fernet-encrypted values get decrypted
