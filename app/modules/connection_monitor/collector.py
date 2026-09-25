@@ -17,6 +17,14 @@ logger = logging.getLogger(__name__)
 # Run retention cleanup every 15 minutes, not every collect cycle
 _CLEANUP_INTERVAL_S = 900
 
+# Probe interval bounds for the "connection_monitor_poll_interval_ms" setting
+_DEFAULT_PROBE_INTERVAL_MS = 5000
+_MIN_PROBE_INTERVAL_MS = 1000
+_MAX_PROBE_INTERVAL_MS = 300_000
+
+# The 1 s collector loop can wake slightly early; do not skip a due probe for that
+_DUE_TOLERANCE_S = 0.05
+
 
 class ConnectionMonitorCollector(Collector):
     """Always-on latency collector with per-target timing."""
@@ -64,9 +72,10 @@ class ConnectionMonitorCollector(Collector):
     def collect(self) -> CollectorResult:
         try:
             self._ensure_default_targets()
-            targets = [
-                t for t in self._cm_storage.get_targets() if t["enabled"]
-            ]
+            interval_ms = self._configured_interval_ms()
+            all_targets = self._cm_storage.get_targets()
+            self._sync_target_intervals(all_targets, interval_ms)
+            targets = [t for t in all_targets if t["enabled"]]
             if not targets:
                 return CollectorResult(source=self.name)
 
@@ -74,9 +83,9 @@ class ConnectionMonitorCollector(Collector):
             now = time.time()
             due = []
             for t in targets:
-                interval_s = t["poll_interval_ms"] / 1000.0
+                interval_s = interval_ms / 1000.0
                 last = self._last_probe.get(t["id"], 0)
-                if now - last >= interval_s:
+                if now - last >= interval_s - _DUE_TOLERANCE_S:
                     due.append(t)
 
             if not due:
@@ -168,6 +177,29 @@ class ConnectionMonitorCollector(Collector):
             self._core_storage.save_events_with_ids(all_events)
             if self._smart_capture:
                 self._smart_capture.evaluate(all_events)
+
+    def _configured_interval_ms(self) -> int:
+        """Probe interval from settings, bounded; unreadable values use the default."""
+        try:
+            # ConfigManager.get() itself casts INT keys and raises for values
+            # such as "1500.5" that the settings form can still save.
+            interval_ms = int(self._config_mgr.get(
+                "connection_monitor_poll_interval_ms", _DEFAULT_PROBE_INTERVAL_MS
+            ))
+        except (TypeError, ValueError, OverflowError):
+            return _DEFAULT_PROBE_INTERVAL_MS
+        return min(max(interval_ms, _MIN_PROBE_INTERVAL_MS), _MAX_PROBE_INTERVAL_MS)
+
+    def _sync_target_intervals(self, targets: list[dict], interval_ms: int):
+        """Keep stored per-target intervals equal to the configured interval.
+
+        Consumers such as the correlation view read a target's
+        poll_interval_ms to know how long one raw sample covers.
+        """
+        for t in targets:
+            if t["poll_interval_ms"] != interval_ms:
+                self._cm_storage.update_target(t["id"], poll_interval_ms=interval_ms)
+                t["poll_interval_ms"] = interval_ms
 
     def _ensure_default_targets(self):
         """Seed default targets on first enable."""

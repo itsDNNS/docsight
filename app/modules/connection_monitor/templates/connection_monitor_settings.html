@@ -26,7 +26,7 @@
         <div class="form-grid cols-2" style="margin-top: var(--space-md);">
             <div class="form-field">
                 <label class="form-label" for="connection_monitor_poll_interval_ms">{{ t['docsight.connection_monitor.cm_poll_interval'] or 'Probe interval (ms)' }}</label>
-                <input class="form-input" type="number" id="connection_monitor_poll_interval_ms" name="connection_monitor_poll_interval_ms" value="{{ config.connection_monitor_poll_interval_ms or 5000 }}" min="1000" step="1000">
+                <input class="form-input" type="number" id="connection_monitor_poll_interval_ms" name="connection_monitor_poll_interval_ms" value="{{ config.connection_monitor_poll_interval_ms or 5000 }}" min="1000" max="300000" step="1000">
                 <span class="form-hint">{{ t['docsight.connection_monitor.cm_poll_interval_hint'] or 'Time between probes per target. Default: 5000ms (5s). Minimum: 1000ms.' }}</span>
             </div>
             <div class="form-field">
