@@ -52,6 +52,8 @@
   "cm_resolution_1min": "1-min averages",
   "cm_resolution_5min": "5-min averages",
   "cm_resolution_1hr": "1-hour averages",
+  "cm_show_spikes": "Show spikes",
+  "cm_show_spikes_hint": "Scale the latency axis to the highest value, including short spikes",
   "traceroute.run_button": "Run Traceroute",
   "traceroute.running": "Running traceroute...",
   "traceroute.result": "Traceroute Result",

@@ -158,6 +158,8 @@
 }
 .uplot { width: 100% !important; }
 .uplot .u-legend { font-size: 11px; }
+/* Helper series (e.g. min/max bands) stay out of the legend */
+.uplot .u-legend .docsight-legend-hidden { display: none; }
 .uplot .u-legend th, .uplot .u-legend td { padding: 2px 6px; }
 
 /* uPlot tooltip */

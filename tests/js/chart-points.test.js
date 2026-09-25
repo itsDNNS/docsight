@@ -49,3 +49,18 @@ for (const count of [1, 30, 31, 100]) {
         }
     }
 }
+
+for (const mode of ['normal', 'zoom']) {
+    test(`${mode}: helper series marked hideInLegend get the hidden legend class`, () => {
+        const b = browser();
+        const data = [1, 2, 3];
+        b.renderChart('chart', ['a', 'b', 'c'], [
+            {label: 'Target', data},
+            {label: '_max_0', data, show: false, hideInLegend: true},
+        ], 'line', null, {});
+        if (mode === 'zoom') b.openChartZoom('chart');
+        const chart = mode === 'zoom' ? b.zoomChart : b.charts.chart;
+        assert.deepEqual(Array.from(chart.options.series.slice(1), s => s.class),
+            [undefined, 'docsight-legend-hidden']);
+    });
+}

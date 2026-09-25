@@ -67,6 +67,10 @@
                      data-label-5min="{{ t.get('docsight.connection_monitor.cm_resolution_5min', '5-min averages') }}"
                      data-label-1hr="{{ t.get('docsight.connection_monitor.cm_resolution_1hr', '1-hour averages') }}"
                 ></div>
+                <button type="button" id="cm-spikes-toggle" class="cm-chip-btn" aria-pressed="false" hidden
+                        title="{{ t.get('docsight.connection_monitor.cm_show_spikes_hint', 'Scale the latency axis to the highest value, including short spikes') }}">
+                    {{ t.get('docsight.connection_monitor.cm_show_spikes', 'Show spikes') }}
+                </button>
             </div>
             <div id="cm-combined-chart" class="cm-chart-mount"></div>
         </section>
