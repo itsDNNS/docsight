@@ -358,3 +358,23 @@ def test_changed_workflows_keep_every_action_sha_pinned(name):
     ]
     assert uses
     assert all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", action) for action in uses)
+
+
+def _run_step(job, name):
+    return next(step for step in load_workflow("test.yml")["jobs"][job]["steps"] if step["name"] == name)
+
+
+def test_linux_suite_runs_in_parallel_with_hash_locked_xdist():
+    assert "-n auto" in _run_step("test", "Run tests")["run"]
+    assert "pytest-xdist" in (ROOT / "requirements-test.in").read_text(encoding="utf-8").split()
+    assert "pytest-xdist==" in (ROOT / "requirements-test.txt").read_text(encoding="utf-8")
+
+
+def test_windows_lane_runs_the_full_portable_suite_in_parallel():
+    assert load_workflow("test.yml")["jobs"]["test-windows"]["timeout-minutes"] == 20
+    run = _run_step("test-windows", "Run portable Windows tests")["run"]
+    assert "-n auto" in run
+    assert '-m "not linux_only"' in run
+    windows_tests = ROOT / "packaging" / "windows"
+    assert "pytest-xdist" in (windows_tests / "requirements-test-windows.in").read_text(encoding="utf-8").split()
+    assert "pytest-xdist==" in (windows_tests / "requirements-test-windows.txt").read_text(encoding="utf-8")

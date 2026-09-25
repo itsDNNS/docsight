@@ -54,12 +54,12 @@ This runs on port **8767** (`http://localhost:8767`) in demo mode. Production us
 ## Running Tests
 
 ```bash
-python -m pytest tests/ -v
+python -m pytest tests/ -n auto --ignore=tests/e2e
 npm ci
 npm test
 ```
 
-The Python suite covers analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. The zero-dependency JavaScript lane uses Node 22's built-in test runner for browser bootstrap and pure frontend contracts. Run both suites before submitting a PR.
+The Python suite covers analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. `-n auto` runs it in parallel with `pytest-xdist` (included in the Linux and Windows test requirements); drop it to debug a single test serially. The zero-dependency JavaScript lane uses Node 22's built-in test runner for browser bootstrap and pure frontend contracts. Run both suites before submitting a PR.
 
 ### Browser E2E suite
 
