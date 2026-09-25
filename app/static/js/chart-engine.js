@@ -465,6 +465,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false,
             show: ds.show !== undefined ? ds.show : true,
         };
+        if (ds.hideInLegend) s.class = 'docsight-legend-hidden';
         if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;
         if (ds.scale) s.scale = ds.scale;
         if (isBar) {
@@ -782,6 +783,7 @@ function openChartZoom(canvasId) {
                 points: { show: zoomShowPoints, size: isBar ? 0 : (ds.pointSize || (n > 30 ? 4 : 8)) },
                 spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false
             };
+            if (ds.hideInLegend) s.class = 'docsight-legend-hidden';
             if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;
             if (isBar) { s.paths = barPaths; s.points = { show: false }; }
             if (ds.stepped) { s.paths = uPlot.paths.stepped({ align: -1 }); s.width = 2; }

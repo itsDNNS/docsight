@@ -16,6 +16,47 @@ var CMCharts = (function() {
         'rgba(251,113,133,0.9)'   // pink
     ];
 
+    // Typical latency (this percentile of the plotted lines) sets the Y axis, so a
+    // few spikes cannot flatten the chart. "Show spikes" scales to the highest value.
+    var TYPICAL_LATENCY_PERCENTILE = 0.99;
+    var SHOW_SPIKES_STORAGE_KEY = 'docsight.connectionMonitor.showSpikes';
+    var showSpikes = readShowSpikes();
+    var lastRender = null;
+
+    function readShowSpikes() {
+        try { return window.localStorage.getItem(SHOW_SPIKES_STORAGE_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    function writeShowSpikes(value) {
+        try { window.localStorage.setItem(SHOW_SPIKES_STORAGE_KEY, value ? '1' : '0'); } catch (e) { /* optional */ }
+    }
+
+    function percentile(values, p) {
+        if (!values.length) return 0;
+        var sorted = Float64Array.from(values).sort();
+        return sorted[Math.max(Math.ceil(p * sorted.length) - 1, 0)];
+    }
+
+    // 40ms floor keeps the green zone visible with breathing room.
+    // Above 30ms: moderate headroom. Above 100ms: tighter headroom.
+    function withHeadroom(value) {
+        if (value <= 30) return 40;
+        if (value <= 100) return Math.ceil(value * 1.2);
+        return Math.ceil(value * 1.15);
+    }
+
+    /**
+     * Y-axis maximum for the latency chart.
+     * @param {number[]} lineValues - plotted latency values of all targets
+     * @param {number} peak - highest value incl. per-bucket maxima
+     * @param {boolean} includeSpikes - scale to the highest value instead of typical latency
+     */
+    function latencyAxisMax(lineValues, peak, includeSpikes) {
+        var full = withHeadroom(peak);
+        if (includeSpikes) return full;
+        return Math.min(withHeadroom(percentile(lineValues, TYPICAL_LATENCY_PERCENTILE)), full);
+    }
+
     /**
      * uPlot plugin: drag-to-zoom on X-axis, double-click to reset.
      * Requires zoomable:true in renderChart opts (disables fixed x-scale range).
@@ -103,6 +144,56 @@ var CMCharts = (function() {
         };
     }
 
+    /**
+     * uPlot plugin: small markers at the top edge where latency exceeds the visible range.
+     */
+    function spikeMarkersPlugin(spikes) {
+        if (!spikes || spikes.length === 0) return {};
+        return {
+            hooks: {
+                draw: [function(u) {
+                    var ctx = u.ctx;
+                    var dpr = window.devicePixelRatio || 1;
+                    var half = 4 * dpr;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
+                    ctx.clip();
+                    for (var i = 0; i < spikes.length; i++) {
+                        var series = u.series[spikes[i].seriesIdx];
+                        if (series && series.show === false) continue;  // target hidden via legend
+                        var x = u.valToPos(spikes[i].index, 'x', true);
+                        if (x < u.bbox.left || x > u.bbox.left + u.bbox.width) continue;
+                        ctx.fillStyle = spikes[i].color;
+                        ctx.beginPath();
+                        ctx.moveTo(x - half, u.bbox.top);
+                        ctx.lineTo(x + half, u.bbox.top);
+                        ctx.lineTo(x, u.bbox.top + 1.5 * half);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }]
+            }
+        };
+    }
+
+    function syncSpikeToggle(clipped) {
+        var btn = document.getElementById('cm-spikes-toggle');
+        if (!btn) return;
+        if (!btn.dataset.cmBound) {
+            btn.dataset.cmBound = '1';
+            btn.addEventListener('click', function() {
+                showSpikes = !showSpikes;
+                writeShowSpikes(showSpikes);
+                if (lastRender) renderCombinedChart(lastRender.containerId, lastRender.allTargetData, lastRender.range);
+            });
+        }
+        btn.hidden = !(clipped || showSpikes);
+        btn.classList.toggle('active', showSpikes);
+        btn.setAttribute('aria-pressed', showSpikes ? 'true' : 'false');
+    }
+
     function sampleCountOf(sample) {
         return sample && sample.sample_count ? sample.sample_count : 1;
     }
@@ -123,6 +214,7 @@ var CMCharts = (function() {
      */
     function renderCombinedChart(containerId, allTargetData, range) {
         if (!allTargetData || allTargetData.length === 0) return;
+        lastRender = { containerId: containerId, allTargetData: allTargetData, range: range };
 
         // Build unified timeline from all targets' samples
         var timeMap = {};
@@ -149,6 +241,9 @@ var CMCharts = (function() {
         var datasets = [];
         var lossSet = {};
         var bandPlugins = [];
+        var lineValues = [];
+        var peak = 0;
+        var peaksByTarget = [];
 
         allTargetData.forEach(function(td, tIdx) {
             var sampleMap = {};
@@ -167,6 +262,8 @@ var CMCharts = (function() {
                     minData[i] = s.min_latency_ms;
                     maxData[i] = s.max_latency_ms;
                     if (s.min_latency_ms != null) hasAggregated = true;
+                    lineValues.push(s.latency_ms);
+                    peak = Math.max(peak, s.latency_ms, s.max_latency_ms != null ? s.max_latency_ms : 0);
                 } else {
                     data[i] = null;
                     minData[i] = null;
@@ -174,6 +271,8 @@ var CMCharts = (function() {
                 }
             }
             var color = TARGET_COLORS[tIdx % TARGET_COLORS.length];
+            // uPlot series[0] is the x-axis, so this target's line is series datasets.length + 1
+            peaksByTarget.push({ data: data, maxData: maxData, color: color, seriesIdx: datasets.length + 1 });
             datasets.push({
                 label: td.target.label + (td.target.host ? ' (' + td.target.host + ')' : ''),
                 data: data,
@@ -182,8 +281,8 @@ var CMCharts = (function() {
                 dashed: hasAggregated ? true : undefined
             });
             if (hasAggregated) {
-                datasets.push({ data: minData, color: 'transparent', label: '_min_' + tIdx, show: false });
-                datasets.push({ data: maxData, color: 'transparent', label: '_max_' + tIdx, show: false });
+                datasets.push({ data: minData, color: 'transparent', label: '_min_' + tIdx, show: false, hideInLegend: true });
+                datasets.push({ data: maxData, color: 'transparent', label: '_max_' + tIdx, show: false, hideInLegend: true });
                 // uPlot series[0] is x-axis, so data indices are offset by +1
                 var bandColor = color.replace(/[\d.]+\)$/, '0.12)');
                 bandPlugins.push(bandPlugin(datasets.length - 1, datasets.length, bandColor));
@@ -192,17 +291,18 @@ var CMCharts = (function() {
 
         var lossIndices = Object.keys(lossSet).map(Number).sort(function(a, b) { return a - b; });
 
-        // Compute dynamic Y-max from actual data with headroom
-        var dataMax = 0;
-        datasets.forEach(function(ds) {
-            ds.data.forEach(function(v) { if (v != null && v > dataMax) dataMax = v; });
+        var yMax = latencyAxisMax(lineValues, peak, showSpikes);
+
+        // Mark buckets whose latency or per-bucket maximum is above the visible range
+        var spikes = [];
+        peaksByTarget.forEach(function(t) {
+            for (var i = 0; i < t.data.length; i++) {
+                var v = t.data[i];
+                if (v == null) continue;
+                var high = t.maxData[i] != null ? Math.max(v, t.maxData[i]) : v;
+                if (high > yMax) spikes.push({ index: i, color: t.color, seriesIdx: t.seriesIdx });
+            }
         });
-        // 40ms floor ensures green zone is always visible with breathing room.
-        // Above 30ms: moderate headroom. Above 100ms: tighter headroom.
-        var yMax;
-        if (dataMax <= 30) yMax = 40;
-        else if (dataMax <= 100) yMax = Math.ceil(dataMax * 1.2);
-        else yMax = Math.ceil(dataMax * 1.15);
 
         // PingPlotter-style threshold zones (vertically scaled backgrounds)
         // lineColor: transparent suppresses the dashed boundary lines
@@ -215,6 +315,8 @@ var CMCharts = (function() {
 
         renderChart(containerId, labels, datasets, 'line', zones, {
             yMin: 0,
+            // Fixed range: chart-engine would otherwise grow the axis to the highest point.
+            scales: { y: { range: function() { return [0, yMax]; } } },
             zoomable: true,
             minHeight: 260,
             maxHeight: 440,
@@ -224,8 +326,9 @@ var CMCharts = (function() {
                 if (val == null) return '';
                 return ctx.dataset.label + ': ' + val.toFixed(1) + ' ms';
             },
-            plugins: [lossMarkersPlugin(lossIndices), zoomPlugin()].concat(bandPlugins)
+            plugins: [lossMarkersPlugin(lossIndices), spikeMarkersPlugin(spikes), zoomPlugin()].concat(bandPlugins)
         });
+        syncSpikeToggle(spikes.length > 0);
     }
 
     // Keep comparisons tied to individual targets and their measured statistics.
@@ -329,6 +432,7 @@ var CMCharts = (function() {
     return {
         renderCombinedChart: renderCombinedChart,
         renderPerTargetStats: renderPerTargetStats,
+        latencyAxisMax: latencyAxisMax,
         TARGET_COLORS: TARGET_COLORS
     };
 })();
