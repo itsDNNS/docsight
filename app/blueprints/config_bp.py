@@ -17,6 +17,7 @@ from app.config import (
     PASSWORD_MASK,
     POLL_MAX,
     POLL_MIN,
+    parse_config_int,
 )
 
 audit_log = logging.getLogger("docsis.audit")
@@ -81,10 +82,10 @@ def api_config():
         # Clamp poll_interval to allowed range
         if "poll_interval" in data:
             try:
-                pi = int(data["poll_interval"])
+                pi = parse_config_int(data["poll_interval"])
                 data["poll_interval"] = max(POLL_MIN, min(POLL_MAX, pi))
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError, OverflowError):
+                pass  # save() rejects it with a 400
         previous_bqm_url = (_config_manager.get("bqm_url") or "").strip()
         requested_bqm_url = (data.get("bqm_url") or "").strip() if "bqm_url" in data else previous_bqm_url
         should_fetch_bqm = (

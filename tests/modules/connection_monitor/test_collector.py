@@ -272,9 +272,12 @@ class TestProbeInterval:
         assert intervals == {"Cloudflare DNS": 1000, "Google DNS": 1000}
 
 
-@pytest.mark.parametrize("saved", ["1500.5", "1e3", "abc"])
-def test_real_config_value_the_form_can_save_does_not_stop_probing(tmp_path, monkeypatch, saved):
-    """ConfigManager.get() raises for these INT-key values; the collector keeps working."""
+@pytest.mark.parametrize("stored", ["1500.5", "1e3", "abc"])
+def test_unreadable_stored_interval_does_not_stop_probing(tmp_path, monkeypatch, stored):
+    """Values older versions could store (#875) fall back to 5000 ms instead of stopping probes."""
+    import json
+    import os
+
     import app.config as config_module
     from app.config import ConfigManager
 
@@ -282,10 +285,12 @@ def test_real_config_value_the_form_can_save_does_not_stop_probing(tmp_path, mon
     monkeypatch.setattr(
         config_module, "INT_KEYS", config_module.INT_KEYS | {"connection_monitor_poll_interval_ms"}
     )
-    config_mgr = ConfigManager(str(tmp_path / "cfg"))
-    config_mgr.save({"connection_monitor_enabled": True, "connection_monitor_poll_interval_ms": saved})
-    with pytest.raises(ValueError):
-        config_mgr.get("connection_monitor_poll_interval_ms")
+    data_dir = tmp_path / "cfg"
+    os.makedirs(data_dir)
+    (data_dir / "config.json").write_text(json.dumps(
+        {"connection_monitor_enabled": True, "connection_monitor_poll_interval_ms": stored}
+    ))
+    config_mgr = ConfigManager(str(data_dir))
     with patch("app.modules.connection_monitor.collector.ProbeEngine") as MockEngine:
         MockEngine.return_value.probe.return_value = ProbeResult(
             latency_ms=10.0, timeout=False, method="tcp"
