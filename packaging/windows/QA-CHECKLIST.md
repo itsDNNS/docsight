@@ -48,6 +48,7 @@ Record these values before starting:
   confirm a repeated build with that exact label shows the same value.
 - [ ] Double-click `DOCSight.exe`.
 - [ ] If SmartScreen appears, confirm the documented flow works: **More info** → **Run anyway** after checksum verification.
+- [ ] No Windows Defender Firewall permission prompt appears during startup or when the browser opens. If a prompt appears, record its exact text, select **Cancel**, and mark the result as Fail.
 - [ ] A centered DOCSight startup window is visible within **under two seconds** of double-clicking, before slow startup completes.
 - [ ] At 100%, 150%, and 200% display scaling, the startup and expanded recovery layouts remain readable without clipped actions.
 - [ ] The startup window advances through **Prepare local data**, **Start DOCSight**, **Wait for readiness**, and **Open browser**.
@@ -152,6 +153,7 @@ successful exclusive reopen of created `DATA_DIR` files.
 - [ ] Start two launchers as close together as practical and confirm only one owner/listener remains after readiness.
 - [ ] With a temporary loopback listener occupying port `8765`, start DOCSight and confirm it starts once on an allowed fallback from `8766` through `8775` without adopting the foreign service.
 - [ ] Confirm the only DOCSight listener is IPv4 `127.0.0.1`; no wildcard, LAN, or IPv6 listener is present.
+  A Windows Firewall prompt means DOCSight bound to a non-loopback address; treat it as a failure.
 - [ ] Inspect `%LOCALAPPDATA%\DOCSight\runtime.json` and confirm it has schema version, owner PID, selected port, application version, process start time, and a long random instance token.
 - [ ] End the owner process, leave `runtime.json` in place, and start DOCSight again; confirm the new owner replaces the stale PID, start time, and token.
 - [ ] Replace `runtime.json` with malformed JSON while DOCSight is stopped, then start again and confirm the malformed record is recovered.
@@ -181,6 +183,7 @@ successful exclusive reopen of created `DATA_DIR` files.
 | One-time tray notification | | |
 | Graceful quit / second-cycle leak check | | |
 | SmartScreen flow | | |
+| Firewall prompt (none expected) | | |
 | Wizard / Demo Mode | | |
 | Dashboard / glossary / evidence | | |
 | Real modem poll, if available | | |
