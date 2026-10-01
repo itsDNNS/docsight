@@ -122,7 +122,7 @@ Desktop Preview is intentionally not full Windows service support yet:
 - **No Windows service or autostart setup.** It does not install a background service that starts before login.
 - **No auto-update channel.** Download a newer ZIP from GitHub releases when you want to update.
 - **No installer, MSIX, or Store package.** The preview is a portable ZIP.
-- **Local-only browser app.** It binds to loopback for tryout use, not to your LAN.
+- **Local-only browser app.** It binds to loopback for tryout use, not to your LAN, so Windows does not ask for a firewall exception.
 
 For continuous monitoring, use Docker on an always-on machine instead.
 
