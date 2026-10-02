@@ -1,5 +1,7 @@
 """E2E tests for the Before/After Comparison feature."""
 
+from urllib.parse import parse_qs, urlparse
+
 from playwright.sync_api import expect
 
 
@@ -66,6 +68,38 @@ def navigate_to_comparison(page):
 
 
 class TestComparisonView:
+    def test_default_preset_runs_on_open_and_on_preset_change(self, demo_page):
+        requests = []
+
+        def fulfill(route):
+            requests.append(route.request.url)
+            route.fulfill(json=_comparison_payload(True, 0))
+
+        demo_page.set_viewport_size({"width": 1280, "height": 900})
+        demo_page.route("**/api/comparison**", fulfill)
+        navigate_to_comparison(demo_page)
+
+        expect(demo_page.locator("#comparison-health")).to_be_visible()
+        expect(demo_page.locator("#comparison-placeholder")).to_be_hidden()
+        from_a = parse_qs(urlparse(requests[0]).query)["from_a"][0]
+        local_yesterday = demo_page.evaluate(
+            """() => {
+                const now = new Date();
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+                    .toISOString().replace(/\\.\\d{3}Z$/, 'Z');
+            }"""
+        )
+        assert from_a == local_yesterday
+        widths = demo_page.locator(".comparison-input").evaluate_all(
+            "inputs => inputs.map((input) => input.getBoundingClientRect().width)"
+        )
+        assert min(widths) >= 230
+
+        demo_page.select_option("#comparison-preset", "last_this_week")
+        expect(demo_page.locator("#comparison-health")).to_be_visible()
+        demo_page.wait_for_timeout(300)
+        assert len(requests) == 2
+
     def test_nav_item_visible(self, demo_page):
         nav = demo_page.locator('.nav-item[data-view="comparison"]')
         assert nav.count() == 1

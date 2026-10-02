@@ -41,19 +41,22 @@ function _cmpPresetDates(preset) {
     }
 }
 
+/* datetime-local value ("YYYY-MM-DDTHH:MM") in the browser's local time */
 function _cmpFmtDT(date, hours, minutes) {
     var d = new Date(date);
     if (hours !== undefined) d.setHours(hours);
     if (minutes !== undefined) d.setMinutes(minutes);
-    d.setSeconds(0);
-    d.setMilliseconds(0);
-    return d.toISOString().replace('Z', '').slice(0, 16);
+    function pad(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+        'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
 
+/* Local datetime-local value to a UTC timestamp for the API */
 function _cmpToISO(dtLocal) {
     if (!dtLocal) return '';
-    /* datetime-local gives "YYYY-MM-DDTHH:MM", append seconds + Z */
-    return dtLocal + ':00Z';
+    var d = new Date(dtLocal);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 /* ── UI Handlers ── */
@@ -65,6 +68,11 @@ function _cmpApplyPreset() {
     document.getElementById('comparison-to-a').value = dates.toA;
     document.getElementById('comparison-from-b').value = dates.fromB;
     document.getElementById('comparison-to-b').value = dates.toB;
+}
+
+function _cmpOnPresetChange() {
+    _cmpApplyPreset();
+    if (document.getElementById('comparison-preset').value !== 'custom') _cmpRunComparison();
 }
 
 function _cmpOnDateChange() {
@@ -405,12 +413,13 @@ function initComparison() {
             }
         });
 
-        document.getElementById('comparison-preset').addEventListener('change', _cmpApplyPreset);
+        document.getElementById('comparison-preset').addEventListener('change', _cmpOnPresetChange);
         document.getElementById('comparison-run-btn').addEventListener('click', _cmpRunComparison);
     }
 
-    /* Apply default preset on each view */
+    /* Apply the default preset and show its result on each view */
     _cmpApplyPreset();
+    _cmpRunComparison();
 }
 
 function openComparisonInComplaint() {

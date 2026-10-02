@@ -200,3 +200,20 @@ test('Evidence retains unavailable status and hint while omitting impossible vie
     assert.doesNotMatch(unavailableHtml, /data-evidence-view="journal"/);
     assert.doesNotMatch(unavailableHtml, /data-evidence-action="add_note"/);
 });
+
+test('comparison fields show local time and send the matching UTC instant', () => {
+    const previousTz = process.env.TZ;
+    process.env.TZ = 'Europe/Berlin';
+    try {
+        const {context} = browser();
+        run(context, 'app/modules/comparison/static/main.js');
+        assert.equal(context._cmpFmtDT(new Date(2026, 2, 1, 15, 30), 0, 0), '2026-03-01T00:00');
+        assert.equal(context._cmpToISO('2026-03-01T00:00'), '2026-02-28T23:00:00Z');
+        assert.equal(context._cmpToISO('2026-07-01T00:00'), '2026-06-30T22:00:00Z');
+        assert.equal(context._cmpToISO(''), '');
+        assert.equal(context._cmpToISO('not a date'), '');
+    } finally {
+        if (previousTz === undefined) delete process.env.TZ;
+        else process.env.TZ = previousTz;
+    }
+});
