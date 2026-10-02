@@ -285,6 +285,47 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
         return active ? active.dataset.value : null;
     };
 
+    /* Views switched while the page is still loading are the initial route;
+       later switches move focus so keyboard and screen reader users follow. */
+    var viewFocusEnabled = false;
+    document.addEventListener('DOMContentLoaded', function() { viewFocusEnabled = true; });
+
+    function viewTitle(view, target) {
+        var link = sidebar.querySelector('.nav-item[data-view="' + view + '"]');
+        var title = link && link.getAttribute('data-nav-title');
+        if (!title && target) {
+            var heading = target.querySelector('.view-page-title');
+            title = heading && heading.textContent.trim();
+        }
+        return title || '';
+    }
+
+    function viewFocusTarget(target) {
+        return (target && target.querySelector('.view-page-title')) || target;
+    }
+
+    function focusActiveView() {
+        var target = document.querySelector('.main-content > .view.active');
+        var focusTarget = viewFocusTarget(target) || document.getElementById('main-content');
+        if (!focusTarget) return;
+        if (!focusTarget.hasAttribute('tabindex')) focusTarget.setAttribute('tabindex', '-1');
+        focusTarget.focus({ preventScroll: true });
+    }
+
+    function announceView(view, target) {
+        var title = view === 'live' ? '' : viewTitle(view, target);
+        document.title = title ? title + ' · DOCSight' : 'DOCSight';
+        if (viewFocusEnabled) focusActiveView();
+    }
+
+    var skipLink = document.getElementById('skip-link');
+    if (skipLink) {
+        skipLink.addEventListener('click', function(event) {
+            event.preventDefault();
+            focusActiveView();
+        });
+    }
+
     function switchView(view, skipHash) {
         var targetId = view === 'live' ? 'view-dashboard' : 'view-' + view;
         var target = document.getElementById(targetId);
@@ -302,6 +343,7 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
             v.classList.remove('active');
         });
         if (target) target.classList.add('active');
+        announceView(view, target);
 
         stopAutoRefresh();
         if (typeof stopBqmLiveRefresh === 'function') stopBqmLiveRefresh();

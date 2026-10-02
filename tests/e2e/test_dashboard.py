@@ -28,6 +28,26 @@ class TestDashboardLoad:
 class TestNavigation:
     """Sidebar nav switching."""
 
+    def test_view_changes_update_the_title_and_move_focus_to_the_heading(self, demo_page):
+        expect(demo_page).to_have_title("DOCSight")
+        expect(demo_page.locator("h1")).to_have_count(1)
+        demo_page.locator('.nav-item[data-view="trends"]').click()
+        expect(demo_page).to_have_title("Signal Trends · DOCSight")
+        expect(demo_page.locator("#view-trends .view-page-title")).to_be_focused()
+
+    def test_skip_link_is_the_first_tab_stop_and_focuses_the_active_view(self, demo_page):
+        demo_page.keyboard.press("Tab")
+        expect(demo_page.locator("#skip-link")).to_be_focused()
+        demo_page.keyboard.press("Enter")
+        expect(demo_page.locator("#view-dashboard")).to_be_focused()
+        assert demo_page.evaluate("location.hash") == ""
+
+    def test_initial_deep_link_sets_the_title_without_moving_focus(self, page, live_server):
+        page.goto(f"{live_server}/#correlation")
+        page.wait_for_load_state("networkidle")
+        expect(page).to_have_title("Correlation · DOCSight")
+        assert page.evaluate("document.activeElement === document.body")
+
     def test_switch_to_events(self, demo_page):
         demo_page.locator('.nav-item[data-view="events"]').click()
         events_section = demo_page.locator("#view-events")
