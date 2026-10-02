@@ -332,6 +332,7 @@
   "timestamp": "Időbélyeg",
   "cancel": "Mégse",
   "more_actions": "További műveletek",
+  "actions": "Műveletek",
   "event_log": "Eseménynapló",
   "event_severity": "Súlyosság",
   "event_type": "Típus",

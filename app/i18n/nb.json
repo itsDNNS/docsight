@@ -332,6 +332,7 @@
   "timestamp": "Tidsstempel",
   "cancel": "Avbryt",
   "more_actions": "Flere handlinger",
+  "actions": "Handlinger",
   "event_log": "Hendelseslogg",
   "event_severity": "Alvorlighetsgrad",
   "event_type": "Skriv",

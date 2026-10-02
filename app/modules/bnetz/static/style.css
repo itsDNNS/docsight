@@ -20,8 +20,32 @@
 .bnetz-refresh-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
 .bnetz-refresh-btn i { width: 16px; height: 16px; }
 
-/* Inline action icons (complaint, PDF, delete) */
+/* Measurement table (mirrors #speedtest-table) */
+#bnetz-table {
+    width: 100%;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+#bnetz-table thead tr { background: var(--surface-2, rgba(0,0,0,0.15)); }
+#bnetz-table thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+#bnetz-table tbody td {
+    padding: 12px 16px;
+    font-size: 0.85em;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border-tint, rgba(255,255,255,0.05));
+}
+#bnetz-table tbody tr[data-bnetz-idx]:hover { background: var(--surface-2, rgba(0,0,0,0.1)); }
+
+/* Inline action icons (complaint, PDF, delete) in fixed slots */
 .bnetz-actions-cell { white-space: nowrap; }
+.bnetz-action-placeholder { visibility: hidden; pointer-events: none; }
 .bnetz-action-btn {
     display: inline-flex; align-items: center; justify-content: center;
     padding: 4px; margin-right: 4px; border-radius: var(--radius-sm, 4px);
@@ -33,10 +57,10 @@
 .bnetz-action-btn i { width: 15px; height: 15px; }
 .bnetz-action-delete:hover { color: var(--crit); background: rgba(239,68,68,0.1); }
 
-/* Verdict icon */
-.bnetz-verdict { text-align: center; }
-.bnetz-verdict i { width: 18px; height: 18px; }
-.bnetz-verdict-text { display: none; }
+/* Verdict: icon plus text, readable without color */
+.bnetz-verdict { white-space: nowrap; }
+.bnetz-verdict i { width: 18px; height: 18px; vertical-align: middle; }
+.bnetz-verdict-text { margin-left: 6px; vertical-align: middle; }
 
 /* Detail expand cell */
 .bnetz-detail-cell { padding: 0 8px 12px 24px; }
@@ -156,6 +180,10 @@
         min-width: 40px;
         min-height: 40px;
         margin-right: 0;
+    }
+
+    .bnetz-action-placeholder {
+        display: none;
     }
 
     .bnetz-detail-cell {

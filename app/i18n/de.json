@@ -332,6 +332,7 @@
   "timestamp": "Zeitstempel",
   "cancel": "Abbrechen",
   "more_actions": "Weitere Aktionen",
+  "actions": "Aktionen",
   "event_log": "Ereignisprotokoll",
   "event_severity": "Schweregrad",
   "event_type": "Typ",

@@ -332,6 +332,7 @@
   "timestamp": "Tijdstempel",
   "cancel": "Annuleren",
   "more_actions": "Meer acties",
+  "actions": "Acties",
   "event_log": "Gebeurtenislogboek",
   "event_severity": "Ernst",
   "event_type": "Typ",
