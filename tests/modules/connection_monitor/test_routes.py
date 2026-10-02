@@ -577,6 +577,53 @@ class TestSummaryAPI:
         assert resp.status_code == 200
         assert resp.get_json() == {}
 
+    @staticmethod
+    def _cfg(enabled=True, demo=False, interval_ms=5000):
+        cfg = MagicMock()
+        cfg.is_demo_mode.return_value = demo
+        values = {"connection_monitor_enabled": enabled, "connection_monitor_poll_interval_ms": interval_ms}
+        cfg.get.side_effect = lambda key, default=None: values.get(key, default)
+        return cfg
+
+    def test_summary_window_covers_three_probe_intervals(self, client):
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1", enabled=True)
+        storage.save_samples([
+            {"target_id": tid, "timestamp": time.time() - 150, "latency_ms": 12.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        runtime = get_runtime(c.application)
+
+        with patch.object(runtime, "config_manager", self._cfg(interval_ms=5000)):
+            default = c.get("/api/connection-monitor/summary").get_json()[str(tid)]
+        with patch.object(runtime, "config_manager", self._cfg(interval_ms=60000)):
+            slow = c.get("/api/connection-monitor/summary").get_json()[str(tid)]
+
+        assert default["window_seconds"] == 60
+        assert default["sample_count"] == 0
+        assert slow["window_seconds"] == 180
+        assert slow["sample_count"] == 1
+        assert slow["avg_latency_ms"] == 12.0
+
+    def test_demo_summary_uses_the_newest_seeded_samples(self, client):
+        c, storage = client
+        tid = storage.create_target("Demo", "1.1.1.1", enabled=True)
+        hour_ago = time.time() - 3600
+        storage.save_samples([
+            {"target_id": tid, "timestamp": hour_ago - 20, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": hour_ago, "latency_ms": 14.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": hour_ago - 600, "latency_ms": 90.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        runtime = get_runtime(c.application)
+
+        with patch.object(runtime, "config_manager", self._cfg(enabled=False, demo=True)):
+            demo = c.get("/api/connection-monitor/summary").get_json()[str(tid)]
+        with patch.object(runtime, "config_manager", self._cfg(enabled=True, demo=False)):
+            live = c.get("/api/connection-monitor/summary").get_json()[str(tid)]
+
+        assert demo["sample_count"] == 2
+        assert demo["avg_latency_ms"] == 12.0
+        assert live["sample_count"] == 0
+
     def test_get_range_stats(self, client):
         c, storage = client
         tid = storage.create_target("Test", "1.1.1.1")

@@ -291,6 +291,10 @@ class TestSummary:
             {"target_id": tid, "timestamp": now - 20, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
             {"target_id": tid, "timestamp": now - 10, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
         ])
+        assert storage.get_latest_sample_time(tid) == now - 10
+        earlier = storage.get_summary(tid, window_seconds=15, end=now - 15)
+        assert earlier["sample_count"] == 2
+        assert earlier["avg_latency_ms"] == 15.0
         summary = storage.get_summary(tid, window_seconds=60)
         assert summary["sample_count"] == 3
         assert summary["avg_latency_ms"] == 15.0

@@ -17,6 +17,7 @@ from app.tz import local_date_to_utc_range, local_today, to_local_display, _pars
 from app.web_auth import require_auth
 from app.runtime import current_runtime
 
+from .collector import configured_probe_interval_ms
 from .probe import ProbeEngine
 from .storage import ConnectionMonitorStorage
 from .traceroute_probe import TracerouteProbe
@@ -454,18 +455,26 @@ def api_get_range_stats():
 @require_auth
 def api_get_summary():
     cfg = current_runtime().config_manager
-    if cfg is not None and not cfg.get("connection_monitor_enabled", False):
+    # Demo data is seeded history without a running collector, so its summary
+    # window ends at the newest stored sample instead of now.
+    demo = cfg is not None and cfg.is_demo_mode() is True
+    if cfg is not None and not demo and not cfg.get("connection_monitor_enabled", False):
         return jsonify({})
 
+    # Cover at least three probes so slow intervals still produce a summary.
+    interval_s = (configured_probe_interval_ms(cfg) if cfg is not None else 5000) / 1000
+    window_seconds = max(60, math.ceil(3 * interval_s))
     storage = _get_cm_storage()
     targets = storage.get_targets()
     summaries = {}
     for t in targets:
+        end = storage.get_latest_sample_time(t["id"]) if demo else None
         summaries[t["id"]] = {
             "label": t["label"],
             "host": t["host"],
             "enabled": t["enabled"],
-            **storage.get_summary(t["id"], window_seconds=60),
+            "window_seconds": window_seconds,
+            **storage.get_summary(t["id"], window_seconds=window_seconds, end=end),
         }
     return jsonify(summaries)
 
