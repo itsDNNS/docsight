@@ -178,6 +178,18 @@ class TestMobileLayout:
         )
         assert overflow <= 1
 
+        # Collapsed rows show date, measured values, and verdict; the rest on expand.
+        first = mobile_page.locator("#bnetz-tbody tr[data-bnetz-idx]").first
+        toggle = first.locator(".bnetz-expand-btn")
+        expect(first.locator(".bnetz-actions-cell")).to_be_hidden()
+        expect(first.locator(".bnetz-verdict")).to_be_visible()
+        toggle.click()
+        expect(toggle).to_have_attribute("aria-expanded", "true")
+        expect(first.locator(".bnetz-actions-cell")).to_be_visible()
+        mobile_page.locator("#bnetz-tbody tr[data-bnetz-idx]").evaluate_all(
+            "rows => rows.forEach((row) => { if (!row.classList.contains('bnetz-row-open')) row.click(); })"
+        )
+
         action_rects = mobile_page.locator(
             "#bnetz-tbody tr[data-bnetz-idx] .bnetz-action-btn:not(.bnetz-action-placeholder)"
         ).evaluate_all(
