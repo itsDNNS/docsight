@@ -61,6 +61,23 @@ def _open_scoped_report(page, payload):
     return modal
 
 
+def test_evidence_results_and_loading_stay_hidden_until_a_checklist_is_built(demo_page):
+    demo_page.evaluate("switchView('evidence')")
+
+    expect(demo_page.locator("#evidence-placeholder")).to_be_visible()
+    expect(demo_page.locator("#evidence-loading")).to_be_hidden()
+    expect(demo_page.locator("#evidence-results")).to_be_hidden()
+    expect(demo_page.locator("#evidence-copy")).to_be_hidden()
+
+    demo_page.route("**/api/evidence/checklist?**", lambda route: route.fulfill(json=_payload()))
+    demo_page.locator("#evidence-run").click()
+
+    expect(demo_page.locator("#evidence-results")).to_be_visible()
+    expect(demo_page.locator("#evidence-copy")).to_be_visible()
+    expect(demo_page.locator("#evidence-loading")).to_be_hidden()
+    expect(demo_page.locator("#evidence-demo-banner")).to_be_hidden()
+
+
 @pytest.mark.parametrize("viewport", [
     {"width": 1280, "height": 900},
     {"width": 393, "height": 852},

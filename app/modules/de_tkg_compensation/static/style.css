@@ -1,6 +1,5 @@
 .tkg-view { display: flex; flex-direction: column; gap: var(--space-md, 16px); min-width: 0; }
 .tkg-view > * { min-width: 0; }
-.tkg-view [hidden] { display: none !important; }
 .tkg-header { margin-bottom: 0; }
 .tkg-muted { color: var(--text-secondary, var(--muted)); line-height: 1.5; }
 .tkg-scope { display: inline-flex; align-self: flex-start; max-width: 100%; padding: 4px 9px; border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); border-radius: var(--radius-pill, 999px); background: var(--accent-muted); color: var(--accent); font-size: .82rem; line-height: 1.4; }

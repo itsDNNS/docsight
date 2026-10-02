@@ -198,10 +198,6 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   gap: 18px;
 }
 
-.glossary-term-article[hidden] {
-  display: none !important;
-}
-
 .glossary-page-header {
   padding: 24px;
   margin-bottom: 20px;
@@ -345,10 +341,6 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   font-weight: 700;
   line-height: 1.35;
   overflow-wrap: anywhere;
-}
-
-.glossary-term-link[hidden] {
-  display: none !important;
 }
 
 .glossary-term-link.active {
@@ -534,10 +526,6 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   color: var(--amethyst-light);
 }
 
-.glossary-empty-state[hidden] {
-  display: none !important;
-}
-
 .glossary-callout {
   border-color: color-mix(in srgb, var(--amber, #fbbf24) 40%, var(--glass-border));
   background: color-mix(in srgb, var(--amber, #fbbf24) 10%, var(--surface));
@@ -587,10 +575,6 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 .glossary-mobile-picker-trigger,
 .glossary-mobile-picker {
   display: none;
-}
-
-.glossary-mobile-picker[hidden] {
-  display: none !important;
 }
 
 .glossary-mobile-picker-close {
