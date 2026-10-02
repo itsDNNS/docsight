@@ -63,7 +63,7 @@ function filterSpeedtestData() {
     } else {
         var cutoff = new Date(Date.now() - parseInt(days) * 86400000);
         _speedtestAllData = _speedtestRawData.filter(function(r) {
-            return new Date(r.timestamp) >= cutoff;
+            return docsightParseTime(r.timestamp) >= cutoff;
         });
     }
     sortSpeedtestData();
@@ -466,7 +466,7 @@ function renderSpeedtestChart() {
     if (!container || !canvas) return;
     // Sort data chronologically for chart (oldest first)
     var data = _speedtestAllData.slice().sort(function(a, b) {
-        return new Date(a.timestamp) - new Date(b.timestamp);
+        return docsightParseTime(a.timestamp) - docsightParseTime(b.timestamp);
     });
     if (data.length < 2) { container.style.display = 'none'; return; }
     container.style.display = '';
@@ -490,7 +490,7 @@ function renderSpeedtestChart() {
         uls.push(parseFloat(data[i].upload_mbps) || 0);
         var ping = data[i].ping_ms == null ? NaN : Number(data[i].ping_ms);
         pings.push(Number.isFinite(ping) ? ping : null);
-        times.push(new Date(data[i].timestamp));
+        times.push(docsightParseTime(data[i].timestamp));
     }
     // Scales
     var maxSpeed = Math.max.apply(null, dls.concat(uls)) * 1.1 || 1;

@@ -391,7 +391,7 @@ function _formatChannelWeatherTime(ms) {
 
 function _getChannelWeatherRange(timestamps) {
     var times = (timestamps || []).map(function(ts) {
-        var ms = new Date(ts).getTime();
+        var ms = docsightParseTime(ts).getTime();
         return isFinite(ms) ? ms : null;
     }).filter(function(ms) { return ms !== null; }).sort(function(a, b) { return a - b; });
     if (!times.length) return null;
@@ -412,7 +412,7 @@ function _fetchChannelWeatherForTimestamps(timestamps) {
 function _alignWeatherToChannelTimestamps(timestamps, weatherData, days) {
     if (!weatherData || !weatherData.length) return null;
     var weather = weatherData.map(function(row) {
-        var ms = row && row.timestamp ? new Date(row.timestamp).getTime() : NaN;
+        var ms = row && row.timestamp ? docsightParseTime(row.timestamp).getTime() : NaN;
         var temp = row ? row.temperature : null;
         if (!isFinite(ms) || temp == null || !isFinite(Number(temp))) return null;
         return { ts: ms, temp: Number(temp), day: row.timestamp.substring(0, 10) };
@@ -440,7 +440,7 @@ function _alignWeatherToChannelTimestamps(timestamps, weatherData, days) {
 
     return (timestamps || []).map(function(ts) {
         if (!ts) return null;
-        var target = new Date(ts).getTime();
+        var target = docsightParseTime(ts).getTime();
         if (!isFinite(target)) return null;
         var best = null;
         var bestDist = Infinity;

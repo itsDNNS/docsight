@@ -1365,3 +1365,25 @@ def test_comparison_curves_without_points_keep_zoom_and_tooltip(demo_page, prese
     _assert_curve_points_hidden(demo_page,
         "['cmp-chart-ds-power', 'cmp-chart-ds-snr', 'cmp-chart-us-power'].map(id => window.charts[id])")
     _assert_curve_zoom_and_tooltip(demo_page, "cmp-chart-ds-power")
+
+
+def test_chart_times_follow_the_configured_zone_not_the_browser_zone(browser, live_server):
+    """Chart labels match table times even when the browser runs in another zone."""
+    context = browser.new_context(timezone_id="Pacific/Auckland")
+    page = context.new_page()
+    page.goto(live_server)
+    page.wait_for_load_state("networkidle")
+    configured = page.evaluate("DOCSIGHT_TIME_ZONE")
+    assert configured and configured != "Pacific/Auckland"
+    instant = "2026-10-01T19:40:17Z"
+    assert page.evaluate("ts => docsightFormatXAxisLabel(ts, '1d')", instant) == page.evaluate(
+        "ts => formatDocsightTime(ts, 'time')", instant
+    )
+    # Timestamps without an offset are wall-clock time in the configured zone.
+    assert page.evaluate("docsightFormatAxisTime(docsightParseTime('2026-10-01T21:25:00'), 'time')") in (
+        "21:25", "9:25 PM", "09:25 PM"
+    )
+    assert page.evaluate("todayStr()") == page.evaluate(
+        "new Intl.DateTimeFormat('en-CA', {timeZone: DOCSIGHT_TIME_ZONE}).format(new Date())"
+    )
+    context.close()

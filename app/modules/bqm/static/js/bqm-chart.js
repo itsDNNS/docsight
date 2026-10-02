@@ -8,7 +8,7 @@ var BQMChart = (function() {
 
     function toUnixSeries(timestamps) {
         return timestamps.map(function(ts) {
-            return Math.floor(new Date(ts).getTime() / 1000);
+            return Math.floor(docsightTimestampDate(ts).getTime() / 1000);
         });
     }
 

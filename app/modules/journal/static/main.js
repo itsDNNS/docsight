@@ -1253,7 +1253,7 @@ function _renderTimelineChart(data) {
     }
 
     // Time range
-    var allTs = data.map(function(d) { return new Date(d.timestamp).getTime(); });
+    var allTs = data.map(function(d) { return docsightParseTime(d.timestamp).getTime(); });
     var tMin = Math.min.apply(null, allTs);
     var tMax = Math.max.apply(null, allTs);
     if (tMin === tMax) tMax = tMin + 86400000;
@@ -1326,13 +1326,13 @@ function _renderTimelineChart(data) {
     // SNR line (modem)
     if (modem.length > 1) {
         var sorted = modem.slice().sort(function(a, b) {
-            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            return docsightParseTime(a.timestamp).getTime() - docsightParseTime(b.timestamp).getTime();
         });
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
         sorted.forEach(function(d, i) {
-            var x = xScale(new Date(d.timestamp).getTime());
+            var x = xScale(docsightParseTime(d.timestamp).getTime());
             var y = ySnr(d.ds_snr_min || snrMin);
             if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
@@ -1341,7 +1341,7 @@ function _renderTimelineChart(data) {
 
     // Speed dots
     speedtest.forEach(function(d) {
-        var x = xScale(new Date(d.timestamp).getTime());
+        var x = xScale(docsightParseTime(d.timestamp).getTime());
         // Download dot
         ctx.fillStyle = goodColor;
         ctx.beginPath();
@@ -1356,7 +1356,7 @@ function _renderTimelineChart(data) {
 
     // Event markers
     events.forEach(function(d) {
-        var x = xScale(new Date(d.timestamp).getTime());
+        var x = xScale(docsightParseTime(d.timestamp).getTime());
         var col = d.severity === 'critical' ? critColor : d.severity === 'warning' ? warnColor : textColor;
         ctx.strokeStyle = col;
         ctx.lineWidth = 1;
@@ -1438,7 +1438,7 @@ function _renderTimelineTable(data) {
     var modemTransitions = {};
     var lastHealth = null;
     var chrono = data.slice().sort(function(a, b) {
-        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        return docsightParseTime(a.timestamp).getTime() - docsightParseTime(b.timestamp).getTime();
     });
     for (var i = 0; i < chrono.length; i++) {
         if (chrono[i].source !== 'modem') continue;

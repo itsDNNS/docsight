@@ -249,7 +249,7 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
 function _corrBuildSpeedMarks(speedtests, xScale, yScale, tMin, tMax, visibleMetrics) {
     var visiblePoints = [];
     for (var i = 0; i < speedtests.length; i++) {
-        var timestampMs = new Date(speedtests[i].timestamp).getTime();
+        var timestampMs = docsightParseTime(speedtests[i].timestamp).getTime();
         if (isFinite(timestampMs) && timestampMs >= tMin && timestampMs <= tMax) {
             visiblePoints.push({ index: i, x: xScale(timestampMs) });
         }
@@ -264,7 +264,7 @@ function _corrBuildSpeedMarks(speedtests, xScale, yScale, tMin, tMax, visibleMet
 
     var singleVisibleSample = visiblePoints.length === 1;
     return speedtests.map(function(sample, index) {
-        var timestampMs = new Date(sample.timestamp).getTime();
+        var timestampMs = docsightParseTime(sample.timestamp).getTime();
         var timestampX = xScale(timestampMs);
         var visible = isFinite(timestampMs) && timestampMs >= tMin && timestampMs <= tMax;
         var nearestVisibleDistance = visible ? nearestVisibleDistances[index] : Infinity;
@@ -457,7 +457,7 @@ function renderCorrelationChart(data) {
     }
 
     // Time range (with zoom support)
-    var allTs = data.map(function(d) { return new Date(d.timestamp).getTime(); }).filter(function(ts) { return isFinite(ts); });
+    var allTs = data.map(function(d) { return docsightParseTime(d.timestamp).getTime(); }).filter(function(ts) { return isFinite(ts); });
     _corrTargetData.forEach(function(entry) {
         var target = _corrTarget(entry);
         (entry.samples || []).forEach(function(sample) {
@@ -552,7 +552,7 @@ function renderCorrelationChart(data) {
 
     // Store chart state for tooltip lookups
     var sortedSpeedtest = speedtest.slice().sort(function(a, b) {
-        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        return docsightParseTime(a.timestamp).getTime() - docsightParseTime(b.timestamp).getTime();
     });
     var speedMarks = _corrBuildSpeedMarks(sortedSpeedtest, xScale, yDl, tMin, tMax, {
         download: _corrVisible.download,
@@ -640,8 +640,8 @@ function renderCorrelationChart(data) {
     // Draw modem health background bands behind every evidence source.
     if (_corrVisible.poorSignal) {
         for (var i = 0; i < modem.length; i++) {
-            var x1 = xScale(new Date(modem[i].timestamp).getTime());
-            var x2 = i < modem.length - 1 ? xScale(new Date(modem[i + 1].timestamp).getTime()) : x1 + 2;
+            var x1 = xScale(docsightParseTime(modem[i].timestamp).getTime());
+            var x2 = i < modem.length - 1 ? xScale(docsightParseTime(modem[i + 1].timestamp).getTime()) : x1 + 2;
             var h = modem[i].health;
             if (h === 'critical') {
                 ctx.fillStyle = 'rgba(244,67,54,0.08)';
@@ -671,7 +671,7 @@ function renderCorrelationChart(data) {
     if (_corrVisible.snr && modem.length > 1) {
         ctx.beginPath();
         for (var i = 0; i < modem.length; i++) {
-            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var x = xScale(docsightParseTime(modem[i].timestamp).getTime());
             var y = ySnr(modem[i].ds_snr_min || snrMin);
             if (i === 0) {
                 ctx.moveTo(x, y);
@@ -691,7 +691,7 @@ function renderCorrelationChart(data) {
         for (var i = 0; i < modem.length; i++) {
             var txVal = modem[i].us_power_avg;
             if (!txVal) continue;
-            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var x = xScale(docsightParseTime(modem[i].timestamp).getTime());
             var y = yTx(txVal);
             if (txStarted) {
                 ctx.lineTo(x, y);
@@ -714,7 +714,7 @@ function renderCorrelationChart(data) {
         for (var i = 0; i < modem.length; i++) {
             var dsVal = modem[i].ds_power_avg;
             if (dsVal == null) continue;
-            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var x = xScale(docsightParseTime(modem[i].timestamp).getTime());
             var y = yDsPower(dsVal);
             if (!dsStarted) {
                 ctx.moveTo(x, y);
@@ -736,7 +736,7 @@ function renderCorrelationChart(data) {
         for (var i = 0; i < modem.length; i++) {
             var errVal = modem[i].ds_uncorrectable_errors || 0;
             if (errVal === 0) continue;
-            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var x = xScale(docsightParseTime(modem[i].timestamp).getTime());
             var spikeH = (errVal / errorMax) * spikeMaxH;
             if (spikeH < 2) spikeH = 2;
             ctx.fillStyle = errorColor;
@@ -748,7 +748,7 @@ function renderCorrelationChart(data) {
     var filteredEvents = _corrFilteredEvents(events);
     if (_corrVisible.events && filteredEvents.length > 0) {
         for (var i = 0; i < filteredEvents.length; i++) {
-            var x = xScale(new Date(filteredEvents[i].timestamp).getTime());
+            var x = xScale(docsightParseTime(filteredEvents[i].timestamp).getTime());
             var sev = _corrNormalizeSeverity(filteredEvents[i]);
             ctx.strokeStyle = sev === 'critical' ? critColor : sev === 'warning' ? warnColor : textColor;
             ctx.lineWidth = 1;
@@ -774,7 +774,7 @@ function renderCorrelationChart(data) {
         var started = false;
         for (var i = 0; i < weather.length; i++) {
             if (weather[i].temperature == null) continue;
-            var x = xScale(new Date(weather[i].timestamp).getTime());
+            var x = xScale(docsightParseTime(weather[i].timestamp).getTime());
             var y = yTemp(weather[i].temperature);
             if (!started) { ctx.moveTo(x, y); started = true; }
             else {
@@ -796,7 +796,7 @@ function renderCorrelationChart(data) {
             var started = false;
             for (var i = 0; i < segment.length; i++) {
                 if (segment[i].ds_total == null) continue;
-                var x = xScale(new Date(segment[i].timestamp).getTime());
+                var x = xScale(docsightParseTime(segment[i].timestamp).getTime());
                 var y = ySegment(segment[i].ds_total);
                 if (!started) { ctx.moveTo(x, y); started = true; }
                 else { ctx.lineTo(x, y); }
@@ -812,7 +812,7 @@ function renderCorrelationChart(data) {
             var started = false;
             for (var i = 0; i < segment.length; i++) {
                 if (segment[i].us_total == null) continue;
-                var x = xScale(new Date(segment[i].timestamp).getTime());
+                var x = xScale(docsightParseTime(segment[i].timestamp).getTime());
                 var y = ySegment(segment[i].us_total);
                 if (!started) { ctx.moveTo(x, y); started = true; }
                 else { ctx.lineTo(x, y); }
@@ -1158,7 +1158,7 @@ function _setupCorrelationTooltip(overlay, octx) {
         if (st.modem.length > 0 && anyModemVisible) {
             var bestDist = Infinity;
             for (var i = 0; i < st.modem.length; i++) {
-                var ts = new Date(st.modem[i].timestamp).getTime();
+                var ts = docsightParseTime(st.modem[i].timestamp).getTime();
                 var dist = Math.abs(ts - tHover);
                 if (dist < bestDist) { bestDist = dist; nearestModem = st.modem[i]; }
             }
@@ -1171,7 +1171,7 @@ function _setupCorrelationTooltip(overlay, octx) {
             var bestDist = Infinity;
             for (var i = 0; i < st.speedtest.length; i++) {
                 if (!st.speedMarks[i] || !st.speedMarks[i].visible) continue;
-                var ts = new Date(st.speedtest[i].timestamp).getTime();
+                var ts = docsightParseTime(st.speedtest[i].timestamp).getTime();
                 var dist = Math.abs(ts - tHover);
                 if (dist < bestDist) {
                     bestDist = dist;
@@ -1187,7 +1187,7 @@ function _setupCorrelationTooltip(overlay, octx) {
         if (visibleEvents.length > 0) {
             var bestDist = Infinity;
             for (var i = 0; i < visibleEvents.length; i++) {
-                var ts = new Date(visibleEvents[i].timestamp).getTime();
+                var ts = docsightParseTime(visibleEvents[i].timestamp).getTime();
                 var dist = Math.abs(ts - tHover);
                 if (dist < bestDist) { bestDist = dist; nearestEvent = visibleEvents[i]; }
             }
@@ -1198,7 +1198,7 @@ function _setupCorrelationTooltip(overlay, octx) {
         if (st.weather && st.weather.length > 0 && _corrVisible.temperature) {
             var bestDist = Infinity;
             for (var i = 0; i < st.weather.length; i++) {
-                var ts = new Date(st.weather[i].timestamp).getTime();
+                var ts = docsightParseTime(st.weather[i].timestamp).getTime();
                 var dist = Math.abs(ts - tHover);
                 if (dist < bestDist) { bestDist = dist; nearestWeather = st.weather[i]; }
             }
@@ -1217,7 +1217,7 @@ function _setupCorrelationTooltip(overlay, octx) {
 
         // Draw highlight dots at nearest data points
         if (nearestModem && _corrVisible.snr) {
-            var dx = st.xScale(new Date(nearestModem.timestamp).getTime());
+            var dx = st.xScale(docsightParseTime(nearestModem.timestamp).getTime());
             var dy = st.ySnr(nearestModem.ds_snr_min || st.snrMin);
             newOctx.beginPath();
             newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
@@ -1228,7 +1228,7 @@ function _setupCorrelationTooltip(overlay, octx) {
             newOctx.stroke();
         }
         if (nearestModem && _corrVisible.txPower && nearestModem.us_power_avg) {
-            var dx = st.xScale(new Date(nearestModem.timestamp).getTime());
+            var dx = st.xScale(docsightParseTime(nearestModem.timestamp).getTime());
             var dy = st.yTx(nearestModem.us_power_avg);
             newOctx.beginPath();
             newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
@@ -1239,7 +1239,7 @@ function _setupCorrelationTooltip(overlay, octx) {
             newOctx.stroke();
         }
         if (nearestModem && _corrVisible.dsPower && nearestModem.ds_power_avg != null) {
-            var dx = st.xScale(new Date(nearestModem.timestamp).getTime());
+            var dx = st.xScale(docsightParseTime(nearestModem.timestamp).getTime());
             var dy = st.yDsPower(nearestModem.ds_power_avg);
             newOctx.beginPath();
             newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
@@ -1276,7 +1276,7 @@ function _setupCorrelationTooltip(overlay, octx) {
 
         // Draw temperature highlight dot
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
-            var dx = st.xScale(new Date(nearestWeather.timestamp).getTime());
+            var dx = st.xScale(docsightParseTime(nearestWeather.timestamp).getTime());
             var dy = st.yTemp(nearestWeather.temperature);
             newOctx.beginPath();
             newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
@@ -1291,10 +1291,10 @@ function _setupCorrelationTooltip(overlay, octx) {
         var html = '';
         // Use the closest data point's timestamp as the display time
         var displayTs = tHover;
-        if (nearestModem) displayTs = new Date(nearestModem.timestamp).getTime();
+        if (nearestModem) displayTs = docsightParseTime(nearestModem.timestamp).getTime();
         if (nearestSpeed) {
-            var spTs = new Date(nearestSpeed.timestamp).getTime();
-            if (!nearestModem || Math.abs(spTs - tHover) < Math.abs(new Date(nearestModem.timestamp).getTime() - tHover)) {
+            var spTs = docsightParseTime(nearestSpeed.timestamp).getTime();
+            if (!nearestModem || Math.abs(spTs - tHover) < Math.abs(docsightParseTime(nearestModem.timestamp).getTime() - tHover)) {
                 displayTs = spTs;
             }
         }
@@ -1366,7 +1366,7 @@ function _setupCorrelationTooltip(overlay, octx) {
         if (st.segment && st.segment.length > 0) {
             var nearestSeg = null, segDist = Infinity;
             for (var si = 0; si < st.segment.length; si++) {
-                var sd = Math.abs(new Date(st.segment[si].timestamp).getTime() - tHover);
+                var sd = Math.abs(docsightParseTime(st.segment[si].timestamp).getTime() - tHover);
                 if (sd < segDist) { segDist = sd; nearestSeg = st.segment[si]; }
             }
             if (nearestSeg && segDist < (st.tMax - st.tMin) * 0.05) {
@@ -1477,7 +1477,7 @@ function _corrHighlightFromTable(timestamp, source) {
     octx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
     octx.clearRect(0, 0, st.W, st.H);
 
-    var ts = new Date(timestamp).getTime();
+    var ts = docsightParseTime(timestamp).getTime();
     var x = st.xScale(ts);
 
     // Draw crosshair
@@ -1719,7 +1719,7 @@ function renderCorrelationTable(data) {
     // Pre-filter modem entries: only show health transitions (not repeated same-status)
     // Data is chronological, sorted is reversed (newest first)
     var chronological = data.slice().sort(function(a, b) {
-        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        return docsightParseTime(a.timestamp).getTime() - docsightParseTime(b.timestamp).getTime();
     });
     var modemTransitionTs = {};
     var lastModemHealth = null;

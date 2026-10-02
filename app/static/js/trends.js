@@ -46,10 +46,10 @@ function _alignWeatherToTrends(trendData, weatherData, range) {
     if (_trendRangeHours(range) <= 24) {
         for (var i = 0; i < trendData.length; i++) {
             if (!trendData[i].timestamp) { temps.push(null); continue; }
-            var tTs = new Date(trendData[i].timestamp).getTime();
+            var tTs = docsightParseTime(trendData[i].timestamp).getTime();
             var best = null, bestDist = Infinity;
             for (var j = 0; j < weatherData.length; j++) {
-                var wTs = new Date(weatherData[j].timestamp).getTime();
+                var wTs = docsightParseTime(weatherData[j].timestamp).getTime();
                 var dist = Math.abs(wTs - tTs);
                 if (dist < bestDist) { bestDist = dist; best = weatherData[j].temperature; }
             }
