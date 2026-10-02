@@ -193,7 +193,8 @@ def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, wid
             const chart = charts['bqm-chart-container'];
             return chart.axes[0].values(chart, chart.data[0]);
         }""")
-        assert values == (["06-15", "06-15"] if dates_mode else ["12:00", "12:05"])
+        # Axis labels follow the UI language (English here).
+        assert values == (["06/15", "06/15"] if dates_mode else ["12:00 PM", "12:05 PM"])
         expect(page.locator("#bqm-chart-container .uplot canvas").first).to_be_visible()
 
     selection("today")

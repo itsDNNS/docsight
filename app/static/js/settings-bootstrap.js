@@ -28,6 +28,15 @@
     window.serverTz = bootstrap.serverTimezone;
     window.currentLang = bootstrap.language;
     window.currentTz = bootstrap.currentTimezone;
+    /* Same timestamp display as the dashboard: UI language, configured zone. */
+    window.formatDocsightTime = function(value, style, seconds) {
+        return DOCSightBrowserContracts.formatTimestamp(value, {
+            locale: bootstrap.language || document.documentElement.lang || undefined,
+            timeZone: bootstrap.currentTimezone || bootstrap.serverTimezone,
+            style: style || 'datetime',
+            seconds: !!seconds
+        });
+    };
     window.savedCooldowns = bootstrap.notificationCooldowns;
     window.DRIVER_HINTS = bootstrap.driverHints;
     window.MODULE_SECRET_FIELDS = bootstrap.moduleSecretFields;

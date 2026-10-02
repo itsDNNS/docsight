@@ -502,7 +502,11 @@ function renderGroupDistChart(pg, idx) {
     if (legendContainer) legendContainer.textContent = '';
 
     var days = pg.days || [];
-    var labels = days.map(function(d) { return d.date.slice(5); }); /* MM-DD, drop year */
+    /* Day and month in the UI language; MM-DD when the chart engine is unavailable. */
+    var labels = days.map(function(d) {
+        var localized = typeof docsightFormatAxisTime === 'function' ? docsightFormatAxisTime(d.date, 'monthday') : null;
+        return localized || d.date.slice(5);
+    });
     var n = labels.length;
     var textColor = _cssVar('--text-secondary') || '#9ca3af';
 
@@ -621,7 +625,11 @@ function renderGroupTrendChart(pg, idx) {
     container.textContent = '';
 
     var days = pg.days || [];
-    var labels = days.map(function(d) { return d.date.slice(5); }); /* MM-DD, drop year */
+    /* Day and month in the UI language; MM-DD when the chart engine is unavailable. */
+    var labels = days.map(function(d) {
+        var localized = typeof docsightFormatAxisTime === 'function' ? docsightFormatAxisTime(d.date, 'monthday') : null;
+        return localized || d.date.slice(5);
+    });
     var n = labels.length;
     var textColor = _cssVar('--text-secondary') || '#9ca3af';
 

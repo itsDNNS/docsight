@@ -238,20 +238,22 @@
             date = new Date(Date.UTC(+naive[1], +naive[2] - 1, +naive[3],
                 +(naive[4] || 0), +(naive[5] || 0), +(naive[6] || 0)));
             timeZone = 'UTC';
-            if (naive[4] === undefined && style !== 'time') style = 'date';
+            if (naive[4] === undefined && style !== 'time') style = style.indexOf('monthday') === 0 ? 'monthday' : 'date';
         } else if (typeof value === 'number') {
             date = new Date(Math.abs(value) < 1e11 ? value * 1000 : value);
         } else {
             date = value instanceof Date ? value : new Date(value);
         }
         if (!date || isNaN(date.getTime())) return String(value);
+        // Styles: 'datetime', 'date', 'time', and the year-less 'monthday' and
+        // 'monthday-time' used for compact chart axes.
         var parts = {};
         if (style !== 'time') {
-            parts.year = 'numeric';
+            if (style.indexOf('monthday') !== 0) parts.year = 'numeric';
             parts.month = '2-digit';
             parts.day = '2-digit';
         }
-        if (style !== 'date') {
+        if (style !== 'date' && style !== 'monthday') {
             parts.hour = '2-digit';
             parts.minute = '2-digit';
             if (opts.seconds) parts.second = '2-digit';

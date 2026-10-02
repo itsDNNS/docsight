@@ -379,7 +379,10 @@ function _showResultError(resultDiv, msg) {
 
 function _buildMetaInfo(container, meta) {
     while (container.firstChild) container.removeChild(container.firstChild);
-    var date = meta.timestamp ? new Date(meta.timestamp).toLocaleString() : '?';
+    /* No time zone is configured yet during setup, so the browser zone applies. */
+    var date = meta.timestamp ? DOCSightBrowserContracts.formatTimestamp(meta.timestamp, {
+        locale: document.documentElement.lang || undefined
+    }) : '?';
 
     var b1 = document.createElement('strong');
     b1.textContent = T_setup.version + ':';

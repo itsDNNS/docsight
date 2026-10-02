@@ -1300,12 +1300,7 @@ function _renderTimelineChart(data) {
     for (var i = 0; i <= labelCount; i++) {
         var t = tMin + tRange * i / labelCount;
         var d = new Date(t);
-        var label;
-        if (tRange > 172800000) { // > 2 days
-            label = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-        } else {
-            label = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-        }
+        var label = docsightFormatAxisTime(d, tRange > 172800000 ? 'monthday-time' : 'time'); // > 2 days
         ctx.fillText(label, xScale(t), H - pad.bottom + 18);
     }
 

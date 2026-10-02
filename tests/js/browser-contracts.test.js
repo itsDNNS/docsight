@@ -84,6 +84,15 @@ test('timestamps render absolute instants in the configured zone and keep local 
     assert.equal(fmt(new Date('2026-01-15T12:00:00Z'), {locale: 'de'}), '15.01.2026, 13:00');
 });
 
+test('compact month-day styles drop the year and follow the locale', () => {
+    const fmt = (value, locale, style) => contracts.formatTimestamp(value, {locale, timeZone: 'Europe/Berlin', style});
+    assert.equal(fmt('2026-09-29T06:52:00Z', 'de', 'monthday'), '29.09.');
+    assert.equal(fmt('2026-09-29T06:52:00Z', 'en-US', 'monthday'), '09/29');
+    assert.equal(fmt('2026-09-29T06:52:00Z', 'de', 'monthday-time'), '29.09., 08:52');
+    assert.equal(fmt('2026-09-29', 'de', 'monthday-time'), '29.09.');
+    assert.equal(fmt('2026-09-29T08:52', 'fr', 'monthday'), '29/09');
+});
+
 test('timestamp formatting handles summer time, empty, invalid, and unknown zones', () => {
     assert.equal(contracts.formatTimestamp('2026-03-29T00:30:00Z', {locale: 'de', timeZone: 'Europe/Berlin'}), '29.03.2026, 01:30');
     assert.equal(contracts.formatTimestamp('2026-03-29T01:30:00Z', {locale: 'de', timeZone: 'Europe/Berlin'}), '29.03.2026, 03:30');

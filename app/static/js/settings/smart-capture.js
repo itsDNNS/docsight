@@ -34,7 +34,7 @@ function loadSmartCaptureHistory() {
             };
             execs.forEach(function(ex) {
                 var tr = document.createElement('tr');
-                var ts = ex.created_at ? ex.created_at.replace('T', ' ').replace('Z', '') : '';
+                var ts = ex.created_at ? escapeHtml(formatDocsightTime(ex.created_at, 'datetime', true)) : '';
                 var trigger = escapeHtml(ex.trigger_type || '');
                 var label = statusLabels[ex.status] || ex.status;
                 var detail = '';
