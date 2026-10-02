@@ -14,6 +14,12 @@ function _bnetzCell(label, text) {
     return cell;
 }
 
+/* Cells only shown on mobile once the row is expanded. */
+function _bnetzSecondary(cell) {
+    cell.classList.add('bnetz-secondary-cell');
+    return cell;
+}
+
 function _bnetzActionButton(className, title, iconName, handler) {
     var button = document.createElement('button');
     button.type = 'button';
@@ -129,29 +135,29 @@ function loadBnetzData() {
                 (m.measurements.download && m.measurements.download.length > 0) ||
                 (m.measurements.upload && m.measurements.upload.length > 0));
             var tr = document.createElement('tr');
-            tr.style.cursor = hasMeasurements ? 'pointer' : 'default';
+            tr.className = hasMeasurements ? 'bnetz-row-expandable' : '';
             tr.setAttribute('data-bnetz-idx', idx);
-            if (hasMeasurements) {
-                tr.onclick = function() { toggleBnetzDetail(idx); };
-            }
+            // Every row expands on mobile (secondary values); rows with
+            // individual measurements also expand on desktop.
+            tr.onclick = function() { toggleBnetzDetail(idx); };
 
             var dateCell = _bnetzCell(T.bnetz_date || 'Date', '');
-            if (hasMeasurements) {
-                var expandButton = document.createElement('button');
-                expandButton.type = 'button';
-                expandButton.className = 'bnetz-expand-btn';
-                expandButton.id = 'bnetz-arrow-' + idx;
-                expandButton.setAttribute('aria-label', T.expand || 'Expand');
-                expandButton.appendChild(_bnetzIcon('chevron-right'));
-                dateCell.appendChild(expandButton);
-                dateCell.appendChild(document.createTextNode(' '));
-            }
+            var expandButton = document.createElement('button');
+            expandButton.type = 'button';
+            expandButton.className = 'bnetz-expand-btn' + (hasMeasurements ? '' : ' bnetz-expand-mobile-only');
+            expandButton.id = 'bnetz-arrow-' + idx;
+            expandButton.setAttribute('aria-label', T.expand || 'Expand');
+            expandButton.setAttribute('aria-expanded', 'false');
+            if (hasMeasurements) expandButton.setAttribute('aria-controls', 'bnetz-detail-' + idx);
+            expandButton.appendChild(_bnetzIcon('chevron-right'));
+            dateCell.appendChild(expandButton);
+            dateCell.appendChild(document.createTextNode(' '));
             dateCell.appendChild(document.createTextNode(m.date ? formatDocsightTime(m.date, 'date') : ''));
             tr.appendChild(dateCell);
-            tr.appendChild(_bnetzCell(T.bnetz_provider || 'Provider', m.provider || '-'));
-            tr.appendChild(_bnetzCell(T.bnetz_download_target || 'Download target', m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-'));
+            tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_provider || 'Provider', m.provider || '-')));
+            tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_download_target || 'Download target', m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-')));
             tr.appendChild(_bnetzCell(T.bnetz_download_actual || 'Download measured', Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : '')));
-            tr.appendChild(_bnetzCell(T.bnetz_upload_target || 'Upload target', m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-'));
+            tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_upload_target || 'Upload target', m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-')));
             tr.appendChild(_bnetzCell(T.bnetz_upload_actual || 'Upload measured', Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : '')));
 
             var verdictCell = _bnetzCell(T.bnetz_verdict || 'Verdict', '');
@@ -165,7 +171,7 @@ function loadBnetzData() {
             tr.appendChild(verdictCell);
 
             var actionsCell = _bnetzCell(T.actions || 'Actions', '');
-            actionsCell.className = 'bnetz-actions-cell';
+            actionsCell.className = 'bnetz-actions-cell bnetz-secondary-cell';
             actionsCell.addEventListener('click', function(event) { event.stopPropagation(); });
             if (hasDeviation) {
                 actionsCell.appendChild(_bnetzActionButton(
@@ -241,12 +247,17 @@ function loadBnetzData() {
 }
 
 function toggleBnetzDetail(idx) {
+    var summary = document.querySelector('#bnetz-tbody tr[data-bnetz-idx="' + idx + '"]');
     var row = document.getElementById('bnetz-detail-' + idx);
     var arrow = document.getElementById('bnetz-arrow-' + idx);
-    if (!row) return;
-    var isOpen = row.style.display !== 'none';
-    row.style.display = isOpen ? 'none' : 'table-row';
-    if (arrow) arrow.classList.toggle('open', !isOpen);
+    if (!summary) return;
+    var open = !summary.classList.contains('bnetz-row-open');
+    summary.classList.toggle('bnetz-row-open', open);
+    if (row) row.style.display = open ? 'table-row' : 'none';
+    if (arrow) {
+        arrow.classList.toggle('open', open);
+        arrow.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
 }
 
 function uploadBnetzFromView(input) {

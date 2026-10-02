@@ -10,6 +10,12 @@
 .bnetz-expand-btn:hover { color: var(--text-primary); }
 .bnetz-expand-btn.open { transform: rotate(90deg); color: var(--accent); }
 .bnetz-expand-btn i { width: 14px; height: 14px; }
+#bnetz-table tbody tr.bnetz-row-expandable { cursor: pointer; }
+
+@media (min-width: 769px) {
+    /* Without individual measurements there is nothing to expand on desktop. */
+    .bnetz-expand-btn.bnetz-expand-mobile-only { display: none; }
+}
 
 /* Refresh button (mirrors #speedtest-refresh-btn) */
 .bnetz-refresh-btn {
@@ -110,7 +116,17 @@
         display: none;
     }
 
+    /* Collapsed rows show date, measured download/upload, and the verdict. */
+    #bnetz-table > tbody > tr[data-bnetz-idx]:not(.bnetz-row-open) > td.bnetz-secondary-cell {
+        display: none !important;
+    }
+
+    #bnetz-table > tbody > tr[data-bnetz-idx]:not(.bnetz-row-open) > td {
+        padding: 4px 0;
+    }
+
     #bnetz-table > tbody > tr[data-bnetz-idx] {
+        cursor: pointer;
         display: block;
         padding: 10px 12px;
         border-bottom: 1px solid var(--card-border, var(--input-border));
