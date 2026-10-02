@@ -95,6 +95,17 @@
     gap: 6px;
 }
 
+/* Wide enough for a full date and time; the row wraps instead of truncating */
+@media (min-width: 769px) {
+    .comparison-period-field {
+        flex: 2 1 32rem;
+    }
+
+    .comparison-period-field .comparison-date-pair {
+        grid-template-columns: minmax(15rem, 1fr) auto minmax(15rem, 1fr);
+    }
+}
+
 .comparison-arrow {
     color: var(--muted);
     font-size: 0.9em;
