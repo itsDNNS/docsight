@@ -34,7 +34,7 @@ function _eventTypeLabel(eventType) {
 }
 
 function _eventTimestampLabel(timestamp) {
-    return escapeHtml(String(timestamp || '').replace('T', ' '));
+    return escapeHtml(formatDocsightTime(timestamp, 'datetime', true));
 }
 
 function _eventSeverityMeta(ev) {

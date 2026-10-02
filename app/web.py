@@ -477,6 +477,7 @@ def index():
         capacity_context=signal_health_view.build_capacity_context(analysis, booked_download, booked_upload),
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",
+        time_zone=get_tz_name(_config_manager),
         dashboard_notices=get_active_notices(
             dismissed_ids=_get_dismissed_notice_ids(),
             location="dashboard",

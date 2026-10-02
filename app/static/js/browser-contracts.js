@@ -103,11 +103,13 @@
 
     function parseDashboardBootstrapText(text) {
         var value = parseRecord(text, [
-            'translations', 'language', 'temperatureUnit', 'connectionMonitorAvailable'
+            'translations', 'language', 'temperatureUnit', 'connectionMonitorAvailable', 'timeZone'
         ]);
         if (!validTranslationRecord(value.translations) || !validLanguage(value.language)) failBootstrap();
         if (value.temperatureUnit !== 'celsius' && value.temperatureUnit !== 'fahrenheit') failBootstrap();
         if (typeof value.connectionMonitorAvailable !== 'boolean') failBootstrap();
+        if (value.timeZone !== null && typeof value.timeZone !== 'string') failBootstrap();
+        if (!validTimeZone(value.timeZone)) value.timeZone = null;
         return value;
     }
 
@@ -210,6 +212,58 @@
         }
     }
 
+    var NAIVE_TIMESTAMP = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/;
+
+    function validTimeZone(value) {
+        if (typeof value !== 'string' || !value) return false;
+        try {
+            new Intl.DateTimeFormat('en', {timeZone: value});
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function formatTimestamp(value, options) {
+        // Absolute instants (ISO with Z/offset, epoch numbers, Date) render in the
+        // configured time zone. Naive server timestamps are already local wall-clock
+        // time and date-only values are calendar dates, so both keep their fields.
+        if (value === null || value === undefined || value === '') return '';
+        var opts = options || {};
+        var style = opts.style || 'datetime';
+        var date = null;
+        var timeZone = validTimeZone(opts.timeZone) ? opts.timeZone : undefined;
+        var naive = typeof value === 'string' ? NAIVE_TIMESTAMP.exec(value.trim()) : null;
+        if (naive) {
+            date = new Date(Date.UTC(+naive[1], +naive[2] - 1, +naive[3],
+                +(naive[4] || 0), +(naive[5] || 0), +(naive[6] || 0)));
+            timeZone = 'UTC';
+            if (naive[4] === undefined && style !== 'time') style = 'date';
+        } else if (typeof value === 'number') {
+            date = new Date(Math.abs(value) < 1e11 ? value * 1000 : value);
+        } else {
+            date = value instanceof Date ? value : new Date(value);
+        }
+        if (!date || isNaN(date.getTime())) return String(value);
+        var parts = {};
+        if (style !== 'time') {
+            parts.year = 'numeric';
+            parts.month = '2-digit';
+            parts.day = '2-digit';
+        }
+        if (style !== 'date') {
+            parts.hour = '2-digit';
+            parts.minute = '2-digit';
+            if (opts.seconds) parts.second = '2-digit';
+        }
+        if (timeZone) parts.timeZone = timeZone;
+        try {
+            return new Intl.DateTimeFormat(opts.locale || undefined, parts).format(date);
+        } catch (error) {
+            return new Intl.DateTimeFormat(undefined, parts).format(date);
+        }
+    }
+
     function computeServiceWorkerPolicy(hostname, search, scopeHref) {
         var scope;
         try { scope = new URL(scopeHref); } catch (error) { throw new Error('Invalid service-worker scope'); }
@@ -232,6 +286,7 @@
         parseConnectionMonitorBootstrapText: parseConnectionMonitorBootstrapText,
         selectSetupDriverState: selectSetupDriverState,
         formatLastKnownTimestamp: formatLastKnownTimestamp,
+        formatTimestamp: formatTimestamp,
         computeServiceWorkerPolicy: computeServiceWorkerPolicy
     };
 });

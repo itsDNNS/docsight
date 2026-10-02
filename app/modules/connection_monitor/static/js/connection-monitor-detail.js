@@ -410,7 +410,7 @@
             tdTarget.textContent = g.targets.join(', ');
 
             var tdStart = document.createElement('td');
-            tdStart.textContent = new Date(g.start * 1000).toLocaleString();
+            tdStart.textContent = formatDocsightTime(g.start, 'datetime', true);
 
             var tdEnd = document.createElement('td');
             if (g.ongoing) {
@@ -419,7 +419,7 @@
                 span.textContent = 'Ongoing';
                 tdEnd.appendChild(span);
             } else if (g.end) {
-                tdEnd.textContent = new Date(g.end * 1000).toLocaleString();
+                tdEnd.textContent = formatDocsightTime(g.end, 'datetime', true);
             }
 
             var tdDur = document.createElement('td');
@@ -573,7 +573,7 @@
             tdTarget.appendChild(toggleBtn);
 
             var tdTime = document.createElement('td');
-            tdTime.textContent = new Date(trace.timestamp).toLocaleString();
+            tdTime.textContent = formatDocsightTime(trace.timestamp, 'datetime', true);
 
             var tdHops = document.createElement('td');
             tdHops.textContent = trace.hop_count;

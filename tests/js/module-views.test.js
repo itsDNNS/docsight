@@ -66,6 +66,7 @@ test('Speedtest rows distinguish missing measurements from measured zero', () =>
     context.document.createElement = () => element();
     elements['speedtest-tbody'].appendChild = row => rows.push(row.innerHTML);
     context.escapeHtml = value => String(value);
+    context.formatDocsightTime = value => String(value);
     run(context, 'app/modules/speedtest/static/main.js');
     context._speedtestAllData = [
         {id: 1, download_mbps: 100, upload_mbps: 20, ping_ms: null, jitter_ms: null, packet_loss_pct: null},
