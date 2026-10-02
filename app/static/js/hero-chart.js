@@ -192,7 +192,7 @@
                     stroke: 'rgba(168,85,247,0.9)',
                     grid: { stroke: c.grid, width: 1 },
                     ticks: { stroke: c.grid, width: 1 },
-                    font: '10px system-ui',
+                    font: '12px system-ui',
                     size: 42,
                     gap: 2
                 },
@@ -202,7 +202,7 @@
                     stroke: 'rgba(59,130,246,0.9)',
                     grid: { show: false },
                     ticks: { stroke: 'rgba(59,130,246,0.2)', width: 1 },
-                    font: '10px system-ui',
+                    font: '12px system-ui',
                     size: 36,
                     gap: 2
                 }

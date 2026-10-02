@@ -510,7 +510,7 @@ function renderSpeedtestChart() {
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     var monoFont = cs.getPropertyValue('--font-mono').trim() || 'monospace';
-    ctx.font = '11px ' + monoFont;
+    ctx.font = '12px ' + monoFont;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     var gridLines = 5;
@@ -529,7 +529,7 @@ function renderSpeedtestChart() {
         ctx.fillText(pingVal.toFixed(0), w - padR + 6, gy);
     }
     ctx.fillStyle = mutedColor;
-    ctx.font = '10px ' + monoFont;
+    ctx.font = '12px ' + monoFont;
     ctx.textAlign = 'center';
     ctx.save();
     ctx.translate(12, padT + ch / 2);
@@ -543,14 +543,17 @@ function renderSpeedtestChart() {
     ctx.restore();
     // X axis labels (timestamps)
     ctx.fillStyle = mutedColor;
-    ctx.font = '10px ' + monoFont;
+    ctx.font = '12px ' + monoFont;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    var labelCount = Math.min(6, data.length);
+    // About 96px per "DD.MM HH:MM" label keeps them from overlapping on narrow screens.
+    var labelCount = Math.min(6, data.length, Math.max(2, Math.floor(cw / 96)));
     for (var li = 0; li < labelCount; li++) {
         var idx = Math.round(li * (data.length - 1) / (labelCount - 1));
         var t = times[idx];
         var label = String(t.getDate()).padStart(2, '0') + '.' + String(t.getMonth() + 1).padStart(2, '0') + ' ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+        // Edge labels align to the plot ends so they stay inside the canvas.
+        ctx.textAlign = li === 0 ? 'left' : (li === labelCount - 1 ? 'right' : 'center');
         ctx.fillText(label, xPos(idx), padT + ch + 6);
     }
     // Threshold line (dashed red)

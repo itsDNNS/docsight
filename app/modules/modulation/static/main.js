@@ -568,7 +568,7 @@ function renderGroupDistChart(pg, idx) {
                 values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
                 stroke: textColor,
                 grid: { show: false },
-                font: '10px system-ui',
+                font: '12px system-ui',
                 gap: 4
             },
             {
@@ -576,7 +576,7 @@ function renderGroupDistChart(pg, idx) {
                 stroke: textColor,
                 grid: { stroke: 'rgba(255,255,255,0.06)', width: 1 },
                 values: function(u, vals) { return vals.map(function(v) { return v + '%'; }); },
-                font: '10px system-ui',
+                font: '12px system-ui',
                 size: 40
             }
         ],
@@ -646,7 +646,7 @@ function renderGroupTrendChart(pg, idx) {
                 values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
                 stroke: textColor,
                 grid: { show: false },
-                font: '10px system-ui',
+                font: '12px system-ui',
                 gap: 4
             },
             {
@@ -654,7 +654,7 @@ function renderGroupTrendChart(pg, idx) {
                 side: 3,
                 stroke: '#22c55e',
                 grid: { stroke: 'rgba(255,255,255,0.06)', width: 1 },
-                font: '10px system-ui',
+                font: '12px system-ui',
                 size: 40
             },
             {
@@ -663,7 +663,7 @@ function renderGroupTrendChart(pg, idx) {
                 stroke: '#ef4444',
                 grid: { show: false },
                 values: function(u, vals) { return vals.map(function(v) { return v.toFixed(0) + '%'; }); },
-                font: '10px system-ui',
+                font: '12px system-ui',
                 size: 40
             }
         ],
@@ -953,7 +953,7 @@ function renderChannelTimeline(canvasId, timeline) {
                 values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
                 stroke: textColor,
                 grid: { show: false },
-                font: '10px system-ui',
+                font: '12px system-ui',
                 gap: 2
             },
             {
@@ -964,7 +964,7 @@ function renderChannelTimeline(canvasId, timeline) {
                     return qamLabels.map(function(_, idx) { return idx; });
                 },
                 values: function(u, vals) { return vals.map(function(v) { return qamLabels[v] || ''; }); },
-                font: '10px system-ui',
+                font: '12px system-ui',
                 size: 60
             }
         ],

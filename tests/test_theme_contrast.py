@@ -63,3 +63,18 @@ def test_default_tokens_meet_aa_on_all_surfaces():
     light = {**dark, **_css_tokens(light_block.split("}", 1)[0])}
     _assert_readable(dark)
     _assert_readable(light)
+
+
+def test_navigation_badge_text_meets_aa_with_every_builtin_crit_color():
+    css = (ROOT / "app/static/css/main.css").read_text(encoding="utf-8")
+    rule = re.search(r"\.nav-badge \{[^}]*\}", css).group(0)
+    match = re.search(r"color-mix\(in srgb, var\(--crit\) (\d+)%, #000\)", rule)
+    assert match, "the navigation badge background should darken --crit"
+    share = int(match.group(1)) / 100
+    for theme in BUILTIN_THEMES:
+        for mode in ("dark", "light"):
+            crit = theme["theme_data"][mode]["--crit"]
+            mixed = "#" + "".join(
+                f"{round(int(crit[index:index + 2], 16) * share):02x}" for index in (1, 3, 5)
+            )
+            assert _contrast("#ffffff", mixed) >= AA_TEXT, f"{theme['id']} {mode}: {mixed}"
