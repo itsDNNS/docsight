@@ -198,7 +198,8 @@
 
 .nav-badge {
   margin-left: auto;
-  background: var(--crit);
+  /* Darkened so white text reaches 4.5:1 with every theme's --crit */
+  background: color-mix(in srgb, var(--crit) 65%, #000);
   color: #fff;
   font-size: var(--fs-min);
   font-weight: 700;

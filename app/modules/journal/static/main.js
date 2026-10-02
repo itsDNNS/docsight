@@ -1293,7 +1293,7 @@ function _renderTimelineChart(data) {
 
     // Time axis labels
     ctx.fillStyle = textColor;
-    ctx.font = '10px system-ui, sans-serif';
+    ctx.font = '12px system-ui, sans-serif';
     ctx.textAlign = 'center';
     var tRange = tMax - tMin;
     var labelCount = Math.min(8, Math.floor(plotW / 80));
@@ -1383,7 +1383,7 @@ function _renderTimelineChart(data) {
 
     // Legend
     var legendY = H - 6;
-    ctx.font = '10px system-ui, sans-serif';
+    ctx.font = '12px system-ui, sans-serif';
     ctx.textAlign = 'left';
     var lx = pad.left;
     if (modem.length > 0) {

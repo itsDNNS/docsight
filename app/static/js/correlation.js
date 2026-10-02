@@ -437,7 +437,10 @@ function renderCorrelationChart(data) {
     octx.scale(dpr, dpr);
     octx.clearRect(0, 0, W, H);
 
-    var pad = { top: 20, right: 60, bottom: 40 + reachabilityLaneHeight, left: 60 };
+    // Room for the widest speed tick ("1000 Mbps") plus the rotated axis title.
+    ctx.font = '12px system-ui, sans-serif';
+    var rightAxisWidth = Math.ceil(ctx.measureText('1000 Mbps').width) + 6 + 18;
+    var pad = { top: 20, right: Math.max(60, rightAxisWidth), bottom: 40 + reachabilityLaneHeight, left: 60 };
     var plotW = W - pad.left - pad.right;
     var plotH = H - pad.top - pad.bottom;
 
@@ -586,10 +589,10 @@ function renderCorrelationChart(data) {
             if (reachX2 - reachX1 >= 18) {
                 ctx.globalAlpha = 0.95;
                 ctx.fillStyle = reachBucket.state === 'unknown' ? textColor : '#fff';
-                ctx.font = 'bold 9px system-ui, sans-serif';
+                ctx.font = 'bold 12px system-ui, sans-serif';
                 ctx.textAlign = 'center';
                 var stateMark = reachBucket.state === 'ok' ? '\u2713' : reachBucket.state === 'degraded' ? '!' : reachBucket.state === 'down' ? '\u00d7' : '?';
-                ctx.fillText(stateMark, (reachX1 + reachX2) / 2, reachabilityLane.y + 12);
+                ctx.fillText(stateMark, (reachX1 + reachX2) / 2, reachabilityLane.y + 13);
             }
         }
         ctx.restore();
@@ -607,7 +610,7 @@ function renderCorrelationChart(data) {
 
     // Time axis labels
     ctx.fillStyle = textColor;
-    ctx.font = '10px system-ui, sans-serif';
+    ctx.font = '12px system-ui, sans-serif';
     ctx.textAlign = 'center';
     var labelCount = Math.min(8, Math.floor(plotW / 80));
     for (var i = 0; i <= labelCount; i++) {
@@ -629,7 +632,7 @@ function renderCorrelationChart(data) {
         ctx.translate(W - 8, pad.top + plotH / 2);
         ctx.rotate(Math.PI / 2);
         ctx.textAlign = 'center';
-        ctx.font = '11px system-ui, sans-serif';
+        ctx.font = '12px system-ui, sans-serif';
         ctx.fillText('Mbps', 0, 0);
         ctx.restore();
     }

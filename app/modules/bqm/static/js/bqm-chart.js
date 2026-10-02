@@ -117,7 +117,7 @@ var BQMChart = (function() {
                 stroke: 'rgba(239,68,68,0.7)',
                 grid: { show: false },
                 ticks: { stroke: 'rgba(239,68,68,0.25)', width: 1 },
-                font: '10px system-ui',
+                font: '12px system-ui',
                 size: 40,
                 gap: 4,
                 values: function(u, vals) {

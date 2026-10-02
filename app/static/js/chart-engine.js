@@ -586,7 +586,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             stroke: textColor,
             grid: { show: false },
             ticks: { show: false },
-            font: '11px system-ui',
+            font: '12px system-ui',
             gap: 4
         },
         {
@@ -594,7 +594,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             stroke: textColor,
             grid: { stroke: gridColor, width: 1 },
             ticks: { stroke: gridColor, width: 1 },
-            font: '10px system-ui',
+            font: '12px system-ui',
             size: yAxisSize,
             gap: 4
         }
@@ -640,7 +640,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             stroke: 'rgba(249,115,22,0.6)',
             grid: { show: false },
             ticks: { stroke: 'rgba(249,115,22,0.3)', width: 1 },
-            font: '10px system-ui',
+            font: '12px system-ui',
             size: 40,
             gap: 4,
             values: function(u, vals) { return vals.map(function(v) { return fmtTempAxis(v); }); }
@@ -859,7 +859,7 @@ function openChartZoom(canvasId) {
                 stroke: textColor,
                 grid: { stroke: gridColor, width: 1 },
                 ticks: { stroke: gridColor, width: 1 },
-                font: '11px system-ui',
+                font: '12px system-ui',
                 gap: 4
             },
             {
@@ -867,7 +867,7 @@ function openChartZoom(canvasId) {
                 stroke: textColor,
                 grid: { stroke: gridColor, width: 1 },
                 ticks: { stroke: gridColor, width: 1 },
-                font: '11px system-ui',
+                font: '12px system-ui',
                 size: zoomYAxisSize,
                 gap: 4
             }
@@ -889,7 +889,7 @@ function openChartZoom(canvasId) {
                 stroke: 'rgba(249,115,22,0.6)',
                 grid: { show: false },
                 ticks: { stroke: 'rgba(249,115,22,0.3)', width: 1 },
-                font: '11px system-ui',
+                font: '12px system-ui',
                 size: 45,
                 gap: 4,
                 values: function(u, vals) { return vals.map(function(v) { return fmtTempAxis(v); }); }
