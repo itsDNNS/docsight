@@ -315,7 +315,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   margin-top: 18px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
   font-weight: 800;
 }
 

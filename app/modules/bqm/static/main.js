@@ -729,7 +729,7 @@ function showBqmImportResult(data) {
         var tr = document.createElement('tr');
         var td = document.createElement('td');
         td.colSpan = 4;
-        td.style.cssText = 'padding:12px 8px; font-size:0.85em;';
+        td.style.cssText = 'padding:12px 8px; font-size:max(var(--fs-min), 0.85em);';
         var datesHtml = '<div style="margin-bottom:6px;color:#eab308;font-weight:500;">Skipped (already exist):</div>';
         datesHtml += '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;">';
         data.skipped_dates.forEach(function(d) {

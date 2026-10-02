@@ -737,7 +737,7 @@ function renderImportPreview(data) {
         if (isSkipped) {
             var rawHint = row.raw_date ? ' placeholder="' + escapeHtml(row.raw_date) + '"' : '';
             dateCell = '<input type="date" class="import-date-fix" data-idx="' + i + '"' + rawHint +
-                ' style="width:140px;padding:2px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--bg);color:var(--fg);font-size:0.85em;"' +
+                ' style="width:140px;padding:2px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--bg);color:var(--fg);font-size:max(var(--fs-min), 0.85em);"' +
                 ' onchange="fixImportDate(this,' + i + ')">' +
                 '<span class="import-skipped-badge">' + (T.import_no_date || 'no date') + '</span>';
         } else {
@@ -1478,9 +1478,9 @@ function _renderTimelineTable(data) {
             details = escapeHtml(e.message || '');
         }
 
-        tHtml += '<tr><td style="white-space:nowrap;font-size:0.82em;">' + ts + '</td>';
+        tHtml += '<tr><td style="white-space:nowrap;font-size:max(var(--fs-min), 0.82em);">' + ts + '</td>';
         tHtml += '<td>' + srcBadge + '</td>';
-        tHtml += '<td style="font-size:0.85em;">' + details + '</td></tr>';
+        tHtml += '<td style="font-size:max(var(--fs-min), 0.85em);">' + details + '</td></tr>';
         count++;
     }
 

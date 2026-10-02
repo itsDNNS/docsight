@@ -870,7 +870,7 @@ function renderCorrelationChart(data) {
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : 'disabled';
         if (item.metric === 'events') {
-            var filterBadge = item.visibleEventCount < item.totalEventCount ? ' <span style="font-size:0.7em;opacity:0.7;">(' + item.visibleEventCount + '/' + item.totalEventCount + ')</span>' : '';
+            var filterBadge = item.visibleEventCount < item.totalEventCount ? ' <span style="font-size:max(var(--fs-min), 0.7em);opacity:0.7;">(' + item.visibleEventCount + '/' + item.totalEventCount + ')</span>' : '';
             var eventCls = cls ? cls + ' corr-legend-events' : 'corr-legend-events';
             return '<span data-metric="events" tabindex="0" role="button" class="' + eventCls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + filterBadge +
                 ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '">&#9881;</span></span>';
@@ -926,13 +926,13 @@ function renderCorrelationChart(data) {
                 html += '<div class="corr-event-filter-group" style="padding:5px 0 7px; border-top:1px solid rgba(148,163,184,0.14);">' +
                     '<label style="display:flex; align-items:center; gap:6px; padding:3px 0; cursor:pointer; color:var(--text-secondary,#9ca3af);">' +
                     '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '"' + checked + ' style="accent-color:' + warnColor + ';"> ' +
-                    '<span style="font-weight:600; color:var(--text,#f0f0f0);">' + escapeHtml(label) + '</span> <span style="opacity:0.5; font-size:0.85em;">(' + eventTypes[et] + ')</span></label>' +
+                    '<span style="font-weight:600; color:var(--text,#f0f0f0);">' + escapeHtml(label) + '</span> <span style="opacity:0.5; font-size:max(var(--fs-min), 0.85em);">(' + eventTypes[et] + ')</span></label>' +
                     '<div style="display:flex; flex-wrap:wrap; gap:6px; padding-left:22px; margin-top:2px;">';
                 for (var sj = 0; sj < _CORR_SEVERITIES.length; sj++) {
                     var sv = _CORR_SEVERITIES[sj];
                     var svChecked = severityFilter[sv] !== false ? ' checked' : '';
                     var svCount = (eventSeverityCounts[et] && eventSeverityCounts[et][sv]) || 0;
-                    html += '<label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; color:var(--text-secondary,#9ca3af); font-size:0.85em;">' +
+                    html += '<label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; color:var(--text-secondary,#9ca3af); font-size:max(var(--fs-min), 0.85em);">' +
                         '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '" data-event-severity="' + _corrEscapeAttr(sv) + '"' + svChecked + ' style="accent-color:' + warnColor + ';"> ' +
                         escapeHtml(severityLabel[sv] || sv) + ' <span style="opacity:0.5;">(' + svCount + ')</span></label>';
                 }

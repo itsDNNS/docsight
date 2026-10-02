@@ -19,7 +19,7 @@
   color: var(--warn);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
 }
 .offline-last-known { color: var(--text-muted); }
 .is-offline #refresh-btn { opacity: 0.5; cursor: not-allowed; }
@@ -123,7 +123,7 @@
 .sidebar-logo img { width: 32px; height: 32px; }
 .sidebar-brand-text { min-width: 0; }
 .sidebar-title { font-size: 0.92rem; font-weight: 700; letter-spacing: -0.02em; }
-.sidebar-subtitle { font-size: 0.7rem; color: var(--text-muted); }
+.sidebar-subtitle { font-size: var(--fs-min); color: var(--text-muted); }
 .sidebar-close {
   display: none;
   align-items: center;
@@ -147,7 +147,7 @@
 }
 
 .nav-group-label {
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -200,7 +200,7 @@
   margin-left: auto;
   background: var(--crit);
   color: #fff;
-  font-size: 0.65rem;
+  font-size: var(--fs-min);
   font-weight: 700;
   padding: 2px 7px;
   border-radius: var(--radius-pill);
@@ -637,7 +637,7 @@ body.is-offline .offline-banner { display: flex; }
 }
 .metric-sub .range {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   color: var(--text-muted);
 }
 .metric-basis-row {
@@ -648,7 +648,7 @@ body.is-offline .offline-banner { display: flex; }
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-size: 0.66rem;
+  font-size: var(--fs-min);
   flex-shrink: 0;
 }
 .metric-basis-copy {
@@ -692,7 +692,7 @@ body.is-offline .offline-banner { display: flex; }
   line-height: 1;
 }
 .ring-label-small {
-  font-size: 0.6rem;
+  font-size: var(--fs-min);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -712,7 +712,7 @@ body.is-offline .offline-banner { display: flex; }
 .ring-legend-count {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
   font-weight: 600;
 }
 
@@ -785,7 +785,7 @@ body.is-offline .offline-banner { display: flex; }
 }
 .channel-table th {
   text-align: left;
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1160,7 +1160,7 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-hero .hero-channel-health-head span {
   color: color-mix(in srgb, var(--info) 86%, var(--text-secondary));
-  font-size: 0.68rem;
+  font-size: var(--fs-min);
   font-weight: 800;
   letter-spacing: 0.1em;
   line-height: 1.2;
@@ -1210,7 +1210,7 @@ body:has(#view-dashboard.active) .app-main {
 .dashboard-hero .hero-health-subtitle {
   margin-top: 3px;
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   line-height: 1.25;
 }
 
@@ -1235,7 +1235,7 @@ body:has(#view-dashboard.active) .app-main {
   align-items: center;
   gap: 5px;
   color: var(--text-muted);
-  font-size: 0.58rem;
+  font-size: var(--fs-min);
   font-weight: 800;
   letter-spacing: 0.06em;
   line-height: 1.15;
@@ -1302,7 +1302,7 @@ body:has(#view-dashboard.active) .app-main {
   gap: 6px;
   min-width: 0;
   color: var(--text-secondary);
-  font-size: 0.68rem;
+  font-size: var(--fs-min);
   line-height: 1.2;
 }
 
@@ -1315,7 +1315,7 @@ body:has(#view-dashboard.active) .app-main {
 .dashboard-hero .hero-health-stat strong {
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--fs-min);
   font-weight: 750;
   line-height: 1.2;
 }
@@ -1343,7 +1343,7 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-hero .hero-modulation-head span {
   color: color-mix(in srgb, var(--info) 86%, var(--text-secondary));
-  font-size: 0.66rem;
+  font-size: var(--fs-min);
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1.2;
@@ -1355,7 +1355,7 @@ body:has(#view-dashboard.active) .app-main {
   align-items: center;
   gap: 4px;
   color: var(--text-secondary);
-  font-size: 0.66rem;
+  font-size: var(--fs-min);
   font-weight: 700;
   line-height: 1.2;
   text-decoration: none;
@@ -1400,7 +1400,7 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-hero .hero-modulation-card-top span {
   color: var(--text-muted);
-  font-size: 0.66rem;
+  font-size: var(--fs-min);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1418,7 +1418,7 @@ body:has(#view-dashboard.active) .app-main {
 .dashboard-hero .hero-modulation-status,
 .dashboard-hero .hero-modulation-cause {
   color: var(--text-secondary);
-  font-size: 0.66rem;
+  font-size: var(--fs-min);
   line-height: 1.25;
 }
 
@@ -1452,7 +1452,7 @@ body:has(#view-dashboard.active) .app-main {
   justify-content: space-between;
   gap: var(--space-sm);
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1515,7 +1515,7 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-section-context strong {
   color: var(--text-secondary);
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1529,7 +1529,7 @@ body:has(#view-dashboard.active) .app-main {
   display: block;
   margin-bottom: 2px;
   color: color-mix(in srgb, var(--info) 86%, var(--text-secondary));
-  font-size: 0.68rem;
+  font-size: var(--fs-min);
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1628,7 +1628,7 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-view .metrics-grid .metric-status-cause {
   color: var(--text-muted);
-  font-size: 0.66rem;
+  font-size: var(--fs-min);
   line-height: 1;
   margin-left: 4px;
 }
@@ -1640,14 +1640,14 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-view .metrics-grid .metric-average-copy {
   color: var(--text-secondary);
-  font-size: 0.66rem;
+  font-size: var(--fs-min);
   letter-spacing: 0.01em;
 }
 
 .dashboard-view .metrics-grid .metric-modulation-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 4px 6px;
   clear: both;
   width: 100%;
   margin-top: 4px;
@@ -1655,15 +1655,25 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-view .metrics-grid .metric-context {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
+  gap: 4px 6px;
   min-width: 0;
 }
 
+/* Keeps a label and its value on the same line when the row wraps. */
+.dashboard-view .metrics-grid .metric-pair {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+
 .dashboard-view .metrics-grid .metric-sub-label {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
   color: var(--text-muted);
-  font-size: 0.58rem;
+  font-size: var(--fs-min);
   line-height: 1;
   text-transform: uppercase;
 }
@@ -1683,9 +1693,10 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-view .metrics-grid .metric-range-caption {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: center;
-  gap: 6px;
+  gap: 0 6px;
   min-width: 0;
   min-height: 18px;
   color: var(--text-muted);
@@ -1696,10 +1707,8 @@ body:has(#view-dashboard.active) .app-main {
 .dashboard-view .metrics-grid .metric-range-caption span {
   flex: 0 1 auto;
   min-width: 0;
-  font-size: 0.58rem;
+  font-size: var(--fs-min);
   text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1707,7 +1716,7 @@ body:has(#view-dashboard.active) .app-main {
   flex: 0 0 auto;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: var(--fs-min);
   font-weight: 650;
 }
 
@@ -1771,14 +1780,16 @@ body:has(#view-dashboard.active) .app-main {
   transform: translate(-50%, -50%);
 }
 
+/* Scale ends sit under the ends of the track; the good range gets its own row. */
 .dashboard-view .metrics-grid .metric-range-labels {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "low high" "good good";
+  gap: 2px 8px;
   min-width: 0;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--fs-min);
   line-height: 1.2;
 }
 
@@ -1789,13 +1800,20 @@ body:has(#view-dashboard.active) .app-main {
   white-space: nowrap;
 }
 
+.dashboard-view .metrics-grid .metric-range-labels span:first-child {
+  grid-area: low;
+}
+
 .dashboard-view .metrics-grid .metric-range-labels span:last-child {
+  grid-area: high;
   text-align: right;
 }
 
-.dashboard-view .metrics-grid .metric-range-good {
+.dashboard-view .metrics-grid .metric-range-labels .metric-range-good {
+  grid-area: good;
   color: var(--text-secondary);
   text-align: center;
+  white-space: normal;
 }
 
 .dashboard-view .metrics-grid .metric-spark {
@@ -1895,7 +1913,7 @@ body:has(#view-dashboard.active) .app-main {
   align-items: center;
   gap: 7px;
   color: var(--text-muted);
-  font-size: 0.74rem;
+  font-size: var(--fs-min);
   font-weight: 650;
   letter-spacing: 0.08em;
   line-height: 1.2;

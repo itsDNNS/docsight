@@ -14,7 +14,7 @@
                     <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
                 <p>{{ t.bqm_import_drop }}</p>
-                <p style="font-size:0.8em;color:var(--muted);">{{ t.bqm_import_formats }}</p>
+                <p style="font-size:max(var(--fs-min), 0.8em);color:var(--muted);">{{ t.bqm_import_formats }}</p>
                 <button type="button" class="btn btn-muted import-browse-btn" onclick="event.stopPropagation(); document.getElementById('bqm-import-file-input').click();">{{ t.get('bqm_import_browse', 'Browse BQM images') }}</button>
                 <input type="file" id="bqm-import-file-input" style="display:none;" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple>
             </div>
@@ -22,11 +22,11 @@
             <!-- Options: overwrite + date offset -->
             <div id="bqm-import-options" style="display:none; margin:10px 0;">
                 <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;cursor:pointer;">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:max(var(--fs-min), 0.9em);cursor:pointer;">
                         <input type="checkbox" id="bqm-import-overwrite">
                         {{ t.bqm_import_overwrite }}
                     </label>
-                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:max(var(--fs-min), 0.9em);">
                         {{ t.bqm_import_offset }}:
                         <input type="number" id="bqm-import-offset" class="bqm-offset-input" min="-30" max="30" value="0" step="1">
                     </label>

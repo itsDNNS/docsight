@@ -38,7 +38,7 @@ function loadApiTokens() {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'btn btn-sm';
-            btn.style.cssText = 'font-size:0.8em;padding:2px 8px;';
+            btn.style.cssText = 'font-size:max(var(--fs-min), 0.8em);padding:2px 8px;';
             btn.textContent = T.api_token_revoke || 'Revoke';
             btn.setAttribute('data-token-id', tk.id);
             btn.setAttribute('data-token-name', tk.name);

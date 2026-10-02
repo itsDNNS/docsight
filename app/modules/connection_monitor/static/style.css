@@ -117,7 +117,7 @@
 .cm-pinned-label,
 .cm-export-group > span {
     color: var(--text-muted);
-    font-size: 0.74rem;
+    font-size: var(--fs-min);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -305,7 +305,7 @@
 
 .cm-chart-mount .u-legend {
     color: var(--text-secondary);
-    font-size: 0.72rem;
+    font-size: var(--fs-min);
 }
 
 .cm-resolution {
@@ -383,7 +383,7 @@
 #cm-per-target-stats .data-table th {
     padding: 10px 12px;
     color: var(--text-muted);
-    font-size: 0.68rem;
+    font-size: var(--fs-min);
     font-weight: 750;
     letter-spacing: 0.07em;
     text-align: left;
@@ -424,7 +424,7 @@
     display: inline-block;
     margin-left: 5px;
     color: var(--text-muted);
-    font-size: 0.82em;
+    font-size: max(var(--fs-min), 0.82em);
 }
 
 #cm-per-target-stats .cm-target-table-wrap {
@@ -500,7 +500,7 @@
 #cm-per-target-stats .cm-target-table td:not(:first-child)::before {
     content: attr(data-label);
     color: var(--text-muted);
-    font-size: 0.62rem;
+    font-size: var(--fs-min);
     font-weight: 750;
     letter-spacing: 0.06em;
     line-height: 1.1;
@@ -634,7 +634,7 @@
 
 .cm-hop-table th {
     color: var(--text-muted);
-    font-size: 0.68rem;
+    font-size: var(--fs-min);
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
