@@ -206,6 +206,7 @@
   "back_dashboard": "Takaisin hallintapaneeliin",
   "light_mode": "Valotila",
   "dark_mode": "Tumma tila",
+  "theme_low_contrast": "Heikko tekstin kontrasti",
   "general": "Yleistä",
   "save": "Tallenna",
   "settings_saved": "Asetukset tallennettu",

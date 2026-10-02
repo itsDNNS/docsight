@@ -72,6 +72,14 @@
                     <div class="theme-info">
                         <div class="theme-name">{{ mod.name }}</div>
                         <div class="theme-desc">{{ mod.description }}</div>
+                        {% set low_modes = theme_contrast_warnings.get(mod.id, []) %}
+                        {% if low_modes %}
+                        <div class="theme-contrast-warning">
+                            <i data-lucide="triangle-alert" aria-hidden="true"></i>
+                            <span>{{ t.get('theme_low_contrast', 'Low text contrast') }}:
+                                {% for mode in low_modes %}{{ t.dark_mode if mode == 'dark' else t.light_mode }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="theme-actions">
                         {% if mod.id == active_theme_id %}

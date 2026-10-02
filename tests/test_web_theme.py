@@ -156,3 +156,49 @@ class TestThemeContext:
                 "docsight.theme_matrix",
                 "docsight.theme_tokyo_night",
             ]
+
+    def test_gallery_marks_themes_with_low_text_contrast(self, monkeypatch):
+        """Community themes below AA get a visible hint; readable themes do not."""
+        from app import web
+        from app.i18n import get_translations
+
+        def theme(theme_id, muted):
+            tokens = {"--surface": "#1f2937", "--void": "#111827", "--text": "#f9fafb",
+                      "--text-secondary": "#d1d5db", "--muted": muted}
+            return ModuleInfo(
+                id=theme_id, name=theme_id, description="d",
+                version="1.0.0", author="a", min_app_version="2026.2",
+                type="theme", contributes={"theme": "theme.json"}, path="/tmp",
+                theme_data={"dark": tokens, "light": dict(tokens)},
+            )
+
+        faint = theme("community.faint", "#4b5563")
+        readable = theme("community.readable", "#a7acb6")
+
+        class FakeLoader:
+            def get_enabled_modules(self):
+                return [readable]
+            def get_theme_modules(self):
+                return [readable, faint]
+
+        class FakeConfig:
+            def has_stored_value(self, key):
+                return False
+
+            def get(self, key, default=""):
+                return "community.readable" if key == "active_theme" else default
+
+        monkeypatch.setattr(current_runtime(), "module_loader", FakeLoader())
+        monkeypatch.setattr(current_runtime(), "config_manager", FakeConfig())
+
+        with app.test_request_context("/settings"):
+            ctx = web.inject_auth()
+            assert ctx["theme_contrast_warnings"] == {"community.faint": ["dark", "light"]}
+            html = app.jinja_env.get_template("settings/appearance.html").render(
+                **ctx, t=get_translations("en"), theme="dark", config={},
+            )
+        faint_card = html.split('data-theme-id="community.faint"', 1)[1].split('class="theme-actions"', 1)[0]
+        readable_card = html.split('data-theme-id="community.readable"', 1)[1].split('class="theme-actions"', 1)[0]
+        assert "Low text contrast:" in faint_card
+        assert "Dark Mode" in faint_card and "Light Mode" in faint_card
+        assert "theme-contrast-warning" not in readable_card
