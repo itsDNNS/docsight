@@ -738,9 +738,6 @@ button.notification-collapse-button {
   font-size: 0.82rem;
   font-weight: 500;
 }
-.status-indicator[hidden] {
-  display: none;
-}
 .status-indicator.testing {
   background: color-mix(in srgb, var(--text-muted) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-muted) 18%, transparent);

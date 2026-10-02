@@ -15,7 +15,6 @@
   color: var(--text-primary);
   font-size: 0.82rem;
 }
-.offline-status-banner[hidden] { display: none !important; }
 .offline-status-banner strong {
   color: var(--warn);
   text-transform: uppercase;

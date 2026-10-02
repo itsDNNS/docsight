@@ -73,6 +73,7 @@ def test_root_module_views_settings_disabled_actions_and_mobile_setup(page, root
     page.evaluate("switchView('evidence')")
     page.evaluate(
         """
+        document.getElementById('evidence-results').hidden = false;
         _evidenceRenderItems(['journal', 'bqm', 'speedtest'].map((key) => ({
             key: key,
             status: 'unavailable',

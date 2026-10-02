@@ -152,10 +152,6 @@
     transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
-.cm-chip-btn[hidden] {
-    display: none;
-}
-
 .cm-chip-btn:hover,
 .cm-pin-day-btn:hover {
     color: var(--text-primary);
@@ -165,11 +161,6 @@
 
 .cm-pin-day-btn {
     flex-shrink: 0;
-}
-
-.cm-pin-day-btn[hidden],
-.cm-pinned-label[hidden] {
-    display: none;
 }
 
 .cm-chip-btn.active {

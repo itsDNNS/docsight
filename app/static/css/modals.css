@@ -198,7 +198,6 @@
     gap: var(--space-md);
     margin-bottom: var(--space-md);
 }
-.report-fixed-scope[hidden] { display: none; }
 .report-period-card,
 .report-readiness,
 .report-supporting-evidence {
