@@ -29,6 +29,9 @@ class TestThemeContext:
                 return [theme_mod]
 
         class FakeConfig:
+            def has_stored_value(self, key):
+                return False
+
             def get(self, key, default=""):
                 if key == "active_theme":
                     return "test.theme"
@@ -53,6 +56,9 @@ class TestThemeContext:
                 return []
 
         class FakeConfig:
+            def has_stored_value(self, key):
+                return False
+
             def get(self, key, default=""):
                 return default
 
@@ -88,6 +94,9 @@ class TestThemeContext:
                 return [amber, classic]  # amber first (alphabetical)
 
         class FakeConfig:
+            def has_stored_value(self, key):
+                return False
+
             def get(self, key, default=""):
                 return default  # no active_theme set
 
@@ -129,6 +138,9 @@ class TestThemeContext:
                 return [playful, community, signature]
 
         class FakeConfig:
+            def has_stored_value(self, key):
+                return False
+
             def get(self, key, default=""):
                 if key == "active_theme":
                     return "docsight.theme_classic"

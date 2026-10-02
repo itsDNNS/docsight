@@ -65,9 +65,6 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
     'use strict';
 
     /* ── Theme ── */
-    var saved = localStorage.getItem('docsis-theme');
-    if (saved) document.documentElement.setAttribute('data-theme', saved);
-
     var themeToggle = document.getElementById('theme-toggle-sidebar');
     function updateThemeState() {
         var isDark = document.documentElement.getAttribute('data-theme') !== 'light';

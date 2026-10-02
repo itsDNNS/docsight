@@ -3,6 +3,20 @@
 import pytest
 from playwright.sync_api import expect
 
+from tests.e2e.conftest import AUTH_PROFILE, AUTH_TEST_CREDENTIAL, SETUP_PROFILE, _new_target
+from tests.e2e.support.lifecycle import running_processes
+
+
+@pytest.fixture
+def fresh_theme_servers(tmp_path):
+    """Servers without any saved theme; shared servers get one from settings saves."""
+    auth, auth_spec = _new_target(
+        "theme-auth", tmp_path / "auth", AUTH_PROFILE, admin_password=AUTH_TEST_CREDENTIAL
+    )
+    setup, setup_spec = _new_target("theme-setup", tmp_path / "setup", SETUP_PROFILE)
+    with running_processes([auth_spec, setup_spec]):
+        yield auth.base_url, setup.base_url
+
 
 class TestTheme:
     """Theme attribute on <html> element."""
@@ -55,6 +69,48 @@ class TestTheme:
                 "danger": expected["--crit"],
             }
             settings_page.locator("#theme-preview-overlay button", has_text="Cancel").click()
+
+    def test_pages_follow_a_light_system_preference_without_a_saved_choice(self, browser, fresh_theme_servers):
+        auth_server, setup_server = fresh_theme_servers
+        context = browser.new_context(color_scheme="light")
+        page = context.new_page()
+        html = page.locator("html")
+
+        page.goto(f"{setup_server}/setup")
+        expect(html).to_have_attribute("data-theme", "light")
+        page.goto(f"{auth_server}/login")
+        expect(html).to_have_attribute("data-theme", "light")
+        page.locator('input[type="password"]').fill(AUTH_TEST_CREDENTIAL)
+        page.locator('input[type="password"]').press("Enter")
+        page.wait_for_url(f"{auth_server}/")
+        expect(html).to_have_attribute("data-theme", "light")
+        assert not page.locator("#theme-toggle-sidebar").is_checked()
+        page.goto(f"{auth_server}/settings")
+        expect(html).to_have_attribute("data-theme", "light")
+        context.close()
+
+    def test_saved_browser_choice_beats_the_system_preference(self, browser, live_server):
+        context = browser.new_context(color_scheme="light")
+        page = context.new_page()
+        page.goto(live_server)
+        page.evaluate("localStorage.setItem('docsis-theme', 'dark')")
+        page.reload()
+        expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+        assert page.locator("#theme-toggle-sidebar").is_checked()
+        context.close()
+
+    def test_legacy_setup_choice_is_migrated_to_the_shared_key(self, demo_page):
+        demo_page.evaluate("localStorage.removeItem('docsis-theme'); localStorage.setItem('theme', 'light')")
+        demo_page.reload()
+        expect(demo_page.locator("html")).to_have_attribute("data-theme", "light")
+        assert demo_page.evaluate("localStorage.getItem('docsis-theme')") == "light"
+
+    def test_setup_theme_choice_uses_the_shared_key(self, setup_page):
+        setup_page.locator(".setup-theme-btn").click()
+        expect(setup_page.locator("html")).to_have_attribute("data-theme", "light")
+        assert setup_page.evaluate("localStorage.getItem('docsis-theme')") == "light"
+        setup_page.reload()
+        expect(setup_page.locator("html")).to_have_attribute("data-theme", "light")
 
     def test_login_page_has_theme(self, auth_page, auth_server):
         auth_page.goto(f"{auth_server}/login")

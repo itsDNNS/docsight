@@ -297,6 +297,7 @@ def inject_auth():
         "all_theme_modules": all_theme_modules,
         "active_theme_data": active_theme_data,
         "active_theme_id": active_theme_id,
+        "theme_explicit": bool(_config_manager and _config_manager.has_stored_value("theme")),
         "desktop_mode": desktop_mode,
         "desktop_preview_doc_url": DESKTOP_PREVIEW_DOC_URL,
         "desktop_preview_notice_id": DESKTOP_PREVIEW_NOTICE_ID,

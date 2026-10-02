@@ -291,6 +291,17 @@ class TestIndexRoute:
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
 
+    def test_saved_server_theme_takes_precedence_over_the_system_preference(self, client, config_mgr, sample_analysis):
+        current_runtime().update_state(analysis=sample_analysis)
+        follows_system = client.get("/").get_data(as_text=True)
+
+        config_mgr.save({"theme": "light"})
+        saved = client.get("/").get_data(as_text=True)
+
+        assert 'data-theme-explicit="false"' in follows_system
+        assert 'data-theme-explicit="true"' in saved
+        assert '<html lang="en" data-theme="light">' in saved
+
     def test_dashboard_bootstrap_carries_the_configured_time_zone(self, client, config_mgr, sample_analysis):
         config_mgr.save({"timezone": "America/Chicago"})
         current_runtime().update_state(analysis=sample_analysis)
