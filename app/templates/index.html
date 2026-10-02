@@ -53,6 +53,7 @@
     <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>
+<a class="skip-link" id="skip-link" href="#main-content">{{ t.get('skip_to_content', 'Skip to content') }}</a>
 {% set connection_monitor_installed = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
 <div id="offline-status-banner" class="offline-status-banner" role="status" aria-live="polite" hidden>
     <strong>Offline</strong>
@@ -295,7 +296,8 @@
 <div class="backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
 
 <!-- Main Area -->
-<main class="app-main">
+<main class="app-main" id="main-content" tabindex="-1">
+<h1 class="sr-only">DOCSight</h1>
 
 <!-- ═══ View: Dashboard ═══ -->
 <div class="main-content">

@@ -176,6 +176,27 @@ body {
 .toggle input:checked + .slider { background: var(--amethyst); }
 .toggle input:checked + .slider::before { transform: translateX(16px); }
 
+/* ── Skip link: hidden until focused ── */
+.skip-link {
+  position: absolute;
+  top: calc(-1 * var(--space-2xl));
+  left: var(--space-md);
+  z-index: 1000;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--elevated);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
+}
+.skip-link:focus { top: var(--space-md); }
+
+/* Programmatic focus targets after a view change */
+.app-main[tabindex="-1"]:focus,
+.view[tabindex="-1"]:focus,
+.view-page-title[tabindex="-1"]:focus { outline: none; }
+
 /* ── Screen Reader Only ── */
 .sr-only {
   position: absolute;
