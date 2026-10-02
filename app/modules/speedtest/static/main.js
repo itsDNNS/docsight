@@ -546,12 +546,12 @@ function renderSpeedtestChart() {
     ctx.font = '12px ' + monoFont;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    // About 96px per "DD.MM HH:MM" label keeps them from overlapping on narrow screens.
-    var labelCount = Math.min(6, data.length, Math.max(2, Math.floor(cw / 96)));
+    // About 120px per localized "date, time" label keeps them from overlapping on narrow screens.
+    var labelCount = Math.min(6, data.length, Math.max(2, Math.floor(cw / 120)));
     for (var li = 0; li < labelCount; li++) {
         var idx = Math.round(li * (data.length - 1) / (labelCount - 1));
         var t = times[idx];
-        var label = String(t.getDate()).padStart(2, '0') + '.' + String(t.getMonth() + 1).padStart(2, '0') + ' ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+        var label = docsightFormatAxisTime(t, 'monthday-time');
         // Edge labels align to the plot ends so they stay inside the canvas.
         ctx.textAlign = li === 0 ? 'left' : (li === labelCount - 1 ? 'right' : 'center');
         ctx.fillText(label, xPos(idx), padT + ch + 6);

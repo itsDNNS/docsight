@@ -107,7 +107,7 @@ function loadBackupList() {
         var tbody = document.createElement('tbody');
         backups.forEach(function(b) {
             var sizeMB = (b.size / 1048576).toFixed(1);
-            var date = b.modified ? new Date(b.modified).toLocaleString() : '';
+            var date = b.modified ? formatDocsightTime(b.modified) : '';
             var tr = document.createElement('tr');
             tr.style.cssText = 'border-bottom:1px solid var(--card-border);';
 

@@ -74,13 +74,27 @@ function docsightTimestampDate(ts) {
     return new Date(ts);
 }
 
+/* Axis labels follow the UI language. Chart data is placed on the browser's
+   clock, so labels use the browser time zone to stay aligned with it. */
+function docsightFormatAxisTime(date, style) {
+    if (typeof DOCSightBrowserContracts === 'undefined') return null;
+    return DOCSightBrowserContracts.formatTimestamp(date, {
+        locale: document.documentElement.lang || undefined,
+        style: style
+    });
+}
+
 function docsightFormatXAxisLabel(ts, range) {
     var d = docsightTimestampDate(ts);
     if (isNaN(d.getTime())) return '';
+    var hours = docsightRangeHours(range);
+    var bqm = String(range || '').toLowerCase() === 'bqm';
+    var localized = docsightFormatAxisTime(d,
+        bqm || hours <= 24 ? 'time' : (hours < 24 * 30 ? 'monthday-time' : 'monthday'));
+    if (localized) return localized;
     var hhmm = pad(d.getHours()) + ':' + pad(d.getMinutes());
     if (String(range || '').toLowerCase() === 'bqm') return hhmm;
     var mmdd = pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-    var hours = docsightRangeHours(range);
     if (hours <= 24) return hhmm;
     if (hours < 24 * 30) return mmdd + ' ' + hhmm;
     return mmdd;
@@ -137,7 +151,8 @@ function estimateLongestLabelWidth(labels, minWidth) {
         var text = label === null || label === undefined ? '' : String(label);
         if (text.length > longest.length) longest = text;
     });
-    return Math.max(longest.length * 7, minWidth || 40);
+    // Average glyph width of the 12px axis font.
+    return Math.max(Math.ceil(longest.length * 7.5), minWidth || 40);
 }
 
 function calculateXEdgePadding(labels, xValues, chartWidth, yAxisSize, explicitPadding) {
