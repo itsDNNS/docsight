@@ -57,7 +57,7 @@
             var cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
             // Preserve the Hero's existing all-null row and local-time filtering.
             var filtered = data.filter(function(row) {
-                return isDocsisTrendRow(row) && new Date(row.timestamp) >= cutoff;
+                return isDocsisTrendRow(row) && docsightParseTime(row.timestamp) >= cutoff;
             });
             renderedData = filtered;
             lastLoadFailed = false;
@@ -146,10 +146,7 @@
     }
 
     function formatHeroDate(ts) {
-        var d = new Date(ts);
-        var dd = d.getDate(), mm = d.getMonth() + 1, hh = d.getHours(), mi = d.getMinutes();
-        return (dd < 10 ? '0' : '') + dd + '.' + (mm < 10 ? '0' : '') + mm + ' ' +
-               (hh < 10 ? '0' : '') + hh + ':' + (mi < 10 ? '0' : '') + mi;
+        return docsightFormatAxisTime(docsightParseTime(ts), 'monthday-time');
     }
 
     function renderChart(container, data) {
@@ -164,9 +161,7 @@
 
         /* X-axis: show formatted time labels */
         var xLabels = timestamps.map(function(ts) {
-            var d = new Date(ts);
-            var hh = d.getHours(), mi = d.getMinutes();
-            return (hh < 10 ? '0' : '') + hh + ':' + (mi < 10 ? '0' : '') + mi;
+            return docsightFormatAxisTime(docsightParseTime(ts), 'time');
         });
 
         var wrap = container.parentElement;

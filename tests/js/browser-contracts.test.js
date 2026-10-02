@@ -84,6 +84,25 @@ test('timestamps render absolute instants in the configured zone and keep local 
     assert.equal(fmt(new Date('2026-01-15T12:00:00Z'), {locale: 'de'}), '15.01.2026, 13:00');
 });
 
+test('naive timestamps parse as wall-clock time in the configured zone', () => {
+    const iso = (value, zone) => contracts.parseTimestamp(value, zone).toISOString();
+    assert.equal(iso('2026-10-01T21:25:00', 'Europe/Berlin'), '2026-10-01T19:25:00.000Z');
+    assert.equal(iso('2026-01-15T08:00', 'Europe/Berlin'), '2026-01-15T07:00:00.000Z');
+    assert.equal(iso('2026-10-01 21:25:00', 'America/New_York'), '2026-10-02T01:25:00.000Z');
+    assert.equal(iso('2026-10-01', 'Europe/Berlin'), '2026-09-30T22:00:00.000Z');
+    // Spring forward: 03:30 exists, 02:30 does not and moves forward like the browser does.
+    assert.equal(iso('2026-03-29T03:30:00', 'Europe/Berlin'), '2026-03-29T01:30:00.000Z');
+    // Fall back: the first 02:30 (summer time) is chosen.
+    assert.equal(iso('2026-10-25T01:30:00', 'Europe/Berlin'), '2026-10-24T23:30:00.000Z');
+    // Absolute values are unchanged.
+    assert.equal(iso('2026-10-01T19:40:17Z', 'Europe/Berlin'), '2026-10-01T19:40:17.000Z');
+    assert.equal(iso('2026-10-01T21:40:17+02:00', 'America/New_York'), '2026-10-01T19:40:17.000Z');
+    assert.equal(iso(1790916757, 'Europe/Berlin'), new Date(1790916757000).toISOString());
+    assert.equal(iso(1790916757000, 'Europe/Berlin'), new Date(1790916757000).toISOString());
+    // Without a valid zone the browser interpretation is kept.
+    assert.equal(contracts.parseTimestamp('2026-10-01T21:25:00', null).getTime(), new Date('2026-10-01T21:25:00').getTime());
+});
+
 test('compact month-day styles drop the year and follow the locale', () => {
     const fmt = (value, locale, style) => contracts.formatTimestamp(value, {locale, timeZone: 'Europe/Berlin', style});
     assert.equal(fmt('2026-09-29T06:52:00Z', 'de', 'monthday'), '29.09.');

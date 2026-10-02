@@ -224,6 +224,32 @@
         }
     }
 
+    function zoneOffsetMs(timeZone, instantMs) {
+        // Offset of the zone at an instant: its wall-clock fields read as UTC, minus the instant.
+        var parts = {};
+        new Intl.DateTimeFormat('en-US', {
+            timeZone: timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }).formatToParts(new Date(instantMs)).forEach(function (part) { parts[part.type] = part.value; });
+        var asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+        return asUtc - Math.floor(instantMs / 1000) * 1000;
+    }
+
+    function parseTimestamp(value, timeZone) {
+        // Absolute instant for chart positions. Naive "YYYY-MM-DD[THH:MM[:SS]]" values are
+        // wall-clock time in the given zone (DOCSight's configured zone); values with
+        // Z/offset, epoch seconds or milliseconds, and Date objects are already absolute.
+        if (value instanceof Date) return value;
+        if (typeof value === 'number') return new Date(Math.abs(value) < 1e11 ? value * 1000 : value);
+        var naive = typeof value === 'string' ? NAIVE_TIMESTAMP.exec(value.trim()) : null;
+        if (!naive || !validTimeZone(timeZone)) return new Date(value);
+        var wallClock = Date.UTC(+naive[1], +naive[2] - 1, +naive[3],
+            +(naive[4] || 0), +(naive[5] || 0), +(naive[6] || 0));
+        var guess = wallClock - zoneOffsetMs(timeZone, wallClock);
+        // Re-check at the guessed instant so DST transitions resolve to the right offset.
+        return new Date(wallClock - zoneOffsetMs(timeZone, guess));
+    }
+
     function formatTimestamp(value, options) {
         // Absolute instants (ISO with Z/offset, epoch numbers, Date) render in the
         // configured time zone. Naive server timestamps are already local wall-clock
@@ -289,6 +315,7 @@
         selectSetupDriverState: selectSetupDriverState,
         formatLastKnownTimestamp: formatLastKnownTimestamp,
         formatTimestamp: formatTimestamp,
+        parseTimestamp: parseTimestamp,
         computeServiceWorkerPolicy: computeServiceWorkerPolicy
     };
 });

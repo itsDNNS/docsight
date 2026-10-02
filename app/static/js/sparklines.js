@@ -96,7 +96,7 @@
 
     function render(data, signals) {
         var cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        var filtered = data.filter(function(row) { return new Date(row.timestamp) >= cutoff; });
+        var filtered = data.filter(function(row) { return docsightParseTime(row.timestamp) >= cutoff; });
         collectSparks().forEach(function(s) {
             if ((signalKeys.indexOf(s.key) !== -1) !== signals) return;
             var canvas = document.getElementById(s.id);

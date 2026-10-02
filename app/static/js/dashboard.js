@@ -19,6 +19,12 @@ function formatDocsightTime(value, style, seconds) {
     });
 }
 
+/* Absolute instant for chart positions; timestamps without an offset are
+   wall-clock time in the configured zone. */
+function docsightParseTime(value) {
+    return DOCSightBrowserContracts.parseTimestamp(value, DOCSIGHT_TIME_ZONE);
+}
+
 document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
     var formatted = formatDocsightTime(el.getAttribute('datetime'), el.getAttribute('data-docsight-time'));
     if (formatted) el.textContent = formatted;

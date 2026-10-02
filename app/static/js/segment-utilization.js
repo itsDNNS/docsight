@@ -112,15 +112,9 @@ function _fritzCableLoadEvents() {
 
 function _fritzCableFormatTs(ts, compact) {
     if (!ts) return '';
-    var d = new Date(ts);
+    var d = docsightParseTime(ts);
     if (isNaN(d.getTime())) return ts;
-    var pad = function(n) { return (n < 10 ? '0' : '') + n; };
-    var hh = pad(d.getHours());
-    var mm = pad(d.getMinutes());
-    var dd = pad(d.getDate());
-    var mo = pad(d.getMonth() + 1);
-    if (compact) return hh + ':' + mm;
-    return dd + '.' + mo + ' ' + hh + ':' + mm;
+    return docsightFormatAxisTime(d, compact ? 'time' : 'monthday-time');
 }
 
 function _fritzCableFormatDuration(minutes) {
@@ -157,8 +151,8 @@ function _fritzCableRenderEvent(ev) {
 
     var sameDay = false;
     if (ev.start && ev.end) {
-        var ds = new Date(ev.start);
-        var de = new Date(ev.end);
+        var ds = docsightParseTime(ev.start);
+        var de = docsightParseTime(ev.end);
         sameDay = !isNaN(ds) && !isNaN(de)
             && ds.getFullYear() === de.getFullYear()
             && ds.getMonth() === de.getMonth()

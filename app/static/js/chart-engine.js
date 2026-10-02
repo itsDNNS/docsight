@@ -36,6 +36,14 @@ function fmtK(v) {
     return '' + v;
 }
 function todayStr() {
+    /* Today's date in the configured time zone (YYYY-MM-DD). */
+    if (typeof DOCSIGHT_TIME_ZONE !== 'undefined' && DOCSIGHT_TIME_ZONE) {
+        try {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: DOCSIGHT_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(new Date());
+        } catch (error) { /* fall back to the browser date */ }
+    }
     var d = new Date();
     return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
 }
@@ -67,6 +75,7 @@ function docsightRangeHours(range) {
 }
 
 function docsightTimestampDate(ts) {
+    if (typeof docsightParseTime === 'function') return docsightParseTime(ts);
     if (ts instanceof Date) return ts;
     if (typeof ts === 'number') {
         return new Date(Math.abs(ts) < 100000000000 ? ts * 1000 : ts);
@@ -74,12 +83,13 @@ function docsightTimestampDate(ts) {
     return new Date(ts);
 }
 
-/* Axis labels follow the UI language. Chart data is placed on the browser's
-   clock, so labels use the browser time zone to stay aligned with it. */
+/* Axis labels follow the UI language and the configured time zone; chart
+   data is parsed with docsightParseTime() into the same zone. */
 function docsightFormatAxisTime(date, style) {
     if (typeof DOCSightBrowserContracts === 'undefined') return null;
     return DOCSightBrowserContracts.formatTimestamp(date, {
         locale: document.documentElement.lang || undefined,
+        timeZone: typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined,
         style: style
     });
 }
