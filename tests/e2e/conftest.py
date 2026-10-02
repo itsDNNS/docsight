@@ -83,6 +83,15 @@ def browser_type_launch_args(browser_type_launch_args):
     }
 
 
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args):
+    """Pin the system color scheme; DOCSight follows it until a theme is chosen.
+
+    Tests for the light system preference open their own context.
+    """
+    return {**browser_context_args, "color_scheme": "dark"}
+
+
 def _new_target(
     label,
     data_dir,

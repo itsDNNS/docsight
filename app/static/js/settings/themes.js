@@ -4,13 +4,10 @@ DOCSightSettings.themes = function({showToast, guardUnsaved}) {
 function initThemeToggle() {
     var appearanceCheck = document.getElementById('theme-toggle-appearance');
 
-    /* Restore saved theme */
-    var saved = localStorage.getItem('docsis-theme');
-    if (saved) {
-        document.documentElement.setAttribute('data-theme', saved);
-        if (appearanceCheck) appearanceCheck.checked = (saved === 'dark');
-    }
-    updatePaletteDots(document.documentElement.getAttribute('data-theme'));
+    /* The head bootstrap already resolved the theme; mirror it */
+    var current = document.documentElement.getAttribute('data-theme');
+    if (appearanceCheck) appearanceCheck.checked = current !== 'light';
+    updatePaletteDots(current);
 }
 
 function toggleThemeFromAppearance(checked) {

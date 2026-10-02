@@ -176,16 +176,8 @@ function toggleTheme() {
     var current = html.getAttribute('data-theme') || 'dark';
     var next = current === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
+    localStorage.setItem('docsis-theme', next);
 }
-
-// Load theme preference
-(function() {
-    var saved = localStorage.getItem('theme');
-    if(saved) {
-        document.documentElement.setAttribute('data-theme', saved);
-    }
-})();
 
 // Driver hints (data-driven UI defaults)
 var DRIVER_HINTS = setupBootstrap.driverHints;
