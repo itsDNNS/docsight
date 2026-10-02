@@ -134,6 +134,12 @@ function computeMedian(arr) {
     return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+/* One table cell; data-label names the value in the stacked mobile layout. */
+function _speedtestCell(columnClass, label, html, extraClass, title) {
+    return '<td class="' + columnClass + (extraClass ? ' ' + extraClass : '') + '" data-label="' + escapeHtml(label) + '"'
+        + (title ? ' title="' + escapeHtml(title) + '"' : '') + '>' + html + '</td>';
+}
+
 function renderSpeedtestRows() {
     var tbody = document.getElementById('speedtest-tbody');
     var moreWrap = document.getElementById('speedtest-show-more');
@@ -157,13 +163,13 @@ function renderSpeedtestRows() {
         var jitterVal = parseFloat(r.jitter_ms) || 0;
         var dlClass = (medianDl > 0 && dlVal < medianDl * 0.8) ? ' class="val-bad"' : '';
         var ulClass = (medianUl > 0 && ulVal < medianUl * 0.8) ? ' class="val-bad"' : '';
-        var pingClass = pingVal > 50 ? ' class="val-warn"' : '';
-        var jitterClass = jitterVal > 20 ? ' class="val-warn"' : '';
+        var pingClass = pingVal > 50 ? 'val-warn' : '';
+        var jitterClass = jitterVal > 20 ? 'val-warn' : '';
         var tr = document.createElement('tr');
         if (r.smart_capture) tr.className = 'st-row-sc';
         var serverCell = r.server_name
-            ? '<td title="#' + escapeHtml(String(r.server_id || '')) + '">' + escapeHtml(r.server_name) + '</td>'
-            : '<td>' + (r.server_id ? '#' + escapeHtml(String(r.server_id)) : '') + '</td>';
+            ? _speedtestCell('st-col-server', T.server || 'Server', escapeHtml(r.server_name), '', '#' + String(r.server_id || ''))
+            : _speedtestCell('st-col-server', T.server || 'Server', r.server_id ? '#' + escapeHtml(String(r.server_id)) : '');
         var expandLabel = escapeHtml(T.speedtest_show_signal || 'Show signal at this time');
         var scBadge = r.smart_capture
             ? '<td class="st-sc-col"><span class="sc-badge">' + escapeHtml(T.sc_badge_label || 'Smart Capture') + '</span></td>'
@@ -171,13 +177,13 @@ function renderSpeedtestRows() {
         tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" onclick="toggleSpeedtestSignal(this)"'
             + ' aria-label="' + expandLabel + '" title="' + expandLabel + '" aria-expanded="false" aria-controls="st-signal-' + r.id + '">'
             + '<i data-lucide="chevron-right" aria-hidden="true"></i></button></td>'
-            + '<td>' + escapeHtml(formatSpeedtestTimestamp(r.timestamp)) + '</td>'
+            + _speedtestCell('st-col-time', T.timestamp || 'Timestamp', escapeHtml(formatSpeedtestTimestamp(r.timestamp)))
             + serverCell
-            + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
-            + '<td><strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
-            + '<td' + pingClass + '>' + (r.ping_ms == null ? '&#8212;' : escapeHtml(String(r.ping_ms)) + ' ms') + '</td>'
-            + '<td' + jitterClass + '>' + (r.jitter_ms == null ? '&#8212;' : escapeHtml(String(r.jitter_ms)) + ' ms') + '</td>'
-            + '<td>' + (r.packet_loss_pct == null ? '&#8212;' : r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>'
+            + _speedtestCell('st-col-dl', T.download || 'Download', '<strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong>')
+            + _speedtestCell('st-col-ul', T.upload || 'Upload', '<strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong>')
+            + _speedtestCell('st-col-ping', T.ping || 'Ping', r.ping_ms == null ? '&#8212;' : escapeHtml(String(r.ping_ms)) + ' ms', pingClass)
+            + _speedtestCell('st-col-jitter', T.jitter || 'Jitter', r.jitter_ms == null ? '&#8212;' : escapeHtml(String(r.jitter_ms)) + ' ms', jitterClass)
+            + _speedtestCell('st-col-loss', T.packet_loss || 'Packet Loss', r.packet_loss_pct == null ? '&#8212;' : r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%')
             + scBadge;
         tbody.appendChild(tr);
     }
