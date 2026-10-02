@@ -39,12 +39,41 @@
         el.textContent = text;
     }
 
-    function setEmpty(elements) {
+    var SETTINGS_SECTION = 'mod-docsight_connection_monitor';
+
+    function setCardState(state) {
+        var card = document.getElementById('connection-monitor-card');
+        if (card && card.setAttribute) card.setAttribute('data-cm-state', state);
+    }
+
+    function openCardTarget() {
+        var card = document.getElementById('connection-monitor-card');
+        if (card && card.getAttribute('data-cm-state') === 'off') {
+            window.location.href = docsightUrl('/settings') + '#' + SETTINGS_SECTION;
+        } else if (typeof switchView === 'function') {
+            switchView('connection-monitor');
+        }
+    }
+
+    function bindCard() {
+        var card = document.getElementById('connection-monitor-card');
+        if (!card || !card.addEventListener) return;
+        card.addEventListener('click', openCardTarget);
+        card.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openCardTarget();
+            }
+        });
+    }
+
+    function setEmpty(elements, badge, hint, badgeClass, state) {
+        setCardState(state || 'unknown');
         setText(elements.latency, '–');
         if (elements.latency) elements.latency.style.color = 'var(--muted)';
-        setText(elements.avg, '');
-        setText(elements.badge, '–');
-        if (elements.badge) elements.badge.className = 'badge badge-info';
+        setText(elements.avg, hint || '');
+        setText(elements.badge, badge || '–');
+        if (elements.badge) elements.badge.className = 'badge ' + (badgeClass || 'badge-info');
         setText(elements.modRow, '');
         setText(elements.rangeContext, '–');
         if (elements.range) {
@@ -95,7 +124,7 @@
         if (degraded.length > 0) {
             return { key: 'warn', badge: translate('health_marginal', 'Marginal') };
         }
-        if (!complete) return { key: 'muted', badge: '–' };
+        if (!complete) return { key: 'muted', badge: translate('cm_card_partial', 'Partial') };
         return { key: 'good', badge: translate('health_good', 'Good') };
     }
 
@@ -121,10 +150,18 @@
                 var observed = enabled.filter(function(t) {
                     return t.sample_count > 0 && t.packet_loss_pct != null;
                 });
-                if (observed.length === 0) {
-                    setEmpty(elements);
+                // The summary is empty when the monitor is switched off.
+                if (enabled.length === 0) {
+                    setEmpty(elements, translate('cm_card_off', 'Off'),
+                        translate('cm_card_off_hint', 'Turn on in Settings'), 'badge-muted', 'off');
                     return;
                 }
+                if (observed.length === 0) {
+                    setEmpty(elements, translate('cm_card_starting', 'Starting'),
+                        translate('cm_card_starting_hint', 'Collecting first measurements…'), 'badge-info', 'starting');
+                    return;
+                }
+                setCardState('active');
 
                 var ok = observed.filter(function(t) { return t.packet_loss_pct === 0; });
                 var degraded = observed.filter(function(t) {
@@ -173,8 +210,12 @@
 
     // Initial load + periodic refresh
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updateCard);
+        document.addEventListener('DOMContentLoaded', function() {
+            bindCard();
+            updateCard();
+        });
     } else {
+        bindCard();
         updateCard();
     }
     setInterval(updateCard, REFRESH_INTERVAL);

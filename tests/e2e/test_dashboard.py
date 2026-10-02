@@ -317,12 +317,25 @@ class TestDashboardSections:
             "primaryContainsAverage": False,
         }
 
-    def test_disabled_connection_monitor_card_shows_no_data_state(self, demo_page):
-        status = demo_page.locator("#cm-card-latency")
-        details = demo_page.locator("#cm-card-mod-row")
-        status.wait_for(state="visible")
-        demo_page.wait_for_function("document.querySelector('#cm-card-latency').textContent.trim() === '–'")
-        assert details.text_content().strip() == ""
+    def test_demo_connection_monitor_card_shows_seeded_latency(self, demo_page):
+        expect(demo_page.locator("#connection-monitor-card")).to_have_attribute(
+            "data-cm-state", "active", timeout=15000
+        )
+        expect(demo_page.locator("#cm-card-latency")).to_contain_text("ms")
+        expect(demo_page.locator("#cm-card-badge")).not_to_have_text("–")
+
+    def test_disabled_connection_monitor_card_explains_state_and_opens_settings(self, demo_page):
+        demo_page.route("**/api/connection-monitor/summary", lambda route: route.fulfill(json={}))
+        demo_page.reload(wait_until="networkidle")
+
+        card = demo_page.locator("#connection-monitor-card")
+        expect(card).to_have_attribute("data-cm-state", "off")
+        expect(demo_page.locator("#cm-card-badge")).to_have_text("Off")
+        expect(demo_page.locator("#cm-card-avg")).to_have_text("Turn on in Settings")
+
+        card.focus()
+        card.press("Enter")
+        demo_page.wait_for_url("**/settings#mod-docsight_connection_monitor")
 
     def test_docsis_groups_expose_expanded_state(self, demo_page):
         header = demo_page.locator(".docsis-group-header").first

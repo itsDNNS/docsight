@@ -26,6 +26,19 @@ _MAX_PROBE_INTERVAL_MS = 300_000
 _DUE_TOLERANCE_S = 0.05
 
 
+def configured_probe_interval_ms(config_mgr) -> int:
+    """Probe interval from settings, bounded; unreadable values use the default."""
+    try:
+        # ConfigManager.get() casts INT keys itself and can still raise,
+        # e.g. for an invalid environment variable override.
+        interval_ms = int(config_mgr.get(
+            "connection_monitor_poll_interval_ms", _DEFAULT_PROBE_INTERVAL_MS
+        ))
+    except (TypeError, ValueError, OverflowError):
+        return _DEFAULT_PROBE_INTERVAL_MS
+    return min(max(interval_ms, _MIN_PROBE_INTERVAL_MS), _MAX_PROBE_INTERVAL_MS)
+
+
 class ConnectionMonitorCollector(Collector):
     """Always-on latency collector with per-target timing."""
 
@@ -179,16 +192,7 @@ class ConnectionMonitorCollector(Collector):
                 self._smart_capture.evaluate(all_events)
 
     def _configured_interval_ms(self) -> int:
-        """Probe interval from settings, bounded; unreadable values use the default."""
-        try:
-            # ConfigManager.get() casts INT keys itself and can still raise,
-            # e.g. for an invalid environment variable override.
-            interval_ms = int(self._config_mgr.get(
-                "connection_monitor_poll_interval_ms", _DEFAULT_PROBE_INTERVAL_MS
-            ))
-        except (TypeError, ValueError, OverflowError):
-            return _DEFAULT_PROBE_INTERVAL_MS
-        return min(max(interval_ms, _MIN_PROBE_INTERVAL_MS), _MAX_PROBE_INTERVAL_MS)
+        return configured_probe_interval_ms(self._config_mgr)
 
     def _sync_target_intervals(self, targets: list[dict], interval_ms: int):
         """Keep stored per-target intervals equal to the configured interval.

@@ -1125,7 +1125,7 @@
 
         {# ── Connection Monitor card (inline with other metric cards) ── #}
         {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-        <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" style="cursor:pointer;" onclick="switchView('connection-monitor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('connection-monitor')}">
+        <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" style="cursor:pointer;" data-cm-state="unknown">
             <div class="metric-header">
                 <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
                 <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>

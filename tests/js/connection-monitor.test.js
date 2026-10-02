@@ -16,13 +16,23 @@ function card() {
     }
     const ids = ['latency', 'avg', 'badge', 'mod-row', 'range', 'range-context'];
     const elements = Object.fromEntries(ids.map(id => ['cm-card-' + id, element()]));
+    const listeners = {};
+    const views = [];
+    elements['connection-monitor-card'] = {
+        attrs: {},
+        setAttribute(name, value) { this.attrs[name] = value; },
+        getAttribute(name) { return this.attrs[name]; },
+        addEventListener(type, callback) { listeners[type] = callback; },
+    };
     let refresh;
     let response;
     const context = {
         document: {
-            readyState: 'loading', addEventListener() {},
+            readyState: 'complete', addEventListener() {},
             getElementById: id => elements[id], createElement: element,
         },
+        location: {href: ''},
+        switchView: view => views.push(view),
         docsightUrl: url => url,
         setInterval: callback => { refresh = callback; },
         fetch: async () => {
@@ -34,6 +44,10 @@ function card() {
     vm.runInNewContext(fs.readFileSync('app/modules/connection_monitor/static/js/connection-monitor-card.js', 'utf8'), context);
     return {
         elements,
+        views,
+        location: context.location,
+        state: () => elements['connection-monitor-card'].attrs['data-cm-state'],
+        click: () => listeners.click(),
         async update(data, status = 200) {
             response = data instanceof Error ? data : {ok: status === 200, json: async () => data};
             refresh();
@@ -56,19 +70,22 @@ test('card reports observed latency, loss and range without inventing jitter', a
     assert.equal(view.text('range-context'), '10 – 30 ms');
 });
 
-for (const [name, data, status] of [
-    ['no samples', {1: unobserved}],
-    ['disabled target', {1: {...healthy, enabled: false}}],
-    ['disabled module', {}],
-    ['network failure', new Error('offline')],
-    ['HTTP failure', {1: healthy}, 503],
+for (const [name, data, status, badge, hint, state] of [
+    ['no samples', {1: unobserved}, 200, 'Starting', 'Collecting first measurements…', 'starting'],
+    ['disabled target', {1: {...healthy, enabled: false}}, 200, 'Off', 'Turn on in Settings', 'off'],
+    ['disabled module', {}, 200, 'Off', 'Turn on in Settings', 'off'],
+    ['network failure', new Error('offline'), 200, '–', '', 'unknown'],
+    ['HTTP failure', {1: healthy}, 503, '–', '', 'unknown'],
 ]) {
     test(`card clears previous healthy readings on ${name}`, async () => {
         const view = card();
         await view.update({1: healthy});
+        assert.equal(view.state(), 'active');
         await view.update(data, status);
         assert.equal(view.text('latency'), '–');
-        assert.equal(view.text('badge'), '–');
+        assert.equal(view.text('badge'), badge);
+        assert.equal(view.text('avg'), hint);
+        assert.equal(view.state(), state);
         assert.equal(view.text('mod-row'), '');
         assert.equal(view.text('range-context'), '–');
         assert.equal(view.elements['cm-card-latency'].style.color, 'var(--muted)');
@@ -77,7 +94,7 @@ for (const [name, data, status] of [
     });
 }
 
-for (const [loss, badge, okCount] of [[0, '–', 1], [50, 'Marginal', 0], [100, 'Critical', 0]]) {
+for (const [loss, badge, okCount] of [[0, 'Partial', 1], [50, 'Marginal', 0], [100, 'Critical', 0]]) {
     test(`missing target neither counts as healthy nor dilutes ${loss}% observed loss`, async () => {
         const view = card();
         await view.update({1: {...healthy, packet_loss_pct: loss}, 2: unobserved});
@@ -86,3 +103,17 @@ for (const [loss, badge, okCount] of [[0, '–', 1], [50, 'Marginal', 0], [100, 
         assert.equal(view.text('mod-row'), `Packet Loss ${loss}%`);
     });
 }
+
+test('card opens Settings while the monitor is off and the detail view otherwise', async () => {
+    const view = card();
+    await view.update({});
+    view.click();
+    assert.equal(view.location.href, '/settings#mod-docsight_connection_monitor');
+    assert.deepEqual(view.views, []);
+
+    view.location.href = '';
+    await view.update({1: healthy});
+    view.click();
+    assert.equal(view.location.href, '');
+    assert.deepEqual(view.views, ['connection-monitor']);
+});

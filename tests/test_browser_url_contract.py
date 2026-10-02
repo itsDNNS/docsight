@@ -48,7 +48,7 @@ EXPECTED_CONTRACT_CALLS = {
     "app/static/js/utils.js": 3,
     "app/modules/comparison/static/main.js": 1,
     "app/modules/evidence/static/main.js": 2,
-    "app/modules/connection_monitor/static/js/connection-monitor-card.js": 1,
+    "app/modules/connection_monitor/static/js/connection-monitor-card.js": 2,
     "app/modules/connection_monitor/static/js/connection-monitor-detail.js": 13,
     "app/modules/connection_monitor/static/js/connection-monitor-settings.js": 4,
     "app/modules/modulation/static/main.js": 2,
@@ -401,7 +401,7 @@ def test_inventoried_files_keep_the_reviewed_contract_sites():
     }
 
     assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 133  # reviewed browser URL contract sites
+    assert sum(actual.values()) == 134  # reviewed browser URL contract sites
 
 
 def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():

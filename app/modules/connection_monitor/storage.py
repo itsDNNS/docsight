@@ -223,8 +223,12 @@ class ConnectionMonitorStorage:
 
     # --- Summary ---
 
-    def get_summary(self, target_id: int, window_seconds: int = 60) -> dict[str, object]:
-        cutoff = time.time() - window_seconds
+    def get_summary(
+        self, target_id: int, window_seconds: int = 60, end: float | None = None,
+    ) -> dict[str, object]:
+        """Summarize the samples in the window ending at ``end`` (default: now)."""
+        end = time.time() if end is None else end
+        cutoff = end - window_seconds
         with self._read() as conn:
             row = conn.execute(
                 """SELECT
@@ -234,10 +238,18 @@ class ConnectionMonitorStorage:
                     MAX(CASE WHEN timeout = 0 THEN latency_ms END) as max_latency_ms,
                     ROUND(100.0 * SUM(CASE WHEN timeout = 1 THEN 1 ELSE 0 END) / MAX(COUNT(*), 1), 2) as packet_loss_pct
                 FROM connection_samples
-                WHERE target_id = ? AND timestamp >= ?""",
-                (target_id, cutoff),
+                WHERE target_id = ? AND timestamp >= ? AND timestamp <= ?""",
+                (target_id, cutoff, end),
             ).fetchone()
             return dict(row) if row else {}
+
+    def get_latest_sample_time(self, target_id: int) -> float | None:
+        with self._read() as conn:
+            row = conn.execute(
+                "SELECT MAX(timestamp) AS latest FROM connection_samples WHERE target_id = ?",
+                (target_id,),
+            ).fetchone()
+        return row["latest"] if row else None
 
     # --- Outages ---
 
