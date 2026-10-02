@@ -131,7 +131,7 @@ function loadJournal(searchQuery) {
     var tbody = document.getElementById('journal-tbody');
     var empty = document.getElementById('journal-empty');
     var loading = document.getElementById('journal-loading');
-    var deleteAllBtn = document.getElementById('btn-delete-all-entries');
+    var deleteAllBtn = document.getElementById('journal-more-actions');
     var searchWrap = document.getElementById('journal-search-wrap');
     var searchCount = document.getElementById('journal-search-count');
     loading.style.display = '';
@@ -838,6 +838,7 @@ function confirmImport() {
 
 /* ── Delete All ── */
 function deleteAllEntries() {
+    closeMoreActions();
     var count = document.querySelectorAll('#journal-tbody tr').length;
     if (count === 0) return;
     docsightConfirm({
@@ -849,10 +850,7 @@ function deleteAllEntries() {
         requireText: 'DELETE',
         requireLabel: T.delete_all_type_confirm || 'Type DELETE to confirm'
     }).then(function(confirmed) {
-        if (!confirmed) {
-            showToast(T.delete_all_cancelled, 'error');
-            return null;
-        }
+        if (!confirmed) return null;
         return fetch(docsightUrl('/api/journal/batch'), {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json'},
@@ -986,7 +984,7 @@ window.openIncidentTimeline = function(incidentId) {
     var searchWrap = document.getElementById('journal-search-wrap');
     var bulkBar = document.getElementById('journal-bulk-bar');
     var empty = document.getElementById('journal-empty');
-    var deleteAllBtn = document.getElementById('btn-delete-all-entries');
+    var deleteAllBtn = document.getElementById('journal-more-actions');
     if (tableCard) tableCard.style.display = 'none';
     if (searchWrap) searchWrap.style.display = 'none';
     if (bulkBar) bulkBar.style.display = 'none';
@@ -1816,9 +1814,31 @@ function exportJournal(fmt) {
     }
     window.location.href = url;
 }
+/* ── More actions menu (Delete All) ── */
+function closeMoreActions() {
+    var dd = document.getElementById('journal-more-dropdown');
+    var toggle = document.getElementById('journal-more-toggle');
+    if (dd) dd.classList.remove('open');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+}
+function toggleMoreActions(e) {
+    e.stopPropagation();
+    var dd = document.getElementById('journal-more-dropdown');
+    var open = !dd.classList.contains('open');
+    dd.classList.toggle('open', open);
+    e.currentTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
 document.addEventListener('click', function() {
     var dd = document.getElementById('journal-export-dropdown');
     if (dd) dd.classList.remove('open');
+    closeMoreActions();
+});
+document.addEventListener('keydown', function(e) {
+    var dd = document.getElementById('journal-more-dropdown');
+    if (e.key === 'Escape' && dd && dd.classList.contains('open')) {
+        closeMoreActions();
+        document.getElementById('journal-more-toggle').focus();
+    }
 });
 
 /* Expose Journal functions for HTML onclick/onchange handlers */
@@ -1836,6 +1856,7 @@ window.confirmImport = confirmImport;
 window.toggleImportAll = toggleImportAll;
 window.fixImportDate = fixImportDate;
 window.deleteAllEntries = deleteAllEntries;
+window.toggleMoreActions = toggleMoreActions;
 window.clearJournalSearch = clearJournalSearch;
 window.loadIncidents = loadIncidents;
 window.openIncidentModal = openIncidentModal;

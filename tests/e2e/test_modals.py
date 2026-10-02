@@ -719,3 +719,25 @@ def test_ai_export_ignores_pending_response_after_keyboard_dismissal(demo_page):
     expect(modal.locator("#export-text")).to_have_value("")
     expect(modal.locator("#export-status")).to_have_text("")
     demo_page.evaluate("window.fetch = window.__originalExportFetch")
+
+
+def test_journal_delete_all_sits_in_the_overflow_menu_and_cancel_is_quiet(demo_page):
+    _open_journal(demo_page)
+    toggle = demo_page.locator("#journal-more-toggle")
+    delete_all = demo_page.locator("#btn-delete-all-entries")
+    expect(toggle).to_be_visible()
+    expect(toggle).to_have_accessible_name("More actions")
+    expect(delete_all).to_be_hidden()
+
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    demo_page.keyboard.press("Escape")
+    expect(delete_all).to_be_hidden()
+    expect(toggle).to_be_focused()
+
+    toggle.click()
+    delete_all.click()
+    expect(demo_page.locator("#docsight-confirm-cancel")).to_be_visible()
+    demo_page.locator("#docsight-confirm-cancel").click()
+    expect(demo_page.locator("#toast.toast-error")).to_have_count(0)
+    expect(demo_page.locator("#journal-tbody tr[data-id]").first).to_be_visible()
