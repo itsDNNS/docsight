@@ -67,10 +67,10 @@
     <!-- BQM CSV Import (inline, below calendar) -->
     <div id="bqm-csv-import-section" class="bqm-csv-import" style="display:none; margin:16px auto; max-width:480px; text-align:center;">
         <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center;">
-            <input type="file" id="bqm-csv-file" accept=".csv" style="font-size:0.85em;">
+            <input type="file" id="bqm-csv-file" accept=".csv" style="font-size:max(var(--fs-min), 0.85em);">
             <button class="btn btn-primary btn-sm" id="bqm-csv-import-btn" onclick="importBqmCsv()">{{ t.get('bqm_csv_import', 'Import CSV') }}</button>
         </div>
-        <div id="bqm-csv-import-status" class="bqm-csv-status" style="margin-top:8px; font-size:0.85em;"></div>
+        <div id="bqm-csv-import-status" class="bqm-csv-status" style="margin-top:8px; font-size:max(var(--fs-min), 0.85em);"></div>
     </div>
 
 {% endif %}

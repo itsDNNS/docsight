@@ -263,7 +263,7 @@ function _renderSignalDetail(data, container) {
     snapDiv.appendChild(snapLabel);
     var snapVal = document.createElement('span');
     snapVal.className = 'st-sig-value';
-    snapVal.style.fontSize = '0.85em';
+    snapVal.style.fontSize = 'max(var(--fs-min), 0.85em)';
     snapVal.style.color = 'var(--muted)';
     snapVal.textContent = data.snapshot_timestamp || '';
     snapDiv.appendChild(snapVal);

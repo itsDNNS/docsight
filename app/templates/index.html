@@ -1094,12 +1094,12 @@
                 </span>
             </div>
             <div class="metric-sub metric-modulation-row">
-                <span class="metric-sub-label">{{ t.upload }}:</span>
-                <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
-                <span class="metric-sub-label">{{ t.ping }}:</span>
-                <span class="range">{{ (speedtest_latest.ping_ms|round(0)|int ~ ' ms') if speedtest_latest.ping_ms is not none else '—' }}</span>
-                <span class="metric-sub-label">{{ t.jitter }}:</span>
-                <span class="range">{{ (speedtest_latest.jitter_ms|round(1) ~ ' ms') if speedtest_latest.jitter_ms is not none else '—' }}</span>
+                <span class="metric-pair"><span class="metric-sub-label">{{ t.upload }}:</span>
+                <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span></span>
+                <span class="metric-pair"><span class="metric-sub-label">{{ t.ping }}:</span>
+                <span class="range">{{ (speedtest_latest.ping_ms|round(0)|int ~ ' ms') if speedtest_latest.ping_ms is not none else '—' }}</span></span>
+                <span class="metric-pair"><span class="metric-sub-label">{{ t.jitter }}:</span>
+                <span class="range">{{ (speedtest_latest.jitter_ms|round(1) ~ ' ms') if speedtest_latest.jitter_ms is not none else '—' }}</span></span>
             </div>
             {{ metric_range_viz(speed_range_data, speed_health_key, t.health_good, t.get('metric_download_contract', 'Download vs contract'), speed_pct_caption) }}
         </div>
@@ -1196,7 +1196,7 @@
         <div class="channel-header">
             <div>
                 <div class="channel-title">{{ t.downstream }} {{ t.channels }}</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">{{ ds|length }} {{ t.channels }}{% if ds_versions %} · DOCSIS {{ ds_versions|join(' + ') }}{% endif %}</div>
+                <div style="font-size:var(--fs-min);color:var(--text-muted);margin-top:2px;">{{ ds|length }} {{ t.channels }}{% if ds_versions %} · DOCSIS {{ ds_versions|join(' + ') }}{% endif %}</div>
             </div>
             <div class="channel-health-chips">
                 <span class="health-chip"><span class="dot good"></span> {{ ds_good }} {{ health_labels.good }}</span>
@@ -1255,7 +1255,7 @@
         <div class="channel-header">
             <div>
                 <div class="channel-title">{{ t.upstream }} {{ t.channels }}</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">{{ us|length }} {{ t.channels }}{% if us_versions %} · DOCSIS {{ us_versions|join(' + ') }}{% endif %}</div>
+                <div style="font-size:var(--fs-min);color:var(--text-muted);margin-top:2px;">{{ us|length }} {{ t.channels }}{% if us_versions %} · DOCSIS {{ us_versions|join(' + ') }}{% endif %}</div>
             </div>
             <div class="channel-health-chips">
                 <span class="health-chip"><span class="dot good"></span> {{ us_good_c }} {{ health_labels.good }}</span>
@@ -1344,12 +1344,12 @@
                 </span>
             </div>
             <div class="metric-sub metric-modulation-row">
-                <span class="metric-sub-label">{{ t.upload }}:</span>
-                <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
-                <span class="metric-sub-label">{{ t.ping }}:</span>
-                <span class="range">{{ (speedtest_latest.ping_ms|round(0)|int ~ ' ms') if speedtest_latest.ping_ms is not none else '—' }}</span>
-                <span class="metric-sub-label">{{ t.jitter }}:</span>
-                <span class="range">{{ (speedtest_latest.jitter_ms|round(1) ~ ' ms') if speedtest_latest.jitter_ms is not none else '—' }}</span>
+                <span class="metric-pair"><span class="metric-sub-label">{{ t.upload }}:</span>
+                <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span></span>
+                <span class="metric-pair"><span class="metric-sub-label">{{ t.ping }}:</span>
+                <span class="range">{{ (speedtest_latest.ping_ms|round(0)|int ~ ' ms') if speedtest_latest.ping_ms is not none else '—' }}</span></span>
+                <span class="metric-pair"><span class="metric-sub-label">{{ t.jitter }}:</span>
+                <span class="range">{{ (speedtest_latest.jitter_ms|round(1) ~ ' ms') if speedtest_latest.jitter_ms is not none else '—' }}</span></span>
             </div>
             {{ metric_range_viz(speed_range_data, speed_health_key, t.health_good, t.get('metric_download_contract', 'Download vs contract'), speed_pct_caption) }}
         </div>
@@ -1885,7 +1885,7 @@
             <button class="refresh-btn bnetz-refresh-btn" title="{{ t.refresh }}" onclick="loadBnetzData()"><i data-lucide="refresh-cw"></i></button>
         </div>
     </div>
-    <div id="bnetz-watcher-status" style="display:none;padding:8px 14px;margin-bottom:10px;border-radius:8px;background:var(--card-bg);border:1px solid var(--input-border);font-size:0.85em;color:var(--text-muted);align-items:center;gap:8px;">
+    <div id="bnetz-watcher-status" style="display:none;padding:8px 14px;margin-bottom:10px;border-radius:8px;background:var(--card-bg);border:1px solid var(--input-border);font-size:max(var(--fs-min), 0.85em);color:var(--text-muted);align-items:center;gap:8px;">
         <i data-lucide="eye" style="width:14px;height:14px;flex-shrink:0;"></i>
         <span id="bnetz-watcher-text"></span>
     </div>
@@ -2061,7 +2061,7 @@
             <!-- Step 2: Generated complaint text (hidden initially) -->
             <div id="report-step2" style="display:none;">
                 <p style="font-size:13px; color:var(--muted); margin-bottom:8px;">{{ t.report_edit_hint }}</p>
-                <textarea id="report-complaint-text" style="width:100%; min-height:320px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:0.85em; font-family:var(--font-mono); resize:vertical; line-height:1.5;"></textarea>
+                <textarea id="report-complaint-text" style="width:100%; min-height:320px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:max(var(--fs-min), 0.85em); font-family:var(--font-mono); resize:vertical; line-height:1.5;"></textarea>
             </div>
         </div>
         <div class="modal-footer">

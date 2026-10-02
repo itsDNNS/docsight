@@ -114,18 +114,18 @@ function loadBackupList() {
             var td1 = document.createElement('td');
             td1.style.cssText = 'padding:6px 0;';
             var codeEl = document.createElement('code');
-            codeEl.style.cssText = 'font-size:0.8em;';
+            codeEl.style.cssText = 'font-size:max(var(--fs-min), 0.8em);';
             codeEl.textContent = b.filename;
             td1.appendChild(codeEl);
             tr.appendChild(td1);
 
             var td2 = document.createElement('td');
-            td2.style.cssText = 'padding:6px 8px;color:var(--muted);font-size:0.8em;white-space:nowrap;';
+            td2.style.cssText = 'padding:6px 8px;color:var(--muted);font-size:max(var(--fs-min), 0.8em);white-space:nowrap;';
             td2.textContent = date;
             tr.appendChild(td2);
 
             var td3 = document.createElement('td');
-            td3.style.cssText = 'padding:6px 8px;color:var(--muted);font-size:0.8em;white-space:nowrap;';
+            td3.style.cssText = 'padding:6px 8px;color:var(--muted);font-size:max(var(--fs-min), 0.8em);white-space:nowrap;';
             td3.textContent = sizeMB + ' MB';
             tr.appendChild(td3);
 
@@ -134,7 +134,7 @@ function loadBackupList() {
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.className = 'btn btn-secondary';
-            delBtn.style.cssText = 'padding:2px 8px;font-size:0.75em;';
+            delBtn.style.cssText = 'padding:2px 8px;font-size:max(var(--fs-min), 0.75em);';
             var deleteLabel = ((T.backup_delete || T.bqm_delete || 'Delete backup') + ' ' + b.filename).trim();
             delBtn.setAttribute('data-filename', b.filename);
             delBtn.setAttribute('aria-label', deleteLabel);

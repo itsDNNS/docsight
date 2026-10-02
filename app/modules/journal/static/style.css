@@ -54,7 +54,7 @@
     background: none;
     border: none;
     color: var(--text);
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     font-family: inherit;
     text-align: left;
     cursor: pointer;
@@ -78,7 +78,7 @@
     border: none;
     border-radius: var(--radius-pill);
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     font-family: inherit;
     font-weight: 600;
     transition: all 0.2s var(--ease-out-expo);
@@ -113,7 +113,7 @@
     padding: var(--space-sm) var(--space-md);
     text-align: left;
     font-weight: 600;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     color: var(--text);
     border-bottom: 1px solid var(--card-border, var(--input-border));
     transition: background 0.15s var(--ease-out-expo);
@@ -149,18 +149,18 @@
 }
 #journal-table td.journal-desc {
     color: var(--text-secondary, var(--muted));
-    font-size: 0.88em;
+    font-size: max(var(--fs-min), 0.88em);
 }
 #journal-table td.journal-clip {
     color: var(--text-secondary, var(--muted));
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     text-align: center;
 }
 .journal-empty {
     text-align: center;
     padding: var(--space-2xl) var(--space-lg);
     color: var(--muted);
-    font-size: 0.95em;
+    font-size: max(var(--fs-min), 0.95em);
 }
 
 /* Modernized form styling */
@@ -169,7 +169,7 @@
 }
 .incident-form-group label {
     display: block;
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     color: var(--text-secondary, var(--muted));
     margin-bottom: 6px;
     font-weight: 600;
@@ -183,7 +183,7 @@
     border: 1px solid var(--input-border);
     border-radius: var(--radius-sm);
     font-family: inherit;
-    font-size: 0.92em;
+    font-size: max(var(--fs-min), 0.92em);
     transition: border-color 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo);
 }
 .incident-form-group textarea {
@@ -209,7 +209,7 @@
     background: var(--card);
     border-radius: var(--radius-sm);
     padding: 6px var(--space-sm);
-    font-size: 0.82em;
+    font-size: max(var(--fs-min), 0.82em);
     border: 1px solid var(--input-border);
     transition: border-color 0.15s var(--ease-out-expo);
 }
@@ -252,7 +252,7 @@
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     padding: 2px var(--space-xs);
     text-decoration: none;
     transition: color 0.15s var(--ease-out-expo);
@@ -275,7 +275,7 @@
     border: 1px solid var(--input-border);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     font-family: inherit;
     transition: all 0.15s var(--ease-out-expo);
 }
@@ -297,7 +297,7 @@
     padding: 10px var(--space-lg);
     border-radius: var(--radius-pill);
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     font-family: inherit;
     font-weight: 600;
     transition: all 0.2s var(--ease-out-expo);
@@ -361,7 +361,7 @@
     margin-bottom: var(--space-sm);
     border-radius: var(--radius-sm);
     background: var(--surface-2, rgba(0,0,0,0.15));
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     color: var(--text);
 }
 .import-controls {
@@ -374,7 +374,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     cursor: pointer;
     color: var(--text);
 }
@@ -394,14 +394,14 @@
     background: var(--surface-2, rgba(0,0,0,0.3));
     padding: var(--space-sm);
     text-align: left;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     font-weight: 600;
     z-index: 1;
 }
 .import-table tbody td {
     padding: var(--space-sm);
     border-top: 1px solid var(--card-border, rgba(255,255,255,0.05));
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     vertical-align: top;
 }
 .import-table tbody tr {
@@ -418,7 +418,7 @@
 }
 .import-duplicate-badge {
     display: inline-block;
-    font-size: 0.75em;
+    font-size: max(var(--fs-min), 0.75em);
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     background: var(--warn, #f59e0b);
@@ -431,7 +431,7 @@
 }
 .import-skipped-badge {
     display: inline-block;
-    font-size: 0.7em;
+    font-size: max(var(--fs-min), 0.7em);
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     background: var(--danger, #ef4444);
@@ -479,7 +479,7 @@
     border: none;
     background: none;
     color: var(--text);
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     font-family: inherit;
     padding: 10px var(--space-sm);
     outline: none;
@@ -505,7 +505,7 @@
     opacity: 0.7;
 }
 .journal-search-count {
-    font-size: 0.8em;
+    font-size: max(var(--fs-min), 0.8em);
     color: var(--muted);
     white-space: nowrap;
 }
@@ -594,7 +594,7 @@ mark.search-highlight {
     background: var(--surface-2, rgba(0,0,0,0.3));
     padding: var(--space-sm) var(--space-md) !important;
     font-weight: 700;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     color: var(--accent-purple, var(--accent));
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -970,7 +970,7 @@ mark.search-highlight {
     border: none;
     border-radius: var(--radius-pill);
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     font-family: inherit;
     font-weight: 600;
     transition: all 0.2s var(--ease-out-expo);
@@ -1111,7 +1111,7 @@ mark.search-highlight {
     color: var(--muted);
     font-weight: 500;
     text-transform: uppercase;
-    font-size: 0.72rem;
+    font-size: var(--fs-min);
     letter-spacing: 0.03em;
 }
 
@@ -1120,7 +1120,7 @@ mark.search-highlight {
     display: inline-block;
     padding: 2px var(--space-sm);
     border-radius: var(--radius-sm);
-    font-size: 0.72rem;
+    font-size: var(--fs-min);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.02em;
@@ -1389,7 +1389,7 @@ mark.search-highlight {
     min-height: 18px;
 }
 .icon-pick-label {
-    font-size: 0.68rem;
+    font-size: var(--fs-min);
     line-height: 1;
     color: var(--text-secondary, var(--muted));
     max-width: 72px;

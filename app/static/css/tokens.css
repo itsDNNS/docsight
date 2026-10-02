@@ -72,6 +72,7 @@
   --ease-smooth: cubic-bezier(0.25, 1, 0.5, 1);
 
   /* Typography */
+  --fs-min: 0.75rem; /* 12px: smallest readable UI text */
   --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 

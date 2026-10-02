@@ -31,13 +31,13 @@
     padding: 12px 16px;
     text-align: left;
     font-weight: 600;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     white-space: nowrap;
     border-bottom: 1px solid var(--card-border, var(--input-border));
 }
 #bnetz-table tbody td {
     padding: 12px 16px;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     white-space: nowrap;
     border-bottom: 1px solid var(--border-tint, rgba(255,255,255,0.05));
 }
@@ -73,13 +73,13 @@
 
 /* Section label (Download / Upload) */
 .bnetz-detail-label {
-    font-size: 0.85em; font-weight: 600; color: var(--text-secondary);
+    font-size: max(var(--fs-min), 0.85em); font-weight: 600; color: var(--text-secondary);
     display: block; margin-bottom: 4px;
 }
 
 /* Compact measurement table */
 .bnetz-detail-table {
-    width: 100%; font-size: 0.8em; border-collapse: collapse;
+    width: 100%; font-size: max(var(--fs-min), 0.8em); border-collapse: collapse;
 }
 .bnetz-detail-table th {
     text-align: left; padding: 3px 6px; font-weight: 600;
@@ -137,7 +137,7 @@
         content: attr(data-label);
         flex: 0 0 min(46%, 150px);
         color: var(--text-secondary, var(--text-muted));
-        font-size: 0.82em;
+        font-size: max(var(--fs-min), 0.82em);
         font-weight: 600;
         text-align: left;
     }

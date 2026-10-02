@@ -39,7 +39,7 @@
     outline-offset: 2px;
 }
 .bqm-month-label {
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     font-weight: 600;
     padding: var(--space-xs) var(--space-sm);
     white-space: nowrap;
@@ -63,7 +63,7 @@
     grid-template-columns: repeat(7, 1fr);
     gap: var(--space-xs);
     text-align: center;
-    font-size: 0.75em;
+    font-size: max(var(--fs-min), 0.75em);
     font-weight: 600;
     color: var(--text-muted);
     margin-bottom: var(--space-xs);
@@ -86,7 +86,7 @@
     background: transparent;
     font: inherit;
     border-radius: var(--radius-sm);
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     position: relative;
     color: var(--text-muted);
     user-select: none;
@@ -146,7 +146,7 @@
 .bqm-day.other-month { opacity: 0.3; }
 
 .bqm-range-label {
-    font-size: 0.8em;
+    font-size: max(var(--fs-min), 0.8em);
     color: var(--text-muted);
     margin-left: auto;
 }
@@ -155,7 +155,7 @@
 .bqm-live-badge {
     background: var(--crit);
     color: #fff;
-    font-size: 0.7em;
+    font-size: max(var(--fs-min), 0.7em);
     font-weight: 700;
     padding: 2px var(--space-sm);
     border-radius: var(--radius-sm);
@@ -169,7 +169,7 @@
     50% { opacity: 0.6; }
 }
 .bqm-last-updated {
-    font-size: 0.75em;
+    font-size: max(var(--fs-min), 0.75em);
     color: var(--text-muted);
     margin-left: var(--space-sm);
 }
@@ -206,7 +206,7 @@
 .bqm-import-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
 }
 .bqm-import-table th {
     text-align: left;
@@ -214,7 +214,7 @@
     border-bottom: 1px solid var(--input-border);
     color: var(--muted);
     font-weight: 500;
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
 }
 .bqm-import-table td {
     padding: var(--space-xs) var(--space-sm);
@@ -230,7 +230,7 @@
 }
 .bqm-import-filename {
     display: block;
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -240,7 +240,7 @@
     display: inline-block;
     background: var(--warn-muted);
     color: var(--warn);
-    font-size: 0.75em;
+    font-size: max(var(--fs-min), 0.75em);
     padding: 2px var(--space-sm);
     border-radius: var(--radius-sm);
 }
@@ -261,7 +261,7 @@
     color: var(--text);
     border-radius: var(--radius-sm);
     padding: var(--space-xs) var(--space-sm);
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     font-family: inherit;
     width: 60px;
     text-align: center;
@@ -272,7 +272,7 @@
     color: var(--text);
     border-radius: var(--radius-sm);
     padding: var(--space-xs) var(--space-sm);
-    font-size: 0.9em;
+    font-size: max(var(--fs-min), 0.9em);
     font-family: inherit;
     width: 100%;
 }
@@ -284,7 +284,7 @@
 }
 
 .bqm-validate-status {
-    font-size: 0.85em;
+    font-size: max(var(--fs-min), 0.85em);
     color: var(--text-muted);
 }
 .bqm-validate-status.ok {
@@ -310,6 +310,6 @@
         justify-content: center;
     }
     .bqm-day {
-        font-size: 0.8em;
+        font-size: max(var(--fs-min), 0.8em);
     }
 }

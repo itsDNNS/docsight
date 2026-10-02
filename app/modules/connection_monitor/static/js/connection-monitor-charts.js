@@ -67,7 +67,7 @@ var CMCharts = (function() {
             var btn = document.createElement('button');
             btn.textContent = '\u2715 Reset Zoom';
             btn.style.cssText = 'position:absolute;top:8px;right:8px;z-index:10;' +
-                'font-size:0.7rem;padding:3px 8px;border:1px solid rgba(255,255,255,0.2);' +
+                'font-size:var(--fs-min);padding:3px 8px;border:1px solid rgba(255,255,255,0.2);' +
                 'border-radius:4px;background:rgba(30,30,30,0.85);color:#ccc;cursor:pointer;' +
                 'backdrop-filter:blur(4px);transition:opacity 0.15s;';
             btn.onmouseenter = function() { btn.style.color = '#fff'; };

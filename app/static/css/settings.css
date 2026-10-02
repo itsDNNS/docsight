@@ -130,7 +130,7 @@ html, body {
 }
 
 .nav-group-label {
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -195,7 +195,7 @@ html, body {
 
 .nav-badge {
   margin-left: auto;
-  font-size: 0.65rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
@@ -368,7 +368,7 @@ button.notification-collapse-button {
   border: 1px solid var(--glass-border);
   background: var(--tint-subtle);
   color: var(--text-secondary);
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   font-weight: 700;
   line-height: 1;
   text-transform: uppercase;
@@ -431,7 +431,7 @@ button.notification-collapse-button {
 
 /* ─── Section Labels ─── */
 .section-label {
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -550,7 +550,7 @@ button.notification-collapse-button {
 }
 
 .toggle-section-divider {
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -700,7 +700,7 @@ button.notification-collapse-button {
 
 /* ─── Status Badge ─── */
 .badge {
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   font-weight: 500;
   padding: 3px 10px;
   border-radius: var(--radius-pill);
@@ -839,7 +839,7 @@ button.notification-collapse-button {
   border-spacing: 0;
 }
 #api-tokens-table th {
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -863,7 +863,7 @@ button.notification-collapse-button {
   border-spacing: 0;
 }
 .cooldown-table th {
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -946,7 +946,7 @@ button.notification-collapse-button {
   align-items: center;
   gap: var(--space-sm);
   margin-top: 12px;
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   color: var(--text-muted);
   font-family: var(--font-mono);
 }
@@ -983,7 +983,7 @@ button.notification-collapse-button {
 /* ─── Module Badges (type) ─── */
 .module-badge {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: var(--fs-min);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
@@ -1533,7 +1533,7 @@ button.notification-collapse-button {
     margin-bottom: var(--space-sm);
   }
   .nav-group-label {
-    font-size: 0.62rem;
+    font-size: var(--fs-min);
     padding: 0 10px;
     margin-bottom: 4px;
   }
@@ -1556,7 +1556,7 @@ button.notification-collapse-button {
     height: 14px;
   }
   .nav-badge {
-    font-size: 0.6rem;
+    font-size: var(--fs-min);
     padding: 2px 6px;
   }
   .sidebar-support {
@@ -1601,7 +1601,7 @@ button.notification-collapse-button {
     gap: 8px;
   }
   .channel-status-badge {
-    font-size: 0.62rem;
+    font-size: var(--fs-min);
     padding: 3px 8px;
   }
   .notification-card-toggle .card-icon {
@@ -1956,7 +1956,7 @@ button.notification-collapse-button {
   color: #fff;
   padding: 1px 6px;
   border-radius: 4px;
-  font-size: 0.7em;
+  font-size: max(var(--fs-min), 0.7em);
   vertical-align: middle;
 }
 .btn-install {
