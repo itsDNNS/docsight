@@ -367,6 +367,7 @@
   "bqm_setup": "BQM Installatie",
   "signal_at_time": "Signaal op het moment van test",
   "signal_no_snapshot": "Geen signaalmomentopname gevonden binnen 2 uur na deze snelheidstest.",
+  "speedtest_show_signal": "Signaal op dit moment tonen",
   "signal_health": "Gezondheid",
   "signal_ds_power": "DS Vermogen",
   "signal_ds_snr": "DS SNR",

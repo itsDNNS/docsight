@@ -367,6 +367,7 @@
   "bqm_setup": "Настройка на BQM",
   "signal_at_time": "Сигнал по време на теста",
   "signal_no_snapshot": "Няма открита моментна снимка на сигнала в рамките на 2 часа след този тест за скорост.",
+  "speedtest_show_signal": "Покажи сигнала в този момент",
   "signal_health": "Здраве",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

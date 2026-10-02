@@ -79,6 +79,26 @@ test('Speedtest rows distinguish missing measurements from measured zero', () =>
     assert.match(rows[1], /0%/);
 });
 
+test('Speedtest rows name their expand toggle and show the server name', () => {
+    const {context, elements} = browser(['speedtest-tbody']);
+    const rows = [];
+    context.document.createElement = () => element();
+    elements['speedtest-tbody'].appendChild = row => rows.push(row.innerHTML);
+    context.escapeHtml = value => String(value).replace(/&/g, '&amp;');
+    context.formatDocsightTime = value => String(value);
+    run(context, 'app/modules/speedtest/static/main.js');
+    context._speedtestAllData = [
+        {id: 7, server_id: 34567, server_name: '1&1 Versatel - Dusseldorf', download_mbps: 100, upload_mbps: 20},
+        {id: 8, server_id: 12345, download_mbps: 100, upload_mbps: 20},
+    ];
+    context.renderSpeedtestRows();
+    assert.match(rows[0], /aria-label="Show signal at this time"/);
+    assert.match(rows[0], /aria-expanded="false"/);
+    assert.match(rows[0], /aria-controls="st-signal-7"/);
+    assert.match(rows[0], /<td title="#34567">1&amp;1 Versatel - Dusseldorf<\/td>/);
+    assert.match(rows[1], /<td>#12345<\/td>/);
+});
+
 for (const name of ['journal', 'bqm', 'speedtest']) {
     test(`${name} loads on Settings and its hook is safe without dashboard globals`, () => {
         const {context, timers} = browser();

@@ -367,6 +367,7 @@
   "bqm_setup": "Konfiguracja BQM",
   "signal_at_time": "Sygnał w momencie testu",
   "signal_no_snapshot": "W ciągu 2 godzin od tego speedtestu nie znaleziono migawki sygnału.",
+  "speedtest_show_signal": "Pokaż sygnał w tym momencie",
   "signal_health": "Zdrowie",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

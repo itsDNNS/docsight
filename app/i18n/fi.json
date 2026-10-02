@@ -367,6 +367,7 @@
   "bqm_setup": "BQM-asennus",
   "signal_at_time": "Signaali testin aikana",
   "signal_no_snapshot": "Signaalin tilannekuvaa ei löytynyt 2 tunnin sisällä tästä nopeustestistä.",
+  "speedtest_show_signal": "Näytä signaali tällä hetkellä",
   "signal_health": "Terveys",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

@@ -367,6 +367,7 @@
   "bqm_setup": "BQM seadistamine",
   "signal_at_time": "Signaal testi ajal",
   "signal_no_snapshot": "2 tunni jooksul pärast seda kiiruskatset ei leitud signaali hetktõmmist.",
+  "speedtest_show_signal": "Näita signaali sellel ajal",
   "signal_health": "Tervis",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

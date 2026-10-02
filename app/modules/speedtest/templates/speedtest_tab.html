@@ -13,7 +13,7 @@
                 <button class="trend-tab" data-value="all" onclick="selectPill(this, filterSpeedtestData)">{{ t.fetch_all }}</button>
             </div>
             {% if not demo_mode %}<button class="btn btn-primary btn-sm" id="speedtest-run-btn" onclick="runSpeedtest()"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
-            <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" onclick="loadSpeedtestHistory()"><i data-lucide="refresh-cw"></i></button>
+            <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" aria-label="{{ t.refresh }}" onclick="loadSpeedtestHistory()"><i data-lucide="refresh-cw"></i></button>
         </div>
     </div>
     <div id="speedtest-loading" class="waiting" style="display:none;">
@@ -53,9 +53,9 @@
     <div id="speedtest-table-wrap" class="table-card">
         <table id="speedtest-table" class="sortable" style="display:none;">
             <thead><tr>
-                <th class="st-expand-col"></th>
+                <th class="st-expand-col"><span class="sr-only">{{ t.get('speedtest_show_signal', 'Show signal at this time') }}</span></th>
                 <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
-                <th data-col="server_id">{{ t.server or 'Server' }}<span class="sort-indicator"></span></th>
+                <th data-col="server_name">{{ t.server or 'Server' }}<span class="sort-indicator"></span></th>
                 <th data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
                 <th data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
                 <th data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>

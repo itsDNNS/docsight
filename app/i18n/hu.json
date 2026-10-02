@@ -367,6 +367,7 @@
   "bqm_setup": "BQM beállítás",
   "signal_at_time": "Jel a teszt időpontjában",
   "signal_no_snapshot": "A sebességtesztet követő 2 órán belül nem található jel pillanatfelvétel.",
+  "speedtest_show_signal": "Jel megjelenítése ebben az időpontban",
   "signal_health": "Egészség",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

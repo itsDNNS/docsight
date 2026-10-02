@@ -367,6 +367,7 @@
   "bqm_setup": "BQM sąranka",
   "signal_at_time": "Signalas bandymo metu",
   "signal_no_snapshot": "Per 2 valandas nuo šio greičio testo signalo momentinės nuotraukos nerasta.",
+  "speedtest_show_signal": "Rodyti signalą tuo metu",
   "signal_health": "Sveikata",
   "signal_ds_power": "DS galia",
   "signal_ds_snr": "DS SNR",
