@@ -95,8 +95,11 @@ test('Speedtest rows name their expand toggle and show the server name', () => {
     assert.match(rows[0], /aria-label="Show signal at this time"/);
     assert.match(rows[0], /aria-expanded="false"/);
     assert.match(rows[0], /aria-controls="st-signal-7"/);
-    assert.match(rows[0], /<td title="#34567">1&amp;1 Versatel - Dusseldorf<\/td>/);
-    assert.match(rows[1], /<td>#12345<\/td>/);
+    assert.match(rows[0], /<td class="st-col-server" data-label="Server" title="#34567">1&amp;1 Versatel - Dusseldorf<\/td>/);
+    assert.match(rows[1], /<td class="st-col-server" data-label="Server">#12345<\/td>/);
+    for (const column of ['time', 'dl', 'ul', 'ping', 'jitter', 'loss']) {
+        assert.match(rows[0], new RegExp('<td class="st-col-' + column + '[^"]*" data-label="[^"]+"'));
+    }
 });
 
 for (const name of ['journal', 'bqm', 'speedtest']) {

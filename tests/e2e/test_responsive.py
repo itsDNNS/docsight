@@ -205,6 +205,18 @@ class TestMobileLayout:
         assert all(rect["visible"] for rect in action_rects)
         assert all(rect["left"] >= 0 and rect["right"] <= viewport_width for rect in action_rects)
 
+    def test_speedtest_history_stacks_rows_without_horizontal_scrolling(self, mobile_page):
+        mobile_page.evaluate("switchView('speedtest')")
+        mobile_page.wait_for_selector("#speedtest-tbody tr .st-col-dl")
+        wrap = mobile_page.locator("#speedtest-table-wrap")
+        assert wrap.evaluate("el => el.scrollWidth - el.clientWidth") <= 1
+        first = mobile_page.locator("#speedtest-tbody tr").first
+        for column in ("time", "dl", "ul", "ping", "jitter", "loss", "server"):
+            expect(first.locator(f".st-col-{column}")).to_be_visible()
+        assert "Upload" in first.locator(".st-col-ul").evaluate(
+            "el => getComputedStyle(el, '::before').content"
+        )
+
     def test_correlation_timeline_wraps_mobile_evidence_rows(self, mobile_page):
         """Correlation timeline rows should expose details without hidden horizontal scrolling."""
         mobile_page.evaluate("switchView('correlation')")
