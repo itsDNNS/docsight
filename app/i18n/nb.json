@@ -367,6 +367,7 @@
   "bqm_setup": "BQM Oppsett",
   "signal_at_time": "Signal ved testtidspunktet",
   "signal_no_snapshot": "Ingen signalbilde funnet innen 2 timer etter denne hastighetstesten.",
+  "speedtest_show_signal": "Vis signalet på dette tidspunktet",
   "signal_health": "Helse",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

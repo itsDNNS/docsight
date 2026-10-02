@@ -337,6 +337,21 @@ class TestDashboardSections:
             "primaryContainsAverage": False,
         }
 
+    def test_speedtest_row_toggles_are_named_and_expose_their_state(self, demo_page):
+        demo_page.evaluate("switchView('speedtest')")
+        toggle = demo_page.locator("#speedtest-tbody .st-expand-btn").first
+        expect(toggle).to_have_accessible_name("Show signal at this time")
+        expect(toggle).to_have_attribute("aria-expanded", "false")
+        unnamed = demo_page.evaluate(
+            """() => [...document.querySelectorAll('#view-speedtest button')]
+                .filter((b) => b.offsetParent && !b.innerText.trim() && !b.getAttribute('aria-label')).length"""
+        )
+        assert unnamed == 0
+        toggle.focus()
+        toggle.press("Enter")
+        expect(toggle).to_have_attribute("aria-expanded", "true")
+        expect(demo_page.locator("#" + toggle.get_attribute("aria-controls"))).to_be_visible()
+
     def test_demo_connection_monitor_card_shows_seeded_latency(self, demo_page):
         expect(demo_page.locator("#connection-monitor-card")).to_have_attribute(
             "data-cm-state", "active", timeout=15000

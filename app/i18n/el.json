@@ -367,6 +367,7 @@
   "bqm_setup": "Ρύθμιση BQM",
   "signal_at_time": "Σήμα τη στιγμή της δοκιμής",
   "signal_no_snapshot": "Δεν βρέθηκε στιγμιότυπο σήματος εντός 2 ωρών από αυτήν τη δοκιμή ταχύτητας.",
+  "speedtest_show_signal": "Εμφάνιση σήματος εκείνη τη στιγμή",
   "signal_health": "Υγεία",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

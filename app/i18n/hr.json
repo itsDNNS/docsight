@@ -367,6 +367,7 @@
   "bqm_setup": "Postavljanje BQM",
   "signal_at_time": "Signal u vrijeme testa",
   "signal_no_snapshot": "Nije pronađena snimka signala unutar 2 sata od ovog testa brzine.",
+  "speedtest_show_signal": "Prikaži signal u tom trenutku",
   "signal_health": "Zdravlje",
   "signal_ds_power": "DS Snaga",
   "signal_ds_snr": "DS SNR",

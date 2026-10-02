@@ -367,6 +367,7 @@
   "bqm_setup": "BQM Configurare",
   "signal_at_time": "Semnal la momentul testării",
   "signal_no_snapshot": "Nu s-a găsit niciun instantaneu de semnal în 2 ore de la acest test de viteză.",
+  "speedtest_show_signal": "Afișează semnalul în acel moment",
   "signal_health": "Sănătate",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

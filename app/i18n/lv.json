@@ -367,6 +367,7 @@
   "bqm_setup": "BQM iestatīšana",
   "signal_at_time": "Signāls pārbaudes laikā",
   "signal_no_snapshot": "Netika atrasts signāla momentuzņēmums 2 stundu laikā pēc šī ātruma testa.",
+  "speedtest_show_signal": "Rādīt signālu šajā brīdī",
   "signal_health": "Veselība",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

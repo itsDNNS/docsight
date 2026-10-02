@@ -367,6 +367,7 @@
   "bqm_setup": "Nastavení BQM",
   "signal_at_time": "Signál v době testu",
   "signal_no_snapshot": "Do 2 hodin od tohoto testu rychlosti nebyl nalezen žádný snímek signálu.",
+  "speedtest_show_signal": "Zobrazit signál v tomto čase",
   "signal_health": "Zdraví",
   "signal_ds_power": "DS Power",
   "signal_ds_snr": "DS SNR",

@@ -367,6 +367,7 @@
   "bqm_setup": "BQM Einrichtung",
   "signal_at_time": "Signal zum Testzeitpunkt",
   "signal_no_snapshot": "Kein Signal-Snapshot innerhalb von 2 Stunden zu diesem Speedtest gefunden.",
+  "speedtest_show_signal": "Signal zu diesem Zeitpunkt anzeigen",
   "signal_health": "Zustand",
   "signal_ds_power": "DS Pegel",
   "signal_ds_snr": "DS SNR",

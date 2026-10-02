@@ -91,6 +91,8 @@ function sortSpeedtestData() {
         if (col === 'timestamp') {
             va = new Date(va || 0).getTime();
             vb = new Date(vb || 0).getTime();
+        } else if (col === 'server_name') {
+            return String(va || '').localeCompare(String(vb || '')) * dir;
         } else {
             va = parseFloat(va) || 0;
             vb = parseFloat(vb) || 0;
@@ -159,13 +161,16 @@ function renderSpeedtestRows() {
         var jitterClass = jitterVal > 20 ? ' class="val-warn"' : '';
         var tr = document.createElement('tr');
         if (r.smart_capture) tr.className = 'st-row-sc';
-        var serverCell = r.server_id
-            ? '<td title="' + escapeHtml(r.server_name || '') + '">#' + r.server_id + '</td>'
-            : '<td></td>';
+        var serverCell = r.server_name
+            ? '<td title="#' + escapeHtml(String(r.server_id || '')) + '">' + escapeHtml(r.server_name) + '</td>'
+            : '<td>' + (r.server_id ? '#' + escapeHtml(String(r.server_id)) : '') + '</td>';
+        var expandLabel = escapeHtml(T.speedtest_show_signal || 'Show signal at this time');
         var scBadge = r.smart_capture
             ? '<td class="st-sc-col"><span class="sc-badge">' + escapeHtml(T.sc_badge_label || 'Smart Capture') + '</span></td>'
             : '<td class="st-sc-col"></td>';
-        tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" onclick="toggleSpeedtestSignal(this)"><i data-lucide="chevron-right"></i></button></td>'
+        tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" onclick="toggleSpeedtestSignal(this)"'
+            + ' aria-label="' + expandLabel + '" title="' + expandLabel + '" aria-expanded="false" aria-controls="st-signal-' + r.id + '">'
+            + '<i data-lucide="chevron-right" aria-hidden="true"></i></button></td>'
             + '<td>' + escapeHtml(formatSpeedtestTimestamp(r.timestamp)) + '</td>'
             + serverCell
             + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
@@ -390,12 +395,15 @@ function toggleSpeedtestSignal(btn) {
     if (detailRow && detailRow.classList.contains('st-signal-row')) {
         detailRow.remove();
         btn.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
         return;
     }
     // Create detail row and populate (from cache or fetch)
     btn.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
     var newRow = document.createElement('tr');
     newRow.className = 'st-signal-row';
+    newRow.id = 'st-signal-' + id;
     var cols = parentRow.children.length;
     var td = document.createElement('td');
     td.colSpan = cols;

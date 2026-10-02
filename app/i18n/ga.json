@@ -367,6 +367,7 @@
   "bqm_setup": "BQM Socrú",
   "signal_at_time": "Comhartha ag am na tástála",
   "signal_no_snapshot": "Níor aimsíodh aon ghrianghraf comhartha laistigh de 2 uair ón tástáil luais seo.",
+  "speedtest_show_signal": "Taispeáin an comhartha ag an am seo",
   "signal_health": "Sláinte",
   "signal_ds_power": "DS Cumhacht",
   "signal_ds_snr": "DS SNR",
