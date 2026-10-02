@@ -9,7 +9,7 @@
                 </svg>
                 {{ t.new_entry }}
             </button>
-            <button class="btn-new-entry btn-import" onclick="openImportModal()">
+            <button class="btn-new-entry btn-secondary-action" onclick="openImportModal()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
@@ -18,7 +18,7 @@
                 {{ t.import }}
             </button>
             <div class="journal-export-wrapper" style="position:relative;display:inline-block;">
-                <button class="btn-new-entry btn-import" onclick="toggleExportDropdown(event)">
+                <button class="btn-new-entry btn-secondary-action" onclick="toggleExportDropdown(event)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                         <polyline points="7 10 12 15 17 10"/>
@@ -32,13 +32,18 @@
                     <button onclick="exportJournal('md')">Markdown</button>
                 </div>
             </div>
-            <button class="btn-danger btn-delete-all" id="btn-delete-all-entries" onclick="deleteAllEntries()" style="display:none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                </svg>
-                {{ t.delete_all }}
-            </button>
+            <div class="journal-more-wrapper" id="journal-more-actions" style="position:relative;display:none;">
+                <button class="btn-new-entry btn-secondary-action btn-more-actions" id="journal-more-toggle" onclick="toggleMoreActions(event)"
+                        aria-label="{{ t.get('more_actions', 'More actions') }}" title="{{ t.get('more_actions', 'More actions') }}"
+                        aria-haspopup="true" aria-expanded="false" aria-controls="journal-more-dropdown">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;" aria-hidden="true">
+                        <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+                    </svg>
+                </button>
+                <div class="journal-export-dropdown" id="journal-more-dropdown">
+                    <button class="journal-menu-danger" id="btn-delete-all-entries" onclick="deleteAllEntries()">{{ t.delete_all }}</button>
+                </div>
+            </div>
         </div>
     </div>
     <div class="incident-filter-bar" id="incident-filter-bar" style="display:none;"></div>

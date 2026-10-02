@@ -10,9 +10,27 @@
     flex-wrap: wrap;
     justify-content: flex-end;
 }
-.btn-delete-all {
-    font-size: 0.85em;
+/* Import, Export and the overflow menu are secondary to New Entry */
+.btn-new-entry.btn-secondary-action {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--card-border, var(--input-border));
+    box-shadow: none;
+}
+.btn-new-entry.btn-secondary-action:hover {
+    background: var(--tint-hover, var(--hover-bg));
+    box-shadow: none;
+}
+.btn-new-entry.btn-more-actions {
     padding: var(--space-sm) var(--space-md);
+}
+.journal-export-dropdown button.journal-menu-danger {
+    color: var(--danger, var(--crit));
+    white-space: nowrap;
+}
+.journal-export-dropdown button.journal-menu-danger:hover {
+    background: var(--danger, var(--crit));
+    color: #fff;
 }
 .journal-export-dropdown {
     display: none;
@@ -1196,6 +1214,9 @@ mark.search-highlight {
     }
     .journal-export-wrapper {
         display: block !important;
+        min-width: 0;
+    }
+    .journal-more-wrapper {
         min-width: 0;
     }
     .journal-export-dropdown {
