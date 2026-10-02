@@ -31,7 +31,7 @@
   /* Text */
   --text: #e8edff;
   --text-secondary: #9ba3c8;
-  --muted: #7880a6;
+  --muted: #7d85a9;
   --text-on-accent: #fff;
 
   /* Glass */
@@ -114,7 +114,7 @@
 
   --text: #1a1520;
   --text-secondary: #5e5673;
-  --muted: #8a82a0;
+  --muted: #706788;
 
   --good: #059669;
   --good-muted: rgba(5, 150, 105, 0.12);
