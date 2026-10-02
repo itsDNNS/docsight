@@ -1,6 +1,9 @@
 """E2E tests for responsive / mobile layout."""
 
+import re
+
 import pytest
+from playwright.sync_api import expect
 
 
 @pytest.fixture()
@@ -31,8 +34,10 @@ class TestMobileLayout:
 
     def test_hamburger_opens_sidebar(self, mobile_page):
         mobile_page.locator("#hamburger").click()
-        mobile_page.wait_for_timeout(300)
         sidebar = mobile_page.locator("nav.sidebar")
+        expect(sidebar).to_have_class(re.compile(r"\bopen\b"))
+        # The drawer slides in with a transform transition; measure the settled position.
+        sidebar.evaluate("el => Promise.all(el.getAnimations().map((animation) => animation.finished))")
         box = sidebar.bounding_box()
         # Allow tiny subpixel drift from browser layout math around x=0.
         assert box is not None and box["x"] >= -0.5

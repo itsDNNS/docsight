@@ -223,6 +223,10 @@ def serve_prefix_proxy(
 
     class QuietThreadingHTTPServer(ThreadingHTTPServer):
         daemon_threads = True
+        # Every response closes its connection, so a page load opens one TCP
+        # connection per asset. The socketserver default backlog of 5 resets
+        # some of them and drops scripts under parallel test load.
+        request_queue_size = 128
 
         def handle_error(self, request, client_address):
             return
