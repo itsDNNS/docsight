@@ -31,6 +31,7 @@ from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
 from .module_loader import module_static_url
 from .runtime import current_runtime
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name, to_local as _to_local
+from .theme_contrast import low_contrast_modes
 from .theme_registry import resolve_active_theme
 from .web_locale import get_lang, get_setup_lang
 from .version import get_app_version
@@ -295,6 +296,10 @@ def inject_auth():
         "update_available": current_runtime().update_checker.latest(),
         "modules": modules,
         "all_theme_modules": all_theme_modules,
+        "theme_contrast_warnings": {
+            mod.id: modes for mod in all_theme_modules
+            if (modes := low_contrast_modes(mod.theme_data))
+        },
         "active_theme_data": active_theme_data,
         "active_theme_id": active_theme_id,
         "theme_explicit": bool(_config_manager and _config_manager.has_stored_value("theme")),

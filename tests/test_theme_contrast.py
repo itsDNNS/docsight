@@ -5,37 +5,29 @@ from pathlib import Path
 
 import pytest
 
+from app.theme_contrast import (
+    AA_TEXT,
+    contrast_ratio,
+    low_contrast_modes,
+    low_contrast_tokens,
+    parse_color,
+    worst_contrast,
+)
 from app.theme_registry import BUILTIN_THEMES
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKGROUNDS = ("--surface", "--void", "--elevated", "--void-deep")
-AA_TEXT = 4.5
 # Muted text stays visibly quieter than secondary text.
 HIERARCHY_STEP = 1.25
-HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
-
-
-def _luminance(color):
-    channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
-    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
 
 def _contrast(foreground, background):
-    lighter, darker = sorted((_luminance(foreground), _luminance(background)), reverse=True)
-    return (lighter + 0.05) / (darker + 0.05)
-
-
-def _worst_contrast(tokens, name):
-    backgrounds = [tokens[key] for key in BACKGROUNDS if HEX.match(tokens.get(key, ""))]
-    assert backgrounds, "theme defines no solid background tokens"
-    return min(_contrast(tokens[name], background) for background in backgrounds)
+    return contrast_ratio(parse_color(foreground), parse_color(background))
 
 
 def _assert_readable(tokens):
-    text = _worst_contrast(tokens, "--text")
-    secondary = _worst_contrast(tokens, "--text-secondary")
-    muted = _worst_contrast(tokens, "--muted")
+    text = worst_contrast(tokens, "--text")
+    secondary = worst_contrast(tokens, "--text-secondary")
+    muted = worst_contrast(tokens, "--muted")
     assert muted >= AA_TEXT, f"--muted {tokens['--muted']} reaches only {muted:.2f}:1"
     assert secondary >= max(AA_TEXT, muted * HIERARCHY_STEP - 0.05), (
         f"--text-secondary {tokens['--text-secondary']} reaches {secondary:.2f}:1"
@@ -78,3 +70,35 @@ def test_navigation_badge_text_meets_aa_with_every_builtin_crit_color():
                 f"{round(int(crit[index:index + 2], 16) * share):02x}" for index in (1, 3, 5)
             )
             assert _contrast("#ffffff", mixed) >= AA_TEXT, f"{theme['id']} {mode}: {mixed}"
+
+
+@pytest.mark.parametrize(("value", "expected"), [
+    ("#fff", (255, 255, 255)),
+    ("#1f2937", (31, 41, 55)),
+    (" rgb(10, 20, 30) ", (10, 20, 30)),
+    ("rgba(10, 20, 30, 1)", (10, 20, 30)),
+    ("rgba(10, 20, 30, 0.5)", None),
+    ("var(--text)", None),
+    ("#12345", None),
+    ("rgb(300, 0, 0)", None),
+    (None, None),
+])
+def test_parse_color_accepts_opaque_hex_and_rgb_only(value, expected):
+    assert parse_color(value) == expected
+
+
+def test_low_contrast_tokens_report_each_failing_text_token():
+    tokens = {"--surface": "#1f2937", "--void": "#111827", "--text": "#f9fafb",
+              "--text-secondary": "#6b7280", "--muted": "#4b5563"}
+    assert low_contrast_tokens(tokens) == ["--text-secondary", "--muted"]
+
+
+def test_unjudgeable_themes_do_not_produce_warnings():
+    assert low_contrast_tokens({"--text": "#777"}) == []
+    assert low_contrast_tokens({"--surface": "rgba(0, 0, 0, 0.4)", "--muted": "#777"}) == []
+    assert low_contrast_modes(None) == []
+    assert low_contrast_modes({"dark": {"--surface": "#000", "--muted": "#111"}, "light": "broken"}) == ["dark"]
+
+
+def test_builtin_themes_produce_no_contrast_warnings():
+    assert [theme["id"] for theme in BUILTIN_THEMES if low_contrast_modes(theme["theme_data"])] == []

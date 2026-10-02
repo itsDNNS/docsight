@@ -1699,6 +1699,23 @@ button.notification-collapse-button {
   line-height: 1.4;
 }
 
+.theme-contrast-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: var(--space-xs);
+  color: var(--warn);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.theme-contrast-warning svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+}
+
 .theme-meta {
   display: flex;
   gap: var(--space-md);
