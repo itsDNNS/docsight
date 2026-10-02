@@ -173,7 +173,9 @@ class TestMobileLayout:
         )
         assert overflow <= 1
 
-        action_rects = mobile_page.locator("#bnetz-tbody tr[data-bnetz-idx] .bnetz-action-btn").evaluate_all(
+        action_rects = mobile_page.locator(
+            "#bnetz-tbody tr[data-bnetz-idx] .bnetz-action-btn:not(.bnetz-action-placeholder)"
+        ).evaluate_all(
             """
             buttons => buttons.map((btn) => {
                 const rect = btn.getBoundingClientRect();
@@ -536,3 +538,28 @@ class TestDesktopCorrelationLayout:
         assert header_state["position"] == "sticky"
         assert header_state["topElementTag"] == "TH"
         assert header_state["alpha"] >= 0.98, header_state["backgroundColor"]
+
+
+def test_bnetz_table_aligns_actions_and_names_each_verdict_on_desktop(demo_page):
+    demo_page.evaluate("switchView('bnetz')")
+    demo_page.wait_for_selector("#bnetz-tbody tr[data-bnetz-idx]")
+    geometry = demo_page.evaluate(
+        """
+        () => {
+            const rows = [...document.querySelectorAll('#bnetz-tbody tr[data-bnetz-idx]')];
+            const firstCell = rows[0].querySelector('td');
+            return {
+                deleteLefts: [...new Set(rows.map((row) =>
+                    Math.round(row.querySelector('.bnetz-action-delete').getBoundingClientRect().left)))],
+                verdictTexts: rows.map((row) => row.querySelector('.bnetz-verdict-text').innerText.trim()),
+                cellPadding: parseFloat(getComputedStyle(firstCell).paddingLeft),
+                unnamedActions: [...document.querySelectorAll('#bnetz-tbody .bnetz-action-btn:not(.bnetz-action-placeholder)')]
+                    .filter((el) => !el.getAttribute('aria-label')).length,
+            };
+        }
+        """
+    )
+    assert len(geometry["deleteLefts"]) == 1
+    assert all(geometry["verdictTexts"])
+    assert geometry["cellPadding"] >= 12
+    assert geometry["unnamedActions"] == 0

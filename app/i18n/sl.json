@@ -332,6 +332,7 @@
   "timestamp": "Časovni žig",
   "cancel": "Prekliči",
   "more_actions": "Več dejanj",
+  "actions": "Dejanja",
   "event_log": "Dnevnik dogodkov",
   "event_severity": "Resnost",
   "event_type": "Vrsta",

@@ -332,6 +332,7 @@
   "timestamp": "Vremenska oznaka",
   "cancel": "Odustani",
   "more_actions": "Više radnji",
+  "actions": "Radnje",
   "event_log": "Dnevnik događaja",
   "event_severity": "Ozbiljnost",
   "event_type": "Vrsta",

@@ -332,6 +332,7 @@
   "timestamp": "Времево клеймо",
   "cancel": "Отказ",
   "more_actions": "Още действия",
+  "actions": "Действия",
   "event_log": "Регистър на събития",
   "event_severity": "Тежест",
   "event_type": "Тип",

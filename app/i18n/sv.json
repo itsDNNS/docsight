@@ -332,6 +332,7 @@
   "timestamp": "Tidstämpel",
   "cancel": "Avbryt",
   "more_actions": "Fler åtgärder",
+  "actions": "Åtgärder",
   "event_log": "Händelselogg",
   "event_severity": "Allvarlighet",
   "event_type": "Typ",

@@ -332,6 +332,7 @@
   "timestamp": "Timestamp",
   "cancel": "Cancel",
   "more_actions": "More actions",
+  "actions": "Actions",
   "event_log": "Event Log",
   "event_severity": "Severity",
   "event_type": "Type",

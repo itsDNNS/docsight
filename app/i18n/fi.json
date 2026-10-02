@@ -332,6 +332,7 @@
   "timestamp": "Aikaleima",
   "cancel": "Peruuta",
   "more_actions": "Lisää toimintoja",
+  "actions": "Toiminnot",
   "event_log": "Tapahtumaloki",
   "event_severity": "Vakavuus",
   "event_type": "Tyyppi",

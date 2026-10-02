@@ -19,9 +19,19 @@ function _bnetzActionButton(className, title, iconName, handler) {
     button.type = 'button';
     button.className = className;
     button.title = title;
+    button.setAttribute('aria-label', title);
     button.appendChild(_bnetzIcon(iconName));
     button.addEventListener('click', handler);
     return button;
+}
+
+/* Keeps the action icons in the same column position on every row. */
+function _bnetzActionPlaceholder() {
+    var slot = document.createElement('span');
+    slot.className = 'bnetz-action-btn bnetz-action-placeholder';
+    slot.setAttribute('aria-hidden', 'true');
+    slot.appendChild(_bnetzIcon('file-pen'));
+    return slot;
 }
 
 function _bnetzMeasurementSection(label, measurements, minimum, normal) {
@@ -164,14 +174,19 @@ function loadBnetzData() {
                     'file-pen',
                     function() { generateBnetzComplaint(m.id); }
                 ));
+            } else {
+                actionsCell.appendChild(_bnetzActionPlaceholder());
             }
             if (m.source !== 'csv_import') {
                 var pdfLink = document.createElement('a');
                 pdfLink.href = docsightUrl('/api/bnetz/pdf/' + encodeURIComponent(String(m.id)));
                 pdfLink.className = 'bnetz-action-btn';
                 pdfLink.title = 'PDF';
+                pdfLink.setAttribute('aria-label', 'PDF');
                 pdfLink.appendChild(_bnetzIcon('file-down'));
                 actionsCell.appendChild(pdfLink);
+            } else {
+                actionsCell.appendChild(_bnetzActionPlaceholder());
             }
             actionsCell.appendChild(_bnetzActionButton(
                 'bnetz-action-btn bnetz-action-delete',
