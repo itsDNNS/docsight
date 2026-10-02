@@ -1,6 +1,7 @@
 """Tests for index/dashboard rendering paths."""
 
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from pathlib import Path
@@ -289,6 +290,21 @@ class TestIndexRoute:
         current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
+
+    def test_dashboard_bootstrap_carries_the_configured_time_zone(self, client, config_mgr, sample_analysis):
+        config_mgr.save({"timezone": "America/Chicago"})
+        current_runtime().update_state(analysis=sample_analysis)
+
+        resp = client.get("/")
+
+        assert resp.status_code == 200
+        match = re.search(
+            r'<script type="application/json" id="docsight-dashboard-bootstrap">(.*?)</script>',
+            resp.get_data(as_text=True),
+            re.S,
+        )
+        assert match
+        assert json.loads(match.group(1))["timeZone"] == "America/Chicago"
 
     def test_dashboard_exposes_docsis_basics_help_in_english_and_german(self, client, sample_analysis):
         current_runtime().update_state(analysis=sample_analysis)

@@ -1829,7 +1829,7 @@
     </div>
     <p class="gaming-no-speedtest-hint">{{ t.glossary_gaming_index }}</p>
     {% if gaming_index %}
-    <p class="gaming-no-speedtest-hint">{{ t.timestamp }}: {{ speedtest_latest.timestamp }}</p>
+    <p class="gaming-no-speedtest-hint">{{ t.timestamp }}: <time datetime="{{ speedtest_latest.timestamp }}" data-docsight-time="datetime">{{ speedtest_latest.timestamp|localtime }}</time></p>
     {% set g = gaming_index.grade|lower %}
     <div class="gaming-grade-big gaming-{{ g }}">
         <span class="gaming-grade-letter">{{ gaming_index.grade }}</span>
@@ -2156,7 +2156,8 @@
     'translations': t,
     'language': lang,
     'temperatureUnit': temperature_unit,
-    'connectionMonitorAvailable': connection_monitor_installed|length > 0
+    'connectionMonitorAvailable': connection_monitor_installed|length > 0,
+    'timeZone': time_zone or none
 }|tojson }}</script>
 <script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js', v=version) }}"></script>

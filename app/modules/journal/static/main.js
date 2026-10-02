@@ -1458,7 +1458,7 @@ function _renderTimelineTable(data) {
         var e = sorted[i];
         if (e.source === 'modem' && !modemTransitions[e.timestamp]) continue;
 
-        var ts = escapeHtml(e.timestamp.replace('T', ' '));
+        var ts = escapeHtml(formatDocsightTime(e.timestamp, 'datetime', true));
         var srcBadge = '';
         var details = '';
 

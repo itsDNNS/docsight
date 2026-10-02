@@ -136,7 +136,7 @@ function loadBnetzData() {
                 dateCell.appendChild(expandButton);
                 dateCell.appendChild(document.createTextNode(' '));
             }
-            dateCell.appendChild(document.createTextNode(m.date || ''));
+            dateCell.appendChild(document.createTextNode(m.date ? formatDocsightTime(m.date, 'date') : ''));
             tr.appendChild(dateCell);
             tr.appendChild(_bnetzCell(T.bnetz_provider || 'Provider', m.provider || '-'));
             tr.appendChild(_bnetzCell(T.bnetz_download_target || 'Download target', m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-'));

@@ -6,6 +6,23 @@ var T = dashboardBootstrap.translations;
 var currentLang = dashboardBootstrap.language;
 var TEMPERATURE_UNIT = dashboardBootstrap.temperatureUnit;
 var CORRELATION_CM_AVAILABLE = dashboardBootstrap.connectionMonitorAvailable;
+var DOCSIGHT_TIME_ZONE = dashboardBootstrap.timeZone;
+
+/* Shared timestamp display in the UI language and configured time zone.
+   style: 'datetime' (default), 'date' or 'time'. */
+function formatDocsightTime(value, style, seconds) {
+    return DOCSightBrowserContracts.formatTimestamp(value, {
+        locale: currentLang || document.documentElement.lang || undefined,
+        timeZone: DOCSIGHT_TIME_ZONE,
+        style: style || 'datetime',
+        seconds: !!seconds
+    });
+}
+
+document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
+    var formatted = formatDocsightTime(el.getAttribute('datetime'), el.getAttribute('data-docsight-time'));
+    if (formatted) el.textContent = formatted;
+});
 
 (function() {
     var LAST_KNOWN_STORAGE_KEY = 'docsight:last-known-dashboard-shell';

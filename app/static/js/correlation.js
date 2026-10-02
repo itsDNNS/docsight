@@ -92,10 +92,7 @@ function _corrMeasurement(value) {
 }
 
 function _corrFormatTimestamp(timestamp) {
-    var date = new Date(timestamp);
-    if (isNaN(date.getTime())) return String(timestamp || '');
-    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0') +
-        ' ' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0') + ':' + String(date.getSeconds()).padStart(2, '0');
+    return formatDocsightTime(timestamp, 'datetime', true);
 }
 
 function _corrTarget(entry) {
@@ -1298,10 +1295,7 @@ function _setupCorrelationTooltip(overlay, octx) {
                 displayTs = spTs;
             }
         }
-        var dDate = new Date(displayTs);
-        var timeStr = String(dDate.getHours()).padStart(2, '0') + ':' + String(dDate.getMinutes()).padStart(2, '0') + ':' + String(dDate.getSeconds()).padStart(2, '0');
-        var dateStr = dDate.getFullYear() + '-' + String(dDate.getMonth() + 1).padStart(2, '0') + '-' + String(dDate.getDate()).padStart(2, '0');
-        html += '<div class="tt-time">' + dateStr + ' ' + timeStr + '</div>';
+        html += '<div class="tt-time">' + escapeHtml(_corrFormatTimestamp(displayTs)) + '</div>';
 
         if (nearestModem && _corrVisible.snr) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.snr + ';"></span> ' + (T.correlation_tt_snr || 'SNR') + ': ' + (nearestModem.ds_snr_min || 0).toFixed(1) + ' dB</div>';
@@ -1752,7 +1746,7 @@ function renderCorrelationTable(data) {
         tr.setAttribute('data-src', e.source);
         tr.setAttribute('tabindex', '0');
         tr.setAttribute('role', 'row');
-        var ts = escapeHtml(e.timestamp.replace('T', ' '));
+        var ts = escapeHtml(_corrFormatTimestamp(e.timestamp));
         var src = e.source;
         var msg = '';
         var details = '';

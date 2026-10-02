@@ -40,9 +40,12 @@ function todayStr() {
     return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
 }
 function pad(n) { return n < 10 ? '0' + n : '' + n; }
+/* Formats a YYYY-MM-DD calendar date in the UI language. The name is kept
+   for existing callers, including community modules. */
 function formatDateDE(str) {
-    var p = str.split('-');
-    return p[2] + '.' + p[1] + '.' + p[0];
+    if (typeof formatDocsightTime === 'function') return formatDocsightTime(str, 'date');
+    var p = String(str || '').split('-');
+    return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : String(str || '');
 }
 
 function docsightRangeHours(range) {

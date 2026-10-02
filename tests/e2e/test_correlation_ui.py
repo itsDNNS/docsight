@@ -1142,7 +1142,9 @@ def test_correlation_speedtest_help_accessibility_and_tooltip_details(demo_page)
     tooltip = _hover_correlation_timestamp(page, speed_timestamp)
     tooltip_text = tooltip.inner_text()
     assert "Timestamp" in tooltip_text
-    assert speed_timestamp[:10] in tooltip_text
+    expected_time = page.evaluate("ts => formatDocsightTime(ts, 'datetime', true)", speed_timestamp)
+    assert expected_time in tooltip_text
+    assert speed_timestamp not in tooltip_text
     assert "Download: 222.2 Mbps" in tooltip_text
     assert "Upload: 44.4 Mbps" in tooltip_text
     assert "Ping: 12.3 ms" in tooltip_text
@@ -1162,7 +1164,7 @@ def test_correlation_tooltip_respects_each_speed_legend_toggle_at_exact_timestam
     assert "Download:" not in tooltip_text
     assert "Upload: 44.4 Mbps" in tooltip_text
     assert "Ping: 12.3 ms" in tooltip_text
-    assert speed_timestamp[:10] in tooltip_text
+    assert page.evaluate("ts => formatDocsightTime(ts, 'datetime', true)", speed_timestamp) in tooltip_text
 
     page.locator('#correlation-legend span[data-metric="download"]').click()
     page.locator('#correlation-legend span[data-metric="upload"]').click()
@@ -1170,7 +1172,7 @@ def test_correlation_tooltip_respects_each_speed_legend_toggle_at_exact_timestam
     assert "Download: 222.2 Mbps" in tooltip_text
     assert "Upload:" not in tooltip_text
     assert "Packet Loss: 0.4%" in tooltip_text
-    assert speed_timestamp[:10] in tooltip_text
+    assert page.evaluate("ts => formatDocsightTime(ts, 'datetime', true)", speed_timestamp) in tooltip_text
 
 
 def test_correlation_zoom_without_visible_speedtests_has_no_speed_tooltip_or_highlight(demo_page):

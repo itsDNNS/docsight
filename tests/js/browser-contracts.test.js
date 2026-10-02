@@ -12,14 +12,27 @@ test('dashboard bootstrap accepts the strict expected shape and null language', 
         translations,
         language: null,
         temperatureUnit: 'celsius',
-        connectionMonitorAvailable: false
+        connectionMonitorAvailable: false,
+        timeZone: 'Europe/Berlin'
     }));
     assert.deepEqual(parsed, {
         translations,
         language: null,
         temperatureUnit: 'celsius',
-        connectionMonitorAvailable: false
+        connectionMonitorAvailable: false,
+        timeZone: 'Europe/Berlin'
     });
+});
+
+test('dashboard bootstrap falls back to the browser zone for a zone the browser does not know', () => {
+    const parsed = contracts.parseDashboardBootstrapText(JSON.stringify({
+        translations,
+        language: 'en',
+        temperatureUnit: 'celsius',
+        connectionMonitorAvailable: false,
+        timeZone: 'Not/AZone'
+    }));
+    assert.equal(parsed.timeZone, null);
 });
 
 test('bootstrap parsing fails closed for absent, malformed, wrong, and unexpected data', () => {
@@ -30,21 +43,57 @@ test('bootstrap parsing fails closed for absent, malformed, wrong, and unexpecte
         translations: {},
         language: 'en',
         temperatureUnit: 'kelvin',
-        connectionMonitorAvailable: true
+        connectionMonitorAvailable: true,
+        timeZone: null
     })), /bootstrap/i);
     assert.throws(() => contracts.parseDashboardBootstrapText(JSON.stringify({
         translations: {constructor: 'unsafe'},
         language: 'en',
         temperatureUnit: 'celsius',
-        connectionMonitorAvailable: true
+        connectionMonitorAvailable: true,
+        timeZone: null
     })), /bootstrap/i);
     assert.throws(() => contracts.parseDashboardBootstrapText(JSON.stringify({
         translations: {},
         language: 'en',
         temperatureUnit: 'celsius',
         connectionMonitorAvailable: true,
+        timeZone: 3600
+    })), /bootstrap/i);
+    assert.throws(() => contracts.parseDashboardBootstrapText(JSON.stringify({
+        translations: {},
+        language: 'en',
+        temperatureUnit: 'celsius',
+        connectionMonitorAvailable: true,
+        timeZone: null,
         token: 'unexpected'
     })), /bootstrap/i);
+});
+
+test('timestamps render absolute instants in the configured zone and keep local wall-clock values', () => {
+    const fmt = (value, options) => contracts.formatTimestamp(value, {timeZone: 'Europe/Berlin', ...options});
+
+    assert.equal(fmt('2026-10-02T06:52:37Z', {locale: 'en-GB', seconds: true}), '02/10/2026, 08:52:37');
+    assert.equal(fmt('2026-10-02T06:52:37+00:00', {locale: 'de', seconds: true}), '02.10.2026, 08:52:37');
+    assert.equal(fmt('2026-10-02T08:52:37', {locale: 'de', seconds: true}), '02.10.2026, 08:52:37');
+    assert.equal(fmt('2026-10-02 08:52', {locale: 'de'}), '02.10.2026, 08:52');
+    assert.equal(fmt('2026-10-01', {locale: 'de'}), '01.10.2026');
+    assert.equal(fmt('2026-10-01', {locale: 'en-US'}), '10/01/2026');
+    assert.equal(fmt(1790916757, {locale: 'de', style: 'time'}), '06:52');
+    assert.equal(fmt(1790916757000, {locale: 'de', style: 'time'}), '06:52');
+    assert.equal(fmt(new Date('2026-01-15T12:00:00Z'), {locale: 'de'}), '15.01.2026, 13:00');
+});
+
+test('timestamp formatting handles summer time, empty, invalid, and unknown zones', () => {
+    assert.equal(contracts.formatTimestamp('2026-03-29T00:30:00Z', {locale: 'de', timeZone: 'Europe/Berlin'}), '29.03.2026, 01:30');
+    assert.equal(contracts.formatTimestamp('2026-03-29T01:30:00Z', {locale: 'de', timeZone: 'Europe/Berlin'}), '29.03.2026, 03:30');
+    assert.equal(contracts.formatTimestamp('', {}), '');
+    assert.equal(contracts.formatTimestamp(null, {}), '');
+    assert.equal(contracts.formatTimestamp('not a date', {}), 'not a date');
+    assert.equal(
+        contracts.formatTimestamp('2026-10-02T06:52:37Z', {locale: 'de', timeZone: 'Not/AZone'}),
+        contracts.formatTimestamp('2026-10-02T06:52:37Z', {locale: 'de'})
+    );
 });
 
 test('settings bootstrap validates modules, cooldown fallback, secrets, and time data', () => {

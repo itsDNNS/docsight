@@ -17,7 +17,7 @@ function browser() {
         };
     }
     const context = {
-        T: {}, URLSearchParams, setInterval() {}, escapeHtml: String, docsightUrl: url => url,
+        T: {}, URLSearchParams, setInterval() {}, escapeHtml: String, formatDocsightTime: String, docsightUrl: url => url,
         document: {
             getElementById(id) {
                 if (!ids.has(id)) ids.set(id, element());

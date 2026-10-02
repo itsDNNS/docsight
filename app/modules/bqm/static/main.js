@@ -355,9 +355,8 @@ function showBqmLiveBadge(source, timestamp) {
         badge.style.display = 'inline';
     }
     if (updated && timestamp) {
-        var d = new Date(timestamp);
         var label = isLive ? (T.bqm_last_updated || 'Last updated') : (T.bqm_cached_png_loaded || 'Cached PNG loaded');
-        updated.textContent = label + ': ' + d.toLocaleTimeString();
+        updated.textContent = label + ': ' + formatDocsightTime(timestamp, 'time', true);
         updated.style.display = 'inline';
     }
 }
