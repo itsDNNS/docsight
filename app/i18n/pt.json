@@ -947,7 +947,7 @@
   "ext_features": "Recursos",
   "ext_modules": "Módulos",
   "use_system_font": "Usar fonte do sistema",
-  "use_system_font_hint": "Substitua Outfit pela fonte padrão do seu sistema operacional. Pode melhorar a legibilidade em conexões de área de trabalho remota (RDP).",
+  "use_system_font_hint": "Substitui a fonte do tema pela fonte padrão do seu sistema operacional. Pode melhorar a legibilidade em conexões de área de trabalho remota (RDP).",
   "isp_name_tooltip": "Provedor de serviços de Internet",
   "device_model_tooltip": "Modelo do dispositivo",
   "hw_version_tooltip": "Hardware version/revision",

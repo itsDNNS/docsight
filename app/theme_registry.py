@@ -381,6 +381,85 @@ BUILTIN_THEMES: tuple[dict[str, Any], ...] = ({'id': 'docsight.theme_amber_termi
                            '--sapphire': '#1a4a1a',
                            '--glass-bg': 'rgba(155, 188, 15, 0.85)',
                            '--glass-border': 'rgba(15, 56, 15, 0.1)'}}},
+ {'id': 'docsight.theme_graphite',
+  'name': 'Graphite',
+  'description': 'Calm graphite surfaces with a steel blue accent (default)',
+  'version': '1.0.0',
+  'author': 'itsDNNS',
+  'minAppVersion': '2026.10',
+  'theme_data': {'meta': {'family': 'dark-first'},
+                 'dark': {'--bg': '#101316',
+                          '--void': '#101316',
+                          '--void-deep': '#0c0e11',
+                          '--surface': '#1c1e22',
+                          '--card': '#1c1e22',
+                          '--elevated': '#26292d',
+                          '--hover': '#303338',
+                          '--card-border': 'rgba(255, 255, 255, 0.08)',
+                          '--input-border': 'rgba(255, 255, 255, 0.14)',
+                          '--hover-bg': 'rgba(255, 255, 255, 0.05)',
+                          '--overlay': 'rgba(0, 0, 0, 0.6)',
+                          '--glass-bg': 'rgba(28, 30, 34, 0.92)',
+                          '--glass-border': 'rgba(255, 255, 255, 0.08)',
+                          '--text': '#ebecee',
+                          '--text-secondary': '#cdcfd2',
+                          '--muted': '#aaadb0',
+                          '--accent': '#8cb4e8',
+                          '--accent-hover': '#a7c5ee',
+                          '--accent-muted': 'rgba(140, 180, 232, 0.15)',
+                          '--text-on-accent': '#0f1215',
+                          '--amethyst': '#8cb4e8',
+                          '--amethyst-light': '#a7c5ee',
+                          '--amethyst-muted': 'rgba(140, 180, 232, 0.15)',
+                          '--sapphire': '#8fb3dc',
+                          '--grad-primary': 'linear-gradient(135deg, #8cb4e8 0%, #8cb4e8 100%)',
+                          '--good': '#8ec495',
+                          '--good-muted': 'rgba(142, 196, 149, 0.15)',
+                          '--tolerated': '#c6b37b',
+                          '--tolerated-muted': 'rgba(198, 179, 123, 0.15)',
+                          '--warn': '#e2a579',
+                          '--warn-muted': 'rgba(226, 165, 121, 0.15)',
+                          '--crit': '#f8958d',
+                          '--crit-muted': 'rgba(248, 149, 141, 0.15)',
+                          '--info': '#8fb3dc',
+                          '--info-muted': 'rgba(143, 179, 220, 0.15)',
+                          '--font-sans': "'DM Sans', system-ui, -apple-system, sans-serif"},
+                 'light': {'--bg': '#f1f4f7',
+                           '--void': '#f1f4f7',
+                           '--void-deep': '#e7eaee',
+                           '--surface': '#fbfcfd',
+                           '--card': '#fbfcfd',
+                           '--elevated': '#e7eaee',
+                           '--hover': '#dde1e6',
+                           '--card-border': 'rgba(31, 34, 37, 0.10)',
+                           '--input-border': '#c7cbd0',
+                           '--hover-bg': 'rgba(0, 0, 0, 0.03)',
+                           '--overlay': 'rgba(0, 0, 0, 0.4)',
+                           '--glass-bg': 'rgba(251, 252, 253, 0.92)',
+                           '--glass-border': 'rgba(31, 34, 37, 0.10)',
+                           '--text': '#1f2225',
+                           '--text-secondary': '#3d4044',
+                           '--muted': '#595c61',
+                           '--accent': '#34629b',
+                           '--accent-hover': '#2b5283',
+                           '--accent-muted': 'rgba(52, 98, 155, 0.10)',
+                           '--text-on-accent': '#fbfcfc',
+                           '--amethyst': '#34629b',
+                           '--amethyst-light': '#4a78b0',
+                           '--amethyst-muted': 'rgba(52, 98, 155, 0.10)',
+                           '--sapphire': '#456990',
+                           '--grad-primary': 'linear-gradient(135deg, #34629b 0%, #34629b 100%)',
+                           '--good': '#32703e',
+                           '--good-muted': 'rgba(50, 112, 62, 0.10)',
+                           '--tolerated': '#735e17',
+                           '--tolerated-muted': 'rgba(115, 94, 23, 0.10)',
+                           '--warn': '#8e4e12',
+                           '--warn-muted': 'rgba(142, 78, 18, 0.10)',
+                           '--crit': '#a13735',
+                           '--crit-muted': 'rgba(161, 55, 53, 0.10)',
+                           '--info': '#456990',
+                           '--info-muted': 'rgba(69, 105, 144, 0.10)',
+                           '--font-sans': "'DM Sans', system-ui, -apple-system, sans-serif"}}},
  {'id': 'docsight.theme_gruvbox',
   'name': 'Gruvbox',
   'description': "Warm retro earth tones inspired by Gruvbox's wood-and-amber palette",
@@ -885,8 +964,11 @@ def download_theme(download_url: str, target_dir: str, timeout: int = 30) -> boo
     return True
 
 
+DEFAULT_THEME_ID = "docsight.theme_graphite"
+
+
 def resolve_active_theme(active_id, theme_modules):
-    """Return active theme data and ID, falling back to Classic then first usable."""
+    """Return active theme data and ID, falling back to Graphite then first usable."""
     fallback = None
     for mod in theme_modules:
         if not mod.error and mod.theme_data:
@@ -894,6 +976,6 @@ def resolve_active_theme(active_id, theme_modules):
             # startup state, while the configured selection can change live.
             if mod.id == active_id:
                 return mod.theme_data, mod.id
-            if mod.enabled and (fallback is None or mod.id == "docsight.theme_classic"):
+            if mod.enabled and (fallback is None or mod.id == DEFAULT_THEME_ID):
                 fallback = mod
     return (fallback.theme_data, fallback.id) if fallback else (None, "")

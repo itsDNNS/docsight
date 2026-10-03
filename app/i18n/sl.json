@@ -947,7 +947,7 @@
   "ext_features": "Lastnosti",
   "ext_modules": "Moduli",
   "use_system_font": "Uporabi sistemsko pisavo",
-  "use_system_font_hint": "Zamenjajte Outfit s privzeto pisavo operacijskega sistema. Lahko izboljša berljivost pri povezavah z oddaljenim namizjem (RDP).",
+  "use_system_font_hint": "Zamenja pisavo teme s privzeto pisavo operacijskega sistema. Lahko izboljša berljivost pri povezavah z oddaljenim namizjem (RDP).",
   "isp_name_tooltip": "Ponudnik internetnih storitev",
   "device_model_tooltip": "Model naprave",
   "hw_version_tooltip": "Strojna oprema version/revision",

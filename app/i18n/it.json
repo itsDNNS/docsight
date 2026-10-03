@@ -947,7 +947,7 @@
   "ext_features": "Caratteristiche",
   "ext_modules": "Moduli",
   "use_system_font": "Usa carattere di sistema",
-  "use_system_font_hint": "Sostituisci Outfit con il carattere predefinito del tuo sistema operativo. Può migliorare la leggibilità sulle connessioni desktop remoto (RDP).",
+  "use_system_font_hint": "Sostituisce il carattere del tema con il carattere predefinito del tuo sistema operativo. Può migliorare la leggibilità sulle connessioni desktop remoto (RDP).",
   "isp_name_tooltip": "Fornitore di servizi Internet",
   "device_model_tooltip": "Modello del dispositivo",
   "hw_version_tooltip": "Hardware version/revision",

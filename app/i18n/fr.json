@@ -939,7 +939,7 @@
   "ext_features": "Fonctionnalités",
   "ext_modules": "Modules",
   "use_system_font": "Utiliser la police système",
-  "use_system_font_hint": "Remplace Outfit par la police par défaut de votre système. Peut améliorer la lisibilité en connexion bureau à distance (RDP).",
+  "use_system_font_hint": "Remplace la police du thème par la police par défaut de votre système. Peut améliorer la lisibilité en connexion bureau à distance (RDP).",
   "isp_name_tooltip": "fournisseur d'accès à internet",
   "device_model_tooltip": "modèle de l'appareil",
   "hw_version_tooltip": "version/révision du matériel",

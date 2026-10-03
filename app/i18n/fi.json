@@ -947,7 +947,7 @@
   "ext_features": "Ominaisuudet",
   "ext_modules": "Moduulit",
   "use_system_font": "Käytä järjestelmäfonttia",
-  "use_system_font_hint": "Korvaa Outfit käyttöjärjestelmäsi oletusfontilla. Voi parantaa luettavuutta etätyöpöytäyhteyksissä (RDP).",
+  "use_system_font_hint": "Korvaa teeman fontin käyttöjärjestelmäsi oletusfontilla. Voi parantaa luettavuutta etätyöpöytäyhteyksissä (RDP).",
   "isp_name_tooltip": "Internet-palveluntarjoaja",
   "device_model_tooltip": "Laitemalli",
   "hw_version_tooltip": "Laitteisto version/revision",

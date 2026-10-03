@@ -947,7 +947,7 @@
   "ext_features": "Funktioner",
   "ext_modules": "Moduler",
   "use_system_font": "Brug systemskrifttype",
-  "use_system_font_hint": "Erstat Outfit med dit operativsystems standardskrifttype. Kan forbedre læsbarheden på fjernskrivebordsforbindelser (RDP).",
+  "use_system_font_hint": "Erstatter temaets skrifttype med dit operativsystems standardskrifttype. Kan forbedre læsbarheden på fjernskrivebordsforbindelser (RDP).",
   "isp_name_tooltip": "Internetudbyder",
   "device_model_tooltip": "Enhedsmodel",
   "hw_version_tooltip": "Hardware version/revision",

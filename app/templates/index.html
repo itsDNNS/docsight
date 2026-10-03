@@ -34,14 +34,10 @@
     {% if active_theme_data %}
     <style id="theme-module-vars">
     :root, [data-theme="dark"] {
-        {% for key, value in active_theme_data.get('dark', {}).items() %}
-        {{ key }}: {{ value }};
-        {% endfor %}
+        {{ active_theme_data.get('dark', {})|theme_css }}
     }
     [data-theme="light"] {
-        {% for key, value in active_theme_data.get('light', {}).items() %}
-        {{ key }}: {{ value }};
-        {% endfor %}
+        {{ active_theme_data.get('light', {})|theme_css }}
     }
     </style>
     {% endif %}

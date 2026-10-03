@@ -68,3 +68,20 @@ def test_ui_fonts_are_self_hosted_with_licenses():
         assert f"'{family}'" in css
         assert f"font-family: '{family}';" in fonts_css
         assert "SIL Open Font License" in (fonts_dir / license_file).read_text(encoding="utf-8")
+
+
+def test_graphite_theme_matches_ui_tokens():
+    """The default theme maps legacy tokens to the same Graphite values as the UI layer."""
+    from app.theme_registry import BUILTIN_THEMES, DEFAULT_THEME_ID
+
+    graphite = next(theme for theme in BUILTIN_THEMES if theme["id"] == DEFAULT_THEME_ID)
+    pairs = {
+        "--bg": "--ui-bg", "--card": "--ui-surface", "--elevated": "--ui-surface-alt",
+        "--text": "--ui-ink", "--text-secondary": "--ui-text", "--muted": "--ui-muted",
+        "--accent": "--ui-accent", "--text-on-accent": "--ui-on-accent",
+        "--good": "--ui-good", "--tolerated": "--ui-tolerated", "--warn": "--ui-marginal", "--crit": "--ui-critical",
+    }
+    for mode, ui in _modes().items():
+        legacy = graphite["theme_data"][mode]
+        for legacy_token, ui_token in pairs.items():
+            assert legacy[legacy_token].lower() == ui[ui_token].lower(), f"{mode}: {legacy_token} != {ui_token}"

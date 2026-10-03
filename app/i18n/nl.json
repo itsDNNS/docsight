@@ -947,7 +947,7 @@
   "ext_features": "Kenmerken",
   "ext_modules": "Modules",
   "use_system_font": "Gebruik systeemlettertype",
-  "use_system_font_hint": "Vervang Outfit door het standaardlettertype van uw besturingssysteem. Kan de leesbaarheid op externe desktopverbindingen (RDP) verbeteren.",
+  "use_system_font_hint": "Vervangt het lettertype van het thema door het standaardlettertype van uw besturingssysteem. Kan de leesbaarheid op externe desktopverbindingen (RDP) verbeteren.",
   "isp_name_tooltip": "Internetprovider",
   "device_model_tooltip": "Apparaatmodel",
   "hw_version_tooltip": "Hardware version/revision",

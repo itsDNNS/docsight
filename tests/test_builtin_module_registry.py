@@ -37,9 +37,10 @@ def test_builtin_registry_matches_tracked_manifest_dirs():
 
 def test_builtin_theme_registry_replaces_wrapper_module_dirs():
     """Shipped themes live in the theme registry, not per-theme manifests."""
-    assert len(BUILTIN_THEMES) == 14
+    assert len(BUILTIN_THEMES) == 15
     assert {theme["id"] for theme in BUILTIN_THEMES} >= {
         "docsight.theme_classic",
+        "docsight.theme_graphite",
         "docsight.theme_tribu",
         "docsight.theme_tokyo_night",
     }

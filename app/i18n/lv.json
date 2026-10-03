@@ -947,7 +947,7 @@
   "ext_features": "Funkcijas",
   "ext_modules": "Moduļi",
   "use_system_font": "Izmantojiet sistēmas fontu",
-  "use_system_font_hint": "Aizstāt Outfit ar savas operētājsistēmas noklusējuma fontu. Var uzlabot attālās darbvirsmas (RDP) savienojumu lasāmību.",
+  "use_system_font_hint": "Aizstāj motīva fontu ar operētājsistēmas noklusējuma fontu. Var uzlabot attālās darbvirsmas (RDP) savienojumu lasāmību.",
   "isp_name_tooltip": "interneta pakalpojumu sniedzējs",
   "device_model_tooltip": "Ierīces modelis",
   "hw_version_tooltip": "Aparatūra version/revision",
