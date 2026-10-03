@@ -136,149 +136,126 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
         rows.forEach(function(row) { tbody.appendChild(row); });
     }
 
-    /* ── Sidebar ── */
-    var sidebar = document.getElementById('sidebar');
-    var sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    /* ── Top navigation ──
+       One DOM for both layouts: a top bar with dropdown panels on desktop and
+       a bottom bar with sheets on mobile. Groups follow the disclosure pattern
+       (toggle button with aria-expanded controlling a panel). */
+    var topnav = document.getElementById('topnav');
+    var navBackdrop = document.getElementById('topnav-backdrop');
+    var openNavGroup = null;
 
     function isMobile() { return window.matchMedia('(max-width: 1023px)').matches; }
 
-    var sidebarLastOpener = null;
-    var sidebarFocusableSelector = 'a[href], button, input, select, textarea, [role="button"], [tabindex]';
-
-    function getSidebarFocusables() {
-        return Array.from(sidebar.querySelectorAll(sidebarFocusableSelector));
-    }
-
-    function setSidebarFocusSuppressed(suppressed) {
-        getSidebarFocusables().forEach(function(el) {
-            if (suppressed) {
-                if (!el.hasAttribute('data-sidebar-prev-tabindex')) {
-                    el.setAttribute('data-sidebar-prev-tabindex', el.getAttribute('tabindex') || '');
-                }
-                el.setAttribute('tabindex', '-1');
-            } else if (el.hasAttribute('data-sidebar-prev-tabindex')) {
-                var previous = el.getAttribute('data-sidebar-prev-tabindex');
-                if (previous) {
-                    el.setAttribute('tabindex', previous);
-                } else {
-                    el.removeAttribute('tabindex');
-                }
-                el.removeAttribute('data-sidebar-prev-tabindex');
-            }
-        });
-        if ('inert' in sidebar) {
-            sidebar.inert = suppressed;
-        }
-    }
-
-    function syncSidebarAccessibility() {
-        var closedOnMobile = isMobile() && !sidebar.classList.contains('open');
-        sidebar.setAttribute('aria-hidden', closedOnMobile ? 'true' : 'false');
-        setSidebarFocusSuppressed(closedOnMobile);
-        var hamburger = document.getElementById('hamburger');
-        if (hamburger) {
-            hamburger.setAttribute('aria-expanded', sidebar.classList.contains('open') ? 'true' : 'false');
-        }
-    }
-
-    function focusFirstSidebarItem() {
-        var first = getSidebarFocusables().find(function(el) {
-            return el.classList && el.classList.contains('nav-item') && !el.disabled && el.offsetParent !== null;
-        }) || getSidebarFocusables().find(function(el) {
+    function navGroups() { return Array.from(topnav.querySelectorAll('.topnav-group')); }
+    function groupToggle(group) { return group.querySelector('.topnav-toggle'); }
+    function groupPanel(group) { return group.querySelector('.topnav-panel'); }
+    function panelItems(group) {
+        return Array.from(groupPanel(group).querySelectorAll('.nav-item, a[href], input')).filter(function(el) {
             return !el.disabled && el.offsetParent !== null;
         });
-        if (first) first.focus({ preventScroll: true });
     }
 
-    function getSidebarLinks() {
-        return Array.from(sidebar.querySelectorAll('.nav-section .nav-item[data-view]'));
+    function closeNavGroup(options) {
+        options = options || {};
+        if (!openNavGroup) return;
+        var group = openNavGroup;
+        openNavGroup = null;
+        group.classList.remove('open');
+        groupToggle(group).setAttribute('aria-expanded', 'false');
+        groupPanel(group).hidden = true;
+        if (navBackdrop) navBackdrop.hidden = true;
+        document.body.classList.remove('nav-sheet-open');
+        if (options.restoreFocus) groupToggle(group).focus({ preventScroll: true });
+    }
+
+    function openGroup(group, focusFirst) {
+        if (openNavGroup !== group) {
+            closeNavGroup();
+            openNavGroup = group;
+            group.classList.add('open');
+            groupToggle(group).setAttribute('aria-expanded', 'true');
+            groupPanel(group).hidden = false;
+            if (isMobile()) {
+                if (navBackdrop) navBackdrop.hidden = false;
+                document.body.classList.add('nav-sheet-open');
+            }
+        }
+        if (focusFirst) {
+            var items = panelItems(group);
+            if (items.length) items[0].focus({ preventScroll: true });
+        }
+    }
+
+    topnav.addEventListener('click', function(event) {
+        var toggle = event.target.closest('.topnav-toggle');
+        if (toggle && topnav.contains(toggle)) {
+            var group = toggle.closest('.topnav-group');
+            if (openNavGroup === group) closeNavGroup(); else openGroup(group, false);
+            return;
+        }
+        var link = event.target.closest('.nav-item[data-view]');
+        if (link && topnav.contains(link)) {
+            closeNavGroup();
+            switchView(link.getAttribute('data-view'));
+            return;
+        }
+        /* Panel actions (setup dialogs, report, export) also close the panel */
+        if (event.target.closest('.topnav-panel .nav-item')) closeNavGroup();
+    });
+
+    topnav.addEventListener('keydown', function(event) {
+        var toggle = event.target.closest('.topnav-toggle');
+        if (toggle && event.key === 'ArrowDown') {
+            event.preventDefault();
+            openGroup(toggle.closest('.topnav-group'), true);
+            return;
+        }
+        if (!openNavGroup) return;
+        var items = panelItems(openNavGroup);
+        var index = items.indexOf(document.activeElement);
+        if (index < 0) return;
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            var next = event.key === 'ArrowDown' ? index + 1 : index - 1;
+            items[(next + items.length) % items.length].focus();
+        } else if (event.key === 'Home' || event.key === 'End') {
+            event.preventDefault();
+            items[event.key === 'Home' ? 0 : items.length - 1].focus();
+        }
+    });
+
+    topnav.addEventListener('focusout', function(event) {
+        if (openNavGroup && event.relatedTarget && !openNavGroup.contains(event.relatedTarget)) closeNavGroup();
+    });
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && openNavGroup) {
+            event.preventDefault();
+            closeNavGroup({ restoreFocus: true });
+        }
+    });
+    document.addEventListener('click', function(event) {
+        if (openNavGroup && !openNavGroup.contains(event.target)) closeNavGroup();
+    });
+    if (navBackdrop) navBackdrop.addEventListener('click', function() { closeNavGroup(); });
+    window.addEventListener('resize', function() { closeNavGroup(); });
+
+    function getNavLinks() {
+        return Array.from(topnav.querySelectorAll('.nav-item[data-view]'));
     }
 
     function syncNavActiveState(view) {
-        getSidebarLinks().forEach(function(link) {
-            link.classList.toggle('active', link.getAttribute('data-view') === view);
+        getNavLinks().forEach(function(link) {
+            var active = link.getAttribute('data-view') === view;
+            link.classList.toggle('active', active);
+            if (active) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        });
+        navGroups().forEach(function(group) {
+            groupToggle(group).classList.toggle('active', !!groupPanel(group).querySelector('.nav-item.active'));
         });
     }
 
-    window.toggleNavSection = function(labelEl) {
-        var section = labelEl.closest('.nav-section-collapsible');
-        if (section) {
-            section.classList.toggle('collapsed');
-            labelEl.setAttribute('aria-expanded', labelEl.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-    };
-
-    window.openSidebar = function() {
-        sidebarLastOpener = document.activeElement;
-        sidebar.classList.add('open');
-        sidebarBackdrop.style.display = 'block';
-        document.body.classList.add('sidebar-open');
-        syncSidebarAccessibility();
-        window.requestAnimationFrame(focusFirstSidebarItem);
-    };
-    window.closeSidebar = function(options) {
-        options = options || {};
-        sidebar.classList.remove('open');
-        sidebarBackdrop.style.display = 'none';
-        document.body.classList.remove('sidebar-open');
-        syncSidebarAccessibility();
-        if (options.restoreFocus !== false && sidebarLastOpener && typeof sidebarLastOpener.focus === 'function') {
-            window.requestAnimationFrame(function() { sidebarLastOpener.focus({ preventScroll: true }); });
-        }
-    };
-
-    syncSidebarAccessibility();
-    window.addEventListener('resize', syncSidebarAccessibility);
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape' && sidebar.classList.contains('open') && isMobile()) {
-            event.preventDefault();
-            closeSidebar();
-        }
-    });
-
-    /* Swipe-to-close sidebar (mobile) */
-    (function() {
-        var startX = 0, startY = 0, currentX = 0, swiping = false, locked = false;
-        sidebar.addEventListener('touchstart', function(e) {
-            if (!isMobile()) return;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            currentX = startX;
-            swiping = true;
-            locked = false;
-        }, { passive: true });
-        sidebar.addEventListener('touchmove', function(e) {
-            if (!swiping) return;
-            currentX = e.touches[0].clientX;
-            var dx = currentX - startX;
-            var dy = e.touches[0].clientY - startY;
-            /* Lock direction on first significant movement */
-            if (!locked && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
-                locked = true;
-                /* If vertical movement dominates, cancel swipe */
-                if (Math.abs(dy) > Math.abs(dx)) { swiping = false; return; }
-            }
-            if (locked && dx < -10) {
-                sidebar.style.transform = 'translateX(' + Math.max(dx, -280) + 'px)';
-            }
-        }, { passive: true });
-        sidebar.addEventListener('touchend', function() {
-            if (!swiping) { sidebar.style.transform = ''; return; }
-            swiping = false;
-            var dx = currentX - startX;
-            if (dx < -80) { closeSidebar(); }
-            sidebar.style.transform = '';
-        }, { passive: true });
-    })();
-
-    sidebar.addEventListener('click', function(event) {
-        var link = event.target.closest('.nav-item[data-view]');
-        if (!link || !sidebar.contains(link)) return;
-        if (isMobile()) { closeSidebar({ restoreFocus: false }); }
-        switchView(link.getAttribute('data-view'));
-    });
-    /* Nav items are now <button>, so Enter/Space fires click natively */
+    window.DOCSightNav = { close: closeNavGroup, sync: syncNavActiveState };
 
     /* ── Pill tab helpers ── */
     window.selectPill = function(btn, callback) {
@@ -297,7 +274,7 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
     document.addEventListener('DOMContentLoaded', function() { viewFocusEnabled = true; });
 
     function viewTitle(view, target) {
-        var link = sidebar.querySelector('.nav-item[data-view="' + view + '"]');
+        var link = topnav.querySelector('.nav-item[data-view="' + view + '"]');
         var title = link && link.getAttribute('data-nav-title');
         if (!title && target) {
             var heading = target.querySelector('.view-page-title');
@@ -604,17 +581,6 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
 
     /* ── Incident Journal, Incidents, Timeline, Import, Bulk, Search → Journal module ── */
 
-
-    // Sidebar resize handler (clean up state on viewport change)
-    window.addEventListener('resize', function() {
-        if (isMobile()) {
-            sidebar.classList.remove('collapsed');
-            closeSidebar();
-        } else {
-            sidebar.classList.remove('mobile-open');
-            sidebarBackdrop.classList.remove('active');
-        }
-    });
 
     document.addEventListener('DOMContentLoaded', function() {
         syncNavActiveState(currentView || 'live');

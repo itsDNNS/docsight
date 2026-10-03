@@ -18,154 +18,111 @@ def mobile_page(page, live_server):
 class TestMobileLayout:
     """Mobile viewport behavior."""
 
-    def test_hamburger_visible_on_mobile(self, mobile_page):
-        hamburger = mobile_page.locator("#hamburger")
-        assert hamburger.is_visible()
+    def test_bottom_navigation_visible_on_mobile(self, mobile_page):
+        nav = mobile_page.locator("#main-nav")
+        expect(nav).to_be_visible()
+        box = nav.bounding_box()
+        viewport = mobile_page.viewport_size
+        assert box is not None
+        assert abs(box["y"] + box["height"] - viewport["height"]) <= 1
+        assert box["x"] <= 0.5 and box["width"] >= viewport["width"] - 1
 
-    def test_sidebar_hidden_on_mobile(self, mobile_page):
-        sidebar = mobile_page.locator("nav.sidebar")
-        # Sidebar is positioned off-screen (x < 0) on mobile
-        box = sidebar.bounding_box()
-        assert box is None or box["x"] + box["width"] <= 0
+    def test_top_bar_keeps_brand_refresh_and_more(self, mobile_page):
+        expect(mobile_page.locator(".topnav-brand")).to_be_visible()
+        expect(mobile_page.locator("#refresh-btn")).to_be_visible()
+        expect(mobile_page.locator("#nav-toggle-more")).to_be_visible()
 
-    def test_mobile_header_visible(self, mobile_page):
-        header = mobile_page.locator(".mobile-header")
-        assert header.is_visible()
+    def test_destinations_are_touch_friendly(self, mobile_page):
+        boxes = mobile_page.locator("#main-nav .topnav-dest").evaluate_all(
+            "els => els.map((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; })"
+        )
+        assert len(boxes) >= 4
+        assert all(width >= 44 and height >= 44 for width, height in boxes)
 
-    def test_hamburger_opens_sidebar(self, mobile_page):
-        mobile_page.locator("#hamburger").click()
-        sidebar = mobile_page.locator("nav.sidebar")
-        expect(sidebar).to_have_class(re.compile(r"\bopen\b"))
-        # The drawer slides in with a transform transition; measure the settled position.
-        sidebar.evaluate("el => Promise.all(el.getAnimations().map((animation) => animation.finished))")
-        box = sidebar.bounding_box()
-        # Allow tiny subpixel drift from browser layout math around x=0.
-        assert box is not None and box["x"] >= -0.5
-
-    def test_closed_mobile_sidebar_removes_nav_from_tab_order(self, mobile_page):
-        """Closed off-canvas navigation must not expose hidden focus targets."""
-        focusable_in_closed_sidebar = mobile_page.evaluate(
+    def test_closed_sheets_are_not_in_the_tab_order(self, mobile_page):
+        """Closed panels are hidden, so none of their controls can take focus."""
+        focusable_in_closed_panels = mobile_page.evaluate(
             """
-            () => Array.from(document.querySelectorAll(
-                '#sidebar a[href], #sidebar button, #sidebar input, '
-                + '#sidebar [role="button"], #sidebar [tabindex]'
-            )).filter((el) => {
-                const tabindex = el.getAttribute('tabindex');
-                return !el.disabled && tabindex !== '-1';
-            }).map((el) => el.textContent.trim() || el.getAttribute('aria-label') || el.id)
+            () => Array.from(document.querySelectorAll('.topnav-panel'))
+                .filter((panel) => panel.hidden)
+                .flatMap((panel) => Array.from(panel.querySelectorAll('a[href], button, input')))
+                .filter((el) => el.offsetParent !== null)
+                .map((el) => el.textContent.trim() || el.id)
             """
         )
+        assert focusable_in_closed_panels == []
 
-        assert focusable_in_closed_sidebar == []
+    def test_sheet_opens_above_the_bottom_bar_and_closes_on_escape(self, mobile_page):
+        toggle = mobile_page.locator("#nav-toggle-signal")
+        panel = mobile_page.locator("#nav-panel-signal")
+        toggle.focus()
+        toggle.press("ArrowDown")
 
-    def test_mobile_sidebar_focus_moves_in_and_returns_on_escape(self, mobile_page):
-        """Opening mobile nav should expose links, focus them, and close accessibly."""
-        hamburger = mobile_page.locator("#hamburger")
-        hamburger.focus()
-        hamburger.click()
-        mobile_page.wait_for_timeout(300)
-
-        active_id = mobile_page.evaluate("document.activeElement && document.activeElement.id")
-        active_view = mobile_page.evaluate(
-            "document.activeElement && document.activeElement.getAttribute('data-view')"
-        )
-        assert active_id == "sidebar" or active_view == "live"
-        assert mobile_page.locator("#sidebar").get_attribute("aria-hidden") == "false"
+        expect(panel).to_be_visible()
+        expect(toggle).to_have_attribute("aria-expanded", "true")
+        assert mobile_page.evaluate("document.activeElement.getAttribute('data-view')") == "trends"
+        panel_box = panel.bounding_box()
+        nav_box = mobile_page.locator("#main-nav").bounding_box()
+        assert panel_box["y"] + panel_box["height"] <= nav_box["y"]
+        expect(mobile_page.locator("#topnav-backdrop")).to_be_visible()
 
         mobile_page.keyboard.press("Escape")
-        mobile_page.wait_for_timeout(300)
+        expect(panel).to_be_hidden()
+        expect(mobile_page.locator("#topnav-backdrop")).to_be_hidden()
+        assert mobile_page.evaluate("document.activeElement && document.activeElement.id") == "nav-toggle-signal"
 
-        assert mobile_page.locator("#sidebar").get_attribute("aria-hidden") == "true"
-        assert mobile_page.evaluate("document.activeElement && document.activeElement.id") == "hamburger"
-
-    def test_mobile_sidebar_close_control_and_labels_are_touch_friendly(self, mobile_page):
-        """Mobile drawer should have an obvious close control and contained labels."""
-        hamburger = mobile_page.locator("#hamburger")
-        hamburger.focus()
-        hamburger.click()
-        mobile_page.wait_for_timeout(300)
-
-        close_button = mobile_page.get_by_role("button", name="Close menu")
-        assert close_button.is_visible()
-        close_box = close_button.bounding_box()
-        assert close_box is not None
-        assert close_box["width"] >= 44
-        assert close_box["height"] >= 44
-
-        sidebar_geometry = mobile_page.locator("#sidebar").evaluate(
+    def test_sheet_labels_stay_inside_the_sheet(self, mobile_page):
+        mobile_page.locator("#nav-toggle-cases").click()
+        geometry = mobile_page.locator("#nav-panel-cases").evaluate(
             """
-            (sidebar) => {
-                const sidebarRect = sidebar.getBoundingClientRect();
-                const items = Array.from(sidebar.querySelectorAll('.nav-item'));
-                const overflowingItems = items.filter((item) => item.scrollWidth - item.clientWidth > 1).map((item) => item.textContent.trim());
+            (panel) => {
+                const rect = panel.getBoundingClientRect();
+                const items = Array.from(panel.querySelectorAll('.nav-item'));
                 return {
-                    background: getComputedStyle(sidebar).backgroundColor,
-                    overflowingItems,
-                    outsideItems: items.filter((item) => {
-                        const rect = item.getBoundingClientRect();
-                        return rect.left < sidebarRect.left - 1 || rect.right > sidebarRect.right + 1;
+                    background: getComputedStyle(panel).backgroundColor,
+                    overflowing: items.filter((item) => item.scrollWidth - item.clientWidth > 1).map((item) => item.textContent.trim()),
+                    outside: items.filter((item) => {
+                        const box = item.getBoundingClientRect();
+                        return box.left < rect.left - 1 || box.right > rect.right + 1;
                     }).map((item) => item.textContent.trim()),
                 };
             }
             """
         )
-        assert sidebar_geometry["overflowingItems"] == []
-        assert sidebar_geometry["outsideItems"] == []
-        assert "rgba" not in sidebar_geometry["background"]
+        assert geometry["overflowing"] == []
+        assert geometry["outside"] == []
+        assert "rgba" not in geometry["background"]
 
-        close_button.click()
-        mobile_page.wait_for_timeout(300)
-        assert mobile_page.locator("#sidebar").get_attribute("aria-hidden") == "true"
-        assert mobile_page.evaluate("document.activeElement && document.activeElement.id") == "hamburger"
+    def test_backdrop_tap_closes_the_sheet(self, mobile_page):
+        mobile_page.locator("#nav-toggle-cases").click()
+        expect(mobile_page.locator("#nav-panel-cases")).to_be_visible()
+        mobile_page.mouse.click(20, 140)
+        expect(mobile_page.locator("#nav-panel-cases")).to_be_hidden()
 
-    def test_primary_nav_items_in_sidebar(self, mobile_page):
-        mobile_page.locator("#hamburger").click()
-        mobile_page.wait_for_timeout(300)
-        nav_items = mobile_page.locator(
-            '.nav-section[data-nav-section="monitoring"] .nav-item'
-        )
-        assert nav_items.count() >= 4
-
-    def test_evidence_journey_is_standalone_between_monitoring_and_analysis(self, mobile_page):
-        mobile_page.locator("#hamburger").click()
-        mobile_page.wait_for_selector('#sidebar[aria-hidden="false"]')
-        order = mobile_page.locator("#sidebar").evaluate(
+    def test_views_are_grouped_by_task(self, mobile_page):
+        groups = mobile_page.evaluate(
             """
-            (sidebar) => Array.from(sidebar.querySelectorAll('.nav-section'))
-                .map((section) => ({
-                    key: section.dataset.navSection,
-                    hasEvidence: !!section.querySelector('[data-view="evidence"]'),
-                    collapsible: section.classList.contains('nav-section-collapsible')
-                }))
+            () => Object.fromEntries(Array.from(document.querySelectorAll('#topnav .topnav-group')).map((group) => [
+                group.dataset.navGroup,
+                Array.from(group.querySelectorAll('.nav-item[data-view]')).map((item) => item.dataset.view),
+            ]))
             """
         )
-        keys = [item["key"] for item in order]
-        assert keys.index("monitoring") < keys.index("evidence") < keys.index("analysis")
-        evidence_section = next(item for item in order if item["key"] == "evidence")
-        analysis_section = next(item for item in order if item["key"] == "analysis")
-        assert evidence_section["hasEvidence"] is True
-        assert evidence_section["collapsible"] is False
-        assert analysis_section["hasEvidence"] is False
+        assert {"trends", "channels"} <= set(groups["signal"])
+        assert "evidence" in groups["cases"] and "journal" in groups["cases"]
+        assert "glossary" in groups["more"]
+        top_level = mobile_page.locator("#main-nav .topnav-list > .topnav-entry > .nav-item[data-view]").evaluate_all(
+            "els => els.map((el) => el.dataset.view)"
+        )
+        assert top_level == ["live", "events"]
 
-    def test_standalone_evidence_journey_nav_opens_the_evidence_view(self, mobile_page):
-        mobile_page.locator("#hamburger").click()
-        mobile_page.wait_for_selector('#sidebar[aria-hidden="false"]')
-        mobile_page.locator('.nav-section[data-nav-section="evidence"] [data-view="evidence"]').click()
+    def test_evidence_journey_opens_from_the_cases_sheet(self, mobile_page):
+        mobile_page.locator("#nav-toggle-cases").click()
+        mobile_page.locator('#nav-panel-cases [data-view="evidence"]').click()
         mobile_page.wait_for_selector('#view-evidence.active')
         assert mobile_page.locator('#evidence-placeholder').is_visible()
-
-    def test_analysis_section_collapsible(self, mobile_page):
-        mobile_page.locator("#hamburger").click()
-        mobile_page.wait_for_timeout(300)
-        analysis = mobile_page.locator(
-            '.nav-section[data-nav-section="analysis"]'
-        )
-        if analysis.count() > 0:
-            toggle = analysis.locator(".nav-group-toggle")
-            toggle.click()
-            mobile_page.wait_for_timeout(200)
-            items = analysis.locator(".nav-section-items .nav-item")
-            assert items.count() >= 1
+        expect(mobile_page.locator("#nav-panel-cases")).to_be_hidden()
+        expect(mobile_page.locator("#nav-toggle-cases")).to_have_class(re.compile(r"\bactive\b"))
 
     def test_bnetz_measurements_are_readable_and_actionable_on_mobile(self, mobile_page):
         """BNetzA evidence rows should not hide values or actions off-screen."""

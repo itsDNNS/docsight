@@ -3,6 +3,7 @@
 from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import expect
+from tests.e2e.support.navigation import open_view
 
 
 def _comparison_payload(errors_supported, uncorr_errors):
@@ -63,7 +64,7 @@ def _comparison_payload(errors_supported, uncorr_errors):
 
 def navigate_to_comparison(page):
     """Open the comparison view and wait for the control bar."""
-    page.locator('.nav-item[data-view="comparison"]').click()
+    open_view(page, "comparison")
     expect(page.locator("#comparison-controls")).to_be_visible()
 
 

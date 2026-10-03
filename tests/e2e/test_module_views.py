@@ -6,6 +6,7 @@ from playwright.sync_api import expect
 from tests.e2e.conftest import _new_target
 from tests.e2e.support.lifecycle import running_processes
 from tests.e2e.support.profiles import ServerProfile
+from tests.e2e.support.navigation import open_view
 
 
 @pytest.fixture
@@ -88,11 +89,11 @@ def test_root_module_views_settings_disabled_actions_and_mobile_setup(page, root
 
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(root_module_servers["unconfigured"])
-    sidebar = page.locator("#sidebar")
+    connection_panel = page.locator("#nav-panel-connection")
     for view, hook in (("bqm", "Bqm"), ("speedtest", "Speedtest")):
         expect(page.locator("#view-" + view)).to_have_count(0)
-        page.locator("#hamburger").click()
-        expect(sidebar).to_have_attribute("aria-hidden", "false")
+        page.locator("#nav-toggle-connection").click()
+        expect(connection_panel).to_be_visible()
         trigger = page.locator(f'.nav-item[onclick="open{hook}SetupModal()"]')
         expect(trigger).to_be_visible()
         trigger.focus()
@@ -105,8 +106,7 @@ def test_root_module_views_settings_disabled_actions_and_mobile_setup(page, root
         expect(close_button).to_be_focused()
         close_button.press("Enter")
         expect(dialog).not_to_be_visible()
-        page.evaluate("closeSidebar()")
-        expect(sidebar).to_have_attribute("aria-hidden", "true")
+        expect(connection_panel).to_be_hidden()
     assert errors == []
 
 
@@ -122,7 +122,7 @@ def test_prefixed_module_hash_navigation_and_script_urls(page, prefixed_module_s
     for view in ("journal", "bqm", "speedtest"):
         expect(page.locator(f'script[src^="/docsight/modules/docsight.{view}/static/main.js?v="]')).to_have_count(1)
     for view in ("live", "bqm", "speedtest", "journal"):
-        page.locator(f'.nav-item[data-view="{view}"]').click()
+        open_view(page, view)
         view_id = "dashboard" if view == "live" else view
         expect(page.locator("#view-" + view_id)).to_be_visible()
         expect(page.locator(".main-content > .view.active")).to_have_count(1)

@@ -7,19 +7,20 @@ zoom modal, theme switching, responsive sizing, and crosshair sync.
 
 import pytest
 from playwright.sync_api import expect
+from tests.e2e.support.navigation import open_view
 
 # ── Helpers ──
 
 
 def navigate_to_trends(page):
     """Switch to Trends view and wait for charts to load."""
-    page.locator('.nav-item[data-view="trends"]').click()
+    open_view(page, "trends")
     page.wait_for_timeout(1500)
 
 
 def navigate_to_channels(page):
     """Switch to Channels view."""
-    page.locator('.nav-item[data-view="channels"]').click()
+    open_view(page, "channels")
     page.wait_for_timeout(500)
 
 
@@ -1162,7 +1163,7 @@ class TestChartCleanup:
         wait_for_uplot(demo_page, "chart-ds-power")
 
         # Switch to another view
-        demo_page.locator('.nav-item[data-view="live"]').click()
+        open_view(demo_page, "live")
         demo_page.wait_for_timeout(500)
 
         # Switch back — charts should re-render without stacking
@@ -1331,7 +1332,7 @@ def _assert_curve_zoom_and_tooltip(page, chart_id):
 
 @pytest.mark.parametrize("range_value", ["1h", "6h", "1d", "2d"])
 def test_signal_curves_without_points_keep_zoom_and_tooltip(demo_page, range_value):
-    demo_page.locator('.nav-item[data-view="trends"]').click()
+    open_view(demo_page, "trends")
     wait_for_uplot(demo_page, "chart-ds-power")
     tab = demo_page.locator(f'.trend-tab[data-range="{range_value}"]')
     if "active" not in (tab.get_attribute("class") or ""):

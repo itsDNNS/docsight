@@ -8,6 +8,7 @@ import os
 
 import pytest
 from playwright.sync_api import expect
+from tests.e2e.support.navigation import open_view
 
 
 SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "screenshots", "modulation")
@@ -22,7 +23,7 @@ def ensure_screenshot_dir():
 @pytest.fixture()
 def modulation_page(demo_page):
     """Navigate to modulation tab and wait for data to load."""
-    demo_page.locator('.nav-item[data-view="modulation"]').click()
+    open_view(demo_page, "modulation")
     demo_page.locator(".mod-protocol-group").first.wait_for(
         state="visible",
         timeout=150_000,

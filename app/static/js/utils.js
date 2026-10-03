@@ -129,13 +129,7 @@ function openReportModal(scope) {
     renderReportScope();
     window.DOCSightModal.open('report-modal');
     syncComparisonReportState();
-    // Close sidebar on mobile
-    var sb = document.getElementById('sidebar');
-    if (sb) {
-        sb.classList.remove('mobile-open');
-        var bd = document.getElementById('sidebar-backdrop');
-        if (bd) bd.classList.remove('active');
-    }
+    if (window.DOCSightNav) window.DOCSightNav.close();
 }
 function closeReportModal() {
     window.DOCSightModal.close('report-modal');

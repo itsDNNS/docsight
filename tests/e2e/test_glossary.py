@@ -2,6 +2,7 @@
 
 import pytest
 from playwright.sync_api import expect
+from tests.e2e.support.navigation import open_view
 
 
 # The visible popover is a body-level overlay (JS moves it out of the hint)
@@ -104,13 +105,13 @@ class TestGlossaryModulation:
     """Verify glossary hints on modulation KPI cards."""
 
     def test_modulation_kpi_has_glossary_hints(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         demo_page.wait_for_timeout(2000)
         hints = demo_page.locator('#view-modulation .glossary-hint')
         assert hints.count() >= 4, f"Expected at least 4 modulation glossary hints, got {hints.count()}"
 
     def test_modulation_capacity_docsis_basics_help_is_reachable(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         demo_page.locator('#modulation-capacity-panel').wait_for(state='visible')
         hint = demo_page.locator('#modulation-capacity-panel .mod-capacity-basics-hint')
         expect(hint).to_be_visible()
@@ -122,7 +123,7 @@ class TestGlossaryModulation:
         assert 'not Speedtest/IP throughput or tariff speed' in text
 
     def test_health_index_popover(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         demo_page.wait_for_timeout(2000)
         hint = demo_page.locator('#view-modulation .glossary-hint').first
         hint.click()

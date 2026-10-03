@@ -4,6 +4,7 @@ import re
 
 import pytest
 from playwright.sync_api import expect
+from tests.e2e.support.navigation import open_view
 
 
 class TestDashboardLoad:
@@ -12,12 +13,12 @@ class TestDashboardLoad:
     def test_page_title(self, demo_page):
         assert demo_page.title() == "DOCSight"
 
-    def test_has_sidebar(self, demo_page):
-        sidebar = demo_page.locator("nav.sidebar")
-        assert sidebar.is_visible()
+    def test_has_top_navigation(self, demo_page):
+        assert demo_page.locator("#topnav").is_visible()
+        assert demo_page.locator("#main-nav").is_visible()
 
-    def test_sidebar_logo_text(self, demo_page):
-        title = demo_page.locator(".sidebar-title")
+    def test_brand_text(self, demo_page):
+        title = demo_page.locator(".topnav-brand-name")
         assert title.text_content().strip() == "DOCSight"
 
     def test_live_view_active_by_default(self, demo_page):
@@ -26,12 +27,54 @@ class TestDashboardLoad:
 
 
 class TestNavigation:
-    """Sidebar nav switching."""
+    """Top navigation switching."""
+
+    def test_group_panel_opens_with_arrow_down_and_cycles_with_arrows(self, demo_page):
+        toggle = demo_page.locator("#nav-toggle-signal")
+        toggle.focus()
+        toggle.press("ArrowDown")
+        expect(demo_page.locator("#nav-panel-signal")).to_be_visible()
+        expect(toggle).to_have_attribute("aria-expanded", "true")
+        focused = lambda: demo_page.evaluate("document.activeElement.getAttribute('data-view')")
+        assert focused() == "trends"
+        demo_page.keyboard.press("ArrowDown")
+        assert focused() == "channels"
+        demo_page.keyboard.press("ArrowUp")
+        demo_page.keyboard.press("ArrowUp")
+        last = demo_page.locator("#nav-panel-signal .nav-item[data-view]").last.get_attribute("data-view")
+        assert focused() == last
+        demo_page.keyboard.press("Escape")
+        expect(demo_page.locator("#nav-panel-signal")).to_be_hidden()
+        assert demo_page.evaluate("document.activeElement.id") == "nav-toggle-signal"
+
+    def test_only_one_group_is_open_and_outside_click_closes_it(self, demo_page):
+        demo_page.locator("#nav-toggle-signal").click()
+        demo_page.locator("#nav-toggle-cases").click()
+        expect(demo_page.locator("#nav-panel-signal")).to_be_hidden()
+        expect(demo_page.locator("#nav-panel-cases")).to_be_visible()
+        demo_page.mouse.click(700, 600)
+        expect(demo_page.locator("#nav-panel-cases")).to_be_hidden()
+        expect(demo_page.locator("#nav-toggle-cases")).to_have_attribute("aria-expanded", "false")
+
+    def test_deep_link_marks_view_and_its_group_active(self, demo_page):
+        base = demo_page.url.split("#")[0]
+        demo_page.goto(base + "#channels")
+        demo_page.wait_for_selector("#view-channels.active")
+        expect(demo_page.locator("#nav-toggle-signal")).to_have_class(re.compile(r"\bactive\b"))
+        expect(demo_page.locator('#topnav .nav-item[data-view="channels"]')).to_have_attribute("aria-current", "page")
+        expect(demo_page.locator('#topnav .nav-item[data-view="live"]')).not_to_have_attribute("aria-current", "page")
+
+    def test_more_menu_offers_settings_glossary_and_dark_mode(self, demo_page):
+        demo_page.locator("#nav-toggle-more").click()
+        panel = demo_page.locator("#nav-panel-more")
+        expect(panel.locator('a[href$="/settings"]')).to_be_visible()
+        expect(panel.locator('[data-view="glossary"]')).to_be_visible()
+        expect(panel.locator("#theme-toggle-sidebar")).to_be_attached()
 
     def test_view_changes_update_the_title_and_move_focus_to_the_heading(self, demo_page):
         expect(demo_page).to_have_title("DOCSight")
         expect(demo_page.locator("h1")).to_have_count(1)
-        demo_page.locator('.nav-item[data-view="trends"]').click()
+        open_view(demo_page, "trends")
         expect(demo_page).to_have_title("Signal Trends · DOCSight")
         expect(demo_page.locator("#view-trends .view-page-title")).to_be_focused()
 
@@ -49,23 +92,23 @@ class TestNavigation:
         assert page.evaluate("document.activeElement === document.body")
 
     def test_switch_to_events(self, demo_page):
-        demo_page.locator('.nav-item[data-view="events"]').click()
+        open_view(demo_page, "events")
         events_section = demo_page.locator("#view-events")
         assert events_section.is_visible()
 
     def test_switch_to_trends(self, demo_page):
-        demo_page.locator('.nav-item[data-view="trends"]').click()
+        open_view(demo_page, "trends")
         trends_section = demo_page.locator("#view-trends")
         assert trends_section.is_visible()
 
     def test_switch_to_channels(self, demo_page):
-        demo_page.locator('.nav-item[data-view="channels"]').click()
+        open_view(demo_page, "channels")
         channels_section = demo_page.locator("#view-channels")
         assert channels_section.is_visible()
 
     def test_switch_back_to_live(self, demo_page):
-        demo_page.locator('.nav-item[data-view="events"]').click()
-        demo_page.locator('.nav-item[data-view="live"]').click()
+        open_view(demo_page, "events")
+        open_view(demo_page, "live")
         live_section = demo_page.locator("#view-dashboard")
         assert live_section.is_visible()
 

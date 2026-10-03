@@ -3,10 +3,11 @@
 from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import expect
+from tests.e2e.support.navigation import open_view
 
 
 def _open_journal(demo_page):
-    demo_page.locator('.nav-item[data-view="journal"]').click()
+    open_view(demo_page, "journal")
     expect(demo_page.locator("#view-journal")).to_be_visible()
 
 
