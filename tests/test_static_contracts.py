@@ -351,8 +351,10 @@ def test_font_sources_are_relative_to_the_stylesheet() -> None:
     fonts_css = (STATIC / "css" / "fonts.css").read_text(encoding="utf-8")
     sources = re.findall(r"src:\s*url\(([^)]+)\)", fonts_css)
 
-    assert len(sources) == 4
+    assert len(sources) == 8
     assert all(source.startswith("../fonts/") for source in sources)
+    for source in sources:
+        assert (STATIC / "css" / source).resolve().is_file(), source
 
 
 def test_service_worker_precache_references_existing_public_assets() -> None:
