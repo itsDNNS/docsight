@@ -947,7 +947,7 @@
   "ext_features": "Caracteristici",
   "ext_modules": "Modules",
   "use_system_font": "Utilizați fontul de sistem",
-  "use_system_font_hint": "Înlocuiește Outfit cu fontul implicit al sistemului de operare. Poate îmbunătăți lizibilitatea pe conexiunile desktop la distanță (RDP).",
+  "use_system_font_hint": "Înlocuiește fontul temei cu fontul implicit al sistemului de operare. Poate îmbunătăți lizibilitatea pe conexiunile desktop la distanță (RDP).",
   "isp_name_tooltip": "Furnizor de servicii de internet",
   "device_model_tooltip": "Model de dispozitiv",
   "hw_version_tooltip": "Hardware version/revision",

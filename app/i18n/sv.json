@@ -947,7 +947,7 @@
   "ext_features": "Funktioner",
   "ext_modules": "Moduler",
   "use_system_font": "Använd systemteckensnitt",
-  "use_system_font_hint": "Ersätt Outfit med ditt operativsystems standardteckensnitt. Kan förbättra läsbarheten på fjärrskrivbordsanslutningar (RDP).",
+  "use_system_font_hint": "Ersätter temats typsnitt med ditt operativsystems standardteckensnitt. Kan förbättra läsbarheten på fjärrskrivbordsanslutningar (RDP).",
   "isp_name_tooltip": "Internetleverantör",
   "device_model_tooltip": "Enhetsmodell",
   "hw_version_tooltip": "Hårdvara version/revision",

@@ -106,6 +106,29 @@ def safe_html_filter(value):
     return Markup(cleaned)
 
 
+_THEME_PROPERTY = re.compile(r"^--[A-Za-z0-9_-]+$")
+_THEME_UNSAFE_VALUE = re.compile(r"[<>{};\\\n\r]|/\*|\*/")
+
+
+def theme_css_declarations(tokens):
+    """Render theme tokens as CSS custom property declarations for a <style> block.
+
+    Values are emitted unescaped so quoted font names stay valid CSS. Theme data can
+    come from community modules, so only well-formed custom property names are kept
+    and values that could close the declaration, the rule, or the style element are
+    dropped.
+    """
+    if not isinstance(tokens, dict):
+        return Markup("")
+    declarations = [
+        f"{name}: {value};"
+        for name, value in tokens.items()
+        if isinstance(name, str) and isinstance(value, str)
+        and _THEME_PROPERTY.match(name) and not _THEME_UNSAFE_VALUE.search(value)
+    ]
+    return Markup("\n        ".join(declarations))
+
+
 def format_k(value):
     """Format large numbers with k/M suffix: 1200000 -> 1.2M, 132007 -> 132k, 5929 -> 5.9k."""
     try:
@@ -654,6 +677,7 @@ CORE_ROUTES = (
 )
 CORE_TEMPLATE_FILTERS = {
     "safe_html": safe_html_filter,
+    "theme_css": theme_css_declarations,
     "fmt_k": format_k,
     "fmt_speed_value": format_speed_value,
     "fmt_speed_unit": format_speed_unit,

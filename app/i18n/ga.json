@@ -947,7 +947,7 @@
   "ext_features": "Gnéithe",
   "ext_modules": "Modúil",
   "use_system_font": "Bain úsáid as cló an chórais",
-  "use_system_font_hint": "Ionadaigh Outfit le cló réamhshocraithe do chórais oibriúcháin. Féadann sé inléiteacht ar naisc chiandeasc (RDP) a fheabhsú.",
+  "use_system_font_hint": "Cuireann sé cló réamhshocraithe do chórais oibriúcháin in ionad chló an téama. Féadann sé inléiteacht ar naisc chiandeasc (RDP) a fheabhsú.",
   "isp_name_tooltip": "soláthraí seirbhíse idirlín",
   "device_model_tooltip": "Samhail ghléis",
   "hw_version_tooltip": "Crua-earraí version/revision",

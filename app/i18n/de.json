@@ -947,7 +947,7 @@
   "ext_features": "Funktionen",
   "ext_modules": "Module",
   "use_system_font": "Systemschriftart verwenden",
-  "use_system_font_hint": "Ersetzt Outfit durch die Standard-Schriftart deines Betriebssystems. Kann die Lesbarkeit bei Remote-Desktop-Verbindungen (RDP) verbessern.",
+  "use_system_font_hint": "Ersetzt die Schrift des Themes durch die Standard-Schriftart deines Betriebssystems. Kann die Lesbarkeit bei Remote-Desktop-Verbindungen (RDP) verbessern.",
   "isp_name_tooltip": "Internetanbieter",
   "device_model_tooltip": "Gerätemodell",
   "hw_version_tooltip": "Hardware Version/Revision",

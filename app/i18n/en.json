@@ -947,7 +947,7 @@
   "ext_features": "Features",
   "ext_modules": "Modules",
   "use_system_font": "Use system font",
-  "use_system_font_hint": "Replace Outfit with your operating system's default font. Can improve readability on remote desktop (RDP) connections.",
+  "use_system_font_hint": "Replace the theme font with your operating system's default font. Can improve readability on remote desktop (RDP) connections.",
   "isp_name_tooltip": "Internet service provider",
   "device_model_tooltip": "Device model",
   "hw_version_tooltip": "Hardware version/revision",

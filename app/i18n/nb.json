@@ -947,7 +947,7 @@
   "ext_features": "Funksjoner",
   "ext_modules": "Moduler",
   "use_system_font": "Bruk systemfont",
-  "use_system_font_hint": "Erstatt Outfit med operativsystemets standardfont. Kan forbedre lesbarheten på eksternt skrivebord (RDP)-tilkoblinger.",
+  "use_system_font_hint": "Erstatter temaets skrift med operativsystemets standardfont. Kan forbedre lesbarheten på eksternt skrivebord (RDP)-tilkoblinger.",
   "isp_name_tooltip": "Internett-leverandør",
   "device_model_tooltip": "Enhetsmodell",
   "hw_version_tooltip": "Maskinvare version/revision",

@@ -947,7 +947,7 @@
   "ext_features": "Funkcijos",
   "ext_modules": "Moduliai",
   "use_system_font": "Naudokite sistemos šriftą",
-  "use_system_font_hint": "Pakeiskite Outfit operacinės sistemos numatytuoju šriftu. Gali pagerinti nuotolinio darbalaukio (RDP) ryšių skaitomumą.",
+  "use_system_font_hint": "Pakeičia temos šriftą operacinės sistemos numatytuoju šriftu. Gali pagerinti nuotolinio darbalaukio (RDP) ryšių skaitomumą.",
   "isp_name_tooltip": "Interneto paslaugų teikėjas",
   "device_model_tooltip": "Įrenginio modelis",
   "hw_version_tooltip": "Aparatinė įranga version/revision",

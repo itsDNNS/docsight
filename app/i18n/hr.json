@@ -947,7 +947,7 @@
   "ext_features": "Značajke",
   "ext_modules": "Moduli",
   "use_system_font": "Koristi sistemski font",
-  "use_system_font_hint": "Zamijenite Outfit zadanim fontom vašeg operativnog sustava. Može poboljšati čitljivost na vezama udaljene radne površine (RDP).",
+  "use_system_font_hint": "Zamjenjuje font teme zadanim fontom vašeg operativnog sustava. Može poboljšati čitljivost na vezama udaljene radne površine (RDP).",
   "isp_name_tooltip": "Davatelj internetskih usluga",
   "device_model_tooltip": "Model uređaja",
   "hw_version_tooltip": "Hardver version/revision",

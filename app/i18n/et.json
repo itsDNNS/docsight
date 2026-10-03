@@ -947,7 +947,7 @@
   "ext_features": "Funktsioonid",
   "ext_modules": "Moodulid",
   "use_system_font": "Kasutage süsteemi fonti",
-  "use_system_font_hint": "Asendage Outfit oma operatsioonisüsteemi vaikefondiga. Võib parandada kaugtöölaua (RDP) ühenduste loetavust.",
+  "use_system_font_hint": "Asendab teema fondi teie operatsioonisüsteemi vaikefondiga. Võib parandada kaugtöölaua (RDP) ühenduste loetavust.",
   "isp_name_tooltip": "Interneti-teenuse pakkuja",
   "device_model_tooltip": "Seadme mudel",
   "hw_version_tooltip": "Riistvara version/revision",

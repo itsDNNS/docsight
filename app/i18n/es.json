@@ -942,7 +942,7 @@
   "ext_features": "Funciones",
   "ext_modules": "Modulos",
   "use_system_font": "Usar fuente del sistema",
-  "use_system_font_hint": "Reemplaza Outfit con la fuente predeterminada del sistema operativo. Puede mejorar la legibilidad en conexiones de escritorio remoto (RDP).",
+  "use_system_font_hint": "Reemplaza la fuente del tema por la fuente predeterminada del sistema operativo. Puede mejorar la legibilidad en conexiones de escritorio remoto (RDP).",
   "isp_name_tooltip": "proveedor de servicios de internet",
   "device_model_tooltip": "modelo del dispositivo",
   "hw_version_tooltip": "version/revision del hardware",

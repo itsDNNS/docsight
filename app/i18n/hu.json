@@ -947,7 +947,7 @@
   "ext_features": "Jellemzők",
   "ext_modules": "Modulok",
   "use_system_font": "Rendszerbetűtípus használata",
-  "use_system_font_hint": "Cserélje ki az Outfit-et az operációs rendszer alapértelmezett betűtípusára. Javíthatja az olvashatóságot a távoli asztali (RDP) kapcsolatokon.",
+  "use_system_font_hint": "A téma betűtípusát az operációs rendszer alapértelmezett betűtípusára cseréli. Javíthatja az olvashatóságot a távoli asztali (RDP) kapcsolatokon.",
   "isp_name_tooltip": "Internet szolgáltató",
   "device_model_tooltip": "Eszközmodell",
   "hw_version_tooltip": "Hardver version/revision",

@@ -947,7 +947,7 @@
   "ext_features": "Vlastnosti",
   "ext_modules": "Moduly",
   "use_system_font": "Použijte systémové písmo",
-  "use_system_font_hint": "Nahraďte Outfit výchozím písmem vašeho operačního systému. Může zlepšit čitelnost při připojení ke vzdálené ploše (RDP).",
+  "use_system_font_hint": "Nahradí písmo motivu výchozím písmem vašeho operačního systému. Může zlepšit čitelnost při připojení ke vzdálené ploše (RDP).",
   "isp_name_tooltip": "poskytovatel internetových služeb",
   "device_model_tooltip": "Model zařízení",
   "hw_version_tooltip": "Hardware version/revision",

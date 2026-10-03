@@ -947,7 +947,7 @@
   "ext_features": "Funkcje",
   "ext_modules": "Moduły",
   "use_system_font": "Użyj czcionki systemowej",
-  "use_system_font_hint": "Zastąp strój domyślną czcionką systemu operacyjnego. Może poprawić czytelność połączeń pulpitu zdalnego (RDP).",
+  "use_system_font_hint": "Zastępuje czcionkę motywu domyślną czcionką systemu operacyjnego. Może poprawić czytelność połączeń pulpitu zdalnego (RDP).",
   "isp_name_tooltip": "Dostawca usług internetowych",
   "device_model_tooltip": "Model urządzenia",
   "hw_version_tooltip": "Sprzęt version/revision",
