@@ -27,8 +27,8 @@ class TestChannelsView:
     def test_tg_channels_survive_collection_and_rendering(self, vodafone_tg_server, page):
         from app.storage import SnapshotStorage
 
-        page.goto(vodafone_tg_server.base_url)
-        downstream = page.locator(".dashboard-channel-panel").filter(
+        page.goto(vodafone_tg_server.base_url + "/#channels")
+        downstream = page.locator("#view-channels .dashboard-channel-panel").filter(
             has=page.locator(".channel-title", has_text="Downstream")
         )
         scqam = downstream.locator(".docsis-group").filter(
@@ -57,3 +57,84 @@ class TestChannelsView:
             ("channelUs", "docsis30", [6]), ("channelUs", "docsis31", [41]),
         ):
             assert [ch["channelID"] for ch in raw[direction][version]] == ids
+
+
+class TestChannelStatusMatrix:
+    """Status mode: channels x time cells, aggregated stable channels, row opens charts."""
+
+    def _open(self, page):
+        open_view(page, "channels")
+        page.wait_for_selector("#channel-status-body .cs-direction")
+
+    def test_status_is_the_default_mode(self, demo_page):
+        self._open(demo_page)
+
+        expect(demo_page.locator('#channel-mode-tabs .trend-tab.active')).to_have_attribute("data-value", "status")
+        expect(demo_page.locator("#channel-panel-status")).to_be_visible()
+        expect(demo_page.locator("#channel-panel-timeline")).to_be_hidden()
+        assert "mode=status" in demo_page.evaluate("location.hash")
+        cells = demo_page.locator("#channel-status-body .cs-row").first.locator(".cs-cell")
+        expect(cells).to_have_count(48)
+        expect(demo_page.locator("#channel-status-window")).to_contain_text("30 min")
+
+    def test_every_current_channel_is_listed_once(self, demo_page):
+        self._open(demo_page)
+        channels = demo_page.request.get(demo_page.url.split("#")[0] + "api/channels").json()
+
+        for direction, key in (("ds", "ds_channels"), ("us", "us_channels")):
+            section = demo_page.locator(f'.cs-direction[data-direction="{direction}"]')
+            listed = section.locator(".cs-row:not(.cs-aggregate)")
+            expect(listed).to_have_count(len(channels[key]))
+
+    def test_aggregated_row_expands_the_stable_channels(self, demo_page):
+        self._open(demo_page)
+        aggregate = demo_page.locator(".cs-aggregate").first
+        others = demo_page.locator("#" + aggregate.get_attribute("aria-controls"))
+
+        expect(others).to_be_hidden()
+        aggregate.click()
+        expect(aggregate).to_have_attribute("aria-expanded", "true")
+        expect(others).to_be_visible()
+        assert others.locator(".cs-row").count() > 0
+        aggregate.click()
+        expect(others).to_be_hidden()
+
+    def test_row_opens_the_channel_timeline_with_the_same_range(self, demo_page):
+        self._open(demo_page)
+        demo_page.locator('#channel-status-time-tabs .trend-tab[data-value="6h"]').click()
+        expect(demo_page.locator('#channel-status-time-tabs .trend-tab.active')).to_have_attribute("data-value", "6h")
+        demo_page.wait_for_selector("#channel-status-body .cs-direction")
+        assert "range=6h" in demo_page.evaluate("location.hash")
+
+        aggregate = demo_page.locator(".cs-aggregate").first
+        aggregate.click()
+        row = demo_page.locator("#" + aggregate.get_attribute("aria-controls") + " .cs-row").first
+        direction = row.get_attribute("data-direction")
+        channel = row.get_attribute("data-channel-id")
+        row.click()
+
+        expect(demo_page.locator('#channel-mode-tabs .trend-tab.active')).to_have_attribute("data-value", "timeline")
+        expect(demo_page.locator("#channel-panel-timeline")).to_be_visible()
+        expect(demo_page.locator("#channel-select")).to_have_value(f"{direction}-{channel}")
+        expect(demo_page.locator('#channel-time-tabs .trend-tab.active')).to_have_attribute("data-value", "6h")
+        demo_page.wait_for_selector("#chart-ch-power .uplot canvas, #channel-charts canvas")
+        hash_value = demo_page.evaluate("location.hash")
+        assert f"mode=timeline&dir={direction}&channel={channel}&range=6h" in hash_value
+
+    def test_status_deep_link_restores_the_range(self, demo_page):
+        base = demo_page.url.split("#")[0]
+        demo_page.goto(base + "#channels?mode=status&range=7d")
+        demo_page.wait_for_selector("#channel-status-body .cs-direction")
+
+        expect(demo_page.locator('#channel-status-time-tabs .trend-tab.active')).to_have_attribute("data-value", "7d")
+        expect(demo_page.locator("#channel-status-window")).to_contain_text("3.5 h")
+
+    def test_current_value_tables_live_on_the_channels_page(self, demo_page):
+        expect(demo_page.locator("#view-dashboard .dashboard-channel-panel")).to_have_count(0)
+        self._open(demo_page)
+        expect(demo_page.locator("#view-channels .dashboard-channel-panel")).to_have_count(2)
+
+    def test_home_links_to_all_channels(self, demo_page):
+        demo_page.locator('.line-status-actions a[href="#channels?mode=status"]').click()
+        demo_page.wait_for_selector("#channel-status-body .cs-direction")
+        expect(demo_page.locator("#view-channels")).to_be_visible()

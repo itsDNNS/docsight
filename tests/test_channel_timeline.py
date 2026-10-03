@@ -633,3 +633,44 @@ class TestChannelCompareEndpoint:
         data = json.loads(resp.data)
         assert data[selectors[0]][0]["power"] == 4.8
         assert data[selectors[1]][0]["power"] == -1.7
+
+
+class TestChannelStatusEndpoint:
+    def test_storage_returns_snapshots_inside_the_window(self, storage):
+        _insert_snapshot(storage, _make_analysis(), _utc_ts(timedelta(hours=30)))
+        _insert_snapshot(storage, _make_analysis(), _utc_ts(timedelta(hours=2)))
+
+        rows = storage.get_channel_snapshots(hours=24)
+
+        assert len(rows) == 1
+        timestamp, ds, us = rows[0]
+        assert timestamp.endswith("Z") and len(ds) == 2 and len(us) == 1
+
+    def test_returns_matrix_with_deviating_channel_first(self, client):
+        c, s = client
+        good = _make_analysis()
+        bad = _make_analysis()
+        bad["us_channels"][0].update(power=52.0, health="warning", health_detail="power warning high")
+        _insert_snapshot(s, good, _utc_ts(timedelta(hours=5)))
+        _insert_snapshot(s, bad, _utc_ts(timedelta(hours=1)))
+
+        resp = c.get("/api/channel-status?range=6h")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data["cells"] == 48 and data["snapshots"] == 2
+        downstream, upstream = data["directions"]
+        assert downstream["deviating"] == [] and len(downstream["others"]) == 2
+        row = upstream["deviating"][0]
+        assert row["channel_id"] == 1 and row["health"] == "warning"
+        assert row["since"] and row["since_pct"] > 50
+        assert row["measurement"]["delta"] > 0
+
+    def test_empty_storage_has_no_directions(self, client):
+        c, _s = client
+        data = json.loads(c.get("/api/channel-status").data)
+        assert data["directions"] == [] and data["snapshots"] == 0
+
+    def test_rejects_unknown_range(self, client):
+        c, _s = client
+        assert c.get("/api/channel-status?range=5d").status_code == 400

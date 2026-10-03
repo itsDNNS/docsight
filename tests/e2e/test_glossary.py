@@ -89,11 +89,13 @@ class TestGlossaryChannels:
     """Verify glossary hints in channel tables."""
 
     def test_ds_channel_group_has_glossary_hint(self, demo_page):
-        hint = demo_page.locator('#view-dashboard .docsis-group-header .glossary-hint').first
+        open_view(demo_page, "channels")
+        hint = demo_page.locator('#view-channels .docsis-group-header .glossary-hint').first
         expect(hint).to_be_visible()
 
     def test_channel_glossary_popover_works(self, demo_page):
-        hint = demo_page.locator('#view-dashboard .docsis-group-header .glossary-hint').first
+        open_view(demo_page, "channels")
+        hint = demo_page.locator('#view-channels .docsis-group-header .glossary-hint').first
         hint.click()
         popover = demo_page.locator(POPOVER)
         expect(popover).to_be_visible()

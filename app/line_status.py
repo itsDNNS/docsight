@@ -106,7 +106,8 @@ def _snr_callout(channel: dict) -> dict | None:
     }
 
 
-def _callout(direction: str, channel: dict) -> dict:
+def channel_callout(direction: str, channel: dict) -> dict:
+    """Explain one channel's rating: family, modulation and, when known, the measured deviation."""
     detail = channel.get("health_detail") or ""
     measurement = None
     if "power" in detail:
@@ -146,7 +147,7 @@ def _direction(direction: str, channels: list[dict]) -> dict | None:
         (ch for ch in ordered if _health(ch) != "good"),
         key=lambda ch: (-SEVERITY[_health(ch)], _channel_id(ch)),
     )
-    callouts = [_callout(direction, ch) for ch in deviating]
+    callouts = [channel_callout(direction, ch) for ch in deviating]
     return {
         "key": direction,
         "total": len(segments),
