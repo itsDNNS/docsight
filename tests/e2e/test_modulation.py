@@ -79,17 +79,13 @@ class TestModulationNavigation:
             expect(value).to_contain_text("QAM")
             expect(value).not_to_contain_text("Modulation:")
 
-    def test_home_family_kpis_share_hero_without_modulation_card(self, page, live_server):
+    def test_home_line_status_sits_above_a_full_width_chart(self, page, live_server):
         page.set_viewport_size({"width": 1280, "height": 900})
         page.goto(live_server)
         page.wait_for_load_state("networkidle")
 
-        visual = page.locator(".hero-visual-row")
-        health = page.locator(".hero-channel-health")
-        chart = page.locator(".hero-chart-wrap")
-        expect(visual).to_be_visible()
-        expect(health).to_be_visible()
-        expect(chart).to_be_visible()
+        expect(page.locator(".line-status")).to_be_visible()
+        expect(page.locator(".hero-chart-wrap")).to_be_visible()
         expect(page.locator(".hero-modulation-context")).to_have_count(0)
 
         layout = page.evaluate(
@@ -101,7 +97,7 @@ class TestModulationNavigation:
                 };
                 return {
                     visual: rect('.hero-visual-row'),
-                    health: rect('.hero-channel-health'),
+                    status: rect('.line-status'),
                     chart: rect('.hero-chart-wrap'),
                     gridColumns: getComputedStyle(document.querySelector('.hero-visual-row')).gridTemplateColumns,
                 };
@@ -109,10 +105,9 @@ class TestModulationNavigation:
             """
         )
 
-        assert layout["gridColumns"].count("px") >= 2
-        assert layout["health"]["right"] <= layout["chart"]["left"] + 1
-        assert abs(layout["health"]["top"] - layout["chart"]["top"]) <= 16
-        assert layout["visual"]["height"] <= 360
+        assert layout["gridColumns"].count("px") == 1
+        assert layout["status"]["bottom"] <= layout["chart"]["top"]
+        assert layout["chart"]["width"] >= layout["visual"]["width"] * 0.9
 
     def test_home_hero_stacks_without_modulation_card_overflow(self, page, live_server):
         for width in (393, 760, 1100):
@@ -129,7 +124,7 @@ class TestModulationNavigation:
                     };
                     return {
                         overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-                        health: rect('.hero-channel-health'),
+                        status: rect('.line-status'),
                         chart: rect('.hero-chart-wrap'),
                         contextCount: document.querySelectorAll('.hero-modulation-context').length,
                         gridColumns: getComputedStyle(document.querySelector('.hero-visual-row')).gridTemplateColumns,
@@ -141,7 +136,7 @@ class TestModulationNavigation:
             assert layout["overflowX"] <= 1
             assert layout["contextCount"] == 0
             assert layout["gridColumns"].count("px") == 1
-            assert layout["chart"]["bottom"] <= layout["health"]["top"] + 1
+            assert layout["status"]["bottom"] <= layout["chart"]["top"] + 1
 
 
 # ── Tab Structure ──

@@ -133,8 +133,9 @@ class TestDashboardSections:
         assert badge.is_visible()
 
     def test_health_status_shown(self, demo_page):
-        hero = demo_page.locator(".hero-title, .status-dot")
-        assert hero.first.is_visible()
+        word = demo_page.locator(".line-status-word")
+        expect(word).to_be_visible()
+        expect(word).to_contain_text(re.compile(r"Good|Tolerated|Marginal|Critical"))
 
     def test_downstream_section(self, demo_page):
         ds = demo_page.locator(".dashboard-channel-panel .channel-title", has_text="Downstream")

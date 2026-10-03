@@ -1,0 +1,103 @@
+{# Home line status: one segment per channel, the worst deviation per direction explained at its segment. #}
+{% set ls = line_status %}
+{% set ls_state = {'good': 'good', 'tolerated': 'tolerated', 'marginal': 'warning', 'critical': 'critical'}.get(ls.health, 'warning') %}
+{% set ls_step = {'good': 1, 'tolerated': 2, 'warning': 3, 'critical': 4}[ls_state] %}
+{% set ls_word = {'good': t.health_good, 'tolerated': t.health_tolerated, 'warning': t.health_marginal, 'critical': t.health_critical} %}
+{% set ls_direction = {'ds': t.downstream, 'us': t.upstream} %}
+{% set ls_short = {'ds': 'DS', 'us': 'US'} %}
+<section class="line-status line-status-{{ ls_state }}" aria-labelledby="line-status-title" data-line-status="{{ ls_state }}">
+    <div class="line-status-head">
+        <div class="line-status-summary">
+            <div class="line-status-eyebrow">
+                <span class="ls-shape ls-shape-{{ ls_state }}" aria-hidden="true"></span>
+                <span id="line-status-title">{{ t.get('line_status_title', 'Line status') }}</span>
+            </div>
+            <div class="line-status-word">
+                <span>{{ ls_word[ls_state] }}</span>
+                <span class="line-status-scale" role="img" aria-label="{{ t.get('line_status_step', 'Level {step} of 4').replace('{step}', ls_step|string) }}">
+                    {% for step in range(1, 5) %}<i class="{{ 'on' if step <= ls_step else '' }}"></i>{% endfor %}
+                </span>
+            </div>
+        </div>
+        <div class="line-status-count">
+            <strong class="num">{{ ls.within }}</strong><span class="num">/ {{ ls.total }}</span>
+            <small>{{ t.get('line_status_within', 'channels within target') }}</small>
+        </div>
+    </div>
+
+    {% for d in ls.directions %}
+    {% set c = d.callout %}
+    <div class="line-status-row" data-direction="{{ d.key }}">
+        <span class="line-status-dir" title="{{ ls_direction[d.key] }}">{{ ls_short[d.key] }}</span>
+        <div class="line-status-strip" role="img"
+             aria-label="{{ ls_direction[d.key] }}: {{ d.counts.good }} {{ t.health_good }}, {{ d.counts.tolerated }} {{ t.health_tolerated }}, {{ d.counts.warning }} {{ t.health_marginal }}, {{ d.counts.critical }} {{ t.health_critical }}">
+            {% for seg in d.segments %}
+            <span class="ls-seg ls-{{ seg.health }}{{ ' ls-focus' if c and seg.channel_id == c.channel_id else '' }}"
+                  title="{{ ls_short[d.key] }} {{ seg.channel_id }} · {{ seg.family }}{% if seg.power is not none %} · {{ '%.1f'|format(seg.power) }} dBmV{% endif %} · {{ ls_word[seg.health] }}"></span>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="line-status-meta">
+        {% for state in ('good', 'tolerated', 'warning', 'critical') %}
+        <span class="ls-count ls-{{ state }}"><span class="ls-shape ls-shape-{{ state }}" aria-hidden="true"></span>{{ d.counts[state] }} {{ ls_word[state] }}</span>
+        {% endfor %}
+        <span class="ls-families">{% for family, count in d.families|dictsort %}{{ count }} {{ family }}{{ ' · ' if not loop.last else '' }}{% endfor %}</span>
+    </div>
+    {% if c %}
+    <div class="line-status-callout ls-{{ c.health }}" style="--ls-anchor: {{ ((d.segments|map(attribute='channel_id')|list).index(c.channel_id) + 0.5) / d.total * 100 }}%">
+        <div class="ls-callout-what">
+            <span class="ls-callout-label">{{ ls_direction[d.key] }} · {{ t.get('line_status_channel', 'Channel') }} {{ c.channel_id }} · {{ c.family }}</span>
+            {% if c.measurement %}
+            <span class="ls-callout-value num">{{ '%.1f'|format(c.measurement.value) }} <small>{{ c.measurement.unit }}</small></span>
+            {% else %}
+            <span class="ls-callout-value">{{ c.modulation or ls_word[c.health] }}</span>
+            {% endif %}
+        </div>
+        {% if c.measurement %}
+        {% set m = c.measurement %}
+        <div class="ls-callout-ruler">
+            <div class="ls-ruler" aria-hidden="true">
+                <span class="ls-ruler-tolerated" style="left: {{ m.ruler.tolerated.left }}%; width: {{ m.ruler.tolerated.width }}%;"></span>
+                <span class="ls-ruler-good" style="left: {{ m.ruler.good.left }}%; width: {{ m.ruler.good.width }}%;"></span>
+                <span class="ls-ruler-marker" style="left: {{ m.ruler.marker }}%;"></span>
+            </div>
+            <div class="ls-callout-delta">
+                <span class="ls-shape ls-shape-{{ c.health }}" aria-hidden="true"></span>
+                {% if m.delta < 0 %}{{ t.get('line_status_below_target', '{delta} dB below target').replace('{delta}', '%.1f'|format(-m.delta)) }}
+                {% elif m.delta > 0 %}{{ t.get('line_status_above_target', '{delta} dB above target').replace('{delta}', '%.1f'|format(m.delta)) }}
+                {% else %}{{ ls_word[c.health] }}{% endif %}
+            </div>
+            <div class="ls-callout-target">
+                {% if m.target_max is not none %}{{ t.get('line_status_target', 'Target') }} {{ '%.1f'|format(m.target_min) }}–{{ '%.1f'|format(m.target_max) }} {{ m.unit }}
+                {% else %}{{ t.get('line_status_target', 'Target') }} ≥ {{ '%.1f'|format(m.target_min) }} {{ m.unit }}{% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% if d.more %}
+    <div class="line-status-more">
+        +{{ d.more|length }} {{ t.get('line_status_more', 'more') }}:
+        {% for other in d.more %}{{ ls_short[d.key] }} {{ other.channel_id }} ({{ ls_word[other.health] }}){{ ', ' if not loop.last else '' }}{% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+
+    {% if ls.deviating == 0 %}
+    <p class="line-status-ok">{{ t.get('line_status_no_deviation', 'No deviation · all channels within target') }}</p>
+    {% endif %}
+
+    <div class="line-status-actions">
+        {% if ls.primary %}
+        {% set first = ls.primary %}
+        <a class="btn btn-primary" href="{{ first.link }}">
+            <i data-lucide="arrow-right"></i>
+            {{ t.get('line_status_view_channel', 'View {direction} channel {channel}').replace('{direction}', ls_direction[first.direction]).replace('{channel}', first.channel_id|string) }}
+        </a>
+        {% else %}
+        <a class="btn btn-secondary" href="#trends">
+            <i data-lucide="trending-up"></i> {{ t.signal_trends }}
+        </a>
+        {% endif %}
+    </div>
+</section>
