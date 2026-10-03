@@ -3,7 +3,7 @@
 from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import expect
-from tests.e2e.support.navigation import open_view
+from tests.e2e.support.navigation import open_view, reveal_in_nav
 
 
 def _open_journal(demo_page):
@@ -180,7 +180,7 @@ def test_incident_report_pdf_download_preserves_customer_details_e2e(demo_page):
         ),
     )
 
-    demo_page.locator("#report-link").click()
+    reveal_in_nav(demo_page, "#report-link").click()
     modal = demo_page.locator("#report-modal")
     modal.locator("#report-name").fill("Max Mustermann")
     modal.locator("#report-number").fill("KD-123456")
@@ -197,7 +197,7 @@ def test_incident_report_pdf_download_preserves_customer_details_e2e(demo_page):
 
 def test_report_modal_frames_isp_ready_evidence_builder(demo_page):
     """The report modal previews evidence contents, privacy expectations, and output actions before generation."""
-    demo_page.locator("#report-link").click()
+    reveal_in_nav(demo_page, "#report-link").click()
 
     modal = demo_page.locator("#report-modal")
     expect(modal).to_be_visible()
@@ -229,7 +229,7 @@ def test_report_pdf_download_preserves_customer_details_e2e(demo_page):
         ),
     )
 
-    demo_page.locator("#report-link").click()
+    reveal_in_nav(demo_page, "#report-link").click()
     modal = demo_page.locator("#report-modal")
     modal.locator("#report-name").fill("Max Mustermann")
     modal.locator("#report-number").fill("KD-123456")
@@ -271,7 +271,7 @@ def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
         expect(page.locator(f"#{field_id}")).to_have_value(value)
 
     page.goto(configured_server, wait_until="networkidle")
-    page.locator("#report-link").click()
+    reveal_in_nav(page, "#report-link").click()
     modal = page.locator("#report-modal")
     expect(modal.locator("#report-name")).to_have_value(saved["report_customer_name"])
     expect(modal.locator("#report-number")).to_have_value(saved["report_customer_number"])
@@ -285,7 +285,7 @@ def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
     fresh_page = fresh_context.new_page()
     try:
         fresh_page.goto(configured_server, wait_until="networkidle")
-        fresh_page.locator("#report-link").click()
+        reveal_in_nav(fresh_page, "#report-link").click()
         fresh_modal = fresh_page.locator("#report-modal")
         expect(fresh_modal.locator("#report-name")).to_have_value(saved["report_customer_name"])
         expect(fresh_modal.locator("#report-number")).to_have_value(saved["report_customer_number"])
@@ -312,7 +312,7 @@ def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
     assert params["address"] == [saved["report_customer_address"]]
 
     page.evaluate("closeReportModal()")
-    page.locator("#report-link").click()
+    reveal_in_nav(page, "#report-link").click()
     expect(modal.locator("#report-name")).to_have_value(saved["report_customer_name"])
     expect(modal.locator("#report-number")).to_have_value(saved["report_customer_number"])
     expect(modal.locator("#report-address")).to_have_value(saved["report_customer_address"])
@@ -329,7 +329,7 @@ def test_report_modal_shows_generation_success_and_error_states(demo_page):
             body='{"text":"Subject: DOCSIS Signal Quality Issues\\n\\nEvidence summary ready."}',
         ),
     )
-    demo_page.locator("#report-link").click()
+    reveal_in_nav(demo_page, "#report-link").click()
     modal = demo_page.locator("#report-modal")
     modal.get_by_role("button", name="Build evidence package").click()
 
@@ -340,7 +340,7 @@ def test_report_modal_shows_generation_success_and_error_states(demo_page):
 
     demo_page.keyboard.press("Escape")
     expect(modal).not_to_be_visible()
-    demo_page.locator("#report-link").click()
+    reveal_in_nav(demo_page, "#report-link").click()
     expect(modal.locator("#report-step1")).to_be_visible()
     expect(modal.locator("#report-step2")).not_to_be_visible()
     expect(modal.locator("#report-builder-status")).to_have_text("")
@@ -358,7 +358,7 @@ def test_report_modal_shows_generation_success_and_error_states(demo_page):
             body='{"error":"No report data is available for this period."}',
         ),
     )
-    demo_page.locator("#report-link").click()
+    reveal_in_nav(demo_page, "#report-link").click()
     modal.get_by_role("button", name="Build evidence package").click()
 
     expect(modal.locator("#report-builder-status")).to_contain_text("No report data is available for this period")
@@ -396,7 +396,7 @@ def test_report_modal_preserves_bnetz_source_and_ignores_stale_generation(demo_p
     demo_page.keyboard.press("Escape")
     expect(modal).not_to_be_visible()
 
-    demo_page.locator("#report-link").click()
+    reveal_in_nav(demo_page, "#report-link").click()
     expect(modal.locator("#report-step1")).to_be_visible()
     expect(modal.locator("#report-step2")).not_to_be_visible()
     expect(modal.locator("#report-builder-status")).to_have_text("")
@@ -617,7 +617,7 @@ def test_ai_export_modal_previews_privacy_scope_and_size(demo_page):
         ),
     )
 
-    demo_page.locator("#export-link").click()
+    reveal_in_nav(demo_page, "#export-link").click()
     modal = demo_page.locator("#export-modal")
 
     expect(modal).to_be_visible()
@@ -654,7 +654,7 @@ def test_ai_export_redaction_copy_and_download_states(demo_page):
         });
     """)
 
-    demo_page.locator("#export-link").click()
+    reveal_in_nav(demo_page, "#export-link").click()
     modal = demo_page.locator("#export-modal")
     expect(modal).to_be_visible()
 
@@ -708,7 +708,7 @@ def test_ai_export_ignores_pending_response_after_keyboard_dismissal(demo_page):
         };
     """)
 
-    demo_page.locator("#export-link").click()
+    reveal_in_nav(demo_page, "#export-link").click()
     modal = demo_page.locator("#export-modal")
     expect(modal).to_be_visible()
     demo_page.keyboard.press("Escape")
