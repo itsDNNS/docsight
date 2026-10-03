@@ -31,7 +31,7 @@ def test_index_renders_glossary_inside_app_shell(client, sample_analysis):
 
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
-    assert 'class="sidebar"' in html
+    assert 'id="topnav"' in html
     assert 'data-view="glossary"' in html
     assert 'id="view-glossary" class="view glossary-app-view"' in html
     assert 'href="/glossary?lang=en"' not in html

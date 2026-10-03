@@ -8,6 +8,7 @@ integration, and JS error-free operation.
 import re
 
 import pytest
+from tests.e2e.support.navigation import open_view
 
 
 # ── Helpers ──
@@ -15,7 +16,7 @@ import pytest
 
 def navigate_to_segment(page):
     """Switch to Segment Utilization view and wait for data to load."""
-    page.locator('.nav-item[data-view="segment-utilization"]').click()
+    open_view(page, "segment-utilization")
     page.wait_for_timeout(2000)
 
 
@@ -54,7 +55,7 @@ class TestSegmentNavigation:
 
     def test_view_hidden_when_on_other_tab(self, fritzbox_page):
         """Segment view should be hidden when another tab is active."""
-        fritzbox_page.locator('.nav-item[data-view="live"]').click()
+        open_view(fritzbox_page, "live")
         fritzbox_page.wait_for_timeout(300)
         view = fritzbox_page.locator("#view-segment-utilization")
         assert not view.is_visible()
@@ -397,14 +398,14 @@ class TestSegmentCorrelation:
 
     def test_correlation_view_loads_for_fritzbox(self, fritzbox_page):
         """Correlation view should load without errors for FritzBox."""
-        fritzbox_page.locator('.nav-item[data-view="correlation"]').click()
+        open_view(fritzbox_page, "correlation")
         fritzbox_page.wait_for_timeout(2000)
         view = fritzbox_page.locator("#view-correlation")
         assert view.is_visible()
 
     def test_correlation_legend_has_segment_entries(self, fritzbox_page):
         """Correlation legend should include Segment DS/US entries."""
-        fritzbox_page.locator('.nav-item[data-view="correlation"]').click()
+        open_view(fritzbox_page, "correlation")
         fritzbox_page.wait_for_timeout(3000)
         legend = fritzbox_page.locator("#correlation-legend, .correlation-legend")
         if legend.count() > 0:
@@ -413,7 +414,7 @@ class TestSegmentCorrelation:
 
     def test_correlation_defaults_disable_poor_signal_and_line_metrics_have_no_area_fill(self, fritzbox_page):
         """Poor Signal starts disabled and isolated line metrics render without area fills."""
-        fritzbox_page.locator('.nav-item[data-view="correlation"]').click()
+        open_view(fritzbox_page, "correlation")
         fritzbox_page.wait_for_timeout(3000)
 
         poor_signal = fritzbox_page.locator('#correlation-legend span[data-metric="poorSignal"]')
@@ -470,7 +471,7 @@ class TestSegmentCorrelation:
         """Hovering the correlation chart should keep tooltip and timeline sync working with segment data."""
         errors = []
         fritzbox_page.on("pageerror", lambda err: errors.append(str(err)))
-        fritzbox_page.locator('.nav-item[data-view="correlation"]').click()
+        open_view(fritzbox_page, "correlation")
         fritzbox_page.wait_for_timeout(3000)
 
         overlay = fritzbox_page.locator("canvas#correlation-overlay")
@@ -632,7 +633,7 @@ class TestSegmentNoJSErrors:
         fritzbox_page.on("pageerror", lambda err: errors.append(str(err)))
         navigate_to_segment(fritzbox_page)
         fritzbox_page.wait_for_timeout(1500)
-        fritzbox_page.locator('.nav-item[data-view="live"]').click()
+        open_view(fritzbox_page, "live")
         fritzbox_page.wait_for_timeout(500)
         navigate_to_segment(fritzbox_page)
         fritzbox_page.wait_for_timeout(1500)

@@ -4,40 +4,41 @@ import pytest
 from playwright.sync_api import expect
 
 from tests.e2e.test_modulation_visual import _switch_distribution
+from tests.e2e.support.navigation import open_view
 
 
 # ── Navigation ──
 
 class TestModulationNavigation:
-    """Sidebar nav → module tab activation."""
+    """Top navigation → module tab activation."""
 
-    def test_sidebar_has_modulation_link(self, demo_page):
+    def test_nav_has_modulation_link(self, demo_page):
         nav = demo_page.locator('.nav-item[data-view="modulation"]')
         assert nav.count() > 0
 
-    def test_sidebar_link_text(self, demo_page):
+    def test_nav_link_text(self, demo_page):
         nav = demo_page.locator('.nav-item[data-view="modulation"]')
         text = nav.text_content().strip()
         assert "Modulation" in text
 
     def test_click_opens_modulation_view(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         view = demo_page.locator("#view-modulation")
         expect(view).to_be_visible()
 
     def test_modulation_nav_marked_active(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         nav = demo_page.locator('.nav-item[data-view="modulation"]')
         assert "active" in nav.get_attribute("class")
 
     def test_live_view_hidden_when_modulation_active(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         live = demo_page.locator("#view-dashboard")
         expect(live).not_to_be_visible()
 
     def test_switch_back_to_live(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
-        demo_page.locator('.nav-item[data-view="live"]').click()
+        open_view(demo_page, "modulation")
+        open_view(demo_page, "live")
         live = demo_page.locator("#view-dashboard")
         expect(live).to_be_visible()
 
@@ -54,7 +55,7 @@ class TestModulationNavigation:
         expect(demo_page.locator("#metric-us-sc-qam-card")).to_be_visible()
         expect(demo_page.locator("#metric-us-ofdma-card")).to_be_visible()
 
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
 
         expect(demo_page.locator("#view-modulation")).to_be_visible()
 
@@ -150,7 +151,7 @@ class TestModulationTabStructure:
 
     @pytest.fixture(autouse=True)
     def navigate_to_modulation(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         demo_page.wait_for_timeout(500)
         self.page = demo_page
 
@@ -199,7 +200,7 @@ class TestModulationControls:
 
     @pytest.fixture(autouse=True)
     def navigate_to_modulation(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         demo_page.wait_for_function(
             "() => (window._modCharts || []).length > 0",
             timeout=150_000,
@@ -401,7 +402,7 @@ class TestModulationKPIs:
 
     @pytest.fixture(autouse=True)
     def navigate_to_modulation(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         demo_page.wait_for_timeout(1500)
         self.page = demo_page
 
@@ -435,7 +436,7 @@ class TestProtocolGroups:
 
     @pytest.fixture(autouse=True)
     def navigate_to_modulation(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         demo_page.locator(".mod-protocol-group").first.wait_for(
             state="visible",
             timeout=150_000,
@@ -514,7 +515,7 @@ class TestNoConsoleErrors:
 def test_modulation_curves_without_points_keep_tooltip_and_drilldown(demo_page, direction, days):
     from tests.e2e.test_charts import _assert_curve_points_hidden
 
-    demo_page.locator('.nav-item[data-view="modulation"]').click()
+    open_view(demo_page, "modulation")
     demo_page.wait_for_function("() => window._modCharts.length >= 2", timeout=150_000)
     if direction == "ds":
         _switch_distribution(demo_page, '#modulation-direction-tabs [data-dir="ds"]',

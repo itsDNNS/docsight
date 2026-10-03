@@ -175,27 +175,20 @@ def test_mobile_navigation_and_high_value_modals_pass_quality_gate(demo_page):
     page.reload()
     page.wait_for_load_state("networkidle")
 
-    sidebar = page.locator("#sidebar")
-    hamburger = page.locator("#hamburger")
-    expect(sidebar).to_have_attribute("aria-hidden", "true")
-    hidden_focus_targets = page.evaluate(
-        """
-        () => Array.from(document.querySelectorAll(
-            '#sidebar a[href], #sidebar button, #sidebar input, #sidebar [role="button"], #sidebar [tabindex]'
-        )).filter((el) => !el.disabled && el.getAttribute('tabindex') !== '-1')
-          .map((el) => el.textContent.trim() || el.id || el.getAttribute('data-view'))
-        """
-    )
-    assert hidden_focus_targets == []
-    hamburger.focus()
-    hamburger.click()
-    page.wait_for_timeout(300)
-    expect(sidebar).to_have_attribute("aria-hidden", "false")
-    _assert_visible_controls_stay_in_view(page, "open mobile navigation", "#sidebar")
+    signal_toggle = page.locator("#nav-toggle-signal")
+    signal_panel = page.locator("#nav-panel-signal")
+    expect(page.locator("#main-nav")).to_be_visible()
+    expect(signal_panel).to_be_hidden()
+    _assert_visible_controls_stay_in_view(page, "mobile bottom navigation", "#main-nav")
+    signal_toggle.focus()
+    signal_toggle.click()
+    expect(signal_panel).to_be_visible()
+    expect(signal_toggle).to_have_attribute("aria-expanded", "true")
+    _assert_visible_controls_stay_in_view(page, "open mobile navigation sheet", "#nav-panel-signal")
     page.keyboard.press("Escape")
-    page.wait_for_timeout(300)
-    expect(sidebar).to_have_attribute("aria-hidden", "true")
-    assert page.evaluate("document.activeElement && document.activeElement.id") == "hamburger"
+    expect(signal_panel).to_be_hidden()
+    expect(signal_toggle).to_have_attribute("aria-expanded", "false")
+    assert page.evaluate("document.activeElement && document.activeElement.id") == "nav-toggle-signal"
 
     page.evaluate("switchView('journal')")
     page.wait_for_selector("#view-journal.active", state="visible")

@@ -7,6 +7,7 @@ import os
 
 import pytest
 from playwright.sync_api import expect
+from tests.e2e.support.navigation import open_view
 
 
 SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "screenshots", "glossary")
@@ -50,7 +51,7 @@ class TestGlossaryVisualDesktop:
         )
 
     def test_screenshot_modulation_popovers(self, demo_page):
-        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        open_view(demo_page, "modulation")
         demo_page.wait_for_timeout(2000)
         hint = demo_page.locator('#view-modulation .glossary-hint').first
         hint.click()

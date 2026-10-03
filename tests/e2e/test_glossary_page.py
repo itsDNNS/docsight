@@ -96,7 +96,7 @@ def test_glossary_app_view_renders_inside_shell(page, live_server):
     page.goto(f"{live_server}/?lang=en&term=docsis#glossary?term=docsis")
     page.wait_for_selector("#view-glossary.active", state="visible")
 
-    expect(page.locator(".sidebar")).to_be_visible()
+    expect(page.locator("#topnav")).to_be_visible()
     expect(page.locator('.nav-item[data-view="glossary"]')).to_have_class(re.compile(r"active"))
     expect(page.locator("#view-glossary .view-page-title", has_text="Glossary")).to_be_visible()
     expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="DOCSIS")).to_be_visible()

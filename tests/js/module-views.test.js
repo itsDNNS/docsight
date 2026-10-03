@@ -116,7 +116,7 @@ for (const name of ['journal', 'bqm', 'speedtest']) {
 
 for (const hash of ['#journal', '#bqm', '#speedtest', '#unknown?mode=timeline']) {
     test(`unavailable initial ${hash} returns to live and clears the hash`, () => {
-        const {context, elements} = browser(['sidebar', 'sidebar-backdrop', 'theme-toggle-sidebar', 'view-dashboard'], hash);
+        const {context, elements} = browser(['topnav', 'topnav-backdrop', 'theme-toggle-sidebar', 'view-dashboard'], hash);
         context.initJournalView = context.initBqmView = context.initSpeedtestView = () => assert.fail('Unavailable module initialized');
         run(context, 'app/static/js/dashboard.js');
         run(context, 'app/static/js/dashboard-routing.js');
@@ -127,7 +127,7 @@ for (const hash of ['#journal', '#bqm', '#speedtest', '#unknown?mode=timeline'])
 }
 
 test('routing accepts optional hooks, repeated activation, deactivated views and browser back', () => {
-    const {context, elements, listeners} = browser(['sidebar', 'sidebar-backdrop', 'theme-toggle-sidebar', 'view-dashboard', 'view-speedtest']);
+    const {context, elements, listeners} = browser(['topnav', 'topnav-backdrop', 'theme-toggle-sidebar', 'view-dashboard', 'view-speedtest']);
     run(context, 'app/static/js/dashboard.js');
     context.switchView('speedtest');
     assert.equal(elements['view-speedtest'].classList.contains('active'), true);

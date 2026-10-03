@@ -5,6 +5,7 @@ from __future__ import annotations
 from urllib.parse import urlsplit
 
 import pytest
+from tests.e2e.support.navigation import open_view, reveal_in_nav
 
 
 def _require(condition: bool, message: str) -> None:
@@ -126,7 +127,7 @@ def test_critical_browser_journeys_through_real_prefix_stripping_proxy(
 
     evidence_nav = page.locator('.nav-item[data-view="evidence"]')
     _require(evidence_nav.count() == 1, "dashboard module navigation is missing")
-    evidence_nav.click()
+    open_view(page, "evidence")
     _require(
         page.locator("#view-evidence.active").count() == 1,
         "dashboard module navigation did not activate its view",
@@ -194,7 +195,7 @@ def test_critical_browser_journeys_through_real_prefix_stripping_proxy(
     )
 
     page.goto(f"{app_url}/", wait_until="domcontentloaded")
-    page.locator('form[action$="/logout"] button[type="submit"]').click()
+    reveal_in_nav(page, 'form[action$="/logout"] button[type="submit"]').click()
     page.wait_for_load_state("domcontentloaded")
     _require(
         page.evaluate(

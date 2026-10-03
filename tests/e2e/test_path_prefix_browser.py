@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from urllib.parse import urlsplit
+from tests.e2e.support.navigation import open_view
 
 
 def _record_browser_activity(page, origins):
@@ -108,9 +109,8 @@ def test_browser_urls_stay_within_root_or_docsight_mount(page, path_prefix_serve
         "smokeping",
         "events",
     ):
-        button = page.locator(f'.nav-item[data-view="{view}"]')
-        if button.count():
-            button.first.click()
+        if page.locator(f'.nav-item[data-view="{view}"]').count():
+            open_view(page, view)
             # These views start asynchronous API work. Let each real journey
             # settle before switching views so the test does not manufacture
             # aborted fetch errors.

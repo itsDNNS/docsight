@@ -3,24 +3,25 @@
 from pathlib import Path
 
 from playwright.sync_api import expect
+from tests.e2e.support.navigation import open_view
 
 
 class TestChannelsView:
     """Channels view navigation and content."""
 
     def test_switch_to_channels_view(self, demo_page):
-        demo_page.locator('.nav-item[data-view="channels"]').click()
+        open_view(demo_page, "channels")
         channels = demo_page.locator("#view-channels")
         assert channels.is_visible()
 
     def test_channels_view_hides_live(self, demo_page):
-        demo_page.locator('.nav-item[data-view="channels"]').click()
+        open_view(demo_page, "channels")
         live = demo_page.locator("#view-live")
         assert not live.is_visible()
 
     def test_channels_nav_marked_active(self, demo_page):
+        open_view(demo_page, "channels")
         nav = demo_page.locator('.nav-item[data-view="channels"]')
-        nav.click()
         assert "active" in nav.get_attribute("class")
 
     def test_tg_channels_survive_collection_and_rendering(self, vodafone_tg_server, page):

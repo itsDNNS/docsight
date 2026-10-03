@@ -1,6 +1,7 @@
 """E2E tests for authentication flows."""
 
 import pytest
+from tests.e2e.support.navigation import reveal_in_nav
 
 
 class TestLoginPage:
@@ -39,13 +40,13 @@ class TestLoginFlow:
         auth_page.goto(f"{auth_server}/settings")
         assert "settings" in auth_page.url.lower() or "Settings" in auth_page.title()
 
-    def test_sidebar_logout_button_logs_out_and_protects_dashboard(self, auth_page, auth_server):
+    def test_logout_in_more_menu_logs_out_and_protects_dashboard(self, auth_page, auth_server):
         auth_page.goto(f"{auth_server}/login")
         auth_page.fill('input[name="password"]', "e2e-test-password")
         auth_page.click('button[type="submit"]')
         auth_page.wait_for_load_state("networkidle")
 
-        logout_button = auth_page.locator('form[action="/logout"] button[type="submit"]')
+        logout_button = reveal_in_nav(auth_page, 'form[action="/logout"] button[type="submit"]')
         assert logout_button.is_visible()
         logout_button.click()
         auth_page.wait_for_url("**/login")

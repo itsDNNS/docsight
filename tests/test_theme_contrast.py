@@ -59,7 +59,7 @@ def test_default_tokens_meet_aa_on_all_surfaces():
 
 def test_navigation_badge_text_meets_aa_with_every_builtin_crit_color():
     css = (ROOT / "app/static/css/main.css").read_text(encoding="utf-8")
-    rule = re.search(r"\.nav-badge \{[^}]*\}", css).group(0)
+    rule = re.search(r"^\.nav-badge \{[^}]*\}", css, re.M).group(0)
     match = re.search(r"color-mix\(in srgb, var\(--crit\) (\d+)%, #000\)", rule)
     assert match, "the navigation badge background should darken --crit"
     share = int(match.group(1)) / 100
