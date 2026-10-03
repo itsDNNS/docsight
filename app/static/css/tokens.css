@@ -85,6 +85,45 @@
   /* Layout */
   --bottom-nav-h: 56px;
 
+  /* ── UI tokens: Graphite palette ──
+     Semantic layer for the redesigned interface. Source values are OKLCH
+     (neutral hue 255); the hex values below are the sRGB conversions.
+     Themes may override these tokens; legacy tokens above stay untouched. */
+  --ui-bg: #101316;           /* oklch(18.5% 0.008 255) */
+  --ui-surface: #1c1e22;      /* oklch(23.5% 0.008 255) */
+  --ui-surface-alt: #26292d;  /* oklch(28% 0.008 255) */
+  --ui-line: #404347;         /* oklch(38% 0.008 255), decorative only */
+  --ui-control: #73767b;      /* oklch(56.5% 0.008 255), control outlines */
+  --ui-ink: #ebecee;          /* oklch(94.3% 0.0032 255), headings, values */
+  --ui-text: #cdcfd2;         /* oklch(85.5% 0.0048 255), body text */
+  --ui-muted: #aaadb0;        /* oklch(74.5% 0.0064 255), secondary text */
+  --ui-accent: #8cb4e8;       /* oklch(76% 0.08715 255), interaction */
+  --ui-on-accent: #0f1215;    /* oklch(18% 0.008 255) */
+  /* Status colors are reserved for status (always paired with shape + text) */
+  --ui-good: #8ec495;         /* oklch(77% 0.0867 148) */
+  --ui-tolerated: #c6b37b;    /* oklch(77% 0.0765 92) */
+  --ui-marginal: #e2a579;     /* oklch(77% 0.0935 57) */
+  --ui-critical: #f8958d;     /* oklch(77% 0.1207 25) */
+  /* Data series: equal lightness and chroma, hue only */
+  --ui-data-ds: #7bbad0;      /* oklch(75.5% 0.072 222), downstream / download */
+  --ui-data-us: #a8aadd;      /* oklch(75.5% 0.072 282), upstream / upload */
+  --ui-data-snr: #77bebb;     /* oklch(75.5% 0.072 192), SNR / MER */
+  --ui-data-errors: #d09ebc;  /* oklch(75.5% 0.072 342), error counters */
+  --ui-data-latency: #8fb3dc; /* oklch(75.5% 0.072 252), latency / ping */
+  --ui-data-jitter: #bfa3d1;  /* oklch(75.5% 0.072 312), jitter */
+
+  --ui-font-display: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif;
+  --ui-font-text: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --ui-fs-caption: 0.75rem;   /* 12px, minimum */
+  --ui-fs-label: 0.8125rem;   /* 13px */
+  --ui-fs-body: 0.9375rem;    /* 15px */
+  --ui-fs-title: 1.25rem;     /* 20px */
+  --ui-fs-heading: 1.75rem;   /* 28px */
+  --ui-fs-display: 2.375rem;  /* 38px, status word and KPI values */
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 10px;
+  --ui-radius-lg: 16px;
+
   /* Legacy aliases (for settings.css backward compat) */
   --bg: var(--void);
   --card: var(--surface);
@@ -141,6 +180,28 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+
+  /* UI tokens: Graphite palette (light) */
+  --ui-bg: #f1f4f7;           /* oklch(96.5% 0.0048 255) */
+  --ui-surface: #fbfcfd;      /* oklch(99.1% 0.00176 255) */
+  --ui-surface-alt: #e7eaee;  /* oklch(93.5% 0.0064 255) */
+  --ui-line: #c7cbd0;         /* oklch(84% 0.008 255) */
+  --ui-control: #797c81;      /* oklch(58.5% 0.008 255) */
+  --ui-ink: #1f2225;          /* oklch(25% 0.008 255) */
+  --ui-text: #3d4044;         /* oklch(37% 0.008 255) */
+  --ui-muted: #595c61;        /* oklch(47.5% 0.008 255) */
+  --ui-accent: #34629b;       /* oklch(49% 0.105 255) */
+  --ui-on-accent: #fbfcfc;    /* oklch(99% 0.0012 255) */
+  --ui-good: #32703e;         /* oklch(49% 0.102 148) */
+  --ui-tolerated: #735e17;    /* oklch(49% 0.09 92) */
+  --ui-marginal: #8e4e12;     /* oklch(49% 0.11 57) */
+  --ui-critical: #a13735;     /* oklch(49% 0.142 25) */
+  --ui-data-ds: #2c7085;      /* oklch(51% 0.075 222) */
+  --ui-data-us: #5f6190;      /* oklch(51% 0.075 282) */
+  --ui-data-snr: #247471;     /* oklch(51% 0.075 192) */
+  --ui-data-errors: #845572;  /* oklch(51% 0.075 342) */
+  --ui-data-latency: #456990; /* oklch(51% 0.075 252) */
+  --ui-data-jitter: #755985;  /* oklch(51% 0.075 312) */
 
   /* Legacy aliases */
   --bg: var(--void);
