@@ -1,0 +1,133 @@
+{# Current DS/US channel tables, grouped by DOCSIS version. Needs ds, us, t, lang. #}
+{% set health_labels = {'good': t.health_good, 'tolerated': t.health_tolerated, 'warn': t.health_marginal, 'crit': t.health_critical} %}
+{% set ds_good = ds|selectattr('health', 'equalto', 'good')|list|length %}
+{% set ds_tolerated = ds|selectattr('health', 'equalto', 'tolerated')|list|length %}
+{% set ds_warn = ds|selectattr('health', 'equalto', 'warning')|list|length %}
+{% set ds_crit = ds|selectattr('health', 'equalto', 'critical')|list|length %}
+{% set us_good_c = us|selectattr('health', 'equalto', 'good')|list|length %}
+{% set us_tolerated_c = us|selectattr('health', 'equalto', 'tolerated')|list|length %}
+{% set us_warn_c = us|selectattr('health', 'equalto', 'warning')|list|length %}
+{% set us_crit_c = us|selectattr('health', 'equalto', 'critical')|list|length %}
+{# ══════════════════════════════════════════════════════════════════════════
+   DOWNSTREAM CHANNELS — Channel detail tables with collapsible groups
+   ══════════════════════════════════════════════════════════════════════════ #}
+{% set ds_versions = ds|map(attribute='docsis_version')|unique|sort|list %}
+<section class="channels-section glass dashboard-channel-panel">
+    <div class="channel-header">
+        <div>
+            <div class="channel-title">{{ t.downstream }} {{ t.channels }}</div>
+            <div style="font-size:var(--fs-min);color:var(--text-muted);margin-top:2px;">{{ ds|length }} {{ t.channels }}{% if ds_versions %} · DOCSIS {{ ds_versions|join(' + ') }}{% endif %}</div>
+        </div>
+        <div class="channel-health-chips">
+            <span class="health-chip"><span class="dot good"></span> {{ ds_good }} {{ health_labels.good }}</span>
+            <span class="health-chip"><span class="dot tolerated"></span> {{ ds_tolerated }} {{ health_labels.tolerated }}</span>
+            <span class="health-chip"><span class="dot warn"></span> {{ ds_warn }} {{ health_labels.warn }}</span>
+            <span class="health-chip"><span class="dot crit"></span> {{ ds_crit }} {{ health_labels.crit }}</span>
+        </div>
+    </div>
+
+    {% for group in ds|groupby('docsis_version')|reverse %}
+    <div class="docsis-group">
+        <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="ds-docsis-group-{{ loop.index }}" onclick="if(!event.target.closest('.glossary-hint')){var open=this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded', open ? 'true' : 'false')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <i data-lucide="chevron-right"></i>
+            DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint" data-glossary-term-id="{{ 'ofdm' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
+        </div>
+        <div class="table-scroll-wrapper" id="ds-docsis-group-{{ loop.index }}">
+            <div class="table-scroll">
+                <table class="channel-table">
+                    <thead><tr>
+                        <th>{{ t.ch_abbr }}</th><th>{{ t.frequency }}</th><th>{{ t.th_power }}</th>
+                        <th>{{ t.get('signal_family_metric_mer', 'MER') if group.grouper|string == '3.1' else t.snr_abbr }}</th><th>{{ t.mod_abbr }}</th><th title="{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}">{{ t.get('docsight.modulation.capacity_short', 'Capacity estimate') }}</th><th>{{ t.signal_health }}</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for ch in group.list %}
+                    {% set ch_tips = {"power critical": t.ch_power_critical, "power warning": t.ch_power_warning, "power tolerated": t.ch_power_tolerated, "snr critical": t.ch_snr_critical, "snr warning": t.ch_snr_warning, "snr tolerated": t.ch_snr_tolerated} %}
+                    {% set ch_tip_parts = [] %}
+                    {% for key, label in ch_tips.items() %}{% if key in ch.health_detail %}{% if ch_tip_parts.append(label) %}{% endif %}{% endif %}{% endfor %}
+                    <tr>
+                        <td>{{ ch.channel_id }}</td>
+                        <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
+                        <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
+                        <td data-health="{{ ch.snr_health or 'good' }}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
+                        <td data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
+                        <td title="{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} {{ 'Mbit/s' if lang == 'de' else 'Mbps' }}{% else %}&#8212;{% endif %}</td>
+                        <td>
+                            {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
+                            {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip_parts|join(', ') }}">{{ health_labels.crit }}</span>
+                            {% elif ch.health == "warning" %}<span class="badge badge-warn" title="{{ ch_tip_parts|join(', ') }}">{{ health_labels.warn }}</span>
+                            {% else %}<span class="badge badge-tolerated" title="{{ ch_tip_parts|join(', ') }}">{{ health_labels.tolerated }}</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</section>
+
+{# ══════════════════════════════════════════════════════════════════════════
+   UPSTREAM CHANNELS — Channel detail tables with collapsible groups
+   ══════════════════════════════════════════════════════════════════════════ #}
+{% set us_versions = us|map(attribute='docsis_version')|unique|sort|list %}
+<section class="channels-section glass dashboard-channel-panel">
+    <div class="channel-header">
+        <div>
+            <div class="channel-title">{{ t.upstream }} {{ t.channels }}</div>
+            <div style="font-size:var(--fs-min);color:var(--text-muted);margin-top:2px;">{{ us|length }} {{ t.channels }}{% if us_versions %} · DOCSIS {{ us_versions|join(' + ') }}{% endif %}</div>
+        </div>
+        <div class="channel-health-chips">
+            <span class="health-chip"><span class="dot good"></span> {{ us_good_c }} {{ health_labels.good }}</span>
+            <span class="health-chip"><span class="dot tolerated"></span> {{ us_tolerated_c }} {{ health_labels.tolerated }}</span>
+            <span class="health-chip"><span class="dot warn"></span> {{ us_warn_c }} {{ health_labels.warn }}</span>
+            <span class="health-chip"><span class="dot crit"></span> {{ us_crit_c }} {{ health_labels.crit }}</span>
+        </div>
+    </div>
+
+    {% for group in us|groupby('docsis_version')|reverse %}
+    <div class="docsis-group">
+        <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="us-docsis-group-{{ loop.index }}" onclick="if(!event.target.closest('.glossary-hint')){var open=this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded', open ? 'true' : 'false')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <i data-lucide="chevron-right"></i>
+            DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint" data-glossary-term-id="{{ 'ofdma' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
+        </div>
+        <div class="table-scroll-wrapper" id="us-docsis-group-{{ loop.index }}">
+            <div class="table-scroll">
+                <table class="channel-table">
+                    <thead><tr>
+                        <th>{{ t.ch_abbr }}</th><th>{{ t.frequency }}</th><th>{{ t.th_power }}</th>
+                        <th>{{ t.mod_abbr }}</th><th title="{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}">{{ t.get('docsight.modulation.capacity_short', 'Capacity estimate') }}</th><th>{{ t.signal_health }}</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for ch in group.list %}
+                    {% set ch_tips = [] %}
+                    {% if 'power critical low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical_low) %}{% elif 'power critical high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical_high) %}{% elif 'power warning low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning_low) %}{% elif 'power warning high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning_high) %}{% elif 'power tolerated low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_tolerated_low) %}{% elif 'power tolerated high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_tolerated_high) %}{% endif %}
+                    {% if 'modulation critical' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_critical) %}{% elif 'modulation warning' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_warning) %}{% endif %}
+                    {% set ch_tip = ch_tips|join(', ') %}
+                    <tr>
+                        <td>{{ ch.channel_id }}</td>
+                        <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
+                        <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
+                        <td data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
+                        <td title="{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} {{ 'Mbit/s' if lang == 'de' else 'Mbps' }}{% else %}&#8212;{% endif %}</td>
+                        <td>
+                            {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
+                            {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip }}">{{ health_labels.crit }}</span>
+                            {% elif ch.health == "warning" %}<span class="badge badge-warn" title="{{ ch_tip }}">{{ health_labels.warn }}</span>
+                            {% else %}<span class="badge badge-tolerated" title="{{ ch_tip }}">{{ health_labels.tolerated }}</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</section>
+
+{% if not has_us_ofdma %}
+<div class="card-notice card-notice-warn" style="margin-top:8px;">
+    <span>&#9888;</span> {{ t.card_no_docsis31 }}
+</div>
+{% endif %}

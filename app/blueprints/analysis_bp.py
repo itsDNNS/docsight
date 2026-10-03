@@ -142,6 +142,22 @@ def api_channel_history():
     return jsonify(data)
 
 
+@analysis_bp.route("/api/channel-status")
+@require_auth
+def api_channel_status():
+    """Return the channels x time status matrix for ?range= (default 1d)."""
+    from app.channel_matrix import build_channel_matrix, localize_matrix
+
+    hours = parse_time_range_hours(request.args.get("range", "1d"), default="1d")
+    if hours is None:
+        return jsonify({"error": "range must be one of 1h, 6h, 1d, 2d, 3d, 7d, 30d, 90d"}), 400
+    start, end = utc_cutoff(hours=hours), utc_now()
+    _storage = current_runtime().storage
+    snapshots = _storage.get_channel_snapshots(hours=hours) if _storage else []
+    matrix = build_channel_matrix(snapshots, start, end)
+    return jsonify(localize_matrix(matrix, get_tz_name(current_runtime().config_manager)))
+
+
 @analysis_bp.route("/api/channel-compare")
 @require_auth
 def api_channel_compare():

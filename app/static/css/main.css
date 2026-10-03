@@ -2319,3 +2319,80 @@ body:has(#view-dashboard.active) .app-main {
   border-bottom: 1px solid var(--dash-muted-border);
 }
 .dashboard-hero .line-status-findings .insights-panel { margin: 0; }
+
+/* ── Channels status matrix ── */
+.channel-status {
+  --ls-good: var(--good);
+  --ls-tolerated: var(--tolerated);
+  --ls-warning: var(--warn);
+  --ls-critical: var(--crit);
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+.channel-status-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-md); flex-wrap: wrap; }
+.channel-status-head h3 { margin: 0; font-size: 1.05rem; font-weight: 650; color: var(--text); }
+.channel-status-window { font-size: var(--fs-min); color: var(--text-muted); }
+.channel-status-subtitle { margin: 0 0 var(--space-sm); font-size: 1.05rem; font-weight: 650; color: var(--text); }
+.cs-direction { display: grid; gap: 6px; }
+.cs-direction + .cs-direction { margin-top: var(--space-sm); padding-top: var(--space-md); border-top: 1px solid var(--glass-border); }
+.cs-direction-title { margin: 0; font-size: var(--fs-min); font-weight: 600; color: var(--text-muted); }
+.cs-rows, .cs-others { display: grid; gap: 8px; }
+.cs-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) minmax(140px, 190px);
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 8px;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.cs-row:hover { background: var(--tint-emphasis); }
+.cs-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cs-row:has(.cs-since) { margin-top: 26px; }
+.cs-label { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.cs-label small { display: block; margin-top: 2px; font-size: var(--fs-min); font-weight: 400; color: var(--text-muted); }
+.cs-cells { position: relative; display: grid; grid-template-columns: repeat(var(--cs-count, 48), minmax(0, 1fr)); gap: 2px; }
+.cs-cell { height: 26px; border-radius: 3px; background: var(--ls-good); opacity: 0.8; }
+.cs-cell.cs-tolerated { background: var(--ls-tolerated); opacity: 1; }
+.cs-cell.cs-warning { background: var(--ls-warning); opacity: 1; }
+.cs-cell.cs-critical { background: var(--ls-critical); opacity: 1; }
+.cs-cell.cs-none { background: var(--tint-emphasis); opacity: 0.6; }
+.cs-cell.cs-now { opacity: 1; box-shadow: inset 0 0 0 2px var(--card); }
+.cs-aggregate .cs-cell { height: 14px; opacity: 0.55; }
+.cs-aggregate .cs-cell.cs-none { opacity: 0.35; }
+.cs-aggregate[aria-expanded="true"] { background: var(--tint-emphasis); }
+.cs-others { padding-left: 12px; border-left: 2px solid var(--glass-border); }
+.cs-since { position: absolute; top: -12px; height: 8px; border: 2px solid currentColor; border-bottom: 0; border-radius: 3px 3px 0 0; pointer-events: none; }
+.cs-since-label { position: absolute; right: 0; bottom: 10px; font-size: var(--fs-min); font-weight: 600; white-space: nowrap; }
+.cs-since-tolerated, .cs-text-tolerated { color: var(--ls-tolerated); }
+.cs-since-warning, .cs-text-warning { color: var(--ls-warning); }
+.cs-since-critical, .cs-text-critical { color: var(--ls-critical); }
+.cs-text-good { color: var(--text-muted); }
+.cs-current { display: grid; gap: 2px; font-size: 0.85rem; color: var(--text-secondary); }
+.cs-value b { font-size: 1.25rem; font-weight: 650; color: var(--text); }
+.cs-delta { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.cs-axis { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) minmax(140px, 190px); gap: 16px; padding: 0 8px; font-size: var(--fs-min); color: var(--text-muted); }
+.cs-axis-ticks { display: flex; justify-content: space-between; }
+.channel-status-tables { --dash-border: color-mix(in srgb, var(--glass-border) 54%, transparent); }
+.channel-status-tables .channels-section + .channels-section { margin-top: var(--space-md); }
+@media (max-width: 760px) {
+  .channel-status { padding: var(--space-md); }
+  .cs-row, .cs-axis { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .cs-row:has(.cs-since) { margin-top: 0; }
+  .cs-row:has(.cs-since) .cs-cells { margin-top: 26px; }
+  .cs-cell { height: 20px; border-radius: 2px; }
+  .cs-axis > span:empty { display: none; }
+  .cs-current { grid-template-columns: auto auto; justify-content: start; align-items: baseline; gap: 12px; }
+}

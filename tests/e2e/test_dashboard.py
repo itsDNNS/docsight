@@ -138,10 +138,12 @@ class TestDashboardSections:
         expect(word).to_contain_text(re.compile(r"Good|Tolerated|Marginal|Critical"))
 
     def test_downstream_section(self, demo_page):
+        open_view(demo_page, "channels")
         ds = demo_page.locator(".dashboard-channel-panel .channel-title", has_text="Downstream")
         assert ds.is_visible()
 
     def test_upstream_section(self, demo_page):
+        open_view(demo_page, "channels")
         us = demo_page.locator(".dashboard-channel-panel .channel-title", has_text="Upstream")
         assert us.is_visible()
 
@@ -417,7 +419,8 @@ class TestDashboardSections:
         demo_page.wait_for_url("**/settings#mod-docsight_connection_monitor")
 
     def test_docsis_groups_expose_expanded_state(self, demo_page):
-        header = demo_page.locator(".docsis-group-header").first
+        open_view(demo_page, "channels")
+        header = demo_page.locator("#view-channels .docsis-group-header").first
         assert header.get_attribute("aria-expanded") == "false"
         assert header.get_attribute("aria-controls")
         header.press("Enter")

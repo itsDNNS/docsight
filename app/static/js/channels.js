@@ -4,7 +4,8 @@
    US_POWER_THRESHOLDS */
 
 /* ── Channel State URL Persistence ── */
-/* Hash format: #channels?mode=timeline&dir=ds&channel=42&range=1d
+/* Hash format: #channels?mode=status&range=1d
+   Timeline:    #channels?mode=timeline&dir=ds&channel=42&range=1d
    Exact:       #channels?mode=timeline&dir=ds&selector=<opaque>&range=1d
    Compare:     #channels?mode=compare&dir=us&range=30d&channels=1,2,3
    Exact:       #channels?mode=compare&dir=ds&range=7d&selectors=<opaque>,<opaque>
@@ -104,9 +105,11 @@ function parseChannelHash() {
 
 function writeChannelHash() {
     if (typeof currentView === 'undefined' || currentView !== 'channels') return;
-    var mode = getPillValue('channel-mode-tabs') || 'timeline';
+    var mode = getPillValue('channel-mode-tabs') || 'status';
     var params = ['mode=' + mode];
-    if (mode === 'timeline') {
+    if (mode === 'status') {
+        params.push('range=' + encodeURIComponent(getPillValue('channel-status-time-tabs') || '1d'));
+    } else if (mode === 'timeline') {
         var sel = document.getElementById('channel-select');
         var ref = _readChannelSelection(sel);
         if (ref) {
@@ -146,9 +149,10 @@ function setPillByValue(containerId, value) {
 function initChannelView() {
     var params = parseChannelHash();
     loadChannelList(function() {
-        if (!params.mode) {
-            // No hash params → reset to defaults (timeline, no selection, 1d)
-            setPillByValue('channel-mode-tabs', 'timeline');
+        if (params.mode !== 'timeline' && params.mode !== 'compare') {
+            // No hash params → reset to defaults (status matrix, no selection, 1d)
+            setPillByValue('channel-mode-tabs', 'status');
+            setPillByValue('channel-status-time-tabs', _normalizeChannelRangeValue(params.range || '1d'));
             setPillByValue('channel-time-tabs', '1d');
             var sel = document.getElementById('channel-select');
             if (sel) sel.value = '';
@@ -245,17 +249,26 @@ window.initChannelView = initChannelView;
 
 /* ── Channel Mode Switch (Timeline / Compare) ── */
 function switchChannelMode() {
-    var mode = getPillValue('channel-mode-tabs') || 'timeline';
-    var timelinePanel = document.getElementById('channel-panel-timeline');
-    var comparePanel = document.getElementById('channel-panel-compare');
-    var timelineControls = document.getElementById('channel-timeline-controls');
-    var compareControls = document.getElementById('channel-compare-controls');
+    var mode = getPillValue('channel-mode-tabs') || 'status';
+    var panels = {
+        status: document.getElementById('channel-panel-status'),
+        timeline: document.getElementById('channel-panel-timeline'),
+        compare: document.getElementById('channel-panel-compare')
+    };
+    var controls = {
+        status: document.getElementById('channel-status-controls'),
+        timeline: document.getElementById('channel-timeline-controls'),
+        compare: document.getElementById('channel-compare-controls')
+    };
+    Object.keys(panels).forEach(function(key) {
+        if (panels[key]) panels[key].style.display = key === mode ? '' : 'none';
+        if (controls[key]) controls[key].style.display = key === mode ? 'contents' : 'none';
+    });
     var infoBar = document.getElementById('channel-info-bar');
-    if (mode === 'compare') {
-        timelinePanel.style.display = 'none';
-        comparePanel.style.display = '';
-        if (timelineControls) timelineControls.style.display = 'none';
-        if (compareControls) compareControls.style.display = 'contents';
+    if (mode === 'status') {
+        if (infoBar) infoBar.style.display = 'none';
+        loadChannelStatus();
+    } else if (mode === 'compare') {
         if (infoBar) infoBar.style.display = 'none';
         loadCompareChannelList();
         if (_compareChannels.length === 0) {
@@ -264,10 +277,6 @@ function switchChannelMode() {
             emptyEl.style.display = '';
         }
     } else {
-        timelinePanel.style.display = '';
-        comparePanel.style.display = 'none';
-        if (timelineControls) timelineControls.style.display = 'contents';
-        if (compareControls) compareControls.style.display = 'none';
         var sel = document.getElementById('channel-select');
         if (!sel || !sel.value) {
             document.getElementById('channel-empty').style.display = '';
@@ -281,6 +290,255 @@ function switchChannelMode() {
     writeChannelHash();
 }
 window.switchChannelMode = switchChannelMode;
+
+/* ── Channel Status Matrix ── */
+var _channelStatusRequestSeq = 0;
+var _CHANNEL_STATUS_SEVERITY = { good: 0, tolerated: 1, warning: 2, critical: 3 };
+
+function _channelStatusWord(health) {
+    var words = {
+        good: T.health_good || 'Good',
+        tolerated: T.health_tolerated || 'Tolerated',
+        warning: T.health_marginal || 'Marginal',
+        critical: T.health_critical || 'Critical'
+    };
+    return words[health] || (T.channel_status_no_data || 'No data');
+}
+
+function _channelStatusNumber(value) {
+    var lang = document.documentElement.lang || undefined;
+    return Number(value).toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+function _channelStatusDuration(minutes) {
+    if (minutes < 1) return Math.round(minutes * 60) + ' s';
+    if (minutes < 60) return Math.round(minutes) + ' min';
+    var hours = minutes / 60;
+    return (hours % 1 === 0 ? hours : _channelStatusNumber(hours)) + ' h';
+}
+
+function _channelStatusEl(tag, className, text) {
+    var el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text !== undefined && text !== null) el.textContent = text;
+    return el;
+}
+
+function _channelStatusShape(health) {
+    var shape = _channelStatusEl('span', 'ls-shape ls-shape-' + health);
+    shape.setAttribute('aria-hidden', 'true');
+    return shape;
+}
+
+function _channelStatusTarget(m) {
+    var target = T.line_status_target || 'Target';
+    if (m.target_max === null || m.target_max === undefined) {
+        return target + ' ≥ ' + _channelStatusNumber(m.target_min) + ' ' + m.unit;
+    }
+    return target + ' ' + _channelStatusNumber(m.target_min) + '–' + _channelStatusNumber(m.target_max) + ' ' + m.unit;
+}
+
+function _channelStatusDelta(row) {
+    var m = row.measurement;
+    if (row.health === 'good') return T.channel_status_within_now || 'within target now';
+    if (!m || !m.delta) return row.modulation || _channelStatusWord(row.health);
+    var key = m.delta < 0 ? 'line_status_below_target' : 'line_status_above_target';
+    var fallback = m.delta < 0 ? '{delta} dB below target' : '{delta} dB above target';
+    return (T[key] || fallback).replace('{delta}', _channelStatusNumber(Math.abs(m.delta)));
+}
+
+function _channelStatusCells(cells, ctx, since) {
+    var wrap = _channelStatusEl('span', 'cs-cells');
+    wrap.style.setProperty('--cs-count', cells.length);
+    cells.forEach(function(cell, index) {
+        var i = _channelStatusEl('i', 'cs-cell cs-' + (cell || 'none') + (index === cells.length - 1 ? ' cs-now' : ''));
+        i.title = ctx.label(index) + ' · ' + _channelStatusWord(cell);
+        wrap.appendChild(i);
+    });
+    if (since) {
+        var bracket = _channelStatusEl('span', 'cs-since cs-since-' + since.health);
+        bracket.style.left = since.pct + '%';
+        bracket.style.width = (100 - since.pct) + '%';
+        bracket.appendChild(_channelStatusEl('span', 'cs-since-label',
+            (T.channel_status_since || 'since {time}').replace('{time}', since.time)));
+        wrap.appendChild(bracket);
+    }
+    return wrap;
+}
+
+function _channelStatusRow(direction, row, ctx) {
+    var short = direction === 'ds' ? 'DS' : 'US';
+    var name = short + ' · ' + (T.line_status_channel || 'Channel') + ' ' + row.channel_id;
+    var button = _channelStatusEl('button', 'cs-row cs-row-' + row.health);
+    button.type = 'button';
+    button.dataset.direction = direction;
+    button.dataset.channelId = row.channel_id;
+    button.setAttribute('aria-label', (T.channel_status_open || 'Open charts for {channel}').replace('{channel}', name)
+        + ', ' + _channelStatusWord(row.health));
+
+    var label = _channelStatusEl('span', 'cs-label', name);
+    var sub = row.family;
+    if (row.measurement) sub += ' · ' + _channelStatusTarget(row.measurement);
+    label.appendChild(_channelStatusEl('small', null, sub));
+    button.appendChild(label);
+
+    var since = null;
+    if (row.since && row.since_pct !== null) {
+        since = { pct: row.since_pct, health: row.health, time: ctx.time(row.since) };
+    }
+    button.appendChild(_channelStatusCells(row.cells, ctx, since));
+
+    var current = _channelStatusEl('span', 'cs-current');
+    if (row.value !== null && row.value !== undefined) {
+        var value = _channelStatusEl('span', 'cs-value');
+        value.appendChild(_channelStatusEl('b', 'num', _channelStatusNumber(row.value)));
+        value.appendChild(document.createTextNode(' ' + (row.unit || '')));
+        current.appendChild(value);
+    }
+    var delta = _channelStatusEl('span', 'cs-delta cs-text-' + row.health);
+    delta.appendChild(_channelStatusShape(row.health));
+    delta.appendChild(document.createTextNode(_channelStatusDelta(row)));
+    current.appendChild(delta);
+    button.appendChild(current);
+
+    button.addEventListener('click', function() { openChannelFromStatus(direction, row); });
+    return button;
+}
+
+function _channelStatusAggregate(block, ctx) {
+    var cells = block.others_cells;
+    var latest = null;
+    for (var i = cells.length - 1; i >= 0 && latest === null; i--) latest = cells[i];
+    var steady = cells.every(function(cell) { return cell === null || cell === 'good'; });
+    var count = block.others.length;
+    var title = block.deviating.length
+        ? (T.channel_status_more || '{count} more channels').replace('{count}', count)
+        : (T.channel_status_all || 'All {count} channels').replace('{count}', count);
+    var listId = 'channel-status-others-' + block.key;
+
+    var button = _channelStatusEl('button', 'cs-row cs-aggregate');
+    button.type = 'button';
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-controls', listId);
+    var label = _channelStatusEl('span', 'cs-label', title);
+    label.appendChild(_channelStatusEl('small', null, steady
+        ? (T.channel_status_steady || 'Within target throughout')
+        : (T.channel_status_worst || 'Worst state per interval')));
+    button.appendChild(label);
+    button.appendChild(_channelStatusCells(cells, ctx, null));
+    var current = _channelStatusEl('span', 'cs-current');
+    var state = _channelStatusEl('span', 'cs-delta cs-text-' + (latest || 'good'));
+    state.appendChild(_channelStatusShape(latest || 'good'));
+    state.appendChild(document.createTextNode(_channelStatusWord(latest || 'good')));
+    current.appendChild(state);
+    button.appendChild(current);
+
+    var list = _channelStatusEl('div', 'cs-others');
+    list.id = listId;
+    list.hidden = true;
+    block.others.forEach(function(row) { list.appendChild(_channelStatusRow(block.key, row, ctx)); });
+    button.addEventListener('click', function() {
+        var open = button.getAttribute('aria-expanded') !== 'true';
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        list.hidden = !open;
+    });
+    return [button, list];
+}
+
+function _channelStatusAxis(ctx, cellCount) {
+    var axis = _channelStatusEl('div', 'cs-axis');
+    axis.setAttribute('aria-hidden', 'true');
+    axis.appendChild(_channelStatusEl('span'));
+    var ticks = _channelStatusEl('span', 'cs-axis-ticks');
+    [0, 0.25, 0.5, 0.75].forEach(function(frac) {
+        ticks.appendChild(_channelStatusEl('span', null, ctx.label(Math.round(frac * cellCount))));
+    });
+    ticks.appendChild(_channelStatusEl('span', null, T.channel_status_now || 'now'));
+    axis.appendChild(ticks);
+    axis.appendChild(_channelStatusEl('span'));
+    return axis;
+}
+
+function renderChannelStatus(data, range) {
+    var body = document.getElementById('channel-status-body');
+    var empty = document.getElementById('channel-status-empty');
+    var windowEl = document.getElementById('channel-status-window');
+    if (!body) return;
+    body.textContent = '';
+    var directions = (data && data.directions) || [];
+    if (empty) empty.hidden = directions.length > 0;
+    if (windowEl) {
+        windowEl.textContent = directions.length
+            ? (T.channel_status_cell || 'One cell = {duration}').replace('{duration}', _channelStatusDuration(data.cell_minutes))
+            : '';
+    }
+    if (!directions.length) return;
+
+    var startMs = docsightTimestampDate(data.start).getTime();
+    var cellMs = data.cell_minutes * 60000;
+    var ctx = {
+        label: function(index) { return docsightFormatXAxisLabel(new Date(startMs + index * cellMs), range); },
+        time: function(ts) { return docsightFormatXAxisLabel(ts, range); }
+    };
+    directions.forEach(function(block) {
+        var section = _channelStatusEl('section', 'cs-direction');
+        section.dataset.direction = block.key;
+        var heading = _channelStatusEl('h4', 'cs-direction-title',
+            (block.key === 'ds' ? (T.downstream || 'Downstream') : (T.upstream || 'Upstream'))
+            + ' · ' + block.total + ' ' + (T.channels || 'Channels'));
+        section.appendChild(heading);
+        var rows = _channelStatusEl('div', 'cs-rows');
+        block.deviating.forEach(function(row) { rows.appendChild(_channelStatusRow(block.key, row, ctx)); });
+        if (block.others.length) {
+            _channelStatusAggregate(block, ctx).forEach(function(el) { rows.appendChild(el); });
+        }
+        section.appendChild(rows);
+        section.appendChild(_channelStatusAxis(ctx, data.cells));
+        body.appendChild(section);
+    });
+}
+
+function loadChannelStatus() {
+    var range = getPillValue('channel-status-time-tabs') || '1d';
+    var loading = document.getElementById('channel-status-loading');
+    var seq = ++_channelStatusRequestSeq;
+    if (loading) loading.hidden = false;
+    writeChannelHash();
+    return fetch(docsightUrl('/api/channel-status?range=' + encodeURIComponent(range)))
+        .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function(data) {
+            if (seq !== _channelStatusRequestSeq) return;
+            renderChannelStatus(data, range);
+        })
+        .catch(function() {
+            if (seq !== _channelStatusRequestSeq) return;
+            renderChannelStatus(null, range);
+        })
+        .then(function() {
+            if (seq === _channelStatusRequestSeq && loading) loading.hidden = true;
+        });
+}
+window.loadChannelStatus = loadChannelStatus;
+
+/* A status row opens the existing per-channel charts for the same range. */
+function openChannelFromStatus(direction, row) {
+    var sel = document.getElementById('channel-select');
+    var option = row.selector_required
+        ? _findChannelOption(sel, direction, 'selector', row.selector)
+        : _findChannelOption(sel, direction, 'legacyChannelId', row.legacy_channel_id);
+    if (!option) return;
+    sel.value = option.value;
+    setPillByValue('channel-time-tabs', getPillValue('channel-status-time-tabs') || '1d');
+    setPillByValue('channel-mode-tabs', 'timeline');
+    switchChannelMode();
+    loadChannelTimeline();
+    var header = document.querySelector('#view-channels .view-page-header');
+    if (header && header.scrollIntoView) header.scrollIntoView({ block: 'start' });
+}
+window.openChannelFromStatus = openChannelFromStatus;
 
 /* ── Channel Timeline ── */
 var _channelsLoaded = false;

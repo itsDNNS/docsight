@@ -18,9 +18,11 @@ def navigate_to_trends(page):
     page.wait_for_timeout(1500)
 
 
-def navigate_to_channels(page):
-    """Switch to Channels view."""
+def navigate_to_channels(page, mode="timeline"):
+    """Switch to Channels view; chart tests start from the per-channel timeline."""
     open_view(page, "channels")
+    if mode != "status":
+        page.locator(f'#channel-mode-tabs .trend-tab[data-value="{mode}"]').click()
     page.wait_for_timeout(500)
 
 

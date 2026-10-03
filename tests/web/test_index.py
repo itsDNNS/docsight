@@ -365,12 +365,13 @@ class TestIndexRoute:
 
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        docsis31_start = html.index("DOCSIS 3.1 OFDM")
+        tables = html.index('class="channel-status-tables"')
+        docsis31_start = html.index("DOCSIS 3.1 OFDM", tables)
         docsis31_head = html[docsis31_start:html.index("</thead>", docsis31_start)]
         assert "<th>MER</th>" in docsis31_head
         assert "<th>SNR</th>" not in docsis31_head
 
-        docsis30_start = html.index("DOCSIS 3.0 SC-QAM")
+        docsis30_start = html.index("DOCSIS 3.0 SC-QAM", tables)
         docsis30_head = html[docsis30_start:html.index("</thead>", docsis30_start)]
         assert "<th>SNR</th>" in docsis30_head
         assert "<th>MER</th>" not in docsis30_head
@@ -1412,3 +1413,24 @@ class TestIndexLineStatus:
         html = self._render(client, no_docsis_analysis)
 
         assert "data-line-status" not in html
+
+
+class TestChannelsPageLayout:
+    def test_channel_tables_moved_from_home_to_the_channels_view(self, client, sample_analysis):
+        current_runtime().update_state(analysis=sample_analysis)
+        html = client.get("/?lang=en").get_data(as_text=True)
+
+        channels_view = html.index('id="view-channels"')
+        tables = [i for i in range(len(html)) if html.startswith("dashboard-channel-panel", i)]
+        assert len(tables) == 2
+        assert all(position > channels_view for position in tables)
+        assert html.index('id="channel-panel-status"') < tables[0]
+        assert "Channel details" not in html
+
+    def test_status_is_the_default_channels_mode(self, client, sample_analysis):
+        current_runtime().update_state(analysis=sample_analysis)
+        html = client.get("/?lang=en").get_data(as_text=True)
+
+        assert 'class="trend-tab active" data-value="status"' in html
+        assert 'id="channel-panel-timeline" style="display:none;"' in html
+        assert 'href="#channels?mode=status"' in html
