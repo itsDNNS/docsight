@@ -32,6 +32,7 @@ from .module_loader import module_static_url
 from .runtime import current_runtime
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name, to_local as _to_local
 from .theme_contrast import low_contrast_modes
+from .line_status import build_line_status
 from .theme_registry import resolve_active_theme
 from .web_locale import get_lang, get_setup_lang
 from .version import get_app_version
@@ -501,6 +502,7 @@ def index():
         bnetz_enabled=bnetz_enabled,
         bnetz_latest=bnetz_latest,
         metric_ranges=signal_health_view.build_metric_ranges(analysis, get_thresholds()),
+        line_status=build_line_status(analysis),
         home_snr_display=signal_health_view.build_home_snr_display_context(analysis),
         home_modulation_context=signal_health_view.build_home_modulation_context(analysis),
         capacity_context=signal_health_view.build_capacity_context(analysis, booked_download, booked_upload),

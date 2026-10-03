@@ -612,6 +612,11 @@
     {% set has_signal_family_metric_cards = ds_signal_families.get('sc_qam') or ds_signal_families.get('ofdm') or us_signal_families.get('sc_qam') or us_signal_families.get('ofdma') %}
     <section class="hero-card glass dashboard-hero health-{{ hero_health }}">
         {{ dashboard_meta_row|safe }}
+        {% if line_status %}
+        {% include 'partials/line_status.html' %}
+        {% endif %}
+        <details class="line-status-findings"{% if active_issues %} open{% endif %}>
+            <summary>{{ t.get('line_status_findings', 'Findings & recommendation') }}</summary>
         {# ── Insights Panel — actionable guidance from health issues (#219) ── #}
         {% if active_issues %}
         <div class="insights-panel insights-panel-{{ s.health }}">
@@ -679,63 +684,8 @@
             </div>
         </div>
         {% endif %}
+        </details>
         <div class="hero-visual-row">
-            <aside class="hero-channel-health" aria-label="{{ t.get('dashboard_channel_health', 'Channel health') }}">
-                <div class="hero-channel-health-head">
-                    <span>{{ t.get('dashboard_section_channels', 'Channels') }}</span>
-                    <strong>{{ t.get('dashboard_channel_health', 'Channel health') }}</strong>
-                </div>
-                <div class="hero-channel-health-list">
-                    <div class="hero-health-card">
-                        <div class="hero-health-topline">
-                            <div>
-                                <div class="hero-health-name">{{ t.downstream }}</div>
-                                <div class="hero-health-subtitle">{{ ds_total }} {{ t.channels }}</div>
-                            </div>
-                            <div class="hero-health-score">
-                                <strong>{{ ds_pct }}%</strong>
-                                <span>{{ t.healthy }}</span>
-                            </div>
-                        </div>
-                        <div class="hero-health-bar" aria-hidden="true">
-                            <span class="good" style="flex: {{ ds_good }};"></span>
-                            <span class="tolerated" style="flex: {{ ds_tolerated }};"></span>
-                            <span class="warn" style="flex: {{ ds_warn }};"></span>
-                            <span class="crit" style="flex: {{ ds_crit }};"></span>
-                        </div>
-                        <div class="hero-health-stats">
-                            <span class="hero-health-stat good"><i></i>{{ health_labels.good }} <strong>{{ ds_good }}</strong></span>
-                            <span class="hero-health-stat tolerated"><i></i>{{ health_labels.tolerated }} <strong>{{ ds_tolerated }}</strong></span>
-                            <span class="hero-health-stat warn"><i></i>{{ health_labels.warn }} <strong>{{ ds_warn }}</strong></span>
-                            <span class="hero-health-stat crit"><i></i>{{ health_labels.crit }} <strong>{{ ds_crit }}</strong></span>
-                        </div>
-                    </div>
-                    <div class="hero-health-card">
-                        <div class="hero-health-topline">
-                            <div>
-                                <div class="hero-health-name">{{ t.upstream }}</div>
-                                <div class="hero-health-subtitle">{{ us_total }} {{ t.channels }}</div>
-                            </div>
-                            <div class="hero-health-score">
-                                <strong>{{ us_pct }}%</strong>
-                                <span>{{ t.healthy }}</span>
-                            </div>
-                        </div>
-                        <div class="hero-health-bar" aria-hidden="true">
-                            <span class="good" style="flex: {{ us_good_c }};"></span>
-                            <span class="tolerated" style="flex: {{ us_tolerated_c }};"></span>
-                            <span class="warn" style="flex: {{ us_warn_c }};"></span>
-                            <span class="crit" style="flex: {{ us_crit_c }};"></span>
-                        </div>
-                        <div class="hero-health-stats">
-                            <span class="hero-health-stat good"><i></i>{{ health_labels.good }} <strong>{{ us_good_c }}</strong></span>
-                            <span class="hero-health-stat tolerated"><i></i>{{ health_labels.tolerated }} <strong>{{ us_tolerated_c }}</strong></span>
-                            <span class="hero-health-stat warn"><i></i>{{ health_labels.warn }} <strong>{{ us_warn_c }}</strong></span>
-                            <span class="hero-health-stat crit"><i></i>{{ health_labels.crit }} <strong>{{ us_crit_c }}</strong></span>
-                        </div>
-                    </div>
-                </div>
-            </aside>
             {% if not has_signal_family_metric_cards %}
             <div class="hero-modulation-context" aria-label="{{ t.get('dashboard_modulation_context', 'Modulation context') }}">
                 <div class="hero-modulation-head">

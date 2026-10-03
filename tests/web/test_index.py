@@ -1375,3 +1375,40 @@ class TestIndexSegmentUtilizationVisibility:
         resp = client.get("/?lang=en")
         assert resp.status_code == 200
         assert b'data-view="segment-utilization"' not in resp.data
+
+
+class TestIndexLineStatus:
+    def _render(self, client, analysis):
+        current_runtime().update_state(analysis=analysis)
+        resp = client.get("/?lang=en")
+        assert resp.status_code == 200
+        return resp.get_data(as_text=True)
+
+    def test_good_line_shows_strips_without_callout(self, client, sample_analysis):
+        html = self._render(client, sample_analysis)
+
+        assert 'data-line-status="good"' in html
+        assert html.count('class="ls-seg ls-good') == 2
+        assert "line-status-callout" not in html
+        assert "No deviation" in html
+        assert '<details class="line-status-findings">' in html
+
+    def test_deviation_is_explained_at_its_channel_and_findings_open(self, client, sample_analysis):
+        analysis = deepcopy(sample_analysis)
+        analysis["summary"]["health"] = "marginal"
+        analysis["summary"]["health_issues"] = ["us_power_marginal_low"]
+        analysis["us_channels"][0].update(power=39.0, health="warning", health_detail="power warning low")
+
+        html = self._render(client, analysis)
+
+        assert 'data-line-status="warning"' in html
+        assert "ls-seg ls-warning ls-focus" in html
+        assert "Upstream · Channel 1 · SC-QAM" in html
+        assert "dB below target" in html
+        assert 'href="#channels?mode=timeline&amp;dir=us&amp;channel=1"' in html
+        assert '<details class="line-status-findings" open>' in html
+
+    def test_no_docsis_channels_render_no_line_status(self, client, no_docsis_analysis):
+        html = self._render(client, no_docsis_analysis)
+
+        assert "data-line-status" not in html

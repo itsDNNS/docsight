@@ -1181,16 +1181,15 @@ class TestChartCleanup:
 class TestNonMigratedCharts:
     """Dashboard health indicators and sparklines remain independent of uPlot."""
 
-    def test_channel_health_bars_match_counts(self, demo_page):
-        """Both directions show health bars proportional to the displayed counts."""
-        cards = demo_page.locator(".hero-health-card")
-        assert cards.count() == 2
-        for card in cards.all():
-            assert card.is_visible()
-            for health in ("good", "tolerated", "warn", "crit"):
-                count = int(card.locator(f".hero-health-stat.{health} strong").inner_text())
-                segment = card.locator(f".hero-health-bar > .{health}")
-                assert segment.evaluate("el => Number(getComputedStyle(el).flexGrow)") == count
+    def test_line_status_strips_match_counts(self, demo_page):
+        """Each direction shows one segment per channel and matching state counts."""
+        rows = demo_page.locator(".line-status-row")
+        assert rows.count() == 2
+        for row, meta in zip(rows.all(), demo_page.locator(".line-status-meta").all()):
+            assert row.is_visible()
+            for health in ("good", "tolerated", "warning", "critical"):
+                shown = int(meta.locator(f".ls-count.ls-{health}").inner_text().split()[0])
+                assert row.locator(f".ls-seg.ls-{health}").count() == shown
 
     def test_sparklines_still_render(self, demo_page):
         """Sparkline canvases should still be present and rendered."""
