@@ -246,6 +246,20 @@ def test_docker_paths_tags_manual_and_concurrency_contract():
     )
     assert "type=ref,event=tag" in metadata_tags
     assert "type=sha,enable=${{ github.event_name == 'workflow_dispatch'" in metadata_tags
+    assert "type=raw,value=stable,enable=${{ steps.release.outputs.newest == 'true' }}" in metadata_tags
+
+
+def test_docker_stable_tag_follows_only_the_newest_release():
+    steps = load_workflow("docker.yml")["jobs"]["build-and-push"]["steps"]
+    ids = [step.get("id") for step in steps]
+    checkout = next(step for step in steps if step.get("name") == "Checkout")
+    release = next(step for step in steps if step.get("id") == "release")
+
+    assert checkout["with"]["fetch-depth"] == 0
+    assert ids.index("release") < ids.index("meta")
+    assert 'if [[ "$GITHUB_REF" == refs/tags/v* ]]; then' in release["run"]
+    assert "git tag --list 'v*' --sort=-v:refname | head -n 1" in release["run"]
+    assert 'echo "newest=$newest" >> "$GITHUB_OUTPUT"' in release["run"]
 
 
 def test_test_workflow_detector_schedule_and_exact_path_contracts():

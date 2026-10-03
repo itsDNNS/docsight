@@ -44,6 +44,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # :stable follows releases only. A rebuild of an older release tag must
+      # not move it backwards, so only the newest v* tag may set it.
+      - name: Check newest release tag
+        id: release
+        run: |
+          newest=false
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            newest_tag="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+            if [[ "${GITHUB_REF#refs/tags/}" == "$newest_tag" ]]; then
+              newest=true
+            fi
+          fi
+          echo "newest=$newest" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
@@ -51,6 +65,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=stable,enable=${{ steps.release.outputs.newest == 'true' }}
             type=ref,event=tag
             type=sha,enable=${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v') }}
 

@@ -37,6 +37,14 @@ docker run -d \
 
 Open `http://localhost:8765` and follow the setup wizard.
 
+### Image tags
+
+| Tag | Contents |
+|---|---|
+| `stable` | The newest DOCSight release. Moves only when a new release is published. |
+| `latest` | The current state of the `main` branch, rebuilt with every change. |
+| `vYYYY-MM-DD.N` | One specific release. Never changes, useful for pinning. |
+
 ## Bare-Metal / systemd
 
 If you run DOCSight outside of Docker (e.g. as a systemd service), you need to compile and install the native helpers manually. These are tiny C programs that need setuid root because ICMP raw sockets require elevated privileges.
