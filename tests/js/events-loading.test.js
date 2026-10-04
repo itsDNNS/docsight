@@ -143,3 +143,12 @@ test('rows shifted onto the next page by new events are not shown twice', async 
     assert.equal(b.rows(), 98);
     assert.match(b.node('events-summary').textContent, /98/);
 });
+
+test('event numbers follow the page language', () => {
+    const b = browser();
+    const spike = {event_type: 'error_spike', message: '', details: {prev: 0, current: 1072.25, delta: 1072.25}};
+    b.context.currentLang = 'de';
+    assert.match(b.context.formatEventMessage(spike), /\+1\.072,3<\/span>/);
+    b.context.currentLang = 'en';
+    assert.match(b.context.formatEventMessage(spike), /\+1,072\.3<\/span>/);
+});

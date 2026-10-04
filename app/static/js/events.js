@@ -57,7 +57,7 @@ function updateEventsExportLink() {
 /* ── Rich event message formatter ── */
 function _fmtNum(n) {
     if (typeof n !== 'number') return escapeHtml(String(n));
-    return n.toLocaleString('en-US', { maximumFractionDigits: 1 });
+    return escapeHtml(n.toLocaleString(_eventLocale(), { maximumFractionDigits: 1 }));
 }
 
 function _healthDot(h) {
