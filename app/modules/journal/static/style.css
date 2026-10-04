@@ -156,13 +156,6 @@
     font-size: max(var(--fs-min), 0.85em);
     text-align: center;
 }
-.journal-empty {
-    text-align: center;
-    padding: var(--space-2xl) var(--space-lg);
-    color: var(--muted);
-    font-size: max(var(--fs-min), 0.95em);
-}
-
 /* Modernized form styling */
 .incident-form-group {
     margin-bottom: var(--space-md);

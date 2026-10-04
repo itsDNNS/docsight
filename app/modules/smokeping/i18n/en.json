@@ -11,5 +11,8 @@
   "smokeping_setup_intro": "Smokeping measures network latency by sending pings to configured targets. DOCSight can display these graphs alongside your modem data.",
   "smokeping_setup_step_1": "Install and configure <b>Smokeping</b> on your network",
   "smokeping_setup_step_2": "Note the <b>base URL</b> of your Smokeping web interface",
-  "smokeping_setup_step_3": "Enter the URL and <b>target names</b> in DOCSight Settings"
+  "smokeping_setup_step_3": "Enter the URL and <b>target names</b> in DOCSight Settings",
+  "smokeping_empty_title": "No SmokePing targets configured",
+  "smokeping_empty_text": "Add the targets from your SmokePing configuration in the settings to show their latency graphs here.",
+  "smokeping_empty_action": "Open SmokePing settings"
 }

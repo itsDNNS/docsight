@@ -892,7 +892,6 @@
   "seg_note": "Segmentgebruikswaarden zijn schattingen van de FRITZ!Box en kunnen afwijken van de werkelijke CMTS-brede belasting.",
   "seg_disabled": "Segmentgebruik is uitgeschakeld in Instellingen.",
   "seg_unsupported_driver": "Deze weergave is alleen beschikbaar voor FRITZ!Box-kabelapparaten.",
-  "seg_unavailable": "Configuratie niet beschikbaar.",
   "seg_correlation_ds": "Segment DS-belasting (%)",
   "seg_correlation_us": "Segment VS-belasting (%)",
   "seg_events_title": "Segmentverzadigingsgebeurtenissen",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Meldingen instellen",
   "gaming_speedtest_title": "Speedtestgegevens ontbreken",
   "gaming_speedtest_action": "Speedtest Tracker instellen",
-  "bnetz_empty_text": "Upload het PDF- of CSV-rapport van een meting van breitbandmessung.de om die met je contractsnelheid te vergelijken."
+  "bnetz_empty_text": "Upload het PDF- of CSV-rapport van een meting van breitbandmessung.de om die met je contractsnelheid te vergelijken.",
+  "seg_empty_action": "Extensie-instellingen openen"
 }

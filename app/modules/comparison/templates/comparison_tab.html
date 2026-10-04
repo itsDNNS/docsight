@@ -1,3 +1,4 @@
+{% from "partials/empty_state.html" import empty_state with context %}
 <div class="view-content">
     <!-- Controls -->
     <div class="view-page-header">
@@ -43,10 +44,12 @@
         </div>
     </div>
 
-    <!-- Placeholder message -->
-    <div id="comparison-placeholder" class="comparison-placeholder">
-        <p>{{ t.get('docsight.comparison.select_periods', 'Select two time periods to compare signal quality.') }}</p>
-    </div>
+    {{ empty_state('comparison-placeholder', 'git-compare-arrows',
+                   t.get('docsight.comparison.empty_title', 'Compare two periods'),
+                   t.get('docsight.comparison.select_periods', 'Select two time periods to compare signal quality.'),
+                   action_label=t.get('docsight.comparison.empty_action', 'Compare'),
+                   action_onclick="document.getElementById('comparison-run-btn').click()",
+                   glossary='before_after_comparison') }}
 
     <!-- Loading -->
     <div id="comparison-loading" style="display:none; text-align:center; padding:40px;">

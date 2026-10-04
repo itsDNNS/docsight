@@ -88,7 +88,7 @@ function _cmpRunComparison() {
     if (!fromA || !toA || !fromB || !toB) return;
 
     var placeholder = document.getElementById('comparison-placeholder');
-    placeholder.style.display = 'none';
+    DOCSightEmptyState.hide(placeholder);
     document.getElementById('comparison-charts').style.display = 'none';
     document.getElementById('comparison-delta').style.display = 'none';
     document.getElementById('comparison-loading').style.display = 'block';
@@ -103,8 +103,7 @@ function _cmpRunComparison() {
         .then(function(data) {
             document.getElementById('comparison-loading').style.display = 'none';
             if (data.error) {
-                placeholder.style.display = 'block';
-                placeholder.textContent = data.error;
+                DOCSightEmptyState.showError(placeholder, {text: data.error, retry: _cmpRunComparison});
                 document.getElementById('comparison-health').style.display = 'none';
                 _cmpLastResult = null;
                 window.__docsightComparisonResult = null;
@@ -118,8 +117,7 @@ function _cmpRunComparison() {
         })
         .catch(function(err) {
             document.getElementById('comparison-loading').style.display = 'none';
-            placeholder.style.display = 'block';
-            placeholder.textContent = err.message;
+            DOCSightEmptyState.showError(placeholder, {retry: _cmpRunComparison});
             document.getElementById('comparison-health').style.display = 'none';
             _cmpLastResult = null;
             window.__docsightComparisonResult = null;
@@ -194,9 +192,16 @@ function _cmpRenderCharts(data) {
     var xLabels = _cmpBuildTimeLabels(hourLabels, pb);
 
     if (pa.timeseries.length === 0 && pb.timeseries.length === 0) {
-        var placeholder = document.getElementById('comparison-placeholder');
-        placeholder.style.display = 'block';
-        placeholder.textContent = T['docsight.comparison.no_data_period'] || 'No data in selected period';
+        DOCSightEmptyState.show(document.getElementById('comparison-placeholder'), {
+            icon: 'clock',
+            title: T['docsight.comparison.no_data_period'] || 'No data in selected period',
+            text: T['docsight.comparison.empty_no_data_text'],
+            action: {
+                label: T['docsight.comparison.empty_no_data_action'] || 'Choose other periods',
+                onClick: function() { document.getElementById('comparison-preset').focus(); }
+            },
+            glossary: 'before_after_comparison'
+        });
         return;
     }
 

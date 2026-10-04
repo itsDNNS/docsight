@@ -892,7 +892,6 @@
   "seg_note": "Vrednosti izkoriščenosti segmenta so ocene, ki jih zagotavlja FRITZ!Box in se lahko razlikujejo od dejanske obremenitve celotnega CMTS.",
   "seg_disabled": "Uporaba segmenta je onemogočena v nastavitvah.",
   "seg_unsupported_driver": "Ta pogled je na voljo samo za kabelske naprave FRITZ!Box.",
-  "seg_unavailable": "Konfiguracija ni na voljo.",
   "seg_correlation_ds": "Obremenitev segmenta DS (%)",
   "seg_correlation_us": "Segment ZDA Obremenitev (%)",
   "seg_events_title": "Dogodki zasičenosti segmenta",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Nastavi obvestila",
   "gaming_speedtest_title": "Manjkajo podatki speedtesta",
   "gaming_speedtest_action": "Nastavi Speedtest Tracker",
-  "bnetz_empty_text": "Naložite poročilo PDF ali CSV meritve z breitbandmessung.de, da ga primerjate s pogodbeno hitrostjo."
+  "bnetz_empty_text": "Naložite poročilo PDF ali CSV meritve z breitbandmessung.de, da ga primerjate s pogodbeno hitrostjo.",
+  "seg_empty_action": "Odpri nastavitve razširitev"
 }

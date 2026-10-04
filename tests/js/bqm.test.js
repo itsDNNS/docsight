@@ -4,6 +4,15 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const test = require('node:test');
 const run = (c, file) => vm.runInContext(fs.readFileSync(file, 'utf8'), c);
+
+// Stands in for the shared empty-state component (tested in empty-state.test.js).
+const emptyState = {
+    show(el, options) { if (el) Object.assign(el, {hidden: false, empty: {kind: 'show', ...options}}); },
+    showRange(el, options) { if (el) Object.assign(el, {hidden: false, empty: {kind: 'range', ...options}}); },
+    showError(el, options) { if (el) Object.assign(el, {hidden: false, empty: {kind: 'error', ...options}}); },
+    hide(el) { if (el) Object.assign(el, {hidden: true, empty: null}); },
+};
+
 function setup() {
     const elements = {};
     function element(id) {
@@ -20,7 +29,7 @@ function setup() {
     class FixedDate extends Date {
         constructor(...args) { super(...(args.length ? args : ['2026-01-02T12:00:00'])); }
     }
-    const c = vm.createContext({document: {getElementById: id => elements[id], createElement: () => element('cell')},
+    const c = vm.createContext({DOCSightEmptyState: emptyState, document: {getElementById: id => elements[id], createElement: () => element('cell')},
         Date: FixedDate,
         T: {}, todayStr: () => '2026-01-02', pad: n => String(n).padStart(2, '0'),
         formatDateDE: s => s, clearTimeout() {}, docsightUrl: s => s,

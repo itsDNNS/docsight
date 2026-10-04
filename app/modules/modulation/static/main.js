@@ -175,7 +175,7 @@ function updateModulation() {
     var noData = document.getElementById('modulation-no-data');
     var overview = document.getElementById('modulation-overview');
     var intraday = document.getElementById('modulation-intraday');
-    if (noData) noData.style.display = 'none';
+    DOCSightEmptyState.hide(noData);
 
     if (_modDays === 1) {
         if (overview) overview.style.display = 'none';
@@ -186,6 +186,15 @@ function updateModulation() {
         if (intraday) intraday.style.display = 'none';
         fetchOverview();
     }
+}
+
+/* No modulation data in the selected range: offer the longest range. */
+function _showModulationEmpty(el) {
+    DOCSightEmptyState.showRange(el, {
+        tabs: 'modulation-range-tabs',
+        text: T['docsight.modulation.no_data'] || 'No modulation data available for the selected period.',
+        glossary: 'modulation_performance'
+    });
 }
 
 /* ── DOM helpers ── */
@@ -209,7 +218,7 @@ function fetchOverview() {
             var kpis = document.getElementById('modulation-kpis');
 
             if (!data.protocol_groups || data.protocol_groups.length === 0) {
-                if (noData) noData.style.display = 'block';
+                _showModulationEmpty(noData);
                 if (kpis) kpis.style.display = 'none';
                 destroyCharts();
                 return;
@@ -221,11 +230,7 @@ function fetchOverview() {
             showDisclaimer(data.disclaimer);
         }).catch(function(err) {
             console.error('Modulation fetch error:', err);
-            var noData = document.getElementById('modulation-no-data');
-            if (noData) {
-                noData.textContent = T['docsight.modulation.no_data'] || T.no_data || 'No modulation data available.';
-                noData.style.display = 'block';
-            }
+            DOCSightEmptyState.showError(document.getElementById('modulation-no-data'), {retry: fetchOverview});
         });
 }
 
@@ -741,6 +746,9 @@ function fetchIntraday(dateStr) {
             showDisclaimer(data.disclaimer);
         }).catch(function(err) {
             console.error('Modulation intraday fetch error:', err);
+            DOCSightEmptyState.showError(document.getElementById('modulation-no-data'), {
+                retry: function() { fetchIntraday(dateStr); }
+            });
         });
 }
 
@@ -758,8 +766,9 @@ function renderIntraday(data) {
 
     var groups = data.protocol_groups || [];
     if (groups.length === 0) {
-        container.appendChild(_el('div', 'no-data-msg',
-            T['docsight.modulation.no_data'] || 'No data for this day.'));
+        var empty = _el('div', 'view-empty');
+        container.appendChild(empty);
+        _showModulationEmpty(empty);
         return;
     }
 

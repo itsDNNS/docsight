@@ -164,17 +164,27 @@ function showBqmCard() {
     var card = document.getElementById('bqm-card');
     var noData = document.getElementById('bqm-no-data');
     if (card) card.style.display = 'block';
-    if (noData) noData.style.display = 'none';
+    DOCSightEmptyState.hide(noData);
 }
 
 function showBqmNoData(msg) {
     var card = document.getElementById('bqm-card');
     var noData = document.getElementById('bqm-no-data');
     if (card) card.style.display = 'none';
-    if (noData) {
-        noData.textContent = msg || T.bqm_no_data || 'No BQM graph for this date.';
-        noData.style.display = 'block';
-    }
+    DOCSightEmptyState.show(noData, {
+        icon: 'bar-chart-3',
+        title: msg || T.bqm_no_data || 'No BQM graph for this date.',
+        text: T.bqm_empty_text,
+        action: {label: T.bqm_empty_action || 'Import CSV export', onClick: openBqmCsvImport},
+        glossary: 'bqm'
+    });
+}
+
+function openBqmCsvImport() {
+    var section = document.getElementById('bqm-csv-import-section');
+    if (section) section.style.display = '';
+    var input = document.getElementById('bqm-csv-file');
+    if (input) input.focus();
 }
 
 function loadBqmChart(date) {

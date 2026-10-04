@@ -892,7 +892,6 @@
   "seg_note": "Die Auslastungswerte sind Schätzungen der FRITZ!Box und können von der tatsächlichen Segmentauslastung abweichen.",
   "seg_disabled": "Segment-Auslastung ist in den Einstellungen deaktiviert.",
   "seg_unsupported_driver": "Diese Ansicht ist nur für FRITZ!Box-Kabelgeräte verfügbar.",
-  "seg_unavailable": "Konfiguration nicht verfügbar.",
   "seg_correlation_ds": "Segment DS Last (%)",
   "seg_correlation_us": "Segment US Last (%)",
   "seg_events_title": "Segment-Auslastungsereignisse",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Benachrichtigungen einrichten",
   "gaming_speedtest_title": "Speedtest-Daten fehlen",
   "gaming_speedtest_action": "Speedtest Tracker einrichten",
-  "bnetz_empty_text": "Lade den PDF- oder CSV-Bericht einer Messung von breitbandmessung.de hoch, um sie mit deiner vertraglichen Geschwindigkeit zu vergleichen."
+  "bnetz_empty_text": "Lade den PDF- oder CSV-Bericht einer Messung von breitbandmessung.de hoch, um sie mit deiner vertraglichen Geschwindigkeit zu vergleichen.",
+  "seg_empty_action": "Erweiterungs-Einstellungen öffnen"
 }

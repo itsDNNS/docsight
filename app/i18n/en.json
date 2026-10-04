@@ -892,7 +892,6 @@
   "seg_note": "Segment utilization values are estimates provided by the FRITZ!Box and may differ from actual CMTS-wide load.",
   "seg_disabled": "Segment utilization is disabled in Settings.",
   "seg_unsupported_driver": "This view is only available for FRITZ!Box cable devices.",
-  "seg_unavailable": "Configuration unavailable.",
   "seg_correlation_ds": "Segment DS Load (%)",
   "seg_correlation_us": "Segment US Load (%)",
   "seg_events_title": "Segment Saturation Events",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Set up notifications",
   "gaming_speedtest_title": "Speedtest data missing",
   "gaming_speedtest_action": "Set up Speedtest Tracker",
-  "bnetz_empty_text": "Upload the PDF or CSV report of a measurement from breitbandmessung.de to compare it with your contracted speed."
+  "bnetz_empty_text": "Upload the PDF or CSV report of a measurement from breitbandmessung.de to compare it with your contracted speed.",
+  "seg_empty_action": "Open extension settings"
 }

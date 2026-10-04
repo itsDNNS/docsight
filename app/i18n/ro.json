@@ -892,7 +892,6 @@
   "seg_note": "Valorile de utilizare a segmentului sunt estimări furnizate de FRITZ!Box și pot diferi de încărcarea reală la nivelul CMTS.",
   "seg_disabled": "Utilizarea segmentului este dezactivată în Setări.",
   "seg_unsupported_driver": "Această vizualizare este disponibilă numai pentru dispozitivele cu cablu FRITZ!Box.",
-  "seg_unavailable": "Configurație indisponibilă.",
   "seg_correlation_ds": "Încărcare DS segment (%)",
   "seg_correlation_us": "Încărcare din segmentul SUA (%)",
   "seg_events_title": "Segmentează evenimente de saturație",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Configurează notificările",
   "gaming_speedtest_title": "Lipsesc datele speedtest",
   "gaming_speedtest_action": "Configurează Speedtest Tracker",
-  "bnetz_empty_text": "Încărcați raportul PDF sau CSV al unei măsurători de pe breitbandmessung.de pentru a o compara cu viteza contractată."
+  "bnetz_empty_text": "Încărcați raportul PDF sau CSV al unei măsurători de pe breitbandmessung.de pentru a o compara cu viteza contractată.",
+  "seg_empty_action": "Deschide setările extensiilor"
 }

@@ -288,7 +288,7 @@ function _evidenceCopySummary() {
 function _evidenceRender(payload) {
     _evidenceLastPayload = payload;
     document.getElementById('evidence-results').hidden = false;
-    document.getElementById('evidence-placeholder').style.display = 'none';
+    DOCSightEmptyState.hide(document.getElementById('evidence-placeholder'));
     document.getElementById('evidence-window-label').textContent = payload.window.label;
     document.getElementById('evidence-window-range').textContent = payload.window.from + ' – ' + payload.window.to;
     document.getElementById('evidence-demo-banner').hidden = !(payload.capabilities && payload.capabilities.demo_mode);
@@ -300,8 +300,15 @@ function _evidenceLoad() {
     var url = _evidenceBuildUrl();
     var placeholder = document.getElementById('evidence-placeholder');
     if (!url) {
-        placeholder.style.display = 'block';
-        placeholder.textContent = _evidenceT('docsight.evidence.choose_window', 'Choose an incident or complete time range first.');
+        DOCSightEmptyState.show(placeholder, {
+            icon: 'clock',
+            title: _evidenceT('docsight.evidence.empty_window_title', 'Choose a time range'),
+            text: _evidenceT('docsight.evidence.choose_window', 'Choose an incident or complete time range first.'),
+            action: {
+                label: _evidenceT('docsight.evidence.empty_action', 'Check the last 24 hours'),
+                onClick: function() { document.querySelector('[data-evidence-range="last24h"]').click(); }
+            }
+        });
         return;
     }
     // Only the latest request may render: a slow earlier window must not replace a newer choice.
@@ -314,8 +321,7 @@ function _evidenceLoad() {
             if (seq !== _evidenceRequestSeq) return;
             document.getElementById('evidence-loading').hidden = true;
             if (payload.error) {
-                placeholder.style.display = 'block';
-                placeholder.textContent = payload.error;
+                DOCSightEmptyState.showError(placeholder, {text: payload.error, retry: _evidenceLoad});
                 return;
             }
             _evidenceRender(payload);
@@ -323,8 +329,7 @@ function _evidenceLoad() {
         .catch(function(error) {
             if (seq !== _evidenceRequestSeq) return;
             document.getElementById('evidence-loading').hidden = true;
-            placeholder.style.display = 'block';
-            placeholder.textContent = error.message;
+            DOCSightEmptyState.showError(placeholder, {retry: _evidenceLoad});
         });
 }
 

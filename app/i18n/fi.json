@@ -892,7 +892,6 @@
   "seg_note": "Segmenttien käyttöarvot ovat FRITZ!Box:n antamia arvioita, ja ne voivat poiketa todellisesta CMTS:n laajuisesta kuormituksesta.",
   "seg_disabled": "Segmenttien käyttö on poistettu käytöstä asetuksissa.",
   "seg_unsupported_driver": "Tämä näkymä on käytettävissä vain FRITZ!Box-kaapelilaitteille.",
-  "seg_unavailable": "Kokoonpano ei ole käytettävissä.",
   "seg_correlation_ds": "Segmentin DS-kuormitus (%)",
   "seg_correlation_us": "Segmentoi Yhdysvaltain kuormitus (%)",
   "seg_events_title": "Segmenttien kylläisyystapahtumat",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Määritä ilmoitukset",
   "gaming_speedtest_title": "Speedtest-tiedot puuttuvat",
   "gaming_speedtest_action": "Määritä Speedtest Tracker",
-  "bnetz_empty_text": "Lataa breitbandmessung.de-mittauksen PDF- tai CSV-raportti verrataksesi sitä sopimuksen mukaiseen nopeuteen."
+  "bnetz_empty_text": "Lataa breitbandmessung.de-mittauksen PDF- tai CSV-raportti verrataksesi sitä sopimuksen mukaiseen nopeuteen.",
+  "seg_empty_action": "Avaa laajennusasetukset"
 }

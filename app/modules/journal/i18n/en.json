@@ -119,5 +119,11 @@
   "import_validation_dates": "{0} needs a date",
   "import_selected_one": "Import 1 selected entry",
   "import_selected_count": "Import {0} selected entries",
-  "import_validation_no_valid": "No valid rows selected. Select at least one ready row to import."
+  "import_validation_no_valid": "No valid rows selected. Select at least one ready row to import.",
+  "journal_empty_title": "No entries yet",
+  "journal_empty_case_title": "No entries in this case",
+  "journal_empty_case_text": "Entries you assign to this case appear here.",
+  "journal_empty_case_action": "Show all entries",
+  "journal_empty_search_text": "Try a different term or clear the search.",
+  "journal_empty_search_action": "Clear search"
 }

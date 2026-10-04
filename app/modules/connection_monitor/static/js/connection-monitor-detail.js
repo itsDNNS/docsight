@@ -243,14 +243,14 @@
                     updatePinButton();
                     initTracerouteTargetSelect();
                 } else {
-                    showNoData();
+                    showNoData('targets');
                 }
             })
             .catch(function() {});
     }
 
     function loadData() {
-        if (targets.length === 0) { showNoData(); return; }
+        if (targets.length === 0) { showNoData('targets'); return; }
 
         var now = Date.now() / 1000;
         var start, end;
@@ -299,7 +299,7 @@
                 var hasSamples = allTargetData.some(function(td) {
                     return td.samples && td.samples.length > 0;
                 });
-                if (!hasSamples) { showNoData(); return; }
+                if (!hasSamples) { showNoData('range'); return; }
 
                 var meta = allTargetData.length > 0 ? allTargetData[0].meta : null;
                 if (meta && meta.resolution) lastResolution = meta.resolution;
@@ -466,7 +466,8 @@
         el.style.display = 'block';
     }
 
-    function showNoData() {
+    /* 'targets': nothing enabled to probe; 'range': targets, but no samples in the period. */
+    function showNoData(kind) {
         var noData = document.getElementById('cm-no-data');
         var chartsEl = document.getElementById('cm-charts-section');
         var perTargetEl = document.getElementById('cm-per-target-stats');
@@ -476,7 +477,17 @@
         var rawLogLinks = document.getElementById('cm-raw-log-links');
         var rawLogPanel = document.getElementById('cm-raw-log-panel');
         var resolutionEl = document.getElementById('cm-resolution-indicator');
-        if (noData) noData.style.display = 'flex';
+        if (noData && kind === 'range') {
+            DOCSightEmptyState.showRange(noData, {tabs: 'cm-range-tabs', text: noData.dataset.rangeText, glossary: 'connection_monitor'});
+        } else if (noData) {
+            DOCSightEmptyState.show(noData, {
+                icon: 'radar',
+                title: noData.dataset.emptyTitle,
+                text: noData.dataset.emptyText,
+                action: {label: noData.dataset.emptyAction, href: noData.dataset.emptyHref},
+                glossary: 'connection_monitor'
+            });
+        }
         if (chartsEl) chartsEl.style.display = 'none';
         if (outagePanel) outagePanel.style.display = 'none';
         if (rawLogPanel) rawLogPanel.style.display = 'none';
@@ -491,7 +502,7 @@
         var chartsEl = document.getElementById('cm-charts-section');
         var outagePanel = document.getElementById('cm-outage-panel');
         var rawLogPanel = document.getElementById('cm-raw-log-panel');
-        if (noData) noData.style.display = 'none';
+        DOCSightEmptyState.hide(noData);
         if (chartsEl) chartsEl.style.display = '';
         if (outagePanel) outagePanel.style.display = '';
         if (rawLogPanel) rawLogPanel.style.display = '';

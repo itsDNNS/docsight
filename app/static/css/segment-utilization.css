@@ -91,12 +91,6 @@
     min-height: 200px;
 }
 
-.fritz-cable-message {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--text-secondary, #888);
-}
-
 .fritz-cable-note {
     color: var(--text-secondary, #888);
     line-height: 1.5;

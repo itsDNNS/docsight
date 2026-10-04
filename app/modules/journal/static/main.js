@@ -137,7 +137,7 @@ function loadJournal(searchQuery) {
     loading.style.display = '';
     tbody.innerHTML = '';
     if (tableCard) tableCard.style.display = 'none';
-    empty.style.display = 'none';
+    DOCSightEmptyState.hide(empty);
     if (deleteAllBtn) deleteAllBtn.style.display = 'none';
     var bulkToggle = document.getElementById('btn-bulk-toggle');
     if (bulkToggle) bulkToggle.style.display = 'none';
@@ -159,13 +159,8 @@ function loadJournal(searchQuery) {
             loading.style.display = 'none';
             if (!searchQuery) _journalAllData = data;
             if (!data || data.length === 0) {
-                if (searchQuery) {
-                    empty.textContent = T.search_no_results + ' "' + searchQuery + '"';
-                    if (searchCount) searchCount.textContent = '0 ' + T.search_results;
-                } else {
-                    empty.textContent = T.no_incidents || 'No incidents logged yet.';
-                }
-                empty.style.display = '';
+                if (searchQuery && searchCount) searchCount.textContent = '0 ' + T.search_results;
+                _showJournalEmpty(empty, searchQuery);
                 if (searchWrap && !searchQuery) searchWrap.style.display = 'none';
                 return;
             }
@@ -181,9 +176,37 @@ function loadJournal(searchQuery) {
         })
         .catch(function() {
             loading.style.display = 'none';
-            empty.textContent = T.network_error || 'Error';
-            empty.style.display = '';
+            DOCSightEmptyState.showError(empty, {retry: function() { loadJournal(searchQuery); }});
         });
+}
+
+/* Empty because of a search, because the selected case has no entries yet,
+   or because nothing was logged so far; each offers its own way forward. */
+function _showJournalEmpty(empty, searchQuery) {
+    if (searchQuery) {
+        DOCSightEmptyState.show(empty, {
+            icon: 'clipboard-list',
+            title: (T.search_no_results || 'No results for') + ' "' + searchQuery + '"',
+            text: T.journal_empty_search_text,
+            action: {label: T.journal_empty_search_action || 'Clear search', onClick: clearJournalSearch}
+        });
+    } else if (_activeIncidentFilter !== null) {
+        DOCSightEmptyState.show(empty, {
+            icon: 'folder-open',
+            title: T.journal_empty_case_title || 'No entries in this case',
+            text: T.journal_empty_case_text,
+            action: {label: T.journal_empty_case_action || 'Show all entries', onClick: function() { filterByIncident(null); }},
+            glossary: 'incident_journal'
+        });
+    } else {
+        DOCSightEmptyState.show(empty, {
+            icon: 'clipboard-list',
+            title: T.journal_empty_title || 'No entries yet',
+            text: T.no_incidents,
+            action: {label: T.new_entry || 'New Entry', onClick: function() { openEntryModal(); }},
+            glossary: 'incident_journal'
+        });
+    }
 }
 
 function escapeHtmlAttribute(value) {
@@ -988,7 +1011,7 @@ window.openIncidentTimeline = function(incidentId) {
     if (tableCard) tableCard.style.display = 'none';
     if (searchWrap) searchWrap.style.display = 'none';
     if (bulkBar) bulkBar.style.display = 'none';
-    if (empty) empty.style.display = 'none';
+    DOCSightEmptyState.hide(empty);
     if (deleteAllBtn) deleteAllBtn.style.display = 'none';
 
     // Show timeline container with loading state

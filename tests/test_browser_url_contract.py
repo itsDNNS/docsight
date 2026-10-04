@@ -45,9 +45,9 @@ EXPECTED_CONTRACT_CALLS = {
     "app/static/js/integrations.js": 5,
     "app/modules/journal/static/main.js": 21,
     "app/static/js/notices.js": 1,
-    "app/static/js/segment-utilization.js": 2,
+    "app/static/js/segment-utilization.js": 3,
     "app/static/js/sparklines.js": 1,
-    "app/modules/speedtest/static/main.js": 6,
+    "app/modules/speedtest/static/main.js": 7,
     "app/static/js/trends.js": 2,
     "app/static/js/utils.js": 3,
     "app/modules/comparison/static/main.js": 1,
@@ -57,7 +57,7 @@ EXPECTED_CONTRACT_CALLS = {
     "app/modules/connection_monitor/static/js/connection-monitor-detail.js": 13,
     "app/modules/connection_monitor/static/js/connection-monitor-settings.js": 4,
     "app/modules/modulation/static/main.js": 2,
-    "app/modules/smokeping/static/main.js": 2,
+    "app/modules/smokeping/static/main.js": 3,
 }
 
 NODE_HARNESS = r"""
@@ -406,7 +406,7 @@ def test_inventoried_files_keep_the_reviewed_contract_sites():
     }
 
     assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 142  # reviewed browser URL contract sites
+    assert sum(actual.values()) == 145  # reviewed browser URL contract sites
 
 
 def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():

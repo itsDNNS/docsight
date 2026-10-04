@@ -892,7 +892,6 @@
   "seg_note": "Is meastacháin a sholáthraíonn an FRITZ!Box iad luachanna úsáide deighleog agus d'fhéadfadh siad a bheith éagsúil leis an ualach iarbhír ar fud an CMTS.",
   "seg_disabled": "Tá úsáid deighleog díchumasaithe sna Socruithe.",
   "seg_unsupported_driver": "Níl an dearcadh seo ar fáil ach amháin le haghaidh feistí cábla FRITZ!Box.",
-  "seg_unavailable": "Níl an chumraíocht ar fáil.",
   "seg_correlation_ds": "Deighleog DS Luchtaigh (%)",
   "seg_correlation_us": "Deighleog Ualach SAM (%)",
   "seg_events_title": "Imeachtaí Sáithiúcháin Deighleog",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Socraigh fógraí",
   "gaming_speedtest_title": "Sonraí speedtest ar iarraidh",
   "gaming_speedtest_action": "Socraigh Speedtest Tracker",
-  "bnetz_empty_text": "Uaslódáil tuarascáil PDF nó CSV de thomhas ó breitbandmessung.de chun é a chur i gcomparáid le do luas conartha."
+  "bnetz_empty_text": "Uaslódáil tuarascáil PDF nó CSV de thomhas ó breitbandmessung.de chun é a chur i gcomparáid le do luas conartha.",
+  "seg_empty_action": "Oscail socruithe na síntí"
 }

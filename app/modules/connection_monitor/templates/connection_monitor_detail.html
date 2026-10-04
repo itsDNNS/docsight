@@ -12,7 +12,7 @@
                  data-method-tcp="{{ t.get('docsight.connection_monitor.cm_method_tcp', 'TCP') }}"
                  data-hint-tcp="{{ t.get('docsight.connection_monitor.cm_method_hint_tcp', 'Using TCP probing. For more accurate ICMP probing, add cap_add: [NET_RAW] to your Docker Compose.') }}"
             ></div>
-            <div class="cm-range-picker trend-tabs" role="group" aria-label="{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}">
+            <div class="cm-range-picker trend-tabs" id="cm-range-tabs" role="group" aria-label="{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}">
                 <button class="trend-tab active" data-cm-range="3600" onclick="cmSetRange(this, 3600)">1h</button>
                 <button class="trend-tab" data-cm-range="21600" onclick="cmSetRange(this, 21600)">6h</button>
                 <button class="trend-tab" data-cm-range="86400" onclick="cmSetRange(this, 86400)">1d</button>
@@ -49,10 +49,12 @@
         <p class="cm-panel-copy">{{ t.get('docsight.connection_monitor.cm_raw_log_desc', 'Download per-ping raw samples for ISP evidence. Uses the current time range or selected pinned day.') }}</p>
     </section>
 
-    <div id="cm-no-data" class="cm-no-data">
-        <i data-lucide="radar"></i>
-        <span>{{ t.get('docsight.connection_monitor.cm_no_data', 'No data yet. Enable the Connection Monitor in settings to start collecting.') }}</span>
-    </div>
+    <div id="cm-no-data" class="view-empty" hidden
+         data-empty-title="{{ t.get('docsight.connection_monitor.cm_empty_title', 'No targets enabled') }}"
+         data-empty-text="{{ t.get('docsight.connection_monitor.cm_no_data', 'No data yet. Enable the Connection Monitor in settings to start collecting.') }}"
+         data-empty-action="{{ t.get('docsight.connection_monitor.cm_empty_action', 'Open Connection Monitor settings') }}"
+         data-empty-href="{{ url_for('settings', _anchor='mod-docsight_connection_monitor') }}"
+         data-range-text="{{ t.get('docsight.connection_monitor.cm_empty_range_text', 'The enabled targets have no samples for this period yet.') }}"></div>
 
     <div id="cm-charts-section" class="cm-workspace">
         <section class="glass cm-panel cm-chart-panel">

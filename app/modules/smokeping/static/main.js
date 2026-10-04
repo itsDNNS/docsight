@@ -18,14 +18,22 @@ function loadSmokepingGraphs() {
     var noData = document.getElementById('smokeping-no-data');
     if (!content || !noData) return;
     content.replaceChildren();
-    noData.style.display = 'none';
+    DOCSightEmptyState.hide(noData);
 
     fetch(docsightUrl('/api/smokeping/targets'))
         .then(function(r) { return r.json(); })
         .then(function(targets) {
             if (!targets || targets.length === 0) {
-                noData.textContent = T.smokeping_no_data || T['docsight.smokeping.smokeping_no_data'] || 'Could not load Smokeping graphs.';
-                noData.style.display = 'block';
+                DOCSightEmptyState.show(noData, {
+                    icon: 'radar',
+                    title: T.smokeping_empty_title || 'No SmokePing targets configured',
+                    text: T.smokeping_empty_text,
+                    action: {
+                        label: T.smokeping_empty_action || 'Open SmokePing settings',
+                        href: docsightUrl('/settings#mod-docsight_smokeping')
+                    },
+                    glossary: 'smokeping'
+                });
                 return;
             }
             targets.forEach(function(target) {
@@ -61,8 +69,7 @@ function loadSmokepingGraphs() {
             });
         })
         .catch(function() {
-            noData.textContent = T.smokeping_no_data || T['docsight.smokeping.smokeping_no_data'] || 'Could not load Smokeping graphs.';
-            noData.style.display = 'block';
+            DOCSightEmptyState.showError(noData, {retry: loadSmokepingGraphs});
         });
 }
 

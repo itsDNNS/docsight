@@ -892,7 +892,6 @@
   "seg_note": "Segmento panaudojimo vertės yra FRITZ!Box pateiktos apytikslės vertės ir gali skirtis nuo faktinės CMTS apkrovos.",
   "seg_disabled": "Segmentų naudojimas išjungtas nustatymuose.",
   "seg_unsupported_driver": "Šis rodinys galimas tik FRITZ!Box kabelių įrenginiuose.",
-  "seg_unavailable": "Konfigūracija nepasiekiama.",
   "seg_correlation_ds": "Segmento DS apkrova (%)",
   "seg_correlation_us": "Segmentuoti JAV apkrovą (%)",
   "seg_events_title": "Segmento sodrumo įvykiai",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Nustatyti pranešimus",
   "gaming_speedtest_title": "Trūksta speedtest duomenų",
   "gaming_speedtest_action": "Nustatyti Speedtest Tracker",
-  "bnetz_empty_text": "Įkelkite breitbandmessung.de matavimo PDF arba CSV ataskaitą, kad palygintumėte ją su sutartiniu greičiu."
+  "bnetz_empty_text": "Įkelkite breitbandmessung.de matavimo PDF arba CSV ataskaitą, kad palygintumėte ją su sutartiniu greičiu.",
+  "seg_empty_action": "Atidaryti plėtinių nustatymus"
 }
