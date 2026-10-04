@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from .analyzer import _get_ds_power_thresholds, _get_snr_thresholds, _get_us_power_thresholds
+from .channel_selector import channel_selector
 from .docsis_utils import classify_channel_family
 
 SEVERITY = {"good": 0, "tolerated": 1, "warning": 2, "critical": 3}
@@ -133,6 +134,7 @@ def _direction(direction: str, channels: list[dict]) -> dict | None:
     segments = [
         {
             "channel_id": _channel_id(ch),
+            "selector": channel_selector(ch),
             "family": FAMILY_LABELS.get(_family(direction, ch), ""),
             "health": _health(ch),
             "power": _number(ch.get("power")),

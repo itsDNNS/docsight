@@ -116,3 +116,13 @@ def test_upstream_with_ofdma_has_no_missing_family():
     status = build_line_status(_analysis([], [_us(1), _us(5, family="ofdma")]))
 
     assert status["directions"][0]["missing_family"] is None
+
+
+def test_segments_carry_the_stable_channel_selector():
+    from app.channel_selector import channel_selector
+
+    ds = _ds(1)
+    ds["frequency"] = "602 MHz"
+    status = build_line_status(_analysis([ds], []))
+
+    assert status["directions"][0]["segments"][0]["selector"] == channel_selector(ds)

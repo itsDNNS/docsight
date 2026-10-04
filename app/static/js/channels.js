@@ -479,6 +479,20 @@ function _channelStatusAxis(ctx, cellCount) {
     return axis;
 }
 
+function _statusTrackContext(data, options) {
+    var range = options.range;
+    var startMs = docsightTimestampDate(data.start).getTime();
+    var endMs = docsightTimestampDate(data.end).getTime();
+    var cellMs = data.cell_minutes * 60000;
+    return {
+        label: function(index) { return docsightFormatXAxisLabel(new Date(startMs + index * cellMs), range); },
+        time: function(ts) { return docsightFormatXAxisLabel(ts, range); },
+        endsNow: Math.abs(Date.now() - endMs) < Math.max(cellMs, 5 * 60000),
+        idPrefix: options.idPrefix,
+        onRow: options.onRow
+    };
+}
+
 /* Renders the matrix into ``body``; returns whether there was anything to show.
    options: range (axis label style), idPrefix (unique per container), onRow(direction, row). */
 function renderStatusTrack(body, data, options) {
@@ -486,17 +500,7 @@ function renderStatusTrack(body, data, options) {
     var directions = (data && data.directions) || [];
     if (!directions.length) return false;
 
-    var range = options.range;
-    var startMs = docsightTimestampDate(data.start).getTime();
-    var endMs = docsightTimestampDate(data.end).getTime();
-    var cellMs = data.cell_minutes * 60000;
-    var ctx = {
-        label: function(index) { return docsightFormatXAxisLabel(new Date(startMs + index * cellMs), range); },
-        time: function(ts) { return docsightFormatXAxisLabel(ts, range); },
-        endsNow: Math.abs(Date.now() - endMs) < Math.max(cellMs, 5 * 60000),
-        idPrefix: options.idPrefix,
-        onRow: options.onRow
-    };
+    var ctx = _statusTrackContext(data, options);
     directions.forEach(function(block) {
         var section = _channelStatusEl('section', 'cs-direction');
         section.dataset.direction = block.key;
@@ -626,8 +630,58 @@ function loadStatusTrack(container, query, options) {
         });
 }
 
+/* The last 24 hours of all channels, shared by the Home segment details for a minute. */
+var _statusTrackDay = null;
+function _statusTrackDayData() {
+    if (_statusTrackDay && Date.now() - _statusTrackDay.at < 60000) return _statusTrackDay.promise;
+    var entry = { at: Date.now() };
+    entry.promise = fetch(docsightUrl('/api/channel-status?range=1d'))
+        .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .catch(function() {
+            if (_statusTrackDay === entry) _statusTrackDay = null;
+            return null;
+        });
+    _statusTrackDay = entry;
+    return entry.promise;
+}
+
+/* One channel's last 24 hours as a single track row; the row opens its charts. */
+function loadChannelDayTrack(container, direction, selector) {
+    if (!container) return Promise.resolve(false);
+    var seq = (container._statusTrackSeq || 0) + 1;
+    container._statusTrackSeq = seq;
+    container.setAttribute('aria-busy', 'true');
+    container.textContent = '';
+    container.appendChild(_channelStatusEl('div', 'skeleton cs-track-skeleton cs-track-skeleton-row'));
+    return _statusTrackDayData().then(function(data) {
+        if (container._statusTrackSeq !== seq) return false;
+        container.removeAttribute('aria-busy');
+        container.textContent = '';
+        var block = data && (data.directions || []).filter(function(b) { return b.key === direction; })[0];
+        var row = block && block.deviating.concat(block.others).filter(function(r) { return r.selector === selector; })[0];
+        if (!row) {
+            container.appendChild(_channelStatusEl('p', 'cs-window cs-window-empty',
+                T.channel_status_empty || 'No channel snapshots in this time range yet.'));
+            return false;
+        }
+        var ctx = _statusTrackContext(data, {
+            range: '1d',
+            idPrefix: container.id || 'channel-day',
+            onRow: function(dir, r) { openStatusTrackTimeline(dir, r, '1d'); }
+        });
+        container.appendChild(_channelStatusEl('p', 'cs-window', _channelStatusCellText(data)));
+        container.appendChild(_channelStatusRow(direction, row, ctx));
+        container.appendChild(_channelStatusAxis(ctx, data.cells));
+        return true;
+    });
+}
+
 window.DOCSightStatusTrack = {
     load: loadStatusTrack,
+    loadChannelDay: loadChannelDayTrack,
     rangeFor: statusTrackRangeFor
 };
 

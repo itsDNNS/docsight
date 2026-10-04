@@ -1399,6 +1399,22 @@ class TestIndexLineStatus:
         assert "No deviation" in html
         assert '<details class="line-status-findings">' in html
 
+    def test_segments_are_buttons_with_one_tab_stop_per_direction(self, client, sample_analysis):
+        analysis = deepcopy(sample_analysis)
+        second = deepcopy(analysis["ds_channels"][0])
+        second.update(channel_id=2, frequency="610 MHz")
+        analysis["ds_channels"].append(second)
+        html = self._render(client, analysis)
+
+        downstream = html[html.index('class="line-status-row" data-direction="ds"'):html.index('id="ls-detail-ds"')]
+        assert downstream.count('<button type="button" class="ls-seg') == 2
+        assert downstream.count('tabindex="0"') == 1 and downstream.count('tabindex="-1"') == 1
+        assert 'aria-controls="ls-detail-ds"' in downstream and 'aria-expanded="false"' in downstream
+        assert 'data-selector="c1_' in downstream
+        assert 'role="group"' in downstream
+        assert '<div class="ls-detail" id="ls-detail-ds" data-direction="ds" hidden></div>' in html
+        assert "js/line-status.js" in html
+
     def test_upstream_without_ofdma_shows_a_greyed_placeholder_and_note(self, client, sample_analysis):
         assert all(ch.get("channel_family", "sc_qam") != "ofdma" for ch in sample_analysis["us_channels"])
         html = self._render(client, sample_analysis)
