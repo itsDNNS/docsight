@@ -262,6 +262,25 @@ def test_docker_stable_tag_follows_only_the_newest_release():
     assert 'echo "newest=$newest" >> "$GITHUB_OUTPUT"' in release["run"]
 
 
+def test_stable_tag_workflow_retags_the_newest_release_without_rebuilding():
+    workflow = load_workflow("stable-tag.yml")
+    triggers = workflow.get("on", workflow.get(True))
+    job = workflow["jobs"]["publish-stable"]
+    steps = job["steps"]
+    checkout = next(step for step in steps if step.get("name") == "Checkout")
+    release = next(step for step in steps if step.get("id") == "release")
+    publish = next(step for step in steps if step.get("name") == "Point stable at the release image")
+
+    assert list(triggers) == ["workflow_dispatch"]
+    assert workflow["permissions"] == {}
+    assert job["permissions"] == {"contents": "read", "packages": "write"}
+    assert checkout["with"]["fetch-depth"] == 0
+    assert "git tag --list 'v*' --sort=-v:refname | head -n 1" in release["run"]
+    assert 'docker buildx imagetools create --tag "$IMAGE:stable" "$IMAGE:$TAG"' in publish["run"]
+    assert '"$release_digest" != "$stable_digest"' in publish["run"]
+    assert not any("build-push-action" in step.get("uses", "") for step in steps)
+
+
 def test_test_workflow_detector_schedule_and_exact_path_contracts():
     workflow = load_workflow("test.yml")
     triggers = workflow["on"]
@@ -361,7 +380,7 @@ def test_tests_summary_is_always_present_and_fails_closed():
     assert 'changed == "true" and result != "success"' in script
 
 
-@pytest.mark.parametrize("name", ["full-e2e.yml", "docker.yml", "test.yml"])
+@pytest.mark.parametrize("name", ["full-e2e.yml", "docker.yml", "test.yml", "stable-tag.yml"])
 def test_changed_workflows_keep_every_action_sha_pinned(name):
     workflow = load_workflow(name)
     uses = [
