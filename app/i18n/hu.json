@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Válaszd ki a kapcsolat típusát.",
   "setup_choose_modem": "Válaszd ki a modem típusát.",
   "setup_timezone_invalid": "Válassz időzónát a listából.",
-  "setup_timezone_search": "Keresés, pl. Berlin"
+  "setup_timezone_search": "Keresés, pl. Berlin",
+  "setup_detect_button": "Modem keresése a hálózatomon",
+  "setup_detect_hint": "Négy gyakori helyi címtől kéri le a kezdőlapot. Semmi sem hagyja el a hálózatot, és semmi sem kerül mentésre.",
+  "setup_detect_running": "Keresés…",
+  "setup_detect_found": "Egy eszköz válaszol itt: {url}",
+  "setup_detect_probably": "Valószínűleg:",
+  "setup_detect_use": "Használat",
+  "setup_detect_use_address": "Cím használata",
+  "setup_detect_unknown": "A típus nem ismerhető fel. Válaszd ki az alábbi listából.",
+  "setup_detect_none": "A szokásos címeken egy eszköz sem válaszolt. A cím általában a modem címkéjén található."
 }

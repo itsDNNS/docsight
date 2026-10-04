@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Kies je verbindingstype.",
   "setup_choose_modem": "Kies je modemmodel.",
   "setup_timezone_invalid": "Kies een tijdzone uit de lijst.",
-  "setup_timezone_search": "Zoeken, bijv. Berlin"
+  "setup_timezone_search": "Zoeken, bijv. Berlin",
+  "setup_detect_button": "Mijn netwerk doorzoeken naar het modem",
+  "setup_detect_hint": "Vraagt vier gangbare lokale adressen om hun startpagina. Niets verlaat je netwerk en niets wordt opgeslagen.",
+  "setup_detect_running": "Zoeken…",
+  "setup_detect_found": "Een apparaat antwoordt op {url}",
+  "setup_detect_probably": "Waarschijnlijk:",
+  "setup_detect_use": "Gebruiken",
+  "setup_detect_use_address": "Dit adres gebruiken",
+  "setup_detect_unknown": "Het model is niet herkend. Kies het hieronder uit de lijst.",
+  "setup_detect_none": "Op de gangbare adressen antwoordde geen apparaat. Het adres staat meestal op het label van je modem."
 }

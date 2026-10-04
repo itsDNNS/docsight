@@ -244,6 +244,108 @@ function setModemType(key) {
     });
     if (key) _showStepError(1, '');
     toggleUsernameField();
+    _applyDetectedHost();
+}
+
+/* ── Opt-in modem detection (only on click) ── */
+var _detectedDevice = null;
+
+/* The chosen driver's scheme and port (from its default URL), the address the
+   device answered on; without a driver default, the URL that answered. */
+function _applyDetectedHost() {
+    var field = document.getElementById('modem_url');
+    if (!_detectedDevice || !field) return;
+    var hints = DRIVER_HINTS[document.getElementById('modem_type').value] || {};
+    try {
+        var url = new URL(hints.default_url || _detectedDevice.url);
+        url.hostname = _detectedDevice.host;
+        field.value = url.origin;
+    } catch (error) {
+        field.value = _detectedDevice.url;
+    }
+}
+
+function _modemName(key) {
+    var option = document.getElementById('modem-option-' + key);
+    var name = option && option.querySelector('.setup-modem-name');
+    return name ? name.textContent : key;
+}
+
+function _detectButton(label, onClick) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-ghost setup-detect-use';
+    button.textContent = label;
+    button.addEventListener('click', onClick);
+    return button;
+}
+
+function _renderDetectedDevices(container, devices) {
+    container.textContent = '';
+    if (!devices.length) {
+        var none = document.createElement('p');
+        none.className = 'setup-detect-message';
+        none.textContent = SETUP_T.setup_detect_none;
+        container.appendChild(none);
+        return;
+    }
+    devices.forEach(function(device) {
+        var card = document.createElement('div');
+        card.className = 'setup-detect-device';
+        var title = document.createElement('p');
+        title.className = 'setup-detect-title';
+        title.textContent = SETUP_T.setup_detect_found.replace('{url}', device.url);
+        card.appendChild(title);
+        var actions = document.createElement('div');
+        actions.className = 'setup-detect-actions';
+        if (device.drivers.length) {
+            var probably = document.createElement('span');
+            probably.className = 'setup-detect-label';
+            probably.textContent = SETUP_T.setup_detect_probably;
+            actions.appendChild(probably);
+            device.drivers.forEach(function(key) {
+                actions.appendChild(_detectButton(SETUP_T.setup_detect_use + ': ' + _modemName(key), function() {
+                    _detectedDevice = device;
+                    setModemType(key);
+                    var option = document.getElementById('modem-option-' + key);
+                    if (option) option.scrollIntoView({block: 'nearest'});
+                }));
+            });
+        } else {
+            var unknown = document.createElement('span');
+            unknown.className = 'setup-detect-label';
+            unknown.textContent = SETUP_T.setup_detect_unknown;
+            actions.appendChild(unknown);
+            actions.appendChild(_detectButton(SETUP_T.setup_detect_use_address, function() {
+                _detectedDevice = device;
+                _applyDetectedHost();
+                document.getElementById('modem-search').focus();
+            }));
+        }
+        card.appendChild(actions);
+        container.appendChild(card);
+    });
+}
+
+async function detectModem() {
+    var btn = document.getElementById('detect-modem-btn');
+    var results = document.getElementById('detect-modem-results');
+    btn.disabled = true;
+    _setButtonLoading(btn, 'loader-2', SETUP_T.setup_detect_running);
+    // A previous failure turned the container into an error box.
+    results.className = 'setup-detect-results';
+    results.style.display = '';
+    results.textContent = '';
+    try {
+        var response = await fetch(docsightUrl('/api/setup/detect-modem'), {method: 'POST'});
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        var data = await response.json();
+        _renderDetectedDevices(results, Array.isArray(data.devices) ? data.devices : []);
+    } catch (err) {
+        showSetupRecovery(results, SETUP_T.network_error + ': ' + err.message, detectModem);
+    }
+    btn.disabled = false;
+    _setButtonLoading(btn, 'radar', SETUP_T.setup_detect_button);
 }
 
 function selectedModemName() {

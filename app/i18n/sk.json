@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Vyberte typ pripojenia.",
   "setup_choose_modem": "Vyberte model modemu.",
   "setup_timezone_invalid": "Vyberte časové pásmo zo zoznamu.",
-  "setup_timezone_search": "Hľadať, napr. Berlin"
+  "setup_timezone_search": "Hľadať, napr. Berlin",
+  "setup_detect_button": "Vyhľadať modem v mojej sieti",
+  "setup_detect_hint": "Opýta sa štyroch bežných lokálnych adries na ich úvodnú stránku. Nič neopustí vašu sieť a nič sa neukladá.",
+  "setup_detect_running": "Hľadá sa…",
+  "setup_detect_found": "Na adrese {url} odpovedá zariadenie",
+  "setup_detect_probably": "Pravdepodobne:",
+  "setup_detect_use": "Použiť",
+  "setup_detect_use_address": "Použiť túto adresu",
+  "setup_detect_unknown": "Model sa nerozpoznal. Vyberte ho zo zoznamu nižšie.",
+  "setup_detect_none": "Na bežných adresách neodpovedalo žiadne zariadenie. Adresa býva na štítku modemu."
 }

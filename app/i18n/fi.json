@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Valitse yhteystyyppi.",
   "setup_choose_modem": "Valitse modeemin malli.",
   "setup_timezone_invalid": "Valitse aikavyöhyke luettelosta.",
-  "setup_timezone_search": "Hae, esim. Berlin"
+  "setup_timezone_search": "Hae, esim. Berlin",
+  "setup_detect_button": "Etsi modeemi verkostani",
+  "setup_detect_hint": "Kysyy neljältä yleiseltä paikalliselta osoitteelta niiden aloitussivua. Mitään ei lähde verkostasi eikä mitään tallenneta.",
+  "setup_detect_running": "Haetaan…",
+  "setup_detect_found": "Laite vastaa osoitteessa {url}",
+  "setup_detect_probably": "Todennäköisesti:",
+  "setup_detect_use": "Käytä",
+  "setup_detect_use_address": "Käytä tätä osoitetta",
+  "setup_detect_unknown": "Mallia ei tunnistettu. Valitse se alla olevasta luettelosta.",
+  "setup_detect_none": "Mikään laite ei vastannut yleisissä osoitteissa. Osoite on yleensä modeemin tarrassa."
 }

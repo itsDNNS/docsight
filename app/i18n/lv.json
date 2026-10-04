@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Izvēlieties pieslēguma veidu.",
   "setup_choose_modem": "Izvēlieties modema modeli.",
   "setup_timezone_invalid": "Izvēlieties laika joslu no saraksta.",
-  "setup_timezone_search": "Meklēt, piem., Berlin"
+  "setup_timezone_search": "Meklēt, piem., Berlin",
+  "setup_detect_button": "Meklēt modemu manā tīklā",
+  "setup_detect_hint": "Vaicā četrām izplatītām lokālajām adresēm to sākumlapu. Nekas nepamet jūsu tīklu un nekas netiek saglabāts.",
+  "setup_detect_running": "Meklē…",
+  "setup_detect_found": "Ierīce atbild adresē {url}",
+  "setup_detect_probably": "Iespējams:",
+  "setup_detect_use": "Izmantot",
+  "setup_detect_use_address": "Izmantot šo adresi",
+  "setup_detect_unknown": "Modelis netika atpazīts. Izvēlieties to no saraksta zemāk.",
+  "setup_detect_none": "Izplatītajās adresēs neatbildēja neviena ierīce. Adrese parasti ir uz modema uzlīmes."
 }

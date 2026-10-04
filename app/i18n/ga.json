@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Roghnaigh do chineál ceangail.",
   "setup_choose_modem": "Roghnaigh samhail do mhóideim.",
   "setup_timezone_invalid": "Roghnaigh crios ama ón liosta.",
-  "setup_timezone_search": "Cuardaigh, m.sh. Berlin"
+  "setup_timezone_search": "Cuardaigh, m.sh. Berlin",
+  "setup_detect_button": "Cuardaigh mo líonra don mhóideim",
+  "setup_detect_hint": "Fiafraíonn sé de cheithre sheoladh áitiúla coitianta a leathanach tosaigh. Ní fhágann aon rud do líonra agus ní stóráiltear aon rud.",
+  "setup_detect_running": "Ag cuardach…",
+  "setup_detect_found": "Freagraíonn gléas ag {url}",
+  "setup_detect_probably": "Is dócha:",
+  "setup_detect_use": "Úsáid",
+  "setup_detect_use_address": "Úsáid an seoladh seo",
+  "setup_detect_unknown": "Níor aithníodh an tsamhail. Roghnaigh í ón liosta thíos.",
+  "setup_detect_none": "Níor fhreagair aon ghléas ag na seoltaí coitianta. Bíonn an seoladh ar lipéad an mhóideim de ghnáth."
 }
