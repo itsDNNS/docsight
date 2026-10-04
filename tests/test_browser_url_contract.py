@@ -33,6 +33,7 @@ EXPECTED_CONTRACT_CALLS = {
     "app/modules/bqm/static/main.js": 9,
     "app/static/js/channels.js": 10,
     "app/static/js/line-status.js": 0,
+    "app/static/js/correlation-data.js": 0,
     "app/static/js/correlation.js": 5,
     "app/static/js/demo-banner.js": 3,
     "app/static/js/events.js": 6,

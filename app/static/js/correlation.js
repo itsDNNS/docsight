@@ -14,15 +14,7 @@ var _corrZoom = null; // { tMin, tMax } when zoomed in
 var _corrEventFilter = {};
 var _corrEventSeverityFilter = {};
 var _OPERATIONAL_EVENTS = { monitoring_started: true, monitoring_stopped: true };
-var _CORR_SEVERITIES = ['info', 'warning', 'critical'];
-function _corrRangeHours(range) {
-    var raw = String(range || '1d');
-    if (/^\d+$/.test(raw)) return parseInt(raw, 10);
-    var match = raw.match(/^(\d+)(h|d)$/);
-    if (!match) return 24;
-    var value = parseInt(match[1], 10);
-    return match[2] === 'h' ? value : value * 24;
-}
+var CorrelationData = window.DOCSightCorrelationData;
 function _corrCloseEventPopover() {
     var pop = document.getElementById('corr-event-popover');
     if (!pop) return;
@@ -55,10 +47,6 @@ function _corrPositionEventPopover(pop, anchor) {
 function _corrEscapeAttr(value) {
     return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-function _corrNormalizeSeverity(e) {
-    var severity = String((e && e.severity) || 'info').toLowerCase();
-    return _CORR_SEVERITIES.indexOf(severity) !== -1 ? severity : 'info';
-}
 function _corrEnsureEventSeverityFilter(eventType) {
     if (!(eventType in _corrEventSeverityFilter)) {
         _corrEventSeverityFilter[eventType] = { info: true, warning: true, critical: true };
@@ -72,7 +60,7 @@ function _corrEventTypeAllowed(e) {
 }
 function _corrEventSeverityAllowed(e) {
     var t = e.event_type || 'unknown';
-    var severity = _corrNormalizeSeverity(e);
+    var severity = CorrelationData.normalizeSeverity(e);
     var severityFilter = _corrEnsureEventSeverityFilter(t);
     if (!(severity in severityFilter)) severityFilter[severity] = true;
     return severityFilter[severity] !== false;
@@ -87,26 +75,8 @@ function _corrFilteredEvents(events) {
     });
 }
 
-function _corrMeasurement(value) {
-    return typeof value === 'number' && isFinite(value) && value >= 0 ? value : null;
-}
-
 function _corrFormatTimestamp(timestamp) {
     return formatDocsightTime(timestamp, 'datetime', true);
-}
-
-function _corrTarget(entry) {
-    return entry && entry.target ? entry.target : (entry || {});
-}
-
-function _corrSampleInterval(sample, target) {
-    if (!sample || typeof sample.timestamp !== 'number' || !isFinite(sample.timestamp)) return null;
-    var coverageSeconds = typeof sample.bucket_seconds === 'number' && isFinite(sample.bucket_seconds) && sample.bucket_seconds > 0
-        ? sample.bucket_seconds
-        : Number(target && target.poll_interval_ms) / 1000;
-    if (!isFinite(coverageSeconds) || coverageSeconds <= 0) return null;
-    var startMs = sample.timestamp * 1000;
-    return { startMs: startMs, endMs: startMs + coverageSeconds * 1000 };
 }
 
 function _corrSetOverlayActionable(overlay, actionable) {
@@ -114,68 +84,6 @@ function _corrSetOverlayActionable(overlay, actionable) {
     overlay.setAttribute('role', actionable ? 'button' : 'img');
     if (actionable) overlay.setAttribute('tabindex', '0');
     else overlay.removeAttribute('tabindex');
-}
-
-/**
- * Re-bucket loaded Connection Monitor samples into time-proportional display buckets.
- * CM timestamps are epoch seconds; this helper normalizes them to milliseconds.
- */
-function _corrBucketReachability(targetData, tMinMs, tMaxMs, bucketCount) {
-    var requestedCount = Math.floor(Number(bucketCount));
-    var count = Math.min(300, Math.max(1, isFinite(requestedCount) ? requestedCount : 1));
-    if (!isFinite(tMinMs) || !isFinite(tMaxMs) || tMaxMs <= tMinMs) return [];
-    var widthMs = (tMaxMs - tMinMs) / count;
-    var buckets = [];
-    for (var bi = 0; bi < count; bi++) {
-        var bucketStart = tMinMs + bi * widthMs;
-        var bucketEnd = bi === count - 1 ? tMaxMs : tMinMs + (bi + 1) * widthMs;
-        var sampleCount = 0;
-        var weightedLoss = 0;
-        var allDown = true;
-        var targetKeys = {};
-        var targetLabels = [];
-
-        (targetData || []).forEach(function(entry, targetIndex) {
-            var target = _corrTarget(entry);
-            var key = target.id != null ? 'id:' + target.id : 'index:' + targetIndex;
-            var label = target.label || target.host || String(target.id != null ? target.id : targetIndex + 1);
-            var targetObserved = false;
-            (entry.samples || []).forEach(function(sample) {
-                var interval = _corrSampleInterval(sample, target);
-                if (!interval || interval.startMs >= bucketEnd || interval.endMs <= bucketStart) return;
-                var loss = Number(sample.packet_loss_pct);
-                if (!isFinite(loss) || loss < 0 || loss > 100) return;
-                var weight = Number(sample.sample_count);
-                if (!isFinite(weight) || weight <= 0) weight = 1;
-                sampleCount += weight;
-                weightedLoss += loss * weight;
-                if (loss !== 100) allDown = false;
-                targetObserved = true;
-            });
-            if (targetObserved && !targetKeys[key]) {
-                targetKeys[key] = true;
-                targetLabels.push(label);
-            }
-        });
-
-        var lossPct = sampleCount > 0 ? weightedLoss / sampleCount : null;
-        var state = 'unknown';
-        if (sampleCount > 0) {
-            if (allDown && lossPct === 100) state = 'down';
-            else if (lossPct === 0) state = 'ok';
-            else state = 'degraded';
-        }
-        buckets.push({
-            startMs: bucketStart,
-            endMs: bucketEnd,
-            state: state,
-            lossPct: lossPct,
-            sampleCount: sampleCount,
-            targetsObserved: targetLabels.length,
-            targetScope: targetLabels.join(' | ')
-        });
-    }
-    return buckets;
 }
 
 function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
@@ -235,7 +143,7 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
                 var endMs = endEpoch * 1000;
                 var intersects = results.some(function(entry) {
                     return entry.samples.some(function(sample) {
-                        var interval = _corrSampleInterval(sample, entry.target);
+                        var interval = CorrelationData.sampleInterval(sample, entry.target);
                         return interval && interval.startMs < endMs && interval.endMs > startMs;
                     });
                 });
@@ -244,52 +152,6 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
                 return results;
             });
         });
-}
-
-function _corrBuildSpeedMarks(speedtests, xScale, yScale, tMin, tMax, visibleMetrics) {
-    var visiblePoints = [];
-    for (var i = 0; i < speedtests.length; i++) {
-        var timestampMs = docsightParseTime(speedtests[i].timestamp).getTime();
-        if (isFinite(timestampMs) && timestampMs >= tMin && timestampMs <= tMax) {
-            visiblePoints.push({ index: i, x: xScale(timestampMs) });
-        }
-    }
-
-    var nearestVisibleDistances = [];
-    for (var vi = 0; vi < visiblePoints.length; vi++) {
-        var previousDistance = vi > 0 ? Math.abs(visiblePoints[vi].x - visiblePoints[vi - 1].x) : Infinity;
-        var nextDistance = vi < visiblePoints.length - 1 ? Math.abs(visiblePoints[vi + 1].x - visiblePoints[vi].x) : Infinity;
-        nearestVisibleDistances[visiblePoints[vi].index] = Math.min(previousDistance, nextDistance);
-    }
-
-    var singleVisibleSample = visiblePoints.length === 1;
-    return speedtests.map(function(sample, index) {
-        var timestampMs = docsightParseTime(sample.timestamp).getTime();
-        var timestampX = xScale(timestampMs);
-        var visible = isFinite(timestampMs) && timestampMs >= tMin && timestampMs <= tMax;
-        var nearestVisibleDistance = visible ? nearestVisibleDistances[index] : Infinity;
-
-        var download = _corrMeasurement(sample.download_mbps);
-        var upload = _corrMeasurement(sample.upload_mbps);
-        var canSeparatePair = visibleMetrics.download && visibleMetrics.upload && download !== null && upload !== null && nearestVisibleDistance >= 8;
-        var offset = canSeparatePair ? Math.min(2, nearestVisibleDistance / 4) : 0;
-        return {
-            timestamp: sample.timestamp,
-            timestampMs: timestampMs,
-            timestampX: timestampX,
-            visible: visible,
-            nearestVisibleDistance: nearestVisibleDistance,
-            offset: offset,
-            stemWidth: nearestVisibleDistance < 8 ? 1 : 1.5,
-            headRadius: singleVisibleSample ? 4.5 : 3.5,
-            hasDownload: download !== null,
-            hasUpload: upload !== null,
-            downloadX: timestampX - offset,
-            uploadX: timestampX + offset,
-            downloadY: download !== null ? yScale(download) : null,
-            uploadY: upload !== null ? yScale(upload) : null
-        };
-    });
 }
 
 function _corrDrawSpeedMarks(ctx, marks, baselineY, colors, visibleMetrics) {
@@ -356,7 +218,7 @@ function _corrLoadStatusTrack(range) {
 }
 
 function loadCorrelationData() {
-    var hours = _corrRangeHours(getPillValue('correlation-tabs'));
+    var hours = CorrelationData.rangeHours(getPillValue('correlation-tabs'));
     _corrLoadStatusTrack(getPillValue('correlation-tabs') || '1d');
 
     var loading = document.getElementById('correlation-loading');
@@ -425,8 +287,8 @@ function renderCorrelationChart(data) {
     var rect = canvas.parentElement.getBoundingClientRect();
     var W = rect.width;
     var hasLoadedReachability = _corrTargetData.some(function(entry) {
-        var target = _corrTarget(entry);
-        return (entry.samples || []).some(function(sample) { return !!_corrSampleInterval(sample, target); });
+        var target = CorrelationData.target(entry);
+        return (entry.samples || []).some(function(sample) { return !!CorrelationData.sampleInterval(sample, target); });
     });
     var reachabilityLaneHeight = hasLoadedReachability ? 26 : 0;
     var H = 280 + reachabilityLaneHeight;
@@ -471,9 +333,9 @@ function renderCorrelationChart(data) {
     // Time range (with zoom support)
     var allTs = data.map(function(d) { return docsightParseTime(d.timestamp).getTime(); }).filter(function(ts) { return isFinite(ts); });
     _corrTargetData.forEach(function(entry) {
-        var target = _corrTarget(entry);
+        var target = CorrelationData.target(entry);
         (entry.samples || []).forEach(function(sample) {
-            var interval = _corrSampleInterval(sample, target);
+            var interval = CorrelationData.sampleInterval(sample, target);
             if (!interval) return;
             allTs.push(interval.startMs, interval.endMs);
         });
@@ -498,8 +360,8 @@ function renderCorrelationChart(data) {
     function ySnr(v) { return pad.top + plotH - (v - snrMin) / (snrMax - snrMin) * plotH; }
 
     // Speed axis (right, for speedtest download/upload)
-    var dlValues = speedtest.map(function(d) { return _corrMeasurement(d.download_mbps); }).filter(function(v) { return v !== null; });
-    var ulValues = speedtest.map(function(d) { return _corrMeasurement(d.upload_mbps); }).filter(function(v) { return v !== null; });
+    var dlValues = speedtest.map(function(d) { return CorrelationData.measurement(d.download_mbps); }).filter(function(v) { return v !== null; });
+    var ulValues = speedtest.map(function(d) { return CorrelationData.measurement(d.upload_mbps); }).filter(function(v) { return v !== null; });
     var speedValues = dlValues.concat(ulValues);
     var speedMax = speedValues.length ? Math.max(1, Math.ceil(Math.max.apply(null, speedValues) * 1.1)) : 500;
     var dlMax = speedMax;
@@ -558,7 +420,7 @@ function renderCorrelationChart(data) {
     var reachabilityColors = { ok: goodColor, degraded: warnColor, down: critColor, unknown: textColor };
     var reachabilityBucketCount = Math.min(300, Math.max(1, Math.floor(plotW / 3)));
     var reachabilityBuckets = hasLoadedReachability
-        ? _corrBucketReachability(_corrTargetData, tMin, tMax, reachabilityBucketCount)
+        ? CorrelationData.bucketReachability(_corrTargetData, tMin, tMax, reachabilityBucketCount)
         : [];
     var reachabilityLane = reachabilityBuckets.length > 0 ? { y: H - 22, height: 18 } : null;
 
@@ -566,10 +428,10 @@ function renderCorrelationChart(data) {
     var sortedSpeedtest = speedtest.slice().sort(function(a, b) {
         return docsightParseTime(a.timestamp).getTime() - docsightParseTime(b.timestamp).getTime();
     });
-    var speedMarks = _corrBuildSpeedMarks(sortedSpeedtest, xScale, yDl, tMin, tMax, {
+    var speedMarks = CorrelationData.buildSpeedMarks(sortedSpeedtest, xScale, yDl, tMin, tMax, {
         download: _corrVisible.download,
         upload: _corrVisible.upload
-    });
+    }, docsightParseTime);
     _corrChartState = {
         pad: pad, plotW: plotW, plotH: plotH, W: W, H: H,
         tMin: tMin, tMax: tMax, tMinFull: tMinFull, tMaxFull: tMaxFull,
@@ -761,7 +623,7 @@ function renderCorrelationChart(data) {
     if (_corrVisible.events && filteredEvents.length > 0) {
         for (var i = 0; i < filteredEvents.length; i++) {
             var x = xScale(docsightParseTime(filteredEvents[i].timestamp).getTime());
-            var sev = _corrNormalizeSeverity(filteredEvents[i]);
+            var sev = CorrelationData.normalizeSeverity(filteredEvents[i]);
             ctx.strokeStyle = sev === 'critical' ? critColor : sev === 'warning' ? warnColor : textColor;
             ctx.lineWidth = 1;
             ctx.setLineDash([3, 3]);
@@ -862,7 +724,7 @@ function renderCorrelationChart(data) {
         var visibleEventCount = 0;
         for (var i = 0; i < events.length; i++) {
             var et = events[i].event_type || 'unknown';
-            var sev = _corrNormalizeSeverity(events[i]);
+            var sev = CorrelationData.normalizeSeverity(events[i]);
             eventTypes[et] = (eventTypes[et] || 0) + 1;
             if (!(et in eventSeverityCounts)) eventSeverityCounts[et] = {};
             eventSeverityCounts[et][sev] = (eventSeverityCounts[et][sev] || 0) + 1;
@@ -943,8 +805,8 @@ function renderCorrelationChart(data) {
                     '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '"' + checked + ' style="accent-color:' + warnColor + ';"> ' +
                     '<span style="font-weight:600; color:var(--text,#f0f0f0);">' + escapeHtml(label) + '</span> <span style="opacity:0.5; font-size:max(var(--fs-min), 0.85em);">(' + eventTypes[et] + ')</span></label>' +
                     '<div style="display:flex; flex-wrap:wrap; gap:6px; padding-left:22px; margin-top:2px;">';
-                for (var sj = 0; sj < _CORR_SEVERITIES.length; sj++) {
-                    var sv = _CORR_SEVERITIES[sj];
+                for (var sj = 0; sj < CorrelationData.SEVERITIES.length; sj++) {
+                    var sv = CorrelationData.SEVERITIES[sj];
                     var svChecked = severityFilter[sv] !== false ? ' checked' : '';
                     var svCount = (eventSeverityCounts[et] && eventSeverityCounts[et][sv]) || 0;
                     html += '<label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; color:var(--text-secondary,#9ca3af); font-size:max(var(--fs-min), 0.85em);">' +
@@ -1325,11 +1187,11 @@ function _setupCorrelationTooltip(overlay, octx) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.errors + ';"></span> ' + (T.correlation_tt_errors || 'Errors') + ': ' + nearestModem.ds_uncorrectable_errors.toLocaleString() + '</div>';
         }
         if (nearestSpeed) {
-            var speedDownload = _corrMeasurement(nearestSpeed.download_mbps);
-            var speedUpload = _corrMeasurement(nearestSpeed.upload_mbps);
-            var speedPing = _corrMeasurement(nearestSpeed.ping_ms);
-            var speedJitter = _corrMeasurement(nearestSpeed.jitter_ms);
-            var speedPacketLoss = _corrMeasurement(nearestSpeed.packet_loss_pct);
+            var speedDownload = CorrelationData.measurement(nearestSpeed.download_mbps);
+            var speedUpload = CorrelationData.measurement(nearestSpeed.upload_mbps);
+            var speedPing = CorrelationData.measurement(nearestSpeed.ping_ms);
+            var speedJitter = CorrelationData.measurement(nearestSpeed.jitter_ms);
+            var speedPacketLoss = CorrelationData.measurement(nearestSpeed.packet_loss_pct);
             html += '<div class="tt-row tt-speedtest-time">' + (T.timestamp || 'Timestamp') + ': ' + escapeHtml(_corrFormatTimestamp(nearestSpeed.timestamp)) + '</div>';
             if (_corrVisible.download && speedDownload !== null) {
                 html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> ' + (T.correlation_tt_download || 'Download') + ': ' + speedDownload.toFixed(1) + ' Mbps</div>';
@@ -1648,53 +1510,10 @@ function _corrExportPNG() {
     link.click();
 }
 
-function _corrEncodeCSVCell(value) {
-    if (value == null || value === '') return '';
-    if (typeof value !== 'string') return value;
-
-    var firstMeaningful = value.search(/\S/);
-    var hasLeadingControlPrefix = /^[\s]*[\t\r]/.test(value);
-    if (hasLeadingControlPrefix
-            || (firstMeaningful !== -1 && '=+-@'.indexOf(value.charAt(firstMeaningful)) !== -1)) {
-        value = "'" + value;
-    }
-    if (/[",\r\n]/.test(value)) return '"' + value.replace(/"/g, '""') + '"';
-    return value;
-}
-
 function _corrExportCSV() {
     var reachabilityBuckets = _corrChartState && _corrChartState.reachabilityBuckets ? _corrChartState.reachabilityBuckets : [];
     if ((!_correlationData || _correlationData.length === 0) && reachabilityBuckets.length === 0) return;
-    var baseHeaders = ['timestamp', 'source', 'health', 'ds_snr_min', 'ds_power_avg', 'us_power_avg', 'ds_uncorrectable_errors', 'download_mbps', 'upload_mbps', 'ping_ms', 'severity', 'message'];
-    var reachabilityHeaders = ['state', 'packet_loss_pct', 'sample_count', 'bucket_start', 'bucket_end', 'target_scope'];
-    var headers = baseHeaders.concat(reachabilityHeaders);
-    var rows = [headers.map(_corrEncodeCSVCell).join(',')];
-    for (var i = 0; i < _correlationData.length; i++) {
-        var d = _correlationData[i];
-        var row = headers.map(function(h) {
-            if (reachabilityHeaders.indexOf(h) !== -1) return '';
-            var v = d[h];
-            return _corrEncodeCSVCell(v);
-        });
-        rows.push(row.join(','));
-    }
-    for (var ri = 0; ri < reachabilityBuckets.length; ri++) {
-        var bucket = reachabilityBuckets[ri];
-        var reachabilityRow = {
-            timestamp: new Date(bucket.startMs).toISOString(),
-            source: 'connection_monitor',
-            state: bucket.state,
-            packet_loss_pct: bucket.lossPct == null ? '' : Number(bucket.lossPct.toFixed(4)),
-            sample_count: bucket.sampleCount,
-            bucket_start: new Date(bucket.startMs).toISOString(),
-            bucket_end: new Date(bucket.endMs).toISOString(),
-            target_scope: bucket.targetScope || ''
-        };
-        rows.push(headers.map(function(h) {
-            var v = reachabilityRow[h];
-            return _corrEncodeCSVCell(v);
-        }).join(','));
-    }
+    var rows = CorrelationData.csvRows(_correlationData, reachabilityBuckets);
     var blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     var link = document.createElement('a');
     link.download = 'correlation-data-' + new Date().toISOString().slice(0, 10) + '.csv';
@@ -1802,7 +1621,7 @@ function renderCorrelationTable(data) {
                 details = escapeHtml(e.last_error || '');
             }
         } else if (src === 'event') {
-            var eventSeverity = _corrNormalizeSeverity(e);
+            var eventSeverity = CorrelationData.normalizeSeverity(e);
             var sevColor = eventSeverity === 'critical' ? 'var(--crit)' : eventSeverity === 'warning' ? 'var(--warn)' : 'var(--muted)';
             src = '<span style="color:' + sevColor + ';">' + escapeHtml(sevLabels[eventSeverity] || eventSeverity) + '</span>';
             msg = escapeHtml(e.message || '');
