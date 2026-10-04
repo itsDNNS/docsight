@@ -244,8 +244,8 @@ def test_workflow_runs_safe_non_retrying_shards_and_an_always_gate():
 
     assert "fail-fast: false" in workflow
     assert "single_process:" in workflow
-    assert "'[\"1\",\"2\",\"3\",\"4\"]'" in workflow
-    assert "max-parallel: 4" in workflow
+    assert "'[\"1\",\"2\",\"3\",\"4\",\"5\"]'" in workflow
+    assert "max-parallel: 5" in workflow
     assert "E2E_JOB_STARTED_EPOCH" in workflow
     assert "python scripts/e2e_shards.py run" in workflow
     assert "python scripts/e2e_shards.py summarize" in workflow
