@@ -2532,3 +2532,55 @@ button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .home-source[data-cm-health="good"] strong { color: var(--good); }
 .home-source[data-cm-health="warn"] strong { color: var(--warn); }
 .home-source[data-cm-health="crit"] strong { color: var(--crit); }
+
+/* ── Home: status first ──
+   Status card → key figures → (informational notices) → 24 h chart. */
+.dashboard-hero + .home-kpis { margin-top: var(--space-lg); }
+.dashboard-trend { margin-bottom: var(--space-lg); }
+.dashboard-trend .hero-visual-row { grid-row: 1; }
+.dashboard-view > .dashboard-notice-stack + .dashboard-trend { margin-top: 0; }
+.dashboard-view .insights-meta .hero-refresh-button { padding-left: 4px; padding-right: 4px; }
+
+@media (max-width: 760px) {
+  /* One scrollable chip row instead of a nine-line list. */
+  /* min-width: 0 keeps the unwrapped row from widening the status card. */
+  .dashboard-view .insights-meta { min-width: 0; padding: 8px var(--space-md); }
+  .dashboard-view .insights-meta .hero-meta {
+    min-width: 0;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
+    mask-image: linear-gradient(to right, #000 85%, transparent);
+  }
+  .dashboard-view .insights-meta .hero-meta::-webkit-scrollbar { display: none; }
+  .dashboard-view .insights-meta .hero-meta-item { flex: 0 0 auto; max-width: min(220px, 70vw); }
+  .dashboard-view .insights-meta .hero-meta-item:last-child { margin-right: 32px; }
+
+  /* Compact line status so the first key figures fit into the first screen. */
+  .dashboard-hero .line-status { gap: 6px; padding: var(--space-md); }
+  .line-status-word { font-size: 1.5rem; }
+  .line-status-count strong { font-size: 1.4rem; }
+  .line-status-count span { font-size: 1rem; }
+  .line-status-callout { padding: 10px 12px; margin-top: 4px; }
+  .ls-callout-value { font-size: 1.25rem; }
+  .line-status-head { flex-wrap: nowrap; align-items: flex-end; }
+  .line-status-count { text-align: right; flex: none; }
+  .line-status-count small { max-width: 9em; margin-left: auto; line-height: 1.2; }
+  .line-status-actions { flex-wrap: nowrap; gap: 8px; }
+  .line-status-actions .btn { flex: 1 1 0; min-width: 0; min-height: 40px; padding: 8px 10px; white-space: normal; text-align: center; line-height: 1.25; }
+  .dashboard-hero + .home-kpis { margin-top: var(--space-sm); }
+  .home-kpi { gap: 2px; padding-top: 2px; padding-bottom: var(--space-sm); }
+}
+
+@media (max-width: 640px) {
+  /* Slim demo banner: the title, then its two actions on one short line. */
+  .demo-banner { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 8px 12px; }
+  .demo-banner-copy span { display: none; }
+  .demo-banner-copy strong { white-space: nowrap; font-size: 0.85rem; }
+  .demo-banner-actions .btn, .demo-banner-actions .demo-exit-action { font-size: 0.8rem; }
+  .demo-banner-copy > svg { width: 16px; height: 16px; }
+  .demo-banner-actions { display: flex; flex: 1 1 100%; gap: 6px; }
+  .demo-banner-actions .btn { min-height: 32px; padding: 4px 10px; white-space: nowrap; }
+}

@@ -264,7 +264,7 @@ class TestOneClickDemo:
         expect(banner).to_be_visible()
         expect(banner.get_by_role("button", name="Connect own modem")).to_be_visible()
         expect(banner.get_by_role("button", name="Exit demo")).to_be_visible()
-        expect(page.locator(".hero-card")).to_be_visible()
+        expect(page.locator(".hero-card").first).to_be_visible()
         expect(page.locator(".hero-meta-item .badge", has_text="DEMO")).to_be_visible()
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "demo_dashboard_desktop.png"))
 

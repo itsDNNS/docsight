@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 626,
+  "expected_total": 629,
   "baseline_cpu_seconds": 1534.372,
   "shards": [
     {
@@ -19,15 +19,14 @@
     },
     {
       "id": 2,
-      "collected_cases": 170,
+      "collected_cases": 160,
       "files": [
         "test_auth.py",
         "test_charts.py",
         "test_dashboard.py",
         "test_evidence_report_scope.py",
         "test_glossary_visual.py",
-        "test_setup.py",
-        "test_theme.py"
+        "test_setup.py"
       ]
     },
     {
@@ -46,7 +45,7 @@
     },
     {
       "id": 4,
-      "collected_cases": 186,
+      "collected_cases": 199,
       "files": [
         "test_channels.py",
         "test_events.py",
@@ -55,7 +54,8 @@
         "test_modals.py",
         "test_modulation.py",
         "test_path_prefix_browser.py",
-        "test_settings.py"
+        "test_settings.py",
+        "test_theme.py"
       ]
     }
   ]

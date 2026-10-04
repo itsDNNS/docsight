@@ -86,7 +86,16 @@ def _assert_visible_controls_stay_in_view(page, surface, root_selector):
         (nodes) => nodes.map((node) => {
             const rect = node.getBoundingClientRect();
             const style = getComputedStyle(node);
+            // Controls in a deliberately scrollable row (e.g. Home meta chips) are reachable
+            // by swiping and by focus, as long as the row itself stays inside the viewport.
+            let scroller = node.parentElement;
+            while (scroller && !(['auto', 'scroll'].includes(getComputedStyle(scroller).overflowX)
+                && scroller.scrollWidth > scroller.clientWidth)) {
+                scroller = scroller.parentElement;
+            }
+            const scrollerRect = scroller ? scroller.getBoundingClientRect() : null;
             return {
+                inScrollableRow: !!scrollerRect && scrollerRect.left >= 0 && scrollerRect.right <= window.innerWidth,
                 text: (node.textContent || node.getAttribute('aria-label') || node.id || node.className || node.tagName).trim(),
                 left: rect.left,
                 right: rect.right,
@@ -100,8 +109,9 @@ def _assert_visible_controls_stay_in_view(page, surface, root_selector):
     )
     offscreen = [
         control for control in controls
-        if control["left"] < -MAX_HORIZONTAL_OVERFLOW
-        or control["right"] > control["viewportWidth"] + MAX_HORIZONTAL_OVERFLOW
+        if not control["inScrollableRow"]
+        and (control["left"] < -MAX_HORIZONTAL_OVERFLOW
+        or control["right"] > control["viewportWidth"] + MAX_HORIZONTAL_OVERFLOW)
     ]
     assert offscreen == [], f"{surface} off-screen controls: {offscreen}"
 

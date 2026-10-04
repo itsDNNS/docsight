@@ -119,8 +119,9 @@ class TestNavigation:
 
         speed_kpi.locator(".home-kpi-link").click()
 
-        assert demo_page.locator("#view-speedtest").is_visible()
-        assert "active" in demo_page.locator('.nav-item[data-view="speedtest"]').get_attribute("class")
+        # The link switches views through the hash router, so wait for it.
+        expect(demo_page.locator("#view-speedtest")).to_be_visible()
+        expect(demo_page.locator('.nav-item[data-view="speedtest"]')).to_have_class(re.compile(r"\bactive\b"))
 
 
 class TestDashboardSections:
@@ -633,3 +634,51 @@ class TestLineStatusSegments:
         expect(panel.locator('.ls-detail-step[data-step="1"]')).to_be_focused()
         box = panel.locator('.ls-detail-step[data-step="1"]').bounding_box()
         assert box["width"] >= 24 and box["height"] >= 24
+
+
+class TestStatusFirst:
+    """The line status and the first key figures come before notices and the chart."""
+
+    def test_phone_shows_status_and_two_key_figures_in_the_first_screen(self, page, live_server):
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.goto(live_server)
+        page.wait_for_load_state("networkidle")
+        expect(page.locator("#demo-banner")).to_be_visible()
+
+        layout = page.evaluate(
+            """() => {
+                const bar = document.querySelector('#main-nav');
+                const barTop = bar ? bar.getBoundingClientRect().top : innerHeight;
+                const bottom = sel => document.querySelector(sel).getBoundingClientRect().bottom;
+                const meta = document.querySelector('.insights-meta .hero-meta');
+                const tops = [...meta.querySelectorAll('.hero-meta-item')].filter(el => el.offsetParent).map(el => Math.round(el.getBoundingClientRect().top));
+                return {
+                    visibleBottom: Math.min(innerHeight, barTop),
+                    status: bottom('.line-status-word'),
+                    first: bottom('#home-kpi-downstream .home-kpi-value'),
+                    second: bottom('#home-kpi-upstream .home-kpi-value'),
+                    metaRows: Math.max(...tops) - Math.min(...tops),
+                    overflow: document.documentElement.scrollWidth > innerWidth,
+                };
+            }"""
+        )
+        assert layout["status"] < layout["visibleBottom"]
+        assert layout["first"] <= layout["visibleBottom"] and layout["second"] <= layout["visibleBottom"], layout
+        assert layout["metaRows"] <= 4, layout
+        assert layout["overflow"] is False
+
+    def test_order_is_status_figures_notices_chart(self, demo_page):
+        order = demo_page.evaluate(
+            """() => ['.dashboard-hero:not(.dashboard-trend)', '.home-kpis', '.dashboard-notice-stack', '.dashboard-trend']
+                .map(sel => document.querySelector('#view-dashboard ' + sel).getBoundingClientRect().top)"""
+        )
+        assert order == sorted(order), order
+
+    def test_meta_row_keeps_refresh_on_one_line_at_1280(self, demo_page):
+        demo_page.set_viewport_size({"width": 1280, "height": 800})
+        refresh = demo_page.locator(".hero-refresh-button")
+        expect(refresh).to_have_accessible_name("Refresh")
+        tops = demo_page.evaluate(
+            "() => [...document.querySelectorAll('.insights-meta .hero-meta-item')].filter(el => el.offsetParent).map(el => el.getBoundingClientRect().top)"
+        )
+        assert max(tops) - min(tops) < 8, tops
