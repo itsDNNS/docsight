@@ -4,6 +4,10 @@
 var _eventsPageSize = 50;
 var _eventsRequestCount = 0;
 var _badgeRequestCount = 0;
+var _eventsLoaded = [];
+var _eventsExpanded = {};
+var _eventsSelected = {};
+var _eventsAckChunk = 500;
 var _eventTypeLabels = {
     health_change: T.event_type_health_change || 'Health Change',
     power_change: T.event_type_power_change || 'Power Change',
@@ -33,30 +37,10 @@ function _eventTypeLabel(eventType) {
     return T[i18nKey] || eventType;
 }
 
-function _eventTimestampLabel(timestamp) {
-    return escapeHtml(formatDocsightTime(timestamp, 'datetime', true));
-}
-
 function _eventSeverityMeta(ev) {
-    var severity = String(ev.severity || 'info').replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'info';
-    var sevClass = 'sev-badge-' + severity;
-    var sevLabel = _sevLabels[severity] || severity;
+    var severity = DOCSightEventLogData.severity(ev);
     var sevIcons = { info: 'info', warning: 'triangle-alert', critical: 'octagon-alert' };
-    var sevIcon = sevIcons[severity] || 'info';
-    return { className: sevClass, label: sevLabel, icon: sevIcon };
-}
-
-function _eventSeverityBadge(meta) {
-    return '<span class="' + meta.className + '"><span class="sev-text">' + escapeHtml(meta.label) + '</span><i data-lucide="' + meta.icon + '" class="sev-icon"></i></span>';
-}
-
-function _eventAckMarkup(ev) {
-    if (ev.acknowledged) {
-        var acknowledged = escapeHtml(T.event_acknowledged || 'Acknowledged');
-        return '<span class="ev-ack-mark">&#10003; ' + acknowledged + '</span>';
-    }
-    var label = escapeHtml(T.event_acknowledge || 'Acknowledge');
-    return '<button class="btn-ack" type="button" aria-label="' + label + '" onclick="acknowledgeEvent(' + ev.id + ', event)">&#10003; ' + label + '</button>';
+    return { severity: severity, label: _sevLabels[severity], icon: sevIcons[severity] };
 }
 
 function updateEventsExportLink() {
@@ -91,6 +75,8 @@ function _eventChannelMeta(c) {
     return meta;
 }
 
+/* Rendered next to the event type, so the message names only the direction
+   and the values, never the measurement again. */
 function formatEventMessage(ev) {
     var d = ev.details;
     if (!d) return escapeHtml(ev.message);
@@ -105,7 +91,7 @@ function formatEventMessage(ev) {
             var dir = d.direction === 'downstream' ? (T.event_ds || 'DS') : (T.event_us || 'US');
             var delta = d.current - d.prev;
             var sign = delta >= 0 ? '+' : '';
-            return '<span class="ev-label">' + escapeHtml(dir) + ' ' + (T.event_power || 'Power') + '</span>' +
+            return '<span class="ev-label">' + escapeHtml(dir) + '</span>' +
                 '<span class="ev-val">' + _fmtNum(d.prev) + '</span>' +
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val">' + _fmtNum(d.current) + '</span> dBmV ' +
@@ -114,7 +100,7 @@ function formatEventMessage(ev) {
 
         case 'snr_change': {
             var thr = d.threshold === 'critical' ? 'ev-down' : 'ev-warn';
-            var html = '<span class="ev-label">' + (T.event_ds || 'DS') + ' SNR</span>' +
+            var html = '<span class="ev-label">' + escapeHtml(T.event_ds || 'DS') + '</span>' +
                 '<span class="ev-val">' + _fmtNum(d.prev) + '</span>' +
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val ' + thr + '">' + _fmtNum(d.current) + '</span> dB ' +
@@ -127,6 +113,11 @@ function formatEventMessage(ev) {
                 var sign = delta >= 0 ? '+' : '';
                 var channelLabel = (T.event_ds || 'DS') + ' Ch ' + escapeHtml(String(c.channel));
                 var meta = _eventChannelMeta(c);
+                // The summary already shows these values; the line only names the channel.
+                if (c.prev === d.prev && c.current === d.current) {
+                    html += '<span class="ev-sub">' + channelLabel + (meta.length ? ' · ' + meta.join(' · ') : '') + '</span>';
+                    return;
+                }
                 html += '<span class="ev-sub">' + channelLabel +
                     (meta.length ? ' · ' + meta.join(' · ') : '') + ': ' +
                     '<span class="ev-val">' + _fmtNum(c.prev) + '</span>' +
@@ -146,7 +137,7 @@ function formatEventMessage(ev) {
             var chDelta = d.current - d.prev;
             var chCls = chDelta < 0 ? 'ev-down' : 'ev-up';
             var chSign = chDelta >= 0 ? '+' : '';
-            return '<span class="ev-label">' + escapeHtml(chDir) + ' ' + (T.event_channels || 'Channels') + '</span>' +
+            return '<span class="ev-label">' + escapeHtml(chDir) + '</span>' +
                 '<span class="ev-val">' + _fmtNum(d.prev) + '</span>' +
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val">' + _fmtNum(d.current) + '</span> ' +
@@ -196,57 +187,309 @@ function formatEventMessage(ev) {
     }
 }
 
+/* ── Filters ── */
+function _setEventFilterPressed(el, pressed) {
+    el.classList.toggle('active', pressed);
+    el.setAttribute('aria-pressed', String(pressed));
+}
+
 function toggleHideOperational() {
-    _hideOperational = !_hideOperational;
-    var btn = document.getElementById('hide-operational-btn');
-    if (btn) {
-        btn.classList.toggle('active', _hideOperational);
-        btn.setAttribute('aria-pressed', String(_hideOperational));
-    }
+    var input = document.getElementById('hide-operational-toggle');
+    _hideOperational = input ? !!input.checked : !_hideOperational;
     loadEvents();
 }
 
 function filterEventsBySeverity(severity) {
     _currentSeverityFilter = severity;
-    _deviceOnlyFilter = false;
-    var pills = document.querySelectorAll('.severity-pill:not(#hide-operational-btn)');
-    pills.forEach(function(pill) {
-        var isActive = pill.getAttribute('data-severity') === severity;
-        pill.classList.toggle('active', isActive);
-        if (pill.hasAttribute('aria-pressed')) {
-            pill.setAttribute('aria-pressed', String(isActive));
-        }
+    document.querySelectorAll('#events-severity-tabs [data-severity]').forEach(function(tab) {
+        _setEventFilterPressed(tab, tab.getAttribute('data-severity') === severity);
     });
     loadEvents();
 }
 
 function filterEventsByDevice() {
     _deviceOnlyFilter = !_deviceOnlyFilter;
-    _currentSeverityFilter = '';
-
-    var pills = document.querySelectorAll('.severity-pill:not(#hide-operational-btn)');
-    pills.forEach(function(pill) {
-        if (pill.id === 'device-filter-pill') {
-            pill.classList.toggle('active', _deviceOnlyFilter);
-            pill.setAttribute('aria-pressed', String(_deviceOnlyFilter));
-        } else {
-            pill.classList.remove('active');
-            if (pill.hasAttribute('aria-pressed')) {
-                pill.setAttribute('aria-pressed', 'false');
-            }
-        }
-    });
+    var pill = document.getElementById('device-filter-pill');
+    if (pill) _setEventFilterPressed(pill, _deviceOnlyFilter);
     loadEvents();
 }
 
-function loadEvents(append) {
+/* ── Timeline: one row per event, grouped by day, repeated events collapsed ── */
+function _eventFmt(key, fallback, count) {
+    return String(T[key] || fallback).replace('{count}', String(count));
+}
+
+function _eventLocale() {
+    if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
+    return (document.documentElement && document.documentElement.lang) || undefined;
+}
+
+function _eventTodayKey() {
+    var now = Date.now();
+    if (typeof DOCSightBrowserContracts !== 'undefined') {
+        var zone = typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined;
+        return DOCSightBrowserContracts.localInputValue(now, zone).slice(0, 10);
+    }
+    return new Date(now).toISOString().slice(0, 10);
+}
+
+/* Day header parts: "Today"/"Yesterday" or the weekday, plus the date. */
+function _eventDayParts(day) {
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || '');
+    if (!match) return {name: day || '', date: ''};
+    var date = new Date(Date.UTC(+match[1], +match[2] - 1, +match[3]));
+    function format(parts) {
+        parts.timeZone = 'UTC';
+        try {
+            return new Intl.DateTimeFormat(_eventLocale(), parts).format(date);
+        } catch (e) {
+            return new Intl.DateTimeFormat(undefined, parts).format(date);
+        }
+    }
+    var today = _eventTodayKey();
+    var yesterday = new Date(Date.parse(today + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
+    var name = day === today ? (T.event_today || 'Today')
+        : day === yesterday ? (T.event_yesterday || 'Yesterday')
+        : format({weekday: 'short'});
+    return {name: name, date: format({day: '2-digit', month: '2-digit', year: 'numeric'})};
+}
+
+function _eventSevIcon(meta) {
+    return '<span class="ev-sev" title="' + escapeHtml(meta.label) + '">' +
+        '<i data-lucide="' + meta.icon + '" aria-hidden="true"></i>' +
+        '<span class="sr-only">' + escapeHtml(meta.label) + '</span></span>';
+}
+
+function _eventSelectBox(ids, label) {
+    if (!ids.length) return '<span class="ev-select" aria-hidden="true"></span>';
+    return '<label class="ev-select"><input type="checkbox" data-ids="' + ids.join(',') + '" aria-label="' +
+        escapeHtml((T.event_select || 'Select') + ': ' + label) + '"></label>';
+}
+
+function _eventAckButton(ids, label) {
+    if (!ids.length) {
+        var done = escapeHtml(T.event_acknowledged || 'Acknowledged');
+        return '<span class="ev-ack-done" title="' + done + '"><i data-lucide="check-check" aria-hidden="true"></i>' +
+            '<span class="sr-only">' + done + '</span></span>';
+    }
+    var text = T.event_acknowledge || 'Acknowledge';
+    return '<button type="button" class="ev-ack" data-ack="' + ids.join(',') + '" title="' + escapeHtml(text) +
+        '" aria-label="' + escapeHtml(text + ': ' + label) + '"><i data-lucide="check" aria-hidden="true"></i></button>';
+}
+
+/* One row per event. Inside a run the type is the run's, so member rows omit it.
+   Rows with extra lines (e.g. affected channels) expand in place; nothing is repeated. */
+function _eventRowHtml(ev, inRun) {
+    var meta = _eventSeverityMeta(ev);
+    var type = _eventTypeLabel(ev.event_type);
+    var clock = formatDocsightTime(ev.timestamp, 'time');
+    var label = type + ', ' + clock;
+    var key = 'e' + ev.id;
+    var message = formatEventMessage(ev);
+    var unacked = ev.acknowledged ? [] : [ev.id];
+    var content =
+        '<time class="ev-time" datetime="' + escapeHtml(String(ev.timestamp)) + '">' + escapeHtml(clock) + '</time>' +
+        _eventSevIcon(meta) +
+        (inRun ? '' : '<span class="ev-type">' + escapeHtml(type) + '</span>') +
+        '<span class="ev-msg">' + message + '</span>';
+    var main = message.indexOf('class="ev-sub') !== -1
+        ? '<button type="button" class="ev-main" data-toggle="' + key + '" aria-expanded="' + !!_eventsExpanded[key] + '">' + content + '</button>'
+        : '<div class="ev-main" data-key="' + key + '">' + content + '</div>';
+    return '<li class="ev-row ev-sev-' + DOCSightEventLogData.severity(ev) + (ev.acknowledged ? ' ev-acked' : '') +
+            '" data-event-id="' + ev.id + '" data-key="' + key + '">' +
+        _eventSelectBox(unacked, label) +
+        main +
+        _eventAckButton(unacked, label) +
+    '</li>';
+}
+
+/* A message cut off by the row width can be opened too; whether it is cut off
+   is only known after layout. */
+function _markTruncatedEventRows(feed) {
+    if (!feed.querySelectorAll) return;
+    feed.querySelectorAll('div.ev-main[data-key]').forEach(function(main) {
+        var msg = main.querySelector('.ev-msg');
+        if (!msg || msg.scrollWidth <= msg.clientWidth + 1) return;
+        var key = main.getAttribute('data-key');
+        main.setAttribute('role', 'button');
+        main.setAttribute('tabindex', '0');
+        main.setAttribute('data-toggle', key);
+        main.setAttribute('aria-expanded', String(!!_eventsExpanded[key]));
+    });
+}
+
+function _eventGroupHtml(group) {
+    var meta = _eventSeverityMeta({severity: group.severity});
+    var type = _eventTypeLabel(group.eventType);
+    var newest = formatDocsightTime(group.newest.timestamp, 'time');
+    var oldest = formatDocsightTime(group.oldest.timestamp, 'time');
+    var span = oldest + '–' + newest;
+    var run = _eventFmt('event_run_count', '{count} in a row', group.events.length);
+    var label = type + ', ' + run + ', ' + span;
+    var open = !!_eventsExpanded[group.key];
+    var listId = 'event-group-' + group.key;
+    var unacked = DOCSightEventLogData.unacknowledgedIds(group.events);
+    return '<li class="ev-row ev-group ev-sev-' + group.severity + (unacked.length ? '' : ' ev-acked') + '" data-key="' + group.key + '">' +
+        _eventSelectBox(unacked, label) +
+        '<button type="button" class="ev-main" data-toggle="' + group.key + '" aria-expanded="' + open + '" aria-controls="' + listId + '">' +
+            '<time class="ev-time" datetime="' + escapeHtml(String(group.newest.timestamp)) + '">' + escapeHtml(newest) + '</time>' +
+            _eventSevIcon(meta) +
+            '<span class="ev-type">' + escapeHtml(type) + '</span>' +
+            '<span class="ev-run"><span aria-hidden="true">' + group.events.length + '×</span><span class="sr-only">' + escapeHtml(run) + '</span></span>' +
+            '<span class="ev-msg">' + formatEventMessage(group.newest) + '</span>' +
+            '<i data-lucide="chevron-down" class="ev-chevron" aria-hidden="true"></i>' +
+        '</button>' +
+        _eventAckButton(unacked, label) +
+        '<ol class="ev-group-members" id="' + listId + '"' + (open ? '' : ' hidden') + '>' +
+            group.events.map(function(ev) { return _eventRowHtml(ev, true); }).join('') +
+        '</ol>' +
+    '</li>';
+}
+
+function _renderEventTimeline() {
     var feed = document.getElementById('events-feed');
-    var offset = append ? feed.children.length : 0;
+    if (!feed) return;
+    feed.innerHTML = DOCSightEventLogData.buildTimeline(_eventsLoaded).map(function(day) {
+        var headId = 'events-day-' + (day.day || 'unknown');
+        var parts = _eventDayParts(day.day);
+        return '<section class="ev-day" aria-labelledby="' + headId + '">' +
+            '<h3 class="ev-day-head" id="' + headId + '"><span class="ev-day-name">' + escapeHtml(parts.name) + '</span>' +
+                '<span class="ev-day-date">' + escapeHtml(parts.date) + '</span></h3>' +
+            '<ol class="ev-rows">' + day.items.map(function(item) {
+                return item.kind === 'group' ? _eventGroupHtml(item) : _eventRowHtml(item.event);
+            }).join('') + '</ol>' +
+        '</section>';
+    }).join('');
+    _syncEventSelection();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    _markTruncatedEventRows(feed);
+}
+
+/* ── Selection and acknowledgement ── */
+function _eventIds(value) {
+    return String(value || '').split(',').map(Number).filter(function(id) { return id > 0; });
+}
+
+function _selectedEventIds() {
+    return _eventsLoaded.filter(function(ev) {
+        return _eventsSelected[ev.id] && !ev.acknowledged;
+    }).map(function(ev) { return ev.id; });
+}
+
+function _syncEventSelection() {
+    var feed = document.getElementById('events-feed');
+    if (feed && feed.querySelectorAll) {
+        feed.querySelectorAll('.ev-select input').forEach(function(input) {
+            var ids = _eventIds(input.getAttribute('data-ids'));
+            var picked = ids.filter(function(id) { return _eventsSelected[id]; }).length;
+            input.checked = picked > 0 && picked === ids.length;
+            input.indeterminate = picked > 0 && picked < ids.length;
+        });
+    }
+    var selected = _selectedEventIds().length;
+    var selectedBtn = document.getElementById('btn-ack-selected');
+    var visibleBtn = document.getElementById('btn-ack-visible');
+    var summary = document.getElementById('events-summary');
+    if (selectedBtn) {
+        selectedBtn.hidden = !selected;
+        selectedBtn.textContent = _eventFmt('event_acknowledge_selected', 'Acknowledge selected ({count})', selected);
+    }
+    if (visibleBtn) visibleBtn.hidden = !DOCSightEventLogData.unacknowledgedIds(_eventsLoaded).length;
+    if (summary) summary.textContent = _eventsLoaded.length ? _eventFmt('event_count_shown', '{count} events shown', _eventsLoaded.length) : '';
+}
+
+function _postEventAcknowledgements(ids) {
+    var chunks = [];
+    for (var i = 0; i < ids.length; i += _eventsAckChunk) chunks.push(ids.slice(i, i + _eventsAckChunk));
+    return Promise.all(chunks.map(function(chunk) {
+        return fetch(docsightUrl('/api/events/acknowledge'), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids: chunk})
+        }).then(function(r) {
+            if (!r.ok) throw new Error('Acknowledge request failed');
+            return r.json();
+        });
+    }));
+}
+
+function _focusEventRow(key) {
+    var feed = document.getElementById('events-feed');
+    if (!feed || !feed.querySelector) return;
+    var target = (key && feed.querySelector('[data-toggle="' + key + '"]')) || feed.querySelector('.ev-main');
+    if (target) target.focus();
+}
+
+/* Acknowledges the given ids, then updates the loaded rows in place so the
+   scroll position, open details and pagination survive. */
+function acknowledgeEvents(ids, focusKey) {
+    if (!ids.length) return Promise.resolve();
+    return _postEventAcknowledgements(ids).then(function() {
+        DOCSightEventLogData.markAcknowledged(_eventsLoaded, ids);
+        ids.forEach(function(id) { delete _eventsSelected[id]; });
+        _renderEventTimeline();
+        _focusEventRow(focusKey);
+        refreshEventBadge();
+    }).catch(function() {
+        if (typeof showToast === 'function') showToast(T.network_error || 'Error', 'error');
+    });
+}
+
+function acknowledgeSelectedEvents() {
+    return acknowledgeEvents(_selectedEventIds());
+}
+
+function acknowledgeVisibleEvents() {
+    return acknowledgeEvents(DOCSightEventLogData.unacknowledgedIds(_eventsLoaded));
+}
+
+document.addEventListener('click', function(event) {
+    var target = event.target;
+    if (!target || !target.closest || !target.closest('#events-feed')) return;
+    var ack = target.closest('[data-ack]');
+    if (ack) {
+        var row = ack.closest('[data-key]');
+        acknowledgeEvents(_eventIds(ack.getAttribute('data-ack')), row && row.getAttribute('data-key'));
+        return;
+    }
+    var toggle = target.closest('[data-toggle]');
+    if (toggle) _toggleEventRow(toggle);
+});
+
+document.addEventListener('keydown', function(event) {
+    var target = event.target;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (!target || !target.matches || !target.matches('#events-feed div[data-toggle]')) return;
+    event.preventDefault();
+    _toggleEventRow(target);
+});
+
+function _toggleEventRow(toggle) {
+    var key = toggle.getAttribute('data-toggle');
+    var open = toggle.getAttribute('aria-expanded') !== 'true';
+    var controls = toggle.getAttribute('aria-controls');
+    var panel = controls ? document.getElementById(controls) : null;
+    if (open) _eventsExpanded[key] = true;
+    else delete _eventsExpanded[key];
+    toggle.setAttribute('aria-expanded', String(open));
+    if (panel) panel.hidden = !open;
+}
+
+document.addEventListener('change', function(event) {
+    var input = event.target;
+    if (!input || !input.matches || !input.matches('#events-feed .ev-select input')) return;
+    _eventIds(input.getAttribute('data-ids')).forEach(function(id) {
+        if (input.checked) _eventsSelected[id] = true;
+        else delete _eventsSelected[id];
+    });
+    _syncEventSelection();
+});
+
+function loadEvents(append) {
+    var offset = append ? _eventsLoaded.length : 0;
     var feedRequestId = ++_eventsRequestCount;
-    var badgeRequestId = ++_badgeRequestCount;
-    var severity = _currentSeverityFilter;
     var params = '?limit=' + _eventsPageSize + '&offset=' + offset;
-    if (severity) params += '&severity=' + severity;
+    if (_currentSeverityFilter) params += '&severity=' + _currentSeverityFilter;
     if (_hideOperational) params += '&exclude_operational=true';
     if (_deviceOnlyFilter) params += '&event_prefix=device_';
 
@@ -256,14 +499,16 @@ function loadEvents(append) {
     var empty = document.getElementById('events-empty');
     var loading = document.getElementById('events-loading');
     var moreBtn = document.getElementById('events-show-more');
-    var ackAllBtn = document.getElementById('btn-ack-all');
 
     moreBtn.style.display = 'none';
     if (!append) {
         loading.style.display = '';
-        feed.innerHTML = '';
         feedCard.style.display = 'none';
         empty.style.display = 'none';
+        _eventsLoaded = [];
+        _eventsExpanded = {};
+        _eventsSelected = {};
+        _renderEventTimeline();
     }
 
     fetch(docsightUrl('/api/events' + params))
@@ -276,44 +521,23 @@ function loadEvents(append) {
             loading.style.display = 'none';
             empty.style.display = 'none';
             var events = data.events || [];
-            var unack = data.unacknowledged_count || 0;
-
-            // Events and unack count are natively filtered by the backend.
-            var eventsViewEl = document.getElementById('view-events');
-            if (badgeRequestId === _badgeRequestCount && eventsViewEl && eventsViewEl.classList.contains('active')) {
-                updateEventBadge(unack);
-            }
-
-            ackAllBtn.style.display = unack > 0 ? '' : 'none';
             if (events.length === 0 && !append) {
                 feedCard.style.display = '';
                 empty.textContent = T.event_no_events || 'No events detected yet.';
                 empty.style.display = '';
                 return;
             }
+            // New events shift later pages; skip rows that are already shown.
+            var known = {};
+            _eventsLoaded.forEach(function(ev) { known[ev.id] = true; });
             events.forEach(function(ev) {
-                var sevMeta = _eventSeverityMeta(ev);
-                var typeLabel = _eventTypeLabel(ev.event_type);
-                var card = document.createElement('article');
-                card.className = 'event-feed-item' + (ev.acknowledged ? ' event-acked' : '');
-                card.setAttribute('role', 'listitem');
-                card.setAttribute('data-event-id', ev.id);
-                card.innerHTML =
-                    '<div class="event-feed-main">' +
-                        '<div class="event-feed-topline">' +
-                            _eventSeverityBadge(sevMeta) +
-                            '<span class="event-feed-time">' + _eventTimestampLabel(ev.timestamp) + '</span>' +
-                        '</div>' +
-                        '<div class="event-feed-title">' + escapeHtml(typeLabel) + '</div>' +
-                        '<div class="event-feed-message">' + formatEventMessage(ev) + '</div>' +
-                    '</div>' +
-                    '<div class="event-feed-action">' + _eventAckMarkup(ev) + '</div>';
-                feed.appendChild(card);
+                if (known[ev.id]) return;
+                known[ev.id] = true;
+                _eventsLoaded.push(ev);
             });
+            _renderEventTimeline();
             feedCard.style.display = '';
-            updateEventsExportLink();
             moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
-            if (typeof lucide !== 'undefined') lucide.createIcons();
         })
         .catch(function() {
             if (feedRequestId !== _eventsRequestCount) return;
@@ -326,23 +550,6 @@ function loadEvents(append) {
 
 function loadMoreEvents() {
     loadEvents(true);
-}
-
-function acknowledgeEvent(eventId, e) {
-    if (e) e.stopPropagation();
-    fetch(docsightUrl('/api/events/' + eventId + '/acknowledge'), { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) loadEvents();
-        });
-}
-
-function acknowledgeAllEvents() {
-    fetch(docsightUrl('/api/events/acknowledge-all'), { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) loadEvents();
-        });
 }
 
 function updateEventBadge(count) {
@@ -363,34 +570,14 @@ function updateEventBadge(count) {
     });
 }
 
+/* The badge counts unacknowledged warnings and critical events of the last
+   24 hours, independent of the log filters. */
 window.refreshEventBadge = function() {
-    var params = '';
-    var eventsViewEl = document.getElementById('view-events');
-    var isEventsView = eventsViewEl && eventsViewEl.classList.contains('active');
     var requestId = ++_badgeRequestCount;
-
-    if (typeof _hideOperational !== 'undefined' && _hideOperational) {
-        params += (params ? '&' : '?') + 'exclude_operational=true';
-    }
-
-    // Only apply severity/device filters if we are actually looking at the events view
-    if (isEventsView) {
-        if (typeof _deviceOnlyFilter !== 'undefined' && _deviceOnlyFilter) {
-            params += (params ? '&' : '?') + 'event_prefix=device_';
-        }
-        if (typeof _currentSeverityFilter !== 'undefined' && _currentSeverityFilter) {
-            params += (params ? '&' : '?') + 'severity=' + _currentSeverityFilter;
-        }
-    }
-    
-    params += (params ? '&' : '?') + 't=' + Date.now();
-
-    fetch(docsightUrl('/api/events/count' + params))
+    fetch(docsightUrl('/api/events/count?scope=attention&t=' + Date.now()))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (requestId === _badgeRequestCount) {
-                updateEventBadge(data.count || 0);
-            }
+            if (requestId === _badgeRequestCount) updateEventBadge(data.count || 0);
         })
         .catch(function() {});
 };
@@ -434,7 +621,7 @@ function loadHomeEvents() {
             }
             events.forEach(function(ev) {
                 var meta = _eventSeverityMeta(ev);
-                var severity = meta.className.replace('sev-badge-', '');
+                var severity = meta.severity;
                 var item = document.createElement('li');
                 item.innerHTML =
                     '<a class="home-event home-event-' + severity + '" href="#events">' +

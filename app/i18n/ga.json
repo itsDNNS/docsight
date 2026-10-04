@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "SAM",
   "event_power": "Cumhacht",
-  "event_channels": "Cainéil",
   "event_uncorrectable_errors": "earráidí nach féidir a cheartú",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Sliocht: ní thaispeántar ach an fo-alt a luaitear.",
   "glossary_law_source_label": "Foinse oifigiúil",
   "glossary_law_reviewed_label": "Foinse seiceáilte",
-  "glossary_law_disclaimer": "Eolas ginearálta, ní comhairle dlí."
+  "glossary_law_disclaimer": "Eolas ginearálta, ní comhairle dlí.",
+  "event_today": "Inniu",
+  "event_yesterday": "Inné",
+  "event_acknowledge_visible": "Admhaigh na cinn infheicthe",
+  "event_acknowledge_selected": "Admhaigh na cinn roghnaithe ({count})",
+  "event_select": "Roghnaigh",
+  "event_run_count": "{count} as a chéile",
+  "event_count_shown": "{count} imeacht á dtaispeáint",
+  "event_badge_title": "Rabhaidh agus imeachtaí criticiúla gan admháil le 24 uair an chloig anuas",
+  "event_filter_all": "Gach ceann"
 }

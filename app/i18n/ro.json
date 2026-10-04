@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "SUA",
   "event_power": "Putere",
-  "event_channels": "Canale",
   "event_uncorrectable_errors": "erori necorectabile",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Extras: este afișat numai alineatul citat.",
   "glossary_law_source_label": "Sursă oficială",
   "glossary_law_reviewed_label": "Sursă verificată",
-  "glossary_law_disclaimer": "Informații generale, nu consultanță juridică."
+  "glossary_law_disclaimer": "Informații generale, nu consultanță juridică.",
+  "event_today": "Astăzi",
+  "event_yesterday": "Ieri",
+  "event_acknowledge_visible": "Confirmă cele vizibile",
+  "event_acknowledge_selected": "Confirmă selecția ({count})",
+  "event_select": "Selectează",
+  "event_run_count": "{count} la rând",
+  "event_count_shown": "{count} evenimente afișate",
+  "event_badge_title": "Avertismente și evenimente critice neconfirmate din ultimele 24 de ore",
+  "event_filter_all": "Toate"
 }

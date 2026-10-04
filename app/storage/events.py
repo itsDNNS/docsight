@@ -101,11 +101,17 @@ class EventMethods:
             results.append(event)
         return results
 
-    def get_event_count(self, acknowledged=None, exclude_operational: bool = False, event_prefix: str | None = None, severity: str | None = None):
-        """Return event count, optionally filtered by status, type or severity."""
+    def get_event_count(self, acknowledged=None, exclude_operational: bool = False, event_prefix: str | None = None, severity: str | None = None, severities: tuple[str, ...] | None = None, since: str | None = None):
+        """Return event count, optionally filtered by status, type, severity or a UTC lower time bound."""
         query = "SELECT COUNT(*) FROM events"
         conditions = []
         params = []
+        if severities:
+            conditions.append("severity IN (" + ", ".join("?" * len(severities)) + ")")
+            params.extend(severities)
+        if since:
+            conditions.append("timestamp >= ?")
+            params.append(since)
         if acknowledged is not None:
             conditions.append("acknowledged = ?")
             params.append(int(acknowledged))
@@ -132,6 +138,19 @@ class EventMethods:
                 "UPDATE events SET acknowledged = 1 WHERE id = ?", (event_id,)
             ).rowcount
         return rowcount > 0
+
+    def acknowledge_events(self, event_ids) -> int:
+        """Acknowledge the given events. Returns how many were newly acknowledged."""
+        ids = list(event_ids)
+        if not ids:
+            return 0
+        with self._write() as conn:
+            rowcount = conn.execute(
+                "UPDATE events SET acknowledged = 1 WHERE acknowledged = 0 AND id IN ("
+                + ", ".join("?" * len(ids)) + ")",
+                ids,
+            ).rowcount
+        return rowcount
 
     def acknowledge_all_events(self):
         """Acknowledge all unacknowledged events. Returns rows affected."""

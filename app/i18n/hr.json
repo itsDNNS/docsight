@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "SAD",
   "event_power": "Snaga",
-  "event_channels": "Kanali",
   "event_uncorrectable_errors": "greške koje se ne mogu ispraviti",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Izvadak: prikazan je samo citirani stavak.",
   "glossary_law_source_label": "Službeni izvor",
   "glossary_law_reviewed_label": "Izvor provjeren",
-  "glossary_law_disclaimer": "Opće informacije, ne pravni savjet."
+  "glossary_law_disclaimer": "Opće informacije, ne pravni savjet.",
+  "event_today": "Danas",
+  "event_yesterday": "Jučer",
+  "event_acknowledge_visible": "Potvrdi vidljive",
+  "event_acknowledge_selected": "Potvrdi odabrane ({count})",
+  "event_select": "Odaberi",
+  "event_run_count": "{count} zaredom",
+  "event_count_shown": "Prikazano događaja: {count}",
+  "event_badge_title": "Nepotvrđena upozorenja i kritični događaji u posljednja 24 sata",
+  "event_filter_all": "Sve"
 }

@@ -750,7 +750,6 @@
   "event_ds": "ДС",
   "event_us": "САЩ",
   "event_power": "Мощност",
-  "event_channels": "Канали",
   "event_uncorrectable_errors": "некоригируеми грешки",
   "speedtest_dl": "DL",
   "speedtest_ul": "УЛ",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Извадка: показана е само цитираната алинея.",
   "glossary_law_source_label": "Официален източник",
   "glossary_law_reviewed_label": "Източникът е проверен",
-  "glossary_law_disclaimer": "Обща информация, не правен съвет."
+  "glossary_law_disclaimer": "Обща информация, не правен съвет.",
+  "event_today": "Днес",
+  "event_yesterday": "Вчера",
+  "event_acknowledge_visible": "Потвърди видимите",
+  "event_acknowledge_selected": "Потвърди избраните ({count})",
+  "event_select": "Избери",
+  "event_run_count": "{count} поредни",
+  "event_count_shown": "Показани {count} събития",
+  "event_badge_title": "Непотвърдени предупреждения и критични събития за последните 24 часа",
+  "event_filter_all": "Всички"
 }

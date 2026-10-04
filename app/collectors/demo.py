@@ -615,7 +615,7 @@ class DemoCollector(Collector):
             "timestamp": t_sw.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "severity": "info",
             "event_type": "device_sw_update",
-            "message": "Reboot: (reason: firmware upgrade) Prior uptime: 112d 14h 7m, SW: v1.8.4 → v2.0.1, WAN IPv4/v6: 93.212.4.11 / 2001:db8::1 → 93.212.5.82 / 2001:db8::2",
+            "message": "Prior uptime: 112d 14h 7m, SW: v1.8.4 → v2.0.1, WAN IPv4/v6: 93.212.4.11 / 2001:db8::1 → 93.212.5.82 / 2001:db8::2, Reason: firmware upgrade",
             "details": {"old_sw": "v1.8.4", "new_sw": "v2.0.1", "reboot_reason": "firmware upgrade", "prior_uptime": 9727620, "ip_changed": True}
         })
 
@@ -625,7 +625,7 @@ class DemoCollector(Collector):
             "timestamp": t_rb.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "severity": "warning",
             "event_type": "device_reboot",
-            "message": "Reboot: (reason: power cycle) Prior uptime: 89d 22h 0m",
+            "message": "Prior uptime: 89d 22h 0m, Reason: power cycle",
             "details": {"reboot_reason": "power cycle", "prior_uptime": 7768800, "ip_changed": False}
         })
 

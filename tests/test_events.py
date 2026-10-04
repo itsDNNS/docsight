@@ -8,7 +8,7 @@ import sqlite3
 import subprocess
 import textwrap
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app.storage import SnapshotStorage
@@ -157,6 +157,25 @@ class TestEventStorage:
 
     def test_acknowledge_nonexistent(self, storage):
         assert not storage.acknowledge_event(9999)
+
+    def test_event_count_by_severities_and_lower_time_bound(self, storage):
+        storage.save_event("2026-10-03T11:59:59Z", "critical", "health_change", "Old")
+        storage.save_event("2026-10-03T12:00:00Z", "warning", "power_change", "Edge")
+        storage.save_event("2026-10-04T08:00:00Z", "info", "channel_change", "Info")
+        storage.save_event("2026-10-04T09:00:00Z", "critical", "error_spike", "New")
+        assert storage.get_event_count(severities=("warning", "critical")) == 3
+        assert storage.get_event_count(severities=("warning", "critical"), since="2026-10-03T12:00:00Z") == 2
+        assert storage.get_event_count(since="2026-10-04T00:00:00Z") == 2
+
+    def test_acknowledge_events_only_counts_newly_acknowledged(self, storage):
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        first = storage.save_event(ts, "warning", "power_change", "Msg 1")
+        second = storage.save_event(ts, "warning", "power_change", "Msg 2")
+        third = storage.save_event(ts, "warning", "power_change", "Msg 3")
+        storage.acknowledge_event(first)
+        assert storage.acknowledge_events([first, second, 9999]) == 1
+        assert storage.acknowledge_events([]) == 0
+        assert [e["id"] for e in storage.get_events(acknowledged=False)] == [third]
 
     def test_acknowledge_all(self, storage):
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -1127,6 +1146,37 @@ class TestEventsAPI:
         data = json.loads(resp.data)
         assert data["count"] == 1
 
+    def test_events_count_attention_scope(self, client, api_storage):
+        recent = (datetime.now(timezone.utc) - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        stale = (datetime.now(timezone.utc) - timedelta(hours=25)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        api_storage.save_event(recent, "warning", "power_change", "Counts")
+        api_storage.save_event(recent, "critical", "health_change", "Counts")
+        acked = api_storage.save_event(recent, "critical", "error_spike", "Acknowledged")
+        api_storage.acknowledge_event(acked)
+        api_storage.save_event(recent, "info", "channel_change", "Info never counts")
+        api_storage.save_event(recent, "warning", "monitoring_stopped", "Operational")
+        api_storage.save_event(stale, "critical", "health_change", "Older than a day")
+
+        resp = client.get("/api/events/count?scope=attention&severity=info&event_prefix=device_")
+        assert resp.get_json() == {"count": 2, "window_hours": 24}
+        assert client.get("/api/events/count").get_json()["count"] == 5
+
+    def test_acknowledge_listed_events(self, client, api_storage):
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        ids = [api_storage.save_event(ts, "warning", "power_change", f"Msg {i}") for i in range(3)]
+        resp = client.post("/api/events/acknowledge", json={"ids": [ids[0], ids[2], ids[2]]})
+        assert resp.status_code == 200
+        assert resp.get_json() == {"success": True, "count": 2}
+        assert [e["id"] for e in api_storage.get_events(acknowledged=False)] == [ids[1]]
+
+    @pytest.mark.parametrize("payload", [
+        None, {}, {"ids": []}, {"ids": "1"}, {"ids": [0]}, {"ids": [-1]}, {"ids": [True]},
+        {"ids": ["1"]}, {"ids": [1.5]}, {"ids": list(range(1, 1002))}, [1, 2],
+    ])
+    def test_acknowledge_listed_events_rejects_invalid_ids(self, client, payload):
+        resp = client.post("/api/events/acknowledge", json=payload)
+        assert resp.status_code == 400
+
     def test_events_count_empty(self, client):
         resp = client.get("/api/events/count")
         data = json.loads(resp.data)
@@ -1528,6 +1578,7 @@ class TestEventsJsRendering:
                 document: {
                     getElementById: () => null,
                     querySelectorAll: () => [],
+                    addEventListener: () => {},
                 },
                 fetch: () => ({ then: () => ({ then: () => ({ catch: () => {} }) }) }),
                 setInterval: () => {},
@@ -1645,8 +1696,9 @@ class TestEventsJsRendering:
         )
         assert result.stdout.startswith("OK::"), result.stdout
         html = result.stdout[len("OK::"):]
-        # Top-level SNR header must still render.
-        assert "SNR" in html
+        # The summary (previous and current SNR) must still render.
+        assert '<span class="ev-val">36</span>' in html
+        assert '<span class="ev-val ev-warn">31</span> dB' in html
         assert "TypeError" not in html
 
 

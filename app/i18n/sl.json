@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "ZDA",
   "event_power": "Moč",
-  "event_channels": "kanalov",
   "event_uncorrectable_errors": "nepopravljive napake",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Izvleček: prikazan je samo navedeni odstavek.",
   "glossary_law_source_label": "Uradni vir",
   "glossary_law_reviewed_label": "Vir preverjen",
-  "glossary_law_disclaimer": "Splošne informacije, ne pravni nasvet."
+  "glossary_law_disclaimer": "Splošne informacije, ne pravni nasvet.",
+  "event_today": "Danes",
+  "event_yesterday": "Včeraj",
+  "event_acknowledge_visible": "Potrdi vidne",
+  "event_acknowledge_selected": "Potrdi izbrane ({count})",
+  "event_select": "Izberi",
+  "event_run_count": "{count} zapored",
+  "event_count_shown": "Prikazani dogodki: {count}",
+  "event_badge_title": "Nepotrjena opozorila in kritični dogodki v zadnjih 24 urah",
+  "event_filter_all": "Vse"
 }

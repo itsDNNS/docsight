@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "US",
   "event_power": "Pegel",
-  "event_channels": "Kanäle",
   "event_uncorrectable_errors": "unkorrigierbare Fehler",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Auszug: Angezeigt wird nur der zitierte Absatz.",
   "glossary_law_source_label": "Amtliche Quelle",
   "glossary_law_reviewed_label": "Quelle geprüft",
-  "glossary_law_disclaimer": "Allgemeine Information, keine Rechtsberatung."
+  "glossary_law_disclaimer": "Allgemeine Information, keine Rechtsberatung.",
+  "event_today": "Heute",
+  "event_yesterday": "Gestern",
+  "event_acknowledge_visible": "Sichtbare bestätigen",
+  "event_acknowledge_selected": "Auswahl bestätigen ({count})",
+  "event_select": "Auswählen",
+  "event_run_count": "{count} in Folge",
+  "event_count_shown": "{count} Ereignisse angezeigt",
+  "event_badge_title": "Unbestätigte Warnungen und kritische Ereignisse der letzten 24 Stunden",
+  "event_filter_all": "Alle"
 }
