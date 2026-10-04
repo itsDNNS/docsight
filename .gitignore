@@ -66,3 +66,6 @@ tests/e2e/screenshots/
 
 .superpowers/
 .agents/
+
+# Local test run output (E2E server logs, Playwright traces)
+test-results/
