@@ -42,6 +42,11 @@ DEMO_BNETZ_CAMPAIGN_OFFSETS_DAYS = (250, 220, 190, 160, 130, 100, 70, 40, 10)
 DEMO_BNETZ_BAD_CAMPAIGN_INDEXES = {2, 5, 7}
 DEMO_WEATHER_DAYS = 270
 DEMO_CONNECTION_MONITOR_DAYS = 7
+DEMO_SEGMENT_DAYS = 30
+# The FRITZ!Box reports one sample per minute; saturation detection relies on that spacing.
+DEMO_SEGMENT_INTERVAL_MINUTES = 1
+# Evenings (days ago) on which the cable segment saturates for a while.
+DEMO_SEGMENT_SATURATED_DAYS = (2, 9, 16, 23)
 DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS = 10
 DEMO_CONNECTION_MONITOR_TARGETS = (
     ("gateway", "Gateway", "192.168.178.1"),
@@ -239,8 +244,10 @@ class DemoCollector(Collector):
         from app.modules.bqm.storage import BqmStorage
         from app.modules.speedtest.storage import SpeedtestStorage
         from app.modules.weather.storage import WeatherStorage
+        from app.storage.segment_utilization import SegmentUtilizationStorage
 
         db_path = self._storage.db_path
+        SegmentUtilizationStorage(db_path)
         SpeedtestStorage(db_path)
         BqmStorage(db_path)
         BnetzStorage(db_path)
@@ -263,6 +270,7 @@ class DemoCollector(Collector):
         self._seed_bnetz_measurements(now)
         self._seed_weather_data(now)
         self._seed_connection_monitor_data(now)
+        self._seed_segment_utilization(now)
 
     def _seed_history(self, now):
         """Generate 9 months of historical snapshots (every 15 min)."""
@@ -996,6 +1004,42 @@ class DemoCollector(Collector):
             [(r["timestamp"], r["temperature"]) for r in records],
         )
         log.info("Demo: seeded %d weather records (%d days)", len(records), days)
+
+    def _seed_segment_utilization(self, now):
+        """Seed 30 days of cable segment load: evening peaks and a few saturated evenings."""
+        rng = random.Random(7)
+        step = timedelta(minutes=DEMO_SEGMENT_INTERVAL_MINUTES)
+        end = now.replace(second=0, microsecond=0) - timedelta(minutes=now.minute % DEMO_SEGMENT_INTERVAL_MINUTES)
+        ts = end - timedelta(days=DEMO_SEGMENT_DAYS)
+        rows = []
+        while ts <= end:
+            # Local evening (about 18-23 h in Central Europe) carries the shared-medium peak.
+            local_hour = (ts.hour + ts.minute / 60 + 2) % 24
+            evening = math.exp(-((local_hour - 20.5) ** 2) / 8)
+            weekend = 6 if ts.weekday() >= 5 else 0
+            days_ago = (end - ts).days
+            saturated = days_ago in DEMO_SEGMENT_SATURATED_DAYS and 20 <= local_hour < 21.25
+            ds_total = 18 + 52 * evening + weekend + rng.gauss(0, 3)
+            if saturated:
+                ds_total = 91 + rng.uniform(0, 6)
+            us_total = 9 + 24 * evening + weekend / 2 + rng.gauss(0, 2)
+            ds_own = max(0.2, 1.5 + 6 * evening * rng.random())
+            us_own = max(0.1, 0.6 + 2 * evening * rng.random())
+            rows.append((
+                ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                round(min(99.5, max(2.0, ds_total)), 1),
+                round(min(99.0, max(1.0, us_total)), 1),
+                round(ds_own, 1),
+                round(us_own, 1),
+            ))
+            ts += step
+        bulk_write(
+            self._storage.db_path,
+            "INSERT OR IGNORE INTO segment_utilization "
+            "(timestamp, ds_total, us_total, ds_own, us_own, is_demo) VALUES (?, ?, ?, ?, ?, 1)",
+            rows,
+        )
+        log.info("Demo: seeded %d segment utilization samples (%d days)", len(rows), DEMO_SEGMENT_DAYS)
 
     def _seed_connection_monitor_data(self, now):
         """Seed 7 days of Connection Monitor data showing a typical cable troubleshooting scenario.
