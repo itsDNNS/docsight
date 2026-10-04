@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Kõrvalekalle puudub · kõik kanalid sihtvahemikus",
   "line_status_view_channel": "Vaata {direction} kanalit {channel}",
   "line_status_findings": "Leiud ja soovitus",
+  "line_status_no_ofdma": "DOCSIS 3.1/4.0 üleslingi kanalit (OFDMA) ei leitud · võib sõltuda paketist või seadmest",
   "channel_mode_status": "Olek",
   "channel_status_title": "Kanalite olek ajas",
   "channel_status_cell": "Üks lahter = {duration}",

@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Geen afwijking · alle kanalen binnen doel",
   "line_status_view_channel": "{direction}-kanaal {channel} bekijken",
   "line_status_findings": "Bevindingen en advies",
+  "line_status_no_ofdma": "Geen DOCSIS 3.1/4.0-upstreamkanaal (OFDMA) gevonden · kan afhangen van je abonnement of apparatuur",
   "channel_mode_status": "Status",
   "channel_status_title": "Kanaalstatus in de tijd",
   "channel_status_cell": "Eén cel = {duration}",

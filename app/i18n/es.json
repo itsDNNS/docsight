@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Sin desviación · todos los canales dentro del objetivo",
   "line_status_view_channel": "Ver canal {channel} de {direction}",
   "line_status_findings": "Hallazgos y recomendación",
+  "line_status_no_ofdma": "No se encontró ningún canal ascendente DOCSIS 3.1/4.0 (OFDMA) · puede depender de tu tarifa o equipo",
   "channel_mode_status": "Estado",
   "channel_status_title": "Estado de los canales en el tiempo",
   "channel_status_cell": "Una celda = {duration}",

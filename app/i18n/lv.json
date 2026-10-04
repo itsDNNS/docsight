@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Nav novirzes · visi kanāli mērķa diapazonā",
   "line_status_view_channel": "Skatīt {direction} kanālu {channel}",
   "line_status_findings": "Konstatējumi un ieteikums",
+  "line_status_no_ofdma": "Nav atrasts DOCSIS 3.1/4.0 augšupsaites kanāls (OFDMA) · var būt atkarīgs no plāna vai iekārtas",
   "channel_mode_status": "Statuss",
   "channel_status_title": "Kanālu statuss laikā",
   "channel_status_cell": "Viena šūna = {duration}",

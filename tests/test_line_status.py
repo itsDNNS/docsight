@@ -101,3 +101,18 @@ def test_worst_deviation_comes_first_and_others_are_counted():
     assert downstream["more"] == [{"channel_id": 22, "health": "tolerated"}]
     assert status["primary"]["channel_id"] == 5 and status["primary"]["direction"] == "us"
     assert (status["within"], status["deviating"]) == (1, 3)
+
+
+def test_upstream_without_ofdma_reports_the_missing_family():
+    status = build_line_status(_analysis([_ds(1)], [_us(1), _us(2)]))
+    downstream, upstream = status["directions"]
+
+    assert upstream["missing_family"] == "OFDMA"
+    assert downstream["missing_family"] is None
+    assert (status["within"], status["total"]) == (3, 3)
+
+
+def test_upstream_with_ofdma_has_no_missing_family():
+    status = build_line_status(_analysis([], [_us(1), _us(5, family="ofdma")]))
+
+    assert status["directions"][0]["missing_family"] is None

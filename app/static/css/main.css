@@ -2237,6 +2237,9 @@ body:has(#view-dashboard.active) .app-main {
 .ls-seg.ls-warning { background: var(--ls-warning); opacity: 1; }
 .ls-seg.ls-critical { background: var(--ls-critical); opacity: 1; }
 .ls-seg.ls-focus { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--text-muted); }
+/* A family the line does not use: a quiet placeholder instead of a channel. */
+.ls-seg.ls-missing { background: transparent; opacity: 1; border: 1px dashed var(--text-muted); }
+.ls-missing-note { display: inline-flex; align-items: center; gap: 5px; color: var(--text-muted); }
 .line-status-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-left: 40px; font-size: var(--fs-min); color: var(--text-muted); }
 .ls-count { display: inline-flex; align-items: center; gap: 5px; }
 .ls-families { color: var(--text-muted); }
@@ -2245,6 +2248,7 @@ body:has(#view-dashboard.active) .app-main {
 .ls-shape-tolerated { border-radius: 50%; border: 2px solid var(--ls-tolerated); }
 .ls-shape-warning { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid var(--ls-warning); }
 .ls-shape-critical { border-radius: 1px; background: var(--ls-critical); }
+.ls-shape-missing { border-radius: 2px; border: 1px dashed var(--text-muted); }
 .line-status-callout {
   position: relative;
   display: grid;

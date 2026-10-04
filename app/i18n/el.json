@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Καμία απόκλιση · όλα τα κανάλια εντός στόχου",
   "line_status_view_channel": "Προβολή καναλιού {channel} ({direction})",
   "line_status_findings": "Ευρήματα και σύσταση",
+  "line_status_no_ofdma": "Δεν βρέθηκε κανάλι ανάντη DOCSIS 3.1/4.0 (OFDMA) · μπορεί να εξαρτάται από το πρόγραμμα ή τον εξοπλισμό",
   "channel_mode_status": "Κατάσταση",
   "channel_status_title": "Κατάσταση καναλιών στον χρόνο",
   "channel_status_cell": "Ένα κελί = {duration}",
