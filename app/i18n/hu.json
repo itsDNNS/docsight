@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Nincs eltérés · minden csatorna a célsávban",
   "line_status_view_channel": "{channel}. csatorna megtekintése ({direction})",
   "line_status_findings": "Megállapítások és javaslat",
+  "line_status_no_ofdma": "Nem található DOCSIS 3.1/4.0 feltöltési csatorna (OFDMA) · a díjcsomagtól vagy az eszköztől függhet",
   "channel_mode_status": "Állapot",
   "channel_status_title": "Csatornák állapota időben",
   "channel_status_cell": "Egy cella = {duration}",

@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Keine Abweichung · alle Kanäle im Sollbereich",
   "line_status_view_channel": "{direction}-Kanal {channel} ansehen",
   "line_status_findings": "Befunde & Empfehlung",
+  "line_status_no_ofdma": "Kein DOCSIS-3.1/4.0-Upstream-Kanal (OFDMA) gefunden · kann vom Vertrag oder Gerät abhängen",
   "channel_mode_status": "Status",
   "channel_status_title": "Kanalzustand im Zeitverlauf",
   "channel_status_cell": "Eine Zelle = {duration}",

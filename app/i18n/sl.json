@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Brez odstopanja · vsi kanali v ciljnem območju",
   "line_status_view_channel": "Prikaži kanal {channel} ({direction})",
   "line_status_findings": "Ugotovitve in priporočilo",
+  "line_status_no_ofdma": "Ni najdenega kanala DOCSIS 3.1/4.0 v smeri navzgor (OFDMA) · lahko je odvisno od paketa ali opreme",
   "channel_mode_status": "Stanje",
   "channel_status_title": "Stanje kanalov skozi čas",
   "channel_status_cell": "Ena celica = {duration}",

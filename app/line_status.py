@@ -156,6 +156,8 @@ def _direction(direction: str, channels: list[dict]) -> dict | None:
         "families": families,
         "callout": callouts[0] if callouts else None,
         "more": [{"channel_id": c["channel_id"], "health": c["health"]} for c in callouts[1:]],
+        # DOCSIS 3.1 and 4.0 upstream use OFDMA; without one, the line runs on SC-QAM only.
+        "missing_family": "OFDMA" if direction == "us" and "OFDMA" not in families else None,
     }
 
 

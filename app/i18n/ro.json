@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Nicio abatere · toate canalele în intervalul țintă",
   "line_status_view_channel": "Vezi canalul {channel} ({direction})",
   "line_status_findings": "Constatări și recomandare",
+  "line_status_no_ofdma": "Nu s-a găsit niciun canal upstream DOCSIS 3.1/4.0 (OFDMA) · poate depinde de abonament sau echipament",
   "channel_mode_status": "Stare",
   "channel_status_title": "Starea canalelor în timp",
   "channel_status_cell": "O celulă = {duration}",

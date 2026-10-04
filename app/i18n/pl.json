@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Brak odchyleń · wszystkie kanały w zakresie docelowym",
   "line_status_view_channel": "Pokaż kanał {channel} ({direction})",
   "line_status_findings": "Ustalenia i zalecenie",
+  "line_status_no_ofdma": "Nie znaleziono kanału upstream DOCSIS 3.1/4.0 (OFDMA) · może zależeć od taryfy lub sprzętu",
   "channel_mode_status": "Stan",
   "channel_status_title": "Stan kanałów w czasie",
   "channel_status_cell": "Jedna komórka = {duration}",

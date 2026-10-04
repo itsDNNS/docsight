@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Nukrypimų nėra · visi kanalai tiksliniame intervale",
   "line_status_view_channel": "Rodyti {direction} kanalą {channel}",
   "line_status_findings": "Išvados ir rekomendacija",
+  "line_status_no_ofdma": "Nerasta DOCSIS 3.1/4.0 aukštyn kanalo (OFDMA) · gali priklausyti nuo plano ar įrangos",
   "channel_mode_status": "Būsena",
   "channel_status_title": "Kanalų būsena laike",
   "channel_status_cell": "Vienas langelis = {duration}",

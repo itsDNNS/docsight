@@ -1399,6 +1399,23 @@ class TestIndexLineStatus:
         assert "No deviation" in html
         assert '<details class="line-status-findings">' in html
 
+    def test_upstream_without_ofdma_shows_a_greyed_placeholder_and_note(self, client, sample_analysis):
+        assert all(ch.get("channel_family", "sc_qam") != "ofdma" for ch in sample_analysis["us_channels"])
+        html = self._render(client, sample_analysis)
+
+        upstream = html[html.index('data-direction="us"'):html.index('class="line-status-ok"')]
+        assert upstream.count('class="ls-seg ls-missing"') == 1
+        assert 'class="ls-missing-note"' in upstream
+        assert "No DOCSIS 3.1/4.0 upstream channel (OFDMA) found" in upstream
+        assert html.count('class="ls-seg ls-missing"') == 1
+
+    def test_upstream_with_ofdma_has_no_placeholder(self, client, sample_analysis):
+        analysis = deepcopy(sample_analysis)
+        analysis["us_channels"][0].update(channel_family="ofdma", modulation="OFDMA", docsis_version="3.1")
+        html = self._render(client, analysis)
+
+        assert "ls-missing" not in html
+
     def test_deviation_is_explained_at_its_channel_and_findings_open(self, client, sample_analysis):
         analysis = deepcopy(sample_analysis)
         analysis["summary"]["health"] = "marginal"

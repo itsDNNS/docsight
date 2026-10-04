@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Ei poikkeamaa · kaikki kanavat tavoitealueella",
   "line_status_view_channel": "Näytä {direction}-kanava {channel}",
   "line_status_findings": "Havainnot ja suositus",
+  "line_status_no_ofdma": "DOCSIS 3.1/4.0 -lähetyskanavaa (OFDMA) ei löytynyt · voi riippua liittymästä tai laitteesta",
   "channel_mode_status": "Tila",
   "channel_status_title": "Kanavien tila ajan mittaan",
   "channel_status_cell": "Yksi solu = {duration}",

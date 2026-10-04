@@ -40,6 +40,7 @@
   "line_status_no_deviation": "No deviation · all channels within target",
   "line_status_view_channel": "View {direction} channel {channel}",
   "line_status_findings": "Findings & recommendation",
+  "line_status_no_ofdma": "No DOCSIS 3.1/4.0 upstream channel (OFDMA) found · may depend on your plan or equipment",
   "channel_mode_status": "Status",
   "channel_status_title": "Channel status over time",
   "channel_status_cell": "One cell = {duration}",

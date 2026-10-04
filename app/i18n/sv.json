@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Ingen avvikelse · alla kanaler inom målet",
   "line_status_view_channel": "Visa {direction}-kanal {channel}",
   "line_status_findings": "Fynd och rekommendation",
+  "line_status_no_ofdma": "Ingen DOCSIS 3.1/4.0-uppströmskanal (OFDMA) hittades · kan bero på abonnemang eller utrustning",
   "channel_mode_status": "Status",
   "channel_status_title": "Kanalstatus över tid",
   "channel_status_cell": "En cell = {duration}",

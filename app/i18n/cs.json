@@ -40,6 +40,7 @@
   "line_status_no_deviation": "Bez odchylky · všechny kanály v cílovém rozsahu",
   "line_status_view_channel": "Zobrazit kanál {channel} ({direction})",
   "line_status_findings": "Zjištění a doporučení",
+  "line_status_no_ofdma": "Nenalezen žádný upstream kanál DOCSIS 3.1/4.0 (OFDMA) · může záviset na tarifu nebo zařízení",
   "channel_mode_status": "Stav",
   "channel_status_title": "Stav kanálů v čase",
   "channel_status_cell": "Jedna buňka = {duration}",
