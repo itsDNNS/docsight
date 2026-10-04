@@ -197,7 +197,9 @@ function _corrDrawSpeedMarks(ctx, marks, baselineY, colors, visibleMetrics) {
     var lastWidth = null;
     var observer = new ResizeObserver(function(entries) {
         var width = entries.length ? Math.round(entries[entries.length - 1].contentRect.width) : null;
-        if (width === lastWidth) return;
+        // A hidden container measures 0; the chart is drawn when it is shown, so that
+        // first visible width is not a resize either.
+        if (!width || width === lastWidth) return;
         var firstMeasurement = lastWidth === null;
         lastWidth = width;
         if (firstMeasurement) return;

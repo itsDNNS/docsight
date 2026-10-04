@@ -385,7 +385,7 @@ class TestDemoSegmentUtilization:
         with sqlite3.connect(storage.db_path) as conn:
             count, demo = conn.execute("SELECT COUNT(*), SUM(is_demo) FROM segment_utilization").fetchone()
             first, second = [r[0] for r in conn.execute("SELECT timestamp FROM segment_utilization ORDER BY timestamp LIMIT 2")]
-        assert count == 30 * 24 * 60 + 1 and demo == count
+        assert count == 7 * 24 * 60 + 1 and demo == count
         gap = datetime.fromisoformat(second.replace("Z", "+00:00")) - datetime.fromisoformat(first.replace("Z", "+00:00"))
         assert gap.total_seconds() == 60
 
@@ -394,9 +394,9 @@ class TestDemoSegmentUtilization:
         self._seed(storage)
         now = datetime.now(timezone.utc)
         events = SegmentUtilizationStorage(storage.db_path).get_events(
-            (now - timedelta(days=31)).strftime("%Y-%m-%dT%H:%M:%SZ"), now.strftime("%Y-%m-%dT%H:%M:%SZ"))
+            (now - timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ"), now.strftime("%Y-%m-%dT%H:%M:%SZ"))
         downstream = [event for event in events if event["direction"] == "downstream"]
-        assert len(downstream) == 4
+        assert len(downstream) == 3
         assert all(event["duration_minutes"] >= 60 and event["peak_total"] >= 90 for event in downstream)
 
     def test_leaving_demo_removes_only_demo_segment_rows(self, storage):

@@ -42,11 +42,13 @@ DEMO_BNETZ_CAMPAIGN_OFFSETS_DAYS = (250, 220, 190, 160, 130, 100, 70, 40, 10)
 DEMO_BNETZ_BAD_CAMPAIGN_INDEXES = {2, 5, 7}
 DEMO_WEATHER_DAYS = 270
 DEMO_CONNECTION_MONITOR_DAYS = 7
-DEMO_SEGMENT_DAYS = 30
+# Real installations keep one-minute samples for 7 days and thin out older data;
+# the demo seeds that raw week only, so every row stays a plain demo row.
+DEMO_SEGMENT_DAYS = 7
 # The FRITZ!Box reports one sample per minute; saturation detection relies on that spacing.
 DEMO_SEGMENT_INTERVAL_MINUTES = 1
 # Evenings (days ago) on which the cable segment saturates for a while.
-DEMO_SEGMENT_SATURATED_DAYS = (2, 9, 16, 23)
+DEMO_SEGMENT_SATURATED_DAYS = (1, 3, 5)
 DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS = 10
 DEMO_CONNECTION_MONITOR_TARGETS = (
     ("gateway", "Gateway", "192.168.178.1"),
@@ -1006,7 +1008,7 @@ class DemoCollector(Collector):
         log.info("Demo: seeded %d weather records (%d days)", len(records), days)
 
     def _seed_segment_utilization(self, now):
-        """Seed 30 days of cable segment load: evening peaks and a few saturated evenings."""
+        """Seed a week of cable segment load: evening peaks and a few saturated evenings."""
         rng = random.Random(7)
         step = timedelta(minutes=DEMO_SEGMENT_INTERVAL_MINUTES)
         end = now.replace(second=0, microsecond=0) - timedelta(minutes=now.minute % DEMO_SEGMENT_INTERVAL_MINUTES)
