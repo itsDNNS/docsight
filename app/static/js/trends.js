@@ -149,15 +149,14 @@ function loadTrends(range) {
             var data = (results[0] || []).filter(_isDocsisTrendRow);
             var weatherData = results[1];
             if (!data || data.length === 0) {
-                noData.textContent = T.no_data;
-                noData.style.display = 'block';
+                DOCSightEmptyState.showRange(noData, {tabs: 'trend-tabs', glossary: 'signal_trends'});
                 grid.style.display = 'none';
                 _lastTrendData = null;
                 _lastTrendWeather = null;
                 _updateTempToggle();
                 return;
             }
-            noData.style.display = 'none';
+            DOCSightEmptyState.hide(noData);
             grid.style.display = '';
             _lastTrendData = data;
             _lastTrendWeather = _alignWeatherToTrends(data, weatherData, range);
@@ -165,8 +164,7 @@ function loadTrends(range) {
             _renderTrendCharts();
         })
         .catch(function() {
-            noData.textContent = T.trend_error;
-            noData.style.display = 'block';
+            DOCSightEmptyState.showError(noData, {retry: function() { loadTrends(range); }});
             grid.style.display = 'none';
         });
 }

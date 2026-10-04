@@ -1,0 +1,23 @@
+{#- Shared empty state: icon, title, why the view is empty, one primary action
+    and an optional glossary link. Same markup as DOCSightEmptyState.show(). -#}
+{% macro empty_state(id, icon, title, text=None, action_label=None, action_href=None, action_onclick=None, glossary=None, hidden=False) -%}
+<div id="{{ id }}" class="view-empty" role="status"{% if hidden %} hidden{% endif %}>
+    <span class="view-empty-icon" aria-hidden="true"><i data-lucide="{{ icon }}"></i></span>
+    <p class="view-empty-title">{{ title }}</p>
+    {%- if text %}
+    <p class="view-empty-text">{{ text }}</p>
+    {%- endif %}
+    {%- if action_label or glossary %}
+    <div class="view-empty-actions">
+        {%- if action_label and action_href %}
+        <a class="btn btn-primary view-empty-action" href="{{ action_href }}">{{ action_label }}</a>
+        {%- elif action_label %}
+        <button type="button" class="btn btn-primary view-empty-action" onclick="{{ action_onclick }}">{{ action_label }}</button>
+        {%- endif %}
+        {%- if glossary %}
+        <a class="view-empty-link" href="#glossary?term={{ glossary|urlencode }}">{{ t.empty_glossary_link }}</a>
+        {%- endif %}
+    </div>
+    {%- endif %}
+</div>
+{%- endmacro %}

@@ -108,6 +108,19 @@ function buildBnetzDetail(m) {
 }
 
 /* ── BNetzA Breitbandmessung ── */
+function _showBnetzEmpty(empty) {
+    DOCSightEmptyState.show(empty, {
+        icon: 'upload',
+        title: T.bnetz_no_measurements || 'No measurements uploaded yet',
+        text: T.bnetz_empty_text,
+        action: {
+            label: T.bnetz_upload || 'Upload',
+            onClick: function() { document.getElementById('bnetz-file-input').click(); }
+        },
+        glossary: 'bnetza'
+    });
+}
+
 function loadBnetzData() {
     var loading = document.getElementById('bnetz-loading');
     var empty = document.getElementById('bnetz-empty');
@@ -115,12 +128,12 @@ function loadBnetzData() {
     var tbody = document.getElementById('bnetz-tbody');
     if (!loading) return;
     loading.style.display = 'block';
-    empty.style.display = 'none';
+    DOCSightEmptyState.hide(empty);
     card.style.display = 'none';
     fetch(docsightUrl('/api/bnetz/measurements')).then(function(r) { return r.json(); }).then(function(data) {
         loading.style.display = 'none';
         if (!data || data.length === 0) {
-            empty.style.display = 'block';
+            _showBnetzEmpty(empty);
             return;
         }
         card.style.display = 'block';
@@ -218,8 +231,7 @@ function loadBnetzData() {
         lucide.createIcons();
     }).catch(function() {
         loading.style.display = 'none';
-        empty.style.display = 'block';
-        empty.textContent = T.channel_error_loading || 'Error loading data';
+        DOCSightEmptyState.showError(empty, {retry: loadBnetzData});
     });
 
     /* Fetch watcher status for the banner */

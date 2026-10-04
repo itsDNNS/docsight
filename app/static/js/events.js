@@ -504,7 +504,7 @@ function loadEvents(append) {
     if (!append) {
         loading.style.display = '';
         feedCard.style.display = 'none';
-        empty.style.display = 'none';
+        DOCSightEmptyState.hide(empty);
         _eventsLoaded = [];
         _eventsExpanded = {};
         _eventsSelected = {};
@@ -519,12 +519,11 @@ function loadEvents(append) {
         .then(function(data) {
             if (feedRequestId !== _eventsRequestCount) return;
             loading.style.display = 'none';
-            empty.style.display = 'none';
+            DOCSightEmptyState.hide(empty);
             var events = data.events || [];
             if (events.length === 0 && !append) {
                 feedCard.style.display = '';
-                empty.textContent = T.event_no_events || 'No events detected yet.';
-                empty.style.display = '';
+                _showEventsEmpty(empty);
                 return;
             }
             // New events shift later pages; skip rows that are already shown.
@@ -543,9 +542,39 @@ function loadEvents(append) {
             if (feedRequestId !== _eventsRequestCount) return;
             moreBtn.style.display = append ? '' : 'none';
             loading.style.display = 'none';
-            empty.textContent = T.network_error || 'Error';
-            empty.style.display = '';
+            DOCSightEmptyState.showError(empty, {retry: append ? loadMoreEvents : function() { loadEvents(); }});
         });
+}
+
+/* With a severity or device filter the log may only look empty; without one
+   nothing has happened yet, so the useful next step is getting notified. */
+function _showEventsEmpty(empty) {
+    if (_currentSeverityFilter || _deviceOnlyFilter) {
+        DOCSightEmptyState.show(empty, {
+            icon: 'sliders-horizontal',
+            title: T.event_empty_filtered_title || 'No events match these filters',
+            text: T.event_empty_filtered_text,
+            action: {label: T.event_empty_reset || 'Show all events', onClick: resetEventFilters},
+            glossary: 'event_log'
+        });
+        return;
+    }
+    DOCSightEmptyState.show(empty, {
+        icon: 'bell',
+        title: T.event_empty_title || 'No events yet',
+        text: T.event_no_events,
+        action: {label: T.event_empty_action || 'Set up notifications', href: docsightUrl('/settings#notifications')},
+        glossary: 'event_log'
+    });
+}
+
+function resetEventFilters() {
+    if (_deviceOnlyFilter) {
+        _deviceOnlyFilter = false;
+        var pill = document.getElementById('device-filter-pill');
+        if (pill) _setEventFilterPressed(pill, false);
+    }
+    filterEventsBySeverity('');
 }
 
 function loadMoreEvents() {

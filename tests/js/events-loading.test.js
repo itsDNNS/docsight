@@ -18,8 +18,14 @@ function browser() {
             querySelectorAll: () => [], querySelector: () => null,
         };
     }
+    // Records which empty state events.js asks for; the component has its own tests.
+    const emptyState = {
+        show(el, options) { el.hidden = false; el.empty = {kind: 'show', ...options}; },
+        showError(el, options) { el.hidden = false; el.empty = {kind: 'error', ...options}; },
+        hide(el) { el.hidden = true; el.empty = null; },
+    };
     const context = {
-        T: {}, URLSearchParams, setInterval() {}, escapeHtml: String, formatDocsightTime: String, docsightUrl: url => url,
+        DOCSightEmptyState: emptyState, T: {}, URLSearchParams, setInterval() {}, escapeHtml: String, formatDocsightTime: String, docsightUrl: url => url,
         document: {
             getElementById(id) {
                 if (id === 'home-events-list') return null; // Events view only, no Home list.
@@ -106,7 +112,7 @@ for (const staleOk of [true, false]) {
         b.context.filterEventsBySeverity('critical');
         await b.reply(1, page(1), staleOk);
         assert.equal(b.node('events-loading').style.display, '');
-        assert.equal(b.node('events-empty').style.display, 'none');
+        assert.equal(b.node('events-empty').hidden, true);
         assert.equal(b.rows(), 0);
         await b.reply(2, page(2));
         assert.equal(b.node('events-loading').style.display, 'none');
@@ -123,13 +129,13 @@ test('failed pagination retries the same offset and clears the error on success'
     assert.equal(b.node('events-show-more').style.display, 'none');
     await b.reply(2, {error: 'Service unavailable'}, false);
     assert.equal(b.rows(), 50);
-    assert.equal(b.node('events-empty').style.display, '');
+    assert.equal(b.node('events-empty').empty.kind, 'error');
     assert.equal(b.node('events-show-more').style.display, '');
     b.context.loadMoreEvents();
     assert.match(b.requests[3].url, /offset=50/);
     await b.reply(3, page(10, 51));
     assert.equal(b.rows(), 60);
-    assert.equal(b.node('events-empty').style.display, 'none');
+    assert.equal(b.node('events-empty').hidden, true);
     assert.equal(b.node('events-show-more').style.display, 'none');
 });
 
@@ -151,4 +157,31 @@ test('event numbers follow the page language', () => {
     assert.match(b.context.formatEventMessage(spike), /\+1\.072,3<\/span>/);
     b.context.currentLang = 'en';
     assert.match(b.context.formatEventMessage(spike), /\+1,072\.3<\/span>/);
+});
+
+test('an empty log explains itself: filters can be reset, otherwise notifications are offered', async () => {
+    const b = browser();
+    b.context.loadEvents();
+    await b.reply(1, {events: [], unacknowledged_count: 0});
+    let empty = b.node('events-empty').empty;
+    assert.equal(empty.icon, 'bell');
+    assert.equal(empty.action.href, '/settings#notifications');
+    assert.equal(empty.glossary, 'event_log');
+
+    b.context.filterEventsBySeverity('critical');
+    await b.reply(2, {events: [], unacknowledged_count: 0});
+    empty = b.node('events-empty').empty;
+    assert.equal(empty.icon, 'sliders-horizontal');
+    empty.action.onClick();
+    assert.doesNotMatch(b.requests[3].url, /severity=/);
+});
+
+test('a failed first load offers a retry of the same request', async () => {
+    const b = browser();
+    b.context.loadEvents();
+    await b.reply(1, {error: 'down'}, false);
+    const empty = b.node('events-empty').empty;
+    assert.equal(empty.kind, 'error');
+    empty.retry();
+    assert.match(b.requests[2].url, /offset=0/);
 });

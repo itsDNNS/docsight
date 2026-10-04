@@ -239,7 +239,7 @@ function loadCorrelationData() {
     _corrSetOverlayActionable(overlay, false);
     if (overlay) overlay.setAttribute('aria-label', T.correlation_chart_aria_label || 'Signal correlation chart');
     loading.style.display = 'flex';
-    noData.style.display = 'none';
+    DOCSightEmptyState.hide(noData);
     chartContainer.style.display = 'none';
     tableCard.style.display = 'none';
 
@@ -271,8 +271,7 @@ function loadCorrelationData() {
             _correlationData = data;
             var hasReachability = _corrTargetData.some(function(entry) { return entry.samples && entry.samples.length > 0; });
             if (data.length === 0 && !hasReachability) {
-                noData.textContent = T.correlation_no_data;
-                noData.style.display = 'block';
+                DOCSightEmptyState.showRange(noData, {tabs: 'correlation-tabs', glossary: 'correlation_analysis'});
                 return;
             }
             chartContainer.style.display = 'block';
@@ -282,8 +281,7 @@ function loadCorrelationData() {
         })
         .catch(function() {
             loading.style.display = 'none';
-            noData.textContent = T.correlation_no_data;
-            noData.style.display = 'block';
+            DOCSightEmptyState.showError(noData, {retry: loadCorrelationData});
         });
 }
 
