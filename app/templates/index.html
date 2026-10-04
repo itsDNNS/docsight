@@ -290,7 +290,8 @@
 
 {% include 'demo_banner.html' %}
 
-{% if desktop_mode and not desktop_preview_notice_dismissed %}
+{# Urgent notices stay above everything; informational ones follow the line status and key figures. #}
+{% macro desktop_preview_notice() -%}
 <div class="notice-stack dashboard-notice-stack desktop-preview-notice-stack">
     <article class="maintainer-notice notice-info desktop-preview-notice" data-notice-id="{{ desktop_preview_notice_id }}">
         <div class="notice-icon"><i data-lucide="info"></i></div>
@@ -307,11 +308,10 @@
         </button>
     </article>
 </div>
-{% endif %}
-
-{% if dashboard_notices %}
+{%- endmacro %}
+{% macro notice_stack(notices) -%}
 <div class="notice-stack dashboard-notice-stack">
-    {% for notice in dashboard_notices %}
+    {% for notice in notices %}
     <article class="maintainer-notice notice-{{ notice.severity }}" data-notice-id="{{ notice.id }}">
         <div class="notice-icon"><i data-lucide="{{ 'alert-triangle' if notice.severity == 'warning' else ('shield-alert' if notice.severity == 'critical' else 'info') }}"></i></div>
         <div class="notice-content">
@@ -330,6 +330,15 @@
     </article>
     {% endfor %}
 </div>
+{%- endmacro %}
+{% set status_first = analysis and (analysis.ds_channels or analysis.us_channels) and line_status %}
+{% set urgent_notices = (dashboard_notices or [])|selectattr('severity', 'in', ['warning', 'critical'])|list %}
+{% set info_notices = (dashboard_notices or [])|rejectattr('severity', 'in', ['warning', 'critical'])|list %}
+{% set show_desktop_preview_notice = desktop_mode and not desktop_preview_notice_dismissed %}
+{% if urgent_notices %}{{ notice_stack(urgent_notices) }}{% endif %}
+{% if not status_first %}
+{% if show_desktop_preview_notice %}{{ desktop_preview_notice() }}{% endif %}
+{% if info_notices %}{{ notice_stack(info_notices) }}{% endif %}
 {% endif %}
 
 {% if error %}
@@ -583,9 +592,9 @@
                         </span>
                         {% endif %}
                         <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
-                        <button type="button" class="hero-meta-item desktop-only hero-refresh-button" title="{{ t.refresh }}"
+                        <button type="button" class="hero-meta-item desktop-only hero-refresh-button" title="{{ t.refresh }}" aria-label="{{ t.refresh }}"
                             onclick="var rb=document.getElementById('refresh-btn');if(rb)rb.click();">
-                            <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> {{ t.refresh }}
+                            <i data-lucide="refresh-cw" style="width:15px;height:15px;"></i>
                         </button>
                 </div>
             </div>
@@ -615,6 +624,73 @@
         {% if line_status %}
         {% include 'partials/line_status.html' %}
         {% endif %}
+    </section>
+
+    {# Key figures sit between the status and the chart, so phones see them in the first screen. #}
+    {% set kpi_snr = ds_signal_families.get('sc_qam', {}).get('snr', {}).get('avg') if ds_signal_families.get('sc_qam') else s.ds_snr_avg %}
+    {% set kpi_mer = ds_signal_families.get('ofdm', {}).get('mer', {}).get('avg') if ds_signal_families.get('ofdm') else none %}
+    {% set errors_reported = (s.errors_supported is not defined or s.errors_supported) and (s.ds_correctable_errors is not none or s.ds_uncorrectable_errors is not none) %}
+    {% set speedtest_levels = glossary_term_by_id.get('speedtest', {}).get('levels', {}) if glossary_term_by_id is defined else {} %}
+    <section class="home-kpis" aria-label="{{ t.get('home_kpis_label', 'Key figures') }}">
+        <div class="home-kpi" id="home-kpi-downstream">
+            <span class="home-kpi-label"><i data-lucide="arrow-down"></i>{{ t.downstream }} <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span></span>
+            <a class="home-kpi-link" href="#channels?mode=status">
+                <span class="home-kpi-value"><strong class="num">{{ s.ds_power_avg }}</strong> <small>dBmV Ø</small></span>
+                <span class="home-kpi-sub">{% if kpi_snr is not none %}SNR {{ kpi_snr }} dB{% endif %}{% if kpi_snr is not none and kpi_mer is not none %} · {% endif %}{% if kpi_mer is not none %}MER {{ kpi_mer }} dB{% endif %}</span>
+            </a>
+        </div>
+        <div class="home-kpi" id="home-kpi-upstream">
+            <span class="home-kpi-label"><i data-lucide="arrow-up"></i>{{ t.upstream }} <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span></span>
+            <a class="home-kpi-link" href="#channels?mode=status">
+                <span class="home-kpi-value"><strong class="num">{{ s.us_power_avg }}</strong> <small>dBmV Ø</small></span>
+                <span class="home-kpi-sub">{{ t.get('home_kpi_min_max', 'Min / Max') }} {{ s.us_power_min }} / {{ s.us_power_max }} dBmV</span>
+            </a>
+        </div>
+        <div class="home-kpi" id="home-kpi-errors">
+            <span class="home-kpi-label"><i data-lucide="shield-check"></i>{{ t.card_errors }} <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span></span>
+            <a class="home-kpi-link" href="#trends">
+                {% if errors_reported and s.ds_uncorr_pct is not none %}
+                <span class="home-kpi-value"><strong class="num">{{ s.ds_uncorr_pct }}</strong> <small>% {{ t.get('home_kpi_uncorrectable', 'uncorrectable') }}</small></span>
+                {% elif errors_reported %}
+                <span class="home-kpi-value"><strong class="num">{{ s.ds_uncorrectable_errors|fmt_k }}</strong> <small>{{ t.get('home_kpi_uncorrectable', 'uncorrectable') }}</small></span>
+                {% else %}
+                <span class="home-kpi-value"><strong>&#8212;</strong></span>
+                {% endif %}
+                <span class="home-kpi-sub">{% if errors_reported %}{{ t.get('home_kpi_error_counts', '{correctable} correctable · {uncorrectable} uncorrectable').replace('{correctable}', s.ds_correctable_errors|fmt_k|string).replace('{uncorrectable}', s.ds_uncorrectable_errors|fmt_k|string) }}{% else %}{{ t.get('home_kpi_errors_unreported', 'Not reported by this modem') }}{% endif %}</span>
+            </a>
+        </div>
+        {% if speedtest_configured and speedtest_latest %}
+        {% set kpi_contract_pct = (speedtest_latest.download_mbps / eff_booked_dl * 100)|round(0)|int if eff_booked_dl else none %}
+        <div class="home-kpi" id="home-kpi-speedtest">
+            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
+            <a class="home-kpi-link" href="#speedtest">
+                <span class="home-kpi-value"><strong class="num">{{ speedtest_latest.download_mbps|fmt_speed_value }}</strong> <small>{{ speedtest_latest.download_mbps|fmt_speed_unit }}</small> / <strong class="num">{{ speedtest_latest.upload_mbps|fmt_speed_value }}</strong> <small>{{ speedtest_latest.upload_mbps|fmt_speed_unit }}</small></span>
+                <span class="home-kpi-sub">{% if speedtest_latest.ping_ms is not none %}{{ t.ping }} {{ speedtest_latest.ping_ms|round(0)|int }} ms{% endif %}{% if kpi_contract_pct is not none %}{% if speedtest_latest.ping_ms is not none %} · {% endif %}{{ t.get('home_kpi_of_contract', '{pct}% of contract').replace('{pct}', kpi_contract_pct|string) }}{% endif %}</span>
+            </a>
+        </div>
+        {% elif has_speedtest and speedtest_configured %}
+        <div class="home-kpi home-kpi-empty" id="home-kpi-speedtest">
+            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
+            <a class="home-kpi-link" href="#speedtest">
+                <span class="home-kpi-value"><strong>&#8212;</strong></span>
+                <span class="home-kpi-sub">{{ t.get('home_kpi_no_speedtest', 'No result yet') }}</span>
+            </a>
+        </div>
+        {% elif has_speedtest %}
+        <button type="button" class="home-kpi home-kpi-empty" id="home-kpi-speedtest" onclick="openSpeedtestSetupModal()">
+            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
+            <span class="home-kpi-value"><strong>&#8212;</strong></span>
+            <span class="home-kpi-sub">{{ t.speedtest_setup }}</span>
+        </button>
+        {% endif %}
+    </section>
+
+    {% if status_first %}
+    {% if show_desktop_preview_notice %}{{ desktop_preview_notice() }}{% endif %}
+    {% if info_notices %}{{ notice_stack(info_notices) }}{% endif %}
+    {% endif %}
+
+    <section class="hero-card glass dashboard-hero dashboard-trend">
         <div class="hero-visual-row">
             {% if not has_signal_family_metric_cards %}
             <div class="hero-modulation-context" aria-label="{{ t.get('dashboard_modulation_context', 'Modulation context') }}">
@@ -787,66 +863,9 @@
     {%- endmacro %}
 
     {# ══════════════════════════════════════════════════════════════════════════
-       KEY FIGURES · FINDINGS · RECENT EVENTS · SOURCES
+       FINDINGS · RECENT EVENTS · SOURCES
        Family readings and target ranges live on the Channels page.
        ══════════════════════════════════════════════════════════════════════════ #}
-    {% set kpi_snr = ds_signal_families.get('sc_qam', {}).get('snr', {}).get('avg') if ds_signal_families.get('sc_qam') else s.ds_snr_avg %}
-    {% set kpi_mer = ds_signal_families.get('ofdm', {}).get('mer', {}).get('avg') if ds_signal_families.get('ofdm') else none %}
-    {% set errors_reported = (s.errors_supported is not defined or s.errors_supported) and (s.ds_correctable_errors is not none or s.ds_uncorrectable_errors is not none) %}
-    {% set speedtest_levels = glossary_term_by_id.get('speedtest', {}).get('levels', {}) if glossary_term_by_id is defined else {} %}
-    <section class="home-kpis" aria-label="{{ t.get('home_kpis_label', 'Key figures') }}">
-        <div class="home-kpi" id="home-kpi-downstream">
-            <span class="home-kpi-label"><i data-lucide="arrow-down"></i>{{ t.downstream }} <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span></span>
-            <a class="home-kpi-link" href="#channels?mode=status">
-                <span class="home-kpi-value"><strong class="num">{{ s.ds_power_avg }}</strong> <small>dBmV Ø</small></span>
-                <span class="home-kpi-sub">{% if kpi_snr is not none %}SNR {{ kpi_snr }} dB{% endif %}{% if kpi_snr is not none and kpi_mer is not none %} · {% endif %}{% if kpi_mer is not none %}MER {{ kpi_mer }} dB{% endif %}</span>
-            </a>
-        </div>
-        <div class="home-kpi" id="home-kpi-upstream">
-            <span class="home-kpi-label"><i data-lucide="arrow-up"></i>{{ t.upstream }} <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span></span>
-            <a class="home-kpi-link" href="#channels?mode=status">
-                <span class="home-kpi-value"><strong class="num">{{ s.us_power_avg }}</strong> <small>dBmV Ø</small></span>
-                <span class="home-kpi-sub">{{ t.get('home_kpi_min_max', 'Min / Max') }} {{ s.us_power_min }} / {{ s.us_power_max }} dBmV</span>
-            </a>
-        </div>
-        <div class="home-kpi" id="home-kpi-errors">
-            <span class="home-kpi-label"><i data-lucide="shield-check"></i>{{ t.card_errors }} <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span></span>
-            <a class="home-kpi-link" href="#trends">
-                {% if errors_reported and s.ds_uncorr_pct is not none %}
-                <span class="home-kpi-value"><strong class="num">{{ s.ds_uncorr_pct }}</strong> <small>% {{ t.get('home_kpi_uncorrectable', 'uncorrectable') }}</small></span>
-                {% elif errors_reported %}
-                <span class="home-kpi-value"><strong class="num">{{ s.ds_uncorrectable_errors|fmt_k }}</strong> <small>{{ t.get('home_kpi_uncorrectable', 'uncorrectable') }}</small></span>
-                {% else %}
-                <span class="home-kpi-value"><strong>&#8212;</strong></span>
-                {% endif %}
-                <span class="home-kpi-sub">{% if errors_reported %}{{ t.get('home_kpi_error_counts', '{correctable} correctable · {uncorrectable} uncorrectable').replace('{correctable}', s.ds_correctable_errors|fmt_k|string).replace('{uncorrectable}', s.ds_uncorrectable_errors|fmt_k|string) }}{% else %}{{ t.get('home_kpi_errors_unreported', 'Not reported by this modem') }}{% endif %}</span>
-            </a>
-        </div>
-        {% if speedtest_configured and speedtest_latest %}
-        {% set kpi_contract_pct = (speedtest_latest.download_mbps / eff_booked_dl * 100)|round(0)|int if eff_booked_dl else none %}
-        <div class="home-kpi" id="home-kpi-speedtest">
-            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
-            <a class="home-kpi-link" href="#speedtest">
-                <span class="home-kpi-value"><strong class="num">{{ speedtest_latest.download_mbps|fmt_speed_value }}</strong> <small>{{ speedtest_latest.download_mbps|fmt_speed_unit }}</small> / <strong class="num">{{ speedtest_latest.upload_mbps|fmt_speed_value }}</strong> <small>{{ speedtest_latest.upload_mbps|fmt_speed_unit }}</small></span>
-                <span class="home-kpi-sub">{% if speedtest_latest.ping_ms is not none %}{{ t.ping }} {{ speedtest_latest.ping_ms|round(0)|int }} ms{% endif %}{% if kpi_contract_pct is not none %}{% if speedtest_latest.ping_ms is not none %} · {% endif %}{{ t.get('home_kpi_of_contract', '{pct}% of contract').replace('{pct}', kpi_contract_pct|string) }}{% endif %}</span>
-            </a>
-        </div>
-        {% elif has_speedtest and speedtest_configured %}
-        <div class="home-kpi home-kpi-empty" id="home-kpi-speedtest">
-            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
-            <a class="home-kpi-link" href="#speedtest">
-                <span class="home-kpi-value"><strong>&#8212;</strong></span>
-                <span class="home-kpi-sub">{{ t.get('home_kpi_no_speedtest', 'No result yet') }}</span>
-            </a>
-        </div>
-        {% elif has_speedtest %}
-        <button type="button" class="home-kpi home-kpi-empty" id="home-kpi-speedtest" onclick="openSpeedtestSetupModal()">
-            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
-            <span class="home-kpi-value"><strong>&#8212;</strong></span>
-            <span class="home-kpi-sub">{{ t.speedtest_setup }}</span>
-        </button>
-        {% endif %}
-    </section>
 
     <div class="home-split">
         <section class="home-findings" aria-labelledby="home-findings-title">
