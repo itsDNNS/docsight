@@ -149,7 +149,7 @@ def test_extra_lines_open_in_place_without_repeating_the_summary(demo_page):
     toggle.click()
     expect(toggle).to_have_attribute("aria-expanded", "true")
     expect(channel).to_have_text("DS Ch 13 · 746 MHz")
-    assert toggle.inner_text().count("32.4") == 1
+    assert toggle.inner_text().count("32,4") == 1
     expect(snr.locator(".ev-detail")).to_have_count(0)
 
 
@@ -286,3 +286,17 @@ def test_event_export_stays_available_for_empty_filtered_feed(demo_page):
     expect(page.locator("#btn-ack-visible")).to_be_hidden()
     expect(page.locator("#events-export-csv")).to_have_attribute(
         "href", re.compile(r"/api/events/export\.csv\?.*severity=critical.*exclude_operational=true"))
+
+
+def test_event_numbers_use_the_page_language(demo_page):
+    page = demo_page
+    _serve_events(page, [{
+        "id": 50, "timestamp": "2026-10-04T12:00:00", "severity": "warning", "event_type": "error_spike",
+        "message": "Uncorrectable errors jumped", "details": {"prev": 0, "current": 1072, "delta": 1072},
+        "acknowledged": 0,
+    }])
+    _open_events(page, DESKTOP_VIEWPORT)
+
+    message = page.locator('#events-feed [data-event-id="50"] .ev-msg')
+    expect(message).to_contain_text("+1.072")
+    expect(message).to_contain_text("(0 → 1.072)")
