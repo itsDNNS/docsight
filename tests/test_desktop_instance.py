@@ -207,7 +207,24 @@ def test_runtime_store_retries_read_sharing_violations(monkeypatch, tmp_path):
 
     assert store.load() == make_state()
     assert len(attempts) == 3
-    assert sleeps == [0.025, 0.025]
+    assert sleeps == [0.025, 0.05]
+
+
+def test_runtime_store_waits_longer_for_a_busy_file_before_giving_up(monkeypatch, tmp_path):
+    path = tmp_path / "runtime.json"
+    sleeps = []
+
+    def always_locked(target, *args, **kwargs):
+        raise sharing_error(32)
+
+    monkeypatch.setattr(Path, "read_text", always_locked)
+    store = runtime.RuntimeStateStore(path, sleep=sleeps.append)
+
+    with pytest.raises(runtime.RuntimeStateError):
+        store.load()
+    # Seven waits between eight attempts, doubling up to 200 ms: about one second.
+    assert sleeps == [0.025, 0.05, 0.1, 0.2, 0.2, 0.2, 0.2]
+    assert sum(sleeps) == pytest.approx(0.975)
 
 
 def test_runtime_store_retries_replace_and_remove_sharing_violations(
@@ -242,6 +259,7 @@ def test_runtime_store_retries_replace_and_remove_sharing_violations(
 
     assert len(replace_attempts) == 2
     assert len(unlink_attempts) == 2
+    # Each operation starts its own backoff.
     assert sleeps == [0.025, 0.025]
     assert not path.exists()
 
