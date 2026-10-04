@@ -27,7 +27,7 @@ function loadFritzCableData() {
     if (!msg || !content) return;
 
     if (skel) skel.style.display = '';
-    msg.style.display = 'none';
+    DOCSightEmptyState.hide(msg);
     content.style.display = 'none';
 
     fetch(docsightUrl('/api/fritzbox/segment-utilization?range=' + encodeURIComponent(_fritzCableRange)))
@@ -35,13 +35,11 @@ function loadFritzCableData() {
         .then(function(data) {
             if (skel) skel.style.display = 'none';
             if (data.error) {
-                msg.textContent = data.error;
-                msg.style.display = 'block';
+                DOCSightEmptyState.showError(msg, {text: data.error, retry: loadFritzCableData});
                 return;
             }
             if (!data.samples || data.samples.length === 0) {
-                msg.textContent = _fcT('no_data', 'No segment utilization data collected yet.');
-                msg.style.display = 'block';
+                _fritzCableShowEmpty(msg);
                 return;
             }
             content.style.display = '';
@@ -52,9 +50,24 @@ function loadFritzCableData() {
         })
         .catch(function() {
             if (skel) skel.style.display = 'none';
-            msg.textContent = _fcT('unavailable', 'Configuration unavailable.');
-            msg.style.display = 'block';
+            DOCSightEmptyState.showError(msg, {retry: loadFritzCableData});
         });
+}
+
+/* Segment data is polled separately from the modem, so "nothing collected
+   yet" points at the extension switch instead of the modem connection. */
+function _fritzCableShowEmpty(msg) {
+    var noData = _fcT('no_data', 'No segment utilization data collected yet.');
+    DOCSightEmptyState.showRange(msg, {
+        tabs: 'fritz-cable-range-tabs',
+        text: noData,
+        glossary: 'segment_utilization',
+        none: {
+            icon: 'gauge',
+            text: noData,
+            action: {label: _fcT('empty_action', 'Open extension settings'), href: docsightUrl('/settings#extensions')}
+        }
+    });
 }
 
 /* ── Events Widget ── */

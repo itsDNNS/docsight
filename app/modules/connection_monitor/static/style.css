@@ -221,25 +221,6 @@
     display: flex;
 }
 
-.cm-no-data {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-sm);
-    min-height: 180px;
-    padding: var(--space-xl);
-    border: 1px dashed var(--cm-panel-border);
-    border-radius: 8px;
-    color: var(--text-muted);
-    background: color-mix(in srgb, var(--surface) 54%, transparent);
-    text-align: center;
-}
-
-.cm-no-data svg {
-    width: 20px;
-    height: 20px;
-}
-
 .cm-workspace {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(420px, 0.42fr);

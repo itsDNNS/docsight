@@ -892,7 +892,6 @@
   "seg_note": "Os valores de utilização do segmento são estimativas fornecidas pelo FRITZ!Box e podem diferir da carga real em todo o CMTS.",
   "seg_disabled": "A utilização do segmento está desativada nas Configurações.",
   "seg_unsupported_driver": "Esta visualização está disponível apenas para dispositivos com cabo FRITZ!Box.",
-  "seg_unavailable": "Configuração indisponível.",
   "seg_correlation_ds": "Carga DS do segmento (%)",
   "seg_correlation_us": "Carga do segmento nos EUA (%)",
   "seg_events_title": "Eventos de saturação de segmento",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Configurar notificações",
   "gaming_speedtest_title": "Faltam dados de speedtest",
   "gaming_speedtest_action": "Configurar Speedtest Tracker",
-  "bnetz_empty_text": "Carregue o relatório PDF ou CSV de uma medição do breitbandmessung.de para a comparar com a velocidade contratada."
+  "bnetz_empty_text": "Carregue o relatório PDF ou CSV de uma medição do breitbandmessung.de para a comparar com a velocidade contratada.",
+  "seg_empty_action": "Abrir definições de extensões"
 }

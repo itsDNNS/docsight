@@ -14,13 +14,6 @@
 .evidence-summary-card,
 .evidence-item,
 .evidence-banner,
-.evidence-placeholder {
-    background: var(--card-bg, var(--card, rgba(255,255,255,0.04)));
-    border: 1px solid var(--border, rgba(255,255,255,0.12));
-    border-radius: 16px;
-    padding: 18px;
-}
-
 .evidence-quick-ranges {
     display: flex;
     flex-wrap: wrap;

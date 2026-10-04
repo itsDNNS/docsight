@@ -120,14 +120,6 @@
     width: 100%;
 }
 
-/* Placeholder */
-.comparison-placeholder {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--muted);
-    font-size: max(var(--fs-min), 0.95em);
-}
-
 /* Delta table */
 .comparison-delta-section {
     margin-top: var(--space-lg, 20px);
@@ -328,10 +320,6 @@
 @media (max-width: 480px) {
     .comparison-controls {
         padding: 12px;
-    }
-
-    .comparison-placeholder {
-        padding: 40px 12px;
     }
 
     .comparison-delta-section h3 {

@@ -892,7 +892,6 @@
   "seg_note": "Segmentudnyttelsesværdier er estimater leveret af FRITZ!Box og kan afvige fra den faktiske CMTS-dækkende belastning.",
   "seg_disabled": "Segmentudnyttelse er deaktiveret i Indstillinger.",
   "seg_unsupported_driver": "Denne visning er kun tilgængelig for FRITZ!Box kabelenheder.",
-  "seg_unavailable": "Konfiguration er ikke tilgængelig.",
   "seg_correlation_ds": "Segment DS Load (%)",
   "seg_correlation_us": "Segment US Load (%)",
   "seg_events_title": "Segmentmætningsbegivenheder",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Opsæt notifikationer",
   "gaming_speedtest_title": "Speedtest-data mangler",
   "gaming_speedtest_action": "Opsæt Speedtest Tracker",
-  "bnetz_empty_text": "Upload PDF- eller CSV-rapporten fra en måling på breitbandmessung.de for at sammenligne den med din aftalte hastighed."
+  "bnetz_empty_text": "Upload PDF- eller CSV-rapporten fra en måling på breitbandmessung.de for at sammenligne den med din aftalte hastighed.",
+  "seg_empty_action": "Åbn udvidelsesindstillinger"
 }

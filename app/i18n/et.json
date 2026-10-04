@@ -892,7 +892,6 @@
   "seg_note": "Segmendi kasutusväärtused on FRITZ!Box hinnangulised ja võivad erineda tegelikust CMTS-i hõlmavast koormusest.",
   "seg_disabled": "Segmendi kasutamine on seadetes keelatud.",
   "seg_unsupported_driver": "See vaade on saadaval ainult FRITZ!Box kaabelseadmete jaoks.",
-  "seg_unavailable": "Konfiguratsioon pole saadaval.",
   "seg_correlation_ds": "Segmendi DS-koormus (%)",
   "seg_correlation_us": "Segmenteeri USA koormus (%)",
   "seg_events_title": "Segmendi küllastussündmused",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Seadista teavitused",
   "gaming_speedtest_title": "Speedtesti andmed puuduvad",
   "gaming_speedtest_action": "Seadista Speedtest Tracker",
-  "bnetz_empty_text": "Laadi üles breitbandmessung.de mõõtmise PDF- või CSV-aruanne, et võrrelda seda lepingujärgse kiirusega."
+  "bnetz_empty_text": "Laadi üles breitbandmessung.de mõõtmise PDF- või CSV-aruanne, et võrrelda seda lepingujärgse kiirusega.",
+  "seg_empty_action": "Ava laienduste seaded"
 }

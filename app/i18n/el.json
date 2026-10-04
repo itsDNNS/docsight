@@ -892,7 +892,6 @@
   "seg_note": "Οι τιμές χρήσης τμήματος είναι εκτιμήσεις που παρέχονται από το FRITZ!Box και ενδέχεται να διαφέρουν από το πραγματικό φορτίο CMTS.",
   "seg_disabled": "Η χρήση τμήματος είναι απενεργοποιημένη στις Ρυθμίσεις.",
   "seg_unsupported_driver": "Αυτή η προβολή είναι διαθέσιμη μόνο για καλωδιακές συσκευές FRITZ!Box.",
-  "seg_unavailable": "Η διαμόρφωση δεν είναι διαθέσιμη.",
   "seg_correlation_ds": "Φορτίο DS τμήματος (%)",
   "seg_correlation_us": "Τμήμα Φορτίο ΗΠΑ (%)",
   "seg_events_title": "Συμβάντα κορεσμού τμημάτων",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Ρύθμιση ειδοποιήσεων",
   "gaming_speedtest_title": "Λείπουν δεδομένα speedtest",
   "gaming_speedtest_action": "Ρύθμιση Speedtest Tracker",
-  "bnetz_empty_text": "Ανεβάστε την αναφορά PDF ή CSV μιας μέτρησης από το breitbandmessung.de για να τη συγκρίνετε με τη συμβατική σας ταχύτητα."
+  "bnetz_empty_text": "Ανεβάστε την αναφορά PDF ή CSV μιας μέτρησης από το breitbandmessung.de για να τη συγκρίνετε με τη συμβατική σας ταχύτητα.",
+  "seg_empty_action": "Άνοιγμα ρυθμίσεων επεκτάσεων"
 }

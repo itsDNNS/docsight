@@ -149,37 +149,6 @@
     align-items: center;
 }
 
-/* Empty state */
-.speedtest-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 48px 24px;
-}
-.speedtest-empty-title {
-    font-size: 1.1em;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-}
-.speedtest-empty-desc {
-    font-size: max(var(--fs-min), 0.85em);
-    color: var(--text-secondary);
-    max-width: 360px;
-    line-height: 1.5;
-}
-.speedtest-empty-state.speedtest-empty-error .speedtest-empty-title,
-.speedtest-empty-state.speedtest-empty-error .speedtest-empty-desc,
-.speedtest-empty-state.speedtest-empty-error .btn,
-.speedtest-empty-state.speedtest-empty-error [data-lucide] {
-    display: none;
-}
-.speedtest-empty-state.speedtest-empty-error::after {
-    content: attr(data-error);
-    color: var(--text-muted);
-}
-
 /* Responsive */
 @media (max-width: 768px) {
     .speedtest-chart-card {

@@ -11,6 +11,14 @@ const catalog = JSON.parse(read('app/modules/modulation/i18n/en.json'));
 const levels = ['4QAM', '8QAM', '16QAM', '32QAM', '64QAM', '128QAM', '256QAM',
     '512QAM', '1024QAM', '4096QAM', 'Unknown', 'unrecognized', 'OFDM', 'OFDMA', 'QPSK'];
 
+// Stands in for the shared empty-state component (tested in empty-state.test.js).
+const emptyState = {
+    show(el, options) { if (el) Object.assign(el, {hidden: false, empty: {kind: 'show', ...options}}); },
+    showRange(el, options) { if (el) Object.assign(el, {hidden: false, empty: {kind: 'range', ...options}}); },
+    showError(el, options) { if (el) Object.assign(el, {hidden: false, empty: {kind: 'error', ...options}}); },
+    hide(el) { if (el) Object.assign(el, {hidden: true, empty: null}); },
+};
+
 function browser(lang = 'en', translations = {}) {
     const ids = new Map(), charts = [], requests = [];
     function element(attrs = {}) {
@@ -49,6 +57,7 @@ function browser(lang = 'en', translations = {}) {
     }
     Chart.paths = {bars: () => () => {}, stepped: () => () => {}};
     const context = {
+        DOCSightEmptyState: emptyState,
         document: {getElementById: id => ids.get(id), createElement: () => element(),
             querySelectorAll: selector => selector.includes('direction') ? directions : ranges},
         getComputedStyle: () => ({getPropertyValue: () => ''}), uPlot: Chart,

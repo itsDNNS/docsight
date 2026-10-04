@@ -34,7 +34,7 @@
     function rangeTabs(tabsId) {
         var group = typeof document !== 'undefined' && document.getElementById(tabsId);
         if (!group) return [];
-        return Array.prototype.slice.call(group.querySelectorAll('.trend-tab[data-value], .trend-tab[data-range]'))
+        return Array.prototype.slice.call(group.querySelectorAll('.trend-tab[data-value], .trend-tab[data-range], .trend-tab[data-days], .trend-tab[data-cm-range]'))
             .map(function (tab) {
                 return {el: tab, label: tab.textContent.trim(), active: tab.classList.contains('active')};
             });
@@ -96,7 +96,8 @@
     }
 
     /* No data in the selected range: offer the longest range, or, when that is
-       already selected, point at the modem connection. */
+       already selected, point at the modem connection. Views whose data comes
+       from elsewhere pass their own `none` state for that second case. */
     function showRange(el, opts) {
         var options = opts || {};
         var wider = widerRange(rangeTabs(options.tabs));
@@ -113,11 +114,12 @@
             });
             return;
         }
+        var none = options.none || {};
         show(el, {
-            icon: 'plug',
-            title: text('empty_none_title', 'No measurements yet'),
-            text: text('empty_none_text', 'Measurements start with the first successful modem poll. If this stays empty, check the modem connection.'),
-            action: {label: text('empty_action_connection', 'Check modem connection'), href: url('/settings#connection')},
+            icon: none.icon || 'plug',
+            title: none.title || text('empty_none_title', 'No measurements yet'),
+            text: none.text || text('empty_none_text', 'Measurements start with the first successful modem poll. If this stays empty, check the modem connection.'),
+            action: none.action || {label: text('empty_action_connection', 'Check modem connection'), href: url('/settings#connection')},
             glossary: options.glossary
         });
     }
@@ -127,7 +129,7 @@
         show(el, {
             icon: 'triangle-alert',
             title: text('empty_error_title', 'Could not load the data'),
-            text: text('empty_error_text', 'The request failed. This is usually temporary.'),
+            text: options.text || text('empty_error_text', 'The request failed. This is usually temporary.'),
             action: options.retry ? {label: text('empty_action_retry', 'Try again'), onClick: options.retry} : null,
             glossary: options.glossary
         });

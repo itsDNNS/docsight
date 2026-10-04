@@ -110,7 +110,7 @@ class TestFullPageScreenshots:
     def test_screenshot_desktop_us_1d(self, modulation_page):
         modulation_page.locator('#modulation-range-tabs .trend-tab[data-days="1"]').click()
         modulation_page.wait_for_function(
-            "() => document.querySelector('#modulation-intraday-content .mod-channel-summary, #modulation-intraday-content .no-data-msg')",
+            "() => document.querySelector('#modulation-intraday-content .mod-channel-summary, #modulation-intraday-content .view-empty')",
             timeout=150_000,
         )
         modulation_page.screenshot(

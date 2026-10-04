@@ -892,7 +892,6 @@
   "seg_note": "A szegmenskihasználtsági értékek a FRITZ!Box becslései, és eltérhetnek a tényleges CMTS-szintű terheléstől.",
   "seg_disabled": "A szegmenshasználat le van tiltva a Beállításokban.",
   "seg_unsupported_driver": "Ez a nézet csak a FRITZ!Box kábeles eszközökön érhető el.",
-  "seg_unavailable": "A konfiguráció nem érhető el.",
   "seg_correlation_ds": "Szegmens DS terhelés (%)",
   "seg_correlation_us": "Szegmens USA terhelés (%)",
   "seg_events_title": "Szegmenstelítettségi események",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Értesítések beállítása",
   "gaming_speedtest_title": "Hiányoznak a sebességmérési adatok",
   "gaming_speedtest_action": "Speedtest Tracker beállítása",
-  "bnetz_empty_text": "Töltse fel egy breitbandmessung.de mérés PDF vagy CSV jelentését, hogy összevesse a szerződéses sebességgel."
+  "bnetz_empty_text": "Töltse fel egy breitbandmessung.de mérés PDF vagy CSV jelentését, hogy összevesse a szerződéses sebességgel.",
+  "seg_empty_action": "Bővítménybeállítások megnyitása"
 }

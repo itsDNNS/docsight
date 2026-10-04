@@ -892,7 +892,6 @@
   "seg_note": "Стойностите за използване на сегмента са приблизителни, предоставени от FRITZ!Box и може да се различават от действителното натоварване в целия CMTS.",
   "seg_disabled": "Използването на сегмент е деактивирано в Настройки.",
   "seg_unsupported_driver": "Този изглед е достъпен само за FRITZ!Box кабелни устройства.",
-  "seg_unavailable": "Недостъпна конфигурация.",
   "seg_correlation_ds": "Сегмент DS Натоварване (%)",
   "seg_correlation_us": "Сегмент САЩ Натоварване (%)",
   "seg_events_title": "Събития за насищане на сегменти",
@@ -1192,5 +1191,6 @@
   "event_empty_action": "Настрой известия",
   "gaming_speedtest_title": "Липсват данни от speedtest",
   "gaming_speedtest_action": "Настрой Speedtest Tracker",
-  "bnetz_empty_text": "Качете PDF или CSV отчета от измерване на breitbandmessung.de, за да го сравните с договорената скорост."
+  "bnetz_empty_text": "Качете PDF или CSV отчета от измерване на breitbandmessung.de, за да го сравните с договорената скорост.",
+  "seg_empty_action": "Отвори настройките на разширенията"
 }

@@ -17,6 +17,21 @@ function formatSpeedtestTimestamp(ts) {
     return formatDocsightTime(ts, 'datetime');
 }
 
+/* No results at all: start a test where that is possible (not in demo mode),
+   otherwise point at the Speedtest Tracker settings. */
+function _showSpeedtestEmpty(noData) {
+    var canRun = !!document.getElementById('speedtest-run-btn');
+    DOCSightEmptyState.show(noData, {
+        icon: 'gauge',
+        title: T.speedtest_empty_title || 'No speedtest results yet',
+        text: T.speedtest_empty_desc || 'Automated tests will appear here once the schedule runs. You can also start a manual test.',
+        action: canRun
+            ? {label: T.run_speedtest || 'Run speedtest', onClick: runSpeedtest}
+            : {label: T.gaming_speedtest_action || 'Set up Speedtest Tracker', href: docsightUrl('/settings#mod-docsight_speedtest')},
+        glossary: 'speedtest'
+    });
+}
+
 function loadSpeedtestHistory() {
     var tbody = document.getElementById('speedtest-tbody');
     var table = document.getElementById('speedtest-table');
@@ -26,7 +41,7 @@ function loadSpeedtestHistory() {
     if (!tbody || !table || !noData) return;
     tbody.innerHTML = '';
     table.style.display = 'none';
-    noData.style.display = 'none';
+    DOCSightEmptyState.hide(noData);
     if (loading) loading.style.display = '';
     if (moreWrap) moreWrap.style.display = 'none';
     _speedtestRawData = [];
@@ -38,8 +53,7 @@ function loadSpeedtestHistory() {
         .then(function(data) {
             if (loading) loading.style.display = 'none';
             if (!data || data.length === 0) {
-                noData.classList.remove('speedtest-empty-error');
-                noData.style.display = '';
+                _showSpeedtestEmpty(noData);
                 return;
             }
             _speedtestRawData = data;
@@ -47,9 +61,7 @@ function loadSpeedtestHistory() {
         })
         .catch(function() {
             if (loading) loading.style.display = 'none';
-            noData.classList.add('speedtest-empty-error');
-            noData.setAttribute('data-error', T.network_error || 'Error');
-            noData.style.display = '';
+            DOCSightEmptyState.showError(noData, {retry: loadSpeedtestHistory});
         });
 }
 
@@ -69,15 +81,22 @@ function filterSpeedtestData() {
     sortSpeedtestData();
     if (_speedtestAllData.length === 0) {
         if (table) table.style.display = 'none';
-        if (noData) {
-            noData.classList.remove('speedtest-empty-error');
-            noData.style.display = '';
-        }
+        // There are results, just none in the selected period.
+        DOCSightEmptyState.show(noData, {
+            icon: 'clock',
+            title: T.speedtest_empty_period_title || 'No speedtests in this period',
+            text: T.speedtest_empty_period_text,
+            action: {
+                label: T.speedtest_empty_period_action || 'Show all results',
+                onClick: function() { document.querySelector('#speedtest-tabs [data-value="all"]').click(); }
+            },
+            glossary: 'speedtest'
+        });
         var cc = document.getElementById('speedtest-chart-container');
         if (cc) cc.style.display = 'none';
     } else {
         if (table) table.style.display = '';
-        if (noData) noData.style.display = 'none';
+        if (noData) DOCSightEmptyState.hide(noData);
         renderSpeedtestRows();
         renderSpeedtestChart();
     }

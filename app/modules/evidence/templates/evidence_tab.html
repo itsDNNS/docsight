@@ -1,3 +1,4 @@
+{% from "partials/empty_state.html" import empty_state with context %}
 <div class="view-content evidence-view">
     <div class="view-page-header evidence-header">
         <div class="view-page-header-left">
@@ -43,9 +44,11 @@
         {{ t.get('docsight.evidence.demo_banner', 'Demo mode: this checklist uses simulated sample data.') }}
     </div>
 
-    <div id="evidence-placeholder" class="evidence-placeholder">
-        {{ t.get('docsight.evidence.placeholder', 'Choose an incident or time range to see which evidence is ready, missing, stale, optional, or not applicable.') }}
-    </div>
+    {{ empty_state('evidence-placeholder', 'shield-check',
+                   t.get('docsight.evidence.empty_title', 'Check which evidence is ready'),
+                   t.get('docsight.evidence.placeholder', 'Choose an incident or time range to see which evidence is ready, missing, stale, optional, or not applicable.'),
+                   action_label=t.get('docsight.evidence.empty_action', 'Check the last 24 hours'),
+                   action_onclick="document.querySelector('[data-evidence-range=last24h]').click()") }}
 
     <div id="evidence-loading" class="evidence-loading" hidden>
         <div class="spinner"></div>

@@ -45,5 +45,8 @@
   "speedtest_detail_ookla": "Ookla Result",
   "speedtest_detail_view_ookla": "View on Speedtest.net",
   "clear_cache": "Clear Cache",
-  "clear_cache_hint": "Delete cached results and re-sync from Speedtest Tracker"
+  "clear_cache_hint": "Delete cached results and re-sync from Speedtest Tracker",
+  "speedtest_empty_period_title": "No speedtests in this period",
+  "speedtest_empty_period_text": "There are older results outside the selected period.",
+  "speedtest_empty_period_action": "Show all results"
 }
