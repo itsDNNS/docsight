@@ -4,7 +4,7 @@ import pytest
 from playwright.sync_api import expect
 
 from tests.e2e.test_modulation_visual import _switch_distribution
-from tests.e2e.support.navigation import open_view
+from tests.e2e.support.navigation import open_channel_families, open_view
 
 
 # ── Navigation ──
@@ -50,6 +50,7 @@ class TestModulationNavigation:
 
     def test_home_hides_modulation_context_when_family_kpis_render(self, demo_page):
         expect(demo_page.locator(".hero-modulation-context")).to_have_count(0)
+        open_channel_families(demo_page)
         expect(demo_page.locator("#metric-ds-sc-qam-power-card")).to_be_visible()
         expect(demo_page.locator("#metric-ds-ofdm-power-card")).to_be_visible()
         expect(demo_page.locator("#metric-us-sc-qam-card")).to_be_visible()
@@ -59,7 +60,8 @@ class TestModulationNavigation:
 
         expect(demo_page.locator("#view-modulation")).to_be_visible()
 
-    def test_home_family_kpis_include_modulation_context_inline(self, demo_page):
+    def test_family_kpis_include_modulation_context_inline(self, demo_page):
+        open_channel_families(demo_page)
         for card_id, label in [
             ("metric-ds-sc-qam-power-card", "DS POWER (SC-QAM)"),
             ("metric-ds-ofdm-power-card", "DS POWER (OFDM)"),

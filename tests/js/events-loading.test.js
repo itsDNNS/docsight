@@ -20,6 +20,7 @@ function browser() {
         T: {}, URLSearchParams, setInterval() {}, escapeHtml: String, formatDocsightTime: String, docsightUrl: url => url,
         document: {
             getElementById(id) {
+                if (id === 'home-events-list') return null; // Events view only, no Home list.
                 if (!ids.has(id)) ids.set(id, element());
                 return ids.get(id);
             },

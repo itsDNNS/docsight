@@ -156,6 +156,12 @@
         });
     }
 
+    // Canvases in a hidden view have no size; redraw the cached data once shown.
+    window.redrawSparklines = function() {
+        render(cachedSignals, true);
+        render(cachedLegacy, false);
+    };
+
     window.refreshSparklines = function(generation) {
         return refresh(generation == null ? window.DOCSightSignalSeries.refresh() : generation);
     };

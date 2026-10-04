@@ -247,6 +247,18 @@ function initChannelView() {
 }
 window.initChannelView = initChannelView;
 
+/* Family cards sit in a collapsed section of a hidden view: draw their
+   sparklines once the section is open and visible. */
+function _redrawChannelFamilySparks() {
+    var families = document.getElementById('channel-families');
+    if (families && families.open && typeof window.redrawSparklines === 'function') {
+        window.redrawSparklines();
+    }
+}
+document.addEventListener('toggle', function(event) {
+    if (event.target && event.target.id === 'channel-families') _redrawChannelFamilySparks();
+}, true);
+
 /* ── Channel Mode Switch (Timeline / Compare) ── */
 function switchChannelMode() {
     var mode = getPillValue('channel-mode-tabs') || 'status';
@@ -267,6 +279,7 @@ function switchChannelMode() {
     var infoBar = document.getElementById('channel-info-bar');
     if (mode === 'status') {
         if (infoBar) infoBar.style.display = 'none';
+        _redrawChannelFamilySparks();
         loadChannelStatus();
     } else if (mode === 'compare') {
         if (infoBar) infoBar.style.display = 'none';

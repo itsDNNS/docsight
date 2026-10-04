@@ -984,11 +984,16 @@ body:has(#view-dashboard.active) .app-main {
   max-width: min(1600px, 100%);
 }
 
-.dashboard-view {
+/* Panel colors shared by Home and the Channels page (tables, family cards). */
+.dashboard-view,
+#view-channels {
   --dash-panel: color-mix(in srgb, var(--surface) 62%, transparent);
   --dash-panel-strong: color-mix(in srgb, var(--elevated) 68%, transparent);
   --dash-border: color-mix(in srgb, var(--glass-border) 54%, transparent);
   --dash-muted-border: color-mix(in srgb, var(--glass-border) 32%, transparent);
+}
+
+.dashboard-view {
   --hero-side-pad: var(--space-lg);
   --hero-side-col: minmax(250px, 310px);
   --hero-col-gap: clamp(18px, 2vw, 28px);
@@ -1097,7 +1102,7 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-hero .hero-visual-row {
   grid-column: 1;
-  grid-row: 4;
+  grid-row: 3;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--hero-col-gap);
@@ -1361,14 +1366,14 @@ body:has(#view-dashboard.active) .app-main {
   text-transform: uppercase;
 }
 
-.dashboard-view .metrics-grid {
+.metrics-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
   border-top: 1px solid var(--dash-muted-border);
   border-bottom: 1px solid var(--dash-muted-border);
 }
 
-.dashboard-view .metrics-grid .metric-card.glass {
+.metrics-grid .metric-card.glass {
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1382,11 +1387,11 @@ body:has(#view-dashboard.active) .app-main {
   transition: border-color 0.18s ease, background 0.18s ease;
 }
 
-.dashboard-view .metrics-grid .metric-card.glass:hover {
+.metrics-grid .metric-card.glass:hover {
   background: color-mix(in srgb, var(--surface) 28%, transparent);
 }
 
-.dashboard-view .metrics-grid .metric-card.glass::after {
+.metrics-grid .metric-card.glass::after {
   content: '';
   position: absolute;
   inset: 16px 0 16px auto;
@@ -1395,35 +1400,35 @@ body:has(#view-dashboard.active) .app-main {
   pointer-events: none;
 }
 
-.dashboard-view .metrics-grid .metric-card.glass:nth-child(4n)::after,
-.dashboard-view .metrics-grid .metric-card.glass:last-child::after {
+.metrics-grid .metric-card.glass:nth-child(4n)::after,
+.metrics-grid .metric-card.glass:last-child::after {
   display: none;
 }
 
-.dashboard-view .metrics-grid .metric-card.glass:nth-child(n + 5) {
+.metrics-grid .metric-card.glass:nth-child(n + 5) {
   border-top: 1px solid var(--dash-muted-border);
 }
 
-.dashboard-view .metrics-grid .metric-header {
+.metrics-grid .metric-header {
   gap: var(--space-sm);
   margin-bottom: var(--space-sm);
 }
 
-.dashboard-view .metrics-grid .metric-label {
+.metrics-grid .metric-label {
   min-width: 0;
   color: var(--text-muted);
   font-weight: 750;
   letter-spacing: 0.07em;
 }
 
-.dashboard-view .metrics-grid .metric-icon {
+.metrics-grid .metric-icon {
   width: 26px;
   height: 26px;
   border-radius: 7px;
   opacity: 0.78;
 }
 
-.dashboard-view .metrics-grid .metric-value {
+.metrics-grid .metric-value {
   min-width: 0;
   font-size: clamp(1.45rem, 1.1rem + 0.9vw, 2.1rem);
   line-height: 1;
@@ -1431,46 +1436,46 @@ body:has(#view-dashboard.active) .app-main {
   overflow-wrap: anywhere;
 }
 
-.dashboard-view .metrics-grid .metric-value-row {
+.metrics-grid .metric-value-row {
   min-width: 0;
 }
 
-.dashboard-view .metrics-grid .metric-sub {
+.metrics-grid .metric-sub {
   flex-wrap: wrap;
   align-items: center;
   margin-top: var(--space-sm);
   line-height: 1.3;
 }
 
-.dashboard-view .metrics-grid .metric-context-row {
+.metrics-grid .metric-context-row {
   gap: 8px 14px;
   min-height: 44px;
   align-content: flex-start;
 }
 
-.dashboard-view .metrics-grid .metric-status-row {
+.metrics-grid .metric-status-row {
   min-height: 22px;
 }
 
-.dashboard-view .metrics-grid .metric-status-cause {
+.metrics-grid .metric-status-cause {
   color: var(--text-muted);
   font-size: var(--fs-min);
   line-height: 1;
   margin-left: 4px;
 }
 
-.dashboard-view .metrics-grid .metric-average-row {
+.metrics-grid .metric-average-row {
   margin-top: 6px;
   min-height: 18px;
 }
 
-.dashboard-view .metrics-grid .metric-average-copy {
+.metrics-grid .metric-average-copy {
   color: var(--text-secondary);
   font-size: var(--fs-min);
   letter-spacing: 0.01em;
 }
 
-.dashboard-view .metrics-grid .metric-modulation-row {
+.metrics-grid .metric-modulation-row {
   display: flex;
   align-items: baseline;
   gap: 4px 6px;
@@ -1479,7 +1484,7 @@ body:has(#view-dashboard.active) .app-main {
   margin-top: 4px;
 }
 
-.dashboard-view .metrics-grid .metric-context {
+.metrics-grid .metric-context {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -1488,14 +1493,14 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 /* Keeps a label and its value on the same line when the row wraps. */
-.dashboard-view .metrics-grid .metric-pair {
+.metrics-grid .metric-pair {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
   white-space: nowrap;
 }
 
-.dashboard-view .metrics-grid .metric-sub-label {
+.metrics-grid .metric-sub-label {
   flex: 0 1 auto;
   min-width: 0;
   color: var(--text-muted);
@@ -1504,12 +1509,12 @@ body:has(#view-dashboard.active) .app-main {
   text-transform: uppercase;
 }
 
-.dashboard-view .metrics-grid .metric-sub .range {
+.metrics-grid .metric-sub .range {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.dashboard-view .metrics-grid .metric-range-viz {
+.metrics-grid .metric-range-viz {
   display: grid;
   gap: 6px;
   min-width: 0;
@@ -1517,7 +1522,7 @@ body:has(#view-dashboard.active) .app-main {
   padding-top: 8px;
 }
 
-.dashboard-view .metrics-grid .metric-range-caption {
+.metrics-grid .metric-range-caption {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -1530,7 +1535,7 @@ body:has(#view-dashboard.active) .app-main {
   text-align: center;
 }
 
-.dashboard-view .metrics-grid .metric-range-caption span {
+.metrics-grid .metric-range-caption span {
   flex: 0 1 auto;
   min-width: 0;
   font-size: var(--fs-min);
@@ -1538,7 +1543,7 @@ body:has(#view-dashboard.active) .app-main {
   white-space: nowrap;
 }
 
-.dashboard-view .metrics-grid .metric-range-caption strong {
+.metrics-grid .metric-range-caption strong {
   flex: 0 0 auto;
   color: var(--text-secondary);
   font-family: var(--font-mono);
@@ -1546,7 +1551,7 @@ body:has(#view-dashboard.active) .app-main {
   font-weight: 650;
 }
 
-.dashboard-view .metrics-grid .metric-range-track {
+.metrics-grid .metric-range-track {
   position: relative;
   height: 9px;
   min-width: 0;
@@ -1556,29 +1561,29 @@ body:has(#view-dashboard.active) .app-main {
   overflow: hidden;
 }
 
-.dashboard-view .metrics-grid .metric-range-band {
+.metrics-grid .metric-range-band {
   position: absolute;
   top: 0;
   bottom: 0;
 }
 
-.dashboard-view .metrics-grid .metric-range-band.good {
+.metrics-grid .metric-range-band.good {
   background: color-mix(in srgb, var(--good) 74%, transparent);
 }
 
-.dashboard-view .metrics-grid .metric-range-band.tolerated {
+.metrics-grid .metric-range-band.tolerated {
   background: color-mix(in srgb, var(--tolerated) 68%, transparent);
 }
 
-.dashboard-view .metrics-grid .metric-range-band.warn {
+.metrics-grid .metric-range-band.warn {
   background: color-mix(in srgb, var(--warn) 68%, transparent);
 }
 
-.dashboard-view .metrics-grid .metric-range-band.crit {
+.metrics-grid .metric-range-band.crit {
   background: color-mix(in srgb, var(--crit) 72%, transparent);
 }
 
-.dashboard-view .metrics-grid .metric-range-window {
+.metrics-grid .metric-range-window {
   position: absolute;
   top: 2px;
   bottom: 2px;
@@ -1591,7 +1596,7 @@ body:has(#view-dashboard.active) .app-main {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--void-deep) 64%, transparent);
 }
 
-.dashboard-view .metrics-grid .metric-range-marker {
+.metrics-grid .metric-range-marker {
   position: absolute;
   top: 50%;
   left: clamp(5px, var(--metric-marker), calc(100% - 5px));
@@ -1607,7 +1612,7 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 /* Scale ends sit under the ends of the track; the good range gets its own row. */
-.dashboard-view .metrics-grid .metric-range-labels {
+.metrics-grid .metric-range-labels {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas: "low high" "good good";
@@ -1619,30 +1624,30 @@ body:has(#view-dashboard.active) .app-main {
   line-height: 1.2;
 }
 
-.dashboard-view .metrics-grid .metric-range-labels span {
+.metrics-grid .metric-range-labels span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dashboard-view .metrics-grid .metric-range-labels span:first-child {
+.metrics-grid .metric-range-labels span:first-child {
   grid-area: low;
 }
 
-.dashboard-view .metrics-grid .metric-range-labels span:last-child {
+.metrics-grid .metric-range-labels span:last-child {
   grid-area: high;
   text-align: right;
 }
 
-.dashboard-view .metrics-grid .metric-range-labels .metric-range-good {
+.metrics-grid .metric-range-labels .metric-range-good {
   grid-area: good;
   color: var(--text-secondary);
   text-align: center;
   white-space: normal;
 }
 
-.dashboard-view .metrics-grid .metric-spark {
+.metrics-grid .metric-spark {
   width: min(132px, 42%);
   height: 42px;
   opacity: 0.78;
@@ -1919,7 +1924,7 @@ body:has(#view-dashboard.active) .app-main {
   .dashboard-view .hero-card,
   .dashboard-view .insights-panel,
   .dashboard-view .insight-card,
-  .dashboard-view .metric-card,
+  .metric-card,
   .dashboard-view .health-ring-card {
     animation: none !important;
     transition: none !important;
@@ -1961,7 +1966,7 @@ body:has(#view-dashboard.active) .app-main {
     align-self: start;
   }
 
-  .dashboard-view .metrics-grid {
+  .metrics-grid {
     grid-template-columns: var(--hero-side-col) repeat(3, minmax(0, 1fr));
     column-gap: var(--hero-col-gap);
     padding: 0 var(--hero-side-pad);
@@ -2088,28 +2093,28 @@ body:has(#view-dashboard.active) .app-main {
     gap: 4px 0;
   }
 
-  .dashboard-view .metrics-grid {
+  .metrics-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass,
-  .dashboard-view .metrics-grid .metric-card.glass:nth-child(n + 5) {
+  .metrics-grid .metric-card.glass,
+  .metrics-grid .metric-card.glass:nth-child(n + 5) {
     border-top: 0;
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass:nth-child(n + 3) {
+  .metrics-grid .metric-card.glass:nth-child(n + 3) {
     border-top: 1px solid var(--dash-muted-border);
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass:nth-child(2n)::after {
+  .metrics-grid .metric-card.glass:nth-child(2n)::after {
     display: none;
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass:nth-child(2n - 1)::after {
+  .metrics-grid .metric-card.glass:nth-child(2n - 1)::after {
     display: block;
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass:last-child::after {
+  .metrics-grid .metric-card.glass:last-child::after {
     display: none;
   }
 }
@@ -2161,34 +2166,34 @@ body:has(#view-dashboard.active) .app-main {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass {
+  .metrics-grid .metric-card.glass {
     min-height: 132px;
   }
 
-  .dashboard-view .metrics-grid .metric-spark {
+  .metrics-grid .metric-spark {
     display: none;
   }
 
-  .dashboard-view .metrics-grid {
+  .metrics-grid {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass,
-  .dashboard-view .metrics-grid .metric-card.glass:nth-child(n + 5) {
+  .metrics-grid .metric-card.glass,
+  .metrics-grid .metric-card.glass:nth-child(n + 5) {
     border-top: 1px solid var(--dash-muted-border);
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass:first-child {
+  .metrics-grid .metric-card.glass:first-child {
     border-top: 0;
   }
 
-  .dashboard-view .metrics-grid .metric-card.glass::after {
+  .metrics-grid .metric-card.glass::after {
     display: none;
   }
 }
 
 @media (max-width: 420px) {
-  .dashboard-view .metrics-grid {
+  .metrics-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2282,11 +2287,12 @@ body:has(#view-dashboard.active) .app-main {
 .line-status-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 .line-status-actions .btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
 .line-status-actions .btn svg { width: 16px; height: 16px; }
-.line-status-findings { margin: 0 0 var(--space-md); }
+.line-status-findings { margin: 0; }
+.line-status-findings .insights-panel { margin: 8px 0 0; }
 .line-status-findings > summary {
   cursor: pointer;
   width: fit-content;
-  padding: 8px 4px;
+  padding: 6px 0;
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--text-secondary);
@@ -2311,14 +2317,6 @@ body:has(#view-dashboard.active) .app-main {
   border-radius: 0;
   background: transparent;
 }
-.dashboard-hero .line-status-findings {
-  grid-column: 1;
-  grid-row: 3;
-  margin: 0;
-  padding: 4px var(--space-lg) 8px;
-  border-bottom: 1px solid var(--dash-muted-border);
-}
-.dashboard-hero .line-status-findings .insights-panel { margin: 0; }
 
 /* ── Channels status matrix ── */
 .channel-status {
@@ -2385,7 +2383,6 @@ body:has(#view-dashboard.active) .app-main {
 .cs-delta { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
 .cs-axis { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) minmax(140px, 190px); gap: 16px; padding: 0 8px; font-size: var(--fs-min); color: var(--text-muted); }
 .cs-axis-ticks { display: flex; justify-content: space-between; }
-.channel-status-tables { --dash-border: color-mix(in srgb, var(--glass-border) 54%, transparent); }
 .channel-status-tables .channels-section + .channels-section { margin-top: var(--space-md); }
 @media (max-width: 760px) {
   .channel-status { padding: var(--space-md); }
@@ -2396,3 +2393,97 @@ body:has(#view-dashboard.active) .app-main {
   .cs-axis > span:empty { display: none; }
   .cs-current { grid-template-columns: auto auto; justify-content: start; align-items: baseline; gap: 12px; }
 }
+
+/* ── Home: key figures, findings, recent events, sources ── */
+.home-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin: var(--space-lg) 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+.home-kpi {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 4px var(--space-lg) var(--space-md);
+  border-left: 1px solid var(--glass-border);
+}
+.home-kpi:first-child { border-left: 0; padding-left: 0; }
+.home-kpi-link {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.home-kpi-link:hover .home-kpi-value strong { color: var(--accent); }
+.home-kpi-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.home-kpi-label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-secondary); }
+.home-kpi-label svg { width: 16px; height: 16px; color: var(--text-muted); }
+.home-kpi-value { color: var(--text-muted); font-size: 0.85rem; }
+.home-kpi-value strong { font-size: 1.9rem; font-weight: 650; line-height: 1.15; color: var(--text); letter-spacing: -0.01em; }
+.home-kpi-sub { font-size: var(--fs-min); color: var(--text-muted); }
+.home-kpi-empty .home-kpi-sub { color: var(--accent); }
+.home-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-xl, 32px); margin-bottom: var(--space-lg); }
+.home-findings h3, .home-events h3 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 650; color: var(--text); }
+.home-findings-lead { margin: 0 0 6px; font-size: 0.95rem; line-height: 1.55; color: var(--text-secondary); }
+.home-events-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.home-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: var(--accent); text-decoration: none; }
+.home-link svg { width: 14px; height: 14px; }
+.home-events-list { list-style: none; margin: 0; padding: 0; }
+.home-events-list > li { border-bottom: 1px solid var(--glass-border); }
+.home-events-list > li.home-events-empty { padding: 10px 0; font-size: 0.9rem; color: var(--text-muted); border: 0; }
+.home-event { display: grid; grid-template-columns: minmax(64px, max-content) 18px minmax(0, 1fr); gap: 10px; align-items: center; padding: 9px 0; color: inherit; text-decoration: none; }
+.home-event:hover .home-event-text { color: var(--text); }
+.home-event-time { font-size: var(--fs-min); color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.home-event-icon { width: 16px; height: 16px; color: var(--text-muted); }
+.home-event-warning .home-event-icon { color: var(--warn); }
+.home-event-critical .home-event-icon { color: var(--crit); }
+.home-event-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; color: var(--text-secondary); }
+.home-event-text b { font-weight: 600; color: var(--text); margin-right: 6px; }
+/* One line per event here; per-channel detail lines stay on the Events page. */
+.home-event-text .ev-sub { display: none; }
+.home-sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); margin-bottom: var(--space-lg); }
+.home-source { display: flex; align-items: center; gap: 10px; padding: 12px var(--space-md); font-size: 0.9rem; color: var(--text-secondary); text-decoration: none; }
+.home-source + .home-source { border-left: 1px solid var(--glass-border); }
+.home-source:first-child { padding-left: 0; }
+.home-source svg { width: 16px; height: 16px; flex: none; color: var(--text-muted); }
+.home-source strong { color: var(--text); font-weight: 600; }
+.home-source-state { font-size: var(--fs-min); font-weight: 600; }
+.home-source-arrow { margin-left: auto; color: var(--accent) !important; }
+.home-source:hover strong { color: var(--accent); }
+.home-source:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+.home-source[data-cm-state="off"] strong { color: var(--text-muted); font-weight: 500; }
+@media (max-width: 900px) {
+  .home-split { grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+}
+@media (max-width: 640px) {
+  .home-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--space-md); }
+  .home-kpi { padding: 4px var(--space-sm) var(--space-sm); }
+  .home-kpi:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .home-kpi-value strong { font-size: 1.5rem; }
+  .home-sources { grid-template-columns: minmax(0, 1fr); }
+  .home-source { padding-left: 0; }
+  .home-source + .home-source { border-left: 0; border-top: 1px solid var(--glass-border); }
+}
+
+/* ── Channels: family readings & target ranges ── */
+.channel-families { margin-top: var(--space-lg); }
+.channel-families > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; cursor: pointer; padding: 6px 0; }
+.channel-families > summary .channel-status-subtitle { margin: 0; }
+.channel-families-hint { font-size: var(--fs-min); color: var(--text-muted); }
+.channel-families > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.channel-families .metrics-grid { margin-top: var(--space-md); padding: 0; }
+/* Home aligned its grid to the hero columns; here four plain columns fit. */
+@media (min-width: 1101px) {
+  .channel-families .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--space-lg); }
+}
+.home-source[data-cm-health="good"] strong { color: var(--good); }
+.home-source[data-cm-health="warn"] strong { color: var(--warn); }
+.home-source[data-cm-health="crit"] strong { color: var(--crit); }

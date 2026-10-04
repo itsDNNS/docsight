@@ -615,76 +615,6 @@
         {% if line_status %}
         {% include 'partials/line_status.html' %}
         {% endif %}
-        <details class="line-status-findings"{% if active_issues %} open{% endif %}>
-            <summary>{{ t.get('line_status_findings', 'Findings & recommendation') }}</summary>
-        {# ── Insights Panel — actionable guidance from health issues (#219) ── #}
-        {% if active_issues %}
-        <div class="insights-panel insights-panel-{{ s.health }}">
-            <div class="insights-header">
-                <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
-                <div class="insights-heading">
-                    <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
-                    <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
-                </div>
-            </div>
-            <div class="insights-list">
-                {% for issue in active_issues %}
-                {% set sev = 'crit' if 'critical' in issue else 'warn' %}
-                <div class="insight-card insight-{{ sev }}">
-                    <div class="insight-rail {{ sev }}"><i data-lucide="alert-circle"></i></div>
-                    <div class="insight-content">
-                        <div class="insight-condition">{{ issue_labels.get(issue, issue) }}</div>
-                        <div class="insight-explanation">{{ issue_descs.get(issue, '') }}</div>
-                    </div>
-                    {% if issue_actions.get(issue) %}
-                    <div class="insight-action"><i data-lucide="arrow-right" style="width:12px;height:12px;"></i> {{ issue_actions[issue] }}</div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% elif s.health == 'tolerated' %}
-        <div class="insights-panel insights-panel-tolerated">
-            <div class="insights-header">
-                <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
-                <div class="insights-heading">
-                    <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
-                    <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
-                </div>
-            </div>
-            <div class="insights-list">
-                <div class="insight-card insight-tolerated">
-                    <div class="insight-rail tolerated"><i data-lucide="info"></i></div>
-                    <div class="insight-content">
-                        <div class="insight-condition">{{ t.get("insights_tolerated", "Minor deviations detected, but within tolerance.") }}</div>
-                        <div class="insight-explanation">{{ health_msgs.get(s.health, '') }}</div>
-                    </div>
-                    <div class="insight-action"><i data-lucide="check-circle"></i> {{ t.get("insight_action_tolerated", "No immediate action needed. Watch whether the tolerated state persists") }}</div>
-                </div>
-            </div>
-        </div>
-        {% elif s.health == 'good' %}
-        <div class="insights-panel insights-panel-good">
-            <div class="insights-header">
-                <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
-                <div class="insights-heading">
-                    <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
-                    <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
-                </div>
-            </div>
-            <div class="insights-list">
-                <div class="insight-card insight-good">
-                    <div class="insight-rail good"><i data-lucide="check-circle"></i></div>
-                    <div class="insight-content">
-                        <div class="insight-condition">{{ t.get("insights_all_healthy", "All channels within healthy ranges — no action needed.") }}</div>
-                        <div class="insight-explanation">{{ health_msgs.get(s.health, '') }}</div>
-                    </div>
-                    <div class="insight-action"><i data-lucide="check-circle"></i> {{ t.get("insight_action_good", "No action needed. Keep normal monitoring active") }}</div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        </details>
         <div class="hero-visual-row">
             {% if not has_signal_family_metric_cards %}
             <div class="hero-modulation-context" aria-label="{{ t.get('dashboard_modulation_context', 'Modulation context') }}">
@@ -857,254 +787,190 @@
     {%- endmacro %}
 
     {# ══════════════════════════════════════════════════════════════════════════
-       METRICS GRID — Compact signal + error + speed cards
+       KEY FIGURES · FINDINGS · RECENT EVENTS · SOURCES
+       Family readings and target ranges live on the Channels page.
        ══════════════════════════════════════════════════════════════════════════ #}
-    <div class="dashboard-section-header">
-        <div>
-            <span class="dashboard-section-kicker">{{ t.get('dashboard_section_overview', 'Overview') }}</span>
-            <h2>{{ t.get('dashboard_key_metrics', 'Key metrics') }}</h2>
+    {% set kpi_snr = ds_signal_families.get('sc_qam', {}).get('snr', {}).get('avg') if ds_signal_families.get('sc_qam') else s.ds_snr_avg %}
+    {% set kpi_mer = ds_signal_families.get('ofdm', {}).get('mer', {}).get('avg') if ds_signal_families.get('ofdm') else none %}
+    {% set errors_reported = (s.errors_supported is not defined or s.errors_supported) and (s.ds_correctable_errors is not none or s.ds_uncorrectable_errors is not none) %}
+    {% set speedtest_levels = glossary_term_by_id.get('speedtest', {}).get('levels', {}) if glossary_term_by_id is defined else {} %}
+    <section class="home-kpis" aria-label="{{ t.get('home_kpis_label', 'Key figures') }}">
+        <div class="home-kpi" id="home-kpi-downstream">
+            <span class="home-kpi-label"><i data-lucide="arrow-down"></i>{{ t.downstream }} <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span></span>
+            <a class="home-kpi-link" href="#channels?mode=status">
+                <span class="home-kpi-value"><strong class="num">{{ s.ds_power_avg }}</strong> <small>dBmV Ø</small></span>
+                <span class="home-kpi-sub">{% if kpi_snr is not none %}SNR {{ kpi_snr }} dB{% endif %}{% if kpi_snr is not none and kpi_mer is not none %} · {% endif %}{% if kpi_mer is not none %}MER {{ kpi_mer }} dB{% endif %}</span>
+            </a>
         </div>
-        <span class="dashboard-section-context">
-            {% if has_signal_family_metric_cards %}
-            <strong>{{ t.get('signal_family_average_section_title', 'Signal family averages') }}</strong>
-            <span>{{ t.get('signal_family_average_section_hint', 'Values are averaged across active channels in each DOCSIS signal family.') }}</span>
-            {% else %}
-            {{ t.get('dashboard_key_metrics_hint', 'Live modem, throughput and monitoring signals') }}
-            {% endif %}
-        </span>
-    </div>
-    <div class="metrics-grid">
-        {% if not has_signal_family_metric_cards %}
-        {# Card 1: DS Power (legacy aggregate fallback) #}
-        <div class="metric-card glass">
-            <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span>
-            <div class="metric-header">
-                <span class="metric-label">{{ t.signal_ds_power }}</span>
-                <div class="metric-icon purple"><i data-lucide="arrow-down"></i></div>
-            </div>
-            <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--{{ ds_pwr_health }});">{{ s.ds_power_avg }}<span class="unit">dBmV</span></div>
-                <canvas class="metric-spark" id="spark-ds-power" width="144" height="56" aria-hidden="true"></canvas>
-            </div>
-            <div class="metric-sub metric-status-row">
-                <span class="metric-context">
-                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
-                    <span class="badge badge-{{ ds_pwr_health }}">{{ health_labels[ds_pwr_health] }}</span>
-                </span>
-            </div>
-            {{ metric_range_viz(metric_ranges.ds_power, ds_pwr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.ds_power_min ~ ' — ' ~ s.ds_power_max) }}
+        <div class="home-kpi" id="home-kpi-upstream">
+            <span class="home-kpi-label"><i data-lucide="arrow-up"></i>{{ t.upstream }} <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span></span>
+            <a class="home-kpi-link" href="#channels?mode=status">
+                <span class="home-kpi-value"><strong class="num">{{ s.us_power_avg }}</strong> <small>dBmV Ø</small></span>
+                <span class="home-kpi-sub">{{ t.get('home_kpi_min_max', 'Min / Max') }} {{ s.us_power_min }} / {{ s.us_power_max }} dBmV</span>
+            </a>
         </div>
-
-        {# Card 2: US Power (legacy aggregate fallback) #}
-        <div class="metric-card glass">
-            <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span>
-            <div class="metric-header">
-                <span class="metric-label">{{ t.signal_us_power }}</span>
-                <div class="metric-icon blue"><i data-lucide="arrow-up"></i></div>
-            </div>
-            <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--{{ us_health }});">{{ s.us_power_avg }}<span class="unit">dBmV</span></div>
-                <canvas class="metric-spark" id="spark-us-power" width="144" height="56" aria-hidden="true"></canvas>
-            </div>
-            <div class="metric-sub metric-status-row">
-                <span class="metric-context">
-                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
-                    <span class="badge badge-{{ us_health }}">{{ health_labels[us_health] }}</span>
-                </span>
-            </div>
-            {{ metric_range_viz(metric_ranges.us_power, us_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.us_power_min ~ ' — ' ~ s.us_power_max) }}
-        </div>
-
-        {# Card 3: SNR/MER legacy compact fallback #}
-        {% set snr_display = home_snr_display if home_snr_display is defined else {} %}
-        {% set snr_label = t.get(snr_display.label_key, 'SNR') if snr_display.label_key is defined else 'SNR' %}
-        {% set snr_value = snr_display.value if snr_display.value is defined and snr_display.value is not none else s.ds_snr_avg %}
-        {% set snr_min = snr_display.min if snr_display.min is defined and snr_display.min is not none else s.ds_snr_min %}
-        {% set snr_max = snr_display.max if snr_display.max is defined and snr_display.max is not none else s.ds_snr_max %}
-        <div class="metric-card glass">
-            <span class="glossary-hint" data-glossary-term-id="snr_mer" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_snr }}</div></span>
-            <div class="metric-header">
-                <span class="metric-label">{{ snr_label }}</span>
-                <div class="metric-icon green"><i data-lucide="signal"></i></div>
-            </div>
-            <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--{{ snr_health }});">{{ snr_value }}<span class="unit">dB</span></div>
-                <canvas class="metric-spark" id="spark-snr" width="144" height="56" aria-hidden="true"></canvas>
-            </div>
-            <div class="metric-sub metric-status-row">
-                <span class="metric-context">
-                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
-                    <span class="badge badge-{{ snr_health }}">{{ health_labels[snr_health] }}</span>
-                </span>
-            </div>
-            {{ metric_range_viz(metric_ranges.snr, snr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), snr_min ~ ' — ' ~ snr_max) }}
-        </div>
-        {% endif %}
-
-        {# Family-aware signal cards: DS power, DS quality, then US power by DOCSIS family. #}
-        {% if ds_signal_families.get('sc_qam') %}
-        {{ signal_family_card('metric-ds-sc-qam-power-card', t.get('signal_family_ds_power_sc_qam', 'DS POWER (SC-QAM)'), ds_signal_families.get('sc_qam'), 'power', 'dBmV', '', 'ds_scqam_power_avg', 'ds-signal', 'arrow-down', metric_ranges.get('ds_sc_qam_power'), t.glossary_ds_power, '#8b5cf6') }}
-        {% endif %}
-        {% if ds_signal_families.get('ofdm') %}
-        {{ signal_family_card('metric-ds-ofdm-power-card', t.get('signal_family_ds_power_ofdm', 'DS POWER (OFDM)'), ds_signal_families.get('ofdm'), 'power', 'dBmV', '', 'ds_ofdm_power_avg', 'ds-signal', 'arrow-down', metric_ranges.get('ds_ofdm_power'), t.glossary_ds_power, '#8b5cf6') }}
-        {% endif %}
-        {% if ds_signal_families.get('sc_qam') %}
-        {{ signal_family_card('metric-ds-sc-qam-snr-card', t.get('signal_family_ds_snr_sc_qam', 'DS SNR (SC-QAM)'), ds_signal_families.get('sc_qam'), 'snr', 'dB', '', 'ds_scqam_snr_avg', 'ds-signal', 'arrow-down', metric_ranges.get('ds_sc_qam_snr'), t.glossary_snr, '#8b5cf6') }}
-        {% endif %}
-        {% if ds_signal_families.get('ofdm') %}
-        {{ signal_family_card('metric-ds-ofdm-mer-card', t.get('signal_family_ds_mer_ofdm', 'DS MER (OFDM)'), ds_signal_families.get('ofdm'), 'mer', 'dB', '', 'ds_ofdm_mer_avg', 'ds-signal', 'arrow-down', metric_ranges.get('ds_ofdm_mer'), t.glossary_snr, '#8b5cf6') }}
-        {% endif %}
-        {% if us_signal_families.get('sc_qam') %}
-        {{ signal_family_card('metric-us-sc-qam-card', t.get('signal_family_us_power_sc_qam', 'US POWER (SC-QAM)'), us_signal_families.get('sc_qam'), 'power', 'dBmV', '', 'us_scqam_power_avg', 'us-signal', 'arrow-up', metric_ranges.get('us_sc_qam_power'), t.glossary_us_power, '#38bdf8') }}
-        {% endif %}
-        {% if us_signal_families.get('ofdma') %}
-        {{ signal_family_card('metric-us-ofdma-card', t.get('signal_family_us_power_ofdma', 'US POWER (OFDMA)'), us_signal_families.get('ofdma'), 'power', 'dBmV', '', 'us_ofdma_power_avg', 'us-signal', 'arrow-up', metric_ranges.get('us_ofdma_power'), t.glossary_us_power, '#38bdf8') }}
-        {% endif %}
-
-        {# Card 4: Errors #}
-        {% if (s.errors_supported is not defined or s.errors_supported) and (s.ds_correctable_errors is not none or s.ds_uncorrectable_errors is not none) %}
-        {% set error_coverage = s.get('error_counter_coverage', {}) %}
-        {% set comparable_channels = error_coverage.get('comparable_channels', s.ds_total if s.ds_uncorr_pct is not none else 0) %}
-        {% set error_total_channels = error_coverage.get('total_channels', s.ds_total) %}
-        {% set error_coverage_text = t.get('error_ratio_coverage', 'Calculated from {comparable} of {total} downstream channels').replace('{comparable}', comparable_channels|string).replace('{total}', error_total_channels|string) %}
-        <div class="metric-card glass" id="metric-errors-card">
-            <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
-            <div class="metric-header">
-                <span class="metric-label">{{ t.card_errors }}</span>
-                <div class="metric-icon amber"><i data-lucide="alert-triangle"></i></div>
-            </div>
-            <div class="metric-value-row">
-                {% if s.ds_uncorr_pct is not none %}
-                <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorr_pct }}<span class="unit">%</span></div>
+        <div class="home-kpi" id="home-kpi-errors">
+            <span class="home-kpi-label"><i data-lucide="shield-check"></i>{{ t.card_errors }} <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span></span>
+            <a class="home-kpi-link" href="#trends">
+                {% if errors_reported and s.ds_uncorr_pct is not none %}
+                <span class="home-kpi-value"><strong class="num">{{ s.ds_uncorr_pct }}</strong> <small>% {{ t.get('home_kpi_uncorrectable', 'uncorrectable') }}</small></span>
+                {% elif errors_reported %}
+                <span class="home-kpi-value"><strong class="num">{{ s.ds_uncorrectable_errors|fmt_k }}</strong> <small>{{ t.get('home_kpi_uncorrectable', 'uncorrectable') }}</small></span>
                 {% else %}
-                <div class="metric-value" style="color:var(--muted);">{{ t.get('error_ratio_unavailable', 'Share unavailable') }}</div>
+                <span class="home-kpi-value"><strong>&#8212;</strong></span>
                 {% endif %}
-                <canvas class="metric-spark" id="spark-errors" width="144" height="56" aria-hidden="true"></canvas>
-            </div>
-            <div class="metric-sub metric-status-row">
-                <span class="metric-context">
-                    <span class="metric-sub-label">{{ t.get('error_ratio_comparable_label', 'Uncorrectable error share') }}</span>
-                    {% if s.ds_uncorr_pct is not none %}
-                    <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
-                    {% endif %}
-                </span>
-                <span class="range">{{ error_coverage_text }}</span>
-            </div>
-            <div class="metric-range-caption">
-                {% if s.ds_correctable_errors is not none %}
-                <span>{{ t.get('error_raw_correctable_total', 'Raw correctable total') }}</span>
-                <strong>{{ s.ds_correctable_errors|fmt_k }}</strong>
-                {% endif %}
-            </div>
-            <div class="metric-range-caption">
-                {% if s.ds_uncorrectable_errors is not none %}
-                <span>{{ t.get('error_raw_uncorrectable_total', 'Raw uncorrectable total') }}</span>
-                <strong>{{ s.ds_uncorrectable_errors|fmt_k }}</strong>
-                {% endif %}
-            </div>
-            {% if s.ds_uncorr_pct is not none %}
-            {{ metric_range_viz(metric_ranges.errors, error_health, health_labels.good) }}
-            {% endif %}
+                <span class="home-kpi-sub">{% if errors_reported %}{{ t.get('home_kpi_error_counts', '{correctable} correctable · {uncorrectable} uncorrectable').replace('{correctable}', s.ds_correctable_errors|fmt_k|string).replace('{uncorrectable}', s.ds_uncorrectable_errors|fmt_k|string) }}{% else %}{{ t.get('home_kpi_errors_unreported', 'Not reported by this modem') }}{% endif %}</span>
+            </a>
         </div>
-        {% endif %}
-
-        {# Card 4: Speed (conditional) #}
         {% if speedtest_configured and speedtest_latest %}
-        <div class="metric-card glass" id="metric-speed-card" role="button" tabindex="0" style="cursor:pointer;" onclick="switchView('speedtest')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('speedtest')}">
-            <div class="metric-header">
-                <span class="metric-label">{{ t.speed }}</span>
-                <div class="metric-icon green"><i data-lucide="rabbit"></i></div>
-            </div>
-            <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--{{ speed_health_key }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
-                <canvas class="metric-spark" id="spark-speed" data-spark-key="speedtest_download" data-spark-color="#10b981" width="144" height="56" aria-hidden="true"></canvas>
-            </div>
-            <div class="metric-sub metric-average-row">
-                <span class="range metric-average-copy">{{ t.get('speedtest_latest_result', 'Latest speedtest result') }}</span>
-            </div>
-            <div class="metric-sub metric-status-row">
-                <span class="metric-context">
-                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
-                    <span class="badge badge-{{ speed_health_key }}">{{ speed_badge_label }}</span>
-                </span>
-            </div>
-            <div class="metric-sub metric-modulation-row">
-                <span class="metric-pair"><span class="metric-sub-label">{{ t.upload }}:</span>
-                <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span></span>
-                <span class="metric-pair"><span class="metric-sub-label">{{ t.ping }}:</span>
-                <span class="range">{{ (speedtest_latest.ping_ms|round(0)|int ~ ' ms') if speedtest_latest.ping_ms is not none else '—' }}</span></span>
-                <span class="metric-pair"><span class="metric-sub-label">{{ t.jitter }}:</span>
-                <span class="range">{{ (speedtest_latest.jitter_ms|round(1) ~ ' ms') if speedtest_latest.jitter_ms is not none else '—' }}</span></span>
-            </div>
-            {{ metric_range_viz(speed_range_data, speed_health_key, t.health_good, t.get('metric_download_contract', 'Download vs contract'), speed_pct_caption) }}
+        {% set kpi_contract_pct = (speedtest_latest.download_mbps / eff_booked_dl * 100)|round(0)|int if eff_booked_dl else none %}
+        <div class="home-kpi" id="home-kpi-speedtest">
+            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
+            <a class="home-kpi-link" href="#speedtest">
+                <span class="home-kpi-value"><strong class="num">{{ speedtest_latest.download_mbps|fmt_speed_value }}</strong> <small>{{ speedtest_latest.download_mbps|fmt_speed_unit }}</small> / <strong class="num">{{ speedtest_latest.upload_mbps|fmt_speed_value }}</strong> <small>{{ speedtest_latest.upload_mbps|fmt_speed_unit }}</small></span>
+                <span class="home-kpi-sub">{% if speedtest_latest.ping_ms is not none %}{{ t.ping }} {{ speedtest_latest.ping_ms|round(0)|int }} ms{% endif %}{% if kpi_contract_pct is not none %}{% if speedtest_latest.ping_ms is not none %} · {% endif %}{{ t.get('home_kpi_of_contract', '{pct}% of contract').replace('{pct}', kpi_contract_pct|string) }}{% endif %}</span>
+            </a>
         </div>
+        {% elif has_speedtest and speedtest_configured %}
+        <div class="home-kpi home-kpi-empty" id="home-kpi-speedtest">
+            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
+            <a class="home-kpi-link" href="#speedtest">
+                <span class="home-kpi-value"><strong>&#8212;</strong></span>
+                <span class="home-kpi-sub">{{ t.get('home_kpi_no_speedtest', 'No result yet') }}</span>
+            </a>
+        </div>
+        {% elif has_speedtest %}
+        <button type="button" class="home-kpi home-kpi-empty" id="home-kpi-speedtest" onclick="openSpeedtestSetupModal()">
+            <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
+            <span class="home-kpi-value"><strong>&#8212;</strong></span>
+            <span class="home-kpi-sub">{{ t.speedtest_setup }}</span>
+        </button>
         {% endif %}
+    </section>
 
-        {# ── BNetzA card (inline with other metric cards) ── #}
-        {% if bnetz_enabled and bnetz_latest and bnetz_latest.download_measured_avg is not none %}
-        {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
-        {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
-        {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
-        <div class="metric-card glass">
-            <div class="metric-header">
-                <span class="metric-label">{{ t.bnetz_title }}</span>
-                <div class="metric-icon {{ 'amber' if bnetz_has_deviation else 'green' }}"><i data-lucide="file-check"></i></div>
-            </div>
-            <div class="metric-value" style="color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">{{ (bnetz_latest.download_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.download_max_tariff or 0)|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
-            <div class="metric-sub">
-                <span class="range">{{ (bnetz_latest.upload_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.upload_max_tariff or 0)|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
-            </div>
-            <div class="metric-sub">
-                <span class="badge badge-{{ 'crit' if bnetz_has_deviation else 'good' }}">{{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}</span>
-                <span class="range">{{ bnetz_latest.date }} &middot; {{ bnetz_latest.provider }}</span>
-            </div>
-        </div>
-        {% endif %}
-
-        {# ── Connection Monitor card (inline with other metric cards) ── #}
-        {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-        <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" style="cursor:pointer;" data-cm-state="unknown">
-            <div class="metric-header">
-                <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
-                <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>
-            </div>
-            <div class="metric-value-row">
-                <div class="metric-value" id="cm-card-latency">&ndash;</div>
-                <canvas class="metric-spark" id="spark-connection-monitor" data-spark-key="connection_monitor_latency_ms" data-spark-color="#38bdf8" width="144" height="56" aria-hidden="true"></canvas>
-            </div>
-            <div class="metric-sub metric-average-row">
-                <span class="range metric-average-copy" id="cm-card-avg">&ndash;</span>
-            </div>
-            <div class="metric-sub metric-status-row">
-                <span class="metric-context">
-                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
-                    <span class="badge badge-info" id="cm-card-badge">&ndash;</span>
-                </span>
-            </div>
-            <div class="metric-sub metric-modulation-row" id="cm-card-mod-row"></div>
-            <div class="metric-range-viz" id="cm-card-range" style="--metric-marker: 0%; --metric-span-start: 0%; --metric-span-width: 0%; --metric-range-accent: var(--muted);">
-                <div class="metric-range-caption">
-                    <span>{{ t.get('cm_latency_range', 'Latency range') }}</span>
-                    <strong id="cm-card-range-context">&ndash;</strong>
+    <div class="home-split">
+        <section class="home-findings" aria-labelledby="home-findings-title">
+            <h3 id="home-findings-title">{{ t.get('line_status_findings', 'Findings & recommendation') }}</h3>
+            {% if active_issues %}
+            {% set lead_issue = active_issues[0] %}
+            <p class="home-findings-lead">{{ issue_labels.get(lead_issue, lead_issue) }}{% if issue_actions.get(lead_issue) %} · {{ issue_actions[lead_issue] }}{% endif %}</p>
+            {% elif s.health == 'tolerated' %}
+            <p class="home-findings-lead">{{ t.get("insights_tolerated", "Minor deviations detected, but within tolerance.") }} · {{ t.get("insight_action_tolerated", "No immediate action needed. Watch whether the tolerated state persists") }}</p>
+            {% else %}
+            <p class="home-findings-lead">{{ t.get("insights_all_healthy", "All channels within healthy ranges — no action needed.") }}</p>
+            {% endif %}
+            <details class="line-status-findings">
+                <summary>{{ t.get('home_findings_details', 'Finding details') }}{% if active_issues|length > 1 %} ({{ active_issues|length }}){% endif %}</summary>
+            {# ── Insights Panel — actionable guidance from health issues (#219) ── #}
+            {% if active_issues %}
+            <div class="insights-panel insights-panel-{{ s.health }}">
+                <div class="insights-header">
+                    <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
+                    <div class="insights-heading">
+                        <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
+                        <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
+                    </div>
                 </div>
-                <div class="metric-range-track" aria-hidden="true">
-                    <span class="metric-range-band good" style="left:0%;width:33.33%;"></span>
-                    <span class="metric-range-band warn" style="left:33.33%;width:33.33%;"></span>
-                    <span class="metric-range-band crit" style="left:66.67%;width:33.33%;"></span>
-                    <span class="metric-range-window"></span>
-                    <span class="metric-range-marker"></span>
-                </div>
-                <div class="metric-range-labels">
-                    <span>0 ms</span>
-                    <span class="metric-range-good">{{ t.health_good }} &lt; 50 ms</span>
-                    <span>150 ms</span>
+                <div class="insights-list">
+                    {% for issue in active_issues %}
+                    {% set sev = 'crit' if 'critical' in issue else 'warn' %}
+                    <div class="insight-card insight-{{ sev }}">
+                        <div class="insight-rail {{ sev }}"><i data-lucide="alert-circle"></i></div>
+                        <div class="insight-content">
+                            <div class="insight-condition">{{ issue_labels.get(issue, issue) }}</div>
+                            <div class="insight-explanation">{{ issue_descs.get(issue, '') }}</div>
+                        </div>
+                        {% if issue_actions.get(issue) %}
+                        <div class="insight-action"><i data-lucide="arrow-right" style="width:12px;height:12px;"></i> {{ issue_actions[issue] }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-        </div>
-        {% endif %}
+            {% elif s.health == 'tolerated' %}
+            <div class="insights-panel insights-panel-tolerated">
+                <div class="insights-header">
+                    <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
+                    <div class="insights-heading">
+                        <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
+                        <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
+                    </div>
+                </div>
+                <div class="insights-list">
+                    <div class="insight-card insight-tolerated">
+                        <div class="insight-rail tolerated"><i data-lucide="info"></i></div>
+                        <div class="insight-content">
+                            <div class="insight-condition">{{ t.get("insights_tolerated", "Minor deviations detected, but within tolerance.") }}</div>
+                            <div class="insight-explanation">{{ health_msgs.get(s.health, '') }}</div>
+                        </div>
+                        <div class="insight-action"><i data-lucide="check-circle"></i> {{ t.get("insight_action_tolerated", "No immediate action needed. Watch whether the tolerated state persists") }}</div>
+                    </div>
+                </div>
+            </div>
+            {% elif s.health == 'good' %}
+            <div class="insights-panel insights-panel-good">
+                <div class="insights-header">
+                    <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
+                    <div class="insights-heading">
+                        <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
+                        <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
+                    </div>
+                </div>
+                <div class="insights-list">
+                    <div class="insight-card insight-good">
+                        <div class="insight-rail good"><i data-lucide="check-circle"></i></div>
+                        <div class="insight-content">
+                            <div class="insight-condition">{{ t.get("insights_all_healthy", "All channels within healthy ranges — no action needed.") }}</div>
+                            <div class="insight-explanation">{{ health_msgs.get(s.health, '') }}</div>
+                        </div>
+                        <div class="insight-action"><i data-lucide="check-circle"></i> {{ t.get("insight_action_good", "No action needed. Keep normal monitoring active") }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            </details>
+        </section>
+        <section class="home-events" aria-labelledby="home-events-title">
+            <div class="home-events-head">
+                <h3 id="home-events-title">{{ t.get('home_recent_events', 'Recent events') }}</h3>
+                <a class="home-link" href="#events">{{ t.get('home_all_events', 'All events') }} <i data-lucide="arrow-right"></i></a>
+            </div>
+            <ol class="home-events-list" id="home-events-list" data-empty="{{ t.get('home_events_empty', 'No events yet.') }}" aria-live="polite"></ol>
+        </section>
     </div>
+
+    {% set show_cm_source = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
+    {% set show_bnetz_source = bnetz_enabled and bnetz_latest and bnetz_latest.download_measured_avg is not none %}
+    {% if (speedtest_configured and speedtest_latest) or show_cm_source or show_bnetz_source %}
+    <nav class="home-sources" aria-label="{{ t.get('home_sources_label', 'Other measurement sources') }}">
+        {% if speedtest_configured and speedtest_latest %}
+        <a class="home-source" href="#speedtest">
+            <i data-lucide="rabbit"></i><span>{{ t.speedtest }}</span>
+            <strong class="num">{{ speedtest_latest.download_mbps|fmt_speed_value }} / {{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</strong>
+            <i data-lucide="arrow-right" class="home-source-arrow"></i>
+        </a>
+        {% endif %}
+        {% if show_cm_source %}
+        <a class="home-source" id="cm-source" href="#connection-monitor" data-cm-state="unknown">
+            <i data-lucide="satellite-dish"></i><span>{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
+            <strong class="num" id="cm-source-value">&ndash;</strong>
+            <i data-lucide="arrow-right" class="home-source-arrow"></i>
+        </a>
+        {% endif %}
+        {% if show_bnetz_source %}
+        {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
+        {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
+        <a class="home-source" id="bnetz-source" href="#bnetz">
+            <i data-lucide="file-check"></i><span>BNetzA</span>
+            <strong class="num">{{ bnetz_dl_pct }} %</strong>
+            <span class="home-source-state {{ 'cs-text-critical' if bnetz_has_deviation else 'cs-text-good' }}">{{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}</span>
+            <i data-lucide="arrow-right" class="home-source-arrow"></i>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
     {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-    <script src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-card.js', v=version) }}"></script>
+    <script src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-summary.js', v=version) }}"></script>
     {% endif %}
 
     {# ── Module Cards (mixed with core, sorted by order) ── #}
@@ -1528,6 +1394,8 @@
             <p id="channel-status-empty" class="no-data-msg" hidden>{{ t.get('channel_status_empty', 'No channel snapshots in this time range yet.') }}</p>
             <div id="channel-status-body"></div>
         </section>
+        {# Always present so the dashboard refresh can fill it once the first poll arrives. #}
+        <div id="channel-current-values">
         {% if analysis and (analysis.ds_channels or analysis.us_channels) %}
         <div class="channel-status-tables">
             <h3 class="channel-status-subtitle">{{ t.get('channel_status_current_values', 'Current values') }}</h3>
@@ -1535,7 +1403,149 @@
             {% include 'partials/channel_tables.html' %}
             {% endwith %}
         </div>
+        <details class="channel-families" id="channel-families">
+            <summary>
+                <span class="channel-status-subtitle">{{ t.get('channel_families_title', 'Family readings & target ranges') }}</span>
+                <span class="channel-families-hint">{{ t.get('signal_family_average_section_hint', 'Values are averaged across active channels in each DOCSIS signal family.') }}</span>
+            </summary>
+            <div class="metrics-grid">
+                {% if not has_signal_family_metric_cards %}
+                {# Card 1: DS Power (legacy aggregate fallback) #}
+                <div class="metric-card glass">
+                    <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span>
+                    <div class="metric-header">
+                        <span class="metric-label">{{ t.signal_ds_power }}</span>
+                        <div class="metric-icon purple"><i data-lucide="arrow-down"></i></div>
+                    </div>
+                    <div class="metric-value-row">
+                        <div class="metric-value" style="color:var(--{{ ds_pwr_health }});">{{ s.ds_power_avg }}<span class="unit">dBmV</span></div>
+                        <canvas class="metric-spark" id="spark-ds-power" width="144" height="56" aria-hidden="true"></canvas>
+                    </div>
+                    <div class="metric-sub metric-status-row">
+                        <span class="metric-context">
+                            <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                            <span class="badge badge-{{ ds_pwr_health }}">{{ health_labels[ds_pwr_health] }}</span>
+                        </span>
+                    </div>
+                    {{ metric_range_viz(metric_ranges.ds_power, ds_pwr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.ds_power_min ~ ' — ' ~ s.ds_power_max) }}
+                </div>
+
+                {# Card 2: US Power (legacy aggregate fallback) #}
+                <div class="metric-card glass">
+                    <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span>
+                    <div class="metric-header">
+                        <span class="metric-label">{{ t.signal_us_power }}</span>
+                        <div class="metric-icon blue"><i data-lucide="arrow-up"></i></div>
+                    </div>
+                    <div class="metric-value-row">
+                        <div class="metric-value" style="color:var(--{{ us_health }});">{{ s.us_power_avg }}<span class="unit">dBmV</span></div>
+                        <canvas class="metric-spark" id="spark-us-power" width="144" height="56" aria-hidden="true"></canvas>
+                    </div>
+                    <div class="metric-sub metric-status-row">
+                        <span class="metric-context">
+                            <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                            <span class="badge badge-{{ us_health }}">{{ health_labels[us_health] }}</span>
+                        </span>
+                    </div>
+                    {{ metric_range_viz(metric_ranges.us_power, us_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.us_power_min ~ ' — ' ~ s.us_power_max) }}
+                </div>
+
+                {# Card 3: SNR/MER legacy compact fallback #}
+                {% set snr_display = home_snr_display if home_snr_display is defined else {} %}
+                {% set snr_label = t.get(snr_display.label_key, 'SNR') if snr_display.label_key is defined else 'SNR' %}
+                {% set snr_value = snr_display.value if snr_display.value is defined and snr_display.value is not none else s.ds_snr_avg %}
+                {% set snr_min = snr_display.min if snr_display.min is defined and snr_display.min is not none else s.ds_snr_min %}
+                {% set snr_max = snr_display.max if snr_display.max is defined and snr_display.max is not none else s.ds_snr_max %}
+                <div class="metric-card glass">
+                    <span class="glossary-hint" data-glossary-term-id="snr_mer" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_snr }}</div></span>
+                    <div class="metric-header">
+                        <span class="metric-label">{{ snr_label }}</span>
+                        <div class="metric-icon green"><i data-lucide="signal"></i></div>
+                    </div>
+                    <div class="metric-value-row">
+                        <div class="metric-value" style="color:var(--{{ snr_health }});">{{ snr_value }}<span class="unit">dB</span></div>
+                        <canvas class="metric-spark" id="spark-snr" width="144" height="56" aria-hidden="true"></canvas>
+                    </div>
+                    <div class="metric-sub metric-status-row">
+                        <span class="metric-context">
+                            <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                            <span class="badge badge-{{ snr_health }}">{{ health_labels[snr_health] }}</span>
+                        </span>
+                    </div>
+                    {{ metric_range_viz(metric_ranges.snr, snr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), snr_min ~ ' — ' ~ snr_max) }}
+                </div>
+                {% endif %}
+
+                {# Family-aware signal cards: DS power, DS quality, then US power by DOCSIS family. #}
+                {% if ds_signal_families.get('sc_qam') %}
+                {{ signal_family_card('metric-ds-sc-qam-power-card', t.get('signal_family_ds_power_sc_qam', 'DS POWER (SC-QAM)'), ds_signal_families.get('sc_qam'), 'power', 'dBmV', '', 'ds_scqam_power_avg', 'ds-signal', 'arrow-down', metric_ranges.get('ds_sc_qam_power'), t.glossary_ds_power, '#8b5cf6') }}
+                {% endif %}
+                {% if ds_signal_families.get('ofdm') %}
+                {{ signal_family_card('metric-ds-ofdm-power-card', t.get('signal_family_ds_power_ofdm', 'DS POWER (OFDM)'), ds_signal_families.get('ofdm'), 'power', 'dBmV', '', 'ds_ofdm_power_avg', 'ds-signal', 'arrow-down', metric_ranges.get('ds_ofdm_power'), t.glossary_ds_power, '#8b5cf6') }}
+                {% endif %}
+                {% if ds_signal_families.get('sc_qam') %}
+                {{ signal_family_card('metric-ds-sc-qam-snr-card', t.get('signal_family_ds_snr_sc_qam', 'DS SNR (SC-QAM)'), ds_signal_families.get('sc_qam'), 'snr', 'dB', '', 'ds_scqam_snr_avg', 'ds-signal', 'arrow-down', metric_ranges.get('ds_sc_qam_snr'), t.glossary_snr, '#8b5cf6') }}
+                {% endif %}
+                {% if ds_signal_families.get('ofdm') %}
+                {{ signal_family_card('metric-ds-ofdm-mer-card', t.get('signal_family_ds_mer_ofdm', 'DS MER (OFDM)'), ds_signal_families.get('ofdm'), 'mer', 'dB', '', 'ds_ofdm_mer_avg', 'ds-signal', 'arrow-down', metric_ranges.get('ds_ofdm_mer'), t.glossary_snr, '#8b5cf6') }}
+                {% endif %}
+                {% if us_signal_families.get('sc_qam') %}
+                {{ signal_family_card('metric-us-sc-qam-card', t.get('signal_family_us_power_sc_qam', 'US POWER (SC-QAM)'), us_signal_families.get('sc_qam'), 'power', 'dBmV', '', 'us_scqam_power_avg', 'us-signal', 'arrow-up', metric_ranges.get('us_sc_qam_power'), t.glossary_us_power, '#38bdf8') }}
+                {% endif %}
+                {% if us_signal_families.get('ofdma') %}
+                {{ signal_family_card('metric-us-ofdma-card', t.get('signal_family_us_power_ofdma', 'US POWER (OFDMA)'), us_signal_families.get('ofdma'), 'power', 'dBmV', '', 'us_ofdma_power_avg', 'us-signal', 'arrow-up', metric_ranges.get('us_ofdma_power'), t.glossary_us_power, '#38bdf8') }}
+                {% endif %}
+
+                {# Card 4: Errors #}
+                {% if (s.errors_supported is not defined or s.errors_supported) and (s.ds_correctable_errors is not none or s.ds_uncorrectable_errors is not none) %}
+                {% set error_coverage = s.get('error_counter_coverage', {}) %}
+                {% set comparable_channels = error_coverage.get('comparable_channels', s.ds_total if s.ds_uncorr_pct is not none else 0) %}
+                {% set error_total_channels = error_coverage.get('total_channels', s.ds_total) %}
+                {% set error_coverage_text = t.get('error_ratio_coverage', 'Calculated from {comparable} of {total} downstream channels').replace('{comparable}', comparable_channels|string).replace('{total}', error_total_channels|string) %}
+                <div class="metric-card glass" id="metric-errors-card">
+                    <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
+                    <div class="metric-header">
+                        <span class="metric-label">{{ t.card_errors }}</span>
+                        <div class="metric-icon amber"><i data-lucide="alert-triangle"></i></div>
+                    </div>
+                    <div class="metric-value-row">
+                        {% if s.ds_uncorr_pct is not none %}
+                        <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorr_pct }}<span class="unit">%</span></div>
+                        {% else %}
+                        <div class="metric-value" style="color:var(--muted);">{{ t.get('error_ratio_unavailable', 'Share unavailable') }}</div>
+                        {% endif %}
+                        <canvas class="metric-spark" id="spark-errors" width="144" height="56" aria-hidden="true"></canvas>
+                    </div>
+                    <div class="metric-sub metric-status-row">
+                        <span class="metric-context">
+                            <span class="metric-sub-label">{{ t.get('error_ratio_comparable_label', 'Uncorrectable error share') }}</span>
+                            {% if s.ds_uncorr_pct is not none %}
+                            <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
+                            {% endif %}
+                        </span>
+                        <span class="range">{{ error_coverage_text }}</span>
+                    </div>
+                    <div class="metric-range-caption">
+                        {% if s.ds_correctable_errors is not none %}
+                        <span>{{ t.get('error_raw_correctable_total', 'Raw correctable total') }}</span>
+                        <strong>{{ s.ds_correctable_errors|fmt_k }}</strong>
+                        {% endif %}
+                    </div>
+                    <div class="metric-range-caption">
+                        {% if s.ds_uncorrectable_errors is not none %}
+                        <span>{{ t.get('error_raw_uncorrectable_total', 'Raw uncorrectable total') }}</span>
+                        <strong>{{ s.ds_uncorrectable_errors|fmt_k }}</strong>
+                        {% endif %}
+                    </div>
+                    {% if s.ds_uncorr_pct is not none %}
+                    {{ metric_range_viz(metric_ranges.errors, error_health, health_labels.good) }}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </details>
         {% endif %}
+        </div>
     </div>
 
     <!-- ── Timeline Sub-View ── -->

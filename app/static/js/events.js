@@ -400,3 +400,54 @@ refreshEventBadge();
 
 // Periodically refresh badge count
 setInterval(refreshEventBadge, 60000);
+
+/* ── Home: three most recent events ── */
+var _homeEventsRequestCount = 0;
+
+function _homeEventTime(timestamp) {
+    var when = docsightParseTime(timestamp).getTime();
+    var recent = isFinite(when) && Date.now() - when < 20 * 3600 * 1000;
+    return formatDocsightTime(timestamp, recent ? 'time' : 'monthday-time');
+}
+
+function loadHomeEvents() {
+    var list = document.getElementById('home-events-list');
+    if (!list) return;
+    var requestId = ++_homeEventsRequestCount;
+    fetch(docsightUrl('/api/events?limit=3&exclude_operational=true'))
+        .then(function(r) {
+            if (!r.ok) throw new Error('Event request failed');
+            return r.json();
+        })
+        .then(function(data) {
+            if (requestId !== _homeEventsRequestCount) return;
+            var current = document.getElementById('home-events-list');
+            if (!current) return;
+            var events = (data && data.events) || [];
+            current.textContent = '';
+            if (!events.length) {
+                var empty = document.createElement('li');
+                empty.className = 'home-events-empty';
+                empty.textContent = current.dataset.empty || T.event_no_events || 'No events yet.';
+                current.appendChild(empty);
+                return;
+            }
+            events.forEach(function(ev) {
+                var meta = _eventSeverityMeta(ev);
+                var severity = meta.className.replace('sev-badge-', '');
+                var item = document.createElement('li');
+                item.innerHTML =
+                    '<a class="home-event home-event-' + severity + '" href="#events">' +
+                        '<span class="home-event-time">' + escapeHtml(_homeEventTime(ev.timestamp)) + '</span>' +
+                        '<i data-lucide="' + meta.icon + '" class="home-event-icon" aria-label="' + escapeHtml(meta.label) + '"></i>' +
+                        '<span class="home-event-text"><b>' + escapeHtml(_eventTypeLabel(ev.event_type)) + '</b>' + formatEventMessage(ev) + '</span>' +
+                    '</a>';
+                current.appendChild(item);
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        })
+        .catch(function() {});
+}
+window.loadHomeEvents = loadHomeEvents;
+
+loadHomeEvents();

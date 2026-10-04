@@ -36,6 +36,13 @@ def _element_by_id(html, element_id):
     return html[start:end if end != -1 else len(html)]
 
 
+def _tag_by_id(html, element_id, tag):
+    """Markup of the first <tag id=element_id> up to its first closing tag."""
+    marker_idx = html.index(f'id="{element_id}"')
+    start = html.rfind(f"<{tag}", 0, marker_idx)
+    return html[start:html.index(f"</{tag}>", marker_idx) + len(tag) + 3]
+
+
 def _speed_card_opening_tag(html):
     marker = 'id="metric-speed-card"'
     marker_idx = html.index(marker)
@@ -428,7 +435,7 @@ class TestIndexRoute:
         assert "Above tariff samples" not in html
         assert "Selected period" in html
 
-    def test_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, sample_analysis):
+    def test_speed_kpi_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, sample_analysis):
         _configure_speedtest(config_mgr)
         current_runtime().update_state(analysis=sample_analysis, speedtest_latest=_latest_speedtest())
 
@@ -436,14 +443,10 @@ class TestIndexRoute:
 
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        opening_tag = _speed_card_opening_tag(html)
-        header = _speed_card_header(html)
-        assert 'role="button"' in opening_tag
-        assert 'tabindex="0"' in opening_tag
-        assert 'onclick="switchView(\'speedtest\')"' in opening_tag
-        assert "onkeydown=\"if(event.key==='Enter'||event.key===' ')" in opening_tag
-        assert 'data-lucide="rabbit"' in header
-        assert 'data-lucide="zap"' not in header
+        kpi = _kpi(html, "home-kpi-speedtest")
+        assert '<a class="home-kpi-link" href="#speedtest">' in kpi
+        assert 'data-lucide="rabbit"' in kpi
+        assert 'id="metric-speed-card"' not in html
 
     def test_no_docsis_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, no_docsis_analysis):
         _configure_speedtest(config_mgr)
@@ -757,8 +760,10 @@ class TestIndexRoute:
 
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        assert "Signal family averages" in html
-        assert "Values are averaged across active channels in each DOCSIS signal family." in html
+        families = _tag_by_id(html, "channel-families", "details")
+        assert "Family readings &amp; target ranges" in families
+        assert "Values are averaged across active channels in each DOCSIS signal family." in families
+        assert 'id="metric-ds-sc-qam-power-card"' in families
         scqam_power_card = _element_by_id(html, "metric-ds-sc-qam-power-card")
         ofdm_power_card = _element_by_id(html, "metric-ds-ofdm-power-card")
         assert "Avg · 2 active channels" in scqam_power_card
@@ -1407,7 +1412,8 @@ class TestIndexLineStatus:
         assert "Upstream · Channel 1 · SC-QAM" in html
         assert "dB below target" in html
         assert 'href="#channels?mode=timeline&amp;dir=us&amp;channel=1"' in html
-        assert '<details class="line-status-findings" open>' in html
+        assert 'class="home-findings-lead">Upstream power' in html
+        assert '<details class="line-status-findings">' in html
 
     def test_no_docsis_channels_render_no_line_status(self, client, no_docsis_analysis):
         html = self._render(client, no_docsis_analysis)
@@ -1434,3 +1440,75 @@ class TestChannelsPageLayout:
         assert 'class="trend-tab active" data-value="status"' in html
         assert 'id="channel-panel-timeline" style="display:none;"' in html
         assert 'href="#channels?mode=status"' in html
+
+
+def _kpi(home, kpi_id):
+    start = home.rfind("<div", 0, home.index(f'id="{kpi_id}"'))
+    end = home.find('<div class="home-kpi', start + 1)
+    return home[start:end if end != -1 else home.index("</section>", start)]
+
+
+def _dashboard_html(html):
+    start = html.index('id="view-dashboard"')
+    return html[start:html.index('<div id="view-', start + 1)]
+
+
+class TestHomeOverview:
+    def _render(self, client, analysis, **state):
+        current_runtime().update_state(analysis=analysis, **state)
+        resp = client.get("/?lang=en")
+        assert resp.status_code == 200
+        return resp.get_data(as_text=True)
+
+    def test_home_shows_key_figures_instead_of_family_cards(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        html = self._render(client, sample_analysis)
+        home = _dashboard_html(html)
+
+        for kpi in ("home-kpi-downstream", "home-kpi-upstream", "home-kpi-errors"):
+            assert f'id="{kpi}"' in home
+        downstream = _kpi(home, "home-kpi-downstream")
+        assert 'href="#channels?mode=status"' in downstream
+        assert 'data-glossary-term-id="power_level"' in downstream
+        assert "dBmV Ø" in downstream
+        assert "metric-card" not in home
+        assert 'id="metric-ds-sc-qam-power-card"' in _tag_by_id(html, "channel-families", "details")
+
+    def test_error_figure_explains_when_the_modem_reports_no_counters(self, client, sample_analysis):
+        sample_analysis["summary"]["errors_supported"] = False
+        home = _dashboard_html(self._render(client, sample_analysis))
+
+        errors = _kpi(home, "home-kpi-errors")
+        assert "Not reported by this modem" in errors
+
+    def test_speedtest_figure_and_source_follow_the_latest_result(self, client, config_mgr, sample_analysis):
+        _configure_speedtest(config_mgr)
+        home = _dashboard_html(self._render(client, sample_analysis, speedtest_latest=_latest_speedtest()))
+
+        kpi = _kpi(home, "home-kpi-speedtest")
+        assert "<strong class=\"num\">812</strong>" in kpi and "<strong class=\"num\">54</strong>" in kpi and "Ping 12 ms" in kpi
+        assert 'data-glossary-term-id="speedtest"' in kpi
+        assert '<a class="home-source" href="#speedtest">' in home
+
+    def test_without_speedtest_there_is_no_speedtest_figure_or_source(self, client, sample_analysis):
+        home = _dashboard_html(self._render(client, sample_analysis, speedtest_latest=None))
+
+        assert 'id="home-kpi-speedtest"' not in home
+        assert 'href="#speedtest"' not in home
+
+    def test_findings_lead_and_recent_events_sit_below_the_figures(self, client, sample_analysis):
+        home = _dashboard_html(self._render(client, sample_analysis))
+
+        assert home.index('class="home-kpis"') < home.index('class="home-split"')
+        assert 'class="home-findings-lead">All channels within healthy ranges' in home
+        assert '<details class="line-status-findings">' in home
+        assert 'id="home-events-list" data-empty="No events yet."' in home
+        assert 'href="#events"' in home
+
+    def test_channels_values_container_exists_before_the_first_poll(self, client):
+        current_runtime().update_state(analysis=None)
+        html = client.get("/?lang=en").get_data(as_text=True)
+
+        start = html.index('<div id="channel-current-values">')
+        assert 'id="channel-families"' not in html
+        assert "dashboard-channel-panel" not in html[start:html.index('<!-- ── Timeline Sub-View', start)]

@@ -64,3 +64,13 @@ def wait_js(page, predicate, arg=None):
     while not page.evaluate(predicate, arg):
         assert monotonic() < deadline, predicate
         page.wait_for_timeout(20)
+
+
+def show_family_sparks(page):
+    """Open the Channels family section, where the metric sparklines live, and redraw from cache."""
+    page.evaluate('''() => {
+        switchView('channels');
+        document.getElementById('channel-families').open = true;
+    }''')
+    wait_js(page, "() => document.querySelector('#spark-errors').clientWidth > 0")
+    page.evaluate('window.redrawSparklines()')

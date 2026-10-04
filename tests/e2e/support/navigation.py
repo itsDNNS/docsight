@@ -25,3 +25,12 @@ def reveal_in_nav(page, selector):
     if panel.count() and panel.is_hidden():
         page.locator(f'#{panel.get_attribute("aria-labelledby")}').click()
     return target
+
+
+def open_channel_families(page):
+    """Open the Channels page and expand its family readings section."""
+    open_view(page, "channels")
+    families = page.locator("#channel-families")
+    if families.get_attribute("open") is None:
+        page.locator("#channel-families > summary").click()
+    return families

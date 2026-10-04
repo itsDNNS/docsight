@@ -463,6 +463,16 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                     currentDash.replaceChildren.apply(currentDash, Array.from(freshDash.childNodes));
                 }
 
+                // The Channels page shows the same snapshot's tables and family readings.
+                var freshValues = doc.querySelector('#channel-current-values');
+                var currentValues = document.querySelector('#channel-current-values');
+                if (freshValues && currentValues) {
+                    var familiesOpen = !!currentValues.querySelector('#channel-families[open]');
+                    currentValues.replaceChildren.apply(currentValues, Array.from(freshValues.childNodes));
+                    var families = currentValues.querySelector('#channel-families');
+                    if (families && familiesOpen) families.setAttribute('open', '');
+                }
+
                 // Update topbar timestamp
                 var freshMeta = doc.querySelector('#topbar-meta');
                 var currentMeta = document.querySelector('#topbar-meta');
@@ -501,6 +511,8 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
 
                 // Re-init glossary keyboard a11y (lost on innerHTML replace)
                 if (typeof window.initGlossaryHints === 'function') window.initGlossaryHints();
+
+                if (typeof window.loadHomeEvents === 'function') window.loadHomeEvents();
 
                 // Refresh event badge count (respecting current filters)
                 if (typeof window.refreshEventBadge === 'function') {
