@@ -24,6 +24,7 @@ from ..analyzer import (
     apply_cumulative_error_baseline,
     apply_spike_suppression,
 )
+from ..event_detector import EventDetector
 from ..gaming_index import compute_gaming_index
 
 log = logging.getLogger("docsis.collector.demo")
@@ -69,6 +70,54 @@ DEMO_TRACEROUTE_TRACE_CONFIGS = (
 )
 
 _FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "..", "fixtures")
+# Demo reboots relative to the seed time: a firmware update and a power cycle.
+DEMO_SW_UPDATE_AGO = timedelta(days=180, hours=3)
+DEMO_REBOOT_AGO = timedelta(days=90, hours=14)
+
+
+def _demo_bad_period(ts):
+    """The one schedule for degraded signal in the demo: every tenth day of the
+    year, 02:00-09:00 UTC. Snapshots, events and speedtests all follow it."""
+    return ts.timetuple().tm_yday % 10 == 0 and 2 <= ts.hour < 9
+
+
+def _demo_congested_evening(ts):
+    """Evening upstream congestion: every third day, 20:00-22:00 UTC, two
+    upstream channels fall back to a lower modulation for the whole window."""
+    return ts.timetuple().tm_yday % 3 == 0 and 20 <= ts.hour < 22
+
+
+class _DemoErrorCounters:
+    """Per-channel error counters that only grow, like a modem reports them.
+
+    Degraded intervals add uncorrectable errors; the first interval of each
+    degraded window adds a burst large enough to count as an error spike.
+    A reboot resets all counters.
+    """
+
+    def __init__(self, base):
+        self._values = {}
+        for version, key in (("3.0", "docsis30"), ("3.1", "docsis31")):
+            for ch in base["channelDs"].get(key, []):
+                self._values[(version, ch["channelID"])] = [int(ch["corrErrors"]), int(ch["nonCorrErrors"])]
+
+    def advance(self, version, channel_id, bad=False, burst=False, stray_uncorrectable=0.0):
+        corr, uncorr = self._values.setdefault((version, channel_id), [0, 0])
+        corr += random.randint(0, 3) + (random.randint(20, 80) if bad else 0)
+        if bad:
+            uncorr += random.randint(0, 4)
+        if burst:
+            uncorr += random.randint(50, 150)
+        if stray_uncorrectable and random.random() < stray_uncorrectable:
+            uncorr += random.randint(1, 3)
+        self._values[(version, channel_id)] = [corr, uncorr]
+        return corr, uncorr
+
+    def reset(self):
+        for key in self._values:
+            self._values[key] = [0, 0]
+
+
 @functools.lru_cache(maxsize=1)
 def _load_base_data():
     """Load channel definitions from demo_channels.json (once)."""
@@ -86,6 +135,8 @@ class DemoCollector(Collector):
     name = "demo"
 
     def __init__(self, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier=None, smart_capture=None):
+        # Live polls continue the counters where the seeded history ends.
+        self._error_counters = _DemoErrorCounters(_load_base_data())
         super().__init__(poll_interval)
         self._analyzer = analyzer_fn
         self._event_detector = event_detector
@@ -165,17 +216,14 @@ class DemoCollector(Collector):
         for ch in data["channelDs"]["docsis30"]:
             ch["powerLevel"] = round(ch["powerLevel"] + random.uniform(-0.3, 0.3), 1)
             ch["mse"] = round(ch["mse"] + random.uniform(-0.5, 0.5), 1)
-            # Errors slowly accumulate
-            ch["corrErrors"] += random.randint(0, 5) * self._poll_count
-            if random.random() < 0.02:
-                ch["nonCorrErrors"] += random.randint(1, 3)
+            ch["corrErrors"], ch["nonCorrErrors"] = self._error_counters.advance(
+                "3.0", ch["channelID"], stray_uncorrectable=0.02)
 
         for ch in data["channelDs"].get("docsis31", []):
             ch["powerLevel"] = round(ch["powerLevel"] + random.uniform(-0.3, 0.3), 1)
             ch["mer"] = round(ch["mer"] + random.uniform(-0.5, 0.5), 1)
-            ch["corrErrors"] += random.randint(0, 3) * self._poll_count
-            if random.random() < 0.01:
-                ch["nonCorrErrors"] += random.randint(1, 2)
+            ch["corrErrors"], ch["nonCorrErrors"] = self._error_counters.advance(
+                "3.1", ch["channelID"], stray_uncorrectable=0.01)
 
         for ch in data["channelUs"]["docsis30"]:
             ch["powerLevel"] = round(ch["powerLevel"] + random.uniform(-0.3, 0.3), 1)
@@ -263,8 +311,8 @@ class DemoCollector(Collector):
         # Keep all demo data — don't let cleanup purge the seeded history
         self._storage.max_days = 0
         now = datetime.now(timezone.utc)
-        self._seed_history(now)
-        self._seed_events(now)
+        detected_events = self._seed_history(now)
+        self._seed_events(now, detected_events)
         self._seed_journal_entries(now)
         self._seed_speedtest_results(now)
         self._seed_bqm_graphs(now)
@@ -275,16 +323,28 @@ class DemoCollector(Collector):
         self._seed_segment_utilization(now)
 
     def _seed_history(self, now):
-        """Generate 9 months of historical snapshots (every 15 min)."""
+        """Generate 9 months of historical snapshots (every 15 min).
+
+        Returns the events the real event detector derives from them, so the
+        event log describes exactly the incidents the charts show.
+        """
         days = DEMO_HISTORY_DAYS
         interval_min = DEMO_HISTORY_INTERVAL_MINUTES
         total = days * 24 * 60 // interval_min  # 25920 snapshots
         start = now - timedelta(days=days)
+        reboots = sorted(now - ago for ago in (DEMO_SW_UPDATE_AGO, DEMO_REBOOT_AGO))
+        self._error_counters = _DemoErrorCounters(_load_base_data())
+        detector = EventDetector()
+        detected = []
+        was_bad = False
 
         rows = []
         for i in range(total):
             ts = start + timedelta(minutes=i * interval_min)
             ts_str = ts.strftime("%Y-%m-%dT%H:%M:%SZ")
+            while reboots and ts >= reboots[0]:
+                self._error_counters.reset()
+                reboots.pop(0)
 
             # Time-based patterns for realistic variation
             hour = ts.hour + ts.minute / 60.0
@@ -296,12 +356,17 @@ class DemoCollector(Collector):
             # Slow seasonal drift over weeks
             seasonal = math.sin(day_of_year * math.pi / 45) * 0.3
 
-            # Occasional "bad periods" (every ~10 days, lasting ~6h)
-            bad_period = (day_of_year % 10 == 0 and 2 <= hour <= 8)
+            bad_period = _demo_bad_period(ts)
 
             analysis = self._generate_historical_analysis(
-                i, diurnal, seasonal, bad_period, hour, day_of_year
+                i, diurnal, seasonal, bad_period, hour, day_of_year,
+                burst=bad_period and not was_bad,
+                congested=_demo_congested_evening(ts) and not bad_period,
             )
+            was_bad = bad_period
+            for event in detector.check(analysis):
+                event["timestamp"] = ts_str
+                detected.append(event)
             rows.append((
                 ts_str,
                 json.dumps(analysis["summary"]),
@@ -318,13 +383,13 @@ class DemoCollector(Collector):
             rows,
         )
         log.info("Demo: seeded %d historical snapshots (%d days)", len(rows), days)
+        return detected
 
-    def _generate_historical_analysis(self, index, diurnal, seasonal, bad_period, hour=12, day_of_year=1):
+    def _generate_historical_analysis(self, index, diurnal, seasonal, bad_period, hour=12, day_of_year=1, burst=False,
+                                      congested=False):
         """Generate a single analyzed snapshot for historical seeding."""
         base = _load_base_data()
 
-        # Evening congestion window (19–23h): US channels 3+4 may degrade
-        evening_congestion = 19 <= hour <= 23
         ofdma_bad_period = bad_period and 3 <= hour <= 7
 
         # Build DS channels
@@ -340,8 +405,7 @@ class DemoCollector(Collector):
             if bad_period:
                 power += random.uniform(1.5, 3.0)
                 snr -= random.uniform(2.0, 5.0)
-            corr = int(ch["corrErrors"] + index * random.randint(0, 3))
-            uncorr = int(random.randint(0, 2) if bad_period else 0)
+            corr, uncorr = self._error_counters.advance("3.0", ch["channelID"], bad=bad_period, burst=burst)
             total_power += power
             total_snr += snr
             total_corr += corr
@@ -371,8 +435,7 @@ class DemoCollector(Collector):
             if bad_period:
                 power += random.uniform(1.0, 2.0)
                 snr -= random.uniform(1.5, 3.0)
-            corr = int(ch["corrErrors"] + index * random.randint(0, 2))
-            uncorr = int(random.randint(0, 1) if bad_period else 0)
+            corr, uncorr = self._error_counters.advance("3.1", ch["channelID"], bad=bad_period, burst=burst)
             total_power += power
             total_snr += snr
             total_corr += corr
@@ -407,16 +470,9 @@ class DemoCollector(Collector):
 
             # US 3.0 modulation variation
             us_mod = ch["modulation"]
-            if bad_period and ch["channelID"] in (3, 4):
-                # Bad period: channels 3+4 drop to 16QAM
+            if (bad_period or congested) and ch["channelID"] in (3, 4):
+                # Bad periods and congested evenings: channels 3+4 drop to 16QAM.
                 us_mod = "16QAM"
-            elif evening_congestion and ch["channelID"] in (3, 4):
-                # Evening congestion: channels 3+4 occasionally drop
-                roll = random.random()
-                if roll < 0.25:
-                    us_mod = "16QAM"
-                elif roll < 0.05:
-                    us_mod = "QPSK"
 
             bitrate = _channel_bitrate_mbps(us_mod)
             us_channels.append({
@@ -476,6 +532,8 @@ class DemoCollector(Collector):
         health = "good"
         if bad_period:
             health = "marginal"
+        elif congested:
+            health = "tolerated"
 
         us_bitrates = [ch["theoretical_bitrate"] for ch in us_channels if ch.get("theoretical_bitrate")]
         us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None
@@ -513,104 +571,17 @@ class DemoCollector(Collector):
             "us_channels": us_channels,
         }
 
-    def _seed_events(self, now):
-        """Seed realistic events spread over 9 months."""
-        days = DEMO_HISTORY_DAYS
-        events = [
-            {
-                "timestamp": (now - timedelta(days=days - 1, hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "severity": "info",
-                "event_type": "monitoring_started",
-                "message": "Monitoring started (Health: good)",
-                "details": {"health": "good"},
-            },
-        ]
+    def _seed_events(self, now, detected_events):
+        """Save the events derived from the seeded history plus device events.
 
-        # Generate events at "bad period" boundaries (~every 10 days)
-        for d in range(0, days, 10):
-            t_start = now - timedelta(days=days - d, hours=-2)
-            t_end = t_start + timedelta(hours=6)
-            events.extend([
-                {
-                    "timestamp": t_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "severity": "warning",
-                    "event_type": "health_change",
-                    "message": "Health changed from good to marginal",
-                    "details": {"prev": "good", "current": "marginal"},
-                },
-                {
-                    "timestamp": (t_start + timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "severity": "warning",
-                    "event_type": "power_change",
-                    "message": f"DS power avg shifted from 4.8 to {round(random.uniform(6.5, 8.0), 1)} dBmV",
-                    "details": {"direction": "downstream", "prev": 4.8, "current": round(random.uniform(6.5, 8.0), 1)},
-                },
-                {
-                    "timestamp": (t_start + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "severity": "warning",
-                    "event_type": "error_spike",
-                    "message": f"Uncorrectable errors jumped by {random.randint(200, 1200)}",
-                    "details": {"prev": 0, "current": random.randint(200, 1200)},
-                },
-                {
-                    "timestamp": t_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "severity": "info",
-                    "event_type": "health_change",
-                    "message": "Health recovered from marginal to good",
-                    "details": {"prev": "marginal", "current": "good"},
-                },
-            ])
-
-        # SNR events scattered across 9 months
-        for d in [250, 200, 150, 100, 75, 52, 33, 18, 5]:
-            t = now - timedelta(days=d, hours=random.randint(8, 22))
-            snr_val = round(random.uniform(32.0, 34.5), 1)
-            events.append({
-                "timestamp": t.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "severity": "warning",
-                "event_type": "snr_change",
-                "message": f"DS SNR min dropped to {snr_val} dB (warning threshold: 33)",
-                "details": {
-                    "prev": 37.0,
-                    "current": snr_val,
-                    "threshold": "warning",
-                    "affected_channels": [
-                        {
-                            "channel": random.randint(10, 18),
-                            "frequency": f"{random.choice([746, 754, 762, 770, 778, 786, 794, 802])} MHz",
-                            "docsis_version": "3.0",
-                            "modulation": "256QAM",
-                            "prev": 37.0,
-                            "current": snr_val,
-                            "delta": round(snr_val - 37.0, 1),
-                        }
-                    ],
-                },
-            })
-
-        # Channel change events
-        for d in [240, 180, 120, 60, 25, 3]:
-            t = now - timedelta(days=d, hours=random.randint(0, 23))
-            events.extend([
-                {
-                    "timestamp": t.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "severity": "info",
-                    "event_type": "channel_change",
-                    "message": "DS channel count changed from 25 to 24",
-                    "details": {"direction": "downstream", "prev": 25, "current": 24},
-                },
-                {
-                    "timestamp": (t + timedelta(hours=random.randint(2, 8))).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "severity": "info",
-                    "event_type": "channel_change",
-                    "message": "DS channel count changed from 24 to 25",
-                    "details": {"direction": "downstream", "prev": 24, "current": 25},
-                },
-            ])
+        Signal events come from the event detector running over the seeded
+        snapshots; device events mark the reboots that reset the counters.
+        """
+        events = list(detected_events)
 
         # Device Tracking Events (Reboots, SW updates, IP changes)
         # 1. A firmware update 6 months ago
-        t_sw = now - timedelta(days=180, hours=3)
+        t_sw = now - DEMO_SW_UPDATE_AGO
         events.append({
             "timestamp": t_sw.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "severity": "info",
@@ -620,7 +591,7 @@ class DemoCollector(Collector):
         })
 
         # 2. A simple reboot 3 months ago
-        t_rb = now - timedelta(days=90, hours=14)
+        t_rb = now - DEMO_REBOOT_AGO
         events.append({
             "timestamp": t_rb.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "severity": "warning",
@@ -802,8 +773,6 @@ class DemoCollector(Collector):
 
         for d in range(days):
             ts_day = now - timedelta(days=days - d)
-            day_of_year = ts_day.timetuple().tm_yday
-            bad_day = (day_of_year % 10 == 0)
 
             # 3 tests per day: morning, afternoon, evening
             for hour in DEMO_SPEEDTEST_HOURS:
@@ -813,8 +782,7 @@ class DemoCollector(Collector):
                 if random.random() < DEMO_SPEEDTEST_SKIP_PROBABILITY:
                     continue
 
-                # Bad period: 2-8 AM on bad days
-                is_bad = bad_day and 2 <= hour <= 8
+                is_bad = _demo_bad_period(ts)
 
                 if is_bad:
                     dl = round(random.uniform(150, 200), 2)

@@ -415,6 +415,107 @@ class TestDemoSegmentUtilization:
         assert rows == [("2020-01-01T00:00:00Z", 0)]
 
 
+class TestDemoIncidentConsistency:
+    """Seeded events describe exactly the incidents the seeded snapshots show."""
+
+    SIGNAL_EVENTS = {"health_change", "power_change", "snr_change", "modulation_change", "error_spike"}
+
+    def _seed(self, storage, monkeypatch, now):
+        import app.collectors.demo as demo
+        # A shorter history keeps the test fast; the rules do not depend on its length.
+        monkeypatch.setattr(demo, "DEMO_HISTORY_DAYS", 40)
+        collector = DemoCollector(
+            analyzer_fn=analyzer.analyze, event_detector=MagicMock(), storage=storage,
+            mqtt_pub=None, web=MagicMock(), poll_interval=300,
+        )
+        detected = collector._seed_history(now)
+        collector._seed_events(now, detected)
+        with sqlite3.connect(storage.db_path) as conn:
+            snapshots = [(ts, json.loads(summary)) for ts, summary in conn.execute(
+                "SELECT timestamp, summary_json FROM snapshots ORDER BY timestamp")]
+            events = [dict(zip(("timestamp", "severity", "event_type", "details"), row)) for row in conn.execute(
+                "SELECT timestamp, severity, event_type, details FROM events ORDER BY timestamp, id")]
+        return snapshots, events
+
+    @staticmethod
+    def _windows(snapshots):
+        """Degraded runs as (first bad snapshot, first snapshot after it)."""
+        windows, start = [], None
+        for index, (ts, summary) in enumerate(snapshots):
+            bad = summary["health"] != "good"
+            if bad and start is None:
+                start = ts
+            if not bad and start is not None:
+                windows.append((start, ts))
+                start = None
+        if start is not None:
+            windows.append((start, None))
+        return windows
+
+    @pytest.mark.parametrize("now", [
+        datetime(2026, 10, 4, 12, 0, tzinfo=timezone.utc),
+        datetime(2026, 12, 31, 23, 50, tzinfo=timezone.utc),
+        datetime(2027, 1, 1, 0, 10, tzinfo=timezone.utc),
+        datetime(2026, 3, 1, 5, 30, tzinfo=timezone.utc),
+    ], ids=["october", "new-years-eve", "new-year", "inside-a-window"])
+    def test_events_and_snapshots_tell_the_same_story(self, storage, monkeypatch, now):
+        snapshots, events = self._seed(storage, monkeypatch, now)
+        windows = self._windows(snapshots)
+        assert windows, "the history must contain degraded windows"
+        degraded = {ts for ts, summary in snapshots if summary["health"] != "good"}
+        recoveries = {end for _, end in windows if end}
+
+        signal_events = [event for event in events if event["event_type"] in self.SIGNAL_EVENTS]
+        # Every signal event happens inside a degraded window or where it ends.
+        assert all(event["timestamp"] in degraded | recoveries for event in signal_events)
+        # A history that begins inside a window starts monitoring in that state.
+        first_ts, first_summary = snapshots[0]
+        if windows[0][0] == first_ts:
+            started = [event for event in events if event["event_type"] == "monitoring_started"]
+            assert [event["timestamp"] for event in started] == [first_ts]
+            assert json.loads(started[0]["details"])["health"] == first_summary["health"] != "good"
+            windows = windows[1:]
+        # Every other degraded window opens with a health warning and its cause:
+        # an error spike for signal incidents, a modulation drop for congested evenings.
+        health_at = dict(snapshots)
+        for start, _ in windows:
+            types = {event["event_type"] for event in signal_events
+                     if event["timestamp"] == start and event["severity"] == "warning"}
+            cause = "error_spike" if health_at[start]["health"] == "marginal" else "modulation_change"
+            assert {"health_change", cause} <= types, start
+        # Every finished window ends with a health recovery.
+        for end in recoveries:
+            assert any(event["event_type"] == "health_change" and event["severity"] == "info"
+                       and event["timestamp"] == end for event in signal_events), end
+
+    def test_error_spikes_match_the_snapshot_counters(self, storage, monkeypatch):
+        snapshots, events = self._seed(storage, monkeypatch, datetime(2026, 10, 4, 12, 0, tzinfo=timezone.utc))
+        uncorrectable = {ts: summary["ds_uncorrectable_errors"] for ts, summary in snapshots}
+        order = [ts for ts, _ in snapshots]
+        spikes = [event for event in events if event["event_type"] == "error_spike"]
+        assert spikes
+        for spike in spikes:
+            details = json.loads(spike["details"])
+            index = order.index(spike["timestamp"])
+            previous, current = uncorrectable[order[index - 1]], uncorrectable[order[index]]
+            assert (details["prev"], details["current"], details["delta"]) == (previous, current, current - previous)
+
+    def test_error_counters_only_grow_between_reboots(self, storage, monkeypatch):
+        import app.collectors.demo as demo
+        now = datetime(2026, 10, 4, 12, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(demo, "DEMO_REBOOT_AGO", timedelta(days=20))
+        snapshots, events = self._seed(storage, monkeypatch, now)
+        reboot = (now - timedelta(days=20)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        values = [(ts, summary["ds_uncorrectable_errors"], summary["ds_correctable_errors"]) for ts, summary in snapshots]
+        for (_, uncorr_prev, corr_prev), (ts, uncorr, corr) in zip(values, values[1:]):
+            if ts >= reboot and values[0][0] < reboot and uncorr < uncorr_prev:
+                continue  # the one reset at the reboot
+            assert uncorr >= uncorr_prev and corr >= corr_prev, ts
+        restarts = [event for event in events if event["event_type"] == "modem_restart_detected"]
+        assert len(restarts) == 1 and restarts[0]["timestamp"] >= reboot
+        assert any(event["event_type"] == "device_reboot" for event in events)
+
+
 class TestDemoCollectorOFDMA:
     def _collector(self, storage):
         return DemoCollector(
@@ -553,7 +654,7 @@ class TestDemoSeedContract:
             "_seed_connection_monitor_data",
             "_seed_segment_utilization",
         ):
-            monkeypatch.setattr(collector, method, lambda now, name=method: calls.append(name))
+            monkeypatch.setattr(collector, method, lambda *args, name=method: calls.append(name))
 
         collector._seed_demo_data()
 

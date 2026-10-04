@@ -1,10 +1,11 @@
 """Tests for demo history signal-family trend fields."""
 
-from app.collectors.demo import DemoCollector
+from app.collectors.demo import DemoCollector, _DemoErrorCounters, _load_base_data
 
 
 def test_demo_historical_analysis_populates_signal_family_trend_keys():
     collector = object.__new__(DemoCollector)
+    collector._error_counters = _DemoErrorCounters(_load_base_data())
 
     analysis = collector._generate_historical_analysis(
         index=1,
