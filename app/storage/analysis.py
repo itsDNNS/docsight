@@ -45,7 +45,7 @@ class AnalysisMethods:
         timeline = []
 
         if "modem" in sources:
-            for snap in self.get_range_data(start_ts, end_ts):
+            for snap in self.get_range_summaries(start_ts, end_ts):
                 s = snap["summary"]
                 errors_supported = s.get("errors_supported", True)
                 corr_errors = s.get("ds_correctable_errors") if errors_supported else None
