@@ -372,13 +372,13 @@ class TestDoubleSeedIdempotency:
 
 
 class TestDemoSegmentUtilization:
-    def _seed(self, storage):
+    def _seed(self, storage, now=None):
         collector = DemoCollector(
             analyzer_fn=analyzer.analyze, event_detector=MagicMock(), storage=storage,
             mqtt_pub=None, web=MagicMock(), poll_interval=300,
         )
         collector._ensure_demo_module_tables()
-        collector._seed_segment_utilization(datetime.now(timezone.utc))
+        collector._seed_segment_utilization(now or datetime.now(timezone.utc))
 
     def test_seeds_minute_samples_marked_as_demo(self, storage):
         self._seed(storage)
@@ -389,14 +389,20 @@ class TestDemoSegmentUtilization:
         gap = datetime.fromisoformat(second.replace("Z", "+00:00")) - datetime.fromisoformat(first.replace("Z", "+00:00"))
         assert gap.total_seconds() == 60
 
-    def test_saturated_evenings_are_detected_as_events(self, storage):
+    # Seeding at any time of day, including during the evening peak itself
+    # (local 20:00-21:15 is 18:00-19:15 UTC), keeps each saturated evening whole.
+    @pytest.mark.parametrize("hour, minute", [(3, 0), (18, 4), (18, 40), (19, 14), (21, 30), (23, 59)])
+    def test_saturated_evenings_are_detected_as_events(self, storage, hour, minute):
         from app.storage.segment_utilization import SegmentUtilizationStorage
-        self._seed(storage)
-        now = datetime.now(timezone.utc)
+        now = datetime(2026, 10, 4, hour, minute, 30, tzinfo=timezone.utc)
+        self._seed(storage, now)
         events = SegmentUtilizationStorage(storage.db_path).get_events(
             (now - timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ"), now.strftime("%Y-%m-%dT%H:%M:%SZ"))
         downstream = [event for event in events if event["direction"] == "downstream"]
-        assert len(downstream) == 3
+        # The seeded evenings are local calendar days (UTC+2); 20:00 local is 18:00 UTC the same day.
+        local_today = (now + timedelta(hours=2)).date()
+        expected = sorted(str(local_today - timedelta(days=days)) for days in (1, 3, 5))
+        assert [event["start"][:10] for event in downstream] == expected
         assert all(event["duration_minutes"] >= 60 and event["peak_total"] >= 90 for event in downstream)
 
     def test_leaving_demo_removes_only_demo_segment_rows(self, storage):

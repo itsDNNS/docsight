@@ -1013,15 +1013,22 @@ class DemoCollector(Collector):
         step = timedelta(minutes=DEMO_SEGMENT_INTERVAL_MINUTES)
         end = now.replace(second=0, microsecond=0) - timedelta(minutes=now.minute % DEMO_SEGMENT_INTERVAL_MINUTES)
         ts = end - timedelta(days=DEMO_SEGMENT_DAYS)
+        # Central European evening, approximated as UTC+2 like the rest of the demo.
+        local_offset = timedelta(hours=2)
+        today = (end + local_offset).date()
         rows = []
         while ts <= end:
-            # Local evening (about 18-23 h in Central Europe) carries the shared-medium peak.
-            local_hour = (ts.hour + ts.minute / 60 + 2) % 24
+            local = ts + local_offset
+            local_hour = local.hour + local.minute / 60
+            # The local evening carries the shared-medium peak; without saturation it
+            # stays well below the 80 % event threshold.
             evening = math.exp(-((local_hour - 20.5) ** 2) / 8)
-            weekend = 6 if ts.weekday() >= 5 else 0
-            days_ago = (end - ts).days
+            weekend = 4 if local.weekday() >= 5 else 0
+            # Calendar days, not elapsed time: an evening must not split when the
+            # seed runs during it.
+            days_ago = (today - local.date()).days
             saturated = days_ago in DEMO_SEGMENT_SATURATED_DAYS and 20 <= local_hour < 21.25
-            ds_total = 18 + 52 * evening + weekend + rng.gauss(0, 3)
+            ds_total = 16 + 50 * evening + weekend + rng.gauss(0, 3)
             if saturated:
                 ds_total = 91 + rng.uniform(0, 6)
             us_total = 9 + 24 * evening + weekend / 2 + rng.gauss(0, 2)
