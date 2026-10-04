@@ -419,7 +419,7 @@ def test_reachability_bucket_helper_uses_coverage_weighting_and_unknown_gaps(dem
     page = demo_page
     result = page.evaluate(
         """
-        () => window._corrBucketReachability([
+        () => window.DOCSightCorrelationData.bucketReachability([
             {
                 target: { id: 1, label: 'Gateway', poll_interval_ms: 10000 },
                 samples: [
@@ -463,8 +463,8 @@ def test_reachability_bucket_helper_empty_never_ok_and_caps_long_ranges(demo_pag
     result = page.evaluate(
         """
         () => ({
-            empty: window._corrBucketReachability([], 0, 1000, 10),
-            long: window._corrBucketReachability([
+            empty: window.DOCSightCorrelationData.bucketReachability([], 0, 1000, 10),
+            long: window.DOCSightCorrelationData.bucketReachability([
                 {
                     target: { id: 1, poll_interval_ms: 5000 },
                     samples: [{ timestamp: 1700000000, bucket_seconds: 3600, packet_loss_pct: 100, sample_count: 720 }],
@@ -485,7 +485,7 @@ def test_reachability_bucket_helper_classifies_all_four_states_and_all_target_do
     page = demo_page
     result = page.evaluate(
         """
-        () => window._corrBucketReachability([
+        () => window.DOCSightCorrelationData.bucketReachability([
             {
                 target: { id: 1, poll_interval_ms: 10000 },
                 samples: [
