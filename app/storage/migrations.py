@@ -258,10 +258,21 @@ CORE_MIGRATIONS: tuple[Migration, ...] = (
     Migration("core-0005-meta-version", _apply_meta_version, _meta_version_applied),
 )
 
+def _segment_demo_flag_applied(conn: sqlite3.Connection) -> bool:
+    return not table_exists(conn, "segment_utilization") or "is_demo" in table_columns(conn, "segment_utilization")
+
+
+def _apply_segment_demo_flag(conn: sqlite3.Connection) -> None:
+    add_column_if_missing(
+        conn, "segment_utilization", "is_demo", "is_demo INTEGER NOT NULL DEFAULT 0"
+    )
+
+
 SEGMENT_MIGRATIONS: tuple[Migration, ...] = (
     Migration(
         "segment-0001-baseline",
         lambda conn: execute_schema(conn, SEGMENT_SCHEMA),
         _segment_applied,
     ),
+    Migration("segment-0002-demo-flag", _apply_segment_demo_flag, _segment_demo_flag_applied),
 )

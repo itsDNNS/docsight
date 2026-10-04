@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+from datetime import datetime, timedelta, timezone
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -370,6 +371,44 @@ class TestDoubleSeedIdempotency:
         assert count_after == count_before
 
 
+class TestDemoSegmentUtilization:
+    def _seed(self, storage):
+        collector = DemoCollector(
+            analyzer_fn=analyzer.analyze, event_detector=MagicMock(), storage=storage,
+            mqtt_pub=None, web=MagicMock(), poll_interval=300,
+        )
+        collector._ensure_demo_module_tables()
+        collector._seed_segment_utilization(datetime.now(timezone.utc))
+
+    def test_seeds_minute_samples_marked_as_demo(self, storage):
+        self._seed(storage)
+        with sqlite3.connect(storage.db_path) as conn:
+            count, demo = conn.execute("SELECT COUNT(*), SUM(is_demo) FROM segment_utilization").fetchone()
+            first, second = [r[0] for r in conn.execute("SELECT timestamp FROM segment_utilization ORDER BY timestamp LIMIT 2")]
+        assert count == 7 * 24 * 60 + 1 and demo == count
+        gap = datetime.fromisoformat(second.replace("Z", "+00:00")) - datetime.fromisoformat(first.replace("Z", "+00:00"))
+        assert gap.total_seconds() == 60
+
+    def test_saturated_evenings_are_detected_as_events(self, storage):
+        from app.storage.segment_utilization import SegmentUtilizationStorage
+        self._seed(storage)
+        now = datetime.now(timezone.utc)
+        events = SegmentUtilizationStorage(storage.db_path).get_events(
+            (now - timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ"), now.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        downstream = [event for event in events if event["direction"] == "downstream"]
+        assert len(downstream) == 3
+        assert all(event["duration_minutes"] >= 60 and event["peak_total"] >= 90 for event in downstream)
+
+    def test_leaving_demo_removes_only_demo_segment_rows(self, storage):
+        from app.storage.segment_utilization import SegmentUtilizationStorage
+        self._seed(storage)
+        SegmentUtilizationStorage(storage.db_path).save_at("2020-01-01T00:00:00Z", 40, 10, 2, 1)
+        storage.purge_demo_data()
+        with sqlite3.connect(storage.db_path) as conn:
+            rows = conn.execute("SELECT timestamp, is_demo FROM segment_utilization").fetchall()
+        assert rows == [("2020-01-01T00:00:00Z", 0)]
+
+
 class TestDemoCollectorOFDMA:
     def _collector(self, storage):
         return DemoCollector(
@@ -506,6 +545,7 @@ class TestDemoSeedContract:
             "_seed_bnetz_measurements",
             "_seed_weather_data",
             "_seed_connection_monitor_data",
+            "_seed_segment_utilization",
         ):
             monkeypatch.setattr(collector, method, lambda now, name=method: calls.append(name))
 
@@ -521,6 +561,7 @@ class TestDemoSeedContract:
             "_seed_bnetz_measurements",
             "_seed_weather_data",
             "_seed_connection_monitor_data",
+            "_seed_segment_utilization",
         ]
         assert storage.max_days == 0
 

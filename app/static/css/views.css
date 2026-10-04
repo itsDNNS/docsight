@@ -735,6 +735,11 @@
     cursor: pointer;
     transition: all 0.2s var(--ease-out-expo);
 }
+.chart-export-btn svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+}
 .chart-export-btn:hover {
     background: var(--amethyst-muted);
     border-color: var(--accent-purple, #a855f7);
