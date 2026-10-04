@@ -89,7 +89,9 @@ jobs:
         )
       )
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ inputs.single_process && 35 || 18 }}
+    # The unsharded baseline runs every case in one process (about 45 minutes
+    # for the current suite); sharded jobs keep their tight limit.
+    timeout-minutes: ${{ inputs.single_process && 60 || 18 }}
     env:
       E2E_REVERSE: ${{ inputs.reverse || 'false' }}
       E2E_SELECTION: ${{ matrix.shard }}
