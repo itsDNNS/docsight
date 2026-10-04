@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Carga do segmento (%)",
   "correlation_lane_events": "Eventos · ○ info △ aviso ◇ crítico",
   "correlation_lane_reachability": "Acessibilidade · lacunas desconhecidas",
+  "correlation_use_as_evidence": "Usar como evidência",
+  "correlation_use_as_evidence_hint": "Verificar este período no percurso de evidências (intervalo ampliado se houver zoom)",
   "correlation_tt_errors_total": "total",
   "correlation_speedtest_hint": "Os valores do Speedtest são medições individuais e não indicam disponibilidade entre testes.",
   "correlation_chart_aria_label": "Gráfico de correlação do sinal com medições pontuais do Speedtest",

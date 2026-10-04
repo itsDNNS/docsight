@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Segmentbelasting (%)",
   "correlation_lane_events": "Gebeurtenissen · ○ info △ waarschuwing ◇ kritiek",
   "correlation_lane_reachability": "Bereikbaarheid · gaten onbekend",
+  "correlation_use_as_evidence": "Als bewijs gebruiken",
+  "correlation_use_as_evidence_hint": "Deze periode controleren in de bewijsroute (ingezoomd bereik bij zoom)",
   "correlation_tt_errors_total": "totaal",
   "correlation_speedtest_hint": "Speedtest-waarden zijn afzonderlijke metingen en geven geen beschikbaarheid tussen tests aan.",
   "correlation_chart_aria_label": "Signaalcorrelatiegrafiek met tijdstipgebonden Speedtest-metingen",

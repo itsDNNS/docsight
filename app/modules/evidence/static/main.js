@@ -269,12 +269,30 @@ function _evidenceLoad() {
         });
 }
 
+/* #evidence?from=YYYY-MM-DDTHH:MM&to=… (local time) opens the journey for that window. */
+function _evidenceApplyHashWindow() {
+    var hash = location.hash || '';
+    var query = hash.indexOf('?') === -1 ? '' : hash.slice(hash.indexOf('?') + 1);
+    var params = new URLSearchParams(query);
+    var pattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+    var from = params.get('from');
+    var to = params.get('to');
+    if (!from || !to || !pattern.test(from) || !pattern.test(to) || from >= to) return false;
+    document.getElementById('evidence-incident-id').value = '';
+    document.getElementById('evidence-from').value = from;
+    document.getElementById('evidence-to').value = to;
+    _evidenceLoad();
+    return true;
+}
+
 function initEvidence() {
-    if (_evidenceInitialized) return;
-    _evidenceInitialized = true;
-    _evidenceDefaultWindow();
-    var run = document.getElementById('evidence-run');
-    var copy = document.getElementById('evidence-copy');
-    if (run) run.addEventListener('click', _evidenceLoad);
-    if (copy) copy.addEventListener('click', _evidenceCopySummary);
+    if (!_evidenceInitialized) {
+        _evidenceInitialized = true;
+        _evidenceDefaultWindow();
+        var run = document.getElementById('evidence-run');
+        var copy = document.getElementById('evidence-copy');
+        if (run) run.addEventListener('click', _evidenceLoad);
+        if (copy) copy.addEventListener('click', _evidenceCopySummary);
+    }
+    _evidenceApplyHashWindow();
 }

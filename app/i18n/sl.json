@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Obremenitev segmenta (%)",
   "correlation_lane_events": "Dogodki · ○ info △ opozorilo ◇ kritično",
   "correlation_lane_reachability": "Dosegljivost · vrzeli neznane",
+  "correlation_use_as_evidence": "Uporabi kot dokaz",
+  "correlation_use_as_evidence_hint": "Preveri to obdobje v poteku dokazov (povečano obdobje ob povečavi)",
   "correlation_tt_errors_total": "skupaj",
   "correlation_speedtest_hint": "Vrednosti Speedtest so posamezne meritve in ne kažejo razpoložljivosti med testi.",
   "correlation_chart_aria_label": "Graf korelacije signala s trenutnimi meritvami Speedtest",

@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Szegmensterhelés (%)",
   "correlation_lane_events": "Események · ○ infó △ figyelmeztetés ◇ kritikus",
   "correlation_lane_reachability": "Elérhetőség · hiányok ismeretlenek",
+  "correlation_use_as_evidence": "Felhasználás bizonyítékként",
+  "correlation_use_as_evidence_hint": "Az időszak ellenőrzése a bizonyítékgyűjtésben (nagyításkor a nagyított tartomány)",
   "correlation_tt_errors_total": "összesen",
   "correlation_speedtest_hint": "A Speedtest-értékek egyedi mérések, és nem jelzik a tesztek közötti rendelkezésre állást.",
   "correlation_chart_aria_label": "Jelkorrelációs diagram időponthoz kötött Speedtest-mérésekkel",

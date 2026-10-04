@@ -903,6 +903,17 @@ function renderCorrelationChart(data) {
     _setupCorrelationTooltip(overlay, octx);
 }
 
+/* Hands the visible window (the zoomed range if zoomed) to the Evidence Journey. */
+function _corrUseRangeAsEvidence() {
+    var st = _corrChartState;
+    if (!st || !isFinite(st.tMin) || !isFinite(st.tMax)) return;
+    var timeZone = typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined;
+    var from = CorrelationData.localInputValue(st.tMin, timeZone, false);
+    var to = CorrelationData.localInputValue(st.tMax, timeZone, true);
+    location.hash = '#evidence?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to);
+}
+window._corrUseRangeAsEvidence = _corrUseRangeAsEvidence;
+
 function _corrResetZoom() {
     _corrZoom = null;
     if ((_correlationData && _correlationData.length > 0) || _corrTargetData.length > 0) {

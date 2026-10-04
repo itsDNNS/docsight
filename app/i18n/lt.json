@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Segmento apkrova (%)",
   "correlation_lane_events": "Įvykiai · ○ info △ įspėjimas ◇ kritinis",
   "correlation_lane_reachability": "Pasiekiamumas · spragos nežinomos",
+  "correlation_use_as_evidence": "Naudoti kaip įrodymą",
+  "correlation_use_as_evidence_hint": "Patikrinti šį laikotarpį įrodymų eigoje (priartintą intervalą, jei priartinta)",
   "correlation_tt_errors_total": "iš viso",
   "correlation_speedtest_hint": "Speedtest reikšmės yra atskiri matavimai ir nerodo pasiekiamumo tarp testų.",
   "correlation_chart_aria_label": "Signalo koreliacijos diagrama su momentiniais Speedtest matavimais",

@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Segmendi koormus (%)",
   "correlation_lane_events": "Sündmused · ○ info △ hoiatus ◇ kriitiline",
   "correlation_lane_reachability": "Kättesaadavus · lüngad teadmata",
+  "correlation_use_as_evidence": "Kasuta tõendina",
+  "correlation_use_as_evidence_hint": "Kontrolli seda ajavahemikku tõendite teekonnas (suumimisel suumitud vahemik)",
   "correlation_tt_errors_total": "kokku",
   "correlation_speedtest_hint": "Speedtesti väärtused on üksikud mõõtmised ega näita testidevahelist kättesaadavust.",
   "correlation_chart_aria_label": "Signaali korrelatsioonigraafik ajahetke Speedtesti mõõtmistega",

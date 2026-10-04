@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Obciążenie segmentu (%)",
   "correlation_lane_events": "Zdarzenia · ○ info △ ostrzeżenie ◇ krytyczne",
   "correlation_lane_reachability": "Osiągalność · luki nieznane",
+  "correlation_use_as_evidence": "Użyj jako dowodu",
+  "correlation_use_as_evidence_hint": "Sprawdź ten okres w ścieżce dowodów (powiększony zakres przy zoomie)",
   "correlation_tt_errors_total": "łącznie",
   "correlation_speedtest_hint": "Wartości Speedtest są pojedynczymi pomiarami i nie wskazują dostępności między testami.",
   "correlation_chart_aria_label": "Wykres korelacji sygnału z punktowymi pomiarami Speedtest",

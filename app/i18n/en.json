@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Segment load (%)",
   "correlation_lane_events": "Events · ○ info △ warning ◇ critical",
   "correlation_lane_reachability": "Reachability · gaps unknown",
+  "correlation_use_as_evidence": "Use as evidence",
+  "correlation_use_as_evidence_hint": "Check this time range in the Evidence Journey (zoomed range if zoomed)",
   "correlation_tt_errors_total": "total",
   "correlation_speedtest_hint": "Speedtest values are individual measurements and do not indicate availability between tests.",
   "correlation_chart_aria_label": "Signal correlation chart with point-in-time Speedtest measurements",

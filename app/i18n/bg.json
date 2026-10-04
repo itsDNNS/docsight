@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Натоварване на сегмента (%)",
   "correlation_lane_events": "Събития · ○ инфо △ предупреждение ◇ критично",
   "correlation_lane_reachability": "Достъпност · неизвестни пропуски",
+  "correlation_use_as_evidence": "Използвай като доказателство",
+  "correlation_use_as_evidence_hint": "Провери периода в пътя на доказателствата (увеличения диапазон при мащабиране)",
   "correlation_tt_errors_total": "общо",
   "correlation_speedtest_hint": "Стойностите от Speedtest са отделни измервания и не показват наличност между тестовете.",
   "correlation_chart_aria_label": "Диаграма за корелация на сигнала с моментни измервания от Speedtest",
