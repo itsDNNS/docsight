@@ -1609,8 +1609,8 @@ def test_zoomed_correlation_range_opens_the_evidence_journey_for_the_same_window
             const tz = typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined;
             return {
                 zoomed: !!window._corrZoom,
-                from: DOCSightCorrelationData.localInputValue(st.tMin, tz, false),
-                to: DOCSightCorrelationData.localInputValue(st.tMax, tz, true),
+                from: DOCSightBrowserContracts.localInputValue(st.tMin, tz, false),
+                to: DOCSightBrowserContracts.localInputValue(st.tMax, tz, true),
             };
         }"""
     )
@@ -1624,3 +1624,21 @@ def test_zoomed_correlation_range_opens_the_evidence_journey_for_the_same_window
     expect(page.locator("#evidence-incident-id")).to_have_value("")
     expect(page.locator("#evidence-results")).to_be_visible()
     expect(page.locator("#evidence-window-label")).to_have_text(f"{expected['from']}:00 – {expected['to']}:00")
+
+
+def test_toggling_a_lane_renders_once_without_a_resize_echo(demo_page):
+    page = demo_page
+    _route_correlation(page)
+    _open_correlation(page)
+    page.evaluate(
+        """() => {
+            window.__corrRenders = 0;
+            const original = window.renderCorrelationChart;
+            window.renderCorrelationChart = function(data) { window.__corrRenders += 1; return original(data); };
+        }"""
+    )
+    page.locator('#correlation-legend [data-metric="signalState"]').click()
+    page.wait_for_timeout(400)
+    # One render for the click; the height change of the hidden lane must not add a second one.
+    assert page.evaluate("window.__corrRenders") == 1
+    assert "state" not in page.evaluate("window._corrChartState.layout.order")

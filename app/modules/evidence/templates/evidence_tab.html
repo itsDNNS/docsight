@@ -11,11 +11,20 @@
             <h3 id="evidence-window-title">{{ t.get('docsight.evidence.window_title', 'Problem window') }}</h3>
             <p>{{ t.get('docsight.evidence.window_help', 'Start with an incident when available, or pick the evening or range you want to explain.') }}</p>
         </div>
+        <div class="evidence-quick-ranges" role="group" aria-label="{{ t.get('docsight.evidence.quick_ranges', 'Quick ranges') }}">
+            <button type="button" class="evidence-chip" data-evidence-range="last24h" aria-pressed="false">{{ t.get('docsight.evidence.range_last_24h', 'Last 24 hours') }}</button>
+            <button type="button" class="evidence-chip" data-evidence-range="yesterday_evening" aria-pressed="false">{{ t.get('docsight.evidence.range_yesterday_evening', 'Yesterday evening (6–11 pm)') }}</button>
+            <button type="button" class="evidence-chip" data-evidence-range="last7d" aria-pressed="false">{{ t.get('docsight.evidence.range_last_7d', 'Last 7 days') }}</button>
+        </div>
         <div class="evidence-control-grid">
-            <label class="evidence-field">
-                <span>{{ t.get('docsight.evidence.incident_id', 'Incident ID') }}</span>
-                <input id="evidence-incident-id" class="evidence-input" type="number" min="1" inputmode="numeric" placeholder="7">
+            {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
+            <label class="evidence-field evidence-case-field">
+                <span>{{ t.get('docsight.evidence.case', 'Case') }}</span>
+                <select id="evidence-incident-id" class="evidence-input">
+                    <option value="">{{ t.get('docsight.evidence.case_none', 'No case · use the time range') }}</option>
+                </select>
             </label>
+            {% endif %}
             <label class="evidence-field">
                 <span>{{ t.get('docsight.evidence.from', 'From') }}</span>
                 <input id="evidence-from" class="evidence-input" type="datetime-local">

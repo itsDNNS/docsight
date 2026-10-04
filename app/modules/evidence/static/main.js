@@ -3,6 +3,7 @@
 var _evidenceInitialized = false;
 var _evidenceLastPayload = null;
 var _evidenceCopyResetTimer = null;
+var _evidenceRequestSeq = 0;
 
 function _evidenceT(key, fallback) {
     return (window.T && window.T[key]) || fallback;
@@ -36,18 +37,71 @@ function _evidenceToIso(value) {
     return value.length === 16 ? value + ':00' : value;
 }
 
-function _evidenceDefaultWindow() {
-    var now = new Date();
-    var from = new Date(now.getTime() - 6 * 3600000);
-    function fmt(d) {
-        function pad(n) { return String(n).padStart(2, '0'); }
-        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
-            'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+function _evidenceTimeZone() {
+    return typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined;
+}
+
+/* Wall-clock value for the datetime-local inputs, in the configured time zone. */
+function _evidenceLocal(ms, roundUp) {
+    return DOCSightBrowserContracts.localInputValue(ms, _evidenceTimeZone(), roundUp);
+}
+
+/* Quick ranges in the configured time zone; returns [from, to] input values. */
+function _evidenceQuickRange(kind, nowMs) {
+    var hour = 3600000;
+    if (kind === 'last7d') return [_evidenceLocal(nowMs - 7 * 24 * hour, false), _evidenceLocal(nowMs, true)];
+    if (kind === 'yesterday_evening') {
+        var yesterday = _evidenceLocal(nowMs - 24 * hour, false).slice(0, 10);
+        return [yesterday + 'T18:00', yesterday + 'T23:00'];
     }
-    var fromEl = document.getElementById('evidence-from');
-    var toEl = document.getElementById('evidence-to');
-    if (fromEl && !fromEl.value) fromEl.value = fmt(from);
-    if (toEl && !toEl.value) toEl.value = fmt(now);
+    return [_evidenceLocal(nowMs - 24 * hour, false), _evidenceLocal(nowMs, true)];
+}
+
+function _evidenceSetWindow(from, to, rangeKind) {
+    var caseSelect = document.getElementById('evidence-incident-id');
+    if (caseSelect) caseSelect.value = '';
+    document.getElementById('evidence-from').value = from;
+    document.getElementById('evidence-to').value = to;
+    _evidenceMarkRange(rangeKind || null);
+}
+
+function _evidenceMarkRange(kind) {
+    document.querySelectorAll('.evidence-chip[data-evidence-range]').forEach(function(chip) {
+        chip.setAttribute('aria-pressed', chip.dataset.evidenceRange === kind ? 'true' : 'false');
+    });
+}
+
+function _evidenceCaseLabel(incident) {
+    var status = _evidenceT('incident_status_' + incident.status, incident.status || '');
+    var start = incident.start_date ? formatDocsightTime(incident.start_date, 'date') : '';
+    var end = incident.end_date ? formatDocsightTime(incident.end_date, 'date') : _evidenceT('incident_duration_ongoing', 'ongoing');
+    return incident.name + ' \u00b7 ' + status + (start ? ' \u00b7 ' + start + ' \u2013 ' + end : '');
+}
+
+/* Fills the case picker: open cases first, then the most recent ones. */
+function _evidenceLoadCases() {
+    var caseSelect = document.getElementById('evidence-incident-id');
+    if (!caseSelect) return Promise.resolve();
+    return fetch(docsightUrl('/api/incidents'))
+        .then(function(response) { return response.ok ? response.json() : []; })
+        .catch(function() { return []; })
+        .then(function(incidents) {
+            var list = (Array.isArray(incidents) ? incidents : []).filter(function(incident) { return incident.start_date; });
+            list.sort(function(a, b) {
+                var openA = a.status === 'open' ? 0 : 1;
+                var openB = b.status === 'open' ? 0 : 1;
+                return openA - openB || String(b.start_date).localeCompare(String(a.start_date));
+            });
+            var selected = caseSelect.value;
+            while (caseSelect.options.length > 1) caseSelect.remove(1);
+            list.forEach(function(incident) {
+                var option = document.createElement('option');
+                option.value = String(incident.id);
+                option.textContent = _evidenceCaseLabel(incident);
+                caseSelect.appendChild(option);
+            });
+            caseSelect.value = selected;
+        });
 }
 
 function _evidenceStatusLabel(status) {
@@ -123,7 +177,8 @@ function _evidenceRunAction(event) {
 }
 
 function _evidenceBuildUrl() {
-    var incidentId = (document.getElementById('evidence-incident-id').value || '').trim();
+    var caseSelect = document.getElementById('evidence-incident-id');
+    var incidentId = caseSelect ? (caseSelect.value || '').trim() : '';
     if (incidentId) {
         return docsightUrl('/api/evidence/checklist?incident_id=' + encodeURIComponent(incidentId));
     }
@@ -249,11 +304,14 @@ function _evidenceLoad() {
         placeholder.textContent = _evidenceT('docsight.evidence.choose_window', 'Choose an incident or complete time range first.');
         return;
     }
+    // Only the latest request may render: a slow earlier window must not replace a newer choice.
+    var seq = ++_evidenceRequestSeq;
     document.getElementById('evidence-loading').hidden = false;
     document.getElementById('evidence-results').hidden = true;
     fetch(url)
         .then(function(response) { return response.json(); })
         .then(function(payload) {
+            if (seq !== _evidenceRequestSeq) return;
             document.getElementById('evidence-loading').hidden = true;
             if (payload.error) {
                 placeholder.style.display = 'block';
@@ -263,6 +321,7 @@ function _evidenceLoad() {
             _evidenceRender(payload);
         })
         .catch(function(error) {
+            if (seq !== _evidenceRequestSeq) return;
             document.getElementById('evidence-loading').hidden = true;
             placeholder.style.display = 'block';
             placeholder.textContent = error.message;
@@ -278,21 +337,45 @@ function _evidenceApplyHashWindow() {
     var from = params.get('from');
     var to = params.get('to');
     if (!from || !to || !pattern.test(from) || !pattern.test(to) || from >= to) return false;
-    document.getElementById('evidence-incident-id').value = '';
-    document.getElementById('evidence-from').value = from;
-    document.getElementById('evidence-to').value = to;
+    _evidenceSetWindow(from, to, null);
     _evidenceLoad();
     return true;
 }
 
 function initEvidence() {
-    if (!_evidenceInitialized) {
+    var firstOpen = !_evidenceInitialized;
+    if (firstOpen) {
         _evidenceInitialized = true;
-        _evidenceDefaultWindow();
         var run = document.getElementById('evidence-run');
         var copy = document.getElementById('evidence-copy');
+        var caseSelect = document.getElementById('evidence-incident-id');
         if (run) run.addEventListener('click', _evidenceLoad);
         if (copy) copy.addEventListener('click', _evidenceCopySummary);
+        if (caseSelect) {
+            caseSelect.addEventListener('change', function() {
+                _evidenceMarkRange(null);
+                if (caseSelect.value) _evidenceLoad();
+            });
+        }
+        ['evidence-from', 'evidence-to'].forEach(function(id) {
+            document.getElementById(id).addEventListener('input', function() {
+                if (caseSelect) caseSelect.value = '';
+                _evidenceMarkRange(null);
+            });
+        });
+        document.querySelectorAll('.evidence-chip[data-evidence-range]').forEach(function(chip) {
+            chip.addEventListener('click', function() {
+                var range = _evidenceQuickRange(chip.dataset.evidenceRange, Date.now());
+                _evidenceSetWindow(range[0], range[1], chip.dataset.evidenceRange);
+                _evidenceLoad();
+            });
+        });
     }
-    _evidenceApplyHashWindow();
+    _evidenceLoadCases();
+    // A handed-over window wins; otherwise the first visit evaluates the last 24 hours right away.
+    if (!_evidenceApplyHashWindow() && firstOpen) {
+        var range = _evidenceQuickRange('last24h', Date.now());
+        _evidenceSetWindow(range[0], range[1], 'last24h');
+        _evidenceLoad();
+    }
 }

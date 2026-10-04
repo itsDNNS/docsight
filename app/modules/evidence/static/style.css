@@ -21,9 +21,31 @@
     padding: 18px;
 }
 
+.evidence-quick-ranges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 12px;
+}
+
+.evidence-chip {
+    padding: 6px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.evidence-chip:hover { color: var(--text); border-color: var(--accent); }
+.evidence-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.evidence-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent, #fff); }
+
 .evidence-control-grid {
     display: grid;
-    grid-template-columns: minmax(120px, 0.7fr) repeat(2, minmax(180px, 1fr)) auto;
+    grid-template-columns: minmax(200px, 1.2fr) repeat(2, minmax(180px, 1fr)) auto;
     gap: 12px;
     align-items: end;
 }

@@ -61,17 +61,21 @@ def _open_scoped_report(page, payload):
     return modal
 
 
-def test_evidence_results_and_loading_stay_hidden_until_a_checklist_is_built(demo_page):
-    demo_page.evaluate("switchView('evidence')")
+def test_first_visit_builds_the_last_24_hours_and_shows_results_only_when_ready(demo_page):
+    held = []
+    demo_page.route("**/api/evidence/checklist?**", lambda route: held.append(route))
+    with demo_page.expect_request("**/api/evidence/checklist?**") as request:
+        demo_page.evaluate("switchView('evidence')")
+    assert "from=" in request.value.url and "to=" in request.value.url
 
-    expect(demo_page.locator("#evidence-placeholder")).to_be_visible()
-    expect(demo_page.locator("#evidence-loading")).to_be_hidden()
+    # The default window is evaluated right away; until it arrives only the loading state shows.
+    expect(demo_page.locator('.evidence-chip[data-evidence-range="last24h"]')).to_have_attribute("aria-pressed", "true")
+    expect(demo_page.locator("#evidence-loading")).to_be_visible()
     expect(demo_page.locator("#evidence-results")).to_be_hidden()
     expect(demo_page.locator("#evidence-copy")).to_be_hidden()
+    assert len(held) == 1
 
-    demo_page.route("**/api/evidence/checklist?**", lambda route: route.fulfill(json=_payload()))
-    demo_page.locator("#evidence-run").click()
-
+    held[0].fulfill(json=_payload())
     expect(demo_page.locator("#evidence-results")).to_be_visible()
     expect(demo_page.locator("#evidence-copy")).to_be_visible()
     expect(demo_page.locator("#evidence-loading")).to_be_hidden()
@@ -175,3 +179,77 @@ def test_mismatched_fixed_window_response_stays_on_step_one_with_live_error(demo
     expect(status).to_have_attribute("aria-live", "polite")
     expect(status).to_contain_text("different problem window")
     expect(status).to_contain_text("Change problem window")
+
+
+def _local_input(page, offset_ms, round_up):
+    return page.evaluate(
+        "([offset, up]) => DOCSightBrowserContracts.localInputValue(Date.now() + offset, DOCSIGHT_TIME_ZONE, up)",
+        [offset_ms, round_up],
+    )
+
+
+def test_quick_ranges_fill_the_window_in_the_configured_time_zone(demo_page):
+    requests = []
+    demo_page.route("**/api/evidence/checklist?**", lambda route: (requests.append(route.request.url), route.fulfill(json=_payload())))
+    demo_page.evaluate("switchView('evidence')")
+    expect(demo_page.locator("#evidence-results")).to_be_visible()
+
+    demo_page.locator('.evidence-chip[data-evidence-range="yesterday_evening"]').click()
+    yesterday = _local_input(demo_page, -24 * 3600 * 1000, False)[:10]
+    expect(demo_page.locator("#evidence-from")).to_have_value(f"{yesterday}T18:00")
+    expect(demo_page.locator("#evidence-to")).to_have_value(f"{yesterday}T23:00")
+    expect(demo_page.locator('.evidence-chip[data-evidence-range="yesterday_evening"]')).to_have_attribute("aria-pressed", "true")
+    expect(demo_page.locator('.evidence-chip[data-evidence-range="last24h"]')).to_have_attribute("aria-pressed", "false")
+
+    with demo_page.expect_request("**/api/evidence/checklist?**"):
+        demo_page.locator('.evidence-chip[data-evidence-range="last7d"]').click()
+    expect(demo_page.locator("#evidence-from")).to_have_value(_local_input(demo_page, -7 * 24 * 3600 * 1000, False))
+    assert len(requests) >= 3
+
+    # Editing the window by hand leaves the quick ranges.
+    demo_page.locator("#evidence-from").fill(f"{yesterday}T10:00")
+    expect(demo_page.locator('.evidence-chip[aria-pressed="true"]')).to_have_count(0)
+
+
+def _shortest_closed_case(incidents):
+    """The demo's open case spans months; a short closed case keeps the checklist quick."""
+    from datetime import date
+
+    closed = [incident for incident in incidents if incident["status"] != "open" and incident.get("end_date")]
+    return min(closed, key=lambda incident: date.fromisoformat(incident["end_date"][:10]) - date.fromisoformat(incident["start_date"][:10]))
+
+
+def test_case_picker_lists_open_cases_first_and_builds_the_case_checklist(demo_page, live_server):
+    incidents = demo_page.request.get(f"{live_server}/api/incidents").json()
+    open_cases = [incident for incident in incidents if incident["status"] == "open"]
+    case = _shortest_closed_case(incidents)
+    demo_page.evaluate("switchView('evidence')")
+    picker = demo_page.locator("#evidence-incident-id")
+    expect(picker.locator("option")).to_have_count(len(incidents) + 1)
+
+    first_case = picker.locator("option").nth(1)
+    expect(first_case).to_have_attribute("value", str(open_cases[0]["id"]))
+    expect(first_case).to_contain_text(open_cases[0]["name"])
+
+    with demo_page.expect_request("**/api/evidence/checklist?incident_id=*") as request:
+        picker.select_option(str(case["id"]))
+    assert f"incident_id={case['id']}" in request.value.url
+    expect(demo_page.locator('.evidence-chip[aria-pressed="true"]')).to_have_count(0)
+    expect(demo_page.locator("#evidence-window-label")).to_contain_text(case["name"], timeout=15000)
+
+
+def test_a_slow_earlier_window_cannot_replace_a_newer_case_result(demo_page, live_server):
+    incidents = demo_page.request.get(f"{live_server}/api/incidents").json()
+    case = _shortest_closed_case(incidents)
+    held = []
+    demo_page.route("**/api/evidence/checklist?from=**", lambda route: held.append(route))
+    demo_page.evaluate("switchView('evidence')")
+    picker = demo_page.locator("#evidence-incident-id")
+    expect(picker.locator("option")).to_have_count(len(incidents) + 1)
+
+    picker.select_option(str(case["id"]))
+    expect(demo_page.locator("#evidence-window-label")).to_contain_text(case["name"], timeout=15000)
+    # The automatic last-24-hours request answers late and must be ignored.
+    held[0].fulfill(json=_payload())
+    demo_page.wait_for_timeout(300)
+    expect(demo_page.locator("#evidence-window-label")).to_contain_text(case["name"])

@@ -307,6 +307,23 @@
         };
     }
 
+    /**
+     * Wall-clock "YYYY-MM-DDTHH:MM" of an instant in the given time zone, as used by
+     * datetime-local inputs. roundUp moves a partial minute to the next one, so a range
+     * built from (start, roundDown) and (end, roundUp) always covers the instants.
+     */
+    function localInputValue(ms, timeZone, roundUp) {
+        var minuteMs = 60000;
+        var rounded = roundUp ? Math.ceil(ms / minuteMs) * minuteMs : Math.floor(ms / minuteMs) * minuteMs;
+        var parts = {};
+        new Intl.DateTimeFormat('en-CA', {
+            timeZone: timeZone || undefined,
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+        }).formatToParts(new Date(rounded)).forEach(function(part) { parts[part.type] = part.value; });
+        return parts.year + '-' + parts.month + '-' + parts.day + 'T' + parts.hour + ':' + parts.minute;
+    }
+
     return {
         parseDashboardBootstrapText: parseDashboardBootstrapText,
         parseSetupBootstrapText: parseSetupBootstrapText,
@@ -316,6 +333,7 @@
         formatLastKnownTimestamp: formatLastKnownTimestamp,
         formatTimestamp: formatTimestamp,
         parseTimestamp: parseTimestamp,
+        localInputValue: localInputValue,
         computeServiceWorkerPolicy: computeServiceWorkerPolicy
     };
 });
