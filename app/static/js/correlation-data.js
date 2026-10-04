@@ -209,6 +209,64 @@
         return rows;
     }
 
+    /**
+     * Uncorrectable errors per interval. The modem reports cumulative counters, so each
+     * snapshot's delta is the growth since the previous one; a smaller reading means the
+     * counter restarted (reboot), and then the new reading itself is the growth.
+     */
+    function errorDeltas(modem) {
+        var previous = null;
+        return (modem || []).map(function(entry) {
+            var value = entry.ds_uncorrectable_errors;
+            if (typeof value !== 'number' || !isFinite(value) || value < 0) {
+                return { timestamp: entry.timestamp, delta: null };
+            }
+            var delta = previous === null ? 0 : (value >= previous ? value - previous : value);
+            previous = value;
+            return { timestamp: entry.timestamp, delta: delta };
+        });
+    }
+
+    /* Smallest 1/2/5 × 10^n that is at least value (axis maxima). */
+    function niceCeil(value) {
+        if (!(value > 0) || !isFinite(value)) return 1;
+        var magnitude = Math.pow(10, Math.floor(Math.log10(value)));
+        var steps = [1, 2, 5, 10];
+        for (var i = 0; i < steps.length; i++) {
+            if (steps[i] * magnitude >= value) return steps[i] * magnitude;
+        }
+        return 10 * magnitude;
+    }
+
+    /**
+     * Vertical layout of the correlation chart: one main band for the signal values and
+     * one lane per further source, each with a label row, then the shared time axis.
+     * lanes: [{ key, height }] in display order. Returns pixel positions.
+     */
+    function laneLayout(options) {
+        var top = options.top;
+        var labelHeight = options.labelHeight;
+        var gap = options.gap;
+        var main = { y: top, height: options.mainHeight };
+        var y = top + options.mainHeight + gap;
+        var lanes = {};
+        var order = [];
+        (options.lanes || []).forEach(function(lane) {
+            lanes[lane.key] = { labelY: y, y: y + labelHeight, height: lane.height };
+            order.push(lane.key);
+            y += labelHeight + lane.height + gap;
+        });
+        var bottom = order.length ? lanes[order[order.length - 1]].y + lanes[order[order.length - 1]].height : main.y + main.height;
+        return {
+            main: main,
+            lanes: lanes,
+            order: order,
+            bottom: bottom,
+            axisY: bottom + options.axisGap,
+            height: bottom + options.axisGap + options.axisHeight
+        };
+    }
+
     return {
         SEVERITIES: SEVERITIES.slice(),
         rangeHours: rangeHours,
@@ -219,6 +277,9 @@
         bucketReachability: bucketReachability,
         buildSpeedMarks: buildSpeedMarks,
         encodeCSVCell: encodeCSVCell,
-        csvRows: csvRows
+        csvRows: csvRows,
+        errorDeltas: errorDeltas,
+        niceCeil: niceCeil,
+        laneLayout: laneLayout
     };
 });
