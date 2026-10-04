@@ -1,3 +1,4 @@
+{% from "partials/empty_state.html" import empty_state with context %}
 {% set builtin_module_views = {
     'docsight.journal': 'journal',
     'docsight.bqm': 'bqm',
@@ -1101,7 +1102,7 @@
             </button>
         </div>
     </div>
-    <div id="trend-no-data" class="no-data-msg" style="display:none"></div>
+    <div id="trend-no-data" class="view-empty" hidden></div>
     <div class="charts-grid" id="charts-grid">
         <!-- DS Power Chart -->
         <div class="chart-card">
@@ -1206,7 +1207,7 @@
     <div id="correlation-loading" class="waiting" style="display:none;">
         <div class="skeleton skel-chart"></div>
     </div>
-    <div id="correlation-no-data" class="no-data-msg" style="display:none;"></div>
+    <div id="correlation-no-data" class="view-empty" hidden></div>
 
     <!-- Signal Health Timeline Chart -->
     <div id="correlation-chart-container" style="display:none;">
@@ -1319,7 +1320,7 @@
         <div class="skeleton skel-row"></div>
         <div class="skeleton skel-row"></div>
     </div>
-    <div id="events-empty" class="events-empty" style="display:none;"></div>
+    <div id="events-empty" class="view-empty" hidden></div>
 
     <div id="events-feed-card" class="table-card events-card" style="display:none;">
         <div class="events-toolbar">
@@ -1421,7 +1422,7 @@
                 <span class="channel-status-window" id="channel-status-window"></span>
             </div>
             <div id="channel-status-loading" class="skeleton skel-chart" hidden></div>
-            <p id="channel-status-empty" class="no-data-msg" hidden>{{ t.get('channel_status_empty', 'No channel snapshots in this time range yet.') }}</p>
+            <div id="channel-status-empty" class="view-empty" hidden></div>
             <div id="channel-status-body"></div>
         </section>
         {# Always present so the dashboard refresh can fill it once the first poll arrives. #}
@@ -1583,14 +1584,10 @@
         <div id="channel-loading" class="waiting" style="display:none;">
             <div class="skeleton skel-chart"></div>
         </div>
-        <div id="channel-empty" class="ch-onboarding" style="display:none;">
-            <i data-lucide="layers"></i>
-            <div class="ch-onboarding-text">
-                <strong>{{ t.get('channel_onboarding_title', 'Channel Timeline') }}</strong>
-                <span>{{ t.get('channel_onboarding_desc', 'Select a channel from the dropdown to view its signal history over time.') }}</span>
-            </div>
-        </div>
-        <div id="channel-no-data" class="no-data-msg" style="display:none;"></div>
+        {{ empty_state('channel-empty', 'layers', t.channel_onboarding_title, t.channel_onboarding_desc,
+                       action_label=t.channel_empty_action, action_onclick="document.getElementById('channel-select').focus()",
+                       glossary='channel_timeline', hidden=True) }}
+        <div id="channel-no-data" class="view-empty" hidden></div>
         <div id="channel-charts" class="charts-grid" style="display:none;">
             <div class="chart-card">
                 <div class="chart-card-header">
@@ -1637,7 +1634,7 @@
     <!-- ── Compare Sub-View ── -->
     <div id="channel-panel-compare" style="display:none;">
         <div id="compare-chips" class="compare-chips"></div>
-        <div id="compare-empty" class="events-empty" style="display:none;"></div>
+        <div id="compare-empty" class="view-empty" hidden></div>
         <div id="compare-loading" class="waiting" style="display:none;">
             <div class="skeleton skel-chart"></div>
         </div>
@@ -1739,7 +1736,9 @@
     </div>
 
     {% else %}
-    <div class="no-data-msg">{{ t.gaming_no_speedtest_detail }}</div>
+    {{ empty_state('gaming-no-speedtest', 'gamepad-2', t.gaming_speedtest_title, t.gaming_no_speedtest_detail,
+                   action_label=t.gaming_speedtest_action, action_href=url_for('settings', _anchor='mod-docsight_speedtest'),
+                   glossary='gaming_index') }}
     {% endif %}
 </div>
 {% endif %}
@@ -1766,9 +1765,7 @@
     <div id="bnetz-loading" class="waiting" style="display:none;">
         <div class="skeleton skel-chart"></div>
     </div>
-    <div id="bnetz-empty" class="no-data-msg" style="display:none;">
-        {{ t.bnetz_no_measurements }}
-    </div>
+    <div id="bnetz-empty" class="view-empty" hidden></div>
     <div id="bnetz-table-card" class="table-card" style="display:none;">
         <table id="bnetz-table">
             <thead><tr>
@@ -2037,6 +2034,7 @@
     'timeZone': time_zone or none
 }|tojson }}</script>
 <script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/empty-state.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}

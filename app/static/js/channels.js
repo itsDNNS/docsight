@@ -226,18 +226,14 @@ function initChannelView() {
                         populateCompareChannelList(data);
                         if (_compareChannels.length > 0) loadCompareCharts();
                         else {
-                            var emptyEl = document.getElementById('compare-empty');
-                            emptyEl.textContent = T.no_channels_selected || 'Select channels to compare';
-                            emptyEl.style.display = '';
+                            _showCompareEmpty('select');
                             writeChannelHash();
                         }
                     })
                     .catch(function() { writeChannelHash(); });
             } else {
                 loadCompareChannelList();
-                var emptyEl = document.getElementById('compare-empty');
-                emptyEl.textContent = T.no_channels_selected || 'Select channels to compare';
-                emptyEl.style.display = '';
+                _showCompareEmpty('select');
                 writeChannelHash();
             }
         } else {
@@ -285,15 +281,13 @@ function switchChannelMode() {
         if (infoBar) infoBar.style.display = 'none';
         loadCompareChannelList();
         if (_compareChannels.length === 0) {
-            var emptyEl = document.getElementById('compare-empty');
-            emptyEl.textContent = T.no_channels_selected || 'Select channels to compare';
-            emptyEl.style.display = '';
+            _showCompareEmpty('select');
         }
     } else {
         var sel = document.getElementById('channel-select');
         if (!sel || !sel.value) {
-            document.getElementById('channel-empty').style.display = '';
-            document.getElementById('channel-no-data').style.display = 'none';
+            document.getElementById('channel-empty').hidden = false;
+            DOCSightEmptyState.hide(document.getElementById('channel-no-data'));
         } else {
             // Restore info bar for already-selected channel
             _updateChannelInfoBar(_readChannelSelection(sel));
@@ -524,13 +518,23 @@ function _channelStatusCellText(data) {
     return (T.channel_status_cell || 'One cell = {duration}').replace('{duration}', _channelStatusDuration(data.cell_minutes));
 }
 
-function renderChannelStatus(data, range) {
+function renderChannelStatus(data, range, failed) {
     var body = document.getElementById('channel-status-body');
     var empty = document.getElementById('channel-status-empty');
     var windowEl = document.getElementById('channel-status-window');
     if (!body) return;
     var shown = renderStatusTrack(body, data, { range: range, idPrefix: 'channel-status', onRow: openChannelFromStatus });
-    if (empty) empty.hidden = shown;
+    if (shown) {
+        DOCSightEmptyState.hide(empty);
+    } else if (failed) {
+        DOCSightEmptyState.showError(empty, {retry: loadChannelStatus});
+    } else {
+        DOCSightEmptyState.showRange(empty, {
+            tabs: 'channel-status-time-tabs',
+            text: T.channel_status_empty || 'No channel snapshots in this time range yet.',
+            glossary: 'channel_timeline'
+        });
+    }
     if (windowEl) windowEl.textContent = shown ? _channelStatusCellText(data) : '';
 }
 
@@ -551,7 +555,7 @@ function loadChannelStatus() {
         })
         .catch(function() {
             if (seq !== _channelStatusRequestSeq) return;
-            renderChannelStatus(null, range);
+            renderChannelStatus(null, range, true);
         })
         .then(function() {
             if (seq === _channelStatusRequestSeq && loading) loading.hidden = true;
@@ -1039,7 +1043,7 @@ function loadChannelTimeline() {
     var infoBar = document.getElementById('channel-info-bar');
     if (!val) {
         chartsEl.style.display = 'none';
-        noDataEl.style.display = 'none';
+        DOCSightEmptyState.hide(noDataEl);
         loadingEl.style.display = 'none';
         if (infoBar) infoBar.style.display = 'none';
         _updateChannelSelectionControls();
@@ -1048,7 +1052,7 @@ function loadChannelTimeline() {
         _lastChannelWeather = null;
         _lastChannelTimelineContext = null;
         _updateChannelTempToggle();
-        emptyEl.style.display = '';
+        emptyEl.hidden = false;
         writeChannelHash();
         return;
     }
@@ -1068,8 +1072,8 @@ function loadChannelTimeline() {
 
     loadingEl.style.display = '';
     chartsEl.style.display = 'none';
-    emptyEl.style.display = 'none';
-    noDataEl.style.display = 'none';
+    emptyEl.hidden = true;
+    DOCSightEmptyState.hide(noDataEl);
     _updateChannelInfoBar(ref);
 
     var identityParam = ref.usesSelector
@@ -1085,8 +1089,11 @@ function loadChannelTimeline() {
                 _lastChannelWeather = null;
                 _lastChannelTimelineContext = null;
                 _updateChannelTempToggle();
-                noDataEl.textContent = T.no_channel_data || 'No data available for this channel.';
-                noDataEl.style.display = '';
+                DOCSightEmptyState.showRange(noDataEl, {
+                    tabs: 'channel-time-tabs',
+                    text: T.no_channel_data || 'No data available for this channel.',
+                    glossary: 'channel_timeline'
+                });
                 return;
             }
             chartsEl.style.display = '';
@@ -1109,8 +1116,7 @@ function loadChannelTimeline() {
         .catch(function() {
             if (requestId !== _channelTimelineRequestSeq) return;
             loadingEl.style.display = 'none';
-            noDataEl.textContent = T.trend_error || 'Error loading data.';
-            noDataEl.style.display = '';
+            DOCSightEmptyState.showError(noDataEl, {retry: loadChannelTimeline});
         });
 }
 window.loadChannelTimeline = loadChannelTimeline;
@@ -1161,15 +1167,37 @@ function updateCompareActionLabels() {
     if (addAllBtn) addAllBtn.textContent = getComparePresetLabel(getCompareDirection());
 }
 
-function showCompareError(message, error) {
+function showCompareError(retry, error) {
     var loadingEl = document.getElementById('compare-loading');
-    var emptyEl = document.getElementById('compare-empty');
     if (loadingEl) loadingEl.style.display = 'none';
-    if (emptyEl) {
-        emptyEl.textContent = message;
-        emptyEl.style.display = '';
-    }
+    _showCompareEmpty('error', retry);
     if (error) console.error('Channel compare error:', error);
+}
+
+/* Compare is empty until channels are picked, when the picked channels have no
+   data in the range, or when loading failed. */
+function _showCompareEmpty(kind, retry) {
+    var el = document.getElementById('compare-empty');
+    if (kind === 'error') {
+        DOCSightEmptyState.showError(el, {retry: retry});
+    } else if (kind === 'range') {
+        DOCSightEmptyState.showRange(el, {
+            tabs: 'compare-time-tabs',
+            text: T.compare_no_data_range || 'No data for the selected channels in this time range.',
+            glossary: 'channel_timeline'
+        });
+    } else {
+        DOCSightEmptyState.show(el, {
+            icon: 'layers',
+            title: T.no_channels_selected || 'Select channels to compare',
+            text: T.compare_empty_text || 'Add channels above to see their signal side by side.',
+            action: {
+                label: T.compare_empty_action || 'Choose channels',
+                onClick: function() { document.getElementById('compare-channel-select').focus(); }
+            },
+            glossary: 'channel_timeline'
+        });
+    }
 }
 
 function clearCompareCharts() {
@@ -1219,7 +1247,7 @@ function loadCompareChannelList(data) {
             populateCompareChannelList(payload);
         })
         .catch(function(error) {
-            showCompareError(T.trend_error || 'Error loading data.', error);
+            showCompareError(function() { loadCompareChannelList(); }, error);
         });
 }
 
@@ -1239,9 +1267,7 @@ function onCompareDirectionChange() {
     if (_compareChannels.length > 0) {
         loadCompareCharts();
     } else {
-        var emptyEl = document.getElementById('compare-empty');
-        emptyEl.textContent = T.no_channels_selected || 'Select channels to compare';
-        emptyEl.style.display = '';
+        _showCompareEmpty('select');
         writeChannelHash();
     }
 }
@@ -1291,9 +1317,7 @@ function addAllCompareChannels() {
             var channels = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
             if (channels.length === 0) {
                 clearCompareChannels();
-                var emptyEl = document.getElementById('compare-empty');
-                emptyEl.textContent = T.no_channel_data || 'No data available.';
-                emptyEl.style.display = '';
+                _showCompareEmpty('select');
                 return;
             }
             _comparePreset = 'all';
@@ -1306,7 +1330,7 @@ function addAllCompareChannels() {
             writeChannelHash();
         })
         .catch(function(error) {
-            showCompareError(T.trend_error || 'Error loading data.', error);
+            showCompareError(addAllCompareChannels, error);
         });
 }
 window.addAllCompareChannels = addAllCompareChannels;
@@ -1316,9 +1340,7 @@ function clearCompareChannels() {
     _compareChannels = [];
     _compareState[_lastCompareDir] = { channels: [], preset: null };
     renderCompareChips();
-    var emptyEl = document.getElementById('compare-empty');
-    emptyEl.textContent = T.no_channels_selected || 'Select channels to compare';
-    emptyEl.style.display = '';
+    _showCompareEmpty('select');
     clearCompareCharts();
     loadCompareChannelList();
     writeChannelHash();
@@ -1516,8 +1538,7 @@ function loadCompareCharts() {
         _lastCompareRenderContext = null;
         _updateCompareTempToggle();
         chartsEl.style.display = 'none';
-        emptyEl.textContent = T.no_channels_selected || 'Select channels to compare';
-        emptyEl.style.display = '';
+        _showCompareEmpty('select');
         return;
     }
     var dir = getCompareDirection();
@@ -1532,7 +1553,7 @@ function loadCompareCharts() {
 
     loadingEl.style.display = '';
     chartsEl.style.display = 'none';
-    emptyEl.style.display = 'none';
+    DOCSightEmptyState.hide(emptyEl);
 
     fetch(docsightUrl('/api/channel-compare?' + identityName + '=' + encodeURIComponent(identities) + '&direction=' + dir + '&range=' + encodeURIComponent(days)))
         .then(function(r) { return r.json(); })
@@ -1553,8 +1574,7 @@ function loadCompareCharts() {
                 _lastCompareWeather = null;
                 _lastCompareRenderContext = null;
                 _updateCompareTempToggle();
-                emptyEl.textContent = T.compare_no_data_range || 'No data for the selected channels in this time range.';
-                emptyEl.style.display = '';
+                _showCompareEmpty('range');
                 return;
             }
             chartsEl.style.display = '';
@@ -1577,8 +1597,7 @@ function loadCompareCharts() {
         .catch(function() {
             if (requestId !== _compareRequestSeq) return;
             loadingEl.style.display = 'none';
-            emptyEl.textContent = T.trend_error || 'Error loading data.';
-            emptyEl.style.display = '';
+            _showCompareEmpty('error', loadCompareCharts);
         });
 }
 window.loadCompareCharts = loadCompareCharts;

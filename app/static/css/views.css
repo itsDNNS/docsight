@@ -615,10 +615,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 .ev-group-members > .ev-row { padding-right: 0; }
 
-.events-empty {
-    text-align: center; padding: 60px 20px; color: var(--muted); font-size: max(var(--fs-min), 0.95em);
-}
-
 @media (max-width: 768px) {
     .table-card-header {
         flex-direction: column;
@@ -1454,35 +1450,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .ch-info-health.tolerated { color: var(--tolerated, var(--warn)); }
 .ch-info-health.marginal, .ch-info-health.warn, .ch-info-health.warning { color: var(--warn); }
 .ch-info-health.critical, .ch-info-health.crit { color: var(--crit); }
-
-/* Channel onboarding (empty state) */
-.ch-onboarding {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md, 16px);
-    padding: var(--space-xl, 32px);
-    background: var(--tint-subtle, rgba(255,255,255,0.02));
-    border: 1px dashed var(--glass-border);
-    border-radius: var(--radius-md, 12px);
-    color: var(--text-secondary);
-}
-.ch-onboarding > i, .ch-onboarding > svg {
-    width: 32px; height: 32px;
-    color: var(--text-muted);
-    flex-shrink: 0;
-}
-.ch-onboarding-text {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.ch-onboarding-text strong {
-    color: var(--text-primary);
-    font-size: max(var(--fs-min), 0.95em);
-}
-.ch-onboarding-text span {
-    font-size: max(var(--fs-min), 0.85em);
-}
 
 /* Full-width chart card (modulation) */
 .ch-full-width {
