@@ -536,3 +536,48 @@ class TestModemDetection:
         results.get_by_role("button", name="Try again").click()
         expect(results).to_contain_text("No device answered")
         expect(results).not_to_have_class("test-result error")
+
+
+class TestConnectionDiagnosis:
+    """A failed connection test names the likely cause and links to help."""
+
+    @pytest.mark.parametrize("reason, text, help_page", [
+        ("unreachable", "DOCSight cannot reach http://192.168.178.1.", "Bridge-Mode-Compatibility#modem-not-reachable"),
+        ("auth", "rejected the login", "Supported-Modems"),
+        ("unexpected", "cannot read its pages", "Requesting-Modem-Support"),
+    ])
+    def test_each_reason_has_its_message_and_help(self, setup_page, reason, text, help_page):
+        help_url = "https://github.com/itsDNNS/docsight/wiki/" + help_page
+        setup_page.route("**/api/test-modem", lambda route: route.fulfill(json={
+            "success": False, "error": "Modem connection failed", "reason": reason, "help_url": help_url}))
+        _start_fresh(setup_page)
+        _choose_cable_modem(setup_page, "fritz", "AVM FRITZ!Box")
+        setup_page.locator("#test-conn-btn").click()
+
+        result = setup_page.locator("#test-result")
+        expect(result).to_contain_text(text)
+        link = result.get_by_role("link", name="How to fix this")
+        expect(link).to_have_attribute("href", help_url)
+        expect(link).to_have_attribute("target", "_blank")
+        expect(result.get_by_role("button", name="Try again")).to_be_visible()
+
+    def test_links_outside_the_wiki_are_not_shown(self, setup_page):
+        setup_page.route("**/api/test-modem", lambda route: route.fulfill(json={
+            "success": False, "error": "Modem connection failed", "reason": "auth",
+            "help_url": "https://example.com/phish"}))
+        _start_fresh(setup_page)
+        _choose_cable_modem(setup_page, "fritz", "AVM FRITZ!Box")
+        setup_page.locator("#test-conn-btn").click()
+        result = setup_page.locator("#test-result")
+        expect(result).to_contain_text("rejected the login")
+        expect(result.get_by_role("link")).to_have_count(0)
+
+    def test_a_closed_local_port_is_reported_as_unreachable(self, setup_page):
+        _start_fresh(setup_page)
+        _choose_cable_modem(setup_page, "fritz", "AVM FRITZ!Box")
+        # Port 9 (discard) is closed on the test runner, so the real driver fails to connect.
+        setup_page.locator("#modem_url").fill("http://127.0.0.1:9")
+        with setup_page.expect_response("**/api/test-modem") as response:
+            setup_page.locator("#test-conn-btn").click()
+        assert response.value.json()["reason"] == "unreachable"
+        expect(setup_page.locator("#test-result")).to_contain_text("DOCSight cannot reach http://127.0.0.1:9.")

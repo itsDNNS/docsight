@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Gebruiken",
   "setup_detect_use_address": "Dit adres gebruiken",
   "setup_detect_unknown": "Het model is niet herkend. Kies het hieronder uit de lijst.",
-  "setup_detect_none": "Op de gangbare adressen antwoordde geen apparaat. Het adres staat meestal op het label van je modem."
+  "setup_detect_none": "Op de gangbare adressen antwoordde geen apparaat. Het adres staat meestal op het label van je modem.",
+  "setup_test_unreachable": "DOCSight kan {url} niet bereiken. Controleer het adres en of de computer met DOCSight in hetzelfde netwerk zit als het modem.",
+  "setup_test_auth": "Het modem antwoordt, maar weigerde de aanmelding. Controleer gebruikersnaam en wachtwoord.",
+  "setup_test_unexpected": "Het modem antwoordt, maar DOCSight kan de pagina's niet uitlezen. Controleer of het gekozen model bij het apparaat past; de firmware wordt mogelijk nog niet ondersteund.",
+  "setup_test_help": "Zo los je dit op"
 }

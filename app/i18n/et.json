@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Kasuta",
   "setup_detect_use_address": "Kasuta seda aadressi",
   "setup_detect_unknown": "Mudelit ei tuvastatud. Vali see allolevast loendist.",
-  "setup_detect_none": "Levinud aadressidel ei vastanud ükski seade. Aadress on tavaliselt modemi sildil."
+  "setup_detect_none": "Levinud aadressidel ei vastanud ükski seade. Aadress on tavaliselt modemi sildil.",
+  "setup_test_unreachable": "DOCSight ei jõua aadressile {url}. Kontrolli aadressi ja et DOCSighti arvuti on modemiga samas võrgus.",
+  "setup_test_auth": "Modem vastab, kuid lükkas sisselogimise tagasi. Kontrolli kasutajanime ja parooli.",
+  "setup_test_unexpected": "Modem vastab, kuid DOCSight ei suuda selle lehti lugeda. Kontrolli, kas valitud mudel vastab seadmele; selle püsivara ei pruugi veel toetatud olla.",
+  "setup_test_help": "Kuidas seda parandada"
 }

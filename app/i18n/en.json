@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Use",
   "setup_detect_use_address": "Use this address",
   "setup_detect_unknown": "The model was not recognized. Choose it from the list below.",
-  "setup_detect_none": "No device answered at the common addresses. The address is usually on the label of your modem."
+  "setup_detect_none": "No device answered at the common addresses. The address is usually on the label of your modem.",
+  "setup_test_unreachable": "DOCSight cannot reach {url}. Check the address and that the computer running DOCSight is on the same network as the modem.",
+  "setup_test_auth": "The modem answers but rejected the login. Check the username and password.",
+  "setup_test_unexpected": "The modem answers, but DOCSight cannot read its pages. Check that the selected model matches the device; its firmware may not be supported yet.",
+  "setup_test_help": "How to fix this"
 }

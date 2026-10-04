@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from app import modem_diagnosis
 from app.config import PASSWORD_MASK
 from app.runtime import get_runtime
 
@@ -34,7 +35,8 @@ def test_builtin_modem_errors_are_redacted(
 ):
     sentinels = (MODEM_USER, MODEM_PASSWORD, MODEM_URL, PRIVATE_PATH)
     error = exception_type(" ".join(sentinels) + "\nprivate exception details")
-    with patch("app.drivers.fritzbox.FritzBoxDriver", autospec=True) as constructor:
+    with patch("app.drivers.fritzbox.FritzBoxDriver", autospec=True) as constructor, \
+            patch("app.modem_diagnosis.host_reachable", return_value=False):
         driver = constructor.return_value
         failing_call = constructor if phase == "constructor" else getattr(driver, phase)
         failing_call.side_effect = error
@@ -52,8 +54,13 @@ def test_builtin_modem_errors_are_redacted(
     for output in (response.text, caplog.text):
         for sentinel in sentinels:
             assert sentinel not in output
-    assert response.json == {"success": False, "error": "Modem connection failed"}
-    assert caplog.record_tuples == [("docsis.web", logging.WARNING, "Modem test failed")]
+    # The reason is derived, never copied from the exception.
+    reason = "unreachable" if phase == "login" else "unexpected"
+    assert response.json == {
+        "success": False, "error": "Modem connection failed", "reason": reason,
+        "help_url": modem_diagnosis.HELP_URLS[reason],
+    }
+    assert caplog.record_tuples == [("docsis.web", logging.WARNING, f"Modem test failed ({reason})")]
     assert all(record.exc_info is None and record.stack_info is None for record in caplog.records)
 
 

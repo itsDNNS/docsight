@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Használat",
   "setup_detect_use_address": "Cím használata",
   "setup_detect_unknown": "A típus nem ismerhető fel. Válaszd ki az alábbi listából.",
-  "setup_detect_none": "A szokásos címeken egy eszköz sem válaszolt. A cím általában a modem címkéjén található."
+  "setup_detect_none": "A szokásos címeken egy eszköz sem válaszolt. A cím általában a modem címkéjén található.",
+  "setup_test_unreachable": "A DOCSight nem éri el ezt: {url}. Ellenőrizd a címet, és hogy a DOCSightot futtató gép ugyanazon a hálózaton van-e, mint a modem.",
+  "setup_test_auth": "A modem válaszol, de elutasította a bejelentkezést. Ellenőrizd a felhasználónevet és a jelszót.",
+  "setup_test_unexpected": "A modem válaszol, de a DOCSight nem tudja beolvasni az oldalait. Ellenőrizd, hogy a kiválasztott típus egyezik-e az eszközzel; lehet, hogy a firmware-e még nem támogatott.",
+  "setup_test_help": "Így javíthatod"
 }

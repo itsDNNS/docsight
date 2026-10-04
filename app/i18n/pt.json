@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Usar",
   "setup_detect_use_address": "Usar este endereço",
   "setup_detect_unknown": "O modelo não foi reconhecido. Escolha-o na lista abaixo.",
-  "setup_detect_none": "Nenhum dispositivo respondeu nos endereços comuns. O endereço costuma estar na etiqueta do modem."
+  "setup_detect_none": "Nenhum dispositivo respondeu nos endereços comuns. O endereço costuma estar na etiqueta do modem.",
+  "setup_test_unreachable": "O DOCSight não consegue alcançar {url}. Verifique o endereço e se o computador com o DOCSight está na mesma rede que o modem.",
+  "setup_test_auth": "O modem responde, mas recusou o início de sessão. Verifique o utilizador e a palavra-passe.",
+  "setup_test_unexpected": "O modem responde, mas o DOCSight não consegue ler as suas páginas. Verifique se o modelo escolhido corresponde ao equipamento; o firmware pode ainda não ser suportado.",
+  "setup_test_help": "Como resolver"
 }

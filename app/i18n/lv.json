@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Izmantot",
   "setup_detect_use_address": "Izmantot šo adresi",
   "setup_detect_unknown": "Modelis netika atpazīts. Izvēlieties to no saraksta zemāk.",
-  "setup_detect_none": "Izplatītajās adresēs neatbildēja neviena ierīce. Adrese parasti ir uz modema uzlīmes."
+  "setup_detect_none": "Izplatītajās adresēs neatbildēja neviena ierīce. Adrese parasti ir uz modema uzlīmes.",
+  "setup_test_unreachable": "DOCSight nevar sasniegt {url}. Pārbaudiet adresi un vai dators ar DOCSight ir tajā pašā tīklā, kur modems.",
+  "setup_test_auth": "Modems atbild, bet noraidīja pieteikšanos. Pārbaudiet lietotājvārdu un paroli.",
+  "setup_test_unexpected": "Modems atbild, bet DOCSight nevar nolasīt tā lapas. Pārbaudiet, vai izvēlētais modelis atbilst ierīcei; tās programmaparatūra var vēl nebūt atbalstīta.",
+  "setup_test_help": "Kā to novērst"
 }

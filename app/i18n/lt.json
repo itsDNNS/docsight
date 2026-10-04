@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Naudoti",
   "setup_detect_use_address": "Naudoti šį adresą",
   "setup_detect_unknown": "Modelis neatpažintas. Pasirinkite jį iš sąrašo žemiau.",
-  "setup_detect_none": "Įprastais adresais neatsakė joks įrenginys. Adresas paprastai nurodytas modemo lipduke."
+  "setup_detect_none": "Įprastais adresais neatsakė joks įrenginys. Adresas paprastai nurodytas modemo lipduke.",
+  "setup_test_unreachable": "DOCSight nepasiekia {url}. Patikrinkite adresą ir ar kompiuteris su DOCSight yra tame pačiame tinkle kaip modemas.",
+  "setup_test_auth": "Modemas atsako, bet atmetė prisijungimą. Patikrinkite naudotojo vardą ir slaptažodį.",
+  "setup_test_unexpected": "Modemas atsako, bet DOCSight negali nuskaityti jo puslapių. Patikrinkite, ar pasirinktas modelis atitinka įrenginį; jo programinė įranga gali būti dar nepalaikoma.",
+  "setup_test_help": "Kaip tai ištaisyti"
 }
