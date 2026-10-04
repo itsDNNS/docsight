@@ -228,3 +228,12 @@ test('service-worker policy is prefix-scoped and only disables local development
         assert.throws(() => contracts.computeServiceWorkerPolicy('localhost', '', unsafe), /scope/i);
     }
 });
+
+test('instants become datetime-local values in the configured time zone', () => {
+    const ms = Date.parse('2026-10-04T06:52:30Z');
+    assert.equal(contracts.localInputValue(ms, 'Europe/Berlin', false), '2026-10-04T08:52');
+    assert.equal(contracts.localInputValue(ms, 'Europe/Berlin', true), '2026-10-04T08:53');
+    assert.equal(contracts.localInputValue(Date.parse('2026-10-04T06:52:00Z'), 'Europe/Berlin', true), '2026-10-04T08:52');
+    assert.equal(contracts.localInputValue(Date.parse('2026-12-31T23:30:00Z'), 'UTC', false), '2026-12-31T23:30');
+    assert.equal(contracts.localInputValue(Date.parse('2026-12-31T23:30:00Z'), 'America/New_York', false), '2026-12-31T18:30');
+});

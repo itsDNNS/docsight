@@ -189,10 +189,18 @@ function _corrDrawSpeedMarks(ctx, marks, baselineY, colors, visibleMetrics) {
     }
 }
 
-// Re-render chart on container resize
+// Re-render chart when the container gets wider or narrower. The height follows the
+// visible lanes and is set by the render itself, so height changes must not re-render
+// (that would replace the overlay in the middle of a hover or drag).
 (function() {
     var resizeTimer;
-    var observer = new ResizeObserver(function() {
+    var lastWidth = null;
+    var observer = new ResizeObserver(function(entries) {
+        var width = entries.length ? Math.round(entries[entries.length - 1].contentRect.width) : null;
+        if (width === lastWidth) return;
+        var firstMeasurement = lastWidth === null;
+        lastWidth = width;
+        if (firstMeasurement) return;
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function() {
             if ((_correlationData && _correlationData.length > 0) || _corrTargetData.length > 0) {
@@ -908,8 +916,8 @@ function _corrUseRangeAsEvidence() {
     var st = _corrChartState;
     if (!st || !isFinite(st.tMin) || !isFinite(st.tMax)) return;
     var timeZone = typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined;
-    var from = CorrelationData.localInputValue(st.tMin, timeZone, false);
-    var to = CorrelationData.localInputValue(st.tMax, timeZone, true);
+    var from = DOCSightBrowserContracts.localInputValue(st.tMin, timeZone, false);
+    var to = DOCSightBrowserContracts.localInputValue(st.tMax, timeZone, true);
     location.hash = '#evidence?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to);
 }
 window._corrUseRangeAsEvidence = _corrUseRangeAsEvidence;
