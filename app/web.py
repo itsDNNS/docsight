@@ -57,7 +57,7 @@ def _server_tz_info():
 log = logging.getLogger("docsis.web")
 
 DESKTOP_PREVIEW_NOTICE_ID = "docsight-desktop-preview-v0"
-DESKTOP_PREVIEW_DOC_URL = "https://github.com/itsDNNS/docsight/blob/main/docs/windows-desktop-preview.md"
+DESKTOP_PREVIEW_DOC_URL = "https://github.com/itsDNNS/docsight/wiki/Windows-Desktop-Preview"
 
 
 def is_desktop_preview_mode() -> bool:

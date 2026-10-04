@@ -40,14 +40,16 @@
 </p>
 
 <p align="center">
-  <em>Synthetic demo data in the real product UI: signal health, speed, latency, and connection context in one dashboard.</em>
+  <em>Synthetic demo data in the sidebar layout of tagged releases up to v2026-09-16.1: signal health, speed, latency, and connection context in one dashboard.</em>
 </p>
 
 ---
 
 ## Get Started
 
-The commands below require a running Docker engine. For Windows setup, see the [Windows quick start](docs/windows-quick-start.md). To try DOCSight without Docker, use the unsigned portable [Windows Desktop Preview](docs/windows-desktop-preview.md); for a native Python installation, see [INSTALL.md](INSTALL.md#bare-metal--systemd).
+The commands below require a running Docker engine. For Windows setup, see the [Windows quick start](https://github.com/itsDNNS/docsight/wiki/Windows-Quick-Start). To try DOCSight without Docker, use the unsigned portable [Windows Desktop Preview](https://github.com/itsDNNS/docsight/wiki/Windows-Desktop-Preview); for a native Python installation, see [Running without Docker](https://github.com/itsDNNS/docsight/wiki/Running-without-Docker).
+
+The examples use the `stable` image tag, which follows the newest release. `latest` follows the `main` branch and can include unreleased changes; see [image tags](https://github.com/itsDNNS/docsight/wiki/Installation#image-tags-stable-or-latest).
 
 ### Option 1: Try the demo
 
@@ -65,7 +67,7 @@ docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_
 
 Open `http://localhost:8765`. For your own connection, follow the setup wizard to select a [supported modem or Generic Router](#supported-hardware). Configuration and history are stored in the `docsight_data` volume.
 
-[Windows quick start](docs/windows-quick-start.md) | [Full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation) | [Example Compose Stacks](https://github.com/itsDNNS/docsight/wiki/Example-Compose-Stacks)
+[Windows quick start](https://github.com/itsDNNS/docsight/wiki/Windows-Quick-Start) | [Full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation) | [Example Compose Stacks](https://github.com/itsDNNS/docsight/wiki/Example-Compose-Stacks)
 
 ---
 
@@ -83,11 +85,13 @@ A few key views from the workflow:
 | ![DOCSight correlation view lining up signal, speed, and event history](docs/screenshots/correlation.png) | ![DOCSight evidence package workflow for local report generation](docs/screenshots/complaint-workflow.png) |
 | Signal drops, packet loss, speed dips, modem events, and notes line up in one timeline. | Export a report for a selected incident or time window. |
 
+Screenshots show synthetic demo data in the sidebar layout of tagged releases up to v2026-09-16.1. The `main` branch has a redesigned Home and navigation; see the [Dashboard wiki page](https://github.com/itsDNNS/docsight/wiki/Features-Dashboard).
+
 ---
 
 ## Public proof pack
 
-See the [sample complaint report PDF](docs/samples/demo-complaint-report.pdf) and [proof-pack notes](docs/proof-pack.md) for an example using synthetic data. Complaint templates and BNetzA workflows focus on Germany; reports do not guarantee an ISP or legal outcome.
+See the [sample complaint report PDF](docs/samples/demo-complaint-report.pdf) and the [proof pack](https://github.com/itsDNNS/docsight/wiki/Proof-Pack) for an example using synthetic data. Complaint templates and BNetzA workflows focus on Germany; reports do not guarantee an ISP or legal outcome.
 
 ---
 
@@ -123,7 +127,7 @@ See the [Data contract](DATA_CONTRACT.md) for storage and sharing boundaries, an
 | **Network analysis** | [Gaming Quality Index](https://github.com/itsDNNS/docsight/wiki/Features-Gaming-Quality), [Modulation Performance](https://github.com/itsDNNS/docsight/wiki/Features-Modulation-Performance), [Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline), [Cable Segment Utilization](https://github.com/itsDNNS/docsight/wiki/Features-Segment-Utilization) |
 | **External data sources** | Guided setup for [Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest), [BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM), and [Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping), plus [Smart Capture](https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture) and [BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA) |
 | **Platform features** | [Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant), [Notifications](https://github.com/itsDNNS/docsight/wiki/Notifications), [Backup & Restore](https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore), setup wizard, optional authentication, API tokens |
-| **Usability and extensibility** | [Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode), [Theme Engine](https://github.com/itsDNNS/docsight/wiki/Themes), [Community Modules](https://github.com/itsDNNS/docsight-modules), [In-App Glossary](https://github.com/itsDNNS/docsight/wiki/Features-Glossary), [AI/LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export) with local redaction controls |
+| **Usability and extensibility** | [Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode), [Themes](https://github.com/itsDNNS/docsight/wiki/Themes), [Community Modules](https://github.com/itsDNNS/docsight-modules), [In-App Glossary](https://github.com/itsDNNS/docsight/wiki/Features-Glossary), [AI/LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export) with local redaction controls |
 
 The core interface supports 24 languages, light/dark themes, and PWA/offline use.
 
@@ -133,6 +137,8 @@ The core interface supports 24 languages, light/dark themes, and PWA/offline use
 
 <details>
 <summary>See the extended screenshot gallery</summary>
+
+These screenshots show synthetic demo data in the former sidebar layout.
 
 | Dashboard (Light) | Health Assessment |
 |---|---|
@@ -160,7 +166,7 @@ The core interface supports 24 languages, light/dark themes, and PWA/offline use
 
 ## Supported Hardware
 
-DOCSight includes drivers for **22 modem families**, including the experimental PYUR FAST3896-15 driver with reported hardware success. DOCSIS signal monitoring requires a supported cable modem. **Generic Router mode** supports other connections, including fiber, DSL, and satellite, with speed tests, latency monitoring, notes, and reports but no DOCSIS signal data.
+DOCSight includes drivers for **22 modem families**, including the experimental PYUR FAST3896-15 driver with reported hardware success. The PYUR driver is on `main` and not yet part of a tagged release. DOCSIS signal monitoring requires a supported cable modem. **Generic Router mode** supports other connections, including fiber, DSL, and satellite, with speed tests, latency monitoring, notes, and reports but no DOCSIS signal data.
 
 Signal health and SC-QAM capacity estimates describe the physical/channel layer; they are not measurements of internet throughput or tariff speed.
 
@@ -238,13 +244,13 @@ See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 |---|---|
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
 | [Data contract](DATA_CONTRACT.md) | Local storage, integrations, and export boundaries |
-| [Apprise notification sidecar](docs/notifications-apprise.md) | Optional alert fan-out through an Apprise API sidecar |
-| [PWA Web Push notifications](docs/notifications-pwa-web-push.md) | Optional browser/app push alerts through the installed PWA |
-| [Community proof templates](docs/community-proof-templates.md) | Public-safe templates for setup stories, modem reports, and ISP evidence outcomes |
-| [Installation](INSTALL.md) | Docker, native Python, and reverse-proxy setup |
+| [Installation](https://github.com/itsDNNS/docsight/wiki/Installation) | Docker, image tags, Windows, native Python, and updates |
+| [Reverse proxy](https://github.com/itsDNNS/docsight/wiki/Reverse-Proxy) | HTTPS proxies and path prefixes such as `/docsight` |
+| [Notifications](https://github.com/itsDNNS/docsight/wiki/Notifications) | Webhooks, the optional Apprise sidecar, and PWA Web Push |
+| [Community proof templates](https://github.com/itsDNNS/docsight/wiki/Community-Proof-Templates) | Public-safe templates for setup stories, modem reports, and ISP evidence outcomes |
 | [GitHub Releases](https://github.com/itsDNNS/docsight/releases) | Versioned builds and release notes |
 | [SUPPORT.md](SUPPORT.md) | Support routing, community channels, and issue guidance |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and extension guide |
+| [Architecture](https://github.com/itsDNNS/docsight/wiki/Architecture) | Technical architecture and extension guide |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development and contribution guidelines |
 | [TRADEMARKS.md](TRADEMARKS.md) | Brand, logo, and official-use policy |
 

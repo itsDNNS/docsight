@@ -7,7 +7,7 @@ body:
       value: |
         Thanks for the feature request.
 
-        Please check the [Roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap) first.
+        Please search existing issues first. The [Roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap) lists what has already shipped and what is unreleased on `main`.
         If you want to discuss scope, tradeoffs, or rough direction before opening a formal request, start in [Ideas Discussions](https://github.com/itsDNNS/docsight/discussions/categories/ideas).
 
   - type: dropdown

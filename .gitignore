@@ -10,17 +10,9 @@ deploy.sh
 .config_key
 config.json
 
-# Docs (local drafts stay ignored unless explicitly public)
+# Docs live in the GitHub Wiki; keep local Markdown drafts out of docs/
 docs/*.md
 docs/**/*.md
-!docs/community-proof-templates.md
-!docs/proof-pack.md
-!docs/feature-matrix.md
-!docs/self-hosted-directory-submission.md
-!docs/public-launch-follow-up-issues.md
-!docs/notifications-apprise.md
-!docs/windows-desktop-preview.md
-!docs/reverse-proxy.md
 docs/superpowers/
 
 # Internal development docs (belong in workspace, not repo)

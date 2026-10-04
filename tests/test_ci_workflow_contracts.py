@@ -53,6 +53,13 @@ TEST_FILTERS = {
         "*.md",
         "docs/**",
         "packaging/windows/*.md",
+        ".github/ISSUE_TEMPLATE/**",
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        "app/web.py",
+        "scripts/benchmark_dashboard_trends.py",
+        "tests/test_public_launch_surface.py",
+        "tests/test_wiki_docs.py",
+        ".github/workflows/test.yml",
     ],
     "python": [
         "app/**",
@@ -288,8 +295,26 @@ def test_test_workflow_detector_schedule_and_exact_path_contracts():
         "tests/test_public_launch_surface.py",
         "tests/test_defensive_review_docs.py",
         "tests/test_windows_packaging.py",
+        "tests/test_wiki_docs.py",
     ):
         assert test_file in docs_run
+
+
+def test_docs_job_reads_the_published_wiki_and_other_lanes_deselect_it():
+    workflow = load_workflow("test.yml")
+    docs = workflow["jobs"]["docs"]
+    clone = next(step for step in docs["steps"] if step["name"] == "Check out the published Wiki")
+    run = next(step for step in docs["steps"] if step["name"] == "Run documentation contract tests")
+
+    assert "git clone --depth 1 https://github.com/itsDNNS/docsight.wiki.git" in clone["run"]
+    assert '"$RUNNER_TEMP/docsight.wiki"' in clone["run"]
+    assert run["env"]["DOCSIGHT_WIKI_DIR"] == "${{ runner.temp }}/docsight.wiki"
+    assert docs["steps"].index(clone) < docs["steps"].index(run)
+    assert "github.event_name == 'schedule'" in compact(docs["if"])
+    assert '-m "not wiki"' in _run_step("test", "Run tests")["run"]
+    assert '-m "not linux_only and not wiki"' in _run_step("test-windows", "Run portable Windows tests")["run"]
+    markers = (ROOT / "pytest.ini").read_text(encoding="utf-8")
+    assert "    wiki: " in markers
 
 
 def test_test_workflow_jobs_are_routed_through_the_detector():
@@ -388,7 +413,7 @@ def test_windows_lane_runs_the_full_portable_suite_in_parallel():
     assert load_workflow("test.yml")["jobs"]["test-windows"]["timeout-minutes"] == 20
     run = _run_step("test-windows", "Run portable Windows tests")["run"]
     assert "-n auto" in run
-    assert '-m "not linux_only"' in run
+    assert '-m "not linux_only and not wiki"' in run
     windows_tests = ROOT / "packaging" / "windows"
     assert "pytest-xdist" in (windows_tests / "requirements-test-windows.in").read_text(encoding="utf-8").split()
     assert "pytest-xdist==" in (windows_tests / "requirements-test-windows.txt").read_text(encoding="utf-8")
