@@ -118,3 +118,36 @@ test('CSV rows hold timeline entries and reachability buckets under one header',
     assert.ok(rows[2].startsWith('1970-01-01T00:00:00.000Z,connection_monitor,'));
     assert.ok(rows[2].includes('degraded,12.3457,4,'));
 });
+
+test('uncorrectable errors become growth per interval, restarting after a counter reset', () => {
+    const deltas = data.errorDeltas([
+        {timestamp: 't1', ds_uncorrectable_errors: 100},
+        {timestamp: 't2', ds_uncorrectable_errors: 104},
+        {timestamp: 't3', ds_uncorrectable_errors: null},
+        {timestamp: 't4', ds_uncorrectable_errors: 104},
+        {timestamp: 't5', ds_uncorrectable_errors: 6},
+    ]);
+    assert.deepEqual(deltas.map(d => d.delta), [0, 4, null, 0, 6]);
+});
+
+test('axis maxima round up to 1, 2 or 5 times a power of ten', () => {
+    assert.equal(data.niceCeil(0.3), 0.5);
+    assert.equal(data.niceCeil(7), 10);
+    assert.equal(data.niceCeil(12), 20);
+    assert.equal(data.niceCeil(431), 500);
+    assert.equal(data.niceCeil(0), 1);
+});
+
+test('lane layout stacks the main band, labelled lanes and the time axis', () => {
+    const layout = data.laneLayout({
+        top: 20, mainHeight: 200, labelHeight: 14, gap: 10, axisGap: 6, axisHeight: 20,
+        lanes: [{key: 'state', height: 10}, {key: 'speed', height: 40}],
+    });
+    assert.deepEqual(layout.main, {y: 20, height: 200});
+    assert.deepEqual(layout.lanes.state, {labelY: 230, y: 244, height: 10});
+    assert.deepEqual(layout.lanes.speed, {labelY: 264, y: 278, height: 40});
+    assert.deepEqual(layout.order, ['state', 'speed']);
+    assert.equal(layout.bottom, 318);
+    assert.equal(layout.height, 344);
+    assert.equal(data.laneLayout({top: 0, mainHeight: 100, labelHeight: 14, gap: 10, axisGap: 6, axisHeight: 20, lanes: []}).bottom, 100);
+});

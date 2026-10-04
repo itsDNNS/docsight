@@ -535,6 +535,7 @@ def test_correlation_renders_aligned_reachability_lane_and_legend(demo_page, vie
         """
         () => ({
             lane: window._corrChartState.reachabilityLane,
+            layout: window._corrChartState.layout,
             buckets: window._corrChartState.reachabilityBuckets,
             height: document.querySelector('#correlation-chart').height / devicePixelRatio,
             fills: window.__corrCanvasOps.filter((op) => op.kind === 'fillRect'),
@@ -542,7 +543,10 @@ def test_correlation_renders_aligned_reachability_lane_and_legend(demo_page, vie
         """
     )
     assert state["lane"]
-    assert state["height"] == 306
+    # Reachability is the last lane, right above the shared time axis.
+    assert state["height"] == state["layout"]["height"]
+    assert state["layout"]["order"][-1] == "reachability"
+    assert state["lane"]["y"] + state["lane"]["height"] == state["layout"]["bottom"]
     assert len(state["buckets"]) <= 300
     assert any(bucket["state"] == "ok" for bucket in state["buckets"])
     assert any(bucket["state"] == "degraded" for bucket in state["buckets"])
@@ -999,10 +1003,21 @@ def test_correlation_renders_sparse_speedtests_as_unconnected_point_measurements
         index for index, operation in enumerate(rendered["operations"])
         if operation["kind"] == "stroke" and operation.get("strokeStyle") == rendered["colors"]["event"]
     ]
-    assert signal_indexes and error_indexes and event_indexes
-    assert max(speed_operation_indexes) < min(signal_indexes)
-    assert max(speed_operation_indexes) < min(error_indexes)
-    assert max(speed_operation_indexes) < min(event_indexes)
+    assert signal_indexes and error_indexes and event_indexes and speed_operation_indexes
+    # Speedtests have their own lane below the signal band, so nothing draws over them.
+    lanes = page.evaluate(
+        """() => ({
+            speed: window._corrChartState.layout.lanes.speed,
+            main: window._corrChartState.layout.main,
+            marks: window._corrChartState.speedMarks.map((mark) => [mark.downloadY, mark.uploadY]),
+        })"""
+    )
+    speed_lane = lanes["speed"]
+    assert speed_lane["y"] > lanes["main"]["y"] + lanes["main"]["height"]
+    for ys in lanes["marks"]:
+        for y in ys:
+            if y is not None:
+                assert speed_lane["y"] - 0.01 <= y <= speed_lane["y"] + speed_lane["height"] + 0.01
 
 
 def test_correlation_draws_unsmoothed_observations_and_keeps_health_on_modem_rows(demo_page):
@@ -1496,3 +1511,81 @@ def test_correlation_table_uses_card_layout_without_mobile_overflow(demo_page):
     assert geometry["timestamp"]["display"] == "flex"
     assert geometry["timestamp"]["width"] >= 300
     assert "Timestamp" in geometry["timestampLabel"]
+
+
+def _record_correlation_canvas_text(page):
+    page.add_init_script(
+        """
+        (() => {
+            const proto = CanvasRenderingContext2D.prototype;
+            const original = proto.fillText;
+            window.__corrTexts = [];
+            proto.fillText = function(text, ...rest) {
+                if (this.canvas && this.canvas.id === 'correlation-chart') window.__corrTexts.push(String(text));
+                return original.call(this, text, ...rest);
+            };
+        })();
+        """
+    )
+
+
+def _cumulative_error_payload():
+    base = datetime.now(timezone.utc).replace(microsecond=0)
+
+    def ts(minutes_ago):
+        return (base - timedelta(minutes=minutes_ago)).isoformat().replace("+00:00", "Z")
+
+    modem = [
+        {"source": "modem", "timestamp": ts(minutes), "health": health, "ds_snr_min": snr,
+         "ds_power_avg": 2.0, "us_power_avg": 44.0, "ds_uncorrectable_errors": errors}
+        for minutes, health, snr, errors in ((60, "good", 38.0, 100), (45, "marginal", 34.5, 104), (30, "good", 37.0, 104), (15, "good", 38.0, 6))
+    ]
+    speed = {"source": "speedtest", "timestamp": ts(40), "download_mbps": 280.4, "upload_mbps": 48.2, "ping_ms": 12.5}
+    weather = [{"timestamp": ts(minutes), "temperature": temp} for minutes, temp in ((60, 11.0), (30, 12.5), (10, 13.0))]
+    return modem + [speed], weather
+
+
+def test_correlation_gives_every_quantity_its_own_axis_and_lane(demo_page):
+    page = demo_page
+    payload, weather = _cumulative_error_payload()
+    _record_correlation_canvas_text(page)
+    _route_correlation(page, payload)
+    page.route("**/api/weather/range?**", lambda route: route.fulfill(json=weather))
+    _open_correlation(page)
+
+    texts = set(page.evaluate("window.__corrTexts"))
+    layout = page.evaluate("window._corrChartState.layout")
+
+    # Main band: power in dBmV on the left, SNR in dB and temperature in °C on the right.
+    assert {"dBmV", "dB", "°C"} <= texts
+    # Lanes below with their own labels and scales.
+    assert layout["order"] == ["state", "errors", "speed"]
+    assert {"Signal state", "Uncorrectable errors per interval", "Speedtests (Mbps) · single measurements"} <= texts
+    assert any(text.endswith(" Mbps") and text[0].isdigit() for text in texts)
+    assert layout["lanes"]["state"]["y"] > layout["main"]["y"] + layout["main"]["height"]
+
+
+def test_correlation_errors_are_growth_per_interval_and_one_crosshair_shows_all_values(demo_page):
+    page = demo_page
+    payload, _weather = _cumulative_error_payload()
+    _route_correlation(page, payload)
+    _open_correlation(page)
+
+    deltas = page.evaluate("window._corrChartState.errorDeltas.map((d) => d.delta)")
+    assert deltas == [0, 4, 0, 6]
+
+    # Hover inside the errors lane at the second snapshot: the tooltip lists every source at that instant.
+    point = page.evaluate(
+        """() => {
+            const st = window._corrChartState;
+            const lane = st.layout.lanes.errors;
+            return { x: st.xScale(docsightParseTime(st.modem[1].timestamp).getTime()), y: lane.y + lane.height / 2 };
+        }"""
+    )
+    box = page.locator("#correlation-overlay").bounding_box()
+    page.mouse.move(box["x"] + point["x"], box["y"] + point["y"])
+    tooltip = page.locator("#correlation-tooltip")
+    expect(tooltip).to_be_visible()
+    expect(tooltip).to_contain_text("+4 (total 104)")
+    expect(tooltip).to_contain_text("SNR: 34.5 dB")
+    expect(tooltip).to_contain_text("Signal state: Marginal")

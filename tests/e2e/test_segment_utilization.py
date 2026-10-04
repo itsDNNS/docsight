@@ -412,14 +412,15 @@ class TestSegmentCorrelation:
             text = legend.text_content()
             assert "Segment" in text, f"Legend should mention Segment, got: {text}"
 
-    def test_correlation_defaults_disable_poor_signal_and_line_metrics_have_no_area_fill(self, fritzbox_page):
-        """Poor Signal starts disabled and isolated line metrics render without area fills."""
+    def test_correlation_shows_the_signal_state_lane_and_line_metrics_have_no_area_fill(self, fritzbox_page):
+        """The signal state lane starts enabled and isolated line metrics render without area fills."""
         open_view(fritzbox_page, "correlation")
         fritzbox_page.wait_for_timeout(3000)
 
-        poor_signal = fritzbox_page.locator('#correlation-legend span[data-metric="poorSignal"]')
-        assert poor_signal.count() == 1
-        assert re.search(r"\bdisabled\b", poor_signal.get_attribute("class") or "")
+        signal_state = fritzbox_page.locator('#correlation-legend span[data-metric="signalState"]')
+        assert signal_state.count() == 1
+        assert not re.search(r"\bdisabled\b", signal_state.get_attribute("class") or "")
+        assert signal_state.get_attribute("aria-pressed") == "true"
 
         gradient_calls = fritzbox_page.evaluate("""
             () => {
@@ -438,7 +439,7 @@ class TestSegmentCorrelation:
                         upload: false,
                         events: false,
                         errors: false,
-                        poorSignal: false,
+                        signalState: false,
                         temperature: false,
                         segmentDs: false,
                         segmentUs: false
@@ -452,7 +453,7 @@ class TestSegmentCorrelation:
                         upload: false,
                         events: false,
                         errors: false,
-                        poorSignal: false,
+                        signalState: false,
                         temperature: false,
                         segmentDs: false,
                         segmentUs: false
