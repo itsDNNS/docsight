@@ -1228,7 +1228,7 @@ class TestSignalLifecycle:
             [0, 1, 2], [0, None, 3], [42, 43, 44], [36, 37, 38]]
 
     def test_failure_does_not_block_modules_and_public_refresh_recovers(self, page, live_server):
-        from tests.e2e.support.signal_trends import start, painted, wait_count, spark_pixels, rows
+        from tests.e2e.support.signal_trends import start, painted, wait_count, spark_pixels, rows, show_family_sparks
         attempts = []
         def signals(route):
             attempts.append(route)
@@ -1237,8 +1237,9 @@ class TestSignalLifecycle:
         wait_count(page, requests['legacy'], 1)
         page.wait_for_load_state('networkidle')
         expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.network_error'))
+        show_family_sparks(page)
         assert spark_pixels(page, '#spark-errors')
-        assert spark_pixels(page, '#spark-speed')
+        page.evaluate("switchView('live')")
         # Existing public API, no dashboard-only test hook.
         page.evaluate('Promise.all([refreshHeroChart(), refreshSparklines()])')
         painted(page, 9)
@@ -1251,7 +1252,7 @@ class TestSignalLifecycle:
         assert page.locator('body > .uplot-tooltip').count() == 1
 
     def test_empty_and_legacy_failure_retry(self, page, live_server):
-        from tests.e2e.support.signal_trends import start, wait_count, rows, spark_pixels
+        from tests.e2e.support.signal_trends import start, wait_count, rows, spark_pixels, show_family_sparks
         attempts = []
         def legacy(route):
             attempts.append(route)
@@ -1262,15 +1263,17 @@ class TestSignalLifecycle:
         expect(page.locator('#hero-trend-chart')).to_have_text(page.evaluate('T.chart_no_history'))
         assert not page.evaluate('dashboardTrendsProbe.paints.length')
         page.evaluate('refreshSparklines()')
+        show_family_sparks(page)
         assert spark_pixels(page, '#spark-errors')
         assert len(attempts) == 2
 
     def test_stale_legacy_cannot_replace_current_sparse_module_data(self, page, live_server):
-        from tests.e2e.support.signal_trends import start, painted, wait_count, rows, spark_pixels
+        from tests.e2e.support.signal_trends import start, painted, wait_count, rows, spark_pixels, show_family_sparks
         held = []
         start(page, live_server, legacy=lambda route: held.append(route))
         painted(page)
         wait_count(page, held, 1)
+        show_family_sparks(page)
         page.evaluate('''() => { refreshHeroChart(); refreshSparklines(); }''')
         wait_count(page, held, 2)
         sparse = [{'timestamp': row['timestamp'], 'speedtest_download': value,
@@ -1278,17 +1281,17 @@ class TestSignalLifecycle:
                   for row, value in zip(rows(), [10, 30, 12])]
         held[1].fulfill(json=sparse)
         page.wait_for_timeout(100)
-        assert spark_pixels(page, '#spark-speed')
-        bitmap = page.locator('#spark-speed').evaluate('c => c.toDataURL()')
+        assert spark_pixels(page, '#spark-errors')
+        bitmap = page.locator('#spark-errors').evaluate('c => c.toDataURL()')
         held[0].fulfill(json=rows(1))
         page.wait_for_load_state('networkidle')
-        assert page.locator('#spark-speed').evaluate('c => c.toDataURL()') == bitmap
+        assert page.locator('#spark-errors').evaluate('c => c.toDataURL()') == bitmap
         # A successful empty update must remove stale pixels, not cache them forever.
         page.evaluate('''() => { refreshHeroChart(); refreshSparklines(); }''')
         wait_count(page, held, 3)
         held[2].fulfill(json=[])
         page.wait_for_load_state('networkidle')
-        assert not spark_pixels(page, '#spark-speed')
+        assert not spark_pixels(page, '#spark-errors')
 
     def test_modules_disabled_still_share_and_paint(self, page, tkg_core_server):
         from tests.e2e.support.signal_trends import start, painted, wait_count

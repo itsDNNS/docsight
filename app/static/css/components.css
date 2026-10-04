@@ -60,6 +60,12 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 8px 24px -4px rgba(124,58,237,0.3);
 }
+.btn-secondary {
+  background: var(--tint-emphasis);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+}
+.btn-secondary:hover { border-color: var(--accent); }
 .btn-ghost {
   background: rgba(255,255,255,0.05);
   color: var(--text-secondary);

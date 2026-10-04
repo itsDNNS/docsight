@@ -4,7 +4,7 @@ import re
 
 import pytest
 from playwright.sync_api import expect
-from tests.e2e.support.navigation import open_view
+from tests.e2e.support.navigation import open_channel_families, open_view
 
 
 class TestDashboardLoad:
@@ -112,14 +112,12 @@ class TestNavigation:
         live_section = demo_page.locator("#view-dashboard")
         assert live_section.is_visible()
 
-    def test_speed_kpi_card_opens_speedtest_view_and_uses_rabbit_icon(self, demo_page):
-        speed_card = demo_page.locator("#metric-speed-card")
-        assert speed_card.is_visible()
-        assert speed_card.get_attribute("role") == "button"
-        assert speed_card.get_attribute("tabindex") == "0"
-        assert speed_card.locator('svg.lucide-rabbit').is_visible()
+    def test_speed_kpi_opens_speedtest_view_and_uses_rabbit_icon(self, demo_page):
+        speed_kpi = demo_page.locator("#home-kpi-speedtest")
+        assert speed_kpi.is_visible()
+        assert speed_kpi.locator('svg.lucide-rabbit').is_visible()
 
-        speed_card.click()
+        speed_kpi.locator(".home-kpi-link").click()
 
         assert demo_page.locator("#view-speedtest").is_visible()
         assert "active" in demo_page.locator('.nav-item[data-view="speedtest"]').get_attribute("class")
@@ -148,6 +146,7 @@ class TestDashboardSections:
         assert us.is_visible()
 
     def test_signal_family_cards_show_ofdma_and_stack_modulation_below_status(self, demo_page):
+        open_channel_families(demo_page)
         ofdma_card = demo_page.locator("#metric-us-ofdma-card")
         assert ofdma_card.is_visible()
         assert "US POWER (OFDMA)" in ofdma_card.text_content()
@@ -175,8 +174,9 @@ class TestDashboardSections:
         assert geometry["modulationTop"] >= geometry["statusBottom"] - 1
         assert geometry["modulationWidth"] >= geometry["cardWidth"] * 0.8
 
-    def test_metric_range_bars_align_on_wide_home_dashboard(self, demo_page):
+    def test_metric_range_bars_align_on_wide_family_grid(self, demo_page):
         demo_page.set_viewport_size({"width": 1280, "height": 720})
+        open_channel_families(demo_page)
         errors_card = demo_page.locator("#metric-errors-card")
         us_scqam_card = demo_page.locator("#metric-us-sc-qam-card")
         assert errors_card.is_visible()
@@ -196,9 +196,10 @@ class TestDashboardSections:
         )
         assert abs(geometry["errorsTop"] - geometry["usTop"]) <= 2
 
-    def test_signal_family_average_hint_uses_single_line_on_wide_dashboard(self, demo_page):
+    def test_signal_family_average_hint_uses_single_line_on_wide_layout(self, demo_page):
         demo_page.set_viewport_size({"width": 1280, "height": 720})
-        hint = demo_page.locator(".dashboard-section-context > span")
+        open_channel_families(demo_page)
+        hint = demo_page.locator(".channel-families-hint")
         assert hint.is_visible()
 
         geometry = hint.evaluate(
@@ -323,13 +324,13 @@ class TestDashboardSections:
         assert refresh.first.is_visible()
         assert refresh.first.evaluate("el => el.tagName.toLowerCase() === 'button'")
 
-    def test_connection_monitor_card_is_keyboard_accessible(self, demo_page):
-        card = demo_page.locator("#connection-monitor-card")
-        assert card.count() == 1
-        assert card.get_attribute("role") == "button"
-        assert card.get_attribute("tabindex") == "0"
+    def test_connection_monitor_source_is_a_keyboard_reachable_link(self, demo_page):
+        source = demo_page.locator("#cm-source")
+        assert source.count() == 1
+        assert source.evaluate("el => el.tagName.toLowerCase()") == "a"
+        assert source.get_attribute("href") == "#connection-monitor"
 
-    def test_enabled_connection_monitor_card_uses_standard_kpi_anatomy(self, demo_page):
+    def test_enabled_connection_monitor_source_summarizes_targets_and_latency(self, demo_page):
         demo_page.route(
             "**/api/connection-monitor/summary",
             lambda route: route.fulfill(
@@ -343,45 +344,20 @@ class TestDashboardSections:
                         "min_latency_ms": 37.2,
                         "max_latency_ms": 43.6,
                         "packet_loss_pct": 0,
-                    }
+                    },
+                    "2": {"label": "Off", "host": "9.9.9.9", "enabled": False},
                 }
             ),
         )
         demo_page.reload(wait_until="networkidle")
 
-        latency = demo_page.locator("#cm-card-latency")
-        average = demo_page.locator("#cm-card-avg")
-        badge = demo_page.locator("#cm-card-badge")
-        expect(average).to_have_text("Avg · 1/1 OK")
+        source = demo_page.locator("#cm-source")
+        expect(demo_page.locator("#cm-source-value")).to_have_text("1/1 OK · 39.9 ms")
+        expect(source).to_have_attribute("data-cm-state", "active")
+        expect(source).to_have_attribute("data-cm-health", "good")
 
-        assert latency.text_content() == "39.9ms"
-        assert latency.locator(":scope > .unit").count() == 1
-        assert latency.locator(":scope > .unit").text_content() == "ms"
-        assert "Avg" not in latency.text_content()
-        assert average.text_content() == "Avg · 1/1 OK"
-        assert badge.text_content() == "Good"
-
-        structure = demo_page.evaluate(
-            """
-            () => {
-                const latency = document.querySelector('#cm-card-latency');
-                const average = document.querySelector('#cm-card-avg');
-                const averageRow = average && average.closest('.metric-average-row');
-                return {
-                    primaryText: latency && latency.firstChild && latency.firstChild.nodeValue,
-                    unitParentIsPrimary: latency && latency.querySelector(':scope > .unit')?.parentElement === latency,
-                    averageParentIsSecondaryRow: averageRow?.contains(average) === true,
-                    primaryContainsAverage: latency?.contains(average) === true,
-                };
-            }
-            """
-        )
-        assert structure == {
-            "primaryText": "39.9",
-            "unitParentIsPrimary": True,
-            "averageParentIsSecondaryRow": True,
-            "primaryContainsAverage": False,
-        }
+        source.click()
+        expect(demo_page.locator("#view-connection-monitor")).to_be_visible()
 
     def test_speedtest_row_toggles_are_named_and_expose_their_state(self, demo_page):
         demo_page.evaluate("switchView('speedtest')")
@@ -398,24 +374,23 @@ class TestDashboardSections:
         expect(toggle).to_have_attribute("aria-expanded", "true")
         expect(demo_page.locator("#" + toggle.get_attribute("aria-controls"))).to_be_visible()
 
-    def test_demo_connection_monitor_card_shows_seeded_latency(self, demo_page):
-        expect(demo_page.locator("#connection-monitor-card")).to_have_attribute(
+    def test_demo_connection_monitor_source_shows_seeded_latency(self, demo_page):
+        expect(demo_page.locator("#cm-source")).to_have_attribute(
             "data-cm-state", "active", timeout=15000
         )
-        expect(demo_page.locator("#cm-card-latency")).to_contain_text("ms")
-        expect(demo_page.locator("#cm-card-badge")).not_to_have_text("–")
+        expect(demo_page.locator("#cm-source-value")).to_contain_text("ms")
+        expect(demo_page.locator("#cm-source-value")).to_contain_text("OK")
 
-    def test_disabled_connection_monitor_card_explains_state_and_opens_settings(self, demo_page):
+    def test_disabled_connection_monitor_source_explains_state_and_opens_settings(self, demo_page):
         demo_page.route("**/api/connection-monitor/summary", lambda route: route.fulfill(json={}))
         demo_page.reload(wait_until="networkidle")
 
-        card = demo_page.locator("#connection-monitor-card")
-        expect(card).to_have_attribute("data-cm-state", "off")
-        expect(demo_page.locator("#cm-card-badge")).to_have_text("Off")
-        expect(demo_page.locator("#cm-card-avg")).to_have_text("Turn on in Settings")
+        source = demo_page.locator("#cm-source")
+        expect(source).to_have_attribute("data-cm-state", "off")
+        expect(demo_page.locator("#cm-source-value")).to_have_text("Off · Turn on in Settings")
 
-        card.focus()
-        card.press("Enter")
+        source.focus()
+        source.press("Enter")
         demo_page.wait_for_url("**/settings#mod-docsight_connection_monitor")
 
     def test_docsis_groups_expose_expanded_state(self, demo_page):
@@ -443,7 +418,7 @@ class TestHealthEndpoint:
 
 class TestSignalRefresh:
     def test_refresh_keeps_real_hero_and_cached_sparse_sparks_then_updates(self, page, live_server):
-        from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, spark_pixels, toggle_theme
+        from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, toggle_theme
         requests = start(page, live_server)
         painted(page)
         page.wait_for_load_state('networkidle')
@@ -453,8 +428,6 @@ class TestSignalRefresh:
         click_refresh(page)
         wait_count(page, held, 1)
         assert page.evaluate("savedHero === document.querySelector('#hero-trend-chart') && savedCanvas.isConnected && savedCanvas.toDataURL() === savedBitmap")
-        assert spark_pixels(page, '#spark-speed')
-        assert spark_pixels(page, '#spark-errors')
         toggle_theme(page)
         assert len(held) == 1
         held[0].fulfill(json=rows(8))
@@ -462,6 +435,22 @@ class TestSignalRefresh:
         wait_count(page, requests['legacy'], 2)
         assert page.evaluate('!savedCanvas.isConnected')
         assert page.locator('body > .uplot-tooltip').count() == 1
+
+    def test_refresh_replaces_family_cards_and_redraws_cached_sparks_when_shown(self, page, live_server):
+        from tests.e2e.support.signal_trends import start, painted, wait_count, click_refresh, spark_pixels, show_family_sparks
+        requests = start(page, live_server)
+        painted(page)
+        page.wait_for_load_state('networkidle')
+        page.evaluate("window.savedSpark = document.querySelector('#spark-errors')")
+        held = []
+        page.route('**/api/trends/signal?*', lambda route: held.append(route))
+        click_refresh(page)
+        wait_count(page, held, 1)
+        # The refreshed snapshot replaced the Channels page values; the cache paints them once visible.
+        assert page.evaluate("!savedSpark.isConnected && !!document.querySelector('#spark-errors')")
+        assert len(requests['legacy']) == 1
+        show_family_sparks(page)
+        assert spark_pixels(page, '#spark-errors')
 
     def test_stale_signal_and_theme_during_fetch_cannot_overwrite_newer_data(self, page, live_server):
         from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, toggle_theme
@@ -504,7 +493,7 @@ class TestSignalRefresh:
         assert 'Stale trend marker' not in page.locator('#view-dashboard').text_content()
 
     def test_refresh_failure_retains_chart_and_modules_still_update(self, page, live_server):
-        from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, spark_pixels
+        from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, spark_pixels, show_family_sparks
         requests = start(page, live_server)
         painted(page)
         page.wait_for_load_state('networkidle')
@@ -514,5 +503,63 @@ class TestSignalRefresh:
         wait_count(page, requests['legacy'], 2)
         page.wait_for_load_state('networkidle')
         assert page.evaluate('savedCanvas.isConnected')
+        show_family_sparks(page)
         assert spark_pixels(page, '#spark-errors')
-        assert spark_pixels(page, '#spark-speed')
+
+
+class TestHomeOverview:
+    """Calm Home: key figures, findings, recent events, and the source row."""
+
+    def test_recent_events_show_the_three_newest_with_type_labels(self, demo_page):
+        items = demo_page.locator("#home-events-list > li > a.home-event")
+        expect(items).to_have_count(3)
+        api = demo_page.request.get(demo_page.url.split("#")[0] + "api/events?limit=3&exclude_operational=true").json()
+        labels = demo_page.evaluate("[...document.querySelectorAll('#home-events-list .home-event-text b')].map(b => b.textContent)")
+        expected = demo_page.evaluate("types => types.map(_eventTypeLabel)", [ev["event_type"] for ev in api["events"]])
+        assert labels == expected
+        items.first.click()
+        expect(demo_page.locator("#view-events")).to_be_visible()
+
+    def test_recent_events_explain_an_empty_log(self, demo_page):
+        demo_page.route("**/api/events?limit=3*", lambda route: route.fulfill(json={"events": [], "unacknowledged_count": 0}))
+        demo_page.evaluate("loadHomeEvents()")
+        expect(demo_page.locator("#home-events-list .home-events-empty")).to_have_text("No events yet.")
+
+    def test_key_figures_open_their_detail_views(self, demo_page):
+        demo_page.locator("#home-kpi-downstream .home-kpi-link").click()
+        expect(demo_page.locator("#channel-panel-status")).to_be_visible()
+        open_view(demo_page, "live")
+        demo_page.locator("#home-kpi-errors .home-kpi-link").click()
+        expect(demo_page.locator("#view-trends")).to_be_visible()
+
+    def test_finding_details_expand_the_full_insights(self, demo_page):
+        details = demo_page.locator(".home-findings .line-status-findings")
+        expect(demo_page.locator(".home-findings-lead")).to_be_visible()
+        expect(details.locator(".insights-panel")).to_be_hidden()
+        details.locator("summary").click()
+        expect(details.locator(".insights-panel")).to_be_visible()
+
+    def test_home_has_no_metric_cards_and_stacks_without_overflow(self, demo_page):
+        expect(demo_page.locator("#view-dashboard .metric-card")).to_have_count(0)
+        for width in (393, 760, 1100):
+            demo_page.set_viewport_size({"width": width, "height": 900})
+            overflow = demo_page.evaluate(
+                "() => [...document.querySelectorAll('.home-kpis, .home-split, .home-sources')]"
+                ".some(el => el.scrollWidth > el.clientWidth + 1)"
+            )
+            assert overflow is False, width
+
+    def test_refresh_keeps_the_family_section_open(self, demo_page):
+        open_channel_families(demo_page)
+        open_view(demo_page, "live")
+        demo_page.locator(".hero-refresh-button").click()
+        demo_page.wait_for_load_state("networkidle")
+        expect(demo_page.locator("#channel-families")).to_have_attribute("open", "")
+        expect(demo_page.locator("#channel-families #metric-us-ofdma-card")).to_have_count(1)
+
+    def test_recent_events_stay_on_one_line_each(self, demo_page):
+        heights = demo_page.evaluate(
+            "() => [...document.querySelectorAll('#home-events-list .home-event-text')].map(el => el.getBoundingClientRect().height)"
+        )
+        line = demo_page.evaluate("parseFloat(getComputedStyle(document.querySelector('.home-event-text')).lineHeight) || 24")
+        assert heights and all(h <= line * 1.5 for h in heights), heights
