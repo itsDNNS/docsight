@@ -53,13 +53,15 @@ class RuntimeStateStore:
         self,
         path: Path,
         *,
-        retry_attempts: int = 4,
+        retry_attempts: int = 8,
         retry_delay_seconds: float = 0.025,
+        max_retry_delay_seconds: float = 0.2,
         sleep: Callable[[float], object] = time.sleep,
     ) -> None:
         self.path = path
         self._retry_attempts = max(1, retry_attempts)
         self._retry_delay_seconds = max(0.0, retry_delay_seconds)
+        self._max_retry_delay_seconds = max(self._retry_delay_seconds, max_retry_delay_seconds)
         self._sleep = sleep
 
     def load(self) -> RuntimeState | None:
@@ -131,6 +133,10 @@ class RuntimeStateStore:
             raise RuntimeStateError("unable to remove desktop runtime state") from exc
 
     def _retry_sharing_violation(self, operation: Callable[[], Any]) -> Any:
+        # Another process replacing the file locks it briefly; on a busy machine
+        # that can outlast a few fixed short waits, so the waits grow (about one
+        # second in total) while an uncontended call never sleeps.
+        delay = self._retry_delay_seconds
         for attempt in range(self._retry_attempts):
             try:
                 return operation()
@@ -141,7 +147,8 @@ class RuntimeStateStore:
                     or attempt + 1 >= self._retry_attempts
                 ):
                     raise
-                self._sleep(self._retry_delay_seconds)
+                self._sleep(delay)
+                delay = min(delay * 2, self._max_retry_delay_seconds)
         raise AssertionError("unreachable sharing retry state")
 
 
