@@ -1164,7 +1164,7 @@ python -m pytest tests/ -v
 ```yaml
 services:
   docsight:
-    image: ghcr.io/itsdnns/docsight:latest
+    image: ghcr.io/itsdnns/docsight:stable
     container_name: docsight
     restart: unless-stopped
     ports:

@@ -36,7 +36,7 @@ If `docker --version` works but `docker info` fails, Docker Desktop is installed
 Copy and paste this one-line command into PowerShell:
 
 ```powershell
-docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
+docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:stable
 ```
 
 What this does:
@@ -65,7 +65,7 @@ Select **View demo** on the first-run page. It uses the same local DOCSight inst
 For an automatically starting, dedicated demo container instead, run:
 
 ```powershell
-docker run -d --name docsight-demo --restart unless-stopped -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:latest
+docker run -d --name docsight-demo --restart unless-stopped -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:stable
 ```
 
 Use either the demo container or the normal `docsight` container on port `8765`, not both at the same time.

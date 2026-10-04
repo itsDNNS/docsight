@@ -201,7 +201,7 @@ When you want DOCSight to monitor continuously:
 3. Start DOCSight with a persistent Docker volume:
 
    ```powershell
-   docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
+   docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:stable
    ```
 
 Docker remains the recommended path for 24/7 monitoring because it can restart with the host and is easier to run on a machine that stays online.

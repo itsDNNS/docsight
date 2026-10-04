@@ -32,7 +32,7 @@ docker run -d \
   --restart unless-stopped \
   -p 8765:8765 \
   -v docsight_data:/data \
-  ghcr.io/itsdnns/docsight:latest
+  ghcr.io/itsdnns/docsight:stable
 ```
 
 Open `http://localhost:8765` and follow the setup wizard.
@@ -44,6 +44,8 @@ Open `http://localhost:8765` and follow the setup wizard.
 | `stable` | The newest DOCSight release. Moves only when a new release is published. |
 | `latest` | The current state of the `main` branch, rebuilt with every change. |
 | `vYYYY-MM-DD.N` | One specific release. Never changes, useful for pinning. |
+
+The examples use `stable`. Use `latest` if you want changes before they are released.
 
 ## Bare-Metal / systemd
 

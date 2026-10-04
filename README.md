@@ -54,13 +54,13 @@ The commands below require a running Docker engine. For Windows setup, see the [
 No router required. Demo mode generates synthetic DOCSIS history so you can explore the app.
 
 ```bash
-docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:latest
+docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:stable
 ```
 
 ### Option 2: Connect your own modem or router
 
 ```bash
-docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
+docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:stable
 ```
 
 Open `http://localhost:8765`. For your own connection, follow the setup wizard to select a [supported modem or Generic Router](#supported-hardware). Configuration and history are stored in the `docsight_data` volume.
