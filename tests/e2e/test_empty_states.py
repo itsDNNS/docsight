@@ -252,8 +252,16 @@ def test_every_navigation_view_shows_data_or_an_explained_empty_state(demo_page)
 
     for view in views:
         page.evaluate("view => switchView(view)", view)
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(300)
+        # Views render after their requests resolve; wait for content or an empty state.
+        page.wait_for_function(
+            """() => {
+                const root = document.querySelector('.view.active');
+                if (!root) return false;
+                const empty = [...root.querySelectorAll('.view-empty')].some(node => node.getClientRects().length);
+                return empty || root.innerText.trim().length > 80;
+            }""",
+            timeout=15000,
+        )
         state = page.evaluate(
             """view => {
                 const root = document.querySelector('.view.active');
