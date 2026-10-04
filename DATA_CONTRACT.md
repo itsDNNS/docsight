@@ -50,7 +50,7 @@ Examples:
 
 - `app/` application code, templates, static assets, collectors, modules, and translations.
 - `tests/` and `.github/` validation and CI definitions.
-- Root documentation such as `README.md`, `SECURITY.md`, `ARCHITECTURE.md`, and this `DATA_CONTRACT.md`.
+- Root documentation such as `README.md`, `SECURITY.md`, `SUPPORT.md`, and this `DATA_CONTRACT.md`.
 - Built-in demo fixtures, built-in module manifests, bundled maintainer notices, and static product assets.
 - Container image layers outside the mounted data directory.
 

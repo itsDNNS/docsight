@@ -6,7 +6,8 @@ Example (use this script and interpreter for BOTH source trees):
     --repo /path/to/baseline --repo /path/to/changed \
     --seed-dir /tmp/docsight-signal-seed --output /tmp/trends.json
 
-See scripts/benchmark_dashboard_trends.md for measurement scope and flags.
+See https://github.com/itsDNNS/docsight/wiki/Developer-Testing#synthetic-dashboard-trend-benchmark
+for measurement scope and flags.
 """
 from __future__ import annotations
 

@@ -28,9 +28,9 @@ Collector Registry → Base Collector (Fail-Safe) → Analyzer/Storage → Web U
 - New modem types must implement the `ModemDriver` base class (`app/drivers/base.py`)
 - Collectors run in **parallel threads** via `ThreadPoolExecutor`. Protect shared state with locks.
 - Use the collector pattern for automatic fail-safe and health monitoring
-- Construct apps with `app.app_factory.create_app()`; internal consumers use `current_runtime()` and the language/time/theme/version owners in [ARCHITECTURE.md](ARCHITECTURE.md). Community `app.web` accessors, mutations, `APP_VERSION`, and `require_auth` remain supported; importing it creates no app or app-specific globals.
+- Construct apps with `app.app_factory.create_app()`; internal consumers use `current_runtime()` and the language/time/theme/version owners described on the [Architecture wiki page](https://github.com/itsDNNS/docsight/wiki/Architecture). Community `app.web` accessors, mutations, `APP_VERSION`, and `require_auth` remain supported; importing it creates no app or app-specific globals.
 
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation and data flow diagrams.
+See the [Architecture wiki page](https://github.com/itsDNNS/docsight/wiki/Architecture) for detailed technical documentation and data flow diagrams.
 
 ## Development Setup
 
@@ -59,7 +59,7 @@ npm ci
 npm test
 ```
 
-The Python suite covers analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. `-n auto` runs it in parallel with `pytest-xdist` (included in the Linux and Windows test requirements); drop it to debug a single test serially. The zero-dependency JavaScript lane uses Node 22's built-in test runner for browser bootstrap and pure frontend contracts. Run both suites before submitting a PR.
+The Python suite covers analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. Checks marked `wiki` compare the repository with the documentation in the [GitHub Wiki](https://github.com/itsDNNS/docsight/wiki); they are skipped locally unless `DOCSIGHT_WIKI_DIR` points at a checkout of `https://github.com/itsDNNS/docsight.wiki.git`, and CI runs them against the published Wiki. Fixtures, Wiki checks, and the dashboard trend benchmark are described on the [Developer Testing wiki page](https://github.com/itsDNNS/docsight/wiki/Developer-Testing). `-n auto` runs it in parallel with `pytest-xdist` (included in the Linux and Windows test requirements); drop it to debug a single test serially. The zero-dependency JavaScript lane uses Node 22's built-in test runner for browser bootstrap and pure frontend contracts. Run both suites before submitting a PR.
 
 ### Browser E2E suite
 
@@ -127,7 +127,7 @@ app/
   event_detector.py  - Signal anomaly detection (thread-safe)
   config.py          - Configuration management (env + config.json)
   storage/           - SQLite storage (base + mixins), WAL mode, thread-safe
-  collectors/        - Collector implementations (modem, demo, speedtest, bqm)
+  collectors/        - Core collectors (modem, demo, segment utilization); feature collectors live in modules/
     base.py          - Abstract Collector with fail-safe and locking
     __init__.py      - Registry and discover_collectors()
   drivers/           - Modem driver implementations for the supported hardware families
@@ -135,7 +135,7 @@ app/
     registry.py      - Driver registry (auto-detection + manual selection)
   modules/           - Built-in modules (backup, bnetz, bqm, journal, mqtt, ...)
   blueprints/        - Flask blueprints (config, polling, data, analysis, ...)
-  i18n/              - Translation files (EN/DE/FR/ES JSON)
+  i18n/              - Core translation files (24 languages)
   fonts/             - Bundled DejaVu fonts for PDF generation
   static/            - Static assets (icons, etc.)
   templates/         - Jinja2 HTML templates

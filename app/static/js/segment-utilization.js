@@ -232,12 +232,12 @@ function _fritzCableRenderEvent(ev) {
 }
 
 /* ── Correlation Navigation ──
- * The correlation view has a fixed set of "hours" pills (24 / 48 / 168).
+ * Offer the correlation range pills up to 7 days (1d / 2d / 3d / 7d, in hours).
  * Pick the smallest pill whose window contains the entire event (start
  * through end). If the event's start predates the largest pill, return
  * null so the caller can hide the action — a narrower window would crop
  * the event. Pure function of its inputs. */
-var _FRITZ_CORRELATION_PILLS = [24, 48, 168];
+var _FRITZ_CORRELATION_PILLS = [24, 48, 72, 168];
 function _fritzCablePickCorrelationHours(eventStartIso, eventEndIso, nowMs) {
     if (!eventStartIso) return null;
     var startMs = Date.parse(eventStartIso);
@@ -256,11 +256,18 @@ function _fritzCablePickCorrelationHours(eventStartIso, eventEndIso, nowMs) {
  * switchView synchronously calls loadCorrelationData(), which reads the
  * active pill via getPillValue(). If we switched first and activated the
  * pill afterwards, two fetches would race and stale data could win. */
+/* Correlation pills carry range values such as "6h" or "2d". */
+function _fritzCablePillHours(value) {
+    var match = /^(\d+)(h|d)$/.exec(String(value || ''));
+    if (!match) return null;
+    return parseInt(match[1], 10) * (match[2] === 'd' ? 24 : 1);
+}
+
 function _fritzCableOpenInCorrelation(hours) {
     if (hours == null) return;
     var tabs = document.querySelectorAll('#correlation-tabs .trend-tab');
     tabs.forEach(function(tab) {
-        var match = parseInt(tab.getAttribute('data-value'), 10) === hours;
+        var match = _fritzCablePillHours(tab.getAttribute('data-value')) === hours;
         tab.classList.toggle('active', match);
     });
     if (typeof window.switchView === 'function') {

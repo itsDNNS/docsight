@@ -127,7 +127,7 @@ secure cookies; it does not enable URL-prefix trust.
 A Home Assistant-shaped mount does not give DOCSight Core a Home Assistant
 identity or session. Home Assistant may authenticate access to its Ingress
 gateway, but DOCSight keeps its own authentication boundary. See the
-[path-prefix reverse-proxy guide](docs/reverse-proxy.md) for configuration and
+[path-prefix reverse-proxy guide](https://github.com/itsDNNS/docsight/wiki/Reverse-Proxy#path-prefixes) for configuration and
 healthcheck examples.
 
 ### Login Rate Limiting
@@ -200,7 +200,7 @@ Security-relevant events are logged to the `docsis.audit` logger:
 **Network Exposure:**
 - By default, DOCSight listens on `0.0.0.0:8765`
 - For single-user setups, bind to localhost only: `-p 127.0.0.1:8765:8765`
-- For LAN or remote access, use a [reverse proxy](docs/reverse-proxy.md) with HTTPS
+- For LAN or remote access, use a [reverse proxy](https://github.com/itsDNNS/docsight/wiki/Reverse-Proxy) with HTTPS
 
 **Modem Credentials:**
 - Stored encrypted in `data/config.json` (Fernet symmetric encryption)

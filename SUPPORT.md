@@ -13,7 +13,7 @@ DOCSight has a few different channels on purpose. Using the right one keeps trou
 | Missing, outdated, or confusing docs | [Documentation improvement form](https://github.com/itsDNNS/docsight/issues/new?template=documentation.yml) | Best for README, wiki, setup, and screenshot fixes |
 | Request support for a new modem model | [Modem support request form](https://github.com/itsDNNS/docsight/issues/new?template=modem_support.yml) | Collects the HAR file, screenshots, and firmware details needed for a driver |
 | Security vulnerabilities | [Private security advisory](https://github.com/itsDNNS/docsight/security/advisories/new) | Keeps users safe and avoids publishing exploit details too early |
-| Documentation, install, and architecture references | [Wiki](https://github.com/itsDNNS/docsight/wiki), [INSTALL.md](INSTALL.md), [ARCHITECTURE.md](ARCHITECTURE.md) | Start here before opening support threads |
+| Documentation, install, and architecture references | [Wiki](https://github.com/itsDNNS/docsight/wiki), [Installation](https://github.com/itsDNNS/docsight/wiki/Installation), [Architecture](https://github.com/itsDNNS/docsight/wiki/Architecture) | Start here before opening support threads |
 
 ## Before opening a bug
 
@@ -40,7 +40,7 @@ When opening a bug, include:
 
 ## Before opening a documentation issue
 
-Use the documentation form when the problem is missing guidance, stale screenshots, unclear wording, or a broken example in the README, wiki, installation docs, or architecture docs.
+Use the documentation form when the problem is missing guidance, stale screenshots, unclear wording, or a broken example in the README or the wiki, including the installation and architecture pages.
 
 Useful details include:
 
@@ -63,7 +63,7 @@ Without that data, modem support requests usually stall.
 
 ## Build the proof layer
 
-If DOCSight helped you prove packet loss, recurring instability, signal degradation, or a before-and-after change after ISP work, share it in [Show and tell](https://github.com/itsDNNS/docsight/discussions/categories/show-and-tell).
+If DOCSight helped you prove packet loss, recurring instability, signal degradation, or a before-and-after change after ISP work, share it in [Show and tell](https://github.com/itsDNNS/docsight/discussions/categories/show-and-tell). The [community proof templates](https://github.com/itsDNNS/docsight/wiki/Community-Proof-Templates) help you share useful detail without posting private data.
 
 Useful posts include:
 

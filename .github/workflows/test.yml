@@ -40,6 +40,13 @@ jobs:
               - '*.md'
               - 'docs/**'
               - 'packaging/windows/*.md'
+              - '.github/ISSUE_TEMPLATE/**'
+              - '.github/PULL_REQUEST_TEMPLATE.md'
+              - 'app/web.py'
+              - 'scripts/benchmark_dashboard_trends.py'
+              - 'tests/test_public_launch_surface.py'
+              - 'tests/test_wiki_docs.py'
+              - '.github/workflows/test.yml'
             python:
               - 'app/**'
               - 'tests/**'
@@ -103,11 +110,17 @@ jobs:
 
   docs:
     needs: changes
+    # The weekly run also catches Wiki edits that break links from the repository.
     if: >-
       always() &&
       !cancelled() &&
-      needs.changes.result == 'success' &&
-      needs.changes.outputs.docs == 'true'
+      (
+        github.event_name == 'schedule' ||
+        (
+          needs.changes.result == 'success' &&
+          needs.changes.outputs.docs == 'true'
+        )
+      )
     runs-on: ubuntu-latest
 
     steps:
@@ -128,12 +141,18 @@ jobs:
           pip install --require-hashes -r requirements.txt
           pip install --require-hashes -r requirements-test.txt
 
+      - name: Check out the published Wiki
+        run: git clone --depth 1 https://github.com/itsDNNS/docsight.wiki.git "$RUNNER_TEMP/docsight.wiki"
+
       - name: Run documentation contract tests
+        env:
+          DOCSIGHT_WIKI_DIR: ${{ runner.temp }}/docsight.wiki
         run: >-
           python -m pytest -q
           tests/test_public_launch_surface.py
           tests/test_defensive_review_docs.py
           tests/test_windows_packaging.py
+          tests/test_wiki_docs.py
 
   test:
     needs: changes
@@ -173,7 +192,7 @@ jobs:
           PY
 
       - name: Run tests
-        run: python -m pytest tests/ -n auto --tb=short --ignore=tests/e2e
+        run: python -m pytest tests/ -n auto --tb=short --ignore=tests/e2e -m "not wiki"
 
   test-js:
     needs: changes
@@ -230,7 +249,7 @@ jobs:
           pip install --require-hashes -r packaging/windows/requirements-test-windows.txt
 
       - name: Run portable Windows tests
-        run: python -m pytest tests/ -n auto --tb=short --ignore=tests/e2e -m "not linux_only"
+        run: python -m pytest tests/ -n auto --tb=short --ignore=tests/e2e -m "not linux_only and not wiki"
 
   mobile-e2e:
     needs: changes

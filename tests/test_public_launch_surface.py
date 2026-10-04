@@ -19,6 +19,10 @@ UNLINKED_PUBLIC_IMAGES = [
     DOCS / "screenshots" / "smart-capture-settings.png",
     DOCS / "screenshots" / "readme-hero-evidence.png",
 ]
+WIKI_URL = "https://github.com/itsDNNS/docsight/wiki"
+PRIVATE_VALUE_RE = re.compile(
+    r"(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|Vodafone Kabel)", re.I
+)
 LOCAL_PUBLIC_ASSET_RE = re.compile(
     r"(?<![\w/-])(?:docs/)?(?:screenshots/|samples/)?[A-Za-z0-9_.-]+\.(?:png|jpg|jpeg|webp|svg|pdf)"
 )
@@ -115,10 +119,6 @@ def test_public_surface_docs_and_social_asset_exist() -> None:
     expected = [
         DATA_CONTRACT,
         DOCS / "index.html",
-        DOCS / "feature-matrix.md",
-        DOCS / "self-hosted-directory-submission.md",
-        DOCS / "public-launch-follow-up-issues.md",
-        DOCS / "proof-pack.md",
         DOCS / "samples" / "demo-complaint-report.pdf",
         DOCS / "screenshots" / "bad-day-evidence.png",
         DOCS / "screenshots" / "dashboard-hero.png",
@@ -151,10 +151,18 @@ def test_public_docs_reference_existing_local_assets_without_unlinked_images() -
 
 
 def test_no_private_or_localhost_values_in_public_surface() -> None:
-    paths = [INDEX, DOCS / "feature-matrix.md", DOCS / "self-hosted-directory-submission.md"]
-    pattern = re.compile(r"(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|Vodafone Kabel)", re.I)
-    for path in paths:
-        assert not pattern.search(path.read_text(encoding="utf-8")), path
+    # The feature matrix moved to the Wiki; tests/test_wiki_docs.py applies the same check there.
+    assert not PRIVATE_VALUE_RE.search(INDEX.read_text(encoding="utf-8")), INDEX
+
+
+def test_public_documentation_lives_in_the_wiki() -> None:
+    """User documentation is published in the Wiki; docs/ keeps the landing page and its assets."""
+    assert sorted(path.relative_to(ROOT).as_posix() for path in DOCS.rglob("*.md")) == []
+    for moved in ("ARCHITECTURE.md", "INSTALL.md", "scripts/benchmark_dashboard_trends.md"):
+        assert not (ROOT / moved).exists(), moved
+    landing = INDEX.read_text(encoding="utf-8")
+    assert f"{WIKI_URL}/Proof-Pack" in landing
+    assert f"{WIKI_URL}/Proof-Pack" in README.read_text(encoding="utf-8")
 
 
 def test_public_modem_family_counts_match_registry() -> None:
