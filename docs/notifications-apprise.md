@@ -9,7 +9,7 @@ Apprise is optional. The existing direct webhook and Discord webhook paths remai
 ```yaml
 services:
   docsight:
-    image: ghcr.io/itsdnns/docsight:latest
+    image: ghcr.io/itsdnns/docsight:stable
     container_name: docsight
     restart: unless-stopped
     ports:
