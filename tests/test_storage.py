@@ -387,6 +387,26 @@ class TestSnapshotStorage:
         assert range_data[0]["ds_channels"] == [{"channel_id": 1}]
         assert range_data[0]["us_channels"] == [{"channel_id": 2}]
 
+    def test_range_summaries_match_range_data_without_decoding_channels(self, storage):
+        """The summary-only range keeps the counter unwrap but never parses channel payloads."""
+        with sqlite3.connect(storage.db_path) as conn:
+            for ts, errors, channels in (
+                ("2026-05-31T23:59:00Z", 4_200_000_000, "not-json-anchor"),
+                ("2026-06-01T00:00:00Z", 500_000_000, "not-json-visible"),
+                ("2026-06-01T00:15:00Z", 500_000_100, "not-json-visible"),
+            ):
+                conn.execute(
+                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
+                    (ts, json.dumps({"errors_supported": True, "ds_correctable_errors": errors, "ds_uncorrectable_errors": 0}),
+                     channels, channels),
+                )
+
+        rows = storage.get_range_summaries("2026-06-01T00:00:00Z", "2026-06-01T00:15:00Z")
+
+        assert [row["timestamp"] for row in rows] == ["2026-06-01T00:00:00Z", "2026-06-01T00:15:00Z"]
+        assert [row["summary"]["ds_correctable_errors"] for row in rows] == [4_794_967_296, 4_794_967_396]
+        assert all(set(row) == {"timestamp", "summary"} for row in rows)
+
     def test_range_data_includes_snapshots_exactly_on_both_bounds(self, storage):
         """Exact report windows retain snapshots at both inclusive boundaries."""
         with sqlite3.connect(storage.db_path) as conn:

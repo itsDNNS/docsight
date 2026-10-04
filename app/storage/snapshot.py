@@ -215,7 +215,22 @@ class SnapshotMethods:
 
     def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:
         """Get all snapshots between two ISO timestamps (inclusive)."""
+        return self._range_entries(start_ts, end_ts, with_channels=True)
+
+    def get_range_summaries(self, start_ts: str, end_ts: str) -> list[dict]:
+        """Like get_range_data, but only timestamps and summaries.
+
+        Channel lists are by far the largest part of a snapshot; views that only
+        plot summary values skip decoding them.
+        """
+        return self._range_entries(start_ts, end_ts, with_channels=False)
+
+    def _range_entries(self, start_ts: str, end_ts: str, *, with_channels: bool) -> list[dict]:
         anchor_start = _unwrap_anchor_start(end_ts)
+        columns = (
+            "timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json"
+            if with_channels else "timestamp, summary_json"
+        )
         with self._read() as conn:
             anchor_rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
@@ -223,7 +238,7 @@ class SnapshotMethods:
                 (anchor_start, start_ts),
             ).fetchall()
             visible_rows = conn.execute(
-                "SELECT timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json "
+                f"SELECT {columns} "
                 "FROM snapshots WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
                 (start_ts, end_ts),
             ).fetchall()
@@ -235,13 +250,15 @@ class SnapshotMethods:
             })
         visible_entries = []
         for row in visible_rows:
-            visible_entries.append({
+            entry = {
                 "timestamp": row[0],
                 "summary": _normalize_summary_errors(json.loads(row[1])),
-                "ds_channels": json.loads(row[2]),
-                "us_channels": json.loads(row[3]),
-                "analysis_meta": _load_analysis_meta(row[4]),
-            })
+            }
+            if with_channels:
+                entry["ds_channels"] = json.loads(row[2])
+                entry["us_channels"] = json.loads(row[3])
+                entry["analysis_meta"] = _load_analysis_meta(row[4])
+            visible_entries.append(entry)
         unwrap_uint32_counter_series(
             (entry["summary"] for entry in [*anchor_entries, *visible_entries]),
             _SUMMARY_ERROR_KEYS,

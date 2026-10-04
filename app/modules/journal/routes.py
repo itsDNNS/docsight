@@ -578,7 +578,8 @@ def api_incident_timeline(incident_id):
         _, end_ts = local_date_to_utc_range(end_date, tz)
         _core = current_runtime().storage
         if _core:
-            timeline = _core.get_correlation_timeline(start_ts, end_ts)
+            # The case view plots signal, speedtests and events; other sources would only add payload.
+            timeline = _core.get_correlation_timeline(start_ts, end_ts, sources={"modem", "speedtest", "events"})
         try:
             from app.modules.bnetz.storage import BnetzStorage
             _bs = BnetzStorage(_core.db_path)
