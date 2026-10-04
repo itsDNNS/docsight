@@ -460,3 +460,79 @@ class TestGuidedModemChoice:
         expect(setup_page.locator("#setup-submit-result")).to_be_visible()
         assert posted and posted[0]["modem_type"] == "generic"
         assert "connection_kind" not in posted[0]
+
+
+class TestModemDetection:
+    """Local detection runs only on click and fills in model and address."""
+
+    def _serve(self, page, devices):
+        calls = []
+
+        def detect(route):
+            calls.append(route.request.method)
+            route.fulfill(json={"devices": devices})
+
+        page.route("**/api/setup/detect-modem", detect)
+        return calls
+
+    def test_nothing_is_probed_until_the_user_asks(self, setup_page):
+        calls = self._serve(setup_page, [])
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="cable"]').check()
+        expect(setup_page.locator("#detect-modem-btn")).to_be_visible()
+        setup_page.wait_for_timeout(500)
+        assert calls == []
+
+        setup_page.locator("#detect-modem-btn").click()
+        expect(setup_page.locator("#detect-modem-results")).to_contain_text("No device answered")
+        assert calls == ["POST"]
+
+    def test_a_recognized_modem_is_used_with_its_address(self, setup_page):
+        self._serve(setup_page, [
+            {"host": "192.168.178.1", "url": "http://192.168.178.1", "drivers": ["fritzbox"]},
+            {"host": "10.0.0.1", "url": "https://10.0.0.1", "drivers": ["surfboard", "sb8200_cbn"]},
+        ])
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="cable"]').check()
+        setup_page.locator("#detect-modem-btn").click()
+        results = setup_page.locator("#detect-modem-results")
+        expect(results.locator(".setup-detect-device")).to_have_count(2)
+        expect(results).to_contain_text("A device answers at http://192.168.178.1")
+
+        results.get_by_role("button", name="Use: Arris SURFboard (S33/S34/SB8200)").click()
+        expect(setup_page.locator("#modem_type")).to_have_value("surfboard")
+        # The driver's scheme stays, the address is the one that answered.
+        expect(setup_page.locator("#modem_url")).to_have_value("https://10.0.0.1")
+        expect(setup_page.locator("#modem-option-surfboard")).to_have_attribute("aria-selected", "true")
+
+        results.get_by_role("button", name="Use: AVM FRITZ!Box").click()
+        expect(setup_page.locator("#modem_type")).to_have_value("fritzbox")
+        expect(setup_page.locator("#modem_url")).to_have_value("http://192.168.178.1")
+
+    def test_an_unknown_device_lends_its_address_to_the_chosen_model(self, setup_page):
+        self._serve(setup_page, [{"host": "10.0.0.1", "url": "http://10.0.0.1", "drivers": []}])
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="cable"]').check()
+        setup_page.locator("#detect-modem-btn").click()
+        results = setup_page.locator("#detect-modem-results")
+        expect(results).to_contain_text("The model was not recognized")
+        results.get_by_role("button", name="Use this address").click()
+        expect(setup_page.locator("#modem-search")).to_be_focused()
+
+        setup_page.locator("#modem-search").fill("tc4400")
+        setup_page.locator("#modem-search").press("Enter")
+        expect(setup_page.locator("#modem_type")).to_have_value("tc4400")
+        expect(setup_page.locator("#modem_url")).to_have_value("http://10.0.0.1")
+
+    def test_a_failed_search_offers_a_retry(self, setup_page):
+        setup_page.route("**/api/setup/detect-modem", lambda route: route.fulfill(status=500, body="down"))
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="cable"]').check()
+        setup_page.locator("#detect-modem-btn").click()
+        results = setup_page.locator("#detect-modem-results")
+        expect(results.get_by_role("button", name="Try again")).to_be_visible()
+        setup_page.unroute("**/api/setup/detect-modem")
+        self._serve(setup_page, [])
+        results.get_by_role("button", name="Try again").click()
+        expect(results).to_contain_text("No device answered")
+        expect(results).not_to_have_class("test-result error")

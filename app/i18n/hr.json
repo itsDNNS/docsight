@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Odaberite vrstu veze.",
   "setup_choose_modem": "Odaberite model modema.",
   "setup_timezone_invalid": "Odaberite vremensku zonu s popisa.",
-  "setup_timezone_search": "Traži, npr. Berlin"
+  "setup_timezone_search": "Traži, npr. Berlin",
+  "setup_detect_button": "Potraži modem u mojoj mreži",
+  "setup_detect_hint": "Pita četiri uobičajene lokalne adrese za početnu stranicu. Ništa ne napušta vašu mrežu i ništa se ne sprema.",
+  "setup_detect_running": "Traženje…",
+  "setup_detect_found": "Uređaj odgovara na {url}",
+  "setup_detect_probably": "Vjerojatno:",
+  "setup_detect_use": "Koristi",
+  "setup_detect_use_address": "Koristi ovu adresu",
+  "setup_detect_unknown": "Model nije prepoznat. Odaberite ga s popisa ispod.",
+  "setup_detect_none": "Nijedan uređaj nije odgovorio na uobičajenim adresama. Adresa je obično na naljepnici modema."
 }

@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Vali ühenduse tüüp.",
   "setup_choose_modem": "Vali modemi mudel.",
   "setup_timezone_invalid": "Vali loendist ajavöönd.",
-  "setup_timezone_search": "Otsi, nt Berlin"
+  "setup_timezone_search": "Otsi, nt Berlin",
+  "setup_detect_button": "Otsi modemit minu võrgust",
+  "setup_detect_hint": "Küsib neljalt levinud kohalikult aadressilt nende avalehte. Midagi ei lahku sinu võrgust ega salvestata.",
+  "setup_detect_running": "Otsimine…",
+  "setup_detect_found": "Seade vastab aadressil {url}",
+  "setup_detect_probably": "Tõenäoliselt:",
+  "setup_detect_use": "Kasuta",
+  "setup_detect_use_address": "Kasuta seda aadressi",
+  "setup_detect_unknown": "Mudelit ei tuvastatud. Vali see allolevast loendist.",
+  "setup_detect_none": "Levinud aadressidel ei vastanud ükski seade. Aadress on tavaliselt modemi sildil."
 }

@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Wybierz rodzaj łącza.",
   "setup_choose_modem": "Wybierz model modemu.",
   "setup_timezone_invalid": "Wybierz strefę czasową z listy.",
-  "setup_timezone_search": "Szukaj, np. Berlin"
+  "setup_timezone_search": "Szukaj, np. Berlin",
+  "setup_detect_button": "Szukaj modemu w mojej sieci",
+  "setup_detect_hint": "Pyta cztery popularne adresy lokalne o ich stronę startową. Nic nie opuszcza Twojej sieci i nic nie jest zapisywane.",
+  "setup_detect_running": "Wyszukiwanie…",
+  "setup_detect_found": "Urządzenie odpowiada pod {url}",
+  "setup_detect_probably": "Prawdopodobnie:",
+  "setup_detect_use": "Użyj",
+  "setup_detect_use_address": "Użyj tego adresu",
+  "setup_detect_unknown": "Nie rozpoznano modelu. Wybierz go z listy poniżej.",
+  "setup_detect_none": "Pod popularnymi adresami nie odpowiedziało żadne urządzenie. Adres zwykle znajduje się na etykiecie modemu."
 }

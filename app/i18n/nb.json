@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Velg tilkoblingstype.",
   "setup_choose_modem": "Velg modemmodell.",
   "setup_timezone_invalid": "Velg en tidssone fra listen.",
-  "setup_timezone_search": "Søk, f.eks. Berlin"
+  "setup_timezone_search": "Søk, f.eks. Berlin",
+  "setup_detect_button": "Søk etter modemet i nettverket mitt",
+  "setup_detect_hint": "Spør fire vanlige lokale adresser om startsiden deres. Ingenting forlater nettverket ditt, og ingenting lagres.",
+  "setup_detect_running": "Søker…",
+  "setup_detect_found": "En enhet svarer på {url}",
+  "setup_detect_probably": "Sannsynligvis:",
+  "setup_detect_use": "Bruk",
+  "setup_detect_use_address": "Bruk denne adressen",
+  "setup_detect_unknown": "Modellen ble ikke gjenkjent. Velg den fra listen nedenfor.",
+  "setup_detect_none": "Ingen enhet svarte på de vanlige adressene. Adressen står vanligvis på etiketten på modemet."
 }

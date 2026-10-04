@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Επιλέξτε τύπο σύνδεσης.",
   "setup_choose_modem": "Επιλέξτε μοντέλο μόντεμ.",
   "setup_timezone_invalid": "Επιλέξτε ζώνη ώρας από τη λίστα.",
-  "setup_timezone_search": "Αναζήτηση, π.χ. Berlin"
+  "setup_timezone_search": "Αναζήτηση, π.χ. Berlin",
+  "setup_detect_button": "Αναζήτηση του μόντεμ στο δίκτυό μου",
+  "setup_detect_hint": "Ρωτά τέσσερις συνήθεις τοπικές διευθύνσεις για την αρχική τους σελίδα. Τίποτα δεν φεύγει από το δίκτυό σας και τίποτα δεν αποθηκεύεται.",
+  "setup_detect_running": "Αναζήτηση…",
+  "setup_detect_found": "Μια συσκευή απαντά στο {url}",
+  "setup_detect_probably": "Πιθανώς:",
+  "setup_detect_use": "Χρήση",
+  "setup_detect_use_address": "Χρήση αυτής της διεύθυνσης",
+  "setup_detect_unknown": "Το μοντέλο δεν αναγνωρίστηκε. Επιλέξτε το από τη λίστα παρακάτω.",
+  "setup_detect_none": "Καμία συσκευή δεν απάντησε στις συνήθεις διευθύνσεις. Η διεύθυνση βρίσκεται συνήθως στην ετικέτα του μόντεμ."
 }

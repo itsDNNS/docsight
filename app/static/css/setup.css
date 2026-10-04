@@ -470,6 +470,37 @@
   font-size: 0.75rem;
   font-weight: 400;
 }
+.setup-detect {
+  display: grid;
+  gap: var(--space-xs, 6px);
+  justify-items: start;
+  margin-bottom: var(--space-sm);
+}
+.setup-detect-results:empty { display: none; }
+.setup-detect-results {
+  display: grid;
+  gap: var(--space-xs, 6px);
+  width: 100%;
+}
+.setup-detect-device,
+.setup-detect-message {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.setup-detect-title { margin: 0 0 6px; color: var(--text-primary); font-weight: 600; }
+.setup-detect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--space-sm);
+}
+.setup-detect-label { color: var(--text-muted); }
+
 .setup-modem-option[hidden],
 .setup-modem-group[hidden],
 .setup-modem-picker[hidden],

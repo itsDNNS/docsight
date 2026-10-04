@@ -66,6 +66,20 @@ def api_test_modem():
         return jsonify({"success": False, "error": "Modem connection failed"})
 
 
+@polling_bp.route("/api/setup/detect-modem", methods=["POST"])
+@require_auth
+def api_detect_modem():
+    """Look for a modem at a few common local addresses.
+
+    Runs only when the user asks for it. The addresses are fixed; the request
+    carries no input, so it cannot be pointed at other hosts.
+    """
+    from app.drivers import get_driver_registry
+    from app.modem_detect import detect_modems
+    known = get_driver_registry().get_all_type_keys()
+    return jsonify({"devices": detect_modems(known_drivers=known)})
+
+
 @polling_bp.route("/api/test-mqtt", methods=["POST"])
 @require_auth
 def api_test_mqtt():

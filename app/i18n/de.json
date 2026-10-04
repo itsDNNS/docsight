@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Wähle deine Anschlussart.",
   "setup_choose_modem": "Wähle dein Modemmodell.",
   "setup_timezone_invalid": "Wähle eine Zeitzone aus der Liste.",
-  "setup_timezone_search": "Suchen, z. B. Berlin"
+  "setup_timezone_search": "Suchen, z. B. Berlin",
+  "setup_detect_button": "Heimnetz nach dem Modem durchsuchen",
+  "setup_detect_hint": "Fragt vier übliche lokale Adressen nach ihrer Startseite. Nichts verlässt dein Netzwerk, nichts wird gespeichert.",
+  "setup_detect_running": "Suche läuft …",
+  "setup_detect_found": "Ein Gerät antwortet unter {url}",
+  "setup_detect_probably": "Vermutlich:",
+  "setup_detect_use": "Übernehmen",
+  "setup_detect_use_address": "Diese Adresse übernehmen",
+  "setup_detect_unknown": "Das Modell wurde nicht erkannt. Wähle es unten aus der Liste.",
+  "setup_detect_none": "An den üblichen Adressen hat kein Gerät geantwortet. Die Adresse steht meist auf dem Etikett deines Modems."
 }

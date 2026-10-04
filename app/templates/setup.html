@@ -186,6 +186,14 @@
                data-generic-name="{{ (modem_types|selectattr(0, 'equalto', 'generic')|first or ['', 'Generic Router'])[1] }}">
 
         <div class="setup-modem-picker" id="modem-picker" hidden>
+            <div class="setup-detect">
+                <button type="button" class="btn btn-ghost" id="detect-modem-btn" onclick="detectModem()" aria-describedby="detect-modem-hint">
+                    <i data-lucide="radar" class="setup-icon-sm"></i>
+                    {{ t.setup_detect_button }}
+                </button>
+                <span class="form-hint" id="detect-modem-hint">{{ t.setup_detect_hint }}</span>
+                <div class="setup-detect-results" id="detect-modem-results" role="status" aria-live="polite"></div>
+            </div>
             <label class="form-label" for="modem-search" id="modem-search-label">{{ t.setup_modem_model }}</label>
             <input class="form-input" type="text" id="modem-search" role="combobox" autocomplete="off" spellcheck="false"
                    aria-autocomplete="list" aria-expanded="true" aria-controls="modem-options"
@@ -373,7 +381,15 @@
         'restore_failed': t.restore_failed,
         'setup_choose_connection': t.setup_choose_connection,
         'setup_choose_modem': t.setup_choose_modem,
-        'setup_timezone_invalid': t.setup_timezone_invalid
+        'setup_timezone_invalid': t.setup_timezone_invalid,
+        'setup_detect_button': t.setup_detect_button,
+        'setup_detect_running': t.setup_detect_running,
+        'setup_detect_found': t.setup_detect_found,
+        'setup_detect_probably': t.setup_detect_probably,
+        'setup_detect_use': t.setup_detect_use,
+        'setup_detect_use_address': t.setup_detect_use_address,
+        'setup_detect_unknown': t.setup_detect_unknown,
+        'setup_detect_none': t.setup_detect_none
     },
     'driverHints': driver_hints,
     'indexUrl': url_for('index'),

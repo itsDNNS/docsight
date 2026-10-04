@@ -17,7 +17,7 @@ DEMO_BANNER = ROOT / "app/static/js/demo-banner.js"
 EXPECTED_CONTRACT_CALLS = {
     "app/static/js/dashboard.js": 1,
     "app/static/js/service-worker-registration.js": 3,
-    "app/static/js/setup.js": 8,
+    "app/static/js/setup.js": 9,
     "app/static/js/settings.js": 0,
     "app/static/js/settings-bootstrap.js": 0,
     "app/static/js/settings/backups.js": 5,
@@ -406,7 +406,7 @@ def test_inventoried_files_keep_the_reviewed_contract_sites():
     }
 
     assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 145  # reviewed browser URL contract sites
+    assert sum(actual.values()) == 146  # reviewed browser URL contract sites
 
 
 def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():

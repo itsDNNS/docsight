@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Изберете типа връзка.",
   "setup_choose_modem": "Изберете модела на модема.",
   "setup_timezone_invalid": "Изберете часова зона от списъка.",
-  "setup_timezone_search": "Търсене, напр. Berlin"
+  "setup_timezone_search": "Търсене, напр. Berlin",
+  "setup_detect_button": "Търси модема в моята мрежа",
+  "setup_detect_hint": "Пита четири често използвани локални адреса за началната им страница. Нищо не напуска мрежата и нищо не се запазва.",
+  "setup_detect_running": "Търсене…",
+  "setup_detect_found": "Устройство отговаря на {url}",
+  "setup_detect_probably": "Вероятно:",
+  "setup_detect_use": "Използвай",
+  "setup_detect_use_address": "Използвай този адрес",
+  "setup_detect_unknown": "Моделът не е разпознат. Изберете го от списъка по-долу.",
+  "setup_detect_none": "Никое устройство не отговори на обичайните адреси. Адресът обикновено е на етикета на модема."
 }

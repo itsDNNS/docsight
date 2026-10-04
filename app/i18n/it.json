@@ -1206,5 +1206,14 @@
   "setup_choose_connection": "Scegli il tipo di connessione.",
   "setup_choose_modem": "Scegli il modello del modem.",
   "setup_timezone_invalid": "Scegli un fuso orario dall'elenco.",
-  "setup_timezone_search": "Cerca, ad es. Berlin"
+  "setup_timezone_search": "Cerca, ad es. Berlin",
+  "setup_detect_button": "Cerca il modem nella mia rete",
+  "setup_detect_hint": "Chiede la pagina iniziale a quattro indirizzi locali comuni. Nulla lascia la tua rete e nulla viene salvato.",
+  "setup_detect_running": "Ricerca…",
+  "setup_detect_found": "Un dispositivo risponde su {url}",
+  "setup_detect_probably": "Probabilmente:",
+  "setup_detect_use": "Usa",
+  "setup_detect_use_address": "Usa questo indirizzo",
+  "setup_detect_unknown": "Il modello non è stato riconosciuto. Sceglilo dall'elenco qui sotto.",
+  "setup_detect_none": "Nessun dispositivo ha risposto agli indirizzi comuni. L'indirizzo di solito è sull'etichetta del modem."
 }

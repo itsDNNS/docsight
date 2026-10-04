@@ -1201,5 +1201,14 @@
   "setup_choose_connection": "Elige tu tipo de conexión.",
   "setup_choose_modem": "Elige el modelo de tu módem.",
   "setup_timezone_invalid": "Elige una zona horaria de la lista.",
-  "setup_timezone_search": "Buscar, p. ej. Berlin"
+  "setup_timezone_search": "Buscar, p. ej. Berlin",
+  "setup_detect_button": "Buscar el módem en mi red",
+  "setup_detect_hint": "Consulta la página de inicio de cuatro direcciones locales habituales. Nada sale de tu red y nada se guarda.",
+  "setup_detect_running": "Buscando…",
+  "setup_detect_found": "Un dispositivo responde en {url}",
+  "setup_detect_probably": "Probablemente:",
+  "setup_detect_use": "Usar",
+  "setup_detect_use_address": "Usar esta dirección",
+  "setup_detect_unknown": "No se reconoció el modelo. Elígelo de la lista de abajo.",
+  "setup_detect_none": "Ningún dispositivo respondió en las direcciones habituales. La dirección suele estar en la etiqueta del módem."
 }
