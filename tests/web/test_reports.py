@@ -337,6 +337,24 @@ class TestComplaintRoutes:
         assert generate_report.call_args.kwargs["customer_number"] == "KD-123456"
         assert generate_report.call_args.kwargs["customer_address"] == "Musterstraße 1\n12345 Musterstadt"
 
+    def test_api_incident_timeline_loads_only_the_sources_the_case_view_plots(self):
+        from app.modules.journal import routes
+
+        storage = Mock()
+        storage.get_incident.return_value = {"id": 7, "name": "Outages", "status": "open", "start_date": "2026-07-06", "end_date": None}
+        storage.get_entries.return_value = []
+        core = Mock()
+        core.db_path = ":memory:"
+        core.get_correlation_timeline.return_value = []
+
+        with app.test_request_context("/api/incidents/7/timeline"):
+            with patch.object(routes, "_get_journal_storage", return_value=storage), \
+                 patch.object(routes.current_runtime(), "storage", core):
+                response = getattr(routes.api_incident_timeline, "__wrapped__")(7)
+
+        assert response.status_code == 200
+        assert core.get_correlation_timeline.call_args.kwargs["sources"] == {"modem", "speedtest", "events"}
+
     def test_api_incident_report_passes_customer_details_to_pdf_generator(self):
         from app.modules.journal import routes
 
