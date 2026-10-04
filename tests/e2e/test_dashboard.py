@@ -119,8 +119,9 @@ class TestNavigation:
 
         speed_kpi.locator(".home-kpi-link").click()
 
-        assert demo_page.locator("#view-speedtest").is_visible()
-        assert "active" in demo_page.locator('.nav-item[data-view="speedtest"]').get_attribute("class")
+        # The link switches views through the hash router, so wait for it.
+        expect(demo_page.locator("#view-speedtest")).to_be_visible()
+        expect(demo_page.locator('.nav-item[data-view="speedtest"]')).to_have_class(re.compile(r"\bactive\b"))
 
 
 class TestDashboardSections:
