@@ -1342,7 +1342,7 @@ def test_correlation_event_type_filter_updates_table_in_browser(demo_page):
     expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(0/2)")
 
 
-def test_correlation_event_filter_popover_stays_above_unified_timeline(demo_page):
+def test_correlation_event_filter_popover_stays_above_the_cards_below_the_chart(demo_page):
     page = demo_page
     _route_sample_correlation(page)
     _open_correlation(page)
@@ -1363,8 +1363,10 @@ def test_correlation_event_filter_popover_stays_above_unified_timeline(demo_page
             const blockers = samples
                 .map(([x, y]) => document.elementFromPoint(x, y))
                 .filter((el) => el && !node.contains(el));
-            const tableCard = document.querySelector('#correlation-table-card');
-            const tableRect = tableCard.getBoundingClientRect();
+            // The card right below the chart: the channel status track when shown, else the table.
+            const below = document.querySelector('#correlation-status:not([hidden])')
+                || document.querySelector('#correlation-table-card');
+            const tableRect = below.getBoundingClientRect();
             return {
                 blockers: blockers.map((el) => ({
                     id: el.id,

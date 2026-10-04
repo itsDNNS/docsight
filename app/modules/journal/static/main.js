@@ -1064,6 +1064,33 @@ window.downloadIncidentPdf = function(incidentId, incidentName) {
         });
 };
 
+/* Channel status track for the case window: start date to end date (inclusive), or to now. */
+function _loadIncidentStatusTrack(inc) {
+    var card = document.getElementById('incident-timeline-status');
+    var track = document.getElementById('incident-status-track');
+    if (!card || !track || !window.DOCSightStatusTrack || !inc.start_date) {
+        if (card) card.hidden = true;
+        return;
+    }
+    var params = new URLSearchParams({ start: inc.start_date.substring(0, 10) });
+    var endDay = null;
+    if (inc.end_date) {
+        endDay = new Date(inc.end_date.substring(0, 10) + 'T00:00:00Z');
+        endDay.setUTCDate(endDay.getUTCDate() + 1);
+        params.set('end', endDay.toISOString().substring(0, 10));
+    }
+    var startMs = new Date(inc.start_date.substring(0, 10) + 'T00:00:00Z').getTime();
+    var spanHours = Math.max(1, Math.round(((endDay ? endDay.getTime() : Date.now()) - startMs) / 3600000));
+    track.textContent = '';
+    card.hidden = false;
+    window.DOCSightStatusTrack.load(track, params.toString(), {
+        range: spanHours + 'h',
+        idPrefix: 'incident-status',
+        // The Channels charts count back from now; pick a range that reaches the case start.
+        timelineRange: function() { return window.DOCSightStatusTrack.rangeFor((Date.now() - startMs) / 3600000); }
+    });
+}
+
 function renderIncidentTimeline(data) {
     var inc = data.incident;
     var entries = data.entries || [];
@@ -1165,6 +1192,9 @@ function renderIncidentTimeline(data) {
             '<canvas id="incident-timeline-canvas"></canvas>';
         _renderTimelineChart(timeline);
     }
+
+    // -- 3b. Channel status during the case window --
+    _loadIncidentStatusTrack(inc);
 
     // -- 4. Signal Timeline Table --
     var signalsDiv = document.getElementById('incident-timeline-signals');

@@ -344,8 +344,20 @@ function _corrDrawSpeedMarks(ctx, marks, baselineY, colors, visibleMetrics) {
     });
 })();
 
+/* The channel status track follows the selected correlation range. */
+function _corrLoadStatusTrack(range) {
+    var section = document.getElementById('correlation-status');
+    if (!section || !window.DOCSightStatusTrack) return;
+    window.DOCSightStatusTrack.load(document.getElementById('correlation-status-track'), 'range=' + encodeURIComponent(range), {
+        range: range,
+        idPrefix: 'correlation-status',
+        timelineRange: function() { return range; }
+    }).then(function(shown) { section.hidden = !shown; });
+}
+
 function loadCorrelationData() {
     var hours = _corrRangeHours(getPillValue('correlation-tabs'));
+    _corrLoadStatusTrack(getPillValue('correlation-tabs') || '1d');
 
     var loading = document.getElementById('correlation-loading');
     var noData = document.getElementById('correlation-no-data');

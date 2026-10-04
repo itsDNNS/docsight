@@ -1228,6 +1228,14 @@
         </div>
     </div>
 
+    {% if analysis and (analysis.ds_channels or analysis.us_channels) %}
+    <!-- Channel status for the same period, rows open the channel's charts -->
+    <section class="status-track-card glass" id="correlation-status" aria-labelledby="correlation-status-title" hidden>
+        <h3 id="correlation-status-title">{{ t.get('correlation_channel_status', 'Channel status in this period') }}</h3>
+        <div id="correlation-status-track" class="status-track"></div>
+    </section>
+    {% endif %}
+
     <!-- Unified Timeline Table -->
     <div id="correlation-table-card" class="table-card" style="display:none;">
         <div class="table-card-header">

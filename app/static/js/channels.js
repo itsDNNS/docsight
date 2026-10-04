@@ -364,7 +364,7 @@ function _channelStatusCells(cells, ctx, since) {
     var wrap = _channelStatusEl('span', 'cs-cells');
     wrap.style.setProperty('--cs-count', cells.length);
     cells.forEach(function(cell, index) {
-        var i = _channelStatusEl('i', 'cs-cell cs-' + (cell || 'none') + (index === cells.length - 1 ? ' cs-now' : ''));
+        var i = _channelStatusEl('i', 'cs-cell cs-' + (cell || 'none') + (ctx.endsNow && index === cells.length - 1 ? ' cs-now' : ''));
         i.title = ctx.label(index) + ' · ' + _channelStatusWord(cell);
         wrap.appendChild(i);
     });
@@ -377,6 +377,11 @@ function _channelStatusCells(cells, ctx, since) {
         wrap.appendChild(bracket);
     }
     return wrap;
+}
+
+/* Past windows (closed cases) show the state at their end, not the current one. */
+function _channelStatusAtEnd(current, ctx) {
+    if (!ctx.endsNow) current.appendChild(_channelStatusEl('small', 'cs-at-end', T.channel_status_at_end || 'At the end of the period'));
 }
 
 function _channelStatusRow(direction, row, ctx) {
@@ -402,6 +407,7 @@ function _channelStatusRow(direction, row, ctx) {
     button.appendChild(_channelStatusCells(row.cells, ctx, since));
 
     var current = _channelStatusEl('span', 'cs-current');
+    _channelStatusAtEnd(current, ctx);
     if (row.value !== null && row.value !== undefined) {
         var value = _channelStatusEl('span', 'cs-value');
         value.appendChild(_channelStatusEl('b', 'num', _channelStatusNumber(row.value)));
@@ -414,7 +420,7 @@ function _channelStatusRow(direction, row, ctx) {
     current.appendChild(delta);
     button.appendChild(current);
 
-    button.addEventListener('click', function() { openChannelFromStatus(direction, row); });
+    button.addEventListener('click', function() { ctx.onRow(direction, row); });
     return button;
 }
 
@@ -427,7 +433,7 @@ function _channelStatusAggregate(block, ctx) {
     var title = block.deviating.length
         ? (T.channel_status_more || '{count} more channels').replace('{count}', count)
         : (T.channel_status_all || 'All {count} channels').replace('{count}', count);
-    var listId = 'channel-status-others-' + block.key;
+    var listId = ctx.idPrefix + '-others-' + block.key;
 
     var button = _channelStatusEl('button', 'cs-row cs-aggregate');
     button.type = 'button';
@@ -440,6 +446,7 @@ function _channelStatusAggregate(block, ctx) {
     button.appendChild(label);
     button.appendChild(_channelStatusCells(cells, ctx, null));
     var current = _channelStatusEl('span', 'cs-current');
+    _channelStatusAtEnd(current, ctx);
     var state = _channelStatusEl('span', 'cs-delta cs-text-' + (latest || 'good'));
     state.appendChild(_channelStatusShape(latest || 'good'));
     state.appendChild(document.createTextNode(_channelStatusWord(latest || 'good')));
@@ -466,32 +473,29 @@ function _channelStatusAxis(ctx, cellCount) {
     [0, 0.25, 0.5, 0.75].forEach(function(frac) {
         ticks.appendChild(_channelStatusEl('span', null, ctx.label(Math.round(frac * cellCount))));
     });
-    ticks.appendChild(_channelStatusEl('span', null, T.channel_status_now || 'now'));
+    ticks.appendChild(_channelStatusEl('span', null, ctx.endsNow ? (T.channel_status_now || 'now') : ctx.label(cellCount)));
     axis.appendChild(ticks);
     axis.appendChild(_channelStatusEl('span'));
     return axis;
 }
 
-function renderChannelStatus(data, range) {
-    var body = document.getElementById('channel-status-body');
-    var empty = document.getElementById('channel-status-empty');
-    var windowEl = document.getElementById('channel-status-window');
-    if (!body) return;
+/* Renders the matrix into ``body``; returns whether there was anything to show.
+   options: range (axis label style), idPrefix (unique per container), onRow(direction, row). */
+function renderStatusTrack(body, data, options) {
     body.textContent = '';
     var directions = (data && data.directions) || [];
-    if (empty) empty.hidden = directions.length > 0;
-    if (windowEl) {
-        windowEl.textContent = directions.length
-            ? (T.channel_status_cell || 'One cell = {duration}').replace('{duration}', _channelStatusDuration(data.cell_minutes))
-            : '';
-    }
-    if (!directions.length) return;
+    if (!directions.length) return false;
 
+    var range = options.range;
     var startMs = docsightTimestampDate(data.start).getTime();
+    var endMs = docsightTimestampDate(data.end).getTime();
     var cellMs = data.cell_minutes * 60000;
     var ctx = {
         label: function(index) { return docsightFormatXAxisLabel(new Date(startMs + index * cellMs), range); },
-        time: function(ts) { return docsightFormatXAxisLabel(ts, range); }
+        time: function(ts) { return docsightFormatXAxisLabel(ts, range); },
+        endsNow: Math.abs(Date.now() - endMs) < Math.max(cellMs, 5 * 60000),
+        idPrefix: options.idPrefix,
+        onRow: options.onRow
     };
     directions.forEach(function(block) {
         var section = _channelStatusEl('section', 'cs-direction');
@@ -509,6 +513,21 @@ function renderChannelStatus(data, range) {
         section.appendChild(_channelStatusAxis(ctx, data.cells));
         body.appendChild(section);
     });
+    return true;
+}
+
+function _channelStatusCellText(data) {
+    return (T.channel_status_cell || 'One cell = {duration}').replace('{duration}', _channelStatusDuration(data.cell_minutes));
+}
+
+function renderChannelStatus(data, range) {
+    var body = document.getElementById('channel-status-body');
+    var empty = document.getElementById('channel-status-empty');
+    var windowEl = document.getElementById('channel-status-window');
+    if (!body) return;
+    var shown = renderStatusTrack(body, data, { range: range, idPrefix: 'channel-status', onRow: openChannelFromStatus });
+    if (empty) empty.hidden = shown;
+    if (windowEl) windowEl.textContent = shown ? _channelStatusCellText(data) : '';
 }
 
 function loadChannelStatus() {
@@ -552,6 +571,65 @@ function openChannelFromStatus(direction, row) {
     if (header && header.scrollIntoView) header.scrollIntoView({ block: 'start' });
 }
 window.openChannelFromStatus = openChannelFromStatus;
+
+/* ── Status track in other views (case detail, correlation) ── */
+var _STATUS_TRACK_RANGES = ['1h', '6h', '1d', '2d', '3d', '7d', '30d', '90d'];
+
+/* Smallest Channels range that reaches back ``hours`` from now. */
+function statusTrackRangeFor(hours) {
+    for (var i = 0; i < _STATUS_TRACK_RANGES.length; i++) {
+        if (_channelRangeHours(_STATUS_TRACK_RANGES[i]) >= hours) return _STATUS_TRACK_RANGES[i];
+    }
+    return '90d';
+}
+
+/* Opens a channel's charts from any view through the Channels deep link. */
+function openStatusTrackTimeline(direction, row, range) {
+    var identity = row.selector_required
+        ? 'selector=' + encodeURIComponent(row.selector)
+        : 'channel=' + encodeURIComponent(row.legacy_channel_id);
+    location.hash = '#channels?mode=timeline&dir=' + direction + '&' + identity + '&range=' + encodeURIComponent(range);
+}
+
+/* Loads ``/api/channel-status?<query>`` into ``container``.
+   options: range (axis labels), idPrefix, timelineRange() for row clicks. */
+function loadStatusTrack(container, query, options) {
+    if (!container) return Promise.resolve(false);
+    var seq = (container._statusTrackSeq || 0) + 1;
+    container._statusTrackSeq = seq;
+    container.setAttribute('aria-busy', 'true');
+    if (!container.firstChild) container.appendChild(_channelStatusEl('div', 'skeleton cs-track-skeleton'));
+    return fetch(docsightUrl('/api/channel-status?' + query))
+        .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .catch(function() { return null; })
+        .then(function(data) {
+            if (container._statusTrackSeq !== seq) return false;
+            container.removeAttribute('aria-busy');
+            container.textContent = '';
+            var meta = _channelStatusEl('p', 'cs-window');
+            var body = _channelStatusEl('div', 'cs-track-body');
+            container.appendChild(meta);
+            container.appendChild(body);
+            var shown = renderStatusTrack(body, data, {
+                range: options.range,
+                idPrefix: options.idPrefix,
+                onRow: function(direction, row) { openStatusTrackTimeline(direction, row, options.timelineRange()); }
+            });
+            meta.textContent = shown
+                ? _channelStatusCellText(data)
+                : (T.channel_status_empty || 'No channel snapshots in this time range yet.');
+            meta.classList.toggle('cs-window-empty', !shown);
+            return shown;
+        });
+}
+
+window.DOCSightStatusTrack = {
+    load: loadStatusTrack,
+    rangeFor: statusTrackRangeFor
+};
 
 /* ── Channel Timeline ── */
 var _channelsLoaded = false;

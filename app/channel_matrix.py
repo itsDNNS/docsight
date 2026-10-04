@@ -93,9 +93,14 @@ def _direction(direction: str, channels: list[dict], snapshots: list[tuple[datet
     current = attach_channel_selectors(channels)
     keys = {row["selector"] for row in current}
     history: dict[str, list[tuple[datetime, str | None]]] = {key: [] for key in keys}
+    # Long windows hold thousands of snapshots of the same few channels; hash each identity once.
+    selectors: dict[tuple, str] = {}
     for when, rows in snapshots:
         for channel in rows:
-            key = channel_selector(channel)
+            identity = (repr(channel.get("channel_id")), repr(channel.get("frequency")))
+            key = selectors.get(identity)
+            if key is None:
+                key = selectors[identity] = channel_selector(channel)
             if key in history:
                 history[key].append((when, _health(channel)))
 
