@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "US",
   "event_power": "Power",
-  "event_channels": "Channels",
   "event_uncorrectable_errors": "uncorrectable errors",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Excerpt: only the quoted subsection is shown.",
   "glossary_law_source_label": "Official source",
   "glossary_law_reviewed_label": "Source checked",
-  "glossary_law_disclaimer": "General information, not legal advice."
+  "glossary_law_disclaimer": "General information, not legal advice.",
+  "event_today": "Today",
+  "event_yesterday": "Yesterday",
+  "event_acknowledge_visible": "Acknowledge visible",
+  "event_acknowledge_selected": "Acknowledge selected ({count})",
+  "event_select": "Select",
+  "event_run_count": "{count} in a row",
+  "event_count_shown": "{count} events shown",
+  "event_badge_title": "Unacknowledged warnings and critical events in the last 24 hours",
+  "event_filter_all": "All"
 }

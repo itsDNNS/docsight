@@ -1,7 +1,7 @@
 """Event log routes."""
 
 from app.runtime import current_runtime
-from app.tz import localize_timestamps, get_tz_name
+from app.tz import localize_timestamps, get_tz_name, utc_cutoff
 import csv
 import io
 import json
@@ -15,6 +15,11 @@ from app.web_auth import require_auth
 log = logging.getLogger("docsis.web")
 
 _EVENTS_EXPORT_LIMIT = 10000
+_ACKNOWLEDGE_LIMIT = 1000
+# The navigation badge only counts what still needs a look: recent, unacknowledged
+# warnings and critical events. Info and operational events never raise it.
+ATTENTION_SEVERITIES = ("warning", "critical")
+ATTENTION_WINDOW_HOURS = 24
 _CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
@@ -137,10 +142,22 @@ def api_events_export_csv():
 @events_bp.route("/api/events/count", methods=["GET"])
 @require_auth
 def api_events_count():
-    """Return unacknowledged event count (for badge)."""
+    """Return the unacknowledged event count.
+
+    ``scope=attention`` is the navigation badge: unacknowledged warning and
+    critical events of the last 24 hours, regardless of other filters.
+    """
     _storage = current_runtime().storage
     if not _storage:
         return jsonify({"count": 0})
+    if request.args.get("scope") == "attention":
+        count = _storage.get_event_count(
+            acknowledged=0,
+            exclude_operational=True,
+            severities=ATTENTION_SEVERITIES,
+            since=utc_cutoff(hours=ATTENTION_WINDOW_HOURS),
+        )
+        return jsonify({"count": count, "window_hours": ATTENTION_WINDOW_HOURS})
     event_prefix = request.args.get("event_prefix") or None
     severity = request.args.get("severity") or None
     exclude_operational = request.args.get("exclude_operational", "false").lower() == "true"
@@ -163,6 +180,22 @@ def api_event_acknowledge(event_id):
     if not _storage.acknowledge_event(event_id):
         return jsonify({"error": "Not found"}), 404
     return jsonify({"success": True})
+
+
+@events_bp.route("/api/events/acknowledge", methods=["POST"])
+@require_auth
+def api_events_acknowledge():
+    """Acknowledge a list of events, e.g. the selection or everything visible in the log."""
+    _storage = current_runtime().storage
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    payload = request.get_json(silent=True) or {}
+    ids = payload.get("ids") if isinstance(payload, dict) else None
+    if (not isinstance(ids, list) or not ids or len(ids) > _ACKNOWLEDGE_LIMIT
+            or not all(isinstance(i, int) and not isinstance(i, bool) and i > 0 for i in ids)):
+        return jsonify({"error": f"ids must be a list of 1 to {_ACKNOWLEDGE_LIMIT} event ids"}), 400
+    count = _storage.acknowledge_events(sorted(set(ids)))
+    return jsonify({"success": True, "count": count})
 
 
 @events_bp.route("/api/events/acknowledge-all", methods=["POST"])

@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "USA",
   "event_power": "Strøm",
-  "event_channels": "Kanaler",
   "event_uncorrectable_errors": "ukorrigerbare fejl",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Uddrag: Kun det citerede stykke vises.",
   "glossary_law_source_label": "Officiel kilde",
   "glossary_law_reviewed_label": "Kilde kontrolleret",
-  "glossary_law_disclaimer": "Generel information, ikke juridisk rådgivning."
+  "glossary_law_disclaimer": "Generel information, ikke juridisk rådgivning.",
+  "event_today": "I dag",
+  "event_yesterday": "I går",
+  "event_acknowledge_visible": "Kvittér synlige",
+  "event_acknowledge_selected": "Kvittér valgte ({count})",
+  "event_select": "Vælg",
+  "event_run_count": "{count} i træk",
+  "event_count_shown": "{count} hændelser vist",
+  "event_badge_title": "Ukvitterede advarsler og kritiske hændelser fra de sidste 24 timer",
+  "event_filter_all": "Alle"
 }

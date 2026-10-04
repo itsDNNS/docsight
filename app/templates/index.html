@@ -177,7 +177,7 @@
                 <li class="topnav-entry">
                     <button type="button" class="topnav-dest nav-item" data-view="events" data-nav-icon="bell" data-nav-title="{{ t.event_log }}">
                         <i data-lucide="history"></i><span class="topnav-label">{{ t.get('nav_events', 'Events') }}</span>
-                        <span class="nav-badge" id="event-badge" style="display:none;"></span>
+                        <span class="nav-badge" id="event-badge" style="display:none;" title="{{ t.event_badge_title }}"></span>
                     </button>
                 </li>
                 <li class="topnav-entry topnav-group" data-nav-group="cases">
@@ -1298,17 +1298,18 @@
         <div class="view-page-header-left">
             <h2 class="view-page-title">{{ t.event_log }}</h2>
         </div>
-        <!-- Phase 4.3: Pill filter toggles for severity -->
         <div class="view-page-actions events-filter-section">
-            <div class="events-severity-pills" role="group" aria-label="{{ t.event_severity }}">
-                <button class="severity-pill active" data-severity="" onclick="filterEventsBySeverity('')" aria-pressed="true">{{ t.event_all_severities }}</button>
-                <button class="severity-pill" data-severity="info" onclick="filterEventsBySeverity('info')" aria-pressed="false">{{ t.event_severity_info }}</button>
-                <button class="severity-pill" data-severity="warning" onclick="filterEventsBySeverity('warning')" aria-pressed="false">{{ t.event_severity_warning }}</button>
-                <button class="severity-pill" data-severity="critical" onclick="filterEventsBySeverity('critical')" aria-pressed="false">{{ t.event_severity_critical }}</button>
-                <button class="severity-pill" id="device-filter-pill" onclick="filterEventsByDevice()" aria-pressed="false">{{ t.event_filter_device }}</button>
-                <span style="border-left:1px solid var(--card-border, rgba(255,255,255,0.08)); height:20px; margin:0 8px;"></span>
-                <button class="severity-pill active" id="hide-operational-btn" onclick="toggleHideOperational()" aria-pressed="true">{{ t.event_hide_operational }}</button>
+            <div class="trend-tabs events-severity-tabs" id="events-severity-tabs" role="group" aria-label="{{ t.event_severity }}">
+                <button type="button" class="trend-tab active" data-severity="" onclick="filterEventsBySeverity('')" aria-pressed="true">{{ t.event_filter_all }}</button>
+                <button type="button" class="trend-tab" data-severity="info" onclick="filterEventsBySeverity('info')" aria-pressed="false">{{ t.event_severity_info }}</button>
+                <button type="button" class="trend-tab" data-severity="warning" onclick="filterEventsBySeverity('warning')" aria-pressed="false">{{ t.event_severity_warning }}</button>
+                <button type="button" class="trend-tab" data-severity="critical" onclick="filterEventsBySeverity('critical')" aria-pressed="false">{{ t.event_severity_critical }}</button>
             </div>
+            <button type="button" class="events-filter-chip" id="device-filter-pill" onclick="filterEventsByDevice()" aria-pressed="false">{{ t.event_filter_device }}</button>
+            <label class="events-switch">
+                <span class="toggle"><input type="checkbox" id="hide-operational-toggle" checked onchange="toggleHideOperational()"><span class="slider"></span></span>
+                <span>{{ t.event_hide_operational }}</span>
+            </label>
         </div>
     </div>
 
@@ -1320,21 +1321,16 @@
     </div>
     <div id="events-empty" class="events-empty" style="display:none;"></div>
 
-    <!-- Phase 4.4: Card wrapper for events feed -->
-    <div id="events-feed-card" class="table-card" style="display:none;">
-        <div class="table-card-header events-card-header">
-            <div class="table-card-title">
-                <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>{{ t.event_log }}</span>
-            </div>
+    <div id="events-feed-card" class="table-card events-card" style="display:none;">
+        <div class="events-toolbar">
+            <span class="events-summary" id="events-summary" aria-live="polite"></span>
             <div class="events-card-actions">
-                <a class="btn-export-events" id="events-export-csv" href="{{ url_for('events_bp.api_events_export_csv', exclude_operational='true') }}" download>{{ t.event_export_csv }}</a>
-                <button class="btn-ack-all" id="btn-ack-all" onclick="acknowledgeAllEvents()" style="display:none;">&#10003; {{ t.event_acknowledge_all }}</button>
+                <a class="btn-export-events" id="events-export-csv" href="{{ url_for('events_bp.api_events_export_csv', exclude_operational='true') }}" download><i data-lucide="download" aria-hidden="true"></i>{{ t.event_export_csv }}</a>
+                <button type="button" class="btn-ack-all" id="btn-ack-selected" onclick="acknowledgeSelectedEvents()" hidden></button>
+                <button type="button" class="btn-ack-all" id="btn-ack-visible" onclick="acknowledgeVisibleEvents()" hidden><i data-lucide="check-check" aria-hidden="true"></i>{{ t.event_acknowledge_visible }}</button>
             </div>
         </div>
-        <div id="events-feed" class="events-feed" role="list"></div>
+        <div id="events-feed" class="events-feed"></div>
     </div>
 
     <div id="events-show-more" style="text-align:center; padding:16px; display:none;">
@@ -2050,6 +2046,7 @@
 <script src="{{ url_for('static', filename='js/channels.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/line-status.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/integrations.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/event-log-data.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/events.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>

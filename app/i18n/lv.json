@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "ASV",
   "event_power": "Jauda",
-  "event_channels": "Kanāli",
   "event_uncorrectable_errors": "nelabojamas kļūdas",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Izvilkums: parādīta tikai citētā daļa.",
   "glossary_law_source_label": "Oficiālais avots",
   "glossary_law_reviewed_label": "Avots pārbaudīts",
-  "glossary_law_disclaimer": "Vispārīga informācija, ne juridiska konsultācija."
+  "glossary_law_disclaimer": "Vispārīga informācija, ne juridiska konsultācija.",
+  "event_today": "Šodien",
+  "event_yesterday": "Vakar",
+  "event_acknowledge_visible": "Apstiprināt redzamos",
+  "event_acknowledge_selected": "Apstiprināt atlasītos ({count})",
+  "event_select": "Atlasīt",
+  "event_run_count": "{count} pēc kārtas",
+  "event_count_shown": "Parādīti notikumi: {count}",
+  "event_badge_title": "Neapstiprināti brīdinājumi un kritiski notikumi pēdējo 24 stundu laikā",
+  "event_filter_all": "Visi"
 }

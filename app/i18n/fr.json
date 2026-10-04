@@ -742,7 +742,6 @@
   "event_ds": "DS",
   "event_us": "US",
   "event_power": "Puissance",
-  "event_channels": "Canaux",
   "event_uncorrectable_errors": "erreurs non corrigeables",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1157,5 +1156,14 @@
   "glossary_law_excerpt_note": "Extrait : seul le paragraphe cité est affiché.",
   "glossary_law_source_label": "Source officielle",
   "glossary_law_reviewed_label": "Source vérifiée",
-  "glossary_law_disclaimer": "Informations générales, pas de conseil juridique."
+  "glossary_law_disclaimer": "Informations générales, pas de conseil juridique.",
+  "event_today": "Aujourd'hui",
+  "event_yesterday": "Hier",
+  "event_acknowledge_visible": "Acquitter les visibles",
+  "event_acknowledge_selected": "Acquitter la sélection ({count})",
+  "event_select": "Sélectionner",
+  "event_run_count": "{count} d'affilée",
+  "event_count_shown": "{count} événements affichés",
+  "event_badge_title": "Avertissements et événements critiques non acquittés des dernières 24 heures",
+  "event_filter_all": "Tous"
 }

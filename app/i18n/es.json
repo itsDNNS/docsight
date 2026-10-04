@@ -745,7 +745,6 @@
   "event_ds": "DS",
   "event_us": "US",
   "event_power": "Potencia",
-  "event_channels": "Canales",
   "event_uncorrectable_errors": "errores no corregibles",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1160,5 +1159,14 @@
   "glossary_law_excerpt_note": "Extracto: solo se muestra el apartado citado.",
   "glossary_law_source_label": "Fuente oficial",
   "glossary_law_reviewed_label": "Fuente comprobada",
-  "glossary_law_disclaimer": "Información general, no asesoramiento jurídico."
+  "glossary_law_disclaimer": "Información general, no asesoramiento jurídico.",
+  "event_today": "Hoy",
+  "event_yesterday": "Ayer",
+  "event_acknowledge_visible": "Confirmar visibles",
+  "event_acknowledge_selected": "Confirmar seleccionados ({count})",
+  "event_select": "Seleccionar",
+  "event_run_count": "{count} seguidos",
+  "event_count_shown": "{count} eventos mostrados",
+  "event_badge_title": "Advertencias y eventos críticos sin confirmar de las últimas 24 horas",
+  "event_filter_all": "Todos"
 }

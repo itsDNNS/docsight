@@ -750,7 +750,6 @@
   "event_ds": "ΔΣ",
   "event_us": "ΗΠΑ",
   "event_power": "Δύναμη",
-  "event_channels": "Κανάλια",
   "event_uncorrectable_errors": "αδιόρθωτα σφάλματα",
   "speedtest_dl": "ΔΛ",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Απόσπασμα: εμφανίζεται μόνο η παρατιθέμενη παράγραφος.",
   "glossary_law_source_label": "Επίσημη πηγή",
   "glossary_law_reviewed_label": "Η πηγή ελέγχθηκε",
-  "glossary_law_disclaimer": "Γενικές πληροφορίες, όχι νομική συμβουλή."
+  "glossary_law_disclaimer": "Γενικές πληροφορίες, όχι νομική συμβουλή.",
+  "event_today": "Σήμερα",
+  "event_yesterday": "Χθες",
+  "event_acknowledge_visible": "Επιβεβαίωση ορατών",
+  "event_acknowledge_selected": "Επιβεβαίωση επιλεγμένων ({count})",
+  "event_select": "Επιλογή",
+  "event_run_count": "{count} διαδοχικά",
+  "event_count_shown": "Εμφανίζονται {count} συμβάντα",
+  "event_badge_title": "Μη επιβεβαιωμένες προειδοποιήσεις και κρίσιμα συμβάντα των τελευταίων 24 ωρών",
+  "event_filter_all": "Όλα"
 }

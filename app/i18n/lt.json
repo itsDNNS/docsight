@@ -750,7 +750,6 @@
   "event_ds": "DS",
   "event_us": "JAV",
   "event_power": "Galia",
-  "event_channels": "Kanalai",
   "event_uncorrectable_errors": "neištaisomos klaidos",
   "speedtest_dl": "DL",
   "speedtest_ul": "UL",
@@ -1165,5 +1164,14 @@
   "glossary_law_excerpt_note": "Ištrauka: rodoma tik cituojama dalis.",
   "glossary_law_source_label": "Oficialus šaltinis",
   "glossary_law_reviewed_label": "Šaltinis patikrintas",
-  "glossary_law_disclaimer": "Bendroji informacija, ne teisinė konsultacija."
+  "glossary_law_disclaimer": "Bendroji informacija, ne teisinė konsultacija.",
+  "event_today": "Šiandien",
+  "event_yesterday": "Vakar",
+  "event_acknowledge_visible": "Patvirtinti matomus",
+  "event_acknowledge_selected": "Patvirtinti pasirinktus ({count})",
+  "event_select": "Pasirinkti",
+  "event_run_count": "{count} iš eilės",
+  "event_count_shown": "Rodoma įvykių: {count}",
+  "event_badge_title": "Nepatvirtinti įspėjimai ir kritiniai įvykiai per pastarąsias 24 valandas",
+  "event_filter_all": "Visi"
 }
