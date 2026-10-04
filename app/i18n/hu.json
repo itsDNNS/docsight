@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Hiányoznak a sebességmérési adatok",
   "gaming_speedtest_action": "Speedtest Tracker beállítása",
   "bnetz_empty_text": "Töltse fel egy breitbandmessung.de mérés PDF vagy CSV jelentését, hogy összevesse a szerződéses sebességgel.",
-  "seg_empty_action": "Bővítménybeállítások megnyitása"
+  "seg_empty_action": "Bővítménybeállítások megnyitása",
+  "setup_connection_question": "Milyen internetkapcsolatod van?",
+  "setup_connection_cable": "Kábel (DOCSIS)",
+  "setup_connection_cable_desc": "Internet a TV koaxiális aljzaton keresztül, például Vodafone, Virgin Media, Comcast vagy Cox.",
+  "setup_connection_other": "Optika, DSL, műhold vagy mobil",
+  "setup_connection_other_desc": "A DOCSight kábeljeladatok nélkül is működik: sebességmérés, elérhetőség, napló és más.",
+  "setup_modem_model": "Modem típusa",
+  "setup_modem_search": "Gyártó, modell vagy szolgáltató keresése",
+  "setup_modem_none": "Egy modem sem felel meg a keresésnek. A típusnév a készülék hátoldalán vagy alján lévő címkén található.",
+  "setup_modem_other_group": "Egyéb",
+  "setup_generic_note": "Nincs szükség modemtípusra. Sebességmérő szolgáltatást vagy elérhetőségi célokat később a beállításokban adhatsz hozzá.",
+  "setup_choose_connection": "Válaszd ki a kapcsolat típusát.",
+  "setup_choose_modem": "Válaszd ki a modem típusát.",
+  "setup_timezone_invalid": "Válassz időzónát a listából.",
+  "setup_timezone_search": "Keresés, pl. Berlin"
 }

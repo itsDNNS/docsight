@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Speedtest-Daten fehlen",
   "gaming_speedtest_action": "Speedtest Tracker einrichten",
   "bnetz_empty_text": "Lade den PDF- oder CSV-Bericht einer Messung von breitbandmessung.de hoch, um sie mit deiner vertraglichen Geschwindigkeit zu vergleichen.",
-  "seg_empty_action": "Erweiterungs-Einstellungen öffnen"
+  "seg_empty_action": "Erweiterungs-Einstellungen öffnen",
+  "setup_connection_question": "Welche Art von Internetanschluss hast du?",
+  "setup_connection_cable": "Kabel (DOCSIS)",
+  "setup_connection_cable_desc": "Internet über die TV-Kabeldose, zum Beispiel Vodafone, Virgin Media, Comcast oder Cox.",
+  "setup_connection_other": "Glasfaser, DSL, Satellit oder Mobilfunk",
+  "setup_connection_other_desc": "DOCSight funktioniert auch ohne Kabelsignaldaten: Speedtests, Erreichbarkeit, Journal und mehr.",
+  "setup_modem_model": "Modemmodell",
+  "setup_modem_search": "Hersteller, Modell oder Anbieter suchen",
+  "setup_modem_none": "Kein Modem passt zu dieser Suche. Die Modellbezeichnung steht auf dem Etikett auf der Rück- oder Unterseite des Geräts.",
+  "setup_modem_other_group": "Weitere",
+  "setup_generic_note": "Ein Modemmodell wird nicht benötigt. Speedtest-Dienst oder Erreichbarkeitsziele kannst du später in den Einstellungen hinzufügen.",
+  "setup_choose_connection": "Wähle deine Anschlussart.",
+  "setup_choose_modem": "Wähle dein Modemmodell.",
+  "setup_timezone_invalid": "Wähle eine Zeitzone aus der Liste.",
+  "setup_timezone_search": "Suchen, z. B. Berlin"
 }

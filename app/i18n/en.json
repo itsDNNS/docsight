@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Speedtest data missing",
   "gaming_speedtest_action": "Set up Speedtest Tracker",
   "bnetz_empty_text": "Upload the PDF or CSV report of a measurement from breitbandmessung.de to compare it with your contracted speed.",
-  "seg_empty_action": "Open extension settings"
+  "seg_empty_action": "Open extension settings",
+  "setup_connection_question": "What kind of internet connection do you have?",
+  "setup_connection_cable": "Cable (DOCSIS)",
+  "setup_connection_cable_desc": "Internet through the TV coax socket, for example Vodafone, Virgin Media, Comcast or Cox.",
+  "setup_connection_other": "Fiber, DSL, satellite or mobile",
+  "setup_connection_other_desc": "DOCSight works without cable signal data: speed tests, reachability, the journal and more.",
+  "setup_modem_model": "Modem model",
+  "setup_modem_search": "Search manufacturer, model or provider",
+  "setup_modem_none": "No modem matches this search. The model name is on the label on the back or bottom of the device.",
+  "setup_modem_other_group": "Other",
+  "setup_generic_note": "No modem model is needed. Add a speed test service or reachability targets later in the settings.",
+  "setup_choose_connection": "Choose your connection type.",
+  "setup_choose_modem": "Choose your modem model.",
+  "setup_timezone_invalid": "Choose a time zone from the list.",
+  "setup_timezone_search": "Search, e.g. Berlin"
 }

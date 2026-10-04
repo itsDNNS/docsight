@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Speedtesti andmed puuduvad",
   "gaming_speedtest_action": "Seadista Speedtest Tracker",
   "bnetz_empty_text": "Laadi üles breitbandmessung.de mõõtmise PDF- või CSV-aruanne, et võrrelda seda lepingujärgse kiirusega.",
-  "seg_empty_action": "Ava laienduste seaded"
+  "seg_empty_action": "Ava laienduste seaded",
+  "setup_connection_question": "Milline internetiühendus sul on?",
+  "setup_connection_cable": "Kaabel (DOCSIS)",
+  "setup_connection_cable_desc": "Internet teleri koaksiaalpesa kaudu, näiteks Vodafone, Virgin Media, Comcast või Cox.",
+  "setup_connection_other": "Kiud, DSL, satelliit või mobiilside",
+  "setup_connection_other_desc": "DOCSight töötab ka ilma kaablisignaali andmeteta: kiirustestid, kättesaadavus, päevik ja muu.",
+  "setup_modem_model": "Modemi mudel",
+  "setup_modem_search": "Otsi tootjat, mudelit või teenusepakkujat",
+  "setup_modem_none": "Otsingule ei vasta ükski modem. Mudeli nimi on seadme taga või all oleval sildil.",
+  "setup_modem_other_group": "Muud",
+  "setup_generic_note": "Modemi mudelit pole vaja. Lisa kiirustesti teenus või kättesaadavuse sihtmärgid hiljem seadetes.",
+  "setup_choose_connection": "Vali ühenduse tüüp.",
+  "setup_choose_modem": "Vali modemi mudel.",
+  "setup_timezone_invalid": "Vali loendist ajavöönd.",
+  "setup_timezone_search": "Otsi, nt Berlin"
 }

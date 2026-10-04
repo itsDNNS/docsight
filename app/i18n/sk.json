@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Chýbajú údaje zo speedtestu",
   "gaming_speedtest_action": "Nastaviť Speedtest Tracker",
   "bnetz_empty_text": "Nahrajte PDF alebo CSV protokol merania z breitbandmessung.de a porovnajte ho so zmluvnou rýchlosťou.",
-  "seg_empty_action": "Otvoriť nastavenia rozšírení"
+  "seg_empty_action": "Otvoriť nastavenia rozšírení",
+  "setup_connection_question": "Aký typ internetového pripojenia máte?",
+  "setup_connection_cable": "Kábel (DOCSIS)",
+  "setup_connection_cable_desc": "Internet cez televíznu koaxiálnu zásuvku, napríklad Vodafone, Virgin Media, Comcast alebo Cox.",
+  "setup_connection_other": "Optika, DSL, satelit alebo mobilná sieť",
+  "setup_connection_other_desc": "DOCSight funguje aj bez údajov káblového signálu: testy rýchlosti, dostupnosť, denník a ďalšie.",
+  "setup_modem_model": "Model modemu",
+  "setup_modem_search": "Hľadať výrobcu, model alebo poskytovateľa",
+  "setup_modem_none": "Hľadaniu nezodpovedá žiadny modem. Názov modelu je na štítku na zadnej alebo spodnej strane zariadenia.",
+  "setup_modem_other_group": "Ďalšie",
+  "setup_generic_note": "Model modemu nie je potrebný. Službu na testy rýchlosti alebo ciele dostupnosti pridáte neskôr v nastaveniach.",
+  "setup_choose_connection": "Vyberte typ pripojenia.",
+  "setup_choose_modem": "Vyberte model modemu.",
+  "setup_timezone_invalid": "Vyberte časové pásmo zo zoznamu.",
+  "setup_timezone_search": "Hľadať, napr. Berlin"
 }

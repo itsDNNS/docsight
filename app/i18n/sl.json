@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Manjkajo podatki speedtesta",
   "gaming_speedtest_action": "Nastavi Speedtest Tracker",
   "bnetz_empty_text": "Naložite poročilo PDF ali CSV meritve z breitbandmessung.de, da ga primerjate s pogodbeno hitrostjo.",
-  "seg_empty_action": "Odpri nastavitve razširitev"
+  "seg_empty_action": "Odpri nastavitve razširitev",
+  "setup_connection_question": "Kakšno internetno povezavo imate?",
+  "setup_connection_cable": "Kabel (DOCSIS)",
+  "setup_connection_cable_desc": "Internet prek TV koaksialne vtičnice, na primer Vodafone, Virgin Media, Comcast ali Cox.",
+  "setup_connection_other": "Optika, DSL, satelit ali mobilno omrežje",
+  "setup_connection_other_desc": "DOCSight deluje tudi brez podatkov kabelskega signala: testi hitrosti, dosegljivost, dnevnik in drugo.",
+  "setup_modem_model": "Model modema",
+  "setup_modem_search": "Iskanje proizvajalca, modela ali ponudnika",
+  "setup_modem_none": "Iskanju ne ustreza noben modem. Ime modela je na nalepki na zadnji ali spodnji strani naprave.",
+  "setup_modem_other_group": "Drugo",
+  "setup_generic_note": "Model modema ni potreben. Storitev za teste hitrosti ali cilje dosegljivosti dodajte pozneje v nastavitvah.",
+  "setup_choose_connection": "Izberite vrsto povezave.",
+  "setup_choose_modem": "Izberite model modema.",
+  "setup_timezone_invalid": "Izberite časovni pas s seznama.",
+  "setup_timezone_search": "Iskanje, npr. Berlin"
 }

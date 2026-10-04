@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Sonraí speedtest ar iarraidh",
   "gaming_speedtest_action": "Socraigh Speedtest Tracker",
   "bnetz_empty_text": "Uaslódáil tuarascáil PDF nó CSV de thomhas ó breitbandmessung.de chun é a chur i gcomparáid le do luas conartha.",
-  "seg_empty_action": "Oscail socruithe na síntí"
+  "seg_empty_action": "Oscail socruithe na síntí",
+  "setup_connection_question": "Cén cineál ceangail idirlín atá agat?",
+  "setup_connection_cable": "Cábla (DOCSIS)",
+  "setup_connection_cable_desc": "Idirlíon tríd an soicéad comhaiseach teilifíse, mar shampla Vodafone, Virgin Media, Comcast nó Cox.",
+  "setup_connection_other": "Snáithín, DSL, satailít nó soghluaiste",
+  "setup_connection_other_desc": "Oibríonn DOCSight gan sonraí comhartha cábla freisin: tástálacha luais, inrochtaineacht, dialann agus tuilleadh.",
+  "setup_modem_model": "Samhail an mhóideim",
+  "setup_modem_search": "Cuardaigh déantóir, samhail nó soláthraí",
+  "setup_modem_none": "Níl aon mhóideim ag teacht leis an gcuardach. Tá ainm na samhla ar an lipéad ar chúl nó ar bhun an ghléis.",
+  "setup_modem_other_group": "Eile",
+  "setup_generic_note": "Níl samhail móideim ag teastáil. Cuir seirbhís tástála luais nó spriocanna inrochtaineachta leis níos déanaí sna socruithe.",
+  "setup_choose_connection": "Roghnaigh do chineál ceangail.",
+  "setup_choose_modem": "Roghnaigh samhail do mhóideim.",
+  "setup_timezone_invalid": "Roghnaigh crios ama ón liosta.",
+  "setup_timezone_search": "Cuardaigh, m.sh. Berlin"
 }

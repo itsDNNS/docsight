@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Speedtestgegevens ontbreken",
   "gaming_speedtest_action": "Speedtest Tracker instellen",
   "bnetz_empty_text": "Upload het PDF- of CSV-rapport van een meting van breitbandmessung.de om die met je contractsnelheid te vergelijken.",
-  "seg_empty_action": "Extensie-instellingen openen"
+  "seg_empty_action": "Extensie-instellingen openen",
+  "setup_connection_question": "Wat voor internetverbinding heb je?",
+  "setup_connection_cable": "Kabel (DOCSIS)",
+  "setup_connection_cable_desc": "Internet via de coaxiale tv-aansluiting, bijvoorbeeld Vodafone, Virgin Media, Comcast of Cox.",
+  "setup_connection_other": "Glasvezel, DSL, satelliet of mobiel",
+  "setup_connection_other_desc": "DOCSight werkt ook zonder kabelsignaalgegevens: snelheidstests, bereikbaarheid, logboek en meer.",
+  "setup_modem_model": "Modemmodel",
+  "setup_modem_search": "Zoek fabrikant, model of provider",
+  "setup_modem_none": "Geen modem past bij deze zoekopdracht. De modelnaam staat op het label aan de achter- of onderkant van het apparaat.",
+  "setup_modem_other_group": "Overige",
+  "setup_generic_note": "Een modemmodel is niet nodig. Voeg later in de instellingen een snelheidstestdienst of bereikbaarheidsdoelen toe.",
+  "setup_choose_connection": "Kies je verbindingstype.",
+  "setup_choose_modem": "Kies je modemmodel.",
+  "setup_timezone_invalid": "Kies een tijdzone uit de lijst.",
+  "setup_timezone_search": "Zoeken, bijv. Berlin"
 }

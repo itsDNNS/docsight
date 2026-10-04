@@ -244,6 +244,7 @@ def test_registry_hints_and_metadata():
     assert PyurFast3896Driver.FORMAT_FAMILIES == ("pyur_api_v1",)
     assert ("pyur_fast3896", "PYUR FAST3896-15 (experimental)") in driver_registry.get_available_drivers()
     assert driver_registry.get_driver_hints()["pyur_fast3896"] == {
+        "manufacturer": "Sagemcom", "region": "PŸUR DE",
         "default_url": "http://192.168.100.1", "default_user": "admin",
         "credentials_required": True, "username_required": False,
     }

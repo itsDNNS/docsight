@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Липсват данни от speedtest",
   "gaming_speedtest_action": "Настрой Speedtest Tracker",
   "bnetz_empty_text": "Качете PDF или CSV отчета от измерване на breitbandmessung.de, за да го сравните с договорената скорост.",
-  "seg_empty_action": "Отвори настройките на разширенията"
+  "seg_empty_action": "Отвори настройките на разширенията",
+  "setup_connection_question": "Какъв тип интернет връзка имате?",
+  "setup_connection_cable": "Кабел (DOCSIS)",
+  "setup_connection_cable_desc": "Интернет през коаксиалната ТВ розетка, например Vodafone, Virgin Media, Comcast или Cox.",
+  "setup_connection_other": "Оптика, DSL, сателит или мобилен",
+  "setup_connection_other_desc": "DOCSight работи и без данни за кабелния сигнал: тестове на скоростта, достъпност, дневник и др.",
+  "setup_modem_model": "Модел на модема",
+  "setup_modem_search": "Търсете производител, модел или доставчик",
+  "setup_modem_none": "Няма модем, отговарящ на търсенето. Моделът е на етикета отзад или отдолу на устройството.",
+  "setup_modem_other_group": "Други",
+  "setup_generic_note": "Не е нужен модел на модем. Добавете услуга за тест на скоростта или цели за достъпност по-късно в настройките.",
+  "setup_choose_connection": "Изберете типа връзка.",
+  "setup_choose_modem": "Изберете модела на модема.",
+  "setup_timezone_invalid": "Изберете часова зона от списъка.",
+  "setup_timezone_search": "Търсене, напр. Berlin"
 }

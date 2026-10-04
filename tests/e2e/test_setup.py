@@ -29,6 +29,13 @@ def _click_back(page):
     page.locator(".step-content.active button.btn-ghost", has_text="Back").click()
 
 
+def _choose_cable_modem(page, query, name):
+    """Pick a cable modem through the searchable list."""
+    page.locator('input[name="connection_kind"][value="cable"]').check()
+    page.locator("#modem-search").fill(query)
+    page.locator("#modem-options [role='option']", has_text=name).click()
+
+
 class TestSetupPageLoad:
     """Setup page renders with Tribu Design System elements."""
 
@@ -86,12 +93,14 @@ class TestSetupWizardFlow:
         _start_fresh(setup_page)
         step1 = setup_page.locator(".step-content[data-step='1']")
         expect(step1).to_be_visible()
+        setup_page.locator('input[name="connection_kind"][value="other"]').check()
         _click_next(setup_page)
         step2 = setup_page.locator(".step-content[data-step='2']")
         expect(step2).to_be_visible()
 
     def test_step2_back_to_step1(self, setup_page):
         _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="other"]').check()
         _click_next(setup_page)
         expect(setup_page.locator(".step-content[data-step='2']")).to_be_visible()
         _click_back(setup_page)
@@ -100,12 +109,14 @@ class TestSetupWizardFlow:
 
     def test_step3_review_populates(self, setup_page):
         _start_fresh(setup_page)
+        _choose_cable_modem(setup_page, "fritz", "AVM FRITZ!Box")
         _click_next(setup_page)
         expect(setup_page.locator(".step-content[data-step='2']")).to_be_visible()
         _click_next(setup_page)
         expect(setup_page.locator(".step-content[data-step='3']")).to_be_visible()
         review_tz = setup_page.locator("#review-tz")
         assert review_tz.text_content() != ""
+        expect(setup_page.locator("#review-modem-type")).to_have_text("AVM FRITZ!Box")
 
 
 class TestSetupRestore:
@@ -206,6 +217,7 @@ class TestSetupRecovery:
         )
         page.goto(setup_server)
         _start_fresh(page)
+        _choose_cable_modem(page, "fritz", "AVM FRITZ!Box")
         page.locator("#test-conn-btn").click()
 
         result = page.locator("#test-result")
@@ -232,6 +244,7 @@ class TestSetupRecovery:
         )
         page.goto(setup_server)
         _start_fresh(page)
+        page.locator('input[name="connection_kind"][value="other"]').check()
         _click_next(page)
         _click_next(page)
         page.locator("#submit-btn").click()
@@ -348,3 +361,102 @@ class TestOneClickDemo:
         page.wait_for_timeout(750)
 
         assert len(start_requests) == 1
+
+
+class TestGuidedModemChoice:
+    """Connection kind first, then a searchable modem list; time zone from the browser."""
+
+    def test_next_requires_a_connection_kind_and_a_modem(self, setup_page):
+        _start_fresh(setup_page)
+        error = setup_page.locator("#step-1-error")
+        expect(setup_page.locator("#modem-credentials-group")).to_be_hidden()
+        _click_next(setup_page)
+        expect(error).to_have_text("Choose your connection type.")
+        expect(setup_page.locator(".step-content[data-step='1']")).to_be_visible()
+
+        setup_page.locator('input[name="connection_kind"][value="cable"]').check()
+        expect(error).to_be_hidden()
+        _click_next(setup_page)
+        expect(error).to_have_text("Choose your modem model.")
+        expect(setup_page.locator("#modem-search")).to_be_focused()
+
+    def test_fiber_and_dsl_reach_the_generic_router_without_the_modem_list(self, setup_page):
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="other"]').check()
+        expect(setup_page.locator("#modem-picker")).to_be_hidden()
+        expect(setup_page.locator("#generic-note")).to_be_visible()
+        expect(setup_page.locator("#modem_type")).to_have_value("generic")
+        expect(setup_page.locator("#modem-credentials-group")).to_be_hidden()
+        _click_next(setup_page)
+        _click_next(setup_page)
+        expect(setup_page.locator("#review-modem-type")).to_have_text("Generic Router (No DOCSIS)")
+
+        # Switching back to cable must not keep the generic driver.
+        _click_back(setup_page)
+        _click_back(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="cable"]').check()
+        expect(setup_page.locator("#modem_type")).to_have_value("")
+
+    def test_modem_list_is_grouped_and_searchable_by_keyboard(self, setup_page):
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="cable"]').check()
+        options = setup_page.locator("#modem-options [role='option']")
+        expect(setup_page.locator("#modem-options [role='option'][data-value='generic']")).to_have_count(0)
+        expect(setup_page.locator("#modem-options .setup-modem-group-label").first).to_have_text("Arris")
+
+        search = setup_page.locator("#modem-search")
+        search.fill("virgin media")
+        visible = setup_page.locator("#modem-options [role='option']:not([hidden])")
+        expect(visible).to_have_count(1)
+        expect(visible).to_contain_text("Virgin Media Hub 5")
+        expect(setup_page.locator("#modem-options .setup-modem-group:not([hidden])")).to_have_count(1)
+
+        search.press("ArrowDown")
+        expect(search).to_have_attribute("aria-activedescendant", "modem-option-f3896lg")
+        search.press("Enter")
+        expect(setup_page.locator("#modem_type")).to_have_value("f3896lg")
+        expect(setup_page.locator("#modem-option-f3896lg")).to_have_attribute("aria-selected", "true")
+        expect(setup_page.locator("#modem_url")).to_have_value("https://192.168.100.1")
+
+        search.fill("no such modem")
+        expect(setup_page.locator("#modem-search-empty")).to_be_visible()
+        search.press("Escape")
+        expect(search).to_have_value("")
+        assert options.count() == visible.count()
+
+    def test_time_zone_is_prefilled_from_the_browser_and_validated(self, browser, setup_server):
+        context = browser.new_context(timezone_id="America/Chicago")
+        page = context.new_page()
+        try:
+            page.goto(setup_server)
+            _start_fresh(page)
+            page.locator('input[name="connection_kind"][value="other"]').check()
+            _click_next(page)
+            timezone = page.locator("#timezone")
+            expect(timezone).to_have_value("America/Chicago")
+            timezone.fill("Atlantis/Lost")
+            _click_next(page)
+            expect(page.locator("#step-2-error")).to_have_text("Choose a time zone from the list.")
+            expect(page.locator(".step-content[data-step='2']")).to_be_visible()
+            timezone.fill("Europe/Berlin")
+            _click_next(page)
+            expect(page.locator("#review-tz")).to_have_text("Europe/Berlin")
+        finally:
+            context.close()
+
+    def test_submission_carries_the_driver_but_not_the_connection_kind(self, setup_page):
+        posted = []
+
+        def save(route):
+            posted.append(route.request.post_data_json)
+            route.fulfill(status=500, json={"error": "not saved in this test"})
+
+        setup_page.route("**/api/config", save)
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="other"]').check()
+        _click_next(setup_page)
+        _click_next(setup_page)
+        setup_page.locator("#submit-btn").click()
+        expect(setup_page.locator("#setup-submit-result")).to_be_visible()
+        assert posted and posted[0]["modem_type"] == "generic"
+        assert "connection_kind" not in posted[0]
