@@ -29,17 +29,21 @@
     {% set c = d.callout %}
     <div class="line-status-row" data-direction="{{ d.key }}">
         <span class="line-status-dir" title="{{ ls_direction[d.key] }}">{{ ls_short[d.key] }}</span>
-        <div class="line-status-strip" role="img"
+        <div class="line-status-strip" role="group"
              aria-label="{{ ls_direction[d.key] }}: {{ d.counts.good }} {{ t.health_good }}, {{ d.counts.tolerated }} {{ t.health_tolerated }}, {{ d.counts.warning }} {{ t.health_marginal }}, {{ d.counts.critical }} {{ t.health_critical }}{% if d.missing_family %}. {{ t.get('line_status_no_ofdma', 'No DOCSIS 3.1/4.0 upstream channel (OFDMA) found · may depend on your plan or equipment') }}{% endif %}">
             {% for seg in d.segments %}
-            <span class="ls-seg ls-{{ seg.health }}{{ ' ls-focus' if c and seg.channel_id == c.channel_id else '' }}"
-                  title="{{ ls_short[d.key] }} {{ seg.channel_id }} · {{ seg.family }}{% if seg.power is not none %} · {{ '%.1f'|format(seg.power) }} dBmV{% endif %} · {{ ls_word[seg.health] }}"></span>
+            {% set seg_label = ls_short[d.key] ~ ' ' ~ seg.channel_id ~ ' · ' ~ seg.family ~ ((' · ' ~ '%.1f'|format(seg.power) ~ ' dBmV') if seg.power is not none else '') ~ ' · ' ~ ls_word[seg.health] %}
+            <button type="button" class="ls-seg ls-{{ seg.health }}{{ ' ls-focus' if c and seg.channel_id == c.channel_id else '' }}"
+                    data-direction="{{ d.key }}" data-selector="{{ seg.selector }}" data-channel-id="{{ seg.channel_id }}"
+                    aria-expanded="false" aria-controls="ls-detail-{{ d.key }}" tabindex="{{ '0' if loop.first else '-1' }}"
+                    title="{{ seg_label }}" aria-label="{{ seg_label }}"></button>
             {% endfor %}
             {% if d.missing_family %}
             <span class="ls-seg ls-missing" title="{{ t.get('line_status_no_ofdma', 'No DOCSIS 3.1/4.0 upstream channel (OFDMA) found · may depend on your plan or equipment') }}"></span>
             {% endif %}
         </div>
     </div>
+    <div class="ls-detail" id="ls-detail-{{ d.key }}" data-direction="{{ d.key }}" hidden></div>
     <div class="line-status-meta">
         {% for state in ('good', 'tolerated', 'warning', 'critical') %}
         <span class="ls-count ls-{{ state }}"><span class="ls-shape ls-shape-{{ state }}" aria-hidden="true"></span>{{ d.counts[state] }} {{ ls_word[state] }}</span>

@@ -2237,6 +2237,21 @@ body:has(#view-dashboard.active) .app-main {
 .ls-seg.ls-warning { background: var(--ls-warning); opacity: 1; }
 .ls-seg.ls-critical { background: var(--ls-critical); opacity: 1; }
 .ls-seg.ls-focus { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--text-muted); }
+button.ls-seg { padding: 0; margin: 0; border: 0; font: inherit; cursor: pointer; }
+button.ls-seg:hover { filter: brightness(1.12); }
+button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ls-seg.ls-selected { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--accent); }
+.ls-detail { margin: 4px 0 2px 40px; padding: 12px 14px; background: var(--elevated); border-radius: var(--radius-sm); }
+.ls-detail-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+.ls-detail-title { font-size: var(--fs-min); font-weight: 600; color: var(--text-secondary); }
+.ls-detail-actions { display: inline-flex; gap: 4px; }
+.ls-detail-close, .ls-detail-step { width: 32px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.ls-detail-close:hover, .ls-detail-step:hover:not(:disabled) { color: var(--text); background: var(--tint-emphasis); }
+.ls-detail-close:focus-visible, .ls-detail-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ls-detail-step:disabled { opacity: 0.35; cursor: default; }
+.ls-detail .cs-row { padding-left: 0; padding-right: 0; }
+.ls-detail .cs-axis { padding: 0; }
+.status-track .cs-track-skeleton-row { height: 44px; }
 /* A family the line does not use: a quiet placeholder instead of a channel. */
 .ls-seg.ls-missing { background: transparent; opacity: 1; border: 1px dashed var(--text-muted); }
 .ls-missing-note { display: inline-flex; align-items: center; gap: 5px; color: var(--text-muted); }
@@ -2307,7 +2322,7 @@ body:has(#view-dashboard.active) .app-main {
   .line-status-count { text-align: left; }
   .line-status-row { grid-template-columns: 26px minmax(0, 1fr); }
   .ls-seg { height: 22px; border-radius: 4px; }
-  .line-status-meta, .line-status-more, .line-status-ok { margin-left: 0; }
+  .line-status-meta, .line-status-more, .line-status-ok, .ls-detail { margin-left: 0; }
   .line-status-callout { grid-template-columns: 1fr; width: auto; max-width: none; margin-left: 0; }
   .line-status-callout::before { left: calc(var(--ls-anchor) - 7px); }
 }

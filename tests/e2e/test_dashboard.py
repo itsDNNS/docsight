@@ -563,3 +563,73 @@ class TestHomeOverview:
         )
         line = demo_page.evaluate("parseFloat(getComputedStyle(document.querySelector('.home-event-text')).lineHeight) || 24")
         assert heights and all(h <= line * 1.5 for h in heights), heights
+
+
+class TestLineStatusSegments:
+    """Tapping a channel segment on Home shows that channel's last 24 hours."""
+
+    def _segment(self, page, direction, index=0):
+        return page.locator(f'.line-status-row[data-direction="{direction}"] .ls-seg[data-selector]').nth(index)
+
+    def test_tap_shows_the_channel_track_and_a_second_tap_closes_it(self, demo_page):
+        seg = self._segment(demo_page, "us")
+        panel = demo_page.locator("#ls-detail-us")
+        expect(panel).to_be_hidden()
+
+        seg.click()
+        expect(seg).to_have_attribute("aria-expanded", "true")
+        expect(panel.locator(".cs-row .cs-cell")).to_have_count(48)
+        expect(panel.locator(".cs-row")).to_have_attribute("data-channel-id", seg.get_attribute("data-channel-id"))
+        expect(panel.locator(".ls-detail-title")).to_contain_text("Last 24 hours")
+
+        seg.click()
+        expect(panel).to_be_hidden()
+        expect(seg).to_have_attribute("aria-expanded", "false")
+
+    def test_arrow_keys_move_between_channels_and_escape_closes(self, demo_page):
+        first, second = self._segment(demo_page, "ds", 0), self._segment(demo_page, "ds", 1)
+        first.focus()
+        demo_page.keyboard.press("ArrowRight")
+        expect(second).to_be_focused()
+        expect(second).to_have_attribute("tabindex", "0")
+        expect(first).to_have_attribute("tabindex", "-1")
+
+        demo_page.keyboard.press("Enter")
+        panel = demo_page.locator("#ls-detail-ds")
+        expect(panel.locator(".cs-row")).to_be_visible()
+        demo_page.keyboard.press("Escape")
+        expect(panel).to_be_hidden()
+        expect(second).to_be_focused()
+
+    def test_segments_share_one_request_and_the_row_opens_the_charts(self, demo_page):
+        requests = []
+        demo_page.on("request", lambda req: "/api/channel-status" in req.url and requests.append(req.url))
+        self._segment(demo_page, "ds", 2).click()
+        expect(demo_page.locator("#ls-detail-ds .cs-row")).to_be_visible()
+        self._segment(demo_page, "us", 0).click()
+        expect(demo_page.locator("#ls-detail-us .cs-row")).to_be_visible()
+        assert len(requests) == 1 and "range=1d" in requests[0]
+
+        row = demo_page.locator("#ls-detail-us .cs-row")
+        direction, channel = row.get_attribute("data-direction"), row.get_attribute("data-channel-id")
+        row.click()
+        expect(demo_page.locator("#channel-panel-timeline")).to_be_visible()
+        expect(demo_page.locator("#channel-select")).to_have_value(re.compile(rf"^{direction}-(selector-c1_\S+|{channel})$"))
+        expect(demo_page.locator('#channel-time-tabs .trend-tab.active')).to_have_attribute("data-value", "1d")
+
+    def test_previous_and_next_step_through_the_strip_on_a_phone(self, demo_page):
+        demo_page.set_viewport_size({"width": 393, "height": 900})
+        first = self._segment(demo_page, "ds", 0)
+        first.click()
+        panel = demo_page.locator("#ls-detail-ds")
+        previous, following = panel.locator('.ls-detail-step[data-step="-1"]'), panel.locator('.ls-detail-step[data-step="1"]')
+        expect(previous).to_be_disabled()
+
+        following.click()
+        second = self._segment(demo_page, "ds", 1)
+        expect(second).to_have_attribute("aria-expanded", "true")
+        expect(first).to_have_attribute("aria-expanded", "false")
+        expect(panel.locator(".cs-row")).to_have_attribute("data-channel-id", second.get_attribute("data-channel-id"))
+        expect(panel.locator('.ls-detail-step[data-step="1"]')).to_be_focused()
+        box = panel.locator('.ls-detail-step[data-step="1"]').bounding_box()
+        assert box["width"] >= 24 and box["height"] >= 24
