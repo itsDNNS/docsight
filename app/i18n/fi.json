@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Käytä",
   "setup_detect_use_address": "Käytä tätä osoitetta",
   "setup_detect_unknown": "Mallia ei tunnistettu. Valitse se alla olevasta luettelosta.",
-  "setup_detect_none": "Mikään laite ei vastannut yleisissä osoitteissa. Osoite on yleensä modeemin tarrassa."
+  "setup_detect_none": "Mikään laite ei vastannut yleisissä osoitteissa. Osoite on yleensä modeemin tarrassa.",
+  "setup_test_unreachable": "DOCSight ei tavoita osoitetta {url}. Tarkista osoite ja että DOCSightia ajava tietokone on samassa verkossa kuin modeemi.",
+  "setup_test_auth": "Modeemi vastaa, mutta hylkäsi kirjautumisen. Tarkista käyttäjänimi ja salasana.",
+  "setup_test_unexpected": "Modeemi vastaa, mutta DOCSight ei pysty lukemaan sen sivuja. Tarkista, että valittu malli vastaa laitetta; sen laiteohjelmistoa ei ehkä vielä tueta.",
+  "setup_test_help": "Näin korjaat tämän"
 }

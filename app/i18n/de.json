@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Übernehmen",
   "setup_detect_use_address": "Diese Adresse übernehmen",
   "setup_detect_unknown": "Das Modell wurde nicht erkannt. Wähle es unten aus der Liste.",
-  "setup_detect_none": "An den üblichen Adressen hat kein Gerät geantwortet. Die Adresse steht meist auf dem Etikett deines Modems."
+  "setup_detect_none": "An den üblichen Adressen hat kein Gerät geantwortet. Die Adresse steht meist auf dem Etikett deines Modems.",
+  "setup_test_unreachable": "DOCSight erreicht {url} nicht. Prüfe die Adresse und ob der Rechner mit DOCSight im selben Netzwerk wie das Modem ist.",
+  "setup_test_auth": "Das Modem antwortet, hat die Anmeldung aber abgelehnt. Prüfe Benutzername und Passwort.",
+  "setup_test_unexpected": "Das Modem antwortet, aber DOCSight kann seine Seiten nicht auslesen. Prüfe, ob das gewählte Modell zum Gerät passt; eventuell wird seine Firmware noch nicht unterstützt.",
+  "setup_test_help": "So behebst du das"
 }

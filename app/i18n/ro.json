@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Folosește",
   "setup_detect_use_address": "Folosește această adresă",
   "setup_detect_unknown": "Modelul nu a fost recunoscut. Alege-l din lista de mai jos.",
-  "setup_detect_none": "Niciun dispozitiv nu a răspuns la adresele uzuale. Adresa este de obicei pe eticheta modemului."
+  "setup_detect_none": "Niciun dispozitiv nu a răspuns la adresele uzuale. Adresa este de obicei pe eticheta modemului.",
+  "setup_test_unreachable": "DOCSight nu poate ajunge la {url}. Verifică adresa și dacă computerul cu DOCSight este în aceeași rețea cu modemul.",
+  "setup_test_auth": "Modemul răspunde, dar a respins autentificarea. Verifică numele de utilizator și parola.",
+  "setup_test_unexpected": "Modemul răspunde, dar DOCSight nu îi poate citi paginile. Verifică dacă modelul ales corespunde dispozitivului; firmware-ul său poate să nu fie încă suportat.",
+  "setup_test_help": "Cum rezolvi asta"
 }

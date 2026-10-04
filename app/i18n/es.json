@@ -1210,5 +1210,9 @@
   "setup_detect_use": "Usar",
   "setup_detect_use_address": "Usar esta dirección",
   "setup_detect_unknown": "No se reconoció el modelo. Elígelo de la lista de abajo.",
-  "setup_detect_none": "Ningún dispositivo respondió en las direcciones habituales. La dirección suele estar en la etiqueta del módem."
+  "setup_detect_none": "Ningún dispositivo respondió en las direcciones habituales. La dirección suele estar en la etiqueta del módem.",
+  "setup_test_unreachable": "DOCSight no puede alcanzar {url}. Comprueba la dirección y que el equipo con DOCSight esté en la misma red que el módem.",
+  "setup_test_auth": "El módem responde, pero rechazó el inicio de sesión. Comprueba el usuario y la contraseña.",
+  "setup_test_unexpected": "El módem responde, pero DOCSight no puede leer sus páginas. Comprueba que el modelo elegido coincide con el equipo; puede que su firmware aún no sea compatible.",
+  "setup_test_help": "Cómo solucionarlo"
 }

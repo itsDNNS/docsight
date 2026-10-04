@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Bruk",
   "setup_detect_use_address": "Bruk denne adressen",
   "setup_detect_unknown": "Modellen ble ikke gjenkjent. Velg den fra listen nedenfor.",
-  "setup_detect_none": "Ingen enhet svarte på de vanlige adressene. Adressen står vanligvis på etiketten på modemet."
+  "setup_detect_none": "Ingen enhet svarte på de vanlige adressene. Adressen står vanligvis på etiketten på modemet.",
+  "setup_test_unreachable": "DOCSight når ikke {url}. Sjekk adressen og at datamaskinen med DOCSight er på samme nettverk som modemet.",
+  "setup_test_auth": "Modemet svarer, men avviste innloggingen. Sjekk brukernavn og passord.",
+  "setup_test_unexpected": "Modemet svarer, men DOCSight kan ikke lese sidene. Sjekk at valgt modell passer til enheten; fastvaren støttes kanskje ikke ennå.",
+  "setup_test_help": "Slik løser du det"
 }

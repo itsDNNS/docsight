@@ -470,6 +470,13 @@
   font-size: 0.75rem;
   font-weight: 400;
 }
+.setup-recovery-help {
+  align-self: center;
+  color: var(--amethyst-light);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
 .setup-detect {
   display: grid;
   gap: var(--space-xs, 6px);

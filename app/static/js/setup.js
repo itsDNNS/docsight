@@ -84,8 +84,9 @@ async function testConnection() {
         } else {
             showSetupRecovery(
                 resultDiv,
-                result.error || SETUP_T.connection_failed,
-                testConnection
+                _connectionFailureText(result, data.modem_url),
+                testConnection,
+                _connectionHelp(result)
             );
         }
         resultDiv.style.display = 'block';
@@ -101,7 +102,27 @@ async function testConnection() {
     _setButtonLoading(btn, 'wifi', SETUP_T.test_connection);
 }
 
-function showSetupRecovery(resultDiv, message, retryFn) {
+/* Name the likely cause of a failed connection test instead of a bare "failed". */
+var CONNECTION_FAILURE_KEYS = {
+    unreachable: 'setup_test_unreachable',
+    auth: 'setup_test_auth',
+    unexpected: 'setup_test_unexpected'
+};
+
+function _connectionFailureText(result, url) {
+    var key = CONNECTION_FAILURE_KEYS[result && result.reason];
+    var text = key && SETUP_T[key];
+    if (!text) return (result && result.error) || SETUP_T.connection_failed;
+    return text.replace('{url}', url || '');
+}
+
+function _connectionHelp(result) {
+    var href = result && result.help_url;
+    if (typeof href !== 'string' || href.indexOf('https://github.com/itsDNNS/docsight/wiki/') !== 0) return null;
+    return {label: SETUP_T.setup_test_help, href: href};
+}
+
+function showSetupRecovery(resultDiv, message, retryFn, help) {
     if (!resultDiv) return;
     resultDiv.className = 'test-result error';
     resultDiv.style.display = 'block';
@@ -124,6 +145,15 @@ function showSetupRecovery(resultDiv, message, retryFn) {
     demo.addEventListener('click', startDemo);
     actions.appendChild(retry);
     actions.appendChild(demo);
+    if (help) {
+        var link = document.createElement('a');
+        link.className = 'setup-recovery-help';
+        link.href = help.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = help.label;
+        actions.appendChild(link);
+    }
     resultDiv.appendChild(actions);
     retry.focus({preventScroll: true});
 }

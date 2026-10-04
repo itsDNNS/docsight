@@ -292,8 +292,12 @@ def test_builtin_override_connection_errors_are_redacted(tmp_path, caplog, excep
 ''')
     application, runtime = make_app(tmp_path, modem_type="fritzbox")
     assert not runtime.driver_registry.is_builtin("fritzbox")
-    response = application.test_client().post("/api/test-modem", json={"modem_type": "fritzbox"})
-    assert response.json == {"success": False, "error": "Community modem connection failed"}
+    with patch("app.modem_diagnosis.host_reachable", return_value=False):
+        response = application.test_client().post("/api/test-modem", json={"modem_type": "fritzbox"})
+    assert response.json == {
+        "success": False, "error": "Community modem connection failed", "reason": "unreachable",
+        "help_url": "https://github.com/itsDNNS/docsight/wiki/Bridge-Mode-Compatibility#modem-not-reachable",
+    }
     assert "private-password" not in response.text + caplog.text
     assert "/private/path" not in response.text + caplog.text
 
@@ -369,7 +373,10 @@ def test_community_constructor_errors_are_redacted(tmp_path, caplog):
 ''')
     application, runtime = make_app(tmp_path)
     response = application.test_client().post("/api/test-modem", json={"modem_type": DRIVER_ID})
-    assert response.json == {"success": False, "error": "Community modem connection failed"}
+    assert response.json == {
+        "success": False, "error": "Community modem connection failed", "reason": "unexpected",
+        "help_url": "https://github.com/itsDNNS/docsight/wiki/Requesting-Modem-Support",
+    }
     driver = runtime.driver_registry.load_for_polling(DRIVER_ID, "", "", "")
     with pytest.raises(RuntimeError, match="Configured modem driver is unavailable"):
         driver.login()

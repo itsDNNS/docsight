@@ -41,8 +41,11 @@ def api_test_modem():
     """Test modem connection."""
     _config_manager = current_runtime().config_manager
     from app.drivers import get_driver_registry
+    from app import modem_diagnosis
     driver_registry = get_driver_registry()
     modem_type = "fritzbox"
+    modem_url = "http://192.168.100.1"
+    stage = "load"
     try:
         data = request.get_json()
         # Resolve masked passwords to real values
@@ -50,20 +53,30 @@ def api_test_modem():
         if password == PASSWORD_MASK and _config_manager:
             password = _config_manager.get("modem_password", "")
         modem_type = data.get("modem_type", "fritzbox")
+        modem_url = data.get("modem_url") or modem_url
         driver = driver_registry.load_driver(
             modem_type,
-            data.get("modem_url") or "http://192.168.100.1",
+            modem_url,
             data.get("modem_user", ""),
             password,
         )
+        stage = "login"
         driver.login()
+        stage = "read"
         info = driver.get_device_info()
         return jsonify({"success": True, "model": info.get("model", "OK")})
-    except Exception:
-        log.warning("Modem test failed")
-        if not driver_registry.is_builtin(modem_type):
-            return jsonify({"success": False, "error": "Community modem connection failed"})
-        return jsonify({"success": False, "error": "Modem connection failed"})
+    except Exception as exc:
+        # A login that failed against a silent address is a reachability problem,
+        # whatever the driver's message says.
+        if stage == "login" and not modem_diagnosis.host_reachable(modem_url):
+            reason = modem_diagnosis.UNREACHABLE
+        else:
+            reason = modem_diagnosis.classify_failure(exc, stage)
+        log.warning("Modem test failed (%s)", reason)
+        error = ("Community modem connection failed" if not driver_registry.is_builtin(modem_type)
+                 else "Modem connection failed")
+        return jsonify({"success": False, "error": error, "reason": reason,
+                        "help_url": modem_diagnosis.HELP_URLS[reason]})
 
 
 @polling_bp.route("/api/setup/detect-modem", methods=["POST"])

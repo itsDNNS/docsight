@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Brug",
   "setup_detect_use_address": "Brug denne adresse",
   "setup_detect_unknown": "Modellen blev ikke genkendt. Vælg den på listen nedenfor.",
-  "setup_detect_none": "Ingen enhed svarede på de almindelige adresser. Adressen står normalt på modemmets mærkat."
+  "setup_detect_none": "Ingen enhed svarede på de almindelige adresser. Adressen står normalt på modemmets mærkat.",
+  "setup_test_unreachable": "DOCSight kan ikke nå {url}. Tjek adressen, og at computeren med DOCSight er på samme netværk som modemmet.",
+  "setup_test_auth": "Modemmet svarer, men afviste login. Tjek brugernavn og adgangskode.",
+  "setup_test_unexpected": "Modemmet svarer, men DOCSight kan ikke læse dets sider. Tjek, at den valgte model passer til enheden; dens firmware understøttes måske endnu ikke.",
+  "setup_test_help": "Sådan løser du det"
 }

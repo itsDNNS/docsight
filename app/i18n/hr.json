@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Koristi",
   "setup_detect_use_address": "Koristi ovu adresu",
   "setup_detect_unknown": "Model nije prepoznat. Odaberite ga s popisa ispod.",
-  "setup_detect_none": "Nijedan uređaj nije odgovorio na uobičajenim adresama. Adresa je obično na naljepnici modema."
+  "setup_detect_none": "Nijedan uređaj nije odgovorio na uobičajenim adresama. Adresa je obično na naljepnici modema.",
+  "setup_test_unreachable": "DOCSight ne može doći do {url}. Provjerite adresu i je li računalo s DOCSightom u istoj mreži kao modem.",
+  "setup_test_auth": "Modem odgovara, ali je odbio prijavu. Provjerite korisničko ime i lozinku.",
+  "setup_test_unexpected": "Modem odgovara, ali DOCSight ne može pročitati njegove stranice. Provjerite odgovara li odabrani model uređaju; njegov firmware možda još nije podržan.",
+  "setup_test_help": "Kako to riješiti"
 }

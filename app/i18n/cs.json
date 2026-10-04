@@ -1215,5 +1215,9 @@
   "setup_detect_use": "Použít",
   "setup_detect_use_address": "Použít tuto adresu",
   "setup_detect_unknown": "Model nebyl rozpoznán. Vyberte jej ze seznamu níže.",
-  "setup_detect_none": "Na běžných adresách neodpovědělo žádné zařízení. Adresa bývá na štítku modemu."
+  "setup_detect_none": "Na běžných adresách neodpovědělo žádné zařízení. Adresa bývá na štítku modemu.",
+  "setup_test_unreachable": "DOCSight nedosáhne na {url}. Zkontrolujte adresu a zda je počítač s DOCSight ve stejné síti jako modem.",
+  "setup_test_auth": "Modem odpovídá, ale přihlášení odmítl. Zkontrolujte uživatelské jméno a heslo.",
+  "setup_test_unexpected": "Modem odpovídá, ale DOCSight nedokáže přečíst jeho stránky. Zkontrolujte, zda vybraný model odpovídá zařízení; jeho firmware zatím nemusí být podporován.",
+  "setup_test_help": "Jak to opravit"
 }
