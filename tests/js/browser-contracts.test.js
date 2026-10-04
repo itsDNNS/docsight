@@ -169,11 +169,17 @@ test('setup bootstrap and pure driver defaults preserve explicit user choices', 
         indexUrl: '/docsight/',
         loginUrl: '/docsight/login',
         driverHints: {
-            fritzbox: {default_url: 'http://192.168.178.1', default_user: '', username_required: false, credentials_required: true},
+            fritzbox: {default_url: 'http://192.168.178.1', default_user: '', username_required: false, credentials_required: true,
+                manufacturer: 'AVM', region: 'DE · AT · CH'},
             demo: {default_url: null, default_user: null, username_required: false, credentials_required: false}
         }
     }));
     assert.equal(parsed.driverHints.fritzbox.default_url, 'http://192.168.178.1');
+    assert.equal(parsed.driverHints.fritzbox.manufacturer, 'AVM');
+    assert.throws(() => contracts.parseSetupBootstrapText(JSON.stringify({
+        translations: {}, indexUrl: '/', loginUrl: '/login',
+        driverHints: {fritzbox: {manufacturer: ['AVM']}}
+    })), /bootstrap/i);
 
     assert.deepEqual(contracts.selectSetupDriverState(parsed.driverHints, 'fritzbox', '', 'saved'), {
         url: 'http://192.168.178.1',

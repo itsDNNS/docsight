@@ -10,6 +10,7 @@ var demoStartAccepted = false;
 var demoWaitDeadline = 0;
 
 function nextStep(step) {
+    if (step > currentStep && !validateStep(currentStep)) return;
     document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.stepper-step').forEach(el => {
         el.classList.remove('active');
@@ -36,10 +37,7 @@ function prevStep(step) {
 }
 
 function updateReview() {
-    const modemType = document.getElementById('modem_type');
-    const selectedOption = modemType.options[modemType.selectedIndex].text;
-
-    document.getElementById('review-modem-type').textContent = selectedOption;
+    document.getElementById('review-modem-type').textContent = selectedModemName();
     document.getElementById('review-modem-url').textContent = document.getElementById('modem_url').value;
     document.getElementById('review-poll').textContent = document.getElementById('poll_interval').value;
     document.getElementById('review-tz').textContent = document.getElementById('timezone').value;
@@ -148,6 +146,8 @@ document.getElementById('setup-form').addEventListener('submit', async function(
 
     var formData = new FormData(e.target);
     var data = Object.fromEntries(formData.entries());
+    // The connection kind only guides the modem choice; modem_type carries the result.
+    delete data.connection_kind;
 
     try {
         var response = await fetch(docsightUrl('/api/config'), {
@@ -193,7 +193,8 @@ function toggleUsernameField() {
     );
     urlField.value = state.url;
 
-    if(!state.credentialsVisible) {
+    // Nothing to log in to until a modem is chosen.
+    if(!modemType || !state.credentialsVisible) {
         credGroup.style.display = 'none';
         return;
     }
@@ -212,10 +213,152 @@ function toggleUsernameField() {
     }
 }
 
+/* ── Step 1: connection kind and searchable modem list ── */
+function _modemOptions(visibleOnly) {
+    return Array.prototype.slice.call(document.querySelectorAll('#modem-options [role="option"]'))
+        .filter(function(option) { return !visibleOnly || !option.hidden; });
+}
+
+function _showStepError(step, message) {
+    var el = document.getElementById('step-' + step + '-error');
+    if (!el) return;
+    el.textContent = message || '';
+    el.hidden = !message;
+}
+
+/* Cable connections pick a modem model; every other connection uses the
+   generic router driver, so it never has to be found in the modem list. */
+function chooseConnectionKind(kind) {
+    document.getElementById('modem-picker').hidden = kind !== 'cable';
+    document.getElementById('generic-note').hidden = kind !== 'other';
+    var current = document.getElementById('modem_type').value;
+    if (kind === 'other') setModemType('generic');
+    else if (current === 'generic') setModemType('');
+    _showStepError(1, '');
+}
+
+function setModemType(key) {
+    document.getElementById('modem_type').value = key;
+    _modemOptions(false).forEach(function(option) {
+        option.setAttribute('aria-selected', String(option.dataset.value === key));
+    });
+    if (key) _showStepError(1, '');
+    toggleUsernameField();
+}
+
+function selectedModemName() {
+    var input = document.getElementById('modem_type');
+    if (input.value === 'generic') return input.dataset.genericName;
+    var option = document.getElementById('modem-option-' + input.value);
+    var name = option && option.querySelector('.setup-modem-name');
+    return name ? name.textContent : input.value;
+}
+
+function filterModemOptions(query) {
+    var tokens = String(query || '').toLowerCase().split(/\s+/).filter(Boolean);
+    _modemOptions(false).forEach(function(option) {
+        var haystack = option.dataset.search || '';
+        option.hidden = !tokens.every(function(token) { return haystack.indexOf(token) !== -1; });
+    });
+    document.querySelectorAll('#modem-options .setup-modem-group').forEach(function(group) {
+        group.hidden = !group.querySelector('[role="option"]:not([hidden])');
+    });
+    document.getElementById('modem-search-empty').hidden = _modemOptions(true).length > 0;
+    _setActiveModemOption(null);
+}
+
+function _setActiveModemOption(option) {
+    var search = document.getElementById('modem-search');
+    _modemOptions(false).forEach(function(item) { item.classList.toggle('is-active', item === option); });
+    if (option) {
+        search.setAttribute('aria-activedescendant', option.id);
+        option.scrollIntoView({block: 'nearest'});
+    } else {
+        search.removeAttribute('aria-activedescendant');
+    }
+}
+
+function _onModemSearchKey(event) {
+    var visible = _modemOptions(true);
+    var active = document.querySelector('#modem-options .is-active');
+    var index = visible.indexOf(active);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (!visible.length) return;
+        var next = event.key === 'ArrowDown' ? Math.min(visible.length - 1, index + 1) : Math.max(0, index - 1);
+        _setActiveModemOption(visible[next]);
+    } else if (event.key === 'Enter') {
+        // Enter picks the highlighted model (or the only match) instead of submitting the form.
+        event.preventDefault();
+        var pick = active && !active.hidden ? active : (visible.length === 1 ? visible[0] : null);
+        if (pick) setModemType(pick.dataset.value);
+    } else if (event.key === 'Escape') {
+        event.target.value = '';
+        filterModemOptions('');
+    }
+}
+
+function _initModemPicker() {
+    var search = document.getElementById('modem-search');
+    if (!search) return;
+    search.addEventListener('input', function() { filterModemOptions(search.value); });
+    search.addEventListener('keydown', _onModemSearchKey);
+    document.getElementById('modem-options').addEventListener('click', function(event) {
+        var option = event.target.closest('[role="option"]');
+        if (!option) return;
+        setModemType(option.dataset.value);
+        _setActiveModemOption(option);
+    });
+}
+
+/* ── Step 2: time zone, prefilled from the browser when nothing is saved ── */
+function _timezoneOptions() {
+    return Array.prototype.map.call(document.querySelectorAll('#timezone-options option'), function(option) {
+        return option.value;
+    });
+}
+
+function _prefillTimezone() {
+    var field = document.getElementById('timezone');
+    if (!field || field.value) return;
+    var known = _timezoneOptions();
+    var browserZone = '';
+    try { browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (error) { browserZone = ''; }
+    if (known.indexOf(browserZone) !== -1) field.value = browserZone;
+    else if (known.indexOf(field.dataset.serverTimezone) !== -1) field.value = field.dataset.serverTimezone;
+}
+
+function validateStep(step) {
+    if (step === 1) {
+        var kind = document.querySelector('input[name="connection_kind"]:checked');
+        if (!kind) {
+            _showStepError(1, SETUP_T.setup_choose_connection);
+            document.querySelector('input[name="connection_kind"]').focus();
+            return false;
+        }
+        if (!document.getElementById('modem_type').value) {
+            _showStepError(1, SETUP_T.setup_choose_modem);
+            document.getElementById('modem-search').focus();
+            return false;
+        }
+    }
+    if (step === 2) {
+        var field = document.getElementById('timezone');
+        if (_timezoneOptions().indexOf(field.value) === -1) {
+            _showStepError(2, SETUP_T.setup_timezone_invalid);
+            field.focus();
+            return false;
+        }
+        _showStepError(2, '');
+    }
+    return true;
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
     toggleUsernameField();
-    document.getElementById('modem_type').addEventListener('change', toggleUsernameField);
+    _initModemPicker();
+    _prefillTimezone();
     lucide.createIcons();
     if (new URLSearchParams(window.location.search).get('connect') === '1') {
         startFreshSetup();

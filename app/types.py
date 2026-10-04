@@ -423,3 +423,5 @@ class DriverHints(TypedDict, total=False):
     url_hint: str
     user_hint: str
     password_hint: str
+    manufacturer: str  # groups the setup picker
+    region: str  # where the model is typically provided, shown as a hint

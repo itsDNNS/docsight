@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Lipsesc datele speedtest",
   "gaming_speedtest_action": "Configurează Speedtest Tracker",
   "bnetz_empty_text": "Încărcați raportul PDF sau CSV al unei măsurători de pe breitbandmessung.de pentru a o compara cu viteza contractată.",
-  "seg_empty_action": "Deschide setările extensiilor"
+  "seg_empty_action": "Deschide setările extensiilor",
+  "setup_connection_question": "Ce tip de conexiune la internet ai?",
+  "setup_connection_cable": "Cablu (DOCSIS)",
+  "setup_connection_cable_desc": "Internet prin priza coaxială TV, de exemplu Vodafone, Virgin Media, Comcast sau Cox.",
+  "setup_connection_other": "Fibră, DSL, satelit sau mobil",
+  "setup_connection_other_desc": "DOCSight funcționează și fără date de semnal pe cablu: teste de viteză, accesibilitate, jurnal și altele.",
+  "setup_modem_model": "Modelul modemului",
+  "setup_modem_search": "Caută producător, model sau furnizor",
+  "setup_modem_none": "Niciun modem nu corespunde căutării. Modelul este pe eticheta din spatele sau de dedesubtul dispozitivului.",
+  "setup_modem_other_group": "Altele",
+  "setup_generic_note": "Nu este nevoie de un model de modem. Adaugă mai târziu în setări un serviciu de test de viteză sau ținte de accesibilitate.",
+  "setup_choose_connection": "Alege tipul de conexiune.",
+  "setup_choose_modem": "Alege modelul modemului.",
+  "setup_timezone_invalid": "Alege un fus orar din listă.",
+  "setup_timezone_search": "Caută, de ex. Berlin"
 }

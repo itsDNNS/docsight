@@ -73,7 +73,9 @@ def test_community_driver_complete_workflow(tmp_path, driver_id):
         with patch.object(runtime.config_manager, "is_configured", return_value=path != "/setup"):
             response = client.get(path)
         assert response.status_code == 200
-        assert f'<option value="{driver_id}"' in response.text
+        # Setup offers drivers in its searchable list, settings in a select.
+        offered = f'role="option" id="modem-option-{driver_id}"' if path == "/setup" else f'<option value="{driver_id}"'
+        assert offered in response.text
     response = client.post("/api/test-modem", json={
         "modem_type": driver_id, "modem_user": "tester", "modem_password": "test-password"})
     assert response.json == {"success": True, "model": "Community Test Modem"}

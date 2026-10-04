@@ -385,6 +385,103 @@
   color: var(--text-muted);
 }
 
+/* ── Connection kind and modem picker ── */
+.setup-connection-kind {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-md);
+  padding: 0;
+  border: 0;
+}
+.setup-connection-kind legend {
+  margin-bottom: var(--space-sm);
+  padding: 0;
+}
+.setup-choice {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  padding: var(--space-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+.setup-choice:has(input:checked) {
+  border-color: var(--amethyst);
+  background: var(--amethyst-muted);
+}
+.setup-choice:has(input:focus-visible) { outline: 2px solid var(--amethyst); outline-offset: 2px; }
+.setup-choice input {
+  margin: 3px 0 0;
+  accent-color: var(--amethyst);
+}
+.setup-choice-icon { display: inline-flex; color: var(--amethyst-light); }
+.setup-choice-icon svg { width: 20px; height: 20px; }
+.setup-choice-text { display: grid; gap: 2px; }
+.setup-choice-text strong { color: var(--text-primary); font-size: 0.95rem; }
+.setup-choice-text span { color: var(--text-muted); font-size: 0.8rem; line-height: 1.4; }
+
+.setup-modem-picker {
+  display: grid;
+  gap: var(--space-xs, 6px);
+  margin-bottom: var(--space-md);
+}
+.setup-modem-options {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.setup-modem-group-label {
+  position: sticky;
+  top: 0;
+  padding: 6px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.setup-modem-option {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+  padding: 9px 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.setup-modem-option:hover,
+.setup-modem-option.is-active { background: var(--amethyst-muted); }
+.setup-modem-option.is-active { outline: 2px solid var(--amethyst); outline-offset: -2px; }
+.setup-modem-option[aria-selected="true"] {
+  background: color-mix(in srgb, var(--amethyst) 22%, transparent);
+  font-weight: 600;
+}
+.setup-modem-option[aria-selected="true"]::after { content: "\2713"; flex: none; color: var(--amethyst-light); }
+.setup-modem-name { flex: 1 1 auto; min-width: 0; }
+.setup-modem-region {
+  flex: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.setup-modem-option[hidden],
+.setup-modem-group[hidden],
+.setup-modem-picker[hidden],
+.setup-info[hidden],
+.setup-step-error[hidden] { display: none; }
+.setup-step-error {
+  margin: var(--space-sm) 0 0;
+  color: var(--crit);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
 /* ── Info Box ── */
 .setup-info {
   background: var(--amethyst-muted);

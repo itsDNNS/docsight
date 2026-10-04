@@ -161,18 +161,57 @@
             </div>
         </div>
 
-        <div class="form-grid">
-            <div class="form-field">
-                <label class="form-label" for="modem_type">{{ t.modem_type }}</label>
-                <select class="form-select" id="modem_type" name="modem_type" required>
-                    {% for key, name in modem_types %}
-                    <option value="{{ key }}" {% if config.modem_type == key %}selected{% endif %}>{{ name }}</option>
+        <fieldset class="setup-connection-kind" id="connection-kind">
+            <legend class="form-label">{{ t.setup_connection_question }}</legend>
+            <label class="setup-choice">
+                <input type="radio" name="connection_kind" value="cable" onchange="chooseConnectionKind(this.value)">
+                <span class="setup-choice-icon" aria-hidden="true"><i data-lucide="radio"></i></span>
+                <span class="setup-choice-text">
+                    <strong>{{ t.setup_connection_cable }}</strong>
+                    <span>{{ t.setup_connection_cable_desc }}</span>
+                </span>
+            </label>
+            <label class="setup-choice">
+                <input type="radio" name="connection_kind" value="other" onchange="chooseConnectionKind(this.value)">
+                <span class="setup-choice-icon" aria-hidden="true"><i data-lucide="globe"></i></span>
+                <span class="setup-choice-text">
+                    <strong>{{ t.setup_connection_other }}</strong>
+                    <span>{{ t.setup_connection_other_desc }}</span>
+                </span>
+            </label>
+        </fieldset>
+
+        {# Generic router has no modem model; the connection kind above selects it. #}
+        <input type="hidden" id="modem_type" name="modem_type" value=""
+               data-generic-name="{{ (modem_types|selectattr(0, 'equalto', 'generic')|first or ['', 'Generic Router'])[1] }}">
+
+        <div class="setup-modem-picker" id="modem-picker" hidden>
+            <label class="form-label" for="modem-search" id="modem-search-label">{{ t.setup_modem_model }}</label>
+            <input class="form-input" type="text" id="modem-search" role="combobox" autocomplete="off" spellcheck="false"
+                   aria-autocomplete="list" aria-expanded="true" aria-controls="modem-options"
+                   placeholder="{{ t.setup_modem_search }}">
+            <div class="setup-modem-options" id="modem-options" role="listbox" aria-labelledby="modem-search-label">
+                {% for group in modem_catalog %}
+                <div class="setup-modem-group" role="group" aria-labelledby="modem-group-{{ loop.index }}">
+                    <div class="setup-modem-group-label" id="modem-group-{{ loop.index }}" role="presentation">{{ group.manufacturer }}</div>
+                    {% for model in group.models %}
+                    <div class="setup-modem-option" role="option" id="modem-option-{{ model.key }}" aria-selected="false"
+                         data-value="{{ model.key }}" data-search="{{ (group.manufacturer ~ ' ' ~ model.name ~ ' ' ~ model.region ~ ' ' ~ model.key)|lower }}">
+                        <span class="setup-modem-name">{{ model.name }}</span>
+                        {% if model.region %}<span class="setup-modem-region">{{ model.region }}</span>{% endif %}
+                    </div>
                     {% endfor %}
-                </select>
+                </div>
+                {% endfor %}
             </div>
+            <p class="form-hint" id="modem-search-empty" hidden>{{ t.setup_modem_none }}</p>
         </div>
 
-        <div id="modem-credentials-group" class="form-grid" style="margin-top:var(--space-md);">
+        <p class="setup-info" id="generic-note" hidden>{{ t.setup_generic_note }}</p>
+
+        <p class="setup-step-error" id="step-1-error" role="alert" hidden></p>
+
+        <div id="modem-credentials-group" class="form-grid" style="margin-top:var(--space-md); display:none;">
             <div class="form-field">
                 <label class="form-label" for="modem_url">{{ t.url }}</label>
                 <input class="form-input" type="text" id="modem_url" name="modem_url"
@@ -238,12 +277,16 @@
 
             <div class="form-field">
                 <label class="form-label" for="timezone">{{ t.timezone }}</label>
-                <select class="form-select" id="timezone" name="timezone" required>
-                    {% for tz in timezones %}
-                    <option value="{{ tz }}" {% if (config.timezone or iana_tz) == tz %}selected{% endif %}>{{ tz }}</option>
-                    {% endfor %}
-                </select>
-                <span class="form-hint">{{ t.timezone_hint }}</span>
+                {# Searchable; prefilled from the browser when nothing is saved (setup.js). #}
+                <input class="form-input" type="text" id="timezone" name="timezone" list="timezone-options"
+                       value="{{ config.timezone or '' }}" data-server-timezone="{{ iana_tz }}"
+                       autocomplete="off" spellcheck="false" required
+                       placeholder="{{ t.setup_timezone_search }}" aria-describedby="timezone-hint">
+                <datalist id="timezone-options">
+                    {% for tz in timezones %}<option value="{{ tz }}"></option>{% endfor %}
+                </datalist>
+                <span class="form-hint" id="timezone-hint">{{ t.timezone_hint }}</span>
+                <p class="setup-step-error" id="step-2-error" role="alert" hidden></p>
             </div>
         </div>
 
@@ -327,7 +370,10 @@
         'restore_date': t.restore_date,
         'restore_tables': t.restore_tables,
         'invalid_backup': t.invalid_backup,
-        'restore_failed': t.restore_failed
+        'restore_failed': t.restore_failed,
+        'setup_choose_connection': t.setup_choose_connection,
+        'setup_choose_modem': t.setup_choose_modem,
+        'setup_timezone_invalid': t.setup_timezone_invalid
     },
     'driverHints': driver_hints,
     'indexUrl': url_for('index'),

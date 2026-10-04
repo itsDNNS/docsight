@@ -114,3 +114,28 @@ class TestGenericDriver:
     def test_generic_in_builtin_registry(self):
         from app.drivers import driver_registry
         assert driver_registry.has_driver("generic")
+
+
+class TestSetupCatalog:
+    def _registry(self):
+        registry = DriverRegistry()
+        registry.register_builtin("b", "x.B", "Zeta B1", hints={"manufacturer": "Zeta", "region": "DE"})
+        registry.register_builtin("a", "x.A", "alpha A1", hints={"manufacturer": "alpha"})
+        registry.register_builtin("c", "x.C", "Zeta A2", hints={"manufacturer": "Zeta"})
+        registry.register_builtin("generic", "x.G", "Generic Router (No DOCSIS)")
+        registry.register_module_driver("community", FakeDriver, "Community Modem")
+        return registry
+
+    def test_groups_by_manufacturer_without_the_generic_router(self):
+        catalog = self._registry().get_setup_catalog(other_label="Weitere")
+        assert [group["manufacturer"] for group in catalog] == ["alpha", "Zeta", "Weitere"]
+        assert [model["key"] for model in catalog[1]["models"]] == ["c", "b"]
+        assert catalog[1]["models"][1] == {"key": "b", "name": "Zeta B1", "region": "DE"}
+        assert catalog[2]["models"] == [{"key": "community", "name": "Community Modem", "region": ""}]
+
+    def test_every_builtin_modem_has_a_manufacturer(self):
+        from app.drivers import driver_registry
+        catalog = driver_registry.get_setup_catalog(other_label="Other")
+        assert "Other" not in [group["manufacturer"] for group in catalog]
+        keys = {model["key"] for group in catalog for model in group["models"]}
+        assert keys == {key for key, _ in driver_registry.get_available_drivers()} - {"generic"}

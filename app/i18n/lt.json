@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Trūksta speedtest duomenų",
   "gaming_speedtest_action": "Nustatyti Speedtest Tracker",
   "bnetz_empty_text": "Įkelkite breitbandmessung.de matavimo PDF arba CSV ataskaitą, kad palygintumėte ją su sutartiniu greičiu.",
-  "seg_empty_action": "Atidaryti plėtinių nustatymus"
+  "seg_empty_action": "Atidaryti plėtinių nustatymus",
+  "setup_connection_question": "Kokį interneto ryšį turite?",
+  "setup_connection_cable": "Kabelinis (DOCSIS)",
+  "setup_connection_cable_desc": "Internetas per TV koaksialinį lizdą, pvz., Vodafone, Virgin Media, Comcast arba Cox.",
+  "setup_connection_other": "Šviesolaidis, DSL, palydovas arba mobilusis",
+  "setup_connection_other_desc": "DOCSight veikia ir be kabelinio signalo duomenų: greičio testai, pasiekiamumas, žurnalas ir kt.",
+  "setup_modem_model": "Modemo modelis",
+  "setup_modem_search": "Ieškoti gamintojo, modelio ar tiekėjo",
+  "setup_modem_none": "Paieškos neatitinka joks modemas. Modelio pavadinimas nurodytas lipduke įrenginio gale arba apačioje.",
+  "setup_modem_other_group": "Kiti",
+  "setup_generic_note": "Modemo modelio nereikia. Greičio testo paslaugą ar pasiekiamumo tikslus pridėkite vėliau nustatymuose.",
+  "setup_choose_connection": "Pasirinkite ryšio tipą.",
+  "setup_choose_modem": "Pasirinkite modemo modelį.",
+  "setup_timezone_invalid": "Pasirinkite laiko juostą iš sąrašo.",
+  "setup_timezone_search": "Ieškoti, pvz., Berlin"
 }

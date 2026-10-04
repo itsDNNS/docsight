@@ -91,6 +91,30 @@ class DriverRegistry:
     def get_all_type_keys(self) -> set[str]:
         return set(self._builtin) | set(self._community)
 
+    def get_setup_catalog(self, other_label: str = "Other") -> list[dict]:
+        """Modem drivers for the setup picker, grouped by manufacturer.
+
+        The generic router driver is not a modem and is offered by the
+        connection type step instead. Drivers without a manufacturer hint
+        (e.g. community drivers) are listed under ``other_label`` at the end.
+        """
+        groups: dict[str, list[dict]] = {}
+        for key, name in self.get_available_drivers():
+            if key == "generic":
+                continue
+            hints = self._hints.get(key, {})
+            manufacturer = hints.get("manufacturer") or ""
+            groups.setdefault(manufacturer, []).append(
+                {"key": key, "name": name, "region": hints.get("region", "")}
+            )
+        ordered = sorted((m for m in groups if m), key=str.casefold)
+        if "" in groups:
+            ordered.append("")
+        return [
+            {"manufacturer": manufacturer or other_label, "models": groups[manufacturer]}
+            for manufacturer in ordered
+        ]
+
     def get_driver_hints(self) -> dict[str, DriverHints]:
         """Return UI hints for all registered drivers, keyed by type_key."""
         return deepcopy(self._hints)

@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Speedtest-tiedot puuttuvat",
   "gaming_speedtest_action": "Määritä Speedtest Tracker",
   "bnetz_empty_text": "Lataa breitbandmessung.de-mittauksen PDF- tai CSV-raportti verrataksesi sitä sopimuksen mukaiseen nopeuteen.",
-  "seg_empty_action": "Avaa laajennusasetukset"
+  "seg_empty_action": "Avaa laajennusasetukset",
+  "setup_connection_question": "Millainen internetyhteys sinulla on?",
+  "setup_connection_cable": "Kaapeli (DOCSIS)",
+  "setup_connection_cable_desc": "Internet television antennirasian kautta, esimerkiksi Vodafone, Virgin Media, Comcast tai Cox.",
+  "setup_connection_other": "Kuitu, DSL, satelliitti tai mobiili",
+  "setup_connection_other_desc": "DOCSight toimii myös ilman kaapelisignaalin tietoja: nopeustestit, saavutettavuus, päiväkirja ja muuta.",
+  "setup_modem_model": "Modeemin malli",
+  "setup_modem_search": "Hae valmistajaa, mallia tai palveluntarjoajaa",
+  "setup_modem_none": "Mikään modeemi ei vastaa hakua. Mallinimi on laitteen takana tai pohjassa olevassa tarrassa.",
+  "setup_modem_other_group": "Muut",
+  "setup_generic_note": "Modeemin mallia ei tarvita. Lisää nopeustestipalvelu tai saavutettavuuskohteet myöhemmin asetuksissa.",
+  "setup_choose_connection": "Valitse yhteystyyppi.",
+  "setup_choose_modem": "Valitse modeemin malli.",
+  "setup_timezone_invalid": "Valitse aikavyöhyke luettelosta.",
+  "setup_timezone_search": "Hae, esim. Berlin"
 }

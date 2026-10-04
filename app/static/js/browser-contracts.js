@@ -21,7 +21,9 @@
         credentials_required: true,
         url_hint: true,
         user_hint: true,
-        password_hint: true
+        password_hint: true,
+        manufacturer: true,
+        region: true
     };
 
     function failBootstrap() {

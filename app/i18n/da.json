@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Speedtest-data mangler",
   "gaming_speedtest_action": "Opsæt Speedtest Tracker",
   "bnetz_empty_text": "Upload PDF- eller CSV-rapporten fra en måling på breitbandmessung.de for at sammenligne den med din aftalte hastighed.",
-  "seg_empty_action": "Åbn udvidelsesindstillinger"
+  "seg_empty_action": "Åbn udvidelsesindstillinger",
+  "setup_connection_question": "Hvilken type internetforbindelse har du?",
+  "setup_connection_cable": "Kabel (DOCSIS)",
+  "setup_connection_cable_desc": "Internet via tv-kabelstikket, for eksempel Vodafone, Virgin Media, Comcast eller Cox.",
+  "setup_connection_other": "Fiber, DSL, satellit eller mobil",
+  "setup_connection_other_desc": "DOCSight virker også uden kabelsignaldata: hastighedstest, tilgængelighed, journal og mere.",
+  "setup_modem_model": "Modemmodel",
+  "setup_modem_search": "Søg efter producent, model eller udbyder",
+  "setup_modem_none": "Intet modem matcher søgningen. Modelnavnet står på mærkaten bag på eller under enheden.",
+  "setup_modem_other_group": "Andre",
+  "setup_generic_note": "Der kræves ingen modemmodel. Tilføj en hastighedstesttjeneste eller tilgængelighedsmål senere i indstillingerne.",
+  "setup_choose_connection": "Vælg din forbindelsestype.",
+  "setup_choose_modem": "Vælg din modemmodel.",
+  "setup_timezone_invalid": "Vælg en tidszone fra listen.",
+  "setup_timezone_search": "Søg, f.eks. Berlin"
 }

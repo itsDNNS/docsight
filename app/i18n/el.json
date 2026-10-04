@@ -1192,5 +1192,19 @@
   "gaming_speedtest_title": "Λείπουν δεδομένα speedtest",
   "gaming_speedtest_action": "Ρύθμιση Speedtest Tracker",
   "bnetz_empty_text": "Ανεβάστε την αναφορά PDF ή CSV μιας μέτρησης από το breitbandmessung.de για να τη συγκρίνετε με τη συμβατική σας ταχύτητα.",
-  "seg_empty_action": "Άνοιγμα ρυθμίσεων επεκτάσεων"
+  "seg_empty_action": "Άνοιγμα ρυθμίσεων επεκτάσεων",
+  "setup_connection_question": "Τι είδους σύνδεση στο διαδίκτυο έχετε;",
+  "setup_connection_cable": "Καλωδιακή (DOCSIS)",
+  "setup_connection_cable_desc": "Διαδίκτυο μέσω της ομοαξονικής πρίζας τηλεόρασης, π.χ. Vodafone, Virgin Media, Comcast ή Cox.",
+  "setup_connection_other": "Οπτική ίνα, DSL, δορυφορική ή κινητή",
+  "setup_connection_other_desc": "Το DOCSight λειτουργεί και χωρίς δεδομένα καλωδιακού σήματος: τεστ ταχύτητας, προσβασιμότητα, ημερολόγιο και άλλα.",
+  "setup_modem_model": "Μοντέλο μόντεμ",
+  "setup_modem_search": "Αναζήτηση κατασκευαστή, μοντέλου ή παρόχου",
+  "setup_modem_none": "Κανένα μόντεμ δεν ταιριάζει. Το μοντέλο αναγράφεται στην ετικέτα στο πίσω ή κάτω μέρος της συσκευής.",
+  "setup_modem_other_group": "Άλλα",
+  "setup_generic_note": "Δεν χρειάζεται μοντέλο μόντεμ. Προσθέστε αργότερα υπηρεσία τεστ ταχύτητας ή στόχους προσβασιμότητας στις ρυθμίσεις.",
+  "setup_choose_connection": "Επιλέξτε τύπο σύνδεσης.",
+  "setup_choose_modem": "Επιλέξτε μοντέλο μόντεμ.",
+  "setup_timezone_invalid": "Επιλέξτε ζώνη ώρας από τη λίστα.",
+  "setup_timezone_search": "Αναζήτηση, π.χ. Berlin"
 }
