@@ -674,3 +674,47 @@ class TestChannelStatusEndpoint:
     def test_rejects_unknown_range(self, client):
         c, _s = client
         assert c.get("/api/channel-status?range=5d").status_code == 400
+
+    def test_storage_window_respects_start_and_end(self, storage):
+        for hours in (50, 30, 10):
+            _insert_snapshot(storage, _make_analysis(), _utc_ts(timedelta(hours=hours)))
+
+        rows = storage.get_channel_snapshots(start=_utc_ts(timedelta(hours=40)), end=_utc_ts(timedelta(hours=20)))
+
+        assert len(rows) == 1
+
+    def test_absolute_window_in_local_time(self, client):
+        c, s = client
+        current_runtime().config_manager.save({"timezone": "Europe/Berlin"})
+        inside = _make_analysis()
+        inside["us_channels"][0].update(health="warning", health_detail="power warning high")
+        # 00:30 on 2026-09-20 in Berlin, still 2026-09-19 in UTC; the second one is 00:30 on 09-21.
+        _insert_snapshot(s, inside, "2026-09-19T22:30:00Z")
+        _insert_snapshot(s, _make_analysis(), "2026-09-20T22:30:00Z")
+
+        data = json.loads(c.get("/api/channel-status?start=2026-09-20&end=2026-09-21").data)
+
+        assert data["start"] == "2026-09-20T00:00:00" and data["end"] == "2026-09-21T00:00:00"
+        assert data["snapshots"] == 1 and data["cell_minutes"] == 30.0
+        assert data["directions"][1]["deviating"][0]["health"] == "warning"
+
+    def test_window_without_end_runs_until_now(self, client):
+        c, s = client
+        _insert_snapshot(s, _make_analysis(), _utc_ts(timedelta(hours=3)))
+        start = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%S")
+
+        data = json.loads(c.get(f"/api/channel-status?start={start}").data)
+
+        assert data["snapshots"] == 1
+
+    @pytest.mark.parametrize("query", [
+        "start=yesterday",
+        "start=2026-09-20&end=2026-09-20",
+        "start=2026-09-21&end=2026-09-20",
+        "start=2024-01-01&end=2025-06-01",
+    ])
+    def test_rejects_invalid_windows(self, client, query):
+        c, _s = client
+        resp = c.get(f"/api/channel-status?{query}")
+        assert resp.status_code == 400
+        assert "error" in json.loads(resp.data)

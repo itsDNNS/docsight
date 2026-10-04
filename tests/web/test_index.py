@@ -1529,3 +1529,22 @@ class TestHomeOverview:
         start = html.index('<div id="channel-current-values">')
         assert 'id="channel-families"' not in html
         assert "dashboard-channel-panel" not in html[start:html.index('<!-- ── Timeline Sub-View', start)]
+
+
+class TestStatusTrackPlacement:
+    def test_correlation_view_has_a_status_track_for_docsis_lines(self, client, config_mgr, sample_analysis):
+        _configure_speedtest(config_mgr)  # The correlation view needs a second source.
+        current_runtime().update_state(analysis=sample_analysis)
+        html = client.get("/?lang=en").get_data(as_text=True)
+
+        view = html[html.index('id="view-correlation"'):html.index('id="correlation-table-card"')]
+        assert '<section class="status-track-card glass" id="correlation-status"' in view
+        assert "Channel status in this period" in view
+
+    def test_correlation_view_has_no_status_track_without_channels(self, client, config_mgr, no_docsis_analysis):
+        _configure_speedtest(config_mgr)
+        current_runtime().update_state(analysis=no_docsis_analysis)
+        html = client.get("/?lang=en").get_data(as_text=True)
+
+        assert 'id="view-correlation"' in html
+        assert 'id="correlation-status"' not in html

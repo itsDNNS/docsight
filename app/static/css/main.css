@@ -2323,6 +2323,29 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 /* ── Channels status matrix ── */
+.status-track {
+  --ls-good: var(--good);
+  --ls-tolerated: var(--tolerated);
+  --ls-warning: var(--warn);
+  --ls-critical: var(--crit);
+}
+.status-track .cs-window { margin: 0 0 var(--space-sm); font-size: var(--fs-min); color: var(--text-muted); }
+.status-track .cs-window-empty { margin: 0; font-size: 0.9rem; }
+.status-track .cs-track-body { display: grid; gap: var(--space-md); }
+.status-track .cs-track-skeleton { height: 140px; border-radius: var(--radius-sm); }
+.status-track-card {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+.status-track-card h3 { margin: 0; font-size: 1.05rem; font-weight: 650; color: var(--text); }
+@media (max-width: 760px) {
+  .status-track-card { padding: var(--space-md); }
+}
 .channel-status {
   --ls-good: var(--good);
   --ls-tolerated: var(--tolerated);
@@ -2384,6 +2407,7 @@ body:has(#view-dashboard.active) .app-main {
 .cs-text-good { color: var(--text-muted); }
 .cs-current { display: grid; gap: 2px; font-size: 0.85rem; color: var(--text-secondary); }
 .cs-value b { font-size: 1.25rem; font-weight: 650; color: var(--text); }
+.cs-at-end { font-size: var(--fs-min); color: var(--text-muted); }
 .cs-delta { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
 .cs-axis { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) minmax(140px, 190px); gap: 16px; padding: 0 8px; font-size: var(--fs-min); color: var(--text-muted); }
 .cs-axis-ticks { display: flex; justify-content: space-between; }
@@ -2396,6 +2420,8 @@ body:has(#view-dashboard.active) .app-main {
   .cs-cell { height: 20px; border-radius: 2px; }
   .cs-axis > span:empty { display: none; }
   .cs-current { grid-template-columns: auto auto; justify-content: start; align-items: baseline; gap: 12px; }
+  .cs-at-end { grid-column: 1 / -1; }
+  .cs-axis-ticks > span:nth-child(2), .cs-axis-ticks > span:nth-child(4) { display: none; }
 }
 
 /* ── Home: key figures, findings, recent events, sources ── */

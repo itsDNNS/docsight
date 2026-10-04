@@ -3,12 +3,13 @@
 from app.runtime import current_runtime
 from app.tz import localize_timestamps, get_tz_name
 import logging
+from datetime import datetime, timedelta
 
 from flask import Blueprint, request, jsonify
 
 from app.analyzer import get_thresholds
 from app.time_ranges import parse_time_range_hours
-from app.tz import utc_now, utc_cutoff
+from app.tz import local_to_utc, utc_now, utc_cutoff
 from app.web_auth import require_auth
 from app.gaming_index import compute_gaming_index
 
@@ -142,20 +143,53 @@ def api_channel_history():
     return jsonify(data)
 
 
+_MAX_STATUS_WINDOW = timedelta(days=366)
+
+
+def _channel_status_window(tz_name):
+    """Resolve ?start=&end= (local time, YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS) or ?range=."""
+    start_arg = request.args.get("start")
+    if start_arg is None:
+        hours = parse_time_range_hours(request.args.get("range", "1d"), default="1d")
+        if hours is None:
+            return None, "range must be one of 1h, 6h, 1d, 2d, 3d, 7d, 30d, 90d"
+        return (utc_cutoff(hours=hours), utc_now()), None
+
+    def to_utc(value):
+        if len(value) == 10:
+            value += "T00:00:00"
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+        return local_to_utc(value, tz_name)
+
+    try:
+        start = to_utc(start_arg)
+        end = to_utc(request.args["end"]) if request.args.get("end") else utc_now()
+    except ValueError:
+        return None, "start and end must be YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"
+    end = min(end, utc_now())
+    parse = lambda ts: datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
+    if parse(end) <= parse(start):
+        return None, "start must be before end"
+    if parse(end) - parse(start) > _MAX_STATUS_WINDOW:
+        return None, "the window may span at most 366 days"
+    return (start, end), None
+
+
 @analysis_bp.route("/api/channel-status")
 @require_auth
 def api_channel_status():
-    """Return the channels x time status matrix for ?range= (default 1d)."""
+    """Return the channels x time status matrix for ?range= (default 1d) or ?start=&end=."""
     from app.channel_matrix import build_channel_matrix, localize_matrix
 
-    hours = parse_time_range_hours(request.args.get("range", "1d"), default="1d")
-    if hours is None:
-        return jsonify({"error": "range must be one of 1h, 6h, 1d, 2d, 3d, 7d, 30d, 90d"}), 400
-    start, end = utc_cutoff(hours=hours), utc_now()
+    tz_name = get_tz_name(current_runtime().config_manager)
+    window, error = _channel_status_window(tz_name)
+    if error:
+        return jsonify({"error": error}), 400
+    start, end = window
     _storage = current_runtime().storage
-    snapshots = _storage.get_channel_snapshots(hours=hours) if _storage else []
+    snapshots = _storage.get_channel_snapshots(start=start, end=end) if _storage else []
     matrix = build_channel_matrix(snapshots, start, end)
-    return jsonify(localize_matrix(matrix, get_tz_name(current_runtime().config_manager)))
+    return jsonify(localize_matrix(matrix, tz_name))
 
 
 @analysis_bp.route("/api/channel-compare")

@@ -214,14 +214,18 @@ class AnalysisMethods:
         unwrap_uint32_counter_series(results, _CHANNEL_ERROR_KEYS)
         return results
 
-    def get_channel_snapshots(self, days=7, hours=None):
-        """Return (timestamp, ds_channels, us_channels) for every snapshot in the window."""
-        cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
+    def get_channel_snapshots(self, days=7, hours=None, start=None, end=None):
+        """Return (timestamp, ds_channels, us_channels) for every snapshot in the window.
+        An explicit UTC start (and optional end) takes precedence over days/hours."""
+        if start is None:
+            start = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
+        query = "SELECT timestamp, ds_channels_json, us_channels_json FROM snapshots WHERE timestamp >= ?"
+        params = [start]
+        if end is not None:
+            query += " AND timestamp <= ?"
+            params.append(end)
         with self._read() as conn:
-            rows = conn.execute(
-                "SELECT timestamp, ds_channels_json, us_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
-                (cutoff,),
-            ).fetchall()
+            rows = conn.execute(query + " ORDER BY timestamp", params).fetchall()
         return [(ts, json.loads(ds or "[]"), json.loads(us or "[]")) for ts, ds, us in rows]
 
     def get_multi_channel_history(
