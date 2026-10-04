@@ -151,3 +151,12 @@ test('lane layout stacks the main band, labelled lanes and the time axis', () =>
     assert.equal(layout.height, 344);
     assert.equal(data.laneLayout({top: 0, mainHeight: 100, labelHeight: 14, gap: 10, axisGap: 6, axisHeight: 20, lanes: []}).bottom, 100);
 });
+
+test('instants become datetime-local values in the configured time zone', () => {
+    const ms = Date.parse('2026-10-04T06:52:30Z');
+    assert.equal(data.localInputValue(ms, 'Europe/Berlin', false), '2026-10-04T08:52');
+    assert.equal(data.localInputValue(ms, 'Europe/Berlin', true), '2026-10-04T08:53');
+    assert.equal(data.localInputValue(Date.parse('2026-10-04T06:52:00Z'), 'Europe/Berlin', true), '2026-10-04T08:52');
+    assert.equal(data.localInputValue(Date.parse('2026-12-31T23:30:00Z'), 'UTC', false), '2026-12-31T23:30');
+    assert.equal(data.localInputValue(Date.parse('2026-12-31T23:30:00Z'), 'America/New_York', false), '2026-12-31T18:30');
+});

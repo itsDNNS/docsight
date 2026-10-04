@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Zatížení segmentu (%)",
   "correlation_lane_events": "Události · ○ info △ varování ◇ kritické",
   "correlation_lane_reachability": "Dostupnost · mezery neznámé",
+  "correlation_use_as_evidence": "Použít jako důkaz",
+  "correlation_use_as_evidence_hint": "Prověřit toto období v průvodci důkazy (při přiblížení přiblížený rozsah)",
   "correlation_tt_errors_total": "celkem",
   "correlation_speedtest_hint": "Hodnoty Speedtest jsou jednotlivá měření a nevypovídají o dostupnosti mezi testy.",
   "correlation_chart_aria_label": "Graf korelace signálu s měřeními Speedtest v konkrétních okamžicích",

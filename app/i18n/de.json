@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Segmentauslastung (%)",
   "correlation_lane_events": "Ereignisse · ○ Info △ Warnung ◇ Kritisch",
   "correlation_lane_reachability": "Erreichbarkeit · Lücken unbekannt",
+  "correlation_use_as_evidence": "Als Nachweis prüfen",
+  "correlation_use_as_evidence_hint": "Diesen Zeitraum in der Nachweisprüfung öffnen (bei Zoom den gezoomten Bereich)",
   "correlation_tt_errors_total": "gesamt",
   "correlation_speedtest_hint": "Speedtest-Werte sind Einzelmessungen und sagen nichts über die Verfügbarkeit zwischen den Tests aus.",
   "correlation_chart_aria_label": "Signal-Korrelationsdiagramm mit punktuellen Speedtest-Messungen",

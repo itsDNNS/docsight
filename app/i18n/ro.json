@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Încărcarea segmentului (%)",
   "correlation_lane_events": "Evenimente · ○ info △ avertisment ◇ critic",
   "correlation_lane_reachability": "Accesibilitate · goluri necunoscute",
+  "correlation_use_as_evidence": "Folosește ca dovadă",
+  "correlation_use_as_evidence_hint": "Verifică această perioadă în parcursul dovezilor (intervalul mărit, dacă e mărit)",
   "correlation_tt_errors_total": "total",
   "correlation_speedtest_hint": "Valorile Speedtest sunt măsurători individuale și nu indică disponibilitatea între teste.",
   "correlation_chart_aria_label": "Grafic de corelare a semnalului cu măsurători Speedtest punctuale",

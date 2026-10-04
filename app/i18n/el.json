@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Φόρτος τμήματος (%)",
   "correlation_lane_events": "Συμβάντα · ○ πληροφ. △ προειδοποίηση ◇ κρίσιμο",
   "correlation_lane_reachability": "Προσβασιμότητα · κενά άγνωστα",
+  "correlation_use_as_evidence": "Χρήση ως τεκμήριο",
+  "correlation_use_as_evidence_hint": "Έλεγχος αυτού του διαστήματος στη διαδρομή τεκμηρίων (το μεγεθυμένο εύρος, αν υπάρχει)",
   "correlation_tt_errors_total": "σύνολο",
   "correlation_speedtest_hint": "Οι τιμές Speedtest είναι μεμονωμένες μετρήσεις και δεν υποδεικνύουν διαθεσιμότητα μεταξύ των δοκιμών.",
   "correlation_chart_aria_label": "Γράφημα συσχέτισης σήματος με στιγμιαίες μετρήσεις Speedtest",

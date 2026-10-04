@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Segmenta noslodze (%)",
   "correlation_lane_events": "Notikumi · ○ info △ brīdinājums ◇ kritisks",
   "correlation_lane_reachability": "Sasniedzamība · nezināmi robi",
+  "correlation_use_as_evidence": "Izmantot kā pierādījumu",
+  "correlation_use_as_evidence_hint": "Pārbaudīt šo periodu pierādījumu ceļā (tuvināto diapazonu, ja tuvināts)",
   "correlation_tt_errors_total": "kopā",
   "correlation_speedtest_hint": "Speedtest vērtības ir atsevišķi mērījumi un nenorāda pieejamību starp testiem.",
   "correlation_chart_aria_label": "Signāla korelācijas diagramma ar konkrēta laika Speedtest mērījumiem",

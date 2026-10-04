@@ -1589,3 +1589,38 @@ def test_correlation_errors_are_growth_per_interval_and_one_crosshair_shows_all_
     expect(tooltip).to_contain_text("+4 (total 104)")
     expect(tooltip).to_contain_text("SNR: 34.5 dB")
     expect(tooltip).to_contain_text("Signal state: Marginal")
+
+
+def test_zoomed_correlation_range_opens_the_evidence_journey_for_the_same_window(demo_page):
+    page = demo_page
+    _open_correlation(page, expect_table=False)
+    box = page.locator("#correlation-overlay").bounding_box()
+    geometry = page.evaluate("({left: window._corrChartState.pad.left, width: window._corrChartState.plotW, top: window._corrChartState.pad.top})")
+
+    # Drag-zoom across the middle of the chart.
+    y = box["y"] + geometry["top"] + 40
+    page.mouse.move(box["x"] + geometry["left"] + geometry["width"] * 0.3, y)
+    page.mouse.down()
+    page.mouse.move(box["x"] + geometry["left"] + geometry["width"] * 0.6, y, steps=5)
+    page.mouse.up()
+    expected = page.evaluate(
+        """() => {
+            const st = window._corrChartState;
+            const tz = typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined;
+            return {
+                zoomed: !!window._corrZoom,
+                from: DOCSightCorrelationData.localInputValue(st.tMin, tz, false),
+                to: DOCSightCorrelationData.localInputValue(st.tMax, tz, true),
+            };
+        }"""
+    )
+    assert expected["zoomed"]
+
+    page.locator("#correlation-evidence-btn").click()
+
+    expect(page.locator("#view-evidence")).to_be_visible()
+    expect(page.locator("#evidence-from")).to_have_value(expected["from"])
+    expect(page.locator("#evidence-to")).to_have_value(expected["to"])
+    expect(page.locator("#evidence-incident-id")).to_have_value("")
+    expect(page.locator("#evidence-results")).to_be_visible()
+    expect(page.locator("#evidence-window-label")).to_have_text(f"{expected['from']}:00 – {expected['to']}:00")

@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Ualach an deighleáin (%)",
   "correlation_lane_events": "Imeachtaí · ○ eolas △ rabhadh ◇ criticiúil",
   "correlation_lane_reachability": "Inrochtaineacht · bearnaí anaithnid",
+  "correlation_use_as_evidence": "Úsáid mar fhianaise",
+  "correlation_use_as_evidence_hint": "Seiceáil an tréimhse seo i dturas na fianaise (an raon zúmáilte má tá zúmáil ann)",
   "correlation_tt_errors_total": "iomlán",
   "correlation_speedtest_hint": "Is tomhais aonair iad luachanna Speedtest agus ní léiríonn siad infhaighteacht idir tástálacha.",
   "correlation_chart_aria_label": "Cairt chomhghaolmhaireachta comhartha le tomhais Speedtest ag pointí ama",

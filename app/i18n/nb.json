@@ -776,6 +776,8 @@
   "correlation_lane_segment": "Segmentbelastning (%)",
   "correlation_lane_events": "Hendelser · ○ info △ advarsel ◇ kritisk",
   "correlation_lane_reachability": "Tilgjengelighet · hull ukjent",
+  "correlation_use_as_evidence": "Bruk som dokumentasjon",
+  "correlation_use_as_evidence_hint": "Sjekk dette tidsrommet i dokumentasjonsforløpet (zoomet område ved zoom)",
   "correlation_tt_errors_total": "totalt",
   "correlation_speedtest_hint": "Speedtest-verdier er enkeltmålinger og sier ikke noe om tilgjengelighet mellom testene.",
   "correlation_chart_aria_label": "Signalkorrelasjonsdiagram med punktvise Speedtest-målinger",
