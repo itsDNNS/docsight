@@ -509,7 +509,7 @@ class TestSettingsFormElements:
             controls,
         )
         # One shared control height (40px on desktop, 44px on touch and phone-width screens).
-        assert len({round(item["height"]) for item in metrics}) == 1
+        assert len({round(item["height"]) for item in metrics}) == 1, metrics
         assert all(item["height"] >= 40 for item in metrics)
         assert all(item["bg"] != "rgb(255, 255, 255)" for item in metrics)
 
