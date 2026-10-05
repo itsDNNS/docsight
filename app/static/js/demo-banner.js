@@ -41,4 +41,10 @@
             result.textContent = (window.T && window.T.demo_action_failed) || 'The demo could not be closed. Please try again.';
         }
     };
+
+    /* The banner also appears on the settings page, so it binds its own buttons. */
+    [['demo-connect-modem', 'connect'], ['demo-exit', 'exit']].forEach(function(pair) {
+        var button = document.getElementById(pair[0]);
+        if (button) button.addEventListener('click', function() { window.leaveDemo(pair[1], button); });
+    });
 })();

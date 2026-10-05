@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Templates that have been cleaned up; the rest follow view by view.
 TEMPLATES = (
     "app/templates/index.html",
+    "app/templates/demo_banner.html",
     "app/templates/segment_utilization_tab.html",
     "app/templates/partials/channel_tables.html",
     "app/templates/partials/line_status.html",
@@ -21,6 +22,7 @@ TEMPLATES = (
     "app/modules/journal/templates/journal_dialogs.html",
     "app/modules/journal/templates/journal_tab.html",
     "app/modules/modulation/templates/modulation_tab.html",
+    "app/modules/speedtest/templates/speedtest_dialogs.html",
     "app/modules/speedtest/templates/speedtest_tab.html",
 )
 

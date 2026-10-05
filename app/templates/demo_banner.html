@@ -11,10 +11,10 @@
         </div>
     </div>
     <div class="demo-banner-actions">
-        <button type="button" class="btn btn-ghost btn-sm" id="demo-connect-modem" onclick="leaveDemo('connect', this)" {% if demo_mode_forced %}disabled{% endif %}>
+        <button type="button" class="btn btn-ghost btn-sm" id="demo-connect-modem" {% if demo_mode_forced %}disabled{% endif %}>
             {{ t.demo_connect_own_modem }}
         </button>
-        <button type="button" class="demo-exit-action" id="demo-exit" onclick="leaveDemo('exit', this)" {% if demo_mode_forced %}disabled{% endif %}>
+        <button type="button" class="demo-exit-action" id="demo-exit" {% if demo_mode_forced %}disabled{% endif %}>
             {{ t.demo_exit }}
         </button>
     </div>

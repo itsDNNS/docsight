@@ -3,7 +3,7 @@
     <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
             <h2 id="speedtest-setup-modal-title">⚡ {{ t.get('speedtest_setup_guided_title', 'Speedtest Tracker setup') }}</h2>
-            <button class="modal-close" onclick="closeSpeedtestSetupModal()" aria-label="{{ t.close }}">&times;</button>
+            <button class="modal-close" data-action="closeSpeedtestSetupModal" aria-label="{{ t.close }}">&times;</button>
         </div>
         <p class="modal-hint">{{ t.get('speedtest_setup_guided_intro', 'Connect your existing Speedtest Tracker instance so DOCSight can correlate real throughput with modem signal health.') }}</p>
         <div class="modal-body setup-guide-body">
@@ -26,17 +26,17 @@
                 <h3>{{ t.get('setup_configure_title', 'Configure') }}</h3>
                 <p>{{ t.get('speedtest_setup_configure_text', 'Paste the Speedtest Tracker base URL in Settings, then save the integration.') }}</p>
                 <code id="speedtest-setup-command">docker run --name speedtest-tracker -p 8080:80 lscr.io/linuxserver/speedtest-tracker:latest</code>
-                <button class="btn btn-secondary" onclick="copySetupSnippet('speedtest-setup-command', 'speedtest-setup-status')">{{ t.get('speedtest_setup_copy_command', 'Copy Docker command') }}</button>
+                <button class="btn btn-secondary" data-action="copySetupSnippet" data-action-args='["speedtest-setup-command", "speedtest-setup-status"]'>{{ t.get('speedtest_setup_copy_command', 'Copy Docker command') }}</button>
             </section>
             <section class="setup-guide-card">
                 <h3>{{ t.get('setup_validate_title', 'Validate') }}</h3>
                 <p>{{ t.get('speedtest_setup_validate_text', 'Use Settings to save the URL, then confirm DOCSight can read recent speed test results.') }}</p>
-                <button class="btn btn-muted" onclick="validateSetupGuidance('speedtest-setup-status', 'speedtest')">{{ t.get('speedtest_setup_test_guidance', 'Review validation path') }}</button>
+                <button class="btn btn-muted" data-action="validateSetupGuidance" data-action-args='["speedtest-setup-status", "speedtest"]'>{{ t.get('speedtest_setup_test_guidance', 'Review validation path') }}</button>
             </section>
         </div>
         <div id="speedtest-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
         <div class="modal-footer">
-            <button class="btn btn-muted" onclick="closeSpeedtestSetupModal()">{{ t.close }}</button>
+            <button class="btn btn-muted" data-action="closeSpeedtestSetupModal">{{ t.close }}</button>
             <a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_speedtest') }}">⚙ {{ t.get('speedtest_setup_open_settings', 'Open Speedtest settings') }}</a>
         </div>
     </div>
