@@ -88,7 +88,7 @@
                             {{ t.active }}
                         </span>
                         {% else %}
-                        <button type="button" class="btn btn-ghost btn-sm theme-preview-btn"
+                        <button type="button" class="btn btn-secondary btn-sm theme-preview-btn"
                                 onclick="previewTheme(this.closest('.theme-card'))">
                             <i data-lucide="eye" style="width:14px;height:14px;"></i>
                             {{ t.preview }}
@@ -115,7 +115,7 @@
         <div class="theme-preview-bar glass">
             <span>{{ t.previewing_theme }}: <strong id="preview-theme-name"></strong></span>
             <div>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="cancelPreview()">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="cancelPreview()">
                     {{ t.cancel }}
                 </button>
                 <button type="button" class="btn btn-primary btn-sm" id="preview-apply-btn" onclick="applyPreviewedTheme()">
@@ -137,7 +137,7 @@
                     <div class="card-subtitle">{{ t.available_themes_desc }}</div>
                 </div>
             </div>
-            <button type="button" class="btn btn-ghost btn-sm" onclick="refreshRegistry()">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="refreshRegistry()">
                 <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
                 {{ t.refresh }}
             </button>

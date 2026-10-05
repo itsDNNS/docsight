@@ -1417,31 +1417,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 
 
 /* ── Shared Button Utilities ── */
-.btn-small {
-    padding: 5px 14px;
-    border-radius: var(--radius-sm);
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all 0.15s var(--ease-out-expo);
-}
-.btn-accent {
-    background: var(--accent-purple, var(--accent));
-    color: var(--text-on-accent);
-}
-.btn-accent:hover { opacity: 0.85; }
-.btn-muted {
-    background: var(--tint-emphasis);
-    color: var(--text-secondary);
-    border: 1px solid var(--input-border);
-}
-.btn-muted:hover { background: rgba(255,255,255,0.14); }
-.btn-ghost {
-    background: none;
-    color: var(--muted);
-}
-.btn-ghost:hover { color: var(--text); }
 
 
 /* Channel info bar */

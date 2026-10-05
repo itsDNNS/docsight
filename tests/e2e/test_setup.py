@@ -26,7 +26,7 @@ def _click_next(page):
 
 def _click_back(page):
     """Click the visible 'Back' button within the active step."""
-    page.locator(".step-content.active button.btn-ghost", has_text="Back").click()
+    page.locator(".step-content.active button.btn-secondary", has_text="Back").click()
 
 
 def _choose_cable_modem(page, query, name):
@@ -130,7 +130,7 @@ class TestSetupRestore:
     def test_restore_back_to_start(self, setup_page):
         setup_page.locator("#restore-action").click()
         expect(setup_page.locator("#restore-section")).to_be_visible()
-        setup_page.locator("#restore-section button.btn-ghost", has_text="Back").click()
+        setup_page.locator("#restore-section button.btn-secondary", has_text="Back").click()
         start = setup_page.locator("#setup-start")
         expect(start).to_be_visible()
 

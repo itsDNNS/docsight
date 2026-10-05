@@ -571,13 +571,6 @@
 .spin { animation: spin 1s linear infinite; }
 
 /* ── Button Interaction States ── */
-.btn:focus-visible {
-  outline: 2px solid var(--amethyst);
-  outline-offset: 2px;
-}
-.btn:active {
-  opacity: 0.8;
-}
 
 /* ── Inline Style Replacements ── */
 .setup-icon-sm { width: 16px; height: 16px; }

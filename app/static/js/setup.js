@@ -135,7 +135,7 @@ function showSetupRecovery(resultDiv, message, retryFn, help) {
     actions.className = 'setup-recovery-actions';
     var retry = document.createElement('button');
     retry.type = 'button';
-    retry.className = 'btn btn-ghost btn-sm';
+    retry.className = 'btn btn-secondary btn-sm';
     retry.textContent = SETUP_T.setup_try_again;
     retry.addEventListener('click', retryFn);
     var demo = document.createElement('button');
@@ -304,7 +304,7 @@ function _modemName(key) {
 function _detectButton(label, onClick) {
     var button = document.createElement('button');
     button.type = 'button';
-    button.className = 'btn btn-ghost setup-detect-use';
+    button.className = 'btn btn-secondary setup-detect-use';
     button.textContent = label;
     button.addEventListener('click', onClick);
     return button;
@@ -525,7 +525,7 @@ function _showDemoFailure(message, retryFn) {
     result.appendChild(text);
     var retry = document.createElement('button');
     retry.type = 'button';
-    retry.className = 'btn btn-ghost btn-sm first-run-retry';
+    retry.className = 'btn btn-secondary btn-sm first-run-retry';
     retry.textContent = SETUP_T.setup_try_again;
     retry.addEventListener('click', retryFn);
     result.appendChild(retry);

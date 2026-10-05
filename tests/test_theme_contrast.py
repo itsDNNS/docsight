@@ -57,11 +57,15 @@ def test_default_tokens_meet_aa_on_all_surfaces():
     _assert_readable(light)
 
 
-def test_navigation_badge_text_meets_aa_with_every_builtin_crit_color():
-    css = (ROOT / "app/static/css/main.css").read_text(encoding="utf-8")
-    rule = re.search(r"^\.nav-badge \{[^}]*\}", css, re.M).group(0)
+@pytest.mark.parametrize(("stylesheet", "selector"), [
+    ("app/static/css/main.css", ".nav-badge"),
+    ("app/static/css/components.css", ".btn-danger"),
+])
+def test_white_text_on_darkened_crit_meets_aa_with_every_builtin_crit_color(stylesheet, selector):
+    css = (ROOT / stylesheet).read_text(encoding="utf-8")
+    rule = re.search(r"^" + re.escape(selector) + r" \{[^}]*\}", css, re.M).group(0)
     match = re.search(r"color-mix\(in srgb, var\(--crit\) (\d+)%, #000\)", rule)
-    assert match, "the navigation badge background should darken --crit"
+    assert match, f"{selector} should darken --crit"
     share = int(match.group(1)) / 100
     for theme in BUILTIN_THEMES:
         for mode in ("dark", "light"):

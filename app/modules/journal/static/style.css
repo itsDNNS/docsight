@@ -294,32 +294,6 @@
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
-.btn-danger {
-    background: var(--crit);
-    color: #fff;
-    border: none;
-    padding: 10px var(--space-lg);
-    border-radius: var(--radius-pill);
-    cursor: pointer;
-    font-size: max(var(--fs-min), 0.9em);
-    font-family: inherit;
-    font-weight: 600;
-    transition: all 0.2s var(--ease-out-expo);
-    box-shadow: 0 2px 8px rgba(239,68,68,0.3);
-}
-.btn-danger:hover {
-    filter: brightness(1.15);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239,68,68,0.4);
-}
-.btn-danger:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 4px rgba(239,68,68,0.3);
-}
-.btn-danger:focus-visible {
-    outline: 2px solid var(--crit);
-    outline-offset: 2px;
-}
 .modal-footer-left {
     display: flex;
     gap: var(--space-sm);
