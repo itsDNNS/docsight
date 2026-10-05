@@ -306,6 +306,12 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   background-repeat: no-repeat;
 }
 .form-select option { background: var(--surface); color: var(--text); }
+/* Native date pickers and option lists follow the light or dark mode. */
+.form-input,
+.form-select { color-scheme: dark; }
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select { color-scheme: light; }
+.form-input::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.85; }
 @media (pointer: coarse), (max-width: 640px) {
   .form-input,
   .form-select { min-height: 44px; }

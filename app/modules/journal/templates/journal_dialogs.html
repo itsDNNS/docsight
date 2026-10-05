@@ -12,32 +12,32 @@
             <p class="incident-modal-intro">{{ t.get('entry_modal_intro', 'Capture what happened and link the evidence DOCSight can turn into an ISP-ready timeline.') }}</p>
             <input type="hidden" id="entry-id">
             <div class="incident-form-group">
-                <label for="entry-date">{{ t.incident_date }}</label>
-                <input type="date" id="entry-date">
+                <label class="form-label" for="entry-date">{{ t.incident_date }}</label>
+                <input type="date" id="entry-date" class="form-input">
             </div>
             <div class="incident-form-group">
-                <label for="entry-title-input">{{ t.incident_title }}</label>
-                <input type="text" id="entry-title-input" maxlength="200" placeholder="{{ t.incident_title }}">
+                <label class="form-label" for="entry-title-input">{{ t.incident_title }}</label>
+                <input type="text" id="entry-title-input" class="form-input" maxlength="200" placeholder="{{ t.incident_title }}">
             </div>
             <div class="incident-form-group">
-                <label>{{ t.icon }}</label>
+                <label class="form-label">{{ t.icon }}</label>
                 <p class="incident-field-hint">{{ t.get('entry_icon_hint', 'Choose a visible category such as outage, packet loss, speed degradation, maintenance, or contact with your ISP.') }}</p>
                 <input type="hidden" id="entry-icon-value">
                 <div class="icon-picker" id="entry-icon-picker"></div>
             </div>
             <div class="incident-form-group">
-                <label for="entry-desc">{{ t.incident_description }}</label>
+                <label class="form-label" for="entry-desc">{{ t.incident_description }}</label>
                 <p class="incident-field-hint">{{ t.get('entry_description_hint', 'Add concrete symptoms, times, support references, modem states, or what changed for the connection.') }}</p>
-                <textarea id="entry-desc" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
+                <textarea id="entry-desc" class="form-input" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
             </div>
             <div class="incident-form-group">
-                <label for="entry-incident-select">{{ t.incident_assign }}</label>
-                <select id="entry-incident-select" class="entry-incident-select">
+                <label class="form-label" for="entry-incident-select">{{ t.incident_assign }}</label>
+                <select id="entry-incident-select" class="form-select">
                     <option value="">{{ t.incident_none }}</option>
                 </select>
             </div>
             <div class="incident-form-group" id="entry-attachments-section">
-                <label>{{ t.attachments }}</label>
+                <label class="form-label">{{ t.attachments }}</label>
                 <p class="incident-field-hint">{{ t.get('entry_evidence_hint', 'Evidence can include modem screenshots, BQM images, Speedtest results, SmokePing charts, or support letters.') }}</p>
                 <div class="attachment-list" id="entry-attachment-list"></div>
                 <button class="btn-upload" id="entry-upload-btn" data-click-target="#entry-file-input">
@@ -72,12 +72,12 @@
             <p class="incident-modal-intro">{{ t.get('incident_modal_intro', 'Group related entries and evidence so DOCSight can build one clear incident timeline and report path.') }}</p>
             <input type="hidden" id="incident-container-id">
             <div class="incident-form-group">
-                <label for="incident-container-name">{{ t.incident_name }}</label>
-                <input type="text" id="incident-container-name" maxlength="200" placeholder="{{ t.incident_name }}">
+                <label class="form-label" for="incident-container-name">{{ t.incident_name }}</label>
+                <input type="text" id="incident-container-name" class="form-input" maxlength="200" placeholder="{{ t.incident_name }}">
             </div>
             <div class="incident-form-group">
-                <label for="incident-container-status">{{ t.incident_status }}</label>
-                <select id="incident-container-status">
+                <label class="form-label" for="incident-container-status">{{ t.incident_status }}</label>
+                <select id="incident-container-status" class="form-select">
                     <option value="open">{{ t.incident_status_open }}</option>
                     <option value="resolved">{{ t.incident_status_resolved }}</option>
                     <option value="escalated">{{ t.incident_status_escalated }}</option>
@@ -85,26 +85,26 @@
             </div>
             <div class="incident-form-group incident-form-row">
                 <div class="incident-form-col">
-                    <label for="incident-container-start">{{ t.incident_start_date }}</label>
-                    <input type="date" id="incident-container-start">
+                    <label class="form-label" for="incident-container-start">{{ t.incident_start_date }}</label>
+                    <input type="date" id="incident-container-start" class="form-input">
                 </div>
                 <div class="incident-form-col">
-                    <label for="incident-container-end">{{ t.incident_end_date }}</label>
-                    <input type="date" id="incident-container-end">
+                    <label class="form-label" for="incident-container-end">{{ t.incident_end_date }}</label>
+                    <input type="date" id="incident-container-end" class="form-input">
                 </div>
             </div>
             <div class="incident-form-group">
-                <label>{{ t.icon }}</label>
+                <label class="form-label">{{ t.icon }}</label>
                 <p class="incident-field-hint">{{ t.get('incident_icon_hint', 'Pick the category users will recognize later in filters, timelines, and exports.') }}</p>
                 <input type="hidden" id="incident-container-icon-value">
                 <div class="icon-picker" id="incident-container-icon-picker"></div>
             </div>
             <div class="incident-form-group">
-                <label for="incident-container-desc">{{ t.incident_description }}</label>
-                <textarea id="incident-container-desc" maxlength="5000" placeholder="{{ t.incident_description }}"></textarea>
+                <label class="form-label" for="incident-container-desc">{{ t.incident_description }}</label>
+                <textarea id="incident-container-desc" class="form-input" maxlength="5000" placeholder="{{ t.incident_description }}"></textarea>
             </div>
             <div class="incident-form-group" id="incident-container-entry-count-section" hidden>
-                <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
+                <label class="form-label">{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
                 <div class="incident-evidence-summary">
                     <span id="incident-container-entry-count"></span>
                     <span>{{ t.get('incident_linked_entries_hint', 'journal entries linked to this incident') }}</span>
@@ -112,7 +112,7 @@
                 <button type="button" class="btn btn-sm btn-primary" id="incident-container-report-btn" data-action="openIncidentReportFromModal">{{ t.get('incident_build_report', 'Build report') }}</button>
             </div>
             <div class="incident-form-group" id="incident-container-empty-evidence-section">
-                <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
+                <label class="form-label">{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
                 <p class="incident-field-hint">{{ t.get('incident_empty_evidence_hint', 'Assign journal entries, screenshots, modem snapshots, BQM images, Speedtest results, or SmokePing charts as the incident develops.') }}</p>
             </div>
         </div>

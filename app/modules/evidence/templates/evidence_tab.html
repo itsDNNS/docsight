@@ -21,18 +21,18 @@
             {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
             <label class="evidence-field evidence-case-field">
                 <span>{{ t.get('docsight.evidence.case', 'Case') }}</span>
-                <select id="evidence-incident-id" class="evidence-input">
+                <select id="evidence-incident-id" class="form-select">
                     <option value="">{{ t.get('docsight.evidence.case_none', 'No case · use the time range') }}</option>
                 </select>
             </label>
             {% endif %}
             <label class="evidence-field">
                 <span>{{ t.get('docsight.evidence.from', 'From') }}</span>
-                <input id="evidence-from" class="evidence-input" type="datetime-local">
+                <input id="evidence-from" class="form-input" type="datetime-local">
             </label>
             <label class="evidence-field">
                 <span>{{ t.get('docsight.evidence.to', 'To') }}</span>
-                <input id="evidence-to" class="evidence-input" type="datetime-local">
+                <input id="evidence-to" class="form-input" type="datetime-local">
             </label>
             <button id="evidence-run" class="btn btn-primary evidence-run" type="button">
                 {{ t.get('docsight.evidence.build_checklist', 'Build checklist') }}
