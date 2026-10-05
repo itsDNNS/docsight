@@ -11,6 +11,7 @@
   "modules": "Modules",
   "unsaved_changes": "Unsaved changes",
   "unsaved_confirm": "You have unsaved settings changes. Save them before continuing?",
+  "discard_changes": "Discard",
   "home": "Home",
   "skip_to_content": "Skip to content",
   "day_trend": "Day Trend",

@@ -163,15 +163,19 @@
             {% endfor %}
 
             <!-- ═══ Save Footer ═══ -->
-            <div class="save-footer" id="save-footer" aria-hidden="true" inert>
-                <div class="unsaved-hint" role="status" aria-live="polite">
-                    <span class="unsaved-dot"></span>
-                    {{ t.unsaved_changes }}
+            <div class="save-bar" id="save-footer" aria-hidden="true" inert>
+                <div class="save-bar-status" role="status" aria-live="polite">
+                    <span class="save-bar-dot" aria-hidden="true"></span>
+                    <span id="save-bar-count">{{ t.unsaved_changes }}</span>
+                    <span class="save-bar-sections" id="save-bar-sections"></span>
                 </div>
-                <button type="submit" class="btn btn-primary">
-                    <i data-lucide="save" style="width:16px;height:16px;"></i>
-                    {{ t.save }}
-                </button>
+                <div class="save-bar-actions">
+                    <button type="button" class="btn btn-secondary" id="save-bar-discard">{{ t.discard_changes }}</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="save"></i>
+                        {{ t.save }}
+                    </button>
+                </div>
             </div>
         </form>
     </div>

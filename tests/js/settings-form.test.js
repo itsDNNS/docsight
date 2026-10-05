@@ -16,7 +16,8 @@ function fixture(bootstrap = false) {
             removeAttribute: name => { delete attributes[name]; },
             toggleAttribute: (name, on) => { if (on) attributes[name] = ''; else delete attributes[name]; },
             classList: {contains: name => classes.has(name), toggle: (name, on) => on ? classes.add(name) : classes.delete(name)},
-            closest: () => null,
+            closest: selector => selector === '.settings-panel' && el.panel || null,
+            dispatchEvent: event => el.dispatch(event.type),
             matches: selector => selector === '.module-toggle-input' ? !!el.module : instant,
             dispatch(name, trusted = true) {
                 const event = {target: el, isTrusted: trusted, preventDefault() {}};
@@ -42,6 +43,8 @@ function fixture(bootstrap = false) {
     const isp = element('isp_select');
     const email = element('community_email', 'email', 'a@example.org,b@example.org');
     email.multiple = true;
+    url.panel = {id: 'panel-connection'};
+    language.panel = {id: 'panel-general'};
     const fields = [url, secret, fresh, toggle, hidden, module, language, timezone, isp, email];
     const form = {elements: fields, events: {},
         addEventListener(name, fn) { (this.events[name] ||= []).push(fn); },
@@ -54,6 +57,7 @@ function fixture(bootstrap = false) {
     nodes.set('settings-form', form);
     const footer = element('save-footer'), error = element('global-error');
     Object.defineProperty(error, 'innerHTML', {set() { assert.fail('Errors must use textContent'); }});
+    const discard = element('save-bar-discard'), count = element('save-bar-count'), sections = element('save-bar-sections');
     element('toast'); element('module-restart-banner');
     element('isp-other-row'); element('isp-icon-preview');
     const document = {getElementById: id => nodes.get(id) || null, querySelectorAll: () => [], querySelector: () => null,
@@ -65,7 +69,8 @@ function fixture(bootstrap = false) {
         fetch: (url, options) => new Promise((resolve, reject) => requests.push({url,
             data: JSON.parse(options.body), reject,
             finish: (success = true, error) => resolve({ok: success, json: () => Promise.resolve({success, error})})})),
-        localStorage: {getItem: () => null}, SECTION_TITLES: {}, history: {replaceState() {}, pushState() {}},
+        localStorage: {getItem: () => null}, SECTION_TITLES: {connection: 'Modem', general: 'General'},
+        Event: class { constructor(type) { this.type = type; } }, history: {replaceState() {}, pushState() {}},
         location: {hash: '', reload: () => { context.reloads++; }}, reloads: 0,
         addEventListener: (name, fn) => listeners.set(name, fn)});
     context.window = context;
@@ -78,10 +83,28 @@ function fixture(bootstrap = false) {
         vm.runInContext(fs.readFileSync('app/static/js/settings.js', 'utf8'), context);
         listeners.get('DOMContentLoaded')();
     } else owner.init();
-    return {context, owner, requests, timers, url, secret, fresh, toggle, hidden, module, language, timezone, footer, error,
+    return {context, owner, requests, timers, url, secret, fresh, toggle, hidden, module, language, timezone, footer, error, discard, count, sections,
         edit(el, value, trusted = true) { document.activeElement = el; el.value = value; el.dispatch('input', trusted); },
         dirty() { let blocked = false; listeners.get('beforeunload')({preventDefault() { blocked = true; }}); return blocked; }};
 }
+
+test('the save bar counts manual changes with their sections and discard restores the saved values', () => {
+    const f = fixture();
+    f.edit(f.url, 'new-url');
+    f.edit(f.fresh, 'typed-secret');
+    f.edit(f.language, 'de');
+    f.toggle.checked = true;
+    assert.equal(f.footer.classList.contains('visible'), true);
+    assert.equal(f.count.textContent, 'Unsaved changes (3)');
+    assert.equal(f.sections.textContent, 'Modem, General');
+    f.discard.dispatch('click');
+    assert.equal(f.url.value, 'old');
+    assert.equal(f.language.value, 'en');
+    assert.equal(f.fresh.value, '');
+    assert.equal(f.fresh.dataset.userEditedSecret, undefined);
+    assert.equal(f.toggle.checked, true, 'instant controls are not reverted');
+    assert.equal(f.footer.classList.contains('visible'), false);
+});
 
 test('FIFO captures edits at execution and survives a rejected first request', async () => {
     const f = fixture();

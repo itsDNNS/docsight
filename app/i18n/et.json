@@ -11,6 +11,7 @@
   "modules": "Moodulid",
   "unsaved_changes": "Salvestamata muudatused",
   "unsaved_confirm": "Teil on salvestamata seadete muudatusi. Kas salvestada need enne jätkamist?",
+  "discard_changes": "Hülga",
   "home": "Avaleht",
   "skip_to_content": "Liigu sisu juurde",
   "day_trend": "Päevatrend",

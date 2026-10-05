@@ -388,6 +388,50 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 .toggle input:focus-visible + .toggle-slider { outline: 2px solid var(--accent); outline-offset: 2px; }
 .toggle input:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
 
+/* ── Save bar ──
+   Slides in at the bottom while a form has unsaved changes. A page with a side
+   navigation sets --save-bar-inset to the navigation width.
+   <div class="save-bar"><div class="save-bar-status">…</div><div class="save-bar-actions">…</div></div> */
+.save-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--save-bar-inset, 0px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-2xl) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  transform: translateY(100%);
+  transition: transform 0.3s var(--ease-out-expo);
+}
+.save-bar.visible { transform: translateY(0); }
+.save-bar-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-sm);
+  min-width: 0;
+  margin-right: auto;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.save-bar-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+.save-bar-sections { color: var(--text-secondary); }
+.save-bar-actions { display: flex; flex: none; gap: var(--space-sm); }
+@media (max-width: 900px) {
+  .save-bar { padding-inline: var(--space-xl); }
+}
+@media (max-width: 640px) {
+  .save-bar { flex-wrap: wrap; padding-inline: var(--space-md); }
+  .save-bar-actions { flex: 1 1 100%; }
+  .save-bar-actions .btn { flex: 1; }
+}
+
 /* ── Skip link: hidden until focused ── */
 .skip-link {
   position: absolute;

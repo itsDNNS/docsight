@@ -128,6 +128,7 @@ var queue = Promise.resolve();
 var pending = 0;
 var confirmed = {language: currentLang, timezone: currentTz};
 var identities = new WeakMap();
+var fieldsByKey = new Map();
 var occurrences = new Map();
 
 function isInstantControl(el) {
@@ -162,21 +163,72 @@ function capture() {
             else if (el.tagName === 'SELECT' && el.multiple) value = Array.from(el.selectedOptions, function(opt) { return opt.value; }).sort();
             else value = el.value || '';
         }
-        return state.record({name: name, id: id, type: el.type, index: identities.get(el),
+        var record = state.record({name: name, id: id, type: el.type, index: identities.get(el),
             owner: el.matches('.module-toggle-input') ? 'module' : 'config',
             instant: isInstantControl(el), value: value, secret: secret,
             secretEditVersion: el.dataset.secretEditVersion});
+        fieldsByKey.set(record.key, el);
+        return record;
     });
+}
+
+/* Records whose value differs from the last saved one. */
+function changedRecords(current, manualOnly) {
+    var saved = new Map(baseline.map(function(record) { return [record.key, JSON.stringify(record)]; }));
+    return current.filter(function(record) {
+        return (!manualOnly || !record.instant) && saved.get(record.key) !== JSON.stringify(record);
+    });
+}
+
+function sectionTitles(records) {
+    var titles = [];
+    records.forEach(function(record) {
+        var panel = fieldsByKey.get(record.key).closest('.settings-panel');
+        var section = panel && panel.id.replace(/^panel-/, '');
+        var title = section && (SECTION_TITLES[section] || section);
+        if (title && titles.indexOf(title) === -1) titles.push(title);
+    });
+    return titles;
 }
 
 function syncSaveFooter() {
     var current = capture();
     var footer = document.getElementById('save-footer');
     var visible = showsSaveFooter() && state.dirty(current, baseline) && (failed || state.dirty(current, baseline, true));
+    if (visible) {
+        var changes = changedRecords(current, true);
+        if (!changes.length) changes = changedRecords(current, false);
+        document.getElementById('save-bar-count').textContent = (T.unsaved_changes || 'Unsaved changes') + ' (' + changes.length + ')';
+        document.getElementById('save-bar-sections').textContent = sectionTitles(changes).join(', ');
+    }
     footer.classList.toggle('visible', visible);
     footer.toggleAttribute('aria-hidden', !visible);
     if (!visible) footer.setAttribute('aria-hidden', 'true');
     footer.toggleAttribute('inert', !visible);
+}
+
+/* Puts every manually saved field back to its last saved value. */
+function discard() {
+    var saved = new Map(baseline.map(function(record) { return [record.key, record]; }));
+    changedRecords(capture(), true).forEach(function(record) {
+        var el = fieldsByKey.get(record.key), before = saved.get(record.key);
+        if (!before) return;
+        if (record.secretEditVersion !== undefined) {
+            el.value = '';
+            delete el.dataset.userEditedSecret;
+            if (before.secretEditVersion) el.dataset.secretEditVersion = String(before.secretEditVersion);
+            else delete el.dataset.secretEditVersion;
+            return;
+        }
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = before.value === '1';
+        else if (el.tagName === 'SELECT' && el.multiple) {
+            Array.from(el.options).forEach(function(opt) { opt.selected = before.value.indexOf(opt.value) !== -1; });
+        } else el.value = before.value;
+        // Fields that show or hide others follow the restored value.
+        el.dispatchEvent(new Event('input', {bubbles: true}));
+        el.dispatchEvent(new Event('change', {bubbles: true}));
+    });
+    syncSaveFooter();
 }
 
 function acknowledgeSecrets(sent, data) {
@@ -294,6 +346,7 @@ function init() {
         e.preventDefault();
         save();
     });
+    document.getElementById('save-bar-discard').addEventListener('click', discard);
     form.querySelectorAll('label.toggle input[type="checkbox"]:not(#theme-toggle-appearance):not(.module-toggle-input):not(.notify-toggle), label.switch input[type="checkbox"]').forEach(function(toggle) {
         toggle.addEventListener('change', saveInstantly);
     });
