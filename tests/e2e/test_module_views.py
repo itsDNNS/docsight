@@ -64,7 +64,7 @@ def test_root_module_views_settings_disabled_actions_and_mobile_setup(page, root
     for view in ("journal", "bqm", "speedtest", "unknown"):
         expect(page.locator("#view-" + view)).to_have_count(0)
         expect(page.locator(f'.nav-item[data-view="{view}"]')).to_have_count(0)
-        expect(page.locator(f'.nav-item[onclick="open{view.title()}SetupModal()"]')).to_have_count(0)
+        expect(page.locator(f'.nav-item[data-action="open{view.title()}SetupModal"]')).to_have_count(0)
         expect(page.locator(f'script[src*="/modules/docsight.{view}/static/main.js"]')).to_have_count(0)
     for view in ("bqm", "speedtest", "unknown"):
         page.evaluate("view => switchView(view)", view)
@@ -94,7 +94,7 @@ def test_root_module_views_settings_disabled_actions_and_mobile_setup(page, root
         expect(page.locator("#view-" + view)).to_have_count(0)
         page.locator("#nav-toggle-connection").click()
         expect(connection_panel).to_be_visible()
-        trigger = page.locator(f'.nav-item[onclick="open{hook}SetupModal()"]')
+        trigger = page.locator(f'.nav-item[data-action="open{hook}SetupModal"]')
         expect(trigger).to_be_visible()
         trigger.focus()
         expect(trigger).to_be_focused()

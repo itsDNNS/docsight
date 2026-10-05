@@ -135,7 +135,7 @@
                             <i data-lucide="rabbit"></i> {{ t.speedtest }}
                         </button>
                         {% else %}
-                        <button type="button" class="nav-item" onclick="openSpeedtestSetupModal()">
+                        <button type="button" class="nav-item" data-action="openSpeedtestSetupModal">
                             <i data-lucide="settings"></i> {{ t.speedtest_setup }}
                         </button>
                         {% endif %}
@@ -156,7 +156,7 @@
                             <i data-lucide="chart-spline"></i> {{ t.bqm_title }}
                         </button>
                         {% else %}
-                        <button type="button" class="nav-item" onclick="openBqmSetupModal()">
+                        <button type="button" class="nav-item" data-action="openBqmSetupModal">
                             <i data-lucide="settings"></i> {{ t.bqm_setup }}
                         </button>
                         {% endif %}
@@ -167,7 +167,7 @@
                             <i data-lucide="radar"></i> {{ t.smokeping_title }}
                         </button>
                         {% else %}
-                        <button type="button" class="nav-item" onclick="openSmokepingSetupModal()">
+                        <button type="button" class="nav-item" data-action="openSmokepingSetupModal">
                             <i data-lucide="settings"></i> {{ t.smokeping_setup }}
                         </button>
                         {% endif %}
@@ -215,11 +215,11 @@
                         {% endfor %}
                         <div class="topnav-panel-divider" role="separator"></div>
                         {% if has_reports %}
-                        <button type="button" class="nav-item" id="report-link" onclick="openReportModal()">
+                        <button type="button" class="nav-item" id="report-link" data-action="openReportModal">
                             <i data-lucide="file-text"></i> {{ t.incident_report }}
                         </button>
                         {% endif %}
-                        <button type="button" class="nav-item" id="export-link" onclick="exportForLLM()">
+                        <button type="button" class="nav-item" id="export-link" data-action="exportForLLM">
                             <i data-lucide="file-output"></i> {{ t.export_llm }}
                         </button>
                     </div>
@@ -304,7 +304,7 @@
             <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
             <a class="notice-link" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
         </div>
-        <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ desktop_preview_notice_id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+        <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [desktop_preview_notice_id]|tojson }}' aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
             <i data-lucide="x"></i>
         </button>
     </article>
@@ -325,7 +325,7 @@
             <a class="notice-link" href="{{ notice.link_url }}" target="_blank" rel="noopener noreferrer">{{ notice.link_label }}</a>
             {% endif %}
         </div>
-        <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ notice.id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+        <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [notice.id]|tojson }}' aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
             <i data-lucide="x"></i>
         </button>
     </article>
@@ -594,7 +594,7 @@
                         {% endif %}
                         <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
                         <button type="button" class="hero-meta-item desktop-only hero-refresh-button" title="{{ t.refresh }}" aria-label="{{ t.refresh }}"
-                            onclick="var rb=document.getElementById('refresh-btn');if(rb)rb.click();">
+                            data-click-target="#refresh-btn">
                             <i data-lucide="refresh-cw"></i>
                         </button>
                 </div>
@@ -678,7 +678,7 @@
             </a>
         </div>
         {% elif has_speedtest %}
-        <button type="button" class="home-kpi home-kpi-empty" id="home-kpi-speedtest" onclick="openSpeedtestSetupModal()">
+        <button type="button" class="home-kpi home-kpi-empty" id="home-kpi-speedtest" data-action="openSpeedtestSetupModal">
             <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
             <span class="home-kpi-value"><strong>&#8212;</strong></span>
             <span class="home-kpi-sub">{{ t.speedtest_setup }}</span>
@@ -1011,7 +1011,7 @@
     {# ── Non-DOCSIS cards: speed, BNetzA, modules ── #}
     {% if speedtest_configured and speedtest_latest %}
     <div class="metrics-grid">
-        <div class="metric-card glass" id="metric-speed-card" role="button" tabindex="0" onclick="switchView('speedtest')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('speedtest')}">
+        <div class="metric-card glass" id="metric-speed-card" role="button" tabindex="0" data-action="switchView" data-action-args='["speedtest"]'>
             <div class="metric-header">
                 <span class="metric-label">{{ t.speed }}</span>
                 <div class="metric-icon green"><i data-lucide="rabbit"></i></div>
@@ -1192,15 +1192,15 @@
             <h2 class="view-page-title">{{ t.correlation_title }}</h2>
             <span class="view-page-subtitle">{{ t.get('correlation_subtitle', 'Build evidence for ISP complaints') }}</span>
         </div>
-        <div class="view-page-actions trend-tabs" id="correlation-tabs">
-            <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadCorrelationData)">1h</button>
-            <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadCorrelationData)">6h</button>
-            <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadCorrelationData)">1d</button>
-            <button class="trend-tab" data-value="2d" onclick="selectPill(this, loadCorrelationData)">2d</button>
-            <button class="trend-tab" data-value="3d" onclick="selectPill(this, loadCorrelationData)">3d</button>
-            <button class="trend-tab" data-value="7d" onclick="selectPill(this, loadCorrelationData)">7d</button>
-            <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadCorrelationData)">30d</button>
-            <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadCorrelationData)">90d</button>
+        <div class="view-page-actions trend-tabs" data-pill-action="loadCorrelationData" id="correlation-tabs">
+            <button class="trend-tab" data-value="1h">1h</button>
+            <button class="trend-tab" data-value="6h">6h</button>
+            <button class="trend-tab active" data-value="1d">1d</button>
+            <button class="trend-tab" data-value="2d">2d</button>
+            <button class="trend-tab" data-value="3d">3d</button>
+            <button class="trend-tab" data-value="7d">7d</button>
+            <button class="trend-tab" data-value="30d">30d</button>
+            <button class="trend-tab" data-value="90d">90d</button>
         </div>
     </div>
 
@@ -1224,16 +1224,16 @@
                     <div class="chart-label">{{ t.correlation_chart_title }}</div>
                 </div>
                 <div class="chart-export-buttons">
-                    <button class="chart-export-btn" onclick="_corrExportPNG()" title="{{ t.chart_export_png }}">
+                    <button class="chart-export-btn" data-action="_corrExportPNG" title="{{ t.chart_export_png }}">
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         PNG
                     </button>
-                    <button class="chart-export-btn" onclick="_corrExportCSV()" title="{{ t.chart_export_csv }}">
+                    <button class="chart-export-btn" data-action="_corrExportCSV" title="{{ t.chart_export_csv }}">
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         CSV
                     </button>
                     {% if has_evidence %}
-                    <button class="chart-export-btn" id="correlation-evidence-btn" type="button" onclick="_corrUseRangeAsEvidence()"
+                    <button class="chart-export-btn" id="correlation-evidence-btn" type="button" data-action="_corrUseRangeAsEvidence"
                             title="{{ t.get('correlation_use_as_evidence_hint', 'Check this time range in the Evidence Journey (zoomed range if zoomed)') }}">
                         <i data-lucide="clipboard-check" aria-hidden="true"></i>
                         {{ t.get('correlation_use_as_evidence', 'Use as evidence') }}
@@ -1245,7 +1245,7 @@
                 <canvas id="correlation-chart"></canvas>
                 <canvas id="correlation-overlay" class="correlation-overlay" role="img" tabindex="0" aria-label="{{ t.correlation_chart_aria_label }}" aria-describedby="correlation-speedtest-hint{% if connection_monitor_installed %} correlation-reachability-hint{% endif %}"></canvas>
                 <div class="correlation-tooltip" id="correlation-tooltip"></div>
-                <button type="button" class="correlation-zoom-reset" id="correlation-zoom-reset" hidden onclick="_corrResetZoom()">{{ t.chart_reset_zoom }}</button>
+                <button type="button" class="correlation-zoom-reset" id="correlation-zoom-reset" hidden data-action="_corrResetZoom">{{ t.chart_reset_zoom }}</button>
                 <div class="correlation-chart-legend" id="correlation-legend"></div>
                 <p class="correlation-speedtest-hint" id="correlation-speedtest-hint">{{ t.correlation_speedtest_hint }}</p>
                 {% if connection_monitor_installed %}
@@ -1301,14 +1301,14 @@
         </div>
         <div class="view-page-actions events-filter-section">
             <div class="trend-tabs events-severity-tabs" id="events-severity-tabs" role="group" aria-label="{{ t.event_severity }}">
-                <button type="button" class="trend-tab active" data-severity="" onclick="filterEventsBySeverity('')" aria-pressed="true">{{ t.event_filter_all }}</button>
-                <button type="button" class="trend-tab" data-severity="info" onclick="filterEventsBySeverity('info')" aria-pressed="false">{{ t.event_severity_info }}</button>
-                <button type="button" class="trend-tab" data-severity="warning" onclick="filterEventsBySeverity('warning')" aria-pressed="false">{{ t.event_severity_warning }}</button>
-                <button type="button" class="trend-tab" data-severity="critical" onclick="filterEventsBySeverity('critical')" aria-pressed="false">{{ t.event_severity_critical }}</button>
+                <button type="button" class="trend-tab active" data-severity="" data-action="filterEventsBySeverity" data-action-args='[""]' aria-pressed="true">{{ t.event_filter_all }}</button>
+                <button type="button" class="trend-tab" data-severity="info" data-action="filterEventsBySeverity" data-action-args='["info"]' aria-pressed="false">{{ t.event_severity_info }}</button>
+                <button type="button" class="trend-tab" data-severity="warning" data-action="filterEventsBySeverity" data-action-args='["warning"]' aria-pressed="false">{{ t.event_severity_warning }}</button>
+                <button type="button" class="trend-tab" data-severity="critical" data-action="filterEventsBySeverity" data-action-args='["critical"]' aria-pressed="false">{{ t.event_severity_critical }}</button>
             </div>
-            <button type="button" class="events-filter-chip" id="device-filter-pill" onclick="filterEventsByDevice()" aria-pressed="false">{{ t.event_filter_device }}</button>
+            <button type="button" class="events-filter-chip" id="device-filter-pill" data-action="filterEventsByDevice" aria-pressed="false">{{ t.event_filter_device }}</button>
             <label class="events-switch">
-                <span class="toggle"><input type="checkbox" id="hide-operational-toggle" checked onchange="toggleHideOperational()"><span class="slider"></span></span>
+                <span class="toggle"><input type="checkbox" id="hide-operational-toggle" checked data-change-action="toggleHideOperational"><span class="slider"></span></span>
                 <span>{{ t.event_hide_operational }}</span>
             </label>
         </div>
@@ -1327,15 +1327,15 @@
             <span class="events-summary" id="events-summary" aria-live="polite"></span>
             <div class="events-card-actions">
                 <a class="btn-export-events" id="events-export-csv" href="{{ url_for('events_bp.api_events_export_csv', exclude_operational='true') }}" download><i data-lucide="download" aria-hidden="true"></i>{{ t.event_export_csv }}</a>
-                <button type="button" class="btn-ack-all" id="btn-ack-selected" onclick="acknowledgeSelectedEvents()" hidden></button>
-                <button type="button" class="btn-ack-all" id="btn-ack-visible" onclick="acknowledgeVisibleEvents()" hidden><i data-lucide="check-check" aria-hidden="true"></i>{{ t.event_acknowledge_visible }}</button>
+                <button type="button" class="btn-ack-all" id="btn-ack-selected" data-action="acknowledgeSelectedEvents" hidden></button>
+                <button type="button" class="btn-ack-all" id="btn-ack-visible" data-action="acknowledgeVisibleEvents" hidden><i data-lucide="check-check" aria-hidden="true"></i>{{ t.event_acknowledge_visible }}</button>
             </div>
         </div>
         <div id="events-feed" class="events-feed"></div>
     </div>
 
     <div id="events-show-more" hidden>
-        <button class="btn-show-more" onclick="loadMoreEvents()">{{ t.show_more }}</button>
+        <button class="btn-show-more" data-action="loadMoreEvents">{{ t.show_more }}</button>
     </div>
 </div>
 
@@ -1346,63 +1346,63 @@
             <h2 class="view-page-title">{{ t.channels }}</h2>
         </div>
         <div class="view-page-actions">
-        <div class="trend-tabs" id="channel-mode-tabs">
-            <button class="trend-tab active" data-value="status" onclick="selectPill(this, switchChannelMode)">{{ t.get('channel_mode_status', 'Status') }}</button>
-            <button class="trend-tab" data-value="timeline" onclick="selectPill(this, switchChannelMode)">{{ t.channel_timeline }}</button>
-            <button class="trend-tab" data-value="compare" onclick="selectPill(this, switchChannelMode)">{{ t.channel_compare }}</button>
+        <div class="trend-tabs" data-pill-action="switchChannelMode" id="channel-mode-tabs">
+            <button class="trend-tab active" data-value="status">{{ t.get('channel_mode_status', 'Status') }}</button>
+            <button class="trend-tab" data-value="timeline">{{ t.channel_timeline }}</button>
+            <button class="trend-tab" data-value="compare">{{ t.channel_compare }}</button>
         </div>
         <span id="channel-status-controls">
-            <div class="trend-tabs" id="channel-status-time-tabs">
-                <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadChannelStatus)">1h</button>
-                <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadChannelStatus)">6h</button>
-                <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadChannelStatus)">1d</button>
-                <button class="trend-tab" data-value="2d" onclick="selectPill(this, loadChannelStatus)">2d</button>
-                <button class="trend-tab" data-value="3d" onclick="selectPill(this, loadChannelStatus)">3d</button>
-                <button class="trend-tab" data-value="7d" onclick="selectPill(this, loadChannelStatus)">7d</button>
-                <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadChannelStatus)">30d</button>
-                <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadChannelStatus)">90d</button>
+            <div class="trend-tabs" data-pill-action="loadChannelStatus" id="channel-status-time-tabs">
+                <button class="trend-tab" data-value="1h">1h</button>
+                <button class="trend-tab" data-value="6h">6h</button>
+                <button class="trend-tab active" data-value="1d">1d</button>
+                <button class="trend-tab" data-value="2d">2d</button>
+                <button class="trend-tab" data-value="3d">3d</button>
+                <button class="trend-tab" data-value="7d">7d</button>
+                <button class="trend-tab" data-value="30d">30d</button>
+                <button class="trend-tab" data-value="90d">90d</button>
             </div>
         </span>
         <span id="channel-timeline-controls" hidden>
-            <select id="channel-select" class="channel-select-styled" onchange="loadChannelTimeline()">
+            <select id="channel-select" class="channel-select-styled" data-change-action="loadChannelTimeline">
                 <option value="">{{ t.select_channel }}</option>
             </select>
-            <div class="trend-tabs" id="channel-time-tabs" hidden>
-                <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadChannelTimeline)">1h</button>
-                <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadChannelTimeline)">6h</button>
-                <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadChannelTimeline)">1d</button>
-                <button class="trend-tab" data-value="2d" onclick="selectPill(this, loadChannelTimeline)">2d</button>
-                <button class="trend-tab" data-value="3d" onclick="selectPill(this, loadChannelTimeline)">3d</button>
-                <button class="trend-tab" data-value="7d" onclick="selectPill(this, loadChannelTimeline)">7d</button>
-                <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadChannelTimeline)">30d</button>
-                <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadChannelTimeline)">90d</button>
+            <div class="trend-tabs" data-pill-action="loadChannelTimeline" id="channel-time-tabs" hidden>
+                <button class="trend-tab" data-value="1h">1h</button>
+                <button class="trend-tab" data-value="6h">6h</button>
+                <button class="trend-tab active" data-value="1d">1d</button>
+                <button class="trend-tab" data-value="2d">2d</button>
+                <button class="trend-tab" data-value="3d">3d</button>
+                <button class="trend-tab" data-value="7d">7d</button>
+                <button class="trend-tab" data-value="30d">30d</button>
+                <button class="trend-tab" data-value="90d">90d</button>
             </div>
-            <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleChannelTempOverlay()" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+            <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" data-action="toggleChannelTempOverlay" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
             </button>
         </span>
         <span id="channel-compare-controls" hidden>
-            <div class="trend-tabs" id="compare-dir-tabs">
-                <button class="trend-tab active" data-value="ds" onclick="selectPill(this, onCompareDirectionChange)">{{ t.downstream }}</button>
-                <button class="trend-tab" data-value="us" onclick="selectPill(this, onCompareDirectionChange)">{{ t.upstream }}</button>
+            <div class="trend-tabs" data-pill-action="onCompareDirectionChange" id="compare-dir-tabs">
+                <button class="trend-tab active" data-value="ds">{{ t.downstream }}</button>
+                <button class="trend-tab" data-value="us">{{ t.upstream }}</button>
             </div>
             <select id="compare-channel-select" class="channel-select-styled"><option value="">{{ t.select_channel }}</option></select>
-            <button id="compare-add-btn" class="compare-add-btn" onclick="addCompareChannel()">+ {{ t.add_channel }}</button>
-            <button id="compare-add-all-btn" class="compare-add-btn" onclick="addAllCompareChannels()">{{ t.all_downstream }}</button>
-            <button id="compare-clear-btn" class="compare-add-btn" onclick="clearCompareChannels()" hidden>{{ t.clear_selection }}</button>
-            <div class="trend-tabs" id="compare-time-tabs" hidden>
-                <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadCompareCharts)">1h</button>
-                <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadCompareCharts)">6h</button>
-                <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadCompareCharts)">1d</button>
-                <button class="trend-tab" data-value="2d" onclick="selectPill(this, loadCompareCharts)">2d</button>
-                <button class="trend-tab" data-value="3d" onclick="selectPill(this, loadCompareCharts)">3d</button>
-                <button class="trend-tab" data-value="7d" onclick="selectPill(this, loadCompareCharts)">7d</button>
-                <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadCompareCharts)">30d</button>
-                <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadCompareCharts)">90d</button>
+            <button id="compare-add-btn" class="compare-add-btn" data-action="addCompareChannel">+ {{ t.add_channel }}</button>
+            <button id="compare-add-all-btn" class="compare-add-btn" data-action="addAllCompareChannels">{{ t.all_downstream }}</button>
+            <button id="compare-clear-btn" class="compare-add-btn" data-action="clearCompareChannels" hidden>{{ t.clear_selection }}</button>
+            <div class="trend-tabs" data-pill-action="loadCompareCharts" id="compare-time-tabs" hidden>
+                <button class="trend-tab" data-value="1h">1h</button>
+                <button class="trend-tab" data-value="6h">6h</button>
+                <button class="trend-tab active" data-value="1d">1d</button>
+                <button class="trend-tab" data-value="2d">2d</button>
+                <button class="trend-tab" data-value="3d">3d</button>
+                <button class="trend-tab" data-value="7d">7d</button>
+                <button class="trend-tab" data-value="30d">30d</button>
+                <button class="trend-tab" data-value="90d">90d</button>
             </div>
-            <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleCompareTempOverlay()" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+            <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" data-action="toggleCompareTempOverlay" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
@@ -1585,7 +1585,7 @@
             <div class="skeleton skel-chart"></div>
         </div>
         {{ empty_state('channel-empty', 'layers', t.channel_onboarding_title, t.channel_onboarding_desc,
-                       action_label=t.channel_empty_action, action_onclick="document.getElementById('channel-select').focus()",
+                       action_label=t.channel_empty_action, action_focus="#channel-select",
                        glossary='channel_timeline', hidden=True) }}
         <div id="channel-no-data" class="view-empty" hidden></div>
         <div id="channel-charts" class="charts-grid" hidden>
@@ -1715,7 +1715,7 @@
         <h3 class="gaming-section-title">{{ t.gaming_components_title }}</h3>
         <div class="gaming-comp-grid">
         {% for key, comp in gaming_index.components.items() %}
-            <div class="gaming-comp-row" tabindex="0" role="button" aria-expanded="false" onclick="this.classList.toggle('open');this.setAttribute('aria-expanded',this.classList.contains('open'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <div class="gaming-comp-row" tabindex="0" role="button" aria-expanded="false" data-toggle-open>
                 <span class="gaming-comp-icon">
                     {% if key == 'latency' %}<i data-lucide="timer"></i>
                     {% elif key == 'jitter' %}<i data-lucide="waves"></i>
@@ -1753,9 +1753,9 @@
         <div class="view-page-actions">
             <label class="btn btn-muted bnetz-upload-btn">
                 <i data-lucide="upload"></i> {{ t.bnetz_upload }}
-                <input type="file" accept=".pdf,.csv" id="bnetz-file-input" hidden onchange="uploadBnetzFromView(this)">
+                <input type="file" accept=".pdf,.csv" id="bnetz-file-input" hidden data-change-action="uploadBnetzFromView">
             </label>
-            <button class="refresh-btn bnetz-refresh-btn" title="{{ t.refresh }}" onclick="loadBnetzData()"><i data-lucide="refresh-cw"></i></button>
+            <button class="refresh-btn bnetz-refresh-btn" title="{{ t.refresh }}" data-action="loadBnetzData"><i data-lucide="refresh-cw"></i></button>
         </div>
     </div>
     <div id="bnetz-watcher-status" hidden>
@@ -1817,27 +1817,27 @@
     <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
             <h2 id="smokeping-setup-modal-title">📡 {{ t.get('smokeping_setup_guided_title', 'SmokePing setup') }}</h2>
-            <button class="modal-close" onclick="closeSmokepingSetupModal()" aria-label="{{ t.close }}">&times;</button>
+            <button class="modal-close" data-action="closeSmokepingSetupModal" aria-label="{{ t.close }}">&times;</button>
         </div>
         <p class="modal-hint">{{ t.get('smokeping_setup_guided_intro', 'Connect an existing SmokePing target to compare latency history with DOCSIS signal and outage evidence.') }}</p>
         <div class="modal-body setup-guide-body">
             <section class="setup-guide-card"><h3>{{ t.get('setup_why_title', 'Why connect it') }}</h3><ul><li>{{ t.get('smokeping_setup_benefit_1', 'See long-term latency and packet loss trends') }}</li><li>{{ t.get('smokeping_setup_benefit_2', 'Correlate external symptoms with modem health') }}</li><li>{{ t.get('smokeping_setup_benefit_3', 'Use graphs as supporting ISP evidence') }}</li></ul></section>
             <section class="setup-guide-card"><h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3><ul><li>{{ t.get('smokeping_setup_requirement_url', 'A reachable SmokePing web endpoint') }}</li><li>{{ t.get('smokeping_setup_requirement_target', 'At least one configured target graph') }}</li></ul></section>
-            <section class="setup-guide-card setup-guide-command"><h3>{{ t.get('setup_configure_title', 'Configure') }}</h3><p>{{ t.get('smokeping_setup_configure_text', 'Save the SmokePing base URL and target name in Settings.') }}</p><code id="smokeping-setup-target">https://smokeping.example.net/smokeping?target=Home.Router</code><button class="btn btn-secondary" onclick="copySetupSnippet('smokeping-setup-target', 'smokeping-setup-status')">{{ t.get('smokeping_setup_copy_target', 'Copy SmokePing target') }}</button></section>
-            <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('smokeping_setup_validate_text', 'After saving the endpoint, validate that DOCSight can discover target graphs.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('smokeping-setup-status', 'smokeping')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
+            <section class="setup-guide-card setup-guide-command"><h3>{{ t.get('setup_configure_title', 'Configure') }}</h3><p>{{ t.get('smokeping_setup_configure_text', 'Save the SmokePing base URL and target name in Settings.') }}</p><code id="smokeping-setup-target">https://smokeping.example.net/smokeping?target=Home.Router</code><button class="btn btn-secondary" data-action="copySetupSnippet" data-action-args='["smokeping-setup-target", "smokeping-setup-status"]'>{{ t.get('smokeping_setup_copy_target', 'Copy SmokePing target') }}</button></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('smokeping_setup_validate_text', 'After saving the endpoint, validate that DOCSight can discover target graphs.') }}</p><button class="btn btn-muted" data-action="validateSetupGuidance" data-action-args='["smokeping-setup-status", "smokeping"]'>{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
         </div>
         <div id="smokeping-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
-        <div class="modal-footer"><button class="btn btn-muted" onclick="closeSmokepingSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_smokeping') }}">⚙ {{ t.get('smokeping_setup_open_settings', 'Open SmokePing settings') }}</a></div>
+        <div class="modal-footer"><button class="btn btn-muted" data-action="closeSmokepingSetupModal">{{ t.close }}</button><a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_smokeping') }}">⚙ {{ t.get('smokeping_setup_open_settings', 'Open SmokePing settings') }}</a></div>
     </div>
 </dialog>
 {% endif %}
 
 <!-- Report Modal -->
-<dialog class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" onclick="if(event.target===this)closeReportModal()" oncancel="event.preventDefault(); closeReportModal()">
+<dialog class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" data-dialog-close="closeReportModal">
     <div class="modal report-modal-panel">
         <div class="modal-header">
             <h2 id="report-modal-title">{{ t.get('report_builder_title', 'ISP-ready evidence package') }}</h2>
-            <button class="modal-close" onclick="closeReportModal()" aria-label="{{ t.close }}">&times;</button>
+            <button class="modal-close" data-action="closeReportModal" aria-label="{{ t.close }}">&times;</button>
         </div>
         <p class="modal-hint">{{ t.get('report_builder_intro', 'Build a local evidence package for ISP support or complaint escalation.') }}</p>
         <div id="report-builder-status" class="report-builder-status" role="status" aria-live="polite"></div>
@@ -1855,7 +1855,7 @@
                                 <time id="report-period-to"></time>
                             </p>
                         </div>
-                        <button class="btn btn-muted report-change-window" type="button" onclick="changeReportProblemWindow()">
+                        <button class="btn btn-muted report-change-window" type="button" data-action="changeReportProblemWindow">
                             {{ t.get('report_change_problem_window', 'Change problem window') }}
                         </button>
                     </div>
@@ -1936,20 +1936,20 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-muted" onclick="closeReportModal()">{{ t.close }}</button>
-            <button class="btn btn-accent" id="report-generate-btn" onclick="generateComplaint()">&#9998; {{ t.get('report_build_package', 'Build evidence package') }}</button>
-            <button class="btn btn-accent" id="report-copy-btn" hidden onclick="copyComplaint()">&#128203; {{ t.get('report_copy_letter_text', 'Copy letter text') }}</button>
-            <button class="btn btn-accent" id="report-pdf-btn" hidden onclick="downloadReport()">&#128196; {{ t.get('report_download_package', 'Download PDF package') }}</button>
+            <button class="btn btn-muted" data-action="closeReportModal">{{ t.close }}</button>
+            <button class="btn btn-accent" id="report-generate-btn" data-action="generateComplaint">&#9998; {{ t.get('report_build_package', 'Build evidence package') }}</button>
+            <button class="btn btn-accent" id="report-copy-btn" hidden data-action="copyComplaint">&#128203; {{ t.get('report_copy_letter_text', 'Copy letter text') }}</button>
+            <button class="btn btn-accent" id="report-pdf-btn" hidden data-action="downloadReport">&#128196; {{ t.get('report_download_package', 'Download PDF package') }}</button>
         </div>
     </div>
 </dialog>
 
 <!-- Chart Zoom Modal -->
-<dialog class="chart-zoom-overlay" id="chart-zoom-overlay" role="dialog" aria-modal="true" aria-labelledby="chart-zoom-title" onclick="if(event.target===this)closeChartZoom()" oncancel="event.preventDefault(); closeChartZoom()">
+<dialog class="chart-zoom-overlay" id="chart-zoom-overlay" role="dialog" aria-modal="true" aria-labelledby="chart-zoom-title" data-dialog-close="closeChartZoom">
     <div class="chart-zoom-modal">
         <div class="modal-header">
             <h2 id="chart-zoom-title"></h2>
-            <button class="modal-close" onclick="closeChartZoom()" aria-label="{{ t.close }}">&times;</button>
+            <button class="modal-close" data-action="closeChartZoom" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div id="chart-zoom-canvas"></div>
     </div>
@@ -1960,7 +1960,7 @@
     <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="export-modal-title">{{ t.export_title }}</h2>
-            <button class="modal-close" onclick="closeExportModal()" aria-label="{{ t.close }}">&times;</button>
+            <button class="modal-close" data-action="closeExportModal" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div class="modal-body export-modal-body">
             <p class="modal-hint">{{ t.export_hint }}</p>
@@ -1970,12 +1970,12 @@
             </div>
             <div class="export-mode-selector" role="radiogroup" aria-label="{{ t.get('export_scope_label', 'Export scope') }}">
                 <label>
-                    <input type="radio" name="export-mode" value="full" checked onchange="exportForLLM()">
+                    <input type="radio" name="export-mode" value="full" checked data-change-action="exportForLLM">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
                     {{ t.export_full }}
                 </label>
                 <label>
-                    <input type="radio" name="export-mode" value="update" onchange="exportForLLM()">
+                    <input type="radio" name="export-mode" value="update" data-change-action="exportForLLM">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     {{ t.export_update }}
                 </label>
@@ -2000,9 +2000,9 @@
             </div>
             <fieldset class="export-redaction-controls">
                 <legend>{{ t.get('export_redaction_title', 'Redaction controls') }}</legend>
-                <label><input type="checkbox" id="export-redact-ips" onchange="refreshExportPreview()"> {{ t.get('export_redact_ips', 'Redact IP addresses') }}</label>
-                <label><input type="checkbox" id="export-redact-hostnames" onchange="refreshExportPreview()"> {{ t.get('export_redact_hostnames', 'Redact hostnames') }}</label>
-                <label><input type="checkbox" id="export-redact-customers" onchange="refreshExportPreview()"> {{ t.get('export_redact_customers', 'Redact account or customer details') }}</label>
+                <label><input type="checkbox" id="export-redact-ips" data-change-action="refreshExportPreview"> {{ t.get('export_redact_ips', 'Redact IP addresses') }}</label>
+                <label><input type="checkbox" id="export-redact-hostnames" data-change-action="refreshExportPreview"> {{ t.get('export_redact_hostnames', 'Redact hostnames') }}</label>
+                <label><input type="checkbox" id="export-redact-customers" data-change-action="refreshExportPreview"> {{ t.get('export_redact_customers', 'Redact account or customer details') }}</label>
             </fieldset>
             <div class="export-output-meta">
                 <span id="export-size-indicator">0 {{ t.get('export_size_characters', 'characters') }}</span>
@@ -2011,9 +2011,9 @@
             <textarea id="export-text" readonly aria-label="{{ t.get('export_preview_label', 'Export preview') }}"></textarea>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-muted" onclick="closeExportModal()">{{ t.close }}</button>
-            <button class="btn btn-secondary" id="export-download-btn" onclick="downloadExportMarkdown()">{{ t.get('export_download_markdown', 'Download Markdown') }}</button>
-            <button class="btn btn-accent" id="export-copy-btn" onclick="copyExport()">{{ t.get('export_copy', 'Copy export') }}</button>
+            <button class="btn btn-muted" data-action="closeExportModal">{{ t.close }}</button>
+            <button class="btn btn-secondary" id="export-download-btn" data-action="downloadExportMarkdown">{{ t.get('export_download_markdown', 'Download Markdown') }}</button>
+            <button class="btn btn-accent" id="export-copy-btn" data-action="copyExport">{{ t.get('export_copy', 'Copy export') }}</button>
         </div>
     </div>
 </dialog>
@@ -2035,6 +2035,7 @@
 }|tojson }}</script>
 <script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/empty-state.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}

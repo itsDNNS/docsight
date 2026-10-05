@@ -48,7 +48,7 @@
                    t.get('docsight.evidence.empty_title', 'Check which evidence is ready'),
                    t.get('docsight.evidence.placeholder', 'Choose an incident or time range to see which evidence is ready, missing, stale, optional, or not applicable.'),
                    action_label=t.get('docsight.evidence.empty_action', 'Check the last 24 hours'),
-                   action_onclick="document.querySelector('[data-evidence-range=last24h]').click()") }}
+                   action_click="[data-evidence-range=last24h]") }}
 
     <div id="evidence-loading" class="evidence-loading" hidden>
         <div class="spinner"></div>
