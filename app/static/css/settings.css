@@ -180,18 +180,6 @@ button.notification-collapse-button {
   transform: rotate(-90deg);
 }
 
-/* ─── Section Labels ─── */
-.section-label {
-  font-size: var(--fs-min);
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--space-md);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
 
 /* ─── Form layout (fields come from components.css) ─── */
 .input-with-action {
@@ -303,11 +291,6 @@ button.notification-collapse-button {
   background: color-mix(in srgb, var(--crit) 8%, transparent);
   border: 1px solid var(--crit-muted);
   color: var(--crit);
-}
-.status-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: currentColor;
 }
 .status-indicator.testing .status-dot {
   animation: pulse 2s infinite;

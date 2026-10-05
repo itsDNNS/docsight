@@ -222,6 +222,7 @@ body {
   width: 8px; height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+  background: currentColor;
 }
 .status-dot.good {
   background: var(--good);
@@ -477,12 +478,16 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 
 /* ── Section Labels ── */
 .section-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  margin-bottom: var(--space-md);
   font-size: var(--fs-min);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
-  padding: var(--space-sm) 0;
 }
 
 /* ── Animations ── */
