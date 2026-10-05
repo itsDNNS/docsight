@@ -410,6 +410,10 @@ def test_visual_review_is_read_only_informational_and_follows_the_browser_paths(
     assert "DOCSIGHT_DEMO_SEED=7" in start and 'DOCSIGHT_DEMO_NOW="$now"' in start
     # No live poll may land between the base and the pull request capture.
     assert "POLL_INTERVAL=86400" in start
+    # Both builds sit behind the login page, which the review captures before signing in.
+    assert re.search(r'ADMIN_PASSWORD=.\$REVIEW_PASSWORD\b', start)
+    capture = steps["Capture the base and the pull request"]["run"]
+    assert capture.count('--password "$REVIEW_PASSWORD"') == 2
     assert steps["Check out the base"]["with"]["ref"] == "${{ github.event.pull_request.base.sha || github.sha }}"
     assert steps["Upload screenshots and differences"]["if"] == "always()"
 
