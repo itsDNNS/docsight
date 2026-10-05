@@ -33,6 +33,7 @@ from .runtime import current_runtime
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name, to_local as _to_local
 from .theme_contrast import low_contrast_modes
 from .line_status import build_line_status
+from .theme_catalog import THEME_PROPERTY, THEME_UNSAFE_VALUE
 from .theme_registry import resolve_active_theme
 from .web_locale import get_lang, get_setup_lang
 from .version import get_app_version
@@ -107,8 +108,6 @@ def safe_html_filter(value):
     return Markup(cleaned)
 
 
-_THEME_PROPERTY = re.compile(r"^--[A-Za-z0-9_-]+$")
-_THEME_UNSAFE_VALUE = re.compile(r"[<>{};\\\n\r]|/\*|\*/")
 
 
 def theme_css_declarations(tokens):
@@ -125,7 +124,7 @@ def theme_css_declarations(tokens):
         f"{name}: {value};"
         for name, value in tokens.items()
         if isinstance(name, str) and isinstance(value, str)
-        and _THEME_PROPERTY.match(name) and not _THEME_UNSAFE_VALUE.search(value)
+        and THEME_PROPERTY.match(name) and not THEME_UNSAFE_VALUE.search(value)
     ]
     return Markup("\n        ".join(declarations))
 
