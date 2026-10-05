@@ -1,0 +1,11 @@
+{#- The active theme's tokens. Include after tokens.css so they win over the defaults. -#}
+{% if active_theme_data %}
+    <style id="theme-module-vars">
+    :root, [data-theme="dark"] {
+        {{ active_theme_data.get('dark', {})|theme_css }}
+    }
+    [data-theme="light"] {
+        {{ active_theme_data.get('light', {})|theme_css }}
+    }
+    </style>
+{% endif %}

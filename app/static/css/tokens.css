@@ -2,18 +2,13 @@
 
 /* ── Color Palette: Dark (default) ── */
 :root {
-  /* Elevation surfaces */
-  --void: #06080f;
-  --void-deep: #0a0d18;
+  /* Theme core: the tokens a community theme sets (wiki: Themes) */
+  --bg: #06080f;
   --surface: #111628;
   --elevated: #181e35;
-  --hover: #1f2847;
-
-  /* Accent */
-  --amethyst: #7c3aed;
-  --amethyst-light: #a78bfa;
+  --accent: #7c3aed;
+  /* Still a fixed tint: most built-in themes leave it unset. */
   --amethyst-muted: rgba(124, 58, 237, 0.15);
-  --sapphire: #3b82f6;
   --grad-primary: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
 
   /* Semantic */
@@ -35,8 +30,6 @@
   --text-on-accent: #fff;
 
   /* Glass */
-  --glass-bg: rgba(17, 22, 40, 0.65);
-  --glass-border: rgba(120, 130, 180, 0.12);
   --glass-blur: blur(24px) saturate(1.2);
 
   /* Tints (theme-aware) */
@@ -124,16 +117,23 @@
   --ui-radius-md: 10px;
   --ui-radius-lg: 16px;
 
-  /* Defaults for tokens that themes set alongside the ones above */
-  --bg: var(--void);
+  /* Roles derived from the theme core. Built-in themes set each of them; a theme
+     that only sets the core tokens gets these, in dark and light mode alike. */
+  --void: var(--bg);
+  --void-deep: color-mix(in srgb, var(--bg) 50%, var(--surface));
   --card: var(--surface);
+  --hover: color-mix(in srgb, var(--elevated) 85%, var(--text));
+  --hover-bg: var(--hover);
+  --accent-hover: color-mix(in srgb, var(--accent) 75%, var(--text));
+  --accent-muted: color-mix(in srgb, var(--accent) 15%, transparent);
+  --amethyst: var(--accent);
+  --amethyst-light: var(--accent-hover);
+  --sapphire: var(--info);
+  --glass-bg: color-mix(in srgb, var(--surface) 65%, transparent);
+  --glass-border: color-mix(in srgb, var(--text) 12%, transparent);
   --card-border: var(--glass-border);
-  --accent: var(--amethyst);
-  --accent-hover: var(--amethyst-light);
-  --accent-muted: var(--amethyst-muted);
   --input-border: var(--glass-border);
   --overlay: rgba(0,0,0,0.6);
-  --hover-bg: var(--hover);
 
   /* Deprecated aliases: DOCSight's own styles no longer use them. They stay for
      community styles and themes; a theme that sets one also sets its canonical
@@ -150,11 +150,9 @@
 
 /* ── Color Palette: Light ── */
 [data-theme="light"] {
-  --void: #f8f6f3;
-  --void-deep: #f0edf5;
+  --bg: #f8f6f3;
   --surface: #ffffff;
   --elevated: #f0edf5;
-  --hover: #e8e4f0;
 
   --text: #1a1520;
   --text-secondary: #5e5673;
@@ -170,9 +168,6 @@
   --info-muted: rgba(8, 145, 178, 0.12);
   --tolerated: #65a30d;
   --tolerated-muted: rgba(101, 163, 13, 0.12);
-
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(120, 100, 160, 0.15);
 
   --tint-subtle: rgba(0, 0, 0, 0.02);
   --tint-hover: rgba(0, 0, 0, 0.04);
@@ -206,8 +201,4 @@
   --ui-data-errors: #845572;  /* oklch(51% 0.075 342) */
   --ui-data-latency: #456990; /* oklch(51% 0.075 252) */
   --ui-data-jitter: #755985;  /* oklch(51% 0.075 312) */
-
-  /* Legacy aliases */
-  --bg: var(--void);
-  --card: var(--surface);
 }
