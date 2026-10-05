@@ -171,7 +171,7 @@ def discover_builtin_theme_modules(
             min_app_version=theme["minAppVersion"], type="theme",
             contributes={"theme": "builtin"}, path="", builtin=True,
             homepage=theme.get("homepage", ""), license=theme.get("license", ""),
-            menu={"order": 999}, theme_data=theme["theme_data"],
+            menu={"order": 999}, theme_data=deepcopy(theme["theme_data"]),
         ))
     return _finalize_builtins(modules, disabled_ids, "theme")
 
