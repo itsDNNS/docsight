@@ -28,6 +28,12 @@
         return seconds >= 86400 ? 1440 : 0;
     }
 
+    /* The range tabs are a data-pill-action group; the selected tab carries the range. */
+    window.cmRangeTabSelected = function() {
+        var tab = document.querySelector('#cm-range-tabs .trend-tab.active');
+        if (tab) window.cmSetRange(tab, Number(tab.getAttribute('data-cm-range')));
+    };
+
     window.cmSetRange = function(btn, seconds) {
         pinnedDayView = null;
         currentRange = seconds;
@@ -488,9 +494,9 @@
                 glossary: 'connection_monitor'
             });
         }
-        if (chartsEl) chartsEl.style.display = 'none';
-        if (outagePanel) outagePanel.style.display = 'none';
-        if (rawLogPanel) rawLogPanel.style.display = 'none';
+        if (chartsEl) chartsEl.hidden = true;
+        if (outagePanel) outagePanel.hidden = true;
+        if (rawLogPanel) rawLogPanel.hidden = true;
         [perTargetEl, outageBody, exportLinks, rawLogLinks, resolutionEl].forEach(function(el) {
             if (el) el.textContent = '';
         });
@@ -503,9 +509,9 @@
         var outagePanel = document.getElementById('cm-outage-panel');
         var rawLogPanel = document.getElementById('cm-raw-log-panel');
         DOCSightEmptyState.hide(noData);
-        if (chartsEl) chartsEl.style.display = '';
-        if (outagePanel) outagePanel.style.display = '';
-        if (rawLogPanel) rawLogPanel.style.display = '';
+        if (chartsEl) chartsEl.hidden = false;
+        if (outagePanel) outagePanel.hidden = false;
+        if (rawLogPanel) rawLogPanel.hidden = false;
     }
 
     // --- Traceroute ---
@@ -554,12 +560,12 @@
         tbody.textContent = '';
 
         if (!traces || traces.length === 0) {
-            table.style.display = 'none';
+            table.hidden = true;
             if (noTraces) noTraces.style.display = 'block';
             return;
         }
 
-        table.style.display = '';
+        table.hidden = false;
         if (noTraces) noTraces.style.display = 'none';
 
         // Find target label

@@ -9,9 +9,14 @@
      data-click-target="sel"   click forwards to the first element matching the selector
      data-focus-target="sel"   click focuses the first element matching the selector
      data-toggle-open          click toggles the "open" class and aria-expanded
-   Elements with role="button" also run their click action on Enter and Space. */
+     data-toggle-open="parent" the same, with the "open" class on the parent element
+   Elements with role="button" also run their click action on Enter and Space.
+   A click on a control nested inside an action element (a link, button, form
+   field or glossary hint) belongs to that control, not to the outer action. */
 (function() {
     'use strict';
+
+    var NESTED_CONTROLS = 'a[href], button, input, select, textarea, .glossary-hint';
 
     function callNamed(el, attr) {
         var fn = window[el.getAttribute(attr)];
@@ -42,6 +47,8 @@
 
         var el = target.closest('[data-action], [data-click-target], [data-focus-target], [data-toggle-open]');
         if (!el) return;
+        var control = target.closest(NESTED_CONTROLS);
+        if (control && control !== el && el.contains(control)) return;
         if (el.hasAttribute('data-action')) {
             callNamed(el, 'data-action');
         } else if (el.hasAttribute('data-click-target')) {
@@ -51,8 +58,9 @@
             var focusOn = targetOf(el, 'data-focus-target');
             if (focusOn) focusOn.focus();
         } else {
-            el.classList.toggle('open');
-            el.setAttribute('aria-expanded', String(el.classList.contains('open')));
+            var holder = el.getAttribute('data-toggle-open') === 'parent' ? el.parentElement : el;
+            holder.classList.toggle('open');
+            el.setAttribute('aria-expanded', String(holder.classList.contains('open')));
         }
     });
 

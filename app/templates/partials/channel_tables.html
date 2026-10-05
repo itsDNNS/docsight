@@ -16,7 +16,7 @@
     <div class="channel-header">
         <div>
             <div class="channel-title">{{ t.downstream }} {{ t.channels }}</div>
-            <div style="font-size:var(--fs-min);color:var(--text-muted);margin-top:2px;">{{ ds|length }} {{ t.channels }}{% if ds_versions %} · DOCSIS {{ ds_versions|join(' + ') }}{% endif %}</div>
+            <div class="channel-subtitle">{{ ds|length }} {{ t.channels }}{% if ds_versions %} · DOCSIS {{ ds_versions|join(' + ') }}{% endif %}</div>
         </div>
         <div class="channel-health-chips">
             <span class="health-chip"><span class="dot good"></span> {{ ds_good }} {{ health_labels.good }}</span>
@@ -28,7 +28,7 @@
 
     {% for group in ds|groupby('docsis_version')|reverse %}
     <div class="docsis-group">
-        <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="ds-docsis-group-{{ loop.index }}" onclick="if(!event.target.closest('.glossary-hint')){var open=this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded', open ? 'true' : 'false')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+        <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="ds-docsis-group-{{ loop.index }}" data-toggle-open="parent">
             <i data-lucide="chevron-right"></i>
             DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint" data-glossary-term-id="{{ 'ofdm' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
         </div>
@@ -75,7 +75,7 @@
     <div class="channel-header">
         <div>
             <div class="channel-title">{{ t.upstream }} {{ t.channels }}</div>
-            <div style="font-size:var(--fs-min);color:var(--text-muted);margin-top:2px;">{{ us|length }} {{ t.channels }}{% if us_versions %} · DOCSIS {{ us_versions|join(' + ') }}{% endif %}</div>
+            <div class="channel-subtitle">{{ us|length }} {{ t.channels }}{% if us_versions %} · DOCSIS {{ us_versions|join(' + ') }}{% endif %}</div>
         </div>
         <div class="channel-health-chips">
             <span class="health-chip"><span class="dot good"></span> {{ us_good_c }} {{ health_labels.good }}</span>
@@ -87,7 +87,7 @@
 
     {% for group in us|groupby('docsis_version')|reverse %}
     <div class="docsis-group">
-        <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="us-docsis-group-{{ loop.index }}" onclick="if(!event.target.closest('.glossary-hint')){var open=this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded', open ? 'true' : 'false')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+        <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="us-docsis-group-{{ loop.index }}" data-toggle-open="parent">
             <i data-lucide="chevron-right"></i>
             DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint" data-glossary-term-id="{{ 'ofdma' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
         </div>
@@ -127,7 +127,7 @@
 </section>
 
 {% if not has_us_ofdma %}
-<div class="card-notice card-notice-warn" style="margin-top:8px;">
+<div class="card-notice card-notice-warn channel-card-notice">
     <span>&#9888;</span> {{ t.card_no_docsis31 }}
 </div>
 {% endif %}
