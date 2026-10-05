@@ -10,11 +10,11 @@
     var smartCapture = S.smart_capture({showToast: form.showToast});
     var registry = S.module_registry({showToast: form.showToast});
     navigation = S.navigation({syncSaveFooter: form.syncSaveFooter, onSection: function(id, panel) {
-        if (id === 'security') tokens.loadApiTokens();
+        if (id === 'access') tokens.loadApiTokens();
         if (panel && panel.querySelector('#backup-list')) backups.loadBackupList();
         if (id === 'appearance') themes.loadThemeRegistryIfNeeded();
         else themes.cancelPreview();
-        if (id === 'smart_capture') smartCapture.loadSmartCaptureHistory();
+        if (id === 'evidence') smartCapture.loadSmartCaptureHistory();
         if (id === 'extensions') registry.refreshModuleRegistry();
     }});
     var notifications = S.notifications({showToast: form.showToast, saveInstantly: form.saveInstantly, syncCard: navigation.syncCard});

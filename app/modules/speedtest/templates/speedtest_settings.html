@@ -1,5 +1,5 @@
 <!-- ═══ Panel: Speedtest (Module) ═══ -->
-<div class="settings-panel" id="panel-mod-docsight_speedtest">
+<div class="settings-module" id="block-mod-docsight_speedtest">
     <div class="card">
         <div class="card-header">
             <div class="card-title-group">
@@ -44,16 +44,6 @@
                     {{ t['docsight.speedtest.clear_cache'] or 'Clear Cache' }}
                 </button>
                 <div class="test-result" id="speedtest-test" style="display:none"></div>
-            </div>
-            <div class="form-field">
-                <label class="form-label" for="booked_download">{{ t['docsight.speedtest.booked_download'] or 'Booked Download (Mbps)' }}</label>
-                <input class="form-input" type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
-                <span class="form-hint">{{ t['docsight.speedtest.booked_download_hint'] or 'Contracted download speed in Mbps for health calculation' }}</span>
-            </div>
-            <div class="form-field">
-                <label class="form-label" for="booked_upload">{{ t['docsight.speedtest.booked_upload'] or 'Booked Upload (Mbps)' }}</label>
-                <input class="form-input" type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
-                <span class="form-hint">{{ t['docsight.speedtest.booked_upload_hint'] or 'Contracted upload speed in Mbps for health calculation' }}</span>
             </div>
         </div>
     </div>

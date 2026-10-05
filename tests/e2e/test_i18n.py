@@ -58,7 +58,7 @@ class TestLanguageSwitching:
     def test_settings_language_selector_lists_european_pack(self, page, live_server):
         page.goto(f"{live_server}/settings?lang=pl")
         page.wait_for_load_state("networkidle")
-        page.evaluate("switchSection('general')")
+        page.evaluate("switchSection('appearance')")
         values = page.locator("#language option").evaluate_all("opts => opts.map(o => o.value)")
         assert set(values) == EUROPEAN_LANGUAGE_PACK
 
@@ -67,7 +67,7 @@ class TestLanguageSwitching:
         page.set_viewport_size({"width": width, "height": height})
         page.goto(f"{live_server}/settings?lang=nb")
         page.wait_for_load_state("networkidle")
-        page.evaluate("switchSection('general')")
+        page.evaluate("switchSection('appearance')")
         page.locator("#language").scroll_into_view_if_needed()
         metrics = page.evaluate(
             """() => ({

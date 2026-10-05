@@ -187,9 +187,38 @@ class TestSettingsRoute:
         assert re.search(r'<a class="topnav-icon-button topnav-settings active"[^>]+aria-current="page"', html)
         assert re.search(r'<nav class="settings-index" id="settings-index" aria-label="Settings sections"', html)
         index = html[html.index('id="settings-index"'):html.index("</nav>", html.index('id="settings-index"'))]
-        assert index.index('data-section="connection"') < index.index('data-section="about"')
-        assert index.rindex('data-section=') == index.index('data-section="support"')
+        sections = re.findall(r'data-section="([^"]+)"', index)
+        assert sections == ["connection", "sources", "notifications", "evidence", "data",
+                            "appearance", "access", "extensions", "about"]
         assert "onclick=" not in index
+
+    def test_a_module_that_is_off_keeps_its_place_and_points_to_extensions(self, client, monkeypatch):
+        weather = SimpleNamespace(
+            id="docsight.weather", name="Weather", enabled=False,
+            menu={"icon": "thermometer", "label_key": "docsight.weather.title"},
+            template_paths={"settings": "weather_settings.html"}, has_css=False, has_js=False,
+        )
+
+        class Loader:
+            def get_enabled_modules(self):
+                return []
+
+            def get_modules(self):
+                return [weather]
+
+            def get_theme_modules(self):
+                return []
+
+        monkeypatch.setattr(current_runtime(), "module_loader", Loader())
+        html = client.get("/settings?lang=en").get_data(as_text=True)
+        soup = BeautifulSoup(html, "html.parser")
+
+        block = soup.select_one("#panel-sources #block-mod-docsight_weather")
+        assert block is not None
+        assert "settings-module-off" in block["class"]
+        assert "Module is off. Turn it on in Extensions." in block.get_text(" ", strip=True)
+        assert block.select_one('a[href="#extensions"]') is not None
+        assert soup.select_one("#weather_enabled") is None
 
     def test_settings_icon_only_controls_have_accessible_names(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
@@ -249,7 +278,7 @@ class TestSettingsRoute:
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200
         html = resp.data.decode("utf-8")
-        smart_capture = html[html.index('id="panel-smart_capture"'):html.index('id="sc-dependent-content"')]
+        smart_capture = html[html.index('id="block-smart_capture"'):html.index('id="sc-dependent-content"')]
         guardrails = html[html.index('id="sc-dependent-content"'):html.index('id="sc-history-container"')]
         scoped_html = smart_capture + guardrails
 

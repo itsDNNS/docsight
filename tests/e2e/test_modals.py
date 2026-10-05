@@ -50,7 +50,7 @@ def test_modal_focus_trap_escape_and_return_focus(demo_page):
 
 def test_settings_backup_browser_uses_accessible_modal_contract(settings_page):
     """Backup directory browser follows the shared modal semantics and safety contract."""
-    settings_page.locator('button[data-section="mod-docsight_backup"]').click()
+    settings_page.locator('button[data-section="data"]').click()
     backup_enabled = settings_page.locator("#backup_enabled")
     if not backup_enabled.is_checked():
         backup_enabled.evaluate("el => { el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); }")
@@ -101,7 +101,7 @@ def test_styled_confirm_dialog_replaces_native_confirm_for_speedtest_cache(setti
     """Important settings actions use DOCSight confirmation UI instead of native dialogs."""
     native_dialogs = []
     settings_page.on("dialog", lambda dialog: (native_dialogs.append(dialog.message), dialog.dismiss()))
-    settings_page.locator('button[data-section="mod-docsight_speedtest"]').click()
+    settings_page.locator('button[data-section="sources"]').click()
     settings_page.locator("#speedtest_clear_cache").click()
 
     confirm_modal = settings_page.locator("#docsight-confirm-modal")
@@ -258,7 +258,7 @@ def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
     }
 
     page.goto(f"{configured_server}/settings")
-    page.locator('button[data-section="mod-docsight_reports"]').click()
+    page.locator('button[data-section="evidence"]').click()
     for field_id, value in saved.items():
         page.locator(f"#{field_id}").fill(value)
     with page.expect_response("**/api/config") as save_response:
@@ -266,7 +266,7 @@ def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
     assert save_response.value.ok
 
     page.reload(wait_until="networkidle")
-    page.locator('button[data-section="mod-docsight_reports"]').click()
+    page.locator('button[data-section="evidence"]').click()
     for field_id, value in saved.items():
         expect(page.locator(f"#{field_id}")).to_have_value(value)
 

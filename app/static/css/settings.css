@@ -15,7 +15,7 @@
 .settings-page-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
 .settings-shell {
   display: grid;
-  grid-template-columns: 260px minmax(0, 820px);
+  grid-template-columns: 280px minmax(0, 820px);
   gap: var(--space-xl);
   align-items: start;
   padding-bottom: 88px;
@@ -55,7 +55,8 @@
 .settings-index-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .settings-index-item.active { background: var(--tint-emphasis); color: var(--text); font-weight: 600; }
 .settings-index-item.active svg { opacity: 1; }
-.settings-index-item .badge { margin-left: auto; }
+.settings-index-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.settings-index-summary { font-size: var(--fs-min); font-weight: 400; line-height: 1.35; color: var(--muted); }
 .settings-index-chevron { display: none; }
 .settings-detail-head { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md); }
 .settings-section-title { font-size: 1.15rem; font-weight: 650; }
@@ -70,9 +71,8 @@
 @media (max-width: 768px) {
   .settings-shell { display: block; }
   .settings-index { position: static; }
-  .settings-index-item { min-height: 52px; font-size: 0.95rem; }
+  .settings-index-item { min-height: 60px; font-size: 0.95rem; }
   .settings-index-chevron { display: block; margin-left: auto; color: var(--muted); }
-  .settings-index-item .badge + .settings-index-chevron { margin-left: 0; }
   .settings-page:not(.is-detail) .settings-content,
   .settings-page.is-detail .settings-index,
   .settings-page.is-detail .settings-header { display: none; }
@@ -1462,3 +1462,6 @@ button.notification-collapse-button {
   width: 18px;
   height: 18px;
 }
+
+/* A module that is off keeps its place in its section. */
+.settings-module-off .card-header { margin-bottom: 0; }

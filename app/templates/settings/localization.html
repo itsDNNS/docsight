@@ -1,0 +1,46 @@
+<!-- Localization Card -->
+<div class="card" id="block-localization">
+    <div class="card-header">
+        <div class="card-title-group">
+            <div class="card-icon">
+                <i data-lucide="globe"></i>
+            </div>
+            <div>
+                <div class="card-title">{{ t.localization }}</div>
+                <div class="card-subtitle">{{ t.localization_desc }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="form-grid cols-2">
+        <div class="form-field">
+            <label class="form-label" for="timezone">{{ t.timezone }}</label>
+            <select class="form-input form-select" id="timezone" name="timezone">
+                <option value="">{{ t.timezone_auto }} ({{ server_tz }})</option>
+                {% for tz in timezones %}
+                <option value="{{ tz }}" {% if config.timezone == tz %}selected{% endif %}>{{ tz }}</option>
+                {% endfor %}
+            </select>
+            <span class="form-hint">{{ t.timezone_hint }}</span>
+            {% if tz_is_posix and not config.timezone %}
+            <span class="form-hint" style="color: var(--warn); margin-top: 4px; display: block;">
+                {{ t.timezone_posix_warning }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="form-field">
+            <label class="form-label" for="language">{{ t.language }}</label>
+            <select class="form-input form-select" id="language" name="language">
+                {% for code, name in languages.items() %}
+                <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-field">
+            <label class="form-label" for="temperature_unit">{{ t.get('temperature_unit', 'Temperature Unit') }}</label>
+            <select class="form-input form-select" id="temperature_unit" name="temperature_unit">
+                <option value="celsius" {% if config.temperature_unit == 'celsius' %}selected{% endif %}>Celsius (°C)</option>
+                <option value="fahrenheit" {% if config.temperature_unit == 'fahrenheit' %}selected{% endif %}>Fahrenheit (°F)</option>
+            </select>
+        </div>
+    </div>
+</div>

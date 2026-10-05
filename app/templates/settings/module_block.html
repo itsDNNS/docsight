@@ -1,0 +1,24 @@
+{#- A built-in module's settings inside a topic section. A module that is off keeps
+    its place and points to Extensions instead of disappearing. Expects module_id. -#}
+{% set enabled_module = modules|selectattr('id', 'equalto', module_id)|first %}
+{% if enabled_module and enabled_module.template_paths.get('settings') %}
+{% include enabled_module.template_paths['settings'] %}
+{% else %}
+{% set known_module = all_modules|selectattr('id', 'equalto', module_id)|first %}
+{% if known_module %}
+<div class="card settings-module-off" id="block-mod-{{ module_id|replace('.', '_') }}">
+    <div class="card-header">
+        <div class="card-title-group">
+            <div class="card-icon">
+                <i data-lucide="{{ known_module.menu.get('icon', 'puzzle') }}"></i>
+            </div>
+            <div>
+                <div class="card-title">{{ t.get(known_module.menu.get('label_key', ''), known_module.name) }}</div>
+                <div class="card-subtitle">{{ t.get('settings_module_off', 'Module is off. Turn it on in Extensions.') }}</div>
+            </div>
+        </div>
+        <a class="btn btn-secondary btn-sm" href="#extensions">{{ t.get('settings_extensions', 'Extensions') }}</a>
+    </div>
+</div>
+{% endif %}
+{% endif %}
