@@ -765,6 +765,8 @@ body.is-offline .offline-banner { display: flex; }
   padding-bottom: var(--space-sm);
 }
 .channel-title { font-size: 0.95rem; font-weight: 600; }
+.channel-subtitle { font-size: var(--fs-min); color: var(--text-muted); margin-top: 2px; }
+.card-notice.channel-card-notice { margin-top: 8px; }
 .channel-health-chips {
   display: flex;
   flex-wrap: wrap;
@@ -2315,9 +2317,9 @@ button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .ls-callout-value { font-size: 1.5rem; font-weight: 650; color: var(--text); }
 .ls-callout-value small { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
 .ls-ruler { position: relative; height: 12px; border-radius: 6px; background: var(--card); }
-.ls-ruler-tolerated { position: absolute; top: 3px; height: 6px; background: var(--tint-emphasis); }
-.ls-ruler-good { position: absolute; top: 1px; height: 10px; border-radius: 3px; background: color-mix(in srgb, var(--ls-good) 40%, transparent); border: 1px solid color-mix(in srgb, var(--ls-good) 70%, transparent); }
-.ls-ruler-marker { position: absolute; top: -4px; width: 3px; height: 20px; margin-left: -1.5px; border-radius: 2px; background: var(--text); }
+.ls-ruler-tolerated { position: absolute; left: var(--ruler-left); width: var(--ruler-width); top: 3px; height: 6px; background: var(--tint-emphasis); }
+.ls-ruler-good { position: absolute; left: var(--ruler-left); width: var(--ruler-width); top: 1px; height: 10px; border-radius: 3px; background: color-mix(in srgb, var(--ls-good) 40%, transparent); border: 1px solid color-mix(in srgb, var(--ls-good) 70%, transparent); }
+.ls-ruler-marker { position: absolute; left: var(--ruler-marker); top: -4px; width: 3px; height: 20px; margin-left: -1.5px; border-radius: 2px; background: var(--text); }
 .ls-callout-delta { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 600; font-size: 0.88rem; }
 .ls-tolerated .ls-callout-delta { color: var(--ls-tolerated); }
 .ls-warning .ls-callout-delta { color: var(--ls-warning); }

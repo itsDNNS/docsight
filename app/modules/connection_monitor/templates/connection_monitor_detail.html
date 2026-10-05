@@ -12,15 +12,15 @@
                  data-method-tcp="{{ t.get('docsight.connection_monitor.cm_method_tcp', 'TCP') }}"
                  data-hint-tcp="{{ t.get('docsight.connection_monitor.cm_method_hint_tcp', 'Using TCP probing. For more accurate ICMP probing, add cap_add: [NET_RAW] to your Docker Compose.') }}"
             ></div>
-            <div class="cm-range-picker trend-tabs" id="cm-range-tabs" role="group" aria-label="{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}">
-                <button class="trend-tab active" data-cm-range="3600" onclick="cmSetRange(this, 3600)">1h</button>
-                <button class="trend-tab" data-cm-range="21600" onclick="cmSetRange(this, 21600)">6h</button>
-                <button class="trend-tab" data-cm-range="86400" onclick="cmSetRange(this, 86400)">1d</button>
-                <button class="trend-tab" data-cm-range="172800" onclick="cmSetRange(this, 172800)">2d</button>
-                <button class="trend-tab" data-cm-range="259200" onclick="cmSetRange(this, 259200)">3d</button>
-                <button class="trend-tab" data-cm-range="604800" onclick="cmSetRange(this, 604800)">7d</button>
-                <button class="trend-tab" data-cm-range="2592000" onclick="cmSetRange(this, 2592000)">30d</button>
-                <button class="trend-tab" data-cm-range="7776000" onclick="cmSetRange(this, 7776000)">90d</button>
+            <div class="cm-range-picker trend-tabs" data-pill-action="cmRangeTabSelected" id="cm-range-tabs" role="group" aria-label="{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}">
+                <button class="trend-tab active" data-cm-range="3600">1h</button>
+                <button class="trend-tab" data-cm-range="21600">6h</button>
+                <button class="trend-tab" data-cm-range="86400">1d</button>
+                <button class="trend-tab" data-cm-range="172800">2d</button>
+                <button class="trend-tab" data-cm-range="259200">3d</button>
+                <button class="trend-tab" data-cm-range="604800">7d</button>
+                <button class="trend-tab" data-cm-range="2592000">30d</button>
+                <button class="trend-tab" data-cm-range="7776000">90d</button>
             </div>
         </div>
     </div>
@@ -35,7 +35,7 @@
         <div id="cm-pinned-days" class="cm-pinned-days" aria-live="polite"></div>
     </div>
 
-    <section id="cm-raw-log-panel" class="glass cm-panel cm-raw-log-panel" style="display:none;">
+    <section id="cm-raw-log-panel" class="glass cm-panel cm-raw-log-panel" hidden>
         <div class="cm-panel-header">
             <div class="cm-panel-title">
                 <i data-lucide="file-text"></i>
@@ -129,7 +129,7 @@
                 </div>
                 <div class="cm-traceroute-actions">
                     <div id="cm-traceroute-target-select" class="cm-traceroute-targets"></div>
-                    <button id="cm-traceroute-btn" class="btn btn-secondary cm-traceroute-btn" onclick="cmRunTraceroute()"
+                    <button id="cm-traceroute-btn" class="btn btn-secondary cm-traceroute-btn" data-action="cmRunTraceroute"
                             data-running="{{ t.get('docsight.connection_monitor.traceroute.running', 'Running traceroute...') }}">
                         <i data-lucide="play"></i>
                         <span>{{ t.get('docsight.connection_monitor.traceroute.run_button', 'Run Traceroute') }}</span>
@@ -141,7 +141,7 @@
                 {{ t.get('docsight.connection_monitor.traceroute.no_traces', 'No traceroutes recorded yet.') }}
             </div>
             <div id="cm-traceroute-history" class="cm-table-wrap">
-                <table class="data-table cm-data-table" id="cm-traceroute-table" style="display:none;">
+                <table class="data-table cm-data-table" id="cm-traceroute-table" hidden>
                     <thead>
                         <tr>
                             <th>{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}</th>

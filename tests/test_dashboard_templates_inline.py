@@ -11,9 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = (
     "app/templates/index.html",
     "app/templates/segment_utilization_tab.html",
+    "app/templates/partials/channel_tables.html",
+    "app/templates/partials/line_status.html",
     "app/modules/bqm/templates/bqm_dialogs.html",
     "app/modules/bqm/templates/bqm_tab.html",
     "app/modules/comparison/templates/comparison_tab.html",
+    "app/modules/connection_monitor/templates/connection_monitor_card.html",
+    "app/modules/connection_monitor/templates/connection_monitor_detail.html",
     "app/modules/modulation/templates/modulation_tab.html",
     "app/modules/speedtest/templates/speedtest_tab.html",
 )

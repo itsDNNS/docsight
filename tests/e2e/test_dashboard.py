@@ -402,6 +402,19 @@ class TestDashboardSections:
         header.press("Enter")
         assert header.get_attribute("aria-expanded") == "true"
 
+    def test_docsis_group_glossary_hint_opens_the_glossary_without_toggling_the_group(self, demo_page):
+        open_view(demo_page, "channels")
+        header = demo_page.locator("#view-channels .docsis-group-header").first
+        header.scroll_into_view_if_needed()
+        header.locator(".glossary-hint").click()
+        expect(demo_page.locator("body > .glossary-popover")).to_be_visible()
+        expect(header).to_have_attribute("aria-expanded", "false")
+        demo_page.keyboard.press("Escape")
+
+        header.click(position={"x": 8, "y": 8})
+        expect(header).to_have_attribute("aria-expanded", "true")
+        expect(header.locator("xpath=..")).to_have_class(re.compile(r"\bopen\b"))
+
     def test_settings_link_exists(self, demo_page):
         # Settings accessible via nav or bottom bar
         settings = demo_page.locator('[onclick*="settings"], a[href="/settings"]')

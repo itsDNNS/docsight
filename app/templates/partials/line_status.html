@@ -67,9 +67,9 @@
         {% set m = c.measurement %}
         <div class="ls-callout-ruler">
             <div class="ls-ruler" aria-hidden="true">
-                <span class="ls-ruler-tolerated" style="left: {{ m.ruler.tolerated.left }}%; width: {{ m.ruler.tolerated.width }}%;"></span>
-                <span class="ls-ruler-good" style="left: {{ m.ruler.good.left }}%; width: {{ m.ruler.good.width }}%;"></span>
-                <span class="ls-ruler-marker" style="left: {{ m.ruler.marker }}%;"></span>
+                <span class="ls-ruler-tolerated" style="--ruler-left: {{ m.ruler.tolerated.left }}%; --ruler-width: {{ m.ruler.tolerated.width }}%;"></span>
+                <span class="ls-ruler-good" style="--ruler-left: {{ m.ruler.good.left }}%; --ruler-width: {{ m.ruler.good.width }}%;"></span>
+                <span class="ls-ruler-marker" style="--ruler-marker: {{ m.ruler.marker }}%;"></span>
             </div>
             <div class="ls-callout-delta">
                 <span class="ls-shape ls-shape-{{ c.health }}" aria-hidden="true"></span>

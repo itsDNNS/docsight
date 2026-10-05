@@ -1,6 +1,6 @@
 {# ═══ Module Card: Connection Monitor ═══ #}
 <div class="metrics-grid">
-    <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" style="cursor:pointer;" onclick="switchView('connection-monitor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('connection-monitor')}">
+    <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" data-action="switchView" data-action-args='["connection-monitor"]'>
         <div class="metric-header">
             <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
             <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>
@@ -25,9 +25,9 @@
                 <strong id="cm-card-range-context">&ndash;</strong>
             </div>
             <div class="metric-range-track" aria-hidden="true">
-                <span class="metric-range-band good" style="left:0%;width:33.33%;"></span>
-                <span class="metric-range-band warn" style="left:33.33%;width:33.33%;"></span>
-                <span class="metric-range-band crit" style="left:66.67%;width:33.33%;"></span>
+                <span class="metric-range-band good" style="--band-left: 0%; --band-width: 33.33%;"></span>
+                <span class="metric-range-band warn" style="--band-left: 33.33%; --band-width: 33.33%;"></span>
+                <span class="metric-range-band crit" style="--band-left: 66.67%; --band-width: 33.33%;"></span>
                 <span class="metric-range-window"></span>
                 <span class="metric-range-marker"></span>
             </div>
