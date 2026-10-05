@@ -11,6 +11,7 @@
   "modules": "moduly",
   "unsaved_changes": "Neuložené změny",
   "unsaved_confirm": "Máte neuložené změny nastavení. Uložit je před pokračováním?",
+  "discard_changes": "Zahodit",
   "home": "Domů",
   "skip_to_content": "Přejít na obsah",
   "day_trend": "Trend dne",

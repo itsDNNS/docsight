@@ -11,6 +11,7 @@
   "modules": "Moduulit",
   "unsaved_changes": "Tallentamattomat muutokset",
   "unsaved_confirm": "Sinulla on tallentamattomia asetusmuutoksia. Tallennetaanko ne ennen kuin jatkat?",
+  "discard_changes": "Hylkää",
   "home": "Etusivu",
   "skip_to_content": "Siirry sisältöön",
   "day_trend": "Päivätrendi",

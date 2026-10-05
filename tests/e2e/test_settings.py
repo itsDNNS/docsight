@@ -1267,6 +1267,25 @@ class TestSettingsInstantToggleSave:
         assert batches[1] == batches[0]
         expect(settings_page.locator('#global-error')).not_to_be_visible()
 
+    def test_save_bar_counts_changes_by_section_and_discard_restores_saved_values(self, settings_page):
+        footer = settings_page.locator("#save-footer")
+        url = settings_page.locator("#modem_url").input_value()
+        settings_page.locator("#modem_url").fill("http://discarded.example")
+        settings_page.locator("#isp_select").select_option("__other__")
+        expect(settings_page.locator("#isp-other-row")).to_be_visible()
+        settings_page.locator('button[data-section="general"]').click()
+        poll = settings_page.locator("#poll_interval").input_value()
+        settings_page.locator("#poll_interval").fill("123")
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(settings_page.locator("#save-bar-count")).to_have_text("Unsaved changes (3)")
+        expect(settings_page.locator("#save-bar-sections")).to_have_text("Modem, General")
+        settings_page.locator("#save-bar-discard").click()
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(settings_page.locator("#poll_interval")).to_have_value(poll)
+        settings_page.locator('button[data-section="connection"]').click()
+        expect(settings_page.locator("#modem_url")).to_have_value(url)
+        expect(settings_page.locator("#isp-other-row")).to_be_hidden()
+
     def test_threshold_profile_toggles_are_exclusive_radios(self, settings_page):
         settings_page.locator('button[data-section="extensions"]').click()
         threshold_toggles = settings_page.locator('.module-toggle-input[data-is-threshold="true"]')

@@ -11,6 +11,7 @@
   "modules": "Module",
   "unsaved_changes": "Ungespeicherte Änderungen",
   "unsaved_confirm": "Es gibt ungespeicherte Änderungen. Vor dem Fortfahren speichern?",
+  "discard_changes": "Verwerfen",
   "home": "Home",
   "skip_to_content": "Zum Inhalt springen",
   "day_trend": "Tagesverlauf",

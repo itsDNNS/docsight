@@ -11,6 +11,7 @@
   "modules": "Modulok",
   "unsaved_changes": "Nem mentett változtatások",
   "unsaved_confirm": "Nem mentett beállítások módosításai vannak. Menti őket a folytatás előtt?",
+  "discard_changes": "Elvetés",
   "home": "Kezdőlap",
   "skip_to_content": "Ugrás a tartalomra",
   "day_trend": "Napi trend",

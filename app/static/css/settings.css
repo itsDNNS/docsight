@@ -233,6 +233,7 @@ html, body {
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-width);
+  --save-bar-inset: var(--sidebar-width);
   padding: var(--space-2xl);
   padding-bottom: calc(var(--space-2xl) + 88px + env(safe-area-inset-bottom, 0px));
   max-width: 860px;
@@ -1006,46 +1007,6 @@ button.notification-collapse-button {
   color: var(--amethyst);
 }
 
-/* ─── Save Footer ─── */
-.save-footer {
-  position: fixed;
-  bottom: env(safe-area-inset-bottom, 0px);
-  left: var(--sidebar-width);
-  right: 0;
-  padding: 16px var(--space-2xl);
-  background: rgba(10,13,24,0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--glass-border);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-md);
-  z-index: 20;
-  transform: translateY(100%);
-  transition: transform 0.3s var(--ease-out-expo);
-}
-[data-theme="light"] .save-footer {
-  background: rgba(248,246,243,0.9);
-}
-.save-footer.visible {
-  transform: translateY(0);
-}
-.save-footer .unsaved-hint {
-  font-size: 0.82rem;
-  color: var(--muted);
-  margin-right: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.unsaved-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--warn);
-  animation: pulse 2s infinite;
-}
-
 /* ─── Toast ─── */
 .toast {
   position: fixed;
@@ -1266,10 +1227,10 @@ button.notification-collapse-button {
   .support-grid { grid-template-columns: 1fr; }
   .support-star { flex-wrap: wrap; }
   .support-star-link { margin-left: 0; }
-  .save-footer { padding-inline: var(--space-xl); }
 }
 
 @media (max-width: 768px) {
+  .main-content { --save-bar-inset: 0px; }
   .sidebar {
     box-sizing: border-box;
     transform: translateX(-100%);
@@ -1330,7 +1291,6 @@ button.notification-collapse-button {
   .support-grid { grid-template-columns: 1fr; }
   .support-star { flex-wrap: wrap; }
   .support-star-link { margin-left: 0; }
-  .save-footer { left: 0; }
   .mobile-header { display: flex !important; }
   .status-card-header {
     align-items: flex-start;
