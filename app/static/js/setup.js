@@ -486,8 +486,20 @@ function validateStep(step) {
     return true;
 }
 
+/* Language switch: reload with the chosen language, keeping the rest of the URL. */
+function _initLanguageSelect() {
+    var select = document.getElementById('lang-select');
+    if (!select) return;
+    select.addEventListener('change', function() {
+        var url = new URL(window.location.href);
+        url.searchParams.set('lang', select.value);
+        window.location.assign(url.toString());
+    });
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
+    _initLanguageSelect();
     toggleUsernameField();
     _initModemPicker();
     _prefillTimezone();

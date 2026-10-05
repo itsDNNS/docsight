@@ -26,7 +26,7 @@
 
 <!-- Controls Bar -->
 <div class="setup-controls">
-    <select class="btn btn-secondary setup-lang-select" id="lang-select" onchange="location.href='?lang='+this.value" aria-label="{{ t.language }}">
+    <select class="btn btn-secondary setup-lang-select" id="lang-select" aria-label="{{ t.language }}">
         {% for code, name in languages.items() %}
         <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
         {% endfor %}
