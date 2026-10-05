@@ -786,7 +786,7 @@ class TestIndexRoute:
         assert resp.status_code == 200
         card = _element_by_id(resp.get_data(as_text=True), "metric-us-ofdma-card")
         assert "49.5<span class=\"unit\">dBmV</span>" in card
-        assert "style=\"color:var(--warn);\"" in card
+        assert "class=\"metric-value val-warn\"" in card
         status_row = card[card.index('<div class="metric-sub metric-status-row">'):]
         status_row = status_row[:status_row.index("</div>")]
         assert '<span class="metric-sub-label">Family status</span>' in status_row
@@ -966,12 +966,12 @@ class TestIndexRoute:
         modulation_row = card[card.index('<div class="metric-sub metric-modulation-row">'):]
         modulation_row = modulation_row[:modulation_row.index("</div>")]
         assert '<span class="metric-sub-label">Modulation:</span>' in modulation_row
-        assert '<span class="range metric-modulation-value" style="color:var(--crit);">4QAM</span>' in modulation_row
+        assert '<span class="range metric-modulation-value val-crit">4QAM</span>' in modulation_row
         assert '<span class="metric-sub-label metric-modulation-separator">—</span>' in modulation_row
-        assert '<span class="range metric-modulation-value" style="color:var(--good);">64QAM</span>' in modulation_row
-        assert '<span class="range metric-modulation-value" style="color:var(--crit);">4QAM — 64QAM</span>' not in modulation_row
-        assert '<span class="range metric-modulation-value" style="color:var(--crit);">—</span>' not in modulation_row
-        assert '<span class="range metric-modulation-value" style="color:var(--crit);">Modulation:' not in modulation_row
+        assert '<span class="range metric-modulation-value val-good">64QAM</span>' in modulation_row
+        assert '<span class="range metric-modulation-value val-crit">4QAM — 64QAM</span>' not in modulation_row
+        assert '<span class="range metric-modulation-value val-crit">—</span>' not in modulation_row
+        assert '<span class="range metric-modulation-value val-crit">Modulation:' not in modulation_row
         assert "badge badge-critical" not in modulation_row
 
     def test_home_signal_family_modulation_row_renders_single_value_without_separator(self, client, sample_analysis):
@@ -993,7 +993,7 @@ class TestIndexRoute:
         modulation_row = card[card.index('<div class="metric-sub metric-modulation-row">'):]
         modulation_row = modulation_row[:modulation_row.index("</div>")]
         assert '<span class="metric-sub-label">Modulation:</span>' in modulation_row
-        assert '<span class="range metric-modulation-value" style="color:var(--good);">64QAM</span>' in modulation_row
+        assert '<span class="range metric-modulation-value val-good">64QAM</span>' in modulation_row
         assert "metric-modulation-separator" not in modulation_row
 
     def test_home_signal_family_card_omits_cause_when_status_matches_visible_metric(self, client, sample_analysis):
