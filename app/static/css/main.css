@@ -415,6 +415,9 @@ body.is-offline .offline-banner { display: flex; }
 }
 /* Light mode tints handled by token system */
 .hero-meta-item svg { width: 13px; height: 13px; opacity: 0.6; }
+.hero-meta-item.hero-meta-hint { cursor: help; }
+.hero-meta-item .hero-gaming-icon { width: 14px; height: 14px; }
+.hero-meta-item .hero-gaming-grade { margin-left: 2px; }
 #desktop-countdown, #topbar-countdown { min-width: 3ch; font-variant-numeric: tabular-nums; }
 
 .hero-refresh-button {
@@ -423,6 +426,8 @@ body.is-offline .offline-banner { display: flex; }
   cursor: pointer;
   font: inherit;
 }
+.hero-meta-item.hero-refresh-button svg { width: 15px; height: 15px; }
+.metric-card[role="button"] { cursor: pointer; }
 .hero-refresh-button:focus-visible,
 .metric-card[role="button"]:focus-visible,
 .docsis-group-header:focus-visible {
@@ -806,12 +811,13 @@ body.is-offline .offline-banner { display: flex; }
 }
 .channel-table tbody tr { min-height: 44px; }
 .channel-table tbody tr:active { background: var(--tint-hover); }
-/* Value color utilities (used across channel, BNetzA, speedtest tables) */
-.val-good { color: var(--good); }
-.val-tolerated { color: var(--tolerated); }
+/* Value color utilities (used across channel, BNetzA, speedtest tables and metric cards) */
+.val-good, .metric-sub .range.val-good { color: var(--good); }
+.val-tolerated, .metric-sub .range.val-tolerated { color: var(--tolerated); }
 .val-bad { color: var(--crit); }
-.val-warn { color: var(--warn); }
-.val-crit { color: var(--crit); }
+.val-warn, .metric-sub .range.val-warn { color: var(--warn); }
+.val-crit, .metric-sub .range.val-crit { color: var(--crit); }
+.val-muted, .metric-sub .range.val-muted { color: var(--muted); }
 /* Per-metric health coloring via data attributes (channel tables) */
 .channel-table td[data-health="good"]      { color: var(--good); }
 .channel-table td[data-health="tolerated"] { color: var(--tolerated); }
@@ -1193,6 +1199,11 @@ body:has(#view-dashboard.active) .app-main {
   white-space: normal;
 }
 
+.dashboard-hero .hero-modulation-link .hero-modulation-arrow {
+  width: 12px;
+  height: 12px;
+}
+
 .dashboard-hero .hero-modulation-link:hover,
 .dashboard-hero .hero-modulation-link:focus-visible {
   color: var(--info);
@@ -1371,6 +1382,10 @@ body:has(#view-dashboard.active) .app-main {
   gap: 0;
   border-top: 1px solid var(--dash-muted-border);
   border-bottom: 1px solid var(--dash-muted-border);
+}
+
+.metrics-grid.metrics-grid-single {
+  grid-template-columns: 1fr;
 }
 
 .metrics-grid .metric-card.glass {
@@ -1565,6 +1580,8 @@ body:has(#view-dashboard.active) .app-main {
   position: absolute;
   top: 0;
   bottom: 0;
+  left: var(--band-left);
+  width: var(--band-width);
 }
 
 .metrics-grid .metric-range-band.good {
@@ -1894,6 +1911,11 @@ body:has(#view-dashboard.active) .app-main {
   height: 14px;
   flex: 0 0 auto;
   color: var(--warn);
+}
+
+.dashboard-view .insight-action .insight-action-arrow {
+  width: 12px;
+  height: 12px;
 }
 
 .dashboard-view .insight-good .insight-action {

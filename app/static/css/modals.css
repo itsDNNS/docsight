@@ -283,6 +283,67 @@
     font-size: max(var(--fs-min), 0.86em);
 }
 .report-supporting-note { margin-top: var(--space-xs); }
+.modal.report-modal-panel { max-width: 800px; }
+.modal-body.report-modal-body { padding: 10px 0; }
+.report-options {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+.report-option-label,
+.report-customer-hint,
+.report-edit-hint {
+    font-size: 13px;
+    color: var(--muted);
+}
+.report-customer-hint { margin-bottom: 10px; }
+.report-edit-hint { margin-bottom: 8px; }
+#report-modal .report-option-select {
+    margin-top: 4px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+}
+.report-customer {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+.report-customer-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#report-modal .report-customer-field {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+}
+#report-complaint-text {
+    width: 100%;
+    min-height: 320px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: max(var(--fs-min), 0.85em);
+    font-family: var(--font-mono);
+    resize: vertical;
+    line-height: 1.5;
+}
+#chart-zoom-canvas {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
 @media (max-width: 720px) {
     .modal {
         width: calc(100% - 24px);

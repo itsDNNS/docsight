@@ -101,6 +101,7 @@
     opacity: 0.6;
     transition: all 0.2s var(--ease-out-expo);
 }
+.trend-tab.temp-toggle svg { vertical-align: middle; }
 .trend-tab.temp-toggle:hover { opacity: 1; background: rgba(249,115,22,0.1); }
 .trend-tab.temp-toggle.active {
     opacity: 1; color: #f97316;
@@ -376,6 +377,10 @@
 .btn-ack-all:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 
 /* Phase 4.3: Show More button */
+#events-show-more {
+    text-align: center;
+    padding: 16px;
+}
 .btn-show-more {
     padding: 8px 24px;
     border: 1px solid var(--input-border);
@@ -704,6 +709,27 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     flex-wrap: wrap;
     min-width: 0;
 }
+.btn.bnetz-upload-btn svg {
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
+}
+#bnetz-watcher-status {
+    padding: 8px 14px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--input-border);
+    font-size: max(var(--fs-min), 0.85em);
+    color: var(--text-muted);
+    align-items: center;
+    gap: 8px;
+}
+#bnetz-watcher-status svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
 .view-page-actions .trend-tabs {
     flex-wrap: wrap;
 }
@@ -954,7 +980,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     width: 180px;
 }
 #correlation-table thead th:nth-child(2) {
-    width: 110px;
+    width: 90px;
 }
 #correlation-table thead th:nth-child(3) {
     width: 24%;
@@ -1300,6 +1326,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     min-width: 40px;
 }
 .gaming-comp-fill {
+    width: var(--comp-score);
     height: 100%;
     border-radius: 2px;
     transition: width 0.4s var(--ease-out-expo);

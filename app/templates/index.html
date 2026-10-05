@@ -424,7 +424,7 @@
         {% endif %}
         <div class="metric-range-track" aria-hidden="true">
             {% for band in range_data.bands %}
-            <span class="metric-range-band {{ band.kind }}" style="left:{{ band.left }}%;width:{{ band.width }}%;"></span>
+            <span class="metric-range-band {{ band.kind }}" style="--band-left: {{ band.left }}%; --band-width: {{ band.width }}%;"></span>
             {% endfor %}
             <span class="metric-range-window"></span>
             <span class="metric-range-marker"></span>
@@ -510,13 +510,13 @@
                         </span>
                         {% endif %}
                         {% if isp_name %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ t.isp_name_tooltip }}">
                             <i data-lucide="cloud"></i> {{ isp_name }}
                         </span>
                         {% endif %}
                         {% if device_info and device_info.model %}
-                        <span class="hero-meta-item hero-meta-truncate glossary-hint" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint hero-meta-truncate glossary-hint"
                             title="{{ device_info.model }}">
                             <i data-lucide="router"></i>
                             <span class="hero-meta-label">{{ device_info.model }}</span>
@@ -524,13 +524,13 @@
                         </span>
                         {% endif %}
                         {% if device_info and device_info.hw_version %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ t.hw_version_tooltip }}">
                             <i data-lucide="cpu"></i> {{ device_info.hw_version }}
                         </span>
                         {% endif %}
                         {% if device_info and device_info.sw_version %}
-                        <span class="hero-meta-item hero-meta-truncate glossary-hint" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint hero-meta-truncate glossary-hint"
                             title="{{ device_info.sw_version }}">
                             <i data-lucide="package"></i>
                             <span class="hero-meta-label">{{ device_info.sw_version }}</span>
@@ -538,28 +538,28 @@
                         </span>
                         {% endif %}
                         {% if device_info and device_info.get('uptime_seconds') is not none %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ t.uptime_tooltip }}">
                             <i data-lucide="clock"></i> {{ device_info.uptime_seconds|fmt_uptime }}
                         </span>
                         {% endif %}
                         {% if device_info and device_info.reboot_reason %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ t.reboot_reason_tooltip }}">
                             <i data-lucide="rotate-cw-square"></i> {{ device_info.reboot_reason }}
                         </span>
                         {% endif %}
                         {% if device_info and device_info.docsis_status %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ t.docsis_status_tooltip }}">
                             <i data-lucide="arrow-down-up"></i> {{ device_info.docsis_status }}
                         </span>
                         {% endif %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ t.channel_count_tooltip }}">
                             <i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch
                         </span>
-                        <span class="hero-meta-item glossary-hint" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint glossary-hint"
                             title="{{ t.get('docsis_basics_label', 'DOCSIS basics') }}"
                             data-glossary-term-id="docsis"
                             data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}">
@@ -573,13 +573,13 @@
                         <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ booked_download|int }}/{{ booked_upload|int }} MBit/s</span>
                         {% endif %}
                         {% if device_info and device_info.wan_ipv4 %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ t.wan_ipv4_tooltip }}">
                             <i data-lucide="globe"></i> {{ device_info.wan_ipv4 }}
                         </span>
                         {% endif %}
                         {% if device_info and device_info.wan_ipv6 %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ t.wan_ipv6_tooltip }}">
                             <i data-lucide="globe"></i> {{ device_info.wan_ipv6 }}
                         </span>
@@ -587,15 +587,15 @@
                         {% if gaming_quality_enabled and gaming_index %}
                         {% set _g = gaming_index.grade|upper %}
                         {% set _badge_class = 'badge-good' if _g in ('A', 'B') else ('badge-warn' if _g == 'C' else 'badge-crit') %}
-                        <span class="hero-meta-item" style="cursor:help;"
+                        <span class="hero-meta-item hero-meta-hint"
                             title="{{ gaming_index.score }}/100 — {{ t['gaming_grade_' ~ gaming_index.grade|lower] }}">
-                            <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i> {{ t.gaming_badge_label }} <span class="badge {{ _badge_class }}" style="margin-left:2px;">{{ gaming_index.grade }}</span>
+                            <i data-lucide="gamepad-2" class="hero-gaming-icon"></i> {{ t.gaming_badge_label }} <span class="badge hero-gaming-grade {{ _badge_class }}">{{ gaming_index.grade }}</span>
                         </span>
                         {% endif %}
                         <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
                         <button type="button" class="hero-meta-item desktop-only hero-refresh-button" title="{{ t.refresh }}" aria-label="{{ t.refresh }}"
                             onclick="var rb=document.getElementById('refresh-btn');if(rb)rb.click();">
-                            <i data-lucide="refresh-cw" style="width:15px;height:15px;"></i>
+                            <i data-lucide="refresh-cw"></i>
                         </button>
                 </div>
             </div>
@@ -699,7 +699,7 @@
                     <span>{{ t.get('dashboard_modulation_context', 'Modulation context') }}</span>
                     <a class="hero-modulation-link" href="#modulation">
                         {{ t.get('dashboard_modulation_open_detail', t.get('docsight.modulation.title', 'Modulation Performance')) }}
-                        <i data-lucide="arrow-right" style="width:12px;height:12px;"></i>
+                        <i data-lucide="arrow-right" class="hero-modulation-arrow"></i>
                     </a>
                 </div>
                 <div class="hero-modulation-grid">
@@ -766,7 +766,7 @@
         {% endif %}
         <div class="metric-range-track" aria-hidden="true">
             {% for band in range_data.bands %}
-            <span class="metric-range-band {{ band.kind }}" style="left:{{ band.left }}%;width:{{ band.width }}%;"></span>
+            <span class="metric-range-band {{ band.kind }}" style="--band-left: {{ band.left }}%; --band-width: {{ band.width }}%;"></span>
             {% endfor %}
             <span class="metric-range-window"></span>
             <span class="metric-range-marker"></span>
@@ -799,7 +799,7 @@
                 <div class="metric-icon {{ icon_class }}"><i data-lucide="{{ icon_name }}"></i></div>
             </div>
             <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--{{ metric_health_class }});">{% if metric_value is not none %}{{ metric_value }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% else %}{{ t.get('signal_family_unavailable', 'Unavailable') }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% endif %}</div>
+                <div class="metric-value val-{{ metric_health_class }}">{% if metric_value is not none %}{{ metric_value }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% else %}{{ t.get('signal_family_unavailable', 'Unavailable') }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% endif %}</div>
                 <canvas class="metric-spark" id="spark-{{ card_id|replace('metric-', '') }}" data-spark-key="{{ spark_key }}"{% if spark_color %} data-spark-color="{{ spark_color }}"{% endif %} width="144" height="56" aria-hidden="true"></canvas>
             </div>
             {% if metric_value is not none and family_count %}
@@ -846,12 +846,12 @@
                         {% set value_raw_health = modulation_value.get('health', modulation_health) %}
                         {% set value_health_class = 'crit' if value_raw_health == 'critical' else ('warn' if value_raw_health == 'warning' else ('muted' if value_raw_health == 'missing' else value_raw_health)) %}
                         {% if not loop.first %}<span class="metric-sub-label metric-modulation-separator">—</span>{% endif %}
-                        <span class="range metric-modulation-value" style="color:var(--{{ value_health_class }});">{{ modulation_value.get('value') }}</span>
+                        <span class="range metric-modulation-value val-{{ value_health_class }}">{{ modulation_value.get('value') }}</span>
                     {% endfor %}
                 {% else %}
-                    <span class="range metric-modulation-value" style="color:var(--{{ modulation_health_class }});">{{ modulation.get('value') }}</span>{% if modulation.get('secondary') %}
+                    <span class="range metric-modulation-value val-{{ modulation_health_class }}">{{ modulation.get('value') }}</span>{% if modulation.get('secondary') %}
                     <span class="metric-sub-label metric-modulation-separator">—</span>
-                    <span class="range metric-modulation-value" style="color:var(--{{ modulation_health_class }});">{{ modulation.get('secondary') }}</span>{% endif %}
+                    <span class="range metric-modulation-value val-{{ modulation_health_class }}">{{ modulation.get('secondary') }}</span>{% endif %}
                 {% endif %}
             </div>
             {% endif %}
@@ -901,7 +901,7 @@
                             <div class="insight-explanation">{{ issue_descs.get(issue, '') }}</div>
                         </div>
                         {% if issue_actions.get(issue) %}
-                        <div class="insight-action"><i data-lucide="arrow-right" style="width:12px;height:12px;"></i> {{ issue_actions[issue] }}</div>
+                        <div class="insight-action"><i data-lucide="arrow-right" class="insight-action-arrow"></i> {{ issue_actions[issue] }}</div>
                         {% endif %}
                     </div>
                     {% endfor %}
@@ -1011,13 +1011,13 @@
     {# ── Non-DOCSIS cards: speed, BNetzA, modules ── #}
     {% if speedtest_configured and speedtest_latest %}
     <div class="metrics-grid">
-        <div class="metric-card glass" id="metric-speed-card" role="button" tabindex="0" style="cursor:pointer;" onclick="switchView('speedtest')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('speedtest')}">
+        <div class="metric-card glass" id="metric-speed-card" role="button" tabindex="0" onclick="switchView('speedtest')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('speedtest')}">
             <div class="metric-header">
                 <span class="metric-label">{{ t.speed }}</span>
                 <div class="metric-icon green"><i data-lucide="rabbit"></i></div>
             </div>
             <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--{{ speed_health_key }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
+                <div class="metric-value val-{{ speed_health_key }}">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
                 <canvas class="metric-spark" id="spark-speed" data-spark-key="speedtest_download" data-spark-color="#10b981" width="144" height="56" aria-hidden="true"></canvas>
             </div>
             <div class="metric-sub metric-average-row">
@@ -1031,7 +1031,7 @@
             </div>
             <div class="metric-sub metric-modulation-row">
                 <span class="metric-pair"><span class="metric-sub-label">{{ t.upload }}:</span>
-                <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span></span>
+                <span class="range val-{{ upload_health_key }}">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span></span>
                 <span class="metric-pair"><span class="metric-sub-label">{{ t.ping }}:</span>
                 <span class="range">{{ (speedtest_latest.ping_ms|round(0)|int ~ ' ms') if speedtest_latest.ping_ms is not none else '—' }}</span></span>
                 <span class="metric-pair"><span class="metric-sub-label">{{ t.jitter }}:</span>
@@ -1046,13 +1046,13 @@
     {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
     {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
     {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
-    <div class="metrics-grid" style="grid-template-columns:1fr;">
+    <div class="metrics-grid metrics-grid-single">
         <div class="metric-card glass">
             <div class="metric-header">
                 <span class="metric-label">{{ t.bnetz_title }}</span>
                 <div class="metric-icon {{ 'amber' if bnetz_has_deviation else 'green' }}"><i data-lucide="file-check"></i></div>
             </div>
-            <div class="metric-value" style="color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">{{ (bnetz_latest.download_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.download_max_tariff or 0)|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
+            <div class="metric-value {{ 'val-crit' if bnetz_has_deviation else 'val-good' }}">{{ (bnetz_latest.download_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.download_max_tariff or 0)|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
             <div class="metric-sub">
                 <span class="range">{{ (bnetz_latest.upload_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.upload_max_tariff or 0)|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
             </div>
@@ -1096,7 +1096,7 @@
                 <button class="trend-tab" data-range="90d">90d</button>
             </div>
             <button class="trend-tab temp-toggle" id="temp-toggle-btn" style="display:none;" title="{{ t.temp_overlay_show }}">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
             </button>
@@ -1225,11 +1225,11 @@
                 </div>
                 <div class="chart-export-buttons">
                     <button class="chart-export-btn" onclick="_corrExportPNG()" title="{{ t.chart_export_png }}">
-                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         PNG
                     </button>
                     <button class="chart-export-btn" onclick="_corrExportCSV()" title="{{ t.chart_export_csv }}">
-                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         CSV
                     </button>
                     {% if has_evidence %}
@@ -1277,7 +1277,7 @@
             <table id="correlation-table">
                 <thead><tr>
                     <th>{{ t.timestamp }}</th>
-                    <th style="width:90px;">{{ t.source }}</th>
+                    <th>{{ t.source }}</th>
                     <th>{{ t.event_message }}</th>
                     <th>{{ t.event_details }}</th>
                 </tr></thead>
@@ -1334,7 +1334,7 @@
         <div id="events-feed" class="events-feed"></div>
     </div>
 
-    <div id="events-show-more" style="text-align:center; padding:16px; display:none;">
+    <div id="events-show-more" style="display:none;">
         <button class="btn-show-more" onclick="loadMoreEvents()">{{ t.show_more }}</button>
     </div>
 </div>
@@ -1378,7 +1378,7 @@
                 <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadChannelTimeline)">90d</button>
             </div>
             <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleChannelTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
             </button>
@@ -1403,7 +1403,7 @@
                 <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadCompareCharts)">90d</button>
             </div>
             <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleCompareTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
             </button>
@@ -1449,7 +1449,7 @@
                         <div class="metric-icon purple"><i data-lucide="arrow-down"></i></div>
                     </div>
                     <div class="metric-value-row">
-                        <div class="metric-value" style="color:var(--{{ ds_pwr_health }});">{{ s.ds_power_avg }}<span class="unit">dBmV</span></div>
+                        <div class="metric-value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}<span class="unit">dBmV</span></div>
                         <canvas class="metric-spark" id="spark-ds-power" width="144" height="56" aria-hidden="true"></canvas>
                     </div>
                     <div class="metric-sub metric-status-row">
@@ -1469,7 +1469,7 @@
                         <div class="metric-icon blue"><i data-lucide="arrow-up"></i></div>
                     </div>
                     <div class="metric-value-row">
-                        <div class="metric-value" style="color:var(--{{ us_health }});">{{ s.us_power_avg }}<span class="unit">dBmV</span></div>
+                        <div class="metric-value val-{{ us_health }}">{{ s.us_power_avg }}<span class="unit">dBmV</span></div>
                         <canvas class="metric-spark" id="spark-us-power" width="144" height="56" aria-hidden="true"></canvas>
                     </div>
                     <div class="metric-sub metric-status-row">
@@ -1494,7 +1494,7 @@
                         <div class="metric-icon green"><i data-lucide="signal"></i></div>
                     </div>
                     <div class="metric-value-row">
-                        <div class="metric-value" style="color:var(--{{ snr_health }});">{{ snr_value }}<span class="unit">dB</span></div>
+                        <div class="metric-value val-{{ snr_health }}">{{ snr_value }}<span class="unit">dB</span></div>
                         <canvas class="metric-spark" id="spark-snr" width="144" height="56" aria-hidden="true"></canvas>
                     </div>
                     <div class="metric-sub metric-status-row">
@@ -1541,9 +1541,9 @@
                     </div>
                     <div class="metric-value-row">
                         {% if s.ds_uncorr_pct is not none %}
-                        <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorr_pct }}<span class="unit">%</span></div>
+                        <div class="metric-value val-{{ error_health }}">{{ s.ds_uncorr_pct }}<span class="unit">%</span></div>
                         {% else %}
-                        <div class="metric-value" style="color:var(--muted);">{{ t.get('error_ratio_unavailable', 'Share unavailable') }}</div>
+                        <div class="metric-value val-muted">{{ t.get('error_ratio_unavailable', 'Share unavailable') }}</div>
                         {% endif %}
                         <canvas class="metric-spark" id="spark-errors" width="144" height="56" aria-hidden="true"></canvas>
                     </div>
@@ -1725,7 +1725,7 @@
                 <span class="gaming-comp-name">{{ t['gaming_comp_' ~ key] }}</span>
                 <span class="gaming-comp-value">{{ comp.value }} {{ comp.unit }}</span>
                 <div class="gaming-comp-bar-inline">
-                    <div class="gaming-comp-fill {% if comp.score >= 80 %}fill-good{% elif comp.score >= 50 %}fill-warn{% else %}fill-crit{% endif %}" style="width:{{ comp.score }}%;"></div>
+                    <div class="gaming-comp-fill {% if comp.score >= 80 %}fill-good{% elif comp.score >= 50 %}fill-warn{% else %}fill-crit{% endif %}" style="--comp-score: {{ comp.score }}%;"></div>
                 </div>
                 <span class="gaming-comp-score {% if comp.score >= 80 %}score-good{% elif comp.score >= 50 %}score-warn{% else %}score-crit{% endif %}">{{ comp.score }}</span>
                 <i data-lucide="chevron-down" class="gaming-comp-chevron"></i>
@@ -1751,15 +1751,15 @@
             <h2 class="view-page-title">{{ t.bnetz_title }}</h2>
         </div>
         <div class="view-page-actions">
-            <label class="btn btn-muted" style="cursor:pointer;">
-                <i data-lucide="upload" style="width:14px;height:14px;vertical-align:-2px;"></i> {{ t.bnetz_upload }}
+            <label class="btn btn-muted bnetz-upload-btn">
+                <i data-lucide="upload"></i> {{ t.bnetz_upload }}
                 <input type="file" accept=".pdf,.csv" id="bnetz-file-input" style="display:none;" onchange="uploadBnetzFromView(this)">
             </label>
             <button class="refresh-btn bnetz-refresh-btn" title="{{ t.refresh }}" onclick="loadBnetzData()"><i data-lucide="refresh-cw"></i></button>
         </div>
     </div>
-    <div id="bnetz-watcher-status" style="display:none;padding:8px 14px;margin-bottom:10px;border-radius:8px;background:var(--card-bg);border:1px solid var(--input-border);font-size:max(var(--fs-min), 0.85em);color:var(--text-muted);align-items:center;gap:8px;">
-        <i data-lucide="eye" style="width:14px;height:14px;flex-shrink:0;"></i>
+    <div id="bnetz-watcher-status" style="display:none;">
+        <i data-lucide="eye"></i>
         <span id="bnetz-watcher-text"></span>
     </div>
     <div id="bnetz-loading" class="waiting" style="display:none;">
@@ -1834,14 +1834,14 @@
 
 <!-- Report Modal -->
 <dialog class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" onclick="if(event.target===this)closeReportModal()" oncancel="event.preventDefault(); closeReportModal()">
-    <div class="modal" style="max-width:800px;">
+    <div class="modal report-modal-panel">
         <div class="modal-header">
             <h2 id="report-modal-title">{{ t.get('report_builder_title', 'ISP-ready evidence package') }}</h2>
             <button class="modal-close" onclick="closeReportModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
         <p class="modal-hint">{{ t.get('report_builder_intro', 'Build a local evidence package for ISP support or complaint escalation.') }}</p>
         <div id="report-builder-status" class="report-builder-status" role="status" aria-live="polite"></div>
-        <div class="modal-body" style="padding: 10px 0;">
+        <div class="modal-body report-modal-body">
             <!-- Step 1: Settings & Customer Info -->
             <div id="report-step1">
                 <section id="report-fixed-scope" class="report-fixed-scope" aria-labelledby="report-fixed-period-title" hidden>
@@ -1880,30 +1880,30 @@
                         <span>{{ t.get('report_builder_privacy_note', 'DOCSight builds the report from local monitoring data and does not send it to your ISP automatically.') }}</span>
                     </div>
                 </div>
-                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
+                <div class="report-options">
                     <div id="report-days-field">
-                        <label style="font-size:13px; color:var(--muted);">{{ t.report_days }}</label><br>
-                        <select id="report-days" style="margin-top:4px; padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+                        <label class="report-option-label">{{ t.report_days }}</label><br>
+                        <select id="report-days" class="report-option-select">
                             <option value="1">1</option><option value="3">3</option>
                             <option value="7" selected>7</option><option value="14">14</option>
                             <option value="30">30</option>
                         </select>
                     </div>
                     <div>
-                        <label style="font-size:13px; color:var(--muted);">{{ t.report_language }}</label><br>
-                        <select id="report-lang" style="margin-top:4px; padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+                        <label class="report-option-label">{{ t.report_language }}</label><br>
+                        <select id="report-lang" class="report-option-select">
                             {% for code, name in languages.items() %}
                             <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
-                <div style="background:var(--bg); border-radius:8px; padding:14px; margin-bottom:10px;">
-                    <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">{{ t.report_customer_hint }}</p>
-                    <div style="display:flex; flex-direction:column; gap:8px;">
-                        <input id="report-name" type="text" value="{{ report_customer_name }}" placeholder="{{ t.report_name }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
-                        <input id="report-number" type="text" value="{{ report_customer_number }}" placeholder="{{ t.report_customer_number }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
-                        <textarea id="report-address" rows="3" placeholder="{{ t.report_address }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit; resize:vertical;">{{ report_customer_address }}</textarea>
+                <div class="report-customer">
+                    <p class="report-customer-hint">{{ t.report_customer_hint }}</p>
+                    <div class="report-customer-fields">
+                        <input id="report-name" type="text" value="{{ report_customer_name }}" placeholder="{{ t.report_name }}" class="report-customer-field">
+                        <input id="report-number" type="text" value="{{ report_customer_number }}" placeholder="{{ t.report_customer_number }}" class="report-customer-field">
+                        <textarea id="report-address" rows="3" placeholder="{{ t.report_address }}" class="report-customer-field">{{ report_customer_address }}</textarea>
                     </div>
                 </div>
                 <section class="report-supporting-evidence" aria-labelledby="report-supporting-evidence-title">
@@ -1931,8 +1931,8 @@
             </div>
             <!-- Step 2: Generated complaint text (hidden initially) -->
             <div id="report-step2" style="display:none;">
-                <p style="font-size:13px; color:var(--muted); margin-bottom:8px;">{{ t.report_edit_hint }}</p>
-                <textarea id="report-complaint-text" style="width:100%; min-height:320px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:max(var(--fs-min), 0.85em); font-family:var(--font-mono); resize:vertical; line-height:1.5;"></textarea>
+                <p class="report-edit-hint">{{ t.report_edit_hint }}</p>
+                <textarea id="report-complaint-text"></textarea>
             </div>
         </div>
         <div class="modal-footer">
@@ -1951,7 +1951,7 @@
             <h2 id="chart-zoom-title"></h2>
             <button class="modal-close" onclick="closeChartZoom()" aria-label="{{ t.close }}">&times;</button>
         </div>
-        <div id="chart-zoom-canvas" style="flex:1;min-height:0;width:100%;"></div>
+        <div id="chart-zoom-canvas"></div>
     </div>
 </dialog>
 
