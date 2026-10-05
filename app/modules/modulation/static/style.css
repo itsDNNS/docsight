@@ -152,11 +152,7 @@
     padding: var(--space-md, 16px);
     border-radius: var(--radius-sm, 8px);
     background: var(--tint-subtle, rgba(255,255,255,0.02));
-    border-left: 3px solid var(--muted, #6b7280);
-}
-
-.mod-capacity-card.mod-capacity-partial {
-    border-left-color: var(--warn, #f59e0b);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.08));
 }
 
 
@@ -329,7 +325,8 @@
 }
 
 .mod-channel-summary.degraded {
-    border-left: 3px solid var(--crit, #ef4444);
+    background: color-mix(in srgb, var(--crit, #ef4444) 6%, var(--card));
+    border-color: color-mix(in srgb, var(--crit, #ef4444) 35%, transparent);
 }
 
 .mod-channel-summary-header {

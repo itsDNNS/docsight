@@ -313,17 +313,6 @@ class TestModulationControls:
         self.page.route("**/api/modulation/distribution?*", partial_capacity)
         _switch_distribution(self.page, '#modulation-range-tabs [data-days="30"]',
                              direction="us", min_samples=30)
-        warn_color = self.page.evaluate(
-            """() => {
-                const probe = document.createElement('span');
-                probe.style.color = 'var(--warn)';
-                document.body.appendChild(probe);
-                const color = getComputedStyle(probe).color;
-                probe.remove();
-                return color;
-            }"""
-        )
-        expect(self.page.locator("#mod-capacity-downstream")).to_have_css("border-left-color", warn_color)
         caveat = self.page.locator("#mod-cap-ds-caveat")
         expect(caveat).to_be_visible()
         expect(caveat).to_contain_text("OFDM")

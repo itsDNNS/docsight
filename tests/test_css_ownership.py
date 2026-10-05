@@ -54,3 +54,27 @@ def test_cards_are_defined_only_in_the_component_stylesheet():
     ]
     assert offenders == []
     assert CARD_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
+
+
+# One-sided edges and inset side shadows; status shows through icon, badge, text color or tint.
+SIDE_EDGE = re.compile(r"(?:border-(?:left|inline-start)(?:-color)?|box-shadow)\s*:\s*([^;}]*)")
+COLORED = re.compile(r"var\(--(?:accent|amethyst|good|warn|crit|sapphire)")
+
+
+def _is_side_stripe(prop, value):
+    if prop.startswith("box-shadow"):
+        return re.match(r"inset\s+-?[1-9]\d*px\s+0\s+0\s", value) is not None
+    if "transparent" in value.split("solid")[-1]:
+        return False  # CSS triangles and hidden edges
+    width = re.match(r"\s*(\d+)px", value)
+    return bool(COLORED.search(value)) or (width is not None and int(width.group(1)) > 2)
+
+
+def test_no_stylesheet_marks_status_with_a_colored_side_stripe():
+    offenders = [
+        f"{path}: {match.group(0).strip()}"
+        for path in _stylesheets()
+        for match in SIDE_EDGE.finditer((ROOT / path).read_text(encoding="utf-8"))
+        if _is_side_stripe(match.group(0), match.group(1))
+    ]
+    assert offenders == []

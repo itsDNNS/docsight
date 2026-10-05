@@ -1258,14 +1258,13 @@ body:has(#view-dashboard.active) .app-main {
   font-weight: 650;
 }
 
-.dashboard-hero .hero-modulation-warn {
-  padding-left: 8px;
-  border-left: 2px solid color-mix(in srgb, var(--warn) 70%, var(--dash-muted-border));
+.dashboard-hero .hero-modulation-warn .hero-modulation-card-top strong {
+  color: color-mix(in srgb, var(--warn) 78%, var(--text));
 }
 
-.dashboard-hero .hero-modulation-crit {
-  padding-left: 8px;
-  border-left: 2px solid color-mix(in srgb, var(--crit) 76%, var(--dash-muted-border));
+.dashboard-hero .hero-modulation-crit .hero-modulation-card-top strong,
+.dashboard-hero .hero-modulation-crit .hero-modulation-cause {
+  color: color-mix(in srgb, var(--crit) 78%, var(--text));
 }
 
 .dashboard-hero .hero-modulation-missing {

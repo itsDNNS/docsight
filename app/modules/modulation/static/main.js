@@ -343,9 +343,7 @@ function updateCapacityCard(direction, summary) {
     var card = document.getElementById(direction === 'downstream' ? 'mod-capacity-downstream' : 'mod-capacity-upstream');
     if (!card || !summary) return;
 
-    var partial = summary.unsupported_channel_samples > 0;
-    card.className = 'mod-capacity-card mod-capacity-' + (summary.status || 'unavailable') +
-        (partial ? ' mod-capacity-partial' : '');
+    card.className = 'mod-capacity-card mod-capacity-' + (summary.status || 'unavailable');
 
     var current = document.getElementById('mod-cap-' + prefix + '-current');
     var min = document.getElementById('mod-cap-' + prefix + '-min');
