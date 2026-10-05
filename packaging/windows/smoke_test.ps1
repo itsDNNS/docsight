@@ -169,7 +169,10 @@ function Assert-NoOwnerChildren {
 
     $Children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($Owner.Id)")
     if ($Children.Count -ne 0) {
-        throw "The DOCSight owner created an unexpected child process."
+        $Details = ($Children | ForEach-Object {
+            "$($_.Name) (pid $($_.ProcessId), started $($_.CreationDate)): $($_.CommandLine)"
+        }) -join "; "
+        throw "The DOCSight owner created an unexpected child process: $Details"
     }
 }
 
