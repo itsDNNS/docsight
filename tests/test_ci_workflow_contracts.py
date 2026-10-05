@@ -428,6 +428,15 @@ def _run_step(job, name):
     return next(step for step in load_workflow("test.yml")["jobs"][job]["steps"] if step["name"] == name)
 
 
+def test_workflows_are_linted_with_a_pinned_checksummed_actionlint():
+    step = _run_step("test", "Lint workflows with actionlint")
+    assert re.fullmatch(r"\d+\.\d+\.\d+", step["env"]["ACTIONLINT_VERSION"])
+    assert re.fullmatch(r"[0-9a-f]{64}", step["env"]["ACTIONLINT_SHA256"])
+    assert "sha256sum --check --strict" in step["run"]
+    steps = [s["name"] for s in load_workflow("test.yml")["jobs"]["test"]["steps"]]
+    assert steps.index("Lint workflows with actionlint") < steps.index("Run tests")
+
+
 def test_linux_suite_runs_in_parallel_with_hash_locked_xdist():
     assert "-n auto" in _run_step("test", "Run tests")["run"]
     assert "pytest-xdist" in (ROOT / "requirements-test.in").read_text(encoding="utf-8").split()

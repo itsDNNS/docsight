@@ -198,6 +198,20 @@ jobs:
               yaml.compose(workflow.read_text(encoding="utf-8"))
           PY
 
+      # YAML parsing alone accepts workflows GitHub rejects, such as contexts used
+      # where they are not available; actionlint checks the workflow semantics.
+      - name: Lint workflows with actionlint
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLo "$RUNNER_TEMP/$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$archive"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+
       - name: Run tests
         run: python -m pytest tests/ -n auto --tb=short --ignore=tests/e2e -m "not wiki"
 
