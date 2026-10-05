@@ -76,3 +76,35 @@ def _save(directory, name, image):
     path = directory / f"{name}.png"
     image.save(path)
     return path
+
+
+class _FakePage:
+    """Settled shape from the start; one request stays open for the first samples."""
+
+    def __init__(self, request_open_for):
+        self.handlers = {}
+        self.samples = 0
+        self.request_open_for = request_open_for
+
+    def on(self, event, handler):
+        self.handlers[event] = handler
+
+    def wait_for_function(self, script, timeout):
+        self.handlers["request"]("comparison")
+
+    def evaluate(self, script):
+        self.samples += 1
+        if self.samples == self.request_open_for:
+            self.handlers["requestfinished"]("comparison")
+        return [10, 800, 900]
+
+    def wait_for_timeout(self, ms):
+        pass
+
+
+def test_a_view_is_not_settled_while_one_of_its_requests_is_open():
+    page = _FakePage(request_open_for=6)
+    visual_review._wait_until_settled(page, visual_review._OpenRequests(page))
+    # Without the open request it would return after four samples; it finishes
+    # during sample 6, which is the first of the three stable ones.
+    assert page.samples == 8
