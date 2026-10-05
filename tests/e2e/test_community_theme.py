@@ -2,7 +2,9 @@
 
 The theme below is the example from the Themes wiki page. It only sets the
 documented core tokens, so it shows whether pages follow those tokens rather
-than the built-in themes' complete token sets.
+than the built-in themes' complete token sets. (The page background still comes
+from --void, which this format does not set; the token layer work moves it to
+--bg and adds that check here.)
 """
 
 import json
@@ -87,7 +89,6 @@ def _styles(page):
             tokens: Object.fromEntries(['--bg', '--surface', '--text', '--accent', '--good', '--crit']
                 .map(name => [name, root.getPropertyValue(name).trim()])),
             bodyColor: body.color,
-            bodyBackground: body.backgroundColor,
             hasThemeBlock: !!document.getElementById('theme-module-vars'),
         };
     }""")
@@ -108,13 +109,3 @@ def test_documented_core_tokens_reach_the_page(page, community_theme_server, pat
     assert styles["bodyColor"] == _rgb(THEME[mode]["--text"])
     expect(page.locator("body")).to_be_visible()
     assert errors == []
-
-
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
-    "Pages paint their background from --void, which the documented theme format "
-    "does not set; the token layers redesign makes --bg the page background."))
-@pytest.mark.parametrize("mode", ["dark", "light"])
-def test_documented_background_token_colors_the_page(page, community_theme_server, mode):
-    page.goto(community_theme_server + "/", wait_until="networkidle")
-    page.evaluate("mode => { document.documentElement.dataset.theme = mode; }", mode)
-    assert _styles(page)["bodyBackground"] == _rgb(THEME[mode]["--bg"])

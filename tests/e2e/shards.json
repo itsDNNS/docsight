@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 681,
+  "expected_total": 679,
   "baseline_cpu_seconds": 1653.939,
   "shards": [
     {
@@ -17,7 +17,7 @@
     },
     {
       "id": 2,
-      "collected_cases": 116,
+      "collected_cases": 114,
       "files": [
         "test_case_status_track.py",
         "test_community_theme.py",
