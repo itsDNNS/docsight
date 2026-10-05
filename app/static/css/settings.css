@@ -823,11 +823,11 @@ button.notification-collapse-button {
 
 /* Quote block for personal story */
 .support-quote {
-  border-left: 3px solid var(--amethyst);
   padding: var(--space-md) var(--space-lg);
   margin-bottom: var(--space-lg);
   background: var(--tint-subtle);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
 }
 .support-quote p {
   font-size: 0.95rem;

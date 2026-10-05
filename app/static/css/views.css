@@ -616,7 +616,8 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .ev-group-members {
     grid-column: 2 / -1;
     margin-bottom: 6px;
-    border-left: 2px solid var(--amethyst-muted);
+    border-radius: var(--radius-sm);
+    background: var(--tint-subtle);
 }
 .ev-group-members > .ev-row { padding-right: 0; }
 
@@ -1000,14 +1001,13 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 #correlation-table tbody tr.corr-highlight {
     background: color-mix(in srgb, var(--amethyst) 30%, transparent) !important;
-    box-shadow: inset 4px 0 0 var(--accent-purple, #a855f7);
 }
 #correlation-table tbody tr.corr-highlight td {
     color: var(--text) !important;
 }
 #correlation-table tbody tr.corr-pinned {
     background: color-mix(in srgb, var(--amethyst) 20%, transparent) !important;
-    box-shadow: inset 4px 0 0 var(--amethyst);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amethyst) 60%, transparent);
 }
 #correlation-table tbody tr.corr-pinned td {
     color: var(--text) !important;
@@ -1552,8 +1552,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 
 /* ── Smart Capture speedtest badge ── */
 .st-row-sc {
-    background: rgba(122, 162, 247, 0.06);
-    border-left: 2px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 .sc-badge {
     font-size: max(var(--fs-min), 0.75em);
