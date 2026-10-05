@@ -82,9 +82,11 @@ jobs:
           mkdir -p "$REVIEW_DIR"
           now="$(date -u +%Y-%m-%dT%H:%M:00+00:00)"
           echo "REVIEW_NOW=$now" >> "$GITHUB_ENV"
+          # The demo polls on the wall clock; a poll between the two captures adds events to
+          # only one of them, so the review keeps the next poll a day away.
           start() {
             (cd "$1" && DATA_DIR="$RUNNER_TEMP/$1-data" DEMO_MODE=true DOCSIGHT_DEMO_SEED=7 \
-              DOCSIGHT_DEMO_NOW="$now" WEB_HOST=127.0.0.1 WEB_PORT="$2" \
+              DOCSIGHT_DEMO_NOW="$now" POLL_INTERVAL=86400 WEB_HOST=127.0.0.1 WEB_PORT="$2" \
               nohup python -m app.main > "$REVIEW_DIR/$1.log" 2>&1 &)
           }
           start base 8801

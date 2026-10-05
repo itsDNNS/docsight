@@ -407,6 +407,8 @@ def test_visual_review_is_read_only_informational_and_follows_the_browser_paths(
     # Both builds get the same demo data and the same browser clock.
     start = steps["Start both builds with the same demo data"]["run"]
     assert "DOCSIGHT_DEMO_SEED=7" in start and 'DOCSIGHT_DEMO_NOW="$now"' in start
+    # No live poll may land between the base and the pull request capture.
+    assert "POLL_INTERVAL=86400" in start
     assert steps["Check out the base"]["with"]["ref"] == "${{ github.event.pull_request.base.sha || github.sha }}"
     assert steps["Upload screenshots and differences"]["if"] == "always()"
 
