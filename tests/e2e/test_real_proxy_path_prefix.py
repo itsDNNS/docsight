@@ -185,7 +185,7 @@ def test_critical_browser_journeys_through_real_prefix_stripping_proxy(
     _require(worker_contract, "mounted service-worker scope contract failed")
 
     page.goto(f"{app_url}/settings", wait_until="domcontentloaded")
-    module_nav = page.locator('.nav-item[data-section^="mod-"]').first
+    module_nav = page.locator('.settings-index-item[data-section^="mod-"]').first
     _require(module_nav.count() == 1, "settings module navigation is missing")
     module_section = module_nav.get_attribute("data-section")
     module_nav.click()

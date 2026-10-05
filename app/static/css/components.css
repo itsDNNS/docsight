@@ -389,14 +389,13 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 .toggle input:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Save bar ──
-   Slides in at the bottom while a form has unsaved changes. A page with a side
-   navigation sets --save-bar-inset to the navigation width.
+   Slides in at the bottom while a form has unsaved changes.
    <div class="save-bar"><div class="save-bar-status">…</div><div class="save-bar-actions">…</div></div> */
 .save-bar {
   position: fixed;
   right: 0;
   bottom: 0;
-  left: var(--save-bar-inset, 0px);
+  left: 0;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -407,9 +406,10 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--glass-border);
   transform: translateY(100%);
-  transition: transform 0.3s var(--ease-out-expo);
+  visibility: hidden;
+  transition: transform 0.3s var(--ease-out-expo), visibility 0s linear 0.3s;
 }
-.save-bar.visible { transform: translateY(0); }
+.save-bar.visible { transform: translateY(0); visibility: visible; transition-delay: 0s; }
 .save-bar-status {
   display: flex;
   flex-wrap: wrap;
@@ -425,6 +425,10 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 .save-bar-actions { display: flex; flex: none; gap: var(--space-sm); }
 @media (max-width: 900px) {
   .save-bar { padding-inline: var(--space-xl); }
+}
+/* In the app shell, phones and tablets keep the bottom navigation below the bar. */
+@media (max-width: 1023px) {
+  .app-layout .save-bar { bottom: calc(var(--bottom-nav-h) + var(--safe-bottom)); padding-bottom: var(--space-md); }
 }
 @media (max-width: 640px) {
   .save-bar { flex-wrap: wrap; padding-inline: var(--space-md); }

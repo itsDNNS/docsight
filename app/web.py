@@ -416,6 +416,25 @@ def glossary_page():
     )
 
 
+def _shell_nav_context(config_manager):
+    """What the shared top navigation needs to know about configured sources."""
+    if not config_manager:
+        return {
+            "bqm_configured": False, "smokeping_configured": False, "speedtest_configured": False,
+            "gaming_quality_enabled": False, "segment_utilization_enabled": False,
+            "is_fritzbox": False, "bnetz_enabled": True,
+        }
+    return {
+        "bqm_configured": bool(config_manager.is_bqm_configured() or config_manager.get("bqm_url")),
+        "smokeping_configured": config_manager.is_smokeping_configured(),
+        "speedtest_configured": config_manager.is_speedtest_configured(),
+        "gaming_quality_enabled": config_manager.is_gaming_quality_enabled(),
+        "segment_utilization_enabled": config_manager.is_segment_utilization_enabled(),
+        "is_fritzbox": config_manager.get("modem_type") == "fritzbox",
+        "bnetz_enabled": config_manager.is_bnetz_enabled(),
+    }
+
+
 @require_auth
 def index():
     _config_manager = current_runtime().config_manager
@@ -438,18 +457,9 @@ def index():
         report_customer_address = _config_manager.get("report_customer_address", "")
     if demo_mode and not isp_name:
         isp_name = "Vodafone Kabel"
-    bqm_configured = bool(
-        _config_manager and (
-            _config_manager.is_bqm_configured()
-            or _config_manager.get("bqm_url")
-        )
-    )
-    smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
-    speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
-    gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
-    segment_utilization_enabled = _config_manager.is_segment_utilization_enabled() if _config_manager else False
-    is_fritzbox = (_config_manager.get("modem_type") == "fritzbox") if _config_manager else False
-    bnetz_enabled = _config_manager.is_bnetz_enabled() if _config_manager else True
+    nav = _shell_nav_context(_config_manager)
+    gaming_quality_enabled = nav["gaming_quality_enabled"]
+    bnetz_enabled = nav["bnetz_enabled"]
     state = current_runtime().get_state()
     speedtest_latest = state.get("speedtest_latest")
     booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
@@ -484,9 +494,6 @@ def index():
         report_customer_name=report_customer_name,
         report_customer_number=report_customer_number,
         report_customer_address=report_customer_address,
-        bqm_configured=bqm_configured,
-        smokeping_configured=smokeping_configured,
-        speedtest_configured=speedtest_configured,
         speedtest_latest=speedtest_latest,
         booked_download=booked_download,
         booked_upload=booked_upload,
@@ -494,11 +501,7 @@ def index():
         has_us_ofdma=signal_health_view.has_us_ofdma(analysis),
         device_info=dev_info,
         demo_mode=demo_mode,
-        gaming_quality_enabled=gaming_quality_enabled,
-        segment_utilization_enabled=segment_utilization_enabled,
         gaming_index=gaming_index,
-        is_fritzbox=is_fritzbox,
-        bnetz_enabled=bnetz_enabled,
         bnetz_latest=bnetz_latest,
         metric_ranges=signal_health_view.build_metric_ranges(analysis, get_thresholds()),
         line_status=build_line_status(analysis),
@@ -513,6 +516,7 @@ def index():
             location="dashboard",
         ),
         **_build_glossary_context(lang, t, request.args.get("term")),
+        **nav,
     )
 
 
@@ -570,9 +574,10 @@ def settings():
     # Warn if server TZ looks like a POSIX abbreviation (no DST support)
     tz_is_posix = bool(tz_name) and "/" not in tz_name and tz_name not in ("UTC",)
     all_modules = _module_loader.get_modules() if _module_loader else []
-    is_fritzbox = config.get("modem_type") == "fritzbox"
-    gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
-    segment_utilization_enabled = _config_manager.is_segment_utilization_enabled() if _config_manager else False
+    nav = _shell_nav_context(_config_manager)
+    is_fritzbox = nav["is_fritzbox"]
+    gaming_quality_enabled = nav["gaming_quality_enabled"]
+    segment_utilization_enabled = nav["segment_utilization_enabled"]
     built_in_features = [
         {
             "id": "core.gaming_quality",
@@ -637,6 +642,7 @@ def settings():
             dismissed_ids=_get_dismissed_notice_ids(),
             location="settings",
         ),
+        **nav,
     )
 
 

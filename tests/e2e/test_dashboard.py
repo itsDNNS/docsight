@@ -64,10 +64,12 @@ class TestNavigation:
         expect(demo_page.locator('#topnav .nav-item[data-view="channels"]')).to_have_attribute("aria-current", "page")
         expect(demo_page.locator('#topnav .nav-item[data-view="live"]')).not_to_have_attribute("aria-current", "page")
 
-    def test_more_menu_offers_settings_glossary_and_dark_mode(self, demo_page):
+    def test_top_bar_offers_settings_and_the_more_menu_glossary_and_dark_mode(self, demo_page):
+        settings = demo_page.locator('.topnav-actions a.topnav-settings[href$="/settings"]')
+        expect(settings).to_be_visible()
+        expect(settings).to_have_attribute("aria-label", "Settings")
         demo_page.locator("#nav-toggle-more").click()
         panel = demo_page.locator("#nav-panel-more")
-        expect(panel.locator('a[href$="/settings"]')).to_be_visible()
         expect(panel.locator('[data-view="glossary"]')).to_be_visible()
         expect(panel.locator("#theme-toggle-sidebar")).to_be_attached()
 

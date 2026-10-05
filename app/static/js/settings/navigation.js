@@ -1,35 +1,25 @@
 'use strict';
 DOCSightSettings.navigation = function({syncSaveFooter, onSection}) {
-/* ── Section Controller ── */
+/* ── Section Controller ──
+   Desktop shows the section index next to the content. Below 768px the index
+   is a list and a section opens as its own view with a back button. */
 var _currentSection = 'connection';
-var _mobileSidebarFocusReturn = null;
-var _mobileSidebarMedia = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
+var _compactMedia = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
+var _openedFromList = false;
 
-function _isMobileSidebarMode() {
-    return !!(_mobileSidebarMedia && _mobileSidebarMedia.matches);
+function _isCompact() {
+    return !!(_compactMedia && _compactMedia.matches);
 }
 
-function _setSidebarAccessibility(sidebar, isOpen) {
-    if (!sidebar) return;
-    if (_isMobileSidebarMode() && !isOpen) {
-        sidebar.setAttribute('aria-hidden', 'true');
-        sidebar.setAttribute('inert', '');
-    } else {
-        sidebar.removeAttribute('aria-hidden');
-        sidebar.removeAttribute('inert');
-    }
-}
-
-function syncMobileSidebarAccessibility() {
-    var sidebar = document.getElementById('settings-sidebar');
-    _setSidebarAccessibility(sidebar, !!(sidebar && sidebar.classList.contains('open')));
+function _setDetail(detail) {
+    var page = document.querySelector('.settings-page');
+    if (page) page.classList.toggle('is-detail', detail);
 }
 
 function _applySection(id) {
     _currentSection = id;
 
-    /* Sidebar: update active link */
-    document.querySelectorAll('.nav-item[data-section]').forEach(function(link) {
+    document.querySelectorAll('.settings-index-item[data-section]').forEach(function(link) {
         var isActive = link.getAttribute('data-section') === id;
         link.classList.toggle('active', isActive);
         if (isActive) {
@@ -39,38 +29,48 @@ function _applySection(id) {
         }
     });
 
-    /* Panels: show selected */
     document.querySelectorAll('.settings-panel').forEach(function(panel) {
         panel.classList.remove('active');
     });
     var target = document.getElementById('panel-' + id);
     if (target) target.classList.add('active');
 
-    /* Mobile title */
-    var mobileTitle = document.getElementById('mobile-title');
-    if (mobileTitle) mobileTitle.textContent = SECTION_TITLES[id] || id;
+    var title = document.getElementById('settings-section-title');
+    if (title) title.textContent = SECTION_TITLES[id] || id;
+    _setDetail(true);
 
     /* Save footer: hide on support/modules, otherwise respect dirty state */
     syncSaveFooter();
 
     /* Auto-load data for certain panels */
     onSection(id, target);
+}
 
-    /* Mobile: close sidebar after selection */
-    closeMobileSidebar();
+function _focusSectionTitle() {
+    var title = document.getElementById('settings-section-title');
+    if (!title) return;
+    title.setAttribute('tabindex', '-1');
+    title.focus({preventScroll: true});
 }
 
 /* User-initiated section change: apply and add a browser history entry so
    Back/Forward move between previously viewed settings sections. Re-selecting
    the current section replaces state instead of stacking a duplicate entry. */
 function switchSection(id) {
-    var isNewSection = id !== _currentSection;
+    var isNewSection = id !== _currentSection || !location.hash;
     _applySection(id);
     if (isNewSection) {
         history.pushState(null, '', '#' + id);
     } else {
         history.replaceState(null, '', '#' + id);
     }
+}
+
+/* The compact list: no section is open. */
+function showSectionList() {
+    _setDetail(false);
+    var active = document.querySelector('.settings-index-item.active') || document.querySelector('.settings-index-item');
+    if (active) active.focus({preventScroll: true});
 }
 
 /* Resolve the section referenced by the current URL hash (default: connection). */
@@ -83,63 +83,43 @@ function _sectionFromHash() {
    already updated the URL, so only reflect it in the UI. The guard also makes
    the popstate+hashchange double-fire on navigation a no-op the second time. */
 function _syncSectionFromHash() {
+    if (!location.hash && _isCompact()) {
+        _setDetail(false);
+        return;
+    }
     var id = _sectionFromHash();
-    if (id === _currentSection) return;
+    if (id === _currentSection && document.querySelector('.settings-page.is-detail')) return;
     _applySection(id);
 }
 
 window.addEventListener('popstate', _syncSectionFromHash);
 window.addEventListener('hashchange', _syncSectionFromHash);
 
-/* ── Mobile Sidebar ── */
-function openMobileSidebar() {
-    var sidebar = document.getElementById('settings-sidebar');
-    var backdrop = document.getElementById('sidebar-backdrop');
-    var menuButton = document.getElementById('mobile-menu-button');
-    _mobileSidebarFocusReturn = document.activeElement || menuButton;
-    if (sidebar) {
-        sidebar.classList.add('open');
-        _setSidebarAccessibility(sidebar, true);
+function _initIndex() {
+    var index = document.getElementById('settings-index');
+    if (index) {
+        index.addEventListener('click', function(event) {
+            var item = event.target.closest('.settings-index-item[data-section]');
+            if (!item) return;
+            _openedFromList = _isCompact();
+            switchSection(item.getAttribute('data-section'));
+            if (_openedFromList) {
+                window.scrollTo(0, 0);
+                _focusSectionTitle();
+            }
+        });
     }
-    if (backdrop) backdrop.classList.add('active');
-    if (menuButton) menuButton.setAttribute('aria-expanded', 'true');
-    var activeNav = sidebar ? sidebar.querySelector('.nav-item.active[data-section]') : null;
-    var firstNav = sidebar ? sidebar.querySelector('.nav-item[data-section]') : null;
-    var focusTarget = activeNav || firstNav;
-    if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
+    var back = document.getElementById('settings-back');
+    if (back) {
+        back.addEventListener('click', function() {
+            // Return to the list entry that opened this section, or replace a deep link.
+            if (_openedFromList) history.back();
+            else history.replaceState(null, '', location.pathname + location.search);
+            _openedFromList = false;
+            showSectionList();
+        });
+    }
 }
-
-function closeMobileSidebar(options) {
-    options = options || {};
-    var sidebar = document.getElementById('settings-sidebar');
-    var backdrop = document.getElementById('sidebar-backdrop');
-    var menuButton = document.getElementById('mobile-menu-button');
-    var wasOpen = !!(sidebar && sidebar.classList.contains('open'));
-    if (sidebar) {
-        sidebar.classList.remove('open');
-        _setSidebarAccessibility(sidebar, false);
-    }
-    if (backdrop) backdrop.classList.remove('active');
-    if (menuButton) menuButton.setAttribute('aria-expanded', 'false');
-    var shouldRestoreFocus = options.restoreFocus !== false;
-    if (wasOpen && shouldRestoreFocus) {
-        var focusTarget = _mobileSidebarFocusReturn;
-        if (!focusTarget || typeof focusTarget.focus !== 'function' || !document.contains(focusTarget)) {
-            focusTarget = menuButton;
-        }
-        if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
-    }
-    _mobileSidebarFocusReturn = null;
-}
-
-document.addEventListener('keydown', function(event) {
-    if (event.key !== 'Escape') return;
-    var sidebar = document.getElementById('settings-sidebar');
-    if (sidebar && sidebar.classList.contains('open')) {
-        event.preventDefault();
-        closeMobileSidebar();
-    }
-});
 
 /* ── Collapsible Cards ── */
 function _syncCardCollapseAria(card) {
@@ -171,17 +151,17 @@ function toggleCardCollapse(headerEl) {
 }
 
 function init() {
-    syncMobileSidebarAccessibility();
-    if (_mobileSidebarMedia) {
-        if (_mobileSidebarMedia.addEventListener) _mobileSidebarMedia.addEventListener('change', syncMobileSidebarAccessibility);
-        else if (_mobileSidebarMedia.addListener) _mobileSidebarMedia.addListener(syncMobileSidebarAccessibility);
+    _initIndex();
+    var deepLink = !!location.hash;
+    _applySection(_sectionFromHash());
+    if (_isCompact() && !deepLink) {
+        _setDetail(false);
+        return;
     }
-    var initialSection = _sectionFromHash();
-    _applySection(initialSection);
-    history.replaceState(null, '', '#' + initialSection);
+    history.replaceState(null, '', '#' + _currentSection);
 }
 function showsSaveFooter() {
     return _currentSection !== 'support' && _currentSection !== 'about';
 }
-return {init, showsSaveFooter, switchSection, openMobileSidebar, closeMobileSidebar, toggleCardCollapse, syncCard: _syncCardCollapseAria};
+return {init, showsSaveFooter, switchSection, toggleCardCollapse, syncCard: _syncCardCollapseAria};
 };

@@ -52,7 +52,8 @@ STILL_CSS = """
 
 # Each kind of page: the element that holds the captured content, and its persistent chrome.
 DASHBOARD = {"root": ".view.active", "shell": ".topnav"}
-SETTINGS = {"root": ".settings-panel.active", "shell": "#settings-sidebar"}
+# The section index; older builds used a sidebar, and a comparison may capture either.
+SETTINGS = {"root": ".settings-panel.active", "shell": "#settings-index, #settings-sidebar"}
 LOGIN = {"root": "body", "shell": None}
 
 READY_JS = """root => {
@@ -147,7 +148,7 @@ def _views(page):
 
 def _settings_sections(page):
     return page.eval_on_selector_all(
-        "#settings-sidebar .nav-item[data-section]",
+        "#settings-index [data-section], #settings-sidebar .nav-item[data-section]",
         "nodes => [...new Set(nodes.map(node => node.dataset.section))]")
 
 

@@ -58,7 +58,7 @@ def test_default_tokens_meet_aa_on_all_surfaces():
 
 
 @pytest.mark.parametrize(("stylesheet", "selector"), [
-    ("app/static/css/main.css", ".nav-badge"),
+    ("app/static/css/shell.css", ".nav-badge"),
     ("app/static/css/components.css", ".btn-danger"),
 ])
 def test_white_text_on_darkened_crit_meets_aa_with_every_builtin_crit_color(stylesheet, selector):

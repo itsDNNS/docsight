@@ -20,22 +20,36 @@ class TestSettingsLoad:
         assert "DOCSight" in settings_page.title()
         assert "Settings" in settings_page.title() or "Einstellungen" in settings_page.title()
 
-    def test_sidebar_visible(self, settings_page):
-        sidebar = settings_page.locator("#settings-sidebar")
-        assert sidebar.is_visible()
+    def test_settings_render_in_the_app_shell(self, settings_page):
+        expect(settings_page.locator("#topnav")).to_be_visible()
+        expect(settings_page.locator("#settings-index")).to_be_visible()
+        gear = settings_page.locator(".topnav-settings")
+        expect(gear).to_have_attribute("aria-current", "page")
+        expect(gear).to_have_attribute("aria-label", "Settings")
+        expect(settings_page.locator("#settings-section-title")).to_have_text("Modem")
+
+    def test_topnav_destinations_lead_back_to_the_dashboard(self, settings_page):
+        settings_page.locator("#nav-toggle-signal").click()
+        with settings_page.expect_navigation():
+            settings_page.locator('#nav-panel-signal [data-view="trends"]').click()
+        expect(settings_page).to_have_url(re.compile(r"/#trends$"))
+        expect(settings_page.locator("#view-trends")).to_have_class(re.compile(r".*\bactive\b.*"))
 
     def test_connection_tab_active(self, settings_page):
         btn = settings_page.locator('button[data-section="connection"]')
         assert "active" in btn.get_attribute("class")
 
-    def test_sidebar_navigation_has_group_labels(self, settings_page):
-        core_group = settings_page.locator('.nav-group[aria-labelledby="settings-nav-core-label"]')
-        module_group = settings_page.locator('.nav-group[aria-labelledby="settings-nav-modules-label"]')
-
-        expect(core_group.locator('#settings-nav-core-label')).to_have_text("Settings")
-        expect(module_group.locator('#settings-nav-modules-label')).to_have_text("Modules")
-        expect(core_group.locator('button[data-section="connection"]')).to_be_visible()
-        assert module_group.locator('.nav-sub-item').count() > 0
+    def test_section_index_lists_module_sections_under_a_label(self, settings_page):
+        index = settings_page.locator("#settings-index")
+        expect(index).to_have_attribute("aria-label", "Settings sections")
+        expect(index.locator("#settings-index-modules")).to_have_text("Modules")
+        modules = index.locator('.settings-index-item[data-section^="mod-"]')
+        assert modules.count() > 0
+        assert index.evaluate("""el => {
+            const label = el.querySelector('#settings-index-modules');
+            const first = el.querySelector('[data-section^="mod-"]');
+            return !!(label.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING);
+        }""")
 
     @pytest.mark.parametrize("width", [1280, 390])
     def test_bnetz_extension_labels_distinguish_dashboard_and_file_watcher(self, settings_page, width):
@@ -53,85 +67,55 @@ class TestSettingsLoad:
         assert panel.evaluate("el => el.scrollWidth <= document.documentElement.clientWidth")
 
 
-class TestSettingsMobileSidebar:
-    """Mobile sidebar keeps the full settings navigation reachable."""
+class TestSettingsCompactLayout:
+    """Below 768px the section index is a list and each section opens as its own view."""
 
-    def test_support_nav_stays_visible_when_mobile_sidebar_overflows(self, settings_page):
+    def test_phone_opens_on_the_section_list_with_every_section_reachable(self, settings_page):
         settings_page.set_viewport_size({"width": 390, "height": 844})
-        settings_page.reload(wait_until="networkidle")
+        settings_page.goto(settings_page.url.split("#")[0], wait_until="networkidle")
 
-        settings_page.locator(".mobile-menu-btn").click()
-        sidebar = settings_page.locator("#settings-sidebar")
+        expect(settings_page.locator("#settings-index")).to_be_visible()
+        expect(settings_page.locator(".settings-content")).to_be_hidden()
         support = settings_page.locator('button[data-section="support"]')
-        expect(sidebar).to_have_class(re.compile(r".*\bopen\b.*"))
+        support.scroll_into_view_if_needed()
         expect(support).to_be_visible()
+        assert settings_page.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth")
 
-        metrics = settings_page.evaluate(
-            """
-            () => {
-              const sidebar = document.querySelector('#settings-sidebar');
-              const sidebarNav = document.querySelector('#settings-sidebar .sidebar-nav');
-              const support = document.querySelector('button[data-section="support"]');
-              const sidebarRect = sidebar.getBoundingClientRect();
-              const supportRect = support.getBoundingClientRect();
-              return {
-                navScrollHeight: sidebarNav.scrollHeight,
-                navClientHeight: sidebarNav.clientHeight,
-                supportTop: supportRect.top - sidebarRect.top,
-                supportBottom: supportRect.bottom - sidebarRect.top,
-                sidebarHeight: sidebarRect.height,
-              };
-            }
-            """
-        )
-        assert metrics["navScrollHeight"] > metrics["navClientHeight"]
-        assert metrics["supportTop"] >= 0
-        assert metrics["supportBottom"] <= metrics["sidebarHeight"]
-
-    def test_mobile_sidebar_escape_closes_drawer_and_restores_focus(self, settings_page):
+    def test_section_opens_as_detail_and_back_returns_to_the_list(self, settings_page):
         settings_page.set_viewport_size({"width": 390, "height": 844})
-        settings_page.reload(wait_until="networkidle")
-
-        menu_button = settings_page.locator("#mobile-menu-button")
-        sidebar = settings_page.locator("#settings-sidebar")
-        expect(menu_button).to_have_attribute("aria-label", "Open settings navigation")
-        expect(menu_button).to_have_attribute("aria-controls", "settings-sidebar")
-        expect(menu_button).to_have_attribute("aria-expanded", "false")
-
-        menu_button.click()
-        expect(sidebar).to_have_class(re.compile(r".*\bopen\b.*"))
-        expect(sidebar).not_to_have_attribute("inert", "")
-        expect(sidebar).not_to_have_attribute("aria-hidden", "true")
-        expect(menu_button).to_have_attribute("aria-expanded", "true")
-        assert settings_page.evaluate("() => document.activeElement && document.activeElement.getAttribute('data-section')") == "connection"
-
-        settings_page.keyboard.press("Escape")
-        expect(sidebar).not_to_have_class(re.compile(r".*\bopen\b.*"))
-        expect(sidebar).to_have_attribute("inert", "")
-        expect(sidebar).to_have_attribute("aria-hidden", "true")
-        expect(menu_button).to_have_attribute("aria-expanded", "false")
-        assert settings_page.evaluate("() => document.activeElement && document.activeElement.id") == "mobile-menu-button"
-
-    def test_mobile_sidebar_nav_selection_closes_drawer(self, settings_page):
-        settings_page.set_viewport_size({"width": 390, "height": 844})
-        settings_page.reload(wait_until="networkidle")
-
-        settings_page.locator("#mobile-menu-button").click()
-        sidebar = settings_page.locator("#settings-sidebar")
-        expect(sidebar).to_have_class(re.compile(r".*\bopen\b.*"))
+        settings_page.goto(settings_page.url.split("#")[0], wait_until="networkidle")
 
         settings_page.locator('button[data-section="notifications"]').click()
-
-        expect(sidebar).not_to_have_class(re.compile(r".*\bopen\b.*"))
-        expect(sidebar).to_have_attribute("aria-hidden", "true")
-        expect(sidebar).to_have_attribute("inert", "")
-        expect(settings_page.locator("#mobile-menu-button")).to_have_attribute(
-            "aria-expanded", "false"
-        )
         expect(settings_page.locator("#panel-notifications")).to_be_visible()
-        expect(settings_page.locator('button[data-section="notifications"]')).to_have_attribute(
-            "aria-current", "page"
-        )
+        expect(settings_page.locator("#settings-index")).to_be_hidden()
+        expect(settings_page.locator("#settings-section-title")).to_be_focused()
+        expect(settings_page).to_have_url(re.compile(r"#notifications$"))
+        expect(settings_page.locator('button[data-section="notifications"]')).to_have_attribute("aria-current", "page")
+
+        settings_page.locator("#settings-back").click()
+        expect(settings_page.locator("#settings-index")).to_be_visible()
+        expect(settings_page.locator("#panel-notifications")).to_be_hidden()
+        expect(settings_page.locator('button[data-section="notifications"]')).to_be_focused()
+        expect(settings_page).not_to_have_url(re.compile(r"#"))
+
+    def test_browser_back_from_a_section_returns_to_the_list(self, settings_page):
+        settings_page.set_viewport_size({"width": 390, "height": 844})
+        settings_page.goto(settings_page.url.split("#")[0], wait_until="networkidle")
+
+        settings_page.locator('button[data-section="general"]').click()
+        expect(settings_page.locator("#panel-general")).to_be_visible()
+        settings_page.go_back()
+        expect(settings_page.locator("#settings-index")).to_be_visible()
+        expect(settings_page.locator("#panel-general")).to_be_hidden()
+
+    def test_deep_link_opens_the_section_and_back_shows_the_list(self, settings_page):
+        settings_page.set_viewport_size({"width": 390, "height": 844})
+        settings_page.goto(settings_page.url.split("#")[0] + "#security", wait_until="networkidle")
+
+        expect(settings_page.locator("#panel-security")).to_be_visible()
+        expect(settings_page.locator("#settings-index")).to_be_hidden()
+        settings_page.locator("#settings-back").click()
+        expect(settings_page.locator("#settings-index")).to_be_visible()
 
     def test_active_settings_navigation_item_is_announced(self, settings_page):
         connection = settings_page.locator('button[data-section="connection"]')
@@ -153,7 +137,7 @@ class TestSettingsMobileSidebar:
             ),
         )
 
-        expect(settings_page.locator("#mobile-menu-button")).to_have_attribute("aria-label", "Open settings navigation")
+        expect(settings_page.locator("#nav-toggle-more")).to_have_attribute("aria-label", "More")
 
         settings_page.locator('button[data-section="extensions"]').click()
         refresh = settings_page.locator("#module-registry-refresh")
@@ -168,12 +152,12 @@ class TestSettingsMobileSidebar:
         expect(delete_button).to_have_attribute("aria-label", re.compile(r"Delete .*docsight_backup_2026-03-14_120000\.tar\.gz"))
         expect(delete_button.locator('svg[aria-hidden="true"], i[aria-hidden="true"]')).to_have_count(1)
 
-    @pytest.mark.parametrize("width, expect_drawer", [(700, True), (850, False)])
+    @pytest.mark.parametrize("width, compact", [(700, True), (850, False)])
     @pytest.mark.parametrize("section, setup", [
         ("connection", None),
         ("notifications", "expand-webhook"),
     ])
-    def test_tablet_widths_use_comfortable_single_column_settings_forms(self, settings_page, width, expect_drawer, section, setup):
+    def test_tablet_widths_use_comfortable_single_column_settings_forms(self, settings_page, width, compact, section, setup):
         settings_page.set_viewport_size({"width": width, "height": 844})
         settings_page.reload(wait_until="networkidle")
         settings_page.evaluate("section => window.switchSection(section)", section)
@@ -182,35 +166,29 @@ class TestSettingsMobileSidebar:
 
         metrics = settings_page.evaluate(
             """
-            ({section, expectDrawer}) => {
+            (section) => {
               const panel = document.querySelector(`#panel-${section}`);
               const grids = Array.from(panel.querySelectorAll('.form-grid.cols-2'))
                 .filter((grid) => grid.getClientRects().length > 0 && !grid.closest('[inert]'));
               const fieldWidths = grids.flatMap((grid) => Array.from(grid.querySelectorAll('.form-field'))
                 .filter((field) => field.getClientRects().length > 0)
                 .map((field) => field.getBoundingClientRect().width));
-              const mobileHeader = document.querySelector('.mobile-header');
-              const sidebar = document.querySelector('#settings-sidebar');
-              const sidebarRect = sidebar.getBoundingClientRect();
               return {
                 gridColumns: grids.map((grid) => getComputedStyle(grid).gridTemplateColumns.trim().split(' ').filter(Boolean).length),
                 minFieldWidth: Math.min(...fieldWidths),
-                mobileHeaderVisible: getComputedStyle(mobileHeader).display !== 'none',
-                sidebarOffCanvas: sidebarRect.right <= 1,
+                indexVisible: document.querySelector('#settings-index').getClientRects().length > 0,
                 docWidth: document.documentElement.scrollWidth,
                 viewportWidth: window.innerWidth,
-                expectDrawer,
               };
             }
             """,
-            {"section": section, "expectDrawer": expect_drawer},
+            section,
         )
         assert metrics["gridColumns"]
         assert all(count == 1 for count in metrics["gridColumns"])
         assert metrics["minFieldWidth"] >= 280
         assert metrics["docWidth"] <= metrics["viewportWidth"]
-        assert metrics["mobileHeaderVisible"] is expect_drawer
-        assert metrics["sidebarOffCanvas"] is expect_drawer
+        assert metrics["indexVisible"] is not compact
 
 
 class TestSettingsTabSwitching:
@@ -452,10 +430,9 @@ class TestSettingsFormElements:
             """
             () => {
               const panel = document.querySelector('#panel-notifications');
-              const main = document.querySelector('.main-content');
               return {
                 panelScrollHeight: panel.scrollHeight,
-                mainClientHeight: main.clientHeight,
+                mainClientHeight: window.innerHeight,
                 collapsedChannels: panel.querySelectorAll('.notification-channel-card.collapsed').length,
               };
             }

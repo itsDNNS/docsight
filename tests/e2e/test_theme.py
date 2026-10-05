@@ -188,7 +188,7 @@ class TestTheme:
                 assert page.locator('html').evaluate("el => getComputedStyle(el).getPropertyValue('--font-sans').trim()") == preview_font
             page.reload()
             expect(page.locator('#theme-gallery .theme-card').first).to_have_attribute('data-theme-id', 'docsight.theme_ocean')
-            page.locator('.sidebar-header').click()
+            page.locator('.topnav-brand').click()
             assert page.locator('html').evaluate("el => getComputedStyle(el).getPropertyValue('--bg').trim()") == expected
         finally:
             response = page.request.post(f'{live_server}/api/modules/{original}/enable')
