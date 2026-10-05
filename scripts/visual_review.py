@@ -101,15 +101,31 @@ SHAPE_JS = """() => {
 }"""
 
 
-def _wait_until_settled(page, checks=3, interval_ms=300, limit_ms=15000):
+class _OpenRequests:
+    """Requests the page has started and not yet finished. Views fetch their data
+    when they are switched to, long after the page reached its load state."""
+
+    def __init__(self, page):
+        self.pending = set()
+        page.on("request", self._started)
+        page.on("requestfinished", self._ended)
+        page.on("requestfailed", self._ended)
+
+    def _started(self, request):
+        self.pending.add(request)
+
+    def _ended(self, request):
+        self.pending.discard(request)
+
+
+def _wait_until_settled(page, requests, checks=3, interval_ms=300, limit_ms=15000):
     """Views fill in after their requests and charts draw on the next frames; wait
-    until the view's element count and height stop changing."""
+    until no request is open and the view's element count and height stop changing."""
     page.wait_for_function(READY_JS, timeout=20000)
     previous, stable, waited = None, 0, 0
     while waited < limit_ms:
-        page.wait_for_load_state("networkidle")
         shape = page.evaluate(SHAPE_JS)
-        stable = stable + 1 if shape == previous else 0
+        stable = stable + 1 if shape == previous and not requests.pending else 0
         if stable >= checks:
             return
         previous = shape
@@ -138,11 +154,12 @@ def capture(url: str, out: Path, now: datetime) -> int:
                 )
                 context.clock.set_fixed_time(now)
                 page = context.new_page()
+                requests = _OpenRequests(page)
                 page.goto(url.rstrip("/") + "/?lang=en", wait_until="networkidle")
                 page.add_style_tag(content=STILL_CSS)
                 for view in _views(page):
                     page.evaluate("view => switchView(view)", view)
-                    _wait_until_settled(page)
+                    _wait_until_settled(page, requests)
                     page.evaluate(MASK_CLOCK_TEXT_JS, [list(CLOCK_TEXT_SELECTORS), list(LIVE_TIMESTAMP_SELECTORS)])
                     page.evaluate("() => document.fonts.ready")
                     name = f"{view}--{theme}--{size}"
