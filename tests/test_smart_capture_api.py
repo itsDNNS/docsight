@@ -141,7 +141,8 @@ class TestSmartCaptureSettingsRender:
     def test_settings_contains_smart_capture_section(self, client):
         resp = client.get("/settings")
         html = resp.data.decode()
-        assert 'id="panel-smart_capture"' in html
+        assert 'id="panel-evidence"' in html
+        assert html.index('id="panel-evidence"') < html.index('id="block-smart_capture"')
 
     def test_settings_contains_trigger_cards(self, client):
         resp = client.get("/settings")

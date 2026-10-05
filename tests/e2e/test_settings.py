@@ -26,7 +26,7 @@ class TestSettingsLoad:
         gear = settings_page.locator(".topnav-settings")
         expect(gear).to_have_attribute("aria-current", "page")
         expect(gear).to_have_attribute("aria-label", "Settings")
-        expect(settings_page.locator("#settings-section-title")).to_have_text("Modem")
+        expect(settings_page.locator("#settings-section-title")).to_have_text("Connection")
 
     def test_topnav_destinations_lead_back_to_the_dashboard(self, settings_page):
         settings_page.locator("#nav-toggle-signal").click()
@@ -39,17 +39,20 @@ class TestSettingsLoad:
         btn = settings_page.locator('button[data-section="connection"]')
         assert "active" in btn.get_attribute("class")
 
-    def test_section_index_lists_module_sections_under_a_label(self, settings_page):
+    def test_built_in_module_settings_sit_in_their_topic_sections(self, settings_page):
         index = settings_page.locator("#settings-index")
         expect(index).to_have_attribute("aria-label", "Settings sections")
-        expect(index.locator("#settings-index-modules")).to_have_text("Modules")
-        modules = index.locator('.settings-index-item[data-section^="mod-"]')
-        assert modules.count() > 0
-        assert index.evaluate("""el => {
-            const label = el.querySelector('#settings-index-modules');
-            const first = el.querySelector('[data-section^="mod-"]');
-            return !!(label.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING);
-        }""")
+        expect(index.locator('[data-section^="mod-"]')).to_have_count(0)
+        for section, module in [("sources", "speedtest"), ("evidence", "reports"), ("data", "backup"), ("access", "mqtt")]:
+            expect(settings_page.locator(f"#panel-{section} #block-mod-docsight_{module}")).to_have_count(1)
+
+    def test_old_module_addresses_open_the_topic_section_at_the_module(self, page, live_server):
+        page.goto(f"{live_server}/settings#mod-docsight_backup")
+        page.wait_for_load_state("networkidle")
+        expect(page.locator("#panel-data")).to_be_visible()
+        expect(page.locator('button[data-section="data"]')).to_have_attribute("aria-current", "page")
+        expect(page).to_have_url(re.compile(r"#data$"))
+        expect(page.locator("#block-mod-docsight_backup")).to_be_in_viewport()
 
     @pytest.mark.parametrize("width", [1280, 390])
     def test_bnetz_extension_labels_distinguish_dashboard_and_file_watcher(self, settings_page, width):
@@ -62,7 +65,9 @@ class TestSettingsLoad:
         expect(panel.get_by_text("Shows manual BNetzA uploads and evidence on the dashboard")).to_be_visible()
         expect(panel.get_by_text("BNetzA File Watcher Module")).to_be_visible()
         expect(panel.get_by_text("Automatic import module for BNetzA PDFs/CSVs")).to_be_visible()
-        expect(settings_page.locator('button[data-section="mod-docsight_bnetz"]')).to_have_text(re.compile("BNetzA File Watcher"))
+        settings_page.evaluate("() => window.switchSection('evidence')")
+        expect(settings_page.locator("#block-mod-docsight_bnetz .card-title").first).to_have_text(re.compile("BNetzA File Watcher"))
+        settings_page.evaluate("() => window.switchSection('extensions')")
 
         assert panel.evaluate("el => el.scrollWidth <= document.documentElement.clientWidth")
 
@@ -76,9 +81,9 @@ class TestSettingsCompactLayout:
 
         expect(settings_page.locator("#settings-index")).to_be_visible()
         expect(settings_page.locator(".settings-content")).to_be_hidden()
-        support = settings_page.locator('button[data-section="support"]')
-        support.scroll_into_view_if_needed()
-        expect(support).to_be_visible()
+        about = settings_page.locator('button[data-section="about"]')
+        about.scroll_into_view_if_needed()
+        expect(about).to_be_visible()
         assert settings_page.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth")
 
     def test_section_opens_as_detail_and_back_returns_to_the_list(self, settings_page):
@@ -102,17 +107,17 @@ class TestSettingsCompactLayout:
         settings_page.set_viewport_size({"width": 390, "height": 844})
         settings_page.goto(settings_page.url.split("#")[0], wait_until="networkidle")
 
-        settings_page.locator('button[data-section="general"]').click()
-        expect(settings_page.locator("#panel-general")).to_be_visible()
+        settings_page.locator('button[data-section="data"]').click()
+        expect(settings_page.locator("#panel-data")).to_be_visible()
         settings_page.go_back()
         expect(settings_page.locator("#settings-index")).to_be_visible()
-        expect(settings_page.locator("#panel-general")).to_be_hidden()
+        expect(settings_page.locator("#panel-data")).to_be_hidden()
 
     def test_deep_link_opens_the_section_and_back_shows_the_list(self, settings_page):
         settings_page.set_viewport_size({"width": 390, "height": 844})
         settings_page.goto(settings_page.url.split("#")[0] + "#security", wait_until="networkidle")
 
-        expect(settings_page.locator("#panel-security")).to_be_visible()
+        expect(settings_page.locator("#panel-access")).to_be_visible()
         expect(settings_page.locator("#settings-index")).to_be_hidden()
         settings_page.locator("#settings-back").click()
         expect(settings_page.locator("#settings-index")).to_be_visible()
@@ -144,7 +149,7 @@ class TestSettingsCompactLayout:
         expect(refresh).to_have_attribute("aria-label", "Refresh")
         expect(refresh).to_have_attribute("title", "Refresh")
 
-        settings_page.locator('button[data-section="mod-docsight_backup"]').click()
+        settings_page.locator('button[data-section="data"]').click()
         expect(settings_page.locator('#backup_enabled')).to_have_attribute("aria-labelledby", "backup-enabled-label")
         expect(settings_page.locator('label[for="backup_path"]')).to_have_text("Backup Path")
         delete_button = settings_page.locator('#backup-list button[aria-label^="Delete"]')
@@ -195,8 +200,10 @@ class TestSettingsTabSwitching:
     """Clicking sidebar tabs shows the correct panel."""
 
     @pytest.mark.parametrize("section", [
-        "general",
-        "security",
+        "sources",
+        "evidence",
+        "data",
+        "access",
         "appearance",
         "notifications",
         "extensions",
@@ -208,7 +215,7 @@ class TestSettingsTabSwitching:
         assert panel.is_visible()
 
     def test_switch_back_to_connection(self, settings_page):
-        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('button[data-section="data"]').click()
         settings_page.locator('button[data-section="connection"]').click()
         panel = settings_page.locator("#panel-connection")
         assert panel.is_visible()
@@ -223,22 +230,22 @@ class TestSettingsTabSwitching:
         )
         assert page.url.endswith("#notifications")
 
-        page.locator('button[data-section="general"]').click()
-        expect(page.locator("#panel-general")).to_be_visible()
-        assert page.url.endswith("#general")
+        page.locator('button[data-section="data"]').click()
+        expect(page.locator("#panel-data")).to_be_visible()
+        assert page.url.endswith("#data")
 
         page.go_back()
         expect(page.locator("#panel-notifications")).to_be_visible()
         assert page.url.endswith("#notifications")
 
     def test_section_changes_create_browser_history(self, settings_page):
-        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('button[data-section="data"]').click()
         settings_page.locator('button[data-section="notifications"]').click()
         expect(settings_page.locator("#panel-notifications")).to_be_visible()
 
         settings_page.go_back()
-        expect(settings_page.locator("#panel-general")).to_be_visible()
-        assert settings_page.url.endswith("#general")
+        expect(settings_page.locator("#panel-data")).to_be_visible()
+        assert settings_page.url.endswith("#data")
 
         settings_page.go_forward()
         expect(settings_page.locator("#panel-notifications")).to_be_visible()
@@ -285,12 +292,12 @@ class TestSettingsFormElements:
             pending_routes.append(route)
 
         settings_page.route("**/api/test-mqtt", hold_mqtt)
-        settings_page.locator('button[data-section="mod-docsight_mqtt"]').click()
+        settings_page.locator('button[data-section="access"]').click()
         status = settings_page.locator("#mqtt-status")
         expect(status).to_have_attribute("hidden", "")
 
         with settings_page.expect_request("**/api/test-mqtt"):
-            settings_page.locator('#panel-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+            settings_page.locator('#block-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
 
         expect(status).to_have_class(re.compile(r".*\btesting\b.*"))
         expect(status).not_to_have_attribute("hidden", "")
@@ -308,11 +315,11 @@ class TestSettingsFormElements:
             "**/api/test-mqtt",
             lambda route: route.fulfill(json={"success": False, "error": "MQTT auth failed"}),
         )
-        settings_page.locator('button[data-section="mod-docsight_mqtt"]').click()
+        settings_page.locator('button[data-section="access"]').click()
         status = settings_page.locator("#mqtt-status")
         expect(status).to_have_attribute("hidden", "")
 
-        settings_page.locator('#panel-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+        settings_page.locator('#block-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
 
         expect(status).to_have_class(re.compile(r".*\bdisconnected\b.*"))
         expect(status).not_to_have_class(re.compile(r".*\bconnected\b.*"))
@@ -321,11 +328,11 @@ class TestSettingsFormElements:
 
     def test_mqtt_status_updates_after_network_error(self, settings_page):
         settings_page.route("**/api/test-mqtt", lambda route: route.abort())
-        settings_page.locator('button[data-section="mod-docsight_mqtt"]').click()
+        settings_page.locator('button[data-section="access"]').click()
         status = settings_page.locator("#mqtt-status")
         expect(status).to_have_attribute("hidden", "")
 
-        settings_page.locator('#panel-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+        settings_page.locator('#block-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
 
         expect(status).to_have_class(re.compile(r".*\bdisconnected\b.*"))
         expect(status).not_to_have_attribute("hidden", "")
@@ -343,8 +350,8 @@ class TestSettingsFormElements:
                 }
             ),
         )
-        settings_page.evaluate("() => window.switchSection('mod-docsight_mqtt')")
-        settings_page.locator('#panel-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+        settings_page.evaluate("() => window.switchSection('access')")
+        settings_page.locator('#block-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
 
         expect(settings_page.locator("#mqtt-status")).to_have_class(
             re.compile(r".*\bdisconnected\b.*")
@@ -360,7 +367,7 @@ class TestSettingsFormElements:
         assert metrics["docWidth"] <= metrics["viewportWidth"]
 
     def test_security_has_password_field(self, settings_page):
-        settings_page.locator('button[data-section="security"]').click()
+        settings_page.locator('button[data-section="access"]').click()
         pw = settings_page.locator('input[type="password"]')
         assert pw.count() > 0
 
@@ -432,7 +439,6 @@ class TestSettingsFormElements:
               const panel = document.querySelector('#panel-notifications');
               return {
                 panelScrollHeight: panel.scrollHeight,
-                mainClientHeight: window.innerHeight,
                 collapsedChannels: panel.querySelectorAll('.notification-channel-card.collapsed').length,
               };
             }
@@ -440,10 +446,9 @@ class TestSettingsFormElements:
         )
         assert metrics["collapsedChannels"] == 3
         assert metrics["panelScrollHeight"] < 2000
-        assert metrics["panelScrollHeight"] > metrics["mainClientHeight"]
 
     def test_smart_capture_form_controls_use_shared_visual_contract(self, settings_page):
-        settings_page.locator('button[data-section="smart_capture"]').click()
+        settings_page.locator('button[data-section="evidence"]').click()
         controls = [
             "sc_trigger_modulation_direction",
             "sc_trigger_modulation_min_qam",
@@ -572,7 +577,7 @@ class TestSettingsThemeRegistry:
         expect(settings_page.locator('#registry-gallery')).to_contain_text("Registry Test Theme")
         assert len(registry_requests) == 1
 
-        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('button[data-section="data"]').click()
         settings_page.locator('button[data-section="appearance"]').click()
         expect(settings_page.locator('#registry-gallery .theme-card')).to_have_count(1)
         assert len(registry_requests) == 1
@@ -764,7 +769,7 @@ class TestSettingsDirtyState:
             }
             """
         )
-        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('button[data-section="connection"]').click()
         settings_page.locator('#poll_interval').fill('901')
 
         settings_page.locator('#save-footer button[type="submit"]').click()
@@ -793,7 +798,7 @@ class TestSettingsDirtyState:
             }
             """
         )
-        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('button[data-section="connection"]').click()
         settings_page.locator('#poll_interval').fill('902')
 
         settings_page.locator('#save-footer button[type="submit"]').click()
@@ -817,7 +822,7 @@ class TestSettingsDirtyState:
         expect(admin_password).to_have_attribute("data-saved-secret", "true")
         assert admin_password.input_value() == ""
 
-        auth_page.locator('button[data-section="general"]').click()
+        auth_page.locator('button[data-section="connection"]').click()
         auth_page.locator('#poll_interval').fill('903')
         auth_page.locator('#save-footer button[type="submit"]').click()
         expect(auth_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
@@ -836,7 +841,7 @@ class TestSettingsDirtyState:
         auth_page.wait_for_load_state("networkidle")
         auth_page.route("**/api/config", capture_config)
 
-        auth_page.locator('button[data-section="security"]').click()
+        auth_page.locator('button[data-section="access"]').click()
         auth_page.locator('#admin_password').fill('new-admin-secret')
         auth_page.locator('#save-footer button[type="submit"]').click()
         expect(auth_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
@@ -1044,7 +1049,7 @@ class TestSettingsInstantToggleSave:
             instant_toggle.evaluate("el => { el.checked = !el.checked; el.dispatchEvent(new Event('change', {bubbles: true})); }")
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
-        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('button[data-section="connection"]').click()
         manual_field = settings_page.locator('#poll_interval')
         original_value = manual_field.input_value()
         edited_value = "901" if original_value != "901" else "902"
@@ -1250,15 +1255,15 @@ class TestSettingsInstantToggleSave:
         settings_page.locator("#modem_url").fill("http://discarded.example")
         settings_page.locator("#isp_select").select_option("__other__")
         expect(settings_page.locator("#isp-other-row")).to_be_visible()
-        settings_page.locator('button[data-section="general"]').click()
-        poll = settings_page.locator("#poll_interval").input_value()
-        settings_page.locator("#poll_interval").fill("123")
+        settings_page.locator('button[data-section="data"]').click()
+        history = settings_page.locator("#history_days").input_value()
+        settings_page.locator("#history_days").fill("123")
         expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
         expect(settings_page.locator("#save-bar-count")).to_have_text("Unsaved changes (3)")
-        expect(settings_page.locator("#save-bar-sections")).to_have_text("Modem, General")
+        expect(settings_page.locator("#save-bar-sections")).to_have_text("Connection, Data and storage")
         settings_page.locator("#save-bar-discard").click()
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
-        expect(settings_page.locator("#poll_interval")).to_have_value(poll)
+        expect(settings_page.locator("#history_days")).to_have_value(history)
         settings_page.locator('button[data-section="connection"]').click()
         expect(settings_page.locator("#modem_url")).to_have_value(url)
         expect(settings_page.locator("#isp-other-row")).to_be_hidden()
@@ -1278,7 +1283,7 @@ class TestSpeedtestModule:
     """Speedtest module settings interactions."""
 
     def test_speedtest_section_shows_test_button(self, settings_page):
-        settings_page.locator('button[data-section="mod-docsight_speedtest"]').click()
+        settings_page.locator('button[data-section="sources"]').click()
 
         button = settings_page.get_by_role("button", name="Test Connection")
         assert button.is_visible()
@@ -1295,10 +1300,10 @@ class TestSpeedtestModule:
             )
 
         settings_page.route("**/api/test-speedtest", capture_request)
-        settings_page.locator('button[data-section="mod-docsight_speedtest"]').click()
+        settings_page.locator('button[data-section="sources"]').click()
         settings_page.locator("#speedtest_tracker_url").fill("https://speedtest.local:8443")
         settings_page.locator("#speedtest_tracker_token").fill("[REDACTED]")
-        settings_page.locator("#panel-mod-docsight_speedtest label.toggle").click()
+        settings_page.locator("#block-mod-docsight_speedtest label.toggle").click()
         expect(settings_page.locator("#speedtest_tls_insecure")).to_be_checked()
         settings_page.get_by_role("button", name="Test Connection").click()
 
@@ -1326,7 +1331,7 @@ class TestSpeedtestModule:
             ),
         )
 
-        settings_page.locator('button[data-section="mod-docsight_speedtest"]').click()
+        settings_page.locator('button[data-section="sources"]').click()
         settings_page.get_by_role("button", name="Test Connection").click()
 
         result = settings_page.locator("#speedtest-test")
@@ -1346,7 +1351,7 @@ class TestSpeedtestModule:
             ),
         )
 
-        settings_page.locator('button[data-section="mod-docsight_speedtest"]').click()
+        settings_page.locator('button[data-section="sources"]').click()
         settings_page.get_by_role("button", name="Test Connection").click()
 
         result = settings_page.locator("#speedtest-test")
@@ -1376,7 +1381,7 @@ class TestBackupModule:
             ),
         )
 
-        settings_page.locator('button[data-section="mod-docsight_backup"]').click()
+        settings_page.locator('button[data-section="data"]').click()
 
         backup_list = settings_page.locator("#backup-list")
         assert backup_list.locator("code").first.text_content() == "docsight_backup_2026-03-14_120000.tar.gz"

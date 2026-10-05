@@ -34,66 +34,51 @@
         <h1 class="settings-page-title">{{ t.settings }}</h1>
     </div>
     <div class="settings-shell">
+        {% set settings_sections = [
+            ('connection', 'radio', t.get('settings_section_connection', 'Connection'), t.get('settings_section_connection_summary', 'Modem, provider and polling')),
+            ('sources', 'activity', t.get('settings_section_sources', 'Measurement sources'), t.get('settings_section_sources_summary', 'Connection Monitor, speed tests, BQM, SmokePing and weather')),
+            ('notifications', 'bell', t.get('settings_section_notifications', 'Notifications'), t.get('settings_section_notifications_summary', 'Channels and rules for alerts')),
+            ('evidence', 'file-text', t.get('settings_section_evidence', 'Evidence and reports'), t.get('settings_section_evidence_summary', 'Smart Capture, report details and BNetzA files')),
+            ('data', 'database', t.get('settings_section_data', 'Data and storage'), t.get('settings_section_data_summary', 'History, snapshots and backups')),
+            ('appearance', 'palette', t.get('settings_section_appearance', 'Appearance and language'), t.get('settings_section_appearance_summary', 'Theme, mode, language and units')),
+            ('access', 'shield', t.get('settings_section_access', 'Access and integrations'), t.get('settings_section_access_summary', 'Password, API tokens and MQTT')),
+            ('extensions', 'package', t.get('settings_section_extensions', 'Extensions'), t.get('settings_section_extensions_summary', 'Turn modules on or off, community add-ons')),
+            ('about', 'info', t.get('settings_section_about', 'About DOCSight'), t.get('settings_section_about_summary', 'Version, updates and support')),
+        ] %}
+        {% set placed_modules = {
+            'sources': ['docsight.connection_monitor', 'docsight.speedtest', 'docsight.bqm', 'docsight.smokeping', 'docsight.weather'],
+            'evidence': ['docsight.reports', 'docsight.bnetz'],
+            'data': ['docsight.backup'],
+            'access': ['docsight.mqtt'],
+        } %}
+        {% set placed_module_ids = placed_modules.values()|sum(start=[]) %}
+        {% set community_settings = [] %}
+        {% for mod in modules if mod.template_paths.get('settings') and mod.id not in placed_module_ids %}
+        {% if community_settings.append(mod) %}{% endif %}
+        {% endfor %}
         <nav class="settings-index" id="settings-index" aria-label="{{ t.get('settings_sections', 'Settings sections') }}">
-            <button type="button" class="settings-index-item active" data-section="connection" aria-current="page">
-                <i data-lucide="radio" aria-hidden="true"></i>
-                <span>{{ t.step_modem }}</span>
+            {% for id, icon, title, summary in settings_sections %}
+            <button type="button" class="settings-index-item{{ ' active' if loop.first }}" data-section="{{ id }}"{% if loop.first %} aria-current="page"{% endif %}>
+                <i data-lucide="{{ icon }}" aria-hidden="true"></i>
+                <span class="settings-index-text">
+                    <span class="settings-index-title">{{ title }}</span>
+                    <span class="settings-index-summary">{{ summary }}</span>
+                </span>
                 <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
             </button>
-            <button type="button" class="settings-index-item" data-section="general">
-                <i data-lucide="settings" aria-hidden="true"></i>
-                <span>{{ t.general }}</span>
-                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="settings-index-item" data-section="notifications">
-                <i data-lucide="bell" aria-hidden="true"></i>
-                <span>{{ t.notifications }}</span>
-                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="settings-index-item" data-section="smart_capture">
-                <i data-lucide="zap" aria-hidden="true"></i>
-                <span>{{ t.get('smart_capture', 'Smart Capture') }}</span>
-                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="settings-index-item" data-section="appearance">
-                <i data-lucide="palette" aria-hidden="true"></i>
-                <span>{{ t.appearance }}</span>
-                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="settings-index-item" data-section="security">
-                <i data-lucide="shield" aria-hidden="true"></i>
-                <span>{{ t.security }}</span>
-                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="settings-index-item" data-section="extensions">
-                <i data-lucide="package" aria-hidden="true"></i>
-                <span>{{ t.get('settings_extensions', 'Extensions') }}</span>
-                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="settings-index-item" data-section="about">
-                <i data-lucide="info" aria-hidden="true"></i>
-                <span>{{ t.get('about_project', 'About Project') }}</span>
-                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
-            </button>
-            {% set settings_modules = [] %}
-            {% for mod in modules if mod.template_paths.get('settings') %}
-            {% if settings_modules.append(mod) %}{% endif %}
             {% endfor %}
-            {% if settings_modules %}
+            {% if community_settings %}
             <div class="settings-index-label" id="settings-index-modules">{{ t.modules }}</div>
-            {% for mod in settings_modules|sort(attribute='name') %}
+            {% for mod in community_settings|sort(attribute='name') %}
             <button type="button" class="settings-index-item" data-section="mod-{{ mod.id|replace('.', '_') }}">
                 <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}" aria-hidden="true"></i>
-                <span>{{ t.get(mod.menu.label_key, mod.name) }}</span>
+                <span class="settings-index-text">
+                    <span class="settings-index-title">{{ t.get(mod.menu.label_key, mod.name) }}</span>
+                </span>
                 <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
             </button>
             {% endfor %}
             {% endif %}
-            <button type="button" class="settings-index-item" data-section="support">
-                <i data-lucide="heart-handshake" aria-hidden="true"></i>
-                <span>{{ t.support_title }}</span>
-                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
-            </button>
         </nav>
 
         <div class="settings-content">
@@ -102,7 +87,7 @@
                     <i data-lucide="chevron-left" aria-hidden="true"></i>
                     {{ t.settings }}
                 </button>
-                <h2 class="settings-section-title" id="settings-section-title">{{ t.step_modem }}</h2>
+                <h2 class="settings-section-title" id="settings-section-title">{{ settings_sections[0][2] }}</h2>
             </div>
             <div class="error-msg" id="global-error"></div>
             <form id="settings-form" autocomplete="off">
@@ -127,18 +112,40 @@
                 </div>
                 {% endif %}
 
-                {% include 'settings/connection.html' %}
-                {% include 'settings/general.html' %}
-                {% include 'settings/notifications.html' %}
-                {% include 'settings/smart_capture.html' %}
-                {% include 'settings/appearance.html' %}
-                {% include 'settings/security.html' %}
-                {% include 'settings/extensions.html' %}
-                {% include 'settings/about.html' %}
-                {% include 'settings/support.html' %}
+                <section class="settings-panel active" id="panel-connection">
+                    {% include 'settings/connection.html' %}
+                </section>
+                <section class="settings-panel" id="panel-sources">
+                    {% for module_id in placed_modules.sources %}{% include 'settings/module_block.html' %}{% endfor %}
+                </section>
+                <section class="settings-panel" id="panel-notifications">
+                    {% include 'settings/notifications.html' %}
+                </section>
+                <section class="settings-panel" id="panel-evidence">
+                    {% include 'settings/smart_capture.html' %}
+                    {% for module_id in placed_modules.evidence %}{% include 'settings/module_block.html' %}{% endfor %}
+                </section>
+                <section class="settings-panel" id="panel-data">
+                    {% include 'settings/data.html' %}
+                    {% for module_id in placed_modules.data %}{% include 'settings/module_block.html' %}{% endfor %}
+                </section>
+                <section class="settings-panel" id="panel-appearance">
+                    {% include 'settings/appearance.html' %}
+                    {% include 'settings/localization.html' %}
+                </section>
+                <section class="settings-panel" id="panel-access">
+                    {% include 'settings/security.html' %}
+                    {% for module_id in placed_modules.access %}{% include 'settings/module_block.html' %}{% endfor %}
+                </section>
+                <section class="settings-panel" id="panel-extensions">
+                    {% include 'settings/extensions.html' %}
+                </section>
+                <section class="settings-panel" id="panel-about">
+                    {% include 'settings/about.html' %}
+                </section>
 
-                {# ── Module Settings Panels ── #}
-                {% for mod in modules if mod.template_paths.get('settings') %}
+                {# ── Community module settings keep their own sections ── #}
+                {% for mod in community_settings %}
                 {% include mod.template_paths['settings'] %}
                 {% endfor %}
 

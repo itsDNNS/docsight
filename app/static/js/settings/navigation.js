@@ -73,10 +73,29 @@ function showSectionList() {
     if (active) active.focus({preventScroll: true});
 }
 
-/* Resolve the section referenced by the current URL hash (default: connection). */
+/* Resolve the section referenced by the current URL hash (default: connection).
+   Addresses of earlier sections and module pages point at a block inside a
+   section (id "block-<address>"); they open that section and scroll to it. */
+var _pendingBlock = null;
+
 function _sectionFromHash() {
     var hash = location.hash.replace('#', '');
-    return (hash && document.getElementById('panel-' + hash)) ? hash : 'connection';
+    if (hash && document.getElementById('panel-' + hash)) return hash;
+    var block = hash && document.getElementById('block-' + hash);
+    var panel = block && block.closest('.settings-panel');
+    if (panel) {
+        _pendingBlock = block;
+        return panel.id.replace(/^panel-/, '');
+    }
+    return 'connection';
+}
+
+function _revealPendingBlock() {
+    var block = _pendingBlock;
+    _pendingBlock = null;
+    if (!block) return;
+    history.replaceState(null, '', '#' + _currentSection);
+    block.scrollIntoView({block: 'start'});
 }
 
 /* Non-pushing variant for Back/Forward and manual hash edits: the browser has
@@ -88,8 +107,9 @@ function _syncSectionFromHash() {
         return;
     }
     var id = _sectionFromHash();
-    if (id === _currentSection && document.querySelector('.settings-page.is-detail')) return;
+    if (id === _currentSection && !_pendingBlock && document.querySelector('.settings-page.is-detail')) return;
     _applySection(id);
+    _revealPendingBlock();
 }
 
 window.addEventListener('popstate', _syncSectionFromHash);
@@ -159,9 +179,10 @@ function init() {
         return;
     }
     history.replaceState(null, '', '#' + _currentSection);
+    _revealPendingBlock();
 }
 function showsSaveFooter() {
-    return _currentSection !== 'support' && _currentSection !== 'about';
+    return _currentSection !== 'about';
 }
 return {init, showsSaveFooter, switchSection, toggleCardCollapse, syncCard: _syncCardCollapseAria};
 };

@@ -131,7 +131,7 @@ class TestTheme:
         assert root.evaluate(colors) != original
 
         if leave_section:
-            settings_page.locator('button[data-section="general"]').click()
+            settings_page.locator('button[data-section="data"]').click()
         else:
             settings_page.locator("#theme-preview-overlay button", has_text="Cancel").click()
 

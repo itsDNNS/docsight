@@ -1,5 +1,5 @@
 <!-- ═══ Panel: Connection Monitor (Module) ═══ -->
-<div class="settings-panel" id="panel-mod-docsight_connection_monitor">
+<div class="settings-module" id="block-mod-docsight_connection_monitor">
     <div class="card">
         <div class="card-header">
             <div class="card-title-group">
@@ -42,11 +42,6 @@
                 <label class="form-label" for="connection_monitor_tcp_port">{{ t['docsight.connection_monitor.cm_tcp_port'] or 'TCP port' }}</label>
                 <input class="form-input" type="number" id="connection_monitor_tcp_port" name="connection_monitor_tcp_port" value="{{ config.connection_monitor_tcp_port or 443 }}" min="1" max="65535">
                 <span class="form-hint">{{ t['docsight.connection_monitor.cm_tcp_port_hint'] or 'Port used for TCP probes. Default: 443.' }}</span>
-            </div>
-            <div class="form-field">
-                <label class="form-label" for="connection_monitor_retention_days">{{ t['docsight.connection_monitor.cm_retention'] or 'Keep samples (days)' }}</label>
-                <input class="form-input" type="number" id="connection_monitor_retention_days" name="connection_monitor_retention_days" value="{{ config.connection_monitor_retention_days if config.connection_monitor_retention_days is not none else 0 }}" min="0">
-                <span class="form-hint">{{ t['docsight.connection_monitor.cm_retention_hint'] or '0 = keep all data. Otherwise, delete samples older than this many days.' }}</span>
             </div>
             <div class="form-field">
                 <label class="form-label" for="connection_monitor_outage_threshold">{{ t['docsight.connection_monitor.cm_outage_threshold'] or 'Outage threshold' }}</label>

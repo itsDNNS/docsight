@@ -185,13 +185,12 @@ def test_critical_browser_journeys_through_real_prefix_stripping_proxy(
     _require(worker_contract, "mounted service-worker scope contract failed")
 
     page.goto(f"{app_url}/settings", wait_until="domcontentloaded")
-    module_nav = page.locator('.settings-index-item[data-section^="mod-"]').first
-    _require(module_nav.count() == 1, "settings module navigation is missing")
-    module_section = module_nav.get_attribute("data-section")
-    module_nav.click()
+    section_nav = page.locator('.settings-index-item[data-section="sources"]')
+    _require(section_nav.count() == 1, "settings section navigation is missing")
+    section_nav.click()
     _require(
-        page.locator(f"#panel-{module_section}.active").count() == 1,
-        "settings module navigation did not activate its panel",
+        page.locator("#panel-sources.active").count() == 1,
+        "settings section navigation did not activate its panel",
     )
 
     page.goto(f"{app_url}/", wait_until="domcontentloaded")

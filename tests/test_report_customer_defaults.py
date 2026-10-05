@@ -289,7 +289,7 @@ def test_reports_settings_panel_renders_saved_values(
 
     assert response.status_code == 200
     soup = BeautifulSoup(response.get_data(as_text=True), "html.parser")
-    panel = soup.select_one("#panel-mod-docsight_reports")
+    panel = soup.select_one("#panel-evidence #block-mod-docsight_reports")
     assert panel is not None
     assert "Customer details for reports" in panel.get_text(" ", strip=True)
     for key, value in values.items():
