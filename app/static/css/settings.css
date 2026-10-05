@@ -439,78 +439,7 @@ button.notification-collapse-button {
   gap: var(--space-sm);
 }
 
-/* ─── Form Fields ─── */
-.form-grid {
-  display: grid;
-  gap: var(--space-md);
-  align-items: start;
-}
-.form-grid.cols-2 {
-  grid-template-columns: 1fr 1fr;
-}
-
-.form-field {
-  display: grid;
-  gap: 6px;
-}
-
-.form-label {
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.form-input, .form-select {
-  background: var(--tint-hover);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
-  font-family: inherit;
-  font-size: 0.92rem;
-  color: var(--text);
-  transition: all 0.2s;
-  min-height: 44px;
-  width: 100%;
-}
-.form-input:focus, .form-select:focus { outline: none; }
-.form-input:focus-visible, .form-select:focus-visible {
-  outline: 2px solid var(--amethyst);
-  outline-offset: 2px;
-}
-[data-theme="light"] .form-input,
-[data-theme="light"] .form-select {
-  background: var(--border-subtle);
-}
-.form-input:focus, .form-select:focus {
-  border-color: var(--amethyst);
-  box-shadow: 0 0 0 3px var(--amethyst-muted);
-  background: color-mix(in srgb, var(--amethyst) 4%, transparent);
-}
-.form-input::placeholder {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.form-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%237880a6' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 6l3.5 4 3.5-4z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 36px;
-  cursor: pointer;
-}
-.form-select option {
-  background: var(--surface);
-  color: var(--text);
-}
-
-.form-hint {
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
+/* ─── Form layout (fields come from components.css) ─── */
 .input-with-action {
   display: flex;
   gap: var(--space-sm);
@@ -524,6 +453,7 @@ button.notification-collapse-button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-md);
   padding: 14px 0;
   border-bottom: 1px solid var(--glass-border);
 }
@@ -534,13 +464,6 @@ button.notification-collapse-button {
 }
 
 /* Active toggle state — full-bleed highlight with left accent */
-.toggle-row:has(input:checked):not(.toggle-row-disabled) {
-  background: var(--tint-subtle);
-  margin-inline: calc(var(--card-padding) * -1);
-  padding-inline: var(--card-padding);
-  border-left: 2px solid var(--amethyst);
-  padding-left: calc(var(--card-padding) - 2px);
-}
 /* Dim unchecked extensions so enabled ones pop */
 #panel-extensions .toggle-row:not(:has(input:checked)):not(.toggle-row-disabled) .toggle-title {
   color: var(--text-secondary);
@@ -573,40 +496,6 @@ button.notification-collapse-button {
 .toggle-desc {
   font-size: 0.78rem;
   color: var(--muted);
-}
-
-.toggle {
-  position: relative;
-  display: inline-block;
-  width: 44px; height: 24px;
-  flex-shrink: 0;
-}
-.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-.toggle-slider {
-  position: absolute;
-  inset: 0;
-  background: rgba(120,130,180,0.3);
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  transition: all 0.3s var(--ease-smooth);
-}
-[data-theme="light"] .toggle-slider {
-  background: rgba(0,0,0,0.22);
-}
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  width: 18px; height: 18px;
-  left: 3px; bottom: 3px;
-  background: #fff;
-  border-radius: 50%;
-  transition: all 0.3s var(--ease-smooth);
-}
-.toggle input:checked + .toggle-slider {
-  background: var(--amethyst);
-}
-.toggle input:checked + .toggle-slider::before {
-  transform: translateX(20px);
 }
 
 /* ─── Settings-specific buttons ─── */
@@ -1444,7 +1333,6 @@ button.notification-collapse-button {
     padding-bottom: calc(var(--space-xl) + 88px + env(safe-area-inset-bottom, 0px));
     max-width: none;
   }
-  .form-grid.cols-2 { grid-template-columns: 1fr; }
   .support-grid { grid-template-columns: 1fr; }
   .support-star { flex-wrap: wrap; }
   .support-star-link { margin-left: 0; }
@@ -1509,7 +1397,6 @@ button.notification-collapse-button {
     margin-top: 56px;
     padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   }
-  .form-grid.cols-2 { grid-template-columns: 1fr; }
   .support-grid { grid-template-columns: 1fr; }
   .support-star { flex-wrap: wrap; }
   .support-star-link { margin-left: 0; }

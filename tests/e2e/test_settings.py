@@ -508,7 +508,9 @@ class TestSettingsFormElements:
             """,
             controls,
         )
-        assert all(item["height"] >= 44 for item in metrics)
+        # One shared control height (40px on desktop, 44px on touch and phone-width screens).
+        assert len({round(item["height"]) for item in metrics}) == 1
+        assert all(item["height"] >= 40 for item in metrics)
         assert all(item["bg"] != "rgb(255, 255, 255)" for item in metrics)
 
     def test_notifications_panel_has_per_severity_cooldown_rows(self, settings_page):

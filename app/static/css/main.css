@@ -293,24 +293,6 @@ body.nav-sheet-open { overflow: hidden; }
   gap: 6px;
 }
 .dark-toggle-label svg { width: 14px; height: 14px; }
-.toggle-slider {
-  position: absolute; inset: 0;
-  background: rgba(120,130,180,0.3);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.3s var(--ease-smooth);
-}
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  width: 20px; height: 20px;
-  left: 4px; bottom: 4px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.3s var(--ease-smooth);
-}
-.toggle input:checked + .toggle-slider { background: var(--amethyst); }
-.toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
 
 
 /* ── Main Content (mobile-first) ── */

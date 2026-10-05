@@ -317,74 +317,6 @@
   margin-top: 2px;
 }
 
-/* ── Form ── */
-.form-grid {
-  display: grid;
-  gap: var(--space-md);
-}
-.form-field {
-  display: grid;
-  gap: 6px;
-}
-.form-label {
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.form-input,
-.form-select {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
-  font-family: inherit;
-  font-size: 0.92rem;
-  color: var(--text);
-  transition: all 0.2s;
-  min-height: 44px;
-  width: 100%;
-}
-.form-input:focus, .form-select:focus { outline: none; }
-.form-input:focus-visible, .form-select:focus-visible {
-  outline: 2px solid var(--amethyst);
-  outline-offset: 2px;
-}
-[data-theme="light"] .form-input,
-[data-theme="light"] .form-select {
-  background: rgba(0, 0, 0, 0.03);
-}
-.form-input:focus,
-.form-select:focus {
-  border-color: var(--amethyst);
-  box-shadow: 0 0 0 3px var(--amethyst-muted);
-  background: color-mix(in srgb, var(--amethyst) 4%, transparent);
-}
-.form-input::placeholder {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-.form-input[type="password"] {
-  font-family: var(--font-mono);
-}
-.form-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%237880a6' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 6l3.5 4 3.5-4z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 36px;
-  cursor: pointer;
-}
-.form-select option {
-  background: var(--surface);
-  color: var(--text);
-}
-.form-hint {
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
 /* ── Connection kind and modem picker ── */
 .setup-connection-kind {
   display: grid;
@@ -578,7 +510,6 @@
 .setup-lang-select { padding: var(--space-sm) var(--space-sm); font-size: 0.82rem; }
 .setup-theme-btn { gap: 6px; }
 .setup-subtitle { text-align: center; }
-.form-input[type="file"] { padding: var(--space-sm); }
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
