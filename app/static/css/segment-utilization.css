@@ -80,7 +80,7 @@
 }
 
 .fritz-cable-legend-total {
-    color: var(--text-primary, var(--text));
+    color: var(--text);
 }
 
 .fritz-cable-legend-own {
@@ -131,7 +131,7 @@
 }
 
 .fritz-cable-events-status.is-error {
-    color: var(--danger, #ef4444);
+    color: var(--crit);
 }
 
 .fritz-cable-events-list {
@@ -145,7 +145,7 @@
 
 .fritz-cable-event {
     padding: 12px 14px;
-    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border: 1px solid var(--glass-border);
     border-radius: 10px;
     background: var(--surface-2, rgba(255,255,255,0.02));
     display: flex;
@@ -178,7 +178,7 @@
 
 .fritz-cable-event-time {
     font-size: max(var(--fs-min), 0.9em);
-    color: var(--text-primary, var(--text));
+    color: var(--text);
 }
 
 .fritz-cable-event-duration {
@@ -192,7 +192,7 @@
     flex-wrap: wrap;
     gap: 4px 16px;
     font-size: max(var(--fs-min), 0.85em);
-    color: var(--text-primary, var(--text));
+    color: var(--text);
 }
 
 .fritz-cable-event-stats em {

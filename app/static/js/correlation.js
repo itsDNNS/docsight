@@ -1514,7 +1514,7 @@ function _corrExportPNG() {
     ctx.scale(dpr, dpr);
 
     // Background
-    var bg = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim() || '#1a1a2e';
+    var bg = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#1a1a2e';
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, exp.width / dpr, exp.height / dpr);
 

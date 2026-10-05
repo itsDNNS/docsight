@@ -3,11 +3,11 @@
 /* Expand/collapse button (mirrors .st-expand-btn from Speedtest) */
 .bnetz-expand-btn {
     background: none; border: none; cursor: pointer; padding: 4px;
-    color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;
+    color: var(--muted); display: inline-flex; align-items: center; justify-content: center;
     transition: transform 0.2s ease, color 0.2s ease;
     vertical-align: middle;
 }
-.bnetz-expand-btn:hover { color: var(--text-primary); }
+.bnetz-expand-btn:hover { color: var(--text); }
 .bnetz-expand-btn.open { transform: rotate(90deg); color: var(--accent); }
 .bnetz-expand-btn i { width: 14px; height: 14px; }
 #bnetz-table tbody tr.bnetz-row-expandable { cursor: pointer; }
@@ -20,10 +20,10 @@
 /* Refresh button (mirrors #speedtest-refresh-btn) */
 .bnetz-refresh-btn {
     background: none; border: none; cursor: pointer; padding: 6px;
-    color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;
+    color: var(--muted); display: inline-flex; align-items: center; justify-content: center;
     border-radius: var(--radius-sm); transition: color 0.2s ease, background 0.2s ease;
 }
-.bnetz-refresh-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+.bnetz-refresh-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
 .bnetz-refresh-btn i { width: 16px; height: 16px; }
 
 /* Measurement table (mirrors #speedtest-table) */
@@ -56,7 +56,7 @@
     display: inline-flex; align-items: center; justify-content: center;
     padding: 4px; margin-right: 4px; border-radius: var(--radius-sm, 4px);
     background: none; border: none; cursor: pointer; font: inherit;
-    color: var(--text-muted); text-decoration: none;
+    color: var(--muted); text-decoration: none;
     transition: color 0.2s ease, background 0.2s ease;
 }
 .bnetz-action-btn:hover { color: var(--accent); background: rgba(168,85,247,0.1); }
@@ -152,7 +152,7 @@
     #bnetz-table > tbody > tr[data-bnetz-idx] > td::before {
         content: attr(data-label);
         flex: 0 0 min(46%, 150px);
-        color: var(--text-secondary, var(--text-muted));
+        color: var(--text-secondary, var(--muted));
         font-size: max(var(--fs-min), 0.82em);
         font-weight: 600;
         text-align: left;

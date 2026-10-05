@@ -7,7 +7,7 @@ html { height: -webkit-fill-available; }
 body {
   font-family: var(--font-sans);
   background: var(--void);
-  color: var(--text-primary);
+  color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -73,7 +73,7 @@ body {
 }
 .btn-ghost:hover {
   background: rgba(255,255,255,0.08);
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 /* ── Badges ── */
@@ -94,7 +94,7 @@ body {
 .badge-info { background: var(--info-muted); color: var(--info); }
 .badge-muted {
   background: rgba(120,130,180,0.1);
-  color: var(--text-muted);
+  color: var(--muted);
 }
 .desktop-preview-badge {
   display: inline-flex;
@@ -281,7 +281,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-muted);
+  color: var(--muted);
   padding: var(--space-sm) 0;
 }
 
@@ -390,7 +390,7 @@ body {
   margin: 0;
   font-size: 0.98rem;
   line-height: 1.25;
-  color: var(--text-primary);
+  color: var(--text);
 }
 .notice-content p {
   margin: 0;
@@ -412,12 +412,12 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   background: rgba(255,255,255,0.04);
-  color: var(--text-muted);
+  color: var(--muted);
   cursor: pointer;
   transition: all 0.2s var(--ease-out-expo);
 }
 .notice-dismiss:hover {
-  color: var(--text-primary);
+  color: var(--text);
   background: rgba(255,255,255,0.08);
 }
 .notice-dismiss svg { width: 16px; height: 16px; }
@@ -471,12 +471,12 @@ body {
   font-size: 0.82rem;
 }
 .demo-banner-copy span {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.75rem;
   line-height: 1.35;
 }
 .demo-banner-copy .demo-banner-locked {
-  color: var(--warning);
+  color: var(--warn);
 }
 .demo-banner-actions {
   display: flex;
@@ -487,7 +487,7 @@ body {
 .demo-exit-action {
   border: 0;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted);
   font: inherit;
   font-size: 0.78rem;
   text-decoration: underline;
@@ -495,7 +495,7 @@ body {
   cursor: pointer;
 }
 .demo-exit-action:hover {
-  color: var(--text-primary);
+  color: var(--text);
 }
 .demo-exit-action:focus-visible {
   outline: 2px solid var(--amethyst);

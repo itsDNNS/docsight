@@ -221,3 +221,31 @@ class TestGetThemeModules:
 
         assert loader.get_theme_modules() == []
 
+
+
+class TestDeprecatedThemeAliases:
+    """A community theme that still sets a deprecated alias keeps its color."""
+
+    @pytest.mark.parametrize("disabled", [False, True], ids=["enabled", "disabled preview"])
+    def test_alias_tokens_reach_their_canonical_token(self, tmp_path, disabled):
+        mod_dir = tmp_path / "aliastheme"
+        mod_dir.mkdir()
+        (mod_dir / "manifest.json").write_text(json.dumps({
+            "id": "test.aliastheme", "name": "Alias Theme", "description": "d",
+            "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
+            "type": "theme", "contributes": {"theme": "theme.json"},
+        }))
+        theme = json.loads(json.dumps(_VALID_THEME))
+        theme["dark"].update({"--text-muted": "#123456", "--danger": "#654321", "--crit": "#ef0000"})
+        (mod_dir / "theme.json").write_text(json.dumps(theme))
+
+        app = Flask(__name__)
+        loader = ModuleLoader(app, search_paths=[str(tmp_path)],
+                              disabled_ids={"test.aliastheme"} if disabled else None)
+        loader.load_all()
+
+        mod = next(m for m in loader.get_theme_modules() if m.id == "test.aliastheme")
+        assert mod.error is None
+        assert mod.theme_data["dark"]["--muted"] == "#123456"
+        # A canonical token the theme sets itself wins over its alias.
+        assert mod.theme_data["dark"]["--crit"] == "#ef0000"

@@ -205,7 +205,7 @@
   gap: 7px;
   margin: var(--space-sm) auto var(--space-md);
   max-width: 580px;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.75rem;
   line-height: 1.45;
   text-align: center;
@@ -227,7 +227,7 @@
   border: 0;
   background: transparent;
   padding: 4px;
-  color: var(--text-muted);
+  color: var(--muted);
   font: inherit;
   font-size: 0.82rem;
   text-decoration: underline;
@@ -245,7 +245,7 @@
 .desktop-preview-first-run {
   margin: var(--space-md) auto 0;
   max-width: 600px;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.45;
   text-align: center;
@@ -313,7 +313,7 @@
 }
 .settings-card .card-subtitle {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: 2px;
 }
 
@@ -341,7 +341,7 @@
   padding: 14px 16px;
   font-family: inherit;
   font-size: 0.92rem;
-  color: var(--text-primary);
+  color: var(--text);
   transition: all 0.2s;
   min-height: 44px;
   width: 100%;
@@ -362,7 +362,7 @@
   background: color-mix(in srgb, var(--amethyst) 4%, transparent);
 }
 .form-input::placeholder {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 .form-input[type="password"] {
@@ -378,11 +378,11 @@
 }
 .form-select option {
   background: var(--surface);
-  color: var(--text-primary);
+  color: var(--text);
 }
 .form-hint {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 /* ── Connection kind and modem picker ── */
@@ -420,8 +420,8 @@
 .setup-choice-icon { display: inline-flex; color: var(--amethyst-light); }
 .setup-choice-icon svg { width: 20px; height: 20px; }
 .setup-choice-text { display: grid; gap: 2px; }
-.setup-choice-text strong { color: var(--text-primary); font-size: 0.95rem; }
-.setup-choice-text span { color: var(--text-muted); font-size: 0.8rem; line-height: 1.4; }
+.setup-choice-text strong { color: var(--text); font-size: 0.95rem; }
+.setup-choice-text span { color: var(--muted); font-size: 0.8rem; line-height: 1.4; }
 
 .setup-modem-picker {
   display: grid;
@@ -441,7 +441,7 @@
   padding: 6px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--glass-border);
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -451,7 +451,7 @@
   gap: var(--space-sm);
   align-items: baseline;
   padding: 9px 12px;
-  color: var(--text-primary);
+  color: var(--text);
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -466,7 +466,7 @@
 .setup-modem-name { flex: 1 1 auto; min-width: 0; }
 .setup-modem-region {
   flex: none;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.75rem;
   font-weight: 400;
 }
@@ -499,14 +499,14 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
-.setup-detect-title { margin: 0 0 6px; color: var(--text-primary); font-weight: 600; }
+.setup-detect-title { margin: 0 0 6px; color: var(--text); font-weight: 600; }
 .setup-detect-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px var(--space-sm);
 }
-.setup-detect-label { color: var(--text-muted); }
+.setup-detect-label { color: var(--muted); }
 
 .setup-modem-option[hidden],
 .setup-modem-group[hidden],

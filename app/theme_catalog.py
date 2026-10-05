@@ -19,8 +19,18 @@ _REQUIRED_FIELDS = {"id", "name", "description", "version", "author", "minAppVer
 _OPTIONAL_FIELDS = {"homepage", "license"}
 _MODES = ("dark", "light")
 _META_FIELDS = {"family", "collection"}
-# Compatibility aliases are defined once in tokens.css; theme data sets the canonical token.
-ALIAS_TOKENS = {"--card-bg", "--text-primary", "--text-muted", "--success", "--warning", "--danger"}
+# Deprecated aliases and their canonical tokens. tokens.css defines the aliases for
+# community styles; built-in theme data sets the canonical token only.
+DEPRECATED_ALIASES = {
+    "--text-primary": "--text",
+    "--text-muted": "--muted",
+    "--card-bg": "--card",
+    "--success": "--good",
+    "--warning": "--warn",
+    "--danger": "--crit",
+    "--primary": "--accent",
+    "--border": "--glass-border",
+}
 
 
 class ThemeCatalogError(ValueError):
@@ -41,7 +51,7 @@ def _check_tokens(tokens: Any, where: str) -> None:
     _require(isinstance(tokens, dict) and bool(tokens), f"{where}: tokens must be a non-empty object")
     for name, value in tokens.items():
         _require(bool(THEME_PROPERTY.match(name)), f"{where}: '{name}' is not a custom property name")
-        _require(name not in ALIAS_TOKENS, f"{where}: '{name}' is a compatibility alias, set its canonical token")
+        _require(name not in DEPRECATED_ALIASES, f"{where}: '{name}' is a deprecated alias, set {DEPRECATED_ALIASES.get(name)}")
         _require(isinstance(value, str), f"{where}: '{name}' must be a string")
         _require(not THEME_UNSAFE_VALUE.search(value), f"{where}: '{name}' has an unsafe value")
         _require("var(" not in value, f"{where}: '{name}' must be a value, not a reference")
@@ -92,3 +102,18 @@ def load_builtin_themes(path: Path = CATALOG_PATH) -> tuple[dict[str, Any], ...]
         _require(theme_id not in seen, f"duplicate theme id {theme_id}")
         seen.add(theme_id)
     return tuple(deepcopy(themes))
+
+
+def canonical_theme_data(data: dict[str, Any]) -> dict[str, Any]:
+    """Carry deprecated alias tokens of a community theme over to their canonical token.
+
+    DOCSight's styles read the canonical tokens, so an alias a theme still sets would
+    otherwise have no effect. A canonical token the theme sets itself wins.
+    """
+    for mode in _MODES:
+        tokens = data.get(mode)
+        if isinstance(tokens, dict):
+            for alias, canonical in DEPRECATED_ALIASES.items():
+                if alias in tokens and canonical not in tokens:
+                    tokens[canonical] = tokens[alias]
+    return data

@@ -42,7 +42,7 @@ def _break(catalog, change):
     (lambda c: c["themes"].append(dict(c["themes"][0])), "duplicate theme id"),
     (lambda c: c["themes"][0]["theme_data"].pop("light"), "missing the light mode"),
     (lambda c: c["themes"][0]["theme_data"]["dark"].update({"bg": "#000"}), "not a custom property name"),
-    (lambda c: c["themes"][0]["theme_data"]["dark"].update({"--text-muted": "#777"}), "compatibility alias"),
+    (lambda c: c["themes"][0]["theme_data"]["dark"].update({"--text-muted": "#777"}), "deprecated alias"),
     (lambda c: c["themes"][0]["theme_data"]["dark"].update({"--bg": 12}), "must be a string"),
     (lambda c: c["themes"][0]["theme_data"]["dark"].update({"--bg": "red; } body { x: y"}), "unsafe value"),
     (lambda c: c["themes"][0]["theme_data"]["dark"].update({"--bg": "var(--void)"}), "not a reference"),
@@ -63,3 +63,21 @@ def test_an_unreadable_catalog_fails_clearly(tmp_path):
     path.write_text("{", encoding="utf-8")
     with pytest.raises(ThemeCatalogError, match="cannot be read"):
         load_builtin_themes(path)
+
+
+def test_dashboard_assets_use_canonical_tokens_only():
+    """Deprecated aliases stay defined in tokens.css but DOCSight's own assets don't use them."""
+    import re
+    import subprocess
+
+    from app.theme_catalog import DEPRECATED_ALIASES
+
+    alias = re.compile(r"(?:var\(|getPropertyValue\(['\"])(" + "|".join(map(re.escape, DEPRECATED_ALIASES)) + r")(?![a-z0-9-])")
+    files = subprocess.run(["git", "ls-files", "app"], capture_output=True, text=True, check=True).stdout.split()
+    offenders = [
+        f"{path}: {match.group(1)}"
+        for path in files
+        if path.endswith((".css", ".js", ".html")) and path != "app/static/css/tokens.css"
+        for match in alias.finditer(open(path, encoding="utf-8").read())
+    ]
+    assert offenders == []

@@ -25,11 +25,11 @@
     padding: var(--space-sm) var(--space-md);
 }
 .journal-export-dropdown button.journal-menu-danger {
-    color: var(--danger, var(--crit));
+    color: var(--crit);
     white-space: nowrap;
 }
 .journal-export-dropdown button.journal-menu-danger:hover {
-    background: var(--danger, var(--crit));
+    background: var(--crit);
     color: #fff;
 }
 .journal-export-dropdown {
@@ -38,7 +38,7 @@
     top: 100%;
     right: 0;
     margin-top: var(--space-xs);
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-sm);
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
@@ -438,7 +438,7 @@
     font-size: max(var(--fs-min), 0.7em);
     padding: 1px 6px;
     border-radius: var(--radius-sm);
-    background: var(--danger, #ef4444);
+    background: var(--crit);
     color: #fff;
     margin-left: 6px;
 }
@@ -918,7 +918,7 @@ mark.search-highlight {
 
 /* Timeline Cards */
 .incident-timeline-card {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-md);
     padding: var(--space-lg);
