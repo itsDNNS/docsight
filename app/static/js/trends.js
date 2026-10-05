@@ -173,7 +173,7 @@ function _updateTempToggle() {
     var btn = document.getElementById('temp-toggle-btn');
     if (!btn) return;
     var hasWeather = _lastTrendWeather && _lastTrendWeather.some(function(v) { return v !== null; });
-    btn.style.display = hasWeather ? '' : 'none';
+    btn.hidden = !hasWeather;
     btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
     btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
 }

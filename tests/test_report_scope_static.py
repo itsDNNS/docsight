@@ -73,7 +73,7 @@ def test_fixed_complaint_response_mismatch_blocks_preview_on_step_one() -> None:
     assert "data.window.to === reportScope.window.to" in source
     assert "throw new Error(T.report_window_mismatch" in source
     assert source.index("reportResponseMatchesScope(data)") < source.index(
-        "document.getElementById('report-step1').style.display = 'none'"
+        "document.getElementById('report-step1').hidden = true"
     )
 
 

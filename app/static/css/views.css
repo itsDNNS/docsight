@@ -715,6 +715,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     vertical-align: -2px;
 }
 #bnetz-watcher-status {
+    display: flex;
     padding: 8px 14px;
     margin-bottom: 10px;
     border-radius: 8px;
@@ -730,6 +731,9 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     height: 14px;
     flex-shrink: 0;
 }
+#channel-status-controls,
+#channel-timeline-controls,
+#channel-compare-controls { display: contents; }
 .view-page-actions .trend-tabs {
     flex-wrap: wrap;
 }
@@ -960,6 +964,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     margin: 0;
     table-layout: fixed;
 }
+#correlation-loading { display: flex; }
 #correlation-table thead tr {
     background: var(--card-bg, var(--card, var(--surface)));
 }

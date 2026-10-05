@@ -269,16 +269,16 @@ function switchChannelMode() {
         compare: document.getElementById('channel-compare-controls')
     };
     Object.keys(panels).forEach(function(key) {
-        if (panels[key]) panels[key].style.display = key === mode ? '' : 'none';
-        if (controls[key]) controls[key].style.display = key === mode ? 'contents' : 'none';
+        if (panels[key]) panels[key].hidden = key !== mode;
+        if (controls[key]) controls[key].hidden = key !== mode;
     });
     var infoBar = document.getElementById('channel-info-bar');
     if (mode === 'status') {
-        if (infoBar) infoBar.style.display = 'none';
+        if (infoBar) infoBar.hidden = true;
         _redrawChannelFamilySparks();
         loadChannelStatus();
     } else if (mode === 'compare') {
-        if (infoBar) infoBar.style.display = 'none';
+        if (infoBar) infoBar.hidden = true;
         loadCompareChannelList();
         if (_compareChannels.length === 0) {
             _showCompareEmpty('select');
@@ -866,7 +866,7 @@ function _updateTempToggleButton(btnId, tempData) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
     var hasWeather = _channelWeatherHasData(tempData);
-    btn.style.display = hasWeather ? '' : 'none';
+    btn.hidden = !hasWeather;
     btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
     btn.setAttribute('aria-pressed', (_tempOverlayVisible && hasWeather) ? 'true' : 'false');
     btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
@@ -884,13 +884,13 @@ function _updateChannelSelectionControls() {
     var channelTimeTabs = document.getElementById('channel-time-tabs');
     var channelSelect = document.getElementById('channel-select');
     var hasTimelineSelection = !!(channelSelect && channelSelect.value);
-    if (channelTimeTabs) channelTimeTabs.style.display = hasTimelineSelection ? '' : 'none';
+    if (channelTimeTabs) channelTimeTabs.hidden = !hasTimelineSelection;
 
     var hasCompareSelection = _compareChannels.length > 0;
     var compareTimeTabs = document.getElementById('compare-time-tabs');
     var compareClearBtn = document.getElementById('compare-clear-btn');
-    if (compareTimeTabs) compareTimeTabs.style.display = hasCompareSelection ? '' : 'none';
-    if (compareClearBtn) compareClearBtn.style.display = hasCompareSelection ? '' : 'none';
+    if (compareTimeTabs) compareTimeTabs.hidden = !hasCompareSelection;
+    if (compareClearBtn) compareClearBtn.hidden = !hasCompareSelection;
 }
 
 function toggleChannelTempOverlay() {
@@ -914,7 +914,7 @@ window.toggleCompareTempOverlay = toggleCompareTempOverlay;
 function _updateChannelInfoBar(ref) {
     var bar = document.getElementById('channel-info-bar');
     if (!bar) return;
-    if (!_cachedChannelData || !ref) { bar.style.display = 'none'; return; }
+    if (!_cachedChannelData || !ref) { bar.hidden = true; return; }
     var channels = ref.direction === 'ds'
         ? (_cachedChannelData.ds_channels || [])
         : (_cachedChannelData.us_channels || []);
@@ -923,7 +923,7 @@ function _updateChannelInfoBar(ref) {
         var candidate = _channelReference(channels[i]);
         if (candidate.key === ref.key) { ch = channels[i]; break; }
     }
-    if (!ch) { bar.style.display = 'none'; return; }
+    if (!ch) { bar.hidden = true; return; }
     while (bar.firstChild) bar.removeChild(bar.firstChild);
     var dir = ref.direction.toUpperCase();
     var health = ch.health || 'unknown';
@@ -944,7 +944,7 @@ function _updateChannelInfoBar(ref) {
     healthEl.className = 'ch-info-health ' + health;
     healthEl.textContent = healthLabel;
     bar.appendChild(healthEl);
-    bar.style.display = '';
+    bar.hidden = false;
 }
 
 var _cachedChannelData = null;
@@ -1042,10 +1042,10 @@ function loadChannelTimeline() {
     var loadingEl = document.getElementById('channel-loading');
     var infoBar = document.getElementById('channel-info-bar');
     if (!val) {
-        chartsEl.style.display = 'none';
+        chartsEl.hidden = true;
         DOCSightEmptyState.hide(noDataEl);
-        loadingEl.style.display = 'none';
-        if (infoBar) infoBar.style.display = 'none';
+        loadingEl.hidden = true;
+        if (infoBar) infoBar.hidden = true;
         _updateChannelSelectionControls();
         _channelTimelineRequestSeq++;
         _lastChannelTimelineData = null;
@@ -1070,8 +1070,8 @@ function loadChannelTimeline() {
     writeChannelHash();
     var requestId = ++_channelTimelineRequestSeq;
 
-    loadingEl.style.display = '';
-    chartsEl.style.display = 'none';
+    loadingEl.hidden = false;
+    chartsEl.hidden = true;
     emptyEl.hidden = true;
     DOCSightEmptyState.hide(noDataEl);
     _updateChannelInfoBar(ref);
@@ -1083,7 +1083,7 @@ function loadChannelTimeline() {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (requestId !== _channelTimelineRequestSeq) return;
-            loadingEl.style.display = 'none';
+            loadingEl.hidden = true;
             if (!data || data.length === 0) {
                 _lastChannelTimelineData = null;
                 _lastChannelWeather = null;
@@ -1096,7 +1096,7 @@ function loadChannelTimeline() {
                 });
                 return;
             }
-            chartsEl.style.display = '';
+            chartsEl.hidden = false;
             _lastChannelTimelineData = data;
             _lastChannelTimelineContext = {
                 direction: direction,
@@ -1115,7 +1115,7 @@ function loadChannelTimeline() {
         })
         .catch(function() {
             if (requestId !== _channelTimelineRequestSeq) return;
-            loadingEl.style.display = 'none';
+            loadingEl.hidden = true;
             DOCSightEmptyState.showError(noDataEl, {retry: loadChannelTimeline});
         });
 }
@@ -1169,7 +1169,7 @@ function updateCompareActionLabels() {
 
 function showCompareError(retry, error) {
     var loadingEl = document.getElementById('compare-loading');
-    if (loadingEl) loadingEl.style.display = 'none';
+    if (loadingEl) loadingEl.hidden = true;
     _showCompareEmpty('error', retry);
     if (error) console.error('Channel compare error:', error);
 }
@@ -1205,8 +1205,8 @@ function clearCompareCharts() {
     _lastCompareWeather = null;
     _lastCompareRenderContext = null;
     _updateCompareTempToggle();
-    document.getElementById('compare-charts').style.display = 'none';
-    document.getElementById('compare-loading').style.display = 'none';
+    document.getElementById('compare-charts').hidden = true;
+    document.getElementById('compare-loading').hidden = true;
     ['chart-cmp-power', 'chart-cmp-snr', 'chart-cmp-errors', 'chart-cmp-modulation'].forEach(function(id) {
         if (charts[id]) { charts[id].destroy(); delete charts[id]; }
     });
@@ -1537,7 +1537,7 @@ function loadCompareCharts() {
         _lastCompareWeather = null;
         _lastCompareRenderContext = null;
         _updateCompareTempToggle();
-        chartsEl.style.display = 'none';
+        chartsEl.hidden = true;
         _showCompareEmpty('select');
         return;
     }
@@ -1551,15 +1551,15 @@ function loadCompareCharts() {
     writeChannelHash();
     var requestId = ++_compareRequestSeq;
 
-    loadingEl.style.display = '';
-    chartsEl.style.display = 'none';
+    loadingEl.hidden = false;
+    chartsEl.hidden = true;
     DOCSightEmptyState.hide(emptyEl);
 
     fetch(docsightUrl('/api/channel-compare?' + identityName + '=' + encodeURIComponent(identities) + '&direction=' + dir + '&range=' + encodeURIComponent(days)))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (requestId !== _compareRequestSeq) return;
-            loadingEl.style.display = 'none';
+            loadingEl.hidden = true;
             _compareChannelData = data;
 
             // Build unified timestamp list from all channels
@@ -1577,7 +1577,7 @@ function loadCompareCharts() {
                 _showCompareEmpty('range');
                 return;
             }
-            chartsEl.style.display = '';
+            chartsEl.hidden = false;
             _lastCompareRenderContext = {
                 data: data,
                 timestamps: timestamps,
@@ -1596,7 +1596,7 @@ function loadCompareCharts() {
         })
         .catch(function() {
             if (requestId !== _compareRequestSeq) return;
-            loadingEl.style.display = 'none';
+            loadingEl.hidden = true;
             _showCompareEmpty('error', loadCompareCharts);
         });
 }

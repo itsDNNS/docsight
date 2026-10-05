@@ -238,10 +238,10 @@ function loadCorrelationData() {
     var overlay = document.getElementById('correlation-overlay');
     _corrSetOverlayActionable(overlay, false);
     if (overlay) overlay.setAttribute('aria-label', T.correlation_chart_aria_label || 'Signal correlation chart');
-    loading.style.display = 'flex';
+    loading.hidden = false;
     DOCSightEmptyState.hide(noData);
-    chartContainer.style.display = 'none';
-    tableCard.style.display = 'none';
+    chartContainer.hidden = true;
+    tableCard.hidden = true;
 
     /* Calculate time range for weather fetch */
     var now = new Date();
@@ -267,20 +267,20 @@ function loadCorrelationData() {
             var data = Array.isArray(results[0]) ? results[0] : [];
             _corrWeatherData = results[1] || [];
             _corrSegmentData = results[2] || [];
-            loading.style.display = 'none';
+            loading.hidden = true;
             _correlationData = data;
             var hasReachability = _corrTargetData.some(function(entry) { return entry.samples && entry.samples.length > 0; });
             if (data.length === 0 && !hasReachability) {
                 DOCSightEmptyState.showRange(noData, {tabs: 'correlation-tabs', glossary: 'correlation_analysis'});
                 return;
             }
-            chartContainer.style.display = 'block';
-            tableCard.style.display = data.length > 0 ? 'block' : 'none';
+            chartContainer.hidden = false;
+            tableCard.hidden = data.length === 0;
             renderCorrelationChart(data);
             if (data.length > 0) renderCorrelationTable(data);
         })
         .catch(function() {
-            loading.style.display = 'none';
+            loading.hidden = true;
             DOCSightEmptyState.showError(noData, {retry: loadCorrelationData});
         });
 }
@@ -905,7 +905,7 @@ function renderCorrelationChart(data) {
 
     // Show/hide zoom reset button
     var zoomBtn = document.getElementById('correlation-zoom-reset');
-    if (zoomBtn) zoomBtn.style.display = _corrZoom ? 'block' : 'none';
+    if (zoomBtn) zoomBtn.hidden = !_corrZoom;
 
     // Setup tooltip interaction on overlay canvas
     _setupCorrelationTooltip(overlay, octx);

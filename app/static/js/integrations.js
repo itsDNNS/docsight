@@ -127,16 +127,16 @@ function loadBnetzData() {
     var card = document.getElementById('bnetz-table-card');
     var tbody = document.getElementById('bnetz-tbody');
     if (!loading) return;
-    loading.style.display = 'block';
+    loading.hidden = false;
     DOCSightEmptyState.hide(empty);
-    card.style.display = 'none';
+    card.hidden = true;
     fetch(docsightUrl('/api/bnetz/measurements')).then(function(r) { return r.json(); }).then(function(data) {
-        loading.style.display = 'none';
+        loading.hidden = true;
         if (!data || data.length === 0) {
             _showBnetzEmpty(empty);
             return;
         }
-        card.style.display = 'block';
+        card.hidden = false;
         tbody.replaceChildren();
         data.forEach(function(m, idx) {
             var hasDeviation = m.verdict_download === 'deviation' || m.verdict_upload === 'deviation';
@@ -230,7 +230,7 @@ function loadBnetzData() {
         });
         lucide.createIcons();
     }).catch(function() {
-        loading.style.display = 'none';
+        loading.hidden = true;
         DOCSightEmptyState.showError(empty, {retry: loadBnetzData});
     });
 
@@ -244,7 +244,7 @@ function loadBnetzData() {
                 if (collectors[i].name === 'bnetz_watcher') { watcher = collectors[i]; break; }
             }
             if (watcher && watcher.enabled) {
-                watcherBanner.style.display = 'flex';
+                watcherBanner.hidden = false;
                 var parts = [(T.bnetz_watcher_active || 'File watcher active')];
                 if (watcher.watch_dir) parts.push((T.bnetz_watcher_watching || 'Watching {dir}').replace('{dir}', watcher.watch_dir));
                 if (watcher.last_import_count > 0) parts.push((T.bnetz_watcher_last_import || '{count} file(s) imported').replace('{count}', watcher.last_import_count));
@@ -252,9 +252,9 @@ function loadBnetzData() {
                 watcherText.textContent = parts.join(' · ');
                 lucide.createIcons();
             } else {
-                watcherBanner.style.display = 'none';
+                watcherBanner.hidden = true;
             }
-        }).catch(function() { watcherBanner.style.display = 'none'; });
+        }).catch(function() { watcherBanner.hidden = true; });
     }
 }
 
