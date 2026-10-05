@@ -75,6 +75,19 @@ DEMO_SW_UPDATE_AGO = timedelta(days=180, hours=3)
 DEMO_REBOOT_AGO = timedelta(days=90, hours=14)
 
 
+def _demo_reference_time():
+    """The moment the seeded history ends: DOCSIGHT_DEMO_NOW (ISO 8601) when set, else now."""
+    pinned = os.environ.get("DOCSIGHT_DEMO_NOW", "").strip()
+    if pinned:
+        try:
+            value = datetime.fromisoformat(pinned.replace("Z", "+00:00"))
+        except ValueError:
+            log.warning("Ignoring invalid DOCSIGHT_DEMO_NOW %r", pinned)
+        else:
+            return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc)
+
+
 def _demo_bad_period(ts):
     """The one schedule for degraded signal in the demo: every tenth day of the
     year, 02:00-09:00 UTC. Snapshots, events and speedtests all follow it."""
@@ -305,12 +318,17 @@ class DemoCollector(Collector):
 
     def _seed_demo_data(self):
         """Populate storage with 9 months of snapshots, events, journal, speedtest, and BQM."""
+        # Visual reviews render two builds side by side. The same seed and reference
+        # time give both identical demo data; without them every demo start varies.
+        seed = os.environ.get("DOCSIGHT_DEMO_SEED", "").strip()
+        if seed.isdigit():
+            random.seed(int(seed))
         self._ensure_demo_module_tables()
         # Purge any existing demo data first (handles container rebuilds with persisted volume)
         self._storage.purge_demo_data()
         # Keep all demo data — don't let cleanup purge the seeded history
         self._storage.max_days = 0
-        now = datetime.now(timezone.utc)
+        now = _demo_reference_time()
         detected_events = self._seed_history(now)
         self._seed_events(now, detected_events)
         self._seed_journal_entries(now)

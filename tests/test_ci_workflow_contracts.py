@@ -394,7 +394,24 @@ def test_tests_summary_is_always_present_and_fails_closed():
     assert 'changed == "true" and result != "success"' in script
 
 
-@pytest.mark.parametrize("name", ["full-e2e.yml", "docker.yml", "test.yml"])
+def test_visual_review_is_read_only_informational_and_follows_the_browser_paths():
+    workflow = load_workflow("visual-review.yml")
+    triggers = workflow.get("on", workflow.get(True))
+    assert triggers["pull_request"]["paths"] == [
+        path for path in E2E_BROWSER_PATHS if path != ".github/workflows/full-e2e.yml"
+    ] + ["scripts/visual_review.py", ".github/workflows/visual-review.yml"]
+    assert workflow["permissions"] == {"contents": "read"}
+    job = workflow["jobs"]["visual-review"]
+    assert "permissions" not in job and "continue-on-error" not in job
+    steps = {step["name"]: step for step in job["steps"]}
+    # Both builds get the same demo data and the same browser clock.
+    start = steps["Start both builds with the same demo data"]["run"]
+    assert "DOCSIGHT_DEMO_SEED=7" in start and 'DOCSIGHT_DEMO_NOW="$now"' in start
+    assert steps["Check out the base"]["with"]["ref"] == "${{ github.event.pull_request.base.sha || github.sha }}"
+    assert steps["Upload screenshots and differences"]["if"] == "always()"
+
+
+@pytest.mark.parametrize("name", ["full-e2e.yml", "docker.yml", "test.yml", "visual-review.yml"])
 def test_changed_workflows_keep_every_action_sha_pinned(name):
     workflow = load_workflow(name)
     uses = [

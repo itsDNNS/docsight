@@ -1,0 +1,121 @@
+name: Visual review
+
+# Renders every navigation view of the base branch and the pull request with the
+# same demo data and reports pixel and per-element style differences in the job
+# summary. Screenshots and highlighted differences are uploaded as an artifact.
+# Informational: differences are expected for design work and never fail the job.
+
+on:
+  pull_request:
+    paths:
+      - 'app/templates/**'
+      - 'app/static/**'
+      - 'app/modules/**'
+      - 'app/{web*,signal_health_view}.py'
+      - 'app/blueprints/**'
+      - 'app/{tz,theme_registry,runtime,version}.py'
+      - 'app/i18n/**'
+      - 'app/app_factory.py'
+      - 'app/base_path.py'
+      - 'app/glossary.py'
+      - 'app/collectors/demo.py'
+      - 'app/fixtures/**'
+      - 'app/event_detector.py'
+      - 'app/analyzer.py'
+      - 'app/storage/**'
+      - 'app/drivers/__init__.py'
+      - 'app/{modem_detect,modem_diagnosis}.py'
+      - 'tests/e2e/**'
+      - 'tests/test_e2e_harness.py'
+      - 'tests/test_e2e_shards.py'
+      - 'scripts/e2e_shards.py'
+      - 'requirements.txt'
+      - 'requirements-test.txt'
+      - 'scripts/visual_review.py'
+      - '.github/workflows/visual-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-review-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  visual-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Prepare the review directory
+        run: echo "REVIEW_DIR=$RUNNER_TEMP/visual-review" >> "$GITHUB_ENV"
+
+      - name: Check out the pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: head
+
+      - name: Check out the base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          path: base
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            head/requirements.txt
+            head/requirements-test.txt
+
+      - name: Install dependencies
+        run: |
+          pip install --require-hashes -r head/requirements.txt
+          pip install --require-hashes -r head/requirements-test.txt
+          pip install pytest-playwright==0.7.2 playwright==1.58.0
+          python -m playwright install --with-deps chromium
+
+      - name: Start both builds with the same demo data
+        run: |
+          mkdir -p "$REVIEW_DIR"
+          now="$(date -u +%Y-%m-%dT%H:%M:00+00:00)"
+          echo "REVIEW_NOW=$now" >> "$GITHUB_ENV"
+          start() {
+            (cd "$1" && DATA_DIR="$RUNNER_TEMP/$1-data" DEMO_MODE=true DOCSIGHT_DEMO_SEED=7 \
+              DOCSIGHT_DEMO_NOW="$now" WEB_HOST=127.0.0.1 WEB_PORT="$2" \
+              nohup python -m app.main > "$REVIEW_DIR/$1.log" 2>&1 &)
+          }
+          start base 8801
+          start head 8802
+          # /health reports "waiting" until the demo has seeded and analyzed its first poll.
+          for port in 8801 8802; do
+            for _ in $(seq 1 150); do
+              if curl -fs "http://127.0.0.1:$port/health" | grep -qv '"docsis_health": *"waiting"'; then
+                break
+              fi
+              sleep 2
+            done
+            curl -fs "http://127.0.0.1:$port/health" | grep -qv '"docsis_health": *"waiting"' \
+              || { echo "build on port $port did not finish seeding"; exit 1; }
+          done
+
+      - name: Capture the base and the pull request
+        run: |
+          python head/scripts/visual_review.py capture --url http://127.0.0.1:8801 --out "$REVIEW_DIR/base" --now "$REVIEW_NOW"
+          python head/scripts/visual_review.py capture --url http://127.0.0.1:8802 --out "$REVIEW_DIR/head" --now "$REVIEW_NOW"
+
+      - name: Compare
+        run: |
+          python head/scripts/visual_review.py compare --base "$REVIEW_DIR/base" --head "$REVIEW_DIR/head" \
+            --out "$REVIEW_DIR/diff" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload screenshots and differences
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-review
+          path: ${{ env.REVIEW_DIR }}
+          retention-days: 14
+          if-no-files-found: warn
