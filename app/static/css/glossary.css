@@ -39,7 +39,7 @@
 .glossary-hint > svg {
   width: 13px;
   height: 13px;
-  color: var(--text-muted);
+  color: var(--muted);
   opacity: 0.45;
   transition: opacity 0.2s, color 0.2s;
 }
@@ -156,7 +156,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   min-height: 100vh;
   margin: 0;
   background: var(--bg);
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .glossary-page {
@@ -282,7 +282,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   min-width: 0;
   min-height: 44px;
   padding: 10px 12px;
-  color: var(--text-primary);
+  color: var(--text);
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
@@ -303,7 +303,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 .glossary-no-results,
 .glossary-list-label {
   margin: 12px 0 0;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 
@@ -332,7 +332,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   display: block;
   min-height: 44px;
   padding: 11px 12px;
-  color: var(--text-primary);
+  color: var(--text);
   text-decoration: none;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -370,7 +370,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 
 .glossary-aliases {
   margin: 12px 0 0;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -392,16 +392,16 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 }
 
 .glossary-summary-card {
-  border-color: color-mix(in srgb, var(--success, #10b981) 35%, var(--glass-border));
-  background: color-mix(in srgb, var(--success, #10b981) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--good) 35%, var(--glass-border));
+  background: color-mix(in srgb, var(--good) 10%, var(--surface));
 }
 
 .glossary-summary-card h3 {
-  color: var(--success, #10b981);
+  color: var(--good);
 }
 
 .glossary-explanation-card p {
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .glossary-explanation-card p + p {
@@ -414,7 +414,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 
 .glossary-law-details > summary {
   padding: 22px;
-  color: var(--text-primary);
+  color: var(--text);
   font-weight: 800;
   line-height: 1.4;
   cursor: pointer;
@@ -444,7 +444,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 
 .glossary-law-statute h5 {
   margin: 0 0 12px;
-  color: var(--text-primary);
+  color: var(--text);
   font-size: 1rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -452,7 +452,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 
 .glossary-law-statute p {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text);
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
@@ -506,7 +506,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.45;
 }
@@ -516,7 +516,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 }
 
 .glossary-related-link {
-  color: var(--text-primary);
+  color: var(--text);
   text-decoration: none;
   border-bottom: 1px solid color-mix(in srgb, var(--amethyst) 50%, transparent);
 }
@@ -568,7 +568,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 }
 
 .glossary-chip-link {
-  color: var(--text-primary);
+  color: var(--text);
   text-decoration: none;
 }
 
@@ -585,7 +585,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   height: 40px;
   border: 1px solid var(--glass-border);
   border-radius: 999px;
-  color: var(--text-primary);
+  color: var(--text);
   background: rgba(255,255,255,0.04);
   font: inherit;
   font-size: 1.4rem;
@@ -630,14 +630,14 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
     gap: 4px;
     margin: 0 0 12px;
     padding: 16px 18px;
-    color: var(--text-primary);
+    color: var(--text);
     text-align: left;
     cursor: pointer;
     font: inherit;
   }
 
   .glossary-mobile-picker-trigger span {
-    color: var(--text-muted);
+    color: var(--muted);
     font-size: 0.88rem;
   }
 

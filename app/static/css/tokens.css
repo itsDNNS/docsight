@@ -124,24 +124,28 @@
   --ui-radius-md: 10px;
   --ui-radius-lg: 16px;
 
-  /* Legacy aliases (for settings.css backward compat) */
+  /* Defaults for tokens that themes set alongside the ones above */
   --bg: var(--void);
   --card: var(--surface);
   --card-border: var(--glass-border);
-  --text-primary: var(--text);
-  --text-muted: var(--muted);
   --accent: var(--amethyst);
   --accent-hover: var(--amethyst-light);
   --accent-muted: var(--amethyst-muted);
-  --success: var(--good);
-  --warning: var(--warn);
-  --danger: var(--crit);
   --input-border: var(--glass-border);
   --overlay: rgba(0,0,0,0.6);
   --hover-bg: var(--hover);
+
+  /* Deprecated aliases: DOCSight's own styles no longer use them. They stay for
+     community styles and themes; a theme that sets one also sets its canonical
+     token (app/theme_catalog.py DEPRECATED_ALIASES). */
+  --text-primary: var(--text);
+  --text-muted: var(--muted);
   --card-bg: var(--card);
-  --border: var(--glass-border);
+  --success: var(--good);
+  --warning: var(--warn);
+  --danger: var(--crit);
   --primary: var(--accent);
+  --border: var(--glass-border);
 }
 
 /* ── Color Palette: Light ── */

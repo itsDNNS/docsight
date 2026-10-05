@@ -16,6 +16,7 @@ from flask import abort, send_file, url_for
 from .builtin_modules import BUILTIN_PYTHON_CONTRIBUTIONS
 from .module_registry import ManifestError, ModuleInfo
 from .path_safety import safe_manifest_ref, safe_manifest_subpath
+from .theme_catalog import canonical_theme_data
 from .registration import (
     ModuleContribution,
     PlannedRule,
@@ -460,9 +461,9 @@ def resolve_module_contribution(
     if "theme" in contributes:
         theme_data = mod.theme_data
         if theme_data is None:
-            theme_data = _read_json_contribution(
+            theme_data = canonical_theme_data(_read_json_contribution(
                 mod.path, contributes["theme"], "theme", validate_theme
-            )
+            ))
         else:
             validate_theme(theme_data)
     else:

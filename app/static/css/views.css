@@ -36,10 +36,10 @@
 .no-docsis-icon-wrap {
     display: inline-flex; align-items: center; justify-content: center;
     width: 56px; height: 56px; border-radius: 50%;
-    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    background: color-mix(in srgb, var(--muted) 12%, transparent);
     margin-bottom: var(--space-sm);
 }
-.no-docsis-icon-wrap i { width: 28px; height: 28px; color: var(--text-muted); }
+.no-docsis-icon-wrap i { width: 28px; height: 28px; color: var(--muted); }
 .no-docsis-placeholder h2 { margin-bottom: 0.25rem; font-size: 1.1rem; font-weight: 600; }
 .no-docsis-placeholder p { opacity: 0.6; font-size: 0.85rem; max-width: 400px; margin: 0 auto; }
 
@@ -68,7 +68,7 @@
 .trend-tabs {
     display: flex;
     gap: var(--space-xs, 6px);
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     padding: 4px;
     border-radius: 24px;
     border: 1px solid var(--card-border, var(--input-border));
@@ -118,7 +118,7 @@
 
 /* Phase 3 card styling */
 .chart-card {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-md, 8px);
     padding: var(--space-lg, 20px);
@@ -291,7 +291,7 @@
 
 /* Phase 4.3: Table card wrapper (shared — used by Events + Correlation) */
 .table-card {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-md, 12px);
     overflow-x: auto;
@@ -385,7 +385,7 @@
     padding: 8px 24px;
     border: 1px solid var(--input-border);
     border-radius: var(--radius-lg);
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     color: var(--text);
     cursor: pointer;
     font-size: max(var(--fs-min), 0.85em);
@@ -646,7 +646,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
         top: var(--events-sticky-top);
         z-index: 2;
         padding: 3px 12px;
-        background: var(--card-bg, var(--card));
+        background: var(--card);
         border-bottom: 1px solid var(--card-border, var(--input-border));
     }
     .ev-day-date::before { content: "· "; }
@@ -693,12 +693,12 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     margin: 0;
     font-size: 1.15em;
     font-weight: 700;
-    color: var(--text, var(--text-primary));
+    color: var(--text, var(--text));
     line-height: 1.2;
 }
 .view-page-subtitle {
     font-size: max(var(--fs-min), 0.8em);
-    color: var(--text-muted, var(--muted));
+    color: var(--muted);
     line-height: 1.4;
 }
 .view-page-actions {
@@ -719,10 +719,10 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     padding: 8px 14px;
     margin-bottom: 10px;
     border-radius: 8px;
-    background: var(--card-bg);
+    background: var(--card);
     border: 1px solid var(--input-border);
     font-size: max(var(--fs-min), 0.85em);
-    color: var(--text-muted);
+    color: var(--muted);
     align-items: center;
     gap: 8px;
 }
@@ -758,16 +758,16 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .correlation-view-title {
     font-size: 1.15em;
     font-weight: 700;
-    color: var(--text, var(--text-primary));
+    color: var(--text, var(--text));
 }
 .correlation-view-subtitle {
     font-size: max(var(--fs-min), 0.8em);
-    color: var(--text-muted, var(--muted));
+    color: var(--muted);
 }
 
 /* Correlation Chart Card — no hover lift (not a clickable element) */
 .correlation-chart-card {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-lg, 20px);
@@ -795,7 +795,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .correlation-tooltip {
     position: absolute;
     pointer-events: none;
-    background: var(--card-bg, #1e1e2e);
+    background: var(--card);
     border: 1px solid var(--accent-purple, #a855f7);
     border-radius: var(--radius-sm);
     padding: 8px 12px;
@@ -915,7 +915,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .correlation-speedtest-hint {
     max-width: 760px;
     margin: 2px auto 0;
-    color: var(--text-muted, var(--muted));
+    color: var(--muted);
     font-size: max(var(--fs-min), 0.74em);
     line-height: 1.45;
     text-align: center;
@@ -966,7 +966,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 #correlation-loading { display: flex; }
 #correlation-table thead tr {
-    background: var(--card-bg, var(--card, var(--surface)));
+    background: var(--card);
 }
 #correlation-table thead th {
     padding: 12px 16px;
@@ -978,7 +978,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     position: sticky;
     top: 0;
     z-index: 3;
-    background: var(--card-bg, var(--card, var(--surface)));
+    background: var(--card);
     box-shadow: 0 1px 0 var(--card-border, var(--input-border));
 }
 #correlation-table thead th:nth-child(1) {
@@ -1003,14 +1003,14 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     box-shadow: inset 4px 0 0 var(--accent-purple, #a855f7);
 }
 #correlation-table tbody tr.corr-highlight td {
-    color: var(--text-primary) !important;
+    color: var(--text) !important;
 }
 #correlation-table tbody tr.corr-pinned {
     background: color-mix(in srgb, var(--amethyst) 20%, transparent) !important;
     box-shadow: inset 4px 0 0 var(--amethyst);
 }
 #correlation-table tbody tr.corr-pinned td {
-    color: var(--text-primary) !important;
+    color: var(--text) !important;
 }
 #correlation-table tbody tr:focus-visible {
     outline: 2px solid var(--amethyst);
@@ -1140,7 +1140,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     #correlation-table tbody td::before {
         content: attr(data-label);
         flex: 0 0 min(38%, 120px);
-        color: var(--text-secondary, var(--text-muted));
+        color: var(--text-secondary, var(--muted));
         font-weight: 600;
         text-align: left;
     }
@@ -1278,7 +1278,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 .gaming-no-speedtest-hint {
     font-size: max(var(--fs-min), 0.78em);
-    color: var(--text-muted);
+    color: var(--muted);
     margin: 8px 0 0;
     display: flex;
     align-items: center;
@@ -1292,7 +1292,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--text-muted);
+    color: var(--muted);
     margin: 0 0 var(--space-sm, 12px);
 }
 
@@ -1311,12 +1311,12 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 .gaming-comp-row:hover { background: var(--tint-hover, rgba(255,255,255,0.04)); }
 .gaming-comp-row:focus-visible { outline: 2px solid var(--amethyst); outline-offset: -2px; }
-.gaming-comp-icon { display: flex; color: var(--text-muted); flex-shrink: 0; }
+.gaming-comp-icon { display: flex; color: var(--muted); flex-shrink: 0; }
 .gaming-comp-icon i, .gaming-comp-icon svg { width: 16px; height: 16px; }
 .gaming-comp-name { font-weight: 600; font-size: max(var(--fs-min), 0.88em); flex-shrink: 0; }
 .gaming-comp-value {
     font-size: max(var(--fs-min), 0.85em);
-    color: var(--text-muted);
+    color: var(--muted);
     padding: 2px 6px;
     background: var(--tint-subtle, rgba(255,255,255,0.02));
     border-radius: 4px;
@@ -1345,7 +1345,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 .gaming-comp-chevron {
     width: 14px; height: 14px;
-    color: var(--text-muted);
+    color: var(--muted);
     flex-shrink: 0;
     transition: transform 0.2s;
 }
@@ -1464,7 +1464,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     color: var(--text-secondary);
 }
 .ch-info-item strong {
-    color: var(--text-primary);
+    color: var(--text);
 }
 .ch-info-sep {
     width: 1px;
@@ -1501,7 +1501,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     padding: 8px 32px 8px 12px;
     border-radius: 20px;
     border: 1px solid var(--card-border, var(--input-border));
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     color: var(--text);
     font-size: max(var(--fs-min), 0.9em);
     font-family: inherit;
@@ -1532,7 +1532,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     padding: 8px 18px;
     border-radius: 20px;
     border: 1px solid var(--card-border, var(--input-border));
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     color: var(--text-secondary, var(--muted));
     font-size: max(var(--fs-min), 0.9em);
     font-family: inherit;

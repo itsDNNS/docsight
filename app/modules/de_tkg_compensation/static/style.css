@@ -6,7 +6,7 @@
 .tkg-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-sm, 8px); padding: 0; margin: 0; list-style: none; }
 .tkg-steps li { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-md, 14px); background: var(--tint-subtle, transparent); color: var(--text-secondary, var(--muted)); font-size: .85rem; }
 .tkg-steps li[aria-current="step"] { border-color: var(--accent); color: var(--text); background: var(--accent-muted); }
-.tkg-panel, .tkg-status { border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-md, 14px); background: var(--card-bg, var(--card)); padding: var(--space-lg, 24px); }
+.tkg-panel, .tkg-status { border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-md, 14px); background: var(--card); padding: var(--space-lg, 24px); }
 .tkg-panel:focus { outline: none; }
 .tkg-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tkg-panel > h3 { margin-bottom: 4px; color: var(--text); }

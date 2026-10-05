@@ -34,6 +34,7 @@ from app.registration import (
     RegistrationPlan, existing_rules,
     register_plan, validate_plan,
 )
+from app.theme_catalog import canonical_theme_data
 from app.theme_registry import BUILTIN_THEMES
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 
@@ -121,9 +122,9 @@ class ModuleLoader:
             if not mod.enabled:
                 if not mod.builtin and mod.type == "theme" and "theme" in mod.contributes:
                     try:
-                        mod.theme_data = _read_json_contribution(
+                        mod.theme_data = canonical_theme_data(_read_json_contribution(
                             mod.path, mod.contributes["theme"], "theme", validate_theme
-                        )
+                        ))
                     except Exception as exc:
                         mod.error = (
                             str(exc) if isinstance(exc, ManifestError)

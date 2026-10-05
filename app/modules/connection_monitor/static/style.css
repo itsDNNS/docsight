@@ -3,8 +3,8 @@
 .cm-monitor {
     --cm-panel-bg: color-mix(in srgb, var(--surface) 86%, transparent);
     --cm-panel-border: color-mix(in srgb, var(--glass-border) 78%, rgba(255,255,255,0.08));
-    --cm-panel-hover: color-mix(in srgb, var(--text-muted) 12%, transparent);
-    --cm-text-soft: color-mix(in srgb, var(--text-secondary) 72%, var(--text-muted));
+    --cm-panel-hover: color-mix(in srgb, var(--muted) 12%, transparent);
+    --cm-text-soft: color-mix(in srgb, var(--text-secondary) 72%, var(--muted));
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
@@ -31,8 +31,8 @@
     position: absolute;
     inset: 0;
     background-image:
-        linear-gradient(color-mix(in srgb, var(--text-muted) 7%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, var(--text-muted) 6%, transparent) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--muted) 7%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--muted) 6%, transparent) 1px, transparent 1px);
     background-size: 36px 36px;
     mask-image: linear-gradient(90deg, transparent, #000 20%, #000 72%, transparent);
     pointer-events: none;
@@ -88,7 +88,7 @@
     justify-content: flex-end;
     gap: var(--space-xs);
     min-height: 32px;
-    color: var(--text-muted);
+    color: var(--muted);
 }
 
 .cm-mode-badge {
@@ -116,7 +116,7 @@
 
 .cm-pinned-label,
 .cm-export-group > span {
-    color: var(--text-muted);
+    color: var(--muted);
     font-size: var(--fs-min);
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -154,7 +154,7 @@
 
 .cm-chip-btn:hover,
 .cm-pin-day-btn:hover {
-    color: var(--text-primary);
+    color: var(--text);
     border-color: color-mix(in srgb, var(--info) 30%, var(--cm-panel-border));
     background: color-mix(in srgb, var(--info) 11%, var(--surface));
 }
@@ -187,7 +187,7 @@
     border-left: 0;
     border-radius: 0 8px 8px 0;
     background: color-mix(in srgb, var(--surface) 82%, transparent);
-    color: var(--text-muted);
+    color: var(--muted);
     cursor: pointer;
     font: inherit;
     font-size: 0.9rem;
@@ -264,7 +264,7 @@
 
 .cm-panel-title h3 {
     margin: 0;
-    color: var(--text-primary);
+    color: var(--text);
     font-size: 0.92rem;
     font-weight: 750;
     letter-spacing: 0;
@@ -291,7 +291,7 @@
 
 .cm-resolution {
     display: none;
-    color: var(--text-muted);
+    color: var(--muted);
     font-size: 0.75rem;
     font-weight: 600;
     text-align: right;
@@ -363,7 +363,7 @@
 .cm-data-table th,
 #cm-per-target-stats .data-table th {
     padding: 10px 12px;
-    color: var(--text-muted);
+    color: var(--muted);
     font-size: var(--fs-min);
     font-weight: 750;
     letter-spacing: 0.07em;
@@ -404,7 +404,7 @@
 .cm-target-host {
     display: inline-block;
     margin-left: 5px;
-    color: var(--text-muted);
+    color: var(--muted);
     font-size: max(var(--fs-min), 0.82em);
 }
 
@@ -480,7 +480,7 @@
 
 #cm-per-target-stats .cm-target-table td:not(:first-child)::before {
     content: attr(data-label);
-    color: var(--text-muted);
+    color: var(--muted);
     font-size: var(--fs-min);
     font-weight: 750;
     letter-spacing: 0.06em;
@@ -500,7 +500,7 @@
 }
 
 .cm-samples-cell {
-    color: var(--text-muted);
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
 }
 
@@ -544,7 +544,7 @@
 .cm-traceroute-empty {
     display: none;
     padding: var(--space-lg);
-    color: var(--text-muted);
+    color: var(--muted);
     text-align: center;
 }
 
@@ -614,14 +614,14 @@
 }
 
 .cm-hop-table th {
-    color: var(--text-muted);
+    color: var(--muted);
     font-size: var(--fs-min);
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
 
 .cm-muted {
-    color: var(--text-muted);
+    color: var(--muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -82,7 +82,7 @@
                 </select>
                 <span class="form-hint">{{ t.timezone_hint }}</span>
                 {% if tz_is_posix and not config.timezone %}
-                <span class="form-hint" style="color: var(--warning); margin-top: 4px; display: block;">
+                <span class="form-hint" style="color: var(--warn); margin-top: 4px; display: block;">
                     {{ t.timezone_posix_warning }}
                 </span>
                 {% endif %}

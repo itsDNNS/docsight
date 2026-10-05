@@ -402,7 +402,7 @@
             var emptyRow = document.createElement('tr');
             var emptyCell = document.createElement('td');
             emptyCell.colSpan = 4;
-            emptyCell.style.cssText = 'text-align:center;color:var(--text-muted);padding:20px;';
+            emptyCell.style.cssText = 'text-align:center;color:var(--muted);padding:20px;';
             emptyCell.textContent = '\u2014';
             emptyRow.appendChild(emptyCell);
             tbody.appendChild(emptyRow);

@@ -2,7 +2,7 @@
 
 /* Control bar */
 .comparison-controls {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-md, 8px);
     padding: var(--space-md, 16px) var(--space-lg, 20px);
@@ -149,7 +149,7 @@
 }
 
 .comparison-health-card {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-md, 8px);
     padding: var(--space-md, 16px);

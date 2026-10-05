@@ -2,18 +2,18 @@
 
 .st-expand-btn {
   background: none; border: none; cursor: pointer; padding: 4px;
-  color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+  color: var(--muted); display: flex; align-items: center; justify-content: center;
   transition: transform 0.2s ease, color 0.2s ease;
 }
-.st-expand-btn:hover { color: var(--text-primary); }
+.st-expand-btn:hover { color: var(--text); }
 .st-expand-btn.open { transform: rotate(90deg); color: var(--accent); }
 
 #speedtest-refresh-btn {
   background: none; border: none; cursor: pointer; padding: 6px;
-  color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;
+  color: var(--muted); display: inline-flex; align-items: center; justify-content: center;
   border-radius: var(--radius-sm); transition: color 0.2s ease, background 0.2s ease;
 }
-#speedtest-refresh-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+#speedtest-refresh-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
 
 .st-signal-detail {
     background: var(--surface); border-radius: 6px; margin: 4px 8px 8px;
@@ -57,7 +57,7 @@
 
 /* Modern Card Design */
 .speedtest-chart-card {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-lg, 20px);
@@ -102,7 +102,7 @@
 
 /* Table card wrapper for speedtest table */
 #speedtest-table-wrap.table-card {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-lg, 12px);
     overflow-x: auto;
@@ -120,7 +120,7 @@
     text-align: left;
     font-weight: 600;
     font-size: max(var(--fs-min), 0.85em);
-    color: var(--text-primary, var(--text));
+    color: var(--text);
     border-bottom: 1px solid var(--card-border, var(--input-border));
 }
 #speedtest-table tbody tr {
@@ -241,7 +241,7 @@
     #speedtest-table td.st-col-loss::before,
     #speedtest-table td.st-col-server::before {
         content: attr(data-label) " ";
-        color: var(--text-muted);
+        color: var(--muted);
     }
     .st-signal-detail {
         grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

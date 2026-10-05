@@ -6,9 +6,6 @@
   /* Settings-specific tokens (not in tokens.css) */
   --sidebar-width: 260px;
   --card-padding: var(--space-lg);
-  --success: var(--good);
-  --warning: var(--warn);
-  --danger: var(--crit);
 }
 
 /* Settings page needs overflow hidden for sidebar layout */
@@ -87,7 +84,7 @@ html, body {
   border-bottom: 1px solid var(--glass-border);
   margin-bottom: var(--space-md);
   text-decoration: none;
-  color: var(--text-primary);
+  color: var(--text);
   transition: color 0.2s;
 }
 .sidebar-header:hover { color: var(--amethyst-light); }
@@ -114,7 +111,7 @@ html, body {
 
 .sidebar-subtitle {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
   font-weight: 400;
 }
 
@@ -132,7 +129,7 @@ html, body {
 .nav-group-label {
   font-size: var(--fs-min);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   padding: 0 var(--space-sm);
@@ -160,12 +157,12 @@ html, body {
 }
 .nav-item:hover {
   background: var(--tint-hover);
-  color: var(--text-primary);
+  color: var(--text);
 }
 /* Light mode hover handled by --tint-hover token */
 .nav-item.active {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--text-primary);
+  color: var(--text);
 }
 .nav-item.active::before {
   content: '';
@@ -203,7 +200,7 @@ html, body {
 }
 .nav-badge.success {
   background: var(--good-muted);
-  color: var(--success);
+  color: var(--good);
   border: 1px solid color-mix(in srgb, var(--good) 20%, transparent);
 }
 .nav-badge.info {
@@ -314,9 +311,9 @@ html, body {
 .card-icon.purple { background: var(--amethyst-muted); color: var(--amethyst-light); }
 [data-theme="light"] .card-icon.purple { color: var(--amethyst); }
 .card-icon.blue { background: color-mix(in srgb, var(--sapphire) 15%, transparent); color: var(--sapphire); }
-.card-icon.green { background: var(--good-muted); color: var(--success); }
-.card-icon.amber { background: var(--warn-muted); color: var(--warning); }
-.card-icon.red { background: var(--crit-muted); color: var(--danger); }
+.card-icon.green { background: var(--good-muted); color: var(--good); }
+.card-icon.amber { background: var(--warn-muted); color: var(--warn); }
+.card-icon.red { background: var(--crit-muted); color: var(--crit); }
 .card-icon.cyan { background: rgba(6,182,212,0.15); color: var(--info); }
 
 .card-title {
@@ -326,7 +323,7 @@ html, body {
 }
 .card-subtitle {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: 2px;
 }
 
@@ -378,13 +375,13 @@ button.notification-collapse-button {
 .channel-status-badge.status-enabled {
   background: var(--good-muted);
   border-color: color-mix(in srgb, var(--good) 28%, transparent);
-  color: var(--success);
+  color: var(--good);
 }
 .channel-status-badge.status-disabled,
 .channel-status-badge.status-muted {
   background: color-mix(in srgb, var(--muted) 10%, transparent);
   border-color: color-mix(in srgb, var(--muted) 18%, transparent);
-  color: var(--text-muted);
+  color: var(--muted);
 }
 .notification-header-toggle {
   flex-shrink: 0;
@@ -406,7 +403,7 @@ button.notification-collapse-button {
 .card-collapse-icon {
   width: 18px;
   height: 18px;
-  color: var(--text-muted);
+  color: var(--muted);
   transition: transform 0.2s var(--ease-out-expo);
   flex-shrink: 0;
 }
@@ -433,7 +430,7 @@ button.notification-collapse-button {
 .section-label {
   font-size: var(--fs-min);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: var(--space-md);
@@ -472,7 +469,7 @@ button.notification-collapse-button {
   padding: 14px 16px;
   font-family: inherit;
   font-size: 0.92rem;
-  color: var(--text-primary);
+  color: var(--text);
   transition: all 0.2s;
   min-height: 44px;
   width: 100%;
@@ -492,7 +489,7 @@ button.notification-collapse-button {
   background: color-mix(in srgb, var(--amethyst) 4%, transparent);
 }
 .form-input::placeholder {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 
@@ -506,12 +503,12 @@ button.notification-collapse-button {
 }
 .form-select option {
   background: var(--surface);
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .form-hint {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .input-with-action {
@@ -552,7 +549,7 @@ button.notification-collapse-button {
 .toggle-section-divider {
   font-size: var(--fs-min);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: var(--space-md) 0 var(--space-xs);
@@ -575,7 +572,7 @@ button.notification-collapse-button {
 }
 .toggle-desc {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .toggle {
@@ -643,7 +640,7 @@ button.notification-collapse-button {
 .btn-ghost {
   background: var(--tint-hover);
   border: 1px solid var(--glass-border);
-  color: var(--text-primary);
+  color: var(--text);
   padding: 10px 16px;
   font-size: 0.82rem;
 }
@@ -688,7 +685,7 @@ button.notification-collapse-button {
 }
 .btn-icon:hover {
   background: var(--tint-emphasis);
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .btn-row {
@@ -724,7 +721,7 @@ button.notification-collapse-button {
 }
 .badge-muted {
   background: rgba(120,130,180,0.08);
-  color: var(--text-muted);
+  color: var(--muted);
   border: 1px solid var(--glass-border);
 }
 
@@ -739,19 +736,19 @@ button.notification-collapse-button {
   font-weight: 500;
 }
 .status-indicator.testing {
-  background: color-mix(in srgb, var(--text-muted) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-muted) 18%, transparent);
-  color: var(--text-muted);
+  background: color-mix(in srgb, var(--muted) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 18%, transparent);
+  color: var(--muted);
 }
 .status-indicator.connected {
   background: color-mix(in srgb, var(--good) 8%, transparent);
   border: 1px solid var(--good-muted);
-  color: var(--success);
+  color: var(--good);
 }
 .status-indicator.disconnected {
   background: color-mix(in srgb, var(--crit) 8%, transparent);
   border: 1px solid var(--crit-muted);
-  color: var(--danger);
+  color: var(--crit);
 }
 .status-dot {
   width: 8px; height: 8px;
@@ -776,13 +773,13 @@ button.notification-collapse-button {
 .test-ok {
   display: flex;
   background: color-mix(in srgb, var(--good) 10%, transparent);
-  color: var(--success);
+  color: var(--good);
   border: 1px solid color-mix(in srgb, var(--good) 20%, transparent);
 }
 .test-fail {
   display: flex;
   background: color-mix(in srgb, var(--crit) 10%, transparent);
-  color: var(--danger);
+  color: var(--crit);
   border: 1px solid color-mix(in srgb, var(--crit) 20%, transparent);
 }
 .test-loading {
@@ -823,7 +820,7 @@ button.notification-collapse-button {
 }
 .token-date {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
   font-family: var(--font-mono);
 }
 .token-actions {
@@ -841,7 +838,7 @@ button.notification-collapse-button {
 #api-tokens-table th {
   font-size: var(--fs-min);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 8px 12px;
@@ -865,7 +862,7 @@ button.notification-collapse-button {
 .cooldown-table th {
   font-size: var(--fs-min);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 8px 12px;
@@ -938,7 +935,7 @@ button.notification-collapse-button {
 }
 .module-card-desc {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--muted);
   line-height: 1.4;
 }
 .module-card-meta {
@@ -947,7 +944,7 @@ button.notification-collapse-button {
   gap: var(--space-sm);
   margin-top: 12px;
   font-size: var(--fs-min);
-  color: var(--text-muted);
+  color: var(--muted);
   font-family: var(--font-mono);
 }
 .module-card-meta-stack {
@@ -976,7 +973,7 @@ button.notification-collapse-button {
   position: absolute;
   left: 14px; top: 50%;
   transform: translateY(-50%);
-  color: var(--text-muted);
+  color: var(--muted);
   pointer-events: none;
 }
 
@@ -1015,7 +1012,7 @@ button.notification-collapse-button {
   background: rgba(234, 179, 8, 0.1);
   border: 1px solid rgba(234, 179, 8, 0.3);
   border-radius: var(--radius-md);
-  color: var(--warning);
+  color: var(--warn);
   font-size: 0.875rem;
 }
 .module-restart-banner i {
@@ -1076,7 +1073,7 @@ button.notification-collapse-button {
 .support-quote p {
   font-size: 0.95rem;
   line-height: 1.7;
-  color: var(--text-primary);
+  color: var(--text);
   margin-bottom: var(--space-sm);
 }
 .support-quote cite {
@@ -1135,7 +1132,7 @@ button.notification-collapse-button {
   margin-top: 2px;
 }
 .support-card-arrow {
-  color: var(--text-muted);
+  color: var(--muted);
   flex-shrink: 0;
   transition: transform 0.2s var(--ease-out-expo), color 0.2s;
 }
@@ -1176,7 +1173,7 @@ button.notification-collapse-button {
 .support-card-icon {
   width: 22px;
   height: 22px;
-  color: var(--text-muted);
+  color: var(--muted);
   flex-shrink: 0;
   transition: color 0.2s;
 }
@@ -1189,7 +1186,7 @@ button.notification-collapse-button {
 }
 .support-card-desc {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 /* Star CTA */
@@ -1223,7 +1220,7 @@ button.notification-collapse-button {
   transition: color 0.2s;
 }
 .support-star-link:hover {
-  color: var(--text-primary);
+  color: var(--text);
 }
 .support-star-link i, .support-star-link svg {
   width: 14px;
@@ -1277,7 +1274,7 @@ button.notification-collapse-button {
 }
 .save-footer .unsaved-hint {
   font-size: 0.82rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-right: auto;
   display: flex;
   align-items: center;
@@ -1286,7 +1283,7 @@ button.notification-collapse-button {
 .unsaved-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: var(--warning);
+  background: var(--warn);
   animation: pulse 2s infinite;
 }
 
@@ -1313,7 +1310,7 @@ button.notification-collapse-button {
 .error-msg {
   background: color-mix(in srgb, var(--crit) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--crit) 20%, transparent);
-  color: var(--danger);
+  color: var(--crit);
   padding: 14px 18px;
   border-radius: var(--radius-md);
   margin-bottom: var(--space-md);
@@ -1372,7 +1369,7 @@ button.notification-collapse-button {
 .browse-modal-path {
   padding: 8px 24px;
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--muted);
   font-family: var(--font-mono);
   border-bottom: 1px solid var(--glass-border);
 }
@@ -1383,7 +1380,7 @@ button.notification-collapse-button {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.78rem;
 }
 .browse-modal-summary code {
@@ -1397,7 +1394,7 @@ button.notification-collapse-button {
 .browse-modal-status {
   min-height: 32px;
   padding: 8px 24px;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.82rem;
   border-bottom: 1px solid var(--glass-border);
 }
@@ -1419,7 +1416,7 @@ button.notification-collapse-button {
 .browse-item:hover {
   background: var(--tint-hover);
 }
-.browse-item i { width: 18px; height: 18px; color: var(--text-muted); }
+.browse-item i { width: 18px; height: 18px; color: var(--muted); }
 .browse-modal-footer {
   padding: 16px 24px;
   border-top: 1px solid var(--glass-border);
@@ -1481,7 +1478,7 @@ button.notification-collapse-button {
 }
 .mobile-menu-btn:hover {
   background: var(--tint-hover);
-  color: var(--text-primary);
+  color: var(--text);
 }
 .mobile-menu-btn svg { width: 24px; height: 24px; }
 
@@ -1637,7 +1634,7 @@ button.notification-collapse-button {
 }
 .backup-item-size {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
   font-family: var(--font-mono);
 }
 .backup-item-actions {
@@ -1690,7 +1687,7 @@ button.notification-collapse-button {
 .theme-name {
   font-weight: 600;
   font-size: 1rem;
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .theme-desc {
@@ -1720,7 +1717,7 @@ button.notification-collapse-button {
   display: flex;
   gap: var(--space-md);
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .theme-actions {
@@ -1738,7 +1735,7 @@ button.notification-collapse-button {
   gap: 4px;
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--success);
+  color: var(--good);
 }
 
 /* Theme Preview Overlay */
@@ -1770,7 +1767,7 @@ button.notification-collapse-button {
 }
 
 .theme-preview-bar span {
-  color: var(--text-primary);
+  color: var(--text);
   font-size: 0.9rem;
 }
 
@@ -1829,7 +1826,7 @@ button.notification-collapse-button {
 }
 .sc-trigger-icon {
   width: 16px; height: 16px;
-  color: var(--text-muted);
+  color: var(--muted);
   flex-shrink: 0;
   transition: color 0.15s var(--ease-smooth);
 }
@@ -1838,7 +1835,7 @@ button.notification-collapse-button {
 }
 .sc-trigger-name { font-weight: 500; }
 .sc-trigger-desc {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.85rem;
   margin-top: 4px;
   margin-left: 24px;
@@ -1868,7 +1865,7 @@ button.notification-collapse-button {
 /* Guardrails summary */
 .sc-guardrails-summary {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: var(--space-sm);
   padding-top: var(--space-sm);
   border-top: 1px solid var(--glass-border);
@@ -1881,14 +1878,14 @@ button.notification-collapse-button {
   justify-content: center;
   gap: var(--space-sm);
   padding: var(--space-lg);
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 .sc-history-loading i { animation: spin 1s linear infinite; }
 .sc-history-empty {
   text-align: center;
   padding: var(--space-xl) var(--space-lg);
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 .sc-history-empty i {
@@ -1924,13 +1921,13 @@ button.notification-collapse-button {
 }
 .registry-card-desc {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: 3px;
   line-height: 1.4;
 }
 .registry-card-meta {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: 6px;
 }
 .registry-card-action {
@@ -1945,7 +1942,7 @@ button.notification-collapse-button {
 .registry-empty {
   text-align: center;
   padding: var(--space-xl) var(--space-lg);
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 .registry-empty i {
@@ -1961,7 +1958,7 @@ button.notification-collapse-button {
   justify-content: center;
   gap: var(--space-sm);
   padding: var(--space-lg);
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 .registry-loading i { animation: spin 1s linear infinite; }
@@ -1984,7 +1981,7 @@ button.notification-collapse-button {
 .btn-install:hover { background: color-mix(in srgb, var(--good) 20%, transparent); }
 .btn-uninstall {
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted);
   border: 1px solid var(--glass-border);
 }
 .btn-uninstall:hover {
@@ -1994,8 +1991,8 @@ button.notification-collapse-button {
 }
 .btn-confirm {
   background: var(--warn-muted);
-  color: var(--warning);
-  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
+  color: var(--warn);
+  border: 1px solid color-mix(in srgb, var(--warn) 20%, transparent);
   animation: confirmPulse 0.3s var(--ease-out-expo);
 }
 @keyframes confirmPulse { 0% { transform: scale(0.95); } 100% { transform: scale(1); } }
@@ -2016,7 +2013,7 @@ button.notification-collapse-button {
   background: rgba(255,255,255,0.035);
 }
 .about-meta-label {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;

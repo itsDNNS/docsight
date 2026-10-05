@@ -83,7 +83,7 @@
                     body: JSON.stringify(patch)
                 }).then(function (res) {
                     if (res.ok) {
-                        input.style.borderColor = 'var(--success, #10b981)';
+                        input.style.borderColor = 'var(--good)';
                         setTimeout(function () { input.style.borderColor = ''; }, 1500);
                     }
                 });

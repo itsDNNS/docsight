@@ -49,7 +49,7 @@
 
 /* ── Calendar ── */
 .bqm-calendar {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-lg);
     padding: var(--space-md);
@@ -65,7 +65,7 @@
     text-align: center;
     font-size: max(var(--fs-min), 0.75em);
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--muted);
     margin-bottom: var(--space-xs);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -88,7 +88,7 @@
     border-radius: var(--radius-sm);
     font-size: max(var(--fs-min), 0.85em);
     position: relative;
-    color: var(--text-muted);
+    color: var(--muted);
     user-select: none;
     transition: all 0.15s var(--ease-out-expo);
 }
@@ -147,7 +147,7 @@
 
 .bqm-range-label {
     font-size: max(var(--fs-min), 0.8em);
-    color: var(--text-muted);
+    color: var(--muted);
     margin-left: auto;
 }
 
@@ -170,13 +170,13 @@
 }
 .bqm-last-updated {
     font-size: max(var(--fs-min), 0.75em);
-    color: var(--text-muted);
+    color: var(--muted);
     margin-left: var(--space-sm);
 }
 
 /* ── Card ── */
 .bqm-card {
-    background: var(--card-bg, var(--card));
+    background: var(--card);
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
@@ -290,7 +290,7 @@
 
 .bqm-validate-status {
     font-size: max(var(--fs-min), 0.85em);
-    color: var(--text-muted);
+    color: var(--muted);
 }
 .bqm-validate-status.ok {
     color: var(--good);
