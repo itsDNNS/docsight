@@ -189,6 +189,11 @@
 }
 .bqm-card #bqm-image-wrap {
     margin-top: var(--space-md);
+    text-align: center;
+}
+#bqm-image {
+    max-width: 100%;
+    border-radius: 8px;
 }
 .bqm-chart-container {
     width: 100%;
@@ -312,4 +317,68 @@
     .bqm-day {
         font-size: max(var(--fs-min), 0.8em);
     }
+}
+
+/* ── Toolbar icons, CSV import and image import dialog ── */
+.bqm-import-btn svg {
+    display: block;
+}
+.bqm-csv-import {
+    margin: 16px auto;
+    max-width: 480px;
+    text-align: center;
+}
+.bqm-csv-import-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+#bqm-csv-file {
+    font-size: max(var(--fs-min), 0.85em);
+}
+.bqm-csv-status {
+    margin-top: 8px;
+    font-size: max(var(--fs-min), 0.85em);
+}
+.modal.bqm-import-panel {
+    max-width: 800px;
+}
+.bqm-import-drop-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--muted);
+}
+.import-upload-zone .bqm-import-formats {
+    font-size: max(var(--fs-min), 0.8em);
+    color: var(--muted);
+}
+#bqm-import-options {
+    margin: 10px 0;
+}
+.bqm-import-option-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.bqm-import-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: max(var(--fs-min), 0.9em);
+}
+.bqm-import-option-toggle {
+    cursor: pointer;
+}
+.bqm-import-table .bqm-import-col-thumb { width: 70px; }
+.bqm-import-table .bqm-import-col-date { width: 160px; }
+.bqm-import-table .bqm-import-col-action { width: 36px; }
+#bqm-import-footer {
+    display: flex;
+}
+.bqm-import-actions {
+    display: flex;
+    gap: 10px;
 }

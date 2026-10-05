@@ -14,18 +14,18 @@
             <span id="bqm-month-label" class="bqm-month-label"></span>
             <button id="bqm-month-next" class="bqm-nav-btn" aria-label="{{ t.get('next_month', 'Next month') }}">&#8250;</button>
         </div>
-        <button class="bqm-nav-btn bqm-import-btn" onclick="openBqmImportModal()" title="{{ t.bqm_import_title }}" aria-label="{{ t.bqm_import_title }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
+        <button class="bqm-nav-btn bqm-import-btn" data-action="openBqmImportModal" title="{{ t.bqm_import_title }}" aria-label="{{ t.bqm_import_title }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
         </button>
-        <button class="bqm-nav-btn bqm-import-btn" onclick="var s=document.getElementById('bqm-csv-import-section');s.style.display=s.style.display==='none'?'':'none'" title="{{ t.get('bqm_csv_import', 'Import CSV') }}" aria-label="{{ t.get('bqm_csv_import', 'Import CSV') }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
+        <button class="bqm-nav-btn bqm-import-btn" data-action="toggleBqmCsvImport" title="{{ t.get('bqm_csv_import', 'Import CSV') }}" aria-label="{{ t.get('bqm_csv_import', 'Import CSV') }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
         </button>
-        <button class="bqm-nav-btn bqm-import-btn bqm-delete-btn" onclick="deleteBqmImages()" title="{{ t.bqm_delete }}" aria-label="{{ t.bqm_delete }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
+        <button class="bqm-nav-btn bqm-import-btn bqm-delete-btn" data-action="deleteBqmImages" title="{{ t.bqm_delete }}" aria-label="{{ t.bqm_delete }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
             </svg>
         </button>
@@ -40,7 +40,7 @@
     </div>
     <span id="bqm-range-label" class="bqm-range-label"></span>
     <div id="bqm-content">
-        <div id="bqm-card" class="bqm-card" style="display:none;">
+        <div id="bqm-card" class="bqm-card" hidden>
             <div class="chart-card-header">
                 <div class="chart-header-content">
                     <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -48,29 +48,29 @@
                         <path d="M7 12l4-4 4 4 4-4"/>
                     </svg>
                     <div class="chart-label">{{ t.bqm_title }}</div>
-                    <span id="bqm-live-badge" class="bqm-live-badge" style="display:none;">{{ t.bqm_live }}</span>
-                    <span id="bqm-last-updated" class="bqm-last-updated" style="display:none;"></span>
+                    <span id="bqm-live-badge" class="bqm-live-badge" hidden>{{ t.bqm_live }}</span>
+                    <span id="bqm-last-updated" class="bqm-last-updated" hidden></span>
                 </div>
-                <div id="bqm-view-toggle" class="trend-tabs" style="display:none;">
+                <div id="bqm-view-toggle" class="trend-tabs" hidden>
                     <button class="trend-tab active" id="bqm-toggle-uplot">uPlot</button>
                     <button class="trend-tab" id="bqm-toggle-png">PNG</button>
                 </div>
             </div>
-            <div id="bqm-chart-container" class="bqm-chart-container" style="display:none;"></div>
-            <div id="bqm-image-wrap" style="text-align:center;">
-                <img id="bqm-image" style="max-width:100%; border-radius:8px;" alt="BQM Graph">
+            <div id="bqm-chart-container" class="bqm-chart-container" hidden></div>
+            <div id="bqm-image-wrap">
+                <img id="bqm-image" alt="BQM Graph">
             </div>
         </div>
         <div id="bqm-no-data" class="view-empty" hidden></div>
     </div>
 
     <!-- BQM CSV Import (inline, below calendar) -->
-    <div id="bqm-csv-import-section" class="bqm-csv-import" style="display:none; margin:16px auto; max-width:480px; text-align:center;">
-        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center;">
-            <input type="file" id="bqm-csv-file" accept=".csv" style="font-size:max(var(--fs-min), 0.85em);">
-            <button class="btn btn-primary btn-sm" id="bqm-csv-import-btn" onclick="importBqmCsv()">{{ t.get('bqm_csv_import', 'Import CSV') }}</button>
+    <div id="bqm-csv-import-section" class="bqm-csv-import" hidden>
+        <div class="bqm-csv-import-row">
+            <input type="file" id="bqm-csv-file" accept=".csv">
+            <button class="btn btn-primary btn-sm" id="bqm-csv-import-btn" data-action="importBqmCsv">{{ t.get('bqm_csv_import', 'Import CSV') }}</button>
         </div>
-        <div id="bqm-csv-import-status" class="bqm-csv-status" style="margin-top:8px; font-size:max(var(--fs-min), 0.85em);"></div>
+        <div id="bqm-csv-import-status" class="bqm-csv-status"></div>
     </div>
 
 {% endif %}
