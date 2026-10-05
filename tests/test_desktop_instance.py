@@ -634,6 +634,58 @@ def test_stale_or_malformed_state_is_cleaned_during_takeover(tmp_path):
     coordinator.cleanup()
 
 
+class _UnreadableThenStore(runtime.RuntimeStateStore):
+    """Fails like a locked file for the first reads, then reads normally."""
+
+    def __init__(self, path, failures):
+        super().__init__(path)
+        self.failures = failures
+
+    def load(self):
+        if self.failures:
+            self.failures -= 1
+            raise runtime.RuntimeStateError("unable to read desktop runtime state")
+        return super().load()
+
+
+def _follower_coordinator(tmp_path, store, clock):
+    def advance(seconds):
+        clock[0] += seconds
+
+    return runtime.DesktopInstance(
+        store=store,
+        mutex=FakeMutex([]),
+        inspector=FakeInspector({PID: runtime.ProcessIdentity(PID, OWNER, START_TIME)}),
+        current_user_id=OWNER,
+        env={},
+        current_pid=PID,
+        token_factory=lambda: TOKEN,
+        endpoint_probe=lambda state: True,
+        monotonic=lambda: clock[0],
+        sleep=advance,
+    )
+
+
+def test_follower_keeps_waiting_while_the_runtime_state_is_briefly_unreadable(tmp_path):
+    store = _UnreadableThenStore(tmp_path / "runtime.json", failures=3)
+    runtime.RuntimeStateStore(tmp_path / "runtime.json").replace(make_state(port=8771))
+
+    decision = _follower_coordinator(tmp_path, store, [0.0]).coordinate(wait_seconds=5, poll_seconds=0.1)
+
+    assert decision == runtime.InstanceDecision(runtime.InstanceRole.FOLLOWER, 8771)
+    assert store.failures == 0
+
+
+def test_follower_times_out_instead_of_failing_when_the_state_stays_unreadable(tmp_path):
+    store = _UnreadableThenStore(tmp_path / "runtime.json", failures=10_000)
+    clock = [0.0]
+
+    with pytest.raises(runtime.InstanceUnavailableError):
+        _follower_coordinator(tmp_path, store, clock).coordinate(wait_seconds=2, poll_seconds=0.5)
+
+    assert clock == [2.0]
+
+
 def test_coordination_wait_is_capped_at_ten_seconds(tmp_path):
     clock = [0.0]
     sleeps = []
