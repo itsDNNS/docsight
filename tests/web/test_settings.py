@@ -177,17 +177,19 @@ class TestSettingsRoute:
         assert b"Segment Utilization" in resp.data
         assert b"Disabled" in resp.data
 
-    def test_settings_sidebar_groups_core_and_module_navigation(self, client):
+    def test_settings_render_in_the_app_shell_with_a_section_index(self, client):
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200
         html = resp.data.decode("utf-8")
 
-        assert 'aria-labelledby="settings-nav-core-label"' in html
-        assert 'id="settings-nav-core-label"' in html
-        assert re.search(
-            r'id="settings-nav-core-label"[^>]*>\s*Settings\s*</div>', html
-        )
-        assert html.index('id="settings-nav-core-label"') < html.index('data-section="connection"')
+        assert 'id="topnav"' in html
+        assert 'id="settings-sidebar"' not in html
+        assert re.search(r'<a class="topnav-icon-button topnav-settings active"[^>]+aria-current="page"', html)
+        assert re.search(r'<nav class="settings-index" id="settings-index" aria-label="Settings sections"', html)
+        index = html[html.index('id="settings-index"'):html.index("</nav>", html.index('id="settings-index"'))]
+        assert index.index('data-section="connection"') < index.index('data-section="about"')
+        assert index.rindex('data-section=') == index.index('data-section="support"')
+        assert "onclick=" not in index
 
     def test_settings_icon_only_controls_have_accessible_names(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
@@ -198,9 +200,8 @@ class TestSettingsRoute:
         assert resp.status_code == 200
         html = resp.data.decode("utf-8")
 
-        assert re.search(r'<button[^>]+id="mobile-menu-button"[^>]+aria-label="Open settings navigation"', html)
-        assert 'aria-controls="settings-sidebar"' in html
-        assert 'aria-expanded="false"' in html
+        assert re.search(r'<a class="topnav-icon-button topnav-settings[^"]*"[^>]+aria-label="Settings"', html)
+        assert re.search(r'<button[^>]+id="nav-toggle-more"[^>]+aria-label="More"', html)
         assert re.search(r'<button[^>]+data-section="connection"[^>]+aria-current="page"', html)
         assert re.search(r'<button[^>]+onclick="copyToken\(\)"[^>]+aria-label="Copy to Clipboard"', html)
         assert re.search(r'<button[^>]+id="module-registry-refresh"[^>]+aria-label="Refresh"', html)

@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shell.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/views.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css', v=version) }}">
@@ -51,226 +52,10 @@
 <div class="app-layout">
 
 <!-- Top navigation: one DOM for desktop (top bar, dropdown panels) and mobile (bottom bar, sheets) -->
-{% set has_journal = modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
-{% set has_evidence = modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}
-{% set has_comparison = modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
-{% set has_reports = modules|selectattr('id', 'equalto', 'docsight.reports')|list %}
-{% set has_modulation = modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}
-{% set has_connection_monitor = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
+{% set shell_page = 'dashboard' %}
+{% include 'partials/topnav.html' %}
 {% set has_speedtest = modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
-{% set has_bqm = modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
-{% set has_smokeping = modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
-{% set has_bnetz = bnetz_enabled and modules|selectattr('id', 'equalto', 'docsight.bnetz')|list %}
-{% set has_correlation = speedtest_configured or bqm_configured or connection_monitor_installed %}
-{% set has_segment = is_fritzbox and segment_utilization_enabled %}
-{% set tab_modules = [] %}
-{% for mod in modules if mod.template_paths.get('tab') and mod.id not in builtin_module_views %}
-    {% if tab_modules.append(mod) %}{% endif %}
-{% endfor %}
-{% set has_connection_items = has_connection_monitor or gaming_quality_enabled or has_speedtest or has_bqm or has_smokeping %}
-<header class="topnav" id="topnav">
-    <div class="topnav-inner">
-        <a class="topnav-brand" href="{{ url_for('index') }}">
-            <img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="24" height="24">
-            <span class="topnav-brand-name">DOCSight</span>
-        </a>
-        {% if desktop_mode %}
-        <a class="desktop-preview-badge desktop-preview-badge-mobile" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</a>
-        {% endif %}
-        <nav class="topnav-nav" id="main-nav" aria-label="{{ t.get('nav_main', 'Main navigation') }}">
-            <ul class="topnav-list">
-                <li class="topnav-entry">
-                    <button type="button" class="topnav-dest nav-item active" data-view="live" data-nav-icon="layout-dashboard" data-nav-title="{{ t.home }}" aria-current="page">
-                        <i data-lucide="layout-dashboard"></i><span class="topnav-label">{{ t.get('nav_overview', 'Overview') }}</span>
-                    </button>
-                </li>
-                <li class="topnav-entry topnav-group" data-nav-group="signal">
-                    <button type="button" class="topnav-dest topnav-toggle" id="nav-toggle-signal" aria-expanded="false" aria-controls="nav-panel-signal">
-                        <i data-lucide="activity"></i><span class="topnav-label">{{ t.get('nav_signal', 'Signal') }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
-                    </button>
-                    <div class="topnav-panel" id="nav-panel-signal" role="group" aria-labelledby="nav-toggle-signal" hidden>
-                        <div class="topnav-panel-title">{{ t.get('nav_signal', 'Signal') }}</div>
-                        <button type="button" class="nav-item" data-view="trends" data-nav-icon="trending-up" data-nav-title="{{ t.signal_trends }}">
-                            <i data-lucide="trending-up"></i> {{ t.signal_trends }}
-                        </button>
-                        <button type="button" class="nav-item" data-view="channels" data-nav-icon="layers" data-nav-title="{{ t.channels }}">
-                            <i data-lucide="layers"></i> {{ t.channels }}
-                        </button>
-                        {% if has_modulation %}
-                        <button type="button" class="nav-item" data-view="modulation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.get('docsight.modulation.title', 'Modulation Performance') }}">
-                            <i data-lucide="bar-chart-3"></i> {{ t.get('docsight.modulation.title', 'Modulation Performance') }}
-                        </button>
-                        {% endif %}
-                        {% if has_segment %}
-                        <button type="button" class="nav-item" data-view="segment-utilization" data-nav-icon="gauge" data-nav-title="{{ t.seg_title }}">
-                            <i data-lucide="gauge"></i> {{ t.seg_title }}
-                        </button>
-                        {% endif %}
-                        {% if has_correlation %}
-                        <button type="button" class="nav-item" data-view="correlation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.correlation_analysis }}">
-                            <i data-lucide="bar-chart-3"></i> {{ t.correlation_analysis }}
-                        </button>
-                        {% endif %}
-                    </div>
-                </li>
-                {% if has_connection_items %}
-                <li class="topnav-entry topnav-group" data-nav-group="connection">
-                    <button type="button" class="topnav-dest topnav-toggle" id="nav-toggle-connection" aria-expanded="false" aria-controls="nav-panel-connection">
-                        <i data-lucide="globe"></i><span class="topnav-label">{{ t.get('nav_connection', 'Connection') }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
-                    </button>
-                    <div class="topnav-panel" id="nav-panel-connection" role="group" aria-labelledby="nav-toggle-connection" hidden>
-                        <div class="topnav-panel-title">{{ t.get('nav_connection', 'Connection') }}</div>
-                        {% if has_speedtest %}
-                        {% if speedtest_configured %}
-                        <button type="button" class="nav-item" data-view="speedtest" data-nav-icon="rabbit" data-nav-title="{{ t.speedtest }}">
-                            <i data-lucide="rabbit"></i> {{ t.speedtest }}
-                        </button>
-                        {% else %}
-                        <button type="button" class="nav-item" data-action="openSpeedtestSetupModal">
-                            <i data-lucide="settings"></i> {{ t.speedtest_setup }}
-                        </button>
-                        {% endif %}
-                        {% endif %}
-                        {% if has_connection_monitor %}
-                        <button type="button" class="nav-item" data-view="connection-monitor" data-nav-icon="satellite-dish" data-nav-title="{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}">
-                            <i data-lucide="satellite-dish"></i> {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
-                        </button>
-                        {% endif %}
-                        {% if gaming_quality_enabled %}
-                        <button type="button" class="nav-item" data-view="gaming" data-nav-icon="gamepad-2" data-nav-title="{{ t.gaming_quality_label }}">
-                            <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
-                        </button>
-                        {% endif %}
-                        {% if has_bqm %}
-                        {% if bqm_configured %}
-                        <button type="button" class="nav-item" data-view="bqm" data-nav-icon="chart-spline" data-nav-title="{{ t.bqm_title }}">
-                            <i data-lucide="chart-spline"></i> {{ t.bqm_title }}
-                        </button>
-                        {% else %}
-                        <button type="button" class="nav-item" data-action="openBqmSetupModal">
-                            <i data-lucide="settings"></i> {{ t.bqm_setup }}
-                        </button>
-                        {% endif %}
-                        {% endif %}
-                        {% if has_smokeping %}
-                        {% if smokeping_configured %}
-                        <button type="button" class="nav-item" data-view="smokeping" data-nav-icon="radar" data-nav-title="{{ t.smokeping_title }}">
-                            <i data-lucide="radar"></i> {{ t.smokeping_title }}
-                        </button>
-                        {% else %}
-                        <button type="button" class="nav-item" data-action="openSmokepingSetupModal">
-                            <i data-lucide="settings"></i> {{ t.smokeping_setup }}
-                        </button>
-                        {% endif %}
-                        {% endif %}
-                    </div>
-                </li>
-                {% endif %}
-                <li class="topnav-entry">
-                    <button type="button" class="topnav-dest nav-item" data-view="events" data-nav-icon="bell" data-nav-title="{{ t.event_log }}">
-                        <i data-lucide="history"></i><span class="topnav-label">{{ t.get('nav_events', 'Events') }}</span>
-                        <span class="nav-badge" id="event-badge" hidden title="{{ t.event_badge_title }}"></span>
-                    </button>
-                </li>
-                <li class="topnav-entry topnav-group" data-nav-group="cases">
-                    <button type="button" class="topnav-dest topnav-toggle" id="nav-toggle-cases" aria-expanded="false" aria-controls="nav-panel-cases">
-                        <i data-lucide="folder-open"></i><span class="topnav-label">{{ t.get('nav_cases', 'Cases') }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
-                    </button>
-                    <div class="topnav-panel" id="nav-panel-cases" role="group" aria-labelledby="nav-toggle-cases" hidden>
-                        <div class="topnav-panel-title">{{ t.get('nav_cases', 'Cases') }}</div>
-                        {% if has_journal %}
-                        <button type="button" class="nav-item" data-view="journal" data-nav-icon="clipboard-list" data-nav-title="{{ t.incident_journal }}">
-                            <i data-lucide="clipboard-list"></i> {{ t.incident_journal }}
-                        </button>
-                        {% endif %}
-                        {% if has_evidence %}
-                        <button type="button" class="nav-item" data-view="evidence" data-nav-icon="clipboard-check" data-nav-title="{{ t.get('docsight.evidence.title', 'Evidence Journey') }}">
-                            <i data-lucide="clipboard-check"></i> {{ t.get('docsight.evidence.title', 'Evidence Journey') }}
-                        </button>
-                        {% endif %}
-                        {% if has_comparison %}
-                        <button type="button" class="nav-item" data-view="comparison" data-nav-icon="git-compare-arrows" data-nav-title="{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}">
-                            <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
-                        </button>
-                        {% endif %}
-                        {% if has_bnetz %}
-                        <button type="button" class="nav-item" data-view="bnetz" data-nav-icon="file-check" data-nav-title="{{ t.bnetz_title }}">
-                            <i data-lucide="file-check"></i> {{ t.bnetz_title }}
-                        </button>
-                        {% endif %}
-                        {% for mod in tab_modules|sort(attribute='menu.order') %}
-                        <button type="button" class="nav-item" data-view="mod-{{ mod.id|replace('.', '-') }}" data-nav-icon="{{ mod.menu.get('icon', 'puzzle') }}" data-nav-title="{{ t.get(mod.menu.label_key, mod.name) }}">
-                            <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i>
-                            {{ t.get(mod.menu.label_key, mod.name) }}
-                        </button>
-                        {% endfor %}
-                        <div class="topnav-panel-divider" role="separator"></div>
-                        {% if has_reports %}
-                        <button type="button" class="nav-item" id="report-link" data-action="openReportModal">
-                            <i data-lucide="file-text"></i> {{ t.incident_report }}
-                        </button>
-                        {% endif %}
-                        <button type="button" class="nav-item" id="export-link" data-action="exportForLLM">
-                            <i data-lucide="file-output"></i> {{ t.export_llm }}
-                        </button>
-                    </div>
-                </li>
-            </ul>
-        </nav>
-        <div class="topnav-actions">
-            <span class="topnav-countdown" id="topbar-countdown"></span>
-            <button type="button" class="topnav-icon-button topnav-refresh" id="refresh-btn" title="{{ t.refresh }}" aria-label="{{ t.refresh }}">
-                <i data-lucide="refresh-cw"></i>
-            </button>
-            <div class="topnav-group topnav-more" data-nav-group="more">
-                <button type="button" class="topnav-icon-button topnav-toggle" id="nav-toggle-more" aria-expanded="false" aria-controls="nav-panel-more" aria-label="{{ t.get('nav_more', 'More') }}" title="{{ t.get('nav_more', 'More') }}">
-                    <i data-lucide="menu"></i>
-                    {% if update_available %}<span class="topnav-dot" aria-hidden="true"></span>{% endif %}
-                </button>
-                <div class="topnav-panel topnav-panel-end" id="nav-panel-more" role="group" aria-labelledby="nav-toggle-more" hidden>
-                    <div class="topnav-panel-title">{{ t.get('nav_more', 'More') }}</div>
-                    <button type="button" class="nav-item" data-view="glossary" data-nav-icon="book-open" data-nav-title="{{ t.get('glossary_page_title', 'Glossary') }}">
-                        <i data-lucide="book-open"></i> {{ t.get('glossary_page_title', 'Glossary') }}
-                    </button>
-                    <a class="nav-item" href="{{ url_for('settings') }}">
-                        <i data-lucide="settings"></i> {{ t.settings }}
-                    </a>
-                    <a class="nav-item" href="{{ url_for('settings', _anchor='support') }}">
-                        <i data-lucide="heart-handshake"></i> {{ t.get('support_nav', 'Support') }}
-                    </a>
-                    <a class="nav-item" href="https://github.com/itsDNNS/docsight/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer">
-                        <i data-lucide="bug"></i> {{ t.report_bug }}
-                    </a>
-                    <div class="dark-toggle">
-                        <span class="dark-toggle-label"><i data-lucide="moon"></i> {{ t.dark_mode or 'Dark Mode' }}</span>
-                        <label class="toggle">
-                            <input type="checkbox" id="theme-toggle-sidebar" aria-label="{{ t.dark_mode or 'Dark Mode' }}">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="topnav-panel-divider" role="separator"></div>
-                    <a class="topnav-version" href="https://github.com/itsDNNS/docsight/releases" target="_blank" rel="noopener noreferrer">
-                        {{ version }}
-                        {% if update_available %}
-                        <span class="update-badge" title="{{ update_available }}">{{ t.update_available }}</span>
-                        {% endif %}
-                    </a>
-                    {% if desktop_mode %}
-                    <a class="desktop-preview-badge desktop-preview-badge-sidebar" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</a>
-                    {% endif %}
-                    {% if auth_enabled %}
-                    <form action="{{ url_for('logout') }}" method="post">
-                        <button type="submit" class="nav-item">
-                            <i data-lucide="log-out"></i> {{ t.logout }}
-                        </button>
-                    </form>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</header>
-<div class="topnav-backdrop" id="topnav-backdrop" hidden></div>
+{% set has_evidence = modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}
 
 <!-- Main Area -->
 <main class="app-main" id="main-content" tabindex="-1">
@@ -2027,6 +1812,7 @@
 <script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/empty-state.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}

@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shell.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css', v=version) }}">
     {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
@@ -22,163 +23,144 @@
     <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>
-
-<div class="mesh-bg"></div>
-<div class="error-msg" id="global-error"></div>
+<a class="skip-link" id="skip-link" href="#main-content">{{ t.get('skip_to_content', 'Skip to content') }}</a>
 <div class="toast" id="toast"></div>
+<div class="app-layout">
+{% set shell_page = 'settings' %}
+{% include 'partials/topnav.html' %}
 
-<h1 class="sr-only">{{ t.settings }}</h1>
-<div class="settings-layout">
-    <!-- ═══ Sidebar ═══ -->
-    <nav class="sidebar" id="settings-sidebar">
-        <a href="{{ url_for('index') }}" class="sidebar-header">
-            <div class="sidebar-logo">
-                <img src="{{ url_for('static', filename='logo.svg') }}" alt="DOCSight" style="width:20px;height:20px;filter:brightness(0) invert(1);">
-            </div>
-            <div>
-                <div class="sidebar-title">DOCSight</div>
-                <div class="sidebar-subtitle">{{ t.settings }}</div>
-            </div>
-        </a>
-        {% if desktop_mode %}
-        <a class="desktop-preview-badge desktop-preview-badge-settings" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</a>
-        {% endif %}
-
-        <!-- Settings Navigation -->
-        <div class="sidebar-nav">
-            <div class="nav-group" aria-labelledby="settings-nav-core-label">
-                <div class="nav-group-label" id="settings-nav-core-label">{{ t.settings }}</div>
-                <button class="nav-item active" data-section="connection" onclick="switchSection('connection')" aria-current="page">
-                    <i data-lucide="radio" class="nav-icon" aria-hidden="true"></i>
-                    {{ t.step_modem }}
-                </button>
-                <button class="nav-item" data-section="general" onclick="switchSection('general')">
-                    <i data-lucide="settings" class="nav-icon"></i>
-                    {{ t.general }}
-                </button>
-                <button class="nav-item" data-section="notifications" onclick="switchSection('notifications')">
-                    <i data-lucide="bell" class="nav-icon"></i>
-                    {{ t.notifications }}
-                </button>
-                <button class="nav-item" data-section="smart_capture" onclick="switchSection('smart_capture')">
-                    <i data-lucide="zap" class="nav-icon"></i>
-                    {{ t.get('smart_capture', 'Smart Capture') }}
-                </button>
-                <button class="nav-item" data-section="appearance" onclick="switchSection('appearance')">
-                    <i data-lucide="palette" class="nav-icon"></i>
-                    {{ t.appearance }}
-                </button>
-                <button class="nav-item" data-section="security" onclick="switchSection('security')">
-                    <i data-lucide="shield" class="nav-icon"></i>
-                    {{ t.security }}
-                </button>
-                <button class="nav-item" data-section="extensions" onclick="switchSection('extensions')">
-                    <i data-lucide="package" class="nav-icon"></i>
-                    {{ t.get('settings_extensions', 'Extensions') }}
-                </button>
-                <button class="nav-item" data-section="about" onclick="switchSection('about')">
-                    <i data-lucide="info" class="nav-icon"></i>
-                    {{ t.get('about_project', 'About Project') }}
-                </button>
-            </div>
+<main class="app-main settings-page" id="main-content" tabindex="-1">
+    <div class="settings-header">
+        <h1 class="settings-page-title">{{ t.settings }}</h1>
+    </div>
+    <div class="settings-shell">
+        <nav class="settings-index" id="settings-index" aria-label="{{ t.get('settings_sections', 'Settings sections') }}">
+            <button type="button" class="settings-index-item active" data-section="connection" aria-current="page">
+                <i data-lucide="radio" aria-hidden="true"></i>
+                <span>{{ t.step_modem }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="settings-index-item" data-section="general">
+                <i data-lucide="settings" aria-hidden="true"></i>
+                <span>{{ t.general }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="settings-index-item" data-section="notifications">
+                <i data-lucide="bell" aria-hidden="true"></i>
+                <span>{{ t.notifications }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="settings-index-item" data-section="smart_capture">
+                <i data-lucide="zap" aria-hidden="true"></i>
+                <span>{{ t.get('smart_capture', 'Smart Capture') }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="settings-index-item" data-section="appearance">
+                <i data-lucide="palette" aria-hidden="true"></i>
+                <span>{{ t.appearance }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="settings-index-item" data-section="security">
+                <i data-lucide="shield" aria-hidden="true"></i>
+                <span>{{ t.security }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="settings-index-item" data-section="extensions">
+                <i data-lucide="package" aria-hidden="true"></i>
+                <span>{{ t.get('settings_extensions', 'Extensions') }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="settings-index-item" data-section="about">
+                <i data-lucide="info" aria-hidden="true"></i>
+                <span>{{ t.get('about_project', 'About Project') }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
             {% set settings_modules = [] %}
             {% for mod in modules if mod.template_paths.get('settings') %}
-                {% if settings_modules.append(mod) %}{% endif %}
+            {% if settings_modules.append(mod) %}{% endif %}
             {% endfor %}
             {% if settings_modules %}
-            <div class="nav-group" aria-labelledby="settings-nav-modules-label">
-                <div class="nav-group-label" id="settings-nav-modules-label">{{ t.modules }}</div>
-                {% for mod in settings_modules|sort(attribute='name') %}
-                <button class="nav-item nav-sub-item" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
-                    <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}" class="nav-icon"></i>
-                    {{ t.get(mod.menu.label_key, mod.name) }}
-                    <span class="nav-badge {{ 'success' if mod.enabled else 'info' }}">{{ 'ON' if mod.enabled else 'OFF' }}</span>
-                </button>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Support (bottom) -->
-        <div class="sidebar-support">
-            <div class="nav-separator"></div>
-            <button class="nav-item" data-section="support" onclick="switchSection('support')">
-                <i data-lucide="heart-handshake" class="nav-icon"></i>
-                {{ t.support_title }}
+            <div class="settings-index-label" id="settings-index-modules">{{ t.modules }}</div>
+            {% for mod in settings_modules|sort(attribute='name') %}
+            <button type="button" class="settings-index-item" data-section="mod-{{ mod.id|replace('.', '_') }}">
+                <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}" aria-hidden="true"></i>
+                <span>{{ t.get(mod.menu.label_key, mod.name) }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
             </button>
-        </div>
-    </nav>
-
-    <!-- ═══ Sidebar Backdrop (mobile) ═══ -->
-    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
-
-    <!-- ═══ Main Content ═══ -->
-    <div class="main-content">
-        <!-- Mobile header (visible at 768px and below) -->
-        <div class="mobile-header">
-            <button class="mobile-menu-btn" id="mobile-menu-button" type="button" onclick="openMobileSidebar()" aria-label="{{ t.get('settings_open_navigation', 'Open settings navigation') }}" aria-controls="settings-sidebar" aria-expanded="false">
-                <i data-lucide="menu" aria-hidden="true"></i>
-            </button>
-            <span class="page-title" style="font-size: 1.1rem;" id="mobile-title">{{ t.step_modem }}</span>
-            {% if desktop_mode %}
-            <a class="desktop-preview-badge desktop-preview-badge-mobile" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</a>
-            {% endif %}
-        </div>
-
-        <form id="settings-form" autocomplete="off">
-            {% include 'demo_banner.html' %}
-
-            {% if desktop_mode and not desktop_preview_notice_dismissed %}
-            <div class="notice-stack settings-notice-stack desktop-preview-notice-stack">
-                <article class="maintainer-notice notice-info desktop-preview-notice" data-notice-id="{{ desktop_preview_notice_id }}">
-                    <div class="notice-icon"><i data-lucide="info"></i></div>
-                    <div class="notice-content">
-                        <div class="notice-title-row">
-                            <h2>{{ t.get('desktop_preview_notice_title', 'Desktop Preview is a tryout build') }}</h2>
-                            <span class="badge badge-info">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</span>
-                        </div>
-                        <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
-                        <a class="notice-link" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
-                    </div>
-                    <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ desktop_preview_notice_id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
-                        <i data-lucide="x"></i>
-                    </button>
-                </article>
-            </div>
-            {% endif %}
-
-            {% include 'settings/connection.html' %}
-            {% include 'settings/general.html' %}
-            {% include 'settings/notifications.html' %}
-            {% include 'settings/smart_capture.html' %}
-            {% include 'settings/appearance.html' %}
-            {% include 'settings/security.html' %}
-            {% include 'settings/extensions.html' %}
-            {% include 'settings/about.html' %}
-            {% include 'settings/support.html' %}
-
-            {# ── Module Settings Panels ── #}
-            {% for mod in modules if mod.template_paths.get('settings') %}
-            {% include mod.template_paths['settings'] %}
             {% endfor %}
+            {% endif %}
+            <button type="button" class="settings-index-item" data-section="support">
+                <i data-lucide="heart-handshake" aria-hidden="true"></i>
+                <span>{{ t.support_title }}</span>
+                <i data-lucide="chevron-right" class="settings-index-chevron" aria-hidden="true"></i>
+            </button>
+        </nav>
 
-            <!-- ═══ Save Footer ═══ -->
-            <div class="save-bar" id="save-footer" aria-hidden="true" inert>
-                <div class="save-bar-status" role="status" aria-live="polite">
-                    <span class="save-bar-dot" aria-hidden="true"></span>
-                    <span id="save-bar-count">{{ t.unsaved_changes }}</span>
-                    <span class="save-bar-sections" id="save-bar-sections"></span>
-                </div>
-                <div class="save-bar-actions">
-                    <button type="button" class="btn btn-secondary" id="save-bar-discard">{{ t.discard_changes }}</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i data-lucide="save"></i>
-                        {{ t.save }}
-                    </button>
-                </div>
+        <div class="settings-content">
+            <div class="settings-detail-head">
+                <button type="button" class="btn btn-ghost btn-sm settings-back" id="settings-back">
+                    <i data-lucide="chevron-left" aria-hidden="true"></i>
+                    {{ t.settings }}
+                </button>
+                <h2 class="settings-section-title" id="settings-section-title">{{ t.step_modem }}</h2>
             </div>
-        </form>
+            <div class="error-msg" id="global-error"></div>
+            <form id="settings-form" autocomplete="off">
+                {% include 'demo_banner.html' %}
+
+                {% if desktop_mode and not desktop_preview_notice_dismissed %}
+                <div class="notice-stack settings-notice-stack desktop-preview-notice-stack">
+                    <article class="maintainer-notice notice-info desktop-preview-notice" data-notice-id="{{ desktop_preview_notice_id }}">
+                        <div class="notice-icon"><i data-lucide="info"></i></div>
+                        <div class="notice-content">
+                            <div class="notice-title-row">
+                                <h2>{{ t.get('desktop_preview_notice_title', 'Desktop Preview is a tryout build') }}</h2>
+                                <span class="badge badge-info">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</span>
+                            </div>
+                            <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
+                            <a class="notice-link" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
+                        </div>
+                        <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ desktop_preview_notice_id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </article>
+                </div>
+                {% endif %}
+
+                {% include 'settings/connection.html' %}
+                {% include 'settings/general.html' %}
+                {% include 'settings/notifications.html' %}
+                {% include 'settings/smart_capture.html' %}
+                {% include 'settings/appearance.html' %}
+                {% include 'settings/security.html' %}
+                {% include 'settings/extensions.html' %}
+                {% include 'settings/about.html' %}
+                {% include 'settings/support.html' %}
+
+                {# ── Module Settings Panels ── #}
+                {% for mod in modules if mod.template_paths.get('settings') %}
+                {% include mod.template_paths['settings'] %}
+                {% endfor %}
+
+                <!-- ═══ Save Footer ═══ -->
+                <div class="save-bar" id="save-footer" aria-hidden="true" inert>
+                    <div class="save-bar-status" role="status" aria-live="polite">
+                        <span class="save-bar-dot" aria-hidden="true"></span>
+                        <span id="save-bar-count">{{ t.unsaved_changes }}</span>
+                        <span class="save-bar-sections" id="save-bar-sections"></span>
+                    </div>
+                    <div class="save-bar-actions">
+                        <button type="button" class="btn btn-secondary" id="save-bar-discard">{{ t.discard_changes }}</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i data-lucide="save"></i>
+                            {{ t.save }}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
+</main>
 </div>
 
 {% set settings_bootstrap_modules = [] %}
@@ -203,6 +185,7 @@
 <script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/form-state.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/form.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/navigation.js', v=version) }}"></script>

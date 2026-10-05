@@ -36,11 +36,15 @@ def test_desktop_preview_badge_and_notice_are_template_gated():
     }
     for template_path, dismiss in dismiss_wiring.items():
         template = template_path.read_text(encoding="utf-8")
-        assert "{% if desktop_mode" in template
+        assert "{% include 'partials/topnav.html' %}" in template
+        assert "desktop_mode and not desktop_preview_notice_dismissed" in template
         assert "desktop_preview_badge" in template
-        assert "desktop_preview_notice_dismissed" in template
         assert dismiss in template
         assert "desktop_preview_doc_url" in template
+    navigation = (INDEX_TEMPLATE.parent / "partials" / "topnav.html").read_text(encoding="utf-8")
+    assert "{% if desktop_mode %}" in navigation
+    assert "desktop_preview_badge" in navigation
+    assert "desktop_preview_doc_url" in navigation
 
 
 def test_desktop_preview_i18n_keys_exist_in_every_core_locale():

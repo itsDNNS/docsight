@@ -22,7 +22,7 @@
         names.split(' ').forEach(function(name) { window[name] = owner[name]; });
     }
     expose(form, 'getFormData showToast');
-    expose(navigation, 'switchSection openMobileSidebar closeMobileSidebar toggleCardCollapse');
+    expose(navigation, 'switchSection toggleCardCollapse');
     expose(tokens, 'createApiToken copyToken');
     expose(connections, 'onIspChange testModem testMqtt testSpeedtest clearSpeedtestCache testNotifications');
     expose(backups, 'downloadBackup backupNow openBrowseModal closeBrowseModal selectBrowsePath');
