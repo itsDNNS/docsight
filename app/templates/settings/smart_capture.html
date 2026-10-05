@@ -1,10 +1,10 @@
 <div class="settings-panel" id="panel-smart_capture">
 
     {# ── Triggers + Master Toggle ── #}
-    <div class="settings-card glass">
+    <div class="card">
         <div class="card-header">
             <div class="card-title-group">
-                <div class="card-icon purple"><i data-lucide="zap"></i></div>
+                <div class="card-icon"><i data-lucide="zap"></i></div>
                 <div>
                     <div class="card-title">{{ t.get('smart_capture', 'Smart Capture') }}</div>
                     <div class="card-subtitle">{{ t.get('sc_enable_desc', 'Automatically trigger measurements when signal degradation is detected') }}</div>
@@ -168,10 +168,10 @@
     <div id="sc-dependent-content">
 
         {# ── Guardrails ── #}
-        <div class="settings-card glass">
+        <div class="card">
             <div class="card-header">
                 <div class="card-title-group">
-                    <div class="card-icon amber"><i data-lucide="shield"></i></div>
+                    <div class="card-icon"><i data-lucide="shield"></i></div>
                     <div>
                         <div class="card-title">{{ t.get('sc_guardrails', 'Guardrails') }}</div>
                         <div class="card-subtitle">{{ t.get('sc_guardrails_desc', 'Rate limiting to prevent excessive test triggers') }}</div>
@@ -225,10 +225,10 @@
         {% endif %}
 
         {# ── Execution History ── #}
-        <div class="settings-card glass">
+        <div class="card">
             <div class="card-header">
                 <div class="card-title-group">
-                    <div class="card-icon green"><i data-lucide="history"></i></div>
+                    <div class="card-icon"><i data-lucide="history"></i></div>
                     <div>
                         <div class="card-title">{{ t.get('sc_history', 'Execution History') }}</div>
                     </div>

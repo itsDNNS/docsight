@@ -15,6 +15,11 @@ FORM_RULE = re.compile(
     r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?(?:\.form-(?:field|label|hint|input|select|grid)|\.toggle(?:-slider)?)(?![\w-])[^{,]*[{,]"
 )
 
+# The card and the glass surface.
+CARD_RULE = re.compile(
+    r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?(?:\.card(?:-(?:header|title-group|title|subtitle|icon))?|\.glass)(?![\w-])(?::[a-z-]+)*(?:\s+(?:svg|i|>\s*div))?\s*[{,]"
+)
+
 
 def _stylesheets():
     tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
@@ -39,3 +44,13 @@ def test_form_fields_and_the_toggle_are_defined_only_in_the_component_stylesheet
     ]
     assert offenders == []
     assert FORM_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
+
+
+def test_cards_are_defined_only_in_the_component_stylesheet():
+    offenders = [
+        f"{path}: {match.group(0).strip()}"
+        for path in _stylesheets() if path != OWNER
+        for match in CARD_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
+    ]
+    assert offenders == []
+    assert CARD_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
