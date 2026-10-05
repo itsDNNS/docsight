@@ -23,7 +23,7 @@
                 <input class="form-input" type="text" id="report_customer_number" name="report_customer_number" value="{{ config.report_customer_number }}">
             </div>
         </div>
-        <div class="form-field" style="margin-top: var(--space-md);">
+        <div class="form-field settings-gap">
             <label class="form-label" for="report_customer_address">{{ t['docsight.reports.report_address'] or 'Your address' }}</label>
             <textarea class="form-input" id="report_customer_address" name="report_customer_address" rows="3">{{ config.report_customer_address }}</textarea>
             <span class="form-hint">{{ t['docsight.reports.report_settings_privacy'] or 'Stored encrypted on this DOCSight instance and used to prefill new reports. Changes in the report form apply only to that report. Demo mode hides these values.' }}</span>

@@ -273,7 +273,8 @@ button.notification-collapse-button {
 
 .btn-row {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
   align-items: center;
   margin-top: var(--space-sm);
 }
@@ -1017,9 +1018,12 @@ button.notification-collapse-button {
     overflow-wrap: anywhere;
   }
   .notification-card-header {
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: var(--space-sm);
   }
+  /* The channel controls move below the title before the title gets too narrow to read. */
+  .notification-card-toggle { flex: 1 1 160px; min-width: 0; }
   .notification-channel-actions {
     gap: 8px;
   }
@@ -1465,3 +1469,44 @@ button.notification-collapse-button {
 
 /* A module that is off keeps its place in its section. */
 .settings-module-off .card-header { margin-bottom: 0; }
+
+/* ─── Spacing and small parts of settings cards ─── */
+.settings-gap { margin-top: var(--space-md); }
+.settings-gap-below { margin-bottom: var(--space-md); }
+.settings-actions { margin-top: var(--space-lg); }
+.settings-subsection { margin-top: var(--space-xl); }
+.settings-card-inset { padding: 0 var(--card-padding) var(--card-padding); }
+.settings-note { display: block; margin-top: var(--space-md); }
+.settings-note-aside { font-style: italic; }
+.settings-note-tight { display: block; margin-bottom: var(--space-md); }
+.settings-test-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+.test-result-static { display: flex; }
+.isp-icon-preview { display: none; width: 28px; height: 28px; border-radius: 6px; }
+.registry-empty-icon { width: 40px; height: 40px; opacity: 0.3; }
+.theme-active-badge svg { width: 14px; height: 14px; }
+.sc-history-loading svg,
+.registry-loading svg { width: 18px; height: 18px; }
+.backup-path-input { cursor: pointer; }
+.backup-auto-settings.is-off { opacity: 0.5; pointer-events: none; }
+.cm-targets-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
+.api-token-banner {
+  margin-bottom: var(--space-md);
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--accent-muted);
+}
+.api-token-banner-title { margin-bottom: 6px; font-weight: 600; }
+.api-token-value {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--tint-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+.api-token-warning { margin-top: 8px; font-size: 0.78rem; color: var(--muted); }
+.api-tokens-empty { font-size: 0.88rem; color: var(--muted); }
+

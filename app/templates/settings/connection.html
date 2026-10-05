@@ -16,7 +16,7 @@
         </div>
     </div>
     <div class="form-grid cols-2">
-        <div class="form-field" style="grid-column: 1 / -1">
+        <div class="form-field form-grid-full">
             <label class="form-label" for="modem_type">{{ t.modem_type }}</label>
             <select class="form-input form-select" id="modem_type" name="modem_type">
                 {% if not (config.demo_mode and config.modem_type == 'demo') and config.modem_type not in modem_types|map(attribute=0)|list %}
@@ -27,7 +27,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="form-field" style="grid-column: 1 / -1">
+        <div class="form-field form-grid-full">
             <label class="form-label" for="modem_url">{{ t.url }}</label>
             <input class="form-input" type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}">
         </div>
@@ -40,9 +40,9 @@
             <input class="form-input" type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}"{% if config.modem_password %} data-saved-secret="true"{% endif %}>
         </div>
     </div>
-    <div style="margin-top: var(--space-lg);">
-        <button type="button" class="btn btn-secondary" onclick="testModem()">
-            <i data-lucide="wifi" style="width:16px;height:16px;"></i>
+    <div class="settings-actions">
+        <button type="button" class="btn btn-secondary" data-action="testModem">
+            <i data-lucide="wifi"></i>
             {{ t.test_connection }}
         </button>
     </div>
@@ -61,12 +61,12 @@
                 <div class="card-subtitle">{{ t.get('settings_provider_desc', 'Your provider and the speeds in your contract') }}</div>
             </div>
         </div>
-        <img id="isp-icon-preview" src="" alt="" style="width:28px;height:28px;display:none;border-radius:6px;">
+        <img id="isp-icon-preview" src="" alt="">
     </div>
     <div class="form-grid cols-2">
-        <div class="form-field" style="grid-column: 1 / -1">
+        <div class="form-field form-grid-full">
             <label class="form-label" for="isp_select">{{ t.isp_name }}</label>
-            <select class="form-input form-select" id="isp_select" name="isp_select" onchange="onIspChange()">
+            <select class="form-input form-select" id="isp_select" name="isp_select" data-change-action="onIspChange">
                 <option value="">{{ t.isp_select }}</option>
                 {% for isp in t.isp_options %}
                 <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
@@ -74,7 +74,7 @@
                 <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
             </select>
         </div>
-        <div class="form-field" id="isp-other-row" style="grid-column: 1 / -1; display:{% if config.isp_name and config.isp_name not in t.isp_options %}grid{% else %}none{% endif %}">
+        <div class="form-field form-grid-full" id="isp-other-row"{% if not (config.isp_name and config.isp_name not in t.isp_options) %} hidden{% endif %}>
             <label class="form-label" for="isp_other_input">{{ t.isp_other }}</label>
             <input class="form-input" type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
         </div>

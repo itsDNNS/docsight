@@ -277,7 +277,7 @@ function saveAll(options) {
         if (result.restart_required) {
             var banner = document.getElementById('module-restart-banner');
             if (banner) {
-                banner.style.display = 'flex';
+                banner.hidden = false;
                 if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]});
             }
         }

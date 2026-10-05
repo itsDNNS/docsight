@@ -23,13 +23,13 @@
                 <span class="toggle-slider"></span>
             </label>
         </div>
-        <div class="form-grid" style="margin-top: var(--space-md);">
+        <div class="form-grid settings-gap">
             <div class="form-field">
                 <label class="form-label" for="bnetz_watch_dir">{{ t['docsight.bnetz.bnetz_watch_dir_label'] or 'Watch directory' }}</label>
                 <input class="form-input" type="text" id="bnetz_watch_dir" name="bnetz_watch_dir" value="{{ config.bnetz_watch_dir }}" placeholder="/data/bnetz">
                 <span class="form-hint">{{ t['docsight.bnetz.bnetz_watch_dir_hint'] or 'Path where measurement files are placed (e.g., by a sidecar container)' }}</span>
             </div>
         </div>
-        <span class="form-hint" style="display:block;margin-top:var(--space-md);font-style:italic;">{{ t['docsight.bnetz.bnetz_docker_hint'] or 'See the wiki for a Docker Compose example with the official BNetzA Desktop App sidecar' }}</span>
+        <span class="form-hint settings-note settings-note-aside">{{ t['docsight.bnetz.bnetz_docker_hint'] or 'See the wiki for a Docker Compose example with the official BNetzA Desktop App sidecar' }}</span>
     </div>
 </div>

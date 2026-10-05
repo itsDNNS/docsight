@@ -105,7 +105,7 @@
                             <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
                             <a class="notice-link" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
                         </div>
-                        <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ desktop_preview_notice_id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+                        <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [desktop_preview_notice_id]|tojson }}' aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
                             <i data-lucide="x"></i>
                         </button>
                     </article>
@@ -204,6 +204,7 @@
 <script src="{{ url_for('static', filename='js/settings/smart-capture.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/module-registry.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
 {% for mod in modules if mod.has_js %}
 <script src="{{ module_static_url(mod.id, 'main.js', v=version) }}"></script>
 {% endfor %}

@@ -4,6 +4,7 @@
      data-action="fn"          click calls window.fn(...args)
      data-change-action="fn"   change calls window.fn(...args)
      data-action-args="[...]"  JSON arguments for either (optional)
+     data-action-pass="element" either also gets the element as its first argument
      data-pill-action="fn"     on a .trend-tabs group: a tab click selects the tab, then calls fn
      data-dialog-close="fn"    on a <dialog>: a backdrop click or Escape calls fn
      data-click-target="sel"   click forwards to the first element matching the selector
@@ -22,7 +23,9 @@
         var fn = window[el.getAttribute(attr)];
         if (typeof fn !== 'function') return;
         var args = el.getAttribute('data-action-args');
-        fn.apply(null, args ? JSON.parse(args) : []);
+        args = args ? JSON.parse(args) : [];
+        if (el.getAttribute('data-action-pass') === 'element') args.unshift(el);
+        fn.apply(null, args);
     }
 
     function targetOf(el, attr) {

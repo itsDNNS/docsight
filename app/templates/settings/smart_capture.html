@@ -232,16 +232,16 @@
                 </div>
             </div>
         </div>
-        <div id="sc-history-container" style="padding: 0 var(--card-padding) var(--card-padding);">
+        <div class="settings-card-inset" id="sc-history-container">
             <div id="sc-history-loading" class="sc-history-loading">
-                <i data-lucide="loader-2" style="width:18px;height:18px;"></i>
+                <i data-lucide="loader-2"></i>
                 {{ t.get('sc_history_loading', 'Loading execution history...') }}
             </div>
-            <div id="sc-history-empty" class="sc-history-empty" style="display:none;">
+            <div id="sc-history-empty" class="sc-history-empty" hidden>
                 <i data-lucide="zap-off"></i>
                 {{ t.get('sc_history_empty', 'No executions yet. Smart Capture will log activity here once enabled.') }}
             </div>
-            <div id="sc-history-table-wrap" class="table-card" style="display:none;">
+            <div id="sc-history-table-wrap" class="table-card" hidden>
                 <table id="sc-history-table">
                     <thead>
                         <tr>

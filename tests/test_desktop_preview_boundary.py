@@ -32,7 +32,7 @@ def test_desktop_preview_mode_requires_explicit_env_flag(monkeypatch):
 def test_desktop_preview_badge_and_notice_are_template_gated():
     dismiss_wiring = {
         INDEX_TEMPLATE: "data-action=\"dismissMaintainerNotice\" data-action-args='{{ [desktop_preview_notice_id]|tojson }}'",
-        SETTINGS_TEMPLATE: "dismissMaintainerNotice('{{ desktop_preview_notice_id }}')",
+        SETTINGS_TEMPLATE: "data-action=\"dismissMaintainerNotice\" data-action-args='{{ [desktop_preview_notice_id]|tojson }}'",
     }
     for template_path, dismiss in dismiss_wiring.items():
         template = template_path.read_text(encoding="utf-8")

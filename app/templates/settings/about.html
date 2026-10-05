@@ -51,7 +51,7 @@
                 <a class="notice-link" href="{{ notice.link_url }}" target="_blank" rel="noopener noreferrer">{{ notice.link_label }}</a>
                 {% endif %}
             </div>
-            <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ notice.id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+            <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [notice.id]|tojson }}' aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
                 <i data-lucide="x"></i>
             </button>
         </article>

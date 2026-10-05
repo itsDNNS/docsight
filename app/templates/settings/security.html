@@ -35,28 +35,28 @@
     </div>
 
     <!-- Create Token -->
-    <div class="input-with-action" style="margin-bottom: var(--space-md);">
+    <div class="input-with-action settings-gap-below">
         <input class="form-input" type="text" id="api-token-name" placeholder="{{ t.api_token_name_placeholder }}">
-        <button type="button" class="btn btn-primary btn-sm" onclick="createApiToken()">
-            <i data-lucide="plus" style="width:16px;height:16px;"></i>
+        <button type="button" class="btn btn-primary btn-sm" data-action="createApiToken">
+            <i data-lucide="plus"></i>
             {{ t.api_token_create }}
         </button>
     </div>
 
     <!-- Token Created Banner -->
-    <div id="api-token-created-banner" style="display: none; background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); border-radius: var(--radius-md); padding: 16px; margin-bottom: var(--space-md);">
-        <div style="font-weight: 600; margin-bottom: 6px;">{{ t.api_token_created }}</div>
+    <div class="api-token-banner" id="api-token-created-banner" hidden>
+        <div class="api-token-banner-title">{{ t.api_token_created }}</div>
         <div class="input-with-action">
-            <code id="api-token-plaintext" style="flex: 1; word-break: break-all; font-size: 0.82rem; padding: 10px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); font-family: 'JetBrains Mono', monospace;"></code>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="copyToken()" aria-label="{{ t.copy_clipboard }}" title="{{ t.copy_clipboard }}">
-                <i data-lucide="copy" style="width:14px;height:14px;" aria-hidden="true"></i>
+            <code id="api-token-plaintext"></code>
+            <button type="button" class="btn btn-secondary btn-sm" data-action="copyToken" aria-label="{{ t.copy_clipboard }}" title="{{ t.copy_clipboard }}">
+                <i data-lucide="copy" aria-hidden="true"></i>
             </button>
         </div>
-        <div style="font-size: 0.78rem; color: var(--muted); margin-top: 8px;">{{ t.api_token_copy_warning }}</div>
+        <div class="api-token-warning">{{ t.api_token_copy_warning }}</div>
     </div>
 
     <!-- Token Table -->
-    <table id="api-tokens-table" style="display: none;">
+    <table id="api-tokens-table" hidden>
         <thead>
             <tr>
                 <th>{{ t.api_token_name }}</th>
@@ -67,6 +67,6 @@
         </thead>
         <tbody id="api-tokens-body"></tbody>
     </table>
-    <div id="api-tokens-empty" style="color: var(--muted); font-size: 0.88rem;">{{ t.api_tokens_none }}</div>
+    <div class="api-tokens-empty" id="api-tokens-empty">{{ t.api_tokens_none }}</div>
 </div>
 {% endif %}
