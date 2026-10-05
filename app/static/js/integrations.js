@@ -272,7 +272,8 @@ function toggleBnetzDetail(idx) {
     }
 }
 
-function uploadBnetzFromView(input) {
+function uploadBnetzFromView() {
+    var input = document.getElementById('bnetz-file-input');
     if (!input.files || !input.files[0]) return;
     var fd = new FormData();
     fd.append('file', input.files[0]);

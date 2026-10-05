@@ -98,7 +98,7 @@ def test_fixed_scope_markup_is_semantic_live_and_supporting_evidence_is_separate
     assert 'id="report-period-from"' in template and "<time" in template
     assert 'id="report-period-to"' in template
     assert 'id="report-readiness-list"' in template
-    assert 'onclick="changeReportProblemWindow()"' in template
+    assert 'data-action="changeReportProblemWindow"' in template
     assert 'id="report-supporting-evidence-title"' in template
     assert 'id="report-builder-status"' in template and 'aria-live="polite"' in template
     assert 'id="report-complaint-text"' in template

@@ -1,0 +1,80 @@
+/* ═══ DOCSight delegated actions ═══
+   Server-rendered markup names its handlers in data attributes instead of
+   inline on* attributes:
+     data-action="fn"          click calls window.fn(...args)
+     data-change-action="fn"   change calls window.fn(...args)
+     data-action-args="[...]"  JSON arguments for either (optional)
+     data-pill-action="fn"     on a .trend-tabs group: a tab click selects the tab, then calls fn
+     data-dialog-close="fn"    on a <dialog>: a backdrop click or Escape calls fn
+     data-click-target="sel"   click forwards to the first element matching the selector
+     data-focus-target="sel"   click focuses the first element matching the selector
+     data-toggle-open          click toggles the "open" class and aria-expanded
+   Elements with role="button" also run their click action on Enter and Space. */
+(function() {
+    'use strict';
+
+    function callNamed(el, attr) {
+        var fn = window[el.getAttribute(attr)];
+        if (typeof fn !== 'function') return;
+        var args = el.getAttribute('data-action-args');
+        fn.apply(null, args ? JSON.parse(args) : []);
+    }
+
+    function targetOf(el, attr) {
+        return document.querySelector(el.getAttribute(attr));
+    }
+
+    document.addEventListener('click', function(event) {
+        var target = event.target;
+        if (!(target instanceof Element)) return;
+
+        var dialog = target.closest('dialog[data-dialog-close]');
+        if (dialog && target === dialog) {
+            callNamed(dialog, 'data-dialog-close');
+            return;
+        }
+
+        var tab = target.closest('[data-pill-action] > .trend-tab');
+        if (tab) {
+            window.selectPill(tab, window[tab.parentElement.getAttribute('data-pill-action')]);
+            return;
+        }
+
+        var el = target.closest('[data-action], [data-click-target], [data-focus-target], [data-toggle-open]');
+        if (!el) return;
+        if (el.hasAttribute('data-action')) {
+            callNamed(el, 'data-action');
+        } else if (el.hasAttribute('data-click-target')) {
+            var forwardTo = targetOf(el, 'data-click-target');
+            if (forwardTo) forwardTo.click();
+        } else if (el.hasAttribute('data-focus-target')) {
+            var focusOn = targetOf(el, 'data-focus-target');
+            if (focusOn) focusOn.focus();
+        } else {
+            el.classList.toggle('open');
+            el.setAttribute('aria-expanded', String(el.classList.contains('open')));
+        }
+    });
+
+    document.addEventListener('change', function(event) {
+        var el = event.target instanceof Element && event.target.closest('[data-change-action]');
+        if (el) callNamed(el, 'data-change-action');
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        var el = event.target;
+        if (!(el instanceof Element) || el.getAttribute('role') !== 'button') return;
+        if (!el.matches('[data-action], [data-toggle-open]')) return;
+        event.preventDefault();
+        el.click();
+    });
+
+    /* "cancel" does not bubble; listen while it travels down to the dialog. */
+    document.addEventListener('cancel', function(event) {
+        var dialog = event.target;
+        if (!(dialog instanceof Element) || !dialog.matches('dialog[data-dialog-close]')) return;
+        event.preventDefault();
+        callNamed(dialog, 'data-dialog-close');
+    }, true);
+})();

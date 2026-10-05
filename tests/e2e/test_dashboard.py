@@ -682,3 +682,22 @@ class TestStatusFirst:
             "() => [...document.querySelectorAll('.insights-meta .hero-meta-item')].filter(el => el.offsetParent).map(el => el.getBoundingClientRect().top)"
         )
         assert max(tops) - min(tops) < 8, tops
+
+
+def test_gaming_component_rows_expand_by_click_enter_and_space(demo_page):
+    """Component rows act as disclosure buttons for pointer and keyboard users."""
+    open_view(demo_page, "gaming")
+    row = demo_page.locator("#view-gaming .gaming-comp-row").first
+    expect(row).to_have_attribute("aria-expanded", "false")
+
+    row.click()
+    expect(row).to_have_attribute("aria-expanded", "true")
+    expect(row).to_have_class(re.compile(r"\bopen\b"))
+
+    row.press("Enter")
+    expect(row).to_have_attribute("aria-expanded", "false")
+
+    scroll_before = demo_page.evaluate("window.scrollY")
+    row.press(" ")
+    expect(row).to_have_attribute("aria-expanded", "true")
+    assert demo_page.evaluate("window.scrollY") == scroll_before

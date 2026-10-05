@@ -44,7 +44,7 @@ def test_disabled_module_delivers_no_ui_or_script(dashboard, name, prefix):
         soup = BeautifulSoup(response.data, "html.parser")
         assert soup.select_one(f"#view-{name}") is None
         assert soup.select_one(f'.nav-item[data-view="{name}"]') is None
-        assert soup.select_one(f'.nav-item[onclick="open{name.title()}SetupModal()"]') is None
+        assert soup.select_one(f'.nav-item[data-action="open{name.title()}SetupModal"]') is None
         for dialog in MODULES[name]:
             assert soup.select_one(f"#{dialog}") is None
         assert not soup.select(f'script[src*="/modules/docsight.{name}/static/"]')
@@ -100,7 +100,7 @@ def test_unconfigured_modules_keep_setup_without_empty_views(dashboard, prefix):
     for name, hook in (("bqm", "Bqm"), ("speedtest", "Speedtest")):
         assert soup.select_one(f"#view-{name}") is None
         assert soup.select_one(f"#{name}-setup-modal") is not None
-        assert soup.select_one(f'.nav-item[onclick="open{hook}SetupModal()"]') is not None
+        assert soup.select_one(f'.nav-item[data-action="open{hook}SetupModal"]') is not None
         script = soup.select_one(
             f'script[src*="/modules/docsight.{name}/static/main.js?v="]'
         )

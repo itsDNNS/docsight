@@ -281,7 +281,7 @@ class TestChannelCompareChipEscaping:
                     # Click "Add" button
                     add_btn = demo_page.locator(
                         "#compare-add-btn, .compare-add-btn, "
-                        "button[onclick*='addCompareChannel']"
+                        "button[data-action='addCompareChannel']"
                     )
                     if add_btn.count() > 0:
                         add_btn.first.click()

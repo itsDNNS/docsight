@@ -37,12 +37,13 @@ def test_full_state_has_icon_reason_action_and_glossary_link():
 def test_button_action_and_hidden_state():
     soup = _render(
         "{{ empty_state('y', 'layers', 'Pick one', action_label='Choose', "
-        "action_onclick=\"document.getElementById('a').focus()\", hidden=True) }}"
+        "action_focus='#a', hidden=True) }}"
     )
     root = soup.select_one("#y")
     assert root.has_attr("hidden")
     button = root.select_one("button.view-empty-action")
-    assert button["type"] == "button" and button["onclick"] == "document.getElementById('a').focus()"
+    assert button["type"] == "button" and button["data-focus-target"] == "#a"
+    assert not button.has_attr("onclick")
     assert root.select_one(".view-empty-text") is None
     assert root.select_one(".view-empty-link") is None
 

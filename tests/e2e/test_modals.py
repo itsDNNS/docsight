@@ -742,3 +742,21 @@ def test_journal_delete_all_sits_in_the_overflow_menu_and_cancel_is_quiet(demo_p
     demo_page.locator("#docsight-confirm-cancel").click()
     expect(demo_page.locator("#toast.toast-error")).to_have_count(0)
     expect(demo_page.locator("#journal-tbody tr[data-id]").first).to_be_visible()
+
+
+def test_report_modal_closes_on_escape_and_backdrop_but_not_from_inside(demo_page):
+    """The report dialog closes on Escape and on a backdrop click; clicks inside keep it open."""
+    modal = demo_page.locator("#report-modal")
+
+    reveal_in_nav(demo_page, "#report-link").click()
+    expect(modal).to_be_visible()
+    demo_page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+
+    reveal_in_nav(demo_page, "#report-link").click()
+    expect(modal).to_be_visible()
+    modal.locator("#report-modal-title").click()
+    expect(modal).to_be_visible()
+    box = modal.locator(".modal").bounding_box()
+    demo_page.mouse.click(box["x"] / 2, box["y"] + box["height"] / 2)
+    expect(modal).not_to_be_visible()

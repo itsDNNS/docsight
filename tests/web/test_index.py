@@ -460,8 +460,8 @@ class TestIndexRoute:
         header = _speed_card_header(html)
         assert 'role="button"' in opening_tag
         assert 'tabindex="0"' in opening_tag
-        assert 'onclick="switchView(\'speedtest\')"' in opening_tag
-        assert "onkeydown=\"if(event.key==='Enter'||event.key===' ')" in opening_tag
+        assert 'data-action="switchView"' in opening_tag
+        assert "data-action-args='[\"speedtest\"]'" in opening_tag
         assert 'data-lucide="rabbit"' in header
         assert 'data-lucide="zap"' not in header
 

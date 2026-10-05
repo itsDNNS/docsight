@@ -30,12 +30,16 @@ def test_desktop_preview_mode_requires_explicit_env_flag(monkeypatch):
 
 
 def test_desktop_preview_badge_and_notice_are_template_gated():
-    for template_path in (INDEX_TEMPLATE, SETTINGS_TEMPLATE):
+    dismiss_wiring = {
+        INDEX_TEMPLATE: "data-action=\"dismissMaintainerNotice\" data-action-args='{{ [desktop_preview_notice_id]|tojson }}'",
+        SETTINGS_TEMPLATE: "dismissMaintainerNotice('{{ desktop_preview_notice_id }}')",
+    }
+    for template_path, dismiss in dismiss_wiring.items():
         template = template_path.read_text(encoding="utf-8")
         assert "{% if desktop_mode" in template
         assert "desktop_preview_badge" in template
         assert "desktop_preview_notice_dismissed" in template
-        assert "dismissMaintainerNotice('{{ desktop_preview_notice_id }}')" in template
+        assert dismiss in template
         assert "desktop_preview_doc_url" in template
 
 
