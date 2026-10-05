@@ -32,16 +32,7 @@
     {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
     <link rel="stylesheet" href="{{ module_static_url(mod.id, 'style.css', v=version) }}">
     {% endfor %}
-    {% if active_theme_data %}
-    <style id="theme-module-vars">
-    :root, [data-theme="dark"] {
-        {{ active_theme_data.get('dark', {})|theme_css }}
-    }
-    [data-theme="light"] {
-        {{ active_theme_data.get('light', {})|theme_css }}
-    }
-    </style>
-    {% endif %}
+    {% include 'partials/theme_vars.html' %}
     {% if config.font_family == 'system' %}
     <style id="font-override">:root { --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }</style>
     {% endif %}

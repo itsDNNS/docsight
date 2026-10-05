@@ -2,9 +2,8 @@
 
 The theme below is the example from the Themes wiki page. It only sets the
 documented core tokens, so it shows whether pages follow those tokens rather
-than the built-in themes' complete token sets. (The page background still comes
-from --void, which this format does not set; the token layer work moves it to
---bg and adds that check here.)
+than the built-in themes' complete token sets: the roles the built-in themes
+set on top (page background, cards, accent shades) derive from the core.
 """
 
 import json
@@ -88,7 +87,10 @@ def _styles(page):
         return {
             tokens: Object.fromEntries(['--bg', '--surface', '--text', '--accent', '--good', '--crit']
                 .map(name => [name, root.getPropertyValue(name).trim()])),
+            roles: Object.fromEntries(['--void', '--card', '--amethyst']
+                .map(name => [name, root.getPropertyValue(name).trim()])),
             bodyColor: body.color,
+            bodyBackground: body.backgroundColor,
             hasThemeBlock: !!document.getElementById('theme-module-vars'),
         };
     }""")
@@ -107,5 +109,10 @@ def test_documented_core_tokens_reach_the_page(page, community_theme_server, pat
     for name, value in styles["tokens"].items():
         assert value == THEME[mode][name], (path, mode, name)
     assert styles["bodyColor"] == _rgb(THEME[mode]["--text"])
+    # Roles the documented format does not set follow its core tokens.
+    assert styles["roles"] == {
+        "--void": THEME[mode]["--bg"], "--card": THEME[mode]["--surface"], "--amethyst": THEME[mode]["--accent"],
+    }
+    assert styles["bodyBackground"] == _rgb(THEME[mode]["--bg"])
     expect(page.locator("body")).to_be_visible()
     assert errors == []

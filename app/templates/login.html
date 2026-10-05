@@ -8,9 +8,10 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#7c3aed">
+    <meta name="theme-color" content="#06080f">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=version) }}">
+    {% include 'partials/theme_vars.html' %}
     {% include 'partials/browser_url_bootstrap.html' %}
     {% include 'partials/theme_bootstrap.html' %}
     <style>
