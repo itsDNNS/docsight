@@ -2,10 +2,10 @@
 <div class="settings-panel" id="panel-notifications">
     {% set webhook_configured = (config.notify_webhook_url|default('', true)|trim) %}
     <!-- Webhook Config Card -->
-    <div class="settings-card glass notification-channel-card collapsible-card{% if not webhook_configured %} collapsed{% endif %}" id="notification-webhook-card" data-channel-card="webhook">
+    <div class="card notification-channel-card collapsible-card{% if not webhook_configured %} collapsed{% endif %}" id="notification-webhook-card" data-channel-card="webhook">
         <div class="card-header notification-card-header">
             <button type="button" class="card-title-group card-collapse-toggle notification-card-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-webhook-body" aria-expanded="{{ 'true' if webhook_configured else 'false' }}">
-                <div class="card-icon purple">
+                <div class="card-icon">
                     <i data-lucide="bell"></i>
                 </div>
                 <div>
@@ -51,10 +51,10 @@
     </div>
 
     <!-- Apprise Config Card -->
-    <div class="settings-card glass notification-channel-card collapsible-card{% if not config.notify_apprise_enabled %} collapsed{% endif %}" id="notification-apprise-card" data-channel-card="apprise">
+    <div class="card notification-channel-card collapsible-card{% if not config.notify_apprise_enabled %} collapsed{% endif %}" id="notification-apprise-card" data-channel-card="apprise">
         <div class="card-header notification-card-header">
             <button type="button" class="card-title-group card-collapse-toggle notification-card-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-apprise-body" aria-expanded="{{ 'true' if config.notify_apprise_enabled else 'false' }}">
-                <div class="card-icon green">
+                <div class="card-icon">
                     <i data-lucide="radio-tower"></i>
                 </div>
                 <div>
@@ -97,10 +97,10 @@
     </div>
 
     <!-- PWA Web Push Config Card -->
-    <div class="settings-card glass notification-channel-card collapsible-card{% if not config.notify_pwa_push_enabled %} collapsed{% endif %}" id="pwa-push-card" data-channel-card="pwa">
+    <div class="card notification-channel-card collapsible-card{% if not config.notify_pwa_push_enabled %} collapsed{% endif %}" id="pwa-push-card" data-channel-card="pwa">
         <div class="card-header notification-card-header">
             <button type="button" class="card-title-group card-collapse-toggle notification-card-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-pwa-push-body" aria-expanded="{{ 'true' if config.notify_pwa_push_enabled else 'false' }}">
-                <div class="card-icon blue">
+                <div class="card-icon">
                     <i data-lucide="smartphone"></i>
                 </div>
                 <div>
@@ -152,10 +152,10 @@
     </div>
 
     <!-- Health Hysteresis Card -->
-    <div class="settings-card glass">
+    <div class="card">
         <div class="card-header">
             <div class="card-title-group">
-                <div class="card-icon blue">
+                <div class="card-icon">
                     <i data-lucide="activity"></i>
                 </div>
                 <div>
@@ -174,10 +174,10 @@
     </div>
 
     <!-- Per-Event Cooldowns Card (collapsible) -->
-    <div class="settings-card glass collapsible-card collapsed" id="per-event-cooldowns">
+    <div class="card collapsible-card collapsed" id="per-event-cooldowns">
         <div class="card-header card-collapse-toggle" onclick="toggleCardCollapse(this)">
             <div class="card-title-group">
-                <div class="card-icon amber">
+                <div class="card-icon">
                     <i data-lucide="timer"></i>
                 </div>
                 <div>
@@ -237,10 +237,10 @@
     </div>
 
     <!-- Test Card -->
-    <div class="settings-card glass">
+    <div class="card">
         <div class="card-header">
             <div class="card-title-group">
-                <div class="card-icon green">
+                <div class="card-icon">
                     <i data-lucide="send"></i>
                 </div>
                 <div>

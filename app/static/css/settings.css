@@ -255,77 +255,7 @@ html, body {
   color: var(--text-secondary);
 }
 
-/* ─── Glass Cards ─── */
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  position: relative;
-  overflow: hidden;
-}
-.glass::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--border-subtle), transparent 50%);
-  pointer-events: none;
-}
-
-.settings-card {
-  padding: var(--space-lg);
-  margin-bottom: var(--space-md);
-  animation: staggerIn 0.5s var(--ease-out-expo) both;
-}
-.settings-card:nth-child(1) { animation-delay: 0.05s; }
-.settings-card:nth-child(2) { animation-delay: 0.1s; }
-.settings-card:nth-child(3) { animation-delay: 0.15s; }
-.settings-card:nth-child(4) { animation-delay: 0.2s; }
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-
-.card-title-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-.card-title-group > div { min-width: 0; }
-
-.card-icon {
-  width: 40px; height: 40px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.card-icon svg, .card-icon i { width: 20px; height: 20px; }
-.card-icon.purple { background: var(--amethyst-muted); color: var(--amethyst-light); }
-[data-theme="light"] .card-icon.purple { color: var(--amethyst); }
-.card-icon.blue { background: color-mix(in srgb, var(--sapphire) 15%, transparent); color: var(--sapphire); }
-.card-icon.green { background: var(--good-muted); color: var(--good); }
-.card-icon.amber { background: var(--warn-muted); color: var(--warn); }
-.card-icon.red { background: var(--crit-muted); color: var(--crit); }
-.card-icon.cyan { background: rgba(6,182,212,0.15); color: var(--info); }
-
-.card-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.card-subtitle {
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin-top: 2px;
-}
+/* Cards come from components.css. */
 
 /* ─── Collapsible Cards ─── */
 .collapsible-card .card-collapse-toggle {
@@ -1402,7 +1332,6 @@ button.notification-collapse-button {
   .support-star-link { margin-left: 0; }
   .save-footer { left: 0; }
   .mobile-header { display: flex !important; }
-  .settings-card { padding: 18px; }
   .status-card-header {
     align-items: flex-start;
     flex-wrap: wrap;

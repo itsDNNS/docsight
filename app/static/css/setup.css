@@ -28,11 +28,8 @@
 @keyframes meshDrift2 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(60px,-40px) scale(1.1)} }
 
 /* ── Card Icon Colors ── */
-.card-icon.purple { background: var(--amethyst-muted); color: var(--amethyst-light); }
-[data-theme="light"] .card-icon.purple { color: var(--amethyst); }
 [data-theme="light"] .stepper-step.active .stepper-label { color: var(--amethyst); }
 [data-theme="light"] .setup-info strong { color: var(--amethyst); }
-.card-icon.blue { background: color-mix(in srgb, var(--sapphire) 15%, transparent); color: var(--sapphire); }
 
 /* ── Layout ── */
 .setup-layout {
@@ -281,41 +278,6 @@
   animation: staggerIn 0.4s var(--ease-out-expo) both;
 }
 
-/* ── Settings Card (reuse glass) ── */
-.settings-card {
-  padding: var(--space-lg);
-  margin-bottom: var(--space-md);
-}
-.settings-card .card-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-}
-.settings-card .card-title-group {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-.settings-card .card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.settings-card .card-icon svg { width: 20px; height: 20px; }
-.settings-card .card-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.settings-card .card-subtitle {
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin-top: 2px;
-}
 
 /* ── Connection kind and modem picker ── */
 .setup-connection-kind {
@@ -524,7 +486,6 @@
   .setup-stepper { padding: 0; }
   .stepper-circle { width: 40px; height: 40px; font-size: 0.95rem; }
   .stepper-label { font-size: 0.75rem; }
-  .settings-card { padding: var(--space-md); }
   .setup-actions { flex-direction: column; }
   .setup-actions .btn { width: 100%; }
 }

@@ -46,9 +46,8 @@ class TestSetupPageLoad:
         mesh = setup_page.locator(".mesh-bg")
         assert mesh.count() == 1
 
-    def test_has_glass_cards(self, setup_page):
-        glass = setup_page.locator(".glass")
-        assert glass.count() >= 1
+    def test_has_cards(self, setup_page):
+        assert setup_page.locator(".card").count() >= 1
 
     def test_lucide_icons_render(self, setup_page):
         svgs = setup_page.locator(".first-run-card svg")

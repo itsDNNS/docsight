@@ -29,8 +29,49 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%);
+  background: linear-gradient(135deg, var(--border-subtle), transparent 50%);
   pointer-events: none;
+}
+
+/* ── Cards ──
+   <section class="card"><div class="card-header"><div class="card-title-group">
+   <div class="card-icon"><i data-lucide="…"></i></div><div><h3 class="card-title">…</h3>
+   <p class="card-subtitle">…</p></div></div> optional actions </div> content </section>
+   A flat theme surface with a fine border; icons are neutral, status colors stay for status. */
+.card {
+  position: relative;
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+.card-title-group { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.card-title-group > div { min-width: 0; }
+.card-title { margin: 0; font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+.card-subtitle { margin: 2px 0 0; font-size: 0.8125rem; color: var(--muted); }
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--tint-emphasis);
+  color: var(--text-secondary);
+}
+.card-icon svg,
+.card-icon i { width: 18px; height: 18px; }
+@media (max-width: 768px) {
+  .card { padding: var(--space-md); }
 }
 
 /* ── Buttons ──
