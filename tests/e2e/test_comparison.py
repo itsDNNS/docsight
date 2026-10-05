@@ -91,7 +91,7 @@ class TestComparisonView:
             }"""
         )
         assert from_a == local_yesterday
-        widths = demo_page.locator(".comparison-input").evaluate_all(
+        widths = demo_page.locator("#comparison-from-a, #comparison-to-a, #comparison-from-b, #comparison-to-b").evaluate_all(
             "inputs => inputs.map((input) => input.getBoundingClientRect().width)"
         )
         assert min(widths) >= 230

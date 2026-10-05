@@ -51,16 +51,6 @@
     color: var(--muted);
 }
 
-.evidence-input {
-    width: 100%;
-    min-height: 40px;
-    border-radius: 10px;
-    border: 1px solid var(--glass-border);
-    background: var(--input-bg, rgba(0,0,0,0.18));
-    color: var(--text, #f8fafc);
-    padding: 8px 10px;
-}
-
 .evidence-run {
     min-height: 40px;
     white-space: nowrap;

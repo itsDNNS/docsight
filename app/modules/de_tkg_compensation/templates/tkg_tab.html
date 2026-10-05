@@ -43,8 +43,8 @@
             <h3 id="tkg-manual-heading">{{ t.get('docsight.de_tkg_compensation.manual_window', 'Enter outage period yourself') }}</h3>
             <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.appointment_only_help', 'Only checking a missed provider appointment? Leave both time fields empty and continue with “Continue to details”.') }}</p>
             <div class="tkg-grid tkg-grid-2">
-                <label><span>{{ t.get('docsight.de_tkg_compensation.window_from', 'Outage started') }}</span><input id="tkg-window-from" data-tkg-fact type="datetime-local"></label>
-                <label><span>{{ t.get('docsight.de_tkg_compensation.window_to', 'Outage ended') }}</span><input id="tkg-window-to" data-tkg-fact type="datetime-local"></label>
+                <label><span>{{ t.get('docsight.de_tkg_compensation.window_from', 'Outage started') }}</span><input id="tkg-window-from" class="form-input" data-tkg-fact type="datetime-local"></label>
+                <label><span>{{ t.get('docsight.de_tkg_compensation.window_to', 'Outage ended') }}</span><input id="tkg-window-to" class="form-input" data-tkg-fact type="datetime-local"></label>
             </div>
         </section>
 
@@ -57,14 +57,14 @@
         <label class="tkg-check"><input id="tkg-complete-outage" data-tkg-fact type="checkbox"> <span>{{ t.get('docsight.de_tkg_compensation.complete_outage', 'I confirm a complete outage, not merely slow or unstable service.') }}</span></label>
         <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.independent_claims_help', 'Complete-outage compensation and missed-appointment compensation are independent. Outage details are required only when complete outage is selected.') }}</p>
         <div class="tkg-grid tkg-grid-2">
-            <label><span>{{ t.get('docsight.de_tkg_compensation.fault_report_date', 'Provider received fault report on') }}</span><input id="tkg-report-date" data-tkg-fact type="date"></label>
-            <label><span>{{ t.get('docsight.de_tkg_compensation.restored_date', 'Restoration date (leave empty if ongoing)') }}</span><input id="tkg-restored-date" data-tkg-fact type="date"></label>
-            <label><span>{{ t.get('docsight.de_tkg_compensation.fault_report_channel', 'Report channel') }}</span><input id="tkg-report-channel" data-tkg-fact type="text" maxlength="100"></label>
-            <label><span>{{ t.get('docsight.de_tkg_compensation.ticket_ref', 'Ticket/reference') }}</span><input id="tkg-ticket-ref" data-tkg-fact type="text" maxlength="500"></label>
-            <label><span>{{ t.get('docsight.de_tkg_compensation.monthly_fee', 'Contractual monthly fee (€)') }}</span><input id="tkg-monthly-fee" data-tkg-fact type="number" min="0" step="0.01" inputmode="decimal" required><small>{{ t.get('docsight.de_tkg_compensation.monthly_fee_help', 'Enter the contractually agreed monthly fee. Bundle allocation is not inferred.') }}</small></label>
-            <label><span>{{ t.get('docsight.de_tkg_compensation.missed_appointments', 'Missed service/installation appointments') }}</span><input id="tkg-missed-appointments" data-tkg-fact type="number" min="0" max="100" step="1" value="0"></label>
-            <label><span>{{ t.get('docsight.de_tkg_compensation.prior_credit', 'Provider credit already shown (€)') }}</span><input id="tkg-prior-credit" data-tkg-fact type="number" min="0" step="0.01" inputmode="decimal"></label>
-            <label><span>{{ t.get('docsight.de_tkg_compensation.credit_classification', 'My classification of the credit') }}</span><select id="tkg-credit-classification" data-tkg-fact><option value="unclear">{{ t.get('docsight.de_tkg_compensation.credit_unclear', 'Unclear') }}</option><option value="goodwill">{{ t.get('docsight.de_tkg_compensation.credit_goodwill', 'Goodwill') }}</option><option value="reduction">{{ t.get('docsight.de_tkg_compensation.credit_reduction', 'Fee reduction') }}</option><option value="compensation">{{ t.get('docsight.de_tkg_compensation.credit_compensation', 'Compensation') }}</option></select></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.fault_report_date', 'Provider received fault report on') }}</span><input id="tkg-report-date" class="form-input" data-tkg-fact type="date"></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.restored_date', 'Restoration date (leave empty if ongoing)') }}</span><input id="tkg-restored-date" class="form-input" data-tkg-fact type="date"></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.fault_report_channel', 'Report channel') }}</span><input id="tkg-report-channel" class="form-input" data-tkg-fact type="text" maxlength="100"></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.ticket_ref', 'Ticket/reference') }}</span><input id="tkg-ticket-ref" class="form-input" data-tkg-fact type="text" maxlength="500"></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.monthly_fee', 'Contractual monthly fee (€)') }}</span><input id="tkg-monthly-fee" class="form-input" data-tkg-fact type="number" min="0" step="0.01" inputmode="decimal" required><small>{{ t.get('docsight.de_tkg_compensation.monthly_fee_help', 'Enter the contractually agreed monthly fee. Bundle allocation is not inferred.') }}</small></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.missed_appointments', 'Missed service/installation appointments') }}</span><input id="tkg-missed-appointments" class="form-input" data-tkg-fact type="number" min="0" max="100" step="1" value="0"></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.prior_credit', 'Provider credit already shown (€)') }}</span><input id="tkg-prior-credit" class="form-input" data-tkg-fact type="number" min="0" step="0.01" inputmode="decimal"></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.credit_classification', 'My classification of the credit') }}</span><select id="tkg-credit-classification" class="form-select" data-tkg-fact><option value="unclear">{{ t.get('docsight.de_tkg_compensation.credit_unclear', 'Unclear') }}</option><option value="goodwill">{{ t.get('docsight.de_tkg_compensation.credit_goodwill', 'Goodwill') }}</option><option value="reduction">{{ t.get('docsight.de_tkg_compensation.credit_reduction', 'Fee reduction') }}</option><option value="compensation">{{ t.get('docsight.de_tkg_compensation.credit_compensation', 'Compensation') }}</option></select></label>
         </div>
         <p id="tkg-zero-fee" class="tkg-callout" hidden>{{ t.get('docsight.de_tkg_compensation.zero_fee_help', 'At €0.00, the statutory flat amounts still apply.') }}</p>
         <fieldset class="tkg-fieldset">
@@ -91,12 +91,12 @@
         <h3>{{ t.get('docsight.de_tkg_compensation.letter_title', 'Edit the German provider letter') }}</h3>
         <p class="tkg-muted">{{ t.get('docsight.de_tkg_compensation.letter_language', 'The provider-facing letter is intentionally German regardless of the interface language.') }}</p>
         <div class="tkg-grid tkg-grid-2">
-            <label><span>{{ t.get('docsight.de_tkg_compensation.customer_name', 'Name (optional)') }}</span><input id="tkg-customer-name" type="text"></label>
-            <label><span>{{ t.get('docsight.de_tkg_compensation.customer_number', 'Customer/contract number (optional)') }}</span><input id="tkg-customer-number" type="text"></label>
-            <label class="tkg-wide"><span>{{ t.get('docsight.de_tkg_compensation.customer_address', 'Address (optional)') }}</span><textarea id="tkg-customer-address" rows="3"></textarea></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.customer_name', 'Name (optional)') }}</span><input id="tkg-customer-name" class="form-input" type="text"></label>
+            <label><span>{{ t.get('docsight.de_tkg_compensation.customer_number', 'Customer/contract number (optional)') }}</span><input id="tkg-customer-number" class="form-input" type="text"></label>
+            <label class="tkg-wide"><span>{{ t.get('docsight.de_tkg_compensation.customer_address', 'Address (optional)') }}</span><textarea id="tkg-customer-address" class="form-input" rows="3"></textarea></label>
         </div>
         <button class="btn btn-primary" id="tkg-generate-letter" type="button">{{ t.get('docsight.de_tkg_compensation.generate_letter', 'Generate letter') }}</button>
-        <textarea id="tkg-letter" class="tkg-letter" rows="22" placeholder="{{ t.get('docsight.de_tkg_compensation.letter_placeholder', 'Generate the letter after reviewing the calculation.') }}"></textarea>
+        <textarea id="tkg-letter" class="form-input tkg-letter" rows="22" placeholder="{{ t.get('docsight.de_tkg_compensation.letter_placeholder', 'Generate the letter after reviewing the calculation.') }}"></textarea>
         <h3>{{ t.get('docsight.de_tkg_compensation.finish_title', 'Copy, download, and send yourself') }}</h3>
         <div class="tkg-actions"><button class="btn btn-secondary" id="tkg-copy" type="button">{{ t.get('docsight.de_tkg_compensation.copy_letter', 'Copy letter') }}</button><button class="btn btn-primary" id="tkg-download" type="button">{{ t.get('docsight.de_tkg_compensation.download_text', 'Download .txt') }}</button></div>
         <div id="tkg-report-links" class="tkg-report-links"></div>

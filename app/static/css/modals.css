@@ -291,7 +291,6 @@
     flex-wrap: wrap;
     margin-bottom: 14px;
 }
-.report-option-label,
 .report-customer-hint,
 .report-edit-hint {
     font-size: 13px;
@@ -299,14 +298,6 @@
 }
 .report-customer-hint { margin-bottom: 10px; }
 .report-edit-hint { margin-bottom: 8px; }
-#report-modal .report-option-select {
-    margin-top: 4px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--glass-border);
-    background: var(--bg);
-    color: var(--text);
-}
 .report-customer {
     background: var(--bg);
     border-radius: 8px;
@@ -318,27 +309,13 @@
     flex-direction: column;
     gap: 8px;
 }
-#report-modal .report-customer-field {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--glass-border);
-    background: var(--surface);
-    color: var(--text);
-    font-family: inherit;
-}
-#report-complaint-text {
-    width: 100%;
-    min-height: 320px;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--glass-border);
-    border-radius: 6px;
-    padding: 12px;
-    font-size: max(var(--fs-min), 0.85em);
+#report-complaint-text,
+#export-text {
     font-family: var(--font-mono);
-    resize: vertical;
+    font-size: max(var(--fs-min), 0.85em);
     line-height: 1.5;
 }
+#report-complaint-text { min-height: 320px; }
 #chart-zoom-canvas {
     flex: 1;
     min-height: 0;
@@ -365,26 +342,8 @@
     .report-readiness-row { flex-wrap: wrap; }
     #report-complaint-text { min-width: 0; }
 }
-.modal-body textarea {
-    width: 100%;
-    min-height: 300px;
-    background: var(--void);
-    color: var(--text);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-sm);
-    font-size: max(var(--fs-min), 0.82em);
-    font-family: var(--font-mono);
-    resize: vertical;
-    transition: border-color 0.2s var(--ease-out-expo);
-}
 #report-address {
     min-height: 60px;
-}
-.modal-body textarea:focus {
-    outline: none;
-    border-color: var(--amethyst);
-    box-shadow: 0 0 0 3px var(--amethyst-muted);
 }
 
 /* ── AI export privacy workflow ── */

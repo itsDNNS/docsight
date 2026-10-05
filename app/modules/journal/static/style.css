@@ -171,34 +171,12 @@
 .incident-form-group {
     margin-bottom: var(--space-md);
 }
-.incident-form-group label {
+.incident-form-group .form-label {
     display: block;
-    font-size: max(var(--fs-min), 0.9em);
-    color: var(--text-secondary, var(--muted));
     margin-bottom: 6px;
-    font-weight: 600;
 }
-.incident-form-group input,
-.incident-form-group textarea {
-    width: 100%;
-    padding: var(--space-sm) 14px;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius-sm);
-    font-family: inherit;
-    font-size: max(var(--fs-min), 0.92em);
-    transition: border-color 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo);
-}
-.incident-form-group textarea {
+.incident-form-group textarea.form-input {
     min-height: 150px;
-    resize: vertical;
-}
-.incident-form-group input:focus,
-.incident-form-group textarea:focus {
-    outline: none;
-    border-color: var(--accent-purple, var(--accent));
-    box-shadow: 0 0 0 3px rgba(168,85,247,0.1);
 }
 .attachment-list {
     display: flex;
@@ -848,16 +826,6 @@ mark.search-highlight {
 }
 
 /* Entry Modal: Incident Select */
-.entry-incident-select {
-    width: 100%;
-    padding: var(--space-sm);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--input-border);
-    background: var(--card);
-    color: var(--text);
-    font-size: 0.9rem;
-    font-family: inherit;
-}
 
 /* Incident Timeline View */
 

@@ -261,14 +261,7 @@
     background: var(--crit-muted);
 }
 .bqm-offset-input {
-    background: var(--elevated);
-    border: 1px solid var(--input-border);
-    color: var(--text);
-    border-radius: var(--radius-sm);
-    padding: var(--space-xs) var(--space-sm);
-    font-size: max(var(--fs-min), 0.9em);
-    font-family: inherit;
-    width: 60px;
+    width: 72px;
     text-align: center;
 }
 .bqm-import-table input[type="date"] {

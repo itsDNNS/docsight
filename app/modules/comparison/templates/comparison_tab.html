@@ -12,7 +12,7 @@
         <div class="comparison-control-row">
             <div class="comparison-field">
                 <label class="comparison-label">{{ t.get('docsight.comparison.preset', 'Preset') }}</label>
-                <select id="comparison-preset" class="comparison-select">
+                <select id="comparison-preset" class="form-select">
                     <option value="yesterday_today">{{ t.get('docsight.comparison.preset_yesterday_today', 'Yesterday vs Today') }}</option>
                     <option value="last_this_week">{{ t.get('docsight.comparison.preset_last_this_week', 'Last Week vs This Week') }}</option>
                     <option value="peak_offpeak">{{ t.get('docsight.comparison.preset_peak_offpeak', 'Peak vs Off-Peak Today') }}</option>
@@ -22,17 +22,17 @@
             <div class="comparison-field comparison-period-field">
                 <label class="comparison-label">{{ t.get('docsight.comparison.period_a', 'Period A') }}</label>
                 <div class="comparison-date-pair">
-                    <input type="text" id="comparison-from-a" class="comparison-input" placeholder="Start" readonly>
+                    <input type="text" id="comparison-from-a" class="form-input" placeholder="Start" readonly>
                     <span class="comparison-arrow">&rarr;</span>
-                    <input type="text" id="comparison-to-a" class="comparison-input" placeholder="End" readonly>
+                    <input type="text" id="comparison-to-a" class="form-input" placeholder="End" readonly>
                 </div>
             </div>
             <div class="comparison-field comparison-period-field">
                 <label class="comparison-label">{{ t.get('docsight.comparison.period_b', 'Period B') }}</label>
                 <div class="comparison-date-pair">
-                    <input type="text" id="comparison-from-b" class="comparison-input" placeholder="Start" readonly>
+                    <input type="text" id="comparison-from-b" class="form-input" placeholder="Start" readonly>
                     <span class="comparison-arrow">&rarr;</span>
-                    <input type="text" id="comparison-to-b" class="comparison-input" placeholder="End" readonly>
+                    <input type="text" id="comparison-to-b" class="form-input" placeholder="End" readonly>
                 </div>
             </div>
             <div class="comparison-field comparison-btn-field">

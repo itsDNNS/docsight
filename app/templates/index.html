@@ -1873,16 +1873,16 @@
                 </div>
                 <div class="report-options">
                     <div id="report-days-field">
-                        <label class="report-option-label">{{ t.report_days }}</label><br>
-                        <select id="report-days" class="report-option-select">
+                        <label class="form-label">{{ t.report_days }}</label><br>
+                        <select id="report-days" class="form-select">
                             <option value="1">1</option><option value="3">3</option>
                             <option value="7" selected>7</option><option value="14">14</option>
                             <option value="30">30</option>
                         </select>
                     </div>
                     <div>
-                        <label class="report-option-label">{{ t.report_language }}</label><br>
-                        <select id="report-lang" class="report-option-select">
+                        <label class="form-label">{{ t.report_language }}</label><br>
+                        <select id="report-lang" class="form-select">
                             {% for code, name in languages.items() %}
                             <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
                             {% endfor %}
@@ -1892,9 +1892,9 @@
                 <div class="report-customer">
                     <p class="report-customer-hint">{{ t.report_customer_hint }}</p>
                     <div class="report-customer-fields">
-                        <input id="report-name" type="text" value="{{ report_customer_name }}" placeholder="{{ t.report_name }}" class="report-customer-field">
-                        <input id="report-number" type="text" value="{{ report_customer_number }}" placeholder="{{ t.report_customer_number }}" class="report-customer-field">
-                        <textarea id="report-address" rows="3" placeholder="{{ t.report_address }}" class="report-customer-field">{{ report_customer_address }}</textarea>
+                        <input id="report-name" type="text" value="{{ report_customer_name }}" placeholder="{{ t.report_name }}" class="form-input">
+                        <input id="report-number" type="text" value="{{ report_customer_number }}" placeholder="{{ t.report_customer_number }}" class="form-input">
+                        <textarea id="report-address" rows="3" placeholder="{{ t.report_address }}" class="form-input">{{ report_customer_address }}</textarea>
                     </div>
                 </div>
                 <section class="report-supporting-evidence" aria-labelledby="report-supporting-evidence-title">
@@ -1923,7 +1923,7 @@
             <!-- Step 2: Generated complaint text (hidden initially) -->
             <div id="report-step2" hidden>
                 <p class="report-edit-hint">{{ t.report_edit_hint }}</p>
-                <textarea id="report-complaint-text"></textarea>
+                <textarea id="report-complaint-text" class="form-input"></textarea>
             </div>
         </div>
         <div class="modal-footer">
@@ -1999,7 +1999,7 @@
                 <span id="export-size-indicator">0 {{ t.get('export_size_characters', 'characters') }}</span>
                 <span id="export-status" role="status" aria-live="polite"></span>
             </div>
-            <textarea id="export-text" readonly aria-label="{{ t.get('export_preview_label', 'Export preview') }}"></textarea>
+            <textarea id="export-text" class="form-input" readonly aria-label="{{ t.get('export_preview_label', 'Export preview') }}"></textarea>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" data-action="closeExportModal">{{ t.close }}</button>
