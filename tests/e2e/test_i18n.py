@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -104,6 +105,25 @@ class TestFirstRunLanguageInference:
             assert page.locator("html").get_attribute("lang") == expected
             assert page.locator("#lang-select").input_value() == expected
             assert _stored_language(isolated_setup_server) == expected
+        finally:
+            context.close()
+
+    def test_setup_language_select_switches_language_and_keeps_the_url(
+        self, browser, isolated_setup_server
+    ):
+        context = browser.new_context(extra_http_headers={"Accept-Language": "de-DE"})
+        try:
+            page = context.new_page()
+            page.goto(isolated_setup_server["url"] + "/setup?connect=1")
+            page.wait_for_load_state("networkidle")
+            with page.expect_navigation():
+                page.select_option("#lang-select", "fr")
+            page.wait_for_load_state("networkidle")
+
+            query = parse_qs(urlparse(page.url).query)
+            assert query["lang"] == ["fr"]
+            assert query["connect"] == ["1"]
+            assert page.locator("html").get_attribute("lang") == "fr"
         finally:
             context.close()
 

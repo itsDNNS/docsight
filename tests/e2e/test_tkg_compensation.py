@@ -23,6 +23,9 @@ def _apply_builtin_theme(page, name, mode):
     page.locator("html").evaluate(
         """
         (element, config) => {
+            // Replace the active theme like a theme switch does, instead of layering on it.
+            const active = document.getElementById('theme-module-vars');
+            if (active) active.disabled = true;
             element.setAttribute('data-theme', config.mode);
             for (const [key, value] of Object.entries(config.values)) {
                 element.style.setProperty(key, value);
@@ -135,7 +138,7 @@ def test_manual_claim_calculation_copy_download_and_focus_flow(tkg_core_page, vi
     expect(manual.get_by_label("Outage started")).to_be_visible()
     expect(manual.get_by_label("Outage ended")).to_be_visible()
 
-    primary_actions = root.locator(".btn-accent:visible")
+    primary_actions = root.locator(".btn-primary:visible")
     expect(primary_actions).to_have_count(1)
     expect(primary_actions).to_have_attribute("id", "tkg-next")
     expect(primary_actions).to_have_text("Continue to details")
@@ -200,7 +203,7 @@ def test_tkg_controls_follow_builtin_theme_tokens(tkg_core_page, theme_name, mod
                 panelBorder: getComputedStyle(panel).borderColor,
                 panelOutlineColor: getComputedStyle(panel).outlineColor,
                 panelOutline: getComputedStyle(panel).outlineStyle,
-                primaryBackground: getComputedStyle(primary).backgroundColor,
+                primaryBackground: getComputedStyle(primary).backgroundImage,
                 inputBackground: getComputedStyle(input).backgroundColor,
                 inputColorScheme: getComputedStyle(input).colorScheme,
             };
@@ -212,7 +215,8 @@ def test_tkg_controls_follow_builtin_theme_tokens(tkg_core_page, theme_name, mod
     assert styles["panelBorder"] == styles["expectedCardBorder"]
     assert styles["panelOutline"] == "solid"
     assert styles["panelOutlineColor"] == styles["expectedAccent"]
-    assert styles["primaryBackground"] == styles["expectedAccent"]
+    # Primary buttons use the theme gradient, which starts at the accent color.
+    assert styles["primaryBackground"].startswith("linear-gradient(135deg, " + styles["expectedAccent"])
     assert styles["inputBackground"] == styles["expectedControl"]
     assert styles["inputColorScheme"] == mode
 

@@ -136,11 +136,11 @@
             <div class="form-field" style="grid-column: 1 / -1">
                 <div class="test-result" id="pwa-push-status" style="display:flex;">{{ t.notify_pwa_push_status_unknown }}</div>
                 <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;margin-top:var(--space-sm);">
-                    <button type="button" class="btn btn-ghost" onclick="subscribePwaPush()">
+                    <button type="button" class="btn btn-secondary" onclick="subscribePwaPush()">
                         <i data-lucide="bell-plus" style="width:16px;height:16px;"></i>
                         {{ t.notify_pwa_push_subscribe }}
                     </button>
-                    <button type="button" class="btn btn-ghost" onclick="unsubscribePwaPush()">
+                    <button type="button" class="btn btn-secondary" onclick="unsubscribePwaPush()">
                         <i data-lucide="bell-off" style="width:16px;height:16px;"></i>
                         {{ t.notify_pwa_push_unsubscribe }}
                     </button>
@@ -249,7 +249,7 @@
                 </div>
             </div>
         </div>
-        <button type="button" class="btn btn-ghost" onclick="testNotifications()">
+        <button type="button" class="btn btn-secondary" onclick="testNotifications()">
             <i data-lucide="send" style="width:16px;height:16px;"></i>
             {{ t.notify_test_send }}
         </button>

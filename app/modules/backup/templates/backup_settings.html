@@ -52,7 +52,7 @@
                 <label class="form-label" for="backup_path">{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
                 <div class="input-with-action">
                     <input class="form-input" type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly style="cursor:pointer;">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="openBrowseModal(this)">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBrowseModal(this)">
                         <i data-lucide="folder-open" style="width:14px;height:14px;"></i>
                         {{ t['docsight.backup.backup_browse'] or 'Browse' }}
                     </button>
@@ -74,7 +74,7 @@
                 </div>
             </div>
             <div style="margin-top: var(--space-lg);">
-                <button type="button" class="btn btn-ghost" onclick="backupNow()">
+                <button type="button" class="btn btn-secondary" onclick="backupNow()">
                     <i data-lucide="save" style="width:14px;height:14px;"></i>
                     {{ t['docsight.backup.backup_now'] or 'Backup Now' }}
                 </button>
@@ -106,7 +106,7 @@
         <div id="browse-breadcrumb" class="browse-modal-path"></div>
         <div id="browse-dirs" class="browse-modal-body" tabindex="0"></div>
         <div class="browse-modal-footer">
-            <button type="button" class="btn btn-ghost" onclick="closeBrowseModal()">{{ t.cancel }}</button>
+            <button type="button" class="btn btn-secondary" onclick="closeBrowseModal()">{{ t.cancel }}</button>
             <button type="button" class="btn btn-primary btn-sm" onclick="selectBrowsePath()">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
         </div>
     </div>

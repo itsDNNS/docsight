@@ -54,12 +54,6 @@
 .tkg-letter { margin-top: var(--space-md, 16px); resize: vertical; min-height: 360px; }
 .tkg-actions, .tkg-nav { display: flex; flex-wrap: wrap; gap: 10px; }
 .tkg-nav { justify-content: space-between; }
-.tkg-view .btn:not(.btn-accent) { border: 1px solid var(--input-border, var(--card-border)); background: var(--elevated, var(--hover-bg)); color: var(--text); }
-.tkg-view .btn:not(.btn-accent):hover:not(:disabled) { border-color: var(--accent); background: var(--hover, var(--tint-emphasis)); }
-.tkg-view .btn-accent { border: 1px solid transparent; background: var(--accent); color: var(--text-on-accent); }
-.tkg-view .btn-accent:hover:not(:disabled) { background: var(--accent-hover, var(--accent)); }
-.tkg-view .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.tkg-view .btn:disabled { cursor: not-allowed; opacity: .45; }
 .tkg-report-links { display: grid; gap: var(--space-sm, 8px); margin: var(--space-md, 16px) 0; }
 .tkg-disclaimer { color: var(--text-secondary, var(--muted)); font-weight: 600; }
 @media (max-width: 800px) {

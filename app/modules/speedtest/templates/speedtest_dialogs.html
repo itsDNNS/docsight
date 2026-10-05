@@ -31,13 +31,13 @@
             <section class="setup-guide-card">
                 <h3>{{ t.get('setup_validate_title', 'Validate') }}</h3>
                 <p>{{ t.get('speedtest_setup_validate_text', 'Use Settings to save the URL, then confirm DOCSight can read recent speed test results.') }}</p>
-                <button class="btn btn-muted" data-action="validateSetupGuidance" data-action-args='["speedtest-setup-status", "speedtest"]'>{{ t.get('speedtest_setup_test_guidance', 'Review validation path') }}</button>
+                <button class="btn btn-secondary" data-action="validateSetupGuidance" data-action-args='["speedtest-setup-status", "speedtest"]'>{{ t.get('speedtest_setup_test_guidance', 'Review validation path') }}</button>
             </section>
         </div>
         <div id="speedtest-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
         <div class="modal-footer">
-            <button class="btn btn-muted" data-action="closeSpeedtestSetupModal">{{ t.close }}</button>
-            <a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_speedtest') }}">⚙ {{ t.get('speedtest_setup_open_settings', 'Open Speedtest settings') }}</a>
+            <button class="btn btn-secondary" data-action="closeSpeedtestSetupModal">{{ t.close }}</button>
+            <a class="btn btn-primary" href="{{ url_for('settings', _anchor='mod-docsight_speedtest') }}">⚙ {{ t.get('speedtest_setup_open_settings', 'Open Speedtest settings') }}</a>
         </div>
     </div>
 </dialog>

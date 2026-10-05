@@ -52,7 +52,7 @@
 
         var removeBtn = document.createElement('button');
         removeBtn.type = 'button';
-        removeBtn.className = 'btn btn-ghost btn-sm';
+        removeBtn.className = 'btn btn-secondary btn-sm';
         removeBtn.style.flexShrink = '0';
         removeBtn.dataset.remove = target.id;
 

@@ -33,48 +33,89 @@ body {
   pointer-events: none;
 }
 
-/* ── Buttons ── */
+/* ── Buttons ──
+   One component: .btn plus a variant (.btn-primary, .btn-secondary, .btn-ghost,
+   .btn-danger) and optionally .btn-sm. Medium buttons are 40px tall, small ones
+   32px; touch screens and phone-width layouts get 44px. Colors come from the
+   theme tokens only. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
   font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: 0.85rem;
-  padding: 10px 16px;
-  min-height: 44px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  border: none;
   cursor: pointer;
-  transition: all 0.25s var(--ease-out-expo);
   text-decoration: none;
   white-space: nowrap;
+  transition: background-color 0.2s var(--ease-out-expo), border-color 0.2s var(--ease-out-expo),
+    color 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo), transform 0.2s var(--ease-out-expo);
 }
-.btn svg { width: 16px; height: 16px; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.btn-sm { min-height: 32px; padding: 0 12px; font-size: 0.8125rem; }
+.btn-sm svg { width: 14px; height: 14px; }
+@media (pointer: coarse), (max-width: 640px) {
+  .btn,
+  .btn-sm,
+  .btn-small { min-height: 44px; }
+}
+
 .btn-primary {
   background: var(--grad-primary);
   color: var(--text-on-accent);
 }
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px -4px rgba(124,58,237,0.3);
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 .btn-secondary {
   background: var(--tint-emphasis);
+  border-color: var(--glass-border);
   color: var(--text);
-  border: 1px solid var(--glass-border);
 }
-.btn-secondary:hover { border-color: var(--accent); }
+.btn-secondary:hover:not(:disabled) {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+}
 .btn-ghost {
-  background: rgba(255,255,255,0.05);
   color: var(--text-secondary);
-  border: 1px solid var(--glass-border);
 }
-.btn-ghost:hover {
-  background: rgba(255,255,255,0.08);
+.btn-ghost:hover:not(:disabled) {
+  background: var(--tint-hover);
   color: var(--text);
 }
+/* Darkened like the navigation badge, so white text stays readable on every theme's red. */
+.btn-danger {
+  background: color-mix(in srgb, var(--crit) 65%, #000);
+  color: #fff;
+}
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--crit) 75%, #000);
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--crit) 60%, transparent);
+}
+
+/* Deprecated names for module templates: .btn-accent is .btn-primary,
+   .btn-muted is .btn-secondary, .btn-small is .btn-sm. */
+.btn-accent { background: var(--grad-primary); color: var(--text-on-accent); }
+.btn-accent:hover:not(:disabled) { box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 60%, transparent); }
+.btn-muted { background: var(--tint-emphasis); border-color: var(--glass-border); color: var(--text); }
+.btn-muted:hover:not(:disabled) { background: var(--accent-muted); border-color: var(--accent); }
+.btn-small { min-height: 32px; padding: 0 12px; font-size: 0.8125rem; }
 
 /* ── Badges ── */
 .badge {

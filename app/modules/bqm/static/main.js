@@ -763,7 +763,7 @@ function showBqmImportResult(data) {
 
     // Replace footer with close button (safe: static HTML with translated string)
     var footerRight = footer.querySelector('div:last-child');
-    footerRight.innerHTML = '<button class="btn btn-accent" onclick="closeBqmImportModal()">' + (T.close || 'Close') + '</button>';
+    footerRight.innerHTML = '<button class="btn btn-primary" onclick="closeBqmImportModal()">' + (T.close || 'Close') + '</button>';
     footer.hidden = false;
 }
 

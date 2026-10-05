@@ -87,8 +87,8 @@
             '  <div class="incident-modal-footer">',
             '    <div class="modal-footer-left"></div>',
             '    <div style="display:flex; gap:10px;">',
-            '      <button type="button" class="btn btn-muted" id="docsight-confirm-cancel"></button>',
-            '      <button type="button" class="btn btn-accent" id="docsight-confirm-ok"></button>',
+            '      <button type="button" class="btn btn-secondary" id="docsight-confirm-cancel"></button>',
+            '      <button type="button" class="btn btn-primary" id="docsight-confirm-ok"></button>',
             '    </div>',
             '  </div>',
             '</div>'
@@ -140,7 +140,7 @@
         document.getElementById('docsight-confirm-cancel').textContent = opts.cancelText || (window.T && T.cancel) || 'Cancel';
         var ok = document.getElementById('docsight-confirm-ok');
         ok.textContent = opts.confirmText || (window.T && T.confirm) || 'Confirm';
-        ok.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-accent');
+        ok.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
         var typedWrap = document.getElementById('docsight-confirm-typed-wrap');
         var typedLabel = document.getElementById('docsight-confirm-typed-label');
         var typedInput = document.getElementById('docsight-confirm-typed-input');
