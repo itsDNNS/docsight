@@ -46,9 +46,10 @@ jobs:
   visual-review:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    env:
-      REVIEW_DIR: ${{ runner.temp }}/visual-review
     steps:
+      - name: Prepare the review directory
+        run: echo "REVIEW_DIR=$RUNNER_TEMP/visual-review" >> "$GITHUB_ENV"
+
       - name: Check out the pull request
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -90,7 +91,7 @@ jobs:
           start head 8802
           # /health reports "waiting" until the demo has seeded and analyzed its first poll.
           for port in 8801 8802; do
-            for attempt in $(seq 1 150); do
+            for _ in $(seq 1 150); do
               if curl -fs "http://127.0.0.1:$port/health" | grep -qv '"docsis_health": *"waiting"'; then
                 break
               fi
