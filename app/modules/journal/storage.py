@@ -104,7 +104,7 @@ class JournalStorage:
                 params.append(incident_id)
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY i.date DESC, i.created_at DESC LIMIT ? OFFSET ?"
+        query += " ORDER BY i.date DESC, i.created_at DESC, i.id DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
         with self._read() as conn:
             rows = conn.execute(query, params).fetchall()
@@ -259,7 +259,7 @@ class JournalStorage:
         if status:
             query += " WHERE i.status = ?"
             params.append(status)
-        query += " ORDER BY i.created_at DESC"
+        query += " ORDER BY i.created_at DESC, i.id DESC"
         with self._read() as conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]

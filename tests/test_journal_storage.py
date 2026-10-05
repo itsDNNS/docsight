@@ -113,3 +113,14 @@ def test_deleting_incident_preserves_evidence(journal):
     assert journal.get_attachment(1) == attachment
     assert journal.get_entry(5)["incident_id"] == 2
     assert len(journal.get_entries_for_export()) == 5
+
+
+def test_rows_created_within_the_same_second_list_newest_first(tmp_path, monkeypatch):
+    # created_at has one-second resolution; the id breaks ties so the order is stable.
+    monkeypatch.setattr("app.modules.journal.storage.utc_now", lambda: "2026-01-05T00:00:00Z")
+    storage = JournalStorage(str(tmp_path / "journal.db"))
+    incidents = [storage.save_incident(name) for name in ("First", "Second", "Third")]
+    entries = [storage.save_entry("2026-01-04", title, "") for title in ("a", "b", "c")]
+
+    assert [incident["id"] for incident in storage.get_incidents()] == incidents[::-1]
+    assert [entry["id"] for entry in storage.get_entries()] == entries[::-1]
