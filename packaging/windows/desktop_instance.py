@@ -281,7 +281,12 @@ class DesktopInstance:
                 self._become_owner()
                 return InstanceDecision(InstanceRole.OWNER)
 
-            state = self.store.load()
+            try:
+                state = self.store.load()
+            except RuntimeStateError:
+                # The owner holds the mutex and may be replacing the file right now,
+                # or another program still has it open; wait as for a missing state.
+                state = None
             if state is not None and self._is_valid_running_state(state):
                 self._mutex.close()
                 self._closed = True
