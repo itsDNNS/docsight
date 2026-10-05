@@ -147,8 +147,8 @@ function setBqmViewMode(mode) {
     var imageWrap = document.getElementById('bqm-image-wrap');
     var toggleUplot = document.getElementById('bqm-toggle-uplot');
     var togglePng = document.getElementById('bqm-toggle-png');
-    if (chart) chart.style.display = mode === 'chart' ? 'block' : 'none';
-    if (imageWrap) imageWrap.style.display = mode === 'chart' ? 'none' : 'block';
+    if (chart) chart.hidden = mode !== 'chart';
+    if (imageWrap) imageWrap.hidden = mode === 'chart';
     if (toggleUplot) toggleUplot.classList.toggle('active', mode === 'chart');
     if (togglePng) togglePng.classList.toggle('active', mode === 'png');
 }
@@ -157,20 +157,20 @@ function updateBqmViewToggle(date) {
     var toggle = document.getElementById('bqm-view-toggle');
     if (!toggle) return;
     var hasBoth = _bqmCsvDates.has(date) && _bqmPngDates.has(date);
-    toggle.style.display = hasBoth ? 'flex' : 'none';
+    toggle.hidden = !hasBoth;
 }
 
 function showBqmCard() {
     var card = document.getElementById('bqm-card');
     var noData = document.getElementById('bqm-no-data');
-    if (card) card.style.display = 'block';
+    if (card) card.hidden = false;
     DOCSightEmptyState.hide(noData);
 }
 
 function showBqmNoData(msg) {
     var card = document.getElementById('bqm-card');
     var noData = document.getElementById('bqm-no-data');
-    if (card) card.style.display = 'none';
+    if (card) card.hidden = true;
     DOCSightEmptyState.show(noData, {
         icon: 'bar-chart-3',
         title: msg || T.bqm_no_data || 'No BQM graph for this date.',
@@ -180,9 +180,14 @@ function showBqmNoData(msg) {
     });
 }
 
+function toggleBqmCsvImport() {
+    var section = document.getElementById('bqm-csv-import-section');
+    if (section) section.hidden = !section.hidden;
+}
+
 function openBqmCsvImport() {
     var section = document.getElementById('bqm-csv-import-section');
-    if (section) section.style.display = '';
+    if (section) section.hidden = false;
     var input = document.getElementById('bqm-csv-file');
     if (input) input.focus();
 }
@@ -214,7 +219,7 @@ function loadBqmRangeChart(start, end) {
     setBqmViewMode('chart');
     hideBqmLiveBadge();
     var toggle = document.getElementById('bqm-view-toggle');
-    if (toggle) toggle.style.display = 'none';
+    if (toggle) toggle.hidden = true;
     fetch(docsightUrl('/api/bqm/data/range?start=' + encodeURIComponent(start) + '&end=' + encodeURIComponent(end)))
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -329,7 +334,7 @@ function loadBqmLive() {
     setBqmViewMode('png');
     BQMChart.destroy('bqm-chart-container');
     var toggle = document.getElementById('bqm-view-toggle');
-    if (toggle) toggle.style.display = 'none';
+    if (toggle) toggle.hidden = true;
     fetch(docsightUrl('/api/bqm/live')).then(function(r) {
         if (!r.ok) throw new Error('Live fetch failed');
         var source = r.headers.get('X-BQM-Source') || 'cached';
@@ -362,20 +367,20 @@ function showBqmLiveBadge(source, timestamp) {
     var isLive = source === 'live';
     if (badge) {
         badge.textContent = isLive ? (T.bqm_live || 'Live') : (T.bqm_cached_png || 'Cached PNG');
-        badge.style.display = 'inline';
+        badge.hidden = false;
     }
     if (updated && timestamp) {
         var label = isLive ? (T.bqm_last_updated || 'Last updated') : (T.bqm_cached_png_loaded || 'Cached PNG loaded');
         updated.textContent = label + ': ' + formatDocsightTime(timestamp, 'time', true);
-        updated.style.display = 'inline';
+        updated.hidden = false;
     }
 }
 
 function hideBqmLiveBadge() {
     var badge = document.getElementById('bqm-live-badge');
     var updated = document.getElementById('bqm-last-updated');
-    if (badge) badge.style.display = 'none';
-    if (updated) updated.style.display = 'none';
+    if (badge) badge.hidden = true;
+    if (updated) updated.hidden = true;
 }
 
 function startBqmLiveRefresh() {
@@ -505,11 +510,11 @@ function importBqmCsv() {
 
 function openBqmImportModal() {
     _bqmImportFiles = [];
-    document.getElementById('bqm-import-dropzone').style.display = '';
-    document.getElementById('bqm-import-options').style.display = 'none';
-    document.getElementById('bqm-import-status').style.display = 'none';
-    document.getElementById('bqm-import-preview').style.display = 'none';
-    document.getElementById('bqm-import-footer').style.display = 'none';
+    document.getElementById('bqm-import-dropzone').hidden = false;
+    document.getElementById('bqm-import-options').hidden = true;
+    document.getElementById('bqm-import-status').hidden = true;
+    document.getElementById('bqm-import-preview').hidden = true;
+    document.getElementById('bqm-import-footer').hidden = true;
     document.getElementById('bqm-import-overwrite').checked = false;
     document.getElementById('bqm-import-offset').value = '0';
     document.getElementById('bqm-import-tbody').innerHTML = '';
@@ -667,13 +672,13 @@ function renderBqmImportPreview() {
     // Status line
     var statusEl = document.getElementById('bqm-import-status');
     statusEl.textContent = datesDetected + ' dates detected' + (datesMissing > 0 ? ', ' + datesMissing + ' needs manual entry' : '');
-    statusEl.style.display = 'block';
+    statusEl.hidden = false;
     updateBqmImportValidationState(datesDetected, datesMissing);
 
-    document.getElementById('bqm-import-dropzone').style.display = 'none';
-    document.getElementById('bqm-import-options').style.display = 'block';
-    document.getElementById('bqm-import-preview').style.display = 'block';
-    document.getElementById('bqm-import-footer').style.display = 'flex';
+    document.getElementById('bqm-import-dropzone').hidden = true;
+    document.getElementById('bqm-import-options').hidden = false;
+    document.getElementById('bqm-import-preview').hidden = false;
+    document.getElementById('bqm-import-footer').hidden = false;
 
     // Update button text and state
     var btn = document.getElementById('bqm-import-confirm-btn');
@@ -731,7 +736,7 @@ function showBqmImportResult(data) {
     if (data.skipped) html += ', <span style="color:#eab308;">' + data.skipped + ' skipped</span>';
     if (data.errors && data.errors.length) html += ', <span style="color:#ef4444;">' + data.errors.length + ' errors</span>';
     status.innerHTML = html;
-    status.style.display = 'block';
+    status.hidden = false;
 
     // Show skipped dates if any (safe: date strings from server)
     if (data.skipped_dates && data.skipped_dates.length) {
@@ -749,17 +754,17 @@ function showBqmImportResult(data) {
         td.innerHTML = datesHtml;
         tr.appendChild(td);
         tbody.appendChild(tr);
-        preview.style.display = 'block';
+        preview.hidden = false;
     } else {
-        preview.style.display = 'none';
+        preview.hidden = true;
     }
 
-    options.style.display = 'none';
+    options.hidden = true;
 
     // Replace footer with close button (safe: static HTML with translated string)
     var footerRight = footer.querySelector('div:last-child');
     footerRight.innerHTML = '<button class="btn btn-accent" onclick="closeBqmImportModal()">' + (T.close || 'Close') + '</button>';
-    footer.style.display = 'flex';
+    footer.hidden = false;
 }
 
 // Drop zone event handlers

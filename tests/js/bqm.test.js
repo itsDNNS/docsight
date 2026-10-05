@@ -87,7 +87,7 @@ for (const [name, date] of [['today', '2026-01-02'], ['yesterday', '2026-01-01']
         await new Promise(resolve => setImmediate(resolve));
 
         assert.equal(c._bqmLiveTimer, null);
-        assert.equal(elements['bqm-view-toggle'].style.display, 'flex');
+        assert.equal(elements['bqm-view-toggle'].hidden, false);
         assert.deepEqual(requests, ['/api/bqm/data/' + date]);
         assert.equal(c.bqmDate, date);
         assert.equal(c._bqmRangeStart, date);

@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = (
     "app/templates/index.html",
     "app/templates/segment_utilization_tab.html",
+    "app/modules/bqm/templates/bqm_dialogs.html",
+    "app/modules/bqm/templates/bqm_tab.html",
     "app/modules/comparison/templates/comparison_tab.html",
     "app/modules/modulation/templates/modulation_tab.html",
     "app/modules/speedtest/templates/speedtest_tab.html",
