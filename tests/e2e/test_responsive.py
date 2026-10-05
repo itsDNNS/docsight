@@ -431,7 +431,7 @@ class TestMobileLayout:
 
         mobile_page.evaluate("switchView('correlation')")
         mobile_page.wait_for_selector("#view-correlation.active #correlation-tabs .trend-tab")
-        mobile_page.evaluate("document.querySelector('#correlation-chart-container').style.display = 'block'")
+        mobile_page.evaluate("document.querySelector('#correlation-chart-container').hidden = false")
         correlation_controls = mobile_page.evaluate(
             """
             () => Array.from(document.querySelectorAll(

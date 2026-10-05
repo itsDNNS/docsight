@@ -5,9 +5,6 @@ from pathlib import Path
 
 INDEX = Path(__file__).resolve().parents[1] / "app" / "templates" / "index.html"
 
-# Visibility toggled by scripts until those move to the hidden attribute.
-VISIBILITY_STATES = {"display:none;", "display:contents;"}
-
 
 def _declarations(style):
     return [part.strip() for part in style.split(";") if part.strip()]
@@ -17,8 +14,6 @@ def test_inline_styles_only_pass_values_through_custom_properties():
     offenders = []
     for number, line in enumerate(INDEX.read_text(encoding="utf-8").splitlines(), start=1):
         for style in re.findall(r'\sstyle="([^"]*)"', line):
-            if style in VISIBILITY_STATES:
-                continue
             if not all(declaration.startswith("--") for declaration in _declarations(style)):
                 offenders.append(f"index.html:{number}: {style}")
     assert offenders == []

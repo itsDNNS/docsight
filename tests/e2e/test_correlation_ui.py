@@ -859,7 +859,7 @@ def test_module_absent_gate_makes_no_connection_monitor_requests(demo_page):
         }
         """
     )
-    page.wait_for_function("() => document.querySelector('#correlation-loading').style.display === 'none'")
+    page.wait_for_function("() => document.querySelector('#correlation-loading').hidden")
     assert request_count == {}
     assert page.evaluate("() => window._corrCmState") == "module_absent"
 

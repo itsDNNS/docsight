@@ -111,11 +111,11 @@ for (const staleOk of [true, false]) {
         b.context.filterEventsBySeverity('warning');
         b.context.filterEventsBySeverity('critical');
         await b.reply(1, page(1), staleOk);
-        assert.equal(b.node('events-loading').style.display, '');
+        assert.equal(b.node('events-loading').hidden, false);
         assert.equal(b.node('events-empty').hidden, true);
         assert.equal(b.rows(), 0);
         await b.reply(2, page(2));
-        assert.equal(b.node('events-loading').style.display, 'none');
+        assert.equal(b.node('events-loading').hidden, true);
         assert.equal(b.rows(), 2);
     });
 }
@@ -126,17 +126,17 @@ test('failed pagination retries the same offset and clears the error on success'
     await b.reply(1, page(50));
     b.context.loadMoreEvents();
     assert.match(b.requests[2].url, /offset=50/);
-    assert.equal(b.node('events-show-more').style.display, 'none');
+    assert.equal(b.node('events-show-more').hidden, true);
     await b.reply(2, {error: 'Service unavailable'}, false);
     assert.equal(b.rows(), 50);
     assert.equal(b.node('events-empty').empty.kind, 'error');
-    assert.equal(b.node('events-show-more').style.display, '');
+    assert.equal(b.node('events-show-more').hidden, false);
     b.context.loadMoreEvents();
     assert.match(b.requests[3].url, /offset=50/);
     await b.reply(3, page(10, 51));
     assert.equal(b.rows(), 60);
     assert.equal(b.node('events-empty').hidden, true);
-    assert.equal(b.node('events-show-more').style.display, 'none');
+    assert.equal(b.node('events-show-more').hidden, true);
 });
 
 test('rows shifted onto the next page by new events are not shown twice', async () => {

@@ -1471,7 +1471,7 @@ class TestChannelsPageLayout:
         html = client.get("/?lang=en").get_data(as_text=True)
 
         assert 'class="trend-tab active" data-value="status"' in html
-        assert 'id="channel-panel-timeline" style="display:none;"' in html
+        assert 'id="channel-panel-timeline" hidden' in html
         assert 'href="#channels?mode=status"' in html
 
 

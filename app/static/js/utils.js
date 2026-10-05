@@ -225,14 +225,14 @@ function resetReportModalState() {
         var field = document.getElementById(fieldId);
         if (field) field.value = field.defaultValue;
     });
-    document.getElementById('report-step1').style.display = '';
-    document.getElementById('report-step2').style.display = 'none';
+    document.getElementById('report-step1').hidden = false;
+    document.getElementById('report-step2').hidden = true;
     var generateBtn = document.getElementById('report-generate-btn');
-    generateBtn.style.display = '';
+    generateBtn.hidden = false;
     generateBtn.disabled = false;
     generateBtn.textContent = '\u270E ' + (T.report_build_package || 'Build evidence package');
-    document.getElementById('report-copy-btn').style.display = 'none';
-    document.getElementById('report-pdf-btn').style.display = 'none';
+    document.getElementById('report-copy-btn').hidden = true;
+    document.getElementById('report-pdf-btn').hidden = true;
     // Reset BNetzA complaint source
     var bnetzIdField = document.getElementById('report-bnetz-id');
     if (bnetzIdField) bnetzIdField.value = '';
@@ -335,11 +335,11 @@ function generateComplaint() {
                 throw new Error(T.report_window_mismatch || 'The server returned a different problem window. Choose Change problem window and rebuild the checklist before trying again.');
             }
             document.getElementById('report-complaint-text').value = data.text;
-            document.getElementById('report-step1').style.display = 'none';
-            document.getElementById('report-step2').style.display = 'block';
-            document.getElementById('report-generate-btn').style.display = 'none';
-            document.getElementById('report-copy-btn').style.display = '';
-            document.getElementById('report-pdf-btn').style.display = '';
+            document.getElementById('report-step1').hidden = true;
+            document.getElementById('report-step2').hidden = false;
+            document.getElementById('report-generate-btn').hidden = true;
+            document.getElementById('report-copy-btn').hidden = false;
+            document.getElementById('report-pdf-btn').hidden = false;
             setReportBuilderStatus(T.report_builder_ready || 'Evidence package ready. Review the letter text, then copy it or download the PDF package.', 'success');
         })
         .catch(function(e) {

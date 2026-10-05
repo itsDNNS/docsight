@@ -178,7 +178,7 @@
                 <li class="topnav-entry">
                     <button type="button" class="topnav-dest nav-item" data-view="events" data-nav-icon="bell" data-nav-title="{{ t.event_log }}">
                         <i data-lucide="history"></i><span class="topnav-label">{{ t.get('nav_events', 'Events') }}</span>
-                        <span class="nav-badge" id="event-badge" style="display:none;" title="{{ t.event_badge_title }}"></span>
+                        <span class="nav-badge" id="event-badge" hidden title="{{ t.event_badge_title }}"></span>
                     </button>
                 </li>
                 <li class="topnav-entry topnav-group" data-nav-group="cases">
@@ -1095,7 +1095,7 @@
                 <button class="trend-tab" data-range="30d">30d</button>
                 <button class="trend-tab" data-range="90d">90d</button>
             </div>
-            <button class="trend-tab temp-toggle" id="temp-toggle-btn" style="display:none;" title="{{ t.temp_overlay_show }}">
+            <button class="trend-tab temp-toggle" id="temp-toggle-btn" hidden title="{{ t.temp_overlay_show }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
@@ -1204,13 +1204,13 @@
         </div>
     </div>
 
-    <div id="correlation-loading" class="waiting" style="display:none;">
+    <div id="correlation-loading" class="waiting" hidden>
         <div class="skeleton skel-chart"></div>
     </div>
     <div id="correlation-no-data" class="view-empty" hidden></div>
 
     <!-- Signal Health Timeline Chart -->
-    <div id="correlation-chart-container" style="display:none;">
+    <div id="correlation-chart-container" hidden>
         <!-- Phase 4.4: Modern card wrapper for correlation chart -->
         <div class="correlation-chart-card">
             <div class="chart-card-header">
@@ -1245,7 +1245,7 @@
                 <canvas id="correlation-chart"></canvas>
                 <canvas id="correlation-overlay" class="correlation-overlay" role="img" tabindex="0" aria-label="{{ t.correlation_chart_aria_label }}" aria-describedby="correlation-speedtest-hint{% if connection_monitor_installed %} correlation-reachability-hint{% endif %}"></canvas>
                 <div class="correlation-tooltip" id="correlation-tooltip"></div>
-                <button type="button" class="correlation-zoom-reset" id="correlation-zoom-reset" style="display:none;" onclick="_corrResetZoom()">{{ t.chart_reset_zoom }}</button>
+                <button type="button" class="correlation-zoom-reset" id="correlation-zoom-reset" hidden onclick="_corrResetZoom()">{{ t.chart_reset_zoom }}</button>
                 <div class="correlation-chart-legend" id="correlation-legend"></div>
                 <p class="correlation-speedtest-hint" id="correlation-speedtest-hint">{{ t.correlation_speedtest_hint }}</p>
                 {% if connection_monitor_installed %}
@@ -1264,7 +1264,7 @@
     {% endif %}
 
     <!-- Unified Timeline Table -->
-    <div id="correlation-table-card" class="table-card" style="display:none;">
+    <div id="correlation-table-card" class="table-card" hidden>
         <div class="table-card-header">
             <div class="table-card-title">
                 <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1314,7 +1314,7 @@
         </div>
     </div>
 
-    <div id="events-loading" class="waiting" style="display:none;">
+    <div id="events-loading" class="waiting" hidden>
         <div class="skeleton skel-row"></div>
         <div class="skeleton skel-row"></div>
         <div class="skeleton skel-row"></div>
@@ -1322,7 +1322,7 @@
     </div>
     <div id="events-empty" class="view-empty" hidden></div>
 
-    <div id="events-feed-card" class="table-card events-card" style="display:none;">
+    <div id="events-feed-card" class="table-card events-card" hidden>
         <div class="events-toolbar">
             <span class="events-summary" id="events-summary" aria-live="polite"></span>
             <div class="events-card-actions">
@@ -1334,7 +1334,7 @@
         <div id="events-feed" class="events-feed"></div>
     </div>
 
-    <div id="events-show-more" style="display:none;">
+    <div id="events-show-more" hidden>
         <button class="btn-show-more" onclick="loadMoreEvents()">{{ t.show_more }}</button>
     </div>
 </div>
@@ -1351,7 +1351,7 @@
             <button class="trend-tab" data-value="timeline" onclick="selectPill(this, switchChannelMode)">{{ t.channel_timeline }}</button>
             <button class="trend-tab" data-value="compare" onclick="selectPill(this, switchChannelMode)">{{ t.channel_compare }}</button>
         </div>
-        <span id="channel-status-controls" style="display:contents;">
+        <span id="channel-status-controls">
             <div class="trend-tabs" id="channel-status-time-tabs">
                 <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadChannelStatus)">1h</button>
                 <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadChannelStatus)">6h</button>
@@ -1363,11 +1363,11 @@
                 <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadChannelStatus)">90d</button>
             </div>
         </span>
-        <span id="channel-timeline-controls" style="display:none;">
+        <span id="channel-timeline-controls" hidden>
             <select id="channel-select" class="channel-select-styled" onchange="loadChannelTimeline()">
                 <option value="">{{ t.select_channel }}</option>
             </select>
-            <div class="trend-tabs" id="channel-time-tabs" style="display:none;">
+            <div class="trend-tabs" id="channel-time-tabs" hidden>
                 <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadChannelTimeline)">1h</button>
                 <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadChannelTimeline)">6h</button>
                 <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadChannelTimeline)">1d</button>
@@ -1377,13 +1377,13 @@
                 <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadChannelTimeline)">30d</button>
                 <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadChannelTimeline)">90d</button>
             </div>
-            <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleChannelTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+            <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleChannelTempOverlay()" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
             </button>
         </span>
-        <span id="channel-compare-controls" style="display:none;">
+        <span id="channel-compare-controls" hidden>
             <div class="trend-tabs" id="compare-dir-tabs">
                 <button class="trend-tab active" data-value="ds" onclick="selectPill(this, onCompareDirectionChange)">{{ t.downstream }}</button>
                 <button class="trend-tab" data-value="us" onclick="selectPill(this, onCompareDirectionChange)">{{ t.upstream }}</button>
@@ -1391,8 +1391,8 @@
             <select id="compare-channel-select" class="channel-select-styled"><option value="">{{ t.select_channel }}</option></select>
             <button id="compare-add-btn" class="compare-add-btn" onclick="addCompareChannel()">+ {{ t.add_channel }}</button>
             <button id="compare-add-all-btn" class="compare-add-btn" onclick="addAllCompareChannels()">{{ t.all_downstream }}</button>
-            <button id="compare-clear-btn" class="compare-add-btn" onclick="clearCompareChannels()" style="display:none;">{{ t.clear_selection }}</button>
-            <div class="trend-tabs" id="compare-time-tabs" style="display:none;">
+            <button id="compare-clear-btn" class="compare-add-btn" onclick="clearCompareChannels()" hidden>{{ t.clear_selection }}</button>
+            <div class="trend-tabs" id="compare-time-tabs" hidden>
                 <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadCompareCharts)">1h</button>
                 <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadCompareCharts)">6h</button>
                 <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadCompareCharts)">1d</button>
@@ -1402,7 +1402,7 @@
                 <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadCompareCharts)">30d</button>
                 <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadCompareCharts)">90d</button>
             </div>
-            <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleCompareTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+            <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleCompareTempOverlay()" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
@@ -1412,7 +1412,7 @@
     </div>
 
     <!-- Channel info bar (populated by JS after channel selection) -->
-    <div id="channel-info-bar" class="ch-info-bar" style="display:none;"></div>
+    <div id="channel-info-bar" class="ch-info-bar" hidden></div>
 
     <!-- ── Status Sub-View ── -->
     <div id="channel-panel-status">
@@ -1580,15 +1580,15 @@
     </div>
 
     <!-- ── Timeline Sub-View ── -->
-    <div id="channel-panel-timeline" style="display:none;">
-        <div id="channel-loading" class="waiting" style="display:none;">
+    <div id="channel-panel-timeline" hidden>
+        <div id="channel-loading" class="waiting" hidden>
             <div class="skeleton skel-chart"></div>
         </div>
         {{ empty_state('channel-empty', 'layers', t.channel_onboarding_title, t.channel_onboarding_desc,
                        action_label=t.channel_empty_action, action_onclick="document.getElementById('channel-select').focus()",
                        glossary='channel_timeline', hidden=True) }}
         <div id="channel-no-data" class="view-empty" hidden></div>
-        <div id="channel-charts" class="charts-grid" style="display:none;">
+        <div id="channel-charts" class="charts-grid" hidden>
             <div class="chart-card">
                 <div class="chart-card-header">
                     <div class="chart-header-content">
@@ -1632,13 +1632,13 @@
     </div>
 
     <!-- ── Compare Sub-View ── -->
-    <div id="channel-panel-compare" style="display:none;">
+    <div id="channel-panel-compare" hidden>
         <div id="compare-chips" class="compare-chips"></div>
         <div id="compare-empty" class="view-empty" hidden></div>
-        <div id="compare-loading" class="waiting" style="display:none;">
+        <div id="compare-loading" class="waiting" hidden>
             <div class="skeleton skel-chart"></div>
         </div>
-        <div id="compare-charts" class="charts-grid" style="display:none;">
+        <div id="compare-charts" class="charts-grid" hidden>
             <div class="chart-card">
                 <div class="chart-card-header">
                     <div class="chart-header-content">
@@ -1753,20 +1753,20 @@
         <div class="view-page-actions">
             <label class="btn btn-muted bnetz-upload-btn">
                 <i data-lucide="upload"></i> {{ t.bnetz_upload }}
-                <input type="file" accept=".pdf,.csv" id="bnetz-file-input" style="display:none;" onchange="uploadBnetzFromView(this)">
+                <input type="file" accept=".pdf,.csv" id="bnetz-file-input" hidden onchange="uploadBnetzFromView(this)">
             </label>
             <button class="refresh-btn bnetz-refresh-btn" title="{{ t.refresh }}" onclick="loadBnetzData()"><i data-lucide="refresh-cw"></i></button>
         </div>
     </div>
-    <div id="bnetz-watcher-status" style="display:none;">
+    <div id="bnetz-watcher-status" hidden>
         <i data-lucide="eye"></i>
         <span id="bnetz-watcher-text"></span>
     </div>
-    <div id="bnetz-loading" class="waiting" style="display:none;">
+    <div id="bnetz-loading" class="waiting" hidden>
         <div class="skeleton skel-chart"></div>
     </div>
     <div id="bnetz-empty" class="view-empty" hidden></div>
-    <div id="bnetz-table-card" class="table-card" style="display:none;">
+    <div id="bnetz-table-card" class="table-card" hidden>
         <table id="bnetz-table">
             <thead><tr>
                 <th>{{ t.bnetz_date }}</th>
@@ -1930,7 +1930,7 @@
                 <input type="hidden" id="report-bnetz-id" value="">
             </div>
             <!-- Step 2: Generated complaint text (hidden initially) -->
-            <div id="report-step2" style="display:none;">
+            <div id="report-step2" hidden>
                 <p class="report-edit-hint">{{ t.report_edit_hint }}</p>
                 <textarea id="report-complaint-text"></textarea>
             </div>
@@ -1938,8 +1938,8 @@
         <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeReportModal()">{{ t.close }}</button>
             <button class="btn btn-accent" id="report-generate-btn" onclick="generateComplaint()">&#9998; {{ t.get('report_build_package', 'Build evidence package') }}</button>
-            <button class="btn btn-accent" id="report-copy-btn" style="display:none;" onclick="copyComplaint()">&#128203; {{ t.get('report_copy_letter_text', 'Copy letter text') }}</button>
-            <button class="btn btn-accent" id="report-pdf-btn" style="display:none;" onclick="downloadReport()">&#128196; {{ t.get('report_download_package', 'Download PDF package') }}</button>
+            <button class="btn btn-accent" id="report-copy-btn" hidden onclick="copyComplaint()">&#128203; {{ t.get('report_copy_letter_text', 'Copy letter text') }}</button>
+            <button class="btn btn-accent" id="report-pdf-btn" hidden onclick="downloadReport()">&#128196; {{ t.get('report_download_package', 'Download PDF package') }}</button>
         </div>
     </div>
 </dialog>

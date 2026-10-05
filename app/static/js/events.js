@@ -500,10 +500,10 @@ function loadEvents(append) {
     var loading = document.getElementById('events-loading');
     var moreBtn = document.getElementById('events-show-more');
 
-    moreBtn.style.display = 'none';
+    moreBtn.hidden = true;
     if (!append) {
-        loading.style.display = '';
-        feedCard.style.display = 'none';
+        loading.hidden = false;
+        feedCard.hidden = true;
         DOCSightEmptyState.hide(empty);
         _eventsLoaded = [];
         _eventsExpanded = {};
@@ -518,11 +518,11 @@ function loadEvents(append) {
         })
         .then(function(data) {
             if (feedRequestId !== _eventsRequestCount) return;
-            loading.style.display = 'none';
+            loading.hidden = true;
             DOCSightEmptyState.hide(empty);
             var events = data.events || [];
             if (events.length === 0 && !append) {
-                feedCard.style.display = '';
+                feedCard.hidden = false;
                 _showEventsEmpty(empty);
                 return;
             }
@@ -535,13 +535,13 @@ function loadEvents(append) {
                 _eventsLoaded.push(ev);
             });
             _renderEventTimeline();
-            feedCard.style.display = '';
-            moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
+            feedCard.hidden = false;
+            moreBtn.hidden = events.length < _eventsPageSize;
         })
         .catch(function() {
             if (feedRequestId !== _eventsRequestCount) return;
-            moreBtn.style.display = append ? '' : 'none';
-            loading.style.display = 'none';
+            moreBtn.hidden = !append;
+            loading.hidden = true;
             DOCSightEmptyState.showError(empty, {retry: append ? loadMoreEvents : function() { loadEvents(); }});
         });
 }
@@ -592,9 +592,9 @@ function updateEventBadge(count) {
     badges.forEach(function(badge) {
         if (count > 0) {
             badge.textContent = count > 99 ? '99+' : count;
-            badge.style.display = '';
+            badge.hidden = false;
         } else {
-            badge.style.display = 'none';
+            badge.hidden = true;
         }
     });
 }
