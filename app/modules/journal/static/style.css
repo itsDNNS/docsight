@@ -68,6 +68,17 @@
     filter: brightness(0.85);
 }
 /* Purple pill button (matching Acknowledge All style) */
+.journal-header-actions .btn-new-entry svg {
+    width: 16px;
+    height: 16px;
+}
+.journal-export-wrapper {
+    position: relative;
+    display: inline-block;
+}
+.journal-more-wrapper {
+    position: relative;
+}
 .btn-new-entry {
     display: inline-flex;
     align-items: center;
@@ -1206,7 +1217,7 @@ mark.search-highlight {
         text-align: center;
     }
     .journal-export-wrapper {
-        display: block !important;
+        display: block;
         min-width: 0;
     }
     .journal-more-wrapper {
@@ -1421,3 +1432,52 @@ mark.search-highlight {
     outline: 2px solid var(--accent-purple, var(--accent));
     outline-offset: 2px;
 }
+
+/* ── Table columns, toolbar icons and dialog layout ── */
+.btn-bulk-toggle svg,
+.incident-timeline-back svg {
+    width: 14px;
+    height: 14px;
+}
+.journal-col-select { width: 36px; }
+.modal.entry-modal-panel { max-width: 640px; }
+.modal.incident-container-modal { max-width: 560px; }
+.modal.import-modal-panel { max-width: 900px; }
+.entry-modal-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.journal-modal-actions {
+    display: flex;
+    gap: 10px;
+}
+.incident-form-row {
+    display: flex;
+    gap: 12px;
+}
+.incident-form-col {
+    flex: 1;
+}
+#incident-container-entry-count {
+    font-weight: 600;
+}
+.import-drop-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--muted);
+}
+.import-upload-zone .import-file-types {
+    font-size: max(var(--fs-min), 0.8em);
+    color: var(--muted);
+}
+#import-loading {
+    text-align: center;
+    padding: 20px;
+}
+.import-loading-text {
+    margin-top: 10px;
+    color: var(--muted);
+}
+.import-col-select { width: 40px; }
+.import-col-status { width: 36px; }

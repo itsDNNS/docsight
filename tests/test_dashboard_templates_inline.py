@@ -18,6 +18,8 @@ TEMPLATES = (
     "app/modules/comparison/templates/comparison_tab.html",
     "app/modules/connection_monitor/templates/connection_monitor_card.html",
     "app/modules/connection_monitor/templates/connection_monitor_detail.html",
+    "app/modules/journal/templates/journal_dialogs.html",
+    "app/modules/journal/templates/journal_tab.html",
     "app/modules/modulation/templates/modulation_tab.html",
     "app/modules/speedtest/templates/speedtest_tab.html",
 )

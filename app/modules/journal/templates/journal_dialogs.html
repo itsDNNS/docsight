@@ -1,14 +1,14 @@
 <!-- ═══ Entry Modal ═══ -->
-<dialog class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" onclick="if(event.target===this)closeEntryModal()">
-    <div class="modal" style="max-width:640px;">
+<dialog class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+    <div class="modal entry-modal-panel">
         <div class="modal-header">
-            <div style="display:flex;align-items:center;gap:10px;">
+            <div class="entry-modal-heading">
                 <span id="entry-modal-icon" class="incident-modal-icon"></span>
                 <h2 id="entry-modal-title"></h2>
             </div>
-            <button class="modal-close" onclick="closeEntryModal()" aria-label="{{ t.close }}">&times;</button>
+            <button class="modal-close" data-action="closeEntryModal" aria-label="{{ t.close }}">&times;</button>
         </div>
-        <div class="modal-body" style="overflow-y:auto;">
+        <div class="modal-body">
             <p class="incident-modal-intro">{{ t.get('entry_modal_intro', 'Capture what happened and link the evidence DOCSight can turn into an ISP-ready timeline.') }}</p>
             <input type="hidden" id="entry-id">
             <div class="incident-form-group">
@@ -40,36 +40,35 @@
                 <label>{{ t.attachments }}</label>
                 <p class="incident-field-hint">{{ t.get('entry_evidence_hint', 'Evidence can include modem screenshots, BQM images, Speedtest results, SmokePing charts, or support letters.') }}</p>
                 <div class="attachment-list" id="entry-attachment-list"></div>
-                <button class="btn-upload" id="entry-upload-btn" onclick="document.getElementById('entry-file-input').click()">
+                <button class="btn-upload" id="entry-upload-btn" data-click-target="#entry-file-input">
                     &#128206; {{ t.upload_file }}
                 </button>
                 <p class="incident-field-hint" id="entry-upload-hint"></p>
-                <span id="entry-upload-spinner" style="display:none;"><span class="upload-spinner"></span></span>
-                <input type="file" id="entry-file-input" style="display:none;" multiple
-                       accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain"
-                       onchange="handleEntryFileUpload(this)">
+                <span id="entry-upload-spinner" hidden><span class="upload-spinner"></span></span>
+                <input type="file" id="entry-file-input" hidden multiple
+                       accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain">
             </div>
         </div>
         <div class="incident-modal-footer">
             <div class="modal-footer-left">
-                <button class="btn-danger" id="entry-delete-btn" onclick="deleteEntry()" style="display:none;">{{ t.delete_incident }}</button>
+                <button class="btn-danger" id="entry-delete-btn" data-action="deleteEntry" hidden>{{ t.delete_incident }}</button>
             </div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-muted" onclick="closeEntryModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" id="entry-save-btn" onclick="saveEntry()">{{ t.get('entry_create_action', 'Create entry') }}</button>
+            <div class="journal-modal-actions">
+                <button class="btn btn-muted" data-action="closeEntryModal">{{ t.cancel }}</button>
+                <button class="btn btn-accent" id="entry-save-btn" data-action="saveEntry">{{ t.get('entry_create_action', 'Create entry') }}</button>
             </div>
         </div>
     </div>
 </dialog>
 
 <!-- ═══ Incident Container Modal ═══ -->
-<dialog class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title" onclick="if(event.target===this)closeIncidentModal()">
-    <div class="modal incident-container-modal" style="max-width:560px;">
+<dialog class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title">
+    <div class="modal incident-container-modal">
         <div class="modal-header">
             <h2 id="incident-container-modal-title"></h2>
-            <button class="modal-close" onclick="closeIncidentModal()" aria-label="{{ t.close }}">&times;</button>
+            <button class="modal-close" data-action="closeIncidentModal" aria-label="{{ t.close }}">&times;</button>
         </div>
-        <div class="modal-body" style="overflow-y:auto;">
+        <div class="modal-body">
             <p class="incident-modal-intro">{{ t.get('incident_modal_intro', 'Group related entries and evidence so DOCSight can build one clear incident timeline and report path.') }}</p>
             <input type="hidden" id="incident-container-id">
             <div class="incident-form-group">
@@ -84,12 +83,12 @@
                     <option value="escalated">{{ t.incident_status_escalated }}</option>
                 </select>
             </div>
-            <div class="incident-form-group" style="display:flex;gap:12px;">
-                <div style="flex:1;">
+            <div class="incident-form-group incident-form-row">
+                <div class="incident-form-col">
                     <label for="incident-container-start">{{ t.incident_start_date }}</label>
                     <input type="date" id="incident-container-start">
                 </div>
-                <div style="flex:1;">
+                <div class="incident-form-col">
                     <label for="incident-container-end">{{ t.incident_end_date }}</label>
                     <input type="date" id="incident-container-end">
                 </div>
@@ -104,13 +103,13 @@
                 <label for="incident-container-desc">{{ t.incident_description }}</label>
                 <textarea id="incident-container-desc" maxlength="5000" placeholder="{{ t.incident_description }}"></textarea>
             </div>
-            <div class="incident-form-group" id="incident-container-entry-count-section" style="display:none;">
+            <div class="incident-form-group" id="incident-container-entry-count-section" hidden>
                 <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
                 <div class="incident-evidence-summary">
-                    <span id="incident-container-entry-count" style="font-weight:600;"></span>
+                    <span id="incident-container-entry-count"></span>
                     <span>{{ t.get('incident_linked_entries_hint', 'journal entries linked to this incident') }}</span>
                 </div>
-                <button type="button" class="btn-small btn-accent" id="incident-container-report-btn" onclick="openIncidentReportFromModal()">{{ t.get('incident_build_report', 'Build report') }}</button>
+                <button type="button" class="btn-small btn-accent" id="incident-container-report-btn" data-action="openIncidentReportFromModal">{{ t.get('incident_build_report', 'Build report') }}</button>
             </div>
             <div class="incident-form-group" id="incident-container-empty-evidence-section">
                 <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
@@ -119,56 +118,56 @@
         </div>
         <div class="incident-modal-footer">
             <div class="modal-footer-left">
-                <button class="btn-danger" id="incident-container-delete-btn" onclick="deleteIncident()" style="display:none;">{{ t.delete }}</button>
+                <button class="btn-danger" id="incident-container-delete-btn" data-action="deleteIncident" hidden>{{ t.delete }}</button>
             </div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-muted" onclick="closeIncidentModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" id="incident-container-save-btn" onclick="saveIncident()">{{ t.get('incident_create_action', 'Create incident') }}</button>
+            <div class="journal-modal-actions">
+                <button class="btn btn-muted" data-action="closeIncidentModal">{{ t.cancel }}</button>
+                <button class="btn btn-accent" id="incident-container-save-btn" data-action="saveIncident">{{ t.get('incident_create_action', 'Create incident') }}</button>
             </div>
         </div>
     </div>
 </dialog>
 
 <!-- ═══ Import Modal ═══ -->
-<dialog class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onclick="if(event.target===this)closeImportModal()">
-    <div class="modal" style="max-width:900px;">
+<dialog class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+    <div class="modal import-modal-panel">
         <div class="modal-header">
             <h2 id="import-modal-title">{{ t.import_incidents }}</h2>
-            <button class="modal-close" onclick="closeImportModal()" aria-label="{{ t.close }}">&times;</button>
+            <button class="modal-close" data-action="closeImportModal" aria-label="{{ t.close }}">&times;</button>
         </div>
-        <div class="modal-body" style="overflow-y:auto;">
+        <div class="modal-body">
             <!-- Upload zone -->
             <div id="import-upload-zone" class="import-upload-zone">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;color:var(--muted);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="import-drop-icon">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
                     <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
                 <p>{{ t.import_upload_hint }}</p>
-                <p style="font-size:max(var(--fs-min), 0.8em);color:var(--muted);">{{ t.import_file_types }}</p>
-                <button type="button" class="btn btn-muted import-browse-btn" onclick="event.stopPropagation(); document.getElementById('import-file-input').click();">{{ t.get('import_browse_file', 'Browse CSV or Excel file') }}</button>
-                <input type="file" id="import-file-input" style="display:none;" accept=".xlsx,.csv" onchange="handleImportFile(this)">
+                <p class="import-file-types">{{ t.import_file_types }}</p>
+                <button type="button" class="btn btn-muted import-browse-btn">{{ t.get('import_browse_file', 'Browse CSV or Excel file') }}</button>
+                <input type="file" id="import-file-input" hidden accept=".xlsx,.csv">
             </div>
             <div id="import-validation-state" class="import-validation-state" role="status" aria-live="polite"></div>
             <!-- Loading -->
-            <div id="import-loading" style="display:none;text-align:center;padding:20px;">
+            <div id="import-loading" hidden>
                 <div class="spinner"></div>
-                <p style="margin-top:10px;color:var(--muted);">{{ t.import_parsing }}</p>
+                <p class="import-loading-text">{{ t.import_parsing }}</p>
             </div>
             <!-- Preview -->
-            <div id="import-preview" style="display:none;">
+            <div id="import-preview" hidden>
                 <div class="import-info" id="import-info"></div>
                 <div class="import-controls">
                     <label class="import-select-all">
-                        <input type="checkbox" id="import-select-all" checked onchange="toggleImportAll(this.checked)">
+                        <input type="checkbox" id="import-select-all" checked>
                         {{ t.import_select_all }}
                     </label>
                 </div>
                 <div class="import-table-wrap">
                     <table class="import-table" id="import-table">
                         <thead><tr>
-                            <th style="width:40px;"></th>
-                            <th style="width:36px;"></th>
+                            <th class="import-col-select"></th>
+                            <th class="import-col-status"></th>
                             <th>{{ t.incident_date }}</th>
                             <th>{{ t.incident_title }}</th>
                             <th class="journal-hide-mobile">{{ t.incident_description }}</th>
@@ -178,11 +177,11 @@
                 </div>
             </div>
         </div>
-        <div class="incident-modal-footer" id="import-footer" style="display:none;">
+        <div class="incident-modal-footer" id="import-footer" hidden>
             <div class="modal-footer-left"></div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-muted" onclick="closeImportModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" id="import-confirm-btn" onclick="confirmImport()">{{ t.import_selected }}</button>
+            <div class="journal-modal-actions">
+                <button class="btn btn-muted" data-action="closeImportModal">{{ t.cancel }}</button>
+                <button class="btn btn-accent" id="import-confirm-btn" data-action="confirmImport">{{ t.import_selected }}</button>
             </div>
         </div>
     </div>
