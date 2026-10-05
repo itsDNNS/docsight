@@ -6,7 +6,10 @@ import re
 
 AA_TEXT = 4.5
 TEXT_TOKENS = ("--text", "--text-secondary", "--muted")
-SURFACE_TOKENS = ("--surface", "--void", "--elevated", "--void-deep")
+# --bg comes first: a theme that only sets the core tokens paints the page from it.
+SURFACE_TOKENS = ("--bg", "--surface", "--void", "--elevated", "--void-deep")
+# Button text on the accent color; DOCSight uses white unless the theme sets it.
+ON_ACCENT_DEFAULT = "#ffffff"
 
 _HEX = re.compile(r"^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 _RGB = re.compile(
@@ -61,12 +64,17 @@ def worst_contrast(tokens: dict, name: str) -> float | None:
 
 
 def low_contrast_tokens(tokens: dict) -> list[str]:
-    """Text tokens below 4.5:1 on at least one of the theme's surfaces."""
+    """Text tokens below 4.5:1 on at least one of the theme's surfaces, and button
+    text below 4.5:1 on the accent color."""
     issues = []
     for name in TEXT_TOKENS:
         ratio = worst_contrast(tokens, name)
         if ratio is not None and ratio < AA_TEXT:
             issues.append(name)
+    accent = parse_color(tokens.get("--accent"))
+    on_accent = parse_color(tokens.get("--text-on-accent", ON_ACCENT_DEFAULT))
+    if accent and on_accent and contrast_ratio(on_accent, accent) < AA_TEXT:
+        issues.append("--text-on-accent")
     return issues
 
 

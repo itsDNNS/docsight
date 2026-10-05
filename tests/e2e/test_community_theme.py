@@ -23,12 +23,14 @@ THEME = {
     "dark": {
         "--bg": "#101316", "--surface": "#1c1e22", "--elevated": "#26292d",
         "--text": "#ebecee", "--text-secondary": "#cdcfd2", "--muted": "#aaadb0",
-        "--accent": "#8cb4e8", "--good": "#8ec495", "--warn": "#e2a579", "--crit": "#f8958d",
+        "--accent": "#8cb4e8", "--text-on-accent": "#0f1215",
+        "--good": "#8ec495", "--warn": "#e2a579", "--crit": "#f8958d",
     },
     "light": {
         "--bg": "#f1f4f7", "--surface": "#fbfcfd", "--elevated": "#e7eaee",
         "--text": "#1f2225", "--text-secondary": "#3d4044", "--muted": "#595c61",
-        "--accent": "#34629b", "--good": "#32703e", "--warn": "#8e4e12", "--crit": "#a13735",
+        "--accent": "#34629b", "--text-on-accent": "#fbfcfc",
+        "--good": "#32703e", "--warn": "#8e4e12", "--crit": "#a13735",
     },
 }
 
@@ -87,7 +89,7 @@ def _styles(page):
         return {
             tokens: Object.fromEntries(['--bg', '--surface', '--text', '--accent', '--good', '--crit']
                 .map(name => [name, root.getPropertyValue(name).trim()])),
-            roles: Object.fromEntries(['--void', '--card', '--amethyst']
+            roles: Object.fromEntries(['--void', '--card', '--amethyst', '--good-muted']
                 .map(name => [name, root.getPropertyValue(name).trim()])),
             bodyColor: body.color,
             bodyBackground: body.backgroundColor,
@@ -112,6 +114,7 @@ def test_documented_core_tokens_reach_the_page(page, community_theme_server, pat
     # Roles the documented format does not set follow its core tokens.
     assert styles["roles"] == {
         "--void": THEME[mode]["--bg"], "--card": THEME[mode]["--surface"], "--amethyst": THEME[mode]["--accent"],
+        "--good-muted": f"color-mix(in srgb, {THEME[mode]['--good']} {15 if mode == 'dark' else 12}%, transparent)",
     }
     assert styles["bodyBackground"] == _rgb(THEME[mode]["--bg"])
     expect(page.locator("body")).to_be_visible()

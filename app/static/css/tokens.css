@@ -7,21 +7,12 @@
   --surface: #111628;
   --elevated: #181e35;
   --accent: #7c3aed;
-  /* Still a fixed tint: most built-in themes leave it unset. */
-  --amethyst-muted: rgba(124, 58, 237, 0.15);
-  --grad-primary: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
 
   /* Semantic */
   --good: #10b981;
-  --good-muted: rgba(16, 185, 129, 0.15);
   --warn: #f59e0b;
-  --warn-muted: rgba(245, 158, 11, 0.15);
   --crit: #ef4444;
-  --crit-muted: rgba(239, 68, 68, 0.15);
   --info: #06b6d4;
-  --info-muted: rgba(6, 182, 212, 0.15);
-  --tolerated: #84cc16;
-  --tolerated-muted: rgba(132, 204, 22, 0.15);
 
   /* Text */
   --text: #e8edff;
@@ -117,8 +108,8 @@
   --ui-radius-md: 10px;
   --ui-radius-lg: 16px;
 
-  /* Roles derived from the theme core. Built-in themes set each of them; a theme
-     that only sets the core tokens gets these, in dark and light mode alike. */
+  /* Roles derived from the theme core, in dark and light mode alike. A theme that
+     only sets the core tokens gets all of them; a theme can still set any itself. */
   --void: var(--bg);
   --void-deep: color-mix(in srgb, var(--bg) 50%, var(--surface));
   --card: var(--surface);
@@ -128,6 +119,16 @@
   --accent-muted: color-mix(in srgb, var(--accent) 15%, transparent);
   --amethyst: var(--accent);
   --amethyst-light: var(--accent-hover);
+  --amethyst-muted: var(--accent-muted);
+  --grad-primary: linear-gradient(135deg, var(--accent) 0%, var(--sapphire) 100%);
+  /* Between good and warn, in the theme's own colors */
+  --tolerated: color-mix(in srgb, var(--good) 50%, var(--warn));
+  /* Status tints follow the theme's status colors */
+  --good-muted: color-mix(in srgb, var(--good) 15%, transparent);
+  --warn-muted: color-mix(in srgb, var(--warn) 15%, transparent);
+  --crit-muted: color-mix(in srgb, var(--crit) 15%, transparent);
+  --info-muted: color-mix(in srgb, var(--info) 15%, transparent);
+  --tolerated-muted: color-mix(in srgb, var(--tolerated) 15%, transparent);
   --sapphire: var(--info);
   --glass-bg: color-mix(in srgb, var(--surface) 65%, transparent);
   --glass-border: color-mix(in srgb, var(--text) 12%, transparent);
@@ -150,6 +151,12 @@
 
 /* ── Color Palette: Light ── */
 [data-theme="light"] {
+  --good-muted: color-mix(in srgb, var(--good) 12%, transparent);
+  --warn-muted: color-mix(in srgb, var(--warn) 12%, transparent);
+  --crit-muted: color-mix(in srgb, var(--crit) 12%, transparent);
+  --info-muted: color-mix(in srgb, var(--info) 12%, transparent);
+  --tolerated-muted: color-mix(in srgb, var(--tolerated) 12%, transparent);
+
   --bg: #f8f6f3;
   --surface: #ffffff;
   --elevated: #f0edf5;
@@ -159,15 +166,9 @@
   --muted: #706788;
 
   --good: #059669;
-  --good-muted: rgba(5, 150, 105, 0.12);
   --warn: #d97706;
-  --warn-muted: rgba(217, 119, 6, 0.12);
   --crit: #dc2626;
-  --crit-muted: rgba(220, 38, 38, 0.12);
   --info: #0891b2;
-  --info-muted: rgba(8, 145, 178, 0.12);
-  --tolerated: #65a30d;
-  --tolerated-muted: rgba(101, 163, 13, 0.12);
 
   --tint-subtle: rgba(0, 0, 0, 0.02);
   --tint-hover: rgba(0, 0, 0, 0.04);
