@@ -22,7 +22,7 @@ def navigate_to_segment(page):
 
 def wait_for_content(page, timeout=5000):
     """Wait for segment utilization content (not skeleton) to appear."""
-    page.wait_for_selector("#fritz-cable-content:not([style*='display: none'])", timeout=timeout)
+    page.wait_for_selector("#fritz-cable-content:not([hidden])", timeout=timeout)
 
 
 # ── Navigation & Visibility ──

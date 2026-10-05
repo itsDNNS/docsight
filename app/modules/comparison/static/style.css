@@ -339,3 +339,20 @@
         justify-self: start;
     }
 }
+
+#comparison-run-btn {
+    padding: 8px 24px;
+}
+
+#comparison-loading {
+    text-align: center;
+    padding: 40px;
+}
+
+.comparison-section-header h3 {
+    margin: 0;
+}
+
+.comparison-delta-section > h3 {
+    margin: 16px 0 8px;
+}

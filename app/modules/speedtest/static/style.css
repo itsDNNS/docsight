@@ -257,3 +257,8 @@
         gap: 8px;
     }
 }
+
+#speedtest-show-more {
+    text-align: center;
+    padding: 12px;
+}

@@ -164,8 +164,8 @@ test('controls request fresh ranges and day bars drill into the selected date', 
     container.click({clientX: 110});
     assert.equal(b.requests.at(-1).url, '/docsight/api/modulation/intraday?direction=ds&date=2026-03-02');
     await b.reply({date: '2026-03-02', protocol_groups: []});
-    assert.equal(b.ids.get('modulation-overview').style.display, 'none');
-    assert.equal(b.ids.get('modulation-intraday').style.display, '');
+    assert.equal(b.ids.get('modulation-overview').hidden, true);
+    assert.equal(b.ids.get('modulation-intraday').hidden, false);
     assert.ok(b.ids.get('mod-intraday-title').textContent.includes('2026-03-02'));
 });
 
@@ -232,7 +232,7 @@ for (const lang of ['en', 'de']) {
         assert.equal(text('mod-cap-ds-caveat'), catalog.capacity_partial_caveat_generic);
         b.ranges[1].click();
         await b.reply(overview());
-        assert.equal(b.ids.get('modulation-capacity-panel').style.display, 'none');
+        assert.equal(b.ids.get('modulation-capacity-panel').hidden, true);
     });
 }
 

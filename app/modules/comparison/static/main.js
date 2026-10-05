@@ -89,9 +89,9 @@ function _cmpRunComparison() {
 
     var placeholder = document.getElementById('comparison-placeholder');
     DOCSightEmptyState.hide(placeholder);
-    document.getElementById('comparison-charts').style.display = 'none';
-    document.getElementById('comparison-delta').style.display = 'none';
-    document.getElementById('comparison-loading').style.display = 'block';
+    document.getElementById('comparison-charts').hidden = true;
+    document.getElementById('comparison-delta').hidden = true;
+    document.getElementById('comparison-loading').hidden = false;
 
     var url = docsightUrl('/api/comparison?from_a=' + encodeURIComponent(_cmpToISO(fromA)) +
         '&to_a=' + encodeURIComponent(_cmpToISO(toA)) +
@@ -101,10 +101,10 @@ function _cmpRunComparison() {
     fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            document.getElementById('comparison-loading').style.display = 'none';
+            document.getElementById('comparison-loading').hidden = true;
             if (data.error) {
                 DOCSightEmptyState.showError(placeholder, {text: data.error, retry: _cmpRunComparison});
-                document.getElementById('comparison-health').style.display = 'none';
+                document.getElementById('comparison-health').hidden = true;
                 _cmpLastResult = null;
                 window.__docsightComparisonResult = null;
                 return;
@@ -116,9 +116,9 @@ function _cmpRunComparison() {
             _cmpRenderDeltaTable(data);
         })
         .catch(function(err) {
-            document.getElementById('comparison-loading').style.display = 'none';
+            document.getElementById('comparison-loading').hidden = true;
             DOCSightEmptyState.showError(placeholder, {retry: _cmpRunComparison});
-            document.getElementById('comparison-health').style.display = 'none';
+            document.getElementById('comparison-health').hidden = true;
             _cmpLastResult = null;
             window.__docsightComparisonResult = null;
         });
@@ -205,7 +205,7 @@ function _cmpRenderCharts(data) {
         return;
     }
 
-    document.getElementById('comparison-charts').style.display = '';
+    document.getElementById('comparison-charts').hidden = false;
 
     function extract(mapped, key) {
         return mapped.map(function(pt) { return pt ? pt[key] : null; });
@@ -270,7 +270,7 @@ function _cmpRenderDeltaTable(data) {
     _cmpAddCell(tr, verdictLabel, verdictClass);
     tbody.appendChild(tr);
 
-    document.getElementById('comparison-delta').style.display = '';
+    document.getElementById('comparison-delta').hidden = false;
 }
 
 function _cmpRenderHealthDistribution(data) {
@@ -284,7 +284,7 @@ function _cmpRenderHealthDistribution(data) {
         document.getElementById('comparison-health-bars-b'),
         data.period_b
     );
-    document.getElementById('comparison-health').style.display = '';
+    document.getElementById('comparison-health').hidden = false;
 }
 
 function _cmpRenderHealthCard(rangeEl, container, period) {

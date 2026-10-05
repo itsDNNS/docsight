@@ -4,23 +4,23 @@
             <h2 class="view-page-title">{{ t.speedtest_tracker }}</h2>
         </div>
         <div class="view-page-actions speedtest-controls">
-            <div class="trend-tabs" id="speedtest-tabs">
-                <button class="trend-tab" data-value="1" onclick="selectPill(this, filterSpeedtestData)">1d</button>
-                <button class="trend-tab active" data-value="7" onclick="selectPill(this, filterSpeedtestData)">7d</button>
-                <button class="trend-tab" data-value="14" onclick="selectPill(this, filterSpeedtestData)">14d</button>
-                <button class="trend-tab" data-value="30" onclick="selectPill(this, filterSpeedtestData)">30d</button>
-                <button class="trend-tab" data-value="90" onclick="selectPill(this, filterSpeedtestData)">90d</button>
-                <button class="trend-tab" data-value="all" onclick="selectPill(this, filterSpeedtestData)">{{ t.fetch_all }}</button>
+            <div class="trend-tabs" data-pill-action="filterSpeedtestData" id="speedtest-tabs">
+                <button class="trend-tab" data-value="1">1d</button>
+                <button class="trend-tab active" data-value="7">7d</button>
+                <button class="trend-tab" data-value="14">14d</button>
+                <button class="trend-tab" data-value="30">30d</button>
+                <button class="trend-tab" data-value="90">90d</button>
+                <button class="trend-tab" data-value="all">{{ t.fetch_all }}</button>
             </div>
-            {% if not demo_mode %}<button class="btn btn-primary btn-sm" id="speedtest-run-btn" onclick="runSpeedtest()"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
-            <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" aria-label="{{ t.refresh }}" onclick="loadSpeedtestHistory()"><i data-lucide="refresh-cw"></i></button>
+            {% if not demo_mode %}<button class="btn btn-primary btn-sm" id="speedtest-run-btn" data-action="runSpeedtest"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
+            <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" aria-label="{{ t.refresh }}" data-action="loadSpeedtestHistory"><i data-lucide="refresh-cw"></i></button>
         </div>
     </div>
-    <div id="speedtest-loading" class="waiting" style="display:none;">
+    <div id="speedtest-loading" class="waiting" hidden>
         <div class="skeleton skel-chart"></div>
     </div>
     <div id="speedtest-no-data" class="view-empty" hidden></div>
-    <div id="speedtest-chart-container" style="display:none;">
+    <div id="speedtest-chart-container" hidden>
         <!-- Phase 4.2: Modern card wrapper for speedtest chart -->
         <div class="speedtest-chart-card">
             <div class="chart-card-header">
@@ -46,7 +46,7 @@
     </div>
     <!-- Phase 4.2: Table card wrapper -->
     <div id="speedtest-table-wrap" class="table-card">
-        <table id="speedtest-table" class="sortable" style="display:none;">
+        <table id="speedtest-table" class="sortable" hidden>
             <thead><tr>
                 <th class="st-expand-col"><span class="sr-only">{{ t.get('speedtest_show_signal', 'Show signal at this time') }}</span></th>
                 <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
@@ -60,8 +60,8 @@
             </tr></thead>
             <tbody id="speedtest-tbody"></tbody>
         </table>
-        <div id="speedtest-show-more" style="text-align:center; padding:12px; display:none;">
-            <button class="btn btn-muted" id="speedtest-more-btn" onclick="showMoreSpeedtest()"></button>
+        <div id="speedtest-show-more" hidden>
+            <button class="btn btn-muted" id="speedtest-more-btn" data-action="showMoreSpeedtest"></button>
         </div>
     </div>
 

@@ -37,7 +37,7 @@
             </div>
             <div class="comparison-field comparison-btn-field">
                 <label class="comparison-label">&nbsp;</label>
-                <button id="comparison-run-btn" class="trend-tab active" style="padding:8px 24px;">
+                <button id="comparison-run-btn" class="trend-tab active">
                     {{ t.get('docsight.comparison.compare_btn', 'Compare') }}
                 </button>
             </div>
@@ -52,12 +52,12 @@
                    glossary='before_after_comparison') }}
 
     <!-- Loading -->
-    <div id="comparison-loading" style="display:none; text-align:center; padding:40px;">
+    <div id="comparison-loading" hidden>
         <div class="spinner"></div>
     </div>
 
     <!-- Charts Grid (hidden until data loads) -->
-    <div id="comparison-charts" class="charts-grid" style="display:none;">
+    <div id="comparison-charts" class="charts-grid" hidden>
         <div class="chart-card">
             <div class="chart-card-header">
                 <div class="chart-header-content">
@@ -96,10 +96,10 @@
         </div>
     </div>
 
-    <div id="comparison-health" class="comparison-health-section" style="display:none;">
+    <div id="comparison-health" class="comparison-health-section" hidden>
         <div class="comparison-section-header">
-            <h3 style="margin:0;">{{ t.get('docsight.comparison.health_distribution', 'Health Distribution') }}</h3>
-            <button class="btn btn-accent comparison-report-btn" type="button" onclick="openComparisonInComplaint()">
+            <h3>{{ t.get('docsight.comparison.health_distribution', 'Health Distribution') }}</h3>
+            <button class="btn btn-accent comparison-report-btn" type="button" data-action="openComparisonInComplaint">
                 &#9998; {{ t.get('docsight.comparison.use_in_complaint', 'Use in Complaint Letter') }}
             </button>
         </div>
@@ -122,8 +122,8 @@
     </div>
 
     <!-- Delta Summary Table (hidden until data loads) -->
-    <div id="comparison-delta" class="comparison-delta-section" style="display:none;">
-        <h3 style="margin:16px 0 8px;">{{ t.get('docsight.comparison.delta', 'Delta') }}</h3>
+    <div id="comparison-delta" class="comparison-delta-section" hidden>
+        <h3>{{ t.get('docsight.comparison.delta', 'Delta') }}</h3>
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
