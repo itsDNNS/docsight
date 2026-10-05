@@ -100,5 +100,30 @@ def test_unjudgeable_themes_do_not_produce_warnings():
     assert low_contrast_modes({"dark": {"--surface": "#000", "--muted": "#111"}, "light": "broken"}) == ["dark"]
 
 
+def test_button_text_is_judged_against_the_accent():
+    assert low_contrast_tokens({"--accent": "#00ff41"}) == ["--text-on-accent"]
+    assert low_contrast_tokens({"--accent": "#00ff41", "--text-on-accent": "#0a0a0a"}) == []
+    assert low_contrast_tokens({"--accent": "#1d4ed8"}) == []
+
+
+def _gradient_stops(tokens):
+    gradient = tokens.get("--grad-primary")
+    if gradient:
+        return re.findall(r"#[0-9a-fA-F]{6}", gradient)
+    # tokens.css derives the gradient from the accent and --sapphire.
+    return [tokens["--accent"], tokens["--sapphire"]]
+
+
+@pytest.mark.parametrize(
+    ("theme_id", "mode"),
+    [(theme["id"], mode) for theme in BUILTIN_THEMES for mode in ("dark", "light")],
+)
+def test_builtin_button_text_meets_aa_on_both_gradient_ends(theme_id, mode):
+    tokens = next(theme for theme in BUILTIN_THEMES if theme["id"] == theme_id)["theme_data"][mode]
+    for stop in _gradient_stops(tokens):
+        ratio = _contrast(tokens["--text-on-accent"], stop)
+        assert ratio >= AA_TEXT, f"{tokens['--text-on-accent']} on {stop}: {ratio:.2f}:1"
+
+
 def test_builtin_themes_produce_no_contrast_warnings():
     assert [theme["id"] for theme in BUILTIN_THEMES if low_contrast_modes(theme["theme_data"])] == []
