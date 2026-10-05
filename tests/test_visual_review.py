@@ -89,10 +89,10 @@ class _FakePage:
     def on(self, event, handler):
         self.handlers[event] = handler
 
-    def wait_for_function(self, script, timeout):
+    def wait_for_function(self, script, arg=None, timeout=None):
         self.handlers["request"]("comparison")
 
-    def evaluate(self, script):
+    def evaluate(self, script, arg=None):
         self.samples += 1
         if self.samples == self.request_open_for:
             self.handlers["requestfinished"]("comparison")

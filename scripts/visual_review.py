@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Render DOCSight views for a visual review and compare two renderings.
 
-``capture`` opens every navigation view of a running DOCSight instance in dark
-and light mode at desktop and phone size, and saves a full-page screenshot plus
-the computed style of every visible element of the view.
+``capture`` opens every navigation view and every settings section of a running
+DOCSight instance in dark and light mode at desktop and phone size, and saves a
+full-page screenshot plus the computed style of every visible element. With
+``--password`` it also captures the login page and signs in with it.
 
 ``compare`` reports pixel and style differences between two captures (for
 example ``main`` and a pull request) as diff images and a Markdown summary.
@@ -49,14 +50,19 @@ STILL_CSS = """
 }
 """
 
-READY_JS = """() => {
-    const root = document.querySelector('.view.active');
-    if (!root) return false;
-    const empty = [...root.querySelectorAll('.view-empty')].some(node => node.getClientRects().length);
-    return empty || root.innerText.trim().length > 80;
+# Each kind of page: the element that holds the captured content, and its persistent chrome.
+DASHBOARD = {"root": ".view.active", "shell": ".topnav"}
+SETTINGS = {"root": ".settings-panel.active", "shell": "#settings-sidebar"}
+LOGIN = {"root": "body", "shell": None}
+
+READY_JS = """root => {
+    const el = document.querySelector(root);
+    if (!el) return false;
+    const empty = [...el.querySelectorAll('.view-empty')].some(node => node.getClientRects().length);
+    return empty || el.innerText.trim().length > 40;
 }"""
 
-STYLE_JS = """props => {
+STYLE_JS = """([props, root, shell]) => {
     const keyOf = el => {
         if (el.id) return '#' + el.id;
         const parent = el.parentElement;
@@ -75,8 +81,8 @@ STYLE_JS = """props => {
         return out;
     };
     return {
-        view: collect(document.querySelector('.view.active')),
-        shell: collect(document.querySelector('.topnav')),
+        view: collect(document.querySelector(root)),
+        shell: shell ? collect(document.querySelector(shell)) : {},
     };
 }"""
 
@@ -95,9 +101,9 @@ MASK_CLOCK_TEXT_JS = """([selectors, liveSelectors]) => {
     }
 }"""
 
-SHAPE_JS = """() => {
-    const root = document.querySelector('.view.active');
-    return root ? [root.querySelectorAll('*').length, root.scrollHeight, document.body.scrollHeight] : null;
+SHAPE_JS = """root => {
+    const el = document.querySelector(root);
+    return el ? [el.querySelectorAll('*').length, el.scrollHeight, document.body.scrollHeight] : null;
 }"""
 
 
@@ -118,13 +124,13 @@ class _OpenRequests:
         self.pending.discard(request)
 
 
-def _wait_until_settled(page, requests, checks=3, interval_ms=300, limit_ms=15000):
+def _wait_until_settled(page, requests, root=DASHBOARD["root"], checks=3, interval_ms=300, limit_ms=15000):
     """Views fill in after their requests and charts draw on the next frames; wait
     until no request is open and the view's element count and height stop changing."""
-    page.wait_for_function(READY_JS, timeout=20000)
+    page.wait_for_function(READY_JS, arg=root, timeout=20000)
     previous, stable, waited = None, 0, 0
     while waited < limit_ms:
-        shape = page.evaluate(SHAPE_JS)
+        shape = page.evaluate(SHAPE_JS, root)
         stable = stable + 1 if shape == previous and not requests.pending else 0
         if stable >= checks:
             return
@@ -139,7 +145,22 @@ def _views(page):
         ".topnav [data-view]", "nodes => [...new Set(nodes.map(node => node.dataset.view))]")
 
 
-def capture(url: str, out: Path, now: datetime) -> int:
+def _settings_sections(page):
+    return page.eval_on_selector_all(
+        "#settings-sidebar .nav-item[data-section]",
+        "nodes => [...new Set(nodes.map(node => node.dataset.section))]")
+
+
+def _snapshot(page, requests, out: Path, name: str, surface: dict) -> None:
+    _wait_until_settled(page, requests, surface["root"])
+    page.evaluate(MASK_CLOCK_TEXT_JS, [list(CLOCK_TEXT_SELECTORS), list(LIVE_TIMESTAMP_SELECTORS)])
+    page.evaluate("() => document.fonts.ready")
+    page.screenshot(path=str(out / f"{name}.png"), full_page=True, animations="disabled")
+    styles = page.evaluate(STYLE_JS, [list(STYLE_PROPERTIES), surface["root"], surface["shell"]])
+    (out / f"{name}.json").write_text(json.dumps(styles, sort_keys=True), encoding="utf-8")
+
+
+def capture(url: str, out: Path, now: datetime, password: str | None = None) -> int:
     from playwright.sync_api import sync_playwright
 
     out.mkdir(parents=True, exist_ok=True)
@@ -155,17 +176,27 @@ def capture(url: str, out: Path, now: datetime) -> int:
                 context.clock.set_fixed_time(now)
                 page = context.new_page()
                 requests = _OpenRequests(page)
-                page.goto(url.rstrip("/") + "/?lang=en", wait_until="networkidle")
+                base = url.rstrip("/")
+                suffix = f"--{theme}--{size}"
+                if password:
+                    page.goto(base + "/login?lang=en", wait_until="networkidle")
+                    page.add_style_tag(content=STILL_CSS)
+                    _snapshot(page, requests, out, "login" + suffix, LOGIN)
+                    count += 1
+                    page.fill("#login-password", password)
+                    with page.expect_navigation(wait_until="networkidle"):
+                        page.press("#login-password", "Enter")
+                page.goto(base + "/?lang=en", wait_until="networkidle")
                 page.add_style_tag(content=STILL_CSS)
                 for view in _views(page):
                     page.evaluate("view => switchView(view)", view)
-                    _wait_until_settled(page, requests)
-                    page.evaluate(MASK_CLOCK_TEXT_JS, [list(CLOCK_TEXT_SELECTORS), list(LIVE_TIMESTAMP_SELECTORS)])
-                    page.evaluate("() => document.fonts.ready")
-                    name = f"{view}--{theme}--{size}"
-                    page.screenshot(path=str(out / f"{name}.png"), full_page=True, animations="disabled")
-                    styles = page.evaluate(STYLE_JS, list(STYLE_PROPERTIES))
-                    (out / f"{name}.json").write_text(json.dumps(styles, sort_keys=True), encoding="utf-8")
+                    _snapshot(page, requests, out, view + suffix, DASHBOARD)
+                    count += 1
+                page.goto(base + "/settings?lang=en", wait_until="networkidle")
+                page.add_style_tag(content=STILL_CSS)
+                for section in _settings_sections(page):
+                    page.evaluate("id => switchSection(id)", section)
+                    _snapshot(page, requests, out, f"settings-{section}{suffix}", SETTINGS)
                     count += 1
                 context.close()
         browser.close()
@@ -243,10 +274,11 @@ def compare(base_dir: Path, head_dir: Path, out: Path) -> str:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    cap = sub.add_parser("capture", help="render every navigation view of a running instance")
+    cap = sub.add_parser("capture", help="render every view and settings section of a running instance")
     cap.add_argument("--url", required=True)
     cap.add_argument("--out", required=True, type=Path)
     cap.add_argument("--now", help="ISO time for the browser clock (default: now, to the minute)")
+    cap.add_argument("--password", help="admin password: also capture the login page, then sign in")
     cmp_ = sub.add_parser("compare", help="compare two captures")
     cmp_.add_argument("--base", required=True, type=Path)
     cmp_.add_argument("--head", required=True, type=Path)
@@ -256,7 +288,7 @@ def main(argv=None) -> int:
     if args.command == "capture":
         now = (datetime.fromisoformat(args.now) if args.now
                else datetime.now(timezone.utc).replace(second=0, microsecond=0))
-        count = capture(args.url, args.out, now)
+        count = capture(args.url, args.out, now, args.password)
         print(f"captured {count} renderings into {args.out}")
         return 0 if count else 1
     print(compare(args.base, args.head, args.out))
