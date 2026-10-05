@@ -172,8 +172,9 @@ body {
 }
 .badge-good { background: var(--good-muted); color: var(--good); }
 .badge-tolerated { background: var(--tolerated-muted); color: var(--tolerated); }
-.badge-warn { background: var(--warn-muted); color: var(--warn); }
-.badge-crit { background: var(--crit-muted); color: var(--crit); }
+/* Health keys from the data (warning, critical) use the same variants. */
+.badge-warn, .badge-warning { background: var(--warn-muted); color: var(--warn); }
+.badge-crit, .badge-critical { background: var(--crit-muted); color: var(--crit); }
 .badge-info { background: var(--info-muted); color: var(--info); }
 .badge-muted {
   background: rgba(120,130,180,0.1);

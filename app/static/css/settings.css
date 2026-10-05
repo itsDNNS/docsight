@@ -279,36 +279,6 @@ button.notification-collapse-button {
   margin-top: var(--space-sm);
 }
 
-/* ─── Status Badge ─── */
-.badge {
-  font-size: var(--fs-min);
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
-}
-.badge-success {
-  background: var(--good-muted);
-  color: #34d399;
-  border: 1px solid color-mix(in srgb, var(--good) 20%, transparent);
-}
-.badge-warning {
-  background: var(--warn-muted);
-  color: #fbbf24;
-  border: 1px solid color-mix(in srgb, var(--warn) 20%, transparent);
-}
-.badge-danger {
-  background: var(--crit-muted);
-  color: #f87171;
-  border: 1px solid color-mix(in srgb, var(--crit) 20%, transparent);
-}
-.badge-muted {
-  background: rgba(120,130,180,0.08);
-  color: var(--muted);
-  border: 1px solid var(--glass-border);
-}
-
 /* ─── Connection Status Indicator ─── */
 .status-indicator {
   display: flex;

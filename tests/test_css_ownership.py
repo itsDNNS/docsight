@@ -20,6 +20,11 @@ CARD_RULE = re.compile(
     r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?(?:\.card(?:-(?:header|title-group|title|subtitle|icon))?|\.glass)(?![\w-])(?::[a-z-]+)*(?:\s+(?:svg|i|>\s*div))?\s*[{,]"
 )
 
+# The badge and its color variants.
+BADGE_RULE = re.compile(
+    r"(?m)^\s*\.badge(?:-(?:good|tolerated|warn|warning|crit|critical|info|muted|success|danger))?(?![\w-])[^{]*[{,]"
+)
+
 # The save bar.
 SAVE_BAR_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.save-bar(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
 
@@ -68,6 +73,16 @@ def test_the_save_bar_is_defined_only_in_the_component_stylesheet():
     ]
     assert offenders == []
     assert SAVE_BAR_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
+
+
+def test_badges_are_defined_only_in_the_component_stylesheet():
+    offenders = [
+        f"{path}: {match.group(0).strip()}"
+        for path in _stylesheets() if path != OWNER
+        for match in BADGE_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
+    ]
+    assert offenders == []
+    assert BADGE_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
 
 # One-sided edges and inset side shadows; status shows through icon, badge, text color or tint.
 SIDE_EDGE = re.compile(r"(?:border-(?:left|inline-start)(?:-color)?|box-shadow)\s*:\s*([^;}]*)")
