@@ -26,14 +26,14 @@ function loadFritzCableData() {
     var content = document.getElementById('fritz-cable-content');
     if (!msg || !content) return;
 
-    if (skel) skel.style.display = '';
+    if (skel) skel.hidden = false;
     DOCSightEmptyState.hide(msg);
-    content.style.display = 'none';
+    content.hidden = true;
 
     fetch(docsightUrl('/api/fritzbox/segment-utilization?range=' + encodeURIComponent(_fritzCableRange)))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (skel) skel.style.display = 'none';
+            if (skel) skel.hidden = true;
             if (data.error) {
                 DOCSightEmptyState.showError(msg, {text: data.error, retry: loadFritzCableData});
                 return;
@@ -42,14 +42,14 @@ function loadFritzCableData() {
                 _fritzCableShowEmpty(msg);
                 return;
             }
-            content.style.display = '';
+            content.hidden = false;
             _fritzCableUpdateKPIs(data);
             _fritzCableRenderChart('fritz-cable-ds-chart', data.samples, 'ds_total', 'ds_own');
             _fritzCableRenderChart('fritz-cable-us-chart', data.samples, 'us_total', 'us_own');
             _fritzCableLoadEvents();
         })
         .catch(function() {
-            if (skel) skel.style.display = 'none';
+            if (skel) skel.hidden = true;
             DOCSightEmptyState.showError(msg, {retry: loadFritzCableData});
         });
 }

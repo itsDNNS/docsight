@@ -178,12 +178,12 @@ function updateModulation() {
     DOCSightEmptyState.hide(noData);
 
     if (_modDays === 1) {
-        if (overview) overview.style.display = 'none';
-        if (intraday) intraday.style.display = '';
+        if (overview) overview.hidden = true;
+        if (intraday) intraday.hidden = false;
         fetchIntraday('');
     } else {
-        if (overview) overview.style.display = '';
-        if (intraday) intraday.style.display = 'none';
+        if (overview) overview.hidden = false;
+        if (intraday) intraday.hidden = true;
         fetchOverview();
     }
 }
@@ -375,10 +375,10 @@ function updateCapacityHistory(data, rangeLabel) {
     if (!panel) return;
     var history = data && data.capacity_history;
     if (!history) {
-        panel.style.display = 'none';
+        panel.hidden = true;
         return;
     }
-    panel.style.display = '';
+    panel.hidden = false;
     var label = document.getElementById('mod-capacity-range-label');
     if (label) {
         label.textContent = rangeLabel || (T['docsight.modulation.capacity_selected_period'] || 'Selected period');
@@ -489,7 +489,7 @@ function renderProtocolGroups(data) {
     });
 
     var hint = document.getElementById('mod-click-hint');
-    if (hint) hint.style.display = groups.length > 0 ? 'flex' : 'none';
+    if (hint) hint.hidden = groups.length === 0;
 }
 
 function _buildMiniKPI(label, value, cls) {
@@ -714,16 +714,16 @@ function renderGroupTrendChart(pg, idx) {
 function modDrillIntoDay(dateStr) {
     var overview = document.getElementById('modulation-overview');
     var intraday = document.getElementById('modulation-intraday');
-    if (overview) overview.style.display = 'none';
-    if (intraday) intraday.style.display = '';
+    if (overview) overview.hidden = true;
+    if (intraday) intraday.hidden = false;
     fetchIntraday(dateStr);
 }
 
 function modBackToOverview() {
     var overview = document.getElementById('modulation-overview');
     var intraday = document.getElementById('modulation-intraday');
-    if (overview) overview.style.display = '';
-    if (intraday) intraday.style.display = 'none';
+    if (overview) overview.hidden = false;
+    if (intraday) intraday.hidden = true;
     destroyIntradayCharts();
     if (_modDays === 1) {
         _modDays = 7;
@@ -1008,9 +1008,9 @@ function showDisclaimer(text) {
     var textEl = document.getElementById('mod-disclaimer-text');
     if (el && textEl) {
         textEl.textContent = T['docsight.modulation.disclaimer'] || text || '';
-        el.style.display = 'flex';
+        el.hidden = false;
     } else if (el) {
-        el.style.display = 'none';
+        el.hidden = true;
     }
 }
 

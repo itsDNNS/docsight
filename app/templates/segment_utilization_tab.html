@@ -14,19 +14,19 @@
 
     <div id="fritz-cable-skeleton">
         <div class="fritz-cable-kpis">
-            <div class="chart-card fritz-cable-kpi"><div class="skeleton" style="width:60%;height:14px;margin:0 auto 8px;border-radius:6px;"></div><div class="skeleton" style="width:40%;height:28px;margin:0 auto 6px;border-radius:6px;"></div><div class="skeleton" style="width:80%;height:12px;margin:0 auto;border-radius:6px;"></div></div>
-            <div class="chart-card fritz-cable-kpi"><div class="skeleton" style="width:60%;height:14px;margin:0 auto 8px;border-radius:6px;"></div><div class="skeleton" style="width:40%;height:28px;margin:0 auto 6px;border-radius:6px;"></div><div class="skeleton" style="width:80%;height:12px;margin:0 auto;border-radius:6px;"></div></div>
-            <div class="chart-card fritz-cable-kpi"><div class="skeleton" style="width:60%;height:14px;margin:0 auto 8px;border-radius:6px;"></div><div class="skeleton" style="width:40%;height:28px;margin:0 auto 6px;border-radius:6px;"></div><div class="skeleton" style="width:80%;height:12px;margin:0 auto;border-radius:6px;"></div></div>
+            <div class="chart-card fritz-cable-kpi"><div class="skeleton fritz-cable-skel-label"></div><div class="skeleton fritz-cable-skel-value"></div><div class="skeleton fritz-cable-skel-caption"></div></div>
+            <div class="chart-card fritz-cable-kpi"><div class="skeleton fritz-cable-skel-label"></div><div class="skeleton fritz-cable-skel-value"></div><div class="skeleton fritz-cable-skel-caption"></div></div>
+            <div class="chart-card fritz-cable-kpi"><div class="skeleton fritz-cable-skel-label"></div><div class="skeleton fritz-cable-skel-value"></div><div class="skeleton fritz-cable-skel-caption"></div></div>
         </div>
         <div class="fritz-cable-grid">
-            <div class="chart-card fritz-cable-panel"><div class="skeleton" style="width:50%;height:14px;margin-bottom:12px;border-radius:6px;"></div><div class="skeleton" style="width:100%;height:180px;border-radius:8px;"></div></div>
-            <div class="chart-card fritz-cable-panel"><div class="skeleton" style="width:50%;height:14px;margin-bottom:12px;border-radius:6px;"></div><div class="skeleton" style="width:100%;height:180px;border-radius:8px;"></div></div>
+            <div class="chart-card fritz-cable-panel"><div class="skeleton fritz-cable-skel-title"></div><div class="skeleton fritz-cable-skel-chart"></div></div>
+            <div class="chart-card fritz-cable-panel"><div class="skeleton fritz-cable-skel-title"></div><div class="skeleton fritz-cable-skel-chart"></div></div>
         </div>
     </div>
 
     <div id="fritz-cable-message" class="view-empty" hidden></div>
 
-    <div id="fritz-cable-content" style="display:none;">
+    <div id="fritz-cable-content" hidden>
         <div class="fritz-cable-kpis">
             <div class="chart-card fritz-cable-kpi">
                 <div class="fritz-cable-kpi-label">{{ t.get('seg_ds_total', 'Downstream Total') }}</div>
@@ -48,12 +48,12 @@
         <div class="fritz-cable-grid">
             <div class="chart-card fritz-cable-panel">
                 <div class="fritz-cable-panel-title">{{ t.get('seg_downstream', 'Downstream Utilization') }}</div>
-                <div id="fritz-cable-ds-chart" style="width:100%;"></div>
+                <div id="fritz-cable-ds-chart"></div>
             </div>
 
             <div class="chart-card fritz-cable-panel">
                 <div class="fritz-cable-panel-title">{{ t.get('seg_upstream', 'Upstream Utilization') }}</div>
-                <div id="fritz-cable-us-chart" style="width:100%;"></div>
+                <div id="fritz-cable-us-chart"></div>
             </div>
         </div>
 

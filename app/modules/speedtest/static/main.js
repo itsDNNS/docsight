@@ -40,10 +40,10 @@ function loadSpeedtestHistory() {
     var moreWrap = document.getElementById('speedtest-show-more');
     if (!tbody || !table || !noData) return;
     tbody.innerHTML = '';
-    table.style.display = 'none';
+    table.hidden = true;
     DOCSightEmptyState.hide(noData);
-    if (loading) loading.style.display = '';
-    if (moreWrap) moreWrap.style.display = 'none';
+    if (loading) loading.hidden = false;
+    if (moreWrap) moreWrap.hidden = true;
     _speedtestRawData = [];
     _speedtestAllData = [];
     _signalCache = {};
@@ -51,7 +51,7 @@ function loadSpeedtestHistory() {
     fetch(docsightUrl('/api/speedtest?count=2000'))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (loading) loading.style.display = 'none';
+            if (loading) loading.hidden = true;
             if (!data || data.length === 0) {
                 _showSpeedtestEmpty(noData);
                 return;
@@ -60,7 +60,7 @@ function loadSpeedtestHistory() {
             filterSpeedtestData();
         })
         .catch(function() {
-            if (loading) loading.style.display = 'none';
+            if (loading) loading.hidden = true;
             DOCSightEmptyState.showError(noData, {retry: loadSpeedtestHistory});
         });
 }
@@ -80,7 +80,7 @@ function filterSpeedtestData() {
     }
     sortSpeedtestData();
     if (_speedtestAllData.length === 0) {
-        if (table) table.style.display = 'none';
+        if (table) table.hidden = true;
         // There are results, just none in the selected period.
         DOCSightEmptyState.show(noData, {
             icon: 'clock',
@@ -93,9 +93,9 @@ function filterSpeedtestData() {
             glossary: 'speedtest'
         });
         var cc = document.getElementById('speedtest-chart-container');
-        if (cc) cc.style.display = 'none';
+        if (cc) cc.hidden = true;
     } else {
-        if (table) table.style.display = '';
+        if (table) table.hidden = false;
         if (noData) DOCSightEmptyState.hide(noData);
         renderSpeedtestRows();
         renderSpeedtestChart();
@@ -208,10 +208,10 @@ function renderSpeedtestRows() {
     }
     if (moreWrap && moreBtn) {
         if (_speedtestAllData.length > _speedtestVisible) {
-            moreWrap.style.display = '';
+            moreWrap.hidden = false;
             moreBtn.textContent = (T.show_more || 'Show more') + ' (' + (_speedtestAllData.length - _speedtestVisible) + ')';
         } else {
-            moreWrap.style.display = 'none';
+            moreWrap.hidden = true;
         }
     }
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -487,8 +487,8 @@ function renderSpeedtestChart() {
     var data = _speedtestAllData.slice().sort(function(a, b) {
         return docsightParseTime(a.timestamp) - docsightParseTime(b.timestamp);
     });
-    if (data.length < 2) { container.style.display = 'none'; return; }
-    container.style.display = '';
+    if (data.length < 2) { container.hidden = true; return; }
+    container.hidden = false;
     var wrap = canvas.parentElement;
     var dpr = window.devicePixelRatio || 1;
     var w = wrap.clientWidth;

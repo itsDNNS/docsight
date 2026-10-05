@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <div class="mod-capacity-panel" id="modulation-capacity-panel" style="display:none;">
+    <div class="mod-capacity-panel" id="modulation-capacity-panel" hidden>
         <div class="mod-capacity-panel-head">
             <div>
                 <div class="mod-capacity-kicker">{{ t.get('docsight.modulation.capacity_kicker', 'Layer-1 SC-QAM estimate') }}</div>
@@ -100,16 +100,16 @@
         <div id="modulation-protocol-groups"></div>
 
         <!-- Click hint -->
-        <div class="modulation-click-hint" id="mod-click-hint" style="display:none;">
+        <div class="modulation-click-hint" id="mod-click-hint" hidden>
             <i data-lucide="mouse-pointer-click"></i>
             {{ t.get('docsight.modulation.click_day_hint', 'Click a day bar to view per-channel details') }}
         </div>
     </div>
 
     <!-- Intraday (single day) -->
-    <div id="modulation-intraday" style="display:none;">
+    <div id="modulation-intraday" hidden>
         <div class="mod-intraday-header">
-            <button class="trend-tab" id="mod-back-btn" onclick="modBackToOverview()">
+            <button class="trend-tab" id="mod-back-btn" data-action="modBackToOverview">
                 <i data-lucide="arrow-left"></i>
                 {{ t.get('docsight.modulation.back_to_overview', 'Back to Overview') }}
             </button>
@@ -119,7 +119,7 @@
     </div>
 
     <!-- Disclaimer -->
-    <div class="modulation-disclaimer" id="mod-disclaimer" style="display:none;">
+    <div class="modulation-disclaimer" id="mod-disclaimer" hidden>
         <i data-lucide="info"></i>
         <span id="mod-disclaimer-text"></span>
     </div>
