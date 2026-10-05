@@ -260,27 +260,86 @@ body {
   .view-empty { padding: var(--space-lg) var(--space-md); }
 }
 
-/* ── Toggle Switch ── */
-.toggle { position: relative; display: inline-block; width: 44px; height: 28px; }
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle .slider {
-  position: absolute; inset: 0;
-  background: rgba(120,130,180,0.3);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: background 0.3s;
+/* ── Form fields ──
+   <div class="form-field"><label class="form-label">…</label> control <p class="form-hint">…</p></div>
+   Controls are .form-input (also on <textarea>) and .form-select: 40px tall,
+   44px on touch screens and phone-width layouts. */
+.form-grid { display: grid; gap: var(--space-md); align-items: start; }
+.form-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px) {
+  .form-grid.cols-2 { grid-template-columns: 1fr; }
 }
-.toggle .slider::before {
+.form-field { display: grid; gap: 6px; min-width: 0; }
+.form-label { font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary); }
+.form-hint { font-size: 0.75rem; color: var(--muted); }
+.form-input,
+.form-select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--text);
+  background-color: var(--elevated);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo);
+}
+textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; resize: vertical; }
+.form-input[type="file"] { padding: 8px 12px; }
+.form-input::placeholder { color: var(--muted); }
+.form-input:hover:not(:disabled):not(:focus),
+.form-select:hover:not(:disabled):not(:focus) { border-color: color-mix(in srgb, var(--text) 28%, transparent); }
+.form-input:focus,
+.form-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-muted); }
+.form-input:disabled,
+.form-select:disabled { opacity: 0.6; cursor: not-allowed; }
+/* The arrow is drawn from two gradients so it follows the theme's --muted color. */
+.form-select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 36px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 19px) 50%, calc(100% - 14px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+.form-select option { background: var(--surface); color: var(--text); }
+@media (pointer: coarse), (max-width: 640px) {
+  .form-input,
+  .form-select { min-height: 44px; }
+}
+
+/* ── Toggle switch ──
+   <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label> */
+.toggle { position: relative; display: inline-block; flex: none; width: 40px; height: 24px; }
+.toggle input { position: absolute; width: 0; height: 0; opacity: 0; }
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text) 30%, transparent);
+  transition: background-color 0.2s var(--ease-out-expo);
+}
+.toggle-slider::before {
   content: '';
   position: absolute;
-  width: 20px; height: 20px;
-  left: 4px; bottom: 4px;
-  background: #fff;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  transition: transform 0.3s var(--ease-smooth);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s var(--ease-out-expo), background-color 0.2s var(--ease-out-expo);
 }
-.toggle input:checked + .slider { background: var(--amethyst); }
-.toggle input:checked + .slider::before { transform: translateX(16px); }
+.toggle input:checked + .toggle-slider { background: var(--accent); }
+/* On the accent, the knob takes the theme's readable on-accent color. */
+.toggle input:checked + .toggle-slider::before { transform: translateX(16px); background: var(--text-on-accent); }
+.toggle input:focus-visible + .toggle-slider { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toggle input:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Skip link: hidden until focused ── */
 .skip-link {
