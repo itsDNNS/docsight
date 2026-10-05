@@ -516,6 +516,56 @@ class TestDemoIncidentConsistency:
         assert any(event["event_type"] == "device_reboot" for event in events)
 
 
+class TestDemoReproducibility:
+    """A seed and a reference time make two demo instances byte-identical."""
+
+    def _history(self, tmp_path, name, monkeypatch):
+        import app.collectors.demo as demo
+        monkeypatch.setattr(demo, "DEMO_HISTORY_DAYS", 3)
+        storage = SnapshotStorage(str(tmp_path / f"{name}.db"), max_days=0)
+        collector = DemoCollector(
+            analyzer_fn=analyzer.analyze, event_detector=MagicMock(), storage=storage,
+            mqtt_pub=None, web=MagicMock(), poll_interval=300,
+        )
+        monkeypatch.setattr(collector, "_seed_journal_entries", lambda now: None)
+        for method in ("_seed_speedtest_results", "_seed_bqm_graphs", "_seed_incident_containers",
+                       "_seed_bnetz_measurements", "_seed_weather_data", "_seed_connection_monitor_data",
+                       "_seed_segment_utilization"):
+            monkeypatch.setattr(collector, method, lambda now: None)
+        collector._seed_demo_data()
+        with sqlite3.connect(storage.db_path) as conn:
+            return (conn.execute("SELECT timestamp, summary_json FROM snapshots ORDER BY timestamp").fetchall(),
+                    conn.execute("SELECT timestamp, event_type, message FROM events ORDER BY timestamp, id").fetchall())
+
+    def test_same_seed_and_time_give_identical_data(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("DOCSIGHT_DEMO_SEED", "7")
+        monkeypatch.setenv("DOCSIGHT_DEMO_NOW", "2026-10-05T04:41:00+00:00")
+        first = self._history(tmp_path, "a", monkeypatch)
+        second = self._history(tmp_path, "b", monkeypatch)
+        assert first == second
+        assert first[0][-1][0] == "2026-10-05T04:26:00Z"  # the history ends at the pinned time
+
+    def test_without_a_seed_the_data_varies(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("DOCSIGHT_DEMO_SEED", raising=False)
+        monkeypatch.setenv("DOCSIGHT_DEMO_NOW", "2026-10-05T04:41:00+00:00")
+        assert self._history(tmp_path, "a", monkeypatch)[0] != self._history(tmp_path, "b", monkeypatch)[0]
+
+    @pytest.mark.parametrize("value, expected", [
+        ("2026-10-05T04:41:00+00:00", datetime(2026, 10, 5, 4, 41, tzinfo=timezone.utc)),
+        ("2026-10-05T04:41:00Z", datetime(2026, 10, 5, 4, 41, tzinfo=timezone.utc)),
+        ("2026-10-05T04:41:00", datetime(2026, 10, 5, 4, 41, tzinfo=timezone.utc)),
+    ])
+    def test_reference_time_accepts_iso_values(self, monkeypatch, value, expected):
+        from app.collectors.demo import _demo_reference_time
+        monkeypatch.setenv("DOCSIGHT_DEMO_NOW", value)
+        assert _demo_reference_time() == expected
+
+    def test_invalid_reference_time_falls_back_to_now(self, monkeypatch):
+        from app.collectors.demo import _demo_reference_time
+        monkeypatch.setenv("DOCSIGHT_DEMO_NOW", "yesterday")
+        assert abs((_demo_reference_time() - datetime.now(timezone.utc)).total_seconds()) < 5
+
+
 class TestDemoCollectorOFDMA:
     def _collector(self, storage):
         return DemoCollector(
