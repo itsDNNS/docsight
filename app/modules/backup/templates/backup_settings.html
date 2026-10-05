@@ -14,8 +14,8 @@
             </div>
         </div>
         <div class="btn-row">
-            <button type="button" class="btn btn-primary" onclick="downloadBackup()" id="backup-download-btn">
-                <i data-lucide="download" style="width:16px;height:16px;"></i>
+            <button type="button" class="btn btn-primary" data-action="downloadBackup" id="backup-download-btn">
+                <i data-lucide="download"></i>
                 {{ t['docsight.backup.backup_download'] or 'Download Backup' }}
             </button>
         </div>
@@ -47,19 +47,19 @@
             </label>
         </div>
 
-        <div id="backup-auto-settings" style="{% if not config.backup_enabled %}opacity:0.5;pointer-events:none;{% endif %}">
-            <div class="form-field" style="margin-top: var(--space-md);">
+        <div id="backup-auto-settings" class="backup-auto-settings{% if not config.backup_enabled %} is-off{% endif %}">
+            <div class="form-field settings-gap">
                 <label class="form-label" for="backup_path">{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
                 <div class="input-with-action">
-                    <input class="form-input" type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly style="cursor:pointer;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBrowseModal(this)">
-                        <i data-lucide="folder-open" style="width:14px;height:14px;"></i>
+                    <input class="form-input backup-path-input" type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly>
+                    <button type="button" class="btn btn-secondary btn-sm" data-action="openBrowseModal" data-action-pass="element">
+                        <i data-lucide="folder-open"></i>
                         {{ t['docsight.backup.backup_browse'] or 'Browse' }}
                     </button>
                 </div>
                 <span class="form-hint">{{ t['docsight.backup.backup_path_hint'] or 'Server directory where backups are stored' }}</span>
             </div>
-            <div class="form-grid cols-2" style="margin-top: var(--space-md);">
+            <div class="form-grid cols-2 settings-gap">
                 <div class="form-field">
                     <label class="form-label" for="backup_interval_hours">{{ t['docsight.backup.backup_interval'] or 'Interval' }}</label>
                     <select class="form-input form-select" id="backup_interval_hours" name="backup_interval_hours">
@@ -73,15 +73,15 @@
                     <span class="form-hint">{{ t['docsight.backup.backup_retention_hint'] or 'Number of backup files to keep' }}</span>
                 </div>
             </div>
-            <div style="margin-top: var(--space-lg);">
-                <button type="button" class="btn btn-secondary" onclick="backupNow()">
-                    <i data-lucide="save" style="width:14px;height:14px;"></i>
+            <div class="settings-actions">
+                <button type="button" class="btn btn-secondary" data-action="backupNow">
+                    <i data-lucide="save"></i>
                     {{ t['docsight.backup.backup_now'] or 'Backup Now' }}
                 </button>
             </div>
             <div class="test-result" id="backup-now-result"></div>
 
-            <div style="margin-top: var(--space-xl);">
+            <div class="settings-subsection">
                 <div class="section-label">{{ t['docsight.backup.backup_existing'] or 'Existing Backups' }}</div>
                 <div id="backup-list" class="backup-list"></div>
             </div>
@@ -94,7 +94,7 @@
     <div class="browse-modal">
         <div class="browse-modal-header">
             <h3 id="browse-modal-title">{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h3>
-            <button type="button" class="btn-icon" onclick="closeBrowseModal()" aria-label="{{ t.close or 'Close' }}">
+            <button type="button" class="btn-icon" data-action="closeBrowseModal" aria-label="{{ t.close or 'Close' }}">
                 <i data-lucide="x" aria-hidden="true"></i>
             </button>
         </div>
@@ -106,8 +106,8 @@
         <div id="browse-breadcrumb" class="browse-modal-path"></div>
         <div id="browse-dirs" class="browse-modal-body" tabindex="0"></div>
         <div class="browse-modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeBrowseModal()">{{ t.cancel }}</button>
-            <button type="button" class="btn btn-primary btn-sm" onclick="selectBrowsePath()">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
+            <button type="button" class="btn btn-secondary" data-action="closeBrowseModal">{{ t.cancel }}</button>
+            <button type="button" class="btn btn-primary btn-sm" data-action="selectBrowsePath">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
         </div>
     </div>
 </dialog>

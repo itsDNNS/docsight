@@ -60,7 +60,7 @@ def test_community_driver_settings_and_connection(page, community_driver_server)
     page.locator("#modem_user").fill("tester")
     page.locator("#modem_password").fill("test-password")
     with page.expect_response("**/api/test-modem") as response:
-        page.locator('[onclick="testModem()"]').click()
+        page.locator('[data-action="testModem"]').click()
     assert response.value.json() == {"success": True, "model": "Community Test Modem"}
     with page.expect_response("**/api/config") as saved:
         page.locator('#save-footer button[type="submit"]').click()
@@ -68,6 +68,6 @@ def test_community_driver_settings_and_connection(page, community_driver_server)
     page.reload()
     expect(page.locator("#modem_type")).to_have_value(DRIVER_ID)
     with page.expect_response("**/api/test-modem") as masked_response:
-        page.locator('[onclick="testModem()"]').click()
+        page.locator('[data-action="testModem"]').click()
     assert masked_response.value.json()["model"] == "Community Test Modem"
     assert errors == []

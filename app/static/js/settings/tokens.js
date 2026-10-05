@@ -17,12 +17,12 @@ function loadApiTokens() {
         var tokens = (data.tokens || []).filter(function(t) { return !t.revoked; });
         while (body.firstChild) body.removeChild(body.firstChild);
         if (tokens.length === 0) {
-            table.style.display = 'none';
-            if (empty) empty.style.display = 'block';
+            table.hidden = true;
+            if (empty) empty.hidden = false;
             return;
         }
-        table.style.display = 'table';
-        if (empty) empty.style.display = 'none';
+        table.hidden = false;
+        if (empty) empty.hidden = true;
         tokens.forEach(function(tk) {
             var tr = document.createElement('tr');
             tr.appendChild(_tokenCell(tk.name, 'padding:4px 8px;'));
@@ -66,7 +66,7 @@ function createApiToken() {
         inp.value = '';
         var banner = document.getElementById('api-token-created-banner');
         document.getElementById('api-token-plaintext').textContent = res.data.token;
-        banner.style.display = 'block';
+        banner.hidden = false;
         loadApiTokens();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }).catch(function() { showToast(T.error_prefix || 'Error', false); });
@@ -96,7 +96,7 @@ function revokeToken(id, name) {
         if (!data) return;
         if (data.success) {
             showToast(T.api_token_revoked || 'Token revoked', true);
-            document.getElementById('api-token-created-banner').style.display = 'none';
+            document.getElementById('api-token-created-banner').hidden = true;
             loadApiTokens();
         } else {
             showToast(data.error || (T.error_prefix || 'Error'), false);

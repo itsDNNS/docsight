@@ -23,7 +23,7 @@
                 <span class="toggle-slider"></span>
             </label>
         </div>
-        <div class="form-grid cols-2" style="margin-top: var(--space-md);">
+        <div class="form-grid cols-2 settings-gap">
             <div class="form-field">
                 <label class="form-label" for="connection_monitor_poll_interval_ms">{{ t['docsight.connection_monitor.cm_poll_interval'] or 'Probe interval (ms)' }}</label>
                 <input class="form-input" type="number" id="connection_monitor_poll_interval_ms" name="connection_monitor_poll_interval_ms" value="{{ config.connection_monitor_poll_interval_ms or 5000 }}" min="1000" max="300000" step="1000">
@@ -56,15 +56,15 @@
         </div>
 
         <!-- Target Management -->
-        <div style="margin-top: var(--space-xl);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm);">
+        <div class="settings-subsection">
+            <div class="cm-targets-head">
                 <div class="section-label">{{ t['docsight.connection_monitor.cm_targets'] or 'Targets' }}</div>
                 <button type="button" class="btn btn-secondary btn-sm" id="cm-add-target-btn">
-                    <i data-lucide="plus" style="width:14px;height:14px;"></i>
+                    <i data-lucide="plus"></i>
                     {{ t['docsight.connection_monitor.cm_add_target'] or 'Add target' }}
                 </button>
             </div>
-            <span class="form-hint" style="display: block; margin-bottom: var(--space-md);">{{ t['docsight.connection_monitor.cm_targets_hint'] or 'IP addresses or hostnames to monitor.' }}</span>
+            <span class="form-hint settings-note-tight">{{ t['docsight.connection_monitor.cm_targets_hint'] or 'IP addresses or hostnames to monitor.' }}</span>
             <div id="cm-targets-list"></div>
         </div>
     </div>

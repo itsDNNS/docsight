@@ -24,7 +24,7 @@
             <span class="form-hint">{{ t['docsight.connection_monitor.cm_retention_hint'] or '0 = keep all data. Otherwise, delete samples older than this many days.' }}</span>
         </div>
         {% endif %}
-        <div class="form-field" style="grid-column: 1 / -1">
+        <div class="form-field form-grid-full">
             <label class="form-label" for="snapshot_time">{{ t.snapshot_time }}</label>
             <input class="form-input" type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
             <span class="form-hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>

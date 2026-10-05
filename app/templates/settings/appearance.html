@@ -16,7 +16,7 @@
             <span class="toggle-desc">{{ t.dark_mode_hint }}</span>
         </div>
         <label class="toggle">
-            <input type="checkbox" id="theme-toggle-appearance" {% if theme == 'dark' %}checked{% endif %} onchange="toggleThemeFromAppearance(this.checked)">
+            <input type="checkbox" id="theme-toggle-appearance" {% if theme == 'dark' %}checked{% endif %} data-change-action="toggleThemeFromAppearance" data-action-pass="element">
             <span class="toggle-slider"></span>
         </label>
     </div>
@@ -28,7 +28,7 @@
         <label class="toggle">
             <input type="checkbox" id="font-toggle"
                    {% if config.font_family == 'system' %}checked{% endif %}
-                   onchange="applyFontToggle(this.checked)">
+                   data-change-action="applyFontToggle" data-action-pass="element">
             <span class="toggle-slider"></span>
         </label>
         <input type="hidden" id="font_family" name="font_family"
@@ -59,12 +59,11 @@
                  data-theme-dark='{{ mod.theme_data.get("dark", {})|tojson }}'
                  data-theme-light='{{ mod.theme_data.get("light", {})|tojson }}'>
                 <div class="theme-palette">
-                    {% set colors = mod.theme_data.get(theme, mod.theme_data.get('dark', {})) %}
-                    <span class="palette-dot" style="background: {{ colors.get('--bg', '#111') }}"></span>
-                    <span class="palette-dot" style="background: {{ colors.get('--surface', '#222') }}"></span>
-                    <span class="palette-dot" style="background: {{ colors.get('--accent', '#7c3aed') }}"></span>
-                    <span class="palette-dot" style="background: {{ colors.get('--good', '#10b981') }}"></span>
-                    <span class="palette-dot" style="background: {{ colors.get('--crit', '#ef4444') }}"></span>
+                    <span class="palette-dot"></span>
+                    <span class="palette-dot"></span>
+                    <span class="palette-dot"></span>
+                    <span class="palette-dot"></span>
+                    <span class="palette-dot"></span>
                 </div>
                 <div class="theme-info">
                     <div class="theme-name">{{ mod.name }}</div>
@@ -81,17 +80,17 @@
                 <div class="theme-actions">
                     {% if mod.id == active_theme_id %}
                     <span class="theme-active-badge">
-                        <i data-lucide="check-circle" style="width:14px;height:14px;"></i>
+                        <i data-lucide="check-circle"></i>
                         {{ t.active }}
                     </span>
                     {% else %}
                     <button type="button" class="btn btn-secondary btn-sm theme-preview-btn"
-                            onclick="previewTheme(this.closest('.theme-card'))">
-                        <i data-lucide="eye" style="width:14px;height:14px;"></i>
+                            data-action="previewTheme" data-action-pass="element">
+                        <i data-lucide="eye"></i>
                         {{ t.preview }}
                     </button>
                     <button type="button" class="btn btn-primary btn-sm theme-apply-btn"
-                            onclick="applyTheme('{{ mod.id }}')">
+                            data-action="applyTheme" data-action-args='{{ [mod.id]|tojson }}'>
                         {{ t.activate }}
                     </button>
                     {% endif %}
@@ -100,7 +99,7 @@
             {% endfor %}
         {% else %}
             <div class="empty-state">
-                <i data-lucide="palette" style="width:40px;height:40px;opacity:0.3;"></i>
+                <i data-lucide="palette"></i>
                 <p>{{ t.no_themes }}</p>
             </div>
         {% endif %}
@@ -108,14 +107,14 @@
 </div>
 
 <!-- Preview Overlay (hidden by default) -->
-<div class="theme-preview-overlay" id="theme-preview-overlay" style="display:none;">
+<div class="theme-preview-overlay" id="theme-preview-overlay" hidden>
     <div class="theme-preview-bar glass">
         <span>{{ t.previewing_theme }}: <strong id="preview-theme-name"></strong></span>
         <div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelPreview()">
+            <button type="button" class="btn btn-secondary btn-sm" data-action="cancelPreview">
                 {{ t.cancel }}
             </button>
-            <button type="button" class="btn btn-primary btn-sm" id="preview-apply-btn" onclick="applyPreviewedTheme()">
+            <button type="button" class="btn btn-primary btn-sm" id="preview-apply-btn" data-action="applyPreviewedTheme">
                 {{ t.activate }}
             </button>
         </div>
@@ -134,8 +133,8 @@
                 <div class="card-subtitle">{{ t.available_themes_desc }}</div>
             </div>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="refreshRegistry()">
-            <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="refreshRegistry">
+            <i data-lucide="refresh-cw"></i>
             {{ t.refresh }}
         </button>
     </div>

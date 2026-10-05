@@ -232,7 +232,7 @@ class TestSettingsRoute:
         assert re.search(r'<a class="topnav-icon-button topnav-settings[^"]*"[^>]+aria-label="Settings"', html)
         assert re.search(r'<button[^>]+id="nav-toggle-more"[^>]+aria-label="More"', html)
         assert re.search(r'<button[^>]+data-section="connection"[^>]+aria-current="page"', html)
-        assert re.search(r'<button[^>]+onclick="copyToken\(\)"[^>]+aria-label="Copy to Clipboard"', html)
+        assert re.search(r'<button[^>]+data-action="copyToken"[^>]+aria-label="Copy to Clipboard"', html)
         assert re.search(r'<button[^>]+id="module-registry-refresh"[^>]+aria-label="Refresh"', html)
 
     def test_settings_notifications_channel_cards_render_compact_status_headers(self, client):

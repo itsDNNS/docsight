@@ -1,4 +1,4 @@
-<div class="module-restart-banner" id="module-restart-banner" style="display:none;">
+<div class="module-restart-banner" id="module-restart-banner" hidden>
     <i data-lucide="alert-triangle"></i>
     <span>{{ t.modules_restart_banner }}</span>
 </div>
@@ -94,19 +94,19 @@
                 <div class="card-subtitle">{{ t.get('extensions_community_desc', 'Browse and install modules from the community registry') }}</div>
             </div>
         </div>
-        <button type="button" class="btn btn-secondary" onclick="refreshModuleRegistry()" id="module-registry-refresh" title="{{ t.get('extensions_refresh', t.refresh) }}" aria-label="{{ t.get('extensions_refresh', t.refresh) }}">
-            <i data-lucide="refresh-cw" style="width:16px;height:16px;" aria-hidden="true"></i>
+        <button type="button" class="btn btn-secondary" data-action="refreshModuleRegistry" id="module-registry-refresh" title="{{ t.get('extensions_refresh', t.refresh) }}" aria-label="{{ t.get('extensions_refresh', t.refresh) }}">
+            <i data-lucide="refresh-cw" aria-hidden="true"></i>
         </button>
     </div>
-    <div id="module-registry-container" style="padding: 0 var(--card-padding) var(--card-padding);">
+    <div class="settings-card-inset" id="module-registry-container">
         <div id="module-registry-loading" class="registry-loading">
-            <i data-lucide="loader-2" style="width:18px;height:18px;"></i>
+            <i data-lucide="loader-2"></i>
             {{ t.get('extensions_loading', 'Loading community modules...') }}
         </div>
-        <div id="module-registry-empty" class="registry-empty" style="display:none;">
+        <div id="module-registry-empty" class="registry-empty" hidden>
             <i data-lucide="package-open"></i>
             {{ t.get('extensions_no_modules', 'No community modules available yet.') }}
         </div>
-        <div id="module-registry-gallery" style="display:none;"></div>
+        <div id="module-registry-gallery" hidden></div>
     </div>
 </div>

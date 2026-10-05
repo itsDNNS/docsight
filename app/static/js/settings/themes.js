@@ -10,14 +10,15 @@ function initThemeToggle() {
     updatePaletteDots(current);
 }
 
-function toggleThemeFromAppearance(checked) {
-    var theme = checked ? 'dark' : 'light';
+function toggleThemeFromAppearance(input) {
+    var theme = input.checked ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('docsis-theme', theme);
     updatePaletteDots(theme);
 }
 
-function applyFontToggle(useSystem) {
+function applyFontToggle(input) {
+    var useSystem = input.checked;
     var el = document.getElementById('font-override');
     var hidden = document.getElementById('font_family');
     if (hidden) hidden.value = useSystem ? 'system' : 'outfit';
@@ -33,13 +34,17 @@ function applyFontToggle(useSystem) {
     }
 }
 
+/* Each card shows five of its theme's colors for the current mode; a theme
+   without a light palette shows its dark one. */
+var PALETTE_FALLBACK = {'--bg': '#111', '--surface': '#222', '--accent': '#7c3aed', '--good': '#10b981', '--crit': '#ef4444'};
+
 function updatePaletteDots(mode) {
-    var keys = ['--bg', '--surface', '--accent', '--good', '--crit'];
+    var keys = Object.keys(PALETTE_FALLBACK);
     document.querySelectorAll('.theme-card').forEach(function(card) {
         var colors = JSON.parse(card.getAttribute('data-theme-' + mode) || '{}');
-        var dots = card.querySelectorAll('.palette-dot');
-        dots.forEach(function(dot, i) {
-            if (keys[i] && colors[keys[i]]) dot.style.background = colors[keys[i]];
+        if (!Object.keys(colors).length) colors = JSON.parse(card.getAttribute('data-theme-dark') || '{}');
+        card.querySelectorAll('.palette-dot').forEach(function(dot, i) {
+            if (keys[i]) dot.style.background = colors[keys[i]] || PALETTE_FALLBACK[keys[i]];
         });
     });
 }
@@ -47,7 +52,8 @@ function updatePaletteDots(mode) {
 /* ── Theme System ── */
 var _previewingThemeId = null;
 
-function previewTheme(card) {
+function previewTheme(button) {
+    var card = button.closest('.theme-card');
     cancelPreview();
     var themeId = card.getAttribute('data-theme-id');
     var preview = document.createElement('style');
@@ -66,7 +72,7 @@ function previewTheme(card) {
     var overlay = document.getElementById('theme-preview-overlay');
     var nameEl = document.getElementById('preview-theme-name');
     if (nameEl) nameEl.textContent = card.getAttribute('data-theme-name') || themeId;
-    if (overlay) overlay.style.display = '';
+    if (overlay) overlay.hidden = false;
 }
 
 function cancelPreview() {
@@ -76,7 +82,7 @@ function cancelPreview() {
     if (active) active.disabled = false;
     _previewingThemeId = null;
     var overlay = document.getElementById('theme-preview-overlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) overlay.hidden = true;
 }
 
 function applyPreviewedTheme() {

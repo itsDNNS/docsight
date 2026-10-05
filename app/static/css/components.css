@@ -111,6 +111,7 @@ body {
 }
 .btn-sm { min-height: 32px; padding: 0 12px; font-size: 0.8125rem; }
 .btn-sm svg { width: 14px; height: 14px; }
+.btn-sm svg { width: 14px; height: 14px; }
 @media (pointer: coarse), (max-width: 640px) {
   .btn,
   .btn-sm,
@@ -307,12 +308,15 @@ body {
    44px on touch screens and phone-width layouts. */
 .form-grid { display: grid; gap: var(--space-md); align-items: start; }
 .form-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+/* A field or row that spans every column of its grid. */
+.form-grid > .form-grid-full { grid-column: 1 / -1; }
 @media (max-width: 900px) {
   .form-grid.cols-2 { grid-template-columns: 1fr; }
 }
 .form-field { display: grid; gap: 6px; min-width: 0; }
 .form-label { font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary); }
 .form-hint { font-size: 0.75rem; color: var(--muted); }
+.form-hint-warn { display: block; margin-top: 4px; color: var(--warn); }
 .form-input,
 .form-select {
   width: 100%;

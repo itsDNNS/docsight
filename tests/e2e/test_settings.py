@@ -265,7 +265,7 @@ class TestSettingsFormElements:
         status = settings_page.locator("#modem-status")
         expect(status).to_have_attribute("hidden", "")
 
-        settings_page.locator('button[onclick="testModem()"]').click()
+        settings_page.locator('button[data-action="testModem"]').click()
 
         expect(status).to_have_class(re.compile(r".*\bconnected\b.*"))
         expect(status).not_to_have_class(re.compile(r".*\bdisconnected\b.*"))
@@ -278,7 +278,7 @@ class TestSettingsFormElements:
         status = settings_page.locator("#modem-status")
         expect(status).to_have_attribute("hidden", "")
 
-        settings_page.locator('button[onclick="testModem()"]').click()
+        settings_page.locator('button[data-action="testModem"]').click()
 
         expect(status).to_have_class(re.compile(r".*\bdisconnected\b.*"))
         expect(status).not_to_have_class(re.compile(r".*\bconnected\b.*"))
@@ -297,7 +297,7 @@ class TestSettingsFormElements:
         expect(status).to_have_attribute("hidden", "")
 
         with settings_page.expect_request("**/api/test-mqtt"):
-            settings_page.locator('#block-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+            settings_page.locator('#block-mod-docsight_mqtt button[data-action="testMqtt"]').click()
 
         expect(status).to_have_class(re.compile(r".*\btesting\b.*"))
         expect(status).not_to_have_attribute("hidden", "")
@@ -319,7 +319,7 @@ class TestSettingsFormElements:
         status = settings_page.locator("#mqtt-status")
         expect(status).to_have_attribute("hidden", "")
 
-        settings_page.locator('#block-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+        settings_page.locator('#block-mod-docsight_mqtt button[data-action="testMqtt"]').click()
 
         expect(status).to_have_class(re.compile(r".*\bdisconnected\b.*"))
         expect(status).not_to_have_class(re.compile(r".*\bconnected\b.*"))
@@ -332,7 +332,7 @@ class TestSettingsFormElements:
         status = settings_page.locator("#mqtt-status")
         expect(status).to_have_attribute("hidden", "")
 
-        settings_page.locator('#block-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+        settings_page.locator('#block-mod-docsight_mqtt button[data-action="testMqtt"]').click()
 
         expect(status).to_have_class(re.compile(r".*\bdisconnected\b.*"))
         expect(status).not_to_have_attribute("hidden", "")
@@ -351,7 +351,7 @@ class TestSettingsFormElements:
             ),
         )
         settings_page.evaluate("() => window.switchSection('access')")
-        settings_page.locator('#block-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+        settings_page.locator('#block-mod-docsight_mqtt button[data-action="testMqtt"]').click()
 
         expect(settings_page.locator("#mqtt-status")).to_have_class(
             re.compile(r".*\bdisconnected\b.*")
@@ -612,7 +612,7 @@ class TestSettingsToastStates:
         )
 
         settings_page.locator('button[data-section="appearance"]').click()
-        settings_page.locator('#panel-appearance button[onclick="refreshRegistry()"]').click()
+        settings_page.locator('#panel-appearance button[data-action="refreshRegistry"]').click()
         install_button = settings_page.locator('#registry-gallery .theme-card button', has_text=re.compile("Install", re.I))
         expect(install_button).to_have_count(1)
         install_button.click()

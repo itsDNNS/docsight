@@ -10,30 +10,30 @@ function refreshModuleRegistry() {
     if (!gallery || _registryFetching) return;
     _registryFetching = true;
 
-    if (loading) loading.style.display = '';
-    if (empty) empty.style.display = 'none';
-    gallery.style.display = 'none';
+    if (loading) loading.hidden = false;
+    if (empty) empty.hidden = true;
+    gallery.hidden = true;
 
     fetch(docsightUrl('/api/modules/registry'))
         .then(function(r) { return r.json(); })
         .then(function(modules) {
-            if (loading) loading.style.display = 'none';
+            if (loading) loading.hidden = true;
             if (!modules || modules.length === 0) {
-                gallery.style.display = 'none';
-                if (empty) empty.style.display = '';
+                gallery.hidden = true;
+                if (empty) empty.hidden = false;
                 return;
             }
-            gallery.style.display = '';
-            if (empty) empty.style.display = 'none';
+            gallery.hidden = false;
+            if (empty) empty.hidden = true;
 
             // Build cards — dynamic content assigned via textContent (inherently safe)
             _renderRegistryCards(gallery, modules);
             if (typeof lucide !== 'undefined') lucide.createIcons();
         })
         .catch(function() {
-            if (loading) loading.style.display = 'none';
-            gallery.style.display = 'none';
-            if (empty) empty.style.display = '';
+            if (loading) loading.hidden = true;
+            gallery.hidden = true;
+            if (empty) empty.hidden = false;
             showToast(T.extensions_fetch_failed || 'Failed to load registry.', false);
         })
         .finally(function() { _registryFetching = false; });
@@ -148,7 +148,7 @@ function _runModuleAction(e, id, action, downloadUrl) {
                 true
             );
             var banner = document.getElementById('module-restart-banner');
-            if (banner) { banner.style.display = ''; if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]}); }
+            if (banner) { banner.hidden = false; if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]}); }
             refreshModuleRegistry();
         } else {
             showToast(data.error || failedText, false);

@@ -25,7 +25,7 @@ function onIspChange() {
     var row = document.getElementById('isp-other-row');
     var icon = document.getElementById('isp-icon-preview');
     if (!sel) return;
-    row.style.display = sel.value === '__other__' ? 'flex' : 'none';
+    row.hidden = sel.value !== '__other__';
     var isp = sel.value.toLowerCase();
     var iconMap = {
         'vodafone': '/static/img/providers/vodafone.svg',

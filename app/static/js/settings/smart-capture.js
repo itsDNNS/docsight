@@ -10,21 +10,21 @@ function loadSmartCaptureHistory() {
     var tbody = document.getElementById('sc-history-tbody');
     if (!tbody) return;
 
-    if (loading) loading.style.display = '';
-    if (empty) empty.style.display = 'none';
-    if (tableWrap) tableWrap.style.display = 'none';
+    if (loading) loading.hidden = false;
+    if (empty) empty.hidden = true;
+    if (tableWrap) tableWrap.hidden = true;
 
     fetch(docsightUrl('/api/smart-capture/executions?limit=50'))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (loading) loading.style.display = 'none';
+            if (loading) loading.hidden = true;
             var execs = data.executions || [];
             while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
             if (execs.length === 0) {
-                if (empty) empty.style.display = '';
+                if (empty) empty.hidden = false;
                 return;
             }
-            if (tableWrap) tableWrap.style.display = '';
+            if (tableWrap) tableWrap.hidden = false;
             var statusLabels = {
                 completed: T.sc_status_completed || 'Completed',
                 fired: T.sc_status_fired || 'Fired',
@@ -55,8 +55,8 @@ function loadSmartCaptureHistory() {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         })
         .catch(function() {
-            if (loading) loading.style.display = 'none';
-            if (empty) empty.style.display = '';
+            if (loading) loading.hidden = true;
+            if (empty) empty.hidden = false;
             showToast(T.sc_history_error || 'Failed to load execution history', false);
         });
 }

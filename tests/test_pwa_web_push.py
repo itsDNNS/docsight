@@ -178,8 +178,8 @@ def test_settings_exposes_explicit_pwa_push_controls_without_auto_permission_pro
         'id="notify_pwa_push_vapid_private_key"',
         'id="notify_pwa_push_vapid_subject"',
         'id="pwa-push-status"',
-        'onclick="subscribePwaPush()"',
-        'onclick="unsubscribePwaPush()"',
+        'data-action="subscribePwaPush"',
+        'data-action="unsubscribePwaPush"',
     ]:
         assert needle in template
     assert 'data-saved-secret="true"' in template
