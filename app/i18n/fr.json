@@ -13,6 +13,8 @@
   "unsaved_confirm": "Des modifications ne sont pas enregistrees. Les sauvegarder avant de continuer?",
   "discard_changes": "Abandonner",
   "settings_sections": "Sections des paramètres",
+  "settings_search_label": "Rechercher dans les paramètres",
+  "settings_search_none": "Aucun paramètre ne correspond",
   "settings_section_connection": "Connexion",
   "settings_section_connection_summary": "Modem, fournisseur et interrogation",
   "settings_section_sources": "Sources de mesure",

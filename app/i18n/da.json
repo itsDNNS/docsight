@@ -13,6 +13,8 @@
   "unsaved_confirm": "Du har ikke-gemte indstillingsændringer. Vil du gemme dem, før du fortsætter?",
   "discard_changes": "Kassér",
   "settings_sections": "Indstillingssektioner",
+  "settings_search_label": "Søg i indstillinger",
+  "settings_search_none": "Ingen indstilling matcher",
   "settings_section_connection": "Forbindelse",
   "settings_section_connection_summary": "Modem, udbyder og polling",
   "settings_section_sources": "Målekilder",

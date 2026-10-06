@@ -13,6 +13,8 @@
   "unsaved_confirm": "Você tem alterações de configurações não salvas. Salvá-los antes de continuar?",
   "discard_changes": "Descartar",
   "settings_sections": "Secções das definições",
+  "settings_search_label": "Pesquisar definições",
+  "settings_search_none": "Nenhuma definição corresponde",
   "settings_section_connection": "Ligação",
   "settings_section_connection_summary": "Modem, fornecedor e consulta",
   "settings_section_sources": "Fontes de medição",

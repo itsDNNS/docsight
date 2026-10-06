@@ -13,6 +13,8 @@
   "unsaved_confirm": "Hay cambios sin guardar. Guardarlos antes de continuar?",
   "discard_changes": "Descartar",
   "settings_sections": "Secciones de ajustes",
+  "settings_search_label": "Buscar ajustes",
+  "settings_search_none": "Ningún ajuste coincide",
   "settings_section_connection": "Conexión",
   "settings_section_connection_summary": "Módem, proveedor y sondeo",
   "settings_section_sources": "Fuentes de medición",

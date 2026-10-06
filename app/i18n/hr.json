@@ -13,6 +13,8 @@
   "unsaved_confirm": "Imate nespremljene promjene postavki. Spremiti ih prije nastavka?",
   "discard_changes": "Odbaci",
   "settings_sections": "Odjeljci postavki",
+  "settings_search_label": "Pretraži postavke",
+  "settings_search_none": "Nijedna postavka ne odgovara",
   "settings_section_connection": "Veza",
   "settings_section_connection_summary": "Modem, pružatelj usluge i očitavanje",
   "settings_section_sources": "Izvori mjerenja",

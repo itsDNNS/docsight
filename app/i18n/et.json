@@ -13,6 +13,8 @@
   "unsaved_confirm": "Teil on salvestamata seadete muudatusi. Kas salvestada need enne jätkamist?",
   "discard_changes": "Hülga",
   "settings_sections": "Seadete jaotised",
+  "settings_search_label": "Otsi seadetest",
+  "settings_search_none": "Ükski seade ei vasta",
   "settings_section_connection": "Ühendus",
   "settings_section_connection_summary": "Modem, teenusepakkuja ja päringud",
   "settings_section_sources": "Mõõteallikad",

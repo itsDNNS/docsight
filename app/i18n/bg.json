@@ -13,6 +13,8 @@
   "unsaved_confirm": "Имате незапазени промени в настройките. Да ги запазите, преди да продължите?",
   "discard_changes": "Отхвърляне",
   "settings_sections": "Раздели на настройките",
+  "settings_search_label": "Търсене в настройките",
+  "settings_search_none": "Няма съвпадаща настройка",
   "settings_section_connection": "Връзка",
   "settings_section_connection_summary": "Модем, доставчик и проверка",
   "settings_section_sources": "Източници на измервания",

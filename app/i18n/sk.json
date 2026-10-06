@@ -13,6 +13,8 @@
   "unsaved_confirm": "Máte neuložené zmeny nastavení. Chcete ich uložiť pred pokračovaním?",
   "discard_changes": "Zahodiť",
   "settings_sections": "Sekcie nastavení",
+  "settings_search_label": "Hľadať v nastaveniach",
+  "settings_search_none": "Žiadne nastavenie nezodpovedá",
   "settings_section_connection": "Pripojenie",
   "settings_section_connection_summary": "Modem, poskytovateľ a dopytovanie",
   "settings_section_sources": "Zdroje meraní",

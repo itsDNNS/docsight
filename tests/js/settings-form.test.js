@@ -77,7 +77,7 @@ function fixture(bootstrap = false) {
     for (const name of ['form-state', 'form']) vm.runInContext(fs.readFileSync(`app/static/js/settings/${name}.js`, 'utf8'), context);
     const owner = context.DOCSightSettings.form({state: context.DOCSightSettings.state, showsSaveFooter: () => true});
     if (bootstrap) {
-        for (const name of ['navigation', 'tokens', 'connections', 'notifications', 'backups', 'themes', 'smart-capture', 'module-registry']) {
+        for (const name of ['navigation', 'tokens', 'connections', 'notifications', 'backups', 'themes', 'smart-capture', 'module-registry', 'search']) {
             vm.runInContext(fs.readFileSync(`app/static/js/settings/${name}.js`, 'utf8'), context);
         }
         vm.runInContext(fs.readFileSync('app/static/js/settings.js', 'utf8'), context);

@@ -13,6 +13,8 @@
   "unsaved_confirm": "You have unsaved settings changes. Save them before continuing?",
   "discard_changes": "Discard",
   "settings_sections": "Settings sections",
+  "settings_search_label": "Search settings",
+  "settings_search_none": "No setting matches",
   "settings_section_connection": "Connection",
   "settings_section_connection_summary": "Modem, provider and polling",
   "settings_section_sources": "Measurement sources",

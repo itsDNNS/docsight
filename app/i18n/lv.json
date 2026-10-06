@@ -13,6 +13,8 @@
   "unsaved_confirm": "Jums ir nesaglabātas iestatījumu izmaiņas. Vai saglabāt tos pirms turpināt?",
   "discard_changes": "Atmest",
   "settings_sections": "Iestatījumu sadaļas",
+  "settings_search_label": "Meklēt iestatījumos",
+  "settings_search_none": "Neviens iestatījums neatbilst",
   "settings_section_connection": "Savienojums",
   "settings_section_connection_summary": "Modems, pakalpojumu sniedzējs un aptauja",
   "settings_section_sources": "Mērījumu avoti",

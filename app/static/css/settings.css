@@ -11,7 +11,49 @@
    Inside the app shell: a section index on the left and the content column.
    Below 768px the index is a list and a section opens as its own view. */
 .settings-page { max-width: 1200px; }
-.settings-header { margin-bottom: var(--space-lg); }
+.settings-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.settings-search { position: relative; flex: 0 1 360px; min-width: 0; }
+.settings-search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 30;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: var(--shadow-lg);
+}
+.settings-search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.settings-search-result:hover,
+.settings-search-result:focus-visible { background: var(--tint-hover); outline: none; }
+.settings-search-result:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.settings-search-label { font-size: 0.9rem; font-weight: 600; }
+.settings-search-where { font-size: var(--fs-min); color: var(--muted); }
+.settings-search-empty { margin: 0; padding: 8px 10px; font-size: 0.85rem; color: var(--muted); }
 .settings-page-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
 .settings-shell {
   display: grid;
@@ -70,6 +112,7 @@
 }
 @media (max-width: 768px) {
   .settings-shell { display: block; }
+  .settings-search { flex-basis: 100%; }
   .settings-index { position: static; }
   .settings-index-item { min-height: 60px; font-size: 0.95rem; }
   .settings-index-chevron { display: block; margin-left: auto; color: var(--muted); }

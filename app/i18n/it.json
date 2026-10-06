@@ -13,6 +13,8 @@
   "unsaved_confirm": "Sono presenti modifiche alle impostazioni non salvate. Salvarli prima di continuare?",
   "discard_changes": "Scarta",
   "settings_sections": "Sezioni delle impostazioni",
+  "settings_search_label": "Cerca nelle impostazioni",
+  "settings_search_none": "Nessuna impostazione corrispondente",
   "settings_section_connection": "Connessione",
   "settings_section_connection_summary": "Modem, provider e interrogazione",
   "settings_section_sources": "Fonti di misura",

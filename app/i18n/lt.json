@@ -13,6 +13,8 @@
   "unsaved_confirm": "Turite neišsaugotų nustatymų pakeitimų. Išsaugoti juos prieš tęsdami?",
   "discard_changes": "Atmesti",
   "settings_sections": "Nustatymų skyriai",
+  "settings_search_label": "Ieškoti nustatymuose",
+  "settings_search_none": "Atitinkančių nustatymų nėra",
   "settings_section_connection": "Ryšys",
   "settings_section_connection_summary": "Modemas, tiekėjas ir apklausa",
   "settings_section_sources": "Matavimo šaltiniai",

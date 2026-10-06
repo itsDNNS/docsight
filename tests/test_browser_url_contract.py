@@ -27,6 +27,7 @@ EXPECTED_CONTRACT_CALLS = {
     "app/static/js/settings/module-registry.js": 2,
     "app/static/js/settings/navigation.js": 0,
     "app/static/js/settings/notifications.js": 3,
+    "app/static/js/settings/search.js": 0,
     "app/static/js/settings/smart-capture.js": 1,
     "app/static/js/settings/themes.js": 3,
     "app/static/js/settings/tokens.js": 3,

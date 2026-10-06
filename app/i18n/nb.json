@@ -13,6 +13,8 @@
   "unsaved_confirm": "Du har ulagrede innstillingsendringer. Lagre dem før du fortsetter?",
   "discard_changes": "Forkast",
   "settings_sections": "Innstillingsseksjoner",
+  "settings_search_label": "Søk i innstillinger",
+  "settings_search_none": "Ingen innstilling samsvarer",
   "settings_section_connection": "Tilkobling",
   "settings_section_connection_summary": "Modem, leverandør og avlesning",
   "settings_section_sources": "Målekilder",

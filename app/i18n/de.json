@@ -13,6 +13,8 @@
   "unsaved_confirm": "Es gibt ungespeicherte Änderungen. Vor dem Fortfahren speichern?",
   "discard_changes": "Verwerfen",
   "settings_sections": "Einstellungsbereiche",
+  "settings_search_label": "Einstellungen durchsuchen",
+  "settings_search_none": "Keine Einstellung gefunden",
   "settings_section_connection": "Verbindung",
   "settings_section_connection_summary": "Modem, Anbieter und Abfrage",
   "settings_section_sources": "Messquellen",

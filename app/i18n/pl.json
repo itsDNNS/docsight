@@ -13,6 +13,8 @@
   "unsaved_confirm": "Masz niezapisane zmiany ustawień. Zapisać je, zanim będziesz kontynuować?",
   "discard_changes": "Odrzuć",
   "settings_sections": "Sekcje ustawień",
+  "settings_search_label": "Szukaj w ustawieniach",
+  "settings_search_none": "Brak pasujących ustawień",
   "settings_section_connection": "Połączenie",
   "settings_section_connection_summary": "Modem, dostawca i odpytywanie",
   "settings_section_sources": "Źródła pomiarów",
