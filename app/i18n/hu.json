@@ -75,6 +75,7 @@
   "line_status_channel": "Csatorna",
   "line_status_below_target": "{delta} dB a cél alatt",
   "line_status_above_target": "{delta} dB a cél felett",
+  "line_status_modulation_below": "Moduláció a cél alatt",
   "line_status_target": "Cél",
   "line_status_more": "további",
   "line_status_no_deviation": "Nincs eltérés · minden csatorna a célsávban",

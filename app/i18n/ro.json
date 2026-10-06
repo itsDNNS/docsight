@@ -75,6 +75,7 @@
   "line_status_channel": "Canal",
   "line_status_below_target": "{delta} dB sub țintă",
   "line_status_above_target": "{delta} dB peste țintă",
+  "line_status_modulation_below": "Modulație sub țintă",
   "line_status_target": "Țintă",
   "line_status_more": "încă",
   "line_status_no_deviation": "Nicio abatere · toate canalele în intervalul țintă",

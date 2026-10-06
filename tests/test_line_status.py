@@ -1,6 +1,15 @@
 """Home line status view model."""
 
-from app.analyzer import _get_ds_power_thresholds, _get_snr_thresholds, _get_us_power_thresholds
+import pytest
+
+from app.analyzer import (
+    _assess_ds_modulation,
+    _assess_us_modulation,
+    _get_ds_power_thresholds,
+    _get_snr_thresholds,
+    _get_us_power_thresholds,
+    modulation_target,
+)
 from app.line_status import build_line_status
 
 
@@ -77,12 +86,55 @@ def test_low_snr_uses_the_minimum_target():
     assert measurement["delta"] == round(31.0 - limits["good_min"], 1)
 
 
-def test_modulation_only_deviation_has_no_measurement():
+def test_modulation_only_deviation_names_the_modulation_and_its_target():
     status = build_line_status(_analysis([], [_us(2, health="warning", detail="modulation warning", modulation="16QAM")]))
 
     callout = status["directions"][0]["callout"]
     assert callout["measurement"] is None
     assert callout["modulation"] == "16QAM"
+    assert callout["modulation_cause"] == {"value": "16QAM", "health": "warning", "target": "32QAM"}
+
+
+def test_power_and_modulation_deviations_are_both_explained():
+    channel = _ds(7, power=16.0, health="warning", detail="power warning + modulation warning", family="ofdm",
+                  modulation="OFDM")
+    channel.update(docsis_version="3.1", profile_modulation="256QAM", modulation_health="warning")
+    callout = build_line_status(_analysis([channel], []))["directions"][0]["callout"]
+
+    assert callout["measurement"]["metric"] == "power"
+    assert callout["modulation_cause"] == {"value": "256QAM", "health": "warning", "target": "1024QAM"}
+
+
+def test_power_only_deviation_has_no_modulation_cause():
+    status = build_line_status(_analysis([_ds(1, power=16.0, health="warning", detail="power warning")], []))
+
+    assert status["directions"][0]["callout"]["modulation_cause"] is None
+
+
+@pytest.mark.parametrize(("direction", "family", "docsis", "target"), [
+    ("ds", "sc_qam", "3.0", 64),
+    ("ds", "ofdm", "3.1", 1024),
+    ("us", "sc_qam", "3.0", 32),
+    ("us", "ofdma", "3.1", 256),
+])
+def test_modulation_target_is_the_lowest_order_the_scoring_rates_good(direction, family, docsis, target):
+    def rated(order):
+        qam = f"{order}QAM"
+        if direction == "ds":
+            return _assess_ds_modulation(qam, "3.0" if family == "sc_qam" else docsis)
+        probe = {"modulation": "OFDMA", "type": "OFDMA", "profile_modulation": qam} if family == "ofdma" else {"modulation": qam}
+        return _assess_us_modulation(probe, docsis)
+
+    assert modulation_target(direction, {"channel_family": family, "docsis_version": docsis}) == f"{target}QAM"
+    assert rated(target) == "good"
+    assert rated(target // 2) != "good"
+
+
+def test_segments_carry_the_modulation():
+    status = build_line_status(_analysis([_ds(1, modulation="256QAM")], [_us(1, family="ofdma")]))
+
+    assert status["directions"][0]["segments"][0]["modulation"] == "256QAM"
+    assert status["directions"][1]["segments"][0]["modulation"] == "256QAM"
 
 
 def test_worst_deviation_comes_first_and_others_are_counted():

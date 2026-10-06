@@ -75,6 +75,7 @@
   "line_status_channel": "Κανάλι",
   "line_status_below_target": "{delta} dB κάτω από τον στόχο",
   "line_status_above_target": "{delta} dB πάνω από τον στόχο",
+  "line_status_modulation_below": "Διαμόρφωση κάτω από τον στόχο",
   "line_status_target": "Στόχος",
   "line_status_more": "ακόμη",
   "line_status_no_deviation": "Καμία απόκλιση · όλα τα κανάλια εντός στόχου",

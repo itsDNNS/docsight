@@ -32,7 +32,7 @@
         <div class="line-status-strip" role="group"
              aria-label="{{ ls_direction[d.key] }}: {{ d.counts.good }} {{ t.health_good }}, {{ d.counts.tolerated }} {{ t.health_tolerated }}, {{ d.counts.warning }} {{ t.health_marginal }}, {{ d.counts.critical }} {{ t.health_critical }}{% if d.missing_family %}. {{ t.get('line_status_no_ofdma', 'No DOCSIS 3.1/4.0 upstream channel (OFDMA) found · may depend on your plan or equipment') }}{% endif %}">
             {% for seg in d.segments %}
-            {% set seg_label = ls_short[d.key] ~ ' ' ~ seg.channel_id ~ ' · ' ~ seg.family ~ ((' · ' ~ '%.1f'|format(seg.power) ~ ' dBmV') if seg.power is not none else '') ~ ' · ' ~ ls_word[seg.health] %}
+            {% set seg_label = ls_short[d.key] ~ ' ' ~ seg.channel_id ~ ' · ' ~ seg.family ~ ((' · ' ~ seg.modulation) if seg.modulation and seg.modulation != seg.family else '') ~ ((' · ' ~ '%.1f'|format(seg.power) ~ ' dBmV') if seg.power is not none else '') ~ ' · ' ~ ls_word[seg.health] %}
             <button type="button" class="ls-seg ls-{{ seg.health }}{{ ' ls-focus' if c and seg.channel_id == c.channel_id else '' }}"
                     data-direction="{{ d.key }}" data-selector="{{ seg.selector }}" data-channel-id="{{ seg.channel_id }}"
                     aria-expanded="false" aria-controls="ls-detail-{{ d.key }}" tabindex="{{ '0' if loop.first else '-1' }}"
@@ -56,7 +56,7 @@
     {% if c %}
     <div class="line-status-callout ls-{{ c.health }}" style="--ls-anchor: {{ ((d.segments|map(attribute='channel_id')|list).index(c.channel_id) + 0.5) / (d.total + (1 if d.missing_family else 0)) * 100 }}%">
         <div class="ls-callout-what">
-            <span class="ls-callout-label">{{ ls_direction[d.key] }} · {{ t.get('line_status_channel', 'Channel') }} {{ c.channel_id }} · {{ c.family }}</span>
+            <span class="ls-callout-label">{{ ls_direction[d.key] }} · {{ t.get('line_status_channel', 'Channel') }} {{ c.channel_id }} · {{ c.family }}{% if c.modulation and c.modulation != c.family %} · {{ c.modulation }}{% endif %}</span>
             {% if c.measurement %}
             <span class="ls-callout-value num">{{ '%.1f'|format(c.measurement.value) }} <small>{{ c.measurement.unit }}</small></span>
             {% else %}
@@ -81,6 +81,16 @@
                 {% if m.target_max is not none %}{{ t.get('line_status_target', 'Target') }} {{ '%.1f'|format(m.target_min) }}–{{ '%.1f'|format(m.target_max) }} {{ m.unit }}
                 {% else %}{{ t.get('line_status_target', 'Target') }} ≥ {{ '%.1f'|format(m.target_min) }} {{ m.unit }}{% endif %}
             </div>
+        </div>
+        {% endif %}
+        {% set mc = c.modulation_cause %}
+        {% if mc %}
+        <div class="ls-callout-modulation ls-{{ mc.health }}">
+            <div class="ls-callout-delta">
+                <span class="ls-shape ls-shape-{{ mc.health }}" aria-hidden="true"></span>
+                {{ t.get('line_status_modulation_below', 'Modulation below target') }}
+            </div>
+            {% if mc.target %}<div class="ls-callout-target">{{ t.get('line_status_target', 'Target') }} ≥ {{ mc.target }}</div>{% endif %}
         </div>
         {% endif %}
     </div>

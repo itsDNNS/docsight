@@ -75,6 +75,7 @@
   "line_status_channel": "Kanal",
   "line_status_below_target": "{delta} dB unter Soll",
   "line_status_above_target": "{delta} dB über Soll",
+  "line_status_modulation_below": "Modulation unter Soll",
   "line_status_target": "Soll",
   "line_status_more": "weitere",
   "line_status_no_deviation": "Keine Abweichung · alle Kanäle im Sollbereich",

@@ -75,6 +75,7 @@
   "line_status_channel": "Kanal",
   "line_status_below_target": "{delta} dB under målet",
   "line_status_above_target": "{delta} dB över målet",
+  "line_status_modulation_below": "Modulering under målet",
   "line_status_target": "Mål",
   "line_status_more": "fler",
   "line_status_no_deviation": "Ingen avvikelse · alla kanaler inom målet",
