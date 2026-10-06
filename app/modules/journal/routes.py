@@ -1,5 +1,6 @@
 """Journal and incident management routes."""
 
+from app.i18n import get_translations
 from app.runtime import current_runtime
 from app.tz import valid_date, localize_timestamps, get_tz_name
 from app.web_locale import get_lang
@@ -28,6 +29,10 @@ log = logging.getLogger("docsis.web")
 bp = Blueprint("journal_bp", __name__)
 
 _VALID_INCIDENT_STATUSES = {"open", "resolved", "escalated"}
+ICON_KEYWORD_CATEGORIES = (
+    "phone", "technician", "outage", "mail", "complaint", "contract",
+    "measurement", "authority", "billing", "hardware", "documentation", "legal",
+)
 
 
 def _get_journal_storage():
@@ -39,6 +44,28 @@ def _get_journal_storage():
 
 
 # ── Journal Entries API ──
+
+
+@bp.route("/api/journal/icon-keywords", methods=["GET"])
+@require_auth
+def api_journal_icon_keywords():
+    """Keywords for automatic entry icons in the UI language, English and German.
+
+    Entries are often written or imported in another language than the UI, so
+    English and German keywords always apply as well.
+    """
+    languages = list(dict.fromkeys((get_lang(), "en", "de")))
+    keywords = {}
+    for category in ICON_KEYWORD_CATEGORIES:
+        words = []
+        for lang in languages:
+            raw = get_translations(lang).get(f"docsight.journal.icon_keywords_{category}", "")
+            for word in raw.split(","):
+                word = word.strip().lower()
+                if word and word not in words:
+                    words.append(word)
+        keywords[category] = words
+    return jsonify(keywords)
 
 @bp.route("/api/journal", methods=["GET"])
 @require_auth
