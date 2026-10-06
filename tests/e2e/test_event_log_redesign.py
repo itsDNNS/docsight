@@ -148,7 +148,7 @@ def test_extra_lines_open_in_place_without_repeating_the_summary(demo_page):
     expect(channel).to_be_hidden()
     toggle.click()
     expect(toggle).to_have_attribute("aria-expanded", "true")
-    expect(channel).to_have_text("DS Ch 13 · 746 MHz")
+    expect(channel).to_have_text("DS Kanal 13 · 746 MHz")
     assert toggle.inner_text().count("32,4") == 1
     expect(snr.locator(".ev-detail")).to_have_count(0)
 

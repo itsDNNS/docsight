@@ -1515,7 +1515,7 @@ function _renderTimelineTable(data) {
             var hLabel = healthLabels[e.health] || e.health;
             details = '<span class="st-health-badge health-' + (e.health || 'unknown') + '">' + hLabel + '</span>';
             details += ' SNR ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : '-');
-            details += ' | Power ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '-');
+            details += ' | ' + (T.event_power || 'Power') + ' ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '-');
             if (e.ds_uncorrectable_errors != null) {
                 details += ' | ' + (T.correlation_tt_errors || 'Errors') + ' ' + e.ds_uncorrectable_errors;
             }
@@ -1525,7 +1525,7 @@ function _renderTimelineTable(data) {
             if (e.ping_ms) details += ' | Ping ' + e.ping_ms + ' ms';
         } else if (e.source === 'event') {
             srcBadge = '<span class="timeline-source-badge timeline-source-badge-event">' + (T.timeline_source_event || 'Event') + '</span>';
-            details = escapeHtml(e.message || '');
+            details = typeof formatEventMessage === 'function' ? formatEventMessage(e) : escapeHtml(e.message || '');
         }
 
         tHtml += '<tr><td style="white-space:nowrap;font-size:max(var(--fs-min), 0.82em);">' + ts + '</td>';
@@ -1536,6 +1536,8 @@ function _renderTimelineTable(data) {
 
     tHtml += '</tbody></table>';
     div.innerHTML = tHtml;
+    // Event messages carry arrow icons.
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function renderContainerIconPicker(selectedLabel) {

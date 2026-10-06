@@ -1255,7 +1255,7 @@ function _setupCorrelationTooltip(overlay, octx) {
             }
         }
         if (nearestEvent && _corrVisible.events) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + escapeHtml(nearestEvent.message || nearestEvent.severity || '') + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + escapeHtml(typeof _eventTypeLabel === 'function' ? _eventTypeLabel(nearestEvent.event_type) : (nearestEvent.event_type || nearestEvent.severity || '')) + '</div>';
         }
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + fmtTemp(nearestWeather.temperature) + '</div>';
@@ -1669,7 +1669,7 @@ function renderCorrelationTable(data) {
             var eventSeverity = CorrelationData.normalizeSeverity(e);
             var sevColor = eventSeverity === 'critical' ? 'var(--crit)' : eventSeverity === 'warning' ? 'var(--warn)' : 'var(--muted)';
             src = '<span style="color:' + sevColor + ';">' + escapeHtml(sevLabels[eventSeverity] || eventSeverity) + '</span>';
-            msg = escapeHtml(e.message || '');
+            msg = typeof formatEventMessage === 'function' ? formatEventMessage(e) : escapeHtml(e.message || '');
             details = escapeHtml(typeLabels[e.event_type] || e.event_type || '');
         }
 
@@ -1707,4 +1707,6 @@ function renderCorrelationTable(data) {
         tbody.appendChild(tr);
         count++;
     }
+    // Event messages carry arrow icons.
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
