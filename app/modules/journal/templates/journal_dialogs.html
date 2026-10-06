@@ -1,6 +1,6 @@
 <!-- ═══ Entry Modal ═══ -->
 <dialog class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
-    <div class="modal entry-modal-panel">
+    <div class="modal">
         <div class="modal-header">
             <div class="entry-modal-heading">
                 <span id="entry-modal-icon" class="incident-modal-icon"></span>
@@ -49,21 +49,19 @@
                        accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain">
             </div>
         </div>
-        <div class="incident-modal-footer">
-            <div class="modal-footer-left">
+        <div class="modal-footer">
+            <div class="modal-footer-start">
                 <button class="btn btn-danger" id="entry-delete-btn" data-action="deleteEntry" hidden>{{ t.delete_incident }}</button>
             </div>
-            <div class="journal-modal-actions">
-                <button class="btn btn-secondary" data-action="closeEntryModal">{{ t.cancel }}</button>
-                <button class="btn btn-primary" id="entry-save-btn" data-action="saveEntry">{{ t.get('entry_create_action', 'Create entry') }}</button>
-            </div>
+            <button class="btn btn-secondary" data-action="closeEntryModal">{{ t.cancel }}</button>
+            <button class="btn btn-primary" id="entry-save-btn" data-action="saveEntry">{{ t.get('entry_create_action', 'Create entry') }}</button>
         </div>
     </div>
 </dialog>
 
 <!-- ═══ Incident Container Modal ═══ -->
 <dialog class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title">
-    <div class="modal incident-container-modal">
+    <div class="modal incident-container-panel">
         <div class="modal-header">
             <h2 id="incident-container-modal-title"></h2>
             <button class="modal-close" data-action="closeIncidentModal" aria-label="{{ t.close }}">&times;</button>
@@ -116,21 +114,19 @@
                 <p class="incident-field-hint">{{ t.get('incident_empty_evidence_hint', 'Assign journal entries, screenshots, modem snapshots, BQM images, Speedtest results, or SmokePing charts as the incident develops.') }}</p>
             </div>
         </div>
-        <div class="incident-modal-footer">
-            <div class="modal-footer-left">
+        <div class="modal-footer">
+            <div class="modal-footer-start">
                 <button class="btn btn-danger" id="incident-container-delete-btn" data-action="deleteIncident" hidden>{{ t.delete_incident }}</button>
             </div>
-            <div class="journal-modal-actions">
-                <button class="btn btn-secondary" data-action="closeIncidentModal">{{ t.cancel }}</button>
-                <button class="btn btn-primary" id="incident-container-save-btn" data-action="saveIncident">{{ t.get('incident_create_action', 'Create incident') }}</button>
-            </div>
+            <button class="btn btn-secondary" data-action="closeIncidentModal">{{ t.cancel }}</button>
+            <button class="btn btn-primary" id="incident-container-save-btn" data-action="saveIncident">{{ t.get('incident_create_action', 'Create incident') }}</button>
         </div>
     </div>
 </dialog>
 
 <!-- ═══ Import Modal ═══ -->
 <dialog class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
-    <div class="modal import-modal-panel">
+    <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="import-modal-title">{{ t.import_incidents }}</h2>
             <button class="modal-close" data-action="closeImportModal" aria-label="{{ t.close }}">&times;</button>
@@ -177,12 +173,9 @@
                 </div>
             </div>
         </div>
-        <div class="incident-modal-footer" id="import-footer" hidden>
-            <div class="modal-footer-left"></div>
-            <div class="journal-modal-actions">
-                <button class="btn btn-secondary" data-action="closeImportModal">{{ t.cancel }}</button>
-                <button class="btn btn-primary" id="import-confirm-btn" data-action="confirmImport">{{ t.import_selected }}</button>
-            </div>
+        <div class="modal-footer" id="import-footer" hidden>
+            <button class="btn btn-secondary" data-action="closeImportModal">{{ t.cancel }}</button>
+            <button class="btn btn-primary" id="import-confirm-btn" data-action="confirmImport">{{ t.import_selected }}</button>
         </div>
     </div>
 </dialog>

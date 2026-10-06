@@ -94,13 +94,11 @@
 </div>
 
 <!-- ═══ Directory Browser Modal ═══ -->
-<dialog id="browse-modal" class="browse-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="browse-modal-title" aria-describedby="browse-status">
-    <div class="browse-modal">
-        <div class="browse-modal-header">
-            <h3 id="browse-modal-title">{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h3>
-            <button type="button" class="btn-icon" data-action="closeBrowseModal" aria-label="{{ t.close or 'Close' }}">
-                <i data-lucide="x" aria-hidden="true"></i>
-            </button>
+<dialog id="browse-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="browse-modal-title" aria-describedby="browse-status">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="browse-modal-title">{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h2>
+            <button type="button" class="modal-close" data-action="closeBrowseModal" aria-label="{{ t.close or 'Close' }}">&times;</button>
         </div>
         <div class="browse-modal-summary">
             <span>{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</span>
@@ -108,10 +106,10 @@
         </div>
         <div id="browse-status" class="browse-modal-status" role="status" aria-live="polite"></div>
         <div id="browse-breadcrumb" class="browse-modal-path"></div>
-        <div id="browse-dirs" class="browse-modal-body" tabindex="0"></div>
-        <div class="browse-modal-footer">
+        <div id="browse-dirs" class="modal-body browse-modal-body" tabindex="0"></div>
+        <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-action="closeBrowseModal">{{ t.cancel }}</button>
-            <button type="button" class="btn btn-primary btn-sm" data-action="selectBrowsePath">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
+            <button type="button" class="btn btn-primary" data-action="selectBrowsePath">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
         </div>
     </div>
 </dialog>

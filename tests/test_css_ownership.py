@@ -37,6 +37,12 @@ TABLES_WITHOUT_COMPONENT = {
     ("app/modules/connection_monitor/static/js/connection-monitor-charts.js", "cm-target-table"),
 }
 
+# The dialog: overlay, panel and its parts.
+DIALOG_RULE = re.compile(r"(?m)^\s*\.modal(?:-overlay|-wide|-header|-close|-hint|-body|-footer(?:-start)?)?(?![\w-])[^{,]*[{,]")
+
+# Dialogs that are not standard dialogs on purpose: the chart zoom fills the screen with a chart.
+DIALOGS_WITHOUT_COMPONENT = {"chart-zoom-overlay"}
+
 # The save bar.
 SAVE_BAR_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.save-bar(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
 
@@ -205,3 +211,37 @@ def test_every_css_variable_in_use_is_defined():
         for name in re.findall(r"var\((--[A-Za-z0-9-]+)", text):
             used.setdefault(name, set()).add(path)
     assert {name: sorted(paths) for name, paths in used.items() if name not in defined} == {}
+
+
+def test_the_dialog_is_defined_only_in_the_component_stylesheet():
+    offenders = [
+        f"{path}: {match.group(0).strip()}"
+        for path in _stylesheets() if path != OWNER
+        for match in DIALOG_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
+    ]
+    assert offenders == []
+    assert DIALOG_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
+
+
+def test_dialogs_use_the_dialog_component():
+    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    dialogs = []
+    for path in tracked.split():
+        if not path.endswith((".html", ".js")) or "/vendor/" in path:
+            continue
+        text = (ROOT / path).read_text(encoding="utf-8")
+        # Real dialog elements carry attributes; a bare "<dialog>" is prose in a comment.
+        dialogs += [(path, tag) for tag in re.findall(r"<dialog\s[^>]+>", text)]
+        if "createElement('dialog')" in text:
+            dialogs += [(path, f'class="{name}"') for name in re.findall(r"dialog\.className\s*=\s*'([^']*)'", text)]
+    assert dialogs
+
+    def classes(tag):
+        found = re.search(r'class="([^"]*)"', tag)
+        return found.group(1).split() if found else []
+
+    offenders = [
+        (path, tag) for path, tag in dialogs
+        if "modal-overlay" not in classes(tag) and not DIALOGS_WITHOUT_COMPONENT & set(classes(tag))
+    ]
+    assert offenders == []

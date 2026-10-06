@@ -1614,14 +1614,14 @@
 
 <!-- Report Modal -->
 <dialog class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" data-dialog-close="closeReportModal">
-    <div class="modal report-modal-panel">
+    <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="report-modal-title">{{ t.get('report_builder_title', 'ISP-ready evidence package') }}</h2>
             <button class="modal-close" data-action="closeReportModal" aria-label="{{ t.close }}">&times;</button>
         </div>
         <p class="modal-hint">{{ t.get('report_builder_intro', 'Build a local evidence package for ISP support or complaint escalation.') }}</p>
         <div id="report-builder-status" class="report-builder-status" role="status" aria-live="polite"></div>
-        <div class="modal-body report-modal-body">
+        <div class="modal-body">
             <!-- Step 1: Settings & Customer Info -->
             <div id="report-step1">
                 <section id="report-fixed-scope" class="report-fixed-scope" aria-labelledby="report-fixed-period-title" hidden>

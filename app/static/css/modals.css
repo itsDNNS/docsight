@@ -1,4 +1,4 @@
-/* modals.css — Shared Modal/Dialog System */
+/* modals.css — dialog content (the dialog itself lives in components.css) */
 
 /* ── Chart Zoom Modal ── */
 .chart-zoom-overlay {
@@ -39,11 +39,6 @@
     align-items: center;
     margin-bottom: var(--space-sm);
 }
-.chart-zoom-modal .modal-header h2 {
-    font-size: 1.1em;
-    color: var(--amethyst-light, var(--accent));
-    margin: 0;
-}
 .chart-zoom-modal > div:last-child {
     flex: 1;
     min-height: 0;
@@ -57,98 +52,6 @@
     font-size: max(var(--fs-min), 0.95em);
 }
 
-
-/* ── Shared Modal ── */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    width: 100vw;
-    height: 100vh;
-    max-width: none;
-    max-height: none;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    overflow: visible;
-}
-.modal-overlay[open] { display: flex; }
-.modal-overlay::backdrop { background: var(--overlay); }
-
-.modal {
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border-radius: var(--radius-md);
-    padding: var(--space-lg);
-    max-width: 720px;
-    width: 90%;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-lg);
-    box-sizing: border-box;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-sm);
-}
-.modal-header h2 {
-    font-size: 1.2em;
-    color: var(--amethyst-light, var(--accent));
-    margin: 0;
-    font-weight: 600;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 1.4em;
-    cursor: pointer;
-    line-height: 1;
-    padding: var(--space-xs);
-    border-radius: var(--radius-sm);
-    transition: color 0.2s var(--ease-out-expo);
-}
-.modal-header > .modal-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
-}
-.modal-close:hover {
-    color: var(--amethyst-light, var(--accent));
-}
-.modal-close:active {
-    opacity: 0.7;
-}
-.modal-close:focus-visible {
-    outline: 2px solid var(--amethyst);
-    outline-offset: 2px;
-}
-
-.modal-hint {
-    font-size: max(var(--fs-min), 0.85em);
-    color: var(--muted);
-    margin-bottom: var(--space-sm);
-}
-
-.modal-body {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-    margin-bottom: var(--space-sm);
-}
 
 /* ── Report evidence builder ── */
 .report-builder-status {
@@ -283,8 +186,6 @@
     font-size: max(var(--fs-min), 0.86em);
 }
 .report-supporting-note { margin-top: var(--space-xs); }
-.modal.report-modal-panel { max-width: 800px; }
-.modal-body.report-modal-body { padding: 10px 0; }
 .report-options {
     display: flex;
     gap: 16px;
@@ -322,18 +223,6 @@
     width: 100%;
 }
 @media (max-width: 720px) {
-    .modal {
-        width: calc(100% - 24px);
-        max-height: calc(100vh - 24px);
-        padding: var(--space-md);
-    }
-    .modal-footer {
-        flex-wrap: wrap;
-    }
-    .modal-footer .btn {
-        min-width: 0;
-        white-space: normal;
-    }
     .report-builder-preview,
     .report-fixed-scope { grid-template-columns: 1fr; }
     .report-period-card,
@@ -456,20 +345,6 @@
     color: var(--amethyst-light);
 }
 
-/* Confirm dialog built by modals.js */
-.modal.docsight-confirm-modal { max-width: 520px; }
-.docsight-confirm-actions { display: flex; gap: 10px; }
-
-/* ── Modal Footer ── */
-.modal-footer {
-    display: flex;
-    gap: var(--space-sm);
-    justify-content: flex-end;
-    margin-top: var(--space-md);
-}
-
-
-
 .import-browse-btn {
     margin-top: var(--space-sm, 8px);
 }
@@ -506,16 +381,6 @@
 }
 
 /* ── Guided integration setup modals ── */
-.setup-guide-modal {
-    max-width: 920px;
-}
-.setup-guide-modal .modal-body {
-    padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
-}
-.setup-guide-modal .modal-footer {
-    flex-wrap: wrap;
-    align-items: stretch;
-}
 .setup-guide-body {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -575,14 +440,5 @@
         white-space: pre-wrap;
         overflow-wrap: anywhere;
         word-break: break-word;
-    }
-    .setup-guide-modal .modal-footer {
-        justify-content: stretch;
-    }
-    .setup-guide-modal .modal-footer .btn {
-        flex: 1 1 100%;
-        min-width: 0;
-        white-space: normal;
-        text-align: center;
     }
 }
