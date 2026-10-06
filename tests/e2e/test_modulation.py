@@ -254,6 +254,25 @@ class TestModulationControls:
             assert item["ticks"] < item["samples"], item
             assert item["ticks"] <= 8, item
 
+        # Y axes are wide enough for their widest label ("100%"), so nothing is clipped.
+        y_axes = self.page.evaluate(
+            """
+            () => (window._modCharts || []).flatMap((chart) => chart.axes.slice(1).map((axis) => {
+                const ctx = chart.ctx;
+                ctx.font = axis.font[0];
+                const widths = (axis._values || []).map((v) => ctx.measureText(String(v)).width / devicePixelRatio);
+                return {
+                    size: axis._size,
+                    need: Math.ceil(Math.max(0, ...widths) + axis.ticks.size + axis.gap),
+                    labels: (axis._values || []).map(String),
+                };
+            }))
+            """
+        )
+        assert y_axes
+        for axis in y_axes:
+            assert axis["size"] >= axis["need"], axis
+
     def test_switch_direction_then_back(self):
         ds = self.page.locator('#modulation-direction-tabs .segmented-option[data-dir="ds"]')
         us = self.page.locator('#modulation-direction-tabs .segmented-option[data-dir="us"]')
