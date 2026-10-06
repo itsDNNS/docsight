@@ -432,8 +432,11 @@ button.notification-collapse-button {
 
 /* ─── Cooldown Table ─── */
 .cooldown-table td { vertical-align: middle; }
-.cooldown-table { --dt-lead-width: 64px; }
 .cooldown-table tbody tr { align-items: center; }
+@media (max-width: 640px) {
+  /* The toggle is wider than the expand buttons the list lead is sized for. */
+  .cooldown-table.data-table-list tbody tr:has(> td.dt-lead) { padding-left: 64px; }
+}
 .cooldown-table .event-name {
   font-weight: 500;
   display: flex;

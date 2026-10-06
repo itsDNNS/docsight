@@ -273,7 +273,7 @@ body {
   .data-table-list td.dt-primary { order: -1; font-size: max(var(--fs-min), 0.875rem); }
   .data-table-list td.dt-primary::before { content: none; }
   .data-table-list td.dt-primary ~ td.dt-primary { margin-left: auto; font-weight: 600; }
-  .data-table-list tbody tr:has(> td.dt-lead) { position: relative; padding-left: var(--dt-lead-width, 44px); }
+  .data-table-list tbody tr:has(> td.dt-lead) { position: relative; padding-left: 44px; }
   .data-table-list td.dt-lead { position: absolute; top: 50%; left: 6px; transform: translateY(-50%); }
   .data-table-list td:empty { display: none; }
 }
