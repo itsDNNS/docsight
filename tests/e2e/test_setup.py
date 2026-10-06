@@ -1,6 +1,7 @@
 """E2E tests for the demo-first setup experience and modem wizard."""
 
 import os
+import re
 import pytest
 from playwright.sync_api import expect
 
@@ -60,9 +61,9 @@ class TestSetupPageLoad:
 
 
 class TestSetupStartHierarchy:
-    """The local demo is the positive path; connection and restore remain available."""
+    """Connecting the modem is the main path; the demo and restore remain available below it."""
 
-    def test_demo_is_primary_and_full_width(self, setup_page):
+    def test_connect_is_primary_and_full_width(self, setup_page):
         card = setup_page.locator(".first-run-card")
         demo = setup_page.locator("#start-demo-btn")
         connect = setup_page.locator("#connect-modem-btn")
@@ -72,8 +73,10 @@ class TestSetupStartHierarchy:
         expect(demo).to_be_visible()
         expect(connect).to_be_visible()
         expect(restore).to_be_visible()
-        assert abs(demo.bounding_box()["width"] - card.bounding_box()["width"]) < 60
-        assert demo.bounding_box()["y"] < connect.bounding_box()["y"] < restore.bounding_box()["y"]
+        expect(connect).to_have_class(re.compile(r"\bbtn-primary\b"))
+        expect(demo).not_to_have_class(re.compile(r"\bbtn-primary\b"))
+        assert abs(connect.bounding_box()["width"] - card.bounding_box()["width"]) < 60
+        assert connect.bounding_box()["y"] < demo.bounding_box()["y"] < restore.bounding_box()["y"]
 
     def test_click_connect_modem_shows_stepper(self, setup_page):
         setup_page.locator("#connect-modem-btn").click()
