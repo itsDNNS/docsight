@@ -4,6 +4,7 @@
   "mqtt_desc": "Na prepojenie s Home Assistant cez MQTT Auto-Discovery. Bez MQTT beží iba webové rozhranie.",
   "mqtt_optional_ha": "voliteľné – pre Home Assistant",
   "mqtt_tls_insecure": "Nezabezpečené TLS",
+  "mqtt_tls_insecure_hint": "Preskočiť overenie certifikátu TLS",
   "username_opt": "Používateľské meno (voliteľné)",
   "password_opt": "Heslo (voliteľné)",
   "topic_prefix": "Prefix topicu",

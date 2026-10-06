@@ -475,7 +475,7 @@ function importBqmCsv() {
     var btn = document.getElementById('bqm-csv-import-btn');
     var status = document.getElementById('bqm-csv-import-status');
     if (btn) btn.disabled = true;
-    if (status) { status.textContent = 'Importing...'; status.className = 'bqm-csv-status'; }
+    if (status) { status.textContent = T.bqm_csv_importing || 'Importing…'; status.className = 'bqm-csv-status'; }
 
     var formData = new FormData();
     formData.append('file', input.files[0]);
@@ -484,7 +484,7 @@ function importBqmCsv() {
         .then(function(r) {
             var ct = r.headers.get('content-type') || '';
             if (ct.indexOf('json') === -1) {
-                throw new Error('Upload failed (HTTP ' + r.status + ')');
+                throw new Error((T.bqm_upload_failed || 'Upload failed (HTTP {0})').replace('{0}', r.status));
             }
             return r.json();
         })
@@ -493,14 +493,16 @@ function importBqmCsv() {
                 if (status) { status.textContent = data.error; status.className = 'bqm-csv-status error'; }
             } else {
                 if (status) {
-                    status.textContent = data.parsed_rows + ' rows imported (' + data.days + ' days, ' + data.date_range.start + ' to ' + data.date_range.end + ')';
+                    status.textContent = (T.bqm_csv_import_result || '{0} rows imported ({1} days, {2} to {3})')
+                        .replace('{0}', data.parsed_rows).replace('{1}', data.days)
+                        .replace('{2}', data.date_range.start).replace('{3}', data.date_range.end);
                     status.className = 'bqm-csv-status ok';
                 }
                 fetchBqmDates(function() { renderBqmCalendar(_bqmCalYear, _bqmCalMonth); });
             }
         })
         .catch(function(err) {
-            if (status) { status.textContent = 'Error: ' + err.message; status.className = 'bqm-csv-status error'; }
+            if (status) { status.textContent = (T.error_prefix || 'Error') + ': ' + err.message; status.className = 'bqm-csv-status error'; }
         })
         .finally(function() {
             if (btn) btn.disabled = false;

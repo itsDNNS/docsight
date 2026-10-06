@@ -513,8 +513,10 @@ def test_index_template_exposes_honest_offline_state_and_scoped_pwa_lifecycle():
     assert 'id="offline-status-banner"' in template
     assert "updateOfflineStatus" in dashboard
     assert "enable-sw-test" in contracts
-    assert "read-only" in template.lower()
-    assert "last-known" in template.lower()
+    offline_text = json.loads((ROOT / "app/i18n/en.json").read_text(encoding="utf-8"))["offline_banner_text"]
+    assert "{{ t.offline_banner_text }}" in template
+    assert "read-only" in offline_text.lower()
+    assert "last-known" in offline_text.lower()
     assert "__DOCSIGHT_OFFLINE_SHELL__" in dashboard
     assert 'meta[name="docsight-offline-shell"][content="true"]' in dashboard
     assert '<meta name="docsight-offline-shell" content="true">' in service_worker

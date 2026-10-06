@@ -148,7 +148,7 @@ function loadBackupList() {
             delBtn.type = 'button';
             delBtn.className = 'btn btn-secondary';
             delBtn.style.cssText = 'padding:2px 8px;font-size:max(var(--fs-min), 0.75em);';
-            var deleteLabel = ((T.backup_delete || T.bqm_delete || 'Delete backup') + ' ' + b.filename).trim();
+            var deleteLabel = ((T.backup_delete || 'Delete backup') + ' ' + b.filename).trim();
             delBtn.setAttribute('data-filename', b.filename);
             delBtn.setAttribute('aria-label', deleteLabel);
             delBtn.setAttribute('title', deleteLabel);

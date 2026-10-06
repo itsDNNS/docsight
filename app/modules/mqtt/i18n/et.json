@@ -4,6 +4,7 @@
   "mqtt_desc": "Home Assistantiga sidumiseks MQTT Auto-Discovery kaudu. Ilma MQTT-ta töötab ainult veebiliides.",
   "mqtt_optional_ha": "valikuline – Home Assistanti jaoks",
   "mqtt_tls_insecure": "Ebaturvaline TLS",
+  "mqtt_tls_insecure_hint": "Jäta TLS-sertifikaadi kontroll vahele",
   "username_opt": "Kasutajanimi (valikuline)",
   "password_opt": "Parool (valikuline)",
   "topic_prefix": "Topicu eesliide",

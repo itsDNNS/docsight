@@ -445,13 +445,13 @@ function renderAttachments(attachments, container, incidentId) {
         var download = document.createElement('a');
         download.href = attachmentUrl;
         download.download = '';
-        download.title = 'Download';
+        download.title = T.download || 'Download';
         download.textContent = '\u2B07';
         actions.appendChild(download);
 
         var deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
-        deleteBtn.title = 'Delete';
+        deleteBtn.title = T.delete || 'Delete';
         deleteBtn.textContent = '\uD83D\uDDD1';
         deleteBtn.addEventListener('click', function() {
             deleteAttachment(att.id, incidentId);
@@ -1482,8 +1482,8 @@ function _renderTimelineTable(data) {
     tHtml += '</div>';
     tHtml += '<table><thead><tr>';
     tHtml += '<th>' + (T.timestamp || 'Timestamp') + '</th>';
-    tHtml += '<th>Source</th>';
-    tHtml += '<th>Details</th>';
+    tHtml += '<th>' + (T.source || 'Source') + '</th>';
+    tHtml += '<th>' + (T.event_details || 'Details') + '</th>';
     tHtml += '</tr></thead><tbody>';
 
     // Show newest first, limit to 200

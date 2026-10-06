@@ -4,6 +4,7 @@
   "mqtt_desc": "For integrasjon med Home Assistant via MQTT Auto-Discovery. Uten MQTT kjører bare nettgrensesnittet.",
   "mqtt_optional_ha": "valgfritt – for Home Assistant",
   "mqtt_tls_insecure": "Usikker TLS",
+  "mqtt_tls_insecure_hint": "Hopp over kontroll av TLS-sertifikat",
   "username_opt": "Brukernavn (valgfritt)",
   "password_opt": "Passord (valgfritt)",
   "topic_prefix": "Topic-prefiks",

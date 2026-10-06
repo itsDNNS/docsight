@@ -4,6 +4,7 @@
   "mqtt_desc": "Chun comhtháthú le Home Assistant trí MQTT Auto-Discovery. Gan MQTT ní ritheann ach an comhéadan gréasáin.",
   "mqtt_optional_ha": "roghnach – do Home Assistant",
   "mqtt_tls_insecure": "TLS neamhshlán",
+  "mqtt_tls_insecure_hint": "Scipeáil fíorú an teastais TLS",
   "username_opt": "Ainm úsáideora (roghnach)",
   "password_opt": "Pasfhocal (roghnach)",
   "topic_prefix": "Réimír topaice",

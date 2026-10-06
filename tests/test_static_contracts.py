@@ -558,60 +558,73 @@ def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
     assert offenders == []
 
 
-# Lookups that still fall back to template or script defaults. The follow-up
-# that adds the setup guide texts removes these entries; the list may only shrink.
-KNOWN_UNRESOLVED_MODULE_LOOKUPS = {
-    ("bqm", "delete"),
-    ("bqm", "setup_configure_title"),
-    ("bqm", "setup_requirements_title"),
-    ("bqm", "setup_validate_source"),
-    ("bqm", "setup_validate_title"),
-    ("bqm", "setup_why_title"),
-    ("connection_monitor", "docsight.connection_monitor.cm_pin_this_day"),
-    ("speedtest", "setup_configure_title"),
-    ("speedtest", "setup_requirements_title"),
-    ("speedtest", "setup_validate_title"),
-    ("speedtest", "setup_why_title"),
-    ("speedtest", "speedtest_setup_configure_text"),
-    ("speedtest", "speedtest_setup_copy_command"),
-    ("speedtest", "speedtest_setup_guided_intro"),
-    ("speedtest", "speedtest_setup_guided_title"),
-    ("speedtest", "speedtest_setup_open_settings"),
-    ("speedtest", "speedtest_setup_requirement_api"),
-    ("speedtest", "speedtest_setup_requirement_url"),
-    ("speedtest", "speedtest_setup_test_guidance"),
-    ("speedtest", "speedtest_setup_validate_text"),
-}
 JS_TRANSLATION_LOOKUP_RE = re.compile(r"\bT\.([A-Za-z_]\w*)|\bT\[\s*['\"]([^'\"]+)['\"]\s*\]")
 TEMPLATE_TRANSLATION_LOOKUP_RE = re.compile(
     r"\bt\.get\(\s*['\"]([^'\"]+)['\"]|\bt\[\s*['\"]([^'\"]+)['\"]\s*\]|\bt\.(?!get\b)([a-z_]\w*)"
 )
 
 
-def test_module_translation_lookups_resolve_to_catalog_keys() -> None:
-    """Module templates and scripts only look up keys that a catalog defines."""
+def test_translation_lookups_resolve_to_catalog_keys() -> None:
+    """Templates and scripts only look up keys that a catalog defines."""
     known = set(read_json(APP_I18N_DIR / "en.json"))
     for catalog in MODULES.glob("*/i18n/en.json"):
         module_id = read_json(catalog.parents[1] / "manifest.json")["id"]
         for key in read_json(catalog):
             known.update({key, f"{module_id}.{key}"})
 
-    unresolved = set()
-    for module_dir in sorted(path for path in MODULES.iterdir() if path.is_dir()):
-        for path in module_dir.rglob("*"):
-            if path.suffix == ".js":
-                pattern = JS_TRANSLATION_LOOKUP_RE
-            elif path.suffix == ".html":
-                pattern = TEMPLATE_TRANSLATION_LOOKUP_RE
-            else:
-                continue
-            for match in pattern.finditer(path.read_text(encoding="utf-8")):
-                key = next(group for group in match.groups() if group)
-                if key not in known:
-                    unresolved.add((module_dir.name, key))
+    def resolves(key: str) -> bool:
+        if key.endswith("_"):  # dynamic suffix, e.g. 'notice_severity_' ~ severity
+            return any(candidate.startswith(key) for candidate in known)
+        return key in known
 
-    assert unresolved - KNOWN_UNRESOLVED_MODULE_LOOKUPS == set()
-    assert KNOWN_UNRESOLVED_MODULE_LOOKUPS - unresolved == set()
+    sources = [*MODULES.rglob("*.js"), *MODULES.rglob("*.html"), *(STATIC / "js").rglob("*.js"), *TEMPLATES.rglob("*.html")]
+    unresolved = set()
+    for path in sources:
+        pattern = JS_TRANSLATION_LOOKUP_RE if path.suffix == ".js" else TEMPLATE_TRANSLATION_LOOKUP_RE
+        for match in pattern.finditer(path.read_text(encoding="utf-8")):
+            key = next(group for group in match.groups() if group)
+            if not resolves(key):
+                unresolved.add(f"{path.relative_to(ROOT)}: {key}")
+
+    assert sorted(unresolved) == []
+
+
+# Visible template text that is the same in every language: units, product and
+# protocol names, and German legal sources quoted by the German-only TKG module.
+UNTRANSLATED_TEMPLATE_TEXT = {
+    "BNetzA", "Breitbandmessung", "Bundesnetzagentur", "CSV", "DOCSIS", "DOCSight", "DOCSight -", "Desktop Preview:",
+    "GitHub", "Host", "JSON", "MHz", "Markdown", "PNG", "Port", "Smokeping", "ThinkBroadband BQM", "Verbraucherzentrale",
+    "· DOCSIS", "— Abs. 4", "— Dennis",
+}
+TEMPLATE_JINJA_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.S)
+TEMPLATE_UNIT_TEXT_RE = re.compile(r"^[\s/·()%,:.Ø-]*(?:(?:dBmV|dB|SNR|MER|MBit/s|Mbit/s|Min|Max|min|max|s)[\s/·()%,:.Ø-]*)+$")
+
+
+def test_templates_have_no_hardcoded_visible_text() -> None:
+    """Visible template text and labelling attributes come from the catalogs."""
+    offenders = []
+    for path in sorted([*TEMPLATES.rglob("*.html"), *MODULES.rglob("*.html")]):
+        markup = TEMPLATE_JINJA_RE.sub(" ", path.read_text(encoding="utf-8"))
+        soup = BeautifulSoup(markup, "html.parser")
+        for node in soup.find_all(string=True):
+            if node.parent.name in {"[document]", "script", "style", "code", "pre", "option"}:
+                continue
+            text = " ".join(node.split())
+            if (
+                re.search(r"[A-Za-z]{3,}", text)
+                and '="' not in text  # attribute residue of tag-building macros
+                and text not in UNTRANSLATED_TEMPLATE_TEXT
+                and not TEMPLATE_UNIT_TEXT_RE.match(text)
+                and type(node).__name__ == "NavigableString"
+            ):
+                offenders.append(f"{path.relative_to(ROOT)}: {text[:60]}")
+        for tag in soup.find_all(True):
+            for attribute in ("title", "aria-label", "alt", "placeholder"):
+                value = " ".join(str(tag.get(attribute) or "").split())
+                if re.search(r"[A-Za-z]{3,}", value) and value not in UNTRANSLATED_TEMPLATE_TEXT and attribute != "placeholder":
+                    offenders.append(f"{path.relative_to(ROOT)}: @{attribute}={value[:60]}")
+
+    assert offenders == []
 
 
 def test_european_language_pack_metadata() -> None:

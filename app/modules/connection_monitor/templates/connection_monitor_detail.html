@@ -31,7 +31,7 @@
             <i data-lucide="pin" aria-hidden="true"></i>
             <span>{{ t.get('docsight.connection_monitor.cm_pin_this_day', 'Pin this day') }}</span>
         </button>
-        <span class="cm-pinned-label" id="cm-pinned-label" hidden>Pinned</span>
+        <span class="cm-pinned-label" id="cm-pinned-label" hidden>{{ t.get('docsight.connection_monitor.cm_pinned', 'Pinned') }}</span>
         <div id="cm-pinned-days" class="cm-pinned-days" aria-live="polite"></div>
     </div>
 
@@ -147,9 +147,9 @@
                             <th>{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}</th>
                             <th>{{ t.get('docsight.connection_monitor.cm_outage_start', 'Start') }}</th>
                             <th>{{ t.get('docsight.connection_monitor.traceroute.hops', 'Hops') }}</th>
-                            <th>Fingerprint</th>
+                            <th>{{ t.get('docsight.connection_monitor.traceroute.fingerprint', 'Fingerprint') }}</th>
                             <th>{{ t.get('docsight.connection_monitor.traceroute.reached', 'Target reached') }}</th>
-                            <th>Trigger</th>
+                            <th>{{ t.get('docsight.connection_monitor.traceroute.trigger', 'Trigger') }}</th>
                         </tr>
                     </thead>
                     <tbody id="cm-traceroute-tbody"></tbody>

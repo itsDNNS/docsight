@@ -19,6 +19,7 @@
   "backup_existing": "Existujúce zálohy",
   "backup_none": "Nenašli sa žiadne zálohy",
   "backup_delete_confirm": "Odstrániť túto zálohu?",
+  "backup_delete": "Odstrániť zálohu",
   "backup_select_dir": "Vybrať priečinok",
   "backup_select": "Vybrať",
   "backup_empty_dir": "Prázdny priečinok"

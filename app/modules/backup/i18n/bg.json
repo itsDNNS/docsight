@@ -19,6 +19,7 @@
   "backup_existing": "Налични резервни копия",
   "backup_none": "Няма намерени резервни копия",
   "backup_delete_confirm": "Да се изтрие ли това резервно копие?",
+  "backup_delete": "Изтриване на резервното копие",
   "backup_select_dir": "Избери папка",
   "backup_select": "Избери",
   "backup_empty_dir": "Празна папка"

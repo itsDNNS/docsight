@@ -19,6 +19,7 @@
   "backup_existing": "Existující zálohy",
   "backup_none": "Žádné zálohy nenalezeny",
   "backup_delete_confirm": "Smazat tuto zálohu?",
+  "backup_delete": "Smazat zálohu",
   "backup_select_dir": "Vybrat složku",
   "backup_select": "Vybrat",
   "backup_empty_dir": "Prázdná složka"

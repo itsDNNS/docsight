@@ -19,6 +19,7 @@
   "backup_existing": "Istniejące kopie zapasowe",
   "backup_none": "Nie znaleziono kopii zapasowych",
   "backup_delete_confirm": "Usunąć tę kopię zapasową?",
+  "backup_delete": "Usuń kopię zapasową",
   "backup_select_dir": "Wybierz katalog",
   "backup_select": "Wybierz",
   "backup_empty_dir": "Pusty katalog"

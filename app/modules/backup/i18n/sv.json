@@ -19,6 +19,7 @@
   "backup_existing": "Befintliga säkerhetskopior",
   "backup_none": "Inga säkerhetskopior hittades",
   "backup_delete_confirm": "Ta bort den här säkerhetskopian?",
+  "backup_delete": "Ta bort säkerhetskopia",
   "backup_select_dir": "Välj mapp",
   "backup_select": "Välj",
   "backup_empty_dir": "Tom mapp"

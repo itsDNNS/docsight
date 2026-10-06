@@ -19,6 +19,7 @@
   "backup_existing": "Obstoječe varnostne kopije",
   "backup_none": "Ni najdenih varnostnih kopij",
   "backup_delete_confirm": "Želite izbrisati to varnostno kopijo?",
+  "backup_delete": "Izbriši varnostno kopijo",
   "backup_select_dir": "Izberi mapo",
   "backup_select": "Izberi",
   "backup_empty_dir": "Prazna mapa"

@@ -422,7 +422,7 @@
             if (g.ongoing) {
                 var span = document.createElement('span');
                 span.style.color = 'var(--crit)';
-                span.textContent = 'Ongoing';
+                span.textContent = T['docsight.connection_monitor.cm_outage_ongoing'] || 'Ongoing';
                 tdEnd.appendChild(span);
             } else if (g.end) {
                 tdEnd.textContent = formatDocsightTime(g.end, 'datetime', true);
@@ -458,7 +458,7 @@
             '1hr': el.dataset.label1hr || '1-hour averages'
         };
         if (pinnedDayView) {
-            el.textContent = 'Pinned: ' + pinnedDayView.date + ' (full resolution)';
+            el.textContent = (T['docsight.connection_monitor.cm_pinned_day_status'] || 'Pinned: {date} (full resolution)').replace('{date}', pinnedDayView.date);
             el.style.display = 'block';
             return;
         }

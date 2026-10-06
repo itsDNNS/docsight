@@ -19,6 +19,7 @@
   "backup_existing": "Sauvegardes existantes",
   "backup_none": "Aucune sauvegarde trouvée",
   "backup_delete_confirm": "Supprimer cette sauvegarde ?",
+  "backup_delete": "Supprimer la sauvegarde",
   "backup_select_dir": "Choisir un dossier",
   "backup_select": "Choisir",
   "backup_empty_dir": "Dossier vide"

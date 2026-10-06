@@ -19,6 +19,7 @@
   "backup_existing": "Eksisterende sikkerhedskopier",
   "backup_none": "Ingen sikkerhedskopier fundet",
   "backup_delete_confirm": "Slet denne sikkerhedskopi?",
+  "backup_delete": "Slet sikkerhedskopi",
   "backup_select_dir": "Vælg mappe",
   "backup_select": "Vælg",
   "backup_empty_dir": "Tom mappe"

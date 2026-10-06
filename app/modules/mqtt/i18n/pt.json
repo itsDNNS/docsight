@@ -4,6 +4,7 @@
   "mqtt_desc": "Para integração com o Home Assistant através do MQTT Auto-Discovery. Sem MQTT só funciona a interface web.",
   "mqtt_optional_ha": "opcional – para o Home Assistant",
   "mqtt_tls_insecure": "TLS inseguro",
+  "mqtt_tls_insecure_hint": "Ignorar a verificação do certificado TLS",
   "username_opt": "Nome de utilizador (opcional)",
   "password_opt": "Palavra-passe (opcional)",
   "topic_prefix": "Prefixo de tópico",

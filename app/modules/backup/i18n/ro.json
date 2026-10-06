@@ -19,6 +19,7 @@
   "backup_existing": "Copii de rezervă existente",
   "backup_none": "Nu s-au găsit copii de rezervă",
   "backup_delete_confirm": "Ștergi această copie de rezervă?",
+  "backup_delete": "Șterge copia de rezervă",
   "backup_select_dir": "Alege directorul",
   "backup_select": "Alege",
   "backup_empty_dir": "Director gol"

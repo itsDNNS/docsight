@@ -19,6 +19,7 @@
   "backup_existing": "Cópias de segurança existentes",
   "backup_none": "Nenhuma cópia de segurança encontrada",
   "backup_delete_confirm": "Eliminar esta cópia de segurança?",
+  "backup_delete": "Eliminar cópia de segurança",
   "backup_select_dir": "Escolher pasta",
   "backup_select": "Escolher",
   "backup_empty_dir": "Pasta vazia"

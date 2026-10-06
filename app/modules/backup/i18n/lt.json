@@ -19,6 +19,7 @@
   "backup_existing": "Esamos atsarginės kopijos",
   "backup_none": "Atsarginių kopijų nerasta",
   "backup_delete_confirm": "Ištrinti šią atsarginę kopiją?",
+  "backup_delete": "Ištrinti atsarginę kopiją",
   "backup_select_dir": "Pasirinkti katalogą",
   "backup_select": "Pasirinkti",
   "backup_empty_dir": "Tuščias katalogas"

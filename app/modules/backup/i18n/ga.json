@@ -19,6 +19,7 @@
   "backup_existing": "Cúltacaí atá ann",
   "backup_none": "Níor aimsíodh aon chúltaca",
   "backup_delete_confirm": "An cúltaca seo a scriosadh?",
+  "backup_delete": "Scrios an cúltaca",
   "backup_select_dir": "Roghnaigh fillteán",
   "backup_select": "Roghnaigh",
   "backup_empty_dir": "Fillteán folamh"

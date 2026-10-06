@@ -19,6 +19,7 @@
   "backup_existing": "Vorhandene Sicherungen",
   "backup_none": "Keine Sicherungen gefunden",
   "backup_delete_confirm": "Diese Sicherung löschen?",
+  "backup_delete": "Sicherung löschen",
   "backup_select_dir": "Verzeichnis auswählen",
   "backup_select": "Auswählen",
   "backup_empty_dir": "Leeres Verzeichnis"
