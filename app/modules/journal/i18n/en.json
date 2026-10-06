@@ -100,6 +100,7 @@
   "entry_evidence_hint": "Evidence can include modem screenshots, BQM images, Speedtest results, SmokePing charts, or support letters.",
   "entry_create_action": "Create entry",
   "entry_update_action": "Update entry",
+  "entry_saved": "Entry saved",
   "incident_modal_intro": "Group related entries and evidence so DOCSight can build one clear incident timeline and report path.",
   "incident_icon_hint": "Pick the category users will recognize later in filters, timelines, and exports.",
   "incident_linked_evidence": "Linked evidence",

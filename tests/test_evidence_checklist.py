@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from app.modules.evidence.checklist import build_checklist
 
 
@@ -180,3 +183,24 @@ def test_snapshot_aggregate_preserves_the_existing_signal_item_json():
     )
 
     assert aggregated == legacy
+
+
+def test_every_checklist_action_has_a_catalog_label():
+    catalog = json.loads((Path(__file__).resolve().parents[1] / "app/modules/evidence/i18n/en.json").read_text())
+    label_keys = set()
+    for capabilities in (
+        {"docsis_supported": True, "speedtest_configured": True, "bqm_configured": True, "demo_mode": False},
+        {"docsis_supported": False, "speedtest_configured": False, "bqm_configured": False, "demo_mode": False},
+    ):
+        for item in build_checklist(
+            WINDOW,
+            timeline=[{"timestamp": "2026-06-10T22:50:00Z", "source": "modem", "health": "critical"}],
+            journal_entries=[{"id": 1, "date": "2026-06-10", "title": "Outage note"}],
+            bqm_rows=[{"timestamp": "2026-06-10T22:10:00Z", "latency_avg_ms": 34}],
+            capabilities=capabilities,
+        ):
+            action = item.get("action") or {}
+            label_keys.add("action." + (action.get("action") or action.get("view") or "review"))
+
+    assert "action.add_note" in label_keys
+    assert sorted(label_keys - set(catalog)) == []

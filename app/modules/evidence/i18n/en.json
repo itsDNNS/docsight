@@ -36,6 +36,7 @@
   "action.bnetz": "Open BNetzA evidence",
   "action.reports": "Generate report",
   "action.review": "Open related view",
+  "action.add_note": "Add note",
   "item.signal.label": "Signal evidence",
   "item.signal.present": "DOCSIS signal samples are available for this window.",
   "item.signal.stale": "Signal data exists, but the newest sample is older than expected for this window.",

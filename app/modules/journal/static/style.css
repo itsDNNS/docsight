@@ -1322,7 +1322,9 @@ mark.search-highlight {
     margin-bottom: var(--space-sm);
 }
 .icon-pick {
+    width: auto;
     min-width: 82px;
+    height: auto;
     min-height: 42px;
     padding: 4px 8px;
     flex-direction: column;
@@ -1336,11 +1338,8 @@ mark.search-highlight {
 }
 .icon-pick-label {
     font-size: var(--fs-min);
-    line-height: 1;
+    line-height: 1.25;
     color: var(--text-secondary, var(--muted));
-    max-width: 72px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
 }
 .icon-pick.active .icon-pick-label,
