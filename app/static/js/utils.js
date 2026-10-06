@@ -6,6 +6,27 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+/* Copy each column header into its cells' data-label, the label a data
+   table shows when its rows stack on phones. A header may set its own
+   data-label; cells spanning several columns keep none. */
+function labelDataTable(table) {
+    if (!table) return;
+    var labels = Array.prototype.map.call(table.querySelectorAll(':scope > thead th'), function(th) {
+        if (th.hasAttribute('data-label')) return th.getAttribute('data-label');
+        var copy = th.cloneNode(true);
+        copy.querySelectorAll('.sort-indicator').forEach(function(node) { node.remove(); });
+        return copy.textContent.trim();
+    });
+    Array.prototype.forEach.call(table.tBodies, function(body) {
+        Array.prototype.forEach.call(body.rows, function(row) {
+            Array.prototype.forEach.call(row.cells, function(cell, index) {
+                if (cell.colSpan > 1 || cell.hasAttribute('data-label') || !labels[index]) return;
+                cell.setAttribute('data-label', labels[index]);
+            });
+        });
+    });
+}
+
 /* ── Export for AI Analysis ── */
 var exportRawText = '';
 var exportLoadId = 0;

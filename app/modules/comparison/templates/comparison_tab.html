@@ -124,8 +124,8 @@
     <!-- Delta Summary Table (hidden until data loads) -->
     <div id="comparison-delta" class="comparison-delta-section" hidden>
         <h3>{{ t.get('docsight.comparison.delta', 'Delta') }}</h3>
-        <div class="table-responsive">
-            <table class="data-table">
+        <div class="data-table-wrap">
+            <table class="data-table" id="comparison-delta-table">
                 <thead>
                     <tr>
                         <th>{{ t.get('docsight.comparison.metric', 'Metric') }}</th>

@@ -175,46 +175,14 @@
     white-space: nowrap;
 }
 
-.comparison-delta-section table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.comparison-delta-section thead tr {
-    background: var(--surface-2, rgba(0,0,0,0.15));
-}
-
-.comparison-delta-section thead th {
-    padding: 10px 16px;
-    text-align: left;
-    font-weight: 600;
-    font-size: max(var(--fs-min), 0.85em);
-    color: var(--text);
-    border-bottom: 1px solid var(--card-border, var(--input-border));
-}
-
-.comparison-delta-section tbody tr {
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    transition: background 0.15s;
-}
-
-.comparison-delta-section tbody tr:hover {
-    background: rgba(168,85,247,0.08);
-}
-
-.comparison-delta-section tbody td {
-    padding: 10px 16px;
-    font-size: max(var(--fs-min), 0.85em);
-}
-
 /* Delta coloring */
-.cmp-good {
-    color: var(--color-ok, #22c55e);
+#comparison-delta-table .cmp-good {
+    color: var(--good);
     font-weight: 600;
 }
 
-.cmp-bad {
-    color: var(--color-crit, #ef4444);
+#comparison-delta-table .cmp-bad {
+    color: var(--crit);
     font-weight: 600;
 }
 
@@ -242,12 +210,6 @@
 
     .comparison-arrow {
         display: none;
-    }
-
-    .comparison-delta-section thead th,
-    .comparison-delta-section tbody td {
-        padding: 8px 10px;
-        font-size: max(var(--fs-min), 0.8em);
     }
 
     .comparison-health-grid {

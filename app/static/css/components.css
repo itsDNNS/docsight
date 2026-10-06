@@ -210,6 +210,74 @@ body {
   .segmented-fill .segmented-option { flex: 1 1 0; }
 }
 
+/* ── Data table ──
+   Sentence-case header, horizontal lines only, numbers right-aligned in
+   .dt-num cells. On phones every row stacks into label/value lines taken
+   from data-label; .data-table-list keeps long lists to two lines per
+   entry instead: .dt-primary cells first, the rest small below, and an
+   optional .dt-lead control (expand button) at the left. */
+.data-table-wrap { overflow-x: auto; }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: max(var(--fs-min), 0.875rem);
+}
+.data-table th {
+  padding: 10px 16px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: var(--fs-min);
+  font-weight: 600;
+  color: var(--text-secondary, var(--muted));
+  background: var(--card);
+  border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+.data-table td {
+  padding: 12px 16px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border-tint);
+  vertical-align: top;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--tint-hover); }
+.data-table .dt-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.data-table .dt-empty { padding: 20px 16px; text-align: center; color: var(--muted); }
+.data-table-compact th, .data-table-compact td { padding: 6px 12px; }
+.data-table-sticky thead th { position: sticky; top: 0; z-index: 2; }
+@media (max-width: 640px) {
+  .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; box-sizing: border-box; }
+  .data-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .data-table tbody tr { padding: 8px 16px; border-bottom: 1px solid var(--card-border, var(--input-border)); }
+  .data-table tbody tr:last-child { border-bottom: none; }
+  .data-table td { padding: 5px 0; border-bottom: none; }
+  .data-table td[data-label] { position: relative; padding-left: 40%; text-align: right; overflow-wrap: anywhere; }
+  .data-table td[data-label]::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 6px;
+    left: 0;
+    width: 38%;
+    text-align: left;
+    font-size: var(--fs-min);
+    font-weight: 600;
+    color: var(--text-secondary, var(--muted));
+  }
+  .data-table:not(.data-table-list) td[data-label]:first-child { font-weight: 600; }
+  .data-table .dt-num { white-space: normal; }
+
+  .data-table-list tbody tr { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; padding: 10px 16px; }
+  .data-table-list tbody tr::before { content: ""; order: 0; flex-basis: 100%; height: 4px; }
+  .data-table-list td,
+  .data-table-list td[data-label] { display: inline-flex; position: static; width: auto; gap: 4px; padding: 0; order: 1; text-align: left; font-size: var(--fs-min); font-weight: 400; }
+  .data-table-list td[data-label]::before { position: static; width: auto; font-weight: 400; }
+  .data-table-list td.dt-primary { order: -1; font-size: max(var(--fs-min), 0.875rem); }
+  .data-table-list td.dt-primary::before { content: none; }
+  .data-table-list td.dt-primary ~ td.dt-primary { margin-left: auto; font-weight: 600; }
+  .data-table-list tbody tr:has(> td.dt-lead) { position: relative; padding-left: 44px; }
+  .data-table-list td.dt-lead { position: absolute; top: 50%; left: 6px; transform: translateY(-50%); }
+  .data-table-list td:empty { display: none; }
+}
+
 /* ── Badges ── */
 .badge {
   display: inline-flex;

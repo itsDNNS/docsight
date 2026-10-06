@@ -28,6 +28,28 @@ BADGE_RULE = re.compile(
 # The segmented control and its options.
 SEGMENTED_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.segmented(?:-option)?(?![\w-])[^{,]*[{,]")
 
+# The data table and its variants.
+DATA_TABLE_RULE = re.compile(r"(?m)^\s*\.data-table(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
+
+# Tables not yet on the data table component, by file and the table's id or first class.
+# Per-target Connection Monitor stats stay a stat grid on purpose.
+TABLES_WITHOUT_COMPONENT = {
+    ("app/modules/bqm/templates/bqm_dialogs.html", "bqm-import-table"),
+    ("app/modules/connection_monitor/static/js/connection-monitor-charts.js", "cm-target-table"),
+    ("app/modules/de_tkg_compensation/static/main.js", "tkg-table"),
+    ("app/modules/journal/static/main.js", ""),
+    ("app/modules/journal/templates/journal_dialogs.html", "import-table"),
+    ("app/modules/journal/templates/journal_tab.html", "journal-table"),
+    ("app/modules/speedtest/templates/speedtest_tab.html", "speedtest-table"),
+    ("app/static/js/integrations.js", "bnetz-detail-table"),
+    ("app/static/js/settings/backups.js", ""),
+    ("app/templates/index.html", "bnetz-table"),
+    ("app/templates/partials/channel_tables.html", "channel-table"),
+    ("app/templates/settings/notifications.html", "cooldown-table"),
+    ("app/templates/settings/security.html", "api-tokens-table"),
+    ("app/templates/settings/smart_capture.html", "sc-history-table"),
+}
+
 # The save bar.
 SAVE_BAR_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.save-bar(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
 
@@ -141,3 +163,41 @@ def test_segmented_groups_carry_no_layout_classes():
     ]
     assert groups
     assert [(path, classes) for path, classes in groups if classes not in ("segmented", "segmented segmented-fill")] == []
+
+
+
+def test_the_data_table_is_defined_only_in_the_component_stylesheet():
+    offenders = [
+        f"{path}: {match.group(0).strip()}"
+        for path in _stylesheets() if path != OWNER
+        for match in DATA_TABLE_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
+    ]
+    assert offenders == []
+    assert DATA_TABLE_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
+
+
+def _tables():
+    """Yield (path, classes, name) for every table in templates and scripts."""
+    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    for path in tracked.split():
+        if not path.endswith((".html", ".js")) or "/vendor/" in path:
+            continue
+        lines = (ROOT / path).read_text(encoding="utf-8").splitlines()
+        for index, line in enumerate(lines):
+            for tag in re.findall(r"<table\b[^>]*>", line):
+                classes = re.search(r'class="([^"]*)"', tag)
+                ident = re.search(r'id="([^"]*)"', tag)
+                classes = classes.group(1).split() if classes else []
+                yield path, classes, ident.group(1) if ident else (classes[0] if classes else "")
+            if "createElement('table')" in line:
+                assigned = re.search(r"className\s*=\s*'([^']*)'", " ".join(lines[index:index + 3]))
+                classes = assigned.group(1).split() if assigned else []
+                yield path, classes, classes[0] if classes else ""
+
+
+def test_tables_use_the_data_table_component():
+    tables = list(_tables())
+    missing = sorted({(path, name) for path, classes, name in tables if "data-table" not in classes})
+    assert [entry for entry in missing if entry not in TABLES_WITHOUT_COMPONENT] == []
+    # Drop entries from the list once their table is migrated.
+    assert sorted(TABLES_WITHOUT_COMPONENT - set(missing)) == []
