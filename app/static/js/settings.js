@@ -6,7 +6,7 @@
     var tokens = S.tokens({showToast: form.showToast});
     var connections = S.connections({getFormData: form.getFormData});
     var backups = S.backups({showToast: form.showToast});
-    var themes = S.themes({showToast: form.showToast, guardUnsaved: form.guardUnsaved});
+    var themes = S.themes({showToast: form.showToast, guardUnsaved: form.guardUnsaved, saveInstantly: form.saveInstantly});
     var smartCapture = S.smart_capture({showToast: form.showToast});
     var registry = S.module_registry({showToast: form.showToast});
     navigation = S.navigation({syncSaveFooter: form.syncSaveFooter, onSection: function(id, panel) {
@@ -18,7 +18,7 @@
         if (id === 'extensions') registry.refreshModuleRegistry();
     }});
     var search = S.search({switchSection: function(id) { navigation.switchSection(id); }});
-    var notifications = S.notifications({showToast: form.showToast, saveInstantly: form.saveInstantly, syncCard: navigation.syncCard});
+    var notifications = S.notifications({showToast: form.showToast, syncCard: navigation.syncCard});
     function expose(owner, names) {
         names.split(' ').forEach(function(name) { window[name] = owner[name]; });
     }

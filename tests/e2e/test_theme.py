@@ -138,7 +138,14 @@ class TestTheme:
         assert root.evaluate(colors) == original
         expect(settings_page.locator("#theme-preview-overlay")).to_be_hidden()
 
-    def test_preview_follows_color_mode_and_cancel_restores_that_mode(self, settings_page):
+    def test_preview_follows_color_mode_and_cancel_restores_that_mode(self, settings_page, live_server):
+        # The mode switch saves at once; put the shared server back to dark afterwards.
+        try:
+            self._preview_follows_color_mode(settings_page)
+        finally:
+            assert settings_page.request.post(f"{live_server}/api/config", data={"theme": "dark"}).ok
+
+    def _preview_follows_color_mode(self, settings_page):
         settings_page.locator('button[data-section="appearance"]').click()
         root = settings_page.locator("html")
         mode = settings_page.get_by_label("Dark Mode", exact=True)

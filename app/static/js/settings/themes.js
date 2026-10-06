@@ -1,5 +1,5 @@
 'use strict';
-DOCSightSettings.themes = function({showToast, guardUnsaved}) {
+DOCSightSettings.themes = function({showToast, guardUnsaved, saveInstantly}) {
 /* ── Theme Toggle ── */
 function initThemeToggle() {
     var appearanceCheck = document.getElementById('theme-toggle-appearance');
@@ -15,6 +15,7 @@ function toggleThemeFromAppearance(input) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('docsis-theme', theme);
     updatePaletteDots(theme);
+    saveInstantly({theme: true});
 }
 
 function applyFontToggle(input) {
@@ -32,6 +33,7 @@ function applyFontToggle(input) {
     } else if (el) {
         el.remove();
     }
+    saveInstantly();
 }
 
 /* Each card shows five of its theme's colors for the current mode; a theme

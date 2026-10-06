@@ -1534,3 +1534,6 @@ button.notification-collapse-button {
 .card-status-error .status-dot { color: var(--crit); }
 .card-status-detail { overflow-wrap: anywhere; color: var(--text); }
 
+/* ─── How a section saves ─── */
+.settings-save-hint { margin-top: 2px; font-size: 0.85rem; color: var(--text-secondary); }
+
