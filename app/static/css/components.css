@@ -234,8 +234,8 @@ body {
   border-bottom: 1px solid var(--card-border, var(--input-border));
 }
 .data-table td {
+  /* No color of its own: cells inherit the card text, so status classes such as .val-good apply. */
   padding: 12px 16px;
-  color: var(--text);
   border-bottom: 1px solid var(--border-tint);
   vertical-align: top;
 }

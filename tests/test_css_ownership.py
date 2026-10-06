@@ -38,8 +38,6 @@ TABLES_WITHOUT_COMPONENT = {
     ("app/modules/connection_monitor/static/js/connection-monitor-charts.js", "cm-target-table"),
     ("app/modules/journal/static/main.js", ""),
     ("app/modules/journal/templates/journal_dialogs.html", "import-table"),
-    ("app/static/js/integrations.js", "bnetz-detail-table"),
-    ("app/templates/index.html", "bnetz-table"),
     ("app/templates/settings/smart_capture.html", "sc-history-table"),
 }
 

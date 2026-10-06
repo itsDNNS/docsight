@@ -12,7 +12,7 @@
 .bnetz-expand-btn i { width: 14px; height: 14px; }
 #bnetz-table tbody tr.bnetz-row-expandable { cursor: pointer; }
 
-@media (min-width: 769px) {
+@media (min-width: 641px) {
     /* Without individual measurements there is nothing to expand on desktop. */
     .bnetz-expand-btn.bnetz-expand-mobile-only { display: none; }
 }
@@ -26,28 +26,8 @@
 .bnetz-refresh-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
 .bnetz-refresh-btn i { width: 16px; height: 16px; }
 
-/* Measurement table (mirrors #speedtest-table) */
-#bnetz-table {
-    width: 100%;
-    margin: 0;
-    font-variant-numeric: tabular-nums;
-}
-#bnetz-table thead tr { background: var(--surface-2, rgba(0,0,0,0.15)); }
-#bnetz-table thead th {
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: 600;
-    font-size: max(var(--fs-min), 0.85em);
-    white-space: nowrap;
-    border-bottom: 1px solid var(--card-border, var(--input-border));
-}
-#bnetz-table tbody td {
-    padding: 12px 16px;
-    font-size: max(var(--fs-min), 0.85em);
-    white-space: nowrap;
-    border-bottom: 1px solid var(--border-tint, rgba(255,255,255,0.05));
-}
-#bnetz-table tbody tr[data-bnetz-idx]:hover { background: var(--surface-2, rgba(0,0,0,0.1)); }
+/* Measurement table: the data table component plus expandable rows. */
+#bnetz-table td { vertical-align: middle; white-space: nowrap; }
 
 /* Inline action icons (complaint, PDF, delete) in fixed slots */
 .bnetz-actions-cell { white-space: nowrap; }
@@ -69,7 +49,7 @@
 .bnetz-verdict-text { margin-left: 6px; vertical-align: middle; }
 
 /* Detail expand cell */
-.bnetz-detail-cell { padding: 0 8px 12px 24px; }
+#bnetz-table td.bnetz-detail-cell { padding: 0 8px 12px 24px; white-space: normal; }
 
 /* Detail grid (Download / Upload side-by-side) */
 .bnetz-detail-grid {
@@ -83,83 +63,23 @@
     display: block; margin-bottom: 4px;
 }
 
-/* Compact measurement table */
-.bnetz-detail-table {
-    width: 100%; font-size: max(var(--fs-min), 0.8em); border-collapse: collapse;
-}
-.bnetz-detail-table th {
-    text-align: left; padding: 3px 6px; font-weight: 600;
-    color: var(--text-secondary); border-bottom: 1px solid var(--card-border);
-}
-.bnetz-detail-table td {
-    padding: 3px 6px;
-}
-.bnetz-detail-table tr + tr { border-bottom: 1px solid var(--card-border); }
-.bnetz-detail-speed-col { text-align: right; }
 
 @media (max-width: 600px) {
     .bnetz-detail-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 768px) {
-    #bnetz-table-card {
-        overflow-x: hidden;
-    }
-
-    #bnetz-table,
-    #bnetz-table > tbody {
-        display: block;
-        width: 100%;
-    }
-
-    #bnetz-table > thead {
-        display: none;
-    }
-
+@media (max-width: 640px) {
     /* Collapsed rows show date, measured download/upload, and the verdict. */
     #bnetz-table > tbody > tr[data-bnetz-idx]:not(.bnetz-row-open) > td.bnetz-secondary-cell {
         display: none !important;
     }
 
-    #bnetz-table > tbody > tr[data-bnetz-idx]:not(.bnetz-row-open) > td {
-        padding: 4px 0;
-    }
-
     #bnetz-table > tbody > tr[data-bnetz-idx] {
         cursor: pointer;
-        display: block;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--card-border, var(--input-border));
     }
 
-    #bnetz-table > tbody > tr[data-bnetz-idx] > td {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        width: 100%;
-        padding: 8px 0;
-        border-bottom: 1px solid var(--border-tint, rgba(255,255,255,0.08));
+    #bnetz-table td {
         white-space: normal;
-        overflow-wrap: anywhere;
-        text-align: right;
-    }
-
-    #bnetz-table > tbody > tr[data-bnetz-idx] > td:last-child {
-        border-bottom: none;
-    }
-
-    #bnetz-table > tbody > tr[data-bnetz-idx] > td::before {
-        content: attr(data-label);
-        flex: 0 0 min(46%, 150px);
-        color: var(--text-secondary, var(--muted));
-        font-size: max(var(--fs-min), 0.82em);
-        font-weight: 600;
-        text-align: left;
-    }
-
-    #bnetz-table > tbody > tr[data-bnetz-idx] > td:first-child {
-        align-items: center;
     }
 
     .bnetz-expand-btn {
@@ -168,28 +88,17 @@
         margin-right: 4px;
     }
 
-    #bnetz-table > tbody > tr[data-bnetz-idx] > .bnetz-verdict {
-        align-items: center;
-        justify-content: flex-end;
-        gap: 6px;
-    }
-
     .bnetz-verdict-text {
         display: inline;
         overflow-wrap: anywhere;
     }
 
-    .bnetz-actions-cell {
-        display: flex !important;
+    #bnetz-table td.bnetz-actions-cell {
+        display: flex;
         align-items: center;
         justify-content: flex-end;
         flex-wrap: wrap;
         gap: 8px;
-        white-space: normal;
-    }
-
-    .bnetz-actions-cell::before {
-        margin-right: auto;
     }
 
     .bnetz-action-btn {
@@ -202,20 +111,11 @@
         display: none;
     }
 
-    .bnetz-detail-cell {
-        display: block;
-        width: 100%;
+    #bnetz-table td.bnetz-detail-cell {
         padding: 10px 12px 14px;
-        overflow-x: hidden;
     }
 
-    .bnetz-detail-table {
-        table-layout: fixed;
-    }
-
-    .bnetz-detail-table th,
-    .bnetz-detail-table td {
-        white-space: normal;
-        overflow-wrap: anywhere;
+    .bnetz-detail-table td.bnetz-detail-nr {
+        display: none;
     }
 }
