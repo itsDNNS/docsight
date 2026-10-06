@@ -479,13 +479,13 @@
     padding: 10px 12px;
     border: 1px solid var(--glass-border);
     border-radius: 10px;
-    background: var(--surface-soft, rgba(255,255,255,0.04));
+    background: var(--tint-hover);
     color: var(--muted);
     font-size: 0.9rem;
 }
 
 .import-validation-state.is-success {
-    border-color: var(--accent-purple, var(--accent));
+    border-color: var(--accent);
     color: var(--text);
 }
 

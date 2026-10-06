@@ -58,7 +58,7 @@
 
 .evidence-banner {
     border-color: rgba(56, 189, 248, 0.45);
-    color: var(--info-text, #bae6fd);
+    color: var(--info);
 }
 
 .evidence-loading {

@@ -141,7 +141,7 @@
     height: 10px;
     border-radius: 999px;
     overflow: hidden;
-    background: var(--surface-2, rgba(255,255,255,0.08));
+    background: var(--tint-emphasis);
 }
 
 .comparison-health-fill {

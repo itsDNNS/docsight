@@ -239,7 +239,7 @@ function browseTo(path) {
         dirs.textContent = '';
         if (res.error) {
             var errDiv = document.createElement('div');
-            errDiv.style.cssText = 'padding:16px;color:var(--error);';
+            errDiv.style.cssText = 'padding:16px;color:var(--crit);';
             errDiv.textContent = res.error;
             dirs.appendChild(errDiv);
             if (status) status.textContent = res.error;
@@ -273,7 +273,7 @@ function browseTo(path) {
     .catch(function() {
         dirs.textContent = '';
         var errDiv = document.createElement('div');
-        errDiv.style.cssText = 'padding:16px;color:var(--error);';
+        errDiv.style.cssText = 'padding:16px;color:var(--crit);';
         errDiv.textContent = T.network_error;
         dirs.appendChild(errDiv);
         if (status) status.textContent = T.network_error;

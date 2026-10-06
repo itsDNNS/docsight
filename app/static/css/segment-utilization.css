@@ -142,7 +142,7 @@
     padding: 12px 14px;
     border: 1px solid var(--glass-border);
     border-radius: 10px;
-    background: var(--surface-2, rgba(255,255,255,0.02));
+    background: var(--tint-subtle);
     display: flex;
     flex-direction: column;
     gap: 6px;
