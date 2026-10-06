@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "valinnainen",
+  "smokeping_url_label": "Smokeping-URL",
+  "smokeping_url_hint": "Smokeping-instanssisi perus-URL (ilman /cache/)",
+  "smokeping_targets_label": "Kohteet",
+  "smokeping_targets_hint": "Pilkuilla erotetut Smokeping-polut (esim. InternetSites.Google). Tarkat nimet löytyvät Smokepingin Targets-määrityksestä.",
+  "smokeping_no_data": "Smokeping-kaavioita ei voitu ladata.",
+  "smokeping_setup": "Määritä Smokeping",
+  "smokeping_setup_title": "Viiveen mittaus Smokepingillä",
+  "smokeping_setup_intro": "Smokeping mittaa verkon viivettä lähettämällä ping-pyyntöjä määritettyihin kohteisiin. DOCSight näyttää nämä kaaviot modeemisi tietojen rinnalla.",
+  "smokeping_setup_step_1": "Asenna ja määritä <b>Smokeping</b> verkkoosi",
+  "smokeping_setup_step_2": "Merkitse muistiin Smokepingin verkkokäyttöliittymän <b>perus-URL</b>",
+  "smokeping_setup_step_3": "Syötä URL ja <b>kohteiden nimet</b> DOCSightin asetuksiin",
+  "smokeping_empty_title": "SmokePing-kohteita ei ole määritetty",
+  "smokeping_empty_text": "Lisää asetuksiin kohteet SmokePing-määrityksestäsi, niin niiden viivekaaviot näkyvät täällä.",
+  "smokeping_empty_action": "Avaa SmokePing-asetukset"
+}

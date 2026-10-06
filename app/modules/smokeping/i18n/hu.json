@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "nem kötelező",
+  "smokeping_url_label": "Smokeping URL",
+  "smokeping_url_hint": "A Smokeping-példányod alap URL-je (/cache/ nélkül)",
+  "smokeping_targets_label": "Célok",
+  "smokeping_targets_hint": "Vesszővel elválasztott Smokeping-útvonalak (pl. InternetSites.Google). A pontos neveket a Smokeping Targets beállításaiban találod.",
+  "smokeping_no_data": "Nem sikerült betölteni a Smokeping-grafikonokat.",
+  "smokeping_setup": "Smokeping beállítása",
+  "smokeping_setup_title": "Késleltetésmérés Smokepinggel",
+  "smokeping_setup_intro": "A Smokeping a hálózati késleltetést méri úgy, hogy pinget küld a beállított célokra. A DOCSight ezeket a grafikonokat a modemadatok mellett jeleníti meg.",
+  "smokeping_setup_step_1": "Telepítsd és állítsd be a <b>Smokeping</b> programot a hálózatodon",
+  "smokeping_setup_step_2": "Jegyezd fel a Smokeping webes felületének <b>alap URL-jét</b>",
+  "smokeping_setup_step_3": "Add meg az URL-t és a <b>célok nevét</b> a DOCSight beállításaiban",
+  "smokeping_empty_title": "Nincs beállított SmokePing-cél",
+  "smokeping_empty_text": "Add hozzá a beállításokban a SmokePing-konfigurációd céljait, hogy itt lásd a késleltetési grafikonjaikat.",
+  "smokeping_empty_action": "SmokePing-beállítások megnyitása"
+}

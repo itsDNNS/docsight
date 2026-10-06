@@ -1,0 +1,9 @@
+{
+  "weather_title": "Pogoda",
+  "weather_optional": "opcjonalnie – porównaj jakość sygnału z temperaturą na zewnątrz",
+  "weather_enable": "Zbieraj dane pogodowe",
+  "weather_enable_hint": "Co godzinę pobiera temperaturę zewnętrzną z Open-Meteo (za darmo, bez klucza API). Wcześniejsze dane są uzupełniane automatycznie.",
+  "weather_latitude": "Szerokość geograficzna",
+  "weather_longitude": "Długość geograficzna",
+  "weather_coord_hint": "Współrzędne Twojej lokalizacji (np. 52.52 / 13.41 dla Berlina). Znajdziesz je na latlong.net"
+}

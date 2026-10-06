@@ -1,0 +1,9 @@
+{
+  "weather_title": "Ilm",
+  "weather_optional": "valikuline – võrdle signaali kvaliteeti välistemperatuuriga",
+  "weather_enable": "Kogu ilmaandmeid",
+  "weather_enable_hint": "Toob välistemperatuuri Open-Meteost iga tund (tasuta, API-võtit pole vaja). Varasemad andmed täiendatakse automaatselt.",
+  "weather_latitude": "Laiuskraad",
+  "weather_longitude": "Pikkuskraad",
+  "weather_coord_hint": "Sinu asukoha koordinaadid (nt 52.52 / 13.41 Berliini jaoks). Leiad need aadressilt latlong.net"
+}

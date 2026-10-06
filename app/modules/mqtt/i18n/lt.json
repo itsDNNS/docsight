@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Išplėstiniai: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT tarpininkas",
+  "mqtt_desc": "Integracijai su Home Assistant per MQTT Auto-Discovery. Be MQTT veikia tik žiniatinklio sąsaja.",
+  "mqtt_optional_ha": "neprivaloma – Home Assistant",
+  "mqtt_tls_insecure": "Nesaugus TLS",
+  "username_opt": "Naudotojo vardas (neprivaloma)",
+  "password_opt": "Slaptažodis (neprivaloma)",
+  "topic_prefix": "Temos priešdėlis",
+  "discovery_prefix": "Discovery priešdėlis",
+  "discovery_prefix_hint": "Numatytasis: homeassistant. Keiskite tik tada, jei pakeitėte jį Home Assistant."
+}

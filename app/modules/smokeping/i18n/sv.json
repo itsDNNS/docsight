@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "valfritt",
+  "smokeping_url_label": "Smokeping-URL",
+  "smokeping_url_hint": "Bas-URL för din Smokeping-instans (utan /cache/)",
+  "smokeping_targets_label": "Mål",
+  "smokeping_targets_hint": "Kommaseparerade Smokeping-sökvägar (t.ex. InternetSites.Google). De exakta namnen finns i din Smokeping Targets-konfiguration.",
+  "smokeping_no_data": "Det gick inte att läsa in Smokeping-diagram.",
+  "smokeping_setup": "Konfigurera Smokeping",
+  "smokeping_setup_title": "Latensmätning med Smokeping",
+  "smokeping_setup_intro": "Smokeping mäter nätverkets latens genom att pinga konfigurerade mål. DOCSight visar diagrammen bredvid dina modemdata.",
+  "smokeping_setup_step_1": "Installera och konfigurera <b>Smokeping</b> i ditt nätverk",
+  "smokeping_setup_step_2": "Anteckna <b>bas-URL:en</b> för Smokepings webbgränssnitt",
+  "smokeping_setup_step_3": "Ange URL:en och <b>målnamnen</b> i DOCSight-inställningarna",
+  "smokeping_empty_title": "Inga SmokePing-mål konfigurerade",
+  "smokeping_empty_text": "Lägg till målen från din SmokePing-konfiguration i inställningarna för att se deras latensdiagram här.",
+  "smokeping_empty_action": "Öppna SmokePing-inställningar"
+}

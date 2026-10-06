@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Papildu: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT brokeris",
+  "mqtt_desc": "Integrācijai ar Home Assistant, izmantojot MQTT Auto-Discovery. Bez MQTT darbojas tikai tīmekļa saskarne.",
+  "mqtt_optional_ha": "neobligāti – Home Assistant",
+  "mqtt_tls_insecure": "Nedrošs TLS",
+  "username_opt": "Lietotājvārds (neobligāti)",
+  "password_opt": "Parole (neobligāti)",
+  "topic_prefix": "Tēmas prefikss",
+  "discovery_prefix": "Discovery prefikss",
+  "discovery_prefix_hint": "Noklusējums: homeassistant. Mainiet tikai tad, ja to esat mainījis Home Assistant."
+}

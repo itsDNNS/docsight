@@ -1,0 +1,9 @@
+{
+  "weather_title": "Počasie",
+  "weather_optional": "voliteľné – porovnanie kvality signálu s vonkajšou teplotou",
+  "weather_enable": "Zbierať údaje o počasí",
+  "weather_enable_hint": "Každú hodinu načíta vonkajšiu teplotu z Open-Meteo (zadarmo, bez kľúča API). Staršie údaje sa doplnia automaticky.",
+  "weather_latitude": "Zemepisná šírka",
+  "weather_longitude": "Zemepisná dĺžka",
+  "weather_coord_hint": "Súradnice vášho miesta (napr. 52.52 / 13.41 pre Berlín). Nájdete ich na latlong.net"
+}

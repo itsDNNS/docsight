@@ -1,0 +1,9 @@
+{
+  "weather_title": "Aimsir",
+  "weather_optional": "roghnach – comparáid idir cáilíocht an chomhartha agus an teocht lasmuigh",
+  "weather_enable": "Bailigh sonraí aimsire",
+  "weather_enable_hint": "Faigheann sé an teocht lasmuigh ó Open-Meteo gach uair (saor in aisce, gan eochair API). Líontar sonraí roimhe seo go huathoibríoch.",
+  "weather_latitude": "Domhanleithead",
+  "weather_longitude": "Domhanfhad",
+  "weather_coord_hint": "Comhordanáidí do shuímh (m.sh. 52.52 / 13.41 do Bheirlín). Gheobhaidh tú iad ar latlong.net"
+}

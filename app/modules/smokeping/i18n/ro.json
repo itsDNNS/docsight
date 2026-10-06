@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "opțional",
+  "smokeping_url_label": "URL Smokeping",
+  "smokeping_url_hint": "URL-ul de bază al instanței tale Smokeping (fără /cache/)",
+  "smokeping_targets_label": "Ținte",
+  "smokeping_targets_hint": "Căi Smokeping separate prin virgulă (de ex. InternetSites.Google). Numele exacte se află în configurația Targets a Smokeping.",
+  "smokeping_no_data": "Graficele Smokeping nu au putut fi încărcate.",
+  "smokeping_setup": "Configurare Smokeping",
+  "smokeping_setup_title": "Măsurarea latenței cu Smokeping",
+  "smokeping_setup_intro": "Smokeping măsoară latența rețelei trimițând ping-uri către țintele configurate. DOCSight afișează aceste grafice lângă datele modemului.",
+  "smokeping_setup_step_1": "Instalează și configurează <b>Smokeping</b> în rețeaua ta",
+  "smokeping_setup_step_2": "Notează <b>URL-ul de bază</b> al interfeței web Smokeping",
+  "smokeping_setup_step_3": "Introdu URL-ul și <b>numele țintelor</b> în setările DOCSight",
+  "smokeping_empty_title": "Nu există ținte SmokePing configurate",
+  "smokeping_empty_text": "Adaugă în setări țintele din configurația ta SmokePing pentru a le vedea aici graficele de latență.",
+  "smokeping_empty_action": "Deschide setările SmokePing"
+}

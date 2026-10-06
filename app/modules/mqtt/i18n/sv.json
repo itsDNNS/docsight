@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Avancerat: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT-mäklare",
+  "mqtt_desc": "För integration med Home Assistant via MQTT Auto-Discovery. Utan MQTT körs bara webbgränssnittet.",
+  "mqtt_optional_ha": "valfritt – för Home Assistant",
+  "mqtt_tls_insecure": "Osäker TLS",
+  "username_opt": "Användarnamn (valfritt)",
+  "password_opt": "Lösenord (valfritt)",
+  "topic_prefix": "Topic-prefix",
+  "discovery_prefix": "Discovery-prefix",
+  "discovery_prefix_hint": "Standard: homeassistant. Ändra bara om du har anpassat det i Home Assistant."
+}

@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Ardleibhéal: MQTT / Home Assistant",
+  "mqtt_broker": "Bróicéir MQTT",
+  "mqtt_desc": "Chun comhtháthú le Home Assistant trí MQTT Auto-Discovery. Gan MQTT ní ritheann ach an comhéadan gréasáin.",
+  "mqtt_optional_ha": "roghnach – do Home Assistant",
+  "mqtt_tls_insecure": "TLS neamhshlán",
+  "username_opt": "Ainm úsáideora (roghnach)",
+  "password_opt": "Pasfhocal (roghnach)",
+  "topic_prefix": "Réimír topaice",
+  "discovery_prefix": "Réimír discovery",
+  "discovery_prefix_hint": "Réamhshocrú: homeassistant. Ná hathraigh é ach amháin má d’athraigh tú é in Home Assistant."
+}
