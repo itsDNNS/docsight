@@ -22,6 +22,7 @@
   "uncorr_errors": "Uncorr. Errors",
   "health": "Health",
   "health_distribution": "Health Distribution",
+  "health_unknown": "Unknown",
   "use_in_complaint": "Use in Complaint Letter",
   "snapshots": "Snapshots",
   "no_data_period": "No data in selected period",

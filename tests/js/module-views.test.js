@@ -206,6 +206,15 @@ test('Evidence retains unavailable status and hint while omitting impossible vie
     assert.doesNotMatch(unavailableHtml, /data-evidence-action="add_note"/);
 });
 
+test('comparison health labels use the translated state names', () => {
+    const {context} = browser();
+    context.T = {health_good: 'Gut', 'docsight.comparison.health_unknown': 'Unbekannt'};
+    run(context, 'app/modules/comparison/static/main.js');
+    assert.equal(context._cmpTopHealth({good: 96, unknown: 4}), 'Gut (96%)');
+    assert.equal(context._cmpTopHealth({good: 1, unknown: 3}), 'Unbekannt (75%)');
+    assert.equal(context._cmpTopHealth({}), '-');
+});
+
 test('comparison fields show local time and send the matching UTC instant', () => {
     const previousTz = process.env.TZ;
     process.env.TZ = 'Europe/Berlin';

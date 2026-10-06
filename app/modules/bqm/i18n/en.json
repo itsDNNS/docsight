@@ -65,5 +65,15 @@
   "bqm_setup_copy_url": "Copy example URL format",
   "bqm_setup_open_settings": "Open BQM settings",
   "bqm_empty_text": "Graphs come from your thinkbroadband monitor. For days without a graph you can import the monitor's CSV export.",
-  "bqm_empty_action": "Import CSV export"
+  "bqm_empty_action": "Import CSV export",
+  "bqm_cached_png": "Cached PNG",
+  "bqm_cached_png_loaded": "Cached PNG loaded",
+  "bqm_delete_failed": "Delete failed: {0}",
+  "bqm_import_failed": "Import failed: {0}",
+  "bqm_import_browse": "Browse BQM images",
+  "bqm_import_validation_choose": "Choose PNG or JPEG BQM graph images. DOCSight will preview dates before importing.",
+  "bqm_import_validation_unsupported": "Unsupported file type. Only PNG and JPEG images are supported.",
+  "bqm_import_validation_ready": "{0} ready",
+  "bqm_import_validation_dates": "{0} needs a date",
+  "bqm_csv_import": "BQM CSV import"
 }
