@@ -20,7 +20,14 @@ MODULES = APP / "modules"
 APP_I18N_DIR = APP / "i18n"
 LUCIDE_JS = STATIC / "vendor" / "lucide.min.js"
 DYNAMIC_LUCIDE_ICONS = {
+    "ban",  # evidence checklist status
     "book-open",  # built-in journal module menu icon
+    "circle-alert",  # evidence checklist status
+    "circle-check",  # evidence checklist status
+    "circle-dot",  # evidence checklist status
+    "circle-off",  # evidence checklist status
+    "circle-question-mark",  # evidence checklist status fallback
+    "clock-3",  # evidence checklist status
     "corner-left-up",  # settings backup directory browser parent row
     "folder",  # settings backup directory browser row
     "gamepad-2",  # built-in feature card

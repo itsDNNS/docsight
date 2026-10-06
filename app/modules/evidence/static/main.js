@@ -112,13 +112,13 @@ function _evidenceStatusLabel(status) {
 function _evidenceStatusIcon(status) {
     var safeStatus = _evidenceSafeStatus(status);
     return {
-        present: 'check-circle-2',
+        present: 'circle-check',
         stale: 'clock-3',
         missing: 'circle-alert',
         optional: 'circle-dot',
         not_applicable: 'ban',
         unavailable: 'circle-off'
-    }[safeStatus] || 'circle-help';
+    }[safeStatus] || 'circle-question-mark';
 }
 
 function _evidenceActionLabel(item) {

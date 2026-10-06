@@ -20,6 +20,8 @@ window.initJournalView = function() {
     loadJournal();
 };
 
+var AUTO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>';
+
 var INCIDENT_ICONS = [
     {keys: ['telefon', 'anruf', 'hotline', 'telefonat', 'angerufen', 'rückruf', 'callcenter'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>', label: 'phone'},
     {keys: ['techniker', 'monteur', 'reparatur', 'vor ort', 'service-termin', 'servicetermin'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>', label: 'technician'},
@@ -94,7 +96,7 @@ function renderIconPicker(selectedLabel) {
     noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
     noneBtn.title = T.icon_auto;
     noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
-    noneBtn.innerHTML = '<span class="icon-pick-symbol">' + T.icon_auto.toLowerCase() + '</span><span class="icon-pick-label">' + T.icon_auto + '</span>';
+    noneBtn.innerHTML = '<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + T.icon_auto + '</span>';
     noneBtn.onclick = function() {
         hiddenInput.value = '';
         markSelected(noneBtn);
@@ -1553,7 +1555,7 @@ function renderContainerIconPicker(selectedLabel) {
     noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
     noneBtn.title = T.icon_auto || 'Auto';
     noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
-    noneBtn.innerHTML = '<span class="icon-pick-symbol">' + (T.icon_auto || 'auto').toLowerCase() + '</span><span class="icon-pick-label">' + (T.icon_auto || 'Auto') + '</span>';
+    noneBtn.innerHTML = '<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + (T.icon_auto || 'Auto') + '</span>';
     noneBtn.onclick = function() {
         hiddenInput.value = '';
         markSelected(noneBtn);
