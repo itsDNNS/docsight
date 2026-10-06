@@ -34,7 +34,7 @@
     function rangeTabs(tabsId) {
         var group = typeof document !== 'undefined' && document.getElementById(tabsId);
         if (!group) return [];
-        return Array.prototype.slice.call(group.querySelectorAll('.trend-tab[data-value], .trend-tab[data-range], .trend-tab[data-days], .trend-tab[data-cm-range]'))
+        return Array.prototype.slice.call(group.querySelectorAll('.segmented-option[data-value], .segmented-option[data-range], .segmented-option[data-days], .segmented-option[data-cm-range]'))
             .map(function (tab) {
                 return {el: tab, label: tab.textContent.trim(), active: tab.classList.contains('active')};
             });

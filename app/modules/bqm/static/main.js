@@ -57,15 +57,9 @@ function updateBqmQuickButtons() {
             else if (date === relativeDate(1)) selected = 'yesterday';
         }
     }
-    ['bqm-today-btn', 'bqm-yesterday-btn', 'bqm-7d-btn', 'bqm-30d-btn'].forEach(function(id) {
-        var btn = document.getElementById(id);
-        if (btn) {
-            btn.style.display = hasCsv ? 'inline-flex' : 'none';
-            var active = id === 'bqm-' + selected + '-btn';
-            btn.classList.toggle('active', active);
-            btn.setAttribute('aria-pressed', String(active));
-        }
-    });
+    var quickRange = document.getElementById('bqm-quick-range');
+    if (quickRange) quickRange.hidden = !hasCsv;
+    syncSegments(quickRange, function(btn) { return btn.id === 'bqm-' + selected + '-btn'; });
 }
 
 function renderBqmCalendar(year, month) {
@@ -149,8 +143,9 @@ function setBqmViewMode(mode) {
     var togglePng = document.getElementById('bqm-toggle-png');
     if (chart) chart.hidden = mode !== 'chart';
     if (imageWrap) imageWrap.hidden = mode === 'chart';
-    if (toggleUplot) toggleUplot.classList.toggle('active', mode === 'chart');
-    if (togglePng) togglePng.classList.toggle('active', mode === 'png');
+    syncSegments('bqm-view-toggle', function(option) {
+        return option === toggleUplot ? mode === 'chart' : mode === 'png';
+    });
 }
 
 function updateBqmViewToggle(date) {

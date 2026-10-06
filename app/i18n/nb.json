@@ -441,6 +441,8 @@
   "downstream_channels": "Nedstrømskanaler",
   "upstream_channels": "Oppstrømskanaler",
   "time_range": "Tidsrom",
+  "view_mode": "Visning",
+  "direction": "Retning",
   "power_history": "Strømhistorikk",
   "snr_history": "SNR historikk",
   "error_history": "Feilhistorikk",

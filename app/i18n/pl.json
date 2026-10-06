@@ -441,6 +441,8 @@
   "downstream_channels": "Kanały niższego szczebla",
   "upstream_channels": "Kanały nadrzędne",
   "time_range": "Zakres czasu",
+  "view_mode": "Widok",
+  "direction": "Kierunek",
   "power_history": "Historia zasilania",
   "snr_history": "SNR Historia",
   "error_history": "Historia błędów",

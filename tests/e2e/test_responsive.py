@@ -394,7 +394,7 @@ class TestMobileLayout:
                 const viewportWidth = window.innerWidth;
                 const groups = {
                     expand: '#__touch-target-fixture .chart-expand-btn',
-                    tabs: '#view-trends.active #trend-tabs .trend-tab',
+                    tabs: '#view-trends.active #trend-tabs .segmented-option',
                     glossary: '#__touch-target-fixture .glossary-hint'
                 };
                 return Object.fromEntries(Object.entries(groups).map(([group, selector]) => [
@@ -419,8 +419,8 @@ class TestMobileLayout:
         )
 
         mobile_page.evaluate("switchView('speedtest')")
-        mobile_page.wait_for_selector("#view-speedtest.active #speedtest-tabs .trend-tab")
-        speedtest_tabs = mobile_page.locator("#view-speedtest.active #speedtest-tabs .trend-tab").evaluate_all(
+        mobile_page.wait_for_selector("#view-speedtest.active #speedtest-tabs .segmented-option")
+        speedtest_tabs = mobile_page.locator("#view-speedtest.active #speedtest-tabs .segmented-option").evaluate_all(
             """
             tabs => tabs.map((tab) => {
                 const rect = tab.getBoundingClientRect();
@@ -430,12 +430,12 @@ class TestMobileLayout:
         )
 
         mobile_page.evaluate("switchView('correlation')")
-        mobile_page.wait_for_selector("#view-correlation.active #correlation-tabs .trend-tab")
+        mobile_page.wait_for_selector("#view-correlation.active #correlation-tabs .segmented-option")
         mobile_page.evaluate("document.querySelector('#correlation-chart-container').hidden = false")
         correlation_controls = mobile_page.evaluate(
             """
             () => Array.from(document.querySelectorAll(
-                '#view-correlation.active #correlation-tabs .trend-tab, #view-correlation.active .chart-export-btn'
+                '#view-correlation.active #correlation-tabs .segmented-option, #view-correlation.active .chart-export-btn'
             )).map((el) => {
                 const rect = el.getBoundingClientRect();
                 return {width: rect.width, height: rect.height, left: rect.left, right: rect.right, viewportWidth: window.innerWidth};

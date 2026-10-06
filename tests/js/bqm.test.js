@@ -20,9 +20,11 @@ function setup() {
         return elements[id] = {id, style: {}, attrs: {}, children: [],
             classList: {toggle(n, on) { on ? classes.add(n) : classes.delete(n); }, add(n) { classes.add(n); }, contains(n) { return classes.has(n); }},
             setAttribute(n, v) { this.attrs[n] = v; }, addEventListener(n, fn) { this[n] = fn; },
+            querySelectorAll() { return this.children; },
             appendChild(el) { this.children.push(el); }};
     }
-    for (const id of ['today', 'yesterday', '7d', '30d']) element('bqm-' + id + '-btn');
+    const quickRange = element('bqm-quick-range');
+    for (const id of ['today', 'yesterday', '7d', '30d']) quickRange.appendChild(element('bqm-' + id + '-btn'));
     element('bqm-calendar-grid'); element('bqm-month-label');
     element('bqm-view-toggle'); element('bqm-range-label');
     const requests = [];
@@ -36,6 +38,7 @@ function setup() {
         fetch: async url => { requests.push(url); return {json: async () => ({points: 1, data: {}})}; },
         BQMChart: {render(...args) { c.rendered = args; }}});
     c.window = c;
+    run(c, 'app/static/js/segmented.js');
     run(c, 'app/modules/bqm/static/main.js');
     c._bqmCsvDates = new Set(['2026-01-02', '2026-01-01', '2025-12-30']);
     c._bqmAvailableDates = c._bqmCsvDates;
@@ -60,6 +63,14 @@ test('quick selection follows dates, ranges, calendar transitions and month navi
     const cell = elements['bqm-calendar-grid'].children.findLast(el => el.attrs['data-date'] === '2026-01-01');
     cell.click({shiftKey: true}); selected(elements, null);
     c.setBqmQuickRange(1); selected(elements, 'today');
+});
+test('quick range group hides as a whole without stored data', () => {
+    const {c, elements} = setup();
+    c.updateBqmQuickButtons();
+    assert.equal(elements['bqm-quick-range'].hidden, false);
+    c._bqmCsvDates = new Set();
+    c.updateBqmQuickButtons();
+    assert.equal(elements['bqm-quick-range'].hidden, true);
 });
 test('loaders pass selected date mode even for sparse responses', async () => {
     const {c} = setup();

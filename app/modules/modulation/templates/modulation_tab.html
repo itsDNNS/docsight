@@ -5,14 +5,14 @@
             <h2 class="view-page-title">{{ t.get('docsight.modulation.title', 'Modulation Performance') }}</h2>
         </div>
         <div class="view-page-actions mod-controls-tabs">
-            <div class="trend-tabs" id="modulation-direction-tabs">
-                <button class="trend-tab active" data-dir="us">{{ t.get('docsight.modulation.upstream', 'Upstream') }}</button>
-                <button class="trend-tab" data-dir="ds">{{ t.get('docsight.modulation.downstream', 'Downstream') }}</button>
+            <div class="segmented" id="modulation-direction-tabs" role="group" aria-label="{{ t.direction }}">
+                <button class="segmented-option active" data-dir="us" aria-pressed="true">{{ t.get('docsight.modulation.upstream', 'Upstream') }}</button>
+                <button class="segmented-option" data-dir="ds" aria-pressed="false">{{ t.get('docsight.modulation.downstream', 'Downstream') }}</button>
             </div>
-            <div class="trend-tabs" id="modulation-range-tabs">
-                <button class="trend-tab" data-days="1">{{ t.get('docsight.modulation.today', 'Today') }}</button>
-                <button class="trend-tab active" data-days="7">7d</button>
-                <button class="trend-tab" data-days="30">30d</button>
+            <div class="segmented" id="modulation-range-tabs" role="group" aria-label="{{ t.time_range }}">
+                <button class="segmented-option" data-days="1" aria-pressed="false">{{ t.get('docsight.modulation.today', 'Today') }}</button>
+                <button class="segmented-option active" data-days="7" aria-pressed="true">7d</button>
+                <button class="segmented-option" data-days="30" aria-pressed="false">30d</button>
             </div>
         </div>
     </div>
@@ -109,7 +109,7 @@
     <!-- Intraday (single day) -->
     <div id="modulation-intraday" hidden>
         <div class="mod-intraday-header">
-            <button class="trend-tab" id="mod-back-btn" data-action="modBackToOverview">
+            <button type="button" class="btn btn-secondary btn-sm" id="mod-back-btn" data-action="modBackToOverview">
                 <i data-lucide="arrow-left"></i>
                 {{ t.get('docsight.modulation.back_to_overview', 'Back to Overview') }}
             </button>

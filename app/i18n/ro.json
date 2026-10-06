@@ -441,6 +441,8 @@
   "downstream_channels": "Canale în aval",
   "upstream_channels": "Canale din amonte",
   "time_range": "Interval de timp",
+  "view_mode": "Vizualizare",
+  "direction": "Direcție",
   "power_history": "Istoricul puterii",
   "snr_history": "SNR Istoric",
   "error_history": "Istoricul erorilor",

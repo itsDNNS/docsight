@@ -677,7 +677,7 @@
                             <div class="insight-explanation">{{ issue_descs.get(issue, '') }}</div>
                         </div>
                         {% if issue_actions.get(issue) %}
-                        <div class="insight-action"><i data-lucide="arrow-right" class="insight-action-arrow"></i> {{ issue_actions[issue] }}</div>
+                        <div class="insight-action"><i data-lucide="arrow-right"></i> {{ issue_actions[issue] }}</div>
                         {% endif %}
                     </div>
                     {% endfor %}
@@ -861,17 +861,17 @@
             <h2 class="view-page-title" id="trend-title">{{ t.signal_trends }}</h2>
         </div>
         <div class="view-page-actions">
-            <div class="trend-tabs" id="trend-tabs">
-                <button class="trend-tab" data-range="1h">1h</button>
-                <button class="trend-tab" data-range="6h">6h</button>
-                <button class="trend-tab active" data-range="1d">1d</button>
-                <button class="trend-tab" data-range="2d">2d</button>
-                <button class="trend-tab" data-range="3d">3d</button>
-                <button class="trend-tab" data-range="7d">7d</button>
-                <button class="trend-tab" data-range="30d">30d</button>
-                <button class="trend-tab" data-range="90d">90d</button>
+            <div class="segmented" id="trend-tabs" role="group" aria-label="{{ t.time_range }}">
+                <button class="segmented-option" data-range="1h" aria-pressed="false">1h</button>
+                <button class="segmented-option" data-range="6h" aria-pressed="false">6h</button>
+                <button class="segmented-option active" data-range="1d" aria-pressed="true">1d</button>
+                <button class="segmented-option" data-range="2d" aria-pressed="false">2d</button>
+                <button class="segmented-option" data-range="3d" aria-pressed="false">3d</button>
+                <button class="segmented-option" data-range="7d" aria-pressed="false">7d</button>
+                <button class="segmented-option" data-range="30d" aria-pressed="false">30d</button>
+                <button class="segmented-option" data-range="90d" aria-pressed="false">90d</button>
             </div>
-            <button class="trend-tab temp-toggle" id="temp-toggle-btn" hidden title="{{ t.temp_overlay_show }}">
+            <button type="button" class="btn btn-secondary btn-sm temp-toggle" id="temp-toggle-btn" aria-pressed="false" hidden title="{{ t.temp_overlay_show }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
@@ -947,11 +947,13 @@
         <div class="view-page-header-left">
             <h2 class="view-page-title">{{ t.smokeping_title }}</h2>
         </div>
-        <div class="view-page-actions trend-tabs" id="smokeping-tabs">
-            <button class="trend-tab active" data-span="3h">3h</button>
-            <button class="trend-tab" data-span="30h">30h</button>
-            <button class="trend-tab" data-span="10d">10d</button>
-            <button class="trend-tab" data-span="1y">1y</button>
+        <div class="view-page-actions">
+            <div class="segmented" id="smokeping-tabs" role="group" aria-label="{{ t.time_range }}">
+                <button class="segmented-option active" data-span="3h" aria-pressed="true">3h</button>
+                <button class="segmented-option" data-span="30h" aria-pressed="false">30h</button>
+                <button class="segmented-option" data-span="10d" aria-pressed="false">10d</button>
+                <button class="segmented-option" data-span="1y" aria-pressed="false">1y</button>
+            </div>
         </div>
     </div>
     <div id="smokeping-content" class="bqm-card-grid">
@@ -968,15 +970,17 @@
             <h2 class="view-page-title">{{ t.correlation_title }}</h2>
             <span class="view-page-subtitle">{{ t.get('correlation_subtitle', 'Build evidence for ISP complaints') }}</span>
         </div>
-        <div class="view-page-actions trend-tabs" data-pill-action="loadCorrelationData" id="correlation-tabs">
-            <button class="trend-tab" data-value="1h">1h</button>
-            <button class="trend-tab" data-value="6h">6h</button>
-            <button class="trend-tab active" data-value="1d">1d</button>
-            <button class="trend-tab" data-value="2d">2d</button>
-            <button class="trend-tab" data-value="3d">3d</button>
-            <button class="trend-tab" data-value="7d">7d</button>
-            <button class="trend-tab" data-value="30d">30d</button>
-            <button class="trend-tab" data-value="90d">90d</button>
+        <div class="view-page-actions">
+            <div class="segmented" data-pill-action="loadCorrelationData" id="correlation-tabs" role="group" aria-label="{{ t.time_range }}">
+                <button class="segmented-option" data-value="1h" aria-pressed="false">1h</button>
+                <button class="segmented-option" data-value="6h" aria-pressed="false">6h</button>
+                <button class="segmented-option active" data-value="1d" aria-pressed="true">1d</button>
+                <button class="segmented-option" data-value="2d" aria-pressed="false">2d</button>
+                <button class="segmented-option" data-value="3d" aria-pressed="false">3d</button>
+                <button class="segmented-option" data-value="7d" aria-pressed="false">7d</button>
+                <button class="segmented-option" data-value="30d" aria-pressed="false">30d</button>
+                <button class="segmented-option" data-value="90d" aria-pressed="false">90d</button>
+            </div>
         </div>
     </div>
 
@@ -1076,11 +1080,11 @@
             <h2 class="view-page-title">{{ t.event_log }}</h2>
         </div>
         <div class="view-page-actions events-filter-section">
-            <div class="trend-tabs events-severity-tabs" id="events-severity-tabs" role="group" aria-label="{{ t.event_severity }}">
-                <button type="button" class="trend-tab active" data-severity="" data-action="filterEventsBySeverity" data-action-args='[""]' aria-pressed="true">{{ t.event_filter_all }}</button>
-                <button type="button" class="trend-tab" data-severity="info" data-action="filterEventsBySeverity" data-action-args='["info"]' aria-pressed="false">{{ t.event_severity_info }}</button>
-                <button type="button" class="trend-tab" data-severity="warning" data-action="filterEventsBySeverity" data-action-args='["warning"]' aria-pressed="false">{{ t.event_severity_warning }}</button>
-                <button type="button" class="trend-tab" data-severity="critical" data-action="filterEventsBySeverity" data-action-args='["critical"]' aria-pressed="false">{{ t.event_severity_critical }}</button>
+            <div class="segmented segmented-fill" id="events-severity-tabs" role="group" aria-label="{{ t.event_severity }}">
+                <button type="button" class="segmented-option active" data-severity="" data-action="filterEventsBySeverity" data-action-args='[""]' aria-pressed="true">{{ t.event_filter_all }}</button>
+                <button type="button" class="segmented-option" data-severity="info" data-action="filterEventsBySeverity" data-action-args='["info"]' aria-pressed="false">{{ t.event_severity_info }}</button>
+                <button type="button" class="segmented-option" data-severity="warning" data-action="filterEventsBySeverity" data-action-args='["warning"]' aria-pressed="false">{{ t.event_severity_warning }}</button>
+                <button type="button" class="segmented-option" data-severity="critical" data-action="filterEventsBySeverity" data-action-args='["critical"]' aria-pressed="false">{{ t.event_severity_critical }}</button>
             </div>
             <button type="button" class="events-filter-chip" id="device-filter-pill" data-action="filterEventsByDevice" aria-pressed="false">{{ t.event_filter_device }}</button>
             <label class="events-switch">
@@ -1122,63 +1126,63 @@
             <h2 class="view-page-title">{{ t.channels }}</h2>
         </div>
         <div class="view-page-actions">
-        <div class="trend-tabs" data-pill-action="switchChannelMode" id="channel-mode-tabs">
-            <button class="trend-tab active" data-value="status">{{ t.get('channel_mode_status', 'Status') }}</button>
-            <button class="trend-tab" data-value="timeline">{{ t.channel_timeline }}</button>
-            <button class="trend-tab" data-value="compare">{{ t.channel_compare }}</button>
+        <div class="segmented" data-pill-action="switchChannelMode" id="channel-mode-tabs" role="group" aria-label="{{ t.view_mode }}">
+            <button class="segmented-option active" data-value="status" aria-pressed="true">{{ t.get('channel_mode_status', 'Status') }}</button>
+            <button class="segmented-option" data-value="timeline" aria-pressed="false">{{ t.channel_timeline }}</button>
+            <button class="segmented-option" data-value="compare" aria-pressed="false">{{ t.channel_compare }}</button>
         </div>
         <span id="channel-status-controls">
-            <div class="trend-tabs" data-pill-action="loadChannelStatus" id="channel-status-time-tabs">
-                <button class="trend-tab" data-value="1h">1h</button>
-                <button class="trend-tab" data-value="6h">6h</button>
-                <button class="trend-tab active" data-value="1d">1d</button>
-                <button class="trend-tab" data-value="2d">2d</button>
-                <button class="trend-tab" data-value="3d">3d</button>
-                <button class="trend-tab" data-value="7d">7d</button>
-                <button class="trend-tab" data-value="30d">30d</button>
-                <button class="trend-tab" data-value="90d">90d</button>
+            <div class="segmented" data-pill-action="loadChannelStatus" id="channel-status-time-tabs" role="group" aria-label="{{ t.time_range }}">
+                <button class="segmented-option" data-value="1h" aria-pressed="false">1h</button>
+                <button class="segmented-option" data-value="6h" aria-pressed="false">6h</button>
+                <button class="segmented-option active" data-value="1d" aria-pressed="true">1d</button>
+                <button class="segmented-option" data-value="2d" aria-pressed="false">2d</button>
+                <button class="segmented-option" data-value="3d" aria-pressed="false">3d</button>
+                <button class="segmented-option" data-value="7d" aria-pressed="false">7d</button>
+                <button class="segmented-option" data-value="30d" aria-pressed="false">30d</button>
+                <button class="segmented-option" data-value="90d" aria-pressed="false">90d</button>
             </div>
         </span>
         <span id="channel-timeline-controls" hidden>
             <select id="channel-select" class="channel-select-styled" data-change-action="loadChannelTimeline">
                 <option value="">{{ t.select_channel }}</option>
             </select>
-            <div class="trend-tabs" data-pill-action="loadChannelTimeline" id="channel-time-tabs" hidden>
-                <button class="trend-tab" data-value="1h">1h</button>
-                <button class="trend-tab" data-value="6h">6h</button>
-                <button class="trend-tab active" data-value="1d">1d</button>
-                <button class="trend-tab" data-value="2d">2d</button>
-                <button class="trend-tab" data-value="3d">3d</button>
-                <button class="trend-tab" data-value="7d">7d</button>
-                <button class="trend-tab" data-value="30d">30d</button>
-                <button class="trend-tab" data-value="90d">90d</button>
+            <div class="segmented" data-pill-action="loadChannelTimeline" id="channel-time-tabs" role="group" aria-label="{{ t.time_range }}" hidden>
+                <button class="segmented-option" data-value="1h" aria-pressed="false">1h</button>
+                <button class="segmented-option" data-value="6h" aria-pressed="false">6h</button>
+                <button class="segmented-option active" data-value="1d" aria-pressed="true">1d</button>
+                <button class="segmented-option" data-value="2d" aria-pressed="false">2d</button>
+                <button class="segmented-option" data-value="3d" aria-pressed="false">3d</button>
+                <button class="segmented-option" data-value="7d" aria-pressed="false">7d</button>
+                <button class="segmented-option" data-value="30d" aria-pressed="false">30d</button>
+                <button class="segmented-option" data-value="90d" aria-pressed="false">90d</button>
             </div>
-            <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" data-action="toggleChannelTempOverlay" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+            <button id="channel-temp-toggle-btn" class="btn btn-secondary btn-sm temp-toggle" data-action="toggleChannelTempOverlay" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
             </button>
         </span>
         <span id="channel-compare-controls" hidden>
-            <div class="trend-tabs" data-pill-action="onCompareDirectionChange" id="compare-dir-tabs">
-                <button class="trend-tab active" data-value="ds">{{ t.downstream }}</button>
-                <button class="trend-tab" data-value="us">{{ t.upstream }}</button>
+            <div class="segmented" data-pill-action="onCompareDirectionChange" id="compare-dir-tabs" role="group" aria-label="{{ t.direction }}">
+                <button class="segmented-option active" data-value="ds" aria-pressed="true">{{ t.downstream }}</button>
+                <button class="segmented-option" data-value="us" aria-pressed="false">{{ t.upstream }}</button>
             </div>
             <select id="compare-channel-select" class="channel-select-styled"><option value="">{{ t.select_channel }}</option></select>
             <button id="compare-add-btn" class="compare-add-btn" data-action="addCompareChannel">+ {{ t.add_channel }}</button>
             <button id="compare-add-all-btn" class="compare-add-btn" data-action="addAllCompareChannels">{{ t.all_downstream }}</button>
             <button id="compare-clear-btn" class="compare-add-btn" data-action="clearCompareChannels" hidden>{{ t.clear_selection }}</button>
-            <div class="trend-tabs" data-pill-action="loadCompareCharts" id="compare-time-tabs" hidden>
-                <button class="trend-tab" data-value="1h">1h</button>
-                <button class="trend-tab" data-value="6h">6h</button>
-                <button class="trend-tab active" data-value="1d">1d</button>
-                <button class="trend-tab" data-value="2d">2d</button>
-                <button class="trend-tab" data-value="3d">3d</button>
-                <button class="trend-tab" data-value="7d">7d</button>
-                <button class="trend-tab" data-value="30d">30d</button>
-                <button class="trend-tab" data-value="90d">90d</button>
+            <div class="segmented" data-pill-action="loadCompareCharts" id="compare-time-tabs" role="group" aria-label="{{ t.time_range }}" hidden>
+                <button class="segmented-option" data-value="1h" aria-pressed="false">1h</button>
+                <button class="segmented-option" data-value="6h" aria-pressed="false">6h</button>
+                <button class="segmented-option active" data-value="1d" aria-pressed="true">1d</button>
+                <button class="segmented-option" data-value="2d" aria-pressed="false">2d</button>
+                <button class="segmented-option" data-value="3d" aria-pressed="false">3d</button>
+                <button class="segmented-option" data-value="7d" aria-pressed="false">7d</button>
+                <button class="segmented-option" data-value="30d" aria-pressed="false">30d</button>
+                <button class="segmented-option" data-value="90d" aria-pressed="false">90d</button>
             </div>
-            <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" data-action="toggleCompareTempOverlay" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+            <button id="compare-temp-toggle-btn" class="btn btn-secondary btn-sm temp-toggle" data-action="toggleCompareTempOverlay" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
@@ -1810,6 +1814,7 @@
     'timeZone': time_zone or none
 }|tojson }}</script>
 <script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/segmented.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/empty-state.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>

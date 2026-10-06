@@ -30,7 +30,7 @@
 
     /* The range tabs are a data-pill-action group; the selected tab carries the range. */
     window.cmRangeTabSelected = function() {
-        var tab = document.querySelector('#cm-range-tabs .trend-tab.active');
+        var tab = document.querySelector('#cm-range-tabs .segmented-option.active');
         if (tab) window.cmSetRange(tab, Number(tab.getAttribute('data-cm-range')));
     };
 
@@ -157,9 +157,7 @@
                     .then(function() {
                         if (removedActiveDay) {
                             pinnedDayView = null;
-                            document.querySelectorAll('[data-cm-range]').forEach(function(b) {
-                                b.classList.toggle('active', Number(b.dataset.cmRange) === currentRange);
-                            });
+                            syncSegments('cm-range-tabs', function(b) { return Number(b.dataset.cmRange) === currentRange; });
                             updatePinButton();
                             loadData();
                             updateRefreshInterval();

@@ -69,7 +69,7 @@ class TestChannelStatusMatrix:
     def test_status_is_the_default_mode(self, demo_page):
         self._open(demo_page)
 
-        expect(demo_page.locator('#channel-mode-tabs .trend-tab.active')).to_have_attribute("data-value", "status")
+        expect(demo_page.locator('#channel-mode-tabs .segmented-option.active')).to_have_attribute("data-value", "status")
         expect(demo_page.locator("#channel-panel-status")).to_be_visible()
         expect(demo_page.locator("#channel-panel-timeline")).to_be_hidden()
         assert "mode=status" in demo_page.evaluate("location.hash")
@@ -101,8 +101,8 @@ class TestChannelStatusMatrix:
 
     def test_row_opens_the_channel_timeline_with_the_same_range(self, demo_page):
         self._open(demo_page)
-        demo_page.locator('#channel-status-time-tabs .trend-tab[data-value="6h"]').click()
-        expect(demo_page.locator('#channel-status-time-tabs .trend-tab.active')).to_have_attribute("data-value", "6h")
+        demo_page.locator('#channel-status-time-tabs .segmented-option[data-value="6h"]').click()
+        expect(demo_page.locator('#channel-status-time-tabs .segmented-option.active')).to_have_attribute("data-value", "6h")
         demo_page.wait_for_selector("#channel-status-body .cs-direction")
         assert "range=6h" in demo_page.evaluate("location.hash")
 
@@ -113,10 +113,10 @@ class TestChannelStatusMatrix:
         channel = row.get_attribute("data-channel-id")
         row.click()
 
-        expect(demo_page.locator('#channel-mode-tabs .trend-tab.active')).to_have_attribute("data-value", "timeline")
+        expect(demo_page.locator('#channel-mode-tabs .segmented-option.active')).to_have_attribute("data-value", "timeline")
         expect(demo_page.locator("#channel-panel-timeline")).to_be_visible()
         expect(demo_page.locator("#channel-select")).to_have_value(f"{direction}-{channel}")
-        expect(demo_page.locator('#channel-time-tabs .trend-tab.active')).to_have_attribute("data-value", "6h")
+        expect(demo_page.locator('#channel-time-tabs .segmented-option.active')).to_have_attribute("data-value", "6h")
         demo_page.wait_for_selector("#chart-ch-power .uplot canvas, #channel-charts canvas")
         hash_value = demo_page.evaluate("location.hash")
         assert f"mode=timeline&dir={direction}&channel={channel}&range=6h" in hash_value
@@ -126,7 +126,7 @@ class TestChannelStatusMatrix:
         demo_page.goto(base + "#channels?mode=status&range=7d")
         demo_page.wait_for_selector("#channel-status-body .cs-direction")
 
-        expect(demo_page.locator('#channel-status-time-tabs .trend-tab.active')).to_have_attribute("data-value", "7d")
+        expect(demo_page.locator('#channel-status-time-tabs .segmented-option.active')).to_have_attribute("data-value", "7d")
         expect(demo_page.locator("#channel-status-window")).to_contain_text("3.5 h")
 
     def test_current_value_tables_live_on_the_channels_page(self, demo_page):

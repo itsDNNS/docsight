@@ -441,6 +441,8 @@
   "downstream_channels": "Καθοδικά κανάλια",
   "upstream_channels": "Ανοδικά κανάλια",
   "time_range": "Χρονικό εύρος",
+  "view_mode": "Προβολή",
+  "direction": "Κατεύθυνση",
   "power_history": "Ιστορία ισχύος",
   "snr_history": "Ιστορία SNR",
   "error_history": "Ιστορικό σφαλμάτων",

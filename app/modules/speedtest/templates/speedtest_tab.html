@@ -4,13 +4,13 @@
             <h2 class="view-page-title">{{ t.speedtest_tracker }}</h2>
         </div>
         <div class="view-page-actions speedtest-controls">
-            <div class="trend-tabs" data-pill-action="filterSpeedtestData" id="speedtest-tabs">
-                <button class="trend-tab" data-value="1">1d</button>
-                <button class="trend-tab active" data-value="7">7d</button>
-                <button class="trend-tab" data-value="14">14d</button>
-                <button class="trend-tab" data-value="30">30d</button>
-                <button class="trend-tab" data-value="90">90d</button>
-                <button class="trend-tab" data-value="all">{{ t.fetch_all }}</button>
+            <div class="segmented" data-pill-action="filterSpeedtestData" id="speedtest-tabs" role="group" aria-label="{{ t.time_range }}">
+                <button class="segmented-option" data-value="1" aria-pressed="false">1d</button>
+                <button class="segmented-option active" data-value="7" aria-pressed="true">7d</button>
+                <button class="segmented-option" data-value="14" aria-pressed="false">14d</button>
+                <button class="segmented-option" data-value="30" aria-pressed="false">30d</button>
+                <button class="segmented-option" data-value="90" aria-pressed="false">90d</button>
+                <button class="segmented-option" data-value="all" aria-pressed="false">{{ t.fetch_all }}</button>
             </div>
             {% if not demo_mode %}<button class="btn btn-primary btn-sm" id="speedtest-run-btn" data-action="runSpeedtest"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
             <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" aria-label="{{ t.refresh }}" data-action="loadSpeedtestHistory"><i data-lucide="refresh-cw"></i></button>

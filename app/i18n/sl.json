@@ -441,6 +441,8 @@
   "downstream_channels": "Downstream kanali",
   "upstream_channels": "Upstream kanali",
   "time_range": "Časovni razpon",
+  "view_mode": "Pogled",
+  "direction": "Smer",
   "power_history": "Zgodovina napajanja",
   "snr_history": "SNR Zgodovina",
   "error_history": "Zgodovina napak",

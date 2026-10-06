@@ -142,12 +142,11 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
 
     /* ── Pill tab helpers ── */
     window.selectPill = function(btn, callback) {
-        btn.parentElement.querySelectorAll('.trend-tab').forEach(function(t) { t.classList.remove('active'); });
-        btn.classList.add('active');
+        selectSegment(btn);
         if (callback) callback();
     };
     window.getPillValue = function(containerId) {
-        var active = document.querySelector('#' + containerId + ' .trend-tab.active');
+        var active = document.querySelector('#' + containerId + ' .segmented-option.active');
         return active ? active.dataset.value : null;
     };
 

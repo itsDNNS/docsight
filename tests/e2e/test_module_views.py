@@ -177,7 +177,7 @@ def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, wid
         if name:
             active = page.locator(f"#bqm-{name}-btn")
             inactive = page.locator(".bqm-quick:not(.active)").first
-            # .trend-tab animates its background; compare the settled colors.
+            # .segmented-option animates its background; compare the settled colors.
             for button in (active, inactive):
                 button.evaluate("el => Promise.all(el.getAnimations().map((animation) => animation.finished))")
             assert active.evaluate("el => getComputedStyle(el).backgroundColor") != inactive.evaluate(

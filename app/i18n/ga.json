@@ -441,6 +441,8 @@
   "downstream_channels": "Cainéil le sruth",
   "upstream_channels": "Cainéil In aghaidh srutha",
   "time_range": "Réimse Ama",
+  "view_mode": "Amharc",
+  "direction": "Treo",
   "power_history": "Stair na Cumhachta",
   "snr_history": "SNR Stair",
   "error_history": "Stair Earráidí",

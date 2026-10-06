@@ -441,6 +441,8 @@
   "downstream_channels": "Downstream csatornák",
   "upstream_channels": "Upstream csatornák",
   "time_range": "Időtartomány",
+  "view_mode": "Nézet",
+  "direction": "Irány",
   "power_history": "Power History",
   "snr_history": "SNR Előzmények",
   "error_history": "Hibaelőzmények",

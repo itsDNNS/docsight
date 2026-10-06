@@ -65,7 +65,7 @@ class TestCorrelationStatusTrack:
         expect(section.locator(".cs-window")).to_have_text("One cell = 30 min")
         expect(section.locator(".cs-row").first.locator(".cs-cell")).to_have_count(48)
 
-        demo_page.locator('#correlation-tabs .trend-tab[data-value="7d"]').click()
+        demo_page.locator('#correlation-tabs .segmented-option[data-value="7d"]').click()
         expect(section.locator(".cs-window")).to_have_text("One cell = 3.5 h")
 
         aggregate = section.locator(".cs-aggregate").first
@@ -75,4 +75,4 @@ class TestCorrelationStatusTrack:
         row.click()
 
         expect(demo_page.locator("#channel-select")).to_have_value(f"{direction}-{channel}")
-        expect(demo_page.locator('#channel-time-tabs .trend-tab.active')).to_have_attribute("data-value", "7d")
+        expect(demo_page.locator('#channel-time-tabs .segmented-option.active')).to_have_attribute("data-value", "7d")

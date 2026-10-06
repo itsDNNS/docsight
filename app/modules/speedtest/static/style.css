@@ -167,15 +167,8 @@
         justify-content: center;
         width: 100%;
     }
-    .speedtest-controls .trend-tabs {
+    .speedtest-controls .segmented {
         order: 1;
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    .speedtest-controls .trend-tabs .trend-tab {
-        padding: 6px 14px;
-        font-size: max(var(--fs-min), 0.82em);
     }
     .speedtest-controls #speedtest-run-btn {
         order: 2;

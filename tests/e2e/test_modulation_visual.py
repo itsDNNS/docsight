@@ -98,17 +98,17 @@ class TestFullPageScreenshots:
         expect(view).to_be_visible()
 
     def test_screenshot_desktop_ds_7d(self, modulation_page):
-        _switch_distribution(modulation_page, '#modulation-direction-tabs .trend-tab[data-dir="ds"]',
+        _switch_distribution(modulation_page, '#modulation-direction-tabs .segmented-option[data-dir="ds"]',
                              direction='ds', min_samples=7)
         modulation_page.screenshot(
             path=os.path.join(SCREENSHOT_DIR, "desktop_ds_7d.png"),
             full_page=False,
         )
-        ds = modulation_page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]')
+        ds = modulation_page.locator('#modulation-direction-tabs .segmented-option[data-dir="ds"]')
         assert "active" in ds.get_attribute("class")
 
     def test_screenshot_desktop_us_1d(self, modulation_page):
-        modulation_page.locator('#modulation-range-tabs .trend-tab[data-days="1"]').click()
+        modulation_page.locator('#modulation-range-tabs .segmented-option[data-days="1"]').click()
         modulation_page.wait_for_function(
             "() => document.querySelector('#modulation-intraday-content .mod-channel-summary, #modulation-intraday-content .view-empty')",
             timeout=150_000,
@@ -119,7 +119,7 @@ class TestFullPageScreenshots:
         )
 
     def test_screenshot_desktop_us_30d(self, modulation_page):
-        _switch_distribution(modulation_page, '#modulation-range-tabs .trend-tab[data-days="30"]',
+        _switch_distribution(modulation_page, '#modulation-range-tabs .segmented-option[data-days="30"]',
                              direction='us', min_samples=30)
         modulation_page.screenshot(
             path=os.path.join(SCREENSHOT_DIR, "desktop_us_30d.png"),
@@ -166,7 +166,7 @@ class TestChartRendering:
 
     def test_charts_rerender_on_direction_switch(self, modulation_page):
         _switch_distribution(
-            modulation_page, '#modulation-direction-tabs .trend-tab[data-dir="ds"]',
+            modulation_page, '#modulation-direction-tabs .segmented-option[data-dir="ds"]',
             direction="ds",
             min_samples=7,
         )
@@ -176,7 +176,7 @@ class TestChartRendering:
 
     def test_charts_rerender_on_range_switch(self, modulation_page):
         _switch_distribution(
-            modulation_page, '#modulation-range-tabs .trend-tab[data-days="30"]',
+            modulation_page, '#modulation-range-tabs .segmented-option[data-days="30"]',
             direction="us",
             min_samples=30,
         )

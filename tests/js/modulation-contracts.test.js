@@ -66,7 +66,11 @@ function browser(lang = 'en', translations = {}) {
         fetch: url => new Promise(resolve => requests.push({url, resolve})),
     };
     context.window = context;
-    vm.runInNewContext(read('app/modules/modulation/static/main.js'), context);
+    ids.get('modulation-direction-tabs').querySelectorAll = () => directions;
+    ids.get('modulation-range-tabs').querySelectorAll = () => ranges;
+    vm.createContext(context);
+    vm.runInContext(read('app/static/js/segmented.js'), context);
+    vm.runInContext(read('app/modules/modulation/static/main.js'), context);
     return {ids, charts, requests, directions, ranges, context, init: () => context.initModulation(),
         async reply(data, index = requests.length - 1) {
             requests[index].resolve({json: async () => data});

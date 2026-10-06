@@ -5,10 +5,12 @@
         </div>
         <!-- BQM Toolbar: quick-jump + month nav -->
         <div id="bqm-toolbar" class="view-page-actions bqm-toolbar">
-        <button class="trend-tab bqm-quick" id="bqm-today-btn">{{ t.bqm_today }}</button>
-        <button class="trend-tab bqm-quick" id="bqm-yesterday-btn">{{ t.bqm_yesterday }}</button>
-        <button class="trend-tab bqm-quick" id="bqm-7d-btn">{{ t.bqm_range_7d or '7d' }}</button>
-        <button class="trend-tab bqm-quick" id="bqm-30d-btn">{{ t.bqm_range_30d or '30d' }}</button>
+        <div class="segmented" id="bqm-quick-range" role="group" aria-label="{{ t.time_range }}">
+            <button class="segmented-option bqm-quick" id="bqm-today-btn" aria-pressed="false">{{ t.bqm_today }}</button>
+            <button class="segmented-option bqm-quick" id="bqm-yesterday-btn" aria-pressed="false">{{ t.bqm_yesterday }}</button>
+            <button class="segmented-option bqm-quick" id="bqm-7d-btn" aria-pressed="false">{{ t.bqm_range_7d or '7d' }}</button>
+            <button class="segmented-option bqm-quick" id="bqm-30d-btn" aria-pressed="false">{{ t.bqm_range_30d or '30d' }}</button>
+        </div>
         <div class="bqm-month-nav">
             <button id="bqm-month-prev" class="bqm-nav-btn" aria-label="{{ t.get('previous_month', 'Previous month') }}">&#8249;</button>
             <span id="bqm-month-label" class="bqm-month-label"></span>
@@ -51,9 +53,9 @@
                     <span id="bqm-live-badge" class="bqm-live-badge" hidden>{{ t.bqm_live }}</span>
                     <span id="bqm-last-updated" class="bqm-last-updated" hidden></span>
                 </div>
-                <div id="bqm-view-toggle" class="trend-tabs" hidden>
-                    <button class="trend-tab active" id="bqm-toggle-uplot">{{ t.bqm_view_interactive }}</button>
-                    <button class="trend-tab" id="bqm-toggle-png">{{ t.bqm_view_image }}</button>
+                <div id="bqm-view-toggle" class="segmented" role="group" aria-label="{{ t.view_mode }}" hidden>
+                    <button class="segmented-option active" id="bqm-toggle-uplot" aria-pressed="true">{{ t.bqm_view_interactive }}</button>
+                    <button class="segmented-option" id="bqm-toggle-png" aria-pressed="false">{{ t.bqm_view_image }}</button>
                 </div>
             </div>
             <div id="bqm-chart-container" class="bqm-chart-container" hidden></div>

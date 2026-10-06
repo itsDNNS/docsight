@@ -441,6 +441,8 @@
   "downstream_channels": "Pasroviui skirti kanalai",
   "upstream_channels": "Kanalai prieš srovę",
   "time_range": "Laiko diapazonas",
+  "view_mode": "Rodinys",
+  "direction": "Kryptis",
   "power_history": "Maitinimo istorija",
   "snr_history": "SNR istorija",
   "error_history": "Klaidų istorija",

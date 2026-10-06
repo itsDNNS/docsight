@@ -5,7 +5,7 @@
      data-change-action="fn"   change calls window.fn(...args)
      data-action-args="[...]"  JSON arguments for either (optional)
      data-action-pass="element" either also gets the element as its first argument
-     data-pill-action="fn"     on a .trend-tabs group: a tab click selects the tab, then calls fn
+     data-pill-action="fn"     on a .segmented group: a tab click selects the tab, then calls fn
      data-dialog-close="fn"    on a <dialog>: a backdrop click or Escape calls fn
      data-click-target="sel"   click forwards to the first element matching the selector
      data-focus-target="sel"   click focuses the first element matching the selector
@@ -42,7 +42,7 @@
             return;
         }
 
-        var tab = target.closest('[data-pill-action] > .trend-tab');
+        var tab = target.closest('[data-pill-action] > .segmented-option');
         if (tab) {
             window.selectPill(tab, window[tab.parentElement.getAttribute('data-pill-action')]);
             return;

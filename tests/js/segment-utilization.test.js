@@ -14,6 +14,7 @@ function correlationTabs() {
         return {
             value,
             getAttribute(name) { return name === 'data-value' ? value : null; },
+            setAttribute() {},
             classList: {
                 toggle(name, on) { on ? classes.add(name) : classes.delete(name); },
                 contains(name) { return classes.has(name); },
@@ -27,8 +28,8 @@ function setup() {
     const c = vm.createContext({
         T: {},
         document: {
-            querySelectorAll(selector) { return selector === '#correlation-tabs .trend-tab' ? tabs : []; },
-            getElementById() { return null; },
+            querySelectorAll(selector) { return selector === '#correlation-tabs .segmented-option' ? tabs : []; },
+            getElementById(id) { return id === 'correlation-tabs' ? {querySelectorAll: () => tabs} : null; },
         },
         location: {hash: ''},
     });
@@ -37,6 +38,7 @@ function setup() {
         // Correlation reads the active pill synchronously when the view opens.
         c.opened = {view, active: tabs.filter(t => t.classList.contains('active')).map(t => t.value)};
     };
+    vm.runInContext(fs.readFileSync('app/static/js/segmented.js', 'utf8'), c);
     vm.runInContext(fs.readFileSync('app/static/js/segment-utilization.js', 'utf8'), c);
     return c;
 }

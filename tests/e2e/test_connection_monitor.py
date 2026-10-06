@@ -15,7 +15,7 @@ def test_connection_monitor_uses_shared_page_header_action_layout(demo_page):
     header = page.locator("#view-connection-monitor .view-page-header")
     expect(header).to_be_visible()
     expect(header.locator(".view-page-title")).to_have_text("Connection Monitor")
-    expect(header.locator(".view-page-actions .cm-range-picker")).to_be_visible()
+    expect(header.locator(".view-page-actions #cm-range-tabs")).to_be_visible()
     expect(header.locator(".view-page-actions [data-cm-range='3600']")).to_be_visible()
     expect(header.locator(".view-page-actions #cm-capability-info")).to_be_visible()
     expect(page.locator("#view-connection-monitor .cm-control-strip")).to_have_count(0)
@@ -27,7 +27,7 @@ def test_connection_monitor_pin_day_action_does_not_shift_range_navigation(demo_
     page.evaluate("switchView('connection-monitor')")
     page.wait_for_selector("#view-connection-monitor.active", state="visible")
 
-    range_picker = page.locator("#view-connection-monitor .view-page-actions .cm-range-picker")
+    range_picker = page.locator("#view-connection-monitor .view-page-actions #cm-range-tabs")
     expect(range_picker).to_be_visible()
     before = range_picker.bounding_box()
     assert before is not None
@@ -38,7 +38,7 @@ def test_connection_monitor_pin_day_action_does_not_shift_range_navigation(demo_
     after = range_picker.bounding_box()
     assert after is not None
     assert abs(before["x"] - after["x"]) <= 1, "1d pin action should not shift the time-range controls horizontally"
-    expect(page.locator("#view-connection-monitor .cm-range-picker #cm-pin-day-btn")).to_have_count(0)
+    expect(page.locator("#view-connection-monitor #cm-range-tabs #cm-pin-day-btn")).to_have_count(0)
 
 
 def test_connection_monitor_raw_ping_log_panel_is_discoverable(demo_page):

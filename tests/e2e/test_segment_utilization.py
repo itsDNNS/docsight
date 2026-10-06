@@ -207,14 +207,14 @@ class TestSegmentRangeTabs:
         """'All' range tab should be active by default."""
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
-        all_tab = fritzbox_page.locator('#fritz-cable-range-tabs .trend-tab[data-range="all"]')
+        all_tab = fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="all"]')
         assert "active" in all_tab.get_attribute("class")
 
     def test_switch_to_24h(self, fritzbox_page):
         """Clicking 24h tab should reload charts and activate the tab."""
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
-        tab = fritzbox_page.locator('#fritz-cable-range-tabs .trend-tab[data-range="24h"]')
+        tab = fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="24h"]')
         tab.click()
         fritzbox_page.wait_for_timeout(2000)
         assert "active" in tab.get_attribute("class")
@@ -226,7 +226,7 @@ class TestSegmentRangeTabs:
         """Clicking 7d tab should reload and activate."""
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
-        tab = fritzbox_page.locator('#fritz-cable-range-tabs .trend-tab[data-range="7d"]')
+        tab = fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="7d"]')
         tab.click()
         fritzbox_page.wait_for_timeout(2000)
         assert "active" in tab.get_attribute("class")
@@ -235,7 +235,7 @@ class TestSegmentRangeTabs:
         """Clicking 30d tab should reload and activate."""
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
-        tab = fritzbox_page.locator('#fritz-cable-range-tabs .trend-tab[data-range="30d"]')
+        tab = fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="30d"]')
         tab.click()
         fritzbox_page.wait_for_timeout(2000)
         assert "active" in tab.get_attribute("class")
@@ -244,9 +244,9 @@ class TestSegmentRangeTabs:
         """Only one range tab should be active at any time."""
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
-        fritzbox_page.locator('#fritz-cable-range-tabs .trend-tab[data-range="24h"]').click()
+        fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="24h"]').click()
         fritzbox_page.wait_for_timeout(1000)
-        active_tabs = fritzbox_page.locator("#fritz-cable-range-tabs .trend-tab.active")
+        active_tabs = fritzbox_page.locator("#fritz-cable-range-tabs .segmented-option.active")
         assert active_tabs.count() == 1, f"Expected 1 active tab, got {active_tabs.count()}"
 
 
@@ -576,7 +576,7 @@ class TestSegmentViewStructure:
     def test_has_four_range_tabs(self, fritzbox_page):
         """Should have 4 range tabs (24h, 7d, 30d, all)."""
         navigate_to_segment(fritzbox_page)
-        tabs = fritzbox_page.locator("#fritz-cable-range-tabs .trend-tab")
+        tabs = fritzbox_page.locator("#fritz-cable-range-tabs .segmented-option")
         assert tabs.count() == 4
 
 
@@ -624,7 +624,7 @@ class TestSegmentNoJSErrors:
         errors = []
         fritzbox_page.on("pageerror", lambda err: errors.append(str(err)))
         for rng in ["24h", "7d", "30d", "all"]:
-            fritzbox_page.locator(f'#fritz-cable-range-tabs .trend-tab[data-range="{rng}"]').click()
+            fritzbox_page.locator(f'#fritz-cable-range-tabs .segmented-option[data-range="{rng}"]').click()
             fritzbox_page.wait_for_timeout(1500)
         assert len(errors) == 0, f"JS errors on range switch: {errors}"
 

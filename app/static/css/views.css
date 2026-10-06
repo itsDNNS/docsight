@@ -56,51 +56,6 @@
     gap: var(--space-sm, 10px);
 }
 
-/* Pill-style tabs (Phase 3 design language) */
-.trend-tabs {
-    display: flex;
-    gap: var(--space-xs, 6px);
-    background: var(--card);
-    padding: 4px;
-    border-radius: 24px;
-    border: 1px solid var(--card-border, var(--input-border));
-}
-.trend-tab {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary, var(--muted));
-    padding: 8px 20px;
-    font-size: max(var(--fs-min), 0.9em);
-    cursor: pointer;
-    font-family: inherit;
-    font-weight: 500;
-    transition: all 0.2s var(--ease-out-expo);
-    border-radius: 20px;
-}
-.trend-tab:hover {
-    color: var(--text);
-    background: var(--amethyst-muted);
-}
-.trend-tab.active {
-    background: var(--accent-purple, var(--accent));
-    color: var(--text-on-accent);
-    font-weight: 600;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--amethyst) 30%, transparent);
-}
-.trend-tab.temp-toggle {
-    padding: 6px 10px;
-    color: var(--text-secondary, var(--muted));
-    opacity: 0.6;
-    transition: all 0.2s var(--ease-out-expo);
-}
-.trend-tab.temp-toggle svg { vertical-align: middle; }
-.trend-tab.temp-toggle:hover { opacity: 1; background: rgba(249,115,22,0.1); }
-.trend-tab.temp-toggle.active {
-    opacity: 1; color: #f97316;
-    background: rgba(249,115,22,0.15);
-    box-shadow: none;
-}
-
 /* Chart grid (2x2 desktop, stack on mobile) */
 .charts-grid {
     display: grid;
@@ -173,22 +128,6 @@
     .charts-grid {
         grid-template-columns: 1fr;
     }
-    .trend-tabs {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-        align-items: stretch;
-    }
-    .trend-tab {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 44px;
-        min-height: 44px;
-        padding: 10px 16px;
-        line-height: 1.2;
-        text-align: center;
-    }
     .chart-expand-btn {
         display: inline-flex;
         align-items: center;
@@ -245,10 +184,6 @@
 .events-header .events-filter-section {
     margin-left: auto;
 }
-.events-severity-tabs .trend-tab {
-    padding: 6px 14px;
-}
-.events-severity-tabs .trend-tab:focus-visible,
 .events-filter-chip:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 .events-filter-chip {
     display: inline-flex;
@@ -620,8 +555,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 /* Phones: a sticky header row per day, two-line rows with 44px touch targets. */
 @media (max-width: 640px) {
     .events-filter-section { width: 100%; }
-    .events-severity-tabs { width: 100%; }
-    .events-severity-tabs .trend-tab { flex: 1; min-height: 44px; padding: 6px 8px; }
     .events-filter-chip,
     .events-switch { min-height: 44px; }
     .events-toolbar { padding: 8px 12px; }
@@ -721,9 +654,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 #channel-status-controls,
 #channel-timeline-controls,
 #channel-compare-controls { display: contents; }
-.view-page-actions .trend-tabs {
-    flex-wrap: wrap;
-}
 .view-page-actions.bqm-toolbar {
     margin-bottom: 0;
 }
@@ -951,7 +881,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     margin: 0;
     table-layout: fixed;
 }
-#correlation-loading { display: flex; }
 #correlation-table thead tr {
     background: var(--card);
 }

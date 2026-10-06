@@ -105,7 +105,7 @@ def test_mobile_timeline_is_dense_with_touch_targets(demo_page):
     assert geometry["viewOverflow"] <= MAX_HORIZONTAL_OVERFLOW
     assert geometry["ack"]["width"] >= MIN_TOUCH_TARGET and geometry["ack"]["height"] >= MIN_TOUCH_TARGET
     assert geometry["select"]["height"] >= MIN_TOUCH_TARGET
-    for tab in page.locator("#events-severity-tabs .trend-tab").all():
+    for tab in page.locator("#events-severity-tabs .segmented-option").all():
         assert tab.bounding_box()["height"] >= MIN_TOUCH_TARGET
 
 

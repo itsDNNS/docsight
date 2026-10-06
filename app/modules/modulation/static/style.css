@@ -469,16 +469,6 @@
     gap: 12px;
     margin-bottom: 16px;
 }
-.mod-intraday-header .trend-tab {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.mod-intraday-header .trend-tab i,
-.mod-intraday-header .trend-tab svg {
-    width: 14px;
-    height: 14px;
-}
 .mod-intraday-title {
     margin: 0;
 }

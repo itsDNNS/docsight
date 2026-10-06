@@ -141,9 +141,7 @@ function writeChannelHash() {
 function setPillByValue(containerId, value) {
     var container = document.getElementById(containerId);
     if (!container) return;
-    container.querySelectorAll('.trend-tab').forEach(function(t) {
-        t.classList.toggle('active', t.dataset.value === value);
-    });
+    syncSegments(container, function(t) { return t.dataset.value === value; });
 }
 
 function initChannelView() {
