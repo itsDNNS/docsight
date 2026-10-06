@@ -31,6 +31,8 @@ def test_modal_focus_trap_escape_and_return_focus(demo_page):
         """
     )
     assert focused_inside
+    # Focus starts on the first field, not on the close button.
+    assert demo_page.evaluate("document.activeElement.closest('.modal-body') !== null && document.activeElement.matches('input, select, textarea')")
 
     for _ in range(12):
         demo_page.keyboard.press("Tab")
@@ -604,6 +606,26 @@ def test_bqm_import_modal_shows_preview_and_validation_states(demo_page):
     modal.locator(".bqm-import-date-missing").fill("2026-05-02")
     expect(modal.locator("#bqm-import-validation-state")).to_contain_text("2 ready")
     expect(modal.locator("#bqm-import-confirm-btn")).to_be_enabled()
+
+    # After an import the footer offers Close; opening the dialog again restores Import.
+    demo_page.evaluate("showBqmImportResult({imported: 2, replaced: 0, skipped: 0, errors: []})")
+    expect(modal.locator("#bqm-import-done-btn")).to_be_visible()
+    expect(modal.locator("#bqm-import-confirm-btn")).to_be_hidden()
+    modal.locator("#bqm-import-done-btn").click()
+    expect(modal).not_to_be_visible()
+    demo_page.evaluate(
+        """
+        () => {
+            openBqmImportModal();
+            window._bqmImportFiles = [
+                { file: new File(['png'], 'bqm-2026-05-03.png', { type: 'image/png' }), date: '2026-05-03', originalDate: '2026-05-03', thumbUrl: '' }
+            ];
+            renderBqmImportPreview();
+        }
+        """
+    )
+    expect(modal.locator("#bqm-import-confirm-btn")).to_be_enabled()
+    expect(modal.locator("#bqm-import-done-btn")).to_be_hidden()
 
 
 def test_ai_export_modal_previews_privacy_scope_and_size(demo_page):
