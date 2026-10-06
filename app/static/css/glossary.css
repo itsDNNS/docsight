@@ -308,7 +308,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 }
 
 .glossary-no-results {
-  color: var(--amber, #fbbf24);
+  color: var(--warn);
 }
 
 .glossary-list-label {
@@ -527,8 +527,8 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 }
 
 .glossary-callout {
-  border-color: color-mix(in srgb, var(--amber, #fbbf24) 40%, var(--glass-border));
-  background: color-mix(in srgb, var(--amber, #fbbf24) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--warn) 40%, var(--glass-border));
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
 }
 
 .glossary-callout ul {

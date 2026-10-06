@@ -906,7 +906,7 @@ button.notification-collapse-button {
   font-size: 0.78rem;
 }
 .browse-modal-summary code {
-  color: var(--text-main);
+  color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.78rem;
   overflow: hidden;

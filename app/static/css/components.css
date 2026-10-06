@@ -398,7 +398,7 @@ body {
   height: 44px;
   border-radius: 50%;
   background: var(--amethyst-muted);
-  color: var(--accent-purple, var(--accent));
+  color: var(--accent);
 }
 .view-empty-icon svg { width: 22px; height: 22px; }
 .view-empty-title {
@@ -422,7 +422,7 @@ body {
   margin-top: var(--space-xs);
 }
 .view-empty-link {
-  color: var(--accent-purple, var(--accent));
+  color: var(--accent);
   font-size: max(var(--fs-min), 0.9em);
 }
 .view-empty-link:focus-visible,
@@ -832,7 +832,7 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 .demo-exit-action:focus-visible {
   outline: 2px solid var(--amethyst);
   outline-offset: 3px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
 }
 .demo-banner button:disabled {
   cursor: not-allowed;

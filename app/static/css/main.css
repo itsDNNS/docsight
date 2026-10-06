@@ -138,7 +138,7 @@ body.is-offline .offline-banner { display: flex; }
 .hero-refresh-button:focus-visible,
 .metric-card[role="button"]:focus-visible,
 .docsis-group-header:focus-visible {
-  outline: 2px solid var(--focus-ring, var(--accent));
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -1384,7 +1384,7 @@ body:has(#view-dashboard.active) .app-main {
   border-bottom: 1px solid var(--dash-muted-border);
   background:
     linear-gradient(135deg,
-      color-mix(in srgb, var(--surface-2) 44%, transparent),
+      color-mix(in srgb, var(--elevated) 44%, transparent),
       color-mix(in srgb, var(--surface) 12%, transparent));
 }
 

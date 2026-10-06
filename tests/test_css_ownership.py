@@ -190,3 +190,18 @@ def test_tables_use_the_data_table_component():
     assert [entry for entry in missing if entry not in TABLES_WITHOUT_COMPONENT] == []
     # Every listed exception must still exist.
     assert sorted(TABLES_WITHOUT_COMPONENT - set(missing)) == []
+
+
+def test_every_css_variable_in_use_is_defined():
+    """A var() of an undefined name ignores the theme: its fallback, or nothing, applies instead."""
+    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    sources = [path for path in tracked.split() if path.endswith((".css", ".js", ".html", ".json")) and "/vendor/" not in path]
+    defined, used = set(), {}
+    for path in sources:
+        text = (ROOT / path).read_text(encoding="utf-8")
+        defined.update(re.findall(r"(--[A-Za-z0-9-]+)\s*:", text))  # stylesheets and inline custom properties
+        defined.update(re.findall(r"\"(--[A-Za-z0-9-]+)\"\s*:", text))  # theme catalogs
+        defined.update(re.findall(r"setProperty\(\s*[\"'](--[A-Za-z0-9-]+)", text))  # values set at runtime
+        for name in re.findall(r"var\((--[A-Za-z0-9-]+)", text):
+            used.setdefault(name, set()).add(path)
+    assert {name: sorted(paths) for name, paths in used.items() if name not in defined} == {}

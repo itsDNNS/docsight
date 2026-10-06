@@ -61,7 +61,7 @@
     transition: background 0.15s var(--ease-out-expo);
 }
 .journal-export-dropdown button:hover {
-    background: var(--accent-purple, var(--accent));
+    background: var(--accent);
     color: #fff;
 }
 .journal-export-dropdown button:active {
@@ -84,7 +84,7 @@
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-lg);
-    background: var(--accent-purple, var(--accent));
+    background: var(--accent);
     color: #fff;
     border: none;
     border-radius: var(--radius-pill);
@@ -96,7 +96,7 @@
     box-shadow: 0 2px 8px rgba(168,85,247,0.3);
 }
 .btn-new-entry:hover {
-    background: var(--accent-hover, var(--purple-600));
+    background: var(--accent-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(168,85,247,0.4);
 }
@@ -105,14 +105,14 @@
     box-shadow: 0 1px 4px rgba(168,85,247,0.3);
 }
 .btn-new-entry:focus-visible {
-    outline: 2px solid var(--accent-purple, var(--accent));
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 
 /* Journal table: the data table component plus sortable headers and clickable rows. */
 #journal-table thead th[data-col] { cursor: pointer; user-select: none; }
 #journal-table tbody tr { cursor: pointer; }
-#journal-table .journal-icon-cell { color: var(--accent-purple, var(--accent)); }
+#journal-table .journal-icon-cell { color: var(--accent); }
 #journal-table .journal-title-cell { font-weight: 600; }
 #journal-table td.journal-desc {
     color: var(--text-secondary, var(--muted));
@@ -262,7 +262,7 @@
 }
 .import-upload-zone:hover,
 .import-upload-zone.dragover {
-    border-color: var(--accent-purple, var(--accent));
+    border-color: var(--accent);
     background: rgba(168,85,247,0.05);
 }
 .import-upload-zone p {
@@ -272,7 +272,7 @@
     padding: var(--space-sm) 14px;
     margin-bottom: var(--space-sm);
     border-radius: var(--radius-sm);
-    background: var(--surface-2, rgba(0,0,0,0.15));
+    background: var(--tint-active);
     font-size: max(var(--fs-min), 0.9em);
     color: var(--text);
 }
@@ -339,7 +339,7 @@
     display: flex;
     align-items: center;
     flex: 1;
-    background: var(--surface-2, rgba(0,0,0,0.2));
+    background: var(--elevated);
     border: 1px solid var(--input-border);
     border-radius: var(--radius-pill);
     padding: 0 var(--space-md);
@@ -347,7 +347,7 @@
     position: relative;
 }
 .journal-search-box:focus-within {
-    border-color: var(--accent-purple, var(--accent));
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(168,85,247,0.15), 0 2px 12px rgba(168,85,247,0.1);
 }
 .journal-search-icon {
@@ -358,7 +358,7 @@
     transition: color 0.25s var(--ease-out-expo);
 }
 .journal-search-box:focus-within .journal-search-icon {
-    color: var(--accent-purple, var(--accent));
+    color: var(--accent);
 }
 .journal-search-box input {
     flex: 1;
@@ -406,7 +406,7 @@ mark.search-highlight {
 .incident-icon {
     width: 18px;
     height: 18px;
-    color: var(--accent-purple, var(--accent));
+    color: var(--accent);
     flex-shrink: 0;
 }
 .incident-icon-placeholder {
@@ -442,29 +442,29 @@ mark.search-highlight {
     height: 38px;
     border-radius: var(--radius-sm);
     border: 2px solid var(--input-border);
-    background: var(--surface-2, rgba(0,0,0,0.15));
+    background: var(--tint-emphasis);
     cursor: pointer;
     transition: all 0.15s var(--ease-out-expo);
     padding: 0;
     color: var(--muted);
 }
 .icon-pick:hover {
-    border-color: var(--accent-purple, var(--accent));
+    border-color: var(--accent);
     background: rgba(168,85,247,0.08);
     color: var(--text);
 }
 .icon-pick:active {
     background: rgba(168,85,247,0.25);
-    border-color: var(--accent-purple, var(--accent));
+    border-color: var(--accent);
 }
 .icon-pick:focus-visible {
-    outline: 2px solid var(--accent-purple, var(--accent));
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 .icon-pick.active {
-    border-color: var(--accent-purple, var(--accent));
+    border-color: var(--accent);
     background: rgba(168,85,247,0.18);
-    color: var(--accent-purple, var(--accent));
+    color: var(--accent);
     box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
 }
 .icon-pick .incident-icon {
@@ -675,9 +675,9 @@ mark.search-highlight {
     outline-offset: 2px;
 }
 .btn-bulk-active {
-    background: var(--accent-purple, var(--accent)) !important;
+    background: var(--accent) !important;
     color: #fff !important;
-    border-color: var(--accent-purple, var(--accent)) !important;
+    border-color: var(--accent) !important;
 }
 .journal-check-col { width: 36px; text-align: center; }
 .incident-timeline-spinner { display: block; margin: 20px auto; }
@@ -699,7 +699,7 @@ mark.search-highlight {
     width: 16px;
     height: 16px;
     cursor: pointer;
-    accent-color: var(--accent-purple, var(--accent));
+    accent-color: var(--accent);
 }
 .journal-row-selected {
     background: rgba(168,85,247,0.08) !important;
@@ -711,7 +711,7 @@ mark.search-highlight {
     flex-wrap: wrap;
     padding: var(--space-sm) var(--space-md);
     background: var(--card);
-    border: 1px solid var(--accent-purple, var(--accent));
+    border: 1px solid var(--accent);
     border-radius: var(--radius-sm);
     margin-bottom: var(--space-sm);
     animation: fadeIn 0.15s var(--ease-out-expo);
@@ -719,14 +719,14 @@ mark.search-highlight {
 .journal-bulk-count {
     font-weight: 600;
     font-size: 0.88rem;
-    color: var(--accent-purple, var(--accent));
+    color: var(--accent);
     white-space: nowrap;
 }
 .journal-bulk-select {
     padding: 5px var(--space-sm);
     border-radius: var(--radius-sm);
     border: 1px solid var(--input-border);
-    background: var(--input-bg);
+    background: var(--elevated);
     color: var(--text);
     font-size: 0.85rem;
     font-family: inherit;
@@ -848,7 +848,7 @@ mark.search-highlight {
     gap: 6px;
     margin-top: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-    background: var(--accent-purple, var(--accent));
+    background: var(--accent);
     color: #fff;
     border: none;
     border-radius: var(--radius-pill);
@@ -860,7 +860,7 @@ mark.search-highlight {
     box-shadow: 0 2px 8px rgba(168,85,247,0.3);
 }
 .incident-timeline-pdf-btn:hover {
-    background: var(--accent-hover, var(--purple-600));
+    background: var(--accent-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(168,85,247,0.4);
 }
@@ -874,7 +874,7 @@ mark.search-highlight {
     transform: none;
 }
 .incident-timeline-pdf-btn:focus-visible {
-    outline: 2px solid var(--accent-purple, var(--accent));
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 .incident-timeline-pdf-btn svg {
@@ -1196,7 +1196,7 @@ mark.search-highlight {
 }
 .incident-summary-evidence {
     font-size: 0.78rem;
-    color: var(--accent-purple, var(--accent));
+    color: var(--accent);
     padding: 2px 8px;
     border-radius: var(--radius-sm);
     background: rgba(168,85,247,0.12);
@@ -1205,10 +1205,10 @@ mark.search-highlight {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--accent-purple, var(--accent));
+    border: 1px solid var(--accent);
     border-radius: var(--radius-sm);
     background: rgba(168,85,247,0.12);
-    color: var(--accent-purple, var(--accent));
+    color: var(--accent);
     padding: 4px 10px;
     font-size: 0.78rem;
     font-weight: 600;
@@ -1218,7 +1218,7 @@ mark.search-highlight {
     background: rgba(168,85,247,0.22);
 }
 .incident-summary-report-btn:focus-visible {
-    outline: 2px solid var(--accent-purple, var(--accent));
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 

@@ -107,12 +107,12 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: var(--accent-purple, var(--accent));
+    background: var(--accent);
     opacity: 0.6;
 }
 .bqm-day.has-png::after {
     background: transparent;
-    border: 1.5px solid var(--accent-purple, var(--accent));
+    border: 1.5px solid var(--accent);
     opacity: 1;
 }
 .bqm-day.has-data:hover {
@@ -126,19 +126,19 @@
     outline-offset: 2px;
 }
 .bqm-day.selected {
-    background: var(--accent-purple, var(--accent));
+    background: var(--accent);
     color: #fff;
     font-weight: 700;
 }
 .bqm-day.selected::after { opacity: 0; }
 .bqm-day.today {
-    box-shadow: inset 0 0 0 2px var(--accent-purple, var(--accent));
+    box-shadow: inset 0 0 0 2px var(--accent);
 }
 .bqm-day.in-range {
     background: color-mix(in srgb, var(--amethyst) 12%, transparent);
 }
 .bqm-day.range-start, .bqm-day.range-end {
-    background: var(--accent-purple, var(--accent));
+    background: var(--accent);
     color: #fff;
     font-weight: 700;
 }
@@ -184,7 +184,7 @@
     transition: all 0.2s var(--ease-out-expo);
 }
 .bqm-card:hover {
-    border-color: var(--accent-purple, var(--accent));
+    border-color: var(--accent);
     box-shadow: 0 4px 12px var(--amethyst-muted);
 }
 .bqm-card #bqm-image-wrap {
@@ -321,7 +321,7 @@
 .modal.bqm-import-panel {
     max-width: 800px;
 }
-.bqm-import-count-imported { color: var(--accent-purple, var(--accent)); }
+.bqm-import-count-imported { color: var(--accent); }
 .bqm-import-count-skipped { color: var(--warn); }
 .bqm-import-count-errors { color: var(--crit); }
 .bqm-import-table td.bqm-import-skipped {
