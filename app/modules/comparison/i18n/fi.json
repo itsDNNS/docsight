@@ -4,6 +4,8 @@
   "compare_btn": "Vertaa",
   "period_a": "Jakso A",
   "period_b": "Jakso B",
+  "range_start": "Alku",
+  "range_end": "Loppu",
   "preset": "Esiasetus",
   "preset_custom": "Mukautettu",
   "preset_yesterday_today": "Eilen ja tänään",

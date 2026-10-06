@@ -4,6 +4,8 @@
   "compare_btn": "Sammenlign",
   "period_a": "Periode A",
   "period_b": "Periode B",
+  "range_start": "Start",
+  "range_end": "Slutt",
   "preset": "Forhåndsvalg",
   "preset_custom": "Egendefinert",
   "preset_yesterday_today": "I går og i dag",

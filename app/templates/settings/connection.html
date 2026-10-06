@@ -95,12 +95,12 @@
         </div>
         <div class="form-field">
             <label class="form-label" for="booked_download">{{ t.booked_download }}</label>
-            <input class="form-input" type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
+            <input class="form-input" type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="1000">
             <span class="form-hint">{{ t.booked_download_hint }}</span>
         </div>
         <div class="form-field">
             <label class="form-label" for="booked_upload">{{ t.booked_upload }}</label>
-            <input class="form-input" type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
+            <input class="form-input" type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="50">
             <span class="form-hint">{{ t.booked_upload_hint }}</span>
         </div>
     </div>

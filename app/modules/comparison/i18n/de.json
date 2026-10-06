@@ -4,6 +4,8 @@
   "compare_btn": "Vergleichen",
   "period_a": "Zeitraum A",
   "period_b": "Zeitraum B",
+  "range_start": "Beginn",
+  "range_end": "Ende",
   "preset": "Vorlage",
   "preset_custom": "Eigener Zeitraum",
   "preset_yesterday_today": "Gestern und heute",

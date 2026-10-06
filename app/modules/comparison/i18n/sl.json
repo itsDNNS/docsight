@@ -4,6 +4,8 @@
   "compare_btn": "Primerjaj",
   "period_a": "Obdobje A",
   "period_b": "Obdobje B",
+  "range_start": "Začetek",
+  "range_end": "Konec",
   "preset": "Prednastavitev",
   "preset_custom": "Po meri",
   "preset_yesterday_today": "Včeraj in danes",

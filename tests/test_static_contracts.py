@@ -603,6 +603,8 @@ UNTRANSLATED_TEMPLATE_TEXT = {
     "GitHub", "Host", "JSON", "MHz", "Markdown", "PNG", "Port", "Smokeping", "ThinkBroadband BQM", "Verbraucherzentrale",
     "· DOCSIS", "— Abs. 4", "— Dennis",
 }
+PLACEHOLDER_SAMPLE_RE = re.compile(r"://|@|^/")
+PLACEHOLDER_SAMPLES = {"InternetSites.Google, InternetSites.Cloudflare"}  # SmokePing target names
 TEMPLATE_JINJA_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.S)
 TEMPLATE_UNIT_TEXT_RE = re.compile(r"^[\s/·()%,:.Ø-]*(?:(?:dBmV|dB|SNR|MER|MBit/s|Mbit/s|Min|Max|min|max|s)[\s/·()%,:.Ø-]*)+$")
 
@@ -628,10 +630,39 @@ def test_templates_have_no_hardcoded_visible_text() -> None:
         for tag in soup.find_all(True):
             for attribute in ("title", "aria-label", "alt", "placeholder"):
                 value = " ".join(str(tag.get(attribute) or "").split())
-                if re.search(r"[A-Za-z]{3,}", value) and value not in UNTRANSLATED_TEMPLATE_TEXT and attribute != "placeholder":
+                if attribute == "placeholder":
+                    # Sample values (URLs, addresses, user names, ids) are fine; words are not.
+                    if PLACEHOLDER_SAMPLE_RE.search(value) or value in PLACEHOLDER_SAMPLES:
+                        continue
+                    if re.search(r"\b[A-Z][a-z]{2,}\b|\b(?:e\.g|i\.e)\.", value):
+                        offenders.append(f"{path.relative_to(ROOT)}: @placeholder={value[:60]}")
+                elif re.search(r"[A-Za-z]{3,}", value) and value not in UNTRANSLATED_TEMPLATE_TEXT:
                     offenders.append(f"{path.relative_to(ROOT)}: @{attribute}={value[:60]}")
 
     assert offenders == []
+
+
+# Generic words a module also defines for its own context. The module reads them
+# with its prefix or from its own catalog, so the core text never stands in.
+MODULE_KEYS_SHARED_WITH_CORE = {
+    "comparison": {"metric"},
+    "de_tkg_compensation": {"generate_letter", "next"},
+    "modulation": {"downstream", "no_data", "upstream"},
+    "reports": {"ds_channels", "speedtest_ping", "tariff", "us_channels"},
+}
+
+
+def test_module_catalogs_do_not_duplicate_core_keys() -> None:
+    """Each text has one owner: a core key is not redefined by a module catalog."""
+    core = set(read_json(APP_I18N_DIR / "en.json"))
+    offenders = {}
+    for catalog in sorted(MODULES.glob("*/i18n/en.json")):
+        module = catalog.parents[1].name
+        duplicated = (set(read_json(catalog)) & core) - MODULE_KEYS_SHARED_WITH_CORE.get(module, set())
+        if duplicated:
+            offenders[module] = sorted(duplicated)
+
+    assert offenders == {}
 
 
 def test_european_language_pack_metadata() -> None:
