@@ -104,6 +104,10 @@ jobs:
               - 'app/static/js/**'
               - 'app/static/sw.js'
               - 'app/static/vendor/**'
+              - 'app/modules/**/static/**'
+              - 'app/modules/**/templates/**'
+              - 'app/i18n/**'
+              - 'app/modules/**/i18n/**'
               - 'tests/js/**'
               - '.github/workflows/test.yml'
             i18n:
