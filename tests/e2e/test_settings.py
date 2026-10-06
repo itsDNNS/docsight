@@ -1282,6 +1282,20 @@ class TestSettingsInstantToggleSave:
         expect(settings_page.locator("#modem_url")).to_have_value(url)
         expect(settings_page.locator("#isp-other-row")).to_be_hidden()
 
+    def test_automatic_backup_card_names_the_newest_backup(self, settings_page):
+        settings_page.route(
+            "**/api/backup/list",
+            lambda route: route.fulfill(json=[
+                {"filename": "docsight_backup_2026-03-13_120000.tar.gz", "size": 1048576, "modified": "2026-03-13T12:00:00"},
+                {"filename": "docsight_backup_2026-03-14_120000.tar.gz", "size": 1048576, "modified": "2026-03-14T12:00:00"},
+            ]),
+        )
+        settings_page.locator('button[data-section="data"]').click()
+        line = settings_page.locator("#backup-last-run")
+        expect(line).to_be_visible()
+        expect(line).to_contain_text("Last backup")
+        expect(line).to_contain_text("14")
+
     def test_automatic_backup_fields_are_inert_while_backups_are_off(self, settings_page):
         settings_page.locator('button[data-section="data"]').click()
         block = settings_page.locator("#backup-auto-settings")

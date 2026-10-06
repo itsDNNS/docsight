@@ -15,6 +15,21 @@
             <span id="modem-status-text"></span>
         </div>
     </div>
+    {% set poll = modem_poll_status|default({'kind': 'waiting'}) %}
+    <p class="card-status card-status-{{ poll.kind }}" id="modem-poll-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>
+        {% if poll.kind == 'ok' %}
+            {{ t.get('settings_status_last_poll_now', 'Last reading just now') if poll.minutes_ago == 0 else t.get('settings_status_last_poll', 'Last reading {minutes} min ago').replace('{minutes}', poll.minutes_ago|string) }}
+            ·
+            {{ t.get('settings_status_next_poll', 'next in about {minutes} min').replace('{minutes}', poll.next_in|string) if poll.next_in else t.get('settings_status_next_poll_due', 'next reading is due') }}
+        {% elif poll.kind == 'error' %}
+            {{ t.get('settings_status_failed', 'The last reading failed') }}: <span class="card-status-detail">{{ poll.error }}</span>
+        {% else %}
+            {{ t.get('settings_status_waiting', 'Waiting for the first reading') }}
+        {% endif %}
+        </span>
+    </p>
     <div class="form-grid cols-2">
         <div class="form-field form-grid-full">
             <label class="form-label" for="modem_type">{{ t.modem_type }}</label>

@@ -36,6 +36,7 @@ STYLE_PROPERTIES = (
 CLOCK_TEXT_SELECTORS = (
     ".cs-axis-ticks > span",  # status track time axis
     ".evidence-item-meta .evidence-muted",  # evidence timestamps
+    "#modem-poll-status > span:last-child",  # settings: minutes since the last poll
 )
 # Timestamps of live polls: each server polls at its own second after the seeded
 # history (which ends at the pinned DOCSIGHT_DEMO_NOW, equal to --now).
