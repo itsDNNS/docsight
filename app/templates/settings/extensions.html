@@ -42,7 +42,7 @@
         </div>
         <input type="hidden" name="{{ ext.field }}" value="false">
         <label class="toggle">
-            <input type="checkbox" id="{{ ext.field }}" name="{{ ext.field }}" value="true" {% if ext.checked %}checked{% endif %} {% if ext.disabled %}disabled{% endif %} aria-labelledby="{{ ext.field }}-title">
+            <input type="checkbox" id="{{ ext.field }}" name="{{ ext.field }}" value="true" data-instant {% if ext.checked %}checked{% endif %} {% if ext.disabled %}disabled{% endif %} aria-labelledby="{{ ext.field }}-title">
             <span class="toggle-slider"></span>
         </label>
     </div>

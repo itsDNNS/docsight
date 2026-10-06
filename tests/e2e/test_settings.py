@@ -459,15 +459,14 @@ class TestSettingsFormElements:
         settings_page.locator('#notify_webhook_url').evaluate("el => { el.value = 'https://ntfy.sh/docsight'; el.dispatchEvent(new Event('input', {bubbles: true})); }")
         expect(settings_page.locator('[data-channel-badge="webhook"]')).to_have_text("Enabled")
 
-        with settings_page.expect_request("**/api/config"):
-            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
+        settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
         expect(settings_page.locator('[data-channel-badge="apprise"]')).to_have_text("Enabled")
         expect(settings_page.locator('#notification-apprise-card')).not_to_have_class(re.compile(r".*\bcollapsed\b.*"))
 
-        with settings_page.expect_request("**/api/config"):
-            settings_page.locator('#notify_pwa_push_enabled + .toggle-slider').click()
+        settings_page.locator('#notify_pwa_push_enabled + .toggle-slider').click()
         expect(settings_page.locator('[data-channel-badge="pwa"]')).to_have_text("Enabled")
         expect(settings_page.locator('#pwa-push-card')).not_to_have_class(re.compile(r".*\bcollapsed\b.*"))
+        expect(settings_page.locator("#save-bar-count")).to_have_text("Unsaved changes (3)")
 
     def test_notifications_mobile_scroll_is_reduced_by_collapsed_channel_cards(self, settings_page):
         settings_page.set_viewport_size({"width": 390, "height": 844})
@@ -915,7 +914,7 @@ class TestSettingsDirtyState:
         assert payloads[-1]["modem_password"] == "new-secret-value"
         assert settings_page.locator('#modem_password').input_value() == ""
 
-    def test_real_settings_edit_is_saved_when_module_toggle_is_clicked(self, settings_page):
+    def test_module_switch_saves_only_the_module_and_leaves_manual_edits_pending(self, settings_page):
         config_payloads = []
         batch_payloads = []
 
@@ -933,24 +932,21 @@ class TestSettingsDirtyState:
         footer = settings_page.locator("#save-footer")
         settings_page.locator('#modem_url').fill('http://192.168.100.1')
         expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
-        expect(footer).not_to_have_attribute("aria-hidden", "true")
-        expect(footer).not_to_have_attribute("inert", "")
 
         settings_page.locator('button[data-section="extensions"]').click()
-        toggle = settings_page.locator('.module-toggle-input').first
-        assert toggle.count() == 1
-        with settings_page.expect_request("**/api/config"):
-            with settings_page.expect_request("**/api/modules/batch"):
-                settings_page.locator('.module-toggle .toggle-slider').first.click()
+        with settings_page.expect_request("**/api/modules/batch"):
+            settings_page.locator('.module-toggle .toggle-slider').first.click()
 
         expect(settings_page.locator('#docsight-confirm-modal')).to_have_count(0)
-        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
-        assert config_payloads[-1]["modem_url"] == "http://192.168.100.1"
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(settings_page.locator("#save-bar-count")).to_have_text("Unsaved changes (1)")
+        assert config_payloads == []
+        assert len(batch_payloads[0]["modules"]) == 1
         assert len(batch_payloads[-1]["modules"]) == 1
 
 
 class TestSettingsInstantToggleSave:
-    """Settings toggles persist immediately without the global save footer."""
+    """Only theme, mode, font and module or feature switches save at once; the rest waits for Save."""
 
     def test_module_toggle_saves_immediately_without_direct_enable_disable_calls(self, settings_page):
         config_payloads = []
@@ -976,31 +972,25 @@ class TestSettingsInstantToggleSave:
         settings_page.locator('button[data-section="extensions"]').click()
         toggle_slider = settings_page.locator('.module-toggle-input[data-is-threshold="false"] + .toggle-slider').first
         assert toggle_slider.count() == 1
-        with settings_page.expect_request("**/api/config"):
-            with settings_page.expect_request("**/api/modules/batch"):
-                toggle_slider.click()
+        with settings_page.expect_request("**/api/modules/batch"):
+            toggle_slider.click()
 
         footer = settings_page.locator("#save-footer")
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
         expect(settings_page.locator("#module-restart-banner")).to_be_visible()
-        assert len(config_payloads) == 1
+        assert config_payloads == []
         assert len(batch_payloads) == 1
         assert len(batch_payloads[0]["modules"]) == 1
         assert immediate_calls == []
 
-    def test_normal_instant_toggle_does_not_flash_manual_save_footer_while_save_is_pending(self, settings_page):
+    def test_instant_feature_switch_does_not_flash_the_save_bar_while_its_save_is_pending(self, settings_page):
         pending_routes = []
-
-        def hold_config(route):
-            pending_routes.append(route)
-
-        settings_page.route("**/api/config", hold_config)
-        settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.route("**/api/config", lambda route: pending_routes.append(route))
+        settings_page.locator('button[data-section="extensions"]').click()
         footer = settings_page.locator("#save-footer")
-        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
+            settings_page.locator('#gaming_quality_enabled + .toggle-slider').click()
 
         assert settings_page.evaluate("""() => {
             const event = new Event('beforeunload', {cancelable: true});
@@ -1009,75 +999,63 @@ class TestSettingsInstantToggleSave:
         }""") is True
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
         expect(footer).to_have_attribute("aria-hidden", "true")
-        expect(footer).to_have_attribute("inert", "")
-        assert len(pending_routes) == 1
+        assert set(pending_routes[0].request.post_data_json) == {"gaming_quality_enabled"}
         pending_routes[0].fulfill(json={"success": True})
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(settings_page.locator("#toast")).not_to_be_visible()
 
-    def test_normal_instant_toggle_success_does_not_show_settings_saved_toast(self, settings_page):
-        settings_page.route("**/api/config", lambda route: route.fulfill(json={"success": True}))
-        settings_page.locator('button[data-section="notifications"]').click()
+    def test_each_section_says_how_it_saves(self, settings_page):
+        hint = settings_page.locator("#settings-save-hint")
+        expect(hint).to_have_text("Changes here are saved with Save in the bar at the bottom.")
+        settings_page.locator('button[data-section="appearance"]').click()
+        expect(hint).to_contain_text("Theme, mode and font apply immediately.")
+        settings_page.locator('button[data-section="extensions"]').click()
+        expect(hint).to_have_text("Changes here apply immediately.")
 
+    def test_mode_switch_saves_only_the_theme(self, settings_page):
+        payloads = []
+        settings_page.route("**/api/config", lambda route: (payloads.append(route.request.post_data_json), route.fulfill(json={"success": True})))
+        settings_page.locator('button[data-section="appearance"]').click()
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
+            settings_page.locator('label[for="theme-toggle-appearance"]').click()
+        assert payloads == [{"theme": "light"}]
+        expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
-        toast = settings_page.locator("#toast")
-        expect(toast).not_to_be_visible()
-        expect(toast).not_to_have_text(re.compile(r"Settings saved", re.I))
-
-    def test_queued_instant_toggles_keep_manual_save_footer_hidden_between_saves(self, settings_page):
+    def test_queued_instant_switches_keep_the_save_bar_hidden_between_saves(self, settings_page):
         pending_routes = []
-
-        def hold_config(route):
-            pending_routes.append(route)
-
-        settings_page.route("**/api/config", hold_config)
-        settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.route("**/api/config", lambda route: pending_routes.append(route))
+        settings_page.locator('button[data-section="extensions"]').click()
         footer = settings_page.locator("#save-footer")
 
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
-        settings_page.evaluate(
-            """
-            () => {
-              const toggle = document.querySelector('#notify_pwa_push_enabled');
-              toggle.checked = !toggle.checked;
-              toggle.dispatchEvent(new Event('change', {bubbles: true}));
-            }
-            """
-        )
+            settings_page.locator('#gaming_quality_enabled + .toggle-slider').click()
+        settings_page.locator('#bnetz_enabled + .toggle-slider').click()
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
         with settings_page.expect_request("**/api/config"):
             pending_routes[0].fulfill(json={"success": True})
-        settings_page.wait_for_timeout(50)
-
-        assert len(pending_routes) == 2
+        for _ in range(40):  # the route handler records the request just after the request event
+            if len(pending_routes) > 1:
+                break
+            settings_page.wait_for_timeout(25)
+        assert set(pending_routes[1].request.post_data_json) == {"bnetz_enabled"}
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
         pending_routes[1].fulfill(json={"success": True})
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
-    def test_notification_cooldown_edit_keeps_dirty_protection_until_change_save_succeeds(self, settings_page):
-        settings_page.route("**/api/config", lambda route: route.fulfill(json={"success": True}))
+    def test_notification_switches_and_rules_wait_for_save(self, settings_page):
+        requests = []
+        settings_page.on("request", lambda request: requests.append(request.url) if "/api/config" in request.url else None)
         settings_page.locator('button[data-section="notifications"]').click()
-        input_el = settings_page.locator('.notify-event-row[data-event="power_change"][data-severity="warning"] .notify-cooldown-input')
         footer = settings_page.locator("#save-footer")
-
-        input_el.fill('42')
-        assert settings_page.evaluate("""() => {
-            const event = new Event('beforeunload', {cancelable: true});
-            window.dispatchEvent(event);
-            return event.defaultPrevented;
-        }""") is True
-        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
-        with settings_page.expect_request("**/api/config"):
-            input_el.blur()
-        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
-        assert settings_page.evaluate("""() => {
-            const event = new Event('beforeunload', {cancelable: true});
-            window.dispatchEvent(event);
-            return event.defaultPrevented;
-        }""") is False
+        settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
+        settings_page.locator('#per-event-cooldowns .card-header').click()
+        settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
+        settings_page.locator('.notify-event-row[data-event="power_change"][data-severity="warning"] .notify-cooldown-input').fill('42')
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(settings_page.locator("#save-bar-count")).to_have_text("Unsaved changes (3)")
+        settings_page.wait_for_timeout(300)
+        assert requests == []
 
     def test_hidden_companion_instant_toggle_does_not_poison_manual_dirty_baseline(self, settings_page):
         settings_page.route("**/api/config", lambda route: route.fulfill(json={"success": True}))
@@ -1110,78 +1088,42 @@ class TestSettingsInstantToggleSave:
         expect(header).to_have_attribute("aria-expanded", "true")
         expect(card.locator(".cooldown-table")).to_be_visible()
 
-    def test_notification_event_toggle_saves_cooldowns_immediately(self, settings_page):
-        config_payloads = []
-
-        def capture_config(route):
-            config_payloads.append(route.request.post_data_json)
-            route.fulfill(json={"success": True})
-
-        settings_page.route("**/api/config", capture_config)
+    def test_per_event_rules_are_sent_with_save(self, settings_page):
+        payloads = []
+        settings_page.route("**/api/config", lambda route: (payloads.append(route.request.post_data_json), route.fulfill(json={"success": True})))
         settings_page.locator('button[data-section="notifications"]').click()
         settings_page.locator('#per-event-cooldowns .card-header').click()
-        with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
-
-        footer = settings_page.locator("#save-footer")
-        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
-        assert len(config_payloads) == 1
-        cooldowns = config_payloads[0]["notify_cooldowns"]
-        assert '"health_change:critical":0' in cooldowns.replace(" ", "")
-
-    def test_notification_cooldown_value_saves_immediately(self, settings_page):
-        config_payloads = []
-
-        def capture_config(route):
-            config_payloads.append(route.request.post_data_json)
-            route.fulfill(json={"success": True})
-
-        settings_page.route("**/api/config", capture_config)
-        settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
         settings_page.locator('.notify-event-row[data-event="power_change"][data-severity="warning"] .notify-cooldown-input').fill('42')
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.notify-event-row[data-event="power_change"][data-severity="warning"] .notify-cooldown-input').blur()
+            settings_page.locator('#save-footer button[type="submit"]').click()
+        cooldowns = payloads[0]["notify_cooldowns"].replace(" ", "")
+        assert '"health_change:critical":0' in cooldowns
+        assert '"power_change:warning":42' in cooldowns
+        expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
-        footer = settings_page.locator("#save-footer")
-        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
-        assert len(config_payloads) == 1
-        cooldowns = config_payloads[0]["notify_cooldowns"]
-        assert '"power_change:warning":42' in cooldowns.replace(" ", "")
-
-    def test_notification_event_toggle_stays_dirty_when_instant_save_fails(self, settings_page):
-        def fail_config(route):
-            route.fulfill(status=500, json={"success": False, "error": "Save failed"})
-
-        settings_page.route("**/api/config", fail_config)
+    def test_rules_stay_unsaved_when_save_fails(self, settings_page):
+        settings_page.route("**/api/config", lambda route: route.fulfill(status=500, json={"success": False, "error": "Save failed"}))
         settings_page.locator('button[data-section="notifications"]').click()
         settings_page.locator('#per-event-cooldowns .card-header').click()
+        settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
-
-        footer = settings_page.locator("#save-footer")
-        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+            settings_page.locator('#save-footer button[type="submit"]').click()
+        expect(settings_page.locator("#save-footer")).to_have_class(re.compile(r".*\bvisible\b.*"))
         expect(settings_page.locator('#global-error')).to_be_visible()
 
-    def test_edit_made_during_instant_save_remains_dirty(self, settings_page):
-        config_payloads = []
+    def test_edit_made_during_an_instant_save_stays_unsaved(self, settings_page):
         held = []
-
-        def capture_config(route):
-            config_payloads.append(route.request.post_data_json)
-            held.append(route)
-
-        settings_page.route("**/api/config", capture_config)
-        settings_page.locator('button[data-section="notifications"]').click()
-        settings_page.locator('#per-event-cooldowns .card-header').click()
+        settings_page.route("**/api/config", lambda route: held.append(route))
+        settings_page.locator('button[data-section="extensions"]').click()
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
+            settings_page.locator('#gaming_quality_enabled + .toggle-slider').click()
         settings_page.locator('button[data-section="connection"]').click()
         settings_page.locator('#modem_url').fill('http://192.168.100.1')
 
         held[0].fulfill(json={"success": True})
-        footer = settings_page.locator("#save-footer")
-        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
-        assert config_payloads[0]["modem_url"] != "http://192.168.100.1"
+        expect(settings_page.locator("#save-footer")).to_have_class(re.compile(r".*\bvisible\b.*"))
+        assert "modem_url" not in held[0].request.post_data_json
 
     def test_saved_secret_clears_when_concurrent_edit_remains_dirty(self, settings_page):
         held = []
@@ -1255,18 +1197,14 @@ class TestSettingsInstantToggleSave:
         expect(settings_page.locator("#save-footer")).to_have_class(re.compile(r".*\bvisible\b.*"))
 
     @pytest.mark.parametrize("first_success", [True, False])
-    def test_queued_snapshot_reads_edits_at_execution_after_success_or_failure(self, settings_page, first_success):
+    def test_queued_saves_read_edits_when_they_run(self, settings_page, first_success):
         held = []
         settings_page.route("**/api/config", lambda route: held.append(route))
-        settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.locator('#modem_url').fill('http://first.example')
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
-        settings_page.locator('#notify_pwa_push_enabled').evaluate("""el => {
-            el.checked = !el.checked;
-            el.dispatchEvent(new Event('change', {bubbles: true}));
-        }""")
-        settings_page.locator('button[data-section="connection"]').click()
+            settings_page.locator('#save-footer button[type="submit"]').click()
         settings_page.locator('#modem_url').fill('http://queued.example')
+        settings_page.locator('#settings-form').evaluate("form => form.requestSubmit()")
         assert len(held) == 1
         with settings_page.expect_request("**/api/config"):
             held[0].fulfill(status=200 if first_success else 500, json={"success": first_success})
@@ -1274,9 +1212,8 @@ class TestSettingsInstantToggleSave:
         assert held[1].request.post_data_json['modem_url'] == 'http://queued.example'
         held[1].fulfill(json={"success": True})
         expect(settings_page.locator('#save-footer')).to_have_class(re.compile(r".*\bvisible\b.*"))
-        expect(settings_page.locator('#toast')).not_to_be_visible()
 
-    def test_config_success_module_failure_acknowledges_config_and_retries_module(self, settings_page):
+    def test_failed_module_switch_is_retried_with_save(self, settings_page):
         configs, batches = [], []
         settings_page.route("**/api/config", lambda route: configs.append(route))
         def respond_batch(route):
@@ -1287,21 +1224,20 @@ class TestSettingsInstantToggleSave:
         settings_page.locator('#modem_password').fill('submitted-secret')
         settings_page.locator('#modem_url').fill('http://confirmed.example')
         settings_page.locator('button[data-section="extensions"]').click()
-        with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.module-toggle-input[data-is-threshold="false"] + .toggle-slider').first.click()
         with settings_page.expect_request("**/api/modules/batch"):
-            configs[0].fulfill(json={"success": True})
+            settings_page.locator('.module-toggle-input[data-is-threshold="false"] + .toggle-slider').first.click()
         expect(settings_page.locator('#global-error')).to_be_visible()
-        expect(settings_page.locator('#modem_password')).to_have_value('')
+        assert configs == []
         expect(settings_page.locator('#save-footer')).to_have_class(re.compile(r".*\bvisible\b.*"))
         with settings_page.expect_request("**/api/config"):
             settings_page.locator('#save-footer button[type="submit"]').click()
-        assert configs[1].request.post_data_json['modem_password'] == '••••••••'
-        assert configs[1].request.post_data_json['modem_url'] == 'http://confirmed.example'
+        assert configs[0].request.post_data_json['modem_password'] == 'submitted-secret'
+        assert configs[0].request.post_data_json['modem_url'] == 'http://confirmed.example'
         with settings_page.expect_request("**/api/modules/batch"):
-            configs[1].fulfill(json={"success": True})
+            configs[0].fulfill(json={"success": True})
         expect(settings_page.locator('#save-footer')).not_to_have_class(re.compile(r".*\bvisible\b.*"))
         assert batches[1] == batches[0]
+        expect(settings_page.locator('#modem_password')).to_have_value('')
         expect(settings_page.locator('#global-error')).not_to_be_visible()
 
     def test_save_bar_counts_changes_by_section_and_discard_restores_saved_values(self, settings_page):

@@ -24,7 +24,14 @@
         return baseline.filter(function(field) { return field.owner !== owner; })
             .concat(sent.filter(function(field) { return field.owner === owner; }));
     }
-    var state = {record: record, project: project, dirty: dirty, acknowledge: acknowledge};
+    /* Marks exactly these records as saved; the rest of the baseline stays as it was. */
+    function acknowledgeRecords(baseline, sent) {
+        var saved = new Map(sent.map(function(field) { return [field.key, field]; }));
+        var known = new Set(baseline.map(function(field) { return field.key; }));
+        return baseline.map(function(field) { return saved.get(field.key) || field; })
+            .concat(sent.filter(function(field) { return !known.has(field.key); }));
+    }
+    var state = {record: record, project: project, dirty: dirty, acknowledge: acknowledge, acknowledgeRecords: acknowledgeRecords};
     if (typeof module === 'object' && module.exports) module.exports = state;
     else root.DOCSightSettings = {state: state};
 })(typeof window === 'undefined' ? globalThis : window);

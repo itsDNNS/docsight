@@ -92,7 +92,10 @@
                     <i data-lucide="chevron-left" aria-hidden="true"></i>
                     {{ t.settings }}
                 </button>
-                <h2 class="settings-section-title" id="settings-section-title">{{ settings_sections[0][2] }}</h2>
+                <div>
+                    <h2 class="settings-section-title" id="settings-section-title">{{ settings_sections[0][2] }}</h2>
+                    <p class="settings-save-hint" id="settings-save-hint">{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}</p>
+                </div>
             </div>
             <div class="error-msg" id="global-error"></div>
             <form id="settings-form" autocomplete="off">
@@ -117,35 +120,35 @@
                 </div>
                 {% endif %}
 
-                <section class="settings-panel active" id="panel-connection">
+                <section class="settings-panel active" id="panel-connection" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
                     {% include 'settings/connection.html' %}
                 </section>
-                <section class="settings-panel" id="panel-sources">
+                <section class="settings-panel" id="panel-sources" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
                     {% for module_id in placed_modules.sources %}{% include 'settings/module_block.html' %}{% endfor %}
                 </section>
-                <section class="settings-panel" id="panel-notifications">
+                <section class="settings-panel" id="panel-notifications" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
                     {% include 'settings/notifications.html' %}
                 </section>
-                <section class="settings-panel" id="panel-evidence">
+                <section class="settings-panel" id="panel-evidence" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
                     {% include 'settings/smart_capture.html' %}
                     {% for module_id in placed_modules.evidence %}{% include 'settings/module_block.html' %}{% endfor %}
                 </section>
-                <section class="settings-panel" id="panel-data">
+                <section class="settings-panel" id="panel-data" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
                     {% include 'settings/data.html' %}
                     {% for module_id in placed_modules.data %}{% include 'settings/module_block.html' %}{% endfor %}
                 </section>
-                <section class="settings-panel" id="panel-appearance">
+                <section class="settings-panel" id="panel-appearance" data-save-hint="{{ t.get('settings_save_hint_mixed', 'Theme, mode and font apply immediately. Language, time zone and units are saved with Save.') }}">
                     {% include 'settings/appearance.html' %}
                     {% include 'settings/localization.html' %}
                 </section>
-                <section class="settings-panel" id="panel-access">
+                <section class="settings-panel" id="panel-access" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
                     {% include 'settings/security.html' %}
                     {% for module_id in placed_modules.access %}{% include 'settings/module_block.html' %}{% endfor %}
                 </section>
-                <section class="settings-panel" id="panel-extensions">
+                <section class="settings-panel" id="panel-extensions" data-save-hint="{{ t.get('settings_save_hint_instant', 'Changes here apply immediately.') }}">
                     {% include 'settings/extensions.html' %}
                 </section>
-                <section class="settings-panel" id="panel-about">
+                <section class="settings-panel" id="panel-about" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
                     {% include 'settings/about.html' %}
                 </section>
 

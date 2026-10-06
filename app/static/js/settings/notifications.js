@@ -1,5 +1,5 @@
 'use strict';
-DOCSightSettings.notifications = function({showToast, saveInstantly, syncCard}) {
+DOCSightSettings.notifications = function({showToast, syncCard}) {
 function expandNotificationChannelCard(controlEl) {
     if (!controlEl || !controlEl.checked) return;
     var card = controlEl.closest('.notification-channel-card');
@@ -193,10 +193,6 @@ function initNotificationCooldownControls() {
             toggle.addEventListener('change', function() {
                 inp.disabled = !toggle.checked;
                 inp.style.opacity = toggle.checked ? '1' : '0.4';
-                saveInstantly();
-            });
-            inp.addEventListener('change', function() {
-                saveInstantly();
             });
         });
     } catch(e) {}

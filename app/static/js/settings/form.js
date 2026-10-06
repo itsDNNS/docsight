@@ -131,15 +131,16 @@ var identities = new WeakMap();
 var fieldsByKey = new Map();
 var occurrences = new Map();
 
+/* Only module switches and controls marked data-instant (theme mode, font,
+   built-in features) save on change; everything else waits for Save. */
 function isInstantControl(el) {
-    if (el.id === 'theme-toggle-appearance') return false;
-    if (el.id === 'font_family') return true;
+    if (el.matches('.module-toggle-input, [data-instant]')) return true;
     if (el.type === 'hidden') {
         return Array.from(el.form.elements).some(function(other) {
             return other !== el && other.name === el.name && other.type === 'checkbox' && isInstantControl(other);
         });
     }
-    return el.matches('label.toggle input[type="checkbox"], label.switch input[type="checkbox"], .module-toggle-input, .notify-toggle, .notify-cooldown-input');
+    return false;
 }
 
 function capture() {
@@ -274,19 +275,22 @@ function saveAll(options) {
         return modules.length ? post('/api/modules/batch', {modules: modules}) : {};
     }).then(function(result) {
         baseline = state.acknowledge(baseline, sent, 'module');
-        if (result.restart_required) {
-            var banner = document.getElementById('module-restart-banner');
-            if (banner) {
-                banner.hidden = false;
-                if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]});
-            }
-        }
+        showRestartBanner(result);
         failed = false;
         syncSaveFooter();
-        if (!options.instant) showToast(T.settings_saved || 'Settings saved', true);
+        showToast(T.settings_saved || 'Settings saved', true);
         scheduleReload();
         return true;
     });
+}
+
+function showRestartBanner(result) {
+    if (!result.restart_required) return;
+    var banner = document.getElementById('module-restart-banner');
+    if (banner) {
+        banner.hidden = false;
+        if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]});
+    }
 }
 
 function scheduleReload() {
@@ -303,7 +307,8 @@ function save(options) {
     queue = queue.catch(function() {}).then(function() {
         var error = document.getElementById('global-error');
         error.style.display = 'none';
-        return saveAll(options || {}).catch(function(err) {
+        options = options || {};
+        return (options.instant ? saveInstantRecords(options) : saveAll(options)).catch(function(err) {
             error.textContent = err.message || T.save_failed || T.network_error || 'Save failed';
             error.style.display = 'block';
             failed = true;
@@ -314,8 +319,36 @@ function save(options) {
     return queue;
 }
 
-function saveInstantly() {
-    return save({instant: true});
+/* Saves the instant controls that changed, and nothing else: manual edits
+   elsewhere stay unsaved and keep the save bar. */
+function saveInstantRecords(options) {
+    var sent = changedRecords(capture(), false).filter(function(record) { return record.instant; });
+    var configRecords = sent.filter(function(record) { return record.owner === 'config'; });
+    var moduleRecords = sent.filter(function(record) { return record.owner === 'module'; });
+    var form = getFormData();
+    var data = {};
+    configRecords.forEach(function(record) {
+        if (Object.prototype.hasOwnProperty.call(form, record.name)) data[record.name] = form[record.name];
+    });
+    if (options.theme) data.theme = form.theme;
+    var configSave = Object.keys(data).length ? post('/api/config', data) : Promise.resolve();
+    return configSave.then(function() {
+        baseline = state.acknowledgeRecords(baseline, configRecords);
+        syncSaveFooter();
+        return moduleRecords.length ? post('/api/modules/batch', {modules: moduleRecords.map(function(record) {
+            return {id: record.id, enabled: record.value === '1'};
+        })}) : {};
+    }).then(function(result) {
+        baseline = state.acknowledgeRecords(baseline, moduleRecords);
+        showRestartBanner(result);
+        failed = false;
+        syncSaveFooter();
+        return true;
+    });
+}
+
+function saveInstantly(options) {
+    return save(Object.assign({instant: true}, options || {}));
 }
 
 function guardUnsaved() {
@@ -347,8 +380,8 @@ function init() {
         save();
     });
     document.getElementById('save-bar-discard').addEventListener('click', discard);
-    form.querySelectorAll('label.toggle input[type="checkbox"]:not(#theme-toggle-appearance):not(.module-toggle-input):not(.notify-toggle), label.switch input[type="checkbox"]').forEach(function(toggle) {
-        toggle.addEventListener('change', saveInstantly);
+    form.querySelectorAll('input[type="checkbox"][data-instant]').forEach(function(toggle) {
+        toggle.addEventListener('change', function() { saveInstantly(); });
     });
     form.querySelectorAll('.module-toggle-input').forEach(function(toggle) {
         toggle.addEventListener('change', function() {
@@ -369,5 +402,5 @@ function init() {
     initTimezoneHint();
     syncSaveFooter();
 }
-return {init, getFormData, showToast, syncSaveFooter, saveInstantly, guardUnsaved};
+return {init, getFormData, showToast, syncSaveFooter, save, saveInstantly, guardUnsaved};
 };

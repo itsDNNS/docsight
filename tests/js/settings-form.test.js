@@ -109,9 +109,9 @@ test('the save bar counts manual changes with their sections and discard restore
 test('FIFO captures edits at execution and survives a rejected first request', async () => {
     const f = fixture();
     f.toggle.checked = true;
-    const first = f.owner.saveInstantly();
+    const first = f.owner.save();
     await tick();
-    const second = f.owner.saveInstantly();
+    const second = f.owner.save();
     f.edit(f.url, 'before-second-start');
     assert.equal(f.requests.length, 1);
     f.requests[0].reject(new Error('network'));
@@ -127,7 +127,7 @@ test('partial failure acknowledges config and secrets, retries modules, and pres
     const f = fixture();
     f.edit(f.secret, 'submitted-secret');
     f.module.checked = true;
-    const first = f.owner.saveInstantly();
+    const first = f.owner.save();
     await tick();
     f.requests[0].finish();
     await tick();
@@ -138,7 +138,7 @@ test('partial failure acknowledges config and secrets, retries modules, and pres
     assert.equal(f.error.textContent, 'Exactly one threshold profile must be active.');
     assert.equal(f.error.style.display, 'block');
     assert.equal(f.footer.classList.contains('visible'), true);
-    const retry = f.owner.saveInstantly();
+    const retry = f.owner.save();
     await tick();
     assert.equal(f.requests[2].data.modem_password, '••••••••');
     f.requests[2].finish();
@@ -153,7 +153,7 @@ test('partial failure acknowledges config and secrets, retries modules, and pres
 test('secret reedit, hidden companion and manual edits after dispatch survive acknowledgement', async () => {
     const f = fixture();
     f.edit(f.secret, 'first-secret');
-    const job = f.owner.saveInstantly();
+    const job = f.owner.save();
     await tick();
     f.edit(f.secret, 'second-secret');
     f.edit(f.hidden, 'later-hidden');
@@ -163,7 +163,7 @@ test('secret reedit, hidden companion and manual edits after dispatch survive ac
     assert.equal(f.secret.value, 'second-secret');
     assert.equal(f.footer.classList.contains('visible'), true);
     assert.equal(f.dirty(), true);
-    const retry = f.owner.saveInstantly();
+    const retry = f.owner.save();
     await tick();
     assert.equal(f.requests[1].data.modem_password, 'second-secret');
     f.requests[1].finish();
@@ -178,7 +178,7 @@ test('config validation messages and missing-message fallbacks render as text an
     f.context.T.save_failed = 'Speichern fehlgeschlagen';
     f.edit(f.url, 'invalid');
     for (const message of ['Invalid timezone', "Invalid URL scheme 'javascript' for modem_url. Only http and https are allowed.", undefined, null]) {
-        const job = f.owner.saveInstantly();
+        const job = f.owner.save();
         await tick();
         assert.equal(f.requests.at(-1).url, '/prefix/api/config');
         if (message === null) f.requests.at(-1).reject(new Error());
@@ -188,7 +188,7 @@ test('config validation messages and missing-message fallbacks render as text an
         assert.equal(f.error.style.display, 'block');
         assert.equal(f.dirty(), true);
     }
-    const retry = f.owner.saveInstantly();
+    const retry = f.owner.save();
     await tick();
     assert.equal(f.requests.at(-1).data.community_email, 'a@example.org,b@example.org');
     f.requests.at(-1).finish();
@@ -197,7 +197,7 @@ test('config validation messages and missing-message fallbacks render as text an
     assert.equal(f.error.style.display, 'none');
 });
 
-test('instant-only saves never show a footer or success toast, autofill stays masked', async () => {
+test('instant controls save only themselves, without a footer or success toast', async () => {
     const f = fixture();
     f.edit(f.secret, 'autofill', false);
     f.context.document.activeElement = f.url;
@@ -207,7 +207,7 @@ test('instant-only saves never show a footer or success toast, autofill stays ma
     f.toggle.dispatch('change');
     assert.equal(f.footer.classList.contains('visible'), false);
     await tick();
-    assert.equal(f.requests[0].data.modem_password, '••••••••');
+    assert.deepEqual(f.requests[0].data, {enabled: 'true'});
     f.requests[0].finish();
     await tick();
     assert.equal(f.footer.classList.contains('visible'), false);
@@ -215,32 +215,63 @@ test('instant-only saves never show a footer or success toast, autofill stays ma
     assert.equal(f.timers.length, 0);
 });
 
+test('an instant save leaves manual edits unsaved and counted', async () => {
+    const f = fixture();
+    f.edit(f.url, 'manual-edit');
+    f.toggle.checked = true;
+    f.toggle.dispatch('change');
+    await tick();
+    assert.deepEqual(f.requests[0].data, {enabled: 'true'});
+    f.requests[0].finish();
+    await tick();
+    assert.equal(f.url.value, 'manual-edit');
+    assert.equal(f.footer.classList.contains('visible'), true);
+    assert.equal(f.count.textContent, 'Unsaved changes (1)');
+    assert.equal(f.dirty(), true);
+});
+
+test('a module switch sends only the module change', async () => {
+    const f = fixture();
+    f.edit(f.url, 'manual-edit');
+    f.module.checked = true;
+    f.module.dispatch('change');
+    await tick();
+    assert.equal(f.requests.length, 1);
+    assert.equal(f.requests[0].url, '/prefix/api/modules/batch');
+    assert.deepEqual(f.requests[0].data, {modules: [{id: 'docsight.example', enabled: true}]});
+    f.requests[0].finish();
+    await tick();
+    assert.equal(f.footer.classList.contains('visible'), true);
+    assert.equal(f.count.textContent, 'Unsaved changes (1)');
+});
+
 test('reload uses confirmed values and checks for later edits and queued work at timer execution', async () => {
     const f = fixture();
     f.edit(f.language, 'de');
-    const first = f.owner.saveInstantly();
+    const first = f.owner.save();
     await tick();
     f.requests[0].finish();
     await first;
     f.edit(f.url, 'unsaved');
-    f.timers.shift()();
+    f.timers.splice(0).forEach(fn => fn());
     assert.equal(f.context.reloads, 0);
-    const second = f.owner.saveInstantly();
+    const second = f.owner.save();
     await tick();
     f.requests[1].finish();
     await second;
-    f.timers.shift()();
+    f.timers.splice(0).forEach(fn => fn());
     assert.equal(f.context.reloads, 1);
 });
 
 test('an unconfirmed language edit during an earlier save cannot cause a reload', async () => {
     const f = fixture();
-    const job = f.owner.saveInstantly();
+    const job = f.owner.save();
     await tick();
     f.edit(f.language, 'de');
     f.requests[0].finish();
     await job;
-    assert.equal(f.timers.length, 0);
+    f.timers.splice(0).forEach(fn => fn());
+    assert.equal(f.context.reloads, 0);
     assert.equal(f.dirty(), true);
 });
 
