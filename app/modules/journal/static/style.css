@@ -109,55 +109,11 @@
     outline-offset: 2px;
 }
 
-/* Journal table in card wrapper */
-#journal-table {
-    width: 100%;
-    margin: 0;
-}
-#journal-table thead tr {
-    background: var(--surface-2, rgba(0,0,0,0.15));
-}
-#journal-table thead th {
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-    padding: var(--space-sm) var(--space-md);
-    text-align: left;
-    font-weight: 600;
-    font-size: max(var(--fs-min), 0.85em);
-    color: var(--text);
-    border-bottom: 1px solid var(--card-border, var(--input-border));
-    transition: background 0.15s var(--ease-out-expo);
-}
-#journal-table th:hover {
-    background: rgba(168,85,247,0.1);
-}
-/* Card-style rows with clear separation */
-#journal-table tbody tr {
-    cursor: pointer;
-    transition: all 0.2s var(--ease-out-expo);
-    border-bottom: var(--space-sm) solid var(--bg);
-    background: rgba(255,255,255,0.02);
-}
-#journal-table tbody tr:hover {
-    background: rgba(168,85,247,0.15);
-    transform: translateX(2px);
-    box-shadow: -3px 0 0 0 var(--accent-purple);
-}
-#journal-table tbody tr:active {
-    transform: translateX(0);
-    background: rgba(168,85,247,0.2);
-}
-#journal-table tbody td {
-    padding: var(--space-md) 20px;
-    vertical-align: top;
-    border-left: 1px solid rgba(255,255,255,0.03);
-}
-#journal-table tbody td:first-child {
-    border-left: none;
-    font-weight: 600;
-    color: var(--accent-purple);
-}
+/* Journal table: the data table component plus sortable headers and clickable rows. */
+#journal-table thead th[data-col] { cursor: pointer; user-select: none; }
+#journal-table tbody tr { cursor: pointer; }
+#journal-table .journal-icon-cell { color: var(--accent-purple, var(--accent)); }
+#journal-table .journal-title-cell { font-weight: 600; }
 #journal-table td.journal-desc {
     color: var(--text-secondary, var(--muted));
     font-size: max(var(--fs-min), 0.88em);
@@ -340,32 +296,6 @@
     border-radius: var(--radius-sm);
     border: 1px solid var(--card-border, var(--input-border));
 }
-.import-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.import-table thead th {
-    position: sticky;
-    top: 0;
-    background: var(--surface-2, rgba(0,0,0,0.3));
-    padding: var(--space-sm);
-    text-align: left;
-    font-size: max(var(--fs-min), 0.85em);
-    font-weight: 600;
-    z-index: 1;
-}
-.import-table tbody td {
-    padding: var(--space-sm);
-    border-top: 1px solid var(--card-border, rgba(255,255,255,0.05));
-    font-size: max(var(--fs-min), 0.85em);
-    vertical-align: top;
-}
-.import-table tbody tr {
-    transition: background 0.15s var(--ease-out-expo);
-}
-.import-table tbody tr:hover {
-    background: rgba(168,85,247,0.08);
-}
 .import-table tbody tr.import-row-duplicate {
     opacity: 0.5;
 }
@@ -543,24 +473,18 @@ mark.search-highlight {
 }
 
 /* Journal Month/Year Grouping */
-.journal-month-header td {
+#journal-table tbody tr.journal-month-header { cursor: default; }
+#journal-table tbody tr.journal-month-header:hover { background: none; }
+#journal-table .journal-month-header td {
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--surface-2, rgba(0,0,0,0.3));
-    padding: var(--space-sm) var(--space-md) !important;
-    font-weight: 700;
-    font-size: max(var(--fs-min), 0.85em);
-    color: var(--accent-purple, var(--accent));
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    border-bottom: 2px solid var(--accent-purple, var(--accent)) !important;
-    cursor: default;
-}
-.journal-month-header:hover {
-    background: transparent !important;
-    transform: none !important;
-    box-shadow: none !important;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--card);
+    color: var(--text-secondary, var(--muted));
+    font-size: var(--fs-min);
+    font-weight: 600;
+    border-bottom: 1px solid var(--card-border, var(--input-border));
 }
 
 /* Incident Filter Bar */
@@ -1054,25 +978,6 @@ mark.search-highlight {
     height: 100% !important;
 }
 
-/* Signal Timeline Table */
-.incident-timeline-signals table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.incident-timeline-signals th,
-.incident-timeline-signals td {
-    padding: 6px var(--space-sm);
-    font-size: 0.82rem;
-    text-align: left;
-    border-bottom: 1px solid var(--card-border);
-}
-.incident-timeline-signals th {
-    color: var(--muted);
-    font-weight: 500;
-    text-transform: uppercase;
-    font-size: var(--fs-min);
-    letter-spacing: 0.03em;
-}
 
 /* Source Badges */
 .timeline-source-badge {
@@ -1148,6 +1053,25 @@ mark.search-highlight {
 }
 
 /* ── Responsive ── */
+/* Phones: the data table's list layout. */
+@media (max-width: 640px) {
+    /* Event details read as a sentence on their own line. */
+    #incident-timeline-table td.timeline-preview-details { flex-basis: 100%; }
+    #incident-timeline-table td.timeline-preview-details::before { content: none; }
+    .import-table td.journal-hide-mobile { display: none; }
+    #journal-table .journal-title-cell { overflow-wrap: anywhere; }
+    #journal-table .journal-date-cell { color: var(--muted); }
+    /* The description stays visible on phones as the entry's last line. */
+    #journal-table td.journal-desc { display: block; flex-basis: 100%; order: 2; }
+    /* Date, attachments and description read clearly without a visible label. */
+    #journal-table td.journal-date-cell::before,
+    #journal-table td.journal-clip::before,
+    #journal-table td.journal-desc::before { content: none; }
+    #journal-table .journal-month-header td { padding: var(--space-sm) var(--space-md); }
+    /* In bulk mode the checkbox leads the first line, with its label. */
+    #journal-table td.journal-check-cell { order: -2; min-height: 44px; }
+    #journal-table td.journal-check-cell input[type="checkbox"] { width: 22px; height: 22px; }
+}
 @media (max-width: 768px) {
     .journal-hide-mobile {
         display: none;
@@ -1210,95 +1134,6 @@ mark.search-highlight {
     .incident-pill-add {
         min-width: 44px;
         min-height: 44px;
-    }
-    #journal-table {
-        display: block;
-        width: 100%;
-    }
-    #journal-table thead {
-        display: none;
-    }
-    #journal-table tbody {
-        display: block;
-    }
-    #journal-table tbody tr {
-        display: block;
-        width: 100%;
-        padding: var(--space-sm) var(--space-md);
-        margin-bottom: var(--space-sm);
-        border: 1px solid var(--card-border, var(--input-border));
-        border-radius: var(--radius-sm);
-        background: rgba(255,255,255,0.03);
-    }
-    #journal-table tbody tr:hover {
-        transform: none;
-        box-shadow: 0 0 0 1px rgba(168,85,247,0.25);
-    }
-    #journal-table tbody tr.journal-month-header {
-        padding: 0;
-        margin: var(--space-sm) 0;
-        border: none;
-        border-radius: 0;
-        background: transparent;
-    }
-    #journal-table tbody td {
-        display: block;
-        width: 100%;
-        padding: 0;
-        border-left: none;
-    }
-    #journal-table tbody .journal-icon-cell {
-        float: left;
-        width: 28px;
-        margin: 1px var(--space-sm) var(--space-xs) 0;
-        color: var(--accent-purple, var(--accent));
-    }
-    #journal-table tbody .journal-date-cell {
-        color: var(--muted);
-        font-size: 0.78rem;
-        line-height: 1.35;
-    }
-    #journal-table tbody .journal-title-cell {
-        color: var(--text);
-        font-size: 0.96rem;
-        font-weight: 650;
-        line-height: 1.35;
-        overflow-wrap: anywhere;
-        word-break: normal;
-    }
-    #journal-table tbody .journal-clip {
-        display: none;
-        margin-top: var(--space-xs);
-        text-align: left;
-        color: var(--text-secondary, var(--muted));
-        font-size: 0.8rem;
-    }
-    #journal-table tbody .journal-clip:not(:empty) {
-        display: inline-flex;
-        align-items: center;
-        width: auto;
-        padding: 2px 8px;
-        border-radius: var(--radius-sm);
-        background: rgba(168,85,247,0.12);
-        color: var(--accent-purple, var(--accent));
-    }
-    #journal-table tbody .journal-check-cell {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        min-height: 44px;
-        padding-bottom: var(--space-xs);
-    }
-    #journal-table tbody .journal-check-cell::after {
-        content: attr(data-label);
-        margin-left: var(--space-sm);
-        color: var(--text-secondary, var(--muted));
-        font-size: 0.82rem;
-        font-weight: 600;
-    }
-    #journal-table tbody .journal-check-cell input[type="checkbox"] {
-        width: 22px;
-        height: 22px;
     }
     .journal-bulk-bar {
         padding: var(--space-sm);

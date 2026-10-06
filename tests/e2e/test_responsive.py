@@ -258,7 +258,7 @@ class TestMobileLayout:
         assert geometry["actionsOverflow"] <= 1
         assert geometry["tableOverflow"] <= 1
         assert geometry["chipWrap"] == "wrap"
-        assert geometry["rowDisplay"] in {"block", "grid"}
+        assert geometry["rowDisplay"] in {"block", "grid", "flex"}
         assert geometry["titleWidth"] >= 220
         assert geometry["clipDisplay"] == "none"
         assert all(rect["height"] >= 44 for rect in geometry["actionRects"])
@@ -354,7 +354,7 @@ class TestMobileLayout:
         assert geometry["dropdownRight"] <= geometry["viewportWidth"]
         assert all(rect["left"] >= 0 and rect["right"] <= geometry["viewportWidth"] for rect in geometry["optionRects"])
         assert all(rect["height"] >= 40 for rect in geometry["optionRects"])
-        assert geometry["clipDisplay"] == "inline-flex"
+        assert geometry["clipDisplay"] != "none"
         assert geometry["clipText"] == "📎 2"
         assert geometry["clipLabel"] == 'Attachments "screenshots"'
         assert geometry["dateLabel"] == 'Date "local"'

@@ -492,34 +492,12 @@ body.is-offline .offline-banner { display: flex; }
 .health-chip .dot.warn { background: var(--warn); }
 .health-chip .dot.crit { background: var(--crit); }
 
-.channel-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.78rem;
-  min-width: 520px;
+/* Channel tables: the data table component plus per-metric health colors. */
+.channel-table td { vertical-align: middle; }
+@media (max-width: 640px) {
+  /* The channel number leads its list entry, so it keeps its short label. */
+  .channel-table td.dt-primary[data-label]::before { content: attr(data-label) " "; color: var(--text-secondary, var(--muted)); font-weight: 400; }
 }
-.channel-table th {
-  text-align: left;
-  font-size: var(--fs-min);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  padding: var(--space-sm) var(--space-md);
-  border-bottom: 1px solid var(--glass-border);
-  position: sticky;
-  top: 0;
-  background: var(--glass-bg);
-}
-.channel-table td {
-  padding: 10px var(--space-md);
-  border-bottom: 1px solid rgba(255,255,255,0.03);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
-.channel-table tbody tr { min-height: 44px; }
-.channel-table tbody tr:active { background: var(--tint-hover); }
 /* Value color utilities (used across channel, BNetzA, speedtest tables and metric cards) */
 .val-good, .metric-sub .range.val-good { color: var(--good); }
 .val-tolerated, .metric-sub .range.val-tolerated { color: var(--tolerated); }
@@ -532,14 +510,6 @@ body.is-offline .offline-banner { display: flex; }
 .channel-table td[data-health="tolerated"] { color: var(--tolerated); }
 .channel-table td[data-health="warning"]   { color: var(--warn); }
 .channel-table td[data-health="critical"]  { color: var(--crit); }
-
-.channel-table th:first-child,
-.channel-table td:first-child {
-  position: sticky;
-  left: 0;
-  background: var(--glass-bg);
-  z-index: 1;
-}
 
 .docsis-group { padding: var(--space-sm) var(--space-md); }
 .docsis-group-header {
@@ -571,18 +541,6 @@ body.is-offline .offline-banner { display: flex; }
 .table-scroll::-webkit-scrollbar-track { background: transparent; }
 .table-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 3px; }
 
-.table-scroll-wrapper { position: relative; }
-.table-scroll-wrapper::after {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 6px; right: 0;
-  width: 32px;
-  background: linear-gradient(to right, transparent, var(--void-deep));
-  pointer-events: none;
-  opacity: 1;
-  transition: opacity 0.3s;
-}
-.table-scroll-wrapper.scrolled-end::after { opacity: 0; }
 
 /* ── Surface Hierarchy ──
    Hero + health rings keep full glass treatment for visual prominence.
@@ -673,7 +631,6 @@ body.is-offline .offline-banner { display: flex; }
   .insights-panel { margin-bottom: var(--space-xl); }
   .insights-healthy, .insights-tolerated { margin-bottom: var(--space-xl); }
   .channels-section { margin-bottom: var(--space-lg); }
-  .channel-table tbody tr:hover { background: var(--tint-subtle); }
 }
 
 /* Wide desktop: 4-column metrics */
@@ -1765,14 +1722,6 @@ body:has(#view-dashboard.active) .app-main {
   border-radius: 8px;
 }
 
-.dashboard-channel-panel .channel-table th {
-  background: color-mix(in srgb, var(--void-deep) 78%, var(--surface));
-}
-
-.dashboard-channel-panel .channel-table th:first-child,
-.dashboard-channel-panel .channel-table td:first-child {
-  background: color-mix(in srgb, var(--void-deep) 80%, var(--surface));
-}
 
 @media (max-width: 1100px) {
   .dashboard-hero {

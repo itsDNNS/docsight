@@ -605,6 +605,7 @@ function renderBqmImportPreview() {
 
         // Filename
         var tdName = document.createElement('td');
+        tdName.className = 'dt-primary';
         var nameSpan = document.createElement('span');
         nameSpan.className = 'bqm-import-filename';
         nameSpan.textContent = entry.file.name.length > 30 ? entry.file.name.substring(0, 27) + '...' : entry.file.name;
@@ -636,19 +637,22 @@ function renderBqmImportPreview() {
             _bqmImportFiles[i].date = this.value;
             renderBqmImportPreview();
         });
+        // Keep the model current while typing; re-rendering here would replace the field mid-entry.
         dateInput.addEventListener('input', function() {
             var i = parseInt(this.getAttribute('data-idx'));
             _bqmImportFiles[i].date = this.value;
-            renderBqmImportPreview();
         });
         tdDate.appendChild(dateInput);
         tr.appendChild(tdDate);
 
         // Remove button
         var tdRemove = document.createElement('td');
+        tdRemove.className = 'dt-primary';
         var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
         removeBtn.className = 'modal-close';
-        removeBtn.innerHTML = '&times;';
+        removeBtn.textContent = '\u00d7';
+        removeBtn.setAttribute('aria-label', (T.delete || 'Delete') + ': ' + entry.file.name);
         removeBtn.setAttribute('data-idx', idx);
         removeBtn.addEventListener('click', function() {
             var i = parseInt(this.getAttribute('data-idx'));
@@ -665,10 +669,12 @@ function renderBqmImportPreview() {
 
         tbody.appendChild(tr);
     });
+    labelDataTable(document.getElementById('bqm-import-table'));
 
     // Status line
     var statusEl = document.getElementById('bqm-import-status');
-    statusEl.textContent = datesDetected + ' dates detected' + (datesMissing > 0 ? ', ' + datesMissing + ' needs manual entry' : '');
+    statusEl.textContent = (T.bqm_import_validation_ready || '{0} ready').replace('{0}', datesDetected)
+        + (datesMissing > 0 ? ', ' + (T.bqm_import_validation_dates || '{0} needs a date').replace('{0}', datesMissing) : '');
     statusEl.hidden = false;
     updateBqmImportValidationState(datesDetected, datesMissing);
 

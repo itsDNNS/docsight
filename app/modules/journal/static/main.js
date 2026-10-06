@@ -272,7 +272,7 @@ function renderJournalTable(data, searchQuery) {
                 var monthIdx = parseInt(parts[1], 10) - 1;
                 var monthLabel = MONTH_NAMES[monthIdx] + ' ' + parts[0];
                 var groupTr = document.createElement('tr');
-                groupTr.className = 'journal-month-header';
+                groupTr.className = 'journal-month-header dt-detail';
                 groupTr.innerHTML = '<td colspan="' + (_bulkMode ? 6 : 5) + '">' + monthLabel + '</td>';
                 tbody.appendChild(groupTr);
             }
@@ -295,9 +295,9 @@ function renderJournalTable(data, searchQuery) {
         var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
         tr.innerHTML =
             (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtmlAttribute(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
-            '<td class="journal-icon-cell" aria-hidden="true">' + iconHtml + '</td>' +
+            '<td class="journal-icon-cell dt-lead" aria-hidden="true">' + iconHtml + '</td>' +
             '<td class="journal-date-cell" data-label="' + escapeHtmlAttribute(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
-            '<td class="journal-title-cell" data-label="' + escapeHtmlAttribute(T.incident_title || 'Title') + '">' + titleHtml + '</td>' +
+            '<td class="journal-title-cell dt-primary">' + titleHtml + '</td>' +
             '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtmlAttribute(T.incident_description || 'Description') + '">' + descHtml + '</td>' +
             '<td class="journal-clip" data-label="' + escapeHtmlAttribute(T.attachments || 'Attachments') + '">' + clipCell + '</td>';
         tbody.appendChild(tr);
@@ -781,13 +781,14 @@ function renderImportPreview(data) {
             dateCell = escapeHtml(row.date);
         }
         tr.innerHTML =
-            '<td><input type="checkbox" class="import-row-cb" data-idx="' + i + '" ' + checked + ' data-change-action="updateImportSelectionState"></td>' +
+            '<td class="dt-lead"><input type="checkbox" class="import-row-cb" data-idx="' + i + '" ' + checked + ' data-change-action="updateImportSelectionState"></td>' +
             '<td class="import-icon-cell">' + iconHtml + '</td>' +
-            '<td>' + dateCell + '</td>' +
-            '<td>' + escapeHtml(row.title) + dupeBadge + '</td>' +
+            '<td class="import-date-cell">' + dateCell + '</td>' +
+            '<td class="dt-primary">' + escapeHtml(row.title) + dupeBadge + '</td>' +
             '<td class="journal-hide-mobile">' + escapeHtml(desc) + '</td>';
         tbody.appendChild(tr);
     });
+    labelDataTable(document.getElementById('import-table'));
 
     document.getElementById('import-select-all').checked = true;
     document.getElementById('import-preview').hidden = false;
@@ -1488,7 +1489,7 @@ function _renderTimelineTable(data) {
     tHtml += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
     tHtml += (T.correlation_timeline || 'Unified Timeline');
     tHtml += '</div>';
-    tHtml += '<table><thead><tr>';
+    tHtml += '<table class="data-table data-table-compact data-table-list" id="incident-timeline-table"><thead><tr>';
     tHtml += '<th>' + (T.timestamp || 'Timestamp') + '</th>';
     tHtml += '<th>' + (T.source || 'Source') + '</th>';
     tHtml += '<th>' + (T.event_details || 'Details') + '</th>';
@@ -1534,14 +1535,15 @@ function _renderTimelineTable(data) {
             details = typeof formatEventMessage === 'function' ? formatEventMessage(e) : escapeHtml(e.message || '');
         }
 
-        tHtml += '<tr><td class="timeline-preview-time">' + ts + '</td>';
-        tHtml += '<td>' + srcBadge + '</td>';
+        tHtml += '<tr><td class="timeline-preview-time dt-primary">' + ts + '</td>';
+        tHtml += '<td class="dt-primary">' + srcBadge + '</td>';
         tHtml += '<td class="timeline-preview-details">' + details + '</td></tr>';
         count++;
     }
 
     tHtml += '</tbody></table>';
     div.innerHTML = tHtml;
+    labelDataTable(document.getElementById('incident-timeline-table'));
     // Event messages carry arrow icons.
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }

@@ -14,6 +14,11 @@ function _bnetzCell(label, text) {
     return cell;
 }
 
+function _bnetzNumber(cell) {
+    cell.classList.add('dt-num');
+    return cell;
+}
+
 /* Cells only shown on mobile once the row is expanded. */
 function _bnetzSecondary(cell) {
     cell.classList.add('bnetz-secondary-cell');
@@ -48,36 +53,40 @@ function _bnetzMeasurementSection(label, measurements, minimum, normal) {
     section.appendChild(heading);
 
     var table = document.createElement('table');
-    table.className = 'bnetz-detail-table';
+    table.className = 'data-table data-table-compact data-table-list bnetz-detail-table';
+    var head = document.createElement('thead');
     var header = document.createElement('tr');
     [T.bnetz_measurement_nr || 'Nr.', T.bnetz_measurement_time || 'Time', T.bnetz_measurement_speed || 'Speed'].forEach(function(text, index) {
         var th = document.createElement('th');
-        if (index === 2) th.className = 'bnetz-detail-speed-col';
+        if (index !== 1) th.className = 'dt-num';
         th.textContent = text;
         header.appendChild(th);
     });
-    table.appendChild(header);
+    head.appendChild(header);
+    table.appendChild(head);
 
+    var body = document.createElement('tbody');
     measurements.forEach(function(measurement, index) {
         var speed = measurement.mbps || measurement.speed || measurement.value || 0;
-        var color = 'var(--text)';
-        if (minimum && speed < minimum) color = 'var(--crit)';
-        else if (normal && speed < normal) color = 'var(--warn, orange)';
-
         var row = document.createElement('tr');
         var numberCell = document.createElement('td');
+        numberCell.className = 'dt-num bnetz-detail-nr';
         numberCell.textContent = index + 1;
         row.appendChild(numberCell);
         var timeCell = document.createElement('td');
+        timeCell.className = 'dt-primary';
         timeCell.textContent = (measurement.date || '') + ' ' + (measurement.time || '');
         row.appendChild(timeCell);
         var speedCell = document.createElement('td');
-        speedCell.className = 'bnetz-detail-speed-col';
-        speedCell.style.color = color;
+        speedCell.className = 'dt-primary dt-num';
+        if (minimum && speed < minimum) speedCell.classList.add('val-crit');
+        else if (normal && speed < normal) speedCell.classList.add('val-warn');
         speedCell.textContent = (typeof speed === 'number' ? speed.toFixed(1) : speed) + ' Mbit/s';
         row.appendChild(speedCell);
-        table.appendChild(row);
+        body.appendChild(row);
     });
+    table.appendChild(body);
+    labelDataTable(table);
     section.appendChild(table);
     return section;
 }
@@ -168,10 +177,10 @@ function loadBnetzData() {
             dateCell.appendChild(document.createTextNode(m.date ? formatDocsightTime(m.date, 'date') : ''));
             tr.appendChild(dateCell);
             tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_provider || 'Provider', m.provider || '-')));
-            tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_download_target || 'Download target', m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-')));
-            tr.appendChild(_bnetzCell(T.bnetz_download_actual || 'Download measured', Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : '')));
-            tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_upload_target || 'Upload target', m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-')));
-            tr.appendChild(_bnetzCell(T.bnetz_upload_actual || 'Upload measured', Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : '')));
+            tr.appendChild(_bnetzNumber(_bnetzSecondary(_bnetzCell(T.bnetz_download_target || 'Download target', m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-'))));
+            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_download_actual || 'Download measured', Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : ''))));
+            tr.appendChild(_bnetzNumber(_bnetzSecondary(_bnetzCell(T.bnetz_upload_target || 'Upload target', m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-'))));
+            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_upload_actual || 'Upload measured', Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : ''))));
 
             var verdictCell = _bnetzCell(T.bnetz_verdict || 'Verdict', '');
             verdictCell.className = 'bnetz-verdict ' + verdictClass;
@@ -219,7 +228,8 @@ function loadBnetzData() {
             if (hasMeasurements) {
                 var detailTr = document.createElement('tr');
                 detailTr.id = 'bnetz-detail-' + idx;
-                detailTr.style.display = 'none';
+                detailTr.className = 'dt-detail';
+                detailTr.hidden = true;
                 var detailTd = document.createElement('td');
                 detailTd.colSpan = 8;
                 detailTd.className = 'bnetz-detail-cell';
@@ -265,7 +275,7 @@ function toggleBnetzDetail(idx) {
     if (!summary) return;
     var open = !summary.classList.contains('bnetz-row-open');
     summary.classList.toggle('bnetz-row-open', open);
-    if (row) row.style.display = open ? 'table-row' : 'none';
+    if (row) row.hidden = !open;
     if (arrow) {
         arrow.classList.toggle('open', open);
         arrow.setAttribute('aria-expanded', open ? 'true' : 'false');

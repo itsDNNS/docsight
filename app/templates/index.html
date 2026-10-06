@@ -1547,14 +1547,14 @@
     </div>
     <div id="bnetz-empty" class="view-empty" hidden></div>
     <div id="bnetz-table-card" class="table-card" hidden>
-        <table id="bnetz-table">
+        <table id="bnetz-table" class="data-table">
             <thead><tr>
                 <th>{{ t.bnetz_date }}</th>
                 <th>{{ t.bnetz_provider }}</th>
-                <th>{{ t.bnetz_download_target }}</th>
-                <th>{{ t.bnetz_download_actual }}</th>
-                <th>{{ t.bnetz_upload_target }}</th>
-                <th>{{ t.bnetz_upload_actual }}</th>
+                <th class="dt-num">{{ t.bnetz_download_target }}</th>
+                <th class="dt-num">{{ t.bnetz_download_actual }}</th>
+                <th class="dt-num">{{ t.bnetz_upload_target }}</th>
+                <th class="dt-num">{{ t.bnetz_upload_actual }}</th>
                 <th>{{ t.bnetz_verdict }}</th>
                 <th><span class="sr-only">{{ t.get('actions', 'Actions') }}</span></th>
             </tr></thead>

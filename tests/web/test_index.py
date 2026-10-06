@@ -375,13 +375,14 @@ class TestIndexRoute:
         tables = html.index('class="channel-status-tables"')
         docsis31_start = html.index("DOCSIS 3.1 OFDM", tables)
         docsis31_head = html[docsis31_start:html.index("</thead>", docsis31_start)]
-        assert "<th>MER</th>" in docsis31_head
-        assert "<th>SNR</th>" not in docsis31_head
+        header = lambda label: re.compile(r"<th[^>]*>" + label + r"</th>")
+        assert header("MER").search(docsis31_head)
+        assert not header("SNR").search(docsis31_head)
 
         docsis30_start = html.index("DOCSIS 3.0 SC-QAM", tables)
         docsis30_head = html[docsis30_start:html.index("</thead>", docsis30_start)]
-        assert "<th>SNR</th>" in docsis30_head
-        assert "<th>MER</th>" not in docsis30_head
+        assert header("SNR").search(docsis30_head)
+        assert not header("MER").search(docsis30_head)
 
     def test_channel_tables_show_theoretical_capacity_column(self, client, sample_analysis):
         sample_analysis["ds_channels"][0]["theoretical_bitrate"] = 55.62

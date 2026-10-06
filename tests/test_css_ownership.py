@@ -31,20 +31,10 @@ SEGMENTED_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.segmente
 # The data table and its variants.
 DATA_TABLE_RULE = re.compile(r"(?m)^\s*\.data-table(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
 
-# Tables not yet on the data table component, by file and the table's id or first class.
-# Per-target Connection Monitor stats stay a stat grid on purpose.
+# Tables that are not data tables on purpose, by file and the table's id or first class:
+# the per-target Connection Monitor stats render as a stat grid.
 TABLES_WITHOUT_COMPONENT = {
-    ("app/modules/bqm/templates/bqm_dialogs.html", "bqm-import-table"),
     ("app/modules/connection_monitor/static/js/connection-monitor-charts.js", "cm-target-table"),
-    ("app/modules/de_tkg_compensation/static/main.js", "tkg-table"),
-    ("app/modules/journal/static/main.js", ""),
-    ("app/modules/journal/templates/journal_dialogs.html", "import-table"),
-    ("app/modules/journal/templates/journal_tab.html", "journal-table"),
-    ("app/modules/speedtest/templates/speedtest_tab.html", "speedtest-table"),
-    ("app/static/js/integrations.js", "bnetz-detail-table"),
-    ("app/templates/index.html", "bnetz-table"),
-    ("app/templates/partials/channel_tables.html", "channel-table"),
-    ("app/templates/settings/smart_capture.html", "sc-history-table"),
 }
 
 # The save bar.
@@ -113,7 +103,9 @@ COLORED = re.compile(r"var\(--(?:accent|amethyst|good|warn|crit|sapphire)")
 
 def _is_side_stripe(prop, value):
     if prop.startswith("box-shadow"):
-        return re.match(r"inset\s+-?[1-9]\d*px\s+0\s+0\s", value) is not None
+        # A layer offset sideways only, without blur, paints a stripe, inset or outside.
+        layers = re.split(r",(?![^(]*\))", value)
+        return any(re.match(r"\s*(?:inset\s+)?-?[1-9]\d*px\s+0(?:px)?\s+0(?:px)?\s", layer) for layer in layers)
     if "transparent" in value.split("solid")[-1]:
         return False  # CSS triangles and hidden edges
     width = re.match(r"\s*(\d+)px", value)
@@ -196,5 +188,5 @@ def test_tables_use_the_data_table_component():
     tables = list(_tables())
     missing = sorted({(path, name) for path, classes, name in tables if "data-table" not in classes})
     assert [entry for entry in missing if entry not in TABLES_WITHOUT_COMPONENT] == []
-    # Drop entries from the list once their table is migrated.
+    # Every listed exception must still exist.
     assert sorted(TABLES_WITHOUT_COMPONENT - set(missing)) == []
