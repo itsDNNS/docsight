@@ -300,3 +300,13 @@ def test_event_numbers_use_the_page_language(demo_page):
     message = page.locator('#events-feed [data-event-id="50"] .ev-msg')
     expect(message).to_contain_text("+1.072")
     expect(message).to_contain_text("(0 → 1.072)")
+
+    # English uses 12-hour times; the longer "12:00 PM" must not run into the icon.
+    page.goto(f"{_base_url(page)}/?lang=en#events", wait_until="networkidle")
+    row = page.locator('#events-feed [data-event-id="50"]')
+    expect(row.locator(".ev-msg")).to_contain_text("+1,072")
+    expect(row.locator(".ev-time")).to_contain_text("PM")
+    time_box = row.locator(".ev-time").bounding_box()
+    icon_box = row.locator(".ev-sev").bounding_box()
+    assert time_box["x"] + time_box["width"] <= icon_box["x"]
+    assert row.locator(".ev-time").evaluate("node => node.scrollWidth <= node.clientWidth")
