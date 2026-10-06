@@ -454,9 +454,10 @@
 }
 .ev-main:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; border-radius: 4px; }
 div.ev-main:not([data-toggle]) { cursor: default; }
+/* Tabular digits keep every time in a locale the same width, so rows align
+   without a fixed width that 12-hour times ("10:22 PM") would overflow. */
 .ev-time {
     flex: none;
-    width: 3.2em;
     color: var(--text-secondary, var(--muted));
     font-size: max(var(--fs-min), 0.85em);
     font-variant-numeric: tabular-nums;
@@ -579,7 +580,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     }
     .ev-select { width: 40px; height: 44px; }
     .ev-main { flex-wrap: wrap; column-gap: 6px; row-gap: 0; padding: 4px 0; line-height: 1.3; }
-    .ev-time { width: auto; }
     .ev-type { width: auto; flex: 0 1 auto; min-width: 0; }
     .ev-msg { flex-basis: 100%; font-size: max(var(--fs-min), 0.9em); }
     .ev-group-members .ev-msg { flex-basis: 0; flex-grow: 1; }
