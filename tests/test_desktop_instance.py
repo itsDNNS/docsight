@@ -892,7 +892,9 @@ def test_parallel_coordination_produces_one_owner_and_one_follower(tmp_path):
     errors = []
 
     def worker(token):
-        clock = [0.0]
+        # Real time on both sides: on Windows the owner's replace can hit a sharing
+        # violation from the follower's reads and retry with real sleeps, so a fake
+        # follower clock would run out before the owner has published.
         coordinator = runtime.DesktopInstance(
             store=store,
             mutex=SharedMutex(shared),
@@ -902,11 +904,6 @@ def test_parallel_coordination_produces_one_owner_and_one_follower(tmp_path):
             current_pid=PID,
             token_factory=lambda: token,
             endpoint_probe=lambda state: store.load() == state,
-            monotonic=lambda: clock[0],
-            sleep=lambda seconds: (
-                clock.__setitem__(0, clock[0] + seconds),
-                threading.Event().wait(0.001),
-            ),
         )
         try:
             barrier.wait()
