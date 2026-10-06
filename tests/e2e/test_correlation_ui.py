@@ -1498,6 +1498,7 @@ def test_correlation_table_uses_card_layout_without_mobile_overflow(demo_page):
                 row: rect(row),
                 timestamp: rect(timestamp),
                 timestampLabel: before.content,
+                timestampLabelPosition: before.position,
             };
         }
         """
@@ -1508,7 +1509,9 @@ def test_correlation_table_uses_card_layout_without_mobile_overflow(demo_page):
     assert geometry["row"]["display"] == "block"
     assert geometry["row"]["left"] >= 0
     assert geometry["row"]["right"] <= geometry["viewportWidth"] + MAX_HORIZONTAL_OVERFLOW
-    assert geometry["timestamp"]["display"] == "flex"
+    # A block cell with a positioned label keeps inline content such as status dots together.
+    assert geometry["timestamp"]["display"] == "block"
+    assert geometry["timestampLabelPosition"] == "absolute"
     assert geometry["timestamp"]["width"] >= 300
     assert "Timestamp" in geometry["timestampLabel"]
 

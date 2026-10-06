@@ -400,7 +400,7 @@
             var emptyRow = document.createElement('tr');
             var emptyCell = document.createElement('td');
             emptyCell.colSpan = 4;
-            emptyCell.style.cssText = 'text-align:center;color:var(--muted);padding:20px;';
+            emptyCell.className = 'dt-empty';
             emptyCell.textContent = '\u2014';
             emptyRow.appendChild(emptyCell);
             tbody.appendChild(emptyRow);
@@ -419,7 +419,7 @@
             var tdEnd = document.createElement('td');
             if (g.ongoing) {
                 var span = document.createElement('span');
-                span.style.color = 'var(--crit)';
+                span.className = 'cm-outage-ongoing';
                 span.textContent = T['docsight.connection_monitor.cm_outage_ongoing'] || 'Ongoing';
                 tdEnd.appendChild(span);
             } else if (g.end) {
@@ -427,7 +427,7 @@
             }
 
             var tdDur = document.createElement('td');
-            tdDur.style.textAlign = 'right';
+            tdDur.className = 'dt-num';
             tdDur.textContent = g.duration ? formatDuration(g.duration) : '\u2014';
 
             tr.appendChild(tdTarget);
@@ -436,6 +436,7 @@
             tr.appendChild(tdDur);
             tbody.appendChild(tr);
         });
+        labelDataTable(document.getElementById('cm-outage-table'));
     }
 
     function formatDuration(seconds) {
@@ -591,6 +592,7 @@
             tdTime.textContent = formatDocsightTime(trace.timestamp, 'datetime', true);
 
             var tdHops = document.createElement('td');
+            tdHops.className = 'dt-num';
             tdHops.textContent = trace.hop_count;
 
             var tdFp = document.createElement('td');
@@ -619,6 +621,7 @@
             tr.appendChild(tdTrigger);
             tbody.appendChild(tr);
         });
+        labelDataTable(document.getElementById('cm-traceroute-table'));
     }
 
     function toggleTraceDetail(row, traceId, toggleButton, detailId) {
@@ -655,12 +658,15 @@
                     td.textContent = '\u2014';
                 } else {
                     var hopTable = document.createElement('table');
-                    hopTable.className = 'cm-hop-table';
+                    hopTable.className = 'data-table data-table-compact';
                     var thead = document.createElement('thead');
                     var headRow = document.createElement('tr');
-                    ['#', 'IP', 'Hostname', 'Latency', 'Probes'].forEach(function(label) {
+                    var cmT = function(key, fallback) { return T['docsight.connection_monitor.traceroute.' + key] || fallback; };
+                    [[cmT('hop', 'Hop'), true], [cmT('ip_address', 'IP address')], [cmT('hostname', 'Hostname')],
+                     [cmT('latency', 'Latency'), true], [cmT('probes_responded', 'Probes'), true]].forEach(function(column) {
                         var th = document.createElement('th');
-                        th.textContent = label;
+                        if (column[1]) th.className = 'dt-num';
+                        th.textContent = column[0];
                         headRow.appendChild(th);
                     });
                     thead.appendChild(headRow);
@@ -670,6 +676,7 @@
                     hops.forEach(function(hop) {
                         var htr = document.createElement('tr');
                         var tdIdx = document.createElement('td');
+                        tdIdx.className = 'dt-num';
                         tdIdx.textContent = hop.hop_index;
 
                         var tdIp = document.createElement('td');
@@ -680,14 +687,16 @@
                         tdHost.textContent = hop.hop_host || '\u2014';
 
                         var tdLat = document.createElement('td');
+                        tdLat.className = 'dt-num';
                         if (hop.latency_ms !== null && hop.latency_ms !== undefined) {
                             tdLat.textContent = hop.latency_ms.toFixed(2) + ' ms';
                         } else {
                             tdLat.textContent = '*';
-                            tdLat.className = 'cm-muted';
+                            tdLat.classList.add('cm-muted');
                         }
 
                         var tdProbes = document.createElement('td');
+                        tdProbes.className = 'dt-num';
                         tdProbes.textContent = hop.probes_responded !== undefined ? hop.probes_responded + '/3' : '\u2014';
 
                         htr.appendChild(tdIdx);
@@ -698,6 +707,7 @@
                         hopsBody.appendChild(htr);
                     });
                     hopTable.appendChild(hopsBody);
+                    labelDataTable(hopTable);
                     td.appendChild(hopTable);
                 }
 

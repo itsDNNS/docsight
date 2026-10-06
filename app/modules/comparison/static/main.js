@@ -269,6 +269,7 @@ function _cmpRenderDeltaTable(data) {
     _cmpAddCell(tr, healthB);
     _cmpAddCell(tr, verdictLabel, verdictClass);
     tbody.appendChild(tr);
+    labelDataTable(document.getElementById('comparison-delta-table'));
 
     document.getElementById('comparison-delta').hidden = false;
 }

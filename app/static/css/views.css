@@ -894,24 +894,9 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     overflow-y: auto;
 }
 #correlation-table {
-    width: 100%;
-    margin: 0;
     table-layout: fixed;
 }
-#correlation-table thead tr {
-    background: var(--card);
-}
 #correlation-table thead th {
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: 600;
-    font-size: max(var(--fs-min), 0.85em);
-    color: var(--text);
-    border-bottom: 1px solid var(--card-border, var(--input-border));
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: var(--card);
     box-shadow: 0 1px 0 var(--card-border, var(--input-border));
 }
 #correlation-table thead th:nth-child(1) {
@@ -925,11 +910,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 #correlation-table tbody tr {
     transition: background 0.15s;
-    border-bottom: 1px solid var(--border-tint);
     cursor: pointer;
-}
-#correlation-table tbody tr:hover {
-    background: color-mix(in srgb, var(--amethyst) 8%, transparent);
 }
 #correlation-table tbody tr.corr-highlight {
     background: color-mix(in srgb, var(--amethyst) 30%, transparent) !important;
@@ -947,11 +928,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 #correlation-table tbody tr:focus-visible {
     outline: 2px solid var(--amethyst);
     outline-offset: -2px;
-}
-#correlation-table tbody td {
-    padding: 12px 16px;
-    font-size: max(var(--fs-min), 0.85em);
-    vertical-align: top;
 }
 #correlation-table .correlation-cell-timestamp {
     width: 180px;
@@ -1031,50 +1007,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 
     #correlation-table-wrap {
         max-height: none;
-    }
-
-    #correlation-table,
-    #correlation-table > tbody {
-        display: block;
-        width: 100%;
-    }
-
-    #correlation-table > thead {
-        display: none;
-    }
-
-    #correlation-table tbody tr {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--card-border, var(--input-border));
-    }
-
-    #correlation-table tbody td {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        width: 100%;
-        padding: 8px 0;
-        border-bottom: 1px solid var(--border-tint, rgba(255,255,255,0.08));
-        font-size: max(var(--fs-min), 0.82em);
-        white-space: normal;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    #correlation-table tbody td:last-child {
-        border-bottom: none;
-    }
-
-    #correlation-table tbody td::before {
-        content: attr(data-label);
-        flex: 0 0 min(38%, 120px);
-        color: var(--text-secondary, var(--muted));
-        font-weight: 600;
-        text-align: left;
     }
 
     #correlation-table .correlation-cell-timestamp,

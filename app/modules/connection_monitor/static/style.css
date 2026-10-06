@@ -351,44 +351,19 @@
     overflow-x: auto;
 }
 
-.cm-data-table,
-#cm-per-target-stats .data-table {
+/* Per-target stats: a stat grid per target, not a data table. */
+.cm-target-table {
     width: 100%;
-    min-width: 560px;
     border-collapse: collapse;
     font-size: 0.8rem;
 }
 
-.cm-data-table th,
-#cm-per-target-stats .data-table th {
-    padding: 10px 12px;
-    color: var(--muted);
-    font-size: var(--fs-min);
-    font-weight: 750;
-    letter-spacing: 0.07em;
-    text-align: left;
-    text-transform: uppercase;
-    background: color-mix(in srgb, var(--void-deep) 58%, transparent);
-    border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 72%, transparent);
-    white-space: nowrap;
-}
-
-.cm-data-table td,
-#cm-per-target-stats .data-table td {
-    padding: 11px 12px;
-    color: var(--text-secondary);
-    border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 46%, transparent);
-    vertical-align: middle;
-}
-
-.cm-data-table tbody tr:last-child td,
-#cm-per-target-stats .data-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.cm-data-table tbody tr:hover,
-#cm-per-target-stats .data-table tbody tr:hover {
+.cm-target-table tbody tr:hover {
     background: var(--cm-panel-hover);
+}
+
+.cm-outage-ongoing {
+    color: var(--crit);
 }
 
 .cm-target-dot {
@@ -493,8 +468,7 @@
 }
 
 .cm-loss-cell,
-.cm-samples-cell,
-.text-right {
+.cm-samples-cell {
     text-align: right;
 }
 
@@ -603,25 +577,6 @@
 
 .trace-detail-row td {
     background: color-mix(in srgb, var(--void-deep) 52%, transparent);
-}
-
-.cm-hop-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.78rem;
-}
-
-.cm-hop-table th,
-.cm-hop-table td {
-    padding: 6px 8px;
-    text-align: left;
-}
-
-.cm-hop-table th {
-    color: var(--muted);
-    font-size: var(--fs-min);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
 }
 
 .cm-muted {

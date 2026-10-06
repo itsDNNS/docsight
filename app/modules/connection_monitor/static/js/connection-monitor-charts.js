@@ -362,14 +362,13 @@ var CMCharts = (function() {
 
         // Build table
         var table = document.createElement('table');
-        table.className = 'data-table cm-target-table';
+        table.className = 'cm-target-table';
 
         var thead = document.createElement('thead');
         var headerRow = document.createElement('tr');
-        [lTarget, lAvg, lP95, lLoss, lSamples].forEach(function(text, i) {
+        [lTarget, lAvg, lP95, lLoss, lSamples].forEach(function(text) {
             var th = document.createElement('th');
             th.textContent = text;
-            if (i >= 3) th.className = 'text-right';
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
