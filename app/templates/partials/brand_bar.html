@@ -1,0 +1,10 @@
+{#- The app shell's top bar without the navigation, for setup and login. Pages put their controls into brand_bar_actions. -#}
+<header class="topnav topnav-standalone">
+    <div class="topnav-inner">
+        <span class="topnav-brand">
+            {% with size=24 %}{% include 'partials/logo_mark.html' %}{% endwith %}
+            <span class="topnav-brand-name">DOCSight</span>
+        </span>
+        <div class="topnav-actions">{{ brand_bar_actions|default('', true) }}</div>
+    </div>
+</header>

@@ -1,29 +1,19 @@
-"""Dashboard templates keep styling in the stylesheets and behavior in the scripts."""
+"""Templates keep styling in the stylesheets and behavior in the scripts."""
 
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Templates that have been cleaned up; the rest follow view by view.
-TEMPLATES = (
-    "app/templates/index.html",
-    "app/templates/demo_banner.html",
-    "app/templates/segment_utilization_tab.html",
-    "app/templates/partials/channel_tables.html",
-    "app/templates/partials/line_status.html",
-    "app/modules/bqm/templates/bqm_dialogs.html",
-    "app/modules/bqm/templates/bqm_tab.html",
-    "app/modules/comparison/templates/comparison_tab.html",
-    "app/modules/connection_monitor/templates/connection_monitor_card.html",
-    "app/modules/connection_monitor/templates/connection_monitor_detail.html",
-    "app/modules/journal/templates/journal_dialogs.html",
-    "app/modules/journal/templates/journal_tab.html",
-    "app/modules/modulation/templates/modulation_tab.html",
-    "app/modules/speedtest/templates/speedtest_dialogs.html",
-    "app/modules/speedtest/templates/speedtest_tab.html",
+# Every template, including setup and login.
+TEMPLATES = sorted(
+    path for path in subprocess.run(
+        ["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout.split()
+    if path.endswith(".html")
 )
 
 

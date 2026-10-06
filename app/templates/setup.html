@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shell.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css', v=version) }}">
     {% include 'partials/theme_vars.html' %}
     {% include 'partials/browser_url_bootstrap.html' %}
@@ -20,28 +21,22 @@
 </head>
 <body>
 
-<div class="mesh-bg"></div>
-
-<div class="setup-layout">
-
-<!-- Controls Bar -->
-<div class="setup-controls">
-    <select class="btn btn-secondary setup-lang-select" id="lang-select" aria-label="{{ t.language }}">
+{% set brand_bar_actions %}
+    <select class="form-select setup-lang-select" id="lang-select" aria-label="{{ t.language }}">
         {% for code, name in languages.items() %}
         <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
         {% endfor %}
     </select>
-    <button class="btn btn-secondary setup-theme-btn" onclick="toggleTheme()">
-        <i data-lucide="sun-moon" class="setup-icon-sm"></i> {{ t.theme_toggle }}
+    <button type="button" class="topnav-icon-button" data-action="toggleTheme" aria-label="{{ t.theme_toggle }}" title="{{ t.theme_toggle }}">
+        <i data-lucide="sun-moon"></i>
     </button>
-</div>
+{% endset %}
+{% include 'partials/brand_bar.html' %}
+
+<main class="setup-layout">
 
 <!-- Header -->
 <div class="setup-header">
-    <div class="setup-brand">
-        {% with size=28 %}{% include 'partials/logo_mark.html' %}{% endwith %}
-        <span>DOCSight</span>
-    </div>
     <h1 class="setup-title">{{ t.setup_value_title }}</h1>
     <p class="setup-subtitle">{{ t.setup_value_desc }}</p>
 </div>
@@ -59,7 +54,7 @@
             </div>
         </div>
 
-        <button type="button" class="btn btn-primary first-run-demo-cta" id="start-demo-btn" onclick="startDemo()">
+        <button type="button" class="btn btn-primary first-run-demo-cta" id="start-demo-btn" data-action="startDemo">
             <i data-lucide="play" class="setup-icon-sm"></i>
             {{ t.setup_demo_start }}
         </button>
@@ -70,11 +65,11 @@
         <div class="test-result first-run-result" id="demo-start-result" role="status" aria-live="polite"></div>
 
         <div class="first-run-secondary">
-            <button type="button" class="btn btn-secondary" id="connect-modem-btn" onclick="startFreshSetup()">
+            <button type="button" class="btn btn-secondary" id="connect-modem-btn" data-action="startFreshSetup">
                 <i data-lucide="radio" class="setup-icon-sm"></i>
                 {{ t.setup_connect_modem }}
             </button>
-            <button type="button" class="restore-text-action" id="restore-action" onclick="startRestore()">
+            <button type="button" class="restore-text-action" id="restore-action" data-action="startRestore">
                 {{ t.setup_restore_action }}
             </button>
         </div>
@@ -87,7 +82,7 @@
 </div>
 
 <!-- Restore UI -->
-<div id="restore-section" style="display:none;">
+<div id="restore-section" hidden>
     <div class="card">
         <div class="card-header">
             <div class="card-title-group">
@@ -104,13 +99,13 @@
         <div class="form-grid">
             <div class="form-field">
                 <label class="form-label" for="restore-file">{{ t.restore_select_file }}</label>
-                <input class="form-input" type="file" id="restore-file" accept=".tar.gz,.gz" onchange="validateRestoreFile()">
+                <input class="form-input" type="file" id="restore-file" accept=".tar.gz,.gz" data-change-action="validateRestoreFile">
             </div>
         </div>
 
-        <div id="restore-meta" style="display:none;">
+        <div id="restore-meta" hidden>
             <div class="setup-info" id="restore-meta-info"></div>
-            <button type="button" class="btn btn-primary" onclick="doRestore()" id="restore-confirm-btn">
+            <button type="button" class="btn btn-primary" data-action="doRestore" id="restore-confirm-btn">
                 <i data-lucide="archive-restore" class="setup-icon-sm"></i>
                 {{ t.restore_confirm }}
             </button>
@@ -118,8 +113,8 @@
 
         <div class="test-result" id="restore-result"></div>
 
-        <div class="setup-actions" style="margin-top:var(--space-md);">
-            <button type="button" class="btn btn-secondary" onclick="backToStart()">
+        <div class="setup-actions setup-actions-spaced">
+            <button type="button" class="btn btn-secondary" data-action="backToStart">
                 <i data-lucide="arrow-left" class="setup-icon-sm"></i>
                 {{ t.back }}
             </button>
@@ -128,7 +123,7 @@
 </div>
 
 <!-- Stepper -->
-<div class="setup-stepper" id="setup-stepper" style="display:none;">
+<div class="setup-stepper" id="setup-stepper" hidden>
     <div class="stepper-step active" data-step="1">
         <div class="stepper-circle"><i data-lucide="radio" class="setup-icon-md"></i></div>
         <span class="stepper-label">{{ t.modem_connection }}</span>
@@ -145,7 +140,7 @@
     </div>
 </div>
 
-<form id="setup-form" method="POST" action="{{ url_for('config_bp.api_config') }}" style="display:none;">
+<form id="setup-form" method="POST" action="{{ url_for('config_bp.api_config') }}" hidden>
 
 <!-- Step 1: Modem Connection -->
 <div class="step-content active" data-step="1">
@@ -165,7 +160,7 @@
         <fieldset class="setup-connection-kind" id="connection-kind">
             <legend class="form-label">{{ t.setup_connection_question }}</legend>
             <label class="setup-choice">
-                <input type="radio" name="connection_kind" value="cable" onchange="chooseConnectionKind(this.value)">
+                <input type="radio" name="connection_kind" value="cable" data-change-action="chooseConnectionKind" data-action-args='["cable"]'>
                 <span class="setup-choice-icon" aria-hidden="true"><i data-lucide="radio"></i></span>
                 <span class="setup-choice-text">
                     <strong>{{ t.setup_connection_cable }}</strong>
@@ -173,7 +168,7 @@
                 </span>
             </label>
             <label class="setup-choice">
-                <input type="radio" name="connection_kind" value="other" onchange="chooseConnectionKind(this.value)">
+                <input type="radio" name="connection_kind" value="other" data-change-action="chooseConnectionKind" data-action-args='["other"]'>
                 <span class="setup-choice-icon" aria-hidden="true"><i data-lucide="globe"></i></span>
                 <span class="setup-choice-text">
                     <strong>{{ t.setup_connection_other }}</strong>
@@ -188,7 +183,7 @@
 
         <div class="setup-modem-picker" id="modem-picker" hidden>
             <div class="setup-detect">
-                <button type="button" class="btn btn-secondary" id="detect-modem-btn" onclick="detectModem()" aria-describedby="detect-modem-hint">
+                <button type="button" class="btn btn-secondary" id="detect-modem-btn" data-action="detectModem" aria-describedby="detect-modem-hint">
                     <i data-lucide="radar" class="setup-icon-sm"></i>
                     {{ t.setup_detect_button }}
                 </button>
@@ -220,7 +215,7 @@
 
         <p class="setup-step-error" id="step-1-error" role="alert" hidden></p>
 
-        <div id="modem-credentials-group" class="form-grid" style="margin-top:var(--space-md); display:none;">
+        <div id="modem-credentials-group" class="form-grid setup-credentials" hidden>
             <div class="form-field">
                 <label class="form-label" for="modem_url">{{ t.url }}</label>
                 <input class="form-input" type="text" id="modem_url" name="modem_url"
@@ -243,7 +238,7 @@
             </div>
 
             <div>
-                <button type="button" class="btn btn-secondary" onclick="testConnection()" id="test-conn-btn">
+                <button type="button" class="btn btn-secondary" data-action="testConnection" id="test-conn-btn">
                     <i data-lucide="wifi" class="setup-icon-sm"></i>
                     {{ t.test_connection }}
                 </button>
@@ -252,7 +247,7 @@
         </div>
 
         <div class="setup-actions">
-            <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+            <button type="button" class="btn btn-primary" data-action="nextStep" data-action-args="[2]">
                 {{ t.next }}
                 <i data-lucide="arrow-right" class="setup-icon-sm"></i>
             </button>
@@ -300,11 +295,11 @@
         </div>
 
         <div class="setup-actions">
-            <button type="button" class="btn btn-secondary" onclick="prevStep(1)">
+            <button type="button" class="btn btn-secondary" data-action="prevStep" data-action-args="[1]">
                 <i data-lucide="arrow-left" class="setup-icon-sm"></i>
                 {{ t.back }}
             </button>
-            <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+            <button type="button" class="btn btn-primary" data-action="nextStep" data-action-args="[3]">
                 {{ t.next }}
                 <i data-lucide="arrow-right" class="setup-icon-sm"></i>
             </button>
@@ -337,7 +332,7 @@
         <div class="test-result" id="setup-submit-result" role="status" aria-live="polite" tabindex="-1"></div>
 
         <div class="setup-actions">
-            <button type="button" class="btn btn-secondary" onclick="prevStep(2)">
+            <button type="button" class="btn btn-secondary" data-action="prevStep" data-action-args="[2]">
                 <i data-lucide="arrow-left" class="setup-icon-sm"></i>
                 {{ t.back }}
             </button>
@@ -351,7 +346,7 @@
 
 </form>
 
-</div><!-- /.setup-layout -->
+</main>
 
 <script type="application/json" id="docsight-setup-bootstrap">{{ {
     'translations': {
@@ -401,6 +396,7 @@
     'loginUrl': url_for('login')
 }|tojson }}</script>
 <script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/setup.js', v=version) }}"></script>
 
 </body>

@@ -37,14 +37,15 @@ def _choose_cable_modem(page, query, name):
 
 
 class TestSetupPageLoad:
-    """Setup page renders with Tribu Design System elements."""
+    """Setup page renders inside the shared brand bar with the shared components."""
 
     def test_redirects_to_setup(self, setup_page):
         assert "/setup" in setup_page.url
 
-    def test_has_mesh_background(self, setup_page):
-        mesh = setup_page.locator(".mesh-bg")
-        assert mesh.count() == 1
+    def test_has_the_shared_brand_bar(self, setup_page):
+        bar = setup_page.locator(".topnav-standalone")
+        expect(bar.locator(".logo-mark")).to_have_count(1)
+        expect(bar.locator("#lang-select")).to_be_visible()
 
     def test_has_cards(self, setup_page):
         assert setup_page.locator(".card").count() >= 1
@@ -142,13 +143,13 @@ class TestSetupThemeToggle:
         assert theme == "dark"
 
     def test_toggle_to_light(self, setup_page):
-        setup_page.locator("button", has_text="Theme").click()
+        setup_page.get_by_role("button", name="Theme").click()
         theme = setup_page.locator("html").get_attribute("data-theme")
         assert theme == "light"
 
     def test_toggle_back_to_dark(self, setup_page):
-        setup_page.locator("button", has_text="Theme").click()  # -> light
-        setup_page.locator("button", has_text="Theme").click()  # -> dark
+        setup_page.get_by_role("button", name="Theme").click()  # -> light
+        setup_page.get_by_role("button", name="Theme").click()  # -> dark
         theme = setup_page.locator("html").get_attribute("data-theme")
         assert theme == "dark"
 

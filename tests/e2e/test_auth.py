@@ -21,7 +21,7 @@ class TestLoginFlow:
         auth_page.goto(f"{auth_server}/login")
         auth_page.fill('input[name="password"]', "wrong-password")
         auth_page.click('button[type="submit"]')
-        error = auth_page.locator(".error")
+        error = auth_page.get_by_role("alert")
         assert error.is_visible()
 
     def test_correct_password_redirects_to_dashboard(self, auth_page, auth_server):

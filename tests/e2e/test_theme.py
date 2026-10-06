@@ -106,7 +106,7 @@ class TestTheme:
         assert demo_page.evaluate("localStorage.getItem('docsis-theme')") == "light"
 
     def test_setup_theme_choice_uses_the_shared_key(self, setup_page):
-        setup_page.locator(".setup-theme-btn").click()
+        setup_page.locator('.topnav-standalone [data-action="toggleTheme"]').click()
         expect(setup_page.locator("html")).to_have_attribute("data-theme", "light")
         assert setup_page.evaluate("localStorage.getItem('docsis-theme')") == "light"
         setup_page.reload()
