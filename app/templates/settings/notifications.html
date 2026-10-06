@@ -186,7 +186,7 @@
             {% set severity_rows = [
                 ('info', t.severity_info, 'badge-muted'),
                 ('warning', t.severity_warning, 'badge-warning'),
-                ('critical', t.severity_critical, 'badge-danger'),
+                ('critical', t.severity_critical, 'badge-critical'),
             ] %}
             {% for event_key, event_label in [
                 ('health_change', t.notify_event_health_change),
@@ -205,7 +205,7 @@
             {{ cooldown_row('device_ip_change', t.notify_event_device_ip_change, 'info', t.severity_info, 'badge-muted') }}
             {{ cooldown_row('cm_packet_loss_warning', t.event_type_cm_packet_loss_warning, 'warning', t.severity_warning, 'badge-warning') }}
             {{ cooldown_row('error_spike', t.notify_event_error_spike, 'warning', t.severity_warning, 'badge-warning') }}
-            {{ cooldown_row('monitoring_started', t.notify_event_monitoring_started, 'info', t.severity_info, 'badge-success') }}
+            {{ cooldown_row('monitoring_started', t.notify_event_monitoring_started, 'info', t.severity_info, 'badge-good') }}
         </tbody>
     </table>
     <span class="form-hint settings-note">{{ t.notify_disabled_hint }}</span>

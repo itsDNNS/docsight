@@ -575,44 +575,6 @@ def settings():
     tz_is_posix = bool(tz_name) and "/" not in tz_name and tz_name not in ("UTC",)
     all_modules = _module_loader.get_modules() if _module_loader else []
     nav = _shell_nav_context(_config_manager)
-    is_fritzbox = nav["is_fritzbox"]
-    gaming_quality_enabled = nav["gaming_quality_enabled"]
-    segment_utilization_enabled = nav["segment_utilization_enabled"]
-    built_in_features = [
-        {
-            "id": "core.gaming_quality",
-            "name": t.get("gaming_quality_label", "Gaming Quality Index"),
-            "description": t.get(
-                "gaming_quality_hint",
-                "Heuristic based on the weakest measured latency, jitter or packet-loss rating in the latest Speedtest result. Performance to game servers can differ.",
-            ),
-            "icon": "gamepad-2",
-            "status_label": t.get("modules_enabled" if gaming_quality_enabled else "modules_disabled", "Enabled" if gaming_quality_enabled else "Disabled"),
-            "status_class": "badge-success" if gaming_quality_enabled else "badge-muted",
-            "manage_section": "system",
-            "manage_label": t.get("system", "System"),
-        },
-        {
-            "id": "core.segment_utilization",
-            "name": t.get("seg_title", "Segment Utilization"),
-            "description": t.get(
-                "seg_subtitle",
-                "Cable segment utilization from FRITZ!Box monitoring. Requires FRITZ!OS 8.20 or newer on supported cable firmware.",
-            ),
-            "icon": "gauge",
-            "status_label": (
-                t.get("modules_requires_fritzbox", "Requires FRITZ!Box")
-                if not is_fritzbox else
-                t.get(
-                    "modules_enabled" if segment_utilization_enabled else "modules_disabled",
-                    "Enabled" if segment_utilization_enabled else "Disabled",
-                )
-            ),
-            "status_class": "badge-warning" if not is_fritzbox else ("badge-success" if segment_utilization_enabled else "badge-muted"),
-            "manage_section": "connection",
-            "manage_label": t.get("step_modem", "Modem"),
-        },
-    ]
     return render_template(
         "settings.html",
         config=config,
@@ -636,7 +598,6 @@ def settings():
         iana_tz=iana_tz,
         tz_is_posix=tz_is_posix,
         all_modules=all_modules,
-        built_in_features=built_in_features,
         app_version=APP_VERSION,
         settings_notices=get_active_notices(
             dismissed_ids=_get_dismissed_notice_ids(),
