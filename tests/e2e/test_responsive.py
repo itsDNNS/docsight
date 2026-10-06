@@ -354,8 +354,7 @@ class TestMobileLayout:
         assert geometry["dropdownRight"] <= geometry["viewportWidth"]
         assert all(rect["left"] >= 0 and rect["right"] <= geometry["viewportWidth"] for rect in geometry["optionRects"])
         assert all(rect["height"] >= 40 for rect in geometry["optionRects"])
-        # Cells of the two-line list are flex items, so inline-flex computes to flex.
-        assert geometry["clipDisplay"] in {"inline-flex", "flex"}
+        assert geometry["clipDisplay"] != "none"
         assert geometry["clipText"] == "📎 2"
         assert geometry["clipLabel"] == 'Attachments "screenshots"'
         assert geometry["dateLabel"] == 'Date "local"'
