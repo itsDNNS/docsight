@@ -60,6 +60,22 @@ function _fmtNum(n) {
     return escapeHtml(n.toLocaleString(_eventLocale(), { maximumFractionDigits: 1 }));
 }
 
+function _fmtNumText(n) {
+    return typeof n === 'number' ? n.toLocaleString(_eventLocale(), { maximumFractionDigits: 1 }) : String(n == null ? '' : n);
+}
+
+/* Uptime in days, hours and minutes, e.g. "112 d 14 h 7 min". */
+function _fmtUptime(seconds) {
+    var days = Math.floor(seconds / 86400);
+    var hours = Math.floor((seconds % 86400) / 3600);
+    var minutes = Math.floor((seconds % 3600) / 60);
+    var parts = [];
+    if (days) parts.push(days + ' d');
+    if (days || hours) parts.push(hours + ' h');
+    parts.push(minutes + ' min');
+    return parts.join(' ');
+}
+
 function _healthDot(h) {
     var cls = (h === 'good' || h === 'marginal' || h === 'poor' || h === 'tolerated') ? h : 'unknown';
     var labels = {good: T.health_good || 'Good', tolerated: T.health_tolerated || 'Tolerated', marginal: T.health_marginal || 'Marginal', poor: T.health_critical || 'Critical'};
@@ -111,7 +127,7 @@ function formatEventMessage(ev) {
             shown.forEach(function(c) {
                 var delta = typeof c.delta === 'number' ? c.delta : (c.current - c.prev);
                 var sign = delta >= 0 ? '+' : '';
-                var channelLabel = (T.event_ds || 'DS') + ' Ch ' + escapeHtml(String(c.channel));
+                var channelLabel = escapeHtml((T.event_ds || 'DS') + ' ' + (T.event_channel_short || 'Ch') + ' ' + c.channel);
                 var meta = _eventChannelMeta(c);
                 // The summary already shows these values; the line only names the channel.
                 if (c.prev === d.prev && c.current === d.current) {
@@ -127,7 +143,7 @@ function formatEventMessage(ev) {
                     '</span>';
             });
             if (affected.length > shown.length) {
-                html += '<span class="ev-sub ev-muted">+' + (affected.length - shown.length) + ' more affected channel(s)</span>';
+                html += '<span class="ev-sub ev-muted">+' + escapeHtml((T.channel_status_more || '{count} more channels').replace('{count}', affected.length - shown.length)) + '</span>';
             }
             return html;
         }
@@ -147,19 +163,21 @@ function formatEventMessage(ev) {
         case 'modulation_change': {
             var changes = d.changes || [];
             var isDown = d.direction === 'downgrade';
-            var html = '<span>' + escapeHtml(ev.message) + '</span>';
+            var summary = isDown ? (T.event_modulation_lower || 'Channels with lower modulation: {count}')
+                                 : (T.event_modulation_higher || 'Channels with higher modulation: {count}');
+            var html = '<span>' + escapeHtml(summary.replace('{count}', changes.length)) + '</span>';
             changes.forEach(function(c) {
                 var arrow = isDown ? '\u25BC' : '\u25B2';
                 var cls = isDown ? 'ev-down' : 'ev-up';
                 var ranks = Math.abs(c.rank_drop || 0);
                 var channelMeta = _eventChannelMeta(c);
                 html += '<span class="ev-sub">' +
-                    escapeHtml(c.direction) + ' Ch ' + escapeHtml(String(c.channel)) +
+                    escapeHtml(c.direction) + ' ' + escapeHtml(T.event_channel_short || 'Ch') + ' ' + escapeHtml(String(c.channel)) +
                     (channelMeta.length ? ' · ' + channelMeta.join(' · ') : '') + ': ' +
                     '<span class="ev-val">' + escapeHtml(c.prev) + '</span>' +
                     '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                     '<span class="ev-val">' + escapeHtml(c.current) + '</span> ' +
-                    '<span class="' + cls + '">' + arrow + ' ' + ranks + ' rank' + (ranks !== 1 ? 's' : '') + '</span>' +
+                    '<span class="' + cls + '">' + arrow + ' ' + escapeHtml((T.event_qam_levels || '{count} QAM level(s)').replace('{count}', ranks)) + '</span>' +
                     '</span>';
             });
             return html;
@@ -174,13 +192,46 @@ function formatEventMessage(ev) {
         case 'monitoring_started':
             return escapeHtml(T.event_monitoring_started_msg || 'Monitoring started') + ' ' + _healthDot(d.health || 'unknown');
 
-        case 'smart_capture_triggered': {
-            var scHtml = '<span>' + escapeHtml(ev.message) + '</span>';
-            if (d && d.source_event) {
-                scHtml += '<span class="ev-sub">' + escapeHtml(d.source_event) + '</span>';
+        case 'smart_capture_triggered':
+            return escapeHtml((T.event_sc_speedtest || 'Speedtest triggered by {event}')
+                .replace('{event}', _eventTypeLabel(d.trigger_type || 'unknown')));
+
+        case 'modem_restart_detected': {
+            var restart = escapeHtml(T.event_modem_restart_msg || 'Modem restart or counter reset detected');
+            if (Array.isArray(d.affected_channels) && d.total_channels) {
+                restart += ' <span class="ev-muted">(' + escapeHtml((T.event_channels_of || '{count} of {total} channels')
+                    .replace('{count}', d.affected_channels.length).replace('{total}', d.total_channels)) + ')</span>';
             }
-            return scHtml;
+            return restart;
         }
+
+        case 'device_sw_update':
+        case 'device_reboot': {
+            var parts = [];
+            if (ev.event_type === 'device_sw_update') {
+                parts.push(escapeHtml((T.event_firmware || 'Firmware') + ' ') + '<span class="ev-val">' + escapeHtml(d.old_sw || '?') + '</span>' +
+                    '<i data-lucide="arrow-right" class="ev-arrow-icon"></i><span class="ev-val">' + escapeHtml(d.new_sw || '?') + '</span>');
+            }
+            if (typeof d.prior_uptime === 'number') {
+                parts.push(escapeHtml((T.event_prior_uptime || 'Prior uptime') + ' ' + _fmtUptime(d.prior_uptime)));
+            }
+            if (d.ip_changed) parts.push(escapeHtml(T.event_ip_changed || 'WAN IP changed'));
+            if (d.reboot_reason) parts.push(escapeHtml((T.event_reboot_reason || 'Reason') + ': ' + d.reboot_reason));
+            return parts.length ? parts.join(' · ') : escapeHtml(_eventTypeLabel(ev.event_type));
+        }
+
+        case 'device_ip_change': {
+            var ipParts = [];
+            if (d.old_ipv4 || d.new_ipv4) ipParts.push('WAN IPv4 ' + escapeHtml(d.old_ipv4 || '?') + ' \u2192 ' + escapeHtml(d.new_ipv4 || '?'));
+            if (d.old_ipv6 || d.new_ipv6) ipParts.push('WAN IPv6 ' + escapeHtml(d.old_ipv6 || '?') + ' \u2192 ' + escapeHtml(d.new_ipv6 || '?'));
+            return ipParts.length ? ipParts.join(' · ') : escapeHtml(_eventTypeLabel(ev.event_type));
+        }
+
+        case 'cm_packet_loss_warning':
+            return escapeHtml((T.event_target || 'Target') + ' ' + (d.target_id != null ? d.target_id : '') + ': ' +
+                (T.event_cm_packet_loss || '{loss} packet loss over {window}')
+                    .replace('{loss}', _fmtNumText(d.packet_loss_pct) + ' %')
+                    .replace('{window}', _fmtNumText(d.window_seconds) + ' s'));
 
         default:
             return escapeHtml(ev.message);
