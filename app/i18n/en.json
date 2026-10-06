@@ -38,6 +38,7 @@
   "settings_storage_title": "History and snapshots",
   "settings_storage_desc": "How long DOCSight keeps measurements and when it takes the daily snapshot",
   "settings_module_off": "Module is off. Turn it on in Extensions.",
+  "settings_learn_more": "Learn more",
   "home": "Home",
   "skip_to_content": "Skip to content",
   "day_trend": "Day Trend",

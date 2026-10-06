@@ -38,6 +38,7 @@
   "settings_storage_title": "Verlauf und Snapshots",
   "settings_storage_desc": "Wie lange DOCSight Messwerte aufbewahrt und wann der tägliche Snapshot entsteht",
   "settings_module_off": "Modul ist aus. Unter Erweiterungen einschalten.",
+  "settings_learn_more": "Mehr erfahren",
   "home": "Home",
   "skip_to_content": "Zum Inhalt springen",
   "day_trend": "Tagesverlauf",

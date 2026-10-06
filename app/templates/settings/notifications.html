@@ -19,32 +19,35 @@
         </div>
     </div>
     <div class="card-collapse-body" id="notification-webhook-body"{% if not webhook_configured %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
-    <div class="form-grid cols-2">
-        <div class="form-field form-grid-full">
-            <label class="form-label" for="notify_webhook_url">{{ t.notify_webhook_url }}</label>
-            <input class="form-input" type="url" id="notify_webhook_url" name="notify_webhook_url" value="{{ config.notify_webhook_url }}" placeholder="https://ntfy.sh/docsight">
-            <span class="form-hint">{{ t.notify_webhook_url_hint }}</span>
+        <div class="card-collapse-inner">
+        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Notifications#delivery-options" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
+        <div class="form-grid cols-2">
+            <div class="form-field form-grid-full">
+                <label class="form-label" for="notify_webhook_url">{{ t.notify_webhook_url }}</label>
+                <input class="form-input" type="url" id="notify_webhook_url" name="notify_webhook_url" value="{{ config.notify_webhook_url }}" placeholder="https://ntfy.sh/docsight">
+                <span class="form-hint">{{ t.notify_webhook_url_hint }}</span>
+            </div>
+            <div class="form-field form-grid-full">
+                <label class="form-label" for="notify_webhook_token">{{ t.notify_webhook_token }}</label>
+                <input class="form-input" type="password" id="notify_webhook_token" name="notify_webhook_token" value="" placeholder="{% if config.notify_webhook_token %}{{ t.saved_ph }}{% endif %}"{% if config.notify_webhook_token %} data-saved-secret="true"{% endif %}>
+                <span class="form-hint">{{ t.notify_webhook_token_hint }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="notify_min_severity">{{ t.notify_min_severity }}</label>
+                <select class="form-input form-select" id="notify_min_severity" name="notify_min_severity">
+                    <option value="info" {% if config.notify_min_severity == 'info' %}selected{% endif %}>{{ t.event_severity_info }}</option>
+                    <option value="warning" {% if config.notify_min_severity == 'warning' or not config.notify_min_severity %}selected{% endif %}>{{ t.event_severity_warning }}</option>
+                    <option value="critical" {% if config.notify_min_severity == 'critical' %}selected{% endif %}>{{ t.event_severity_critical }}</option>
+                </select>
+                <span class="form-hint">{{ t.notify_min_severity_hint }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="notify_cooldown">{{ t.notify_cooldown_label }}</label>
+                <input class="form-input" type="number" id="notify_cooldown" name="notify_cooldown" value="{{ config.notify_cooldown or 3600 }}" min="0" step="1">
+                <span class="form-hint">{{ t.notify_cooldown_hint }}</span>
+            </div>
         </div>
-        <div class="form-field form-grid-full">
-            <label class="form-label" for="notify_webhook_token">{{ t.notify_webhook_token }}</label>
-            <input class="form-input" type="password" id="notify_webhook_token" name="notify_webhook_token" value="" placeholder="{% if config.notify_webhook_token %}{{ t.saved_ph }}{% endif %}"{% if config.notify_webhook_token %} data-saved-secret="true"{% endif %}>
-            <span class="form-hint">{{ t.notify_webhook_token_hint }}</span>
         </div>
-        <div class="form-field">
-            <label class="form-label" for="notify_min_severity">{{ t.notify_min_severity }}</label>
-            <select class="form-input form-select" id="notify_min_severity" name="notify_min_severity">
-                <option value="info" {% if config.notify_min_severity == 'info' %}selected{% endif %}>{{ t.event_severity_info }}</option>
-                <option value="warning" {% if config.notify_min_severity == 'warning' or not config.notify_min_severity %}selected{% endif %}>{{ t.event_severity_warning }}</option>
-                <option value="critical" {% if config.notify_min_severity == 'critical' %}selected{% endif %}>{{ t.event_severity_critical }}</option>
-            </select>
-            <span class="form-hint">{{ t.notify_min_severity_hint }}</span>
-        </div>
-        <div class="form-field">
-            <label class="form-label" for="notify_cooldown">{{ t.notify_cooldown_label }}</label>
-            <input class="form-input" type="number" id="notify_cooldown" name="notify_cooldown" value="{{ config.notify_cooldown or 3600 }}" min="0" step="1">
-            <span class="form-hint">{{ t.notify_cooldown_hint }}</span>
-        </div>
-    </div>
     </div>
 </div>
 
@@ -69,28 +72,31 @@
         </div>
     </div>
     <div class="card-collapse-body" id="notification-apprise-body"{% if not config.notify_apprise_enabled %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
-    <div class="form-grid cols-2">
-        <div class="form-field form-grid-full">
-            <label class="form-label" for="notify_apprise_url">{{ t.notify_apprise_url }}</label>
-            <input class="form-input" type="url" id="notify_apprise_url" name="notify_apprise_url" value="{{ config.notify_apprise_url }}" placeholder="http://apprise:8000">
-            <span class="form-hint">{{ t.notify_apprise_url_hint }}</span>
+        <div class="card-collapse-inner">
+        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Notifications#apprise-sidecar" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
+        <div class="form-grid cols-2">
+            <div class="form-field form-grid-full">
+                <label class="form-label" for="notify_apprise_url">{{ t.notify_apprise_url }}</label>
+                <input class="form-input" type="url" id="notify_apprise_url" name="notify_apprise_url" value="{{ config.notify_apprise_url }}" placeholder="http://apprise:8000">
+                <span class="form-hint">{{ t.notify_apprise_url_hint }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="notify_apprise_key">{{ t.notify_apprise_key }}</label>
+                <input class="form-input" type="password" id="notify_apprise_key" name="notify_apprise_key" value="" placeholder="{% if config.notify_apprise_key %}{{ t.saved_ph }}{% endif %}"{% if config.notify_apprise_key %} data-saved-secret="true"{% endif %}>
+                <span class="form-hint">{{ t.notify_apprise_key_hint }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="notify_apprise_token">{{ t.notify_apprise_token }}</label>
+                <input class="form-input" type="password" id="notify_apprise_token" name="notify_apprise_token" value="" placeholder="{% if config.notify_apprise_token %}{{ t.saved_ph }}{% endif %}"{% if config.notify_apprise_token %} data-saved-secret="true"{% endif %}>
+                <span class="form-hint">{{ t.notify_apprise_token_hint }}</span>
+            </div>
+            <div class="form-field form-grid-full">
+                <label class="form-label" for="notify_apprise_tag">{{ t.notify_apprise_tag }}</label>
+                <input class="form-input" type="text" id="notify_apprise_tag" name="notify_apprise_tag" value="{{ config.notify_apprise_tag }}" placeholder="ops,admin">
+                <span class="form-hint">{{ t.notify_apprise_tag_hint }}</span>
+            </div>
         </div>
-        <div class="form-field">
-            <label class="form-label" for="notify_apprise_key">{{ t.notify_apprise_key }}</label>
-            <input class="form-input" type="password" id="notify_apprise_key" name="notify_apprise_key" value="" placeholder="{% if config.notify_apprise_key %}{{ t.saved_ph }}{% endif %}"{% if config.notify_apprise_key %} data-saved-secret="true"{% endif %}>
-            <span class="form-hint">{{ t.notify_apprise_key_hint }}</span>
         </div>
-        <div class="form-field">
-            <label class="form-label" for="notify_apprise_token">{{ t.notify_apprise_token }}</label>
-            <input class="form-input" type="password" id="notify_apprise_token" name="notify_apprise_token" value="" placeholder="{% if config.notify_apprise_token %}{{ t.saved_ph }}{% endif %}"{% if config.notify_apprise_token %} data-saved-secret="true"{% endif %}>
-            <span class="form-hint">{{ t.notify_apprise_token_hint }}</span>
-        </div>
-        <div class="form-field form-grid-full">
-            <label class="form-label" for="notify_apprise_tag">{{ t.notify_apprise_tag }}</label>
-            <input class="form-input" type="text" id="notify_apprise_tag" name="notify_apprise_tag" value="{{ config.notify_apprise_tag }}" placeholder="ops,admin">
-            <span class="form-hint">{{ t.notify_apprise_tag_hint }}</span>
-        </div>
-    </div>
     </div>
 </div>
 
@@ -115,37 +121,40 @@
         </div>
     </div>
     <div class="card-collapse-body" id="notification-pwa-push-body"{% if not config.notify_pwa_push_enabled %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
-    <div class="form-grid cols-2">
-        <div class="form-field">
-            <label class="form-label" for="notify_pwa_push_vapid_public_key">{{ t.notify_pwa_push_vapid_public_key }}</label>
-            <input class="form-input" type="text" id="notify_pwa_push_vapid_public_key" name="notify_pwa_push_vapid_public_key" value="{{ config.notify_pwa_push_vapid_public_key }}" placeholder="B...">
-            <span class="form-hint">{{ t.notify_pwa_push_vapid_public_key_hint }}</span>
-        </div>
-        <div class="form-field">
-            <label class="form-label" for="notify_pwa_push_vapid_private_key">{{ t.notify_pwa_push_vapid_private_key }}</label>
-            <input class="form-input" type="password" id="notify_pwa_push_vapid_private_key" name="notify_pwa_push_vapid_private_key" value="" placeholder="{% if config.notify_pwa_push_vapid_private_key %}{{ t.saved_ph }}{% endif %}"{% if config.notify_pwa_push_vapid_private_key %} data-saved-secret="true"{% endif %}>
-            <span class="form-hint">{{ t.notify_pwa_push_vapid_private_key_hint }}</span>
-        </div>
-        <div class="form-field form-grid-full">
-            <label class="form-label" for="notify_pwa_push_vapid_subject">{{ t.notify_pwa_push_vapid_subject }}</label>
-            <input class="form-input" type="text" id="notify_pwa_push_vapid_subject" name="notify_pwa_push_vapid_subject" value="{{ config.notify_pwa_push_vapid_subject }}" placeholder="mailto:admin@example.com">
-            <span class="form-hint">{{ t.notify_pwa_push_vapid_subject_hint }}</span>
-        </div>
-        <div class="form-field form-grid-full">
-            <div class="test-result test-result-static" id="pwa-push-status">{{ t.notify_pwa_push_status_unknown }}</div>
-            <div class="btn-row">
-                <button type="button" class="btn btn-secondary" data-action="subscribePwaPush">
-                    <i data-lucide="bell-plus"></i>
-                    {{ t.notify_pwa_push_subscribe }}
-                </button>
-                <button type="button" class="btn btn-secondary" data-action="unsubscribePwaPush">
-                    <i data-lucide="bell-off"></i>
-                    {{ t.notify_pwa_push_unsubscribe }}
-                </button>
+        <div class="card-collapse-inner">
+        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/PWA-and-Offline#push-notifications" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
+        <div class="form-grid cols-2">
+            <div class="form-field">
+                <label class="form-label" for="notify_pwa_push_vapid_public_key">{{ t.notify_pwa_push_vapid_public_key }}</label>
+                <input class="form-input" type="text" id="notify_pwa_push_vapid_public_key" name="notify_pwa_push_vapid_public_key" value="{{ config.notify_pwa_push_vapid_public_key }}" placeholder="B...">
+                <span class="form-hint">{{ t.notify_pwa_push_vapid_public_key_hint }}</span>
             </div>
-            <span class="form-hint">{{ t.notify_pwa_push_permission_hint }}</span>
+            <div class="form-field">
+                <label class="form-label" for="notify_pwa_push_vapid_private_key">{{ t.notify_pwa_push_vapid_private_key }}</label>
+                <input class="form-input" type="password" id="notify_pwa_push_vapid_private_key" name="notify_pwa_push_vapid_private_key" value="" placeholder="{% if config.notify_pwa_push_vapid_private_key %}{{ t.saved_ph }}{% endif %}"{% if config.notify_pwa_push_vapid_private_key %} data-saved-secret="true"{% endif %}>
+                <span class="form-hint">{{ t.notify_pwa_push_vapid_private_key_hint }}</span>
+            </div>
+            <div class="form-field form-grid-full">
+                <label class="form-label" for="notify_pwa_push_vapid_subject">{{ t.notify_pwa_push_vapid_subject }}</label>
+                <input class="form-input" type="text" id="notify_pwa_push_vapid_subject" name="notify_pwa_push_vapid_subject" value="{{ config.notify_pwa_push_vapid_subject }}" placeholder="mailto:admin@example.com">
+                <span class="form-hint">{{ t.notify_pwa_push_vapid_subject_hint }}</span>
+            </div>
+            <div class="form-field form-grid-full">
+                <div class="test-result test-result-static" id="pwa-push-status">{{ t.notify_pwa_push_status_unknown }}</div>
+                <div class="btn-row">
+                    <button type="button" class="btn btn-secondary" data-action="subscribePwaPush">
+                        <i data-lucide="bell-plus"></i>
+                        {{ t.notify_pwa_push_subscribe }}
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-action="unsubscribePwaPush">
+                        <i data-lucide="bell-off"></i>
+                        {{ t.notify_pwa_push_unsubscribe }}
+                    </button>
+                </div>
+                <span class="form-hint">{{ t.notify_pwa_push_permission_hint }}</span>
+            </div>
         </div>
-    </div>
+        </div>
     </div>
 </div>
 
@@ -164,51 +173,54 @@
         <i data-lucide="chevron-down" class="card-collapse-icon"></i>
     </div>
     <div class="card-collapse-body" id="per-event-cooldowns-body">
-    <table class="cooldown-table">
-        <thead>
-            <tr>
-                <th>{{ t.notify_col_active }}</th>
-                <th>{{ t.notify_col_event }}</th>
-                <th>{{ t.notify_col_severity }}</th>
-                <th>{{ t.notify_col_cooldown }}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% macro cooldown_row(event_key, event_label, severity, severity_label, badge_class) -%}
-            <tr class="notify-event-row" data-event="{{ event_key }}" data-severity="{{ severity }}">
-                <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="{{ event_key }}" data-severity="{{ severity }}" aria-label="{{ t.notify_col_active }}: {{ event_label }}, {{ severity_label }}" checked><span class="toggle-slider"></span></label></td>
-                <td><span class="event-name">{{ event_label }}</span></td>
-                <td><span class="badge {{ badge_class }}">{{ severity_label }}</span></td>
-                <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="{{ event_key }}" data-severity="{{ severity }}" min="1" step="1" placeholder="default" aria-label="{{ t.notify_col_cooldown }}: {{ event_label }}, {{ severity_label }}"></td>
-            </tr>
-            {%- endmacro %}
+        <div class="card-collapse-inner">
+        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#notifications" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
+        <table class="cooldown-table">
+            <thead>
+                <tr>
+                    <th>{{ t.notify_col_active }}</th>
+                    <th>{{ t.notify_col_event }}</th>
+                    <th>{{ t.notify_col_severity }}</th>
+                    <th>{{ t.notify_col_cooldown }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% macro cooldown_row(event_key, event_label, severity, severity_label, badge_class) -%}
+                <tr class="notify-event-row" data-event="{{ event_key }}" data-severity="{{ severity }}">
+                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="{{ event_key }}" data-severity="{{ severity }}" aria-label="{{ t.notify_col_active }}: {{ event_label }}, {{ severity_label }}" checked><span class="toggle-slider"></span></label></td>
+                    <td><span class="event-name">{{ event_label }}</span></td>
+                    <td><span class="badge {{ badge_class }}">{{ severity_label }}</span></td>
+                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="{{ event_key }}" data-severity="{{ severity }}" min="1" step="1" placeholder="default" aria-label="{{ t.notify_col_cooldown }}: {{ event_label }}, {{ severity_label }}"></td>
+                </tr>
+                {%- endmacro %}
 
-            {% set severity_rows = [
-                ('info', t.severity_info, 'badge-muted'),
-                ('warning', t.severity_warning, 'badge-warning'),
-                ('critical', t.severity_critical, 'badge-critical'),
-            ] %}
-            {% for event_key, event_label in [
-                ('health_change', t.notify_event_health_change),
-                ('power_change', t.notify_event_power_change),
-                ('snr_change', t.notify_event_snr_change),
-                ('modulation_change', t.notify_event_modulation_change),
-            ] %}
-                {% for severity, severity_label, badge_class in severity_rows %}
-                    {{ cooldown_row(event_key, event_label, severity, severity_label, badge_class) }}
+                {% set severity_rows = [
+                    ('info', t.severity_info, 'badge-muted'),
+                    ('warning', t.severity_warning, 'badge-warning'),
+                    ('critical', t.severity_critical, 'badge-critical'),
+                ] %}
+                {% for event_key, event_label in [
+                    ('health_change', t.notify_event_health_change),
+                    ('power_change', t.notify_event_power_change),
+                    ('snr_change', t.notify_event_snr_change),
+                    ('modulation_change', t.notify_event_modulation_change),
+                ] %}
+                    {% for severity, severity_label, badge_class in severity_rows %}
+                        {{ cooldown_row(event_key, event_label, severity, severity_label, badge_class) }}
+                    {% endfor %}
                 {% endfor %}
-            {% endfor %}
-            {{ cooldown_row('channel_change', t.notify_event_channel_change, 'info', t.severity_info, 'badge-muted') }}
-            {{ cooldown_row('channel_change', t.notify_event_channel_change, 'warning', t.severity_warning, 'badge-warning') }}
-            {{ cooldown_row('device_reboot', t.notify_event_device_reboot, 'warning', t.severity_warning, 'badge-warning') }}
-            {{ cooldown_row('device_sw_update', t.notify_event_device_sw_update, 'info', t.severity_info, 'badge-muted') }}
-            {{ cooldown_row('device_ip_change', t.notify_event_device_ip_change, 'info', t.severity_info, 'badge-muted') }}
-            {{ cooldown_row('cm_packet_loss_warning', t.event_type_cm_packet_loss_warning, 'warning', t.severity_warning, 'badge-warning') }}
-            {{ cooldown_row('error_spike', t.notify_event_error_spike, 'warning', t.severity_warning, 'badge-warning') }}
-            {{ cooldown_row('monitoring_started', t.notify_event_monitoring_started, 'info', t.severity_info, 'badge-good') }}
-        </tbody>
-    </table>
-    <span class="form-hint settings-note">{{ t.notify_disabled_hint }}</span>
+                {{ cooldown_row('channel_change', t.notify_event_channel_change, 'info', t.severity_info, 'badge-muted') }}
+                {{ cooldown_row('channel_change', t.notify_event_channel_change, 'warning', t.severity_warning, 'badge-warning') }}
+                {{ cooldown_row('device_reboot', t.notify_event_device_reboot, 'warning', t.severity_warning, 'badge-warning') }}
+                {{ cooldown_row('device_sw_update', t.notify_event_device_sw_update, 'info', t.severity_info, 'badge-muted') }}
+                {{ cooldown_row('device_ip_change', t.notify_event_device_ip_change, 'info', t.severity_info, 'badge-muted') }}
+                {{ cooldown_row('cm_packet_loss_warning', t.event_type_cm_packet_loss_warning, 'warning', t.severity_warning, 'badge-warning') }}
+                {{ cooldown_row('error_spike', t.notify_event_error_spike, 'warning', t.severity_warning, 'badge-warning') }}
+                {{ cooldown_row('monitoring_started', t.notify_event_monitoring_started, 'info', t.severity_info, 'badge-good') }}
+            </tbody>
+        </table>
+        <span class="form-hint settings-note">{{ t.notify_disabled_hint }}</span>
+        </div>
     </div>
 </div>
 

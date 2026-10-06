@@ -8,7 +8,7 @@
                 </div>
                 <div>
                     <div class="card-title">{{ t['docsight.mqtt.mqtt_broker'] or 'MQTT Broker' }}</div>
-                    <div class="card-subtitle">{{ t['docsight.mqtt.mqtt_optional_ha'] or 'optional - for Home Assistant' }}</div>
+                    <div class="card-subtitle">{{ t['docsight.mqtt.mqtt_optional_ha'] or 'optional - for Home Assistant' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Home-Assistant" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
                 </div>
             </div>
             <div class="status-indicator" id="mqtt-status" role="status" aria-live="polite" hidden>

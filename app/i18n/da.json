@@ -38,6 +38,7 @@
   "settings_storage_title": "Historik og snapshots",
   "settings_storage_desc": "Hvor længe DOCSight gemmer målinger, og hvornår det daglige snapshot tages",
   "settings_module_off": "Modulet er slået fra. Slå det til under Udvidelser.",
+  "settings_learn_more": "Læs mere",
   "home": "Hjem",
   "skip_to_content": "Gå til indhold",
   "day_trend": "Dagstendens",

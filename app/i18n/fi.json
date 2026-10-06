@@ -38,6 +38,7 @@
   "settings_storage_title": "Historia ja tilannekuvat",
   "settings_storage_desc": "Kuinka kauan DOCSight säilyttää mittauksia ja milloin päivittäinen tilannekuva otetaan",
   "settings_module_off": "Moduuli on pois päältä. Ota se käyttöön Laajennuksissa.",
+  "settings_learn_more": "Lue lisää",
   "home": "Etusivu",
   "skip_to_content": "Siirry sisältöön",
   "day_trend": "Päivätrendi",
