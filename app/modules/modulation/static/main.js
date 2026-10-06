@@ -5,6 +5,20 @@ var _modDays = 7;
 var _modCharts = [];
 var _modIntradayCharts = [];
 
+/* uPlot axis width that fits the widest tick label, so "100%" or "1024QAM"
+   is not clipped at the chart edge. */
+function _modAxisSize(u, values, axisIdx, cycleNum) {
+    var axis = u.axes[axisIdx];
+    if (cycleNum > 1) return axis._size;
+    var size = axis.ticks.size + axis.gap;
+    var longest = (values || []).reduce(function(acc, v) { return String(v).length > acc.length ? String(v) : acc; }, '');
+    if (longest) {
+        u.ctx.font = axis.font[0];
+        size += u.ctx.measureText(longest).width / (window.devicePixelRatio || 1);
+    }
+    return Math.ceil(size);
+}
+
 /* QAM color scheme */
 var QAM_COLORS = {
     '4QAM':    '#ef4444',
@@ -580,7 +594,7 @@ function renderGroupDistChart(pg, idx) {
                 grid: { stroke: 'rgba(255,255,255,0.06)', width: 1 },
                 values: function(u, vals) { return vals.map(function(v) { return v + '%'; }); },
                 font: '12px system-ui',
-                size: 40
+                size: _modAxisSize
             }
         ],
         series: uSeries,
@@ -662,7 +676,7 @@ function renderGroupTrendChart(pg, idx) {
                 stroke: '#22c55e',
                 grid: { stroke: 'rgba(255,255,255,0.06)', width: 1 },
                 font: '12px system-ui',
-                size: 40
+                size: _modAxisSize
             },
             {
                 scale: 'lowqam',
@@ -671,7 +685,7 @@ function renderGroupTrendChart(pg, idx) {
                 grid: { show: false },
                 values: function(u, vals) { return vals.map(function(v) { return v.toFixed(0) + '%'; }); },
                 font: '12px system-ui',
-                size: 40
+                size: _modAxisSize
             }
         ],
         series: [
@@ -974,7 +988,7 @@ function renderChannelTimeline(canvasId, timeline) {
                 },
                 values: function(u, vals) { return vals.map(function(v) { return qamLabels[v] || ''; }); },
                 font: '12px system-ui',
-                size: 60
+                size: _modAxisSize
             }
         ],
         series: [
