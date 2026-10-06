@@ -87,6 +87,18 @@ function backupNow() {
     });
 }
 
+/* The automatic backup card names the newest backup file it can see. */
+function showLastBackup(backups) {
+    var line = document.getElementById('backup-last-run');
+    var text = document.getElementById('backup-last-run-text');
+    if (!line || !text) return;
+    var newest = backups.reduce(function(latest, b) {
+        return b.modified && (!latest || b.modified > latest.modified) ? b : latest;
+    }, null);
+    line.hidden = !newest;
+    if (newest) text.textContent = (T.settings_status_last_backup || 'Last backup {time}').replace('{time}', formatDocsightTime(newest.modified));
+}
+
 function loadBackupList() {
     var el = document.getElementById('backup-list');
     if (!el) return;
@@ -94,6 +106,7 @@ function loadBackupList() {
     .then(function(r) { return r.json(); })
     .then(function(res) {
         var backups = Array.isArray(res) ? res : (res && Array.isArray(res.backups) ? res.backups : []);
+        showLastBackup(backups);
         el.textContent = '';
         if (backups.length === 0) {
             var emptySpan = document.createElement('span');

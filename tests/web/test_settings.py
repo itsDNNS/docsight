@@ -220,6 +220,14 @@ class TestSettingsRoute:
         assert block.select_one('a[href="#extensions"]') is not None
         assert soup.select_one("#weather_enabled") is None
 
+    def test_modem_card_shows_where_polling_stands(self, client, monkeypatch):
+        runtime = current_runtime()
+        monkeypatch.setattr(runtime, "get_state", lambda: {"last_update": None, "error": "Connection refused"})
+        soup = BeautifulSoup(client.get("/settings?lang=en").get_data(as_text=True), "html.parser")
+        status = soup.select_one("#panel-connection #modem-poll-status")
+        assert "card-status-error" in status["class"]
+        assert "The last reading failed: Connection refused" in status.get_text(" ", strip=True)
+
     def test_every_section_offers_help_from_the_wiki(self, client):
         soup = BeautifulSoup(client.get("/settings?lang=en").get_data(as_text=True), "html.parser")
         links = soup.select("a.card-help")

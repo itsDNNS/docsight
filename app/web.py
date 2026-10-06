@@ -435,6 +435,22 @@ def _shell_nav_context(config_manager):
     }
 
 
+def _modem_poll_status(state, now=None):
+    """Where the modem polling stands, for the status line in the settings modem card."""
+    if state.get("error"):
+        return {"kind": "error", "error": state["error"]}
+    last_at = state.get("last_update_at")
+    if not last_at:
+        return {"kind": "waiting"}
+    minutes_ago = max(0, int(((now if now is not None else time.time()) - last_at) // 60))
+    interval_minutes = max(1, int(state.get("poll_interval") or 0) // 60)
+    return {
+        "kind": "ok",
+        "minutes_ago": minutes_ago,
+        "next_in": max(0, interval_minutes - minutes_ago),
+    }
+
+
 @require_auth
 def index():
     _config_manager = current_runtime().config_manager
@@ -603,6 +619,7 @@ def settings():
             dismissed_ids=_get_dismissed_notice_ids(),
             location="settings",
         ),
+        modem_poll_status=_modem_poll_status(current_runtime().get_state()),
         **nav,
     )
 

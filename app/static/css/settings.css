@@ -1476,3 +1476,18 @@ button.notification-collapse-button {
 .card-help { color: var(--accent); white-space: nowrap; }
 .card-help:hover { text-decoration: underline; }
 .card-help-line { margin: 0 0 var(--space-md); font-size: 0.85rem; color: var(--text-secondary); }
+
+/* ─── Live status line inside a card ─── */
+.card-status {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin: calc(-1 * var(--space-sm)) 0 var(--space-lg);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.card-status .status-dot { flex: none; align-self: center; color: var(--muted); }
+.card-status-ok .status-dot { color: var(--good); }
+.card-status-error .status-dot { color: var(--crit); }
+.card-status-detail { overflow-wrap: anywhere; color: var(--text); }
+

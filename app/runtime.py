@@ -98,6 +98,7 @@ class RuntimeState:
         self._values: dict[str, object] = {
             "analysis": None,
             "last_update": None,
+            "last_update_at": None,
             "poll_interval": 900,
             "error": None,
             "connection_info": None,
@@ -124,6 +125,7 @@ class RuntimeState:
             if analysis is not None:
                 self._values["analysis"] = analysis
                 self._values["last_update"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                self._values["last_update_at"] = time.time()
                 self._values["error"] = None
             if error is not None:
                 self._values["error"] = str(error)
@@ -147,6 +149,7 @@ class RuntimeState:
             self._values.update({
                 "analysis": None,
                 "last_update": None,
+            "last_update_at": None,
                 "error": None,
                 "connection_info": None,
                 "device_info": None,
