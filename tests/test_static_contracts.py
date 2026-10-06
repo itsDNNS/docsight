@@ -39,6 +39,10 @@ EUROPEAN_LANGUAGE_PACK = {
 I18N_PLACEHOLDER_RE = re.compile(
     r"(</?[A-Za-z][^>]*>|&[a-zA-Z0-9#]+;|\{\{[^}]+\}\}|\{[^}]+\}|%\([^)]+\)[sd]|%[sd])"
 )
+# Built-in modules that ship the whole European language pack; the others ship English only.
+LOCALIZED_MODULES = {
+    "backup", "bnetz", "de_tkg_compensation", "modulation", "mqtt", "reports", "smokeping", "weather",
+}
 I18N_PROTECTED_LITERALS = {"Apprise", "DOCSight", "DOCSIS", "DSL", "SC-QAM", "dBmV", "Smokeping"}
 I18N_EMPTY_TAG_RE = re.compile(r"<([A-Za-z][^>]*)>\s*</\1>")
 I18N_LEADING_SENTINEL_RE = re.compile(r"^\s*@")
@@ -540,13 +544,12 @@ def test_core_i18n_template_is_generated_on_demand_not_tracked() -> None:
 def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
     """Built-in module catalogs are intentional and limited to runtime sources."""
     offenders = []
-    allowed_locale_modules = {"reports", "modulation", "de_tkg_compensation"}
     for i18n_dir in sorted(MODULES.glob("*/i18n")):
         if not (i18n_dir / "en.json").exists():
             continue
         module_name = i18n_dir.parent.name
         generated = sorted(path.name for path in i18n_dir.glob("*.json") if path.name != "en.json")
-        if module_name in allowed_locale_modules:
+        if module_name in LOCALIZED_MODULES:
             generated = [name for name in generated if name == "template.json"]
         if generated:
             offenders.append(f"{i18n_dir.relative_to(ROOT)}: {', '.join(generated)}")
@@ -602,16 +605,10 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
             if source_placeholders != target_placeholders:
                 offenders.append(f"{path_label}: placeholder mismatch")
 
-    i18n_dirs = [
-        APP_I18N_DIR,
-        MODULES / "reports" / "i18n",
-        MODULES / "modulation" / "i18n",
-        MODULES / "de_tkg_compensation" / "i18n",
-    ]
+    i18n_dirs = [APP_I18N_DIR] + [MODULES / name / "i18n" for name in sorted(LOCALIZED_MODULES)]
     module_i18n_dirs = sorted(MODULES.glob("*/i18n"))
-    allowed_locale_modules = {"reports", "modulation", "de_tkg_compensation"}
     for i18n_dir in module_i18n_dirs:
-        if i18n_dir.parent.name in allowed_locale_modules:
+        if i18n_dir.parent.name in LOCALIZED_MODULES:
             continue
         module_catalogs = sorted(path for path in i18n_dir.glob("*.json") if path.name != "en.json")
         if module_catalogs:

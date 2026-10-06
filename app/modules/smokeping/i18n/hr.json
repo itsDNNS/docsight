@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "neobavezno",
+  "smokeping_url_label": "URL za Smokeping",
+  "smokeping_url_hint": "Osnovni URL vaše instance Smokepinga (bez /cache/)",
+  "smokeping_targets_label": "Ciljevi",
+  "smokeping_targets_hint": "Putanje Smokepinga odvojene zarezima (npr. InternetSites.Google). Točne nazive pronaći ćete u konfiguraciji Targets za Smokeping.",
+  "smokeping_no_data": "Grafovi Smokepinga nisu se mogli učitati.",
+  "smokeping_setup": "Postavljanje Smokepinga",
+  "smokeping_setup_title": "Mjerenje latencije sa Smokepingom",
+  "smokeping_setup_intro": "Smokeping mjeri latenciju mreže slanjem pingova postavljenim ciljevima. DOCSight prikazuje te grafove uz podatke modema.",
+  "smokeping_setup_step_1": "Instalirajte i postavite <b>Smokeping</b> u svojoj mreži",
+  "smokeping_setup_step_2": "Zabilježite <b>osnovni URL</b> web sučelja Smokepinga",
+  "smokeping_setup_step_3": "Unesite URL i <b>nazive ciljeva</b> u postavkama DOCSighta",
+  "smokeping_empty_title": "Nema postavljenih ciljeva SmokePinga",
+  "smokeping_empty_text": "Dodajte u postavkama ciljeve iz svoje konfiguracije SmokePinga kako biste ovdje vidjeli njihove grafove latencije.",
+  "smokeping_empty_action": "Otvori postavke SmokePinga"
+}

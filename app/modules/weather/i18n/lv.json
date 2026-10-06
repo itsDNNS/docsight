@@ -1,0 +1,9 @@
+{
+  "weather_title": "Laikapstākļi",
+  "weather_optional": "neobligāti – salīdziniet signāla kvalitāti ar āra temperatūru",
+  "weather_enable": "Vākt laikapstākļu datus",
+  "weather_enable_hint": "Katru stundu iegūst āra temperatūru no Open-Meteo (bez maksas, bez API atslēgas). Iepriekšējie dati tiek papildināti automātiski.",
+  "weather_latitude": "Platums",
+  "weather_longitude": "Garums",
+  "weather_coord_hint": "Jūsu atrašanās vietas koordinātas (piem., 52.52 / 13.41 Berlīnei). Tās var atrast vietnē latlong.net"
+}

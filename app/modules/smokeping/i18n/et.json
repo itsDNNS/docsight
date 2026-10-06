@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "valikuline",
+  "smokeping_url_label": "Smokepingi URL",
+  "smokeping_url_hint": "Sinu Smokepingi eksemplari baas-URL (ilma /cache/)",
+  "smokeping_targets_label": "Sihtmärgid",
+  "smokeping_targets_hint": "Komadega eraldatud Smokepingi teed (nt InternetSites.Google). Täpsed nimed leiad Smokepingi Targets-seadistusest.",
+  "smokeping_no_data": "Smokepingi graafikuid ei õnnestunud laadida.",
+  "smokeping_setup": "Smokepingi seadistamine",
+  "smokeping_setup_title": "Latentsuse mõõtmine Smokepingiga",
+  "smokeping_setup_intro": "Smokeping mõõdab võrgu latentsust, saates seadistatud sihtmärkidele pinge. DOCSight näitab neid graafikuid sinu modemi andmete kõrval.",
+  "smokeping_setup_step_1": "Paigalda ja seadista <b>Smokeping</b> oma võrgus",
+  "smokeping_setup_step_2": "Pane kirja Smokepingi veebiliidese <b>baas-URL</b>",
+  "smokeping_setup_step_3": "Sisesta URL ja <b>sihtmärkide nimed</b> DOCSighti seadetesse",
+  "smokeping_empty_title": "SmokePingi sihtmärke pole seadistatud",
+  "smokeping_empty_text": "Lisa seadetesse sihtmärgid oma SmokePingi seadistusest, et näha siin nende latentsusgraafikuid.",
+  "smokeping_empty_action": "Ava SmokePingi seaded"
+}

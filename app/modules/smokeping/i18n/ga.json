@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "roghnach",
+  "smokeping_url_label": "URL Smokeping",
+  "smokeping_url_hint": "Bun-URL do chás Smokeping (gan /cache/)",
+  "smokeping_targets_label": "Spriocanna",
+  "smokeping_targets_hint": "Conairí Smokeping scartha le camóga (m.sh. InternetSites.Google). Tá na hainmneacha cruinne i do chumraíocht Targets Smokeping.",
+  "smokeping_no_data": "Níorbh fhéidir graif Smokeping a lódáil.",
+  "smokeping_setup": "Socrú Smokeping",
+  "smokeping_setup_title": "Tomhas aga folaigh le Smokeping",
+  "smokeping_setup_intro": "Tomhaiseann Smokeping aga folaigh an líonra trí phingeanna a sheoladh chuig spriocanna cumraithe. Taispeánann DOCSight na graif seo in aice le sonraí do mhóideim.",
+  "smokeping_setup_step_1": "Suiteáil agus cumraigh <b>Smokeping</b> ar do líonra",
+  "smokeping_setup_step_2": "Breac síos <b>bun-URL</b> chomhéadan gréasáin Smokeping",
+  "smokeping_setup_step_3": "Cuir an URL agus <b>ainmneacha na spriocanna</b> isteach i socruithe DOCSight",
+  "smokeping_empty_title": "Níl aon spriocanna SmokePing cumraithe",
+  "smokeping_empty_text": "Cuir na spriocanna ó do chumraíocht SmokePing leis na socruithe chun a ngraif aga folaigh a fheiceáil anseo.",
+  "smokeping_empty_action": "Oscail socruithe SmokePing"
+}

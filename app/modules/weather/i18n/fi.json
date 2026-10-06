@@ -1,0 +1,9 @@
+{
+  "weather_title": "Sää",
+  "weather_optional": "valinnainen – vertaa signaalin laatua ulkolämpötilaan",
+  "weather_enable": "Kerää säätietoja",
+  "weather_enable_hint": "Hakee ulkolämpötilan Open-Meteosta tunneittain (maksuton, ei API-avainta). Aiemmat tiedot täydennetään automaattisesti.",
+  "weather_latitude": "Leveysaste",
+  "weather_longitude": "Pituusaste",
+  "weather_coord_hint": "Sijaintisi koordinaatit (esim. 52.52 / 13.41 Berliinille). Löydät ne osoitteesta latlong.net"
+}

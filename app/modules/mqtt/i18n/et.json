@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Täpsemalt: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT-vahendaja",
+  "mqtt_desc": "Home Assistantiga sidumiseks MQTT Auto-Discovery kaudu. Ilma MQTT-ta töötab ainult veebiliides.",
+  "mqtt_optional_ha": "valikuline – Home Assistanti jaoks",
+  "mqtt_tls_insecure": "Ebaturvaline TLS",
+  "username_opt": "Kasutajanimi (valikuline)",
+  "password_opt": "Parool (valikuline)",
+  "topic_prefix": "Topicu eesliide",
+  "discovery_prefix": "Discovery eesliide",
+  "discovery_prefix_hint": "Vaikimisi: homeassistant. Muuda ainult siis, kui oled seda Home Assistantis muutnud."
+}

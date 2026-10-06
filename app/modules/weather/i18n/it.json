@@ -1,0 +1,9 @@
+{
+  "weather_title": "Meteo",
+  "weather_optional": "facoltativo: confronta la qualità del segnale con la temperatura esterna",
+  "weather_enable": "Raccogli i dati meteo",
+  "weather_enable_hint": "Recupera ogni ora la temperatura esterna da Open-Meteo (gratuito, senza chiave API). I dati passati vengono completati automaticamente.",
+  "weather_latitude": "Latitudine",
+  "weather_longitude": "Longitudine",
+  "weather_coord_hint": "Le coordinate della tua posizione (ad es. 52.52 / 13.41 per Berlino). Puoi trovarle su latlong.net"
+}

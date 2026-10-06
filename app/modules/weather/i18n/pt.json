@@ -1,0 +1,9 @@
+{
+  "weather_title": "Meteorologia",
+  "weather_optional": "opcional – compara a qualidade do sinal com a temperatura exterior",
+  "weather_enable": "Recolher dados meteorológicos",
+  "weather_enable_hint": "Obtém de hora a hora a temperatura exterior a partir do Open-Meteo (gratuito, sem chave de API). Os dados anteriores são preenchidos automaticamente.",
+  "weather_latitude": "Latitude",
+  "weather_longitude": "Longitude",
+  "weather_coord_hint": "As coordenadas da tua localização (p. ex. 52.52 / 13.41 para Berlim). Podes encontrá-las em latlong.net"
+}

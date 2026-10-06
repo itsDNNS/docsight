@@ -1,0 +1,9 @@
+{
+  "weather_title": "Väder",
+  "weather_optional": "valfritt – jämför signalkvaliteten med utomhustemperaturen",
+  "weather_enable": "Samla in väderdata",
+  "weather_enable_hint": "Hämtar utomhustemperaturen från Open-Meteo varje timme (gratis, ingen API-nyckel). Tidigare data fylls i automatiskt.",
+  "weather_latitude": "Latitud",
+  "weather_longitude": "Longitud",
+  "weather_coord_hint": "Koordinaterna för din plats (t.ex. 52.52 / 13.41 för Berlin). Du hittar dem på latlong.net"
+}

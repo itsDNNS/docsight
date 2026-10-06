@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Avanzate: MQTT / Home Assistant",
+  "mqtt_broker": "Broker MQTT",
+  "mqtt_desc": "Per l’integrazione con Home Assistant tramite MQTT Auto-Discovery. Senza MQTT funziona solo l’interfaccia web.",
+  "mqtt_optional_ha": "facoltativo – per Home Assistant",
+  "mqtt_tls_insecure": "TLS non sicuro",
+  "username_opt": "Nome utente (facoltativo)",
+  "password_opt": "Password (facoltativa)",
+  "topic_prefix": "Prefisso topic",
+  "discovery_prefix": "Prefisso discovery",
+  "discovery_prefix_hint": "Predefinito: homeassistant. Modificalo solo se l’hai cambiato in Home Assistant."
+}

@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Napredno: MQTT / Home Assistant",
+  "mqtt_broker": "Posrednik MQTT",
+  "mqtt_desc": "Za povezavo s Home Assistant prek MQTT Auto-Discovery. Brez MQTT deluje le spletni vmesnik.",
+  "mqtt_optional_ha": "neobvezno – za Home Assistant",
+  "mqtt_tls_insecure": "Nevaren TLS",
+  "username_opt": "Uporabniško ime (neobvezno)",
+  "password_opt": "Geslo (neobvezno)",
+  "topic_prefix": "Predpona teme",
+  "discovery_prefix": "Predpona discovery",
+  "discovery_prefix_hint": "Privzeto: homeassistant. Spremenite le, če ste jo spremenili v Home Assistant."
+}

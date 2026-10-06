@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "по избор",
+  "smokeping_url_label": "URL на Smokeping",
+  "smokeping_url_hint": "Базов URL на твоята инстанция на Smokeping (без /cache/)",
+  "smokeping_targets_label": "Цели",
+  "smokeping_targets_hint": "Пътища на Smokeping, разделени със запетая (напр. InternetSites.Google). Точните имена са в конфигурацията Targets на Smokeping.",
+  "smokeping_no_data": "Графиките на Smokeping не можаха да се заредят.",
+  "smokeping_setup": "Настройка на Smokeping",
+  "smokeping_setup_title": "Измерване на латентност със Smokeping",
+  "smokeping_setup_intro": "Smokeping измерва латентността на мрежата, като изпраща ping към зададени цели. DOCSight показва тези графики до данните на модема.",
+  "smokeping_setup_step_1": "Инсталирай и настрой <b>Smokeping</b> в мрежата си",
+  "smokeping_setup_step_2": "Запиши <b>базовия URL</b> на уеб интерфейса на Smokeping",
+  "smokeping_setup_step_3": "Въведи URL-а и <b>имената на целите</b> в настройките на DOCSight",
+  "smokeping_empty_title": "Няма настроени цели за SmokePing",
+  "smokeping_empty_text": "Добави в настройките целите от конфигурацията на SmokePing, за да видиш тук графиките им на латентност.",
+  "smokeping_empty_action": "Отвори настройките на SmokePing"
+}

@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "optioneel",
+  "smokeping_url_label": "Smokeping-URL",
+  "smokeping_url_hint": "Basis-URL van je Smokeping-instantie (zonder /cache/)",
+  "smokeping_targets_label": "Doelen",
+  "smokeping_targets_hint": "Door komma’s gescheiden Smokeping-paden (bijv. InternetSites.Google). De exacte namen staan in je Smokeping Targets-configuratie.",
+  "smokeping_no_data": "Smokeping-grafieken konden niet worden geladen.",
+  "smokeping_setup": "Smokeping instellen",
+  "smokeping_setup_title": "Latentiemeting met Smokeping",
+  "smokeping_setup_intro": "Smokeping meet de netwerklatentie door ingestelde doelen te pingen. DOCSight toont deze grafieken naast de gegevens van je modem.",
+  "smokeping_setup_step_1": "Installeer en configureer <b>Smokeping</b> in je netwerk",
+  "smokeping_setup_step_2": "Noteer de <b>basis-URL</b> van de Smokeping-webinterface",
+  "smokeping_setup_step_3": "Vul de URL en de <b>doelnamen</b> in bij de DOCSight-instellingen",
+  "smokeping_empty_title": "Geen SmokePing-doelen ingesteld",
+  "smokeping_empty_text": "Voeg in de instellingen de doelen uit je SmokePing-configuratie toe om hier hun latentiegrafieken te zien.",
+  "smokeping_empty_action": "SmokePing-instellingen openen"
+}

@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "facoltativo",
+  "smokeping_url_label": "URL di Smokeping",
+  "smokeping_url_hint": "URL di base della tua istanza Smokeping (senza /cache/)",
+  "smokeping_targets_label": "Destinazioni",
+  "smokeping_targets_hint": "Percorsi Smokeping separati da virgole (ad es. InternetSites.Google). I nomi esatti si trovano nella configurazione Targets di Smokeping.",
+  "smokeping_no_data": "Impossibile caricare i grafici di Smokeping.",
+  "smokeping_setup": "Configura Smokeping",
+  "smokeping_setup_title": "Misura della latenza con Smokeping",
+  "smokeping_setup_intro": "Smokeping misura la latenza di rete inviando ping a destinazioni configurate. DOCSight mostra questi grafici accanto ai dati del modem.",
+  "smokeping_setup_step_1": "Installa e configura <b>Smokeping</b> nella tua rete",
+  "smokeping_setup_step_2": "Annota l’<b>URL di base</b> dell’interfaccia web di Smokeping",
+  "smokeping_setup_step_3": "Inserisci l’URL e i <b>nomi delle destinazioni</b> nelle impostazioni di DOCSight",
+  "smokeping_empty_title": "Nessuna destinazione SmokePing configurata",
+  "smokeping_empty_text": "Aggiungi nelle impostazioni le destinazioni della tua configurazione SmokePing per vedere qui i loro grafici di latenza.",
+  "smokeping_empty_action": "Apri le impostazioni di SmokePing"
+}

@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "neobvezno",
+  "smokeping_url_label": "URL za Smokeping",
+  "smokeping_url_hint": "Osnovni URL vašega primerka Smokeping (brez /cache/)",
+  "smokeping_targets_label": "Cilji",
+  "smokeping_targets_hint": "Poti Smokeping, ločene z vejicami (npr. InternetSites.Google). Natančna imena najdete v konfiguraciji Targets za Smokeping.",
+  "smokeping_no_data": "Grafov Smokeping ni bilo mogoče naložiti.",
+  "smokeping_setup": "Nastavitev Smokeping",
+  "smokeping_setup_title": "Merjenje zakasnitve s Smokeping",
+  "smokeping_setup_intro": "Smokeping meri zakasnitev omrežja tako, da pošilja ping nastavljenim ciljem. DOCSight prikaže te grafe ob podatkih modema.",
+  "smokeping_setup_step_1": "Namestite in nastavite <b>Smokeping</b> v svojem omrežju",
+  "smokeping_setup_step_2": "Zapišite si <b>osnovni URL</b> spletnega vmesnika Smokeping",
+  "smokeping_setup_step_3": "Vnesite URL in <b>imena ciljev</b> v nastavitvah DOCSight",
+  "smokeping_empty_title": "Ni nastavljenih ciljev SmokePing",
+  "smokeping_empty_text": "V nastavitvah dodajte cilje iz svoje konfiguracije SmokePing, da boste tukaj videli njihove grafe zakasnitve.",
+  "smokeping_empty_action": "Odpri nastavitve SmokePing"
+}

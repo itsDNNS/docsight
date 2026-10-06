@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Lisäasetukset: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT-välittäjä",
+  "mqtt_desc": "Home Assistant -integraatioon MQTT Auto-Discoveryn kautta. Ilman MQTT:tä vain verkkokäyttöliittymä toimii.",
+  "mqtt_optional_ha": "valinnainen – Home Assistantille",
+  "mqtt_tls_insecure": "Suojaamaton TLS",
+  "username_opt": "Käyttäjätunnus (valinnainen)",
+  "password_opt": "Salasana (valinnainen)",
+  "topic_prefix": "Topic-etuliite",
+  "discovery_prefix": "Discovery-etuliite",
+  "discovery_prefix_hint": "Oletus: homeassistant. Muuta vain, jos olet muuttanut sen Home Assistantissa."
+}

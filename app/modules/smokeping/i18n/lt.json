@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "neprivaloma",
+  "smokeping_url_label": "Smokeping URL",
+  "smokeping_url_hint": "Jūsų Smokeping egzemplioriaus bazinis URL (be /cache/)",
+  "smokeping_targets_label": "Tikslai",
+  "smokeping_targets_hint": "Kableliais atskirti Smokeping keliai (pvz., InternetSites.Google). Tikslius pavadinimus rasite Smokeping Targets konfigūracijoje.",
+  "smokeping_no_data": "Nepavyko įkelti Smokeping grafikų.",
+  "smokeping_setup": "Smokeping sąranka",
+  "smokeping_setup_title": "Delsos matavimas su Smokeping",
+  "smokeping_setup_intro": "Smokeping matuoja tinklo delsą, siųsdamas ping užklausas sukonfigūruotiems tikslams. DOCSight rodo šiuos grafikus šalia modemo duomenų.",
+  "smokeping_setup_step_1": "Įdiekite ir sukonfigūruokite <b>Smokeping</b> savo tinkle",
+  "smokeping_setup_step_2": "Užsirašykite Smokeping žiniatinklio sąsajos <b>bazinį URL</b>",
+  "smokeping_setup_step_3": "Įveskite URL ir <b>tikslų pavadinimus</b> DOCSight nustatymuose",
+  "smokeping_empty_title": "Nesukonfigūruota jokių SmokePing tikslų",
+  "smokeping_empty_text": "Nustatymuose pridėkite tikslus iš savo SmokePing konfigūracijos, kad čia matytumėte jų delsos grafikus.",
+  "smokeping_empty_action": "Atidaryti SmokePing nustatymus"
+}

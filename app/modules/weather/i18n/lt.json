@@ -1,0 +1,9 @@
+{
+  "weather_title": "Orai",
+  "weather_optional": "neprivaloma – palyginkite signalo kokybę su lauko temperatūra",
+  "weather_enable": "Rinkti orų duomenis",
+  "weather_enable_hint": "Kas valandą gauna lauko temperatūrą iš Open-Meteo (nemokamai, be API rakto). Ankstesni duomenys papildomi automatiškai.",
+  "weather_latitude": "Platuma",
+  "weather_longitude": "Ilguma",
+  "weather_coord_hint": "Jūsų vietos koordinatės (pvz., 52.52 / 13.41 Berlynui). Jas rasite latlong.net"
+}

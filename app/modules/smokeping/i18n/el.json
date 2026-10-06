@@ -1,0 +1,18 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "προαιρετικό",
+  "smokeping_url_label": "URL του Smokeping",
+  "smokeping_url_hint": "Βασικό URL της εγκατάστασης Smokeping (χωρίς /cache/)",
+  "smokeping_targets_label": "Στόχοι",
+  "smokeping_targets_hint": "Διαδρομές Smokeping χωρισμένες με κόμμα (π.χ. InternetSites.Google). Τα ακριβή ονόματα βρίσκονται στη ρύθμιση Targets του Smokeping.",
+  "smokeping_no_data": "Δεν ήταν δυνατή η φόρτωση των γραφημάτων Smokeping.",
+  "smokeping_setup": "Ρύθμιση Smokeping",
+  "smokeping_setup_title": "Μέτρηση καθυστέρησης με το Smokeping",
+  "smokeping_setup_intro": "Το Smokeping μετρά την καθυστέρηση του δικτύου στέλνοντας ping σε ρυθμισμένους στόχους. Το DOCSight εμφανίζει αυτά τα γραφήματα δίπλα στα δεδομένα του μόντεμ.",
+  "smokeping_setup_step_1": "Εγκατάστησε και ρύθμισε το <b>Smokeping</b> στο δίκτυό σου",
+  "smokeping_setup_step_2": "Σημείωσε το <b>βασικό URL</b> της διεπαφής ιστού του Smokeping",
+  "smokeping_setup_step_3": "Εισήγαγε το URL και τα <b>ονόματα των στόχων</b> στις ρυθμίσεις του DOCSight",
+  "smokeping_empty_title": "Δεν έχουν ρυθμιστεί στόχοι SmokePing",
+  "smokeping_empty_text": "Πρόσθεσε στις ρυθμίσεις τους στόχους από τη ρύθμιση του SmokePing για να δεις εδώ τα γραφήματα καθυστέρησής τους.",
+  "smokeping_empty_action": "Άνοιγμα ρυθμίσεων SmokePing"
+}
