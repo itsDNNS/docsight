@@ -30,7 +30,7 @@
     <div class="docsis-group">
         <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="ds-docsis-group-{{ loop.index }}" data-toggle-open="parent">
             <i data-lucide="chevron-right"></i>
-            DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint" data-glossary-term-id="{{ 'ofdm' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
+            <span class="docsis-group-name">DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }}</span> <span class="glossary-hint" data-glossary-term-id="{{ 'ofdm' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> <span class="docsis-group-count">· {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}</span>
         </div>
         <div id="ds-docsis-group-{{ loop.index }}">
             <div class="table-scroll">
@@ -89,7 +89,7 @@
     <div class="docsis-group">
         <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="us-docsis-group-{{ loop.index }}" data-toggle-open="parent">
             <i data-lucide="chevron-right"></i>
-            DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint" data-glossary-term-id="{{ 'ofdma' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
+            <span class="docsis-group-name">DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }}</span> <span class="glossary-hint" data-glossary-term-id="{{ 'ofdma' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> <span class="docsis-group-count">· {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}</span>
         </div>
         <div id="us-docsis-group-{{ loop.index }}">
             <div class="table-scroll">

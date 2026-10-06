@@ -173,6 +173,23 @@ def test_mobile_main_blades_have_no_overflow_or_offscreen_controls(demo_page):
         _assert_no_horizontal_overflow(page, label, selector)
         _assert_visible_controls_stay_in_view(page, label, selector)
 
+    # Channel family headers wrap between name and count, never inside "SC-QAM" or "24 Channels",
+    # down to small 360px phones.
+    page.set_viewport_size({"width": 360, "height": 800})
+    page.evaluate("view => switchView(view)", "channels")
+    page.wait_for_selector("#view-channels .docsis-group-name", state="visible")
+    broken = page.evaluate(
+        """() => [...document.querySelectorAll('#view-channels .docsis-group-name, #view-channels .docsis-group-count')]
+            .filter(node => {
+                // Flex items are blocks; the text's own line boxes show a break inside it.
+                const range = document.createRange();
+                range.selectNodeContents(node);
+                return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size > 1;
+            })
+            .map(node => node.textContent.trim())"""
+    )
+    assert broken == []
+
 
 def test_mobile_navigation_and_high_value_modals_pass_quality_gate(demo_page):
     """Mobile nav and key modals should expose controls without footer overlap or off-screen targets."""
