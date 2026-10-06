@@ -45,6 +45,9 @@ DIALOG_RULE = re.compile(r"(?m)^\s*\.modal(?:-overlay|-wide|-header|-close|-hint
 # Dialogs that are not standard dialogs on purpose: the chart zoom fills the screen with a chart.
 DIALOGS_WITHOUT_COMPONENT = {"chart-zoom-overlay"}
 
+# The toast and its tones.
+TOAST_RULE = re.compile(r"(?m)^\s*\.toast(?:-(?:success|error|info))?(?![\w-])[^{,]*[{,]")
+
 # The save bar.
 SAVE_BAR_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.save-bar(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
 
@@ -93,6 +96,16 @@ def test_the_save_bar_is_defined_only_in_the_component_stylesheet():
     ]
     assert offenders == []
     assert SAVE_BAR_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
+
+
+def test_the_toast_is_defined_only_in_the_component_stylesheet():
+    offenders = [
+        f"{path}: {match.group(0).strip()}"
+        for path in _stylesheets() if path != OWNER
+        for match in TOAST_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
+    ]
+    assert offenders == []
+    assert TOAST_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
 
 
 def test_badges_are_defined_only_in_the_component_stylesheet():

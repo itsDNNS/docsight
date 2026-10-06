@@ -455,11 +455,15 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
         });
     }
 
+    /* type: 'success' (also 'ok'), 'error' or 'info'. A newer toast restarts the timer. */
+    var toastTimer = null;
     function showToast(msg, type) {
         var toast = document.getElementById('toast');
+        var tone = {ok: 'success', error: 'error', info: 'info'}[type] || 'success';
         toast.textContent = msg;
-        toast.className = 'toast toast-' + (type || 'success') + ' show';
-        setTimeout(function() { toast.classList.remove('show'); }, 3000);
+        toast.className = 'toast toast-' + tone + ' show';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3000);
     }
     window.showToast = showToast;
 

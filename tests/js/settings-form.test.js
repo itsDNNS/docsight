@@ -15,7 +15,8 @@ function fixture(bootstrap = false) {
             setAttribute: (name, value) => { attributes[name] = value; },
             removeAttribute: name => { delete attributes[name]; },
             toggleAttribute: (name, on) => { if (on) attributes[name] = ''; else delete attributes[name]; },
-            classList: {contains: name => classes.has(name), toggle: (name, on) => on ? classes.add(name) : classes.delete(name)},
+            classList: {contains: name => classes.has(name), toggle: (name, on) => on ? classes.add(name) : classes.delete(name),
+                add: name => classes.add(name), remove: name => classes.delete(name)},
             closest: selector => selector === '.settings-panel' && el.panel || null,
             dispatchEvent: event => el.dispatch(event.type),
             matches: selector => selector === '.module-toggle-input' ? !!el.module : instant,
@@ -64,7 +65,7 @@ function fixture(bootstrap = false) {
         documentElement: {getAttribute: () => 'dark'}, activeElement: null,
         addEventListener: (name, fn) => listeners.set(name, fn)};
     const context = vm.createContext({document, T: {}, currentLang: 'en', currentTz: 'UTC',
-        setTimeout: fn => timers.push(fn), docsightUrl: path => '/prefix' + path,
+        setTimeout: fn => timers.push(fn), clearTimeout() {}, docsightUrl: path => '/prefix' + path,
         docsightConfirm: () => Promise.resolve(true),
         fetch: (url, options) => new Promise((resolve, reject) => requests.push({url,
             data: JSON.parse(options.body), reject,

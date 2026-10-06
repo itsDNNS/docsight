@@ -573,8 +573,8 @@ class TestSettingsFormElements:
 def _assert_toast_state(page, ok):
     toast = page.locator("#toast")
     expect(toast).to_be_visible()
-    expected = "toast-ok" if ok else "toast-fail"
-    unexpected = "toast-fail" if ok else "toast-ok"
+    expected = "toast-success" if ok else "toast-error"
+    unexpected = "toast-error" if ok else "toast-success"
     expect(toast).to_have_class(re.compile(rf".*\b{expected}\b.*"))
     expect(toast).not_to_have_class(re.compile(rf".*\b{unexpected}\b.*"))
 
@@ -634,8 +634,8 @@ class TestSettingsToastStates:
     """Theme and module registry operations report the correct toast polarity."""
 
     @pytest.mark.parametrize("ok, expected, unexpected", [
-        (True, "toast-ok", "toast-fail"),
-        (False, "toast-fail", "toast-ok"),
+        (True, "toast-success", "toast-error"),
+        (False, "toast-error", "toast-success"),
     ])
     def test_toast_helper_applies_explicit_polarity_classes(
         self, settings_page, ok, expected, unexpected

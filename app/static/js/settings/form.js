@@ -1,12 +1,13 @@
 'use strict';
 DOCSightSettings.form = function({state, showsSaveFooter}) {
 /* ── Toast ── */
+var toastTimer = null;
 function showToast(msg, ok) {
     var el = document.getElementById('toast');
     el.textContent = msg;
-    el.className = 'toast ' + (ok ? 'toast-ok' : 'toast-fail');
-    el.style.display = 'block';
-    setTimeout(function() { el.style.display = 'none'; }, 3000);
+    el.className = 'toast show ' + (ok ? 'toast-success' : 'toast-error');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
 }
 
 /* ── Form Data ── */
