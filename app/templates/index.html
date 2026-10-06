@@ -971,7 +971,7 @@
             <span class="view-page-subtitle">{{ t.get('correlation_subtitle', 'Build evidence for ISP complaints') }}</span>
         </div>
         <div class="view-page-actions">
-            <div class="segmented" data-pill-action="loadCorrelationData" id="correlation-tabs" role="group" aria-label="{{ t.time_range }}">
+            <div class="segmented" data-pill-action="correlationRangeSelected" id="correlation-tabs" role="group" aria-label="{{ t.time_range }}">
                 <button class="segmented-option" data-value="1h" aria-pressed="false">1h</button>
                 <button class="segmented-option" data-value="6h" aria-pressed="false">6h</button>
                 <button class="segmented-option active" data-value="1d" aria-pressed="true">1d</button>
@@ -1818,6 +1818,7 @@
 }|tojson }}</script>
 <script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/segmented.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/view-state.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/empty-state.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>

@@ -18,7 +18,7 @@ function formatter() {
     };
     context.window = context;
     vm.createContext(context);
-    for (const file of ['event-log-data.js', 'events.js']) {
+    for (const file of ['view-state.js', 'event-log-data.js', 'events.js']) {
         vm.runInContext(fs.readFileSync(path.join(root, 'app/static/js', file), 'utf8'), context, {filename: file});
     }
     return ev => context.formatEventMessage(ev).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();

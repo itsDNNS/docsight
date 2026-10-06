@@ -162,6 +162,7 @@ dirTabs.forEach(function(btn) {
     btn.addEventListener('click', function() {
         _modDirection = this.getAttribute('data-dir');
         syncSegments('modulation-direction-tabs', function(b) { return b.getAttribute('data-dir') === _modDirection; });
+        _modWriteViewState();
         updateModulation();
     });
 });
@@ -172,12 +173,20 @@ rangeTabs.forEach(function(btn) {
     btn.addEventListener('click', function() {
         _modDays = parseInt(this.getAttribute('data-days'), 10);
         syncSegments('modulation-range-tabs', function(b) { return parseInt(b.getAttribute('data-days'), 10) === _modDays; });
+        _modWriteViewState();
         updateModulation();
     });
 });
 
 /* ── Init / Update ── */
+function _modWriteViewState() {
+    docsightWriteViewState('modulation', {dir: _modDirection, days: _modDays});
+}
+
 function initModulation() {
+    var state = docsightReadViewState('modulation');
+    if (docsightSelectSegment('modulation-direction-tabs', 'data-dir', state.dir)) _modDirection = state.dir;
+    if (docsightSelectSegment('modulation-range-tabs', 'data-days', state.days)) _modDays = parseInt(state.days, 10);
     updateModulation();
 }
 
@@ -736,6 +745,7 @@ function modBackToOverview() {
     if (_modDays === 1) {
         _modDays = 7;
         syncSegments('modulation-range-tabs', function(b) { return parseInt(b.getAttribute('data-days'), 10) === _modDays; });
+        _modWriteViewState();
     }
     fetchOverview();
 }

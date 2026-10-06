@@ -244,9 +244,39 @@ function _setEventFilterPressed(el, pressed) {
     el.setAttribute('aria-pressed', String(pressed));
 }
 
+function _writeEventsViewState() {
+    docsightWriteViewState('events', {
+        severity: _currentSeverityFilter,
+        device: _deviceOnlyFilter ? '1' : '',
+        operational: _hideOperational ? '' : 'shown'
+    });
+}
+
+/* "#events?severity=warning&device=1&operational=shown" reopens the log with these filters. */
+function applyEventsViewState() {
+    var state = docsightReadViewState('events');
+    if (['info', 'warning', 'critical'].indexOf(state.severity) !== -1) {
+        _currentSeverityFilter = state.severity;
+        document.querySelectorAll('#events-severity-tabs [data-severity]').forEach(function(tab) {
+            _setEventFilterPressed(tab, tab.getAttribute('data-severity') === state.severity);
+        });
+    }
+    if (state.device === '1') {
+        _deviceOnlyFilter = true;
+        var pill = document.getElementById('device-filter-pill');
+        if (pill) _setEventFilterPressed(pill, true);
+    }
+    if (state.operational === 'shown') {
+        _hideOperational = false;
+        var input = document.getElementById('hide-operational-toggle');
+        if (input) input.checked = false;
+    }
+}
+
 function toggleHideOperational() {
     var input = document.getElementById('hide-operational-toggle');
     _hideOperational = input ? !!input.checked : !_hideOperational;
+    _writeEventsViewState();
     loadEvents();
 }
 
@@ -255,6 +285,7 @@ function filterEventsBySeverity(severity) {
     document.querySelectorAll('#events-severity-tabs [data-severity]').forEach(function(tab) {
         _setEventFilterPressed(tab, tab.getAttribute('data-severity') === severity);
     });
+    _writeEventsViewState();
     loadEvents();
 }
 
@@ -262,6 +293,7 @@ function filterEventsByDevice() {
     _deviceOnlyFilter = !_deviceOnlyFilter;
     var pill = document.getElementById('device-filter-pill');
     if (pill) _setEventFilterPressed(pill, _deviceOnlyFilter);
+    _writeEventsViewState();
     loadEvents();
 }
 

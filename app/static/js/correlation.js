@@ -234,6 +234,16 @@ function _corrLoadStatusTrack(range) {
     }).then(function(shown) { section.hidden = !shown; });
 }
 
+/* A range tab was picked: keep it in the URL, then load. */
+function correlationRangeSelected() {
+    docsightWriteViewState('correlation', {range: getPillValue('correlation-tabs') || '1d'});
+    loadCorrelationData();
+}
+
+function applyCorrelationViewState() {
+    docsightSelectSegment('correlation-tabs', 'data-value', docsightReadViewState('correlation').range);
+}
+
 function loadCorrelationData() {
     var hours = CorrelationData.rangeHours(getPillValue('correlation-tabs'));
     _corrLoadStatusTrack(getPillValue('correlation-tabs') || '1d');

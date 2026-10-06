@@ -8,6 +8,7 @@ integration, and JS error-free operation.
 import re
 
 import pytest
+from playwright.sync_api import expect
 from tests.e2e.support.navigation import open_view
 
 
@@ -230,6 +231,11 @@ class TestSegmentRangeTabs:
         tab.click()
         fritzbox_page.wait_for_timeout(2000)
         assert "active" in tab.get_attribute("class")
+        # The range stays in the URL and survives a reload.
+        expect(fritzbox_page).to_have_url(re.compile(r"#segment-utilization\?range=7d$"))
+        fritzbox_page.reload()
+        fritzbox_page.wait_for_selector("#view-segment-utilization.active")
+        expect(tab).to_have_attribute("aria-pressed", "true")
 
     def test_switch_to_30d(self, fritzbox_page):
         """Clicking 30d tab should reload and activate."""
