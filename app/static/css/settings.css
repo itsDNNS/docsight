@@ -432,6 +432,8 @@ button.notification-collapse-button {
 
 /* ─── Cooldown Table ─── */
 .cooldown-table td { vertical-align: middle; }
+.cooldown-table { --dt-lead-width: 64px; }
+.cooldown-table tbody tr { align-items: center; }
 .cooldown-table .event-name {
   font-weight: 500;
   display: flex;

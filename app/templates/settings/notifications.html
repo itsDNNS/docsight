@@ -175,7 +175,7 @@
     <div class="card-collapse-body" id="per-event-cooldowns-body">
         <div class="card-collapse-inner">
         <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#notifications" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
-        <table class="data-table data-table-compact cooldown-table">
+        <table class="data-table data-table-compact data-table-list cooldown-table">
             <thead>
                 <tr>
                     <th>{{ t.notify_col_active }}</th>
@@ -187,9 +187,9 @@
             <tbody>
                 {% macro cooldown_row(event_key, event_label, severity, severity_label, badge_class) -%}
                 <tr class="notify-event-row" data-event="{{ event_key }}" data-severity="{{ severity }}">
-                    <td data-label="{{ t.notify_col_active }}"><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="{{ event_key }}" data-severity="{{ severity }}" aria-label="{{ t.notify_col_active }}: {{ event_label }}, {{ severity_label }}" checked><span class="toggle-slider"></span></label></td>
-                    <td data-label="{{ t.notify_col_event }}"><span class="event-name">{{ event_label }}</span></td>
-                    <td data-label="{{ t.notify_col_severity }}"><span class="badge {{ badge_class }}">{{ severity_label }}</span></td>
+                    <td class="dt-lead"><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="{{ event_key }}" data-severity="{{ severity }}" aria-label="{{ t.notify_col_active }}: {{ event_label }}, {{ severity_label }}" checked><span class="toggle-slider"></span></label></td>
+                    <td class="dt-primary"><span class="event-name">{{ event_label }}</span></td>
+                    <td><span class="badge {{ badge_class }}">{{ severity_label }}</span></td>
                     <td data-label="{{ t.notify_col_cooldown }}"><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="{{ event_key }}" data-severity="{{ severity }}" min="1" step="1" placeholder="default" aria-label="{{ t.notify_col_cooldown }}: {{ event_label }}, {{ severity_label }}"></td>
                 </tr>
                 {%- endmacro %}
