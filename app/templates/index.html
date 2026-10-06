@@ -1157,7 +1157,7 @@
                 <button class="segmented-option" data-value="30d" aria-pressed="false">30d</button>
                 <button class="segmented-option" data-value="90d" aria-pressed="false">90d</button>
             </div>
-            <button id="channel-temp-toggle-btn" class="btn btn-secondary btn-sm temp-toggle" data-action="toggleChannelTempOverlay" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+            <button id="channel-temp-toggle-btn" class="btn btn-secondary btn-sm temp-toggle" data-action="toggleChannelTempOverlay" hidden aria-pressed="false" title="{{ t.temp_overlay_show }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
@@ -1182,7 +1182,7 @@
                 <button class="segmented-option" data-value="30d" aria-pressed="false">30d</button>
                 <button class="segmented-option" data-value="90d" aria-pressed="false">90d</button>
             </div>
-            <button id="compare-temp-toggle-btn" class="btn btn-secondary btn-sm temp-toggle" data-action="toggleCompareTempOverlay" hidden aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+            <button id="compare-temp-toggle-btn" class="btn btn-secondary btn-sm temp-toggle" data-action="toggleCompareTempOverlay" hidden aria-pressed="false" title="{{ t.temp_overlay_show }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
@@ -1478,10 +1478,13 @@
 <div id="view-gaming" class="view">
     <div class="view-page-header">
         <div class="view-page-header-left">
-            <h2 class="view-page-title">{{ t.gaming_quality_label }}</h2>
+            <h2 class="view-page-title">{{ t.gaming_quality_label }}
+                <span class="glossary-hint" data-glossary-term-id="gaming_index" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}">
+                    <i data-lucide="info"></i><span class="glossary-popover">{{ t.glossary_gaming_index }}</span>
+                </span>
+            </h2>
         </div>
     </div>
-    <p class="gaming-no-speedtest-hint">{{ t.glossary_gaming_index }}</p>
     {% if gaming_index %}
     <p class="gaming-no-speedtest-hint">{{ t.timestamp }}: <time datetime="{{ speedtest_latest.timestamp }}" data-docsight-time="datetime">{{ speedtest_latest.timestamp|localtime }}</time></p>
     {% set g = gaming_index.grade|lower %}

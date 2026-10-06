@@ -42,6 +42,7 @@
   "cm_outage_duration": "Czas trwania",
   "cm_outage_target": "Cel",
   "cm_outage_ongoing": "Trwa",
+  "cm_outage_none": "Brak przerw w tym okresie",
   "cm_export_csv": "Eksportuj CSV",
   "cm_raw_log_title": "Surowy dziennik pingów",
   "cm_raw_log_desc": "Pobierz pojedyncze pomiary ping jako dowód dla dostawcy. Używa bieżącego okresu lub przypiętego dnia.",

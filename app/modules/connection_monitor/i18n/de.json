@@ -42,6 +42,7 @@
   "cm_outage_duration": "Dauer",
   "cm_outage_target": "Ziel",
   "cm_outage_ongoing": "Andauernd",
+  "cm_outage_none": "Keine Ausfälle in diesem Zeitraum",
   "cm_export_csv": "Als CSV exportieren",
   "cm_raw_log_title": "Rohdaten der Pings",
   "cm_raw_log_desc": "Lade die einzelnen Ping-Messwerte als Nachweis für den Anbieter herunter. Verwendet den aktuellen Zeitraum oder den angehefteten Tag.",

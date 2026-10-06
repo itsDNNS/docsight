@@ -42,6 +42,7 @@
   "cm_outage_duration": "Duração",
   "cm_outage_target": "Destino",
   "cm_outage_ongoing": "Em curso",
+  "cm_outage_none": "Sem falhas neste período",
   "cm_export_csv": "Exportar CSV",
   "cm_raw_log_title": "Registo bruto de pings",
   "cm_raw_log_desc": "Transfere as medições de ping individuais como prova para o teu fornecedor. Usa o período atual ou o dia fixado.",

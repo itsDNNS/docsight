@@ -42,6 +42,7 @@
   "cm_outage_duration": "Durată",
   "cm_outage_target": "Țintă",
   "cm_outage_ongoing": "În desfășurare",
+  "cm_outage_none": "Nicio întrerupere în acest interval",
   "cm_export_csv": "Exportă CSV",
   "cm_raw_log_title": "Jurnal brut al ping-urilor",
   "cm_raw_log_desc": "Descarcă măsurătorile individuale de ping ca dovadă pentru furnizor. Folosește perioada curentă sau ziua fixată.",

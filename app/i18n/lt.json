@@ -813,6 +813,7 @@
   "legend_upload": "Įkelti (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80 % vidutinė DL",
+  "legend_booked": "Užsakytas DL ({value} Mbps)",
   "dashboard": "Prietaisų skydelis",
   "notify_event_health_change": "Sveikatos pasikeitimas",
   "notify_event_power_change": "Galios keitimas",

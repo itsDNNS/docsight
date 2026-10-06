@@ -813,6 +813,7 @@
   "legend_upload": "Lähetä (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80 %:n mediaani DL",
+  "legend_booked": "Tilattu DL ({value} Mbps)",
   "dashboard": "Kojelauta",
   "notify_event_health_change": "Terveysmuutos",
   "notify_event_power_change": "Tehon vaihto",

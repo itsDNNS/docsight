@@ -813,6 +813,7 @@
   "legend_upload": "Upload (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% Median DL",
+  "legend_booked": "Booked DL ({value} Mbps)",
   "dashboard": "Dashboard",
   "notify_event_health_change": "Health Change",
   "notify_event_power_change": "Power Change",

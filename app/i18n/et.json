@@ -813,6 +813,7 @@
   "legend_upload": "Laadi üles (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% mediaan DL",
+  "legend_booked": "Tellitud DL ({value} Mbps)",
   "dashboard": "Armatuurlaud",
   "notify_event_health_change": "Tervise muutus",
   "notify_event_power_change": "Võimsuse muutus",

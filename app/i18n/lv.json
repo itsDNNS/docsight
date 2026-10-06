@@ -813,6 +813,7 @@
   "legend_upload": "Augšupielādēt (Mb/s)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% vidējais DL",
+  "legend_booked": "Pasūtītais DL ({value} Mbps)",
   "dashboard": "Informācijas panelis",
   "notify_event_health_change": "Veselības izmaiņas",
   "notify_event_power_change": "Jaudas maiņa",

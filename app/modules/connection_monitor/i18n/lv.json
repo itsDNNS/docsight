@@ -42,6 +42,7 @@
   "cm_outage_duration": "Ilgums",
   "cm_outage_target": "Mērķis",
   "cm_outage_ongoing": "Notiek",
+  "cm_outage_none": "Šajā periodā pārtraukumu nav",
   "cm_export_csv": "Eksportēt CSV",
   "cm_raw_log_title": "Neapstrādātais ping žurnāls",
   "cm_raw_log_desc": "Lejupielādējiet atsevišķos ping mērījumus kā pierādījumu pakalpojumu sniedzējam. Izmanto pašreizējo periodu vai piesprausto dienu.",

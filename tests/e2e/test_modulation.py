@@ -296,7 +296,7 @@ class TestModulationControls:
         expect(panel).to_contain_text("Not speedtest throughput")
         expect(panel).to_contain_text("not tariff speed")
         expect(panel).to_have_css("border-top-width", "1px")
-        expect(self.page.locator(".mod-capacity-warning-list")).to_have_css("display", "flex")
+        expect(self.page.locator(".mod-capacity-note")).to_be_visible()
         expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("7d")
         expect(self.page.locator("#mod-cap-ds-min")).to_contain_text("Mbps")
         expect(self.page.locator("#mod-cap-us-tariff")).to_have_count(0)

@@ -813,6 +813,7 @@
   "legend_upload": "Uaslódáil (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% Meán DL",
+  "legend_booked": "DL curtha in áirithe ({value} Mbps)",
   "dashboard": "Painéal na nIonstraimí",
   "notify_event_health_change": "Athrú Sláinte",
   "notify_event_power_change": "Athrú Cumhachta",

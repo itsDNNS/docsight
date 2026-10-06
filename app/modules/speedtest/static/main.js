@@ -153,6 +153,19 @@ function computeMedian(arr) {
     return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+/* Booked speed in Mbps from the chart canvas; 0 when neither config nor modem knows it. */
+function _speedtestBooked(direction) {
+    var canvas = document.getElementById('speedtest-chart');
+    var value = canvas ? Number(canvas.getAttribute('data-booked-' + direction)) : 0;
+    return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/* Results below 80 % of the booked speed are flagged; without one, 80 % of the median. */
+function _speedtestLimit(direction, values) {
+    var booked = _speedtestBooked(direction);
+    return (booked || computeMedian(values)) * 0.8;
+}
+
 /* One table cell; data-label names the value in the stacked mobile layout. */
 function _speedtestCell(columnClass, label, html, extraClass, title) {
     return '<td class="' + columnClass + (extraClass ? ' ' + extraClass : '') + '" data-label="' + escapeHtml(label) + '"'
@@ -171,8 +184,8 @@ function renderSpeedtestRows() {
         if (d.download_mbps != null) downloads.push(parseFloat(d.download_mbps) || 0);
         if (d.upload_mbps != null) uploads.push(parseFloat(d.upload_mbps) || 0);
     }
-    var medianDl = computeMedian(downloads);
-    var medianUl = computeMedian(uploads);
+    var dlLimit = _speedtestLimit('download', downloads);
+    var ulLimit = _speedtestLimit('upload', uploads);
     var show = Math.min(_speedtestVisible, _speedtestAllData.length);
     for (var i = 0; i < show; i++) {
         var r = _speedtestAllData[i];
@@ -180,8 +193,8 @@ function renderSpeedtestRows() {
         var ulVal = parseFloat(r.upload_mbps) || 0;
         var pingVal = parseFloat(r.ping_ms) || 0;
         var jitterVal = parseFloat(r.jitter_ms) || 0;
-        var dlClass = (medianDl > 0 && dlVal < medianDl * 0.8) ? ' class="val-bad"' : '';
-        var ulClass = (medianUl > 0 && ulVal < medianUl * 0.8) ? ' class="val-bad"' : '';
+        var dlClass = (dlLimit > 0 && dlVal < dlLimit) ? ' class="val-bad"' : '';
+        var ulClass = (ulLimit > 0 && ulVal < ulLimit) ? ' class="val-bad"' : '';
         var pingClass = pingVal > 50 ? 'val-warn' : '';
         var jitterClass = jitterVal > 20 ? 'val-warn' : '';
         var tr = document.createElement('tr');
@@ -512,10 +525,12 @@ function renderSpeedtestChart() {
         times.push(docsightParseTime(data[i].timestamp));
     }
     // Scales
-    var maxSpeed = Math.max.apply(null, dls.concat(uls)) * 1.1 || 1;
+    var bookedDl = _speedtestBooked('download');
+    var threshold = _speedtestLimit('download', dls);
+    // The reference line marks the booked speed, or the 80 % median limit when none is known.
+    var reference = bookedDl || threshold;
+    var maxSpeed = Math.max.apply(null, dls.concat(uls, [reference])) * 1.1 || 1;
     var maxPing = Math.max.apply(null, pings) * 1.1 || 1;
-    var medianDl = computeMedian(dls);
-    var threshold = medianDl * 0.8;
     function xPos(idx) { return padL + (idx / (data.length - 1)) * cw; }
     function ySpeed(v) { return padT + ch - (v / maxSpeed) * ch; }
     function yPing(v) { return padT + ch - (v / maxPing) * ch; }
@@ -581,12 +596,12 @@ function renderSpeedtestChart() {
         ctx.textAlign = li === 0 ? 'left' : (li === labelCount - 1 ? 'right' : 'center');
         ctx.fillText(label, xPos(idx), padT + ch + 6);
     }
-    // Threshold line (dashed red)
+    // Reference line (dashed)
     ctx.setLineDash([6, 4]);
-    ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+    ctx.strokeStyle = mutedColor;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    var threshY = ySpeed(threshold);
+    var threshY = ySpeed(reference);
     ctx.moveTo(padL, threshY);
     ctx.lineTo(w - padR, threshY);
     ctx.stroke();

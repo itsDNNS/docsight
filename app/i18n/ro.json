@@ -813,6 +813,7 @@
   "legend_upload": "Încărcare (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% DL mediană",
+  "legend_booked": "DL contractat ({value} Mbps)",
   "dashboard": "Tabloul de bord",
   "notify_event_health_change": "Schimbarea sănătății",
   "notify_event_power_change": "Schimbarea puterii",

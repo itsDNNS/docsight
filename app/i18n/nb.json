@@ -813,6 +813,7 @@
   "legend_upload": "Last opp (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80 % median DL",
+  "legend_booked": "Bestilt DL ({value} Mbps)",
   "dashboard": "Dashboard",
   "notify_event_health_change": "Helseforandring",
   "notify_event_power_change": "Strømskifte",

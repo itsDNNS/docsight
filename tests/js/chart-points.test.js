@@ -32,6 +32,7 @@ for (const count of [1, 30, 31, 100]) {
         for (const mode of ['normal', 'zoom']) {
             test(`${mode} ${type}, ${count} samples: points are opt-in and bars always opt out`, () => {
                 const b = browser();
+                b._tempOverlayVisible = true;
                 const data = Array.from({length: count}, (_, i) => i === 1 ? null : i);
                 const datasets = [undefined, false, true].map(showPoints => ({
                     label: String(showPoints), data, showPoints,

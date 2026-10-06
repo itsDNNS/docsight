@@ -808,6 +808,7 @@
   "legend_upload": "Subida (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% Mediana DL",
+  "legend_booked": "DL contratado ({value} Mbps)",
   "dashboard": "Panel",
   "notify_event_health_change": "Cambio de salud",
   "notify_event_power_change": "Cambio de potencia",
