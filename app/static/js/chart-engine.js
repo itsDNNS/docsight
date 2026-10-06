@@ -22,18 +22,43 @@ function fmtTempAxis(celsius) {
     if (TEMPERATURE_UNIT === 'fahrenheit') return Math.round(celsius * 9 / 5 + 32) + '°';
     return celsius.toFixed(0) + '°';
 }
-function fmtK(v) {
+/* Compact k/M number. With `step` (the distance between axis ticks) every label
+   gets as many decimals as the step needs, so close ticks stay distinct
+   ("35.08k", "35.10k" instead of "35.1k" twice). Steps that would need more than
+   two decimals read better as the full number ("35,058"). */
+function fmtK(v, step) {
     if (v == null) return '';
     var abs = Math.abs(v);
-    if (abs >= 1000000) {
-        var m = v / 1000000;
-        return (m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)) + 'M';
+    var unit = abs >= 1000000 ? 1000000 : abs >= 1000 ? 1000 : 1;
+    if (unit === 1) return '' + v;
+    var scaled = v / unit;
+    var decimals = scaled % 1 === 0 ? 0 : 1;
+    if (step > 0) {
+        decimals = Math.max(0, Math.ceil(-Math.log10(step / unit) - 1e-9));
+        if (decimals > 2) return Math.round(v).toLocaleString(document.documentElement.lang || undefined);
     }
-    if (abs >= 1000) {
-        var k = v / 1000;
-        return (k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)) + 'k';
-    }
-    return '' + v;
+    return scaled.toFixed(decimals) + (unit === 1000000 ? 'M' : 'k');
+}
+
+/* uPlot axis `size` that fits the widest tick label, but never below `min`,
+   the width the plot layout was estimated with. */
+function docsightAxisSize(min) {
+    return function(u, values, axisIdx, cycleNum) {
+        var axis = u.axes[axisIdx];
+        if (cycleNum > 1) return axis._size;
+        var size = axis.ticks.size + axis.gap;
+        var longest = (values || []).reduce(function(acc, v) { return String(v).length > acc.length ? String(v) : acc; }, '');
+        if (longest) {
+            u.ctx.font = axis.font[0];
+            size += u.ctx.measureText(longest).width / (window.devicePixelRatio || 1);
+        }
+        return Math.max(min, Math.ceil(size));
+    };
+}
+
+function fmtKTicks(vals) {
+    var step = vals.length > 1 ? Math.abs(vals[1] - vals[0]) : 0;
+    return vals.map(function(v) { return fmtK(v, step); });
 }
 function todayStr() {
     /* Today's date in the configured time zone (YYYY-MM-DD). */
@@ -620,7 +645,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             grid: { stroke: gridColor, width: 1 },
             ticks: { stroke: gridColor, width: 1 },
             font: '12px system-ui',
-            size: yAxisSize,
+            size: docsightAxisSize(yAxisSize),
             gap: 4
         }
     ];
@@ -640,9 +665,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             ds.data.forEach(function(v) { if (v != null && Math.abs(v) > maxVal) maxVal = Math.abs(v); });
         });
         if (maxVal >= 1000) {
-            axes[1].values = function(u, vals) {
-                return vals.map(function(v) { return fmtK(v); });
-            };
+            axes[1].values = function(u, vals) { return fmtKTicks(vals); };
         }
     }
 
@@ -893,7 +916,7 @@ function openChartZoom(canvasId) {
                 grid: { stroke: gridColor, width: 1 },
                 ticks: { stroke: gridColor, width: 1 },
                 font: '12px system-ui',
-                size: zoomYAxisSize,
+                size: docsightAxisSize(zoomYAxisSize),
                 gap: 4
             }
         ];
