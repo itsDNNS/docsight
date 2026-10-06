@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Questa operazione eliminerà tutti i dati demo e passerà alla modalità live. Le tue voci verranno conservate. Continuare?",
   "demo_migrate_success": "Passaggio alla modalità live riuscito con successo. I dati demo sono stati rimossi.",
   "channel_compare": "Confronto canali",
+  "compare_remove_channel": "Rimuovi {0}",
+  "compare_clear_channels": "Cancella selezione",
   "add_channel": "Aggiungi",
   "all_downstream": "Tutti a valle",
   "all_upstream": "Tutti a monte",

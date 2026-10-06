@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Tämä poistaa kaikki esittelytiedot ja vaihtaa live-tilaan. Omat merkinnäsi säilytetään. Jatkaa?",
   "demo_migrate_success": "Siirtyminen live-tilaan. Esittelytiedot on poistettu.",
   "channel_compare": "Kanavavertailu",
+  "compare_remove_channel": "Poista {0}",
+  "compare_clear_channels": "Tyhjennä valinta",
   "add_channel": "Lisää",
   "all_downstream": "Kaikki loppupäässä",
   "all_upstream": "Kaikki ylävirtaan",

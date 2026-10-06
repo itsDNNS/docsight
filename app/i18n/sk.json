@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Týmto sa vymažú všetky demo dáta a prepne sa do živého režimu. Vaše vlastné záznamy budú zachované. Pokračovať?",
   "demo_migrate_success": "Úspešne prepnuté do živého režimu. Demo dáta boli odstránené.",
   "channel_compare": "Porovnanie kanálov",
+  "compare_remove_channel": "Odstrániť {0}",
+  "compare_clear_channels": "Zrušiť výber",
   "add_channel": "Pridať",
   "all_downstream": "Všetky po prúde",
   "all_upstream": "Všetky Upstream",

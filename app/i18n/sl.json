@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "To bo izbrisalo vse predstavitvene podatke in preklopilo v način v živo. Vaši lastni vnosi bodo ohranjeni. Nadaljevati?",
   "demo_migrate_success": "Uspešno preklopljeno v način v živo. Demo podatki so bili odstranjeni.",
   "channel_compare": "Primerjava kanalov",
+  "compare_remove_channel": "Odstrani {0}",
+  "compare_clear_channels": "Počisti izbiro",
   "add_channel": "Dodaj",
   "all_downstream": "Vse navzdol",
   "all_upstream": "Vse navzgor",

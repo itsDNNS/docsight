@@ -24,7 +24,7 @@
 .waiting {
     text-align: center; padding: 60px 20px; color: var(--muted);
 }
-.waiting .spinner {
+.spinner {
     display: inline-block; width: 30px; height: 30px;
     border: 3px solid var(--surface); border-top: 3px solid var(--accent);
     border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;
@@ -738,6 +738,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     width: 8px;
     height: 8px;
     border-radius: 50%;
+    background: var(--corr-color);
 }
 .chart-export-buttons {
     display: flex;
@@ -802,6 +803,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     color: var(--muted);
 }
 .correlation-chart-legend span[data-metric] {
+    color: var(--corr-color);
     cursor: pointer;
     transition: opacity 0.2s var(--ease-out-expo), filter 0.2s var(--ease-out-expo);
     user-select: none;
@@ -867,6 +869,21 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     box-shadow: var(--shadow-lg);
     font-size: max(var(--fs-min), 0.85em);
 }
+.corr-event-popover input[type="checkbox"] { accent-color: var(--corr-color); }
+.corr-event-filter-title { font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.corr-event-filter-group { padding: 5px 0 7px; border-top: 1px solid rgba(148, 163, 184, 0.14); }
+.corr-event-filter-type { display: flex; align-items: center; gap: 6px; padding: 3px 0; cursor: pointer; color: var(--text-secondary); }
+.corr-event-filter-name { font-weight: 600; color: var(--text); }
+.corr-event-filter-count { opacity: 0.5; }
+.corr-event-filter-type .corr-event-filter-count { font-size: max(var(--fs-min), 0.85em); }
+.corr-event-filter-severities { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 22px; margin-top: 2px; }
+.corr-event-filter-severity { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-secondary); font-size: max(var(--fs-min), 0.85em); }
+.corr-legend-filter-count { font-size: max(var(--fs-min), 0.7em); opacity: 0.7; }
+.corr-tone-accent { color: var(--accent); }
+.corr-tone-good { color: var(--good); }
+.corr-tone-warn { color: var(--warn); }
+.corr-tone-crit { color: var(--crit); }
+.corr-tone-muted { color: var(--muted); }
 
 /* Correlation Table Card */
 #correlation-table-card.table-card {

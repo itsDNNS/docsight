@@ -1306,6 +1306,8 @@ button.notification-collapse-button {
 }
 
 /* History loading */
+.sc-history-time { white-space: nowrap; font-size: max(var(--fs-min), 0.85em); }
+.sc-history-detail { font-size: max(var(--fs-min), 0.85em); color: var(--muted); }
 .sc-history-loading {
   display: flex;
   align-items: center;

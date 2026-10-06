@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Aceasta va șterge toate datele demonstrative și va trece la modul live. Înregistrările dvs. vor fi păstrate. Continua?",
   "demo_migrate_success": "Am trecut cu succes în modul live. Datele demonstrative au fost eliminate.",
   "channel_compare": "Comparare canal",
+  "compare_remove_channel": "Elimină {0}",
+  "compare_clear_channels": "Golește selecția",
   "add_channel": "Adaugă",
   "all_downstream": "Toate în aval",
   "all_upstream": "Toate în amonte",

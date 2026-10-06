@@ -727,12 +727,27 @@ function showBqmImportResult(data) {
     var footer = document.getElementById('bqm-import-footer');
     var options = document.getElementById('bqm-import-options');
 
-    // Build result summary (safe: data is from trusted server response)
-    var html = '<span style="color:var(--accent-purple,var(--accent));">' + total + ' imported</span>';
-    if (data.replaced) html += ' (' + data.replaced + ' replaced)';
-    if (data.skipped) html += ', <span style="color:#eab308;">' + data.skipped + ' skipped</span>';
-    if (data.errors && data.errors.length) html += ', <span style="color:#ef4444;">' + data.errors.length + ' errors</span>';
-    status.innerHTML = html;
+    function count(key, fallback, value, className) {
+        var span = document.createElement('span');
+        if (className) span.className = className;
+        span.textContent = (T[key] || fallback).replace('{0}', value);
+        return span;
+    }
+    status.textContent = '';
+    status.appendChild(count('bqm_import_result_imported', '{0} imported', total, 'bqm-import-count-imported'));
+    if (data.replaced) {
+        status.appendChild(document.createTextNode(' ('));
+        status.appendChild(count('bqm_import_result_replaced', '{0} replaced', data.replaced));
+        status.appendChild(document.createTextNode(')'));
+    }
+    if (data.skipped) {
+        status.appendChild(document.createTextNode(', '));
+        status.appendChild(count('bqm_import_result_skipped', '{0} skipped', data.skipped, 'bqm-import-count-skipped'));
+    }
+    if (data.errors && data.errors.length) {
+        status.appendChild(document.createTextNode(', '));
+        status.appendChild(count('bqm_import_result_errors', '{0} errors', data.errors.length, 'bqm-import-count-errors'));
+    }
     status.hidden = false;
 
     // Show skipped dates if any (safe: date strings from server)
@@ -741,14 +756,19 @@ function showBqmImportResult(data) {
         var tr = document.createElement('tr');
         var td = document.createElement('td');
         td.colSpan = 4;
-        td.style.cssText = 'padding:12px 8px; font-size:max(var(--fs-min), 0.85em);';
-        var datesHtml = '<div style="margin-bottom:6px;color:#eab308;font-weight:500;">Skipped (already exist):</div>';
-        datesHtml += '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;">';
+        td.className = 'bqm-import-skipped';
+        var heading = document.createElement('div');
+        heading.className = 'bqm-import-skipped-title';
+        heading.textContent = T.bqm_import_skipped_dates || 'Skipped, already stored:';
+        var dates = document.createElement('div');
+        dates.className = 'bqm-import-skipped-dates';
         data.skipped_dates.forEach(function(d) {
-            datesHtml += '<span style="color:var(--muted);">' + escapeHtml(d) + '</span>';
+            var date = document.createElement('span');
+            date.textContent = d;
+            dates.appendChild(date);
         });
-        datesHtml += '</div>';
-        td.innerHTML = datesHtml;
+        td.appendChild(heading);
+        td.appendChild(dates);
         tr.appendChild(td);
         tbody.appendChild(tr);
         preview.hidden = false;
@@ -758,9 +778,14 @@ function showBqmImportResult(data) {
 
     options.hidden = true;
 
-    // Replace footer with close button (safe: static HTML with translated string)
+    // Replace footer with close button
     var footerRight = footer.querySelector('div:last-child');
-    footerRight.innerHTML = '<button class="btn btn-primary" onclick="closeBqmImportModal()">' + (T.close || 'Close') + '</button>';
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn btn-primary';
+    close.setAttribute('data-action', 'closeBqmImportModal');
+    close.textContent = T.close || 'Close';
+    footerRight.replaceChildren(close);
     footer.hidden = false;
 }
 

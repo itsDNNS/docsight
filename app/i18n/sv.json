@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Detta tar bort all demodata och växlar till liveläge. Dina egna poster kommer att sparas. Fortsätta?",
   "demo_migrate_success": "Har växlat till liveläge. Demodata har tagits bort.",
   "channel_compare": "Kanaljämförelse",
+  "compare_remove_channel": "Ta bort {0}",
+  "compare_clear_channels": "Rensa urval",
   "add_channel": "Lägg till",
   "all_downstream": "Allt nedströms",
   "all_upstream": "Allt uppströms",

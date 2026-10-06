@@ -338,6 +338,24 @@
 .modal.bqm-import-panel {
     max-width: 800px;
 }
+.bqm-import-count-imported { color: var(--accent-purple, var(--accent)); }
+.bqm-import-count-skipped { color: var(--warn); }
+.bqm-import-count-errors { color: var(--crit); }
+.bqm-import-table td.bqm-import-skipped {
+    padding: 12px 8px;
+    font-size: max(var(--fs-min), 0.85em);
+}
+.bqm-import-skipped-title {
+    margin-bottom: 6px;
+    color: var(--warn);
+    font-weight: 500;
+}
+.bqm-import-skipped-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    color: var(--muted);
+}
 .bqm-import-drop-icon {
     width: 48px;
     height: 48px;

@@ -216,23 +216,32 @@
 
     var NAIVE_TIMESTAMP = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/;
 
-    function validTimeZone(value) {
-        if (typeof value !== 'string' || !value) return false;
-        try {
-            new Intl.DateTimeFormat('en', {timeZone: value});
-            return true;
-        } catch (error) {
-            return false;
+    // Building an Intl.DateTimeFormat is expensive and charts parse thousands of
+    // timestamps, so each zone gets one formatter (null for an unknown zone).
+    var zoneFormatters = {};
+
+    function zoneFormatter(timeZone) {
+        if (!Object.prototype.hasOwnProperty.call(zoneFormatters, timeZone)) {
+            try {
+                zoneFormatters[timeZone] = new Intl.DateTimeFormat('en-US', {
+                    timeZone: timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+            } catch (error) {
+                zoneFormatters[timeZone] = null;
+            }
         }
+        return zoneFormatters[timeZone];
+    }
+
+    function validTimeZone(value) {
+        return typeof value === 'string' && !!value && zoneFormatter(value) !== null;
     }
 
     function zoneOffsetMs(timeZone, instantMs) {
         // Offset of the zone at an instant: its wall-clock fields read as UTC, minus the instant.
         var parts = {};
-        new Intl.DateTimeFormat('en-US', {
-            timeZone: timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-        }).formatToParts(new Date(instantMs)).forEach(function (part) { parts[part.type] = part.value; });
+        zoneFormatter(timeZone).formatToParts(new Date(instantMs)).forEach(function (part) { parts[part.type] = part.value; });
         var asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
         return asUtc - Math.floor(instantMs / 1000) * 1000;
     }

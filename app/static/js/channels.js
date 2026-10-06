@@ -1369,8 +1369,14 @@ function renderCompareChips() {
         var presetChip = document.createElement('span');
         presetChip.className = 'compare-chip';
         presetChip.style.backgroundColor = getCompareDirection() === 'ds' ? '#3b82f6' : '#10b981';
-        presetChip.innerHTML = escapeHtml(getComparePresetLabel(getCompareDirection()) + ' (' + _compareChannels.length + ')')
-            + ' <button class="compare-chip-remove" onclick="clearCompareChannels()">&times;</button>';
+        presetChip.textContent = getComparePresetLabel(getCompareDirection()) + ' (' + _compareChannels.length + ') ';
+        var clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'compare-chip-remove';
+        clear.setAttribute('data-action', 'clearCompareChannels');
+        clear.setAttribute('aria-label', T.compare_clear_channels || 'Clear selection');
+        clear.textContent = '\u00d7';
+        presetChip.appendChild(clear);
         container.appendChild(presetChip);
         return;
     }
@@ -1380,8 +1386,10 @@ function renderCompareChips() {
         chip.style.backgroundColor = ch.color;
         chip.textContent = ch.label + ' ';
         var remove = document.createElement('button');
+        remove.type = 'button';
         remove.className = 'compare-chip-remove';
-        remove.innerHTML = '&times;';
+        remove.setAttribute('aria-label', (T.compare_remove_channel || 'Remove {0}').replace('{0}', ch.label));
+        remove.textContent = '\u00d7';
         remove.onclick = function() { removeCompareChannel(ch.key); };
         chip.appendChild(remove);
         container.appendChild(chip);

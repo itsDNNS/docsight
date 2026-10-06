@@ -193,7 +193,7 @@ function renderSpeedtestRows() {
         var scBadge = r.smart_capture
             ? '<td class="st-sc-col"><span class="sc-badge">' + escapeHtml(T.sc_badge_label || 'Smart Capture') + '</span></td>'
             : '<td class="st-sc-col"></td>';
-        tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" onclick="toggleSpeedtestSignal(this)"'
+        tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" data-action="toggleSpeedtestSignal" data-action-pass="element"'
             + ' aria-label="' + expandLabel + '" title="' + expandLabel + '" aria-expanded="false" aria-controls="st-signal-' + r.id + '">'
             + '<i data-lucide="chevron-right" aria-hidden="true"></i></button></td>'
             + _speedtestCell('st-col-time', T.timestamp || 'Timestamp', escapeHtml(formatSpeedtestTimestamp(r.timestamp)))

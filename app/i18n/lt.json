@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Tai ištrins visus demonstracinius duomenis ir persijungs į tiesioginį režimą. Jūsų įrašai bus saugomi. Tęsti?",
   "demo_migrate_success": "Sėkmingai perjungta į tiesioginį režimą. Demonstraciniai duomenys buvo pašalinti.",
   "channel_compare": "Kanalų palyginimas",
+  "compare_remove_channel": "Pašalinti {0}",
+  "compare_clear_channels": "Išvalyti pasirinkimą",
   "add_channel": "Pridėti",
   "all_downstream": "Viskas pasroviui",
   "all_upstream": "Viskas prieš srovę",

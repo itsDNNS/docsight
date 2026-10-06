@@ -540,6 +540,8 @@
   "demo_migrate_confirm": "Toutes les donnees de demo seront supprimees et le mode reel sera active. Vos propres entrees seront conservees. Continuer?",
   "demo_migrate_success": "Passage en mode reel reussi. Les donnees de demo ont ete supprimees.",
   "channel_compare": "Comparaison de canaux",
+  "compare_remove_channel": "Retirer {0}",
+  "compare_clear_channels": "Effacer la sélection",
   "add_channel": "Ajouter",
   "all_downstream": "Tous les canaux descendants",
   "all_upstream": "Tous les canaux montants",

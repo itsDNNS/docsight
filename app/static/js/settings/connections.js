@@ -283,7 +283,7 @@ function toggleUsernameField() {
     var credFields = [urlField, usernameField, passwordField].map(function(f) {
         return f ? f.closest('.form-field') : null;
     });
-    var testBtn = document.querySelector('[onclick="testModem()"]');
+    var testBtn = document.querySelector('[data-action="testModem"]');
     var testBtnParent = testBtn ? testBtn.parentElement : null;
     var testResult = document.getElementById('modem-test');
 
@@ -295,12 +295,12 @@ function toggleUsernameField() {
 
     if (hints.credentials_required === false) {
         credFields.forEach(function(el) { if (el) el.style.display = 'none'; });
-        if (testBtnParent) testBtnParent.style.display = 'none';
+        if (testBtnParent) testBtnParent.hidden = true;
         if (testResult) testResult.style.display = 'none';
         return;
     }
     credFields.forEach(function(el) { if (el) el.style.display = ''; });
-    if (testBtnParent) testBtnParent.style.display = '';
+    if (testBtnParent) testBtnParent.hidden = false;
 
     // Username handling
     if (hints.username_required === false) {

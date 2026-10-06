@@ -103,6 +103,25 @@ test('naive timestamps parse as wall-clock time in the configured zone', () => {
     assert.equal(contracts.parseTimestamp('2026-10-01T21:25:00', null).getTime(), new Date('2026-10-01T21:25:00').getTime());
 });
 
+test('parsing many timestamps builds one zone formatter, not one per value', () => {
+    const Original = Intl.DateTimeFormat;
+    let built = 0;
+    Intl.DateTimeFormat = function(locale, options) {
+        if (options && options.timeZone === 'Asia/Tokyo') built++;
+        return new Original(locale, options);
+    };
+    try {
+        for (let minute = 0; minute < 500; minute++) {
+            contracts.parseTimestamp('2026-10-01T10:' + String(minute % 60).padStart(2, '0') + ':00', 'Asia/Tokyo');
+        }
+    } finally {
+        Intl.DateTimeFormat = Original;
+    }
+    assert.equal(built, 1);
+    assert.equal(contracts.parseTimestamp('2026-10-01T09:00:00', 'Asia/Tokyo').toISOString(), '2026-10-01T00:00:00.000Z');
+    assert.equal(contracts.parseTimestamp('2026-10-01T09:00:00', 'Not/AZone').getTime(), new Date('2026-10-01T09:00:00').getTime());
+});
+
 test('compact month-day styles drop the year and follow the locale', () => {
     const fmt = (value, locale, style) => contracts.formatTimestamp(value, {locale, timeZone: 'Europe/Berlin', style});
     assert.equal(fmt('2026-09-29T06:52:00Z', 'de', 'monthday'), '29.09.');

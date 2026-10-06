@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Ovo će izbrisati sve demo podatke i prebaciti se na način uživo. Vaši će se unosi zadržati. Nastaviti?",
   "demo_migrate_success": "Uspješno prebačeno na način rada uživo. Demo podaci su uklonjeni.",
   "channel_compare": "Usporedba kanala",
+  "compare_remove_channel": "Ukloni {0}",
+  "compare_clear_channels": "Očisti odabir",
   "add_channel": "Dodaj",
   "all_downstream": "Sve nizvodno",
   "all_upstream": "Sve uzvodno",

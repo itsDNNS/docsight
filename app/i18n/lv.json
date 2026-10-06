@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Tiks dzēsti visi demonstrācijas dati un pārslēgsies uz tiešraides režīmu. Jūsu ieraksti tiks saglabāti. Vai turpināt?",
   "demo_migrate_success": "Veiksmīgi pārslēgts uz tiešraides režīmu. Demonstrācijas dati ir noņemti.",
   "channel_compare": "Kanālu salīdziniet",
+  "compare_remove_channel": "Noņemt {0}",
+  "compare_clear_channels": "Notīrīt atlasi",
   "add_channel": "Pievienot",
   "all_downstream": "Visas lejupielādes",
   "all_upstream": "Visas augšpus",

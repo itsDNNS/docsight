@@ -756,6 +756,19 @@ mark.search-highlight {
     border-color: var(--accent-purple, var(--accent)) !important;
 }
 .journal-check-col { width: 36px; text-align: center; }
+.incident-timeline-spinner { display: block; margin: 20px auto; }
+.import-icon-cell { text-align: center; }
+.import-date-fix {
+    width: 140px;
+    padding: 2px 4px;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: max(var(--fs-min), 0.85em);
+}
+.timeline-preview-time { white-space: nowrap; font-size: max(var(--fs-min), 0.82em); }
+.timeline-preview-details { font-size: max(var(--fs-min), 0.85em); }
 .journal-check-cell { text-align: center; width: 36px; }
 .journal-check-cell input[type="checkbox"],
 .journal-check-col input[type="checkbox"] {

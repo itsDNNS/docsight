@@ -223,6 +223,32 @@ def test_templates_reference_existing_static_assets() -> None:
     assert missing == []
 
 
+# An inline handler or style attribute directly followed by its quote only occurs in HTML built as a string.
+BUILT_HTML_INLINE = re.compile(r"""\b(on[a-z]+|style)=\\?["']""")
+INLINE_ATTRIBUTE_SETTER = re.compile(r"""setAttribute\(\s*["'](on[a-z]+|style)["']""")
+
+
+def test_scripts_build_html_without_inline_handlers_or_styles() -> None:
+    """Built HTML names handlers in data-action attributes and styles in classes;
+    runtime values reach CSS through custom properties set with setProperty."""
+    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    scripts = [path for path in tracked.split() if path.endswith(".js") and "/vendor/" not in path]
+    offenders = [
+        f"{path}:{number}: {line.strip()[:120]}"
+        for path in scripts
+        for number, line in enumerate((ROOT / path).read_text(encoding="utf-8").splitlines(), 1)
+        if BUILT_HTML_INLINE.search(line) or INLINE_ATTRIBUTE_SETTER.search(line)
+    ]
+    assert offenders == []
+
+
+def test_built_html_inline_scanner_matches_handler_and_style_attributes() -> None:
+    for line in ("'<button onclick=\"go()\">'", "' style=\"color:red\"'", "'<td style=\\'x\\'>'", "el.setAttribute('style', 'x')"):
+        assert BUILT_HTML_INLINE.search(line) or INLINE_ATTRIBUTE_SETTER.search(line), line
+    for line in ("img.onload = function() {}", "el.style.setProperty('--c', c)", "data-action=\"go\""):
+        assert not (BUILT_HTML_INLINE.search(line) or INLINE_ATTRIBUTE_SETTER.search(line)), line
+
+
 def test_inline_script_scanner_handles_malformed_end_tag_variants() -> None:
     source = '<script type="text/javascript">alert(1)</script\t\n bogus>'
 

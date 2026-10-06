@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Ezzel törli az összes demóadatot, és élő módba vált. A saját bejegyzéseid megmaradnak. Folytatja?",
   "demo_migrate_success": "Sikeresen átváltott élő módba. A demóadatok eltávolítva.",
   "channel_compare": "Csatornák összehasonlítása",
+  "compare_remove_channel": "{0} eltávolítása",
+  "compare_clear_channels": "Kijelölés törlése",
   "add_channel": "Hozzáad",
   "all_downstream": "Minden Downstream",
   "all_upstream": "Minden Upstream",
