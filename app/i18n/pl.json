@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Spowoduje to usunięcie wszystkich danych demonstracyjnych i przejście do trybu na żywo. Twoje własne wpisy zostaną zachowane. Kontynuować?",
   "demo_migrate_success": "Pomyślnie przełączono na tryb na żywo. Dane demonstracyjne zostały usunięte.",
   "channel_compare": "Porównanie kanałów",
+  "compare_remove_channel": "Usuń {0}",
+  "compare_clear_channels": "Wyczyść wybór",
   "add_channel": "Dodaj",
   "all_downstream": "Wszystko poniżej",
   "all_upstream": "Wszystko w górę",

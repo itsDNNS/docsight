@@ -72,21 +72,21 @@
         dialog.setAttribute('aria-modal', 'true');
         dialog.setAttribute('aria-labelledby', 'docsight-confirm-title');
         dialog.innerHTML = [
-            '<div class="modal docsight-confirm-modal" style="max-width:520px;">',
+            '<div class="modal docsight-confirm-modal">',
             '  <div class="modal-header">',
             '    <h2 id="docsight-confirm-title"></h2>',
             '    <button type="button" class="modal-close" id="docsight-confirm-x" aria-label="Close">&times;</button>',
             '  </div>',
             '  <div class="modal-body">',
             '    <p id="docsight-confirm-message" class="docsight-confirm-message"></p>',
-            '    <label id="docsight-confirm-typed-wrap" class="docsight-confirm-typed-wrap" style="display:none;">',
+            '    <label id="docsight-confirm-typed-wrap" class="docsight-confirm-typed-wrap" hidden>',
             '      <span id="docsight-confirm-typed-label"></span>',
             '      <input id="docsight-confirm-typed-input" class="docsight-confirm-typed-input" autocomplete="off" spellcheck="false">',
             '    </label>',
             '  </div>',
             '  <div class="incident-modal-footer">',
             '    <div class="modal-footer-left"></div>',
-            '    <div style="display:flex; gap:10px;">',
+            '    <div class="docsight-confirm-actions">',
             '      <button type="button" class="btn btn-secondary" id="docsight-confirm-cancel"></button>',
             '      <button type="button" class="btn btn-primary" id="docsight-confirm-ok"></button>',
             '    </div>',
@@ -146,11 +146,11 @@
         var typedInput = document.getElementById('docsight-confirm-typed-input');
         typedInput.value = '';
         if (opts.requireText) {
-            typedWrap.style.display = '';
+            typedWrap.hidden = false;
             typedLabel.textContent = opts.requireLabel || ('Type ' + opts.requireText + ' to confirm');
             typedInput.setAttribute('autofocus', '');
         } else {
-            typedWrap.style.display = 'none';
+            typedWrap.hidden = true;
             typedInput.removeAttribute('autofocus');
         }
         return new Promise(function(resolve) {

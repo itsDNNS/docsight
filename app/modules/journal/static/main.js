@@ -294,7 +294,7 @@ function renderJournalTable(data, searchQuery) {
         var descHtml = q ? highlightText(desc, q) : escapeHtml(desc);
         var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
         tr.innerHTML =
-            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtmlAttribute(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' onclick="toggleEntrySelection(this, ' + inc.id + ')"></td>' : '') +
+            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtmlAttribute(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
             '<td class="journal-icon-cell" aria-hidden="true">' + iconHtml + '</td>' +
             '<td class="journal-date-cell" data-label="' + escapeHtmlAttribute(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
             '<td class="journal-title-cell" data-label="' + escapeHtmlAttribute(T.incident_title || 'Title') + '">' + titleHtml + '</td>' +
@@ -775,15 +775,14 @@ function renderImportPreview(data) {
         if (isSkipped) {
             var rawHint = row.raw_date ? ' placeholder="' + escapeHtml(row.raw_date) + '"' : '';
             dateCell = '<input type="date" class="import-date-fix" data-idx="' + i + '"' + rawHint +
-                ' style="width:140px;padding:2px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--bg);color:var(--fg);font-size:max(var(--fs-min), 0.85em);"' +
-                ' onchange="fixImportDate(this,' + i + ')">' +
+                ' data-change-action="fixImportDate" data-action-pass="element" data-action-args="[' + i + ']">' +
                 '<span class="import-skipped-badge">' + (T.import_no_date || 'no date') + '</span>';
         } else {
             dateCell = escapeHtml(row.date);
         }
         tr.innerHTML =
-            '<td><input type="checkbox" class="import-row-cb" data-idx="' + i + '" ' + checked + ' onchange="updateImportSelectionState()"></td>' +
-            '<td style="text-align:center;">' + iconHtml + '</td>' +
+            '<td><input type="checkbox" class="import-row-cb" data-idx="' + i + '" ' + checked + ' data-change-action="updateImportSelectionState"></td>' +
+            '<td class="import-icon-cell">' + iconHtml + '</td>' +
             '<td>' + dateCell + '</td>' +
             '<td>' + escapeHtml(row.title) + dupeBadge + '</td>' +
             '<td class="journal-hide-mobile">' + escapeHtml(desc) + '</td>';
@@ -999,9 +998,10 @@ function renderIncidentSummary(incidentId) {
     if (dateRange) html += '<span class="incident-summary-date">' + dateRange + '</span>';
     html += '<span class="incident-summary-count">' + (inc.entry_count || 0) + ' ' + (T.incident_entry_count || 'Entries') + '</span>';
     html += '<span class="incident-summary-evidence">' + (T.incident_linked_evidence || 'Linked evidence') + '</span>';
-    html += '<button class="incident-summary-edit" onclick="openIncidentModal(' + inc.id + ')" title="' + (T.incident_edit || 'Edit') + '">&#9998;</button>';
-    html += '<button class="incident-summary-timeline-btn" onclick="openIncidentTimeline(' + inc.id + ')">' + (T.incident_view_timeline || 'View Timeline') + '</button>';
-    html += '<button class="incident-summary-report-btn" onclick="openIncidentTimeline(' + inc.id + ')">' + (T.incident_build_report || 'Build report') + '</button>';
+    var incidentArgs = ' data-action-args="[' + inc.id + ']"';
+    html += '<button type="button" class="incident-summary-edit" data-action="openIncidentModal"' + incidentArgs + ' title="' + escapeHtmlAttribute(T.incident_edit || 'Edit') + '">&#9998;</button>';
+    html += '<button type="button" class="incident-summary-timeline-btn" data-action="openIncidentTimeline"' + incidentArgs + '>' + escapeHtml(T.incident_view_timeline || 'View Timeline') + '</button>';
+    html += '<button type="button" class="incident-summary-report-btn" data-action="openIncidentTimeline"' + incidentArgs + '>' + escapeHtml(T.incident_build_report || 'Build report') + '</button>';
     html += '</div>';
     if (inc.description) {
         var desc = inc.description.length > 200 ? inc.description.substring(0, 200) + '\u2026' : inc.description;
@@ -1032,7 +1032,7 @@ window.openIncidentTimeline = function(incidentId) {
     var timelineView = document.getElementById('incident-timeline-view');
     timelineView.hidden = false;
     var header = document.getElementById('incident-timeline-header');
-    header.innerHTML = '<div class="spinner" style="margin:20px auto;"></div>';
+    header.innerHTML = '<div class="spinner incident-timeline-spinner"></div>';
 
     _timelineActive = true;
 
@@ -1201,7 +1201,7 @@ function renderIncidentTimeline(data) {
         eHtml += '<div class="incident-timeline-entries-grid">';
         entries.forEach(function(entry) {
             var icon = _getEntryIcon(entry);
-            eHtml += '<div class="incident-timeline-entry" onclick="openEntryModal(' + entry.id + ')">';
+            eHtml += '<div class="incident-timeline-entry" role="button" tabindex="0" data-action="openEntryModal" data-action-args="[' + entry.id + ']">';
             eHtml += '<div class="incident-timeline-entry-icon">' + icon + '</div>';
             eHtml += '<div class="incident-timeline-entry-body">';
             eHtml += '<div class="incident-timeline-entry-date">' + formatDateDE(entry.date) + '</div>';
@@ -1528,9 +1528,9 @@ function _renderTimelineTable(data) {
             details = typeof formatEventMessage === 'function' ? formatEventMessage(e) : escapeHtml(e.message || '');
         }
 
-        tHtml += '<tr><td style="white-space:nowrap;font-size:max(var(--fs-min), 0.82em);">' + ts + '</td>';
+        tHtml += '<tr><td class="timeline-preview-time">' + ts + '</td>';
         tHtml += '<td>' + srcBadge + '</td>';
-        tHtml += '<td style="font-size:max(var(--fs-min), 0.85em);">' + details + '</td></tr>';
+        tHtml += '<td class="timeline-preview-details">' + details + '</td></tr>';
         count++;
     }
 
@@ -1721,8 +1721,7 @@ function toggleBulkMode() {
         var headRow = document.getElementById('journal-thead-row');
         var th = document.createElement('th');
         th.className = 'journal-check-col';
-        th.style.width = '36px';
-        th.innerHTML = '<input type="checkbox" id="journal-select-all" onclick="toggleSelectAll(this)" title="' + (T.bulk_select_all || 'Select All') + '">';
+        th.innerHTML = '<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtmlAttribute(T.bulk_select_all || 'Select All') + '">';
         headRow.insertBefore(th, headRow.firstChild);
         // Re-render table with checkboxes
         if (_journalAllData) renderJournalTable(_journalAllData, _journalSearchQuery);

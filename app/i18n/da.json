@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Dette vil slette alle demodata og skifte til live-tilstand. Dine egne poster gemmes. Fortsætte?",
   "demo_migrate_success": "Skiftet til live-tilstand. Demodata er blevet fjernet.",
   "channel_compare": "Kanalsammenligning",
+  "compare_remove_channel": "Fjern {0}",
+  "compare_clear_channels": "Ryd valg",
   "add_channel": "Tilføj",
   "all_downstream": "Alle downstream",
   "all_upstream": "Alle Upstream",

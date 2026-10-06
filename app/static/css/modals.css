@@ -456,6 +456,10 @@
     color: var(--amethyst-light);
 }
 
+/* Confirm dialog built by modals.js */
+.modal.docsight-confirm-modal { max-width: 520px; }
+.docsight-confirm-actions { display: flex; gap: 10px; }
+
 /* ── Modal Footer ── */
 .modal-footer {
     display: flex;
@@ -482,12 +486,12 @@
 
 .import-validation-state.is-success {
     border-color: var(--accent-purple, var(--accent));
-    color: var(--fg);
+    color: var(--text);
 }
 
 .import-validation-state.is-warning {
     border-color: #eab308;
-    color: var(--fg);
+    color: var(--text);
 }
 
 .import-validation-state.is-error {
@@ -498,7 +502,7 @@
 .import-validation-state.is-progress,
 .import-validation-state.is-info {
     border-color: var(--accent);
-    color: var(--fg);
+    color: var(--text);
 }
 
 /* ── Guided integration setup modals ── */

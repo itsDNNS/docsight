@@ -47,6 +47,13 @@ function _corrPositionEventPopover(pop, anchor) {
 function _corrEscapeAttr(value) {
     return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+/* Colors computed at runtime reach CSS as --corr-color through the CSSOM,
+   never as inline style attributes in built HTML. */
+function _corrApplyColors(root) {
+    root.querySelectorAll('[data-color]').forEach(function(el) {
+        el.style.setProperty('--corr-color', el.getAttribute('data-color'));
+    });
+}
 function _corrEnsureEventSeverityFilter(eventType) {
     if (!(eventType in _corrEventSeverityFilter)) {
         _corrEventSeverityFilter[eventType] = { info: true, warning: true, critical: true };
@@ -772,13 +779,14 @@ function renderCorrelationChart(data) {
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : 'disabled';
         if (item.metric === 'events') {
-            var filterBadge = item.visibleEventCount < item.totalEventCount ? ' <span style="font-size:max(var(--fs-min), 0.7em);opacity:0.7;">(' + item.visibleEventCount + '/' + item.totalEventCount + ')</span>' : '';
+            var filterBadge = item.visibleEventCount < item.totalEventCount ? ' <span class="corr-legend-filter-count">(' + item.visibleEventCount + '/' + item.totalEventCount + ')</span>' : '';
             var eventCls = cls ? cls + ' corr-legend-events' : 'corr-legend-events';
-            return '<span data-metric="events" tabindex="0" role="button" aria-pressed="' + (cls ? 'false' : 'true') + '" class="' + eventCls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + filterBadge +
+            return '<span data-metric="events" tabindex="0" role="button" aria-pressed="' + (cls ? 'false' : 'true') + '" class="' + eventCls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" data-color="' + _corrEscapeAttr(item.color) + '">' + item.label + filterBadge +
                 ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '">&#9881;</span></span>';
         }
-        return '<span data-metric="' + item.metric + '" tabindex="0" role="button" aria-pressed="' + (cls ? 'false' : 'true') + '" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + '</span>';
+        return '<span data-metric="' + item.metric + '" tabindex="0" role="button" aria-pressed="' + (cls ? 'false' : 'true') + '" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" data-color="' + _corrEscapeAttr(item.color) + '">' + item.label + '</span>';
     }).join('');
+    _corrApplyColors(legend);
 
     var overlayLabel = T.correlation_chart_aria_label || 'Signal correlation chart';
     if (reachabilityBuckets.length > 0) {
@@ -818,29 +826,30 @@ function renderCorrelationChart(data) {
                 warning: T.event_severity_warning || 'Warning',
                 critical: T.event_severity_critical || 'Critical'
             };
-            var html = '<div style="font-weight:600; margin-bottom:6px; color:var(--text,#f0f0f0);">' + (T.event_filter_title || 'Event Types') + '</div>';
+            var html = '<div class="corr-event-filter-title">' + (T.event_filter_title || 'Event Types') + '</div>';
             var sortedTypes = Object.keys(eventTypes).sort();
             for (var si = 0; si < sortedTypes.length; si++) {
                 var et = sortedTypes[si];
                 var checked = _corrEventFilter[et] ? ' checked' : '';
                 var label = typeLabel[et] || et.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
                 var severityFilter = _corrEnsureEventSeverityFilter(et);
-                html += '<div class="corr-event-filter-group" style="padding:5px 0 7px; border-top:1px solid rgba(148,163,184,0.14);">' +
-                    '<label style="display:flex; align-items:center; gap:6px; padding:3px 0; cursor:pointer; color:var(--text-secondary,#9ca3af);">' +
-                    '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '"' + checked + ' style="accent-color:' + warnColor + ';"> ' +
-                    '<span style="font-weight:600; color:var(--text,#f0f0f0);">' + escapeHtml(label) + '</span> <span style="opacity:0.5; font-size:max(var(--fs-min), 0.85em);">(' + eventTypes[et] + ')</span></label>' +
-                    '<div style="display:flex; flex-wrap:wrap; gap:6px; padding-left:22px; margin-top:2px;">';
+                html += '<div class="corr-event-filter-group">' +
+                    '<label class="corr-event-filter-type">' +
+                    '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '"' + checked + ' data-color="' + _corrEscapeAttr(warnColor) + '"> ' +
+                    '<span class="corr-event-filter-name">' + escapeHtml(label) + '</span> <span class="corr-event-filter-count">(' + eventTypes[et] + ')</span></label>' +
+                    '<div class="corr-event-filter-severities">';
                 for (var sj = 0; sj < CorrelationData.SEVERITIES.length; sj++) {
                     var sv = CorrelationData.SEVERITIES[sj];
                     var svChecked = severityFilter[sv] !== false ? ' checked' : '';
                     var svCount = (eventSeverityCounts[et] && eventSeverityCounts[et][sv]) || 0;
-                    html += '<label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; color:var(--text-secondary,#9ca3af); font-size:max(var(--fs-min), 0.85em);">' +
-                        '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '" data-event-severity="' + _corrEscapeAttr(sv) + '"' + svChecked + ' style="accent-color:' + warnColor + ';"> ' +
-                        escapeHtml(severityLabel[sv] || sv) + ' <span style="opacity:0.5;">(' + svCount + ')</span></label>';
+                    html += '<label class="corr-event-filter-severity">' +
+                        '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '" data-event-severity="' + _corrEscapeAttr(sv) + '"' + svChecked + ' data-color="' + _corrEscapeAttr(warnColor) + '"> ' +
+                        escapeHtml(severityLabel[sv] || sv) + ' <span class="corr-event-filter-count">(' + svCount + ')</span></label>';
                 }
                 html += '</div></div>';
             }
             pop.innerHTML = html;
+            _corrApplyColors(pop);
             document.body.appendChild(pop);
             _corrPositionEventPopover(pop, filterBtn);
             var positionPopover = function() { _corrPositionEventPopover(pop, filterBtn); };
@@ -1210,23 +1219,23 @@ function _setupCorrelationTooltip(overlay, octx) {
         html += '<div class="tt-time">' + escapeHtml(_corrFormatTimestamp(displayTs)) + '</div>';
 
         if (nearestModem && _corrVisible.snr) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.snr + ';"></span> ' + (T.correlation_tt_snr || 'SNR') + ': ' + (nearestModem.ds_snr_min || 0).toFixed(1) + ' dB</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.snr) + '"></span> ' + (T.correlation_tt_snr || 'SNR') + ': ' + (nearestModem.ds_snr_min || 0).toFixed(1) + ' dB</div>';
         }
         if (nearestModem && _corrVisible.txPower && nearestModem.us_power_avg) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.txPower + ';"></span> ' + (T.correlation_tt_tx_power || 'TX Power') + ': ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.txPower) + '"></span> ' + (T.correlation_tt_tx_power || 'TX Power') + ': ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
         }
         if (nearestModem && _corrVisible.dsPower && nearestModem.ds_power_avg != null) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.dsPower + ';"></span> ' + (T.correlation_tt_ds_power || 'DS Power') + ': ' + nearestModem.ds_power_avg.toFixed(1) + ' dBmV</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.dsPower) + '"></span> ' + (T.correlation_tt_ds_power || 'DS Power') + ': ' + nearestModem.ds_power_avg.toFixed(1) + ' dBmV</div>';
         }
         if (nearestModem && _corrVisible.signalState && st.colors.health[nearestModem.health]) {
             var stateLabels = { good: T.health_good, tolerated: T.health_tolerated, marginal: T.health_marginal, critical: T.health_critical };
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.health[nearestModem.health] + ';"></span> '
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.health[nearestModem.health]) + '"></span> '
                 + (T.correlation_lane_state || 'Signal state') + ': ' + escapeHtml(stateLabels[nearestModem.health] || nearestModem.health) + '</div>';
         }
         if (nearestModem && _corrVisible.errors) {
             var errorDelta = st.errorDeltas[st.modem.indexOf(nearestModem)];
             if (errorDelta && errorDelta.delta) {
-                html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.errors + ';"></span> '
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.errors) + '"></span> '
                     + (T.correlation_tt_errors || 'Errors') + ': +' + errorDelta.delta.toLocaleString()
                     + ' (' + (T.correlation_tt_errors_total || 'total') + ' ' + nearestModem.ds_uncorrectable_errors.toLocaleString() + ')</div>';
             }
@@ -1239,10 +1248,10 @@ function _setupCorrelationTooltip(overlay, octx) {
             var speedPacketLoss = CorrelationData.measurement(nearestSpeed.packet_loss_pct);
             html += '<div class="tt-row tt-speedtest-time">' + (T.timestamp || 'Timestamp') + ': ' + escapeHtml(_corrFormatTimestamp(nearestSpeed.timestamp)) + '</div>';
             if (_corrVisible.download && speedDownload !== null) {
-                html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> ' + (T.correlation_tt_download || 'Download') + ': ' + speedDownload.toFixed(1) + ' Mbps</div>';
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.download) + '"></span> ' + (T.correlation_tt_download || 'Download') + ': ' + speedDownload.toFixed(1) + ' Mbps</div>';
             }
             if (_corrVisible.upload && speedUpload !== null) {
-                html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.upload + ';"></span> ' + (T.correlation_tt_upload || 'Upload') + ': ' + speedUpload.toFixed(1) + ' Mbps</div>';
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.upload) + '"></span> ' + (T.correlation_tt_upload || 'Upload') + ': ' + speedUpload.toFixed(1) + ' Mbps</div>';
             }
             if (speedPing !== null) {
                 html += '<div class="tt-row">' + (T.speedtest_ping || T.ping || 'Ping') + ': ' + speedPing.toFixed(1) + ' ms</div>';
@@ -1255,10 +1264,10 @@ function _setupCorrelationTooltip(overlay, octx) {
             }
         }
         if (nearestEvent && _corrVisible.events) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + escapeHtml(typeof _eventTypeLabel === 'function' ? _eventTypeLabel(nearestEvent.event_type) : (nearestEvent.event_type || nearestEvent.severity || '')) + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.event) + '"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + escapeHtml(typeof _eventTypeLabel === 'function' ? _eventTypeLabel(nearestEvent.event_type) : (nearestEvent.event_type || nearestEvent.severity || '')) + '</div>';
         }
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + fmtTemp(nearestWeather.temperature) + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.temperature) + '"></span> ' + (T.temperature || 'Temperature') + ': ' + fmtTemp(nearestWeather.temperature) + '</div>';
         }
         if (reachabilityBucket) {
             var stateLabels = {
@@ -1267,7 +1276,7 @@ function _setupCorrelationTooltip(overlay, octx) {
                 down: T.correlation_reachability_down || 'Down',
                 unknown: T.correlation_reachability_unknown || 'Unknown'
             };
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.reachability[reachabilityBucket.state] + ';"></span> '
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.reachability[reachabilityBucket.state]) + '"></span> '
                 + (T.correlation_reachability || 'Reachability') + ' — '
                 + (T.correlation_reachability_state || 'State') + ': ' + stateLabels[reachabilityBucket.state] + '</div>';
             html += '<div class="tt-row">' + (T.correlation_reachability_window || 'Window') + ': '
@@ -1290,15 +1299,16 @@ function _setupCorrelationTooltip(overlay, octx) {
             }
             if (nearestSeg && segDist < (st.tMax - st.tMin) * 0.05) {
                 if (_corrVisible.segmentDs && nearestSeg.ds_total != null) {
-                    html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.segmentDs + ';"></span> ' + (T.seg_correlation_ds || 'Segment DS') + ': ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
+                    html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.segmentDs) + '"></span> ' + (T.seg_correlation_ds || 'Segment DS') + ': ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
                 }
                 if (_corrVisible.segmentUs && nearestSeg.us_total != null) {
-                    html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.segmentUs + ';"></span> ' + (T.seg_correlation_us || 'Segment US') + ': ' + nearestSeg.us_total.toFixed(1) + '%</div>';
+                    html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.segmentUs) + '"></span> ' + (T.seg_correlation_us || 'Segment US') + ': ' + nearestSeg.us_total.toFixed(1) + '%</div>';
                 }
             }
         }
 
         tooltip.innerHTML = html;
+        _corrApplyColors(tooltip);
         tooltip.style.display = 'block';
 
         // Position tooltip — forced reflow to measure dimensions is intentional here
@@ -1633,7 +1643,7 @@ function renderCorrelationTable(data) {
         if (src === 'modem') {
             var h = e.health || 'unknown';
             var badge = '<span class="st-health-badge health-' + h + '">' + (healthLabels[h] || h) + '</span>';
-            src = '<span style="color:var(--accent);">' + escapeHtml(T.correlation_source_modem || 'Modem') + '</span>';
+            src = '<span class="corr-tone-accent">' + escapeHtml(T.correlation_source_modem || 'Modem') + '</span>';
             msg = badge;
             var modemDetails = [
                 (T.correlation_tt_snr || 'SNR') + ' ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : ''),
@@ -1645,16 +1655,16 @@ function renderCorrelationTable(data) {
             }
             details = modemDetails.join(' | ');
         } else if (src === 'speedtest') {
-            src = '<span style="color:var(--good);">' + escapeHtml(T.correlation_source_speedtest || 'Speedtest') + '</span>';
+            src = '<span class="corr-tone-good">' + escapeHtml(T.correlation_source_speedtest || 'Speedtest') + '</span>';
             msg = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');
             details = (T.speedtest_ping || 'Ping') + ' ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms';
         } else if (src === 'capture') {
             var scStatus = e.status || '';
-            var scColor = scStatus === 'completed' ? 'var(--good)'
-                : scStatus === 'suppressed' ? 'var(--muted)'
-                : scStatus === 'expired' ? 'var(--crit)'
-                : 'var(--accent)';
-            src = '<span style="color:' + scColor + ';">' + escapeHtml(T.correlation_source_capture || 'Capture') + '</span>';
+            var scTone = scStatus === 'completed' ? 'good'
+                : scStatus === 'suppressed' ? 'muted'
+                : scStatus === 'expired' ? 'crit'
+                : 'accent';
+            src = '<span class="corr-tone-' + scTone + '">' + escapeHtml(T.correlation_source_capture || 'Capture') + '</span>';
             if (scStatus === 'completed' || scStatus === 'fired') {
                 msg = escapeHtml(T.sc_action_capture || 'Speedtest triggered');
                 details = e.linked_result_id ? 'Result #' + e.linked_result_id : '';
@@ -1667,8 +1677,8 @@ function renderCorrelationTable(data) {
             }
         } else if (src === 'event') {
             var eventSeverity = CorrelationData.normalizeSeverity(e);
-            var sevColor = eventSeverity === 'critical' ? 'var(--crit)' : eventSeverity === 'warning' ? 'var(--warn)' : 'var(--muted)';
-            src = '<span style="color:' + sevColor + ';">' + escapeHtml(sevLabels[eventSeverity] || eventSeverity) + '</span>';
+            var sevTone = eventSeverity === 'critical' ? 'crit' : eventSeverity === 'warning' ? 'warn' : 'muted';
+            src = '<span class="corr-tone-' + sevTone + '">' + escapeHtml(sevLabels[eventSeverity] || eventSeverity) + '</span>';
             msg = typeof formatEventMessage === 'function' ? formatEventMessage(e) : escapeHtml(e.message || '');
             details = escapeHtml(typeLabels[e.event_type] || e.event_type || '');
         }

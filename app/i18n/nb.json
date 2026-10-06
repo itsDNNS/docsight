@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Dette vil slette alle demodata og bytte til live-modus. Dine egne oppføringer vil bli beholdt. Fortsette?",
   "demo_migrate_success": "Byttet til live-modus. Demodata er fjernet.",
   "channel_compare": "Kanalsammenligning",
+  "compare_remove_channel": "Fjern {0}",
+  "compare_clear_channels": "Tøm utvalg",
   "add_channel": "Legg til",
   "all_downstream": "Alt nedstrøms",
   "all_upstream": "Alle oppstrøms",

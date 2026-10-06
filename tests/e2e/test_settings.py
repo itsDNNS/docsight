@@ -300,6 +300,13 @@ class TestSettingsFormElements:
         select = settings_page.locator('select[name="modem_type"], #modem_type, #modem-type')
         assert select.count() > 0
 
+    def test_connection_test_hides_for_modems_without_credentials(self, settings_page):
+        test_button = settings_page.locator('button[data-action="testModem"]')
+        settings_page.locator("#modem_type").select_option("sb6141")
+        expect(test_button).to_be_hidden()
+        settings_page.locator("#modem_type").select_option("fritzbox")
+        expect(test_button).to_be_visible()
+
     def test_modem_status_updates_after_successful_connection_test(self, settings_page):
         settings_page.route("**/api/test-modem", lambda route: route.fulfill(json={"success": True, "model": "Demo CM"}))
 

@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Scriosfaidh sé seo na sonraí taispeána go léir agus aistreoidh sé go mód beo. Coinneofar d’iontrálacha féin. Lean ort?",
   "demo_migrate_success": "D'éirigh leis an modh beo a aistriú. Baineadh na sonraí taispeána.",
   "channel_compare": "Cainéal Déan comparáid idir",
+  "compare_remove_channel": "Bain {0}",
+  "compare_clear_channels": "Glan an rogha",
   "add_channel": "Cuir leis",
   "all_downstream": "Gach Leanbh",
   "all_upstream": "All Upstream",

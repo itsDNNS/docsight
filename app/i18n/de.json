@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Alle Demo-Daten werden gelöscht und der Live-Modus aktiviert. Eigene Einträge bleiben erhalten. Fortfahren?",
   "demo_migrate_success": "Erfolgreich zum Live-Modus gewechselt. Demo-Daten wurden entfernt.",
   "channel_compare": "Kanalvergleich",
+  "compare_remove_channel": "{0} entfernen",
+  "compare_clear_channels": "Auswahl leeren",
   "add_channel": "Hinzufügen",
   "all_downstream": "Alle Downstream-Kanäle",
   "all_upstream": "Alle Upstream-Kanäle",

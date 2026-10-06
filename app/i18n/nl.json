@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Hiermee worden alle demogegevens verwijderd en wordt overgeschakeld naar de livemodus. Uw eigen inzendingen blijven behouden. Doorgaan?",
   "demo_migrate_success": "Succesvol overgeschakeld naar de live-modus. Demogegevens zijn verwijderd.",
   "channel_compare": "Kanaal vergelijken",
+  "compare_remove_channel": "{0} verwijderen",
+  "compare_clear_channels": "Selectie wissen",
   "add_channel": "Toevoegen",
   "all_downstream": "Allemaal stroomafwaarts",
   "all_upstream": "Allemaal stroomopwaarts",

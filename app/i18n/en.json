@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "This will delete all demo data and switch to live mode. Your own entries will be kept. Continue?",
   "demo_migrate_success": "Successfully switched to live mode. Demo data has been removed.",
   "channel_compare": "Channel Compare",
+  "compare_remove_channel": "Remove {0}",
+  "compare_clear_channels": "Clear selection",
   "add_channel": "Add",
   "all_downstream": "All Downstream",
   "all_upstream": "All Upstream",

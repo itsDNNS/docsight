@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "See kustutab kõik demoandmed ja lülitub otserežiimi. Teie enda sissekanded jäetakse alles. Kas jätkata?",
   "demo_migrate_success": "Reaalajas režiimile lülitumine õnnestus. Demo andmed on eemaldatud.",
   "channel_compare": "Kanalite võrdlus",
+  "compare_remove_channel": "Eemalda {0}",
+  "compare_clear_channels": "Tühjenda valik",
   "add_channel": "Lisa",
   "all_downstream": "Kõik allavoolu",
   "all_upstream": "Kõik ülesvoolu",

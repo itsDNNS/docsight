@@ -548,6 +548,8 @@
   "demo_migrate_confirm": "Isso excluirá todos os dados de demonstração e mudará para o modo ao vivo. Suas próprias entradas serão mantidas. Continuar?",
   "demo_migrate_success": "Mudou com sucesso para o modo ao vivo. Os dados de demonstração foram removidos.",
   "channel_compare": "Comparação de canais",
+  "compare_remove_channel": "Remover {0}",
+  "compare_clear_channels": "Limpar seleção",
   "add_channel": "Adicionar",
   "all_downstream": "Todos a jusante",
   "all_upstream": "Todos a montante",
