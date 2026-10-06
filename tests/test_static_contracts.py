@@ -665,6 +665,40 @@ def test_module_catalogs_do_not_duplicate_core_keys() -> None:
     assert offenders == {}
 
 
+def test_id_named_class_rules_are_applied_to_their_element() -> None:
+    """A class rule named after an element id must also be on that element as a class.
+
+    Moving inline styles into classes once left `#isp-icon-preview` without its
+    `.isp-icon-preview` class, so the provider logo rendered at full size.
+    """
+    css_classes = set()
+    for stylesheet in [*STATIC.glob("css/*.css"), *MODULES.glob("*/static/*.css")]:
+        css_classes.update(re.findall(r"\.([A-Za-z][\w-]*)", re.sub(r"/\*.*?\*/", "", stylesheet.read_text(encoding="utf-8"), flags=re.S)))
+
+    templates = sorted([*TEMPLATES.rglob("*.html"), *MODULES.rglob("*.html")])
+    scripts = "\n".join(path.read_text(encoding="utf-8") for path in [*STATIC.glob("js/**/*.js"), *MODULES.glob("*/static/**/*.js")])
+    applied = set()
+    soups = {}
+    for path in templates:
+        soups[path] = BeautifulSoup(TEMPLATE_JINJA_RE.sub(" ", path.read_text(encoding="utf-8")), "html.parser")
+        for tag in soups[path].find_all(class_=True):
+            applied.update(tag.get("class"))
+
+    offenders = []
+    for path, soup in soups.items():
+        for tag in soup.find_all(id=True):
+            element_id = tag.get("id")
+            if element_id not in css_classes or element_id in applied:
+                continue
+            # Scripts may add the class at runtime (classList, className or a class attribute in markup).
+            if re.search(r"(?:classList\.(?:add|toggle)\(|className\s*\+?=\s*)['\"][^'\"]*\b" + re.escape(element_id) + r"\b"
+                         r"|class=\\?['\"][^'\"]*\b" + re.escape(element_id) + r"\b", scripts):
+                continue
+            offenders.append(f"{path.relative_to(ROOT)}: #{element_id}")
+
+    assert offenders == [], "\n".join(offenders)
+
+
 def test_european_language_pack_metadata() -> None:
     """Core locales have names and flags for the language selector."""
     offenders = []

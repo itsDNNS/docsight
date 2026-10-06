@@ -55,14 +55,6 @@
     margin-bottom: var(--space-xl, 24px);
     gap: var(--space-sm, 10px);
 }
-.trend-title {
-    font-size: clamp(1.2rem, 1rem + 0.5vw, 1.5rem);
-    color: var(--accent-purple, var(--accent));
-    font-weight: bold;
-    display: block;
-    width: 100%;
-    text-align: center;
-}
 
 /* Pill-style tabs (Phase 3 design language) */
 .trend-tabs {
@@ -336,13 +328,6 @@
 .health-dot.poor { background: var(--crit); }
 .health-dot.unknown { background: var(--muted); }
 
-/* Phase 4.3: Sidebar event badge (purple instead of red) */
-.event-badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 18px; height: 18px;
-    padding: 0 5px; border-radius: 9px; font-size: max(var(--fs-min), 0.7em); font-weight: bold;
-    background: var(--accent-purple, var(--accent)); color: var(--text-on-accent); margin-left: 6px;
-}
 
 /* Phase 4.3: Severity colors (updated to purple accent) */
 .sev-info { color: var(--info); }
