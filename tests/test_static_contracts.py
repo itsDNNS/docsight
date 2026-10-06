@@ -699,6 +699,17 @@ def test_id_named_class_rules_are_applied_to_their_element() -> None:
     assert offenders == [], "\n".join(offenders)
 
 
+def test_every_event_health_state_has_a_dot_color() -> None:
+    """The "tolerated" dot once rendered empty because only three states had a rule."""
+    script = (STATIC / "js" / "events.js").read_text(encoding="utf-8")
+    states = re.search(r"var cls = \(([^)]*)\) \? h : 'unknown'", script).group(1)
+    classes = set(re.findall(r"h === '([a-z]+)'", states)) | {"unknown"}
+    css = (STATIC / "css" / "views.css").read_text(encoding="utf-8")
+    missing = sorted(cls for cls in classes if not re.search(r"\.health-dot\." + cls + r"\s*\{", css))
+    assert classes >= {"good", "tolerated", "marginal", "poor", "unknown"}
+    assert missing == []
+
+
 def test_european_language_pack_metadata() -> None:
     """Core locales have names and flags for the language selector."""
     offenders = []

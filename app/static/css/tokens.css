@@ -129,6 +129,10 @@
   --crit-muted: color-mix(in srgb, var(--crit) 15%, transparent);
   --info-muted: color-mix(in srgb, var(--info) 15%, transparent);
   --tolerated-muted: color-mix(in srgb, var(--tolerated) 15%, transparent);
+  /* Red fills under white text. Dark modes use a light red for text, so the fill is
+     darkened further than in light modes; hover goes darker there too. */
+  --crit-strong: color-mix(in srgb, var(--crit) 55%, #000);
+  --crit-strong-hover: color-mix(in srgb, var(--crit) 45%, #000);
   --sapphire: var(--info);
   --glass-bg: color-mix(in srgb, var(--surface) 65%, transparent);
   --glass-border: color-mix(in srgb, var(--text) 12%, transparent);
@@ -156,6 +160,8 @@
   --crit-muted: color-mix(in srgb, var(--crit) 12%, transparent);
   --info-muted: color-mix(in srgb, var(--info) 12%, transparent);
   --tolerated-muted: color-mix(in srgb, var(--tolerated) 12%, transparent);
+  --crit-strong: color-mix(in srgb, var(--crit) 65%, #000);
+  --crit-strong-hover: color-mix(in srgb, var(--crit) 75%, #000);
 
   --bg: #f8f6f3;
   --surface: #ffffff;

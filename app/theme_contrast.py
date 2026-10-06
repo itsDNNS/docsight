@@ -6,8 +6,11 @@ import re
 
 AA_TEXT = 4.5
 TEXT_TOKENS = ("--text", "--text-secondary", "--muted")
+# Status colors are also used as text (callouts, verdicts, badges). --tolerated is
+# derived from --good and --warn unless a theme sets it.
+STATUS_TOKENS = ("--good", "--tolerated", "--warn", "--crit")
 # --bg comes first: a theme that only sets the core tokens paints the page from it.
-SURFACE_TOKENS = ("--bg", "--surface", "--void", "--elevated", "--void-deep")
+SURFACE_TOKENS = ("--bg", "--surface", "--card", "--void", "--elevated", "--void-deep")
 # Button text on the accent color; DOCSight uses white unless the theme sets it.
 ON_ACCENT_DEFAULT = "#ffffff"
 
@@ -63,11 +66,23 @@ def worst_contrast(tokens: dict, name: str) -> float | None:
     return min(contrast_ratio(foreground, background) for background in backgrounds)
 
 
+def with_derived_status(tokens: dict) -> dict:
+    """Add --tolerated the way tokens.css derives it: a 50/50 sRGB mix of --good and --warn."""
+    if parse_color(tokens.get("--tolerated")):
+        return tokens
+    good, warn = parse_color(tokens.get("--good")), parse_color(tokens.get("--warn"))
+    if not (good and warn):
+        return tokens
+    mixed = tuple(round((a + b) / 2) for a, b in zip(good, warn))
+    return {**tokens, "--tolerated": "#" + "".join(f"{channel:02x}" for channel in mixed)}
+
+
 def low_contrast_tokens(tokens: dict) -> list[str]:
-    """Text tokens below 4.5:1 on at least one of the theme's surfaces, and button
-    text below 4.5:1 on the accent color."""
+    """Text and status tokens below 4.5:1 on at least one of the theme's surfaces,
+    and button text below 4.5:1 on the accent color."""
     issues = []
-    for name in TEXT_TOKENS:
+    tokens = with_derived_status(tokens)
+    for name in TEXT_TOKENS + STATUS_TOKENS:
         ratio = worst_contrast(tokens, name)
         if ratio is not None and ratio < AA_TEXT:
             issues.append(name)

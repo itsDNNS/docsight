@@ -1,5 +1,6 @@
-"""Text tokens of shipped themes must meet WCAG 2.2 AA (4.5:1) on every surface."""
+"""Text and status tokens of shipped themes must meet WCAG 2.2 AA (4.5:1) on every surface."""
 
+import math
 import re
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from app.theme_contrast import (
     low_contrast_modes,
     low_contrast_tokens,
     parse_color,
+    with_derived_status,
     worst_contrast,
 )
 from app.theme_registry import BUILTIN_THEMES
@@ -57,23 +59,35 @@ def test_default_tokens_meet_aa_on_all_surfaces():
     _assert_readable(light)
 
 
-@pytest.mark.parametrize(("stylesheet", "selector"), [
-    ("app/static/css/shell.css", ".nav-badge"),
-    ("app/static/css/components.css", ".btn-danger"),
-])
-def test_white_text_on_darkened_crit_meets_aa_with_every_builtin_crit_color(stylesheet, selector):
-    css = (ROOT / stylesheet).read_text(encoding="utf-8")
-    rule = re.search(r"^" + re.escape(selector) + r" \{[^}]*\}", css, re.M).group(0)
-    match = re.search(r"color-mix\(in srgb, var\(--crit\) (\d+)%, #000\)", rule)
-    assert match, f"{selector} should darken --crit"
-    share = int(match.group(1)) / 100
+def _crit_strong_shares(token):
+    """Share of --crit mixed with black in tokens.css, for (dark, light)."""
+    css = (ROOT / "app/static/css/tokens.css").read_text(encoding="utf-8")
+    dark_block, light_block = css.split('[data-theme="light"]', 1)
+    pattern = re.escape(token) + r":\s*color-mix\(in srgb, var\(--crit\) (\d+)%, #000\)"
+    return {
+        "dark": int(re.search(pattern, dark_block).group(1)) / 100,
+        "light": int(re.search(pattern, light_block.split("}", 1)[0]).group(1)) / 100,
+    }
+
+
+@pytest.mark.parametrize("token", ["--crit-strong", "--crit-strong-hover"])
+def test_white_text_on_strong_crit_meets_aa_with_every_builtin_crit_color(token):
     for theme in BUILTIN_THEMES:
-        for mode in ("dark", "light"):
+        for mode, share in _crit_strong_shares(token).items():
             crit = theme["theme_data"][mode]["--crit"]
             mixed = "#" + "".join(
                 f"{round(int(crit[index:index + 2], 16) * share):02x}" for index in (1, 3, 5)
             )
-            assert _contrast("#ffffff", mixed) >= AA_TEXT, f"{theme['id']} {mode}: {mixed}"
+            assert _contrast("#ffffff", mixed) >= AA_TEXT, f"{theme['id']} {mode} {token}: {mixed}"
+
+
+def test_white_text_never_sits_on_a_plain_status_color():
+    offenders = []
+    for path in [*ROOT.glob("app/static/css/*.css"), *ROOT.glob("app/modules/*/static/*.css")]:
+        for rule in re.findall(r"[^{}]+\{[^}]*\}", path.read_text(encoding="utf-8")):
+            if re.search(r"color:\s*(#fff|#ffffff|white)\s*;", rule) and re.search(r"background(-color)?:\s*var\(--(good|tolerated|warn|crit|info)\)\s*;", rule):
+                offenders.append(f"{path.name}: {rule.split('{')[0].strip()}")
+    assert offenders == []
 
 
 @pytest.mark.parametrize(("value", "expected"), [
@@ -131,3 +145,39 @@ def test_builtin_button_text_meets_aa_on_both_gradient_ends(theme_id, mode):
 
 def test_builtin_themes_produce_no_contrast_warnings():
     assert [theme["id"] for theme in BUILTIN_THEMES if low_contrast_modes(theme["theme_data"])] == []
+
+
+def _oklch_hue(color):
+    def linear(channel):
+        value = channel / 255
+        return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+    r, g, b = (linear(int(color[index:index + 2], 16)) for index in (1, 3, 5))
+    l = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+    m = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+    s_ = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+    a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s_
+    b2 = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s_
+    return math.degrees(math.atan2(b2, a)) % 360
+
+
+# Every theme keeps a recognizable green, orange and red for its states: the shade
+# follows the theme, the hue family does not.
+STATUS_HUE_FAMILIES = {"--good": (123, 167), "--warn": (43, 77), "--crit": (8, 37)}
+
+
+@pytest.mark.parametrize(
+    ("theme_id", "mode"),
+    [(theme["id"], mode) for theme in BUILTIN_THEMES for mode in ("dark", "light")],
+)
+def test_builtin_status_colors_stay_in_their_hue_family(theme_id, mode):
+    tokens = next(theme for theme in BUILTIN_THEMES if theme["id"] == theme_id)["theme_data"][mode]
+    for name, (low, high) in STATUS_HUE_FAMILIES.items():
+        assert low <= _oklch_hue(tokens[name]) <= high, f"{name} = {tokens[name]}"
+
+
+def test_status_colors_are_judged_including_the_derived_tolerated():
+    # Readable green and red, a yellow warning that is too light: the derived mix fails as well.
+    tokens = {"--bg": "#ffffff", "--text": "#111111", "--good": "#1a6a01", "--warn": "#f2c200", "--crit": "#b5032e"}
+    assert with_derived_status(tokens)["--tolerated"] == "#869600"
+    assert low_contrast_tokens(tokens) == ["--tolerated", "--warn"]
+    assert with_derived_status({**tokens, "--tolerated": "#5a5200"})["--tolerated"] == "#5a5200"
