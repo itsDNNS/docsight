@@ -4,6 +4,7 @@
   "mqtt_desc": "Home Assistant-integrációhoz MQTT Auto-Discoveryn keresztül. MQTT nélkül csak a webes felület fut.",
   "mqtt_optional_ha": "nem kötelező – Home Assistanthez",
   "mqtt_tls_insecure": "Nem biztonságos TLS",
+  "mqtt_tls_insecure_hint": "TLS-tanúsítvány ellenőrzésének kihagyása",
   "username_opt": "Felhasználónév (nem kötelező)",
   "password_opt": "Jelszó (nem kötelező)",
   "topic_prefix": "Topic-előtag",

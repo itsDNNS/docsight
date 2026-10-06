@@ -52,13 +52,13 @@
                     <span id="bqm-last-updated" class="bqm-last-updated" hidden></span>
                 </div>
                 <div id="bqm-view-toggle" class="trend-tabs" hidden>
-                    <button class="trend-tab active" id="bqm-toggle-uplot">uPlot</button>
-                    <button class="trend-tab" id="bqm-toggle-png">PNG</button>
+                    <button class="trend-tab active" id="bqm-toggle-uplot">{{ t.bqm_view_interactive }}</button>
+                    <button class="trend-tab" id="bqm-toggle-png">{{ t.bqm_view_image }}</button>
                 </div>
             </div>
             <div id="bqm-chart-container" class="bqm-chart-container" hidden></div>
             <div id="bqm-image-wrap">
-                <img id="bqm-image" alt="BQM Graph">
+                <img id="bqm-image" alt="{{ t.bqm_title }}">
             </div>
         </div>
         <div id="bqm-no-data" class="view-empty" hidden></div>

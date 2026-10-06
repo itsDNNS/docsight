@@ -65,7 +65,7 @@ var CMCharts = (function() {
         function showResetBtn(u) {
             if (u._resetBtn) { u._resetBtn.style.display = ''; return; }
             var btn = document.createElement('button');
-            btn.textContent = '\u2715 Reset Zoom';
+            btn.textContent = '\u2715 ' + (T.chart_reset_zoom || 'Reset Zoom');
             btn.style.cssText = 'position:absolute;top:8px;right:8px;z-index:10;' +
                 'font-size:var(--fs-min);padding:3px 8px;border:1px solid rgba(255,255,255,0.2);' +
                 'border-radius:4px;background:rgba(30,30,30,0.85);color:#ccc;cursor:pointer;' +
@@ -89,7 +89,7 @@ var CMCharts = (function() {
                 init: [function(u) {
                     u.over.style.cursor = 'crosshair';
                     // Hint: show drag-to-zoom tooltip on first hover
-                    u.over.title = 'Drag to zoom, double-click to reset';
+                    u.over.title = T.chart_zoom_hint || 'Drag to zoom, double-click to reset';
                 }],
                 ready: [function(u) {
                     u.over.addEventListener('dblclick', function() {

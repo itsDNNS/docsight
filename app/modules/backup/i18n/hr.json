@@ -19,6 +19,7 @@
   "backup_existing": "Postojeće sigurnosne kopije",
   "backup_none": "Nema sigurnosnih kopija",
   "backup_delete_confirm": "Izbrisati ovu sigurnosnu kopiju?",
+  "backup_delete": "Izbriši sigurnosnu kopiju",
   "backup_select_dir": "Odaberi mapu",
   "backup_select": "Odaberi",
   "backup_empty_dir": "Prazna mapa"

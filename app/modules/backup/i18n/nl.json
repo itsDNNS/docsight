@@ -19,6 +19,7 @@
   "backup_existing": "Bestaande back-ups",
   "backup_none": "Geen back-ups gevonden",
   "backup_delete_confirm": "Deze back-up verwijderen?",
+  "backup_delete": "Back-up verwijderen",
   "backup_select_dir": "Map kiezen",
   "backup_select": "Kiezen",
   "backup_empty_dir": "Lege map"

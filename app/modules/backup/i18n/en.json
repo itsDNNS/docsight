@@ -19,6 +19,7 @@
   "backup_existing": "Existing Backups",
   "backup_none": "No backups found",
   "backup_delete_confirm": "Delete this backup?",
+  "backup_delete": "Delete backup",
   "backup_select_dir": "Select Directory",
   "backup_select": "Select",
   "backup_empty_dir": "Empty directory"

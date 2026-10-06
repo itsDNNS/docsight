@@ -19,6 +19,7 @@
   "backup_existing": "Olemassa olevat varmuuskopiot",
   "backup_none": "Varmuuskopioita ei löytynyt",
   "backup_delete_confirm": "Poistetaanko tämä varmuuskopio?",
+  "backup_delete": "Poista varmuuskopio",
   "backup_select_dir": "Valitse kansio",
   "backup_select": "Valitse",
   "backup_empty_dir": "Tyhjä kansio"

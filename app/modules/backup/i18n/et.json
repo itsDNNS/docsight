@@ -19,6 +19,7 @@
   "backup_existing": "Olemasolevad varukoopiad",
   "backup_none": "Varukoopiaid ei leitud",
   "backup_delete_confirm": "Kas kustutada see varukoopia?",
+  "backup_delete": "Kustuta varukoopia",
   "backup_select_dir": "Vali kaust",
   "backup_select": "Vali",
   "backup_empty_dir": "Tühi kaust"

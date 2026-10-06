@@ -45,8 +45,8 @@
 <a class="skip-link" id="skip-link" href="#main-content">{{ t.get('skip_to_content', 'Skip to content') }}</a>
 {% set connection_monitor_installed = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
 <div id="offline-status-banner" class="offline-status-banner" role="status" aria-live="polite" hidden>
-    <strong>Offline</strong>
-    <span>Showing last-known dashboard shell in read-only mode. Live modem data and manual refresh are unavailable until DOCSight reconnects.</span>
+    <strong>{{ t.offline_title }}</strong>
+    <span>{{ t.offline_banner_text }}</span>
     <span id="offline-last-known" class="offline-last-known"></span>
 </div>
 <div class="app-layout">
@@ -593,7 +593,7 @@
             {% set health_count_total = health_counts.get('good', 0) + health_counts.get('tolerated', 0) + health_counts.get('warning', 0) + health_counts.get('critical', 0) %}
             {% if health_count_total > 1 %}
             <div class="metric-sub metric-health-distribution-row">
-                <span class="metric-sub-label">{{ t.get('signal_family_channels_label', t.get('channels', 'Channels')) }}:</span>
+                <span class="metric-sub-label">{{ t.channels }}:</span>
                 {% set distribution = namespace(first=true) %}
                 {% for health_key in ['good', 'tolerated', 'warning', 'critical'] %}
                     {% set count = health_counts.get(health_key, 0) %}

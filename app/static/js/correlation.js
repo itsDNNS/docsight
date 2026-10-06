@@ -1633,7 +1633,7 @@ function renderCorrelationTable(data) {
         if (src === 'modem') {
             var h = e.health || 'unknown';
             var badge = '<span class="st-health-badge health-' + h + '">' + (healthLabels[h] || h) + '</span>';
-            src = '<span style="color:var(--accent);">Modem</span>';
+            src = '<span style="color:var(--accent);">' + escapeHtml(T.correlation_source_modem || 'Modem') + '</span>';
             msg = badge;
             var modemDetails = [
                 (T.correlation_tt_snr || 'SNR') + ' ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : ''),
@@ -1645,7 +1645,7 @@ function renderCorrelationTable(data) {
             }
             details = modemDetails.join(' | ');
         } else if (src === 'speedtest') {
-            src = '<span style="color:var(--good);">Speedtest</span>';
+            src = '<span style="color:var(--good);">' + escapeHtml(T.correlation_source_speedtest || 'Speedtest') + '</span>';
             msg = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');
             details = (T.speedtest_ping || 'Ping') + ' ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms';
         } else if (src === 'capture') {

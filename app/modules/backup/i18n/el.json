@@ -19,6 +19,7 @@
   "backup_existing": "Υπάρχοντα αντίγραφα ασφαλείας",
   "backup_none": "Δεν βρέθηκαν αντίγραφα ασφαλείας",
   "backup_delete_confirm": "Διαγραφή αυτού του αντιγράφου ασφαλείας;",
+  "backup_delete": "Διαγραφή αντιγράφου ασφαλείας",
   "backup_select_dir": "Επιλογή φακέλου",
   "backup_select": "Επιλογή",
   "backup_empty_dir": "Κενός φάκελος"

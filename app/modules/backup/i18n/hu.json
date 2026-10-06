@@ -19,6 +19,7 @@
   "backup_existing": "Meglévő biztonsági mentések",
   "backup_none": "Nem található biztonsági mentés",
   "backup_delete_confirm": "Törlöd ezt a biztonsági mentést?",
+  "backup_delete": "Biztonsági mentés törlése",
   "backup_select_dir": "Mappa kiválasztása",
   "backup_select": "Kiválasztás",
   "backup_empty_dir": "Üres mappa"

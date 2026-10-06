@@ -4,6 +4,7 @@
   "mqtt_desc": "Για σύνδεση με το Home Assistant μέσω MQTT Auto-Discovery. Χωρίς MQTT λειτουργεί μόνο η διεπαφή ιστού.",
   "mqtt_optional_ha": "προαιρετικό – για το Home Assistant",
   "mqtt_tls_insecure": "Μη ασφαλές TLS",
+  "mqtt_tls_insecure_hint": "Παράλειψη επαλήθευσης πιστοποιητικού TLS",
   "username_opt": "Όνομα χρήστη (προαιρετικό)",
   "password_opt": "Κωδικός (προαιρετικός)",
   "topic_prefix": "Πρόθεμα topic",

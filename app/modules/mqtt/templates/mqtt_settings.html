@@ -46,7 +46,7 @@
         <div class="toggle-row">
             <div class="toggle-info">
                 <span class="toggle-title" id="mqtt_tls_insecure-title">{{ t['docsight.mqtt.mqtt_tls_insecure'] or 'Insecure TLS' }}</span>
-                <span class="toggle-desc">Skip TLS certificate verification</span>
+                <span class="toggle-desc">{{ t.get('docsight.mqtt.mqtt_tls_insecure_hint', 'Skip TLS certificate verification') }}</span>
             </div>
             <input type="hidden" name="mqtt_tls_insecure" value="false">
             <label class="toggle">

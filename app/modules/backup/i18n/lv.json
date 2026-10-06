@@ -19,6 +19,7 @@
   "backup_existing": "Esošās rezerves kopijas",
   "backup_none": "Rezerves kopijas nav atrastas",
   "backup_delete_confirm": "Dzēst šo rezerves kopiju?",
+  "backup_delete": "Dzēst dublējumkopiju",
   "backup_select_dir": "Izvēlēties mapi",
   "backup_select": "Izvēlēties",
   "backup_empty_dir": "Tukša mape"

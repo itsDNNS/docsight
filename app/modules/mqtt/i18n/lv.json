@@ -4,6 +4,7 @@
   "mqtt_desc": "Integrācijai ar Home Assistant, izmantojot MQTT Auto-Discovery. Bez MQTT darbojas tikai tīmekļa saskarne.",
   "mqtt_optional_ha": "neobligāti – Home Assistant",
   "mqtt_tls_insecure": "Nedrošs TLS",
+  "mqtt_tls_insecure_hint": "Izlaist TLS sertifikāta pārbaudi",
   "username_opt": "Lietotājvārds (neobligāti)",
   "password_opt": "Parole (neobligāti)",
   "topic_prefix": "Tēmas prefikss",
