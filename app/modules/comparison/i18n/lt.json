@@ -4,6 +4,8 @@
   "compare_btn": "Palyginti",
   "period_a": "A laikotarpis",
   "period_b": "B laikotarpis",
+  "range_start": "Pradžia",
+  "range_end": "Pabaiga",
   "preset": "Šablonas",
   "preset_custom": "Pasirinktinis",
   "preset_yesterday_today": "Vakar ir šiandien",

@@ -4,6 +4,8 @@
   "compare_btn": "Сравни",
   "period_a": "Период A",
   "period_b": "Период B",
+  "range_start": "Начало",
+  "range_end": "Край",
   "preset": "Шаблон",
   "preset_custom": "Персонализиран",
   "preset_yesterday_today": "Вчера и днес",

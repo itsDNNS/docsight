@@ -4,6 +4,8 @@
   "compare_btn": "Összehasonlítás",
   "period_a": "A időszak",
   "period_b": "B időszak",
+  "range_start": "Kezdet",
+  "range_end": "Vég",
   "preset": "Előbeállítás",
   "preset_custom": "Egyéni",
   "preset_yesterday_today": "Tegnap és ma",

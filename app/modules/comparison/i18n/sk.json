@@ -4,6 +4,8 @@
   "compare_btn": "Porovnať",
   "period_a": "Obdobie A",
   "period_b": "Obdobie B",
+  "range_start": "Začiatok",
+  "range_end": "Koniec",
   "preset": "Predvoľba",
   "preset_custom": "Vlastné",
   "preset_yesterday_today": "Včera a dnes",

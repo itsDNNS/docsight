@@ -4,6 +4,8 @@
   "compare_btn": "Compară",
   "period_a": "Perioada A",
   "period_b": "Perioada B",
+  "range_start": "Început",
+  "range_end": "Sfârșit",
   "preset": "Presetare",
   "preset_custom": "Personalizat",
   "preset_yesterday_today": "Ieri și azi",

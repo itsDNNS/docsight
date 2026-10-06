@@ -4,6 +4,8 @@
   "compare_btn": "Vergelijken",
   "period_a": "Periode A",
   "period_b": "Periode B",
+  "range_start": "Begin",
+  "range_end": "Einde",
   "preset": "Voorinstelling",
   "preset_custom": "Aangepast",
   "preset_yesterday_today": "Gisteren en vandaag",

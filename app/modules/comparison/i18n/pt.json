@@ -4,6 +4,8 @@
   "compare_btn": "Comparar",
   "period_a": "Período A",
   "period_b": "Período B",
+  "range_start": "Início",
+  "range_end": "Fim",
   "preset": "Predefinição",
   "preset_custom": "Personalizado",
   "preset_yesterday_today": "Ontem e hoje",

@@ -4,6 +4,8 @@
   "compare_btn": "Võrdle",
   "period_a": "Periood A",
   "period_b": "Periood B",
+  "range_start": "Algus",
+  "range_end": "Lõpp",
   "preset": "Eelseadistus",
   "preset_custom": "Kohandatud",
   "preset_yesterday_today": "Eile ja täna",
