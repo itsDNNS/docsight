@@ -97,6 +97,9 @@ def test_german_i18n_uses_real_umlauts_in_user_facing_text():
 
     for path in german_i18n_files:
         data = json.loads(path.read_text(encoding="utf-8"))
+        # Icon keyword lists are matched against what users type, never shown, and
+        # keep ASCII spellings such as "stoerung" on purpose.
+        data = {key: value for key, value in data.items() if not key.startswith("icon_keywords_")}
         for text in _string_values(data):
             if ascii_umlaut_spellings.search(text):
                 offenders.append(f"{path}: {text}")

@@ -23,43 +23,55 @@ window.initJournalView = function() {
 var AUTO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>';
 
 var INCIDENT_ICONS = [
-    {keys: ['telefon', 'anruf', 'hotline', 'telefonat', 'angerufen', 'rückruf', 'callcenter'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>', label: 'phone'},
-    {keys: ['techniker', 'monteur', 'reparatur', 'vor ort', 'service-termin', 'servicetermin'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>', label: 'technician'},
-    {keys: ['ausfall', 'störung', 'stoerung', 'offline', 'totalausfall', 'kein internet', 'abbruch', 'abbrüche', 'disconnect', 'unterbrechung'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', label: 'outage'},
-    {keys: ['email', 'e-mail', 'schreiben', 'einschreiben', 'schriftlich', 'brieflich', 'fax', 'per post', 'brief geschickt', 'brief gesendet', 'brief erhalten', 'brief geschrieben'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>', label: 'mail'},
-    {keys: ['beschwerde', 'reklamation', 'widerspruch', 'einspruch', 'beanstandung'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>', label: 'complaint'},
-    {keys: ['vertrag', 'kündigung', 'kuendigung', 'sonderkündigung', 'laufzeit', 'tarif', 'wechsel', 'anbieterwechsel'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', label: 'contract'},
-    {keys: ['messung', 'speedtest', 'breitbandmessung', 'bandbreite', 'geschwindigkeit', 'mbit'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>', label: 'measurement'},
-    {keys: ['bundesnetzagentur', 'bnetz', 'bnetza', 'regulierung', 'schlichtung', 'behörde', 'behoerde'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg>', label: 'authority'},
-    {keys: ['rechnung', 'zahlung', 'erstattung', 'gutschrift', 'kosten', 'minderung', 'geld'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>', label: 'billing'},
-    {keys: ['router', 'modem', 'fritzbox', 'fritz!box', 'hardware', 'gerät', 'geraet', 'tausch', 'austausch'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="14" x2="6" y2="14.01"/><line x1="10" y1="14" x2="10" y2="14.01"/></svg>', label: 'hardware'},
-    {keys: ['dokumentation', 'protokoll', 'nachweis', 'beweis', 'screenshot', 'foto', 'aufzeichnung'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>', label: 'documentation'},
-    {keys: ['anwalt', 'rechtsanwalt', 'klage', 'gericht', 'rechtlich', 'jurist', 'mahnung', 'frist'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>', label: 'legal'}
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>', label: 'phone'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>', label: 'technician'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', label: 'outage'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>', label: 'mail'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>', label: 'complaint'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', label: 'contract'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>', label: 'measurement'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg>', label: 'authority'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>', label: 'billing'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="14" x2="6" y2="14.01"/><line x1="10" y1="14" x2="10" y2="14.01"/></svg>', label: 'hardware'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>', label: 'documentation'},
+    {icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>', label: 'legal'}
 ];
 
-// Pre-compile word-boundary regexes for icon detection
-var _iconRegexCache = {};
-function _getIconRegex(keyword) {
-    if (!_iconRegexCache[keyword]) {
-        // Use word boundaries for single words, plain indexOf for multi-word phrases
-        if (keyword.indexOf(' ') !== -1) {
-            _iconRegexCache[keyword] = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        } else {
-            _iconRegexCache[keyword] = new RegExp('(?:^|[\\s,;.!?()\\[\\]"\'/\\-])' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:$|[\\s,;.!?()\\[\\]"\'/\\-])', 'i');
-        }
+// Category keywords come from the journal catalogs: the UI language plus English
+// and German, because entries are often written or imported in another language.
+var _iconKeywords = {};
+var _iconKeywordsLoading = null;
+
+function loadIconKeywords() {
+    if (!_iconKeywordsLoading) {
+        var lang = document.documentElement.lang || '';
+        _iconKeywordsLoading = fetch(docsightUrl('/api/journal/icon-keywords' + (lang ? '?lang=' + encodeURIComponent(lang) : '')))
+            .then(function(r) { return r.ok ? r.json() : {}; })
+            .then(function(data) { _iconKeywords = data || {}; })
+            .catch(function() { _iconKeywords = {}; });
     }
-    return _iconRegexCache[keyword];
+    return _iconKeywordsLoading;
+}
+
+// Longer keywords also match inside words (compounds, inflected forms); short
+// ones must start a word so they do not hit unrelated longer words.
+var _iconWordStartCache = {};
+function _iconKeywordMatches(text, keyword) {
+    if (keyword.length >= 5) return text.indexOf(keyword) !== -1;
+    if (!_iconWordStartCache[keyword]) {
+        var escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        _iconWordStartCache[keyword] = new RegExp('(?:^|[^\\p{L}\\p{N}])' + escaped, 'u');
+    }
+    return _iconWordStartCache[keyword].test(text);
 }
 
 function detectIcon(title, description) {
-    if (!title && !description) return null;
-    var text = ' ' + ((title || '') + ' ' + (description || '')).toLowerCase() + ' ';
+    var text = ((title || '') + ' ' + (description || '')).toLowerCase();
+    if (!text.trim()) return null;
     for (var i = 0; i < INCIDENT_ICONS.length; i++) {
-        var entry = INCIDENT_ICONS[i];
-        for (var j = 0; j < entry.keys.length; j++) {
-            if (_getIconRegex(entry.keys[j]).test(text)) {
-                return entry;
-            }
+        var keywords = _iconKeywords[INCIDENT_ICONS[i].label] || [];
+        for (var j = 0; j < keywords.length; j++) {
+            if (_iconKeywordMatches(text, keywords[j])) return INCIDENT_ICONS[i];
         }
     }
     return null;
@@ -155,9 +167,10 @@ function loadJournal(searchQuery) {
     if (searchQuery) url += '&search=' + encodeURIComponent(searchQuery);
     if (_activeIncidentFilter !== null) url += '&incident_id=' + _activeIncidentFilter;
 
-    fetch(url)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+    // Icons are detected while rendering, so the keywords load alongside the entries.
+    Promise.all([fetch(url).then(function(r) { return r.json(); }), loadIconKeywords()])
+        .then(function(results) {
+            var data = results[0];
             loading.hidden = true;
             if (!searchQuery) _journalAllData = data;
             if (!data || data.length === 0) {
@@ -897,10 +910,9 @@ function deleteAllEntries() {
 
 /* ── Incident Containers ── */
 function loadIncidents() {
-    fetch(docsightUrl('/api/incidents'))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            _incidentsData = data || [];
+    Promise.all([fetch(docsightUrl('/api/incidents')).then(function(r) { return r.json(); }), loadIconKeywords()])
+        .then(function(results) {
+            _incidentsData = results[0] || [];
             renderIncidentBar(_incidentsData);
         })
         .catch(function() { _incidentsData = []; });
@@ -1259,20 +1271,8 @@ function renderIncidentTimeline(data) {
 }
 
 function _getEntryIcon(entry) {
-    // Try to find icon from label
-    if (entry.icon) {
-        for (var i = 0; i < INCIDENT_ICONS.length; i++) {
-            if (INCIDENT_ICONS[i].label === entry.icon) return INCIDENT_ICONS[i].icon;
-        }
-    }
-    // Auto-detect from title
-    var title = (entry.title || '').toLowerCase();
-    for (var i = 0; i < INCIDENT_ICONS.length; i++) {
-        for (var j = 0; j < INCIDENT_ICONS[i].keys.length; j++) {
-            if (title.indexOf(INCIDENT_ICONS[i].keys[j]) !== -1) return INCIDENT_ICONS[i].icon;
-        }
-    }
-    // Default icon
+    var match = resolveIcon(entry);
+    if (match) return match.icon;
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 }
 
