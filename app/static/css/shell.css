@@ -236,8 +236,7 @@ body.nav-sheet-open { overflow: hidden; }
 
 .nav-badge {
   margin-left: auto;
-  /* Darkened so white text reaches 4.5:1 with every theme's --crit */
-  background: color-mix(in srgb, var(--crit) 65%, #000);
+  background: var(--crit-strong);
   color: #fff;
   font-size: var(--fs-min);
   font-weight: 700;

@@ -141,13 +141,13 @@ body {
   background: var(--tint-hover);
   color: var(--text);
 }
-/* Darkened like the navigation badge, so white text stays readable on every theme's red. */
+/* The darkened red fill keeps white text readable on every theme's red. */
 .btn-danger {
-  background: color-mix(in srgb, var(--crit) 65%, #000);
+  background: var(--crit-strong);
   color: #fff;
 }
 .btn-danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--crit) 75%, #000);
+  background: var(--crit-strong-hover);
   box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--crit) 60%, transparent);
 }
 

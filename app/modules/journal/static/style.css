@@ -29,7 +29,7 @@
     white-space: nowrap;
 }
 .journal-export-dropdown button.journal-menu-danger:hover {
-    background: var(--crit);
+    background: var(--crit-strong);
     color: #fff;
 }
 .journal-export-dropdown {
@@ -390,7 +390,7 @@
     font-size: max(var(--fs-min), 0.7em);
     padding: 1px 6px;
     border-radius: var(--radius-sm);
-    background: var(--crit);
+    background: var(--crit-strong);
     color: #fff;
     margin-left: 6px;
 }

@@ -324,6 +324,7 @@
 .ev-label { color: var(--text-secondary, var(--muted)); margin-right: 6px; white-space: nowrap; display: inline-block; }
 .health-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
 .health-dot.good { background: var(--good); }
+.health-dot.tolerated { background: var(--tolerated); }
 .health-dot.marginal { background: var(--warn); }
 .health-dot.poor { background: var(--crit); }
 .health-dot.unknown { background: var(--muted); }
