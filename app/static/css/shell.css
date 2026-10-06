@@ -67,7 +67,7 @@
   letter-spacing: -0.01em;
   min-height: 44px;
 }
-.topnav-brand img { width: 24px; height: 24px; }
+.topnav-brand .logo-mark { flex: none; color: var(--accent); }
 .topnav-brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .topnav-list { list-style: none; margin: 0; padding: 0; }
 .topnav-entry, .topnav-group { position: relative; }
