@@ -42,6 +42,7 @@
   "cm_outage_duration": "Fad",
   "cm_outage_target": "Sprioc",
   "cm_outage_ongoing": "Ar siúl",
+  "cm_outage_none": "Gan aon bhriseadh sa raon seo",
   "cm_export_csv": "Easpórtáil CSV",
   "cm_raw_log_title": "Loga amh ping",
   "cm_raw_log_desc": "Íoslódáil na tomhais ping aonair mar fhianaise do do sholáthraí. Úsáidtear an tréimhse reatha nó an lá pinnáilte.",

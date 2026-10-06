@@ -813,6 +813,7 @@
   "legend_upload": "Przesyłanie (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% Mediana DL",
+  "legend_booked": "Wykupiony DL ({value} Mbps)",
   "dashboard": "Pulpit nawigacyjny",
   "notify_event_health_change": "Zmiana zdrowia",
   "notify_event_power_change": "Zmiana mocy",

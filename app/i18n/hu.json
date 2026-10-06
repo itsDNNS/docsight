@@ -813,6 +813,7 @@
   "legend_upload": "Feltöltés (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% medián DL",
+  "legend_booked": "Előfizetett DL ({value} Mbps)",
   "dashboard": "Irányítópult",
   "notify_event_health_change": "Egészségügyi változás",
   "notify_event_power_change": "Power Change",

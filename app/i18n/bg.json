@@ -813,6 +813,7 @@
   "legend_upload": "Качване (Mbps)",
   "legend_ping": "Пинг (ms)",
   "legend_threshold": "80% Медиана DL",
+  "legend_booked": "Договорен DL ({value} Mbps)",
   "dashboard": "Табло",
   "notify_event_health_change": "Здравна промяна",
   "notify_event_power_change": "Промяна на мощността",

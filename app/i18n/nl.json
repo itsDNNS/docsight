@@ -813,6 +813,7 @@
   "legend_upload": "Uploaden (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% Mediaan DL",
+  "legend_booked": "Geboekte DL ({value} Mbps)",
   "dashboard": "Dashboard",
   "notify_event_health_change": "Gezondheidsverandering",
   "notify_event_power_change": "Stroomwijziging",

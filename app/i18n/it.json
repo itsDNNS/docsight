@@ -813,6 +813,7 @@
   "legend_upload": "Caricamento (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% DL mediano",
+  "legend_booked": "DL contrattuale ({value} Mbps)",
   "dashboard": "Pannello di controllo",
   "notify_event_health_change": "Cambiamento di salute",
   "notify_event_power_change": "Cambio di potere",

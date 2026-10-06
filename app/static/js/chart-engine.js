@@ -3,7 +3,7 @@
 
 /* ── Shared State ── */
 var charts = {};
-var _tempOverlayVisible = true;
+var _tempOverlayVisible = false;
 var currentView = 'live';
 var DEFAULT_Y_AXIS_SIZE = 58;
 var DEFAULT_ZOOM_Y_AXIS_SIZE = 64;

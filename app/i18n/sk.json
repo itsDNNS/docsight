@@ -813,6 +813,7 @@
   "legend_upload": "Nahrať (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80 % Medián DL",
+  "legend_booked": "Objednaný DL ({value} Mbps)",
   "dashboard": "Informačný panel",
   "notify_event_health_change": "Zmena zdravia",
   "notify_event_power_change": "Zmena napájania",

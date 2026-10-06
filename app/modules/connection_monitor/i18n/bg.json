@@ -42,6 +42,7 @@
   "cm_outage_duration": "Продължителност",
   "cm_outage_target": "Цел",
   "cm_outage_ongoing": "В ход",
+  "cm_outage_none": "Няма прекъсвания в този период",
   "cm_export_csv": "Експортирай CSV",
   "cm_raw_log_title": "Суров дневник на ping",
   "cm_raw_log_desc": "Изтегли отделните ping измервания като доказателство за доставчика. Използва текущия период или закачения ден.",

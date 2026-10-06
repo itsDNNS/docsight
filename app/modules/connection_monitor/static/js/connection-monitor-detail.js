@@ -401,7 +401,7 @@
             var emptyCell = document.createElement('td');
             emptyCell.colSpan = 4;
             emptyCell.className = 'dt-empty';
-            emptyCell.textContent = '\u2014';
+            emptyCell.textContent = T['docsight.connection_monitor.cm_outage_none'] || 'No outages in this range';
             emptyRow.appendChild(emptyCell);
             tbody.appendChild(emptyRow);
             return;

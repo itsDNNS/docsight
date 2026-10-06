@@ -42,6 +42,7 @@
   "cm_outage_duration": "Varighed",
   "cm_outage_target": "Mål",
   "cm_outage_ongoing": "Igangværende",
+  "cm_outage_none": "Ingen udfald i dette tidsrum",
   "cm_export_csv": "Eksportér CSV",
   "cm_raw_log_title": "Rå ping-log",
   "cm_raw_log_desc": "Download de enkelte ping-målinger som dokumentation til din udbyder. Bruger den aktuelle periode eller den fastgjorte dag.",

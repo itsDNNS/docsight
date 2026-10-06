@@ -42,6 +42,7 @@
   "cm_outage_duration": "Trvání",
   "cm_outage_target": "Cíl",
   "cm_outage_ongoing": "Probíhá",
+  "cm_outage_none": "V tomto období žádné výpadky",
   "cm_export_csv": "Exportovat CSV",
   "cm_raw_log_title": "Surový záznam pingů",
   "cm_raw_log_desc": "Stáhněte jednotlivá měření pingu jako důkaz pro poskytovatele. Použije aktuální období nebo připnutý den.",

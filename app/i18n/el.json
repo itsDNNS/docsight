@@ -813,6 +813,7 @@
   "legend_upload": "Μεταφόρτωση (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% διάμεσος DL",
+  "legend_booked": "Συμβατικό DL ({value} Mbps)",
   "dashboard": "Ταμπλό",
   "notify_event_health_change": "Αλλαγή Υγείας",
   "notify_event_power_change": "Αλλαγή ισχύος",

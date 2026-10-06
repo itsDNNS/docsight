@@ -805,6 +805,7 @@
   "legend_upload": "Envoi (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80% Médiane DL",
+  "legend_booked": "DL souscrit ({value} Mbps)",
   "dashboard": "Tableau de bord",
   "notify_event_health_change": "Changement de santé",
   "notify_event_power_change": "Changement de puissance",

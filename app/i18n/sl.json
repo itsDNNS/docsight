@@ -813,6 +813,7 @@
   "legend_upload": "Nalaganje (Mbps)",
   "legend_ping": "Ping (ms)",
   "legend_threshold": "80 % Mediana DL",
+  "legend_booked": "Naročeni DL ({value} Mbps)",
   "dashboard": "Nadzorna plošča",
   "notify_event_health_change": "Zdravstvena sprememba",
   "notify_event_power_change": "Sprememba moči",

@@ -42,6 +42,7 @@
   "cm_outage_duration": "Időtartam",
   "cm_outage_target": "Cél",
   "cm_outage_ongoing": "Folyamatban",
+  "cm_outage_none": "Ebben az időszakban nem volt kiesés",
   "cm_export_csv": "CSV exportálása",
   "cm_raw_log_title": "Nyers ping-napló",
   "cm_raw_log_desc": "Töltsd le az egyes ping-méréseket bizonyítéknak a szolgáltatónak. Az aktuális időszakot vagy a rögzített napot használja.",

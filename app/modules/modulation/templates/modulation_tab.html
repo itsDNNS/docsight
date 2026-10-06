@@ -35,11 +35,10 @@
             </span>
             </div>
         </div>
-        <div class="mod-capacity-warning-list" aria-label="{{ t.get('docsight.modulation.capacity_caveats_label', 'Capacity caveats') }}">
-            <span>{{ t.get('docsight.modulation.capacity_warning_not_throughput', 'Not speedtest throughput') }}</span>
-            <span>{{ t.get('docsight.modulation.capacity_warning_not_tariff', 'Not tariff speed') }}</span>
-            <span>{{ t.get('docsight.modulation.capacity_warning_sc_qam_only', 'SC-QAM only; OFDM/OFDMA excluded when unsupported') }}</span>
-        </div>
+        <p class="mod-capacity-note" aria-label="{{ t.get('docsight.modulation.capacity_caveats_label', 'Capacity caveats') }}">
+            <i data-lucide="info" aria-hidden="true"></i>
+            <span><strong>{{ t.get('docsight.modulation.capacity_warning_not_throughput', 'Not speedtest throughput') }} · {{ t.get('docsight.modulation.capacity_warning_not_tariff', 'Not tariff speed') }} · {{ t.get('docsight.modulation.capacity_warning_sc_qam_only', 'SC-QAM only; OFDM/OFDMA excluded when unsupported') }}</strong> {{ t.get('docsight.modulation.capacity_disclaimer', 'Calculated Layer-1 SC-QAM gross capacity based on supported channel data. Real IP throughput is lower and depends on tariff provisioning, DOCSIS overhead, segment utilization, test endpoint, modem and CMTS behavior, and other shared-medium conditions.') }}</span>
+        </p>
         <div class="mod-capacity-grid">
             {% for direction, card_id, current_id, min_id, avg_id, max_id, coverage_id, status_id in [
                 ('downstream', 'mod-capacity-downstream', 'mod-cap-ds-current', 'mod-cap-ds-min', 'mod-cap-ds-avg', 'mod-cap-ds-max', 'mod-cap-ds-coverage', 'mod-cap-ds-status'),
@@ -65,9 +64,6 @@
             </div>
             {% endfor %}
         </div>
-        <p class="mod-capacity-disclaimer">
-            {{ t.get('docsight.modulation.capacity_disclaimer', 'Calculated Layer-1 SC-QAM gross capacity based on supported channel data. Real IP throughput is lower and depends on tariff provisioning, DOCSIS overhead, segment utilization, test endpoint, modem and CMTS behavior, and other shared-medium conditions.') }}
-        </p>
     </div>
 
     <!-- Overview (multi-day) -->

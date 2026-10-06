@@ -93,7 +93,7 @@
 .legend-dl::before { background: #a855f7; }
 .legend-ul::before { background: #22c55e; }
 .legend-ping::before { background: #f59e0b; }
-.legend-thresh::before { background: #ef4444; }
+.speedtest-chart-legend .legend-thresh::before { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px); border-radius: 0; width: 14px; height: 2px; vertical-align: middle; }
 .speedtest-chart-tooltip {
     position: absolute; pointer-events: none; display: none;
     background: rgba(0,0,0,0.85); color: #e0e0e0; font-size: max(var(--fs-min), 0.78em);

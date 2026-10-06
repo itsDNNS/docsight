@@ -42,6 +42,7 @@
   "cm_outage_duration": "Durée",
   "cm_outage_target": "Cible",
   "cm_outage_ongoing": "En cours",
+  "cm_outage_none": "Aucune coupure sur cette période",
   "cm_export_csv": "Exporter en CSV",
   "cm_raw_log_title": "Journal brut des pings",
   "cm_raw_log_desc": "Télécharge les mesures de ping brutes comme preuve pour ton fournisseur. Utilise la période actuelle ou le jour épinglé.",

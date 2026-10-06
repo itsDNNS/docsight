@@ -42,6 +42,7 @@
   "cm_outage_duration": "Trajanje",
   "cm_outage_target": "Cilj",
   "cm_outage_ongoing": "V teku",
+  "cm_outage_none": "V tem obdobju ni izpadov",
   "cm_export_csv": "Izvozi CSV",
   "cm_raw_log_title": "Surovi dnevnik pingov",
   "cm_raw_log_desc": "Prenesite posamezne meritve pinga kot dokaz za ponudnika. Uporabi trenutno obdobje ali pripeti dan.",

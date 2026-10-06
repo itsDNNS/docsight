@@ -638,6 +638,14 @@ class TestChannelTemperatureOverlay:
         assert toggle.count() == 1
         assert toggle.is_visible()
         assert weather_requests, "channel timeline should fetch weather for the displayed timestamps"
+        # The overlay is opt-in.
+        assert toggle.get_attribute("aria-pressed") == "false"
+        assert "Temperature" not in demo_page.evaluate(
+            "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
+        )
+        toggle.click()
+        demo_page.wait_for_timeout(300)
+        assert toggle.get_attribute("aria-pressed") == "true"
 
         overlay = demo_page.evaluate(
             """
@@ -803,6 +811,9 @@ class TestChannelTemperatureOverlay:
         assert toggle.count() == 1
         assert toggle.is_visible()
         assert len(weather_requests) == 1
+        assert toggle.get_attribute("aria-pressed") == "false"
+        toggle.click()
+        demo_page.wait_for_timeout(300)
 
         overlay = demo_page.evaluate(
             """
@@ -902,6 +913,8 @@ class TestChannelTemperatureOverlay:
         navigate_to_channels(demo_page)
         demo_page.locator("#channel-select").select_option("ds-1")
         wait_for_uplot(demo_page, "chart-ch-power")
+        demo_page.locator("#channel-temp-toggle-btn").click()
+        demo_page.wait_for_timeout(300)
         assert "Temperature" in demo_page.evaluate(
             "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
         )
@@ -909,6 +922,7 @@ class TestChannelTemperatureOverlay:
         demo_page.locator('.segmented-option[data-value="compare"]').click()
         demo_page.locator("#compare-add-all-btn").click()
         wait_for_uplot(demo_page, "chart-cmp-power")
+        assert demo_page.locator("#compare-temp-toggle-btn").get_attribute("aria-pressed") == "true"
         assert "Temperature" in demo_page.evaluate(
             "() => window.charts['chart-cmp-power'].series.map((s) => s.label)"
         )

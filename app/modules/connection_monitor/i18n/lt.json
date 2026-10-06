@@ -42,6 +42,7 @@
   "cm_outage_duration": "Trukmė",
   "cm_outage_target": "Tikslas",
   "cm_outage_ongoing": "Tebevyksta",
+  "cm_outage_none": "Šiame laikotarpyje sutrikimų nebuvo",
   "cm_export_csv": "Eksportuoti CSV",
   "cm_raw_log_title": "Neapdorotas ping žurnalas",
   "cm_raw_log_desc": "Atsisiųskite atskirus ping matavimus kaip įrodymą tiekėjui. Naudojamas dabartinis laikotarpis arba prisegta diena.",
