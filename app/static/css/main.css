@@ -1615,11 +1615,6 @@ body:has(#view-dashboard.active) .app-main {
   color: var(--warn);
 }
 
-.dashboard-view .insight-action .insight-action-arrow {
-  width: 12px;
-  height: 12px;
-}
-
 .dashboard-view .insight-good .insight-action {
   color: color-mix(in srgb, var(--text) 84%, var(--good) 16%);
 }

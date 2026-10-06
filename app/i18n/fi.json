@@ -441,6 +441,8 @@
   "downstream_channels": "loppupään kanavat",
   "upstream_channels": "Upstream-kanavat",
   "time_range": "Aikaväli",
+  "view_mode": "Näkymä",
+  "direction": "Suunta",
   "power_history": "Virtahistoria",
   "snr_history": "SNR Historia",
   "error_history": "Virhehistoria",

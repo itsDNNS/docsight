@@ -441,6 +441,8 @@
   "downstream_channels": "Allvoolukanalid",
   "upstream_channels": "Ülesvoolu kanalid",
   "time_range": "Ajavahemik",
+  "view_mode": "Vaade",
+  "direction": "Suund",
   "power_history": "Toiteajalugu",
   "snr_history": "SNR ajalugu",
   "error_history": "Vigade ajalugu",

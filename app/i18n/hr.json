@@ -441,6 +441,8 @@
   "downstream_channels": "Nizvodni kanali",
   "upstream_channels": "Uzlazni kanali",
   "time_range": "Vremenski raspon",
+  "view_mode": "Prikaz",
+  "direction": "Smjer",
   "power_history": "Povijest napajanja",
   "snr_history": "SNR Povijest",
   "error_history": "Povijest grešaka",

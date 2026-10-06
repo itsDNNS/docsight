@@ -158,23 +158,23 @@ class TestModulationTabStructure:
         assert "Modulation" in title.text_content()
 
     def test_direction_tabs_present(self):
-        tabs = self.page.locator("#modulation-direction-tabs .trend-tab")
+        tabs = self.page.locator("#modulation-direction-tabs .segmented-option")
         assert tabs.count() == 2
 
     def test_us_tab_active_by_default(self):
-        us = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="us"]')
+        us = self.page.locator('#modulation-direction-tabs .segmented-option[data-dir="us"]')
         assert "active" in us.get_attribute("class")
 
     def test_ds_tab_not_active_by_default(self):
-        ds = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]')
+        ds = self.page.locator('#modulation-direction-tabs .segmented-option[data-dir="ds"]')
         assert "active" not in ds.get_attribute("class")
 
     def test_range_tabs_present(self):
-        tabs = self.page.locator("#modulation-range-tabs .trend-tab")
+        tabs = self.page.locator("#modulation-range-tabs .segmented-option")
         assert tabs.count() == 3
 
     def test_7days_active_by_default(self):
-        tab7 = self.page.locator('#modulation-range-tabs .trend-tab[data-days="7"]')
+        tab7 = self.page.locator('#modulation-range-tabs .segmented-option[data-days="7"]')
         assert "active" in tab7.get_attribute("class")
 
     def test_kpi_cards_present(self):
@@ -205,27 +205,27 @@ class TestModulationControls:
         self.page = demo_page
 
     def test_switch_to_ds(self):
-        ds = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]')
+        ds = self.page.locator('#modulation-direction-tabs .segmented-option[data-dir="ds"]')
         _switch_distribution(self.page, '#modulation-direction-tabs [data-dir="ds"]',
                              direction="ds", min_samples=7)
         assert "active" in ds.get_attribute("class")
-        us = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="us"]')
+        us = self.page.locator('#modulation-direction-tabs .segmented-option[data-dir="us"]')
         assert "active" not in us.get_attribute("class")
 
     def test_switch_to_today(self):
-        today = self.page.locator('#modulation-range-tabs .trend-tab[data-days="1"]')
+        today = self.page.locator('#modulation-range-tabs .segmented-option[data-days="1"]')
         today.click()
         expect(self.page.locator("#mod-intraday-title")).to_contain_text("Channel Detail")
         assert "active" in today.get_attribute("class")
 
     def test_switch_to_30_days(self):
-        d30 = self.page.locator('#modulation-range-tabs .trend-tab[data-days="30"]')
+        d30 = self.page.locator('#modulation-range-tabs .segmented-option[data-days="30"]')
         _switch_distribution(self.page, '#modulation-range-tabs [data-days="30"]',
                              direction="us", min_samples=30)
         assert "active" in d30.get_attribute("class")
 
     def test_30_day_charts_bound_x_axis_labels(self):
-        d30 = self.page.locator('#modulation-range-tabs .trend-tab[data-days="30"]')
+        d30 = self.page.locator('#modulation-range-tabs .segmented-option[data-days="30"]')
         d30.click()
         self.page.wait_for_function(
             """
@@ -255,8 +255,8 @@ class TestModulationControls:
             assert item["ticks"] <= 8, item
 
     def test_switch_direction_then_back(self):
-        ds = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]')
-        us = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="us"]')
+        ds = self.page.locator('#modulation-direction-tabs .segmented-option[data-dir="ds"]')
+        us = self.page.locator('#modulation-direction-tabs .segmented-option[data-dir="us"]')
         _switch_distribution(self.page, '#modulation-direction-tabs [data-dir="ds"]',
                              direction="ds", min_samples=7)
         _switch_distribution(self.page, '#modulation-direction-tabs [data-dir="us"]',
@@ -265,7 +265,7 @@ class TestModulationControls:
         assert "active" not in ds.get_attribute("class")
 
     def test_today_shows_intraday(self):
-        today = self.page.locator('#modulation-range-tabs .trend-tab[data-days="1"]')
+        today = self.page.locator('#modulation-range-tabs .segmented-option[data-days="1"]')
         today.click()
         expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("Selected day")
         intraday = self.page.locator("#modulation-intraday")
@@ -317,7 +317,7 @@ class TestModulationControls:
         expect(caveat).to_be_visible()
         expect(caveat).to_contain_text("OFDM")
         expect(caveat).to_have_css("border-top-width", "1px")
-        today = self.page.locator('#modulation-range-tabs .trend-tab[data-days="1"]')
+        today = self.page.locator('#modulation-range-tabs .segmented-option[data-days="1"]')
         today.click()
         expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("Selected day")
         expect(panel).to_be_visible()

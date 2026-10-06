@@ -34,7 +34,7 @@ def test_empty_range_offers_the_longest_range_then_the_modem_connection(demo_pag
     expect(page.locator("#charts-grid")).to_be_hidden()
 
     empty.locator(".view-empty-action").click()
-    expect(page.locator("#trend-tabs .trend-tab.active")).to_have_text("90d")
+    expect(page.locator("#trend-tabs .segmented-option.active")).to_have_text("90d")
     assert "range=90d" in requests[-1]
     _expect_state(empty, "No measurements yet", "Check modem connection")
     expect(empty.locator(".view-empty-action")).to_have_attribute("href", re.compile(r"/settings#connection$"))
@@ -90,13 +90,13 @@ def test_channel_modes_without_a_selection_point_at_the_picker(demo_page):
     page = demo_page
     _open(page, "channels")
 
-    page.locator('#channel-mode-tabs .trend-tab[data-value="timeline"]').click()
+    page.locator('#channel-mode-tabs .segmented-option[data-value="timeline"]').click()
     onboarding = page.locator("#channel-empty")
     _expect_state(onboarding, "Channel Timeline", "Choose a channel")
     onboarding.locator(".view-empty-action").click()
     expect(page.locator("#channel-select")).to_be_focused()
 
-    page.locator('#channel-mode-tabs .trend-tab[data-value="compare"]').click()
+    page.locator('#channel-mode-tabs .segmented-option[data-value="compare"]').click()
     compare = page.locator("#compare-empty")
     _expect_state(compare, "Select channels to compare", "Choose channels")
     compare.locator(".view-empty-action").click()

@@ -3,13 +3,11 @@
 var _fritzCableRange = 'all';
 
 /* ── Range Tab Switching ── */
-var fritzCableTabs = document.querySelectorAll('#fritz-cable-range-tabs .trend-tab');
+var fritzCableTabs = document.querySelectorAll('#fritz-cable-range-tabs .segmented-option');
 fritzCableTabs.forEach(function(btn) {
     btn.addEventListener('click', function() {
         _fritzCableRange = this.getAttribute('data-range');
-        fritzCableTabs.forEach(function(b) {
-            b.classList.toggle('active', b.getAttribute('data-range') === _fritzCableRange);
-        });
+        syncSegments('fritz-cable-range-tabs', function(b) { return b.getAttribute('data-range') === _fritzCableRange; });
         loadFritzCableData();
     });
 });
@@ -265,11 +263,7 @@ function _fritzCablePillHours(value) {
 
 function _fritzCableOpenInCorrelation(hours) {
     if (hours == null) return;
-    var tabs = document.querySelectorAll('#correlation-tabs .trend-tab');
-    tabs.forEach(function(tab) {
-        var match = _fritzCablePillHours(tab.getAttribute('data-value')) === hours;
-        tab.classList.toggle('active', match);
-    });
+    syncSegments('correlation-tabs', function(tab) { return _fritzCablePillHours(tab.getAttribute('data-value')) === hours; });
     if (typeof window.switchView === 'function') {
         window.switchView('correlation');
     } else {

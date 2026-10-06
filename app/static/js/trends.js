@@ -20,11 +20,9 @@ function _trendRangeHours(range) {
 
 /* ── Trend Tabs ── */
 function updateTrendTabs() {
-    document.querySelectorAll('#trend-tabs .trend-tab').forEach(function(btn) {
-        btn.classList.toggle('active', btn.getAttribute('data-range') === _trendRange);
-    });
+    syncSegments('trend-tabs', function(btn) { return btn.getAttribute('data-range') === _trendRange; });
 }
-document.querySelectorAll('#trend-tabs .trend-tab').forEach(function(btn) {
+document.querySelectorAll('#trend-tabs .segmented-option').forEach(function(btn) {
     btn.addEventListener('click', function() {
         _trendRange = this.getAttribute('data-range');
         updateTrendTabs();
@@ -175,6 +173,7 @@ function _updateTempToggle() {
     var hasWeather = _lastTrendWeather && _lastTrendWeather.some(function(v) { return v !== null; });
     btn.hidden = !hasWeather;
     btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
+    btn.setAttribute('aria-pressed', (_tempOverlayVisible && hasWeather) ? 'true' : 'false');
     btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
 }
 

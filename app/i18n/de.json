@@ -441,6 +441,8 @@
   "downstream_channels": "Downstream Kanäle",
   "upstream_channels": "Upstream Kanäle",
   "time_range": "Zeitraum",
+  "view_mode": "Ansicht",
+  "direction": "Richtung",
   "power_history": "Pegelverlauf",
   "snr_history": "SNR-Verlauf",
   "error_history": "Fehlerverlauf",

@@ -22,7 +22,7 @@ def navigate_to_channels(page, mode="timeline"):
     """Switch to Channels view; chart tests start from the per-channel timeline."""
     open_view(page, "channels")
     if mode != "status":
-        page.locator(f'#channel-mode-tabs .trend-tab[data-value="{mode}"]').click()
+        page.locator(f'#channel-mode-tabs .segmented-option[data-value="{mode}"]').click()
     page.wait_for_timeout(500)
 
 
@@ -191,7 +191,7 @@ class TestTrendCharts:
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        range_tab = demo_page.locator('.trend-tab[data-range="7d"]')
+        range_tab = demo_page.locator('.segmented-option[data-range="7d"]')
         if range_tab.count() > 0:
             range_tab.click()
             demo_page.wait_for_timeout(1500)
@@ -340,7 +340,7 @@ class TestChannelCharts:
         demo_page.locator("#channel-select").select_option("")
         expect(demo_page.locator("#channel-time-tabs")).not_to_be_visible()
 
-        demo_page.locator('#channel-mode-tabs .trend-tab[data-value="compare"]').click()
+        demo_page.locator('#channel-mode-tabs .segmented-option[data-value="compare"]').click()
         expect(demo_page.locator("#compare-time-tabs")).not_to_be_visible()
         expect(demo_page.locator("#compare-clear-btn")).not_to_be_visible()
 
@@ -520,7 +520,7 @@ class TestCompareCharts:
 
         demo_page.route("**/api/channel-compare**", compare_route)
         navigate_to_channels(demo_page)
-        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        demo_page.locator('.segmented-option[data-value="compare"]').click()
 
         compare_select = demo_page.locator("#compare-channel-select")
         compare_select.select_option(label="DS 0 (634 MHz)")
@@ -566,7 +566,7 @@ class TestCompareCharts:
     def test_compare_all_downstream_preset_renders_chart(self, demo_page):
         """All Downstream preset should render the compare charts without manual picks."""
         navigate_to_channels(demo_page)
-        compare_tab = demo_page.locator('.trend-tab[data-value="compare"]')
+        compare_tab = demo_page.locator('.segmented-option[data-value="compare"]')
         if compare_tab.count() > 0:
             compare_tab.first.click()
             demo_page.wait_for_timeout(500)
@@ -794,7 +794,7 @@ class TestChannelTemperatureOverlay:
         demo_page.route("**/api/weather/range**", weather_route)
 
         navigate_to_channels(demo_page)
-        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        demo_page.locator('.segmented-option[data-value="compare"]').click()
         demo_page.locator("#compare-add-all-btn").click()
         wait_for_uplot(demo_page, "chart-cmp-power")
         wait_for_uplot(demo_page, "chart-cmp-modulation")
@@ -854,7 +854,7 @@ class TestChannelTemperatureOverlay:
         demo_page.route("**/api/weather/range**", lambda route: route.fulfill(json=[]))
 
         navigate_to_channels(demo_page)
-        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        demo_page.locator('.segmented-option[data-value="compare"]').click()
         demo_page.locator("#compare-add-all-btn").click()
         wait_for_uplot(demo_page, "chart-cmp-power")
 
@@ -906,21 +906,21 @@ class TestChannelTemperatureOverlay:
             "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
         )
 
-        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        demo_page.locator('.segmented-option[data-value="compare"]').click()
         demo_page.locator("#compare-add-all-btn").click()
         wait_for_uplot(demo_page, "chart-cmp-power")
         assert "Temperature" in demo_page.evaluate(
             "() => window.charts['chart-cmp-power'].series.map((s) => s.label)"
         )
 
-        demo_page.locator('.trend-tab[data-value="timeline"]').click()
+        demo_page.locator('.segmented-option[data-value="timeline"]').click()
         demo_page.locator("#channel-temp-toggle-btn").click()
         demo_page.wait_for_timeout(300)
         assert "Temperature" not in demo_page.evaluate(
             "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
         )
 
-        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        demo_page.locator('.segmented-option[data-value="compare"]').click()
         assert demo_page.locator("#compare-temp-toggle-btn").get_attribute("aria-pressed") == "false"
         assert "Temperature" not in demo_page.evaluate(
             "() => window.charts['chart-cmp-power'].series.map((s) => s.label)"
@@ -987,7 +987,7 @@ class TestUnsupportedDocsisErrorCharts:
         )
 
         navigate_to_channels(demo_page)
-        compare_tab = demo_page.locator('.trend-tab[data-value="compare"]')
+        compare_tab = demo_page.locator('.segmented-option[data-value="compare"]')
         compare_tab.first.click()
         demo_page.wait_for_timeout(500)
         demo_page.locator("#compare-add-all-btn").click()
@@ -1338,7 +1338,7 @@ def _assert_curve_zoom_and_tooltip(page, chart_id):
 def test_signal_curves_without_points_keep_zoom_and_tooltip(demo_page, range_value):
     open_view(demo_page, "trends")
     wait_for_uplot(demo_page, "chart-ds-power")
-    tab = demo_page.locator(f'.trend-tab[data-range="{range_value}"]')
+    tab = demo_page.locator(f'.segmented-option[data-range="{range_value}"]')
     if "active" not in (tab.get_attribute("class") or ""):
         previous = demo_page.locator('#chart-ds-power .uplot canvas').element_handle()
         tab.click()

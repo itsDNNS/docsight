@@ -441,6 +441,8 @@
   "downstream_channels": "Kanály smerom nadol",
   "upstream_channels": "Upstream kanály",
   "time_range": "Časový rozsah",
+  "view_mode": "Zobrazenie",
+  "direction": "Smer",
   "power_history": "História napájania",
   "snr_history": "História SNR",
   "error_history": "História chýb",

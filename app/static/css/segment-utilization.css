@@ -13,11 +13,6 @@
     margin: 0;
 }
 
-.fritz-cable-range-tabs {
-    display: flex;
-    gap: 4px;
-}
-
 /* KPIs */
 .fritz-cable-kpis {
     display: grid;

@@ -441,6 +441,8 @@
   "downstream_channels": "Канали надолу по веригата",
   "upstream_channels": "Канали нагоре по веригата",
   "time_range": "Времеви диапазон",
+  "view_mode": "Изглед",
+  "direction": "Посока",
   "power_history": "История на захранването",
   "snr_history": "SNR История",
   "error_history": "История на грешките",

@@ -143,25 +143,21 @@ var MODULATION_LEVELS = [
 ];
 
 /* ── Direction tabs ── */
-var dirTabs = document.querySelectorAll('#modulation-direction-tabs .trend-tab');
+var dirTabs = document.querySelectorAll('#modulation-direction-tabs .segmented-option');
 dirTabs.forEach(function(btn) {
     btn.addEventListener('click', function() {
         _modDirection = this.getAttribute('data-dir');
-        dirTabs.forEach(function(b) {
-            b.classList.toggle('active', b.getAttribute('data-dir') === _modDirection);
-        });
+        syncSegments('modulation-direction-tabs', function(b) { return b.getAttribute('data-dir') === _modDirection; });
         updateModulation();
     });
 });
 
 /* ── Range tabs ── */
-var rangeTabs = document.querySelectorAll('#modulation-range-tabs .trend-tab');
+var rangeTabs = document.querySelectorAll('#modulation-range-tabs .segmented-option');
 rangeTabs.forEach(function(btn) {
     btn.addEventListener('click', function() {
         _modDays = parseInt(this.getAttribute('data-days'), 10);
-        rangeTabs.forEach(function(b) {
-            b.classList.toggle('active', parseInt(b.getAttribute('data-days'), 10) === _modDays);
-        });
+        syncSegments('modulation-range-tabs', function(b) { return parseInt(b.getAttribute('data-days'), 10) === _modDays; });
         updateModulation();
     });
 });
@@ -725,9 +721,7 @@ function modBackToOverview() {
     destroyIntradayCharts();
     if (_modDays === 1) {
         _modDays = 7;
-        rangeTabs.forEach(function(b) {
-            b.classList.toggle('active', parseInt(b.getAttribute('data-days'), 10) === _modDays);
-        });
+        syncSegments('modulation-range-tabs', function(b) { return parseInt(b.getAttribute('data-days'), 10) === _modDays; });
     }
     fetchOverview();
 }

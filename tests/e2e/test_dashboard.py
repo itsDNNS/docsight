@@ -631,7 +631,7 @@ class TestLineStatusSegments:
         row.click()
         expect(demo_page.locator("#channel-panel-timeline")).to_be_visible()
         expect(demo_page.locator("#channel-select")).to_have_value(re.compile(rf"^{direction}-(selector-c1_\S+|{channel})$"))
-        expect(demo_page.locator('#channel-time-tabs .trend-tab.active')).to_have_attribute("data-value", "1d")
+        expect(demo_page.locator('#channel-time-tabs .segmented-option.active')).to_have_attribute("data-value", "1d")
 
     def test_previous_and_next_step_through_the_strip_on_a_phone(self, demo_page):
         demo_page.set_viewport_size({"width": 393, "height": 900})

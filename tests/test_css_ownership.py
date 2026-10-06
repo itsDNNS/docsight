@@ -25,6 +25,9 @@ BADGE_RULE = re.compile(
     r"(?m)^\s*\.badge(?:-(?:good|tolerated|warn|warning|crit|critical|info|muted|success|danger))?(?![\w-])[^{]*[{,]"
 )
 
+# The segmented control and its options.
+SEGMENTED_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.segmented(?:-option)?(?![\w-])[^{,]*[{,]")
+
 # The save bar.
 SAVE_BAR_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.save-bar(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
 
@@ -106,3 +109,35 @@ def test_no_stylesheet_marks_status_with_a_colored_side_stripe():
         if _is_side_stripe(match.group(0), match.group(1))
     ]
     assert offenders == []
+
+
+def test_the_segmented_control_is_defined_only_in_the_component_stylesheet():
+    offenders = [
+        f"{path}: {match.group(0).strip()}"
+        for path in _stylesheets() if path != OWNER
+        for match in SEGMENTED_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
+    ]
+    assert offenders == []
+    assert SEGMENTED_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
+
+
+def test_the_retired_pill_tab_classes_are_gone():
+    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    sources = [path for path in tracked.split() if path.endswith((".css", ".js", ".html")) and "/vendor/" not in path]
+    # Class usage only; `trend-tabs` survives as an element id.
+    retired = re.compile(r"\.(?:trend-tabs?|pill-tab)(?![\w-])|class=\"[^\"]*\b(?:trend-tabs?|pill-tab)(?![\w-])|'(?:trend-tab|pill-tab)'")
+    offenders = [path for path in sources if retired.search((ROOT / path).read_text(encoding="utf-8"))]
+    assert offenders == []
+
+
+def test_segmented_groups_carry_no_layout_classes():
+    # Layout classes on the group itself override its display and gap; wrap the group instead.
+    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    templates = [path for path in tracked.split() if path.endswith(".html")]
+    groups = [
+        (path, match.group(1))
+        for path in templates
+        for match in re.finditer(r'class="([^"]*\bsegmented\b(?!-)[^"]*)"', (ROOT / path).read_text(encoding="utf-8"))
+    ]
+    assert groups
+    assert [(path, classes) for path, classes in groups if classes not in ("segmented", "segmented segmented-fill")] == []

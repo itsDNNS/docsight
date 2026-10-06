@@ -2,13 +2,11 @@
 
 /* ── Smokeping Graphs ── */
 var _smokepingSpan = '3h';
-var smokepingTabs = document.querySelectorAll('#smokeping-tabs .trend-tab');
+var smokepingTabs = document.querySelectorAll('#smokeping-tabs .segmented-option');
 smokepingTabs.forEach(function(btn) {
     btn.addEventListener('click', function() {
         _smokepingSpan = this.getAttribute('data-span');
-        smokepingTabs.forEach(function(b) {
-            b.classList.toggle('active', b.getAttribute('data-span') === _smokepingSpan);
-        });
+        syncSegments('smokeping-tabs', function(b) { return b.getAttribute('data-span') === _smokepingSpan; });
         loadSmokepingGraphs();
     });
 });

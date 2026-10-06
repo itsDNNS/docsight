@@ -4,11 +4,13 @@
             <h2 class="view-page-title fritz-cable-title">{{ t.get('seg_title', 'Segment Utilization') }}</h2>
             <span class="view-page-subtitle fritz-cable-subtitle">{{ t.get('seg_subtitle', 'Cable segment utilization from FRITZ!Box monitoring.') }}</span>
         </div>
-        <div class="view-page-actions fritz-cable-range-tabs" id="fritz-cable-range-tabs">
-            <button class="trend-tab" data-range="24h">{{ t.get('seg_range_24h', '24h') }}</button>
-            <button class="trend-tab" data-range="7d">{{ t.get('seg_range_7d', '7d') }}</button>
-            <button class="trend-tab" data-range="30d">{{ t.get('seg_range_30d', '30d') }}</button>
-            <button class="trend-tab active" data-range="all">{{ t.get('seg_range_all', 'All') }}</button>
+        <div class="view-page-actions">
+            <div class="segmented" id="fritz-cable-range-tabs" role="group" aria-label="{{ t.time_range }}">
+                <button class="segmented-option" data-range="24h" aria-pressed="false">{{ t.get('seg_range_24h', '24h') }}</button>
+                <button class="segmented-option" data-range="7d" aria-pressed="false">{{ t.get('seg_range_7d', '7d') }}</button>
+                <button class="segmented-option" data-range="30d" aria-pressed="false">{{ t.get('seg_range_30d', '30d') }}</button>
+                <button class="segmented-option active" data-range="all" aria-pressed="true">{{ t.get('seg_range_all', 'All') }}</button>
+            </div>
         </div>
     </div>
 

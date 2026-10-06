@@ -265,7 +265,7 @@ class TestChannelCompareChipEscaping:
         # Switch to compare mode
         compare_tab = demo_page.locator(
             '.channel-mode-tab[data-mode="compare"], '
-            '.trend-tab[data-value="compare"]'
+            '.segmented-option[data-value="compare"]'
         )
         if compare_tab.count() > 0:
             compare_tab.first.click()

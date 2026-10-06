@@ -441,6 +441,8 @@
   "downstream_channels": "Canali a valle",
   "upstream_channels": "Canali a monte",
   "time_range": "Intervallo di tempo",
+  "view_mode": "Vista",
+  "direction": "Direzione",
   "power_history": "Cronologia alimentazione",
   "snr_history": "SNR Storia",
   "error_history": "Cronologia errori",

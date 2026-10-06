@@ -433,6 +433,8 @@
   "downstream_channels": "Canaux descendants",
   "upstream_channels": "Canaux montants",
   "time_range": "Periode",
+  "view_mode": "Vue",
+  "direction": "Direction",
   "power_history": "Historique de puissance",
   "snr_history": "Historique SNR",
   "error_history": "Historique des erreurs",

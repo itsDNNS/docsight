@@ -441,6 +441,8 @@
   "downstream_channels": "Pakārtotie kanāli",
   "upstream_channels": "Augšupējie kanāli",
   "time_range": "Laika diapazons",
+  "view_mode": "Skats",
+  "direction": "Virziens",
   "power_history": "Enerģijas vēsture",
   "snr_history": "SNR Vēsture",
   "error_history": "Kļūdu vēsture",

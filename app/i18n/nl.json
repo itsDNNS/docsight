@@ -441,6 +441,8 @@
   "downstream_channels": "Downstream-kanalen",
   "upstream_channels": "Upstream-kanalen",
   "time_range": "Tijdbereik",
+  "view_mode": "Weergave",
+  "direction": "Richting",
   "power_history": "Machtsgeschiedenis",
   "snr_history": "SNR Geschiedenis",
   "error_history": "Foutgeschiedenis",
