@@ -277,6 +277,7 @@ body {
   .data-table-list tbody tr:has(> td.dt-lead) { position: relative; padding-left: 44px; }
   .data-table-list td.dt-lead { position: absolute; top: 50%; left: 6px; transform: translateY(-50%); }
   .data-table-list td:empty { display: none; }
+  .data-table-compact tbody tr { padding-left: 12px; padding-right: 12px; }
   .data-table tbody tr.dt-detail { display: block; padding: 0; }
   .data-table tbody tr.dt-detail::before { content: none; }
   .data-table tbody tr.dt-detail > td { display: block; width: 100%; padding: 0; }

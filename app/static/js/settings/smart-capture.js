@@ -46,12 +46,13 @@ function loadSmartCaptureHistory() {
                     detail = escapeHtml(ex.last_error);
                 }
                 // Dynamic content sanitized via escapeHtml before insertion
-                tr.innerHTML = '<td class="sc-history-time">' + escapeHtml(ts) + '</td>'
+                tr.innerHTML = '<td class="sc-history-time dt-primary">' + ts + '</td>'
                     + '<td>' + trigger + '</td>'
-                    + '<td><span class="sc-status-' + escapeHtml(ex.status) + '">' + escapeHtml(label) + '</span></td>'
+                    + '<td class="dt-primary"><span class="sc-status-' + escapeHtml(ex.status) + '">' + escapeHtml(label) + '</span></td>'
                     + '<td class="sc-history-detail">' + detail + '</td>';
                 tbody.appendChild(tr);
             });
+            labelDataTable(document.getElementById('sc-history-table'));
             if (typeof lucide !== 'undefined') lucide.createIcons();
         })
         .catch(function() {
