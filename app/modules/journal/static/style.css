@@ -296,32 +296,6 @@
     border-radius: var(--radius-sm);
     border: 1px solid var(--card-border, var(--input-border));
 }
-.import-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.import-table thead th {
-    position: sticky;
-    top: 0;
-    background: var(--surface-2, rgba(0,0,0,0.3));
-    padding: var(--space-sm);
-    text-align: left;
-    font-size: max(var(--fs-min), 0.85em);
-    font-weight: 600;
-    z-index: 1;
-}
-.import-table tbody td {
-    padding: var(--space-sm);
-    border-top: 1px solid var(--card-border, rgba(255,255,255,0.05));
-    font-size: max(var(--fs-min), 0.85em);
-    vertical-align: top;
-}
-.import-table tbody tr {
-    transition: background 0.15s var(--ease-out-expo);
-}
-.import-table tbody tr:hover {
-    background: rgba(168,85,247,0.08);
-}
 .import-table tbody tr.import-row-duplicate {
     opacity: 0.5;
 }
@@ -1004,25 +978,6 @@ mark.search-highlight {
     height: 100% !important;
 }
 
-/* Signal Timeline Table */
-.incident-timeline-signals table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.incident-timeline-signals th,
-.incident-timeline-signals td {
-    padding: 6px var(--space-sm);
-    font-size: 0.82rem;
-    text-align: left;
-    border-bottom: 1px solid var(--card-border);
-}
-.incident-timeline-signals th {
-    color: var(--muted);
-    font-weight: 500;
-    text-transform: uppercase;
-    font-size: var(--fs-min);
-    letter-spacing: 0.03em;
-}
 
 /* Source Badges */
 .timeline-source-badge {
@@ -1100,6 +1055,10 @@ mark.search-highlight {
 /* ── Responsive ── */
 /* Phones: the data table's list layout. */
 @media (max-width: 640px) {
+    /* Event details read as a sentence on their own line. */
+    #incident-timeline-table td.timeline-preview-details { flex-basis: 100%; }
+    #incident-timeline-table td.timeline-preview-details::before { content: none; }
+    .import-table td.journal-hide-mobile { display: none; }
     #journal-table .journal-title-cell { overflow-wrap: anywhere; }
     #journal-table .journal-date-cell { color: var(--muted); }
     /* The description stays visible on phones as the entry's last line. */

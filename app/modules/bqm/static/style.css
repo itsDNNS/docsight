@@ -208,24 +208,7 @@
 .bqm-import-btn {
     padding: var(--space-xs) var(--space-sm);
 }
-.bqm-import-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: max(var(--fs-min), 0.85em);
-}
-.bqm-import-table th {
-    text-align: left;
-    padding: var(--space-xs) var(--space-sm);
-    border-bottom: 1px solid var(--input-border);
-    color: var(--muted);
-    font-weight: 500;
-    font-size: max(var(--fs-min), 0.85em);
-}
-.bqm-import-table td {
-    padding: var(--space-xs) var(--space-sm);
-    border-bottom: 1px solid var(--glass-border);
-    vertical-align: middle;
-}
+.bqm-import-table td { vertical-align: middle; }
 .bqm-import-thumb {
     width: 60px;
     height: 36px;

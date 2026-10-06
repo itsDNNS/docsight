@@ -269,8 +269,9 @@ body {
   .data-table-list tbody tr { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; padding: 10px 16px; }
   .data-table-list tbody tr::before { content: ""; order: 0; flex-basis: 100%; height: 4px; }
   .data-table-list td,
-  .data-table-list td[data-label] { display: inline-flex; align-items: center; position: static; width: auto; gap: 4px; padding: 0; order: 1; text-align: left; font-size: var(--fs-min); font-weight: 400; }
-  .data-table-list td[data-label]::before { position: static; width: auto; font-weight: 400; }
+  .data-table-list td[data-label] { display: block; position: static; width: auto; padding: 0; order: 1; text-align: left; font-size: var(--fs-min); font-weight: 400; }
+  /* The label runs inline before the value, so rich cell content keeps its own flow. */
+  .data-table-list td[data-label]::before { position: static; width: auto; margin-right: 4px; font-weight: 400; }
   .data-table-list td.dt-primary { order: -1; font-size: max(var(--fs-min), 0.875rem); }
   .data-table-list td.dt-primary::before { content: none; }
   .data-table-list td.dt-primary ~ td.dt-primary { margin-left: auto; font-weight: 600; }

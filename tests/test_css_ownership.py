@@ -31,13 +31,10 @@ SEGMENTED_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.segmente
 # The data table and its variants.
 DATA_TABLE_RULE = re.compile(r"(?m)^\s*\.data-table(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
 
-# Tables not yet on the data table component, by file and the table's id or first class.
-# Per-target Connection Monitor stats stay a stat grid on purpose.
+# Tables that are not data tables on purpose, by file and the table's id or first class:
+# the per-target Connection Monitor stats render as a stat grid.
 TABLES_WITHOUT_COMPONENT = {
-    ("app/modules/bqm/templates/bqm_dialogs.html", "bqm-import-table"),
     ("app/modules/connection_monitor/static/js/connection-monitor-charts.js", "cm-target-table"),
-    ("app/modules/journal/static/main.js", ""),
-    ("app/modules/journal/templates/journal_dialogs.html", "import-table"),
 }
 
 # The save bar.
@@ -191,5 +188,5 @@ def test_tables_use_the_data_table_component():
     tables = list(_tables())
     missing = sorted({(path, name) for path, classes, name in tables if "data-table" not in classes})
     assert [entry for entry in missing if entry not in TABLES_WITHOUT_COMPONENT] == []
-    # Drop entries from the list once their table is migrated.
+    # Every listed exception must still exist.
     assert sorted(TABLES_WITHOUT_COMPONENT - set(missing)) == []
