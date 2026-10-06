@@ -1,6 +1,6 @@
 <!-- ═══ BQM Import Modal ═══ -->
 <dialog class="modal-overlay" id="bqm-import-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-import-modal-title" data-dialog-close="closeBqmImportModal">
-    <div class="modal bqm-import-panel">
+    <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="bqm-import-modal-title">{{ t.bqm_import_title }}</h2>
             <button class="modal-close" data-action="closeBqmImportModal" aria-label="{{ t.close }}">&times;</button>
@@ -49,12 +49,10 @@
                 </div>
             </div>
         </div>
-        <div class="incident-modal-footer" id="bqm-import-footer" hidden>
-            <div class="modal-footer-left"></div>
-            <div class="bqm-import-actions">
-                <button class="btn btn-secondary" data-action="closeBqmImportModal">{{ t.cancel }}</button>
-                <button class="btn btn-primary" id="bqm-import-confirm-btn" data-action="executeBqmImport" disabled>{{ t.bqm_import }}</button>
-            </div>
+        <div class="modal-footer" id="bqm-import-footer" hidden>
+            <button class="btn btn-secondary" id="bqm-import-cancel-btn" data-action="closeBqmImportModal">{{ t.cancel }}</button>
+            <button class="btn btn-primary" id="bqm-import-confirm-btn" data-action="executeBqmImport" disabled>{{ t.bqm_import }}</button>
+            <button class="btn btn-primary" id="bqm-import-done-btn" data-action="closeBqmImportModal" hidden>{{ t.close }}</button>
         </div>
     </div>
 </dialog>

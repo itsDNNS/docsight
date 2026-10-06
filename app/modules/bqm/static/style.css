@@ -318,9 +318,6 @@
     margin-top: 8px;
     font-size: max(var(--fs-min), 0.85em);
 }
-.modal.bqm-import-panel {
-    max-width: 800px;
-}
 .bqm-import-count-imported { color: var(--accent); }
 .bqm-import-count-skipped { color: var(--warn); }
 .bqm-import-count-errors { color: var(--crit); }
@@ -369,10 +366,3 @@
 .bqm-import-table .bqm-import-col-thumb { width: 70px; }
 .bqm-import-table .bqm-import-col-date { width: 160px; }
 .bqm-import-table .bqm-import-col-action { width: 36px; }
-#bqm-import-footer {
-    display: flex;
-}
-.bqm-import-actions {
-    display: flex;
-    gap: 10px;
-}

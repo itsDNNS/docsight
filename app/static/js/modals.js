@@ -39,9 +39,35 @@
         if (opts.opener && opts.opener !== document.activeElement && typeof opts.opener.focus === 'function') {
             opts.opener.focus({preventScroll: true});
         }
-        if (!dialog.open) dialog.showModal();
+        if (!dialog.open) {
+            dialog.showModal();
+            focusInitial(dialog);
+        }
         dialog.classList.add('open');
         return dialog;
+    }
+
+    /* The browser focuses the first focusable element, usually the close
+       button. Start at an [autofocus] element, the first field of the body
+       or the footer's primary action instead; a dialog whose main action is
+       destructive starts on its safe secondary button. */
+    var INITIAL_FOCUS = [
+        '[autofocus]',
+        '.modal-body input:not([type="hidden"]):not([disabled]), .modal-body select:not([disabled]), .modal-body textarea:not([disabled])',
+        '.modal-footer > .btn-primary:not([disabled])',
+        '.modal-footer > .btn-secondary:not([disabled])'
+    ];
+
+    function focusInitial(dialog) {
+        for (var i = 0; i < INITIAL_FOCUS.length; i++) {
+            var candidates = dialog.querySelectorAll(INITIAL_FOCUS[i]);
+            for (var j = 0; j < candidates.length; j++) {
+                if (candidates[j].offsetParent !== null) {
+                    candidates[j].focus();
+                    return;
+                }
+            }
+        }
     }
 
     function closeModal(idOrEl) {
@@ -72,7 +98,7 @@
         dialog.setAttribute('aria-modal', 'true');
         dialog.setAttribute('aria-labelledby', 'docsight-confirm-title');
         dialog.innerHTML = [
-            '<div class="modal docsight-confirm-modal">',
+            '<div class="modal">',
             '  <div class="modal-header">',
             '    <h2 id="docsight-confirm-title"></h2>',
             '    <button type="button" class="modal-close" id="docsight-confirm-x" aria-label="Close">&times;</button>',
@@ -84,12 +110,9 @@
             '      <input id="docsight-confirm-typed-input" class="docsight-confirm-typed-input" autocomplete="off" spellcheck="false">',
             '    </label>',
             '  </div>',
-            '  <div class="incident-modal-footer">',
-            '    <div class="modal-footer-left"></div>',
-            '    <div class="docsight-confirm-actions">',
-            '      <button type="button" class="btn btn-secondary" id="docsight-confirm-cancel"></button>',
-            '      <button type="button" class="btn btn-primary" id="docsight-confirm-ok"></button>',
-            '    </div>',
+            '  <div class="modal-footer">',
+            '    <button type="button" class="btn btn-secondary" id="docsight-confirm-cancel"></button>',
+            '    <button type="button" class="btn btn-primary" id="docsight-confirm-ok"></button>',
             '  </div>',
             '</div>'
         ].join('');

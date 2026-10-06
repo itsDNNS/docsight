@@ -505,6 +505,13 @@ function importBqmCsv() {
         });
 }
 
+/* After an import the footer offers only Close; a new import starts with Cancel and Import again. */
+function _setBqmImportFinished(finished) {
+    document.getElementById('bqm-import-cancel-btn').hidden = finished;
+    document.getElementById('bqm-import-confirm-btn').hidden = finished;
+    document.getElementById('bqm-import-done-btn').hidden = !finished;
+}
+
 function openBqmImportModal() {
     _bqmImportFiles = [];
     document.getElementById('bqm-import-dropzone').hidden = false;
@@ -512,6 +519,7 @@ function openBqmImportModal() {
     document.getElementById('bqm-import-status').hidden = true;
     document.getElementById('bqm-import-preview').hidden = true;
     document.getElementById('bqm-import-footer').hidden = true;
+    _setBqmImportFinished(false);
     document.getElementById('bqm-import-overwrite').checked = false;
     document.getElementById('bqm-import-offset').value = '0';
     document.getElementById('bqm-import-tbody').innerHTML = '';
@@ -784,14 +792,7 @@ function showBqmImportResult(data) {
 
     options.hidden = true;
 
-    // Replace footer with close button
-    var footerRight = footer.querySelector('div:last-child');
-    var close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'btn btn-primary';
-    close.setAttribute('data-action', 'closeBqmImportModal');
-    close.textContent = T.close || 'Close';
-    footerRight.replaceChildren(close);
+    _setBqmImportFinished(true);
     footer.hidden = false;
 }
 

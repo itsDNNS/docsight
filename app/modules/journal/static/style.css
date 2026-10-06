@@ -228,17 +228,6 @@
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
-.modal-footer-left {
-    display: flex;
-    gap: var(--space-sm);
-    flex: 1;
-}
-.incident-modal-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--space-sm);
-}
 .upload-spinner {
     display: inline-block;
     width: 16px;
@@ -737,10 +726,10 @@ mark.search-highlight {
 }
 
 /* Incident Container Modal */
-.incident-container-modal .incident-form-group {
+.incident-container-panel .incident-form-group {
     margin-bottom: var(--space-md);
 }
-.incident-container-modal select {
+.incident-container-panel select {
     width: 100%;
     padding: var(--space-sm);
     border-radius: var(--radius-sm);
@@ -750,7 +739,7 @@ mark.search-highlight {
     font-size: 0.9rem;
     font-family: inherit;
 }
-.incident-container-modal .entry-count-badge {
+.incident-container-panel .entry-count-badge {
     display: inline-flex;
     align-items: center;
     gap: var(--space-xs);
@@ -1229,16 +1218,9 @@ mark.search-highlight {
     height: 14px;
 }
 .journal-col-select { width: 36px; }
-.modal.entry-modal-panel { max-width: 640px; }
-.modal.incident-container-modal { max-width: 560px; }
-.modal.import-modal-panel { max-width: 900px; }
 .entry-modal-heading {
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-.journal-modal-actions {
-    display: flex;
     gap: 10px;
 }
 .incident-form-row {
