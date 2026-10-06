@@ -14,12 +14,12 @@
         </div>
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title">{{ t['docsight.weather.weather_enable'] or 'Enable weather data collection' }}</span>
+                <span class="toggle-title" id="weather_enabled-title">{{ t['docsight.weather.weather_enable'] or 'Enable weather data collection' }}</span>
                 <span class="toggle-desc">{{ t['docsight.weather.weather_enable_hint'] or 'Fetches hourly outdoor temperature from Open-Meteo (free, no API key). Historical data is backfilled automatically.' }}</span>
             </div>
             <input type="hidden" name="weather_enabled" value="false">
             <label class="toggle">
-                <input type="checkbox" id="weather_enabled" name="weather_enabled" value="true" {% if config.weather_enabled %}checked{% endif %}>
+                <input type="checkbox" id="weather_enabled" name="weather_enabled" value="true" {% if config.weather_enabled %}checked{% endif %} aria-labelledby="weather_enabled-title">
                 <span class="toggle-slider"></span>
             </label>
         </div>

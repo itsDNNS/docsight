@@ -4,12 +4,12 @@
         <div class="card-title-group">
             <div class="card-icon"><i data-lucide="zap"></i></div>
             <div>
-                <div class="card-title">{{ t.get('smart_capture', 'Smart Capture') }}</div>
+                <div class="card-title" id="sc-enabled-title">{{ t.get('smart_capture', 'Smart Capture') }}</div>
                 <div class="card-subtitle">{{ t.get('sc_enable_desc', 'Automatically trigger measurements when signal degradation is detected') }}</div>
             </div>
         </div>
         <label class="toggle">
-            <input type="checkbox" id="sc_enabled" name="sc_enabled" {{ 'checked' if config.get('sc_enabled') }}>
+            <input type="checkbox" id="sc_enabled" name="sc_enabled" {{ 'checked' if config.get('sc_enabled') }} aria-labelledby="sc-enabled-title">
             <span class="toggle-slider"></span>
         </label>
     </div>
@@ -21,10 +21,10 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="activity" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name">{{ t.get('sc_trigger_modulation', 'Modulation downgrade') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_modulation-title">{{ t.get('sc_trigger_modulation', 'Modulation downgrade') }}</span>
                 </div>
                 <label class="toggle">
-                    <input type="checkbox" name="sc_trigger_modulation" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_modulation') }}>
+                    <input type="checkbox" name="sc_trigger_modulation" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_modulation') }} aria-labelledby="sc_trigger_modulation-title">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -66,10 +66,10 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="signal" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name">{{ t.get('sc_trigger_snr', 'SNR degradation') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_snr-title">{{ t.get('sc_trigger_snr', 'SNR degradation') }}</span>
                 </div>
                 <label class="toggle">
-                    <input type="checkbox" name="sc_trigger_snr" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_snr') }}>
+                    <input type="checkbox" name="sc_trigger_snr" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_snr') }} aria-labelledby="sc_trigger_snr-title">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -83,10 +83,10 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="alert-triangle" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name">{{ t.get('sc_trigger_error_spike', 'Error spike') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_error_spike-title">{{ t.get('sc_trigger_error_spike', 'Error spike') }}</span>
                 </div>
                 <label class="toggle">
-                    <input type="checkbox" name="sc_trigger_error_spike" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_error_spike') }}>
+                    <input type="checkbox" name="sc_trigger_error_spike" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_error_spike') }} aria-labelledby="sc_trigger_error_spike-title">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -110,10 +110,10 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="heart-pulse" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name">{{ t.get('sc_trigger_health', 'Health change') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_health-title">{{ t.get('sc_trigger_health', 'Health change') }}</span>
                 </div>
                 <label class="toggle">
-                    <input type="checkbox" name="sc_trigger_health" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_health') }}>
+                    <input type="checkbox" name="sc_trigger_health" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_health') }} aria-labelledby="sc_trigger_health-title">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -138,10 +138,10 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="wifi-off" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name">{{ t.get('sc_trigger_packet_loss', 'Packet loss warning') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_packet_loss-title">{{ t.get('sc_trigger_packet_loss', 'Packet loss warning') }}</span>
                 </div>
                 <label class="toggle">
-                    <input type="checkbox" name="sc_trigger_packet_loss" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_packet_loss') }}>
+                    <input type="checkbox" name="sc_trigger_packet_loss" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_packet_loss') }} aria-labelledby="sc_trigger_packet_loss-title">
                     <span class="toggle-slider"></span>
                 </label>
             </div>

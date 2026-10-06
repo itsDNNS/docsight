@@ -14,12 +14,12 @@
         </div>
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title">{{ t.enabled }}</span>
+                <span class="toggle-title" id="bnetz_watch_enabled-title">{{ t.enabled }}</span>
                 <span class="toggle-desc">{{ t['docsight.bnetz.bnetz_watcher_hint'] or 'Automatically imports BNetzA measurement PDFs and CSVs from a watched directory' }}</span>
             </div>
             <input type="hidden" name="bnetz_watch_enabled" value="false">
             <label class="toggle">
-                <input type="checkbox" id="bnetz_watch_enabled" name="bnetz_watch_enabled" value="true" {% if config.bnetz_watch_enabled %}checked{% endif %}>
+                <input type="checkbox" id="bnetz_watch_enabled" name="bnetz_watch_enabled" value="true" {% if config.bnetz_watch_enabled %}checked{% endif %} aria-labelledby="bnetz_watch_enabled-title">
                 <span class="toggle-slider"></span>
             </label>
         </div>
