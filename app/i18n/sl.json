@@ -75,6 +75,7 @@
   "line_status_channel": "Kanal",
   "line_status_below_target": "{delta} dB pod ciljem",
   "line_status_above_target": "{delta} dB nad ciljem",
+  "line_status_modulation_below": "Modulacija pod ciljem",
   "line_status_target": "Cilj",
   "line_status_more": "več",
   "line_status_no_deviation": "Brez odstopanja · vsi kanali v ciljnem območju",

@@ -2025,6 +2025,12 @@ button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .ls-warning .ls-callout-delta { color: var(--ls-warning); }
 .ls-critical .ls-callout-delta { color: var(--ls-critical); }
 .ls-callout-target { font-size: var(--fs-min); color: var(--muted); }
+/* The modulation can be a cause next to a power or SNR deviation; it keeps its own severity. */
+.ls-callout-modulation { grid-column: 2; }
+.ls-callout-modulation .ls-callout-delta { margin-top: 0; }
+.ls-callout-modulation.ls-tolerated .ls-callout-delta { color: var(--ls-tolerated); }
+.ls-callout-modulation.ls-warning .ls-callout-delta { color: var(--ls-warning); }
+.ls-callout-modulation.ls-critical .ls-callout-delta { color: var(--ls-critical); }
 .line-status-more { margin-left: 40px; font-size: var(--fs-min); color: var(--muted); }
 .line-status-ok { margin: 4px 0 0 40px; font-size: 0.9rem; color: var(--muted); }
 .line-status-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
@@ -2048,6 +2054,7 @@ button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 
   .ls-seg { height: 22px; border-radius: 4px; }
   .line-status-meta, .line-status-more, .line-status-ok, .ls-detail { margin-left: 0; }
   .line-status-callout { grid-template-columns: 1fr; width: auto; max-width: none; margin-left: 0; }
+  .ls-callout-modulation { grid-column: auto; }
   .line-status-callout::before { left: calc(var(--ls-anchor) - 7px); }
 }
 

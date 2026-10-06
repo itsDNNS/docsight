@@ -75,6 +75,7 @@
   "line_status_channel": "Kanāls",
   "line_status_below_target": "{delta} dB zem mērķa",
   "line_status_above_target": "{delta} dB virs mērķa",
+  "line_status_modulation_below": "Modulācija zem mērķa",
   "line_status_target": "Mērķis",
   "line_status_more": "vēl",
   "line_status_no_deviation": "Nav novirzes · visi kanāli mērķa diapazonā",

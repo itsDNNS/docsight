@@ -75,6 +75,7 @@
   "line_status_channel": "Kanál",
   "line_status_below_target": "{delta} dB pod cieľom",
   "line_status_above_target": "{delta} dB nad cieľom",
+  "line_status_modulation_below": "Modulácia pod cieľom",
   "line_status_target": "Cieľ",
   "line_status_more": "ďalšie",
   "line_status_no_deviation": "Bez odchýlky · všetky kanály v cieľovom rozsahu",

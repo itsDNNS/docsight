@@ -75,6 +75,7 @@
   "line_status_channel": "Cainéal",
   "line_status_below_target": "{delta} dB faoi bhun na sprice",
   "line_status_above_target": "{delta} dB os cionn na sprice",
+  "line_status_modulation_below": "Modhnú faoi bhun na sprice",
   "line_status_target": "Sprioc",
   "line_status_more": "eile",
   "line_status_no_deviation": "Gan diall · gach cainéal laistigh den sprioc",

@@ -75,6 +75,7 @@
   "line_status_channel": "Kanava",
   "line_status_below_target": "{delta} dB alle tavoitteen",
   "line_status_above_target": "{delta} dB yli tavoitteen",
+  "line_status_modulation_below": "Modulaatio alle tavoitteen",
   "line_status_target": "Tavoite",
   "line_status_more": "lisää",
   "line_status_no_deviation": "Ei poikkeamaa · kaikki kanavat tavoitealueella",

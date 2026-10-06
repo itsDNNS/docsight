@@ -258,6 +258,38 @@ def _assess_us_modulation(ch, docsis_ver: str) -> str:
     return "good"
 
 
+_QAM_ORDERS = (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096)
+
+
+def modulation_target(direction: str, channel: dict) -> str | None:
+    """Return the lowest modulation the channel scoring rates good, e.g. "1024QAM".
+
+    Probes the same assessment the analyzer uses, so the shown target can never
+    drift from the rating. Returns None when the channel's modulation is not rated.
+    """
+    family = channel.get("channel_family") or ""
+    docsis_ver = channel.get("docsis_version") or "3.0"
+
+    def rated_good(order: int) -> bool:
+        qam = f"{order}QAM"
+        if direction == "ds":
+            return _assess_ds_modulation(qam, "3.0" if family == "sc_qam" else docsis_ver) == "good"
+        if family == "ofdma":
+            probe = {"modulation": "OFDMA", "type": "OFDMA", "profile_modulation": qam}
+        else:
+            probe = {"modulation": qam, "type": ""}
+        return _assess_us_modulation(probe, docsis_ver) == "good"
+
+    good = [order for order in _QAM_ORDERS if rated_good(order)]
+    if not good or len(good) == len(_QAM_ORDERS):
+        return None
+    lowest = good[0]
+    # The target is only meaningful when every higher order is good as well.
+    if any(order > lowest and order not in good for order in _QAM_ORDERS):
+        return None
+    return f"{lowest}QAM"
+
+
 def _get_uncorr_thresholds():
     """Get uncorrectable error thresholds (percent-based)."""
     errors = _t().get("errors", {})

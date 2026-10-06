@@ -75,6 +75,7 @@
   "line_status_channel": "Canale",
   "line_status_below_target": "{delta} dB sotto il target",
   "line_status_above_target": "{delta} dB sopra il target",
+  "line_status_modulation_below": "Modulazione sotto il target",
   "line_status_target": "Target",
   "line_status_more": "altri",
   "line_status_no_deviation": "Nessuna deviazione · tutti i canali nel target",

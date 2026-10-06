@@ -75,6 +75,7 @@
   "line_status_channel": "Kanalas",
   "line_status_below_target": "{delta} dB žemiau tikslo",
   "line_status_above_target": "{delta} dB virš tikslo",
+  "line_status_modulation_below": "Moduliacija žemiau tikslo",
   "line_status_target": "Tikslas",
   "line_status_more": "daugiau",
   "line_status_no_deviation": "Nukrypimų nėra · visi kanalai tiksliniame intervale",

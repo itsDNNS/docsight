@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .analyzer import _get_ds_power_thresholds, _get_snr_thresholds, _get_us_power_thresholds
+from .analyzer import _get_ds_power_thresholds, _get_snr_thresholds, _get_us_power_thresholds, modulation_target
 from .channel_selector import channel_selector
 from .docsis_utils import classify_channel_family
 
@@ -107,8 +107,23 @@ def _snr_callout(channel: dict) -> dict | None:
     }
 
 
+def _modulation(channel: dict) -> str:
+    return channel.get("profile_modulation") or channel.get("modulation") or ""
+
+
+def _modulation_cause(direction: str, channel: dict) -> dict | None:
+    """Explain a rating caused by the modulation itself, with the lowest good modulation."""
+    if "modulation" not in (channel.get("health_detail") or ""):
+        return None
+    return {
+        "value": _modulation(channel),
+        "health": channel.get("modulation_health") or _health(channel),
+        "target": modulation_target(direction, channel),
+    }
+
+
 def channel_callout(direction: str, channel: dict) -> dict:
-    """Explain one channel's rating: family, modulation and, when known, the measured deviation."""
+    """Explain one channel's rating: family, modulation and every deviation that caused it."""
     detail = channel.get("health_detail") or ""
     measurement = None
     if "power" in detail:
@@ -121,8 +136,9 @@ def channel_callout(direction: str, channel: dict) -> dict:
         "direction": direction,
         "family": FAMILY_LABELS.get(family, ""),
         "health": _health(channel),
-        "modulation": channel.get("profile_modulation") or channel.get("modulation") or "",
+        "modulation": _modulation(channel),
         "measurement": measurement,
+        "modulation_cause": _modulation_cause(direction, channel),
         "link": f"#channels?mode=timeline&dir={direction}&channel={_channel_id(channel)}",
     }
 
@@ -138,6 +154,7 @@ def _direction(direction: str, channels: list[dict]) -> dict | None:
             "family": FAMILY_LABELS.get(_family(direction, ch), ""),
             "health": _health(ch),
             "power": _number(ch.get("power")),
+            "modulation": _modulation(ch),
         }
         for ch in ordered
     ]

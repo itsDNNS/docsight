@@ -1448,6 +1448,23 @@ class TestIndexLineStatus:
         assert 'class="home-findings-lead">Upstream power' in html
         assert '<details class="line-status-findings">' in html
 
+    def test_modulation_cause_is_named_with_its_target(self, client, sample_analysis):
+        analysis = deepcopy(sample_analysis)
+        analysis["summary"]["health"] = "marginal"
+        analysis["ds_channels"][0].update(
+            channel_family="ofdm", modulation="OFDM", profile_modulation="256QAM", docsis_version="3.1",
+            health="warning", health_detail="modulation warning", modulation_health="warning",
+        )
+
+        html = self._render(client, analysis)
+        downstream = html[html.index('class="line-status-row" data-direction="ds"'):html.index('class="line-status-row" data-direction="us"')]
+
+        assert "· OFDM · 256QAM ·" in downstream
+        assert "Downstream · Channel " + str(analysis["ds_channels"][0]["channel_id"]) + " · OFDM · 256QAM" in downstream
+        assert '<div class="ls-callout-modulation ls-warning">' in downstream
+        assert "Modulation below target" in downstream
+        assert "Target ≥ 1024QAM" in downstream
+
     def test_no_docsis_channels_render_no_line_status(self, client, no_docsis_analysis):
         html = self._render(client, no_docsis_analysis)
 

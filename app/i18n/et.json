@@ -75,6 +75,7 @@
   "line_status_channel": "Kanal",
   "line_status_below_target": "{delta} dB alla sihi",
   "line_status_above_target": "{delta} dB üle sihi",
+  "line_status_modulation_below": "Modulatsioon alla sihi",
   "line_status_target": "Siht",
   "line_status_more": "veel",
   "line_status_no_deviation": "Kõrvalekalle puudub · kõik kanalid sihtvahemikus",
