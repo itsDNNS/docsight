@@ -103,6 +103,10 @@ TEST_FILTERS = {
         "app/static/js/**",
         "app/static/sw.js",
         "app/static/vendor/**",
+        "app/modules/**/static/**",
+        "app/modules/**/templates/**",
+        "app/i18n/**",
+        "app/modules/**/i18n/**",
         "tests/js/**",
         ".github/workflows/test.yml",
     ],
@@ -307,6 +311,31 @@ def test_test_workflow_detector_schedule_and_exact_path_contracts():
         "tests/test_wiki_docs.py",
     ):
         assert test_file in docs_run
+
+
+def _glob_regex(pattern):
+    """paths-filter style glob: ``**`` spans directories, ``*`` stays inside one."""
+    parts = re.split(r"(\*\*/?|\*)", pattern)
+    regex = "".join(
+        ".*" if part.startswith("**") else "[^/]*" if part == "*" else re.escape(part)
+        for part in parts
+    )
+    return re.compile(regex + r"(/.*)?$")
+
+
+def test_js_lane_runs_for_every_file_the_js_suite_reads():
+    """A change to a module script or template the JS suite loads must start that suite."""
+    patterns = [_glob_regex(pattern) for pattern in TEST_FILTERS["js"]]
+    read_paths = set()
+    for test_file in sorted((ROOT / "tests" / "js").glob("*.js")):
+        read_paths.update(re.findall(r"['\"`]((?:app|scripts)/[^'\"`$]+)['\"`]", test_file.read_text(encoding="utf-8")))
+    assert read_paths
+    # Directory references ("app/static/js") stand for the files inside them.
+    uncovered = sorted(
+        path for path in read_paths
+        if not any(regex.match(path) or regex.match(path.rstrip("/") + "/file") for regex in patterns)
+    )
+    assert uncovered == []
 
 
 def test_docs_job_reads_the_published_wiki_and_other_lanes_deselect_it():
