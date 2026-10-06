@@ -36,7 +36,6 @@ DATA_TABLE_RULE = re.compile(r"(?m)^\s*\.data-table(?:-[a-z]+)?(?![\w-])[^{,]*[{
 TABLES_WITHOUT_COMPONENT = {
     ("app/modules/bqm/templates/bqm_dialogs.html", "bqm-import-table"),
     ("app/modules/connection_monitor/static/js/connection-monitor-charts.js", "cm-target-table"),
-    ("app/modules/de_tkg_compensation/static/main.js", "tkg-table"),
     ("app/modules/journal/static/main.js", ""),
     ("app/modules/journal/templates/journal_dialogs.html", "import-table"),
     ("app/modules/journal/templates/journal_tab.html", "journal-table"),

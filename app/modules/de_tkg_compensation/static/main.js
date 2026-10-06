@@ -223,14 +223,16 @@
         });
         container.append(summary);
         if (result.days.length || result.exclusions.length) {
-            var table = document.createElement('table'); table.className = 'tkg-table';
+            var table = document.createElement('table'); table.className = 'data-table tkg-table';
             var head = document.createElement('thead');
             var headingRow = document.createElement('tr');
             [
                 t('column_date', 'Date'), t('column_day', 'Day'), t('column_basis', 'Basis'),
                 t('column_amount', 'Amount'), t('column_rule', 'Rule')
-            ].forEach(function(labelText) {
-                var heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = labelText; headingRow.append(heading);
+            ].forEach(function(labelText, index) {
+                var heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = labelText;
+                if (index === 1 || index === 3) heading.className = 'dt-num';
+                headingRow.append(heading);
             });
             head.append(headingRow);
             var body = document.createElement('tbody');
@@ -238,12 +240,14 @@
                 var row = document.createElement('tr');
                 var basis = t(day.basis === 'percent' ? 'basis_percent' : 'basis_flat', day.basis) +
                     ' · max(' + euros(day.flat_cents) + '; ' + day.percentage + '% = ' + euros(day.percentage_cents) + ')';
-                [day.date, String(day.day_index), basis, euros(day.amount_cents), day.rule_ref].forEach(function(value) {
-                    var cell = document.createElement('td'); cell.textContent = value; row.append(cell);
+                [day.date, String(day.day_index), basis, euros(day.amount_cents), day.rule_ref].forEach(function(value, index) {
+                    var cell = document.createElement('td'); cell.textContent = value;
+                    if (index === 1 || index === 3) cell.className = 'dt-num';
+                    row.append(cell);
                 });
                 body.append(row);
             });
-            table.append(head, body); container.append(table);
+            table.append(head, body); labelDataTable(table); container.append(table);
         }
         if (result.exclusions.length) {
             var excludedHeading = document.createElement('h4'); excludedHeading.textContent = t('excluded_days', 'Excluded confirmed days'); container.append(excludedHeading);

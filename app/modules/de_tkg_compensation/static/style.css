@@ -42,9 +42,7 @@
 .tkg-day label { flex-direction: row; align-items: center; }
 .tkg-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .tkg-summary > div { border: 1px solid var(--card-border, var(--input-border)); border-radius: var(--radius-sm, 10px); background: var(--tint-subtle, transparent); padding: 12px; }
-.tkg-table { width: 100%; border-collapse: collapse; margin: var(--space-md, 16px) 0; }
-.tkg-table th, .tkg-table td { border-bottom: 1px solid var(--card-border, var(--input-border)); text-align: left; padding: 8px; }
-.tkg-table th { color: var(--text-secondary, var(--muted)); }
+.tkg-table { margin: var(--space-md, 16px) 0; }
 .tkg-letter { margin-top: var(--space-md, 16px); resize: vertical; min-height: 360px; }
 .tkg-actions, .tkg-nav { display: flex; flex-wrap: wrap; gap: 10px; }
 .tkg-nav { justify-content: space-between; }
@@ -56,5 +54,4 @@
   .tkg-panel, .tkg-status { padding: var(--space-md, 16px); }
   .tkg-day { grid-template-columns: 1fr; }
   .tkg-wide { grid-column: auto; }
-  .tkg-table { display: block; overflow-x: auto; }
 }
