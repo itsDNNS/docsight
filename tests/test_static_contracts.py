@@ -41,8 +41,8 @@ I18N_PLACEHOLDER_RE = re.compile(
 )
 # Built-in modules that ship the whole European language pack; the others ship English only.
 LOCALIZED_MODULES = {
-    "backup", "bnetz", "bqm", "comparison", "connection_monitor", "de_tkg_compensation", "modulation",
-    "mqtt", "reports", "smokeping", "speedtest", "weather",
+    "backup", "bnetz", "bqm", "comparison", "connection_monitor", "de_tkg_compensation", "evidence",
+    "journal", "modulation", "mqtt", "reports", "smokeping", "speedtest", "weather",
 }
 I18N_PROTECTED_LITERALS = {"Apprise", "DOCSight", "DOCSIS", "DSL", "SC-QAM", "dBmV", "Smokeping"}
 I18N_EMPTY_TAG_RE = re.compile(r"<([A-Za-z][^>]*)>\s*</\1>")
@@ -556,6 +556,62 @@ def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
             offenders.append(f"{i18n_dir.relative_to(ROOT)}: {', '.join(generated)}")
 
     assert offenders == []
+
+
+# Lookups that still fall back to template or script defaults. The follow-up
+# that adds the setup guide texts removes these entries; the list may only shrink.
+KNOWN_UNRESOLVED_MODULE_LOOKUPS = {
+    ("bqm", "delete"),
+    ("bqm", "setup_configure_title"),
+    ("bqm", "setup_requirements_title"),
+    ("bqm", "setup_validate_source"),
+    ("bqm", "setup_validate_title"),
+    ("bqm", "setup_why_title"),
+    ("connection_monitor", "docsight.connection_monitor.cm_pin_this_day"),
+    ("speedtest", "setup_configure_title"),
+    ("speedtest", "setup_requirements_title"),
+    ("speedtest", "setup_validate_title"),
+    ("speedtest", "setup_why_title"),
+    ("speedtest", "speedtest_setup_configure_text"),
+    ("speedtest", "speedtest_setup_copy_command"),
+    ("speedtest", "speedtest_setup_guided_intro"),
+    ("speedtest", "speedtest_setup_guided_title"),
+    ("speedtest", "speedtest_setup_open_settings"),
+    ("speedtest", "speedtest_setup_requirement_api"),
+    ("speedtest", "speedtest_setup_requirement_url"),
+    ("speedtest", "speedtest_setup_test_guidance"),
+    ("speedtest", "speedtest_setup_validate_text"),
+}
+JS_TRANSLATION_LOOKUP_RE = re.compile(r"\bT\.([A-Za-z_]\w*)|\bT\[\s*['\"]([^'\"]+)['\"]\s*\]")
+TEMPLATE_TRANSLATION_LOOKUP_RE = re.compile(
+    r"\bt\.get\(\s*['\"]([^'\"]+)['\"]|\bt\[\s*['\"]([^'\"]+)['\"]\s*\]|\bt\.(?!get\b)([a-z_]\w*)"
+)
+
+
+def test_module_translation_lookups_resolve_to_catalog_keys() -> None:
+    """Module templates and scripts only look up keys that a catalog defines."""
+    known = set(read_json(APP_I18N_DIR / "en.json"))
+    for catalog in MODULES.glob("*/i18n/en.json"):
+        module_id = read_json(catalog.parents[1] / "manifest.json")["id"]
+        for key in read_json(catalog):
+            known.update({key, f"{module_id}.{key}"})
+
+    unresolved = set()
+    for module_dir in sorted(path for path in MODULES.iterdir() if path.is_dir()):
+        for path in module_dir.rglob("*"):
+            if path.suffix == ".js":
+                pattern = JS_TRANSLATION_LOOKUP_RE
+            elif path.suffix == ".html":
+                pattern = TEMPLATE_TRANSLATION_LOOKUP_RE
+            else:
+                continue
+            for match in pattern.finditer(path.read_text(encoding="utf-8")):
+                key = next(group for group in match.groups() if group)
+                if key not in known:
+                    unresolved.add((module_dir.name, key))
+
+    assert unresolved - KNOWN_UNRESOLVED_MODULE_LOOKUPS == set()
+    assert KNOWN_UNRESOLVED_MODULE_LOOKUPS - unresolved == set()
 
 
 def test_european_language_pack_metadata() -> None:

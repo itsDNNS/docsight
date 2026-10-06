@@ -503,7 +503,7 @@ function saveEntry() {
                 if (uploadBtn) uploadBtn.disabled = false;
                 if (uploadHint) uploadHint.textContent = '';
                 if (saveBtn) saveBtn.textContent = T.entry_update_action || 'Update entry';
-                showToast(T.saved || 'Saved', 'ok');
+                showToast(T.entry_saved || 'Entry saved', 'ok');
             } else {
                 closeEntryModal();
             }
@@ -515,9 +515,9 @@ function deleteEntry() {
     var entryId = document.getElementById('entry-id').value;
     if (!entryId) return;
     docsightConfirm({
-        title: T.delete || 'Delete',
+        title: T.delete_incident || 'Delete',
         message: T.confirm_delete || 'Are you sure?',
-        confirmText: T.delete || 'Delete',
+        confirmText: T.delete_incident || 'Delete',
         cancelText: T.cancel || 'Cancel',
         danger: true
     }).then(function(confirmed) {
@@ -867,7 +867,7 @@ function deleteAllEntries() {
     docsightConfirm({
         title: T.delete_all || 'Delete all entries',
         message: T.delete_all_confirm.replace('{n}', count),
-        confirmText: T.delete || 'Delete',
+        confirmText: T.delete_incident || 'Delete',
         cancelText: T.cancel || 'Cancel',
         danger: true,
         requireText: 'DELETE',
@@ -1682,9 +1682,9 @@ function deleteIncident() {
     var incidentId = document.getElementById('incident-container-id').value;
     if (!incidentId) return;
     docsightConfirm({
-        title: T.delete || 'Delete',
+        title: T.delete_incident || 'Delete',
         message: T.incident_delete_confirm || 'Delete this incident? Entries will become unassigned.',
-        confirmText: T.delete || 'Delete',
+        confirmText: T.delete_incident || 'Delete',
         cancelText: T.cancel || 'Cancel',
         danger: true
     }).then(function(confirmed) {
