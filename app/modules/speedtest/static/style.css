@@ -108,32 +108,7 @@
     overflow-x: auto;
     overflow-y: hidden;
 }
-#speedtest-table {
-    width: 100%;
-    margin: 0;
-}
-#speedtest-table thead tr {
-    background: var(--surface-2, rgba(0,0,0,0.15));
-}
-#speedtest-table thead th {
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: 600;
-    font-size: max(var(--fs-min), 0.85em);
-    color: var(--text);
-    border-bottom: 1px solid var(--card-border, var(--input-border));
-}
-#speedtest-table tbody tr {
-    transition: background 0.15s ease;
-}
-#speedtest-table tbody tr:hover {
-    background: var(--surface-2, rgba(0,0,0,0.1));
-}
-#speedtest-table tbody td {
-    padding: 12px 16px;
-    font-size: max(var(--fs-min), 0.85em);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
+#speedtest-table td { vertical-align: middle; }
 /* Signal detail rows (expanded) */
 #speedtest-table tbody tr.st-signal-row {
     background: rgba(168,85,247,0.05);
@@ -153,11 +128,6 @@
 @media (max-width: 768px) {
     .speedtest-chart-card {
         padding: var(--space-md, 16px);
-    }
-    #speedtest-table thead th,
-    #speedtest-table tbody td {
-        padding: 8px 12px;
-        font-size: max(var(--fs-min), 0.8em);
     }
 }
 
@@ -186,56 +156,9 @@
         flex-wrap: wrap;
         gap: 8px 14px;
     }
-    /* Stacked rows: time and download first, the other values wrap below. */
-    #speedtest-table,
-    #speedtest-table tbody {
-        display: block;
-    }
-    #speedtest-table thead {
-        display: none;
-    }
-    #speedtest-table tbody tr:not(.st-signal-row) {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 2px 12px;
-        /* Wrapped value lines start under the time, after the expand button. */
-        padding: 8px 10px 8px 40px;
-        border-bottom: 1px solid var(--border-tint, rgba(255,255,255,0.05));
-    }
-    #speedtest-table tbody tr:not(.st-signal-row)::after {
-        content: '';
-        flex-basis: 100%;
-        height: 0;
-        order: 3;
-    }
-    #speedtest-table tbody tr:not(.st-signal-row) > td {
-        padding: 0;
-        border: none;
-        font-size: var(--fs-min);
-    }
-    #speedtest-table tbody tr.st-signal-row,
-    #speedtest-table tbody tr.st-signal-row > td {
-        display: block;
-    }
-    #speedtest-table td.st-expand-col { order: 0; flex: 0 0 32px; margin-left: -44px; align-self: center; }
-    #speedtest-table td.st-col-time { order: 1; flex: 1 1 auto; font-size: max(var(--fs-min), 0.875rem); }
-    #speedtest-table td.st-col-dl { order: 2; flex: 0 0 auto; font-size: max(var(--fs-min), 0.875rem); }
-    #speedtest-table td.st-col-ul { order: 4; }
-    #speedtest-table td.st-col-ping { order: 5; }
-    #speedtest-table td.st-col-jitter { order: 6; }
-    #speedtest-table td.st-col-loss { order: 7; }
-    #speedtest-table td.st-col-server { order: 8; flex-basis: 100%; }
-    #speedtest-table td.st-sc-col { order: 9; }
-    #speedtest-table td.st-sc-col:empty { display: none; }
-    #speedtest-table td.st-col-ul::before,
-    #speedtest-table td.st-col-ping::before,
-    #speedtest-table td.st-col-jitter::before,
-    #speedtest-table td.st-col-loss::before,
-    #speedtest-table td.st-col-server::before {
-        content: attr(data-label) " ";
-        color: var(--muted);
-    }
+    /* The server gets its own line below the measured values. */
+    #speedtest-table td.st-col-server { order: 2; flex-basis: 100%; }
+    #speedtest-table td.st-sc-col { order: 3; }
     .st-signal-detail {
         grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
         gap: 6px 10px;

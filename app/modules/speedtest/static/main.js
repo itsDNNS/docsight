@@ -193,16 +193,16 @@ function renderSpeedtestRows() {
         var scBadge = r.smart_capture
             ? '<td class="st-sc-col"><span class="sc-badge">' + escapeHtml(T.sc_badge_label || 'Smart Capture') + '</span></td>'
             : '<td class="st-sc-col"></td>';
-        tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" data-action="toggleSpeedtestSignal" data-action-pass="element"'
+        tr.innerHTML = '<td class="st-expand-col dt-lead"><button class="st-expand-btn" data-id="' + r.id + '" data-action="toggleSpeedtestSignal" data-action-pass="element"'
             + ' aria-label="' + expandLabel + '" title="' + expandLabel + '" aria-expanded="false" aria-controls="st-signal-' + r.id + '">'
             + '<i data-lucide="chevron-right" aria-hidden="true"></i></button></td>'
-            + _speedtestCell('st-col-time', T.timestamp || 'Timestamp', escapeHtml(formatSpeedtestTimestamp(r.timestamp)))
+            + _speedtestCell('st-col-time dt-primary', T.timestamp || 'Timestamp', escapeHtml(formatSpeedtestTimestamp(r.timestamp)))
             + serverCell
-            + _speedtestCell('st-col-dl', T.download || 'Download', '<strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong>')
-            + _speedtestCell('st-col-ul', T.upload || 'Upload', '<strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong>')
-            + _speedtestCell('st-col-ping', T.ping || 'Ping', r.ping_ms == null ? '&#8212;' : escapeHtml(String(r.ping_ms)) + ' ms', pingClass)
-            + _speedtestCell('st-col-jitter', T.jitter || 'Jitter', r.jitter_ms == null ? '&#8212;' : escapeHtml(String(r.jitter_ms)) + ' ms', jitterClass)
-            + _speedtestCell('st-col-loss', T.packet_loss || 'Packet Loss', r.packet_loss_pct == null ? '&#8212;' : r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%')
+            + _speedtestCell('st-col-dl dt-primary dt-num', T.download || 'Download', '<strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong>')
+            + _speedtestCell('st-col-ul dt-num', T.upload || 'Upload', '<strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong>')
+            + _speedtestCell('st-col-ping dt-num', T.ping || 'Ping', r.ping_ms == null ? '&#8212;' : escapeHtml(String(r.ping_ms)) + ' ms', pingClass)
+            + _speedtestCell('st-col-jitter dt-num', T.jitter || 'Jitter', r.jitter_ms == null ? '&#8212;' : escapeHtml(String(r.jitter_ms)) + ' ms', jitterClass)
+            + _speedtestCell('st-col-loss dt-num', T.packet_loss || 'Packet Loss', r.packet_loss_pct == null ? '&#8212;' : r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%')
             + scBadge;
         tbody.appendChild(tr);
     }
@@ -427,7 +427,7 @@ function toggleSpeedtestSignal(btn) {
     btn.classList.add('open');
     btn.setAttribute('aria-expanded', 'true');
     var newRow = document.createElement('tr');
-    newRow.className = 'st-signal-row';
+    newRow.className = 'st-signal-row dt-detail';
     newRow.id = 'st-signal-' + id;
     var cols = parentRow.children.length;
     var td = document.createElement('td');

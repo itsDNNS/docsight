@@ -46,16 +46,16 @@
     </div>
     <!-- Phase 4.2: Table card wrapper -->
     <div id="speedtest-table-wrap" class="table-card">
-        <table id="speedtest-table" class="sortable" hidden>
+        <table id="speedtest-table" class="data-table data-table-list sortable" hidden>
             <thead><tr>
                 <th class="st-expand-col"><span class="sr-only">{{ t.get('speedtest_show_signal', 'Show signal at this time') }}</span></th>
                 <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
                 <th data-col="server_name">{{ t.server or 'Server' }}<span class="sort-indicator"></span></th>
-                <th data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
-                <th data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
-                <th data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>
-                <th data-col="jitter_ms">{{ t.jitter }}<span class="sort-indicator"></span></th>
-                <th data-col="packet_loss_pct">{{ t.packet_loss }}<span class="sort-indicator"></span></th>
+                <th class="dt-num" data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
+                <th class="dt-num" data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
+                <th class="dt-num" data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>
+                <th class="dt-num" data-col="jitter_ms">{{ t.jitter }}<span class="sort-indicator"></span></th>
+                <th class="dt-num" data-col="packet_loss_pct">{{ t.packet_loss }}<span class="sort-indicator"></span></th>
                 <th class="st-sc-col"></th>
             </tr></thead>
             <tbody id="speedtest-tbody"></tbody>

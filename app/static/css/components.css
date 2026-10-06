@@ -215,7 +215,8 @@ body {
    .dt-num cells. On phones every row stacks into label/value lines taken
    from data-label; .data-table-list keeps long lists to two lines per
    entry instead: .dt-primary cells first, the rest small below, and an
-   optional .dt-lead control (expand button) at the left. */
+   optional .dt-lead control (expand button) at the left. A .dt-detail row
+   holds one cell spanning the table, such as an expanded detail view. */
 .data-table-wrap { overflow-x: auto; }
 .data-table {
   width: 100%;
@@ -276,6 +277,9 @@ body {
   .data-table-list tbody tr:has(> td.dt-lead) { position: relative; padding-left: 44px; }
   .data-table-list td.dt-lead { position: absolute; top: 50%; left: 6px; transform: translateY(-50%); }
   .data-table-list td:empty { display: none; }
+  .data-table tbody tr.dt-detail { display: block; padding: 0; }
+  .data-table tbody tr.dt-detail::before { content: none; }
+  .data-table tbody tr.dt-detail > td { display: block; width: 100%; padding: 0; }
 }
 
 /* ── Badges ── */

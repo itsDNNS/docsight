@@ -648,7 +648,7 @@
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var detailRow = document.createElement('tr');
-                detailRow.className = 'trace-detail-row';
+                detailRow.className = 'trace-detail-row dt-detail';
                 if (detailId) detailRow.id = detailId;
                 var td = document.createElement('td');
                 td.colSpan = 6;
