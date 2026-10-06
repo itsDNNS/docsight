@@ -1,0 +1,23 @@
+/* login.css — the sign-in page inside the shared brand bar */
+.login-layout {
+  display: flex;
+  justify-content: center;
+  padding: clamp(32px, 12vh, 120px) var(--space-md) var(--space-xl, 32px);
+}
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-lg);
+}
+.login-title { margin: 0 0 4px; font-size: 1.375rem; font-weight: 650; letter-spacing: -0.01em; }
+.login-hint { margin: 0 0 var(--space-md); color: var(--text-secondary, var(--muted)); font-size: max(var(--fs-min), 0.9rem); }
+.login-error {
+  margin-bottom: var(--space-md);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--crit-muted);
+  color: var(--crit);
+  font-size: max(var(--fs-min), 0.875rem);
+}
+.login-form { display: flex; flex-direction: column; gap: var(--space-md); }
+.login-submit { width: 100%; min-height: 44px; justify-content: center; }

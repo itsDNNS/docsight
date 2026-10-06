@@ -1,78 +1,29 @@
 /* setup.css — Setup Wizard (Tribu Design System) */
 
-/* ── Mesh Background ── */
-.mesh-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.mesh-bg::before {
-  content: '';
-  position: absolute;
-  width: 800px; height: 800px;
-  top: -200px; right: -200px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--amethyst) 8%, transparent) 0%, transparent 70%);
-  animation: meshDrift1 25s ease-in-out infinite alternate;
-}
-.mesh-bg::after {
-  content: '';
-  position: absolute;
-  width: 600px; height: 600px;
-  bottom: -100px; left: -100px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--sapphire) 6%, transparent) 0%, transparent 70%);
-  animation: meshDrift2 30s ease-in-out infinite alternate;
-}
-@keyframes meshDrift1 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-80px,60px) scale(1.15)} }
-@keyframes meshDrift2 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(60px,-40px) scale(1.1)} }
-
 /* ── Card Icon Colors ── */
 [data-theme="light"] .stepper-step.active .stepper-label { color: var(--amethyst); }
 [data-theme="light"] .setup-info strong { color: var(--amethyst); }
 
 /* ── Layout ── */
 .setup-layout {
-  position: relative;
-  z-index: 1;
   max-width: 720px;
   margin: 0 auto;
-  padding: var(--space-lg) var(--space-md);
-  min-height: 100vh;
+  padding: var(--space-xl, 32px) var(--space-md) var(--space-2xl, 48px);
 }
-
-/* ── Controls Bar (top-right) ── */
-.setup-controls {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
+.setup-lang-select { width: auto; min-height: 40px; }
+.setup-actions-spaced { margin-top: var(--space-md); }
+.setup-credentials { margin-top: var(--space-md); }
 
 /* ── Header ── */
 .setup-header {
   text-align: center;
   margin-bottom: var(--space-lg);
 }
-.setup-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-.setup-brand .logo-mark { flex: none; color: var(--accent); }
 .setup-title {
   font-size: clamp(1.65rem, 4vw, 2.25rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: var(--grad-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
   margin-bottom: var(--space-xs);
 }
 .setup-subtitle {
@@ -106,26 +57,19 @@
   justify-content: center;
   font-weight: 600;
   font-size: 1.1rem;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--card);
+  border: 1px solid var(--card-border, var(--glass-border));
   color: var(--text-secondary);
   transition: all 0.3s var(--ease-out-expo);
   position: relative;
   z-index: 2;
 }
 .stepper-circle svg { width: 20px; height: 20px; }
-.stepper-step.active .stepper-circle {
-  background: var(--grad-primary);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 4px 16px -2px color-mix(in srgb, var(--amethyst) 40%, transparent);
-}
+.stepper-step.active .stepper-circle,
 .stepper-step.done .stepper-circle {
-  background: var(--amethyst);
+  background: var(--accent);
   border-color: transparent;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 .stepper-label {
   font-size: 0.85rem;
@@ -153,8 +97,6 @@
 /* ── Demo-first card ── */
 .first-run-card {
   padding: var(--space-lg);
-  border: 1px solid color-mix(in srgb, var(--amethyst) 38%, var(--glass-border));
-  box-shadow: 0 16px 48px -24px color-mix(in srgb, var(--amethyst) 38%, transparent);
 }
 .first-run-card-heading {
   display: flex;
@@ -185,7 +127,7 @@
   font-size: 0.86rem;
   color: var(--text-secondary);
 }
-.first-run-demo-cta {
+.first-run-connect-cta {
   width: 100%;
   min-height: 48px;
   justify-content: center;
@@ -464,16 +406,13 @@
 /* ── Inline Style Replacements ── */
 .setup-icon-sm { width: 16px; height: 16px; }
 .setup-icon-md { width: 20px; height: 20px; }
-.setup-lang-select { padding: var(--space-sm) var(--space-sm); font-size: 0.82rem; }
-.setup-theme-btn { gap: 6px; }
+.setup-lang-select { padding-top: var(--space-xs); padding-bottom: var(--space-xs); font-size: 0.82rem; }
 .setup-subtitle { text-align: center; }
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
   .setup-title { font-size: 1.5rem; }
   .setup-layout { padding: var(--space-md) var(--space-sm); }
-  .setup-controls { margin-bottom: var(--space-md); }
-  .setup-controls .btn { min-width: 0; }
   .setup-lang-select { max-width: min(54vw, 210px); }
   .setup-header { margin-bottom: var(--space-md); }
   .first-run-card { padding: var(--space-md); }

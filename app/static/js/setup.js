@@ -225,10 +225,10 @@ function toggleUsernameField() {
 
     // Nothing to log in to until a modem is chosen.
     if(!modemType || !state.credentialsVisible) {
-        credGroup.style.display = 'none';
+        credGroup.hidden = true;
         return;
     }
-    credGroup.style.display = 'grid';
+    credGroup.hidden = false;
 
     usernameField.value = state.username;
     usernameField.placeholder = state.usernamePlaceholder;
@@ -511,9 +511,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* ── Setup start paths ── */
 function startFreshSetup() {
-    document.getElementById('setup-start').style.display = 'none';
-    document.getElementById('setup-stepper').style.display = '';
-    document.getElementById('setup-form').style.display = '';
+    document.getElementById('setup-start').hidden = true;
+    document.getElementById('setup-stepper').hidden = false;
+    document.getElementById('setup-form').hidden = false;
     nextStep(1);
 }
 
@@ -528,7 +528,7 @@ function _showDemoFailure(message, retryFn) {
     var result = document.getElementById('demo-start-result');
     var button = document.getElementById('start-demo-btn');
     button.disabled = false;
-    _setButtonLoading(button, 'play', SETUP_T.setup_demo_start);
+    _setButtonLoading(button, 'play', SETUP_T.setup_demo_secondary);
     result.className = 'test-result error first-run-result';
     result.style.display = 'block';
     result.textContent = '';
@@ -569,11 +569,11 @@ async function waitForDemoData(resetDeadline) {
 }
 
 async function startDemo() {
-    document.getElementById('setup-start').style.display = '';
+    document.getElementById('setup-start').hidden = false;
     document.getElementById('setup-start').classList.add('active');
-    document.getElementById('setup-stepper').style.display = 'none';
-    document.getElementById('setup-form').style.display = 'none';
-    document.getElementById('restore-section').style.display = 'none';
+    document.getElementById('setup-stepper').hidden = true;
+    document.getElementById('setup-form').hidden = true;
+    document.getElementById('restore-section').hidden = true;
 
     var button = document.getElementById('start-demo-btn');
     if (demoStartAccepted) {
@@ -613,18 +613,18 @@ async function startDemo() {
 }
 
 function startRestore() {
-    document.getElementById('setup-start').style.display = 'none';
-    document.getElementById('restore-section').style.display = '';
+    document.getElementById('setup-start').hidden = true;
+    document.getElementById('restore-section').hidden = false;
 }
 
 function backToStart() {
-    document.getElementById('restore-section').style.display = 'none';
-    document.getElementById('setup-stepper').style.display = 'none';
-    document.getElementById('setup-form').style.display = 'none';
-    document.getElementById('setup-start').style.display = '';
+    document.getElementById('restore-section').hidden = true;
+    document.getElementById('setup-stepper').hidden = true;
+    document.getElementById('setup-form').hidden = true;
+    document.getElementById('setup-start').hidden = false;
     document.getElementById('setup-start').classList.add('active');
     document.getElementById('restore-file').value = '';
-    document.getElementById('restore-meta').style.display = 'none';
+    document.getElementById('restore-meta').hidden = true;
     document.getElementById('restore-result').style.display = 'none';
 }
 
@@ -697,7 +697,7 @@ async function validateRestoreFile() {
     var fileInput = document.getElementById('restore-file');
     var metaDiv = document.getElementById('restore-meta');
     var resultDiv = document.getElementById('restore-result');
-    metaDiv.style.display = 'none';
+    metaDiv.hidden = true;
     resultDiv.style.display = 'none';
 
     if (!fileInput.files.length) return;
@@ -714,7 +714,7 @@ async function validateRestoreFile() {
         if (res.valid) {
             resultDiv.style.display = 'none';
             _buildMetaInfo(document.getElementById('restore-meta-info'), res.meta);
-            metaDiv.style.display = '';
+            metaDiv.hidden = false;
         } else {
             _showResultError(resultDiv, res.error || SETUP_T.invalid_backup);
         }
@@ -750,9 +750,9 @@ async function doRestore() {
                 setTimeout(function() { window.location.href = SETUP_INDEX_URL; }, 2000);
             } else {
                 setTimeout(function() {
-                    document.getElementById('restore-section').style.display = 'none';
-                    document.getElementById('setup-stepper').style.display = '';
-                    document.getElementById('setup-form').style.display = '';
+                    document.getElementById('restore-section').hidden = true;
+                    document.getElementById('setup-stepper').hidden = false;
+                    document.getElementById('setup-form').hidden = false;
                 }, 2000);
             }
         } else {
