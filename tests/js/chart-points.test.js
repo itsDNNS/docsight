@@ -65,3 +65,24 @@ for (const mode of ['normal', 'zoom']) {
             [undefined, 'docsight-legend-hidden']);
     });
 }
+
+test('compact axis labels keep close ticks distinct', () => {
+    const b = browser();
+    assert.deepEqual(Array.from(b.fmtKTicks([35080, 35100, 35120])), ['35.08k', '35.10k', '35.12k']);
+    assert.deepEqual(Array.from(b.fmtKTicks([0, 200000, 400000])), ['0', '200k', '400k']);
+    assert.deepEqual(Array.from(b.fmtKTicks([1000, 1500, 2000])), ['1.0k', '1.5k', '2.0k']);
+    assert.deepEqual(Array.from(b.fmtKTicks([1000000, 2000000])), ['1M', '2M']);
+    // Steps that would need three decimals fall back to the full number.
+    assert.deepEqual(Array.from(b.fmtKTicks([35054, 35055, 35056])), ['35,054', '35,055', '35,056']);
+    // Tooltips and other single values keep the short form.
+    assert.equal(b.fmtK(35100), '35.1k');
+    assert.equal(b.fmtK(638000), '638k');
+});
+
+test('large error counts get step-aware compact y labels', () => {
+    const b = browser();
+    const data = [35080, 35090, 35120];
+    b.renderChart('chart', data.map(String), [{label: 'errors', data}], 'line', null, {});
+    const axis = b.charts.chart.options.axes[1];
+    assert.deepEqual(Array.from(axis.values(null, [35080, 35100, 35120])), ['35.08k', '35.10k', '35.12k']);
+});
