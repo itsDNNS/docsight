@@ -25,12 +25,12 @@
             </div>
             <div class="toggle-row form-grid-full">
                 <div class="toggle-info">
-                    <span class="toggle-title">{{ t['docsight.speedtest.speedtest_tls_insecure'] or 'Insecure TLS' }}</span>
+                    <span class="toggle-title" id="speedtest_tls_insecure-title">{{ t['docsight.speedtest.speedtest_tls_insecure'] or 'Insecure TLS' }}</span>
                     <span class="toggle-desc">{{ t['docsight.speedtest.speedtest_tls_insecure_hint'] or 'Skip TLS certificate verification for self-signed HTTPS certificates' }}</span>
                 </div>
                 <input type="hidden" name="speedtest_tls_insecure" value="false">
                 <label class="toggle" for="speedtest_tls_insecure">
-                    <input type="checkbox" id="speedtest_tls_insecure" name="speedtest_tls_insecure" value="true" {% if config.speedtest_tls_insecure %}checked{% endif %}>
+                    <input type="checkbox" id="speedtest_tls_insecure" name="speedtest_tls_insecure" value="true" {% if config.speedtest_tls_insecure %}checked{% endif %} aria-labelledby="speedtest_tls_insecure-title">
                     <span class="toggle-slider"></span>
                 </label>
             </div>

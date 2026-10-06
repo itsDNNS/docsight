@@ -220,6 +220,23 @@ class TestSettingsRoute:
         assert block.select_one('a[href="#extensions"]') is not None
         assert soup.select_one("#weather_enabled") is None
 
+    def test_every_settings_form_control_has_an_accessible_name(self, client):
+        soup = BeautifulSoup(client.get("/settings?lang=en").get_data(as_text=True), "html.parser")
+        labelled = {label.get("for") for label in soup.select("label[for]")}
+        unnamed = []
+        for control in soup.select("#settings-form input, #settings-form select, #settings-form textarea"):
+            if control.get("type") == "hidden":
+                continue
+            wrapper = control.find_parent("label")
+            named = (
+                control.get("aria-label") or control.get("aria-labelledby")
+                or (control.get("id") and control["id"] in labelled)
+                or (wrapper is not None and wrapper.get_text(strip=True))
+            )
+            if not named:
+                unnamed.append(control.get("id") or control.get("name") or str(control)[:80])
+        assert unnamed == []
+
     def test_settings_icon_only_controls_have_accessible_names(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
         current_runtime().config_manager = config_mgr

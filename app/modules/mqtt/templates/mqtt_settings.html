@@ -45,12 +45,12 @@
         </div>
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title">{{ t['docsight.mqtt.mqtt_tls_insecure'] or 'Insecure TLS' }}</span>
+                <span class="toggle-title" id="mqtt_tls_insecure-title">{{ t['docsight.mqtt.mqtt_tls_insecure'] or 'Insecure TLS' }}</span>
                 <span class="toggle-desc">Skip TLS certificate verification</span>
             </div>
             <input type="hidden" name="mqtt_tls_insecure" value="false">
             <label class="toggle">
-                <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" value="true" {% if config.mqtt_tls_insecure %}checked{% endif %}>
+                <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" value="true" {% if config.mqtt_tls_insecure %}checked{% endif %} aria-labelledby="mqtt_tls_insecure-title">
                 <span class="toggle-slider"></span>
             </label>
         </div>

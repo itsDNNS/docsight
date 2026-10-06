@@ -1268,6 +1268,17 @@ class TestSettingsInstantToggleSave:
         expect(settings_page.locator("#modem_url")).to_have_value(url)
         expect(settings_page.locator("#isp-other-row")).to_be_hidden()
 
+    def test_automatic_backup_fields_are_inert_while_backups_are_off(self, settings_page):
+        settings_page.locator('button[data-section="data"]').click()
+        block = settings_page.locator("#backup-auto-settings")
+        toggle = settings_page.locator("#backup_enabled")
+        if toggle.is_checked():
+            settings_page.locator("#backup_enabled + .toggle-slider").click()
+        expect(block).to_have_attribute("inert", "")
+        settings_page.locator("#backup_enabled + .toggle-slider").click()
+        expect(block).not_to_have_attribute("inert", "")
+        expect(settings_page.locator("#backup_path")).to_be_enabled()
+
     def test_threshold_profile_toggles_are_exclusive_radios(self, settings_page):
         settings_page.locator('button[data-section="extensions"]').click()
         threshold_toggles = settings_page.locator('.module-toggle-input[data-is-threshold="true"]')

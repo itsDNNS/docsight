@@ -62,7 +62,7 @@
         </button>
         <div class="notification-channel-actions">
             <span class="channel-status-badge {{ 'status-enabled' if config.notify_apprise_enabled else 'status-disabled' }}" data-channel-badge="apprise">{{ t.enabled if config.notify_apprise_enabled else t.disabled }}</span>
-            <label class="toggle notification-header-toggle" aria-label="{{ t.notify_apprise_enabled }}"><input type="checkbox" id="notify_apprise_enabled" name="notify_apprise_enabled" value="true" {% if config.notify_apprise_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
+            <label class="toggle notification-header-toggle"><input type="checkbox" id="notify_apprise_enabled" name="notify_apprise_enabled" aria-label="{{ t.notify_apprise_enabled }}" value="true" {% if config.notify_apprise_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
             <button type="button" class="notification-collapse-button card-collapse-toggle" data-action="toggleCardCollapse" data-action-pass="element" aria-controls="notification-apprise-body" aria-expanded="{{ 'true' if config.notify_apprise_enabled else 'false' }}" aria-label="{{ t.notify_apprise_title }}">
                 <i data-lucide="chevron-down" class="card-collapse-icon"></i>
             </button>
@@ -108,7 +108,7 @@
         </button>
         <div class="notification-channel-actions">
             <span class="channel-status-badge {{ 'status-enabled' if config.notify_pwa_push_enabled else 'status-disabled' }}" data-channel-badge="pwa">{{ t.enabled if config.notify_pwa_push_enabled else t.disabled }}</span>
-            <label class="toggle notification-header-toggle" aria-label="{{ t.notify_pwa_push_enabled }}"><input type="checkbox" id="notify_pwa_push_enabled" name="notify_pwa_push_enabled" value="true" {% if config.notify_pwa_push_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
+            <label class="toggle notification-header-toggle"><input type="checkbox" id="notify_pwa_push_enabled" name="notify_pwa_push_enabled" aria-label="{{ t.notify_pwa_push_enabled }}" value="true" {% if config.notify_pwa_push_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
             <button type="button" class="notification-collapse-button card-collapse-toggle" data-action="toggleCardCollapse" data-action-pass="element" aria-controls="notification-pwa-push-body" aria-expanded="{{ 'true' if config.notify_pwa_push_enabled else 'false' }}" aria-label="{{ t.notify_pwa_push_title }}">
                 <i data-lucide="chevron-down" class="card-collapse-icon"></i>
             </button>
@@ -176,10 +176,10 @@
         <tbody>
             {% macro cooldown_row(event_key, event_label, severity, severity_label, badge_class) -%}
             <tr class="notify-event-row" data-event="{{ event_key }}" data-severity="{{ severity }}">
-                <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="{{ event_key }}" data-severity="{{ severity }}" checked><span class="toggle-slider"></span></label></td>
+                <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="{{ event_key }}" data-severity="{{ severity }}" aria-label="{{ t.notify_col_active }}: {{ event_label }}, {{ severity_label }}" checked><span class="toggle-slider"></span></label></td>
                 <td><span class="event-name">{{ event_label }}</span></td>
                 <td><span class="badge {{ badge_class }}">{{ severity_label }}</span></td>
-                <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="{{ event_key }}" data-severity="{{ severity }}" min="1" step="1" placeholder="default"></td>
+                <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="{{ event_key }}" data-severity="{{ severity }}" min="1" step="1" placeholder="default" aria-label="{{ t.notify_col_cooldown }}: {{ event_label }}, {{ severity_label }}"></td>
             </tr>
             {%- endmacro %}
 

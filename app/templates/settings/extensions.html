@@ -37,12 +37,12 @@
     {% for ext in features|sort(attribute='name') %}
     <div class="toggle-row{% if ext.disabled %} toggle-row-disabled{% endif %}">
         <div class="toggle-info">
-            <span class="toggle-title">{{ ext.name }}</span>
+            <span class="toggle-title" id="{{ ext.field }}-title">{{ ext.name }}</span>
             <span class="toggle-desc">{{ ext.desc }}</span>
         </div>
         <input type="hidden" name="{{ ext.field }}" value="false">
         <label class="toggle">
-            <input type="checkbox" id="{{ ext.field }}" name="{{ ext.field }}" value="true" {% if ext.checked %}checked{% endif %} {% if ext.disabled %}disabled{% endif %}>
+            <input type="checkbox" id="{{ ext.field }}" name="{{ ext.field }}" value="true" {% if ext.checked %}checked{% endif %} {% if ext.disabled %}disabled{% endif %} aria-labelledby="{{ ext.field }}-title">
             <span class="toggle-slider"></span>
         </label>
     </div>

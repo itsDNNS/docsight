@@ -74,8 +74,16 @@
   .settings-index-item { min-height: 60px; font-size: 0.95rem; }
   .settings-index-chevron { display: block; margin-left: auto; color: var(--muted); }
   .settings-page:not(.is-detail) .settings-content,
-  .settings-page.is-detail .settings-index,
-  .settings-page.is-detail .settings-header { display: none; }
+  .settings-page.is-detail .settings-index { display: none; }
+  /* The page heading stays for screen readers while a section is open. */
+  .settings-page.is-detail .settings-header {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   .settings-page.is-detail .settings-back { display: inline-flex; }
   .settings-detail-head { flex-direction: column; align-items: flex-start; gap: 4px; }
   .settings-back { margin-left: -12px; }
@@ -1349,7 +1357,8 @@ button.notification-collapse-button {
 
 /* Registry action buttons */
 .badge-verified {
-  background: var(--good);
+  /* Darkened so white text stays readable on every theme's --good */
+  background: color-mix(in srgb, var(--good) 55%, #000);
   color: #fff;
   padding: 1px 6px;
   border-radius: 4px;
@@ -1440,7 +1449,7 @@ button.notification-collapse-button {
 .sc-history-loading svg,
 .registry-loading svg { width: 18px; height: 18px; }
 .backup-path-input { cursor: pointer; }
-.backup-auto-settings.is-off { opacity: 0.5; pointer-events: none; }
+.backup-auto-settings.is-off { opacity: 0.5; }
 .cm-targets-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
 .api-token-banner {
   margin-bottom: var(--space-md);

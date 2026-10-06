@@ -305,6 +305,7 @@ function init() {
     var settings = document.getElementById('backup-auto-settings');
     if (checkbox && settings) checkbox.addEventListener('change', function() {
         settings.classList.toggle('is-off', !checkbox.checked);
+        settings.toggleAttribute('inert', !checkbox.checked);
     });
 }
 return {init, downloadBackup, backupNow, loadBackupList, openBrowseModal, closeBrowseModal, selectBrowsePath};

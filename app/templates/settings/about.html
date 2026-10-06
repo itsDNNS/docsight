@@ -94,12 +94,12 @@
     </div>
     <div class="toggle-row">
         <div class="toggle-info">
-            <span class="toggle-title">{{ t.get('release_update_checks_toggle', 'Check GitHub releases') }}</span>
+            <span class="toggle-title" id="update_check_enabled-title">{{ t.get('release_update_checks_toggle', 'Check GitHub releases') }}</span>
             <span class="toggle-desc">{{ t.get('release_update_checks_hint', 'When enabled, DOCSight checks the public GitHub releases API for newer versions. This is disabled by default and does not upload modem data, logs, credentials, analytics, or an installation ID.') }}</span>
         </div>
         <input type="hidden" name="update_check_enabled" value="false">
         <label class="toggle">
-            <input type="checkbox" id="update_check_enabled" name="update_check_enabled" value="true" {% if config.update_check_enabled %}checked{% endif %}>
+            <input type="checkbox" id="update_check_enabled" name="update_check_enabled" value="true" {% if config.update_check_enabled %}checked{% endif %} aria-labelledby="update_check_enabled-title">
             <span class="toggle-slider"></span>
         </label>
     </div>

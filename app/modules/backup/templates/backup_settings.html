@@ -47,7 +47,7 @@
             </label>
         </div>
 
-        <div id="backup-auto-settings" class="backup-auto-settings{% if not config.backup_enabled %} is-off{% endif %}">
+        <div id="backup-auto-settings" class="backup-auto-settings{% if not config.backup_enabled %} is-off{% endif %}"{% if not config.backup_enabled %} inert{% endif %}>
             <div class="form-field settings-gap">
                 <label class="form-label" for="backup_path">{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
                 <div class="input-with-action">
