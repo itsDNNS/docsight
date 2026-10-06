@@ -1219,7 +1219,10 @@ function renderIncidentTimeline(data) {
         entriesDiv.innerHTML = eHtml;
     }
 
-    // -- 3. Signal Timeline Chart --
+    // -- 3. Channel status during the case window (its own request, started first) --
+    _loadIncidentStatusTrack(inc);
+
+    // -- 4. Signal Timeline Chart --
     var chartCard = document.getElementById('incident-timeline-chart-card');
     if (timeline.length === 0) {
         chartCard.querySelector('.incident-timeline-chart-wrap').innerHTML =
@@ -1230,10 +1233,7 @@ function renderIncidentTimeline(data) {
         _renderTimelineChart(timeline);
     }
 
-    // -- 3b. Channel status during the case window --
-    _loadIncidentStatusTrack(inc);
-
-    // -- 4. Signal Timeline Table --
+    // -- 5. Signal Timeline Table --
     var signalsDiv = document.getElementById('incident-timeline-signals');
     if (timeline.length === 0) {
         signalsDiv.hidden = true;
@@ -1242,7 +1242,7 @@ function renderIncidentTimeline(data) {
         _renderTimelineTable(timeline);
     }
 
-    // -- 5. BNetzA Section --
+    // -- 6. BNetzA Section --
     var bnetzDiv = document.getElementById('incident-timeline-bnetz');
     if (bnetz.length === 0) {
         bnetzDiv.hidden = true;
@@ -1274,6 +1274,12 @@ function _getEntryIcon(entry) {
     var match = resolveIcon(entry);
     if (match) return match.icon;
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+}
+
+/* A case timeline holds thousands of points; parse each timestamp once. */
+function _timelineMs(point) {
+    if (point._ms === undefined) point._ms = docsightParseTime(point.timestamp).getTime();
+    return point._ms;
 }
 
 function _renderTimelineChart(data) {
@@ -1308,7 +1314,7 @@ function _renderTimelineChart(data) {
     }
 
     // Time range
-    var allTs = data.map(function(d) { return docsightParseTime(d.timestamp).getTime(); });
+    var allTs = data.map(_timelineMs);
     var tMin = Math.min.apply(null, allTs);
     var tMax = Math.max.apply(null, allTs);
     if (tMin === tMax) tMax = tMin + 86400000;
@@ -1381,13 +1387,13 @@ function _renderTimelineChart(data) {
     // SNR line (modem)
     if (modem.length > 1) {
         var sorted = modem.slice().sort(function(a, b) {
-            return docsightParseTime(a.timestamp).getTime() - docsightParseTime(b.timestamp).getTime();
+            return _timelineMs(a) - _timelineMs(b);
         });
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
         sorted.forEach(function(d, i) {
-            var x = xScale(docsightParseTime(d.timestamp).getTime());
+            var x = xScale(_timelineMs(d));
             var y = ySnr(d.ds_snr_min || snrMin);
             if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
@@ -1396,7 +1402,7 @@ function _renderTimelineChart(data) {
 
     // Speed dots
     speedtest.forEach(function(d) {
-        var x = xScale(docsightParseTime(d.timestamp).getTime());
+        var x = xScale(_timelineMs(d));
         // Download dot
         ctx.fillStyle = goodColor;
         ctx.beginPath();
@@ -1411,7 +1417,7 @@ function _renderTimelineChart(data) {
 
     // Event markers
     events.forEach(function(d) {
-        var x = xScale(docsightParseTime(d.timestamp).getTime());
+        var x = xScale(_timelineMs(d));
         var col = d.severity === 'critical' ? critColor : d.severity === 'warning' ? warnColor : textColor;
         ctx.strokeStyle = col;
         ctx.lineWidth = 1;
@@ -1493,7 +1499,7 @@ function _renderTimelineTable(data) {
     var modemTransitions = {};
     var lastHealth = null;
     var chrono = data.slice().sort(function(a, b) {
-        return docsightParseTime(a.timestamp).getTime() - docsightParseTime(b.timestamp).getTime();
+        return _timelineMs(a) - _timelineMs(b);
     });
     for (var i = 0; i < chrono.length; i++) {
         if (chrono[i].source !== 'modem') continue;
