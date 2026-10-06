@@ -42,11 +42,8 @@ TABLES_WITHOUT_COMPONENT = {
     ("app/modules/journal/templates/journal_tab.html", "journal-table"),
     ("app/modules/speedtest/templates/speedtest_tab.html", "speedtest-table"),
     ("app/static/js/integrations.js", "bnetz-detail-table"),
-    ("app/static/js/settings/backups.js", ""),
     ("app/templates/index.html", "bnetz-table"),
     ("app/templates/partials/channel_tables.html", "channel-table"),
-    ("app/templates/settings/notifications.html", "cooldown-table"),
-    ("app/templates/settings/security.html", "api-tokens-table"),
     ("app/templates/settings/smart_capture.html", "sc-history-table"),
 }
 

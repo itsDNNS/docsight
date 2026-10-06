@@ -417,52 +417,21 @@ button.notification-collapse-button {
   gap: var(--space-xs);
 }
 
-/* Legacy token table (backward compat) */
-#api-tokens-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-#api-tokens-table th {
-  font-size: var(--fs-min);
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 8px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--glass-border);
-}
-#api-tokens-table td {
-  padding: 12px;
-  border-bottom: 1px solid rgba(120,130,180,0.06);
-  font-size: 0.88rem;
-}
-#api-tokens-table tr:last-child td { border-bottom: none; }
-#api-tokens-table .btn { min-height: auto; }
+/* ─── Backup list ─── */
+.backup-table td { vertical-align: middle; }
+.backup-file { font-size: max(var(--fs-min), 0.8em); }
+.backup-meta { color: var(--muted); font-size: max(var(--fs-min), 0.8em); white-space: nowrap; }
+.backup-actions { text-align: right; }
+.backup-actions svg { width: 12px; height: 12px; }
+.backup-list-empty { color: var(--muted); font-style: italic; }
+.backup-list-error { color: var(--crit); }
+
+/* ─── API token table ─── */
+#api-tokens-table td { vertical-align: middle; }
+.api-token-actions { text-align: right; }
 
 /* ─── Cooldown Table ─── */
-.cooldown-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-.cooldown-table th {
-  font-size: var(--fs-min);
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 8px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--glass-border);
-}
-.cooldown-table td {
-  padding: 12px;
-  border-bottom: 1px solid rgba(120,130,180,0.06);
-  font-size: 0.88rem;
-}
-.cooldown-table tr:last-child td { border-bottom: none; }
+.cooldown-table td { vertical-align: middle; }
 .cooldown-table .event-name {
   font-weight: 500;
   display: flex;

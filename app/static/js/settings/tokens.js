@@ -1,9 +1,8 @@
 'use strict';
 DOCSightSettings.tokens = function({showToast}) {
 /* ── API Token Management ── */
-function _tokenCell(text, style) {
+function _tokenCell(text) {
     var td = document.createElement('td');
-    td.style.cssText = style || 'padding:4px 8px;';
     td.textContent = text;
     return td;
 }
@@ -25,20 +24,18 @@ function loadApiTokens() {
         if (empty) empty.hidden = true;
         tokens.forEach(function(tk) {
             var tr = document.createElement('tr');
-            tr.appendChild(_tokenCell(tk.name, 'padding:4px 8px;'));
+            tr.appendChild(_tokenCell(tk.name));
             var prefixTd = document.createElement('td');
-            prefixTd.style.cssText = 'padding:4px 8px;';
             var code = document.createElement('code');
             code.textContent = tk.token_prefix + '...';
             prefixTd.appendChild(code);
             tr.appendChild(prefixTd);
-            tr.appendChild(_tokenCell(tk.last_used_at || '\u2014', 'padding:4px 8px;'));
+            tr.appendChild(_tokenCell(tk.last_used_at || '\u2014'));
             var actionTd = document.createElement('td');
-            actionTd.style.cssText = 'padding:4px 8px;';
+            actionTd.className = 'api-token-actions';
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'btn btn-sm';
-            btn.style.cssText = 'font-size:max(var(--fs-min), 0.8em);padding:2px 8px;';
+            btn.className = 'btn btn-secondary btn-sm';
             btn.textContent = T.api_token_revoke || 'Revoke';
             btn.setAttribute('data-token-id', tk.id);
             btn.setAttribute('data-token-name', tk.name);
@@ -49,6 +46,7 @@ function loadApiTokens() {
             tr.appendChild(actionTd);
             body.appendChild(tr);
         });
+        labelDataTable(table);
     }).catch(function() {});
 }
 

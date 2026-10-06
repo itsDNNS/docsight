@@ -110,44 +110,41 @@ function loadBackupList() {
         el.textContent = '';
         if (backups.length === 0) {
             var emptySpan = document.createElement('span');
-            emptySpan.style.cssText = 'color:var(--muted);font-style:italic;';
+            emptySpan.className = 'backup-list-empty';
             emptySpan.textContent = T.backup_none || 'No backups found';
             el.appendChild(emptySpan);
             return;
         }
         var table = document.createElement('table');
-        table.style.cssText = 'width:100%;border-collapse:collapse;';
+        table.className = 'data-table data-table-compact backup-table';
         var tbody = document.createElement('tbody');
         backups.forEach(function(b) {
             var sizeMB = (b.size / 1048576).toFixed(1);
             var date = b.modified ? formatDocsightTime(b.modified) : '';
             var tr = document.createElement('tr');
-            tr.style.cssText = 'border-bottom:1px solid var(--card-border);';
 
             var td1 = document.createElement('td');
-            td1.style.cssText = 'padding:6px 0;';
             var codeEl = document.createElement('code');
-            codeEl.style.cssText = 'font-size:max(var(--fs-min), 0.8em);';
+            codeEl.className = 'backup-file';
             codeEl.textContent = b.filename;
             td1.appendChild(codeEl);
             tr.appendChild(td1);
 
             var td2 = document.createElement('td');
-            td2.style.cssText = 'padding:6px 8px;color:var(--muted);font-size:max(var(--fs-min), 0.8em);white-space:nowrap;';
+            td2.className = 'backup-meta';
             td2.textContent = date;
             tr.appendChild(td2);
 
             var td3 = document.createElement('td');
-            td3.style.cssText = 'padding:6px 8px;color:var(--muted);font-size:max(var(--fs-min), 0.8em);white-space:nowrap;';
+            td3.className = 'backup-meta dt-num';
             td3.textContent = sizeMB + ' MB';
             tr.appendChild(td3);
 
             var td4 = document.createElement('td');
-            td4.style.cssText = 'padding:6px 0;text-align:right;';
+            td4.className = 'backup-actions';
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
-            delBtn.className = 'btn btn-secondary';
-            delBtn.style.cssText = 'padding:2px 8px;font-size:max(var(--fs-min), 0.75em);';
+            delBtn.className = 'btn btn-secondary btn-sm';
             var deleteLabel = ((T.backup_delete || 'Delete backup') + ' ' + b.filename).trim();
             delBtn.setAttribute('data-filename', b.filename);
             delBtn.setAttribute('aria-label', deleteLabel);
@@ -156,7 +153,6 @@ function loadBackupList() {
             var icon = document.createElement('i');
             icon.setAttribute('data-lucide', 'trash-2');
             icon.setAttribute('aria-hidden', 'true');
-            icon.style.cssText = 'width:12px;height:12px;';
             delBtn.appendChild(icon);
             td4.appendChild(delBtn);
             tr.appendChild(td4);
@@ -170,7 +166,7 @@ function loadBackupList() {
     .catch(function() {
         el.textContent = '';
         var errSpan = document.createElement('span');
-        errSpan.style.cssText = 'color:var(--error);';
+        errSpan.className = 'backup-list-error';
         errSpan.textContent = T.network_error;
         el.appendChild(errSpan);
     });
