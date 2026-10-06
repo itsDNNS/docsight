@@ -24,7 +24,7 @@
 </head>
 <body>
 <a class="skip-link" id="skip-link" href="#main-content">{{ t.get('skip_to_content', 'Skip to content') }}</a>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="app-layout">
 {% set shell_page = 'settings' %}
 {% include 'partials/topnav.html' %}

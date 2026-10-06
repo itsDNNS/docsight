@@ -809,25 +809,6 @@ button.notification-collapse-button {
   color: var(--amethyst);
 }
 
-/* ─── Toast ─── */
-.toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 14px 24px;
-  border-radius: var(--radius-lg);
-  font-size: 0.9rem;
-  font-weight: 600;
-  z-index: 99999;
-  display: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  font-family: inherit;
-}
-.toast-ok { background: rgba(16, 185, 129, 0.95); color: #fff; }
-.toast-fail { background: rgba(239, 68, 68, 0.95); color: #fff; }
-
 /* ─── Error Message ─── */
 .error-msg {
   background: color-mix(in srgb, var(--crit) 10%, transparent);

@@ -1,5 +1,6 @@
 """E2E coverage for DOCSight modal behavior."""
 
+import re
 from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import expect
@@ -764,6 +765,22 @@ def test_journal_delete_all_sits_in_the_overflow_menu_and_cancel_is_quiet(demo_p
     demo_page.locator("#docsight-confirm-cancel").click()
     expect(demo_page.locator("#toast.toast-error")).to_have_count(0)
     expect(demo_page.locator("#journal-tbody tr[data-id]").first).to_be_visible()
+
+
+def test_dashboard_toast_shows_below_the_top_bar_and_hides_again(demo_page):
+    """Dashboard confirmations and errors appear as a styled toast, not as text at the page end."""
+    demo_page.evaluate("showToast('Entry saved', 'ok')")
+    toast = demo_page.locator("#toast")
+    expect(toast).to_be_visible()
+    expect(toast).to_have_class(re.compile(r"\btoast-success\b"))
+    expect(toast).to_have_attribute("role", "status")
+    assert toast.evaluate("node => getComputedStyle(node).position") == "fixed"
+    top_bar = demo_page.locator("#topnav").bounding_box()
+    assert toast.bounding_box()["y"] >= top_bar["y"] + top_bar["height"]
+
+    demo_page.evaluate("showToast('Network error', 'error')")
+    expect(toast).to_have_class(re.compile(r"\btoast-error\b"))
+    expect(toast).to_be_hidden(timeout=5000)
 
 
 def test_report_modal_closes_on_escape_and_backdrop_but_not_from_inside(demo_page):
