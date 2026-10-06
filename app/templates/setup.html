@@ -43,36 +43,36 @@
 
 <!-- Demo-first start -->
 <div id="setup-start" class="step-content active">
-    <section class="first-run-card glass" aria-labelledby="setup-demo-title">
+    <section class="first-run-card card" aria-labelledby="setup-start-title">
         <div class="first-run-card-heading">
             <div class="card-icon">
-                <i data-lucide="layout-dashboard"></i>
+                <i data-lucide="radio"></i>
             </div>
             <div>
-                <h2 id="setup-demo-title">{{ t.setup_demo_title }}</h2>
-                <p>{{ t.setup_demo_desc }}</p>
+                <h2 id="setup-start-title">{{ t.setup_connect_modem }}</h2>
+                <p>{{ t.setup_connect_desc }}</p>
             </div>
         </div>
 
-        <button type="button" class="btn btn-primary first-run-demo-cta" id="start-demo-btn" data-action="startDemo">
-            <i data-lucide="play" class="setup-icon-sm"></i>
-            {{ t.setup_demo_start }}
+        <button type="button" class="btn btn-primary first-run-connect-cta" id="connect-modem-btn" data-action="startFreshSetup">
+            <i data-lucide="radio" class="setup-icon-sm"></i>
+            {{ t.setup_connect_modem }}
         </button>
-        <p class="first-run-trust">
-            <i data-lucide="database" class="setup-icon-sm"></i>
-            <span>{{ t.setup_demo_trust }}</span>
-        </p>
-        <div class="test-result first-run-result" id="demo-start-result" role="status" aria-live="polite"></div>
 
         <div class="first-run-secondary">
-            <button type="button" class="btn btn-secondary" id="connect-modem-btn" data-action="startFreshSetup">
-                <i data-lucide="radio" class="setup-icon-sm"></i>
-                {{ t.setup_connect_modem }}
+            <button type="button" class="btn btn-ghost" id="start-demo-btn" data-action="startDemo">
+                <i data-lucide="play" class="setup-icon-sm"></i>
+                {{ t.setup_demo_secondary }}
             </button>
             <button type="button" class="restore-text-action" id="restore-action" data-action="startRestore">
                 {{ t.setup_restore_action }}
             </button>
         </div>
+        <p class="first-run-trust">
+            <i data-lucide="database" class="setup-icon-sm"></i>
+            <span>{{ t.setup_demo_trust }}</span>
+        </p>
+        <div class="test-result first-run-result" id="demo-start-result" role="status" aria-live="polite"></div>
     </section>
     {% if desktop_mode %}
     <p class="desktop-preview-first-run">
@@ -354,7 +354,7 @@
         'network_error': t.network_error,
         'setup_try_again': t.setup_try_again,
         'setup_try_demo': t.setup_try_demo,
-        'setup_demo_start': t.setup_demo_start,
+        'setup_demo_secondary': t.setup_demo_secondary,
         'setup_demo_starting': t.setup_demo_starting,
         'setup_demo_waiting': t.setup_demo_waiting,
         'setup_demo_failed': t.setup_demo_failed,

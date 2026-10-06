@@ -528,7 +528,7 @@ function _showDemoFailure(message, retryFn) {
     var result = document.getElementById('demo-start-result');
     var button = document.getElementById('start-demo-btn');
     button.disabled = false;
-    _setButtonLoading(button, 'play', SETUP_T.setup_demo_start);
+    _setButtonLoading(button, 'play', SETUP_T.setup_demo_secondary);
     result.className = 'test-result error first-run-result';
     result.style.display = 'block';
     result.textContent = '';

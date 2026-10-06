@@ -1,4 +1,4 @@
-"""Template and localization contracts for the demo-first setup UX."""
+"""Template and localization contracts for the setup start: connect the modem first, demo second."""
 
 import json
 import re
@@ -20,9 +20,8 @@ SETUP_SCRIPT = ROOT / "app" / "static" / "js" / "setup.js"
 FIRST_RUN_KEYS = {
     "setup_value_title",
     "setup_value_desc",
-    "setup_demo_title",
-    "setup_demo_desc",
-    "setup_demo_start",
+    "setup_connect_desc",
+    "setup_demo_secondary",
     "setup_demo_trust",
     "setup_connect_modem",
     "setup_restore_action",
@@ -46,13 +45,12 @@ def test_setup_template_has_value_led_hierarchy_and_recovery_actions():
     template = SETUP_TEMPLATE.read_text(encoding="utf-8")
     script = SETUP_SCRIPT.read_text(encoding="utf-8")
 
-    assert 'class="first-run-card glass"' in template
-    assert 'id="start-demo-btn"' in template
-    assert 'class="btn btn-primary first-run-demo-cta"' in template
-    assert 'id="connect-modem-btn"' in template
+    assert 'class="first-run-card card"' in template
+    assert 'class="btn btn-primary first-run-connect-cta" id="connect-modem-btn"' in template
+    assert 'class="btn btn-ghost" id="start-demo-btn"' in template
     assert 'id="restore-action"' in template
-    assert template.index("setup_demo_start") < template.index("setup_connect_modem")
-    assert template.index("setup_connect_modem") < template.index("setup_restore_action")
+    # Connecting the modem leads; the demo and restore follow as quieter options.
+    assert template.index('id="connect-modem-btn"') < template.index('id="start-demo-btn"') < template.index('id="restore-action"')
     assert "showSetupRecovery" in script
     assert "setup_try_demo" in template
     assert "retry.focus({preventScroll: true})" in script
@@ -161,6 +159,7 @@ def test_first_run_keys_are_complete_nonempty_and_placeholder_compatible():
     assert problems == {}
 
 
-def test_german_demo_cta_matches_product_copy():
+def test_german_start_copy_matches_product_copy():
     german = json.loads((I18N_DIR / "de.json").read_text(encoding="utf-8"))
-    assert german["setup_demo_start"] == "Demo ansehen – ohne eigene Modemdaten"
+    assert german["setup_connect_modem"] == "Eigenes Modem verbinden"
+    assert german["setup_demo_secondary"] == "Erst die Demo ansehen"
