@@ -69,6 +69,15 @@ function _readChannelSelection(select) {
     };
 }
 
+/* The channel the line status points at, the worst one right now; null when every
+   channel is within target. The timeline opens with it instead of an empty prompt. */
+function _focusChannelOption(select) {
+    var view = document.getElementById('view-channels');
+    var direction = view && view.dataset.focusDirection;
+    var channel = view && view.dataset.focusChannel;
+    return direction && channel ? _findChannelOption(select, direction, 'legacyChannelId', channel) : null;
+}
+
 function _findChannelOption(select, direction, field, value) {
     if (!select) return null;
     var found = null;
@@ -183,8 +192,9 @@ function initChannelView() {
                     return;
                 }
             }
-            // Missing or invalid channel → clear selection, show prompt
-            sel.value = '';
+            // No channel in the link → the line status focus; an invalid one → the prompt.
+            var focus = params.selector || params.channel ? null : _focusChannelOption(sel);
+            sel.value = focus ? focus.value : '';
             loadChannelTimeline();
             writeChannelHash();
         } else if (params.mode === 'compare') {
@@ -283,7 +293,11 @@ function switchChannelMode() {
         }
     } else {
         var sel = document.getElementById('channel-select');
-        if (!sel || !sel.value) {
+        var focus = sel && !sel.value ? _focusChannelOption(sel) : null;
+        if (focus) {
+            sel.value = focus.value;
+            loadChannelTimeline();
+        } else if (!sel || !sel.value) {
             document.getElementById('channel-empty').hidden = false;
             DOCSightEmptyState.hide(document.getElementById('channel-no-data'));
         } else {

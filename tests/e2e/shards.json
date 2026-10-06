@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 703,
+  "expected_total": 704,
   "baseline_cpu_seconds": 1653.939,
   "shards": [
     {
@@ -31,7 +31,7 @@
     },
     {
       "id": 3,
-      "collected_cases": 106,
+      "collected_cases": 107,
       "files": [
         "test_charts.py",
         "test_connection_monitor.py",

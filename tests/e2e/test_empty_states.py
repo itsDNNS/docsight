@@ -89,6 +89,12 @@ def test_channel_status_failure_offers_a_retry(demo_page):
 def test_channel_modes_without_a_selection_point_at_the_picker(demo_page):
     page = demo_page
     _open(page, "channels")
+    # Every channel within target: the line status has no focus channel to open.
+    page.evaluate("""() => {
+        const view = document.getElementById('view-channels');
+        delete view.dataset.focusDirection;
+        delete view.dataset.focusChannel;
+    }""")
 
     page.locator('#channel-mode-tabs .segmented-option[data-value="timeline"]').click()
     onboarding = page.locator("#channel-empty")
@@ -101,6 +107,27 @@ def test_channel_modes_without_a_selection_point_at_the_picker(demo_page):
     _expect_state(compare, "Select channels to compare", "Choose channels")
     compare.locator(".view-empty-action").click()
     expect(page.locator("#compare-channel-select")).to_be_focused()
+
+
+def test_channel_timeline_opens_with_the_line_status_focus(demo_page):
+    page = demo_page
+    _open(page, "channels")
+    page.wait_for_function("document.querySelectorAll('#channel-select option[data-direction]').length > 0")
+    # Point the focus at a known channel, as the line status does for the worst one.
+    target = page.evaluate("""() => {
+        const options = [...document.querySelectorAll('#channel-select option[data-direction]')];
+        const key = o => o.dataset.direction + ':' + o.dataset.legacyChannelId;
+        const option = options.find(o => options.filter(other => key(other) === key(o)).length === 1);
+        const view = document.getElementById('view-channels');
+        view.dataset.focusDirection = option.dataset.direction;
+        view.dataset.focusChannel = option.dataset.legacyChannelId;
+        return {value: option.value, dir: option.dataset.direction, channel: option.dataset.legacyChannelId};
+    }""")
+
+    page.locator('#channel-mode-tabs .segmented-option[data-value="timeline"]').click()
+    expect(page.locator("#channel-select")).to_have_value(target["value"])
+    expect(page.locator("#channel-empty")).to_be_hidden()
+    expect(page).to_have_url(re.compile(rf"#channels\?mode=timeline&dir={target['dir']}&channel={target['channel']}&"))
 
 
 def test_empty_event_log_distinguishes_filters_from_no_events(demo_page):
