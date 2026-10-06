@@ -39,7 +39,7 @@
 <!-- Header -->
 <div class="setup-header">
     <div class="setup-brand">
-        <img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="28" height="28">
+        {% with size=28 %}{% include 'partials/logo_mark.html' %}{% endwith %}
         <span>DOCSight</span>
     </div>
     <h1 class="setup-title">{{ t.setup_value_title }}</h1>

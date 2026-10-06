@@ -64,12 +64,7 @@
   font-weight: 700;
   letter-spacing: 0.02em;
 }
-.setup-brand img {
-  filter: brightness(0) invert(1);
-}
-[data-theme="light"] .setup-brand img {
-  filter: none;
-}
+.setup-brand .logo-mark { flex: none; color: var(--accent); }
 .setup-title {
   font-size: clamp(1.65rem, 4vw, 2.25rem);
   font-weight: 700;

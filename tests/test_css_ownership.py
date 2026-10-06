@@ -4,6 +4,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from app.theme_catalog import DEPRECATED_ALIASES
+
 ROOT = Path(__file__).resolve().parents[1]
 OWNER = "app/static/css/components.css"
 # Base button and its variants; context rules such as `.modal-footer .btn` stay allowed.
@@ -245,3 +247,21 @@ def test_dialogs_use_the_dialog_component():
         if "modal-overlay" not in classes(tag) and not DIALOGS_WITHOUT_COMPONENT & set(classes(tag))
     ]
     assert offenders == []
+
+
+# Tokens kept without a use: the largest radius step and the side safe-area insets complete their sets.
+UNUSED_TOKENS_ALLOWED = {"--radius-xl", "--safe-left", "--safe-right"}
+
+
+def test_every_base_token_is_used():
+    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    sources = [path for path in tracked.split() if path.endswith((".css", ".js", ".html")) and "/vendor/" not in path]
+    used = set()
+    for path in sources:
+        text = (ROOT / path).read_text(encoding="utf-8")
+        used.update(re.findall(r"var\((--[A-Za-z0-9-]+)", text))
+        used.update(re.findall(r"getPropertyValue\(\s*[\"'](--[A-Za-z0-9-]+)", text))
+    defined = set(re.findall(r"(--[A-Za-z0-9-]+)\s*:", (ROOT / "app/static/css/tokens.css").read_text(encoding="utf-8")))
+    # Deprecated aliases stay for community styles and themes.
+    assert sorted(defined - used - UNUSED_TOKENS_ALLOWED - set(DEPRECATED_ALIASES)) == []
+    assert UNUSED_TOKENS_ALLOWED <= defined

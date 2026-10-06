@@ -31,7 +31,7 @@
 <header class="topnav" id="topnav">
     <div class="topnav-inner">
         <a class="topnav-brand" href="{{ url_for('index') }}">
-            <img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="24" height="24">
+            {% with size=24 %}{% include 'partials/logo_mark.html' %}{% endwith %}
             <span class="topnav-brand-name">DOCSight</span>
         </a>
         {% if desktop_mode %}
