@@ -10,7 +10,10 @@ from app.analyzer import (
     _get_us_power_thresholds,
     modulation_target,
 )
+from app.config import ConfigManager
 from app.line_status import build_line_status
+from app.runtime import current_runtime
+from app.storage import SnapshotStorage
 
 
 def _ds(channel_id, power=4.0, snr=38.0, health="good", detail="", family="sc_qam", modulation="256QAM"):
@@ -178,3 +181,52 @@ def test_segments_carry_the_stable_channel_selector():
     status = build_line_status(_analysis([ds], []))
 
     assert status["directions"][0]["segments"][0]["selector"] == channel_selector(ds)
+
+
+_DASHBOARD_SUMMARY = {
+    "ds_total": 2, "us_total": 1,
+    "ds_power_min": -1.0, "ds_power_max": 5.0, "ds_power_avg": 2.5,
+    "us_power_min": 40.0, "us_power_max": 45.0, "us_power_avg": 42.5,
+    "ds_snr_min": 29.0, "ds_snr_avg": 33.0,
+    "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
+    "health_issues": [],
+}
+
+
+def _dashboard_analysis(ds, us, health="good"):
+    """A full analysis as the dashboard renders it: the channel tables need the raw fields too."""
+    raw = {"docsis_version": "3.0", "frequency": "602 MHz", "correctable_errors": 0, "uncorrectable_errors": 0}
+    return {
+        "summary": {**_DASHBOARD_SUMMARY, "health": health},
+        "ds_channels": [{**raw, **channel} for channel in ds],
+        "us_channels": [{**raw, "frequency": "37 MHz", **channel} for channel in us],
+    }
+
+
+@pytest.fixture
+def client(tmp_path):
+    config = ConfigManager(str(tmp_path / "data"))
+    config.save({"modem_password": "test", "modem_type": "fritzbox"})
+    current_runtime().config_manager = config
+    current_runtime().storage = SnapshotStorage(str(tmp_path / "test.db"), max_days=7)
+    app.config["TESTING"] = True
+    with app.test_client() as test_client:
+        yield test_client
+
+
+def test_channel_view_opens_the_line_status_focus(client):
+    """The channel timeline starts with the channel the line status points at."""
+    current_runtime().update_state(analysis=_dashboard_analysis(
+        [_ds(1), _ds(7, snr=29.0, health="critical", detail="snr critical")], [_us(1)], health="critical"))
+
+    html = client.get("/").get_data(as_text=True)
+
+    assert '<div id="view-channels" class="view" data-focus-direction="ds" data-focus-channel="7">' in html
+
+
+def test_channel_view_has_no_focus_when_every_channel_is_within_target(client):
+    current_runtime().update_state(analysis=_dashboard_analysis([_ds(1), _ds(2)], [_us(1)]))
+
+    html = client.get("/").get_data(as_text=True)
+
+    assert '<div id="view-channels" class="view">' in html

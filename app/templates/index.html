@@ -1120,7 +1120,7 @@
 </div>
 
 <!-- ═══ View: Channel Timeline ═══ -->
-<div id="view-channels" class="view">
+<div id="view-channels" class="view"{% if line_status and line_status.primary %} data-focus-direction="{{ line_status.primary.direction }}" data-focus-channel="{{ line_status.primary.channel_id }}"{% endif %}>
     <div class="view-page-header">
         <div class="view-page-header-left">
             <h2 class="view-page-title">{{ t.channels }}</h2>

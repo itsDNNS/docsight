@@ -331,6 +331,8 @@ class TestChannelCharts:
     def test_channel_unused_controls_follow_selection_state(self, demo_page):
         """Range and clear controls should only show after a usable channel selection."""
         navigate_to_channels(demo_page)
+        # The timeline may open with the line status focus; start from no selection.
+        demo_page.locator("#channel-select").select_option("")
 
         expect(demo_page.locator("#channel-time-tabs")).not_to_be_visible()
 
