@@ -337,7 +337,7 @@ function _cmpHealthLabel(key) {
         tolerated: T.health_tolerated || 'Tolerated',
         marginal: T.health_marginal || 'Marginal',
         critical: T.health_critical || 'Critical',
-        unknown: T.unknown || 'Unknown'
+        unknown: T['docsight.comparison.health_unknown'] || 'Unknown'
     };
     return map[key] || key;
 }
@@ -401,7 +401,7 @@ function _cmpTopHealth(dist) {
         if (dist[k] > bestCount) { bestCount = dist[k]; best = k; }
     }
     var pct = Math.round(bestCount / total * 100);
-    return best.charAt(0).toUpperCase() + best.slice(1) + ' (' + pct + '%)';
+    return _cmpHealthLabel(best) + ' (' + pct + '%)';
 }
 
 /* ── Init ── */
