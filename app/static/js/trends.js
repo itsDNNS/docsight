@@ -25,10 +25,16 @@ function updateTrendTabs() {
 document.querySelectorAll('#trend-tabs .segmented-option').forEach(function(btn) {
     btn.addEventListener('click', function() {
         _trendRange = this.getAttribute('data-range');
+        docsightWriteViewState('trends', {range: _trendRange});
         updateTrendTabs();
         loadTrends(_trendRange);
     });
 });
+
+function applyTrendsViewState() {
+    var range = docsightReadViewState('trends').range;
+    if (docsightSelectSegment('trend-tabs', 'data-range', range)) _trendRange = range;
+}
 
 function _getWeatherRange(range) {
     var endDt = new Date();

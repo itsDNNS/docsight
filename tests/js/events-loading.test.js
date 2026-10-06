@@ -25,7 +25,8 @@ function browser() {
         hide(el) { el.hidden = true; el.empty = null; },
     };
     const context = {
-        DOCSightEmptyState: emptyState, T: {}, URLSearchParams, setInterval() {}, escapeHtml: String, formatDocsightTime: String, docsightUrl: url => url,
+        DOCSightEmptyState: emptyState, T: {}, URLSearchParams, setInterval() {},
+        location: {hash: '#events'}, history: {replaceState(_state, _title, url) { context.location.hash = url; }}, currentView: 'events', escapeHtml: String, formatDocsightTime: String, docsightUrl: url => url,
         document: {
             getElementById(id) {
                 if (id === 'home-events-list') return null; // Events view only, no Home list.
@@ -37,7 +38,7 @@ function browser() {
         fetch: (url, options) => new Promise((resolve, reject) => requests.push({url, options, resolve, reject})),
     };
     context.window = context;
-    for (const file of ['event-log-data.js', 'events.js']) {
+    for (const file of ['view-state.js', 'event-log-data.js', 'events.js']) {
         vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../app/static/js', file), 'utf8'), context);
     }
     return {

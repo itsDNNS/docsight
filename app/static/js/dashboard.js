@@ -225,14 +225,17 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
         } else if (view === 'journal') {
             if (typeof window.initJournalView === 'function') window.initJournalView();
         } else if (view === 'events') {
+            if (typeof applyEventsViewState === 'function') applyEventsViewState();
             if (typeof loadEvents === 'function') loadEvents();
         } else if (view === 'channels') {
             if (typeof initChannelView === 'function') initChannelView();
         } else if (view === 'correlation') {
+            applyCorrelationViewState();
             loadCorrelationData();
         } else if (view === 'bnetz') {
             if (typeof loadBnetzData === 'function') loadBnetzData();
         } else if (view === 'trends') {
+            if (typeof applyTrendsViewState === 'function') applyTrendsViewState();
             if (typeof updateTrendTabs === 'function') updateTrendTabs();
             if (typeof loadTrends === 'function') loadTrends(_trendRange);
         } else if (view === 'modulation') {
@@ -247,6 +250,7 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
             var fnName = 'init' + parts.map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join('');
             if (typeof window[fnName] === 'function') window[fnName]();
         } else if (view === 'segment-utilization') {
+            if (typeof applyFritzCableViewState === 'function') applyFritzCableViewState();
             if (typeof loadFritzCableData === 'function') loadFritzCableData();
         }
 

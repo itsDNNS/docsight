@@ -64,6 +64,38 @@ class TestNavigation:
         expect(demo_page.locator('#topnav .nav-item[data-view="channels"]')).to_have_attribute("aria-current", "page")
         expect(demo_page.locator('#topnav .nav-item[data-view="live"]')).not_to_have_attribute("aria-current", "page")
 
+    # The first selector is the group the click changes; the others must keep their linked value.
+    @pytest.mark.parametrize("link,active,option,written", [
+        ("trends?range=7d", ["#trend-tabs .active"], '#trend-tabs [data-range="30d"]', "trends?range=30d"),
+        ("modulation?dir=ds&days=30", ["#modulation-range-tabs .active", "#modulation-direction-tabs .active"],
+         '#modulation-range-tabs [data-days="7"]', "modulation?dir=ds&days=7"),
+        ("speedtest?range=30", ["#speedtest-tabs .active"], '#speedtest-tabs [data-value="90"]', "speedtest?range=90"),
+        ("correlation?range=7d", ["#correlation-tabs .active"], '#correlation-tabs [data-value="6h"]', "correlation?range=6h"),
+        ("events?severity=warning&device=1", ["#events-severity-tabs .active", "#device-filter-pill"],
+         '#events-severity-tabs [data-severity="critical"]', "events?severity=critical&device=1"),
+        ("connection-monitor?range=7d", ["#cm-range-tabs .active"], '#cm-range-tabs [data-cm-range="86400"]',
+         "connection-monitor?range=1d"),
+    ], ids=["trends", "modulation", "speedtest", "correlation", "events", "connection-monitor"])
+    def test_view_state_lives_in_the_url_and_survives_a_reload(self, demo_page, link, active, option, written):
+        base = demo_page.url.split("#")[0]
+        view = link.split("?")[0]
+        demo_page.goto(f"{base}#{link}")
+        demo_page.wait_for_selector(f"#view-{view}.active")
+        opened = [demo_page.locator(selector).first for selector in active]
+        for control in opened:
+            expect(control).to_have_attribute("aria-pressed", "true")
+        opened_labels = [control.inner_text().strip() for control in opened]
+
+        demo_page.locator(option).click()
+        expect(demo_page).to_have_url(re.compile(re.escape("#" + written) + "$"))
+
+        demo_page.reload()
+        demo_page.wait_for_selector(f"#view-{view}.active")
+        expect(demo_page.locator(option)).to_have_attribute("aria-pressed", "true")
+        # Parameters the click did not touch keep their linked value.
+        for selector, label in zip(active[1:], opened_labels[1:]):
+            expect(demo_page.locator(selector).first).to_have_text(label)
+
     def test_top_bar_offers_settings_and_the_more_menu_glossary_and_dark_mode(self, demo_page):
         settings = demo_page.locator('.topnav-actions a.topnav-settings[href$="/settings"]')
         expect(settings).to_be_visible()

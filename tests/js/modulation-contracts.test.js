@@ -64,12 +64,15 @@ function browser(lang = 'en', translations = {}) {
         tooltipPlugin: () => ({}), T: translations, currentLang: lang,
         docsightUrl: url => '/docsight' + url, console: {error: (...args) => assert.fail(args.join(' '))},
         fetch: url => new Promise(resolve => requests.push({url, resolve})),
+        URLSearchParams, location: {hash: '#modulation'}, history: {replaceState(_state, _title, url) { context.location.hash = url; }},
+        currentView: 'modulation',
     };
     context.window = context;
     ids.get('modulation-direction-tabs').querySelectorAll = () => directions;
     ids.get('modulation-range-tabs').querySelectorAll = () => ranges;
     vm.createContext(context);
     vm.runInContext(read('app/static/js/segmented.js'), context);
+    vm.runInContext(read('app/static/js/view-state.js'), context);
     vm.runInContext(read('app/modules/modulation/static/main.js'), context);
     return {ids, charts, requests, directions, ranges, context, init: () => context.initModulation(),
         async reply(data, index = requests.length - 1) {

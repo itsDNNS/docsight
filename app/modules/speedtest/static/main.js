@@ -10,8 +10,15 @@ var _enrichedCache = {};
 
 window.initSpeedtestView = function() {
     if (!document.getElementById('view-speedtest')) return;
+    docsightSelectSegment('speedtest-tabs', 'data-value', docsightReadViewState('speedtest').range);
     loadSpeedtestHistory();
 };
+
+/* A range tab was picked: keep it in the URL, then filter. */
+function speedtestRangeSelected() {
+    docsightWriteViewState('speedtest', {range: getPillValue('speedtest-tabs') || '7'});
+    filterSpeedtestData();
+}
 
 function formatSpeedtestTimestamp(ts) {
     return formatDocsightTime(ts, 'datetime');

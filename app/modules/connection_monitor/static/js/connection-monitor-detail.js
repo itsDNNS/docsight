@@ -31,8 +31,21 @@
     /* The range tabs are a data-pill-action group; the selected tab carries the range. */
     window.cmRangeTabSelected = function() {
         var tab = document.querySelector('#cm-range-tabs .segmented-option.active');
-        if (tab) window.cmSetRange(tab, Number(tab.getAttribute('data-cm-range')));
+        if (!tab) return;
+        docsightWriteViewState('connection-monitor', {range: tab.textContent.trim()});
+        window.cmSetRange(tab, Number(tab.getAttribute('data-cm-range')));
     };
+
+    /* "#connection-monitor?range=7d" opens the monitor with that range. */
+    function applyRangeFromUrl() {
+        var range = docsightReadViewState('connection-monitor').range;
+        var tab = Array.prototype.find.call(document.querySelectorAll('#cm-range-tabs .segmented-option'), function(b) {
+            return b.textContent.trim() === range;
+        });
+        if (!tab) return;
+        currentRange = Number(tab.getAttribute('data-cm-range'));
+        syncSegments('cm-range-tabs', function(b) { return b === tab; });
+    }
 
     window.cmSetRange = function(btn, seconds) {
         pinnedDayView = null;
@@ -231,6 +244,7 @@
             })
             .catch(function() {});
 
+        applyRangeFromUrl();
         loadTargets();
         loadPinnedDays();
 

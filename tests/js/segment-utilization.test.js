@@ -39,6 +39,7 @@ function setup() {
         c.opened = {view, active: tabs.filter(t => t.classList.contains('active')).map(t => t.value)};
     };
     vm.runInContext(fs.readFileSync('app/static/js/segmented.js', 'utf8'), c);
+    vm.runInContext(fs.readFileSync('app/static/js/view-state.js', 'utf8'), c);
     vm.runInContext(fs.readFileSync('app/static/js/segment-utilization.js', 'utf8'), c);
     return c;
 }

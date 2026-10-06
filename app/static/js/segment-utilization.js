@@ -8,9 +8,15 @@ fritzCableTabs.forEach(function(btn) {
     btn.addEventListener('click', function() {
         _fritzCableRange = this.getAttribute('data-range');
         syncSegments('fritz-cable-range-tabs', function(b) { return b.getAttribute('data-range') === _fritzCableRange; });
+        docsightWriteViewState('segment-utilization', {range: _fritzCableRange});
         loadFritzCableData();
     });
 });
+
+function applyFritzCableViewState() {
+    var range = docsightReadViewState('segment-utilization').range;
+    if (docsightSelectSegment('fritz-cable-range-tabs', 'data-range', range)) _fritzCableRange = range;
+}
 
 /* ── i18n helper ── */
 function _fcT(key, fallback) {
