@@ -215,6 +215,16 @@ test('comparison health labels use the translated state names', () => {
     assert.equal(context._cmpTopHealth({}), '-');
 });
 
+test('evidence status icons ship in the vendored icon subset', () => {
+    const {context} = browser();
+    run(context, 'app/modules/evidence/static/main.js');
+    const bundle = fs.readFileSync(path.join(root, 'app/static/vendor/lucide.min.js'), 'utf8');
+    for (const status of ['present', 'stale', 'missing', 'optional', 'not_applicable', 'unavailable', 'something-else']) {
+        const icon = context._evidenceStatusIcon(status);
+        assert.ok(bundle.includes('"' + icon + '":'), status + ' -> ' + icon);
+    }
+});
+
 test('comparison fields show local time and send the matching UTC instant', () => {
     const previousTz = process.env.TZ;
     process.env.TZ = 'Europe/Berlin';
