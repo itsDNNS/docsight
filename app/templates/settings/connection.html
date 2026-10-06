@@ -7,7 +7,7 @@
             </div>
             <div>
                 <div class="card-title">{{ t.modem_connection }}</div>
-                <div class="card-subtitle">{{ t.modem_user_hint }}</div>
+                <div class="card-subtitle">{{ t.modem_user_hint }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Supported-Modems" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
             </div>
         </div>
         <div class="status-indicator" id="modem-status" role="status" aria-live="polite" hidden>
@@ -58,7 +58,7 @@
             </div>
             <div>
                 <div class="card-title">{{ t.get('settings_provider_title', 'Provider and plan') }}</div>
-                <div class="card-subtitle">{{ t.get('settings_provider_desc', 'Your provider and the speeds in your contract') }}</div>
+                <div class="card-subtitle">{{ t.get('settings_provider_desc', 'Your provider and the speeds in your contract') }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Speedtest" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
             </div>
         </div>
         <img id="isp-icon-preview" src="" alt="">
@@ -100,7 +100,7 @@
             </div>
             <div>
                 <div class="card-title">{{ t.get('settings_polling_title', 'Polling') }}</div>
-                <div class="card-subtitle">{{ t.get('settings_polling_desc', 'How often DOCSight reads the modem and when a health change counts') }}</div>
+                <div class="card-subtitle">{{ t.get('settings_polling_desc', 'How often DOCSight reads the modem and when a health change counts') }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#general" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
             </div>
         </div>
     </div>

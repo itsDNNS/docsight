@@ -220,6 +220,17 @@ class TestSettingsRoute:
         assert block.select_one('a[href="#extensions"]') is not None
         assert soup.select_one("#weather_enabled") is None
 
+    def test_every_section_offers_help_from_the_wiki(self, client):
+        soup = BeautifulSoup(client.get("/settings?lang=en").get_data(as_text=True), "html.parser")
+        links = soup.select("a.card-help")
+        assert links
+        for link in links:
+            assert link["href"].startswith("https://github.com/itsDNNS/docsight/wiki/")
+            assert link.get("target") == "_blank" and "noopener" in link.get("rel", [])
+        # The test app loads no modules, so the sources section has no cards here.
+        for section in ["connection", "notifications", "evidence", "data", "appearance", "access", "extensions", "about"]:
+            assert soup.select(f"#panel-{section} a.card-help"), section
+
     def test_every_settings_form_control_has_an_accessible_name(self, client):
         soup = BeautifulSoup(client.get("/settings?lang=en").get_data(as_text=True), "html.parser")
         labelled = {label.get("for") for label in soup.select("label[for]")}

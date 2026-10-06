@@ -1058,6 +1058,17 @@ class TestSettingsInstantToggleSave:
         manual_field.fill(original_value)
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
+    def test_collapsed_per_event_rules_hide_their_table_until_opened(self, settings_page):
+        settings_page.locator('button[data-section="notifications"]').click()
+        card = settings_page.locator("#per-event-cooldowns")
+        header = card.locator(".card-header")
+        expect(card).to_have_class(re.compile(r".*\bcollapsed\b.*"))
+        expect(card.locator(".cooldown-table")).not_to_be_in_viewport()
+        assert card.evaluate("el => el.querySelector('.card-collapse-body').getBoundingClientRect().height") == 0
+        header.click()
+        expect(header).to_have_attribute("aria-expanded", "true")
+        expect(card.locator(".cooldown-table")).to_be_visible()
+
     def test_notification_event_toggle_saves_cooldowns_immediately(self, settings_page):
         config_payloads = []
 
@@ -1067,6 +1078,7 @@ class TestSettingsInstantToggleSave:
 
         settings_page.route("**/api/config", capture_config)
         settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.locator('#per-event-cooldowns .card-header').click()
         with settings_page.expect_request("**/api/config"):
             settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
 
@@ -1101,6 +1113,7 @@ class TestSettingsInstantToggleSave:
 
         settings_page.route("**/api/config", fail_config)
         settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.locator('#per-event-cooldowns .card-header').click()
         with settings_page.expect_request("**/api/config"):
             settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
 
@@ -1118,6 +1131,7 @@ class TestSettingsInstantToggleSave:
 
         settings_page.route("**/api/config", capture_config)
         settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.locator('#per-event-cooldowns .card-header').click()
         with settings_page.expect_request("**/api/config"):
             settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
         settings_page.locator('button[data-section="connection"]').click()

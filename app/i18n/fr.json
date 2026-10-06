@@ -38,6 +38,7 @@
   "settings_storage_title": "Historique et instantanés",
   "settings_storage_desc": "Combien de temps DOCSight conserve les mesures et quand il prend l’instantané quotidien",
   "settings_module_off": "Le module est désactivé. Activez-le dans Extensions.",
+  "settings_learn_more": "En savoir plus",
   "home": "Accueil",
   "skip_to_content": "Aller au contenu",
   "day_trend": "Tendance du jour",
