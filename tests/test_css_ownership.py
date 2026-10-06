@@ -38,7 +38,6 @@ TABLES_WITHOUT_COMPONENT = {
     ("app/modules/connection_monitor/static/js/connection-monitor-charts.js", "cm-target-table"),
     ("app/modules/journal/static/main.js", ""),
     ("app/modules/journal/templates/journal_dialogs.html", "import-table"),
-    ("app/modules/journal/templates/journal_tab.html", "journal-table"),
     ("app/static/js/integrations.js", "bnetz-detail-table"),
     ("app/templates/index.html", "bnetz-table"),
     ("app/templates/settings/smart_capture.html", "sc-history-table"),
@@ -110,7 +109,9 @@ COLORED = re.compile(r"var\(--(?:accent|amethyst|good|warn|crit|sapphire)")
 
 def _is_side_stripe(prop, value):
     if prop.startswith("box-shadow"):
-        return re.match(r"inset\s+-?[1-9]\d*px\s+0\s+0\s", value) is not None
+        # A layer offset sideways only, without blur, paints a stripe, inset or outside.
+        layers = re.split(r",(?![^(]*\))", value)
+        return any(re.match(r"\s*(?:inset\s+)?-?[1-9]\d*px\s+0(?:px)?\s+0(?:px)?\s", layer) for layer in layers)
     if "transparent" in value.split("solid")[-1]:
         return False  # CSS triangles and hidden edges
     width = re.match(r"\s*(\d+)px", value)

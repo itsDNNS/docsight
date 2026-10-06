@@ -272,7 +272,7 @@ function renderJournalTable(data, searchQuery) {
                 var monthIdx = parseInt(parts[1], 10) - 1;
                 var monthLabel = MONTH_NAMES[monthIdx] + ' ' + parts[0];
                 var groupTr = document.createElement('tr');
-                groupTr.className = 'journal-month-header';
+                groupTr.className = 'journal-month-header dt-detail';
                 groupTr.innerHTML = '<td colspan="' + (_bulkMode ? 6 : 5) + '">' + monthLabel + '</td>';
                 tbody.appendChild(groupTr);
             }
@@ -295,9 +295,9 @@ function renderJournalTable(data, searchQuery) {
         var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
         tr.innerHTML =
             (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtmlAttribute(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
-            '<td class="journal-icon-cell" aria-hidden="true">' + iconHtml + '</td>' +
+            '<td class="journal-icon-cell dt-lead" aria-hidden="true">' + iconHtml + '</td>' +
             '<td class="journal-date-cell" data-label="' + escapeHtmlAttribute(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
-            '<td class="journal-title-cell" data-label="' + escapeHtmlAttribute(T.incident_title || 'Title') + '">' + titleHtml + '</td>' +
+            '<td class="journal-title-cell dt-primary">' + titleHtml + '</td>' +
             '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtmlAttribute(T.incident_description || 'Description') + '">' + descHtml + '</td>' +
             '<td class="journal-clip" data-label="' + escapeHtmlAttribute(T.attachments || 'Attachments') + '">' + clipCell + '</td>';
         tbody.appendChild(tr);
