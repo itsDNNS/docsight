@@ -13,6 +13,8 @@
   "unsaved_confirm": "Imate neshranjene spremembe nastavitev. Jih shraniti pred nadaljevanjem?",
   "discard_changes": "Zavrzi",
   "settings_sections": "Razdelki nastavitev",
+  "settings_search_label": "Iskanje po nastavitvah",
+  "settings_search_none": "Nobena nastavitev se ne ujema",
   "settings_section_connection": "Povezava",
   "settings_section_connection_summary": "Modem, ponudnik in poizvedovanje",
   "settings_section_sources": "Viri meritev",

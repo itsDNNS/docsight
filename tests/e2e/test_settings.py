@@ -72,6 +72,47 @@ class TestSettingsLoad:
         assert panel.evaluate("el => el.scrollWidth <= document.documentElement.clientWidth")
 
 
+class TestSettingsSearch:
+    """The search finds settings by their label and opens the section at the match."""
+
+    def test_result_opens_the_section_and_focuses_the_field(self, settings_page):
+        settings_page.locator('button[data-section="appearance"]').click()
+        settings_page.locator("#settings-search").fill("history")
+        results = settings_page.locator(".settings-search-result")
+        expect(results.first.locator(".settings-search-label")).to_have_text("History and snapshots")
+        result = results.filter(has_text="History (days)")
+        expect(result.locator(".settings-search-where")).to_contain_text("Data and storage")
+        result.click()
+        expect(settings_page.locator("#panel-data")).to_be_visible()
+        expect(settings_page.locator("#history_days")).to_be_focused()
+        expect(settings_page.locator("#settings-search-results")).to_be_hidden()
+
+    def test_keyboard_moves_through_results_and_escape_clears(self, settings_page):
+        search = settings_page.locator("#settings-search")
+        search.fill("mqtt")
+        search.press("ArrowDown")
+        expect(settings_page.locator(".settings-search-result").first).to_be_focused()
+        settings_page.keyboard.press("Escape")
+        expect(search).to_be_focused()
+        expect(search).to_have_value("")
+        expect(settings_page.locator("#settings-search-results")).to_be_hidden()
+        search.fill("time zone")
+        search.press("Enter")
+        expect(settings_page.locator("#panel-appearance")).to_be_visible()
+
+    def test_no_match_says_so(self, settings_page):
+        settings_page.locator("#settings-search").fill("zzz-no-such-setting")
+        expect(settings_page.locator(".settings-search-empty")).to_have_text("No setting matches")
+
+    def test_phone_search_opens_the_section_view(self, settings_page):
+        settings_page.set_viewport_size({"width": 390, "height": 844})
+        settings_page.goto(settings_page.url.split("#")[0], wait_until="networkidle")
+        settings_page.locator("#settings-search").fill("poll")
+        settings_page.locator(".settings-search-result").first.click()
+        expect(settings_page.locator("#panel-connection")).to_be_visible()
+        expect(settings_page.locator("#settings-index")).to_be_hidden()
+
+
 class TestSettingsCompactLayout:
     """Below 768px the section index is a list and each section opens as its own view."""
 

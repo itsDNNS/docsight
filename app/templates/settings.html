@@ -32,6 +32,11 @@
 <main class="app-main settings-page" id="main-content" tabindex="-1">
     <div class="settings-header">
         <h1 class="settings-page-title">{{ t.settings }}</h1>
+        <div class="settings-search">
+            <label class="sr-only" for="settings-search">{{ t.get('settings_search_label', 'Search settings') }}</label>
+            <input class="form-input" type="search" id="settings-search" placeholder="{{ t.get('settings_search_label', 'Search settings') }}" autocomplete="off" aria-controls="settings-search-results">
+            <div class="settings-search-results" id="settings-search-results" role="region" aria-live="polite" aria-label="{{ t.get('settings_search_label', 'Search settings') }}" hidden></div>
+        </div>
     </div>
     <div class="settings-shell">
         {% set settings_sections = [
@@ -203,6 +208,7 @@
 <script src="{{ url_for('static', filename='js/settings/themes.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/smart-capture.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/module-registry.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings/search.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
 {% for mod in modules if mod.has_js %}

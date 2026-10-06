@@ -13,6 +13,8 @@
   "unsaved_confirm": "Tá athruithe socruithe gan sábháil agat. Sábháil iad roimh leanúint ar aghaidh?",
   "discard_changes": "Caith uait",
   "settings_sections": "Ranna socruithe",
+  "settings_search_label": "Cuardaigh na socruithe",
+  "settings_search_none": "Níl aon socrú ag teacht leis",
   "settings_section_connection": "Nasc",
   "settings_section_connection_summary": "Móideim, soláthraí agus ceistiú",
   "settings_section_sources": "Foinsí tomhais",

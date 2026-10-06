@@ -13,6 +13,8 @@
   "unsaved_confirm": "Nem mentett beállítások módosításai vannak. Menti őket a folytatás előtt?",
   "discard_changes": "Elvetés",
   "settings_sections": "Beállítási szakaszok",
+  "settings_search_label": "Keresés a beállításokban",
+  "settings_search_none": "Nincs egyező beállítás",
   "settings_section_connection": "Kapcsolat",
   "settings_section_connection_summary": "Modem, szolgáltató és lekérdezés",
   "settings_section_sources": "Mérési források",

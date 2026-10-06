@@ -13,6 +13,8 @@
   "unsaved_confirm": "Du har osparade inställningsändringar. Spara dem innan du fortsätter?",
   "discard_changes": "Förkasta",
   "settings_sections": "Inställningsavsnitt",
+  "settings_search_label": "Sök i inställningar",
+  "settings_search_none": "Ingen inställning matchar",
   "settings_section_connection": "Anslutning",
   "settings_section_connection_summary": "Modem, leverantör och avläsning",
   "settings_section_sources": "Mätkällor",

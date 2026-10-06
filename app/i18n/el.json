@@ -13,6 +13,8 @@
   "unsaved_confirm": "Έχετε μη αποθηκευμένες αλλαγές ρυθμίσεων. Να τα αποθηκεύσετε πριν συνεχίσετε;",
   "discard_changes": "Απόρριψη",
   "settings_sections": "Ενότητες ρυθμίσεων",
+  "settings_search_label": "Αναζήτηση ρυθμίσεων",
+  "settings_search_none": "Καμία ρύθμιση δεν ταιριάζει",
   "settings_section_connection": "Σύνδεση",
   "settings_section_connection_summary": "Μόντεμ, πάροχος και ανάγνωση",
   "settings_section_sources": "Πηγές μετρήσεων",

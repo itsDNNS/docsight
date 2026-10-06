@@ -17,6 +17,7 @@
         if (id === 'evidence') smartCapture.loadSmartCaptureHistory();
         if (id === 'extensions') registry.refreshModuleRegistry();
     }});
+    var search = S.search({switchSection: function(id) { navigation.switchSection(id); }});
     var notifications = S.notifications({showToast: form.showToast, saveInstantly: form.saveInstantly, syncCard: navigation.syncCard});
     function expose(owner, names) {
         names.split(' ').forEach(function(name) { window[name] = owner[name]; });
@@ -31,6 +32,6 @@
     expose(registry, 'refreshModuleRegistry');
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof lucide !== 'undefined') lucide.createIcons();
-        [themes, connections, backups, notifications, smartCapture, form, navigation].forEach(function(owner) { owner.init(); });
+        [themes, connections, backups, notifications, smartCapture, form, navigation, search].forEach(function(owner) { owner.init(); });
     });
 })(DOCSightSettings);

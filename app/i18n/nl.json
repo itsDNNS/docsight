@@ -13,6 +13,8 @@
   "unsaved_confirm": "U heeft niet-opgeslagen wijzigingen in de instellingen. Bewaar ze voordat je verdergaat?",
   "discard_changes": "Verwerpen",
   "settings_sections": "Instellingssecties",
+  "settings_search_label": "Instellingen doorzoeken",
+  "settings_search_none": "Geen instelling gevonden",
   "settings_section_connection": "Verbinding",
   "settings_section_connection_summary": "Modem, provider en polling",
   "settings_section_sources": "Meetbronnen",

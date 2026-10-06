@@ -13,6 +13,8 @@
   "unsaved_confirm": "Sinulla on tallentamattomia asetusmuutoksia. Tallennetaanko ne ennen kuin jatkat?",
   "discard_changes": "Hylkää",
   "settings_sections": "Asetusosiot",
+  "settings_search_label": "Hae asetuksista",
+  "settings_search_none": "Mikään asetus ei vastaa",
   "settings_section_connection": "Yhteys",
   "settings_section_connection_summary": "Modeemi, palveluntarjoaja ja kysely",
   "settings_section_sources": "Mittauslähteet",

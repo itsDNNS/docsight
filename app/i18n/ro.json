@@ -13,6 +13,8 @@
   "unsaved_confirm": "Ai modificări nesalvate ale setărilor. Le salvați înainte de a continua?",
   "discard_changes": "Renunță",
   "settings_sections": "Secțiuni de setări",
+  "settings_search_label": "Caută în setări",
+  "settings_search_none": "Nicio setare nu corespunde",
   "settings_section_connection": "Conexiune",
   "settings_section_connection_summary": "Modem, furnizor și interogare",
   "settings_section_sources": "Surse de măsurare",
