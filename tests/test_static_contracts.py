@@ -41,7 +41,8 @@ I18N_PLACEHOLDER_RE = re.compile(
 )
 # Built-in modules that ship the whole European language pack; the others ship English only.
 LOCALIZED_MODULES = {
-    "backup", "bnetz", "de_tkg_compensation", "modulation", "mqtt", "reports", "smokeping", "weather",
+    "backup", "bnetz", "connection_monitor", "de_tkg_compensation", "modulation", "mqtt", "reports",
+    "smokeping", "speedtest", "weather",
 }
 I18N_PROTECTED_LITERALS = {"Apprise", "DOCSight", "DOCSIS", "DSL", "SC-QAM", "dBmV", "Smokeping"}
 I18N_EMPTY_TAG_RE = re.compile(r"<([A-Za-z][^>]*)>\s*</\1>")

@@ -472,6 +472,7 @@
 #cm-per-target-stats .cm-target-table td:not(:first-child) {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     gap: 2px;
     white-space: nowrap;
     text-align: left;
@@ -486,6 +487,10 @@
     letter-spacing: 0.06em;
     line-height: 1.1;
     text-transform: uppercase;
+    /* Longer labels in other languages wrap inside their column instead of running into the next. */
+    white-space: normal;
+    overflow-wrap: anywhere;
+    hyphens: auto;
 }
 
 .cm-loss-cell,
