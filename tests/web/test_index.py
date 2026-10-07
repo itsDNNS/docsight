@@ -1588,23 +1588,26 @@ class TestHomeNoticePlacement:
     def _notice(self, notice_id, severity):
         return {"id": notice_id, "severity": severity, "title": f"{severity} notice", "body": "Body"}
 
-    def _render(self, client, monkeypatch, analysis):
+    def _render(self, client, monkeypatch, analysis, severities=("info", "critical")):
         import app.web as web
-        notices = [self._notice("info-1", "info"), self._notice("crit-1", "critical")]
+        notices = [self._notice(f"{severity[:4]}-1", severity) for severity in severities]
         monkeypatch.setattr(web, "get_active_notices", lambda *args, **kwargs: notices)
         current_runtime().update_state(analysis=analysis)
         return client.get("/?lang=en").get_data(as_text=True)
 
-    def test_urgent_notices_stay_on_top_and_informational_ones_follow_the_key_figures(self, client, monkeypatch, sample_analysis):
+    def test_an_urgent_notice_leads_on_top_and_the_rest_wait_in_the_notice_center(self, client, monkeypatch, sample_analysis):
         home = _dashboard_html(self._render(client, monkeypatch, sample_analysis))
 
-        status = home.index('class="line-status')
-        kpis = home.index('class="home-kpis"')
-        assert home.index('data-notice-id="crit-1"') < status
-        assert kpis < home.index('data-notice-id="info-1"') < home.index('dashboard-trend')
+        assert home.count('class="notice-line ') == 1
+        assert home.index('data-notice-id="crit-1"') < home.index('class="line-status')
+        assert 'data-notice-id="info-1"' not in home
 
-    def test_without_a_line_status_all_notices_stay_on_top(self, client, monkeypatch, no_docsis_analysis):
-        home = _dashboard_html(self._render(client, monkeypatch, no_docsis_analysis))
+    def test_an_informational_notice_follows_the_key_figures(self, client, monkeypatch, sample_analysis):
+        home = _dashboard_html(self._render(client, monkeypatch, sample_analysis, severities=("info",)))
 
-        assert home.index('data-notice-id="crit-1"') < home.index('data-notice-id="info-1"')
+        assert home.index('class="home-kpis"') < home.index('data-notice-id="info-1"') < home.index('dashboard-trend')
+
+    def test_without_a_line_status_the_notice_stays_on_top(self, client, monkeypatch, no_docsis_analysis):
+        home = _dashboard_html(self._render(client, monkeypatch, no_docsis_analysis, severities=("info",)))
+
         assert home.index('data-notice-id="info-1"') < home.index('no-docsis-placeholder')

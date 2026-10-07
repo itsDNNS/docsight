@@ -763,9 +763,6 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   display: grid;
   gap: var(--space-sm);
 }
-.dashboard-notice-stack {
-  margin-bottom: var(--space-lg);
-}
 .maintainer-notice {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -865,39 +862,51 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   }
 }
 /* ── Demo mode banner ── */
+/* Demo notice: one slim bar with its actions, not a card. */
 .demo-banner {
   display: flex;
   align-items: center;
   gap: var(--space-md);
   margin-bottom: var(--space-md);
-  padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--amethyst) 28%, var(--glass-border));
+  padding: 8px 8px 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
 }
 .demo-banner-copy {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   min-width: 0;
   flex: 1;
 }
 .demo-banner-copy > svg {
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  color: var(--amethyst-light);
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
   flex: 0 0 auto;
 }
 .demo-banner-copy div {
-  display: grid;
-  gap: 1px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  min-width: 0;
 }
 .demo-banner-copy strong {
-  font-size: 0.82rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 .demo-banner-copy span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.demo-banner-copy span::before {
+  content: "\00b7";
+  margin-right: 6px;
   color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.35;
 }
 .demo-banner-copy .demo-banner-locked {
   color: var(--warn);
@@ -905,26 +914,8 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 .demo-banner-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 4px;
   flex: 0 0 auto;
-}
-.demo-exit-action {
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.78rem;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-.demo-exit-action:hover {
-  color: var(--text);
-}
-.demo-exit-action:focus-visible {
-  outline: 2px solid var(--amethyst);
-  outline-offset: 3px;
-  border-radius: var(--radius-sm);
 }
 .demo-banner button:disabled {
   cursor: not-allowed;
@@ -993,3 +984,23 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 @media (max-width: 640px) {
   .toast { left: var(--space-md); right: var(--space-md); max-width: none; }
 }
+
+/* ── Notice line: the overview's pointer to an unread notice in the notice center ── */
+.notice-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: var(--space-lg) 0;
+  padding: 6px 8px 6px 14px;
+  border-radius: var(--radius-md);
+  background: var(--info-muted);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+.notice-line > svg { flex: none; width: 16px; height: 16px; color: var(--info); }
+.notice-line.notice-warning { background: var(--warn-muted); }
+.notice-line.notice-warning > svg { color: var(--warn); }
+.notice-line.notice-critical { background: var(--crit-muted); }
+.notice-line.notice-critical > svg { color: var(--crit); }
+.notice-line-text { flex: 1; min-width: 0; }
+.notice-line-text strong { color: var(--text); font-weight: 600; }

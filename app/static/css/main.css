@@ -2221,7 +2221,7 @@ button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .dashboard-hero + .home-kpis { margin-top: var(--space-lg); }
 .dashboard-trend { margin-bottom: var(--space-lg); }
 .dashboard-trend .hero-visual-row { grid-row: 1; }
-.dashboard-view > .dashboard-notice-stack + .dashboard-trend { margin-top: 0; }
+.dashboard-view > .notice-line + .dashboard-trend { margin-top: 0; }
 .dashboard-view .insights-meta .hero-refresh-button { padding-left: 4px; padding-right: 4px; }
 
 @media (max-width: 760px) {
@@ -2262,7 +2262,7 @@ button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 
   .demo-banner { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 8px 12px; }
   .demo-banner-copy span { display: none; }
   .demo-banner-copy strong { white-space: nowrap; font-size: 0.85rem; }
-  .demo-banner-actions .btn, .demo-banner-actions .demo-exit-action { font-size: 0.8rem; }
+  .demo-banner-actions .btn { font-size: 0.8rem; }
   .demo-banner-copy > svg { width: 16px; height: 16px; }
   .demo-banner-actions { display: flex; flex: 1 1 100%; gap: 6px; }
   .demo-banner-actions .btn { min-height: 32px; padding: 4px 10px; white-space: nowrap; }

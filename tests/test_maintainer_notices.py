@@ -4,6 +4,7 @@ from app.maintainer_notices import (
     NoticeValidationError,
     coerce_dismissed_notice_ids,
     get_active_notices,
+    get_notice_center,
     validate_notice_schema,
 )
 
@@ -106,3 +107,20 @@ def test_dismissed_notice_ids_are_validated_deduped_and_bounded():
     assert len(normalized) == 200
     assert "bad id" not in normalized
     assert normalized[-1] == "notice-204"
+
+
+def test_notice_center_keeps_read_notices_after_the_unread_ones():
+    notices = [
+        _notice(id="read-critical", severity="critical", locations=("settings",)),
+        _notice(id="unread-info"),
+        _notice(id="unread-warning", severity="warning"),
+        _notice(id="broken", severity="loud"),
+    ]
+
+    center = get_notice_center(dismissed_ids=["read-critical"], notices=notices)
+
+    assert [(item["id"], item["read"]) for item in center] == [
+        ("unread-warning", False),
+        ("unread-info", False),
+        ("read-critical", True),
+    ]

@@ -186,6 +186,58 @@
                 <i data-lucide="refresh-cw"></i>
             </button>
             {% endif %}
+            {# Notice center: every notice stays listed; unread ones carry the count. #}
+            {% set center_notices = notice_center or [] %}
+            {% set show_desktop_notice = desktop_mode %}
+            {% set unread_notices = (center_notices|rejectattr('read')|list|length) + (1 if show_desktop_notice and not desktop_preview_notice_dismissed else 0) %}
+            <div class="topnav-group topnav-notices" data-nav-group="notices">
+                <button type="button" class="topnav-icon-button topnav-toggle" id="nav-toggle-notices" aria-expanded="false" aria-controls="nav-panel-notices"
+                        aria-label="{{ t.get('notices_title', 'Notices') }}" title="{{ t.get('notices_title', 'Notices') }}"
+                        data-unread-label="{{ t.get('notices_unread', '{count} unread') }}">
+                    <i data-lucide="bell"></i>
+                    <span class="nav-badge" data-notice-unread-count{% if not unread_notices %} hidden{% endif %}>{{ unread_notices }}</span>
+                </button>
+                <div class="topnav-panel topnav-panel-end notice-center" id="nav-panel-notices" role="group" aria-labelledby="nav-toggle-notices" hidden>
+                    <div class="notice-center-head">
+                        <span class="notice-center-title">{{ t.get('notices_title', 'Notices') }}</span>
+                        <button type="button" class="btn btn-ghost btn-sm" data-action="markAllNoticesRead"{% if not unread_notices %} hidden{% endif %}>{{ t.get('notices_mark_all_read', 'Mark all read') }}</button>
+                    </div>
+                    <ul class="notice-center-list">
+                        {% if show_desktop_notice %}
+                        <li class="notice-center-item notice-info{{ ' read' if desktop_preview_notice_dismissed else '' }}" data-notice-center-item="{{ desktop_preview_notice_id }}">
+                            <span class="notice-center-dot" aria-hidden="true"></span>
+                            <div class="notice-center-copy">
+                                <strong>{{ t.get('desktop_preview_notice_title', 'Desktop Preview is a tryout build') }}</strong>
+                                <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
+                                <a href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
+                            </div>
+                            {% if not desktop_preview_notice_dismissed %}
+                            <button type="button" class="modal-close" data-action="dismissMaintainerNotice" data-action-args='{{ [desktop_preview_notice_id]|tojson }}' aria-label="{{ t.get('notices_mark_read', 'Mark as read') }}" title="{{ t.get('notices_mark_read', 'Mark as read') }}"><i data-lucide="check"></i></button>
+                            {% endif %}
+                        </li>
+                        {% endif %}
+                        {% for notice in center_notices %}
+                        <li class="notice-center-item notice-{{ notice.severity }}{{ ' read' if notice.read else '' }}" data-notice-center-item="{{ notice.id }}">
+                            <span class="notice-center-dot" aria-hidden="true"></span>
+                            <div class="notice-center-copy">
+                                <strong>{{ notice.title }}</strong>
+                                <p>{{ notice.body }}</p>
+                                {% if notice.link_url and notice.link_label %}
+                                <a href="{{ notice.link_url }}" target="_blank" rel="noopener noreferrer">{{ notice.link_label }}</a>
+                                {% endif %}
+                            </div>
+                            {% if not notice.read %}
+                            <button type="button" class="modal-close" data-action="dismissMaintainerNotice" data-action-args='{{ [notice.id]|tojson }}' aria-label="{{ t.get('notices_mark_read', 'Mark as read') }}" title="{{ t.get('notices_mark_read', 'Mark as read') }}"><i data-lucide="check"></i></button>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                        {% if not center_notices and not show_desktop_notice %}
+                        <li class="notice-center-empty">{{ t.get('notices_empty', 'No notices yet.') }}</li>
+                        {% endif %}
+                    </ul>
+                    <p class="notice-center-foot">{{ t.get('notices_footer', 'Read notices stay listed here.') }}</p>
+                </div>
+            </div>
             <a class="topnav-icon-button topnav-settings{{ ' active' if shell_page == 'settings' }}" href="{{ url_for('settings') }}" title="{{ t.settings }}" aria-label="{{ t.settings }}"{% if shell_page == 'settings' %} aria-current="page"{% endif %}>
                 <i data-lucide="settings"></i>
             </a>

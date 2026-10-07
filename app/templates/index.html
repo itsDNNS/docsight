@@ -67,56 +67,29 @@
 
 {% include 'demo_banner.html' %}
 
-{# Urgent notices stay above everything; informational ones follow the line status and key figures. #}
-{% macro desktop_preview_notice() -%}
-<div class="notice-stack dashboard-notice-stack desktop-preview-notice-stack">
-    <article class="maintainer-notice notice-info desktop-preview-notice" data-notice-id="{{ desktop_preview_notice_id }}">
-        <div class="notice-icon"><i data-lucide="info"></i></div>
-        <div class="notice-content">
-            <div class="notice-title-row">
-                <h2>{{ t.get('desktop_preview_notice_title', 'Desktop Preview is a tryout build') }}</h2>
-                <span class="badge badge-info">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</span>
-            </div>
-            <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
-            <a class="notice-link" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
-        </div>
-        <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [desktop_preview_notice_id]|tojson }}' aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
-            <i data-lucide="x"></i>
-        </button>
-    </article>
-</div>
-{%- endmacro %}
-{% macro notice_stack(notices) -%}
-<div class="notice-stack dashboard-notice-stack">
-    {% for notice in notices %}
-    <article class="maintainer-notice notice-{{ notice.severity }}" data-notice-id="{{ notice.id }}">
-        <div class="notice-icon"><i data-lucide="{{ 'alert-triangle' if notice.severity == 'warning' else ('shield-alert' if notice.severity == 'critical' else 'info') }}"></i></div>
-        <div class="notice-content">
-            <div class="notice-title-row">
-                <h2>{{ notice.title }}</h2>
-                <span class="badge badge-{{ 'crit' if notice.severity == 'critical' else ('warn' if notice.severity == 'warning' else 'info') }}">{{ t.get('notice_severity_' ~ notice.severity, notice.severity|capitalize) }}</span>
-            </div>
-            <p>{{ notice.body }}</p>
-            {% if notice.link_url and notice.link_label %}
-            <a class="notice-link" href="{{ notice.link_url }}" target="_blank" rel="noopener noreferrer">{{ notice.link_label }}</a>
-            {% endif %}
-        </div>
-        <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [notice.id]|tojson }}' aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
-            <i data-lucide="x"></i>
-        </button>
-    </article>
-    {% endfor %}
+{# One slim line for the most important unread notice; the notice center in the top bar
+   lists all of them. Urgent notices stay above everything, others follow the key figures. #}
+{% macro notice_line(notice_id, severity, title) -%}
+<div class="notice-line notice-{{ severity }}" data-notice-id="{{ notice_id }}">
+    <i data-lucide="{{ 'alert-triangle' if severity == 'warning' else ('shield-alert' if severity == 'critical' else 'info') }}" aria-hidden="true"></i>
+    <span class="notice-line-text"><strong>{{ t.get('notices_new', 'New') }}:</strong> {{ title }}</span>
+    <button type="button" class="btn btn-ghost btn-sm" data-action="openNoticeCenter">{{ t.get('notices_open', 'Open notices') }}</button>
 </div>
 {%- endmacro %}
 {% set status_first = analysis and (analysis.ds_channels or analysis.us_channels) and line_status %}
 {% set urgent_notices = (dashboard_notices or [])|selectattr('severity', 'in', ['warning', 'critical'])|list %}
 {% set info_notices = (dashboard_notices or [])|rejectattr('severity', 'in', ['warning', 'critical'])|list %}
 {% set show_desktop_preview_notice = desktop_mode and not desktop_preview_notice_dismissed %}
-{% if urgent_notices %}{{ notice_stack(urgent_notices) }}{% endif %}
-{% if not status_first %}
-{% if show_desktop_preview_notice %}{{ desktop_preview_notice() }}{% endif %}
-{% if info_notices %}{{ notice_stack(info_notices) }}{% endif %}
+{% set lead_notice = none %}
+{% if urgent_notices %}
+{% set lead_notice = (urgent_notices[0].id, urgent_notices[0].severity, urgent_notices[0].title) %}
+{% elif show_desktop_preview_notice %}
+{% set lead_notice = (desktop_preview_notice_id, 'info', t.get('desktop_preview_notice_title', 'Desktop Preview is a tryout build')) %}
+{% elif info_notices %}
+{% set lead_notice = (info_notices[0].id, info_notices[0].severity, info_notices[0].title) %}
 {% endif %}
+{% set lead_notice_first = lead_notice and (urgent_notices or not status_first) %}
+{% if lead_notice_first %}{{ notice_line(*lead_notice) }}{% endif %}
 
 {% if error %}
 <div class="error-box">{{ t.error_label }}: {{ error }}</div>
@@ -499,10 +472,7 @@
     </section>
     {% endif %}
 
-    {% if status_first %}
-    {% if show_desktop_preview_notice %}{{ desktop_preview_notice() }}{% endif %}
-    {% if info_notices %}{{ notice_stack(info_notices) }}{% endif %}
-    {% endif %}
+    {% if lead_notice and not lead_notice_first %}{{ notice_line(*lead_notice) }}{% endif %}
 
     <section class="hero-card glass dashboard-hero dashboard-trend">
         <div class="hero-visual-row">

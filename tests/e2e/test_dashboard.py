@@ -716,7 +716,7 @@ class TestStatusFirst:
 
     def test_order_is_status_figures_notices_chart(self, demo_page):
         order = demo_page.evaluate(
-            """() => ['.dashboard-hero:not(.dashboard-trend)', '.home-kpis', '.dashboard-notice-stack', '.dashboard-trend']
+            """() => ['.dashboard-hero:not(.dashboard-trend)', '.home-kpis', '.notice-line', '.dashboard-trend']
                 .map(sel => document.querySelector('#view-dashboard ' + sel).getBoundingClientRect().top)"""
         )
         assert order == sorted(order), order
