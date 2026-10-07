@@ -43,9 +43,6 @@
   "cm_outage_target": "Tikslas",
   "cm_outage_ongoing": "Tebevyksta",
   "cm_outage_none": "Šiame laikotarpyje sutrikimų nebuvo",
-  "cm_export_csv": "Eksportuoti CSV",
-  "cm_raw_log_title": "Neapdorotas ping žurnalas",
-  "cm_raw_log_desc": "Atsisiųskite atskirus ping matavimus kaip įrodymą tiekėjui. Naudojamas dabartinis laikotarpis arba prisegta diena.",
   "cm_raw_log_download": "Atsisiųsti neapdorotą žurnalą",
   "cm_no_data": "Duomenų dar nėra. Įjunkite Connection Monitor nustatymuose, kad pradėtumėte rinkti.",
   "cm_per_target_title": "Statistika pagal tikslą",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Dalinis rezultatas (baigėsi laikas)",
   "cm_empty_title": "Nėra įjungtų tikslų",
   "cm_empty_action": "Atidaryti Connection Monitor nustatymus",
-  "cm_empty_range_text": "Įjungti tikslai šiuo laikotarpiu dar neturi matavimų."
+  "cm_empty_range_text": "Įjungti tikslai šiuo laikotarpiu dar neturi matavimų.",
+  "cm_export_outages": "Eksportuoti sutrikimus (CSV)",
+  "cm_targets_label": "Tikslai: rodyti arba slėpti diagramoje",
+  "cm_chip_loss": "{value} praradimas",
+  "cm_mode_badge": "{method} režimas"
 }

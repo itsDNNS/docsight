@@ -211,6 +211,20 @@
             pinBtn.onclick = pinCurrentDay;
         }
 
+        // The download menu closes on Escape and on a click elsewhere.
+        var more = document.getElementById('cm-more');
+        if (more && !more.dataset.bound) {
+            more.dataset.bound = '1';
+            document.addEventListener('click', function(event) {
+                if (more.open && !more.contains(event.target)) more.open = false;
+            });
+            more.addEventListener('keydown', function(event) {
+                if (event.key !== 'Escape' || !more.open) return;
+                more.open = false;
+                more.querySelector('summary').focus();
+            });
+        }
+
         fetch(docsightUrl('/api/connection-monitor/capability'))
             .then(function(r) { return r.json(); })
             .then(function(data) {
@@ -224,7 +238,7 @@
                 // Badge
                 var badge = document.createElement('span');
                 badge.className = 'cm-mode-badge ' + (isTcp ? 'tcp' : 'icmp');
-                badge.textContent = label + ' mode';
+                badge.textContent = (el.dataset.modeBadge || '{method} mode').replace('{method}', label);
                 el.appendChild(badge);
 
                 // Glossary hint with popover (only for TCP)
@@ -323,6 +337,7 @@
                 if (meta && meta.resolution) lastResolution = meta.resolution;
                 hideNoData();
                 CMCharts.renderPerTargetStats('cm-per-target-stats', allTargetData);
+                renderTargetChips(allTargetData);
                 var chartRange = pinnedDayView ? 86400 : currentRange;
                 CMCharts.renderCombinedChart('cm-combined-chart', allTargetData, chartRange);
                 renderOutages(allOutageData);
@@ -333,17 +348,66 @@
             .catch(function() {});
     }
 
+    /* One chip per target: its line color, average latency and loss. Pressing a
+       chip shows or hides the target in the chart; the chips replace the legend. */
+    function renderTargetChips(allTargetData) {
+        var container = document.getElementById('cm-target-chips');
+        if (!container) return;
+        var lossLabel = container.dataset.lLoss || '{value} loss';
+        container.textContent = '';
+        allTargetData.forEach(function(td, index) {
+            var stats = td.stats || {};
+            var shown = !CMCharts.isTargetHidden(td.target.id);
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'cm-target-chip';
+            chip.setAttribute('aria-pressed', String(shown));
+            chip.dataset.targetId = td.target.id;
+            var swatch = document.createElement('span');
+            swatch.className = 'cm-target-swatch';
+            swatch.style.background = CMCharts.TARGET_COLORS[index % CMCharts.TARGET_COLORS.length];
+            swatch.setAttribute('aria-hidden', 'true');
+            chip.appendChild(swatch);
+            var name = document.createElement('span');
+            name.className = 'cm-target-chip-name';
+            name.textContent = td.target.label;
+            chip.appendChild(name);
+            var facts = document.createElement('span');
+            facts.className = 'cm-target-chip-facts';
+            if (stats.avg_latency_ms != null) facts.appendChild(document.createTextNode(stats.avg_latency_ms.toFixed(1) + ' ms · '));
+            var loss = document.createElement('span');
+            var pct = stats.packet_loss_pct;
+            loss.className = 'cm-target-chip-loss ' + (pct == null ? '' : pct > 2 ? 'is-crit' : pct > 0 ? 'is-warn' : 'is-good');
+            loss.textContent = lossLabel.replace('{value}', pct != null ? pct.toFixed(2) + ' %' : '–');
+            facts.appendChild(loss);
+            chip.appendChild(facts);
+            chip.addEventListener('click', function() {
+                var show = chip.getAttribute('aria-pressed') !== 'true';
+                chip.setAttribute('aria-pressed', String(show));
+                CMCharts.setTargetHidden(td.target.id, !show);
+            });
+            container.appendChild(chip);
+        });
+        container.hidden = !allTargetData.length;
+    }
+
     function renderExportLinks() {
         var container = document.getElementById('cm-export-links');
         if (!container) return;
         container.textContent = '';
         targets.forEach(function(t) {
             var btn = document.createElement('button');
-            btn.className = 'cm-chip-btn';
+            btn.type = 'button';
+            btn.className = 'cm-more-item';
             btn.textContent = t.label;
-            btn.onclick = function() { window.cmExportCsv(t.id); };
+            btn.onclick = function() { closeMoreMenu(); window.cmExportCsv(t.id); };
             container.appendChild(btn);
         });
+    }
+
+    function closeMoreMenu() {
+        var more = document.getElementById('cm-more');
+        if (more) more.open = false;
     }
 
     function renderRawLogLinks() {
@@ -354,10 +418,11 @@
         container.textContent = '';
         targets.forEach(function(t) {
             var btn = document.createElement('button');
-            btn.className = 'cm-chip-btn';
+            btn.type = 'button';
+            btn.className = 'cm-more-item';
             btn.textContent = t.label;
             btn.setAttribute('aria-label', downloadLabel + ': ' + t.label);
-            btn.onclick = function() { window.cmExportRawLog(t.id); };
+            btn.onclick = function() { closeMoreMenu(); window.cmExportRawLog(t.id); };
             container.appendChild(btn);
         });
     }
@@ -494,7 +559,8 @@
         var outageBody = document.getElementById('cm-outage-tbody');
         var exportLinks = document.getElementById('cm-export-links');
         var rawLogLinks = document.getElementById('cm-raw-log-links');
-        var rawLogPanel = document.getElementById('cm-raw-log-panel');
+        var more = document.getElementById('cm-more');
+        var chips = document.getElementById('cm-target-chips');
         var resolutionEl = document.getElementById('cm-resolution-indicator');
         if (noData && kind === 'range') {
             DOCSightEmptyState.showRange(noData, {tabs: 'cm-range-tabs', text: noData.dataset.rangeText, glossary: 'connection_monitor'});
@@ -509,8 +575,9 @@
         }
         if (chartsEl) chartsEl.hidden = true;
         if (outagePanel) outagePanel.hidden = true;
-        if (rawLogPanel) rawLogPanel.hidden = true;
-        [perTargetEl, outageBody, exportLinks, rawLogLinks, resolutionEl].forEach(function(el) {
+        if (more) { more.open = false; more.hidden = true; }
+        if (chips) chips.hidden = true;
+        [perTargetEl, outageBody, exportLinks, rawLogLinks, chips, resolutionEl].forEach(function(el) {
             if (el) el.textContent = '';
         });
         if (resolutionEl) resolutionEl.style.display = 'none';
@@ -520,11 +587,11 @@
         var noData = document.getElementById('cm-no-data');
         var chartsEl = document.getElementById('cm-charts-section');
         var outagePanel = document.getElementById('cm-outage-panel');
-        var rawLogPanel = document.getElementById('cm-raw-log-panel');
+        var more = document.getElementById('cm-more');
         DOCSightEmptyState.hide(noData);
         if (chartsEl) chartsEl.hidden = false;
         if (outagePanel) outagePanel.hidden = false;
-        if (rawLogPanel) rawLogPanel.hidden = false;
+        if (more) more.hidden = false;
     }
 
     // --- Traceroute ---

@@ -43,9 +43,6 @@
   "cm_outage_target": "Mērķis",
   "cm_outage_ongoing": "Notiek",
   "cm_outage_none": "Šajā periodā pārtraukumu nav",
-  "cm_export_csv": "Eksportēt CSV",
-  "cm_raw_log_title": "Neapstrādātais ping žurnāls",
-  "cm_raw_log_desc": "Lejupielādējiet atsevišķos ping mērījumus kā pierādījumu pakalpojumu sniedzējam. Izmanto pašreizējo periodu vai piesprausto dienu.",
   "cm_raw_log_download": "Lejupielādēt neapstrādāto žurnālu",
   "cm_no_data": "Vēl nav datu. Iestatījumos ieslēdziet Connection Monitor, lai sāktu vākšanu.",
   "cm_per_target_title": "Statistika pa mērķiem",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Daļējs rezultāts (noildze)",
   "cm_empty_title": "Nav ieslēgtu mērķu",
   "cm_empty_action": "Atvērt Connection Monitor iestatījumus",
-  "cm_empty_range_text": "Ieslēgtajiem mērķiem šajā periodā vēl nav mērījumu."
+  "cm_empty_range_text": "Ieslēgtajiem mērķiem šajā periodā vēl nav mērījumu.",
+  "cm_export_outages": "Eksportēt pārtraukumus (CSV)",
+  "cm_targets_label": "Mērķi: rādīt vai slēpt diagrammā",
+  "cm_chip_loss": "{value} zudumi",
+  "cm_mode_badge": "{method} režīms"
 }

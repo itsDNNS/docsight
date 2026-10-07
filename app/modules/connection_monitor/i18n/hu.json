@@ -43,9 +43,6 @@
   "cm_outage_target": "Cél",
   "cm_outage_ongoing": "Folyamatban",
   "cm_outage_none": "Ebben az időszakban nem volt kiesés",
-  "cm_export_csv": "CSV exportálása",
-  "cm_raw_log_title": "Nyers ping-napló",
-  "cm_raw_log_desc": "Töltsd le az egyes ping-méréseket bizonyítéknak a szolgáltatónak. Az aktuális időszakot vagy a rögzített napot használja.",
   "cm_raw_log_download": "Nyers napló letöltése",
   "cm_no_data": "Még nincsenek adatok. Kapcsold be a Connection Monitort a beállításokban az adatgyűjtés elindításához.",
   "cm_per_target_title": "Statisztika célonként",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Részleges eredmény (időtúllépés)",
   "cm_empty_title": "Nincs bekapcsolt cél",
   "cm_empty_action": "Connection Monitor beállításainak megnyitása",
-  "cm_empty_range_text": "A bekapcsolt céloknak ebben az időszakban még nincsenek méréseik."
+  "cm_empty_range_text": "A bekapcsolt céloknak ebben az időszakban még nincsenek méréseik.",
+  "cm_export_outages": "Kiesések exportálása (CSV)",
+  "cm_targets_label": "Célok: megjelenítés vagy elrejtés a diagramon",
+  "cm_chip_loss": "{value} veszteség",
+  "cm_mode_badge": "{method} mód"
 }

@@ -43,9 +43,6 @@
   "cm_outage_target": "Sihtmärk",
   "cm_outage_ongoing": "Käimas",
   "cm_outage_none": "Selles vahemikus katkestusi pole",
-  "cm_export_csv": "Ekspordi CSV",
-  "cm_raw_log_title": "Pingi toorlogi",
-  "cm_raw_log_desc": "Laadi üksikud pingimõõtmised alla tõendiks oma teenusepakkujale. Kasutab praegust ajavahemikku või kinnitatud päeva.",
   "cm_raw_log_download": "Laadi toorlogi alla",
   "cm_no_data": "Andmeid veel pole. Kogumise alustamiseks lülita seadetes Connection Monitor sisse.",
   "cm_per_target_title": "Statistika sihtmärgi kaupa",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Osaline tulemus (ajalõpp)",
   "cm_empty_title": "Ühtegi sihtmärki pole sisse lülitatud",
   "cm_empty_action": "Ava Connection Monitori seaded",
-  "cm_empty_range_text": "Sisselülitatud sihtmärkidel pole selles ajavahemikus veel mõõtmisi."
+  "cm_empty_range_text": "Sisselülitatud sihtmärkidel pole selles ajavahemikus veel mõõtmisi.",
+  "cm_export_outages": "Ekspordi katkestused (CSV)",
+  "cm_targets_label": "Sihtmärgid: näita või peida graafikul",
+  "cm_chip_loss": "{value} kadu",
+  "cm_mode_badge": "{method}-režiim"
 }

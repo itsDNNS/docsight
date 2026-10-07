@@ -512,7 +512,7 @@ def test_frontend_simplifications_keep_single_owners() -> None:
     assert "_runModuleAction(e, id, 'install', downloadUrl);" in settings
     assert "_runModuleAction(e, id, 'uninstall');" in settings
     assert "function bandPlugin(" not in connection_charts
-    assert "bandPlugin(datasets.length - 1, datasets.length, bandColor)" in connection_charts
+    assert "bandPlugin(datasets.length - 1, datasets.length, bandColor, lineIdx)" in connection_charts
     assert "Escape key closes topmost open modal" not in index
 
 

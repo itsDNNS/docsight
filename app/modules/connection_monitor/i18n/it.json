@@ -43,9 +43,6 @@
   "cm_outage_target": "Destinazione",
   "cm_outage_ongoing": "In corso",
   "cm_outage_none": "Nessuna interruzione in questo periodo",
-  "cm_export_csv": "Esporta CSV",
-  "cm_raw_log_title": "Registro grezzo dei ping",
-  "cm_raw_log_desc": "Scarica le singole misure di ping come prova per il tuo provider. Usa il periodo attuale o il giorno fissato.",
   "cm_raw_log_download": "Scarica registro grezzo",
   "cm_no_data": "Ancora nessun dato. Attiva il Connection Monitor nelle impostazioni per iniziare la raccolta.",
   "cm_per_target_title": "Statistiche per destinazione",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Risultato parziale (timeout)",
   "cm_empty_title": "Nessuna destinazione attiva",
   "cm_empty_action": "Apri le impostazioni del Connection Monitor",
-  "cm_empty_range_text": "Le destinazioni attive non hanno ancora misure in questo periodo."
+  "cm_empty_range_text": "Le destinazioni attive non hanno ancora misure in questo periodo.",
+  "cm_export_outages": "Esporta interruzioni (CSV)",
+  "cm_targets_label": "Destinazioni: mostra o nascondi nel grafico",
+  "cm_chip_loss": "{value} di perdita",
+  "cm_mode_badge": "Modalità {method}"
 }

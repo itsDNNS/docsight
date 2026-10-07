@@ -43,9 +43,6 @@
   "cm_outage_target": "Cilj",
   "cm_outage_ongoing": "V teku",
   "cm_outage_none": "V tem obdobju ni izpadov",
-  "cm_export_csv": "Izvozi CSV",
-  "cm_raw_log_title": "Surovi dnevnik pingov",
-  "cm_raw_log_desc": "Prenesite posamezne meritve pinga kot dokaz za ponudnika. Uporabi trenutno obdobje ali pripeti dan.",
   "cm_raw_log_download": "Prenesi surovi dnevnik",
   "cm_no_data": "Še ni podatkov. Za začetek zbiranja v nastavitvah vklopite Connection Monitor.",
   "cm_per_target_title": "Statistika po ciljih",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Delni rezultat (časovna omejitev)",
   "cm_empty_title": "Ni vklopljenih ciljev",
   "cm_empty_action": "Odpri nastavitve Connection Monitor",
-  "cm_empty_range_text": "Vklopljeni cilji v tem obdobju še nimajo meritev."
+  "cm_empty_range_text": "Vklopljeni cilji v tem obdobju še nimajo meritev.",
+  "cm_export_outages": "Izvozi izpade (CSV)",
+  "cm_targets_label": "Cilji: prikaži ali skrij v grafu",
+  "cm_chip_loss": "{value} izgub",
+  "cm_mode_badge": "Način {method}"
 }

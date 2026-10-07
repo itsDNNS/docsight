@@ -208,9 +208,24 @@ var CMCharts = (function() {
      * @param {Array} allTargetData - [{target: {id, label, host}, samples: [...]}]
      * @param {number|string} range - Selected range in seconds or a normalized range key.
      */
+    // Targets hidden with their chip stay hidden across refreshes and range changes.
+    var hiddenTargets = {};
+
+    function isTargetHidden(targetId) {
+        return !!hiddenTargets[targetId];
+    }
+
+    function setTargetHidden(targetId, hidden) {
+        if (hidden) hiddenTargets[targetId] = true;
+        else delete hiddenTargets[targetId];
+        var chart = lastRender && charts[lastRender.containerId];
+        var seriesIdx = lastRender && lastRender.seriesByTarget[targetId];
+        if (chart && seriesIdx) chart.setSeries(seriesIdx, {show: !hidden});
+    }
+
     function renderCombinedChart(containerId, allTargetData, range) {
         if (!allTargetData || allTargetData.length === 0) return;
-        lastRender = { containerId: containerId, allTargetData: allTargetData, range: range };
+        lastRender = { containerId: containerId, allTargetData: allTargetData, range: range, seriesByTarget: {} };
 
         // Build unified timeline from all targets' samples
         var timeMap = {};
@@ -268,11 +283,14 @@ var CMCharts = (function() {
             }
             var color = TARGET_COLORS[tIdx % TARGET_COLORS.length];
             // uPlot series[0] is the x-axis, so this target's line is series datasets.length + 1
-            peaksByTarget.push({ data: data, maxData: maxData, color: color, seriesIdx: datasets.length + 1 });
+            var lineIdx = datasets.length + 1;
+            lastRender.seriesByTarget[td.target.id] = lineIdx;
+            peaksByTarget.push({ data: data, maxData: maxData, color: color, seriesIdx: lineIdx });
             datasets.push({
                 label: td.target.label + (td.target.host ? ' (' + td.target.host + ')' : ''),
                 data: data,
                 color: color,
+                show: !hiddenTargets[td.target.id],
                 spanGaps: false,
                 dashed: hasAggregated ? true : undefined
             });
@@ -281,7 +299,7 @@ var CMCharts = (function() {
                 datasets.push({ data: maxData, color: 'transparent', label: '_max_' + tIdx, show: false, hideInLegend: true });
                 // uPlot series[0] is x-axis, so data indices are offset by +1
                 var bandColor = color.replace(/[\d.]+\)$/, '0.12)');
-                bandPlugins.push(bandPlugin(datasets.length - 1, datasets.length, bandColor));
+                bandPlugins.push(bandPlugin(datasets.length - 1, datasets.length, bandColor, lineIdx));
             }
         });
 
@@ -317,6 +335,8 @@ var CMCharts = (function() {
             minHeight: 260,
             maxHeight: 440,
             heightRatio: 0.42,
+            // The target chips above the chart are its legend.
+            legend: false,
             tooltipLabelCallback: function(ctx) {
                 var val = ctx.parsed.y;
                 if (val == null) return '';
@@ -427,6 +447,8 @@ var CMCharts = (function() {
     return {
         renderCombinedChart: renderCombinedChart,
         renderPerTargetStats: renderPerTargetStats,
+        isTargetHidden: isTargetHidden,
+        setTargetHidden: setTargetHidden,
         latencyAxisMax: latencyAxisMax,
         TARGET_COLORS: TARGET_COLORS
     };

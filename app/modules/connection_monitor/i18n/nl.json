@@ -43,9 +43,6 @@
   "cm_outage_target": "Doel",
   "cm_outage_ongoing": "Lopend",
   "cm_outage_none": "Geen storingen in deze periode",
-  "cm_export_csv": "CSV exporteren",
-  "cm_raw_log_title": "Ruw pinglogboek",
-  "cm_raw_log_desc": "Download de afzonderlijke pingmetingen als bewijs voor je provider. Gebruikt de huidige periode of de vastgezette dag.",
   "cm_raw_log_download": "Ruw logboek downloaden",
   "cm_no_data": "Nog geen gegevens. Schakel de Connection Monitor in bij de instellingen om te beginnen met verzamelen.",
   "cm_per_target_title": "Statistieken per doel",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Gedeeltelijk resultaat (time-out)",
   "cm_empty_title": "Geen doelen ingeschakeld",
   "cm_empty_action": "Connection Monitor-instellingen openen",
-  "cm_empty_range_text": "De ingeschakelde doelen hebben in deze periode nog geen metingen."
+  "cm_empty_range_text": "De ingeschakelde doelen hebben in deze periode nog geen metingen.",
+  "cm_export_outages": "Storingen exporteren (CSV)",
+  "cm_targets_label": "Doelen: tonen of verbergen in de grafiek",
+  "cm_chip_loss": "{value} verlies",
+  "cm_mode_badge": "{method}-modus"
 }

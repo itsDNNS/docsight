@@ -43,9 +43,6 @@
   "cm_outage_target": "Sprioc",
   "cm_outage_ongoing": "Ar siúl",
   "cm_outage_none": "Gan aon bhriseadh sa raon seo",
-  "cm_export_csv": "Easpórtáil CSV",
-  "cm_raw_log_title": "Loga amh ping",
-  "cm_raw_log_desc": "Íoslódáil na tomhais ping aonair mar fhianaise do do sholáthraí. Úsáidtear an tréimhse reatha nó an lá pinnáilte.",
   "cm_raw_log_download": "Íoslódáil loga amh",
   "cm_no_data": "Níl aon sonraí fós. Cas air Connection Monitor sna socruithe chun tosú ag bailiú.",
   "cm_per_target_title": "Staitisticí in aghaidh na sprice",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Toradh páirteach (am istigh)",
   "cm_empty_title": "Níl aon sprioc casta air",
   "cm_empty_action": "Oscail socruithe Connection Monitor",
-  "cm_empty_range_text": "Níl aon tomhais fós ag na spriocanna casta air sa tréimhse seo."
+  "cm_empty_range_text": "Níl aon tomhais fós ag na spriocanna casta air sa tréimhse seo.",
+  "cm_export_outages": "Easpórtáil briseadh (CSV)",
+  "cm_targets_label": "Spriocanna: taispeáin nó folaigh sa chairt",
+  "cm_chip_loss": "{value} caillteanas",
+  "cm_mode_badge": "Mód {method}"
 }

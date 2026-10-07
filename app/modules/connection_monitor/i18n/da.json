@@ -43,9 +43,6 @@
   "cm_outage_target": "Mål",
   "cm_outage_ongoing": "Igangværende",
   "cm_outage_none": "Ingen udfald i dette tidsrum",
-  "cm_export_csv": "Eksportér CSV",
-  "cm_raw_log_title": "Rå ping-log",
-  "cm_raw_log_desc": "Download de enkelte ping-målinger som dokumentation til din udbyder. Bruger den aktuelle periode eller den fastgjorte dag.",
   "cm_raw_log_download": "Download rå log",
   "cm_no_data": "Ingen data endnu. Slå Connection Monitor til i indstillingerne for at begynde at indsamle.",
   "cm_per_target_title": "Statistik pr. mål",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Delvist resultat (timeout)",
   "cm_empty_title": "Ingen mål slået til",
   "cm_empty_action": "Åbn indstillinger for Connection Monitor",
-  "cm_empty_range_text": "De aktive mål har endnu ingen målinger i denne periode."
+  "cm_empty_range_text": "De aktive mål har endnu ingen målinger i denne periode.",
+  "cm_export_outages": "Eksportér afbrydelser (CSV)",
+  "cm_targets_label": "Mål: vis eller skjul i diagrammet",
+  "cm_chip_loss": "{value} tab",
+  "cm_mode_badge": "{method}-tilstand"
 }

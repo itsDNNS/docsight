@@ -10,6 +10,7 @@
             <div id="cm-capability-info" class="cm-capability"
                  data-method-icmp="{{ t.get('docsight.connection_monitor.cm_method_icmp', 'ICMP') }}"
                  data-method-tcp="{{ t.get('docsight.connection_monitor.cm_method_tcp', 'TCP') }}"
+                 data-mode-badge="{{ t.get('docsight.connection_monitor.cm_mode_badge', '{method} mode') }}"
                  data-hint-tcp="{{ t.get('docsight.connection_monitor.cm_method_hint_tcp', 'Using TCP probing. For more accurate ICMP probing, add cap_add: [NET_RAW] to your Docker Compose.') }}"
             ></div>
             <div class="segmented" data-pill-action="cmRangeTabSelected" id="cm-range-tabs" role="group" aria-label="{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}">
@@ -22,6 +23,20 @@
                 <button class="segmented-option" data-cm-range="2592000" aria-pressed="false">30d</button>
                 <button class="segmented-option" data-cm-range="7776000" aria-pressed="false">90d</button>
             </div>
+            {# Downloads live in one menu; the page itself stays about the measurements. #}
+            <details class="cm-more" id="cm-more" hidden>
+                <summary class="cm-more-toggle" aria-label="{{ t.get('more_actions', 'More actions') }}" title="{{ t.get('more_actions', 'More actions') }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+                    </svg>
+                </summary>
+                <div class="cm-more-menu">
+                    <p class="cm-more-heading" id="cm-raw-log-heading">{{ t.get('docsight.connection_monitor.cm_raw_log_download', 'Download raw log') }}</p>
+                    <div id="cm-raw-log-links" class="cm-more-items" role="group" aria-labelledby="cm-raw-log-heading"></div>
+                    <p class="cm-more-heading" id="cm-export-heading">{{ t.get('docsight.connection_monitor.cm_export_outages', 'Export outages (CSV)') }}</p>
+                    <div id="cm-export-links" class="cm-more-items" role="group" aria-labelledby="cm-export-heading"></div>
+                </div>
+            </details>
         </div>
     </div>
 
@@ -35,26 +50,16 @@
         <div id="cm-pinned-days" class="cm-pinned-days" aria-live="polite"></div>
     </div>
 
-    <section id="cm-raw-log-panel" class="glass cm-panel cm-raw-log-panel" hidden>
-        <div class="cm-panel-header">
-            <div class="cm-panel-title">
-                <i data-lucide="file-text"></i>
-                <h3>{{ t.get('docsight.connection_monitor.cm_raw_log_title', 'Raw Ping Log') }}</h3>
-            </div>
-            <div class="cm-export-group">
-                <span>{{ t.get('docsight.connection_monitor.cm_raw_log_download', 'Download raw log') }}</span>
-                <div id="cm-raw-log-links" class="cm-export-links"></div>
-            </div>
-        </div>
-        <p class="cm-panel-copy">{{ t.get('docsight.connection_monitor.cm_raw_log_desc', 'Download per-ping raw samples for ISP evidence. Uses the current time range or selected pinned day.') }}</p>
-    </section>
-
     <div id="cm-no-data" class="view-empty" hidden
          data-empty-title="{{ t.get('docsight.connection_monitor.cm_empty_title', 'No targets enabled') }}"
          data-empty-text="{{ t.get('docsight.connection_monitor.cm_no_data', 'No data yet. Enable the Connection Monitor in settings to start collecting.') }}"
          data-empty-action="{{ t.get('docsight.connection_monitor.cm_empty_action', 'Open Connection Monitor settings') }}"
          data-empty-href="{{ url_for('settings', _anchor='mod-docsight_connection_monitor') }}"
          data-range-text="{{ t.get('docsight.connection_monitor.cm_empty_range_text', 'The enabled targets have no samples for this period yet.') }}"></div>
+
+    <div id="cm-target-chips" class="cm-target-chips" role="group"
+         aria-label="{{ t.get('docsight.connection_monitor.cm_targets_label', 'Targets: show or hide in the chart') }}"
+         data-l-loss="{{ t.get('docsight.connection_monitor.cm_chip_loss', '{value} loss') }}" hidden></div>
 
     <div id="cm-charts-section" class="cm-workspace">
         <section class="glass cm-panel cm-chart-panel">
@@ -100,10 +105,6 @@
                 <div class="cm-panel-title">
                     <i data-lucide="history"></i>
                     <h3>{{ t.get('docsight.connection_monitor.cm_outage_log', 'Outage Log') }}</h3>
-                </div>
-                <div class="cm-export-group">
-                    <span>{{ t.get('docsight.connection_monitor.cm_export_csv', 'Export CSV') }}</span>
-                    <div id="cm-export-links" class="cm-export-links"></div>
                 </div>
             </div>
             <div class="cm-table-wrap">

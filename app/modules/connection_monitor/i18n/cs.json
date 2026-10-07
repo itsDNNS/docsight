@@ -43,9 +43,6 @@
   "cm_outage_target": "Cíl",
   "cm_outage_ongoing": "Probíhá",
   "cm_outage_none": "V tomto období žádné výpadky",
-  "cm_export_csv": "Exportovat CSV",
-  "cm_raw_log_title": "Surový záznam pingů",
-  "cm_raw_log_desc": "Stáhněte jednotlivá měření pingu jako důkaz pro poskytovatele. Použije aktuální období nebo připnutý den.",
   "cm_raw_log_download": "Stáhnout surový záznam",
   "cm_no_data": "Zatím žádná data. Zapněte Connection Monitor v nastavení a začněte sbírat.",
   "cm_per_target_title": "Statistiky podle cíle",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Částečný výsledek (vypršel čas)",
   "cm_empty_title": "Nejsou zapnuté žádné cíle",
   "cm_empty_action": "Otevřít nastavení Connection Monitor",
-  "cm_empty_range_text": "Zapnuté cíle zatím v tomto období nemají žádná měření."
+  "cm_empty_range_text": "Zapnuté cíle zatím v tomto období nemají žádná měření.",
+  "cm_export_outages": "Exportovat výpadky (CSV)",
+  "cm_targets_label": "Cíle: zobrazit nebo skrýt v grafu",
+  "cm_chip_loss": "{value} ztrát",
+  "cm_mode_badge": "Režim {method}"
 }
