@@ -70,7 +70,7 @@
 
   function setMissingTerm(termId) {
     articles.forEach(function (item) { item.hidden = true; });
-    document.querySelectorAll('[data-glossary-term]').forEach(function (link) {
+    document.querySelectorAll('#view-glossary [data-glossary-term]').forEach(function (link) {
       link.classList.remove('active');
       link.setAttribute('aria-current', 'false');
     });
@@ -103,7 +103,7 @@
       item.hidden = item !== article;
     });
 
-    document.querySelectorAll('[data-glossary-term]').forEach(function (link) {
+    document.querySelectorAll('#view-glossary [data-glossary-term]').forEach(function (link) {
       var isActive = link.getAttribute('data-term-id') === activeTermId;
       link.classList.toggle('active', isActive);
       link.setAttribute('aria-current', isActive ? 'page' : 'false');
@@ -120,7 +120,13 @@
 
     if (options.scroll) {
       window.requestAnimationFrame(function () {
-        article.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        // Only bring the article back when its title has left the viewport, so
+        // opening the view or picking a nearby term keeps the page header in place.
+        var top = article.getBoundingClientRect().top;
+        var marginTop = parseFloat(getComputedStyle(article).scrollMarginTop) || 0;
+        if (top < marginTop || top > window.innerHeight) {
+          article.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
       });
     }
   }
@@ -153,7 +159,14 @@
     var terms = Array.prototype.slice.call(panel.querySelectorAll('[data-glossary-term]'));
     var resultCount = panel.querySelector('.glossary-result-count');
     var noResults = panel.querySelector('.glossary-no-results');
+    var letters = Array.prototype.slice.call(panel.querySelectorAll('[data-glossary-letter]'));
     if (!input || !terms.length) return;
+    if (list && !list.hasAttribute('data-glossary-ordered')) {
+      Array.prototype.forEach.call(list.children, function (child, index) {
+        child.setAttribute('data-glossary-order', String(index));
+      });
+      list.setAttribute('data-glossary-ordered', '');
+    }
 
     var query = normalize(input.value);
     var visibleCount = 0;
@@ -176,12 +189,19 @@
       if (isVisible) visibleCount += 1;
     });
 
-    ranked.sort(function (a, b) {
-      if (!query) return a.index - b.index;
-      if (b.score !== a.score) return b.score - a.score;
-      return a.index - b.index;
-    });
-    if (list) ranked.forEach(function (entry) { list.appendChild(entry.item); });
+    // Without a query the list is A–Z under its letters; with one, ranked by match and without them.
+    letters.forEach(function (letter) { letter.hidden = !!query; });
+    if (list && !query) {
+      Array.prototype.slice.call(list.children)
+        .sort(function (a, b) { return Number(a.getAttribute('data-glossary-order')) - Number(b.getAttribute('data-glossary-order')); })
+        .forEach(function (child) { list.appendChild(child); });
+    } else if (list) {
+      ranked.sort(function (a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.index - b.index;
+      });
+      ranked.forEach(function (entry) { list.appendChild(entry.item); });
+    }
 
     setCount(resultCount, visibleCount);
     if (noResults) noResults.hidden = visibleCount !== 0;
@@ -233,10 +253,149 @@
     }
   }
 
+  /* "Where you see this": the navigation names each view as the user sees it there, and
+     only lists views this instance offers, so links appear only for those. */
+  function revealWhereLinks(root) {
+    root.querySelectorAll('[data-glossary-where]').forEach(function (section) {
+      var shown = 0;
+      section.querySelectorAll('[data-glossary-where-view]').forEach(function (link) {
+        var view = link.getAttribute('data-glossary-where-view');
+        var nav = document.querySelector('#topnav .nav-item[data-view="' + view + '"]');
+        var label = nav && (nav.querySelector('.topnav-label') || nav).textContent.trim();
+        var title = label || (nav && nav.getAttribute('data-nav-title'));
+        link.hidden = !title;
+        if (title) {
+          link.querySelector('span').textContent = title;
+          shown += 1;
+        }
+      });
+      section.hidden = shown === 0;
+    });
+  }
+  revealWhereLinks(document);
+
+  /* ── Help panel: in-context glossary links open the article over the current view ── */
+  var helpPanel = document.querySelector('[data-glossary-help-panel]');
+  var helpList = helpPanel && helpPanel.querySelector('[data-glossary-panel-list]');
+  var helpArticle = helpPanel && helpPanel.querySelector('[data-glossary-panel-article]');
+  var helpSlot = helpPanel && helpPanel.querySelector('[data-glossary-panel-slot]');
+  var helpSearch = helpPanel && helpPanel.querySelector('[data-glossary-search]');
+  var helpPageLink = helpPanel && helpPanel.querySelector('[data-glossary-panel-page]');
+  var helpOpener = null;
+
+  function termFromHref(href) {
+    var query = (href || '').split('#glossary?', 2)[1];
+    return query === undefined ? '' : (new URLSearchParams(query).get('term') || '');
+  }
+
+  // The clone sits next to its original, so its ids and the references to them get a prefix.
+  function prefixIds(root, prefix) {
+    root.querySelectorAll('[id]').forEach(function (node) { node.id = prefix + node.id; });
+    ['aria-labelledby', 'aria-describedby', 'aria-controls'].forEach(function (attr) {
+      root.querySelectorAll('[' + attr + ']').forEach(function (node) {
+        node.setAttribute(attr, node.getAttribute(attr).split(/\s+/).map(function (id) { return prefix + id; }).join(' '));
+      });
+    });
+  }
+
+  function showPanelList() {
+    if (!helpPanel) return;
+    helpList.hidden = false;
+    helpArticle.hidden = true;
+    helpPageLink.setAttribute('href', '#glossary');
+  }
+
+  function showPanelArticle(termId) {
+    var resolved = resolveTermId(termId);
+    var source = findArticle(resolved);
+    if (!source) {
+      helpSearch.value = termId || '';
+      filterPanel(helpPanel);
+      showPanelList();
+      return;
+    }
+    var clone = source.cloneNode(true);
+    clone.hidden = false;
+    prefixIds(clone, 'glossary-panel-');
+    helpSlot.textContent = '';
+    helpSlot.appendChild(clone);
+    helpList.hidden = true;
+    helpArticle.hidden = false;
+    helpPageLink.setAttribute('href', glossaryHashForTerm(resolved));
+    helpPanel.querySelector('.glossary-panel-body').scrollTop = 0;
+  }
+
+  function openGlossaryPanel(termId) {
+    if (!helpPanel) return false;
+    if (helpPanel.hidden) {
+      helpOpener = document.activeElement;
+      // A popover link disappears with its popover; focus returns to the hint instead.
+      if (helpOpener && helpOpener.closest('#glossary-popover-overlay')) {
+        helpOpener = document.querySelector('.glossary-hint.open') || helpOpener;
+      }
+    }
+    if (typeof window.closeGlossaryPopover === 'function') window.closeGlossaryPopover();
+    helpPanel.hidden = false;
+    helpSearch.value = '';
+    filterPanel(helpPanel);
+    if (termId) showPanelArticle(termId);
+    else showPanelList();
+    document.getElementById('glossary-panel-title').focus({ preventScroll: true });
+    return true;
+  }
+  window.openGlossaryPanel = openGlossaryPanel;
+
+  function closeGlossaryPanel() {
+    if (!helpPanel || helpPanel.hidden) return;
+    helpPanel.hidden = true;
+    if (helpOpener && helpOpener.isConnected && isVisible(helpOpener)) helpOpener.focus({ preventScroll: true });
+    helpOpener = null;
+  }
+
+  if (helpPanel) {
+    helpPanel.addEventListener('click', function (event) {
+      if (event.target.closest('[data-glossary-panel-close]')) {
+        closeGlossaryPanel();
+        return;
+      }
+      if (event.target.closest('[data-glossary-panel-back]')) {
+        showPanelList();
+        helpSearch.focus({ preventScroll: true });
+        return;
+      }
+      if (event.target.closest('[data-glossary-panel-page]')) {
+        closeGlossaryPanel();
+        return;
+      }
+      var termLink = event.target.closest('[data-glossary-term], [data-glossary-related-term]');
+      if (termLink) {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        // The new article replaces the link, so the page's handlers must not see this click.
+        event.stopPropagation();
+        showPanelArticle(termLink.getAttribute('data-term-id') || termFromHref(termLink.getAttribute('href')));
+      }
+    });
+
+    // Hints, empty states and other links into the glossary open the panel and keep the view.
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      var link = event.target.closest('a[href*="#glossary?"]');
+      if (!link || link.closest('#view-glossary') || link.closest('[data-glossary-help-panel]')) return;
+      var termId = termFromHref(link.getAttribute('href'));
+      if (!termId) return;
+      event.preventDefault();
+      openGlossaryPanel(termId);
+    });
+  }
+
   panels.forEach(function (panel) {
     var input = panel.querySelector('[data-glossary-search]');
     if (!input) return;
+    var inHelpPanel = panel.hasAttribute('data-glossary-help-panel');
     input.addEventListener('input', function () {
+      if (inHelpPanel) showPanelList();
       filterPanel(panel);
     });
     input.addEventListener('keydown', function (event) {
@@ -246,6 +405,10 @@
       });
       if (!firstVisible) return;
       event.preventDefault();
+      if (inHelpPanel) {
+        showPanelArticle(firstVisible.getAttribute('data-term-id'));
+        return;
+      }
       setActiveTerm(firstVisible.getAttribute('data-term-id'), { updateHash: true });
       closePicker();
     });
@@ -279,6 +442,7 @@
   });
 
   document.addEventListener('click', function (event) {
+    if (event.target.closest('[data-glossary-help-panel]')) return;
     var relatedLink = event.target.closest('[data-glossary-related-term]');
     var link = event.target.closest('[data-glossary-term]') || relatedLink;
     if (!link) return;
@@ -297,6 +461,8 @@
   window.addEventListener('hashchange', function () {
     var parsed = parseGlossaryHash();
     if (parsed) setActiveTerm(parsed.term, { scroll: true });
+    // On phones the panel covers the view the user just went to.
+    if (helpPanel && !helpPanel.hidden && window.matchMedia('(max-width: 640px)').matches) closeGlossaryPanel();
   });
 
   var parsed = parseGlossaryHash();
@@ -305,6 +471,10 @@
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && picker && !picker.hidden) {
       closePicker();
+      return;
+    }
+    if (event.key === 'Escape' && helpPanel && !helpPanel.hidden) {
+      closeGlossaryPanel();
       return;
     }
     trapPickerFocus(event);

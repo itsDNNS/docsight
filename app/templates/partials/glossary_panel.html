@@ -1,0 +1,22 @@
+{# Glossary help panel: hints, empty states and other in-context links open a term here,
+   over the current view, instead of leaving it. The article is the page's own, cloned in. #}
+{% import 'partials/glossary_macros.html' as glossary with context %}
+<div id="glossary-panel" class="glossary-panel" role="dialog" aria-labelledby="glossary-panel-title" data-glossary-help-panel data-glossary-panel hidden>
+    <div class="glossary-panel-head">
+        <h2 id="glossary-panel-title" tabindex="-1">{{ t.get('glossary_page_title', 'Glossary') }}</h2>
+        <a class="modal-close" data-glossary-panel-page href="#glossary" aria-label="{{ t.get('glossary_open_page', 'Open the glossary page') }}" title="{{ t.get('glossary_open_page', 'Open the glossary page') }}"><i data-lucide="book-open" aria-hidden="true"></i></a>
+        <button type="button" class="modal-close" data-glossary-panel-close aria-label="{{ t.get('glossary_close_panel', 'Close glossary') }}"><i data-lucide="x" aria-hidden="true"></i></button>
+    </div>
+    <div class="glossary-panel-search">
+        {{ glossary.search_field('glossary-panel-search', 'glossary-panel-result-count') }}
+    </div>
+    <div class="glossary-panel-body">
+        <div class="glossary-panel-list" data-glossary-panel-list hidden>
+            {{ glossary.term_list('glossary-panel-terms', 'glossary-panel-result-count', 'glossary-panel-no-results', with_summaries=True) }}
+        </div>
+        <div class="glossary-panel-article" data-glossary-panel-article>
+            <button type="button" class="glossary-panel-back" data-glossary-panel-back><i data-lucide="chevron-left" aria-hidden="true"></i>{{ t.get('glossary_all_terms', 'All terms') }}</button>
+            <div data-glossary-panel-slot></div>
+        </div>
+    </div>
+</div>

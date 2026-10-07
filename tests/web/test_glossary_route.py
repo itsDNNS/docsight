@@ -56,7 +56,8 @@ def test_index_glossary_renders_simple_summary_and_explanation(client, sample_an
     assert "SC-QAM channels are traditional DOCSIS 3.0-style channels" in html
     active_article = html.split('class="glossary-term-article" data-glossary-article data-term-id="sc_qam"', 1)[1].split('class="glossary-term-article" data-glossary-article', 1)[0]
     assert '<p class="eyebrow">' not in active_article
-    assert "DOCSIS terms" not in active_article
+    # The category reads as a kicker above the title; there is no category filter.
+    assert '<p class="glossary-kicker">DOCSIS terms</p>' in active_article
     assert "Also searched as" in active_article
     assert 'data-glossary-detail-level=' not in html
     assert "Use SC-QAM rows to isolate channel-specific impairment" in html
@@ -159,7 +160,7 @@ def test_index_glossary_lists_terms_alphabetically(client, sample_analysis):
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
     desktop = html.split('id="glossary-desktop-terms"', 1)[1].split("</nav>", 1)[0]
-    desktop_terms = re.findall(r'class="glossary-term-link[^"]*"[^>]*>\s*([^<]+?)\s*</a>', desktop)
+    desktop_terms = re.findall(r'<span class="glossary-term-title">([^<]+)</span>', desktop)
     assert desktop_terms == sorted(desktop_terms, key=str.casefold)
     assert desktop_terms[:3] == ["Before/After Comparison", "BNetzA measurement", "BQM"]
 
@@ -197,3 +198,31 @@ def test_contextual_glossary_links_target_existing_terms(client, sample_analysis
         targeted_terms.add(term)
 
     assert {"docsis", "power_level", "snr_mer", "uncorrectable_errors", "ofdm", "ofdma", "sc_qam"}.issubset(targeted_terms)
+
+
+def test_index_glossary_groups_terms_by_letter_and_links_their_views(client, sample_analysis):
+    current_runtime().update_state(analysis=sample_analysis)
+
+    html = client.get("/?lang=en&term=snr_mer").get_data(as_text=True)
+
+    desktop = html.split('id="glossary-desktop-terms"', 1)[1].split("</nav>", 1)[0]
+    letters = re.findall(r'<span class="glossary-letter" data-glossary-letter aria-hidden="true">([^<]+)</span>', desktop)
+    assert letters[:2] == ["B", "C"]
+    assert len(letters) == len(set(letters))
+    article = html.split('data-glossary-article data-term-id="snr_mer"', 1)[1].split("data-glossary-article", 1)[0]
+    views = re.findall(r'data-glossary-where-view="([^"]+)"', article)
+    assert views == ["live", "channels"]
+    assert 'href="#"' in article and 'href="#channels"' in article
+    assert 'class="glossary-related-tile"' in article
+
+
+def test_index_renders_one_glossary_help_panel_with_summaries(client, sample_analysis):
+    current_runtime().update_state(analysis=sample_analysis)
+
+    html = client.get("/?lang=en").get_data(as_text=True)
+
+    assert html.count('id="glossary-panel"') == 1
+    panel = html.split('id="glossary-panel"', 1)[1].split('<div class="glossary-panel-article"', 1)[0]
+    assert re.search(r'<div id="glossary-panel"[^>]*role="dialog"[^>]*data-glossary-help-panel[^>]*hidden>', html)
+    assert panel.count('class="glossary-term-summary"') == panel.count("data-glossary-term ")
+    assert "SNR/MER describes how clearly the modem can hear the signal through noise." in panel

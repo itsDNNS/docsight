@@ -334,3 +334,18 @@ def test_glossary_aliases_do_not_duplicate_other_term_titles_or_aliases():
             normalized = value.casefold()
             previous = seen.setdefault(normalized, term["id"])
             assert previous == term["id"], f"{term['id']} duplicates alias/title {value!r} from {previous}"
+
+
+def test_every_ui_context_names_its_view_or_none():
+    """A new UI context must say which view an article links to, so it cannot be forgotten."""
+    from app.glossary import UI_CONTEXT_VIEWS, get_glossary_terms
+
+    contexts = {context for term in get_glossary_terms("en") for context in term["ui_contexts"]}
+    assert contexts - set(UI_CONTEXT_VIEWS) == set()
+
+
+def test_term_views_follow_context_order_without_repeats():
+    from app.glossary import glossary_term_views
+
+    term = {"ui_contexts": ["dashboard_signal_cards", "channel_tables", "dashboard_health", "llm_export"]}
+    assert glossary_term_views(term) == ["live", "channels"]

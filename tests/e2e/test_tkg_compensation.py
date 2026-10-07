@@ -322,7 +322,12 @@ def test_tkg_first_step_links_to_glossary_article(tkg_core_page):
     root = _open_tkg(tkg_core_page)
 
     root.locator("#tkg-glossary-link").click()
+    panel = tkg_core_page.locator("#glossary-panel")
+    expect(panel.get_by_role("heading", name="Rights under TKG § 57 and § 58")).to_be_visible()
 
+    # The panel leads on to the full glossary page.
+    panel.locator("[data-glossary-panel-page]").click()
+    expect(panel).to_be_hidden()
     expect(tkg_core_page).to_have_url(re.compile(r"#glossary\?term=tkg_rights_de$"))
     expect(tkg_core_page.locator("#view-glossary")).to_have_class(re.compile(r"active"))
     expect(

@@ -1,0 +1,28 @@
+{# Shared glossary building blocks: the A–Z term list and the search field. The page and the
+   help panel both use them, so a term reads and filters the same way everywhere. #}
+
+{% macro search_field(search_id, count_id) -%}
+<label class="glossary-search-field">
+    <span class="sr-only">{{ t.get('glossary_search_label', 'Search terms') }}</span>
+    <i data-lucide="search" aria-hidden="true"></i>
+    <input id="{{ search_id }}" class="form-input glossary-search" data-glossary-search type="search" autocomplete="off" placeholder="{{ t.get('glossary_search_placeholder', 'Search DOCSIS, SNR, Speedtest...') }}" aria-describedby="{{ count_id }}">
+</label>
+{%- endmacro %}
+
+{% macro term_list(list_id, count_id, no_results_id, with_summaries=False) -%}
+<p id="{{ count_id }}" class="glossary-result-count" aria-live="polite" data-singular-template="{{ t.get('glossary_result_singular', '{count} term shown') }}" data-plural-template="{{ t.get('glossary_result_plural', '{count} terms shown') }}">{{ t.get('glossary_result_plural', '{count} terms shown').replace('{count}', glossary_terms|length|string) }}</p>
+<p id="{{ no_results_id }}" class="glossary-no-results" hidden>{{ t.get('glossary_no_results', 'No matching glossary terms. Try a broader word such as DOCSIS, signal, speed, or errors.') }}</p>
+<nav class="glossary-term-list{{ ' glossary-term-list-summaries' if with_summaries else '' }}" id="{{ list_id }}" aria-label="{{ t.get('glossary_alphabetical_terms', 'Alphabetical') }}">
+    {% for letter, letter_terms in glossary_letter_groups %}
+    <span class="glossary-letter" data-glossary-letter aria-hidden="true">{{ letter }}</span>
+    {% for term in letter_terms %}
+    {% set category = glossary_category_by_id[term.category] %}
+    {% set search_text = term.title ~ ' ' ~ term.id ~ ' ' ~ category.title ~ ' ' ~ (term.aliases|join(' ')) ~ ' ' ~ (term.tags|join(' ')) ~ ' ' ~ (term.source_pages|join(' ')) ~ ' ' ~ (term.ui_contexts|join(' ')) %}
+    <a data-glossary-term data-term-id="{{ term.id }}" data-category="{{ term.category }}" data-tags="{{ term.tags|join(' ') }}" data-source-pages="{{ term.source_pages|join(' ') }}" data-ui-contexts="{{ term.ui_contexts|join(' ') }}" data-search-title="{{ term.title|e }}" data-search-aliases="{{ term.aliases|join(' ')|e }}" data-search-alias-values="{{ term.aliases|join('|||')|e }}" data-search-id="{{ term.id|e }}" data-search-metadata="{{ (category.title ~ ' ' ~ (term.tags|join(' ')) ~ ' ' ~ (term.source_pages|join(' ')) ~ ' ' ~ (term.ui_contexts|join(' ')))|e }}" data-search="{{ search_text|e }}" class="glossary-term-link {{ 'active' if glossary_selected_term and glossary_selected_term.id == term.id and not with_summaries else '' }}" href="{{ url_for('index', lang=lang, _anchor='glossary?term=' ~ term.id) }}" aria-current="{{ 'page' if glossary_selected_term and glossary_selected_term.id == term.id and not with_summaries else 'false' }}">
+        <span class="glossary-term-title">{{ term.title }}</span>
+        {% if with_summaries %}<span class="glossary-term-summary">{{ term.levels.eli5 }}</span>{% endif %}
+    </a>
+    {% endfor %}
+    {% endfor %}
+</nav>
+{%- endmacro %}
