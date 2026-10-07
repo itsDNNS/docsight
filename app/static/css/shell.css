@@ -116,10 +116,13 @@
 .topnav-icon-button:hover, .topnav-icon-button[aria-expanded="true"] { background: var(--tint-hover); color: var(--text); }
 .topnav-icon-button.active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
 .topnav-icon-button svg { width: 20px; height: 20px; }
-/* Small phones: the mark stands in for the name (still read out) so every action keeps its touch size. */
+/* Where room is short, the mark stands in for the name (still read out). */
+@media (max-width: 479px), (min-width: 1024px) and (max-width: 1279px) {
+  .topnav-brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+/* Small phones: every action keeps its touch size. */
 @media (max-width: 479px) {
   .topnav-inner { gap: var(--space-sm); }
-  .topnav-brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .topnav-countdown { display: none; }
   .topnav-actions { gap: 2px; }
 }
@@ -169,6 +172,158 @@
   color: var(--text);
   font-weight: 600;
 }
+/* Opens the command palette: a search field look on wide screens, an icon elsewhere. */
+.topnav-search {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.topnav-search svg { width: 20px; height: 20px; flex-shrink: 0; }
+.topnav-search:hover { background: var(--tint-hover); color: var(--text); }
+.topnav-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.topnav-search-label, .topnav-search-key { display: none; }
+@media (min-width: 1280px) {
+  .topnav-search {
+    width: auto;
+    height: 36px;
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--input-border);
+    font-size: 0.88rem;
+  }
+  .topnav-search svg { width: 16px; height: 16px; }
+  .topnav-search-label { display: inline; min-width: 64px; text-align: left; }
+  .topnav-search-key { display: inline-flex; }
+}
+.topnav-search-key, .command-palette-key {
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--input-border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-secondary);
+  font: 600 0.72rem/1 var(--font-sans);
+}
+.command-palette-key { display: inline-flex; }
+
+/* ── Command palette ── */
+.command-palette {
+  position: fixed;
+  inset: 12vh 0 auto;
+  display: none;
+  flex-direction: column;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(76vh, 600px);
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--card-border, var(--input-border));
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+}
+.command-palette[open] { display: flex; }
+.command-palette::backdrop { background: var(--overlay); }
+.command-palette-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--muted);
+}
+.command-palette-search svg { width: 18px; height: 18px; flex-shrink: 0; }
+.command-palette-input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+}
+.command-palette-input::placeholder { color: var(--muted); }
+/* The palette's only field: the caret and the selected result show where the keyboard is. */
+.command-palette-input:focus { outline: none; }
+.command-palette-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 4px 8px 8px; }
+.command-palette-group + .command-palette-group { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--glass-border); }
+.command-palette-group-title {
+  margin: 0;
+  padding: 10px 10px 4px;
+  font-size: var(--fs-min);
+  font-weight: 600;
+  color: var(--muted);
+}
+.command-palette-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.command-palette-option svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-secondary); }
+.command-palette-option[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.command-palette-option mark { background: none; color: inherit; font-weight: 700; }
+.command-palette-option-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.command-palette-option-detail { color: var(--muted); }
+.command-palette-option-detail::before { content: " · "; }
+.command-palette-option-keys { display: inline-flex; gap: 3px; }
+.command-palette-empty { margin: 0; padding: 28px 16px; text-align: center; color: var(--muted); }
+.command-palette-help { overflow-y: auto; padding: 4px 16px 16px; }
+.command-palette-help .command-palette-group-title { padding-left: 0; }
+.command-palette-shortcuts { display: grid; gap: 6px; margin: 4px 0 0; }
+.command-palette-shortcuts > div { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; }
+.command-palette-shortcuts dt { display: inline-flex; gap: 4px; }
+.command-palette-shortcuts dd { margin: 0; }
+.command-palette-help-note { margin: 12px 0 0; font-size: var(--fs-min); color: var(--muted); }
+.command-palette-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 8px 12px 8px 16px;
+  border-top: 1px solid var(--glass-border);
+  font-size: var(--fs-min);
+  color: var(--muted);
+}
+.command-palette-foot > span { display: inline-flex; align-items: center; gap: 4px; }
+.command-palette-help-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-left: auto;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.command-palette-help-toggle:hover, .command-palette-help-toggle[aria-expanded="true"] { background: var(--tint-hover); color: var(--text); }
+.command-palette-help-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 639px) {
+  .command-palette { inset: 8px 0 auto; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .command-palette-foot { display: none; }
+}
+
 /* Below the sticky header (z-index 100), which contains the open sheet */
 .topnav-backdrop {
   position: fixed;

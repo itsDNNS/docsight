@@ -42,8 +42,9 @@ TABLES_WITHOUT_COMPONENT = {
 # The dialog: overlay, panel and its parts.
 DIALOG_RULE = re.compile(r"(?m)^\s*\.modal(?:-overlay|-wide|-header|-close|-hint|-body|-footer(?:-start)?)?(?![\w-])[^{,]*[{,]")
 
-# Dialogs that are not standard dialogs on purpose: the chart zoom fills the screen with a chart.
-DIALOGS_WITHOUT_COMPONENT = {"chart-zoom-overlay"}
+# Dialogs that are not standard dialogs on purpose: the chart zoom fills the screen with a chart,
+# the command palette is a search field over its results.
+DIALOGS_WITHOUT_COMPONENT = {"chart-zoom-overlay", "command-palette"}
 
 # The toast and its tones.
 TOAST_RULE = re.compile(r"(?m)^\s*\.toast(?:-(?:success|error|info))?(?![\w-])[^{,]*[{,]")

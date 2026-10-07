@@ -1,0 +1,62 @@
+{#- The command palette (⌘K / Ctrl+K): finds views, channels, settings sections
+    and glossary terms. The views come from the top navigation, so the palette
+    offers exactly what the navigation offers. -#}
+{% from 'partials/settings_sections.html' import settings_sections with context %}
+{% set palette_shortcuts = [
+    ('o', 'live'),
+    ('s', 'signal'),
+    ('c', 'connection'),
+    ('e', 'events'),
+    ('v', 'cases'),
+] %}
+{% set palette_glossary = [] %}
+{% for term in glossary_terms|default([]) %}{% if palette_glossary.append([term.id, term.title, term.aliases]) %}{% endif %}{% endfor %}
+<dialog class="command-palette" id="command-palette" aria-labelledby="command-palette-title">
+    <h2 class="sr-only" id="command-palette-title">{{ t.get('palette_title', 'Search DOCSight') }}</h2>
+    <div class="command-palette-search">
+        <i data-lucide="search" aria-hidden="true"></i>
+        <input type="text" class="command-palette-input" id="command-palette-input"
+               role="combobox" aria-expanded="true" aria-controls="command-palette-list" aria-autocomplete="list"
+               aria-labelledby="command-palette-title" autocomplete="off" spellcheck="false"
+               placeholder="{{ t.get('palette_placeholder', 'Views, channels, settings, terms') }}">
+        <kbd class="command-palette-key">esc</kbd>
+    </div>
+    <div class="command-palette-list" id="command-palette-list" role="listbox" aria-label="{{ t.get('palette_results_label', 'Results') }}"></div>
+    <p class="command-palette-empty" id="command-palette-empty" hidden></p>
+    <div class="command-palette-help" id="command-palette-help" hidden>
+        <h3 class="command-palette-group-title">{{ t.get('palette_shortcuts', 'Keyboard shortcuts') }}</h3>
+        <dl class="command-palette-shortcuts">
+            <div><dt><kbd class="command-palette-key" data-palette-mod></kbd> <kbd class="command-palette-key">K</kbd></dt><dd>{{ t.get('palette_shortcut_open', 'Open search') }}</dd></div>
+            {% for key, target in palette_shortcuts %}
+            <div data-palette-shortcut="{{ target }}"><dt><kbd class="command-palette-key">g</kbd> <kbd class="command-palette-key">{{ key }}</kbd></dt><dd></dd></div>
+            {% endfor %}
+            <div><dt><kbd class="command-palette-key">?</kbd></dt><dd>{{ t.get('palette_shortcut_help', 'Show these shortcuts') }}</dd></div>
+        </dl>
+        <p class="command-palette-help-note">{{ t.get('palette_shortcut_note', 'Letter shortcuts work whenever no text field has the focus.') }}</p>
+    </div>
+    <div class="command-palette-foot">
+        <span aria-hidden="true"><kbd class="command-palette-key">↑</kbd><kbd class="command-palette-key">↓</kbd> {{ t.get('palette_hint_move', 'move') }}</span>
+        <span aria-hidden="true"><kbd class="command-palette-key">↵</kbd> {{ t.get('palette_hint_open', 'open') }}</span>
+        <span aria-hidden="true"><kbd class="command-palette-key">g</kbd> {{ t.get('palette_hint_then', 'then') }} {% for key, target in palette_shortcuts %}<kbd class="command-palette-key">{{ key }}</kbd>{% endfor %} {{ t.get('palette_hint_jump', 'jump') }}</span>
+        <button type="button" class="command-palette-help-toggle" id="command-palette-help-toggle" aria-expanded="false" aria-controls="command-palette-help">
+            <kbd class="command-palette-key" aria-hidden="true">?</kbd> {{ t.get('palette_shortcuts', 'Keyboard shortcuts') }}
+        </button>
+    </div>
+    <div class="sr-only" id="command-palette-status" role="status" aria-live="polite"></div>
+    <script type="application/json" id="command-palette-data">{{ {
+        'shortcuts': palette_shortcuts,
+        'settings': settings_sections|map('list')|list,
+        'glossary': palette_glossary,
+        'text': {
+            'views': t.get('palette_group_views', 'Views'),
+            'actions': t.get('palette_group_actions', 'Actions'),
+            'channels': t.get('palette_group_channels', 'Channels'),
+            'settings': t.get('palette_group_settings', 'Settings'),
+            'glossary': t.get('palette_group_glossary', 'Glossary'),
+            'channel_ds': t.get('palette_channel_ds', 'Downstream channel {id}'),
+            'channel_us': t.get('palette_channel_us', 'Upstream channel {id}'),
+            'no_results': t.get('palette_no_results', 'Nothing found for “{query}”'),
+            'results': t.get('palette_results', '{count} results'),
+        },
+    }|tojson }}</script>
+</dialog>

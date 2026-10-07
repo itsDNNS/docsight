@@ -39,17 +39,7 @@
         </div>
     </div>
     <div class="settings-shell">
-        {% set settings_sections = [
-            ('connection', 'radio', t.get('settings_section_connection', 'Connection'), t.get('settings_section_connection_summary', 'Modem, provider and polling')),
-            ('sources', 'activity', t.get('settings_section_sources', 'Measurement sources'), t.get('settings_section_sources_summary', 'Connection Monitor, speed tests, BQM, SmokePing and weather')),
-            ('notifications', 'bell', t.get('settings_section_notifications', 'Notifications'), t.get('settings_section_notifications_summary', 'Channels and rules for alerts')),
-            ('evidence', 'file-text', t.get('settings_section_evidence', 'Evidence and reports'), t.get('settings_section_evidence_summary', 'Smart Capture, report details and BNetzA files')),
-            ('data', 'database', t.get('settings_section_data', 'Data and storage'), t.get('settings_section_data_summary', 'History, snapshots and backups')),
-            ('appearance', 'palette', t.get('settings_section_appearance', 'Appearance and language'), t.get('settings_section_appearance_summary', 'Theme, mode, language and units')),
-            ('access', 'shield', t.get('settings_section_access', 'Access and integrations'), t.get('settings_section_access_summary', 'Password, API tokens and MQTT')),
-            ('extensions', 'package', t.get('settings_section_extensions', 'Extensions'), t.get('settings_section_extensions_summary', 'Turn modules on or off, community add-ons')),
-            ('about', 'info', t.get('settings_section_about', 'About DOCSight'), t.get('settings_section_about_summary', 'Version, updates and support')),
-        ] %}
+        {% from 'partials/settings_sections.html' import settings_sections with context %}
         {% set placed_modules = {
             'sources': ['docsight.connection_monitor', 'docsight.speedtest', 'docsight.bqm', 'docsight.smokeping', 'docsight.weather'],
             'evidence': ['docsight.reports', 'docsight.bnetz'],
@@ -201,6 +191,7 @@
 <script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/command-palette.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/form-state.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/form.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/settings/navigation.js', v=version) }}"></script>
