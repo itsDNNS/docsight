@@ -62,3 +62,10 @@ test('acknowledgement bookkeeping only touches open events', () => {
     assert.deepEqual(data.unacknowledgedIds(events), [1]);
     assert.equal(data.markAcknowledged(events, []), 0);
 });
+
+test('markUnacknowledged takes back exactly the listed acknowledgements', () => {
+    const events = [{id: 1, acknowledged: 1}, {id: 2, acknowledged: 1}, {id: 3, acknowledged: 0}];
+    assert.equal(data.markUnacknowledged(events, [1, 3, 99]), 1);
+    assert.deepEqual(events.map(e => e.acknowledged), [0, 1, 0]);
+    assert.equal(data.markUnacknowledged(events, []), 0);
+});

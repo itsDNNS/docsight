@@ -971,6 +971,38 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   line-height: 1.4;
 }
 .toast.show { display: block; }
+/* With an action (Undo): text and button side by side, a line shows the time left. */
+.toast.show.toast-with-action { display: flex; align-items: center; gap: var(--space-md); padding-bottom: 14px; }
+.toast-action {
+  flex: none;
+  margin-left: auto;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.toast-action:hover { background: var(--tint-hover); }
+.toast-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toast-progress {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text-secondary);
+  transform-origin: left;
+  animation: toast-time-left linear forwards;
+}
+.toast-paused .toast-progress { animation-play-state: paused; }
+@keyframes toast-time-left { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .toast-progress { display: none; }
+}
 .toast-success {
   border-color: color-mix(in srgb, var(--good) 45%, transparent);
   background: color-mix(in srgb, var(--good) 14%, var(--surface));

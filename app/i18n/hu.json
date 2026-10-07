@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Javíthatatlan hibák {minutes} percenként",
   "trend_errors_per_hour": "Javíthatatlan hibák óránként",
   "trend_errors_per_hours": "Javíthatatlan hibák {hours} óránként",
-  "trend_errors_per_day": "Javíthatatlan hibák naponta"
+  "trend_errors_per_day": "Javíthatatlan hibák naponta",
+  "undo": "Visszavonás",
+  "event_ack_done_one": "Esemény nyugtázva",
+  "event_ack_done_many": "{count} esemény nyugtázva"
 }

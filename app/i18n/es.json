@@ -1252,5 +1252,8 @@
   "trend_errors_per_minutes": "Errores no corregibles cada {minutes} minutos",
   "trend_errors_per_hour": "Errores no corregibles por hora",
   "trend_errors_per_hours": "Errores no corregibles cada {hours} horas",
-  "trend_errors_per_day": "Errores no corregibles por día"
+  "trend_errors_per_day": "Errores no corregibles por día",
+  "undo": "Deshacer",
+  "event_ack_done_one": "Evento confirmado",
+  "event_ack_done_many": "{count} eventos confirmados"
 }

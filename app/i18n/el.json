@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Μη διορθώσιμα σφάλματα ανά {minutes} λεπτά",
   "trend_errors_per_hour": "Μη διορθώσιμα σφάλματα ανά ώρα",
   "trend_errors_per_hours": "Μη διορθώσιμα σφάλματα ανά {hours} ώρες",
-  "trend_errors_per_day": "Μη διορθώσιμα σφάλματα ανά ημέρα"
+  "trend_errors_per_day": "Μη διορθώσιμα σφάλματα ανά ημέρα",
+  "undo": "Αναίρεση",
+  "event_ack_done_one": "Το συμβάν επιβεβαιώθηκε",
+  "event_ack_done_many": "Επιβεβαιωμένα συμβάντα: {count}"
 }

@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Nelabojamās kļūdas {minutes} minūtēs",
   "trend_errors_per_hour": "Nelabojamās kļūdas stundā",
   "trend_errors_per_hours": "Nelabojamās kļūdas {hours} stundās",
-  "trend_errors_per_day": "Nelabojamās kļūdas dienā"
+  "trend_errors_per_day": "Nelabojamās kļūdas dienā",
+  "undo": "Atsaukt",
+  "event_ack_done_one": "Notikums apstiprināts",
+  "event_ack_done_many": "Apstiprināti notikumi: {count}"
 }

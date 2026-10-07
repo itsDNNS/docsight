@@ -9,7 +9,6 @@
   "upload_file": "Laadi fail üles",
   "no_incidents": "Kirjeid veel pole. Dokumenteeri ühenduseprobleemid, et koguda ajalugu teenusepakkujale esitatavate kaebuste jaoks.",
   "delete_incident": "Kustuta",
-  "confirm_delete": "Kas soovid selle kirje kindlasti kustutada?",
   "file_too_large": "Fail on liiga suur (kuni 10 MB)",
   "too_many_attachments": "Liiga palju manuseid (kuni 10 kirje kohta)",
   "invalid_file_type": "Failitüüp pole lubatud. Lubatud: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Siin kuvatakse kirjed, mille sellele juhtumile määrad.",
   "journal_empty_case_action": "Kuva kõik kirjed",
   "journal_empty_search_text": "Proovi teist otsingusõna või tühjenda otsing.",
-  "journal_empty_search_action": "Tühjenda otsing"
+  "journal_empty_search_action": "Tühjenda otsing",
+  "entry_deleted": "Kanne kustutatud"
 }

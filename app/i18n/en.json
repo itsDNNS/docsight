@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Uncorrectable errors per {minutes} minutes",
   "trend_errors_per_hour": "Uncorrectable errors per hour",
   "trend_errors_per_hours": "Uncorrectable errors per {hours} hours",
-  "trend_errors_per_day": "Uncorrectable errors per day"
+  "trend_errors_per_day": "Uncorrectable errors per day",
+  "undo": "Undo",
+  "event_ack_done_one": "Event acknowledged",
+  "event_ack_done_many": "{count} events acknowledged"
 }

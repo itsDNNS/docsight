@@ -9,7 +9,6 @@
   "upload_file": "Upload fil",
   "no_incidents": "Ingen poster endnu. Dokumentér dine forbindelsesproblemer for at opbygge en historik til klager hos udbyderen.",
   "delete_incident": "Slet",
-  "confirm_delete": "Vil du slette denne post?",
   "file_too_large": "Filen er for stor (maks. 10 MB)",
   "too_many_attachments": "For mange vedhæftede filer (maks. 10 pr. post)",
   "invalid_file_type": "Filtypen er ikke tilladt. Tilladt: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Poster, du knytter til denne sag, vises her.",
   "journal_empty_case_action": "Vis alle poster",
   "journal_empty_search_text": "Prøv et andet ord, eller ryd søgningen.",
-  "journal_empty_search_action": "Ryd søgning"
+  "journal_empty_search_action": "Ryd søgning",
+  "entry_deleted": "Post slettet"
 }

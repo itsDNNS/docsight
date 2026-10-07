@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Непоправими грешки за {minutes} минути",
   "trend_errors_per_hour": "Непоправими грешки на час",
   "trend_errors_per_hours": "Непоправими грешки за {hours} часа",
-  "trend_errors_per_day": "Непоправими грешки на ден"
+  "trend_errors_per_day": "Непоправими грешки на ден",
+  "undo": "Отмяна",
+  "event_ack_done_one": "Събитието е потвърдено",
+  "event_ack_done_many": "Потвърдени събития: {count}"
 }

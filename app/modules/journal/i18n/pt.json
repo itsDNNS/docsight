@@ -9,7 +9,6 @@
   "upload_file": "Carregar ficheiro",
   "no_incidents": "Ainda não há entradas. Documente os problemas de ligação para criar um histórico para reclamações ao operador.",
   "delete_incident": "Eliminar",
-  "confirm_delete": "Tem a certeza de que quer eliminar esta entrada?",
   "file_too_large": "Ficheiro demasiado grande (máx. 10 MB)",
   "too_many_attachments": "Demasiados anexos (máx. 10 por entrada)",
   "invalid_file_type": "Tipo de ficheiro não permitido. Permitidos: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "As entradas que associar a este caso aparecem aqui.",
   "journal_empty_case_action": "Mostrar todas as entradas",
   "journal_empty_search_text": "Experimente outro termo ou limpe a pesquisa.",
-  "journal_empty_search_action": "Limpar pesquisa"
+  "journal_empty_search_action": "Limpar pesquisa",
+  "entry_deleted": "Entrada eliminada"
 }

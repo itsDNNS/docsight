@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 744,
+  "expected_total": 748,
   "baseline_cpu_seconds": 1860.908,
   "shards": [
     {
@@ -29,7 +29,7 @@
     },
     {
       "id": 3,
-      "collected_cases": 121,
+      "collected_cases": 123,
       "files": [
         "test_correlation_ui.py",
         "test_event_log_redesign.py",
@@ -66,13 +66,14 @@
     },
     {
       "id": 6,
-      "collected_cases": 133,
+      "collected_cases": 135,
       "files": [
         "test_command_palette.py",
         "test_community_drivers.py",
         "test_comparison.py",
         "test_dashboard.py",
         "test_glossary_visual.py",
+        "test_journal_undo.py",
         "test_path_prefix_browser.py",
         "test_setup.py"
       ]

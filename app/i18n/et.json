@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Parandamatud vead {minutes} minuti kohta",
   "trend_errors_per_hour": "Parandamatud vead tunnis",
   "trend_errors_per_hours": "Parandamatud vead {hours} tunni kohta",
-  "trend_errors_per_day": "Parandamatud vead päevas"
+  "trend_errors_per_day": "Parandamatud vead päevas",
+  "undo": "Võta tagasi",
+  "event_ack_done_one": "Sündmus kinnitatud",
+  "event_ack_done_many": "Kinnitatud sündmusi: {count}"
 }

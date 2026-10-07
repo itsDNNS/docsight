@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Ukorrigerbare fejl pr. {minutes} minutter",
   "trend_errors_per_hour": "Ukorrigerbare fejl pr. time",
   "trend_errors_per_hours": "Ukorrigerbare fejl pr. {hours} timer",
-  "trend_errors_per_day": "Ukorrigerbare fejl pr. dag"
+  "trend_errors_per_day": "Ukorrigerbare fejl pr. dag",
+  "undo": "Fortryd",
+  "event_ack_done_one": "Hændelse kvitteret",
+  "event_ack_done_many": "{count} hændelser kvitteret"
 }

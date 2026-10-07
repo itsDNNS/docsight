@@ -170,6 +170,16 @@ def api_events_count():
     return jsonify({"count": count})
 
 
+def _event_ids_from_request():
+    """The request's "ids": 1 to _ACKNOWLEDGE_LIMIT positive event ids, sorted and unique; None when invalid."""
+    payload = request.get_json(silent=True) or {}
+    ids = payload.get("ids") if isinstance(payload, dict) else None
+    if (not isinstance(ids, list) or not ids or len(ids) > _ACKNOWLEDGE_LIMIT
+            or not all(isinstance(i, int) and not isinstance(i, bool) and i > 0 for i in ids)):
+        return None
+    return sorted(set(ids))
+
+
 @events_bp.route("/api/events/<int:event_id>/acknowledge", methods=["POST"])
 @require_auth
 def api_event_acknowledge(event_id):
@@ -189,12 +199,24 @@ def api_events_acknowledge():
     _storage = current_runtime().storage
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
-    payload = request.get_json(silent=True) or {}
-    ids = payload.get("ids") if isinstance(payload, dict) else None
-    if (not isinstance(ids, list) or not ids or len(ids) > _ACKNOWLEDGE_LIMIT
-            or not all(isinstance(i, int) and not isinstance(i, bool) and i > 0 for i in ids)):
+    ids = _event_ids_from_request()
+    if ids is None:
         return jsonify({"error": f"ids must be a list of 1 to {_ACKNOWLEDGE_LIMIT} event ids"}), 400
-    count = _storage.acknowledge_events(sorted(set(ids)))
+    count = _storage.acknowledge_events(ids)
+    return jsonify({"success": True, "count": count})
+
+
+@events_bp.route("/api/events/unacknowledge", methods=["POST"])
+@require_auth
+def api_events_unacknowledge():
+    """Undo an acknowledgement right after it, e.g. from the toast's Undo."""
+    _storage = current_runtime().storage
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    ids = _event_ids_from_request()
+    if ids is None:
+        return jsonify({"error": f"ids must be a list of 1 to {_ACKNOWLEDGE_LIMIT} event ids"}), 400
+    count = _storage.unacknowledge_events(ids)
     return jsonify({"success": True, "count": count})
 
 

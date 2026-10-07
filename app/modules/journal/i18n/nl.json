@@ -9,7 +9,6 @@
   "upload_file": "Bestand uploaden",
   "no_incidents": "Nog geen notities. Leg je verbindingsproblemen vast om een geschiedenis op te bouwen voor klachten bij je provider.",
   "delete_incident": "Verwijderen",
-  "confirm_delete": "Weet je zeker dat je deze notitie wilt verwijderen?",
   "file_too_large": "Bestand te groot (max. 10 MB)",
   "too_many_attachments": "Te veel bijlagen (max. 10 per notitie)",
   "invalid_file_type": "Bestandstype niet toegestaan. Toegestaan: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Notities die je aan dit dossier toewijst, verschijnen hier.",
   "journal_empty_case_action": "Alle notities tonen",
   "journal_empty_search_text": "Probeer een andere term of wis de zoekopdracht.",
-  "journal_empty_search_action": "Zoekopdracht wissen"
+  "journal_empty_search_action": "Zoekopdracht wissen",
+  "entry_deleted": "Item verwijderd"
 }

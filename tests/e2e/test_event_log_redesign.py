@@ -224,6 +224,57 @@ def test_single_acknowledge_keeps_focus_in_the_row(demo_page):
     expect(snr.locator(":scope > .ev-main")).to_be_focused()
 
 
+def test_acknowledging_offers_undo_that_restores_the_row(demo_page):
+    page = demo_page
+    _serve_events(page, json.loads(json.dumps(RUN_EVENTS)))
+    calls = []
+
+    def record(route):
+        calls.append((route.request.url.rsplit("/", 1)[-1], route.request.post_data_json))
+        route.fulfill(json={"success": True, "count": len(calls[-1][1]["ids"])})
+
+    page.route("**/api/events/acknowledge", record)
+    page.route("**/api/events/unacknowledge", record)
+    _open_events(page, DESKTOP_VIEWPORT)
+
+    snr = page.locator('#events-feed [data-event-id="38"]')
+    snr.locator(".ev-ack").click()
+    expect(snr).to_have_class(re.compile(r"\bev-acked\b"))
+    toast = page.locator("#toast")
+    expect(toast).to_contain_text("Ereignis bestätigt")
+    undo = toast.get_by_role("button", name="Rückgängig")
+    expect(undo).to_be_visible()
+
+    # Focus pauses the time left, so keyboard users can reach the button.
+    undo.focus()
+    expect(toast).to_have_class(re.compile(r"\btoast-paused\b"))
+    undo.press("Enter")
+    expect(toast).to_be_hidden()
+    expect(snr).not_to_have_class(re.compile(r"\bev-acked\b"))
+    expect(snr.locator(".ev-ack")).to_be_visible()
+    assert calls == [("acknowledge", {"ids": [38]}), ("unacknowledge", {"ids": [38]})]
+
+
+def test_acknowledged_events_stay_acknowledged_when_the_undo_time_runs_out(demo_page):
+    page = demo_page
+    page.clock.install()
+    _serve_events(page, json.loads(json.dumps(RUN_EVENTS)))
+    calls = []
+    page.route("**/api/events/acknowledge", lambda route: (calls.append("acknowledge"), route.fulfill(json={"success": True, "count": 2}))[1])
+    page.route("**/api/events/unacknowledge", lambda route: (calls.append("unacknowledge"), route.fulfill(json={"success": True, "count": 2}))[1])
+    _open_events(page, DESKTOP_VIEWPORT)
+
+    run = page.locator("#events-feed .ev-group").first
+    run.locator(":scope > .ev-select input").check()
+    page.locator("#btn-ack-selected").click()
+    expect(page.locator("#toast")).to_contain_text("2 Ereignisse bestätigt")
+    page.mouse.move(5, 5)
+    page.clock.run_for(6500)
+    expect(page.locator("#toast")).to_be_hidden()
+    expect(run).to_have_class(re.compile(r"\bev-acked\b"))
+    assert calls == ["acknowledge"]
+
+
 def test_badge_only_counts_recent_unacknowledged_warnings(demo_page):
     page = demo_page
     with page.expect_response(re.compile(r".*/api/events/count\?scope=attention.*")) as response_info:

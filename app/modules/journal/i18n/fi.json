@@ -9,7 +9,6 @@
   "upload_file": "Lataa tiedosto",
   "no_incidents": "Ei vielä merkintöjä. Kirjaa yhteysongelmasi, niin saat historian palveluntarjoajalle tehtäviä valituksia varten.",
   "delete_incident": "Poista",
-  "confirm_delete": "Haluatko varmasti poistaa tämän merkinnän?",
   "file_too_large": "Tiedosto on liian suuri (enintään 10 Mt)",
   "too_many_attachments": "Liian monta liitettä (enintään 10 merkintää kohden)",
   "invalid_file_type": "Tiedostotyyppi ei ole sallittu. Sallitut: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Tähän tapaukseen liittämäsi merkinnät näkyvät tässä.",
   "journal_empty_case_action": "Näytä kaikki merkinnät",
   "journal_empty_search_text": "Kokeile toista hakusanaa tai tyhjennä haku.",
-  "journal_empty_search_action": "Tyhjennä haku"
+  "journal_empty_search_action": "Tyhjennä haku",
+  "entry_deleted": "Merkintä poistettu"
 }

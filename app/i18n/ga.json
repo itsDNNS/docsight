@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Earráidí do-cheartaithe in aghaidh {minutes} nóiméad",
   "trend_errors_per_hour": "Earráidí do-cheartaithe in aghaidh na huaire",
   "trend_errors_per_hours": "Earráidí do-cheartaithe in aghaidh {hours} uair",
-  "trend_errors_per_day": "Earráidí do-cheartaithe in aghaidh an lae"
+  "trend_errors_per_day": "Earráidí do-cheartaithe in aghaidh an lae",
+  "undo": "Cealaigh",
+  "event_ack_done_one": "Teagmhas admhaithe",
+  "event_ack_done_many": "Teagmhais admhaithe: {count}"
 }

@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Neištaisomos klaidos per {minutes} min.",
   "trend_errors_per_hour": "Neištaisomos klaidos per valandą",
   "trend_errors_per_hours": "Neištaisomos klaidos per {hours} val.",
-  "trend_errors_per_day": "Neištaisomos klaidos per dieną"
+  "trend_errors_per_day": "Neištaisomos klaidos per dieną",
+  "undo": "Anuliuoti",
+  "event_ack_done_one": "Įvykis patvirtintas",
+  "event_ack_done_many": "Patvirtinta įvykių: {count}"
 }

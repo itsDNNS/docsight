@@ -9,7 +9,6 @@
   "upload_file": "Augšupielādēt failu",
   "no_incidents": "Ierakstu vēl nav. Dokumentējiet savienojuma problēmas, lai uzkrātu vēsturi sūdzībām pakalpojumu sniedzējam.",
   "delete_incident": "Dzēst",
-  "confirm_delete": "Vai tiešām dzēst šo ierakstu?",
   "file_too_large": "Fails ir pārāk liels (maks. 10 MB)",
   "too_many_attachments": "Pārāk daudz pielikumu (maks. 10 vienam ierakstam)",
   "invalid_file_type": "Faila tips nav atļauts. Atļauti: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Šeit parādās ieraksti, ko piesaistāt šim gadījumam.",
   "journal_empty_case_action": "Rādīt visus ierakstus",
   "journal_empty_search_text": "Mēģiniet citu vārdu vai notīriet meklēšanu.",
-  "journal_empty_search_action": "Notīrīt meklēšanu"
+  "journal_empty_search_action": "Notīrīt meklēšanu",
+  "entry_deleted": "Ieraksts dzēsts"
 }

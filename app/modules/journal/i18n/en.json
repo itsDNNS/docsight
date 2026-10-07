@@ -9,7 +9,6 @@
   "upload_file": "Upload File",
   "no_incidents": "No incidents logged yet. Start documenting your connection issues to build a history for ISP complaints.",
   "delete_incident": "Delete",
-  "confirm_delete": "Are you sure you want to delete this incident?",
   "file_too_large": "File too large (max 10 MB)",
   "too_many_attachments": "Too many attachments (max 10 per incident)",
   "invalid_file_type": "File type not allowed. Allowed: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Entries you assign to this case appear here.",
   "journal_empty_case_action": "Show all entries",
   "journal_empty_search_text": "Try a different term or clear the search.",
-  "journal_empty_search_action": "Clear search"
+  "journal_empty_search_action": "Clear search",
+  "entry_deleted": "Entry deleted"
 }

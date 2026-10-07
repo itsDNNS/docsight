@@ -9,7 +9,6 @@
   "upload_file": "Učitaj datoteku",
   "no_incidents": "Još nema unosa. Bilježite probleme s vezom kako biste izgradili povijest za pritužbe pružatelju usluge.",
   "delete_incident": "Izbriši",
-  "confirm_delete": "Jeste li sigurni da želite izbrisati ovaj unos?",
   "file_too_large": "Datoteka je prevelika (najviše 10 MB)",
   "too_many_attachments": "Previše privitaka (najviše 10 po unosu)",
   "invalid_file_type": "Vrsta datoteke nije dopuštena. Dopušteno: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Ovdje se prikazuju unosi koje dodijelite ovom slučaju.",
   "journal_empty_case_action": "Prikaži sve unose",
   "journal_empty_search_text": "Pokušajte s drugim pojmom ili očistite pretraživanje.",
-  "journal_empty_search_action": "Očisti pretraživanje"
+  "journal_empty_search_action": "Očisti pretraživanje",
+  "entry_deleted": "Unos izbrisan"
 }

@@ -9,7 +9,6 @@
   "upload_file": "Téléverser un fichier",
   "no_incidents": "Aucune entrée pour l’instant. Documentez vos problèmes de connexion pour constituer un historique en vue de réclamations auprès du fournisseur.",
   "delete_incident": "Supprimer",
-  "confirm_delete": "Voulez-vous vraiment supprimer cette entrée ?",
   "file_too_large": "Fichier trop volumineux (max. 10 Mo)",
   "too_many_attachments": "Trop de pièces jointes (max. 10 par entrée)",
   "invalid_file_type": "Type de fichier non autorisé. Autorisés : PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Les entrées que vous rattachez à ce dossier apparaissent ici.",
   "journal_empty_case_action": "Afficher toutes les entrées",
   "journal_empty_search_text": "Essayez un autre terme ou effacez la recherche.",
-  "journal_empty_search_action": "Effacer la recherche"
+  "journal_empty_search_action": "Effacer la recherche",
+  "entry_deleted": "Entrée supprimée"
 }

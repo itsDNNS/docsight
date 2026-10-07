@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Nicht korrigierbare Fehler je {minutes} Minuten",
   "trend_errors_per_hour": "Nicht korrigierbare Fehler pro Stunde",
   "trend_errors_per_hours": "Nicht korrigierbare Fehler je {hours} Stunden",
-  "trend_errors_per_day": "Nicht korrigierbare Fehler pro Tag"
+  "trend_errors_per_day": "Nicht korrigierbare Fehler pro Tag",
+  "undo": "Rückgängig",
+  "event_ack_done_one": "Ereignis bestätigt",
+  "event_ack_done_many": "{count} Ereignisse bestätigt"
 }

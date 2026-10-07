@@ -9,7 +9,6 @@
   "upload_file": "Încarcă fișier",
   "no_incidents": "Încă nu există intrări. Documentați problemele de conexiune pentru a avea un istoric pentru reclamațiile către furnizor.",
   "delete_incident": "Șterge",
-  "confirm_delete": "Sigur doriți să ștergeți această intrare?",
   "file_too_large": "Fișier prea mare (max. 10 MB)",
   "too_many_attachments": "Prea multe atașamente (max. 10 per intrare)",
   "invalid_file_type": "Tip de fișier nepermis. Permise: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Intrările pe care le asociați acestui caz apar aici.",
   "journal_empty_case_action": "Afișează toate intrările",
   "journal_empty_search_text": "Încercați alt termen sau ștergeți căutarea.",
-  "journal_empty_search_action": "Șterge căutarea"
+  "journal_empty_search_action": "Șterge căutarea",
+  "entry_deleted": "Intrare ștearsă"
 }

@@ -481,11 +481,12 @@ function _syncEventSelection() {
     if (summary) summary.textContent = _eventsLoaded.length ? _eventFmt('event_count_shown', '{count} events shown', _eventsLoaded.length) : '';
 }
 
-function _postEventAcknowledgements(ids) {
+function _postEventAcknowledgements(ids, undo) {
     var chunks = [];
     for (var i = 0; i < ids.length; i += _eventsAckChunk) chunks.push(ids.slice(i, i + _eventsAckChunk));
+    var url = docsightUrl(undo ? '/api/events/unacknowledge' : '/api/events/acknowledge');
     return Promise.all(chunks.map(function(chunk) {
-        return fetch(docsightUrl('/api/events/acknowledge'), {
+        return fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ids: chunk})
@@ -510,6 +511,25 @@ function acknowledgeEvents(ids, focusKey) {
     return _postEventAcknowledgements(ids).then(function() {
         DOCSightEventLogData.markAcknowledged(_eventsLoaded, ids);
         ids.forEach(function(id) { delete _eventsSelected[id]; });
+        _renderEventTimeline();
+        _focusEventRow(focusKey);
+        refreshEventBadge();
+        // Acknowledging applies at once; the toast offers to take it back instead of asking first.
+        if (typeof showToast === 'function') {
+            showToast(ids.length === 1
+                ? (T.event_ack_done_one || 'Event acknowledged')
+                : _eventFmt('event_ack_done_many', '{count} events acknowledged', ids.length), 'info', {
+                action: {label: T.undo || 'Undo', onClick: function() { undoEventAcknowledgements(ids, focusKey); }}
+            });
+        }
+    }).catch(function() {
+        if (typeof showToast === 'function') showToast(T.network_error || 'Error', 'error');
+    });
+}
+
+function undoEventAcknowledgements(ids, focusKey) {
+    return _postEventAcknowledgements(ids, true).then(function() {
+        DOCSightEventLogData.markUnacknowledged(_eventsLoaded, ids);
         _renderEventTimeline();
         _focusEventRow(focusKey);
         refreshEventBadge();
