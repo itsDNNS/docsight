@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "ThinkBroadband BQM latency samples are available. Add Connection Monitor for local continuous samples.",
   "empty_title": "Check which evidence is ready",
   "empty_action": "Check the last 24 hours",
-  "empty_window_title": "Choose a time range"
+  "empty_window_title": "Choose a time range",
+  "latest": "Latest: {time}"
 }

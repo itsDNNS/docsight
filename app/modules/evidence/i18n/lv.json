@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Ir pieejami ThinkBroadband BQM latentuma mērījumi. Pievienojiet Connection Monitor nepārtrauktiem vietējiem mērījumiem.",
   "empty_title": "Pārbaudīt, kādi pierādījumi ir pieejami",
   "empty_action": "Pārbaudīt pēdējās 24 stundas",
-  "empty_window_title": "Izvēlēties laika intervālu"
+  "empty_window_title": "Izvēlēties laika intervālu",
+  "latest": "Pēdējais: {time}"
 }

@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Dostępne są pomiary opóźnień z ThinkBroadband BQM. Dodaj Connection Monitor, aby mieć ciągłe pomiary lokalne.",
   "empty_title": "Sprawdź, jakie dowody są dostępne",
   "empty_action": "Sprawdź ostatnie 24 godziny",
-  "empty_window_title": "Wybierz zakres czasu"
+  "empty_window_title": "Wybierz zakres czasu",
+  "latest": "Ostatnio: {time}"
 }

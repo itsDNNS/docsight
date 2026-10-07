@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Meritve zakasnitve iz ThinkBroadband BQM so na voljo. Dodajte Connection Monitor za neprekinjene lokalne meritve.",
   "empty_title": "Preveri, kateri dokazi so na voljo",
   "empty_action": "Preveri zadnjih 24 ur",
-  "empty_window_title": "Izberi časovni razpon"
+  "empty_window_title": "Izberi časovni razpon",
+  "latest": "Nazadnje: {time}"
 }

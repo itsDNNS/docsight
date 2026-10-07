@@ -1626,7 +1626,11 @@ def test_zoomed_correlation_range_opens_the_evidence_journey_for_the_same_window
     expect(page.locator("#evidence-to")).to_have_value(expected["to"])
     expect(page.locator("#evidence-incident-id")).to_have_value("")
     expect(page.locator("#evidence-results")).to_be_visible()
-    expect(page.locator("#evidence-window-label")).to_have_text(f"{expected['from']}:00 – {expected['to']}:00")
+    label = page.evaluate(
+        "([start, end]) => formatDocsightTime(start) + ' – ' + formatDocsightTime(end)",
+        [f"{expected['from']}:00", f"{expected['to']}:00"],
+    )
+    expect(page.locator("#evidence-window-label")).to_have_text(label)
 
 
 def test_toggling_a_lane_renders_once_without_a_resize_echo(demo_page):

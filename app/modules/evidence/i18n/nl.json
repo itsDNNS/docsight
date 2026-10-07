@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Latentiemetingen van ThinkBroadband BQM zijn beschikbaar. Voeg Connection Monitor toe voor doorlopende lokale metingen.",
   "empty_title": "Controleren welk bewijs beschikbaar is",
   "empty_action": "Afgelopen 24 uur controleren",
-  "empty_window_title": "Tijdsbereik kiezen"
+  "empty_window_title": "Tijdsbereik kiezen",
+  "latest": "Laatste: {time}"
 }

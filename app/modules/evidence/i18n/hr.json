@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Dostupna su mjerenja latencije iz ThinkBroadband BQM-a. Dodajte Connection Monitor za kontinuirana lokalna mjerenja.",
   "empty_title": "Provjeri koji su dokazi dostupni",
   "empty_action": "Provjeri zadnja 24 sata",
-  "empty_window_title": "Odaberi vremenski raspon"
+  "empty_window_title": "Odaberi vremenski raspon",
+  "latest": "Posljednje: {time}"
 }

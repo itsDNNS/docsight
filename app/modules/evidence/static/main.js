@@ -201,6 +201,11 @@ function _evidenceRenderCounts(summary) {
     }).join('');
 }
 
+/* Times in the UI language and the configured time zone, like the rest of the dashboard. */
+function _evidenceTime(value) {
+    return typeof formatDocsightTime === 'function' ? formatDocsightTime(value) : value;
+}
+
 function _evidenceRenderItems(items) {
     var root = document.getElementById('evidence-items');
     if (!root) return;
@@ -212,7 +217,10 @@ function _evidenceRenderItems(items) {
             ? '<span class="evidence-count-pill">' + _evidenceEscape(item.count) + '</span>'
             : '';
         var sources = _evidenceRenderSourceBreakdown(item);
-        var last = item.last_ts ? '<span class="evidence-muted">' + _evidenceEscape(item.last_ts) + '</span>' : '';
+        var last = item.last_ts
+            ? '<span class="evidence-muted">' + _evidenceEscape(_evidenceT('docsight.evidence.latest', 'Latest: {time}')).replace('{time}',
+                '<time datetime="' + _evidenceEscape(item.last_ts) + '">' + _evidenceEscape(_evidenceTime(item.last_ts)) + '</time>') + '</span>'
+            : '';
         var action = '';
         if (item.action && item.action.view && document.getElementById(
             item.action.view === 'live' ? 'view-dashboard' : 'view-' + item.action.view
@@ -289,8 +297,13 @@ function _evidenceRender(payload) {
     _evidenceLastPayload = payload;
     document.getElementById('evidence-results').hidden = false;
     DOCSightEmptyState.hide(document.getElementById('evidence-placeholder'));
-    document.getElementById('evidence-window-label').textContent = payload.window.label;
-    document.getElementById('evidence-window-range').textContent = payload.window.from + ' – ' + payload.window.to;
+    // A plain range is its own title; a case shows its name with the range below.
+    var range = _evidenceTime(payload.window.from) + ' – ' + _evidenceTime(payload.window.to);
+    var isCase = payload.window.kind === 'incident';
+    var rangeLine = document.getElementById('evidence-window-range');
+    document.getElementById('evidence-window-label').textContent = isCase ? payload.window.label : range;
+    rangeLine.textContent = isCase ? range : '';
+    rangeLine.hidden = !isCase;
     document.getElementById('evidence-demo-banner').hidden = !(payload.capabilities && payload.capabilities.demo_mode);
     _evidenceRenderCounts(payload.summary);
     _evidenceRenderItems(payload.items);

@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Tá tomhais moille ó ThinkBroadband BQM ar fáil. Cuir Connection Monitor leis le haghaidh tomhais áitiúla leanúnacha.",
   "empty_title": "Seiceáil cén fhianaise atá ar fáil",
   "empty_action": "Seiceáil na 24 uair dheireanacha",
-  "empty_window_title": "Roghnaigh raon ama"
+  "empty_window_title": "Roghnaigh raon ama",
+  "latest": "Is déanaí: {time}"
 }

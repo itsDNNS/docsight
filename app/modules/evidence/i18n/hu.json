@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Vannak késleltetésmérések a ThinkBroadband BQM-ből. Adja hozzá a Connection Monitort a folyamatos helyi mérésekhez.",
   "empty_title": "Elérhető bizonyítékok ellenőrzése",
   "empty_action": "Az elmúlt 24 óra ellenőrzése",
-  "empty_window_title": "Időtartomány kiválasztása"
+  "empty_window_title": "Időtartomány kiválasztása",
+  "latest": "Legutóbb: {time}"
 }

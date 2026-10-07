@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Des mesures de latence de ThinkBroadband BQM sont disponibles. Ajoutez Connection Monitor pour des mesures locales en continu.",
   "empty_title": "Vérifier quelles preuves sont disponibles",
   "empty_action": "Vérifier les dernières 24 heures",
-  "empty_window_title": "Choisir une plage horaire"
+  "empty_window_title": "Choisir une plage horaire",
+  "latest": "Dernier : {time}"
 }
