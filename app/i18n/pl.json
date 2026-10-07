@@ -1261,5 +1261,18 @@
   "undo": "Cofnij",
   "event_ack_done_one": "Zdarzenie potwierdzone",
   "event_ack_done_many": "Potwierdzone zdarzenia: {count}",
-  "event_journal_note": "Notatka w dzienniku"
+  "event_journal_note": "Notatka w dzienniku",
+  "event_add_to_case": "Dodaj do sprawy… ({count})",
+  "event_add_to_case_title": "Dodaj do sprawy",
+  "event_add_to_case_new": "Nowa sprawa",
+  "event_add_to_case_name": "Nazwa nowej sprawy",
+  "event_add_to_case_hint": "Okres sprawy rozszerza się o te zdarzenia, więc pojawiają się na jej osi czasu i w dowodach.",
+  "event_add_to_case_submit": "Dodaj",
+  "event_add_to_case_one": "1 zdarzenie z {range}",
+  "event_add_to_case_many": "Zdarzenia z {range}: {count}",
+  "event_case_running": "trwa",
+  "event_case_no_window": "Brak okresu",
+  "event_added_to_case_one": "Dodano 1 zdarzenie do „{case}”",
+  "event_added_to_case_many": "Dodano zdarzenia do „{case}”: {count}",
+  "event_open_case": "Otwórz sprawę"
 }

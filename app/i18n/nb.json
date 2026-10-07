@@ -1261,5 +1261,18 @@
   "undo": "Angre",
   "event_ack_done_one": "Hendelse kvittert",
   "event_ack_done_many": "{count} hendelser kvittert",
-  "event_journal_note": "Journalnotat"
+  "event_journal_note": "Journalnotat",
+  "event_add_to_case": "Legg til i sak… ({count})",
+  "event_add_to_case_title": "Legg til i sak",
+  "event_add_to_case_new": "Ny sak",
+  "event_add_to_case_name": "Navn på den nye saken",
+  "event_add_to_case_hint": "Sakens periode utvides slik at den dekker hendelsene, og de vises i tidslinjen og dokumentasjonen.",
+  "event_add_to_case_submit": "Legg til",
+  "event_add_to_case_one": "1 hendelse fra {range}",
+  "event_add_to_case_many": "{count} hendelser fra {range}",
+  "event_case_running": "pågående",
+  "event_case_no_window": "Ingen periode ennå",
+  "event_added_to_case_one": "1 hendelse lagt til i «{case}»",
+  "event_added_to_case_many": "{count} hendelser lagt til i «{case}»",
+  "event_open_case": "Åpne sak"
 }

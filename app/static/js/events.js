@@ -347,6 +347,13 @@ function _eventSevIcon(meta) {
         '<span class="sr-only">' + escapeHtml(meta.label) + '</span></span>';
 }
 
+/* With the journal, acknowledged events can still be picked to add them to a case. */
+function _eventSelectable(events) {
+    return document.getElementById('btn-add-to-case')
+        ? events.map(function(ev) { return ev.id; })
+        : DOCSightEventLogData.unacknowledgedIds(events);
+}
+
 function _eventSelectBox(ids, label) {
     if (!ids.length) return '<span class="ev-select" aria-hidden="true"></span>';
     return '<label class="ev-select"><input type="checkbox" data-ids="' + ids.join(',') + '" aria-label="' +
@@ -384,7 +391,7 @@ function _eventRowHtml(ev, inRun) {
         : '<div class="ev-main" data-key="' + key + '">' + content + '</div>';
     return '<li class="ev-row ev-sev-' + DOCSightEventLogData.severity(ev) + (ev.acknowledged ? ' ev-acked' : '') +
             '" data-event-id="' + ev.id + '" data-key="' + key + '">' +
-        _eventSelectBox(unacked, label) +
+        _eventSelectBox(_eventSelectable([ev]), label) +
         main +
         _eventAckButton(unacked, label) +
     '</li>';
@@ -455,7 +462,7 @@ function _eventGroupHtml(group) {
     var listId = 'event-group-' + group.key;
     var unacked = DOCSightEventLogData.unacknowledgedIds(group.events);
     return '<li class="ev-row ev-group ev-sev-' + group.severity + (unacked.length ? '' : ' ev-acked') + '" data-key="' + group.key + '">' +
-        _eventSelectBox(unacked, label) +
+        _eventSelectBox(_eventSelectable(group.events), label) +
         '<button type="button" class="ev-main" data-toggle="' + group.key + '" aria-expanded="' + open + '" aria-controls="' + listId + '">' +
             '<time class="ev-time" datetime="' + escapeHtml(String(group.newest.timestamp)) + '">' + escapeHtml(newest) + '</time>' +
             _eventSevIcon(meta) +
@@ -513,6 +520,12 @@ function _syncEventSelection() {
         });
     }
     var selected = _selectedEventIds().length;
+    var picked = _pickedEvents().length;
+    var caseBtn = document.getElementById('btn-add-to-case');
+    if (caseBtn) {
+        caseBtn.hidden = !picked;
+        caseBtn.textContent = _eventFmt('event_add_to_case', 'Add to case… ({count})', picked);
+    }
     var selectedBtn = document.getElementById('btn-ack-selected');
     var visibleBtn = document.getElementById('btn-ack-visible');
     var summary = document.getElementById('events-summary');
@@ -522,6 +535,127 @@ function _syncEventSelection() {
     }
     if (visibleBtn) visibleBtn.hidden = !DOCSightEventLogData.unacknowledgedIds(_eventsLoaded).length;
     if (summary) summary.textContent = _eventsLoaded.length ? _eventFmt('event_count_shown', '{count} events shown', _eventsLoaded.length) : '';
+}
+
+/* Every selected event, acknowledged or not, newest first. */
+function _pickedEvents() {
+    return _eventsLoaded.filter(function(ev) { return _eventsSelected[ev.id]; });
+}
+
+/* ── Add selected events to a case ──
+   A case's timeline and evidence follow its date window, so adding events widens
+   the window of an existing case or starts a new case with the events' days. */
+var _addToCaseEvents = [];
+
+function _eventDay(ev) { return DOCSightEventLogData.dayKey(ev); }
+
+function openAddToCase() {
+    _addToCaseEvents = _pickedEvents();
+    if (!_addToCaseEvents.length) return;
+    var days = _addToCaseEvents.map(_eventDay).filter(Boolean).sort();
+    var first = days[0], last = days[days.length - 1];
+    var summary = document.getElementById('add-to-case-summary');
+    var range = formatDocsightTime(first, 'date') + (first === last ? '' : ' – ' + formatDocsightTime(last, 'date'));
+    summary.textContent = _eventFmt(_addToCaseEvents.length === 1 ? 'event_add_to_case_one' : 'event_add_to_case_many',
+        _addToCaseEvents.length === 1 ? '1 event from {range}' : '{count} events from {range}', _addToCaseEvents.length).replace('{range}', range);
+    var name = document.getElementById('add-to-case-name');
+    name.value = _eventTypeLabel(_addToCaseEvents[0].event_type) + ' · ' + formatDocsightTime(first, 'date');
+    var list = document.getElementById('add-to-case-list');
+    list.textContent = '';
+    fetch(docsightUrl('/api/incidents'))
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .catch(function() { return []; })
+        .then(function(cases) {
+            (cases || []).slice().sort(function(a, b) {
+                return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1);
+            }).forEach(function(c) {
+                var option = document.createElement('label');
+                option.className = 'case-pick-option';
+                var input = document.createElement('input');
+                input.type = 'radio';
+                input.name = 'add-to-case';
+                input.value = String(c.id);
+                input.setAttribute('data-change-action', 'syncAddToCase');
+                var text = document.createElement('span');
+                text.className = 'case-pick-text';
+                var title = document.createElement('span');
+                title.className = 'case-pick-name';
+                title.textContent = c.name;
+                var span = document.createElement('span');
+                span.className = 'case-pick-window';
+                span.textContent = c.start_date
+                    ? formatDocsightTime(c.start_date, 'date') + ' – ' + (c.end_date ? formatDocsightTime(c.end_date, 'date') : (T.event_case_running || 'ongoing'))
+                    : (T.event_case_no_window || 'No window yet');
+                text.appendChild(title);
+                text.appendChild(span);
+                option.appendChild(input);
+                option.appendChild(text);
+                list.appendChild(option);
+            });
+            var firstOpen = list.querySelector('input');
+            (firstOpen || document.querySelector('#add-to-case-modal input[value="new"]')).checked = true;
+            syncAddToCase();
+            window.DOCSightModal.open('add-to-case-modal');
+        });
+}
+
+function syncAddToCase() {
+    var chosen = document.querySelector('#add-to-case-modal input[name="add-to-case"]:checked');
+    var isNew = !chosen || chosen.value === 'new';
+    var nameWrap = document.querySelector('#add-to-case-modal .case-pick-new-name');
+    if (nameWrap) nameWrap.hidden = !isNew;
+}
+
+function closeAddToCase() {
+    window.DOCSightModal.close('add-to-case-modal');
+}
+
+function submitAddToCase() {
+    var chosen = document.querySelector('#add-to-case-modal input[name="add-to-case"]:checked');
+    var days = _addToCaseEvents.map(_eventDay).filter(Boolean).sort();
+    if (!chosen || !days.length) return;
+    var span_ = {start_date: days[0], end_date: days[days.length - 1]};
+    var request;
+    if (chosen.value === 'new') {
+        var name = document.getElementById('add-to-case-name').value.trim();
+        if (!name) { document.getElementById('add-to-case-name').focus(); return; }
+        request = fetch(docsightUrl('/api/incidents'), {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: name, status: 'open', start_date: span_.start_date, end_date: span_.end_date})
+        }).then(function(r) {
+            if (!r.ok) throw new Error('Create failed');
+            return r.json().then(function(data) { return {id: data.id, name: name}; });
+        });
+    } else {
+        var caseName = chosen.closest('label').querySelector('.case-pick-name').textContent;
+        request = fetch(docsightUrl('/api/incidents/' + encodeURIComponent(chosen.value) + '/extend'), {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(span_)
+        }).then(function(r) {
+            if (!r.ok) throw new Error('Extend failed');
+            return {id: Number(chosen.value), name: caseName};
+        });
+    }
+    var count = _addToCaseEvents.length;
+    request.then(function(result) {
+        closeAddToCase();
+        _addToCaseEvents.forEach(function(ev) { delete _eventsSelected[ev.id]; });
+        _syncEventSelection();
+        if (typeof showToast === 'function') {
+            var message = count === 1
+                ? (T.event_added_to_case_one || '1 event added to “{case}”')
+                : _eventFmt('event_added_to_case_many', '{count} events added to “{case}”', count);
+            showToast(message.replace('{case}', result.name), 'success', {
+                action: {label: T.event_open_case || 'Open case', onClick: function() { _openCase(result.id); }}
+            });
+        }
+    }).catch(function() {
+        if (typeof showToast === 'function') showToast(T.network_error || 'Error', 'error');
+    });
+}
+
+function _openCase(id) {
+    if (typeof switchView === 'function') switchView('journal');
+    if (typeof filterByIncident === 'function') filterByIncident(id);
 }
 
 function _postEventAcknowledgements(ids, undo) {

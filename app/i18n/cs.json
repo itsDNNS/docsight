@@ -1261,5 +1261,18 @@
   "undo": "Vrátit zpět",
   "event_ack_done_one": "Událost potvrzena",
   "event_ack_done_many": "Potvrzené události: {count}",
-  "event_journal_note": "Poznámka v deníku"
+  "event_journal_note": "Poznámka v deníku",
+  "event_add_to_case": "Přidat k případu… ({count})",
+  "event_add_to_case_title": "Přidat k případu",
+  "event_add_to_case_new": "Nový případ",
+  "event_add_to_case_name": "Název nového případu",
+  "event_add_to_case_hint": "Období případu se rozšíří tak, aby zahrnulo tyto události, takže se objeví v jeho časové ose i v důkazech.",
+  "event_add_to_case_submit": "Přidat",
+  "event_add_to_case_one": "1 událost z {range}",
+  "event_add_to_case_many": "Události z {range}: {count}",
+  "event_case_running": "probíhá",
+  "event_case_no_window": "Zatím bez období",
+  "event_added_to_case_one": "1 událost přidána k „{case}“",
+  "event_added_to_case_many": "K „{case}“ přidány události: {count}",
+  "event_open_case": "Otevřít případ"
 }

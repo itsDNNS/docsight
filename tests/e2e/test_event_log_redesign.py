@@ -339,6 +339,75 @@ def test_severity_filters_show_events_only(demo_page):
     expect(page.locator("#events-feed .ev-note")).to_have_count(0)
 
 
+CASES = [
+    {"id": 3, "name": "Resolved earlier", "status": "resolved", "start_date": "2026-09-01", "end_date": "2026-09-03"},
+    {"id": 7, "name": "Evening dropouts", "status": "open", "start_date": "2026-10-01", "end_date": None},
+]
+
+
+def _serve_cases(page):
+    sent = []
+
+    def handle(route):
+        request = route.request
+        if request.method == "POST":
+            sent.append((request.url.split("/api/", 1)[1], request.post_data_json))
+            route.fulfill(status=201, json={"id": 9} if request.url.endswith("/api/incidents") else {"success": True})
+        else:
+            route.fulfill(json=CASES)
+
+    page.route(re.compile(r".*/api/incidents(/\d+/extend)?$"), handle)
+    return sent
+
+
+def test_selected_events_widen_an_existing_case(demo_page):
+    page = demo_page
+    _serve_events(page, json.loads(json.dumps(RUN_EVENTS)))
+    sent = _serve_cases(page)
+    _open_events(page, DESKTOP_VIEWPORT)
+
+    # The run includes an acknowledged event; with the journal it can still be picked for a case.
+    page.locator("#events-feed .ev-group").first.locator(":scope > .ev-select input").check()
+    page.locator('#events-feed [data-event-id="38"] .ev-select input').check()
+    add = page.locator("#btn-add-to-case")
+    expect(add).to_have_text("Zu Fall hinzufügen… (4)")
+    expect(page.locator("#btn-ack-selected")).to_have_text("Auswahl bestätigen (3)")
+
+    add.click()
+    dialog = page.locator("#add-to-case-modal")
+    expect(dialog).to_be_visible()
+    expect(dialog.locator("#add-to-case-summary")).to_contain_text("4 Ereignisse")
+    options = dialog.locator(".case-pick-list .case-pick-name")
+    expect(options).to_have_text(["Evening dropouts", "Resolved earlier"])
+    dialog.get_by_label("Resolved earlier").check()
+    expect(dialog.locator(".case-pick-new-name")).to_be_hidden()
+    dialog.locator("#add-to-case-submit").click()
+
+    expect(dialog).to_be_hidden()
+    expect(page.locator("#toast")).to_contain_text("4 Ereignisse zu „Resolved earlier“ hinzugefügt")
+    expect(page.locator("#toast").get_by_role("button", name="Fall öffnen")).to_be_visible()
+    assert sent == [("incidents/3/extend", {"start_date": "2026-10-04", "end_date": "2026-10-04"})]
+    expect(add).to_be_hidden()
+
+
+def test_selected_events_start_a_new_case_with_their_days(demo_page):
+    page = demo_page
+    _serve_events(page, json.loads(json.dumps(RUN_EVENTS)))
+    sent = _serve_cases(page)
+    _open_events(page, DESKTOP_VIEWPORT)
+
+    page.locator('#events-feed [data-event-id="38"] .ev-select input').check()
+    page.locator("#btn-add-to-case").click()
+    dialog = page.locator("#add-to-case-modal")
+    dialog.get_by_label("Neuer Fall").check()
+    name = dialog.locator("#add-to-case-name")
+    expect(name).to_be_visible()
+    name.fill("SNR drop")
+    dialog.locator("#add-to-case-submit").click()
+    expect(page.locator("#toast")).to_contain_text("1 Ereignis zu „SNR drop“ hinzugefügt")
+    assert sent == [("incidents", {"name": "SNR drop", "status": "open", "start_date": "2026-10-04", "end_date": "2026-10-04"})]
+
+
 def test_badge_only_counts_recent_unacknowledged_warnings(demo_page):
     page = demo_page
     with page.expect_response(re.compile(r".*/api/events/count\?scope=attention.*")) as response_info:

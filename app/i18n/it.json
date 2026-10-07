@@ -1261,5 +1261,18 @@
   "undo": "Annulla",
   "event_ack_done_one": "Evento confermato",
   "event_ack_done_many": "{count} eventi confermati",
-  "event_journal_note": "Nota del diario"
+  "event_journal_note": "Nota del diario",
+  "event_add_to_case": "Aggiungi a un caso… ({count})",
+  "event_add_to_case_title": "Aggiungi a un caso",
+  "event_add_to_case_new": "Nuovo caso",
+  "event_add_to_case_name": "Nome del nuovo caso",
+  "event_add_to_case_hint": "Il periodo del caso si allarga per coprire questi eventi, che compaiono nella sua cronologia e nelle prove.",
+  "event_add_to_case_submit": "Aggiungi",
+  "event_add_to_case_one": "1 evento del {range}",
+  "event_add_to_case_many": "{count} eventi del {range}",
+  "event_case_running": "in corso",
+  "event_case_no_window": "Nessun periodo",
+  "event_added_to_case_one": "1 evento aggiunto a «{case}»",
+  "event_added_to_case_many": "{count} eventi aggiunti a «{case}»",
+  "event_open_case": "Apri caso"
 }

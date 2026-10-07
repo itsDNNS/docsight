@@ -1261,5 +1261,18 @@
   "undo": "Ångra",
   "event_ack_done_one": "Händelse kvitterad",
   "event_ack_done_many": "{count} händelser kvitterade",
-  "event_journal_note": "Journalanteckning"
+  "event_journal_note": "Journalanteckning",
+  "event_add_to_case": "Lägg till i ärende… ({count})",
+  "event_add_to_case_title": "Lägg till i ärende",
+  "event_add_to_case_new": "Nytt ärende",
+  "event_add_to_case_name": "Namn på det nya ärendet",
+  "event_add_to_case_hint": "Ärendets period utökas så att den täcker händelserna, och de visas i dess tidslinje och underlag.",
+  "event_add_to_case_submit": "Lägg till",
+  "event_add_to_case_one": "1 händelse från {range}",
+  "event_add_to_case_many": "{count} händelser från {range}",
+  "event_case_running": "pågående",
+  "event_case_no_window": "Ingen period ännu",
+  "event_added_to_case_one": "1 händelse tillagd i ”{case}”",
+  "event_added_to_case_many": "{count} händelser tillagda i ”{case}”",
+  "event_open_case": "Öppna ärende"
 }

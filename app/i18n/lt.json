@@ -1261,5 +1261,18 @@
   "undo": "Anuliuoti",
   "event_ack_done_one": "Įvykis patvirtintas",
   "event_ack_done_many": "Patvirtinta įvykių: {count}",
-  "event_journal_note": "Žurnalo pastaba"
+  "event_journal_note": "Žurnalo pastaba",
+  "event_add_to_case": "Pridėti prie atvejo… ({count})",
+  "event_add_to_case_title": "Pridėti prie atvejo",
+  "event_add_to_case_new": "Naujas atvejis",
+  "event_add_to_case_name": "Naujo atvejo pavadinimas",
+  "event_add_to_case_hint": "Atvejo laikotarpis išplečiamas, kad apimtų šiuos įvykius, todėl jie matomi jo laiko juostoje ir įrodymuose.",
+  "event_add_to_case_submit": "Pridėti",
+  "event_add_to_case_one": "1 įvykis iš {range}",
+  "event_add_to_case_many": "Įvykiai iš {range}: {count}",
+  "event_case_running": "vyksta",
+  "event_case_no_window": "Laikotarpio dar nėra",
+  "event_added_to_case_one": "1 įvykis pridėtas prie „{case}“",
+  "event_added_to_case_many": "Prie „{case}“ pridėta įvykių: {count}",
+  "event_open_case": "Atidaryti atvejį"
 }

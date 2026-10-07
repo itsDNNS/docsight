@@ -1256,5 +1256,18 @@
   "undo": "Deshacer",
   "event_ack_done_one": "Evento confirmado",
   "event_ack_done_many": "{count} eventos confirmados",
-  "event_journal_note": "Nota del diario"
+  "event_journal_note": "Nota del diario",
+  "event_add_to_case": "Añadir a un caso… ({count})",
+  "event_add_to_case_title": "Añadir a un caso",
+  "event_add_to_case_new": "Caso nuevo",
+  "event_add_to_case_name": "Nombre del caso nuevo",
+  "event_add_to_case_hint": "El periodo del caso se amplía para cubrir estos eventos, que aparecen en su cronología y en sus pruebas.",
+  "event_add_to_case_submit": "Añadir",
+  "event_add_to_case_one": "1 evento del {range}",
+  "event_add_to_case_many": "{count} eventos del {range}",
+  "event_case_running": "en curso",
+  "event_case_no_window": "Aún sin periodo",
+  "event_added_to_case_one": "1 evento añadido a «{case}»",
+  "event_added_to_case_many": "{count} eventos añadidos a «{case}»",
+  "event_open_case": "Abrir caso"
 }

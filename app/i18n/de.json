@@ -1261,5 +1261,18 @@
   "undo": "Rückgängig",
   "event_ack_done_one": "Ereignis bestätigt",
   "event_ack_done_many": "{count} Ereignisse bestätigt",
-  "event_journal_note": "Journal-Notiz"
+  "event_journal_note": "Journal-Notiz",
+  "event_add_to_case": "Zu Fall hinzufügen… ({count})",
+  "event_add_to_case_title": "Zu Fall hinzufügen",
+  "event_add_to_case_new": "Neuer Fall",
+  "event_add_to_case_name": "Name des neuen Falls",
+  "event_add_to_case_hint": "Der Zeitraum des Falls wächst, bis er diese Ereignisse abdeckt. So erscheinen sie in seiner Zeitleiste und bei den Nachweisen.",
+  "event_add_to_case_submit": "Hinzufügen",
+  "event_add_to_case_one": "1 Ereignis vom {range}",
+  "event_add_to_case_many": "{count} Ereignisse vom {range}",
+  "event_case_running": "laufend",
+  "event_case_no_window": "Noch kein Zeitraum",
+  "event_added_to_case_one": "1 Ereignis zu „{case}“ hinzugefügt",
+  "event_added_to_case_many": "{count} Ereignisse zu „{case}“ hinzugefügt",
+  "event_open_case": "Fall öffnen"
 }

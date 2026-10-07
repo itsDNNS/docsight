@@ -1261,5 +1261,18 @@
   "undo": "Anulează",
   "event_ack_done_one": "Eveniment confirmat",
   "event_ack_done_many": "Evenimente confirmate: {count}",
-  "event_journal_note": "Notă în jurnal"
+  "event_journal_note": "Notă în jurnal",
+  "event_add_to_case": "Adaugă la un caz… ({count})",
+  "event_add_to_case_title": "Adaugă la un caz",
+  "event_add_to_case_new": "Caz nou",
+  "event_add_to_case_name": "Numele cazului nou",
+  "event_add_to_case_hint": "Perioada cazului se extinde pentru a acoperi aceste evenimente, care apar astfel în cronologia și dovezile lui.",
+  "event_add_to_case_submit": "Adaugă",
+  "event_add_to_case_one": "1 eveniment din {range}",
+  "event_add_to_case_many": "Evenimente din {range}: {count}",
+  "event_case_running": "în desfășurare",
+  "event_case_no_window": "Încă fără perioadă",
+  "event_added_to_case_one": "1 eveniment adăugat la „{case}”",
+  "event_added_to_case_many": "Evenimente adăugate la „{case}”: {count}",
+  "event_open_case": "Deschide cazul"
 }

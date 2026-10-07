@@ -1261,5 +1261,18 @@
   "undo": "Fortryd",
   "event_ack_done_one": "Hændelse kvitteret",
   "event_ack_done_many": "{count} hændelser kvitteret",
-  "event_journal_note": "Journalnote"
+  "event_journal_note": "Journalnote",
+  "event_add_to_case": "Føj til sag… ({count})",
+  "event_add_to_case_title": "Føj til sag",
+  "event_add_to_case_new": "Ny sag",
+  "event_add_to_case_name": "Navn på den nye sag",
+  "event_add_to_case_hint": "Sagens periode udvides, så den dækker disse hændelser, og de vises i dens tidslinje og dokumentation.",
+  "event_add_to_case_submit": "Tilføj",
+  "event_add_to_case_one": "1 hændelse fra {range}",
+  "event_add_to_case_many": "{count} hændelser fra {range}",
+  "event_case_running": "igangværende",
+  "event_case_no_window": "Ingen periode endnu",
+  "event_added_to_case_one": "1 hændelse føjet til “{case}”",
+  "event_added_to_case_many": "{count} hændelser føjet til “{case}”",
+  "event_open_case": "Åbn sag"
 }

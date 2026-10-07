@@ -1261,5 +1261,18 @@
   "undo": "Razveljavi",
   "event_ack_done_one": "Dogodek potrjen",
   "event_ack_done_many": "Potrjeni dogodki: {count}",
-  "event_journal_note": "Opomba v dnevniku"
+  "event_journal_note": "Opomba v dnevniku",
+  "event_add_to_case": "Dodaj k primeru… ({count})",
+  "event_add_to_case_title": "Dodaj k primeru",
+  "event_add_to_case_new": "Nov primer",
+  "event_add_to_case_name": "Ime novega primera",
+  "event_add_to_case_hint": "Obdobje primera se razširi, da zajame te dogodke, zato so prikazani na njegovi časovnici in v dokazih.",
+  "event_add_to_case_submit": "Dodaj",
+  "event_add_to_case_one": "1 dogodek iz {range}",
+  "event_add_to_case_many": "Dogodki iz {range}: {count}",
+  "event_case_running": "v teku",
+  "event_case_no_window": "Še brez obdobja",
+  "event_added_to_case_one": "1 dogodek dodan k »{case}«",
+  "event_added_to_case_many": "K »{case}« dodani dogodki: {count}",
+  "event_open_case": "Odpri primer"
 }

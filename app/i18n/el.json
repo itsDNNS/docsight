@@ -1261,5 +1261,18 @@
   "undo": "Αναίρεση",
   "event_ack_done_one": "Το συμβάν επιβεβαιώθηκε",
   "event_ack_done_many": "Επιβεβαιωμένα συμβάντα: {count}",
-  "event_journal_note": "Σημείωση ημερολογίου"
+  "event_journal_note": "Σημείωση ημερολογίου",
+  "event_add_to_case": "Προσθήκη σε υπόθεση… ({count})",
+  "event_add_to_case_title": "Προσθήκη σε υπόθεση",
+  "event_add_to_case_new": "Νέα υπόθεση",
+  "event_add_to_case_name": "Όνομα νέας υπόθεσης",
+  "event_add_to_case_hint": "Το διάστημα της υπόθεσης διευρύνεται ώστε να καλύπτει αυτά τα συμβάντα, που εμφανίζονται έτσι στο χρονολόγιο και στα αποδεικτικά της.",
+  "event_add_to_case_submit": "Προσθήκη",
+  "event_add_to_case_one": "1 συμβάν από {range}",
+  "event_add_to_case_many": "Συμβάντα από {range}: {count}",
+  "event_case_running": "σε εξέλιξη",
+  "event_case_no_window": "Χωρίς διάστημα ακόμη",
+  "event_added_to_case_one": "1 συμβάν προστέθηκε στην «{case}»",
+  "event_added_to_case_many": "Συμβάντα που προστέθηκαν στην «{case}»: {count}",
+  "event_open_case": "Άνοιγμα υπόθεσης"
 }

@@ -1261,5 +1261,18 @@
   "undo": "Ongedaan maken",
   "event_ack_done_one": "Gebeurtenis bevestigd",
   "event_ack_done_many": "{count} gebeurtenissen bevestigd",
-  "event_journal_note": "Journaalnotitie"
+  "event_journal_note": "Journaalnotitie",
+  "event_add_to_case": "Aan zaak toevoegen… ({count})",
+  "event_add_to_case_title": "Aan zaak toevoegen",
+  "event_add_to_case_new": "Nieuwe zaak",
+  "event_add_to_case_name": "Naam van de nieuwe zaak",
+  "event_add_to_case_hint": "De periode van de zaak groeit tot deze gebeurtenissen erin vallen, zodat ze in de tijdlijn en het bewijs staan.",
+  "event_add_to_case_submit": "Toevoegen",
+  "event_add_to_case_one": "1 gebeurtenis van {range}",
+  "event_add_to_case_many": "{count} gebeurtenissen van {range}",
+  "event_case_running": "lopend",
+  "event_case_no_window": "Nog geen periode",
+  "event_added_to_case_one": "1 gebeurtenis toegevoegd aan ‘{case}’",
+  "event_added_to_case_many": "{count} gebeurtenissen toegevoegd aan ‘{case}’",
+  "event_open_case": "Zaak openen"
 }

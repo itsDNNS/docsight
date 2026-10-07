@@ -1261,5 +1261,18 @@
   "undo": "Vrátiť späť",
   "event_ack_done_one": "Udalosť potvrdená",
   "event_ack_done_many": "Potvrdené udalosti: {count}",
-  "event_journal_note": "Poznámka v denníku"
+  "event_journal_note": "Poznámka v denníku",
+  "event_add_to_case": "Pridať k prípadu… ({count})",
+  "event_add_to_case_title": "Pridať k prípadu",
+  "event_add_to_case_new": "Nový prípad",
+  "event_add_to_case_name": "Názov nového prípadu",
+  "event_add_to_case_hint": "Obdobie prípadu sa rozšíri tak, aby zahŕňalo tieto udalosti, takže sa zobrazia v jeho časovej osi aj v dôkazoch.",
+  "event_add_to_case_submit": "Pridať",
+  "event_add_to_case_one": "1 udalosť z {range}",
+  "event_add_to_case_many": "Udalosti z {range}: {count}",
+  "event_case_running": "prebieha",
+  "event_case_no_window": "Zatiaľ bez obdobia",
+  "event_added_to_case_one": "1 udalosť pridaná k „{case}“",
+  "event_added_to_case_many": "K „{case}“ pridané udalosti: {count}",
+  "event_open_case": "Otvoriť prípad"
 }

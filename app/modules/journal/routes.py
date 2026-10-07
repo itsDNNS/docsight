@@ -570,6 +570,41 @@ def api_incident_update(incident_id):
     return jsonify({"success": True})
 
 
+@bp.route("/api/incidents/<int:incident_id>/extend", methods=["POST"])
+@require_auth
+def api_incident_extend(incident_id):
+    """Widen a case's window so it covers the given days, e.g. events added from the log.
+
+    The window only grows: an earlier start_date moves the start, a later end_date the end.
+    A case without an end date already runs until today and keeps running.
+    """
+    _storage = _get_journal_storage()
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    data = request.get_json(silent=True) or {}
+    start_date = str(data.get("start_date") or "").strip() if isinstance(data, dict) else ""
+    end_date = str(data.get("end_date") or "").strip() if isinstance(data, dict) else ""
+    if not valid_date(start_date) or not valid_date(end_date) or start_date > end_date:
+        return jsonify({"error": "start_date and end_date must be YYYY-MM-DD with start_date <= end_date"}), 400
+    incident = _storage.get_incident(incident_id)
+    if not incident:
+        return jsonify({"error": "Not found"}), 404
+    new_start = min(filter(None, [incident.get("start_date"), start_date]))
+    new_end = incident.get("end_date")
+    if new_end:
+        new_end = max(new_end, end_date)
+    elif not incident.get("start_date"):
+        new_end = end_date
+    changed = (new_start, new_end) != (incident.get("start_date"), incident.get("end_date"))
+    if changed:
+        _storage.update_incident(
+            incident_id, incident["name"], incident.get("description"), incident.get("status") or "open",
+            new_start, new_end, incident.get("icon"),
+        )
+        audit_log.info("Incident window extended: ip=%s id=%d", _get_client_ip(), incident_id)
+    return jsonify({"success": True, "start_date": new_start, "end_date": new_end, "changed": changed})
+
+
 @bp.route("/api/incidents/<int:incident_id>", methods=["DELETE"])
 @require_auth
 def api_incident_delete(incident_id):

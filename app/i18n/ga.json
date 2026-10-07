@@ -1261,5 +1261,18 @@
   "undo": "Cealaigh",
   "event_ack_done_one": "Teagmhas admhaithe",
   "event_ack_done_many": "Teagmhais admhaithe: {count}",
-  "event_journal_note": "Nóta dialainne"
+  "event_journal_note": "Nóta dialainne",
+  "event_add_to_case": "Cuir le cás… ({count})",
+  "event_add_to_case_title": "Cuir le cás",
+  "event_add_to_case_new": "Cás nua",
+  "event_add_to_case_name": "Ainm an cháis nua",
+  "event_add_to_case_hint": "Leathnaíonn tréimhse an cháis chun na teagmhais seo a chlúdach, ionas go mbeidh siad ina amlíne agus ina fhianaise.",
+  "event_add_to_case_submit": "Cuir leis",
+  "event_add_to_case_one": "1 teagmhas ó {range}",
+  "event_add_to_case_many": "Teagmhais ó {range}: {count}",
+  "event_case_running": "ar siúl",
+  "event_case_no_window": "Gan tréimhse fós",
+  "event_added_to_case_one": "1 teagmhas curtha le “{case}”",
+  "event_added_to_case_many": "Teagmhais curtha le “{case}”: {count}",
+  "event_open_case": "Oscail an cás"
 }
