@@ -121,7 +121,9 @@ class TestMobileLayout:
         mobile_page.locator("#nav-toggle-cases").click()
         mobile_page.locator('#nav-panel-cases [data-view="evidence"]').click()
         mobile_page.wait_for_selector('#view-evidence.active')
-        assert mobile_page.locator('#evidence-placeholder').is_visible()
+        # The journey starts on its own, so its placeholder may already be gone; the window
+        # controls are always there.
+        expect(mobile_page.locator('#view-evidence .evidence-chip[data-evidence-range="last24h"]')).to_be_visible()
         expect(mobile_page.locator("#nav-panel-cases")).to_be_hidden()
         expect(mobile_page.locator("#nav-toggle-cases")).to_have_class(re.compile(r"\bactive\b"))
 
