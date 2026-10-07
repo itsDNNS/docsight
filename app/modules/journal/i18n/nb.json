@@ -9,7 +9,6 @@
   "upload_file": "Last opp fil",
   "no_incidents": "Ingen oppføringer ennå. Dokumenter tilkoblingsproblemene dine for å bygge opp en historikk for klager til leverandøren.",
   "delete_incident": "Slett",
-  "confirm_delete": "Vil du slette denne oppføringen?",
   "file_too_large": "Filen er for stor (maks. 10 MB)",
   "too_many_attachments": "For mange vedlegg (maks. 10 per oppføring)",
   "invalid_file_type": "Filtypen er ikke tillatt. Tillatt: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Oppføringer du knytter til denne saken, vises her.",
   "journal_empty_case_action": "Vis alle oppføringer",
   "journal_empty_search_text": "Prøv et annet ord eller tøm søket.",
-  "journal_empty_search_action": "Tøm søket"
+  "journal_empty_search_action": "Tøm søket",
+  "entry_deleted": "Oppføring slettet"
 }

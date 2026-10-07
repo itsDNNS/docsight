@@ -9,7 +9,6 @@
   "upload_file": "Uaslódáil comhad",
   "no_incidents": "Níl aon iontrálacha ann fós. Doiciméadaigh fadhbanna naisc chun stair a thógáil le haghaidh gearán chuig an soláthraí.",
   "delete_incident": "Scrios",
-  "confirm_delete": "An bhfuil tú cinnte gur mian leat an iontráil seo a scriosadh?",
   "file_too_large": "Comhad rómhór (10 MB ar a mhéad)",
   "too_many_attachments": "An iomarca ceangaltán (10 in aghaidh na hiontrála ar a mhéad)",
   "invalid_file_type": "Ní cheadaítear an cineál comhaid. Ceadaithe: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Taispeántar anseo na hiontrálacha a shannann tú don chás seo.",
   "journal_empty_case_action": "Taispeáin gach iontráil",
   "journal_empty_search_text": "Bain triail as téarma eile nó glan an cuardach.",
-  "journal_empty_search_action": "Glan an cuardach"
+  "journal_empty_search_action": "Glan an cuardach",
+  "entry_deleted": "Iontráil scriosta"
 }

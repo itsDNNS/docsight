@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Niet-corrigeerbare fouten per {minutes} minuten",
   "trend_errors_per_hour": "Niet-corrigeerbare fouten per uur",
   "trend_errors_per_hours": "Niet-corrigeerbare fouten per {hours} uur",
-  "trend_errors_per_day": "Niet-corrigeerbare fouten per dag"
+  "trend_errors_per_day": "Niet-corrigeerbare fouten per dag",
+  "undo": "Ongedaan maken",
+  "event_ack_done_one": "Gebeurtenis bevestigd",
+  "event_ack_done_many": "{count} gebeurtenissen bevestigd"
 }

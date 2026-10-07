@@ -9,7 +9,6 @@
   "upload_file": "Nahrať súbor",
   "no_incidents": "Zatiaľ žiadne záznamy. Zaznamenávajte problémy s pripojením, aby ste mali históriu pre sťažnosti u poskytovateľa.",
   "delete_incident": "Odstrániť",
-  "confirm_delete": "Naozaj chcete odstrániť tento záznam?",
   "file_too_large": "Súbor je príliš veľký (max. 10 MB)",
   "too_many_attachments": "Príliš veľa príloh (max. 10 na záznam)",
   "invalid_file_type": "Typ súboru nie je povolený. Povolené: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Tu sa zobrazia záznamy, ktoré priradíte k tomuto prípadu.",
   "journal_empty_case_action": "Zobraziť všetky záznamy",
   "journal_empty_search_text": "Skúste iný výraz alebo vymažte hľadanie.",
-  "journal_empty_search_action": "Vymazať hľadanie"
+  "journal_empty_search_action": "Vymazať hľadanie",
+  "entry_deleted": "Záznam odstránený"
 }

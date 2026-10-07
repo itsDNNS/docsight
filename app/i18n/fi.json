@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Korjaamattomat virheet {minutes} minuutin jaksoissa",
   "trend_errors_per_hour": "Korjaamattomat virheet tunnissa",
   "trend_errors_per_hours": "Korjaamattomat virheet {hours} tunnin jaksoissa",
-  "trend_errors_per_day": "Korjaamattomat virheet päivässä"
+  "trend_errors_per_day": "Korjaamattomat virheet päivässä",
+  "undo": "Kumoa",
+  "event_ack_done_one": "Tapahtuma kuitattu",
+  "event_ack_done_many": "Kuitattuja tapahtumia: {count}"
 }

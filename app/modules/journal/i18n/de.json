@@ -9,7 +9,6 @@
   "upload_file": "Datei hochladen",
   "no_incidents": "Noch keine Einträge. Dokumentiere deine Verbindungsprobleme, um einen Verlauf für Beschwerden beim Anbieter aufzubauen.",
   "delete_incident": "Löschen",
-  "confirm_delete": "Diesen Eintrag wirklich löschen?",
   "file_too_large": "Datei zu groß (max. 10 MB)",
   "too_many_attachments": "Zu viele Anhänge (max. 10 pro Eintrag)",
   "invalid_file_type": "Dateityp nicht erlaubt. Erlaubt: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Einträge, die du diesem Fall zuordnest, erscheinen hier.",
   "journal_empty_case_action": "Alle Einträge anzeigen",
   "journal_empty_search_text": "Versuche einen anderen Begriff oder leere die Suche.",
-  "journal_empty_search_action": "Suche leeren"
+  "journal_empty_search_action": "Suche leeren",
+  "entry_deleted": "Eintrag gelöscht"
 }

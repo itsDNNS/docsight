@@ -9,7 +9,6 @@
   "upload_file": "Subir archivo",
   "no_incidents": "Aún no hay entradas. Documenta tus problemas de conexión para crear un historial para las reclamaciones al proveedor.",
   "delete_incident": "Eliminar",
-  "confirm_delete": "¿Seguro que quieres eliminar esta entrada?",
   "file_too_large": "Archivo demasiado grande (máx. 10 MB)",
   "too_many_attachments": "Demasiados adjuntos (máx. 10 por entrada)",
   "invalid_file_type": "Tipo de archivo no permitido. Permitidos: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Aquí aparecen las entradas que asignes a este caso.",
   "journal_empty_case_action": "Mostrar todas las entradas",
   "journal_empty_search_text": "Prueba otro término o borra la búsqueda.",
-  "journal_empty_search_action": "Borrar búsqueda"
+  "journal_empty_search_action": "Borrar búsqueda",
+  "entry_deleted": "Entrada eliminada"
 }

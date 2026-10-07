@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Errori non correggibili ogni {minutes} minuti",
   "trend_errors_per_hour": "Errori non correggibili all'ora",
   "trend_errors_per_hours": "Errori non correggibili ogni {hours} ore",
-  "trend_errors_per_day": "Errori non correggibili al giorno"
+  "trend_errors_per_day": "Errori non correggibili al giorno",
+  "undo": "Annulla",
+  "event_ack_done_one": "Evento confermato",
+  "event_ack_done_many": "{count} eventi confermati"
 }

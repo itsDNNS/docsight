@@ -152,6 +152,19 @@ class EventMethods:
             ).rowcount
         return rowcount
 
+    def unacknowledge_events(self, event_ids) -> int:
+        """Undo an acknowledgement of the given events. Returns how many changed."""
+        ids = list(event_ids)
+        if not ids:
+            return 0
+        with self._write() as conn:
+            rowcount = conn.execute(
+                "UPDATE events SET acknowledged = 0 WHERE acknowledged = 1 AND id IN ("
+                + ", ".join("?" * len(ids)) + ")",
+                ids,
+            ).rowcount
+        return rowcount
+
     def acknowledge_all_events(self):
         """Acknowledge all unacknowledged events. Returns rows affected."""
         with self._write() as conn:

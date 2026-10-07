@@ -1249,5 +1249,8 @@
   "trend_errors_per_minutes": "Erreurs non corrigibles par tranche de {minutes} minutes",
   "trend_errors_per_hour": "Erreurs non corrigibles par heure",
   "trend_errors_per_hours": "Erreurs non corrigibles par tranche de {hours} heures",
-  "trend_errors_per_day": "Erreurs non corrigibles par jour"
+  "trend_errors_per_day": "Erreurs non corrigibles par jour",
+  "undo": "Annuler",
+  "event_ack_done_one": "Événement acquitté",
+  "event_ack_done_many": "{count} événements acquittés"
 }

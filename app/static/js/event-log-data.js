@@ -102,12 +102,27 @@
         return changed;
     }
 
+    /* Undoes markAcknowledged for the given ids and returns how many changed. */
+    function markUnacknowledged(events, ids) {
+        var wanted = {};
+        (ids || []).forEach(function (id) { wanted[id] = true; });
+        var changed = 0;
+        (events || []).forEach(function (event) {
+            if (wanted[event.id] && event.acknowledged) {
+                event.acknowledged = 0;
+                changed += 1;
+            }
+        });
+        return changed;
+    }
+
     return {
         severity: severity,
         worstSeverity: worstSeverity,
         dayKey: dayKey,
         buildTimeline: buildTimeline,
         unacknowledgedIds: unacknowledgedIds,
-        markAcknowledged: markAcknowledged
+        markAcknowledged: markAcknowledged,
+        markUnacknowledged: markUnacknowledged
     };
 });

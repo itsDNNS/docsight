@@ -1169,13 +1169,26 @@ class TestEventsAPI:
         assert resp.get_json() == {"success": True, "count": 2}
         assert [e["id"] for e in api_storage.get_events(acknowledged=False)] == [ids[1]]
 
+    @pytest.mark.parametrize("path", ["/api/events/acknowledge", "/api/events/unacknowledge"])
     @pytest.mark.parametrize("payload", [
         None, {}, {"ids": []}, {"ids": "1"}, {"ids": [0]}, {"ids": [-1]}, {"ids": [True]},
         {"ids": ["1"]}, {"ids": [1.5]}, {"ids": list(range(1, 1002))}, [1, 2],
     ])
-    def test_acknowledge_listed_events_rejects_invalid_ids(self, client, payload):
-        resp = client.post("/api/events/acknowledge", json=payload)
+    def test_acknowledge_listed_events_rejects_invalid_ids(self, client, payload, path):
+        resp = client.post(path, json=payload)
         assert resp.status_code == 400
+
+    def test_undo_restores_only_the_listed_acknowledgements(self, client, api_storage):
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        ids = [api_storage.save_event(ts, "warning", "power_change", f"Msg {i}") for i in range(3)]
+        api_storage.acknowledge_events(ids)
+
+        resp = client.post("/api/events/unacknowledge", json={"ids": [ids[0], ids[1], ids[1]]})
+        assert resp.status_code == 200
+        assert resp.get_json() == {"success": True, "count": 2}
+        assert sorted(e["id"] for e in api_storage.get_events(acknowledged=False)) == [ids[0], ids[1]]
+        # Undoing again changes nothing.
+        assert client.post("/api/events/unacknowledge", json={"ids": [ids[0]]}).get_json()["count"] == 0
 
     def test_events_count_empty(self, client):
         resp = client.get("/api/events/count")

@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Erori necorectabile la fiecare {minutes} minute",
   "trend_errors_per_hour": "Erori necorectabile pe oră",
   "trend_errors_per_hours": "Erori necorectabile la fiecare {hours} ore",
-  "trend_errors_per_day": "Erori necorectabile pe zi"
+  "trend_errors_per_day": "Erori necorectabile pe zi",
+  "undo": "Anulează",
+  "event_ack_done_one": "Eveniment confirmat",
+  "event_ack_done_many": "Evenimente confirmate: {count}"
 }

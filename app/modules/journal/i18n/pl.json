@@ -9,7 +9,6 @@
   "upload_file": "Prześlij plik",
   "no_incidents": "Brak wpisów. Dokumentuj problemy z połączeniem, aby zbudować historię do reklamacji u dostawcy.",
   "delete_incident": "Usuń",
-  "confirm_delete": "Czy na pewno usunąć ten wpis?",
   "file_too_large": "Plik jest za duży (maks. 10 MB)",
   "too_many_attachments": "Za dużo załączników (maks. 10 na wpis)",
   "invalid_file_type": "Niedozwolony typ pliku. Dozwolone: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Tu pojawią się wpisy przypisane do tej sprawy.",
   "journal_empty_case_action": "Pokaż wszystkie wpisy",
   "journal_empty_search_text": "Spróbuj innego wyrażenia lub wyczyść wyszukiwanie.",
-  "journal_empty_search_action": "Wyczyść wyszukiwanie"
+  "journal_empty_search_action": "Wyczyść wyszukiwanie",
+  "entry_deleted": "Wpis usunięty"
 }

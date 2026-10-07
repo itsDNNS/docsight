@@ -9,7 +9,6 @@
   "upload_file": "Fájl feltöltése",
   "no_incidents": "Még nincsenek bejegyzések. Dokumentálja a kapcsolati problémákat, hogy előzményei legyenek a szolgáltatónál tett panaszokhoz.",
   "delete_incident": "Törlés",
-  "confirm_delete": "Biztosan törli ezt a bejegyzést?",
   "file_too_large": "A fájl túl nagy (legfeljebb 10 MB)",
   "too_many_attachments": "Túl sok melléklet (bejegyzésenként legfeljebb 10)",
   "invalid_file_type": "Nem engedélyezett fájltípus. Engedélyezett: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Az ehhez az esethez rendelt bejegyzések itt jelennek meg.",
   "journal_empty_case_action": "Összes bejegyzés megjelenítése",
   "journal_empty_search_text": "Próbáljon más kifejezést, vagy törölje a keresést.",
-  "journal_empty_search_action": "Keresés törlése"
+  "journal_empty_search_action": "Keresés törlése",
+  "entry_deleted": "Bejegyzés törölve"
 }

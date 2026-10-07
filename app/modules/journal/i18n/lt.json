@@ -9,7 +9,6 @@
   "upload_file": "Įkelti failą",
   "no_incidents": "Įrašų dar nėra. Dokumentuokite ryšio problemas, kad sukauptumėte istoriją skundams tiekėjui.",
   "delete_incident": "Ištrinti",
-  "confirm_delete": "Ar tikrai ištrinti šį įrašą?",
   "file_too_large": "Failas per didelis (daugiausia 10 MB)",
   "too_many_attachments": "Per daug priedų (daugiausia 10 vienam įrašui)",
   "invalid_file_type": "Failo tipas neleidžiamas. Leidžiami: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Čia rodomi įrašai, kuriuos priskiriate šiam atvejui.",
   "journal_empty_case_action": "Rodyti visus įrašus",
   "journal_empty_search_text": "Pabandykite kitą žodį arba išvalykite paiešką.",
-  "journal_empty_search_action": "Išvalyti paiešką"
+  "journal_empty_search_action": "Išvalyti paiešką",
+  "entry_deleted": "Įrašas ištrintas"
 }

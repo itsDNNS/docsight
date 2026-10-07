@@ -139,6 +139,7 @@ var MONTH_NAMES = T.month_names || ['January', 'February', 'March', 'April', 'Ma
 var _journalSearchQuery = '';
 var _journalSearchTimer = null;
 var _journalAllData = null;
+var _journalPendingDeletes = {};
 
 function loadJournal(searchQuery) {
     var tableCard = document.getElementById('journal-table-card');
@@ -170,7 +171,8 @@ function loadJournal(searchQuery) {
     // Icons are detected while rendering, so the keywords load alongside the entries.
     Promise.all([fetch(url).then(function(r) { return r.json(); }), loadIconKeywords()])
         .then(function(results) {
-            var data = results[0];
+            // Entries waiting out their Undo toast are already gone from the user's view.
+            var data = (results[0] || []).filter(function(entry) { return !_journalPendingDeletes[String(entry.id)]; });
             loading.hidden = true;
             if (!searchQuery) _journalAllData = data;
             if (!data || data.length === 0) {
@@ -526,26 +528,40 @@ function saveEntry() {
         .catch(function() { showToast(T.network_error || 'Error', 'error'); });
 }
 
+/* A single entry disappears at once and is deleted when its Undo toast runs out,
+   or right away when the page is left; Undo brings it back. Deleting everything
+   keeps its confirmation. */
 function deleteEntry() {
     var entryId = document.getElementById('entry-id').value;
     if (!entryId) return;
-    docsightConfirm({
-        title: T.delete_incident || 'Delete',
-        message: T.confirm_delete || 'Are you sure?',
-        confirmText: T.delete_incident || 'Delete',
-        cancelText: T.cancel || 'Cancel',
-        danger: true
-    }).then(function(confirmed) {
-        if (!confirmed) return null;
-        return fetch(docsightUrl('/api/journal/' + entryId), {method: 'DELETE'});
-    })
-        .then(function(r) { return r ? r.json() : null; })
-        .then(function(res) {
-            if (!res) return;
-            closeEntryModal();
+    _journalPendingDeletes[entryId] = true;
+    closeEntryModal();
+    loadJournal();
+    var sent = false;
+    function commit() {
+        if (sent || !_journalPendingDeletes[entryId]) return;
+        sent = true;
+        window.removeEventListener('pagehide', commit);
+        fetch(docsightUrl('/api/journal/' + entryId), {method: 'DELETE', keepalive: true})
+            .then(function(r) {
+                if (!r.ok) throw new Error('Delete failed');
+                delete _journalPendingDeletes[entryId];
+            })
+            .catch(function() {
+                delete _journalPendingDeletes[entryId];
+                loadJournal();
+                showToast(T.delete_failed || 'Delete failed', 'error');
+            });
+    }
+    window.addEventListener('pagehide', commit);
+    showToast(T.entry_deleted || 'Entry deleted', 'info', {
+        action: {label: T.undo || 'Undo', onClick: function() {
+            window.removeEventListener('pagehide', commit);
+            delete _journalPendingDeletes[entryId];
             loadJournal();
-        })
-        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+        }},
+        onExpire: commit
+    });
 }
 
 function handleEntryFileUpload(input) {

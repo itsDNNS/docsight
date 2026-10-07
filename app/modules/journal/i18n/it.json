@@ -9,7 +9,6 @@
   "upload_file": "Carica file",
   "no_incidents": "Nessuna voce per ora. Documenta i problemi di connessione per creare uno storico utile ai reclami verso l’operatore.",
   "delete_incident": "Elimina",
-  "confirm_delete": "Vuoi davvero eliminare questa voce?",
   "file_too_large": "File troppo grande (max 10 MB)",
   "too_many_attachments": "Troppi allegati (max 10 per voce)",
   "invalid_file_type": "Tipo di file non consentito. Consentiti: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Qui compaiono le voci che assegni a questo caso.",
   "journal_empty_case_action": "Mostra tutte le voci",
   "journal_empty_search_text": "Prova un altro termine o cancella la ricerca.",
-  "journal_empty_search_action": "Cancella ricerca"
+  "journal_empty_search_action": "Cancella ricerca",
+  "entry_deleted": "Voce eliminata"
 }

@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Neopraviteľné chyby za {minutes} minút",
   "trend_errors_per_hour": "Neopraviteľné chyby za hodinu",
   "trend_errors_per_hours": "Neopraviteľné chyby za {hours} hodín",
-  "trend_errors_per_day": "Neopraviteľné chyby za deň"
+  "trend_errors_per_day": "Neopraviteľné chyby za deň",
+  "undo": "Vrátiť späť",
+  "event_ack_done_one": "Udalosť potvrdená",
+  "event_ack_done_many": "Potvrdené udalosti: {count}"
 }

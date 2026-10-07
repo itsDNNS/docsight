@@ -459,16 +459,84 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
 
     /* type: 'success' (also 'ok' or true), 'error' (also false) or 'info', so callers
        written for the settings page's boolean showToast read the same here.
-       A newer toast restarts the timer. */
+       options.action {label, onClick} adds a button (Undo) and keeps the toast for
+       options.duration (6 s); hovering or focusing it pauses the time, so keyboard
+       users reach the button. options.onExpire runs when the time runs out without
+       the action, and also when a newer toast replaces this one. */
     var toastTimer = null;
-    function showToast(msg, type) {
+    var toastState = null;
+    function hideToast() {
+        clearTimeout(toastTimer);
+        toastState = null;
+        document.getElementById('toast').classList.remove('show');
+    }
+    function startToastTimer(state) {
+        state.started = Date.now();
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() {
+            if (toastState !== state) return;
+            hideToast();
+            if (state.onExpire) state.onExpire();
+        }, state.remaining);
+    }
+    function showToast(msg, type, options) {
+        var opts = options || {};
         var toast = document.getElementById('toast');
         var tone = type === false ? 'error' : ({ok: 'success', error: 'error', info: 'info'}[type] || 'success');
-        toast.textContent = msg;
-        toast.className = 'toast toast-' + tone + ' show';
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3000);
+        // A replaced toast still settles what it was waiting for.
+        var previous = toastState;
+        if (previous && previous.onExpire) previous.onExpire();
+        var state = {remaining: opts.duration || (opts.action ? 6000 : 3000), onExpire: opts.onExpire || null};
+        toastState = state;
+        toast.textContent = '';
+        var text = document.createElement('span');
+        text.className = 'toast-text';
+        text.textContent = msg;
+        toast.appendChild(text);
+        if (opts.action) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'toast-action';
+            button.textContent = opts.action.label;
+            button.addEventListener('click', function() {
+                if (toastState !== state) return;
+                hideToast();
+                opts.action.onClick();
+            });
+            toast.appendChild(button);
+            var progress = document.createElement('span');
+            progress.className = 'toast-progress';
+            progress.setAttribute('aria-hidden', 'true');
+            progress.style.animationDuration = state.remaining + 'ms';
+            toast.appendChild(progress);
+        }
+        toast.className = 'toast toast-' + tone + ' show' + (opts.action ? ' toast-with-action' : '');
+        startToastTimer(state);
     }
+    function pauseToast() {
+        var state = toastState;
+        if (!state || state.paused) return;
+        state.paused = true;
+        clearTimeout(toastTimer);
+        state.remaining = Math.max(1000, state.remaining - (Date.now() - state.started));
+        document.getElementById('toast').classList.add('toast-paused');
+    }
+    function resumeToast(event) {
+        var state = toastState;
+        var toast = document.getElementById('toast');
+        if (!state || !state.paused || toast.matches(':hover') || toast.contains(event && event.relatedTarget)) return;
+        state.paused = false;
+        toast.classList.remove('toast-paused');
+        startToastTimer(state);
+    }
+    (function() {
+        var toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.addEventListener('mouseenter', pauseToast);
+        toast.addEventListener('focusin', pauseToast);
+        toast.addEventListener('mouseleave', resumeToast);
+        toast.addEventListener('focusout', resumeToast);
+    })();
     window.showToast = showToast;
 
     /* Trend Charts, expand buttons, zoom shortcuts → trends.js */

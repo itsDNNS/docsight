@@ -9,7 +9,6 @@
   "upload_file": "Nahrát soubor",
   "no_incidents": "Zatím žádné záznamy. Zaznamenávejte problémy s připojením, abyste měli historii pro stížnosti u poskytovatele.",
   "delete_incident": "Smazat",
-  "confirm_delete": "Opravdu chcete tento záznam smazat?",
   "file_too_large": "Soubor je příliš velký (max. 10 MB)",
   "too_many_attachments": "Příliš mnoho příloh (max. 10 na záznam)",
   "invalid_file_type": "Typ souboru není povolen. Povoleno: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Zde se zobrazí záznamy, které tomuto případu přiřadíte.",
   "journal_empty_case_action": "Zobrazit všechny záznamy",
   "journal_empty_search_text": "Zkuste jiný výraz nebo vymažte hledání.",
-  "journal_empty_search_action": "Vymazat hledání"
+  "journal_empty_search_action": "Vymazat hledání",
+  "entry_deleted": "Záznam smazán"
 }

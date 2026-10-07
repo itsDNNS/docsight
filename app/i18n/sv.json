@@ -1257,5 +1257,8 @@
   "trend_errors_per_minutes": "Okorrigerbara fel per {minutes} minuter",
   "trend_errors_per_hour": "Okorrigerbara fel per timme",
   "trend_errors_per_hours": "Okorrigerbara fel per {hours} timmar",
-  "trend_errors_per_day": "Okorrigerbara fel per dag"
+  "trend_errors_per_day": "Okorrigerbara fel per dag",
+  "undo": "Ångra",
+  "event_ack_done_one": "Händelse kvitterad",
+  "event_ack_done_many": "{count} händelser kvitterade"
 }

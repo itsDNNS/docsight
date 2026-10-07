@@ -9,7 +9,6 @@
   "upload_file": "Naloži datoteko",
   "no_incidents": "Vnosov še ni. Beležite težave s povezavo, da zgradite zgodovino za pritožbe pri ponudniku.",
   "delete_incident": "Izbriši",
-  "confirm_delete": "Ali res želite izbrisati ta vnos?",
   "file_too_large": "Datoteka je prevelika (največ 10 MB)",
   "too_many_attachments": "Preveč prilog (največ 10 na vnos)",
   "invalid_file_type": "Vrsta datoteke ni dovoljena. Dovoljeno: PNG, JPEG, GIF, WebP, PDF, TXT",
@@ -138,5 +137,6 @@
   "journal_empty_case_text": "Tu se prikažejo vnosi, ki jih dodelite temu primeru.",
   "journal_empty_case_action": "Prikaži vse vnose",
   "journal_empty_search_text": "Poskusite drug izraz ali počistite iskanje.",
-  "journal_empty_search_action": "Počisti iskanje"
+  "journal_empty_search_action": "Počisti iskanje",
+  "entry_deleted": "Vnos izbrisan"
 }
