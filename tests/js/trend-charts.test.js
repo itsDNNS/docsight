@@ -125,3 +125,18 @@ test('the interval follows the compared span like the range presets', () => {
         [5, 15, 60, 360, 1440, 1440]);
     assert.equal(e.docsightErrorsTitle(360), 'Uncorrectable errors per 6 hours');
 });
+
+test('axis labels on short dense series keep one even gap that fits a label', () => {
+    for (const n of [7, 9, 12, 17, 25, 50, 200, 1440]) {
+        const e = engine();
+        const labels = Array.from({length: n}, (_, i) => `0${i % 10}:${String(i % 60).padStart(2, '0')} PM`);
+        e.renderChart('chart', labels, [{label: 'x', data: labels.map((_, i) => i)}]);
+        const splits = Array.from(e.charts.chart.options.axes[0].splits());
+        const gaps = splits.slice(1).map((value, i) => value - splits[i]);
+        const evenGaps = gaps.slice(0, -1);
+        assert.ok(evenGaps.every(gap => gap === evenGaps[0]), `n=${n} gaps ${gaps}`);
+        // 600 px wide stub minus the 58 px axis and padding; "00:00 PM" is about 60 px plus 18 px of air.
+        const pxPerPoint = (600 - 58 - 24) / (n - 1);
+        assert.ok(gaps.every(gap => gap * pxPerPoint >= 60 + 18 - 0.01), `n=${n} gaps ${gaps}`);
+    }
+});
