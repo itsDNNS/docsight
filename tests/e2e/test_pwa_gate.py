@@ -141,6 +141,16 @@ def test_offline_cached_shell_is_explicitly_read_only(
     """Offline reload should show cached shell state without pretending live data is current."""
     _open_authenticated_pwa(page, path_prefix_servers)
     page.evaluate("() => navigator.serviceWorker.ready")
+    # The shell's own scripts come from the worker's cache, not from what the browser happens to keep.
+    cached_scripts = page.evaluate(
+        """async () => {
+            const names = (await caches.keys()).filter(name => name.includes('-static-'));
+            const urls = [];
+            for (const name of names) for (const request of await (await caches.open(name)).keys()) urls.push(new URL(request.url).pathname);
+            return urls;
+        }"""
+    )
+    assert any(path.endswith("/static/js/dashboard.js") for path in cached_scripts), cached_scripts
 
     context.set_offline(True)
     try:

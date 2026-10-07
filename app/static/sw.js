@@ -136,10 +136,51 @@ function handleStaticRequest(request) {
   });
 }
 
+/* Scripts and styles the cached shell loads. The first visit fetched them before
+   this worker controlled the page, so without this the offline shell would
+   depend on whatever the browser's own cache still holds. */
+function shellAssetUrls(html) {
+  var urls = [];
+  var pattern = /<(?:script|link)\b[^>]*?\b(?:src|href)="([^"]+)"/g;
+  var match;
+  while ((match = pattern.exec(html))) {
+    var url;
+    try {
+      url = new URL(match[1].replace(/&amp;/g, '&'), REGISTRATION_SCOPE);
+    } catch (error) {
+      continue;
+    }
+    if (!isWithinMount(url) || !isStaticRequest(url) || !/\.(?:js|css)$/.test(url.pathname)) continue;
+    if (urls.indexOf(url.href) === -1) urls.push(url.href);
+  }
+  return urls;
+}
+
+/* Best effort: a missing asset must not keep the worker from installing. */
+function precacheShellAssets() {
+  return caches.open(SHELL_CACHE)
+    .then(function(cache) { return cache.match(MOUNT_ROOT); })
+    .then(function(response) { return response ? response.text() : ''; })
+    .then(function(html) {
+      var urls = shellAssetUrls(html);
+      if (!urls.length) return undefined;
+      return caches.open(STATIC_CACHE).then(function(cache) {
+        return Promise.all(urls.map(function(url) {
+          return fetch(url).then(function(res) {
+            return res.ok ? cache.put(url, res) : undefined;
+          }).catch(function() { return undefined; });
+        }));
+      });
+    })
+    .catch(function() { return undefined; });
+}
+
 self.addEventListener('install', function(event) {
   event.waitUntil(
     Promise.all([
-      caches.open(SHELL_CACHE).then(function(cache) { return cache.addAll(SHELL_URLS); }),
+      caches.open(SHELL_CACHE)
+        .then(function(cache) { return cache.addAll(SHELL_URLS); })
+        .then(precacheShellAssets),
       caches.open(STATIC_CACHE).then(function(cache) { return cache.addAll(CRITICAL_STATIC_URLS); })
     ])
   );

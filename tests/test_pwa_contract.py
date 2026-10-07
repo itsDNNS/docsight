@@ -24,7 +24,7 @@ const fs = require('fs');
 const vm = require('vm');
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const listeners = {};
-const operations = {added: [], deleted: [], opened: [], puts: [], notifications: [], focused: [], navigated: [], openedWindows: []};
+const operations = {added: [], deleted: [], opened: [], puts: [], fetched: [], notifications: [], focused: [], navigated: [], openedWindows: []};
 let fetchCount = 0;
 let runtimeStarted = false;
 
@@ -32,8 +32,8 @@ function cacheFor(name) {
   return {
     addAll: async function(urls) { operations.added.push({cache: name, urls: urls.slice()}); },
     match: async function(key) {
-      if (input.cachedShell && name === context.SHELL_CACHE && key === context.MOUNT_ROOT) {
-        return new Response('<html><head></head><body>Cached DOCSight</body></html>', {
+      if ((input.cachedShell || input.cachedShellHtml) && name === context.SHELL_CACHE && key === context.MOUNT_ROOT) {
+        return new Response(input.cachedShellHtml || '<html><head></head><body>Cached DOCSight</body></html>', {
           status: 200,
           headers: {'Content-Type': 'text/html'}
         });
@@ -78,8 +78,9 @@ const context = {
     keys: async function() { return input.cacheKeys || []; },
     delete: async function(name) { operations.deleted.push(name); return true; }
   },
-  fetch: async function() {
+  fetch: async function(target) {
     fetchCount += 1;
+    operations.fetched.push(typeof target === 'string' ? target : target.url);
     if (input.failFetch) throw new Error('offline');
     return new Response('<html><head></head><body>DOCSight</body></html>', {
       status: 200,
@@ -334,6 +335,47 @@ def test_cache_names_and_activation_cleanup_are_mount_isolated():
     assert activated["operations"]["deleted"] == [
         prefixed["cacheNamespace"] + "shell-v1"
     ]
+
+
+@pytest.mark.parametrize("mount", ["", "/docsight"])
+def test_install_precaches_the_scripts_and_styles_the_cached_shell_loads(mount):
+    """The first visit loads its assets before the worker controls the page; install caches them."""
+    origin = "https://example.test"
+    shell = (
+        f'<html><head><link rel="stylesheet" href="{mount}/static/css/main.css?v=1.2">'
+        f'<link rel="manifest" href="{mount}/static/manifest.json">'
+        '<script src="https://cdn.example.org/lib.js"></script></head><body>'
+        f'<script src="{mount}/static/js/dashboard.js?v=1.2"></script>'
+        f'<script src="{mount}/modules/docsight.journal/static/main.js?v=1.2&amp;x=1"></script>'
+        f'<script src="{mount}/static/js/dashboard.js?v=1.2"></script>'
+        f'<script src="{mount}/api/report.js"></script>'
+        '<script src="/elsewhere/static/js/outside.js"></script>'
+        "</body></html>"
+    )
+    expected = [
+        f"{origin}{mount}/static/css/main.css?v=1.2",
+        f"{origin}{mount}/static/js/dashboard.js?v=1.2",
+        f"{origin}{mount}/modules/docsight.journal/static/main.js?v=1.2&x=1",
+    ]
+    result = _run_service_worker(f"{origin}{mount}/", cachedShellHtml=shell)
+
+    static_puts = [put["key"] for put in result["operations"]["puts"] if put["cache"] == result["staticCache"]]
+    assert static_puts == expected
+    assert [url for url in result["operations"]["fetched"] if url in expected] == expected
+
+
+def test_install_survives_shell_assets_that_cannot_be_fetched():
+    result = _run_service_worker(
+        "https://example.test/",
+        failFetch=True,
+        cachedShellHtml='<html><body><script src="/static/js/dashboard.js?v=1"></script></body></html>',
+    )
+
+    assert result["operations"]["added"] == [
+        {"cache": result["shellCache"], "urls": result["shellUrls"]},
+        {"cache": result["staticCache"], "urls": result["criticalStaticUrls"]},
+    ]
+    assert [put for put in result["operations"]["puts"] if put["cache"] == result["staticCache"]] == []
 
 
 def test_offline_shell_uses_the_mounted_fallback_and_explicit_marker():
