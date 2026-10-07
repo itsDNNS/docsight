@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Nepopravljive napake na dan",
   "undo": "Razveljavi",
   "event_ack_done_one": "Dogodek potrjen",
-  "event_ack_done_many": "Potrjeni dogodki: {count}"
+  "event_ack_done_many": "Potrjeni dogodki: {count}",
+  "event_journal_note": "Opomba v dnevniku"
 }

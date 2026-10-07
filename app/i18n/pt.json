@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Erros não corrigíveis por dia",
   "undo": "Anular",
   "event_ack_done_one": "Evento confirmado",
-  "event_ack_done_many": "{count} eventos confirmados"
+  "event_ack_done_many": "{count} eventos confirmados",
+  "event_journal_note": "Nota do diário"
 }

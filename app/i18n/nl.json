@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Niet-corrigeerbare fouten per dag",
   "undo": "Ongedaan maken",
   "event_ack_done_one": "Gebeurtenis bevestigd",
-  "event_ack_done_many": "{count} gebeurtenissen bevestigd"
+  "event_ack_done_many": "{count} gebeurtenissen bevestigd",
+  "event_journal_note": "Journaalnotitie"
 }

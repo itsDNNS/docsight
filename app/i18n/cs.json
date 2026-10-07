@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Neopravitelné chyby za den",
   "undo": "Vrátit zpět",
   "event_ack_done_one": "Událost potvrzena",
-  "event_ack_done_many": "Potvrzené události: {count}"
+  "event_ack_done_many": "Potvrzené události: {count}",
+  "event_journal_note": "Poznámka v deníku"
 }

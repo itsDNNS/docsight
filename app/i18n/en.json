@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Uncorrectable errors per day",
   "undo": "Undo",
   "event_ack_done_one": "Event acknowledged",
-  "event_ack_done_many": "{count} events acknowledged"
+  "event_ack_done_many": "{count} events acknowledged",
+  "event_journal_note": "Journal note"
 }

@@ -444,6 +444,11 @@
 .ev-group-members > .ev-row:last-child { border-bottom: 0; }
 .ev-row:hover { background: color-mix(in srgb, var(--amethyst-muted) 45%, transparent); }
 .ev-row.ev-acked > .ev-main { opacity: 0.6; }
+/* Journal notes at their day: accent label, the case muted, a chevron to open the entry. */
+.ev-note .ev-type, .ev-note .ev-note-icon { color: var(--accent); }
+.ev-note-case { color: var(--muted); }
+.ev-note .ev-note-open { width: 16px; height: 16px; margin-left: auto; flex: none; color: var(--muted); }
+.ev-note .ev-main:hover .ev-msg { text-decoration: underline; }
 .ev-select {
     display: inline-flex;
     align-items: center;
@@ -603,7 +608,8 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     .ev-type { width: auto; flex: 0 1 auto; min-width: 0; }
     .ev-msg { flex-basis: 100%; font-size: max(var(--fs-min), 0.9em); }
     .ev-group-members .ev-msg { flex-basis: 0; flex-grow: 1; }
-    .ev-chevron { display: none; }
+    .ev-chevron, .ev-note .ev-note-open { display: none; }
+    .ev-note > .ev-main { grid-column: 2 / -1; }
     .ev-ack,
     .ev-ack-done { width: 44px; height: 44px; }
     .ev-group-members { grid-column: 1 / -1; margin-left: 12px; }

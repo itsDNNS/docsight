@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Korjaamattomat virheet päivässä",
   "undo": "Kumoa",
   "event_ack_done_one": "Tapahtuma kuitattu",
-  "event_ack_done_many": "Kuitattuja tapahtumia: {count}"
+  "event_ack_done_many": "Kuitattuja tapahtumia: {count}",
+  "event_journal_note": "Päiväkirjamerkintä"
 }

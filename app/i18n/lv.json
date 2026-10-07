@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Nelabojamās kļūdas dienā",
   "undo": "Atsaukt",
   "event_ack_done_one": "Notikums apstiprināts",
-  "event_ack_done_many": "Apstiprināti notikumi: {count}"
+  "event_ack_done_many": "Apstiprināti notikumi: {count}",
+  "event_journal_note": "Žurnāla piezīme"
 }

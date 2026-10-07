@@ -8,6 +8,10 @@ var _eventsLoaded = [];
 var _eventsExpanded = {};
 var _eventsSelected = {};
 var _eventsAckChunk = 500;
+var _eventsHaveMore = false;
+// Journal notes and case names for the timeline; null while not loaded or without the journal module.
+var _eventNotes = null;
+var _eventCaseNames = {};
 var _eventTypeLabels = {
     health_change: T.event_type_health_change || 'Health Change',
     power_change: T.event_type_power_change || 'Power Change',
@@ -386,6 +390,44 @@ function _eventRowHtml(ev, inRun) {
     '</li>';
 }
 
+/* A journal note at its day: no checkbox and no acknowledge, it opens the entry. */
+function _eventNoteHtml(note) {
+    var label = T.event_journal_note || 'Journal note';
+    var caseName = note.incident_id ? _eventCaseNames[note.incident_id] : '';
+    return '<li class="ev-row ev-note" data-key="n' + note.id + '">' +
+        '<span class="ev-select" aria-hidden="true"></span>' +
+        '<button type="button" class="ev-main" data-action="openEntryModal" data-action-args="[' + Number(note.id) + ']">' +
+            '<span class="ev-time" aria-hidden="true"></span>' +
+            '<span class="ev-sev ev-note-icon" aria-hidden="true"><i data-lucide="clipboard-list"></i></span>' +
+            '<span class="ev-type">' + escapeHtml(label) + '</span>' +
+            '<span class="ev-msg">' + escapeHtml(note.title || '') +
+                (caseName ? '<span class="ev-note-case"> · ' + escapeHtml(caseName) + '</span>' : '') + '</span>' +
+            '<i data-lucide="chevron-right" class="ev-note-open" aria-hidden="true"></i>' +
+        '</button>' +
+    '</li>';
+}
+
+/* Notes only belong to the unfiltered log: a severity or device filter asks for events. */
+function _eventTimelineDays() {
+    var days = DOCSightEventLogData.buildTimeline(_eventsLoaded);
+    if (!_eventNotes || !_eventNotes.length || _currentSeverityFilter || _deviceOnlyFilter || !days.length) return days;
+    var oldest = _eventsHaveMore ? days[days.length - 1].day : null;
+    return DOCSightEventLogData.addNotes(days, _eventNotes, {oldestDay: oldest, newestDay: todayStr()});
+}
+
+function _loadEventNotes() {
+    if (typeof openEntryModal !== 'function') return Promise.resolve();
+    return Promise.all([
+        fetch(docsightUrl('/api/journal?limit=1000')).then(function(r) { return r.ok ? r.json() : []; }),
+        fetch(docsightUrl('/api/incidents')).then(function(r) { return r.ok ? r.json() : []; })
+    ]).then(function(results) {
+        _eventNotes = Array.isArray(results[0]) ? results[0] : [];
+        _eventCaseNames = {};
+        (Array.isArray(results[1]) ? results[1] : []).forEach(function(c) { _eventCaseNames[c.id] = c.name; });
+        _renderEventTimeline();
+    }).catch(function() { _eventNotes = null; });
+}
+
 /* A message cut off by the row width can be opened too; whether it is cut off
    is only known after layout. */
 function _markTruncatedEventRows(feed) {
@@ -432,13 +474,14 @@ function _eventGroupHtml(group) {
 function _renderEventTimeline() {
     var feed = document.getElementById('events-feed');
     if (!feed) return;
-    feed.innerHTML = DOCSightEventLogData.buildTimeline(_eventsLoaded).map(function(day) {
+    feed.innerHTML = _eventTimelineDays().map(function(day) {
         var headId = 'events-day-' + (day.day || 'unknown');
         var parts = _eventDayParts(day.day);
         return '<section class="ev-day" aria-labelledby="' + headId + '">' +
             '<h3 class="ev-day-head" id="' + headId + '"><span class="ev-day-name">' + escapeHtml(parts.name) + '</span>' +
                 '<span class="ev-day-date">' + escapeHtml(parts.date) + '</span></h3>' +
             '<ol class="ev-rows">' + day.items.map(function(item) {
+                if (item.kind === 'note') return _eventNoteHtml(item.note);
                 return item.kind === 'group' ? _eventGroupHtml(item) : _eventRowHtml(item.event);
             }).join('') + '</ol>' +
         '</section>';
@@ -614,6 +657,7 @@ function loadEvents(append) {
         _renderEventTimeline();
     }
 
+    if (!append) _loadEventNotes();
     fetch(docsightUrl('/api/events' + params))
         .then(function(r) {
             if (!r.ok) throw new Error('Event request failed');
@@ -637,9 +681,10 @@ function loadEvents(append) {
                 known[ev.id] = true;
                 _eventsLoaded.push(ev);
             });
+            _eventsHaveMore = events.length >= _eventsPageSize;
             _renderEventTimeline();
             feedCard.hidden = false;
-            moreBtn.hidden = events.length < _eventsPageSize;
+            moreBtn.hidden = !_eventsHaveMore;
         })
         .catch(function() {
             if (feedRequestId !== _eventsRequestCount) return;
