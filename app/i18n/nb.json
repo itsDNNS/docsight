@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Legg dagene i denne perioden til en sak (det zoomede området hvis du har zoomet)",
   "correlation_case_summary": "Periode {range}",
   "correlation_case_name": "Korrelasjon {range}",
-  "correlation_added_to_case": "Periode lagt til i «{case}»"
+  "correlation_added_to_case": "Periode lagt til i «{case}»",
+  "power_offset_note": "Modemet viser her {shown} dBmV. Det viser denne kanalen {offset} dB lavere enn terskelverdienes referanse, så DOCSight legger til {offset} dB."
 }

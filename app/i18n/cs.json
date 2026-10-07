@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Přidat dny tohoto období k případu (přiblížený rozsah, pokud je přiblížen)",
   "correlation_case_summary": "Období {range}",
   "correlation_case_name": "Korelace {range}",
-  "correlation_added_to_case": "Období přidáno k „{case}“"
+  "correlation_added_to_case": "Období přidáno k „{case}“",
+  "power_offset_note": "Modem zde ukazuje {shown} dBmV. Tento kanál zobrazuje o {offset} dB níže než referenci limitů, proto DOCSight přičítá {offset} dB."
 }

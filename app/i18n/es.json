@@ -1274,5 +1274,6 @@
   "correlation_save_as_case_hint": "Añadir los días de este periodo a un caso (el rango ampliado, si lo hay)",
   "correlation_case_summary": "Periodo {range}",
   "correlation_case_name": "Correlación {range}",
-  "correlation_added_to_case": "Periodo añadido a «{case}»"
+  "correlation_added_to_case": "Periodo añadido a «{case}»",
+  "power_offset_note": "El módem muestra aquí {shown} dBmV. Muestra este canal {offset} dB por debajo de la referencia de los umbrales, así que DOCSight suma {offset} dB."
 }

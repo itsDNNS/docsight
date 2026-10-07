@@ -515,3 +515,16 @@ class TestChannelMetricHealthFields:
         ch = analyze(data)["us_channels"][0]
         assert ch["power_health"] == "critical"
         assert ch["modulation_health"] == "critical"
+
+
+def test_a_driver_correction_of_the_displayed_power_reaches_the_channel():
+    """FRITZ!Box shows DOCSIS 3.1 upstream power 6 dB low; the UI explains the corrected value."""
+    corrected = {"channelID": 2, "frequency": "29.775 - 64.775", "powerLevel": "48.2",
+                 "modulation": "256QAM", "type": "OFDMA", "powerDisplayOffset": 6.0}
+    plain = {"channelID": 3, "frequency": "51 MHz", "powerLevel": "44.0", "modulation": "64QAM",
+             "type": "OFDMA"}
+    result = analyze(_make_data(us31=[corrected, plain]))
+    by_id = {ch["channel_id"]: ch for ch in result["us_channels"]}
+    assert by_id[2]["power"] == 48.2
+    assert by_id[2]["modem_power_offset_db"] == 6.0
+    assert "modem_power_offset_db" not in by_id[3]

@@ -21,6 +21,8 @@ def parse_fritzbox_data_lua(payload: dict[str, Any] | None) -> ParseResult[Docsi
         try:
             raw = float(channel.get("powerLevel", 0))
             channel["powerLevel"] = str(round(raw + _UPSTREAM_31_POWER_OFFSET, 1))
+            # Kept with the channel so the UI can say why it differs from the modem's page.
+            channel["powerDisplayOffset"] = _UPSTREAM_31_POWER_OFFSET
         except (TypeError, ValueError):
             diagnostics.append(diagnostic(
                 "fritzbox_data_lua", "invalid_field", family="fritzbox",

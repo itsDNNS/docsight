@@ -780,6 +780,22 @@ function _makeInfoItemWithLabel(label, value, unit) {
     if (unit) el.appendChild(document.createTextNode(' ' + unit));
     return el;
 }
+/* A driver corrected the power the modem displays (FRITZ!Box DOCSIS 3.1 upstream). */
+function _powerOffsetHint(ch) {
+    var offset = ch.modem_power_offset_db;
+    var hint = document.createElement('span');
+    hint.className = 'glossary-hint power-offset-hint';
+    hint.setAttribute('data-glossary-term-id', 'power_level');
+    hint.setAttribute('data-glossary-term-label', T.glossary_page_title || 'Glossary');
+    hint.textContent = (offset > 0 ? '+' : '') + offset + ' dB';
+    var popover = document.createElement('div');
+    popover.className = 'glossary-popover';
+    popover.textContent = (T.power_offset_note || 'The modem shows {shown} dBmV here. It displays this channel {offset} dB lower than the reference the thresholds use, so DOCSight adds {offset} dB.')
+        .replace('{shown}', (ch.power - offset).toFixed(1)).split('{offset}').join(String(offset));
+    hint.appendChild(popover);
+    if (typeof window.initGlossaryHints === 'function') setTimeout(window.initGlossaryHints, 0);
+    return hint;
+}
 function _makeInfoSep() {
     var el = document.createElement('span');
     el.className = 'ch-info-sep';
@@ -951,7 +967,8 @@ function _updateChannelInfoBar(ref) {
     }
     bar.appendChild(_makeInfoItem('DOCSIS ' + (ch.docsis_version || '3.0')));
     bar.appendChild(_makeInfoSep());
-    if (ch.power != null) bar.appendChild(_makeInfoItemWithLabel('Power', ch.power, 'dBmV'));
+    if (ch.power != null) bar.appendChild(_makeInfoItemWithLabel(T.th_power || 'Power', ch.power, 'dBmV'));
+    if (ch.power != null && ch.modem_power_offset_db) bar.appendChild(_powerOffsetHint(ch));
     if (ch.snr != null) bar.appendChild(_makeInfoItemWithLabel('SNR', ch.snr, 'dB'));
     bar.appendChild(_makeInfoSep());
     var healthEl = document.createElement('span');

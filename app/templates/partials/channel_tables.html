@@ -115,7 +115,7 @@
                     <tr>
                         <td class="dt-primary" data-label="{{ t.ch_abbr }}">{{ ch.channel_id }}</td>
                         <td class="dt-num" data-label="{{ t.frequency }}">{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
-                        <td class="dt-num" data-label="{{ t.th_power }}" data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
+                        <td class="dt-num" data-label="{{ t.th_power }}" data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}{% if ch.modem_power_offset_db and ch.power is not none %} {% include 'partials/power_offset_hint.html' %}{% endif %}</td>
                         <td data-label="{{ t.mod_abbr }}" data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
                         <td class="dt-num" data-label="{{ t.get('docsight.modulation.capacity_short', 'Capacity estimate') }}" title="{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} {{ 'Mbit/s' if lang == 'de' else 'Mbps' }}{% else %}&#8212;{% endif %}</td>
                         <td class="dt-primary">

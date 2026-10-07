@@ -399,6 +399,7 @@ def _cases() -> list[DriverFormatCase]:
     # Fritz!Box data.lua boundary: input is already normalized by app.fritzbox.
     fritz_expected = json.loads(json.dumps(FRITZ_SUCCESS))
     fritz_expected["channelUs"]["docsis31"][0]["powerLevel"] = "43.0"
+    fritz_expected["channelUs"]["docsis31"][0]["powerDisplayOffset"] = 6.0
     add("fritzbox_data_lua.success_duplicates_missing_id", "fritzbox", "fritzbox_data_lua", "captured-shape", lambda: _fritz(json.loads(json.dumps(FRITZ_SUCCESS))), fritz_expected)
     add("fritzbox_data_lua.empty", "fritzbox", "fritzbox_data_lua", "minimal-empty", lambda: _fritz(json.loads(json.dumps(EMPTY_SPLIT))), EMPTY_SPLIT)
     fritz_bad = _split(us31=[{"channelID": 5, "powerLevel": "not-a-number"}])

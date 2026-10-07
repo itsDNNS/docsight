@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Cuir laethanta na tréimhse seo le cás (an raon zúmáilte, má tá sé zúmáilte)",
   "correlation_case_summary": "Tréimhse {range}",
   "correlation_case_name": "Comhghaolú {range}",
-  "correlation_added_to_case": "Tréimhse curtha le “{case}”"
+  "correlation_added_to_case": "Tréimhse curtha le “{case}”",
+  "power_offset_note": "Taispeánann an móideim {shown} dBmV anseo. Taispeánann sé an cainéal seo {offset} dB níos ísle ná tagairt na dtairseach, mar sin cuireann DOCSight {offset} dB leis."
 }

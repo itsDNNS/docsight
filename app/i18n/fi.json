@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Lisää tämän aikavälin päivät tapaukseen (zoomattu alue, jos zoomattu)",
   "correlation_case_summary": "Aikaväli {range}",
   "correlation_case_name": "Korrelaatio {range}",
-  "correlation_added_to_case": "Aikaväli lisätty tapaukseen ”{case}”"
+  "correlation_added_to_case": "Aikaväli lisätty tapaukseen ”{case}”",
+  "power_offset_note": "Modeemi näyttää tässä {shown} dBmV. Se näyttää tämän kanavan {offset} dB raja-arvojen vertailutasoa matalampana, joten DOCSight lisää {offset} dB."
 }
