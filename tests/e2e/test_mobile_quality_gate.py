@@ -271,3 +271,19 @@ def test_top_bar_fits_small_phones(page, live_server, path):
     )
     assert fit["document"] <= 0 and fit["actions"] <= 0, fit
     expect(page.get_by_role("link", name="DOCSight", exact=True)).to_be_visible()
+
+
+@pytest.mark.parametrize("width, lang, path", [
+    (320, "de", "/#correlation"),
+    (320, "en", "/#correlation"),
+    (360, "fr", "/#modulation"),
+    (320, "de", "/settings#evidence"),
+])
+def test_long_labels_fit_small_phones(page, live_server, width, lang, path):
+    """Long German and French labels wrap instead of pushing the page sideways."""
+    page.set_viewport_size({"width": width, "height": 740})
+    page.goto(f"{live_server}{path.replace('#', f'?lang={lang}#', 1)}")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(500)
+    overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+    assert overflow <= 0, f"{lang} {path} overflows by {overflow}px at {width}px"
