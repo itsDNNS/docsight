@@ -614,7 +614,7 @@ function renderGroupDistChart(pg, idx) {
             var rawSeries = rawSeriesByMod[mod] || [];
             var raw = rawSeries[ctx.dataIndex] || 0;
             return mod + ': ' + raw.toFixed(1) + '%';
-        })]
+        }), touchScrubPlugin()]
     }, uData, container);
     attachModulationDayClick(chart, container, days);
     _modCharts.push(chart);
@@ -718,7 +718,7 @@ function renderGroupTrendChart(pg, idx) {
         ],
         cursor: { show: true, x: true, y: false, points: { show: false } },
         legend: { show: true, live: false },
-        plugins: [tooltipPlugin(labels)]
+        plugins: [tooltipPlugin(labels), touchScrubPlugin()]
     }, [
         xData,
         days.map(function(d) { return d.health_index; }),
@@ -1013,7 +1013,7 @@ function renderChannelTimeline(canvasId, timeline) {
         ],
         cursor: { show: true, x: true, y: false, points: { show: false } },
         legend: { show: false },
-        plugins: [tooltipPlugin(labels)]
+        plugins: [tooltipPlugin(labels), touchScrubPlugin()]
     }, [xData, dataPoints], container);
     _modIntradayCharts.push(chart);
 }

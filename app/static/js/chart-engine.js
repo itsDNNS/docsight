@@ -511,10 +511,9 @@ function tooltipPlugin(labels, tooltipLabelCallback) {
             tooltip.style.display = 'none';
             return;
         }
-        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
         tooltip.textContent = '';
         var header = document.createElement('div');
-        header.style.cssText = 'font-weight:600;margin-bottom:4px;';
+        header.className = 'uplot-tooltip-time';
         header.textContent = labels[idx] || '';
         tooltip.appendChild(header);
         for (var i = 1; i < u.series.length; i++) {
@@ -538,9 +537,6 @@ function tooltipPlugin(labels, tooltipLabelCallback) {
             tooltip.appendChild(buildLine(color, text));
         }
         tooltip.style.display = 'block';
-        tooltip.style.background = isDark ? '#16213e' : '#fff';
-        tooltip.style.color = isDark ? '#888' : '#666';
-        tooltip.style.border = '1px solid ' + (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)');
 
         var left = u.cursor.left;
         var top = u.cursor.top;
@@ -563,6 +559,69 @@ function tooltipPlugin(labels, tooltipLabelCallback) {
             setCursor: [setCursor]
         }
     };
+}
+
+/* ── Touch: press and hold to read values ──
+   A quick swipe keeps scrolling the page. Holding a finger still on the plot
+   for a moment shows the tooltip, and moving it then slides along the values
+   instead of scrolling. */
+var TOUCH_HOLD_MS = 350;
+var TOUCH_SLOP_PX = 10;
+
+function docsightTouchHold(target, onPoint) {
+    var timer = null;
+    var scrubbing = false;
+    var startX = 0;
+    var startY = 0;
+    function stop() {
+        clearTimeout(timer);
+        timer = null;
+        if (scrubbing) target.classList.remove('is-scrubbing');
+        scrubbing = false;
+    }
+    target.addEventListener('touchstart', function(event) {
+        if (event.touches.length !== 1) { stop(); return; }
+        var touch = event.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+            scrubbing = true;
+            target.classList.add('is-scrubbing');
+            onPoint(touch);
+        }, TOUCH_HOLD_MS);
+    }, {passive: true});
+    target.addEventListener('touchmove', function(event) {
+        var touch = event.touches[0];
+        if (scrubbing) {
+            event.preventDefault();
+            onPoint(touch);
+        } else if (Math.abs(touch.clientX - startX) > TOUCH_SLOP_PX || Math.abs(touch.clientY - startY) > TOUCH_SLOP_PX) {
+            stop();
+        }
+    }, {passive: false});
+    target.addEventListener('touchend', function(event) {
+        // Lifting the finger after reading values is not a tap on the chart.
+        if (scrubbing && event.cancelable) event.preventDefault();
+        stop();
+    }, {passive: false});
+    target.addEventListener('touchcancel', stop);
+    // Hold-to-read replaces the long-press menu on the plot.
+    target.addEventListener('contextmenu', function(event) {
+        if (scrubbing || timer) event.preventDefault();
+    });
+}
+
+function touchScrubPlugin() {
+    return {hooks: {init: [function(u) {
+        docsightTouchHold(u.over, function(touch) {
+            var rect = u.over.getBoundingClientRect();
+            u.setCursor({
+                left: Math.max(0, Math.min(rect.width, touch.clientX - rect.left)),
+                top: Math.max(0, Math.min(rect.height, touch.clientY - rect.top))
+            });
+        });
+    }]}};
 }
 
 /* ── Helper: prepare uPlot container from canvas/div element ── */
@@ -850,7 +909,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         cursor.drag = { x: true, y: false, uni: 10 };
     }
     /* Plugins */
-    var plugins = [tooltipPlugin(labels, tooltipLabelCallback)];
+    var plugins = [tooltipPlugin(labels, tooltipLabelCallback), touchScrubPlugin()];
     if (zones) plugins.push(zonesPlugin(zones));
     if (opts && opts.plugins) { opts.plugins.forEach(function(p) { plugins.push(p); }); }
 
@@ -1082,7 +1141,7 @@ function openChartZoom(canvasId) {
         }
 
         /* Plugins */
-        var plugins = [tooltipPlugin(params.labels, zoomTooltipCb)];
+        var plugins = [tooltipPlugin(params.labels, zoomTooltipCb), touchScrubPlugin()];
         if (params.zones) plugins.push(zonesPlugin(params.zones));
 
         var uOpts = {

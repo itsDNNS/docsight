@@ -140,8 +140,14 @@
     line-height: 1.5;
     pointer-events: none;
     white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    background: var(--elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-md);
 }
+.uplot-tooltip-time { margin-bottom: 4px; color: var(--text); font-weight: 600; }
+/* Holding a finger on a chart reads values instead of selecting text. */
+.uplot .u-over, #correlation-overlay { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
 /* Responsive: Mobile stacking */
 @media (max-width: 768px) {
@@ -157,7 +163,8 @@
         padding: 8px;
     }
     .chart-export-btn,
-    .correlation-zoom-reset {
+    .correlation-zoom-reset,
+    .chart-zoom-reset {
         min-width: 44px;
         min-height: 44px;
         padding: 8px 12px;
@@ -794,7 +801,8 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     border-color: var(--accent);
     color: var(--text);
 }
-.correlation-zoom-reset {
+.correlation-zoom-reset,
+.chart-zoom-reset {
     position: absolute;
     top: 6px;
     right: 8px;
@@ -809,14 +817,17 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     opacity: 0.85;
     transition: opacity 0.2s var(--ease-out-expo);
 }
-.correlation-zoom-reset:hover {
+.correlation-zoom-reset:hover,
+.chart-zoom-reset:hover {
     opacity: 1;
 }
-.correlation-zoom-reset:active {
+.correlation-zoom-reset:active,
+.chart-zoom-reset:active {
     opacity: 0.7;
     transform: scale(0.96);
 }
-.correlation-zoom-reset:focus-visible {
+.correlation-zoom-reset:focus-visible,
+.chart-zoom-reset:focus-visible {
     outline: 2px solid var(--amethyst);
     outline-offset: 2px;
 }
