@@ -407,6 +407,21 @@ class TestSnapshotStorage:
         assert [row["summary"]["ds_correctable_errors"] for row in rows] == [4_794_967_296, 4_794_967_396]
         assert all(set(row) == {"timestamp", "summary"} for row in rows)
 
+    def test_range_coverage_matches_the_range_without_loading_it(self, storage):
+        """Coverage counts the same inclusive window as get_range_data and reports its latest snapshot."""
+        with sqlite3.connect(storage.db_path) as conn:
+            for timestamp in ["2026-05-31T23:59:59Z", "2026-06-01T00:00:00Z", "2026-06-01T12:00:00Z",
+                              "2026-06-02T00:00:00Z", "2026-06-02T00:00:01Z"]:
+                conn.execute(
+                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
+                    (timestamp, json.dumps({"health": "good"}), "[]", "[]"),
+                )
+
+        start, end = "2026-06-01T00:00:00Z", "2026-06-02T00:00:00Z"
+        assert storage.get_range_coverage(start, end) == (len(storage.get_range_data(start, end)), end)
+        assert storage.get_range_coverage(start, end) == (3, "2026-06-02T00:00:00Z")
+        assert storage.get_range_coverage("2026-07-01T00:00:00Z", "2026-07-02T00:00:00Z") == (0, None)
+
     def test_range_data_includes_snapshots_exactly_on_both_bounds(self, storage):
         """Exact report windows retain snapshots at both inclusive boundaries."""
         with sqlite3.connect(storage.db_path) as conn:

@@ -217,6 +217,19 @@ class SnapshotMethods:
         """Get all snapshots between two ISO timestamps (inclusive)."""
         return self._range_entries(start_ts, end_ts, with_channels=True)
 
+    def get_range_coverage(self, start_ts: str, end_ts: str) -> tuple[int, str | None]:
+        """Number of snapshots between two ISO timestamps (inclusive) and the latest one's timestamp.
+
+        For callers that only need to know whether and until when signal data exists;
+        far cheaper than loading the range.
+        """
+        with self._read() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*), MAX(timestamp) FROM snapshots WHERE timestamp >= ? AND timestamp <= ?",
+                (start_ts, end_ts),
+            ).fetchone()
+        return (row[0] or 0, row[1]) if row else (0, None)
+
     def get_range_summaries(self, start_ts: str, end_ts: str) -> list[dict]:
         """Like get_range_data, but only timestamps and summaries.
 
