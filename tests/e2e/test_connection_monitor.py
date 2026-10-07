@@ -110,3 +110,32 @@ def test_connection_monitor_keeps_observations_per_target_without_fault_inferenc
     expect(page.locator('#cm-raw-log-links .cm-chip-btn')).to_have_count(2)
     expect(page.locator('.cm-diagnosis, #cm-stats-cards, #cm-availability')).to_have_count(0)
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1')
+
+
+def test_connection_monitor_reset_zoom_follows_the_theme(demo_page):
+    """The reset button after a drag-zoom uses the shared chart style instead of fixed dark colors."""
+    page = demo_page
+    page.goto(page.url.split("#", 1)[0] + "#connection-monitor?range=7d", wait_until="networkidle")
+    over = page.locator("#cm-combined-chart .u-over")
+    expect(over).to_be_visible()
+    box = over.bounding_box()
+    page.mouse.move(box["x"] + box["width"] * 0.3, box["y"] + box["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(box["x"] + box["width"] * 0.6, box["y"] + box["height"] / 2, steps=8)
+    page.mouse.up()
+
+    reset = page.locator("#cm-combined-chart .chart-zoom-reset")
+    expect(reset).to_be_visible()
+    colors = reset.evaluate(
+        """el => {
+            const probe = document.createElement('div');
+            probe.style.background = 'var(--accent)';
+            document.body.appendChild(probe);
+            const accent = getComputedStyle(probe).backgroundColor;
+            probe.remove();
+            return [getComputedStyle(el).backgroundColor, accent];
+        }"""
+    )
+    assert colors[0] == colors[1]
+    reset.click()
+    expect(reset).to_be_hidden()

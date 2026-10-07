@@ -66,12 +66,8 @@ var CMCharts = (function() {
             if (u._resetBtn) { u._resetBtn.style.display = ''; return; }
             var btn = document.createElement('button');
             btn.textContent = '\u2715 ' + (T.chart_reset_zoom || 'Reset Zoom');
-            btn.style.cssText = 'position:absolute;top:8px;right:8px;z-index:10;' +
-                'font-size:var(--fs-min);padding:3px 8px;border:1px solid rgba(255,255,255,0.2);' +
-                'border-radius:4px;background:rgba(30,30,30,0.85);color:#ccc;cursor:pointer;' +
-                'backdrop-filter:blur(4px);transition:opacity 0.15s;';
-            btn.onmouseenter = function() { btn.style.color = '#fff'; };
-            btn.onmouseleave = function() { btn.style.color = '#ccc'; };
+            btn.type = 'button';
+            btn.className = 'chart-zoom-reset';
             btn.onclick = function() {
                 u._zoomRange = null;
                 u.setScale('x', { min: 0, max: u.data[0].length - 1 });

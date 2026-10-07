@@ -963,6 +963,11 @@ function _setupCorrelationTooltip(overlay, octx) {
         setTimeout(function() { suppressNextClick = false; }, 0);
     }
 
+    // Phones: press and hold reads values like hovering does.
+    docsightTouchHold(newOverlay, function(touch) {
+        newOverlay.dispatchEvent(new MouseEvent('mousemove', {clientX: touch.clientX, clientY: touch.clientY}));
+    });
+
     // Drag-zoom state
     var dragStart = null; // mouseX where drag started
 

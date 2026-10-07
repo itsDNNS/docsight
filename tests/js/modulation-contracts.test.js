@@ -61,7 +61,7 @@ function browser(lang = 'en', translations = {}) {
         document: {getElementById: id => ids.get(id), createElement: () => element(),
             querySelectorAll: selector => selector.includes('direction') ? directions : ranges},
         getComputedStyle: () => ({getPropertyValue: () => ''}), uPlot: Chart,
-        tooltipPlugin: () => ({}), T: translations, currentLang: lang,
+        tooltipPlugin: () => ({}), touchScrubPlugin: () => ({}), T: translations, currentLang: lang,
         docsightUrl: url => '/docsight' + url, console: {error: (...args) => assert.fail(args.join(' '))},
         fetch: url => new Promise(resolve => requests.push({url, resolve})),
         URLSearchParams, location: {hash: '#modulation'}, history: {replaceState(_state, _title, url) { context.location.hash = url; }},
