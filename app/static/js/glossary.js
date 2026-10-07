@@ -102,8 +102,9 @@
   }
   initHints();
 
-  // Expose for dashboard refresh cycle
+  // Expose for dashboard refresh cycle, and for the help panel that replaces the popover
   window.initGlossaryHints = initHints;
+  window.closeGlossaryPopover = closeAll;
 
   // Toggle on Enter/Space for keyboard users (capture phase to intercept before inline handlers)
   document.addEventListener('keydown', function (e) {

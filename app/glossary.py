@@ -1198,6 +1198,52 @@ def validate_glossary_catalog(
     return errors
 
 
+# The DOCSight view in which each UI context appears, so an article can link to the
+# places where its term shows up. Contexts without a view of their own map to None.
+UI_CONTEXT_VIEWS: dict[str, str | None] = {
+    "dashboard": "live",
+    "dashboard_docsis_basics": "live",
+    "dashboard_docsis_group": "live",
+    "dashboard_error_cards": "live",
+    "dashboard_health": "live",
+    "dashboard_signal_cards": "live",
+    "channel_tables": "channels",
+    "channel_timeline": "channels",
+    "upstream_channels": "channels",
+    "signal_trends": "trends",
+    "modulation_view": "modulation",
+    "modulation_performance": "modulation",
+    "segment_utilization": "segment-utilization",
+    "correlation_analysis": "correlation",
+    "speedtest_correlation": "correlation",
+    "speedtest": "speedtest",
+    "connection_monitor": "connection-monitor",
+    "gaming_index": "gaming",
+    "bqm": "bqm",
+    "smokeping": "smokeping",
+    "event_log": "events",
+    "incident_journal": "journal",
+    "before_after_comparison": "comparison",
+    "bnetza": "bnetz",
+    "de_tkg_compensation": None,
+    "doctor_diagnostics": None,
+    "in_app_glossary": None,
+    "llm_export": None,
+    "pwa_offline": None,
+    "smart_capture": None,
+}
+
+
+def glossary_term_views(term: dict[str, Any]) -> list[str]:
+    """Return the views a term appears in, in context order and without repeats."""
+    views: list[str] = []
+    for context in term.get("ui_contexts", []):
+        view = UI_CONTEXT_VIEWS.get(context)
+        if view and view not in views:
+            views.append(view)
+    return views
+
+
 def get_glossary_categories(lang: str = "en") -> list[dict[str, str]]:
     """Return localized glossary categories."""
     return [category.localized(lang) for category in _CATEGORIES]

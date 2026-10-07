@@ -166,8 +166,12 @@ def test_glossary_link_opens_the_term(demo_page):
     _open(page, "trends")
 
     page.locator("#trend-no-data .view-empty-link").click()
-    expect(page.locator("#view-glossary")).to_be_visible()
-    assert "term=signal_trends" in page.url
+    # The term opens in the help panel; the view stays where it was.
+    panel = page.locator("#glossary-panel")
+    expect(panel).to_be_visible()
+    expect(panel.locator('[data-glossary-article][data-term-id="signal_trends"]')).to_be_visible()
+    expect(page.locator("#view-trends")).to_be_visible()
+    assert page.url.endswith("#trends")
 
 
 def test_speedtest_without_results_points_at_the_tracker_and_period_offers_all(demo_page):

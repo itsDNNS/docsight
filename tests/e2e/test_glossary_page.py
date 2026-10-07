@@ -66,7 +66,7 @@ def _assert_shared_medium_image_loaded(page, expected_alt, expected_caption):
           };
           const foreground = luminance(parseRgb(getComputedStyle(node).color));
           const background = luminance(
-            parseRgb(getComputedStyle(node.closest('.glossary-card')).backgroundColor)
+            parseRgb(getComputedStyle(node.closest('.glossary-term-article')).backgroundColor)
           );
           return (Math.max(foreground, background) + 0.05)
             / (Math.min(foreground, background) + 0.05);
@@ -108,6 +108,14 @@ def test_glossary_app_view_renders_inside_shell(page, live_server):
     )
     assert desktop_terms == sorted(desktop_terms, key=str.casefold)
     _assert_visible_boxes_do_not_overlap(page, "#view-glossary .glossary-term-article:not([hidden]) > .glossary-card")
+
+    # Switching to the glossary from another view keeps the page header in place.
+    page.evaluate("location.hash = '#dashboard'")
+    page.wait_for_selector("#view-dashboard.active", state="visible")
+    page.evaluate("window.scrollTo(0, 0); location.hash = '#glossary'")
+    page.wait_for_selector("#view-glossary.active", state="visible")
+    page.wait_for_timeout(600)
+    assert page.evaluate("window.scrollY") == 0
 
 
 def test_glossary_term_list_navigation_updates_hash_and_article(page, live_server):
@@ -307,7 +315,58 @@ def test_dashboard_contextual_glossary_link_is_keyboard_reachable(page, live_ser
     expect(link).to_be_visible()
     expect(link).to_be_focused()
 
+    # The article opens in the help panel over the dashboard.
     page.keyboard.press("Enter")
-    expect(page).to_have_url(re.compile(r"/\?lang=en#glossary\?term=docsis"))
+    panel = page.locator("#glossary-panel")
+    expect(panel).to_be_visible()
+    expect(page.locator("#glossary-panel-title")).to_be_focused()
+    expect(panel.locator(".glossary-term-header-card h3", has_text="DOCSIS")).to_be_visible()
+    expect(page.locator("#view-dashboard")).to_be_visible()
+    assert "#glossary" not in page.url
+
+    page.keyboard.press("Escape")
+    expect(panel).to_be_hidden()
+    expect(hint).to_be_focused()
+
+
+def test_help_panel_browses_terms_without_leaving_the_view(page, live_server):
+    page.goto(f"{live_server}/?lang=en#channels")
+    page.wait_for_selector("#view-channels.active", state="visible")
+    page.evaluate("openGlossaryPanel('sc_qam')")
+
+    panel = page.locator("#glossary-panel")
+    expect(panel.locator('[data-glossary-article][data-term-id="sc_qam"]')).to_be_visible()
+    # The cloned article gets prefixed ids, so the page's own article keeps unique ones.
+    assert page.evaluate("document.querySelectorAll('#glossary-term-title-sc_qam').length") == 1
+
+    # A related term opens in the panel, replacing the article.
+    panel.locator(".glossary-related-tile").first.click()
+    expect(panel.locator("[data-glossary-article]")).to_have_count(1)
+    expect(panel.locator("[data-glossary-article]")).not_to_have_attribute("data-term-id", "sc_qam")
+
+    # "All terms" lists every term under its letter; a search ranks matches without letters.
+    panel.locator("[data-glossary-panel-back]").click()
+    expect(panel.locator("[data-glossary-panel-list]")).to_be_visible()
+    expect(panel.locator("[data-glossary-letter]").first).to_be_visible()
+    panel.locator("#glossary-panel-search").fill("upstr")
+    expect(panel.locator("[data-glossary-letter]:visible")).to_have_count(0)
+    expect(panel.locator("[data-glossary-term]:visible").first).to_contain_text("Upstream")
+    panel.locator("#glossary-panel-search").press("Enter")
+    expect(panel.locator('[data-glossary-article][data-term-id="upstream"]')).to_be_visible()
+
+    expect(page.locator("#view-channels")).to_be_visible()
+    assert "#channels" in page.url and "#glossary" not in page.url
+    panel.locator("[data-glossary-panel-close]").click()
+    expect(panel).to_be_hidden()
+
+
+def test_article_links_to_the_views_where_the_term_appears(page, live_server):
+    page.goto(f"{live_server}/?lang=en#glossary?term=snr_mer")
     page.wait_for_selector("#view-glossary.active", state="visible")
-    expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="DOCSIS")).to_be_visible()
+
+    where = _active_article(page).locator("[data-glossary-where]")
+    expect(where).to_be_visible()
+    links = where.locator("[data-glossary-where-view]:visible")
+    expect(links).to_have_text(["Overview", "Channels"])
+    links.nth(1).click()
+    page.wait_for_selector("#view-channels.active", state="visible")

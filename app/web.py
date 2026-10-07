@@ -25,6 +25,7 @@ from .glossary import (
     get_glossary_categories,
     get_glossary_term,
     get_glossary_terms,
+    glossary_term_views,
 )
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
@@ -392,11 +393,19 @@ def _build_glossary_context(lang, t, selected_term_id=None):
         selected_term = terms[0]
     category_by_id = {category["id"]: category for category in categories}
     term_by_id = {term["id"]: term for term in terms}
+    letter_groups: list[tuple[str, list[dict]]] = []
+    for term in terms:
+        letter = term["title"][:1].upper()
+        if not letter_groups or letter_groups[-1][0] != letter:
+            letter_groups.append((letter, []))
+        letter_groups[-1][1].append(term)
     return {
         "glossary_terms": terms,
         "glossary_categories": categories,
         "glossary_category_by_id": category_by_id,
         "glossary_term_by_id": term_by_id,
+        "glossary_letter_groups": letter_groups,
+        "glossary_term_views": {term["id"]: glossary_term_views(term) for term in terms},
         "glossary_selected_term": selected_term,
     }
 

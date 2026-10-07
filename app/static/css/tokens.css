@@ -47,7 +47,6 @@
   --radius-pill: 100px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.25);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.35);
 
@@ -144,7 +143,6 @@
   --border-subtle: rgba(0, 0, 0, 0.05);
   --border-tint: rgba(0, 0, 0, 0.08);
 
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
 }
