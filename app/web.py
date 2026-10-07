@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from collections.abc import Callable
-from urllib.parse import urlencode
+from urllib.parse import urlsplit, urlencode
 
 from flask import current_app, render_template, request, jsonify, redirect, session, send_from_directory, url_for
 from markupsafe import Markup
@@ -457,17 +457,24 @@ def _onboarding_checklist(config_manager, demo_mode):
     return {"id": ONBOARDING_CHECKLIST_ID, "items": items, "done": done, "total": len(items)}
 
 
+def _web_link(value):
+    """A configured address the browser may link to: http(s) only, else nothing."""
+    text = (value or "").strip().rstrip("/")
+    return text if urlsplit(text).scheme in ("http", "https") and urlsplit(text).netloc else ""
+
+
 def _shell_nav_context(config_manager):
     """What the shared top navigation needs to know about configured sources."""
     if not config_manager:
         return {
-            "bqm_configured": False, "smokeping_configured": False, "speedtest_configured": False,
+            "bqm_configured": False, "smokeping_configured": False, "smokeping_url": "", "speedtest_configured": False,
             "gaming_quality_enabled": False, "segment_utilization_enabled": False,
             "is_fritzbox": False, "bnetz_enabled": True,
         }
     return {
         "bqm_configured": bool(config_manager.is_bqm_configured() or config_manager.get("bqm_url")),
         "smokeping_configured": config_manager.is_smokeping_configured(),
+        "smokeping_url": _web_link(config_manager.get("smokeping_url")),
         "speedtest_configured": config_manager.is_speedtest_configured(),
         "gaming_quality_enabled": config_manager.is_gaming_quality_enabled(),
         "segment_utilization_enabled": config_manager.is_segment_utilization_enabled(),

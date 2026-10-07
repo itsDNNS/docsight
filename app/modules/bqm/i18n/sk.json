@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Nepodporovaný typ súboru. Podporované sú iba obrázky PNG a JPEG.",
   "bqm_import_validation_ready": "{0} pripravený",
   "bqm_import_validation_dates": "{0} potrebuje dátum",
-  "bqm_csv_import": "Import BQM CSV"
+  "bqm_csv_import": "Import BQM CSV",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · jeden graf za deň",
+  "bqm_window_day": "celý deň",
+  "bqm_window_today": "dnes zatiaľ"
 }

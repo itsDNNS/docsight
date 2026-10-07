@@ -22,5 +22,5 @@ def test_smokeping_cards_and_error_fallback_use_dom_nodes():
     )
 
     assert ".innerHTML" not in source
-    assert "headerLabel.textContent = target" in source
+    assert "title.textContent = 'SmokePing \\u00b7 ' + target" in source
     assert "fallback.textContent" in source

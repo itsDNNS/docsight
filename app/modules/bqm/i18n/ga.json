@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Cineál comhaid nach dtacaítear leis. Ní thacaítear ach le híomhánna PNG agus JPEG.",
   "bqm_import_validation_ready": "{0} réidh",
   "bqm_import_validation_dates": "{0} gá dáta",
-  "bqm_csv_import": "BQM CSV allmhairiú"
+  "bqm_csv_import": "BQM CSV allmhairiú",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · graf amháin in aghaidh an lae",
+  "bqm_window_day": "an lá ar fad",
+  "bqm_window_today": "inniu go dtí seo"
 }

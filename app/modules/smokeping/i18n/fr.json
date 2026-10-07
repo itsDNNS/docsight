@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "La vérification SmokePing dépend de l’URL de base et de la cible enregistrées dans les paramètres SmokePing. Enregistrez d’abord ces valeurs, puis actualisez cette vue pour confirmer les données en direct.",
   "smokeping_empty_title": "Aucune cible SmokePing configurée",
   "smokeping_empty_text": "Ajoute les cibles de ta configuration SmokePing dans les paramètres pour afficher ici leurs graphiques de latence.",
-  "smokeping_empty_action": "Ouvrir les paramètres SmokePing"
+  "smokeping_empty_action": "Ouvrir les paramètres SmokePing",
+  "smokeping_span_3h": "3 dernières heures",
+  "smokeping_span_30h": "30 dernières heures",
+  "smokeping_span_10d": "10 derniers jours",
+  "smokeping_span_1y": "dernière année",
+  "smokeping_closest_to": "le plus proche de {range}",
+  "smokeping_frame_source": "SmokePing trace 3 h, 30 h, 10 j ou 1 an",
+  "smokeping_open_source": "Ouvrir dans SmokePing"
 }

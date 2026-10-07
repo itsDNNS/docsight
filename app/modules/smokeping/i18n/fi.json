@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "SmokePingin tarkistus perustuu SmokePing-asetuksiin tallennettuihin perus-URL:iin ja kohteeseen. Tallenna nämä ensin ja päivitä sitten tämä näkymä vahvistaaksesi reaaliaikaiset tiedot.",
   "smokeping_empty_title": "SmokePing-kohteita ei ole määritetty",
   "smokeping_empty_text": "Lisää asetuksiin kohteet SmokePing-määrityksestäsi, niin niiden viivekaaviot näkyvät täällä.",
-  "smokeping_empty_action": "Avaa SmokePing-asetukset"
+  "smokeping_empty_action": "Avaa SmokePing-asetukset",
+  "smokeping_span_3h": "viimeiset 3 tuntia",
+  "smokeping_span_30h": "viimeiset 30 tuntia",
+  "smokeping_span_10d": "viimeiset 10 päivää",
+  "smokeping_span_1y": "viimeinen vuosi",
+  "smokeping_closest_to": "lähinnä {range}",
+  "smokeping_frame_source": "SmokePing piirtää 3 h, 30 h, 10 pv tai 1 v",
+  "smokeping_open_source": "Avaa SmokePingissä"
 }

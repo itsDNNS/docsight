@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "De SmokePing-controle hangt af van de opgeslagen basis-URL en het doel in de SmokePing-instellingen. Sla die waarden eerst op en vernieuw dan deze weergave om live gegevens te bevestigen.",
   "smokeping_empty_title": "Geen SmokePing-doelen ingesteld",
   "smokeping_empty_text": "Voeg in de instellingen de doelen uit je SmokePing-configuratie toe om hier hun latentiegrafieken te zien.",
-  "smokeping_empty_action": "SmokePing-instellingen openen"
+  "smokeping_empty_action": "SmokePing-instellingen openen",
+  "smokeping_span_3h": "laatste 3 uur",
+  "smokeping_span_30h": "laatste 30 uur",
+  "smokeping_span_10d": "laatste 10 dagen",
+  "smokeping_span_1y": "afgelopen jaar",
+  "smokeping_closest_to": "dichtst bij {range}",
+  "smokeping_frame_source": "SmokePing tekent 3 u, 30 u, 10 d of 1 j",
+  "smokeping_open_source": "Openen in SmokePing"
 }

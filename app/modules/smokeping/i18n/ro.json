@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "Verificarea SmokePing depinde de URL-ul de bază și de ținta salvate în setările SmokePing. Salvați mai întâi aceste valori, apoi reîncărcați această vizualizare pentru a confirma datele în timp real.",
   "smokeping_empty_title": "Nu există ținte SmokePing configurate",
   "smokeping_empty_text": "Adaugă în setări țintele din configurația ta SmokePing pentru a le vedea aici graficele de latență.",
-  "smokeping_empty_action": "Deschide setările SmokePing"
+  "smokeping_empty_action": "Deschide setările SmokePing",
+  "smokeping_span_3h": "ultimele 3 ore",
+  "smokeping_span_30h": "ultimele 30 de ore",
+  "smokeping_span_10d": "ultimele 10 zile",
+  "smokeping_span_1y": "ultimul an",
+  "smokeping_closest_to": "cel mai apropiat de {range}",
+  "smokeping_frame_source": "SmokePing desenează 3 h, 30 h, 10 z sau 1 an",
+  "smokeping_open_source": "Deschide în SmokePing"
 }

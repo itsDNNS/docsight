@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "SmokePing validation depends on the saved base URL and target in SmokePing settings. Save those values first, then refresh this view to confirm live data.",
   "smokeping_empty_title": "No SmokePing targets configured",
   "smokeping_empty_text": "Add the targets from your SmokePing configuration in the settings to show their latency graphs here.",
-  "smokeping_empty_action": "Open SmokePing settings"
+  "smokeping_empty_action": "Open SmokePing settings",
+  "smokeping_span_3h": "last 3 hours",
+  "smokeping_span_30h": "last 30 hours",
+  "smokeping_span_10d": "last 10 days",
+  "smokeping_span_1y": "last year",
+  "smokeping_closest_to": "closest to {range}",
+  "smokeping_frame_source": "SmokePing draws 3 h, 30 h, 10 d or 1 y",
+  "smokeping_open_source": "Open in SmokePing"
 }

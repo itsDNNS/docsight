@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Μη υποστηριζόμενος τύπος αρχείου. Υποστηρίζονται μόνο εικόνες PNG και JPEG.",
   "bqm_import_validation_ready": "Έτοιμο το {0}",
   "bqm_import_validation_dates": "Το {0} χρειάζεται ημερομηνία",
-  "bqm_csv_import": "Εισαγωγή BQM CSV"
+  "bqm_csv_import": "Εισαγωγή BQM CSV",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · ένα γράφημα την ημέρα",
+  "bqm_window_day": "όλη η ημέρα",
+  "bqm_window_today": "σήμερα μέχρι τώρα"
 }

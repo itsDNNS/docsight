@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "Braitheann seiceáil SmokePing ar an mbun-URL agus ar an sprioc atá sábháilte i socruithe SmokePing. Sábháil na luachanna sin ar dtús, ansin athnuaigh an t-amharc seo chun sonraí beo a dheimhniú.",
   "smokeping_empty_title": "Níl aon spriocanna SmokePing cumraithe",
   "smokeping_empty_text": "Cuir na spriocanna ó do chumraíocht SmokePing leis na socruithe chun a ngraif aga folaigh a fheiceáil anseo.",
-  "smokeping_empty_action": "Oscail socruithe SmokePing"
+  "smokeping_empty_action": "Oscail socruithe SmokePing",
+  "smokeping_span_3h": "na 3 uair dheireanacha",
+  "smokeping_span_30h": "na 30 uair dheireanacha",
+  "smokeping_span_10d": "na 10 lá deireanacha",
+  "smokeping_span_1y": "an bhliain seo caite",
+  "smokeping_closest_to": "is gaire do {range}",
+  "smokeping_frame_source": "Tarraingíonn SmokePing 3 u, 30 u, 10 l nó 1 b",
+  "smokeping_open_source": "Oscail in SmokePing"
 }

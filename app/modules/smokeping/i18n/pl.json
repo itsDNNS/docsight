@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "Sprawdzenie SmokePing zależy od bazowego URL i celu zapisanych w ustawieniach SmokePing. Najpierw zapisz te wartości, a potem odśwież ten widok, aby potwierdzić dane na żywo.",
   "smokeping_empty_title": "Brak skonfigurowanych celów SmokePing",
   "smokeping_empty_text": "Dodaj w ustawieniach cele z konfiguracji SmokePing, aby zobaczyć tu ich wykresy opóźnień.",
-  "smokeping_empty_action": "Otwórz ustawienia SmokePing"
+  "smokeping_empty_action": "Otwórz ustawienia SmokePing",
+  "smokeping_span_3h": "ostatnie 3 godziny",
+  "smokeping_span_30h": "ostatnie 30 godzin",
+  "smokeping_span_10d": "ostatnie 10 dni",
+  "smokeping_span_1y": "ostatni rok",
+  "smokeping_closest_to": "najbliżej {range}",
+  "smokeping_frame_source": "SmokePing rysuje 3 h, 30 h, 10 d lub 1 r",
+  "smokeping_open_source": "Otwórz w SmokePing"
 }

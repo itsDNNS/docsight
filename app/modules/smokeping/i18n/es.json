@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "La comprobación de SmokePing depende de la URL base y el destino guardados en la configuración de SmokePing. Guarda primero esos valores y recarga esta vista para confirmar los datos en vivo.",
   "smokeping_empty_title": "No hay destinos de SmokePing configurados",
   "smokeping_empty_text": "Añade en los ajustes los destinos de tu configuración de SmokePing para ver aquí sus gráficos de latencia.",
-  "smokeping_empty_action": "Abrir ajustes de SmokePing"
+  "smokeping_empty_action": "Abrir ajustes de SmokePing",
+  "smokeping_span_3h": "últimas 3 horas",
+  "smokeping_span_30h": "últimas 30 horas",
+  "smokeping_span_10d": "últimos 10 días",
+  "smokeping_span_1y": "último año",
+  "smokeping_closest_to": "lo más cercano a {range}",
+  "smokeping_frame_source": "SmokePing dibuja 3 h, 30 h, 10 d o 1 a",
+  "smokeping_open_source": "Abrir en SmokePing"
 }

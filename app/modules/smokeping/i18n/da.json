@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "SmokePing-kontrollen afhænger af den gemte basis-URL og det gemte mål i SmokePing-indstillingerne. Gem først disse værdier, og genindlæs derefter visningen for at bekræfte livedata.",
   "smokeping_empty_title": "Ingen SmokePing-mål opsat",
   "smokeping_empty_text": "Tilføj målene fra din SmokePing-konfiguration i indstillingerne for at se deres latensgrafer her.",
-  "smokeping_empty_action": "Åbn SmokePing-indstillinger"
+  "smokeping_empty_action": "Åbn SmokePing-indstillinger",
+  "smokeping_span_3h": "seneste 3 timer",
+  "smokeping_span_30h": "seneste 30 timer",
+  "smokeping_span_10d": "seneste 10 dage",
+  "smokeping_span_1y": "seneste år",
+  "smokeping_closest_to": "nærmest {range}",
+  "smokeping_frame_source": "SmokePing tegner 3 t, 30 t, 10 d eller 1 år",
+  "smokeping_open_source": "Åbn i SmokePing"
 }

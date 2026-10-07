@@ -951,20 +951,27 @@
 <!-- ═══ View: Smokeping Graphs ═══ -->
 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list and smokeping_configured %}
 <div id="view-smokeping" class="view">
+    {# The link to the SmokePing instance, rendered from the checked server setting; frames copy it. #}
+    {% if smokeping_url %}<a id="smokeping-source-link" href="{{ smokeping_url }}/" target="_blank" rel="noopener" hidden>{{ t.get('docsight.smokeping.smokeping_open_source', 'Open in SmokePing') }} &#8599;</a>{% endif %}
     <div class="view-page-header">
         <div class="view-page-header-left">
             <h2 class="view-page-title">{{ t.smokeping_title }}</h2>
         </div>
         <div class="view-page-actions">
+            {# The app's ranges; each shows SmokePing's closest graph (3h, 30h, 10d or 1y). #}
             <div class="segmented" id="smokeping-tabs" role="group" aria-label="{{ t.time_range }}">
-                <button class="segmented-option active" data-span="3h" aria-pressed="true">3h</button>
-                <button class="segmented-option" data-span="30h" aria-pressed="false">30h</button>
-                <button class="segmented-option" data-span="10d" aria-pressed="false">10d</button>
-                <button class="segmented-option" data-span="1y" aria-pressed="false">1y</button>
+                <button class="segmented-option" data-smokeping-range="1h" aria-pressed="false">1h</button>
+                <button class="segmented-option" data-smokeping-range="6h" aria-pressed="false">6h</button>
+                <button class="segmented-option active" data-smokeping-range="1d" aria-pressed="true">1d</button>
+                <button class="segmented-option" data-smokeping-range="2d" aria-pressed="false">2d</button>
+                <button class="segmented-option" data-smokeping-range="3d" aria-pressed="false">3d</button>
+                <button class="segmented-option" data-smokeping-range="7d" aria-pressed="false">7d</button>
+                <button class="segmented-option" data-smokeping-range="30d" aria-pressed="false">30d</button>
+                <button class="segmented-option" data-smokeping-range="90d" aria-pressed="false">90d</button>
             </div>
         </div>
     </div>
-    <div id="smokeping-content" class="bqm-card-grid">
+    <div id="smokeping-content" class="smokeping-frames">
     </div>
     <div id="smokeping-no-data" class="view-empty" hidden></div>
 </div>

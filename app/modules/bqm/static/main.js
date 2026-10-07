@@ -241,6 +241,12 @@ function loadBqmRangeChart(start, end) {
         });
 }
 
+/* The frame says which day or days the graph covers. */
+function setBqmWindow(text) {
+    var el = document.getElementById('bqm-window');
+    if (el) el.textContent = text || '';
+}
+
 function selectBqmDate(date) {
     bqmDate = date;
     _bqmRangeStart = null;
@@ -248,6 +254,9 @@ function selectBqmDate(date) {
     stopBqmLiveRefresh();
     renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
     updateBqmRangeLabel();
+    setBqmWindow(formatDateDE(date) + ' \u00b7 ' + (date === todayStr()
+        ? (T.bqm_window_today || 'today so far')
+        : (T.bqm_window_day || 'whole day')));
     updateBqmViewToggle(date);
     if (_bqmCsvDates.has(date)) {
         loadBqmChart(date);
@@ -418,6 +427,9 @@ function updateBqmRangeLabel() {
             return d >= _bqmRangeStart && d <= _bqmRangeEnd;
         }).length;
         label.textContent = formatDateDE(_bqmRangeStart) + ' \u2013 ' + formatDateDE(_bqmRangeEnd) + ' (' + count + ')';
+        setBqmWindow(_bqmRangeStart === _bqmRangeEnd
+            ? formatDateDE(_bqmRangeStart)
+            : formatDateDE(_bqmRangeStart) + ' \u2013 ' + formatDateDE(_bqmRangeEnd));
     } else {
         label.textContent = '';
     }
