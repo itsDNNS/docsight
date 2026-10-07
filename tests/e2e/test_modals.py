@@ -780,6 +780,9 @@ def test_dashboard_toast_shows_below_the_top_bar_and_hides_again(demo_page):
 
     demo_page.evaluate("showToast('Network error', 'error')")
     expect(toast).to_have_class(re.compile(r"\btoast-error\b"))
+    # The settings page's boolean form reads the same, as notices.js uses it here.
+    demo_page.evaluate("showToast('Could not dismiss notice', false)")
+    expect(toast).to_have_class(re.compile(r"\btoast-error\b"))
     expect(toast).to_be_hidden(timeout=5000)
 
 
