@@ -30,6 +30,7 @@ on:
       - 'tests/test_e2e_harness.py'
       - 'tests/test_e2e_shards.py'
       - 'scripts/e2e_shards.py'
+      - 'scripts/install_playwright_chromium.sh'
       - 'requirements.txt'
       - 'requirements-test.txt'
       - 'scripts/visual_review.py'
@@ -85,7 +86,7 @@ jobs:
           path: |
             ~/.cache/ms-playwright
             ~/.cache/playwright-apt
-          key: playwright-chromium-1.58.0-${{ runner.os }}-${{ steps.runner-image.outputs.version }}
+          key: playwright-chromium-1.58.0-apt-lists-${{ runner.os }}-${{ steps.runner-image.outputs.version }}
 
       - name: Install dependencies
         run: |
