@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Yra ThinkBroadband BQM delsos matavimų. Pridėkite Connection Monitor nuolatiniams vietiniams matavimams.",
   "empty_title": "Patikrinti, kokie įrodymai yra",
   "empty_action": "Patikrinti paskutines 24 valandas",
-  "empty_window_title": "Pasirinkti laiko intervalą"
+  "empty_window_title": "Pasirinkti laiko intervalą",
+  "latest": "Paskutinis: {time}"
 }

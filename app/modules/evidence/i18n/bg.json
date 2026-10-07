@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Има измервания на латентността от ThinkBroadband BQM. Добавете Connection Monitor за непрекъснати локални измервания.",
   "empty_title": "Проверка кои доказателства са налични",
   "empty_action": "Проверка на последните 24 часа",
-  "empty_window_title": "Избор на времеви диапазон"
+  "empty_window_title": "Избор на времеви диапазон",
+  "latest": "Последно: {time}"
 }

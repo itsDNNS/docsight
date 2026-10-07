@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Det finnes latensmålinger fra ThinkBroadband BQM. Legg til Connection Monitor for løpende lokale målinger.",
   "empty_title": "Sjekk hvilke bevis som finnes",
   "empty_action": "Sjekk de siste 24 timene",
-  "empty_window_title": "Velg et tidsintervall"
+  "empty_window_title": "Velg et tidsintervall",
+  "latest": "Sist: {time}"
 }

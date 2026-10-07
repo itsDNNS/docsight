@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "ThinkBroadband BQM:n viivemittauksia on saatavilla. Lisää Connection Monitor jatkuvia paikallisia mittauksia varten.",
   "empty_title": "Tarkista, mitkä todisteet ovat saatavilla",
   "empty_action": "Tarkista viimeiset 24 tuntia",
-  "empty_window_title": "Valitse aikaväli"
+  "empty_window_title": "Valitse aikaväli",
+  "latest": "Viimeisin: {time}"
 }

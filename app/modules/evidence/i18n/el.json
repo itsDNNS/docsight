@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Υπάρχουν μετρήσεις καθυστέρησης από το ThinkBroadband BQM. Προσθέστε το Connection Monitor για συνεχείς τοπικές μετρήσεις.",
   "empty_title": "Έλεγχος διαθέσιμων αποδεικτικών",
   "empty_action": "Έλεγχος τελευταίων 24 ωρών",
-  "empty_window_title": "Επιλογή χρονικού εύρους"
+  "empty_window_title": "Επιλογή χρονικού εύρους",
+  "latest": "Τελευταίο: {time}"
 }

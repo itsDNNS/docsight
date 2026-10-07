@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "ThinkBroadband BQM-i latentsuse mõõtmised on olemas. Lisa Connection Monitor pidevate kohalike mõõtmiste jaoks.",
   "empty_title": "Kontrolli, millised tõendid on olemas",
   "empty_action": "Kontrolli viimast 24 tundi",
-  "empty_window_title": "Vali ajavahemik"
+  "empty_window_title": "Vali ajavahemik",
+  "latest": "Viimati: {time}"
 }

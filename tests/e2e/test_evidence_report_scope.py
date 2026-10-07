@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -236,6 +237,29 @@ def test_case_picker_lists_open_cases_first_and_builds_the_case_checklist(demo_p
     assert f"incident_id={case['id']}" in request.value.url
     expect(demo_page.locator('.evidence-chip[aria-pressed="true"]')).to_have_count(0)
     expect(demo_page.locator("#evidence-window-label")).to_contain_text(case["name"], timeout=15000)
+    # A case keeps its name as the title, with its window below in the dashboard's time format.
+    window_range = demo_page.locator("#evidence-window-range")
+    expect(window_range).to_be_visible()
+    assert not ISO_TIMESTAMP.search(window_range.inner_text())
+
+
+ISO_TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}")
+
+
+def test_window_and_latest_times_read_like_the_rest_of_the_dashboard(demo_page):
+    demo_page.evaluate("switchView('evidence')")
+    expect(demo_page.locator("#evidence-results")).to_be_visible(timeout=15000)
+    # A plain range is its own title; the second line would only repeat it.
+    assert not ISO_TIMESTAMP.search(demo_page.locator("#evidence-window-label").inner_text())
+    expect(demo_page.locator("#evidence-window-range")).to_be_hidden()
+
+    latest = demo_page.locator("#evidence-items time[datetime]").first
+    expect(latest).to_be_visible()
+    stamp = latest.get_attribute("datetime")
+    assert ISO_TIMESTAMP.match(stamp)
+    expect(latest).to_have_text(demo_page.evaluate("value => formatDocsightTime(value)", stamp))
+    expect(latest.locator("xpath=..")).to_contain_text("Latest:")
+    assert not ISO_TIMESTAMP.search(demo_page.locator("#evidence-items").inner_text())
 
 
 def test_a_slow_earlier_window_cannot_replace_a_newer_case_result(demo_page, live_server):

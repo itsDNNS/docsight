@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Există măsurători de latență din ThinkBroadband BQM. Adăugați Connection Monitor pentru măsurători locale continue.",
   "empty_title": "Verifică ce dovezi sunt disponibile",
   "empty_action": "Verifică ultimele 24 de ore",
-  "empty_window_title": "Alege un interval de timp"
+  "empty_window_title": "Alege un interval de timp",
+  "latest": "Ultima: {time}"
 }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 727,
+  "expected_total": 728,
   "baseline_cpu_seconds": 1860.908,
   "shards": [
     {
@@ -54,7 +54,7 @@
     },
     {
       "id": 5,
-      "collected_cases": 188,
+      "collected_cases": 189,
       "files": [
         "test_evidence_report_scope.py",
         "test_glossary.py",

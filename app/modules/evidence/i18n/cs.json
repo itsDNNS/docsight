@@ -79,5 +79,6 @@
   "item.latency.present_bqm_only": "Měření latence z ThinkBroadband BQM jsou k dispozici. Přidejte Connection Monitor pro průběžná místní měření.",
   "empty_title": "Zkontrolovat, jaké důkazy jsou k dispozici",
   "empty_action": "Zkontrolovat posledních 24 hodin",
-  "empty_window_title": "Vybrat časový rozsah"
+  "empty_window_title": "Vybrat časový rozsah",
+  "latest": "Naposledy: {time}"
 }
