@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 709,
+  "expected_total": 710,
   "baseline_cpu_seconds": 1860.908,
   "shards": [
     {
@@ -57,7 +57,7 @@
     },
     {
       "id": 5,
-      "collected_cases": 168,
+      "collected_cases": 169,
       "files": [
         "test_correlation_ui.py",
         "test_dashboard.py",
