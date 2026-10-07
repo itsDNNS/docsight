@@ -494,3 +494,69 @@ def test_event_numbers_use_the_page_language(demo_page):
     icon_box = row.locator(".ev-sev").bounding_box()
     assert time_box["x"] + time_box["width"] <= icon_box["x"]
     assert row.locator(".ev-time").evaluate("node => node.scrollWidth <= node.clientWidth")
+
+
+# Different days, a run with a badge, an acknowledged row, AM and PM times and a
+# device update whose firmware names do not fit the row.
+ALIGNMENT_EVENTS = [
+    {"id": 61, "timestamp": "2026-10-07T16:20:00", "severity": "critical", "event_type": "modulation_change",
+     "message": "Channels with lower modulation: 2", "acknowledged": 0, "details": {"direction": "downgrade", "changes": []}},
+    {"id": 60, "timestamp": "2026-10-07T16:05:00", "severity": "critical", "event_type": "modulation_change",
+     "message": "Channels with lower modulation: 2", "acknowledged": 0, "details": {"direction": "downgrade", "changes": []}},
+    {"id": 59, "timestamp": "2026-10-06T22:45:00", "severity": "info", "event_type": "device_sw_update",
+     "message": "Software update", "acknowledged": 0, "details": {
+         "old_sw": "AR01.02.068.13_052421_711.SIP.10.VF", "new_sw": "AR01.05.063.13_081725_735.SIP.10.VF",
+         "prior_uptime": 3490560, "reboot_reason": "unknown"}},
+    {"id": 58, "timestamp": "2026-10-04T00:12:00", "severity": "warning", "event_type": "device_reboot",
+     "message": "Reboot", "acknowledged": 1, "details": {"prior_uptime": 99999, "reboot_reason": "unknown"}},
+]
+
+
+def test_rows_share_their_columns_across_days(demo_page):
+    """Times, icons, types and messages line up whatever the day label, time or run badge."""
+    page = demo_page
+    _serve_events(page, ALIGNMENT_EVENTS)
+    page.clock.set_fixed_time("2026-10-07T18:00:00")
+    page.set_viewport_size(DESKTOP_VIEWPORT)
+    page.goto(f"{_base_url(page)}/?lang=en#events", wait_until="networkidle")
+    page.wait_for_selector("#events-feed .ev-row", state="visible")
+
+    columns = page.evaluate(
+        """() => [...document.querySelectorAll('#events-feed .ev-rows > .ev-row')].map(row => {
+            const left = sel => Math.round(row.querySelector(':scope > .ev-main ' + sel).getBoundingClientRect().left);
+            return [left('.ev-time'), left('.ev-sev'), left('.ev-type'), left('.ev-msg')];
+        })"""
+    )
+    assert len(columns) == 3
+    assert all(column == columns[0] for column in columns), columns
+
+    # The longest day label ("Yesterday") ends before the checkboxes start.
+    overlap = page.evaluate(
+        """() => {
+            const heads = [...document.querySelectorAll('#events-feed .ev-day-head')];
+            const right = Math.max(...heads.map(h => {
+                const r = document.createRange(); r.selectNodeContents(h); return r.getBoundingClientRect().right;
+            }));
+            const boxes = [...document.querySelectorAll('#events-feed .ev-select')].map(s => s.getBoundingClientRect());
+            const left = Math.min(...boxes.filter(b => b.width > 0).map(b => b.left));
+            return right - left;
+        }"""
+    )
+    assert overlap <= 0, overlap
+
+
+def test_a_cut_off_device_message_shows_it_opens_and_reads_in_full(demo_page):
+    page = demo_page
+    _serve_events(page, ALIGNMENT_EVENTS)
+    page.set_viewport_size({"width": 1100, "height": 900})
+    page.goto(f"{_base_url(page)}/?lang=en#events", wait_until="networkidle")
+    row = page.locator('#events-feed [data-event-id="59"] > .ev-main')
+    expect(row).to_have_attribute("aria-expanded", "false")
+    expect(row.locator(".ev-chevron")).to_be_visible()
+
+    row.click()
+    expect(row).to_have_attribute("aria-expanded", "true")
+    message = row.locator(".ev-msg")
+    for part in ["AR01.02.068.13_052421_711.SIP.10.VF", "AR01.05.063.13_081725_735.SIP.10.VF", "Prior uptime", "Reason: unknown"]:
+        expect(message).to_contain_text(part)
+    assert message.evaluate("el => el.scrollWidth <= el.clientWidth + 1")
