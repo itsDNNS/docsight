@@ -567,3 +567,21 @@ def test_top_bar_fits_narrow_desktops_in_every_language(page, live_server):
             if overflow > 0:
                 overflowing[f"{lang} {path}"] = overflow
     assert overflowing == {}
+
+
+@pytest.mark.parametrize("view, group, rows", [
+    ("trends", "trend-tabs", [4, 4]),
+    ("channels", "channel-mode-tabs", [3]),
+    ("channels", "channel-status-time-tabs", [4, 4]),
+    ("correlation", "correlation-tabs", [4, 4]),
+])
+def test_segmented_groups_wrap_into_even_rows_on_phones(demo_page, view, group, rows):
+    """No option is left alone in a second row on a 390px phone."""
+    demo_page.set_viewport_size({"width": 390, "height": 844})
+    demo_page.evaluate("view => switchView(view)", view)
+    options = demo_page.locator(f"#{group} > .segmented-option")
+    expect(options.first).to_be_visible()
+    tops = options.evaluate_all("nodes => nodes.filter(n => n.offsetParent).map(n => Math.round(n.getBoundingClientRect().top))")
+    assert [tops.count(top) for top in sorted(set(tops))] == rows
+    sizes = options.evaluate_all("nodes => nodes.map(n => [n.offsetWidth, n.offsetHeight])")
+    assert all(width >= 44 and height >= 44 for width, height in sizes)

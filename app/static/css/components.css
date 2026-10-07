@@ -209,6 +209,11 @@ body {
   /* Short groups that always fit one row share the full width. */
   .segmented-fill .segmented-option { flex: 1 1 0; }
 }
+/* Too narrow for the eight time ranges in one row: two even rows of four
+   instead of seven options and one left over. */
+@media (max-width: 479px) {
+  .segmented:has(> .segmented-option:nth-child(7)) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 /* ── Data table ──
    Sentence-case header, horizontal lines only, numbers right-aligned in
