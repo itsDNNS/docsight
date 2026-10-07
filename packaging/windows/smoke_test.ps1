@@ -167,7 +167,12 @@ function Assert-NoPackagedProcess {
 function Assert-NoOwnerChildren {
     param([Parameter(Mandatory = $true)][System.Diagnostics.Process]$Owner)
 
-    $Children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($Owner.Id)")
+    # Windows reuses process ids. A process whose parent exited long ago keeps that id as its
+    # ParentProcessId (csrss.exe and wininit.exe after boot), so only processes started after
+    # the owner can be its children.
+    $Children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($Owner.Id)" | Where-Object {
+        $_.CreationDate -ge $Owner.StartTime
+    })
     if ($Children.Count -ne 0) {
         $Details = ($Children | ForEach-Object {
             "$($_.Name) (pid $($_.ProcessId), started $($_.CreationDate)): $($_.CommandLine)"

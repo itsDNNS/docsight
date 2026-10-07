@@ -75,6 +75,15 @@ def test_windows_smoke_accepts_empty_report_pdf_without_logging_binary_body():
     assert "Packaged /api/report failed with HTTP $($LastReportResponse.StatusCode): $($LastReportResponse.Body)" not in smoke
 
 
+def test_windows_smoke_counts_only_children_started_after_the_owner():
+    """Windows reuses process ids, so a boot-time process can name the owner's id as its parent."""
+    smoke = (WINDOWS_PACKAGING / "smoke_test.ps1").read_text(encoding="utf-8")
+    check = smoke[smoke.index("function Assert-NoOwnerChildren"):smoke.index("function Assert-DataFilesReopen")]
+
+    assert '-Filter "ParentProcessId = $($Owner.Id)"' in check
+    assert "$_.CreationDate -ge $Owner.StartTime" in check
+
+
 def test_pyinstaller_spec_collects_app_tree_and_version_file():
     spec_text = (WINDOWS_PACKAGING / "docsight.spec").read_text(encoding="utf-8")
 
