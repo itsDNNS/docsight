@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Mostra tutte le voci",
   "journal_empty_search_text": "Prova un altro termine o cancella la ricerca.",
   "journal_empty_search_action": "Cancella ricerca",
-  "entry_deleted": "Voce eliminata"
+  "entry_deleted": "Voce eliminata",
+  "case_cards_label": "Casi",
+  "case_notes_one": "1 nota",
+  "case_notes_many": "{count} note",
+  "case_lights_ready": "{count} pronte",
+  "case_lights_stale": "{count} datate",
+  "case_lights_missing": "{count} mancanti",
+  "case_next_missing": "Manca: {item}",
+  "case_next_stale": "Datato: {item}",
+  "case_next_ready": "Prove complete",
+  "case_continue": "Continua",
+  "case_open": "Apri"
 }

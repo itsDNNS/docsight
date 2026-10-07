@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Vis alle poster",
   "journal_empty_search_text": "Prøv et andet ord, eller ryd søgningen.",
   "journal_empty_search_action": "Ryd søgning",
-  "entry_deleted": "Post slettet"
+  "entry_deleted": "Post slettet",
+  "case_cards_label": "Sager",
+  "case_notes_one": "1 note",
+  "case_notes_many": "{count} noter",
+  "case_lights_ready": "{count} klar",
+  "case_lights_stale": "{count} forældede",
+  "case_lights_missing": "{count} mangler",
+  "case_next_missing": "Mangler: {item}",
+  "case_next_stale": "Forældet: {item}",
+  "case_next_ready": "Dokumentation komplet",
+  "case_continue": "Fortsæt",
+  "case_open": "Åbn"
 }

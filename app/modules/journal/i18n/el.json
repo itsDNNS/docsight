@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Εμφάνιση όλων των καταχωρίσεων",
   "journal_empty_search_text": "Δοκιμάστε άλλον όρο ή καθαρίστε την αναζήτηση.",
   "journal_empty_search_action": "Καθαρισμός αναζήτησης",
-  "entry_deleted": "Η καταχώριση διαγράφηκε"
+  "entry_deleted": "Η καταχώριση διαγράφηκε",
+  "case_cards_label": "Υποθέσεις",
+  "case_notes_one": "1 σημείωση",
+  "case_notes_many": "Σημειώσεις: {count}",
+  "case_lights_ready": "Έτοιμα: {count}",
+  "case_lights_stale": "Παλιά: {count}",
+  "case_lights_missing": "Λείπουν: {count}",
+  "case_next_missing": "Λείπει: {item}",
+  "case_next_stale": "Παλιό: {item}",
+  "case_next_ready": "Πλήρη αποδεικτικά",
+  "case_continue": "Συνέχεια",
+  "case_open": "Άνοιγμα"
 }

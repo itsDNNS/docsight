@@ -1252,3 +1252,25 @@ mark.search-highlight {
 }
 .import-col-select { width: 40px; }
 .import-col-status { width: 36px; }
+
+/* ── Case overview cards ── */
+.case-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-md);
+    margin: 0 0 var(--space-lg);
+}
+.case-cards[hidden] { display: none; }
+.case-card { display: flex; flex-direction: column; gap: 10px; padding: var(--space-md); }
+.case-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-sm); }
+.case-card-name { margin: 0; font-size: 1rem; font-weight: 650; color: var(--text); overflow-wrap: anywhere; }
+.case-card-meta { margin: 0; font-size: var(--fs-min); color: var(--muted); }
+.case-card-lights { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
+.case-card-lights[hidden] { display: none; }
+.case-light { display: inline-flex; align-items: center; gap: 6px; }
+.case-light-dot { width: 10px; height: 10px; border-radius: 50%; }
+.case-light-ready .case-light-dot { background: var(--good); }
+.case-light-stale .case-light-dot { background: var(--warn); }
+.case-light-missing .case-light-dot { background: var(--crit); }
+.case-card-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); margin-top: auto; }
+.case-card-next { font-size: 0.85rem; color: var(--text-secondary); }

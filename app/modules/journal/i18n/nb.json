@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Vis alle oppføringer",
   "journal_empty_search_text": "Prøv et annet ord eller tøm søket.",
   "journal_empty_search_action": "Tøm søket",
-  "entry_deleted": "Oppføring slettet"
+  "entry_deleted": "Oppføring slettet",
+  "case_cards_label": "Saker",
+  "case_notes_one": "1 notat",
+  "case_notes_many": "{count} notater",
+  "case_lights_ready": "{count} klare",
+  "case_lights_stale": "{count} utdaterte",
+  "case_lights_missing": "{count} mangler",
+  "case_next_missing": "Mangler: {item}",
+  "case_next_stale": "Utdatert: {item}",
+  "case_next_ready": "Dokumentasjonen er komplett",
+  "case_continue": "Fortsett",
+  "case_open": "Åpne"
 }

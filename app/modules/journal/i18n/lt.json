@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Rodyti visus įrašus",
   "journal_empty_search_text": "Pabandykite kitą žodį arba išvalykite paiešką.",
   "journal_empty_search_action": "Išvalyti paiešką",
-  "entry_deleted": "Įrašas ištrintas"
+  "entry_deleted": "Įrašas ištrintas",
+  "case_cards_label": "Atvejai",
+  "case_notes_one": "1 pastaba",
+  "case_notes_many": "Pastabų: {count}",
+  "case_lights_ready": "Paruošta: {count}",
+  "case_lights_stale": "Pasenę: {count}",
+  "case_lights_missing": "Trūksta: {count}",
+  "case_next_missing": "Trūksta: {item}",
+  "case_next_stale": "Pasenęs: {item}",
+  "case_next_ready": "Įrodymai surinkti",
+  "case_continue": "Tęsti",
+  "case_open": "Atidaryti"
 }

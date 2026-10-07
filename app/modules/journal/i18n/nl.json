@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Alle notities tonen",
   "journal_empty_search_text": "Probeer een andere term of wis de zoekopdracht.",
   "journal_empty_search_action": "Zoekopdracht wissen",
-  "entry_deleted": "Item verwijderd"
+  "entry_deleted": "Item verwijderd",
+  "case_cards_label": "Zaken",
+  "case_notes_one": "1 notitie",
+  "case_notes_many": "{count} notities",
+  "case_lights_ready": "{count} gereed",
+  "case_lights_stale": "{count} verouderd",
+  "case_lights_missing": "{count} ontbreken",
+  "case_next_missing": "Ontbreekt: {item}",
+  "case_next_stale": "Verouderd: {item}",
+  "case_next_ready": "Bewijs compleet",
+  "case_continue": "Verder",
+  "case_open": "Openen"
 }

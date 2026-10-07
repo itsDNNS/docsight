@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Zobraziť všetky záznamy",
   "journal_empty_search_text": "Skúste iný výraz alebo vymažte hľadanie.",
   "journal_empty_search_action": "Vymazať hľadanie",
-  "entry_deleted": "Záznam odstránený"
+  "entry_deleted": "Záznam odstránený",
+  "case_cards_label": "Prípady",
+  "case_notes_one": "1 poznámka",
+  "case_notes_many": "Poznámky: {count}",
+  "case_lights_ready": "Pripravené: {count}",
+  "case_lights_stale": "Zastarané: {count}",
+  "case_lights_missing": "Chýba: {count}",
+  "case_next_missing": "Chýba: {item}",
+  "case_next_stale": "Zastarané: {item}",
+  "case_next_ready": "Dôkazy kompletné",
+  "case_continue": "Pokračovať",
+  "case_open": "Otvoriť"
 }

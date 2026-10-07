@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Показване на всички записи",
   "journal_empty_search_text": "Опитайте с друга дума или изчистете търсенето.",
   "journal_empty_search_action": "Изчистване на търсенето",
-  "entry_deleted": "Записът е изтрит"
+  "entry_deleted": "Записът е изтрит",
+  "case_cards_label": "Случаи",
+  "case_notes_one": "1 бележка",
+  "case_notes_many": "Бележки: {count}",
+  "case_lights_ready": "Готови: {count}",
+  "case_lights_stale": "Остарели: {count}",
+  "case_lights_missing": "Липсват: {count}",
+  "case_next_missing": "Липсва: {item}",
+  "case_next_stale": "Остаряло: {item}",
+  "case_next_ready": "Доказателствата са пълни",
+  "case_continue": "Продължи",
+  "case_open": "Отвори"
 }
