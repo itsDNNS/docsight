@@ -1253,5 +1253,18 @@
   "undo": "Annuler",
   "event_ack_done_one": "Événement acquitté",
   "event_ack_done_many": "{count} événements acquittés",
-  "event_journal_note": "Note du journal"
+  "event_journal_note": "Note du journal",
+  "event_add_to_case": "Ajouter à un dossier… ({count})",
+  "event_add_to_case_title": "Ajouter à un dossier",
+  "event_add_to_case_new": "Nouveau dossier",
+  "event_add_to_case_name": "Nom du nouveau dossier",
+  "event_add_to_case_hint": "La période du dossier s’élargit pour couvrir ces événements, qui apparaissent alors dans sa chronologie et ses preuves.",
+  "event_add_to_case_submit": "Ajouter",
+  "event_add_to_case_one": "1 événement du {range}",
+  "event_add_to_case_many": "{count} événements du {range}",
+  "event_case_running": "en cours",
+  "event_case_no_window": "Pas encore de période",
+  "event_added_to_case_one": "1 événement ajouté à « {case} »",
+  "event_added_to_case_many": "{count} événements ajoutés à « {case} »",
+  "event_open_case": "Ouvrir le dossier"
 }

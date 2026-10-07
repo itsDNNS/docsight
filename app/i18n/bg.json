@@ -1261,5 +1261,18 @@
   "undo": "Отмяна",
   "event_ack_done_one": "Събитието е потвърдено",
   "event_ack_done_many": "Потвърдени събития: {count}",
-  "event_journal_note": "Бележка в дневника"
+  "event_journal_note": "Бележка в дневника",
+  "event_add_to_case": "Добави към случай… ({count})",
+  "event_add_to_case_title": "Добави към случай",
+  "event_add_to_case_new": "Нов случай",
+  "event_add_to_case_name": "Име на новия случай",
+  "event_add_to_case_hint": "Периодът на случая се разширява, за да обхване тези събития, и те се появяват в неговата времева линия и доказателства.",
+  "event_add_to_case_submit": "Добави",
+  "event_add_to_case_one": "1 събитие от {range}",
+  "event_add_to_case_many": "Събития от {range}: {count}",
+  "event_case_running": "текущ",
+  "event_case_no_window": "Все още няма период",
+  "event_added_to_case_one": "1 събитие добавено към „{case}“",
+  "event_added_to_case_many": "Събития, добавени към „{case}“: {count}",
+  "event_open_case": "Отвори случая"
 }

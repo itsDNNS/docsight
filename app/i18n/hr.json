@@ -1261,5 +1261,18 @@
   "undo": "Poništi",
   "event_ack_done_one": "Događaj potvrđen",
   "event_ack_done_many": "Potvrđeni događaji: {count}",
-  "event_journal_note": "Bilješka u dnevniku"
+  "event_journal_note": "Bilješka u dnevniku",
+  "event_add_to_case": "Dodaj slučaju… ({count})",
+  "event_add_to_case_title": "Dodaj slučaju",
+  "event_add_to_case_new": "Novi slučaj",
+  "event_add_to_case_name": "Naziv novog slučaja",
+  "event_add_to_case_hint": "Razdoblje slučaja proširuje se tako da obuhvati ove događaje pa se oni prikazuju na njegovoj vremenskoj crti i u dokazima.",
+  "event_add_to_case_submit": "Dodaj",
+  "event_add_to_case_one": "1 događaj iz {range}",
+  "event_add_to_case_many": "Događaji iz {range}: {count}",
+  "event_case_running": "u tijeku",
+  "event_case_no_window": "Još bez razdoblja",
+  "event_added_to_case_one": "1 događaj dodan slučaju „{case}”",
+  "event_added_to_case_many": "Slučaju „{case}” dodani događaji: {count}",
+  "event_open_case": "Otvori slučaj"
 }

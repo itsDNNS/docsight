@@ -1261,5 +1261,18 @@
   "undo": "Visszavonás",
   "event_ack_done_one": "Esemény nyugtázva",
   "event_ack_done_many": "{count} esemény nyugtázva",
-  "event_journal_note": "Naplóbejegyzés"
+  "event_journal_note": "Naplóbejegyzés",
+  "event_add_to_case": "Hozzáadás esethez… ({count})",
+  "event_add_to_case_title": "Hozzáadás esethez",
+  "event_add_to_case_new": "Új eset",
+  "event_add_to_case_name": "Az új eset neve",
+  "event_add_to_case_hint": "Az eset időszaka kibővül, hogy lefedje ezeket az eseményeket, így megjelennek az idővonalán és a bizonyítékok között.",
+  "event_add_to_case_submit": "Hozzáadás",
+  "event_add_to_case_one": "1 esemény innen: {range}",
+  "event_add_to_case_many": "{count} esemény innen: {range}",
+  "event_case_running": "folyamatban",
+  "event_case_no_window": "Még nincs időszak",
+  "event_added_to_case_one": "1 esemény hozzáadva ehhez: „{case}”",
+  "event_added_to_case_many": "{count} esemény hozzáadva ehhez: „{case}”",
+  "event_open_case": "Eset megnyitása"
 }

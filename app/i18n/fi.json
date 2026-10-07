@@ -1261,5 +1261,18 @@
   "undo": "Kumoa",
   "event_ack_done_one": "Tapahtuma kuitattu",
   "event_ack_done_many": "Kuitattuja tapahtumia: {count}",
-  "event_journal_note": "Päiväkirjamerkintä"
+  "event_journal_note": "Päiväkirjamerkintä",
+  "event_add_to_case": "Lisää tapaukseen… ({count})",
+  "event_add_to_case_title": "Lisää tapaukseen",
+  "event_add_to_case_new": "Uusi tapaus",
+  "event_add_to_case_name": "Uuden tapauksen nimi",
+  "event_add_to_case_hint": "Tapauksen aikaväli laajenee kattamaan nämä tapahtumat, jolloin ne näkyvät sen aikajanalla ja todisteissa.",
+  "event_add_to_case_submit": "Lisää",
+  "event_add_to_case_one": "1 tapahtuma ajalta {range}",
+  "event_add_to_case_many": "Tapahtumia ajalta {range}: {count}",
+  "event_case_running": "käynnissä",
+  "event_case_no_window": "Ei vielä aikaväliä",
+  "event_added_to_case_one": "1 tapahtuma lisätty tapaukseen ”{case}”",
+  "event_added_to_case_many": "Tapahtumia lisätty tapaukseen ”{case}”: {count}",
+  "event_open_case": "Avaa tapaus"
 }

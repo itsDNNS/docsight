@@ -1115,6 +1115,9 @@
             <span class="events-summary" id="events-summary" aria-live="polite"></span>
             <div class="events-card-actions">
                 <a class="btn-export-events" id="events-export-csv" href="{{ url_for('events_bp.api_events_export_csv', exclude_operational='true') }}" download><i data-lucide="download" aria-hidden="true"></i>{{ t.event_export_csv }}</a>
+                {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
+                <button type="button" class="btn-ack-all" id="btn-add-to-case" data-action="openAddToCase" hidden></button>
+                {% endif %}
                 <button type="button" class="btn-ack-all" id="btn-ack-selected" data-action="acknowledgeSelectedEvents" hidden></button>
                 <button type="button" class="btn-ack-all" id="btn-ack-visible" data-action="acknowledgeVisibleEvents" hidden><i data-lucide="check-check" aria-hidden="true"></i>{{ t.event_acknowledge_visible }}</button>
             </div>
@@ -1749,6 +1752,36 @@
 </dialog>
 
 <!-- Export Modal -->
+{% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
+<dialog class="modal-overlay" id="add-to-case-modal" role="dialog" aria-modal="true" aria-labelledby="add-to-case-title">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="add-to-case-title">{{ t.get('event_add_to_case_title', 'Add to case') }}</h2>
+            <button type="button" class="modal-close" data-action="closeAddToCase" aria-label="{{ t.close }}">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-hint" id="add-to-case-summary"></p>
+            <fieldset class="case-pick">
+                <legend class="sr-only">{{ t.get('event_add_to_case_title', 'Add to case') }}</legend>
+                <div class="case-pick-list" id="add-to-case-list"></div>
+                <label class="case-pick-option">
+                    <input type="radio" name="add-to-case" value="new" data-change-action="syncAddToCase">
+                    <span class="case-pick-text"><span class="case-pick-name">{{ t.get('event_add_to_case_new', 'New case') }}</span></span>
+                </label>
+                <label class="case-pick-new-name">
+                    <span class="sr-only">{{ t.get('event_add_to_case_name', 'Name of the new case') }}</span>
+                    <input class="form-input" type="text" id="add-to-case-name" maxlength="200" autocomplete="off" placeholder="{{ t.get('event_add_to_case_name', 'Name of the new case') }}">
+                </label>
+            </fieldset>
+            <p class="modal-hint">{{ t.get('event_add_to_case_hint', "The case's window grows to cover these events, so they appear in its timeline and evidence.") }}</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-action="closeAddToCase">{{ t.cancel }}</button>
+            <button type="button" class="btn btn-primary" id="add-to-case-submit" data-action="submitAddToCase">{{ t.get('event_add_to_case_submit', 'Add') }}</button>
+        </div>
+    </div>
+</dialog>
+{% endif %}
 <dialog class="modal-overlay" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
     <div class="modal modal-wide">
         <div class="modal-header">

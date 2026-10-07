@@ -1261,5 +1261,18 @@
   "undo": "Undo",
   "event_ack_done_one": "Event acknowledged",
   "event_ack_done_many": "{count} events acknowledged",
-  "event_journal_note": "Journal note"
+  "event_journal_note": "Journal note",
+  "event_add_to_case": "Add to case… ({count})",
+  "event_add_to_case_title": "Add to case",
+  "event_add_to_case_new": "New case",
+  "event_add_to_case_name": "Name of the new case",
+  "event_add_to_case_hint": "The case's window grows to cover these events, so they appear in its timeline and evidence.",
+  "event_add_to_case_submit": "Add",
+  "event_add_to_case_one": "1 event from {range}",
+  "event_add_to_case_many": "{count} events from {range}",
+  "event_case_running": "ongoing",
+  "event_case_no_window": "No window yet",
+  "event_added_to_case_one": "1 event added to “{case}”",
+  "event_added_to_case_many": "{count} events added to “{case}”",
+  "event_open_case": "Open case"
 }

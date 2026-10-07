@@ -1261,5 +1261,18 @@
   "undo": "Atsaukt",
   "event_ack_done_one": "Notikums apstiprināts",
   "event_ack_done_many": "Apstiprināti notikumi: {count}",
-  "event_journal_note": "Žurnāla piezīme"
+  "event_journal_note": "Žurnāla piezīme",
+  "event_add_to_case": "Pievienot gadījumam… ({count})",
+  "event_add_to_case_title": "Pievienot gadījumam",
+  "event_add_to_case_new": "Jauns gadījums",
+  "event_add_to_case_name": "Jaunā gadījuma nosaukums",
+  "event_add_to_case_hint": "Gadījuma periods paplašinās, lai aptvertu šos notikumus, un tie redzami tā laika skalā un pierādījumos.",
+  "event_add_to_case_submit": "Pievienot",
+  "event_add_to_case_one": "1 notikums no {range}",
+  "event_add_to_case_many": "Notikumi no {range}: {count}",
+  "event_case_running": "notiek",
+  "event_case_no_window": "Perioda vēl nav",
+  "event_added_to_case_one": "1 notikums pievienots gadījumam “{case}”",
+  "event_added_to_case_many": "Gadījumam “{case}” pievienoti notikumi: {count}",
+  "event_open_case": "Atvērt gadījumu"
 }

@@ -1261,5 +1261,18 @@
   "undo": "Võta tagasi",
   "event_ack_done_one": "Sündmus kinnitatud",
   "event_ack_done_many": "Kinnitatud sündmusi: {count}",
-  "event_journal_note": "Päeviku märge"
+  "event_journal_note": "Päeviku märge",
+  "event_add_to_case": "Lisa juhtumisse… ({count})",
+  "event_add_to_case_title": "Lisa juhtumisse",
+  "event_add_to_case_new": "Uus juhtum",
+  "event_add_to_case_name": "Uue juhtumi nimi",
+  "event_add_to_case_hint": "Juhtumi ajavahemik laieneb nii, et need sündmused jäävad sisse ning on näha selle ajajoonel ja tõendites.",
+  "event_add_to_case_submit": "Lisa",
+  "event_add_to_case_one": "1 sündmus ajast {range}",
+  "event_add_to_case_many": "Sündmusi ajast {range}: {count}",
+  "event_case_running": "käimas",
+  "event_case_no_window": "Ajavahemikku veel pole",
+  "event_added_to_case_one": "1 sündmus lisatud juhtumisse „{case}“",
+  "event_added_to_case_many": "Juhtumisse „{case}“ lisatud sündmusi: {count}",
+  "event_open_case": "Ava juhtum"
 }

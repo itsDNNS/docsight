@@ -442,3 +442,24 @@
         word-break: break-word;
     }
 }
+
+/* ── Add events to a case: one radio list of cases, then a new case with its name ── */
+.case-pick { margin: 0; padding: 0; border: 0; display: grid; gap: 6px; }
+.case-pick-list { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
+.case-pick-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.case-pick-option:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.case-pick-option input { accent-color: var(--accent); }
+.case-pick-text { display: grid; min-width: 0; }
+.case-pick-name { font-weight: 600; color: var(--text); }
+.case-pick-window { font-size: var(--fs-min); color: var(--muted); }
+.case-pick-new-name { display: block; margin-left: 34px; }
+.case-pick-new-name[hidden] { display: none; }
