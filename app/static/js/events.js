@@ -387,7 +387,7 @@ function _eventRowHtml(ev, inRun) {
         (inRun ? '' : '<span class="ev-type">' + escapeHtml(type) + '</span>') +
         '<span class="ev-msg">' + message + '</span>';
     var main = message.indexOf('class="ev-sub') !== -1
-        ? '<button type="button" class="ev-main" data-toggle="' + key + '" aria-expanded="' + !!_eventsExpanded[key] + '">' + content + '</button>'
+        ? '<button type="button" class="ev-main" data-toggle="' + key + '" aria-expanded="' + !!_eventsExpanded[key] + '">' + content + EVENT_CHEVRON + '</button>'
         : '<div class="ev-main" data-key="' + key + '">' + content + '</div>';
     return '<li class="ev-row ev-sev-' + DOCSightEventLogData.severity(ev) + (ev.acknowledged ? ' ev-acked' : '') +
             '" data-event-id="' + ev.id + '" data-key="' + key + '">' +
@@ -437,9 +437,12 @@ function _loadEventNotes() {
 
 /* A message cut off by the row width can be opened too; whether it is cut off
    is only known after layout. */
+var EVENT_CHEVRON = '<i data-lucide="chevron-down" class="ev-chevron" aria-hidden="true"></i>';
+
 function _markTruncatedEventRows(feed) {
     if (!feed.querySelectorAll) return;
-    feed.querySelectorAll('div.ev-main[data-key]').forEach(function(main) {
+    var marked = false;
+    feed.querySelectorAll('div.ev-main[data-key]:not([data-toggle])').forEach(function(main) {
         var msg = main.querySelector('.ev-msg');
         if (!msg || msg.scrollWidth <= msg.clientWidth + 1) return;
         var key = main.getAttribute('data-key');
@@ -447,6 +450,22 @@ function _markTruncatedEventRows(feed) {
         main.setAttribute('tabindex', '0');
         main.setAttribute('data-toggle', key);
         main.setAttribute('aria-expanded', String(!!_eventsExpanded[key]));
+        // The same chevron as other rows that open, so a cut-off message shows it can be read in full.
+        main.insertAdjacentHTML('beforeend', EVENT_CHEVRON);
+        marked = true;
+    });
+    if (marked && typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// A narrower window can cut off messages that fitted before.
+var _eventTruncationTimer = null;
+if (typeof window.addEventListener === 'function') {
+    window.addEventListener('resize', function() {
+        clearTimeout(_eventTruncationTimer);
+        _eventTruncationTimer = setTimeout(function() {
+            var feed = document.getElementById('events-feed');
+            if (feed && feed.offsetParent !== null) _markTruncatedEventRows(feed);
+        }, 150);
     });
 }
 
@@ -469,7 +488,7 @@ function _eventGroupHtml(group) {
             '<span class="ev-type">' + escapeHtml(type) + '</span>' +
             '<span class="ev-run"><span aria-hidden="true">' + group.events.length + '×</span><span class="sr-only">' + escapeHtml(run) + '</span></span>' +
             '<span class="ev-msg">' + formatEventMessage(group.newest) + '</span>' +
-            '<i data-lucide="chevron-down" class="ev-chevron" aria-hidden="true"></i>' +
+            EVENT_CHEVRON +
         '</button>' +
         _eventAckButton(unacked, label) +
         '<ol class="ev-group-members" id="' + listId + '"' + (open ? '' : ' hidden') + '>' +

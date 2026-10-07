@@ -398,19 +398,29 @@
 }
 .btn-export-events:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 
+/* Desktop: the day sits in a sticky date column next to its rows (agenda layout).
+   The whole log is one grid; days, rows and runs share its columns through
+   subgrid, so times, icons, types and messages line up across every day,
+   whatever the width of a time ("12:12 AM") or a run badge. */
 .events-feed {
+    display: grid;
+    grid-template-columns:
+        [day] max-content [select] 28px [time] max-content [sev] 16px [type] minmax(0, 11em)
+        [run] max-content [msg] minmax(0, 1fr) [chevron] max-content [ack] 32px [end];
+    column-gap: 10px;
     padding-bottom: var(--space-xs, 6px);
 }
-/* Desktop: the day sits in a sticky date column next to its rows (agenda layout). */
 .events-card { --events-sticky-top: 61px; }
 .ev-day {
+    grid-column: day / end;
     display: grid;
-    grid-template-columns: 8.5em minmax(0, 1fr);
+    grid-template-columns: subgrid;
 }
 .ev-day + .ev-day {
     border-top: 1px solid var(--card-border, var(--input-border));
 }
 .ev-day-head {
+    grid-column: day;
     position: sticky;
     top: calc(var(--events-sticky-top) + 4px);
     align-self: start;
@@ -436,13 +446,16 @@
     padding: 0;
 }
 .ev-rows {
+    grid-column: select / end;
+    display: grid;
+    grid-template-columns: subgrid;
     border-left: 1px solid color-mix(in srgb, var(--card-border, var(--input-border)) 55%, transparent);
 }
 .ev-row {
+    grid-column: select / end;
     display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) 32px;
+    grid-template-columns: subgrid;
     align-items: center;
-    column-gap: 6px;
     min-height: 34px;
     padding: 0 var(--space-sm, 8px) 0 4px;
     border-bottom: 1px solid color-mix(in srgb, var(--card-border, var(--input-border)) 55%, transparent);
@@ -454,7 +467,7 @@
 /* Journal notes at their day: accent label, the case muted, a chevron to open the entry. */
 .ev-note .ev-type, .ev-note .ev-note-icon { color: var(--accent); }
 .ev-note-case { color: var(--muted); }
-.ev-note .ev-note-open { width: 16px; height: 16px; margin-left: auto; flex: none; color: var(--muted); }
+.ev-note .ev-note-open { grid-column: chevron; width: 16px; height: 16px; color: var(--muted); }
 .ev-note .ev-main:hover .ev-msg { text-decoration: underline; }
 .ev-select {
     display: inline-flex;
@@ -471,10 +484,13 @@
     accent-color: var(--accent);
     cursor: pointer;
 }
+.ev-select { grid-column: select; }
+.ev-ack, .ev-ack-done { grid-column: ack; }
 .ev-main {
-    display: flex;
+    grid-column: time / ack;
+    display: grid;
+    grid-template-columns: subgrid;
     align-items: center;
-    gap: 10px;
     min-width: 0;
     padding: 6px 0;
     border: 0;
@@ -489,26 +505,26 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 /* Tabular digits keep every time in a locale the same width, so rows align
    without a fixed width that 12-hour times ("10:22 PM") would overflow. */
 .ev-time {
-    flex: none;
+    grid-column: time;
     color: var(--text-secondary, var(--muted));
     font-size: max(var(--fs-min), 0.85em);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
-.ev-sev { flex: none; display: inline-flex; color: var(--info); }
+.ev-sev { grid-column: sev; display: inline-flex; color: var(--info); }
 .ev-sev svg { width: 16px; height: 16px; }
 .ev-sev-warning > .ev-main .ev-sev { color: var(--warn); }
 .ev-sev-critical > .ev-main .ev-sev { color: var(--crit); }
 .ev-type {
-    flex: none;
-    width: 11em;
+    grid-column: type;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 600;
 }
 .ev-run {
-    flex: none;
+    grid-column: run;
+    justify-self: start;
     padding: 0 7px;
     border-radius: 999px;
     background: var(--amethyst-muted);
@@ -517,7 +533,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     font-variant-numeric: tabular-nums;
 }
 .ev-msg {
-    flex: 1 1 auto;
+    grid-column: msg;
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
@@ -526,8 +542,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 .ev-msg .ev-sub { display: none; }
 .ev-chevron {
-    flex: none;
-    margin-left: auto;
+    grid-column: chevron;
     width: 16px;
     height: 16px;
     color: var(--muted);
@@ -560,7 +575,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .ev-ack-done svg { width: 16px; height: 16px; }
 .ev-ack-done { color: var(--muted); opacity: 0.6; }
 /* Expanded rows unclamp the message and show its extra lines in place. */
-.ev-main[aria-expanded="true"] { align-items: flex-start; }
+.ev-main[aria-expanded="true"] { align-items: start; }
 .ev-main[aria-expanded="true"] .ev-msg { white-space: normal; overflow-wrap: anywhere; }
 .ev-main[aria-expanded="true"] .ev-msg .ev-sub { display: block; padding-left: 0; margin-top: 2px; }
 /* An open run lists its members, so the header drops the preview and newest time. */
@@ -568,7 +583,9 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .ev-group > .ev-main[aria-expanded="true"] .ev-time { visibility: hidden; }
 .ev-group-members[hidden] { display: none; }
 .ev-group-members {
-    grid-column: 2 / -1;
+    grid-column: select / end;
+    display: grid;
+    grid-template-columns: subgrid;
     margin-bottom: 6px;
     border-radius: var(--radius-sm);
     background: var(--tint-subtle);
@@ -594,7 +611,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     .events-card-actions { width: 100%; }
     .btn-export-events,
     .btn-ack-all { flex: 1; min-height: 44px; justify-content: center; padding: 7px 10px; }
-    .ev-day { display: block; }
+    .events-feed, .ev-day, .ev-rows, .ev-group-members { display: block; }
     .ev-day-head {
         top: var(--events-sticky-top);
         z-index: 2;
@@ -605,13 +622,16 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     .ev-day-date::before { content: "· "; }
     .ev-rows { border-left: 0; }
     .ev-row {
+        display: grid;
         grid-template-columns: 40px minmax(0, 1fr) 44px;
         column-gap: 4px;
         min-height: 48px;
         padding: 0;
     }
     .ev-select { width: 40px; height: 44px; }
-    .ev-main { flex-wrap: wrap; column-gap: 6px; row-gap: 0; padding: 4px 0; line-height: 1.3; }
+    .ev-select { grid-column: 1; }
+    .ev-main { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; row-gap: 0; padding: 4px 0; line-height: 1.3; }
+    .ev-ack, .ev-ack-done { grid-column: 3; }
     .ev-type { width: auto; flex: 0 1 auto; min-width: 0; }
     .ev-msg { flex-basis: 100%; font-size: max(var(--fs-min), 0.9em); }
     .ev-group-members .ev-msg { flex-basis: 0; flex-grow: 1; }
