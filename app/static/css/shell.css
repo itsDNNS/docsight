@@ -116,6 +116,13 @@
 .topnav-icon-button:hover, .topnav-icon-button[aria-expanded="true"] { background: var(--tint-hover); color: var(--text); }
 .topnav-icon-button.active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
 .topnav-icon-button svg { width: 20px; height: 20px; }
+/* Small phones: the mark stands in for the name (still read out) so every action keeps its touch size. */
+@media (max-width: 479px) {
+  .topnav-inner { gap: var(--space-sm); }
+  .topnav-brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .topnav-countdown { display: none; }
+  .topnav-actions { gap: 2px; }
+}
 .topnav-dot {
   position: absolute;
   top: 9px;
@@ -232,6 +239,13 @@ body.nav-sheet-open { overflow: hidden; }
   .topnav-nav { flex: 1; display: flex; justify-content: center; }
   .topnav-list { display: flex; align-items: center; gap: 4px; }
   .topnav-countdown, .topnav-refresh { display: none; }
+}
+/* Narrow desktops: long labels (French, Romanian) need the room the wide layout spends on
+   spacing and on the menu carets; the toggles still announce their menus. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .topnav-inner { padding: 0 var(--space-lg); gap: var(--space-md); }
+  .topnav-dest { padding: 8px 10px; }
+  .topnav-caret { display: none; }
 }
 
 .nav-badge {
