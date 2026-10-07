@@ -149,5 +149,17 @@
   "case_next_stale": "Aegunud: {item}",
   "case_next_ready": "Tõendid on koos",
   "case_continue": "Jätka",
-  "case_open": "Ava"
+  "case_open": "Ava",
+  "case_steps_label": "Juhtumi sammud",
+  "case_step_window": "Ajavahemik · {range}",
+  "case_step_window_missing": "Ajavahemik · veel määramata",
+  "case_step_set_window": "Määra ajavahemik",
+  "case_step_evidence": "Tõendid · {ready}/{total} valmis",
+  "case_step_evidence_plain": "Tõendid",
+  "case_step_export": "Eksport · aruanne või PDF",
+  "case_step_done": "tehtud",
+  "case_step_now": "praegune samm",
+  "case_step_later": "hiljem",
+  "case_evidence_details": "Tõendite allikad",
+  "case_open_checklist": "Ava tõendite täielik kontrollnimekiri"
 }

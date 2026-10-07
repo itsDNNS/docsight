@@ -149,5 +149,17 @@
   "case_next_stale": "Forældet: {item}",
   "case_next_ready": "Dokumentation komplet",
   "case_continue": "Fortsæt",
-  "case_open": "Åbn"
+  "case_open": "Åbn",
+  "case_steps_label": "Sagens trin",
+  "case_step_window": "Periode · {range}",
+  "case_step_window_missing": "Periode · ikke angivet endnu",
+  "case_step_set_window": "Angiv periode",
+  "case_step_evidence": "Dokumentation · {ready} af {total} klar",
+  "case_step_evidence_plain": "Dokumentation",
+  "case_step_export": "Eksport · rapport eller PDF",
+  "case_step_done": "færdig",
+  "case_step_now": "aktuelt trin",
+  "case_step_later": "senere",
+  "case_evidence_details": "Dokumentationskilder",
+  "case_open_checklist": "Åbn hele dokumentationstjeklisten"
 }

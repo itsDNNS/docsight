@@ -149,5 +149,17 @@
   "case_next_stale": "As dáta: {item}",
   "case_next_ready": "Fianaise iomlán",
   "case_continue": "Ar aghaidh",
-  "case_open": "Oscail"
+  "case_open": "Oscail",
+  "case_steps_label": "Céimeanna an cháis",
+  "case_step_window": "Tréimhse · {range}",
+  "case_step_window_missing": "Tréimhse · gan socrú fós",
+  "case_step_set_window": "Socraigh tréimhse",
+  "case_step_evidence": "Fianaise · {ready} as {total} réidh",
+  "case_step_evidence_plain": "Fianaise",
+  "case_step_export": "Easpórtáil · tuarascáil nó PDF",
+  "case_step_done": "déanta",
+  "case_step_now": "céim reatha",
+  "case_step_later": "níos déanaí",
+  "case_evidence_details": "Foinsí fianaise",
+  "case_open_checklist": "Oscail an seicliosta fianaise iomlán"
 }

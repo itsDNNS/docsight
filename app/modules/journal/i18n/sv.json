@@ -149,5 +149,17 @@
   "case_next_stale": "Inaktuellt: {item}",
   "case_next_ready": "Underlaget är komplett",
   "case_continue": "Fortsätt",
-  "case_open": "Öppna"
+  "case_open": "Öppna",
+  "case_steps_label": "Ärendets steg",
+  "case_step_window": "Period · {range}",
+  "case_step_window_missing": "Period · inte angiven än",
+  "case_step_set_window": "Ange period",
+  "case_step_evidence": "Underlag · {ready} av {total} klara",
+  "case_step_evidence_plain": "Underlag",
+  "case_step_export": "Export · rapport eller PDF",
+  "case_step_done": "klart",
+  "case_step_now": "aktuellt steg",
+  "case_step_later": "senare",
+  "case_evidence_details": "Underlagskällor",
+  "case_open_checklist": "Öppna hela checklistan för underlag"
 }

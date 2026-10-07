@@ -10,22 +10,30 @@ CASES = [
 ]
 
 
-def _checklist(summary, items):
+def _checklist(statuses):
+    items = [{"key": key, "status": status, "label_key": f"docsight.evidence.item.{key}.label"} for key, status in statuses]
+    # The report item is the export step and never counts as evidence.
+    items.append({"key": "report", "status": "missing", "label_key": "docsight.evidence.item.report.label"})
     return {"window": {"kind": "incident", "label": "x", "from": "2026-10-01T00:00:00Z", "to": "2026-10-07T00:00:00Z"},
-            "summary": summary, "items": items, "capabilities": {}}
+            "summary": {}, "items": items, "capabilities": {}}
 
 
+READY = ["events", "journal", "bnetz", "latency"]
 CHECKLISTS = {
-    "3": _checklist({"present": 6, "stale": 0, "missing": 0}, [{"key": "signal", "status": "present", "label_key": "docsight.evidence.item.signal.label"}]),
-    "7": _checklist({"present": 4, "stale": 1, "missing": 1}, [
-        {"key": "signal", "status": "stale", "label_key": "docsight.evidence.item.signal.label"},
-        {"key": "speedtest", "status": "missing", "label_key": "docsight.evidence.item.speedtest.label"},
-    ]),
+    "3": _checklist([(key, "present") for key in READY + ["signal", "speedtest"]]),
+    "7": _checklist([("signal", "stale"), ("speedtest", "missing")] + [(key, "present") for key in READY]),
 }
 
 
 def _serve(page):
     page.route(re.compile(r".*/api/incidents$"), lambda route: route.fulfill(json=CASES))
+    page.route(
+        re.compile(r".*/api/incidents/\d+/timeline$"),
+        lambda route: route.fulfill(json={
+            "incident": next(c for c in CASES if str(c["id"]) == route.request.url.rsplit("/", 2)[1]),
+            "entries": [], "timeline": [], "bnetz": [],
+        }),
+    )
     page.route(
         re.compile(r".*/api/evidence/checklist\?incident_id=\d+$"),
         lambda route: route.fulfill(json=CHECKLISTS[route.request.url.rsplit("=", 1)[1]]),
@@ -55,7 +63,7 @@ def test_cards_show_each_case_with_its_evidence_state(demo_page):
     expect(resolved_card.locator(".case-card-next")).to_have_text("Evidence ready")
 
 
-def test_continue_opens_the_case_checklist_and_open_shows_the_timeline(demo_page):
+def test_continue_and_open_both_lead_into_the_case(demo_page):
     page = demo_page
     _serve(page)
     _open_journal(page)
@@ -68,7 +76,5 @@ def test_continue_opens_the_case_checklist_and_open_shows_the_timeline(demo_page
     expect(page.locator("#case-cards")).to_be_visible()
 
     cards.nth(0).get_by_role("button", name="Continue").click()
-    expect(page.locator("#view-evidence")).to_be_visible()
-    expect(page).to_have_url(re.compile(r"#evidence\?case=7$"))
-    expect(page.locator("#evidence-incident-id")).to_have_value("7")
-    expect(page.locator("#evidence-results")).to_be_visible()
+    expect(page.locator("#incident-timeline-view")).to_be_visible()
+    expect(page.locator("#incident-timeline-steps .case-step").nth(1)).to_contain_text("Evidence · 4 of 6 ready")

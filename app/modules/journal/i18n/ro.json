@@ -149,5 +149,17 @@
   "case_next_stale": "Învechit: {item}",
   "case_next_ready": "Dovezi complete",
   "case_continue": "Continuă",
-  "case_open": "Deschide"
+  "case_open": "Deschide",
+  "case_steps_label": "Pașii cazului",
+  "case_step_window": "Perioadă · {range}",
+  "case_step_window_missing": "Perioadă · încă nesetată",
+  "case_step_set_window": "Setează perioada",
+  "case_step_evidence": "Dovezi · {ready} din {total} pregătite",
+  "case_step_evidence_plain": "Dovezi",
+  "case_step_export": "Export · raport sau PDF",
+  "case_step_done": "gata",
+  "case_step_now": "pasul curent",
+  "case_step_later": "mai târziu",
+  "case_evidence_details": "Surse de dovezi",
+  "case_open_checklist": "Deschide lista completă de dovezi"
 }

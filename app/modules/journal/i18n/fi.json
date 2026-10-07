@@ -149,5 +149,17 @@
   "case_next_stale": "Vanhentunut: {item}",
   "case_next_ready": "Todisteet valmiina",
   "case_continue": "Jatka",
-  "case_open": "Avaa"
+  "case_open": "Avaa",
+  "case_steps_label": "Tapauksen vaiheet",
+  "case_step_window": "Aikaväli · {range}",
+  "case_step_window_missing": "Aikaväli · ei vielä asetettu",
+  "case_step_set_window": "Aseta aikaväli",
+  "case_step_evidence": "Todisteet · {ready}/{total} valmiina",
+  "case_step_evidence_plain": "Todisteet",
+  "case_step_export": "Vienti · raportti tai PDF",
+  "case_step_done": "valmis",
+  "case_step_now": "nykyinen vaihe",
+  "case_step_later": "myöhemmin",
+  "case_evidence_details": "Todisteiden lähteet",
+  "case_open_checklist": "Avaa koko todisteiden tarkistuslista"
 }

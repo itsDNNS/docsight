@@ -149,5 +149,17 @@
   "case_next_stale": "Elavult: {item}",
   "case_next_ready": "A bizonyítékok teljesek",
   "case_continue": "Tovább",
-  "case_open": "Megnyitás"
+  "case_open": "Megnyitás",
+  "case_steps_label": "Az eset lépései",
+  "case_step_window": "Időszak · {range}",
+  "case_step_window_missing": "Időszak · még nincs beállítva",
+  "case_step_set_window": "Időszak beállítása",
+  "case_step_evidence": "Bizonyítékok · {ready}/{total} kész",
+  "case_step_evidence_plain": "Bizonyítékok",
+  "case_step_export": "Exportálás · jelentés vagy PDF",
+  "case_step_done": "kész",
+  "case_step_now": "jelenlegi lépés",
+  "case_step_later": "később",
+  "case_evidence_details": "Bizonyítékforrások",
+  "case_open_checklist": "A teljes bizonyíték-ellenőrzőlista megnyitása"
 }

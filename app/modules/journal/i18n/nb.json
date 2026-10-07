@@ -149,5 +149,17 @@
   "case_next_stale": "Utdatert: {item}",
   "case_next_ready": "Dokumentasjonen er komplett",
   "case_continue": "Fortsett",
-  "case_open": "Åpne"
+  "case_open": "Åpne",
+  "case_steps_label": "Sakens trinn",
+  "case_step_window": "Periode · {range}",
+  "case_step_window_missing": "Periode · ikke angitt ennå",
+  "case_step_set_window": "Angi periode",
+  "case_step_evidence": "Dokumentasjon · {ready} av {total} klare",
+  "case_step_evidence_plain": "Dokumentasjon",
+  "case_step_export": "Eksport · rapport eller PDF",
+  "case_step_done": "ferdig",
+  "case_step_now": "gjeldende trinn",
+  "case_step_later": "senere",
+  "case_evidence_details": "Dokumentasjonskilder",
+  "case_open_checklist": "Åpne hele sjekklisten for dokumentasjon"
 }

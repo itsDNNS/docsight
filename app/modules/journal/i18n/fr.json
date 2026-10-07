@@ -149,5 +149,17 @@
   "case_next_stale": "Ancien : {item}",
   "case_next_ready": "Preuves complètes",
   "case_continue": "Continuer",
-  "case_open": "Ouvrir"
+  "case_open": "Ouvrir",
+  "case_steps_label": "Étapes du dossier",
+  "case_step_window": "Période · {range}",
+  "case_step_window_missing": "Période · pas encore définie",
+  "case_step_set_window": "Définir la période",
+  "case_step_evidence": "Preuves · {ready} sur {total} prêtes",
+  "case_step_evidence_plain": "Preuves",
+  "case_step_export": "Export · rapport ou PDF",
+  "case_step_done": "fait",
+  "case_step_now": "étape actuelle",
+  "case_step_later": "plus tard",
+  "case_evidence_details": "Sources de preuves",
+  "case_open_checklist": "Ouvrir la liste complète des preuves"
 }

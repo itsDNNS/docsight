@@ -149,5 +149,17 @@
   "case_next_stale": "Veraltet: {item}",
   "case_next_ready": "Nachweise vollständig",
   "case_continue": "Weiter",
-  "case_open": "Öffnen"
+  "case_open": "Öffnen",
+  "case_steps_label": "Schritte im Fall",
+  "case_step_window": "Zeitraum · {range}",
+  "case_step_window_missing": "Zeitraum · noch nicht festgelegt",
+  "case_step_set_window": "Zeitraum festlegen",
+  "case_step_evidence": "Nachweise · {ready} von {total} bereit",
+  "case_step_evidence_plain": "Nachweise",
+  "case_step_export": "Export · Bericht oder PDF",
+  "case_step_done": "erledigt",
+  "case_step_now": "aktueller Schritt",
+  "case_step_later": "später",
+  "case_evidence_details": "Nachweisquellen",
+  "case_open_checklist": "Vollständige Nachweis-Checkliste öffnen"
 }

@@ -149,5 +149,17 @@
   "case_next_stale": "Antiguo: {item}",
   "case_next_ready": "Pruebas completas",
   "case_continue": "Continuar",
-  "case_open": "Abrir"
+  "case_open": "Abrir",
+  "case_steps_label": "Pasos del caso",
+  "case_step_window": "Periodo · {range}",
+  "case_step_window_missing": "Periodo · aún sin definir",
+  "case_step_set_window": "Definir periodo",
+  "case_step_evidence": "Pruebas · {ready} de {total} listas",
+  "case_step_evidence_plain": "Pruebas",
+  "case_step_export": "Exportar · informe o PDF",
+  "case_step_done": "hecho",
+  "case_step_now": "paso actual",
+  "case_step_later": "después",
+  "case_evidence_details": "Fuentes de pruebas",
+  "case_open_checklist": "Abrir la lista completa de pruebas"
 }
