@@ -9,6 +9,91 @@
     margin-bottom: var(--space-lg, 20px);
 }
 
+/* The period colors match the chart series. */
+.comparison-controls {
+    --cmp-period-a: #2196f3;
+    --cmp-period-b: #ff9800;
+}
+
+.comparison-presets {
+    display: flex;
+    align-items: center;
+}
+
+.comparison-preset-chips {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.comparison-preset-select {
+    display: none;
+}
+
+.comparison-case-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm) var(--space-md);
+    margin-top: var(--space-md);
+}
+
+.comparison-case-row .form-select {
+    flex: 0 1 420px;
+    min-width: 0;
+}
+
+.comparison-case-note {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.comparison-periods,
+.comparison-custom {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--glass-border);
+}
+
+.comparison-periods {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px var(--space-lg);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.comparison-periods[hidden],
+.comparison-custom[hidden] {
+    display: none;
+}
+
+.comparison-period {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comparison-period strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.comparison-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: none;
+}
+
+.comparison-swatch-a { background: var(--cmp-period-a); }
+.comparison-swatch-b { background: var(--cmp-period-b); }
+
+.comparison-periods .btn {
+    margin-left: auto;
+}
+
 .comparison-control-row {
     display: flex;
     align-items: flex-end;
@@ -190,6 +275,25 @@
 @media (max-width: 768px) {
     .comparison-controls {
         padding: var(--space-md, 16px);
+    }
+
+    /* Five chips do not fit a phone; the same choice is a select there. */
+    .comparison-preset-chips {
+        display: none;
+    }
+
+    .comparison-preset-select {
+        display: block;
+        width: 100%;
+    }
+
+    .comparison-periods {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .comparison-periods .btn {
+        margin-left: 0;
     }
 
     .comparison-control-row {

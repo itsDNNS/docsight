@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 707,
+  "expected_total": 708,
   "baseline_cpu_seconds": 1860.908,
   "shards": [
     {
@@ -43,7 +43,7 @@
     },
     {
       "id": 4,
-      "collected_cases": 122,
+      "collected_cases": 123,
       "files": [
         "test_community_drivers.py",
         "test_comparison.py",

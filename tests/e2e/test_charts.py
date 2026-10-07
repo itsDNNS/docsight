@@ -1376,12 +1376,12 @@ def test_comparison_curves_without_points_keep_zoom_and_tooltip(demo_page, prese
         payload[key]["timeseries"].append(dict(row, timestamp=row["timestamp"].replace("06:00", "12:00")))
     demo_page.route("**/api/comparison**", lambda route: route.fulfill(json=payload))
     navigate_to_comparison(demo_page)
-    demo_page.locator('#comparison-preset').select_option(preset)
+    demo_page.locator(f'#comparison-preset-tabs [data-value="{preset}"]').click()
     if preset == 'custom':
         for suffix, value in [('from-a', '2026-03-01T00:00'), ('to-a', '2026-03-01T23:59'),
                               ('from-b', '2026-03-08T00:00'), ('to-b', '2026-03-08T23:59')]:
             demo_page.locator(f'#comparison-{suffix}').fill(value)
-    demo_page.locator('#comparison-run-btn').click()
+        demo_page.locator('#comparison-run-btn').click()
     wait_for_uplot(demo_page, "cmp-chart-ds-power")
     _assert_curve_points_hidden(demo_page,
         "['cmp-chart-ds-power', 'cmp-chart-ds-snr', 'cmp-chart-us-power'].map(id => window.charts[id])")

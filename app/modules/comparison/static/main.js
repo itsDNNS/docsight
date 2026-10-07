@@ -2,6 +2,9 @@
 
 var _cmpInitialized = false;
 var _cmpLastResult = null;
+var _cmpPreset = 'yesterday_today';
+var _cmpCases = [];
+var _CMP_LINKABLE_PRESETS = ['yesterday_today', 'last_this_week', 'peak_offpeak', 'custom'];
 
 /* ── Preset Definitions ── */
 function _cmpPresetDates(preset) {
@@ -59,24 +62,112 @@ function _cmpToISO(dtLocal) {
     return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
+/* "Around a case": Period A is the week before the case, Period B the case window. */
+function _cmpCaseDates() {
+    var select = document.getElementById('comparison-case');
+    var incident = _cmpCases.find(function(c) { return String(c.id) === (select && select.value); });
+    if (!incident) return null;
+    var start = new Date(String(incident.start_date).slice(0, 10) + 'T00:00');
+    var end = incident.end_date ? new Date(String(incident.end_date).slice(0, 10) + 'T23:59') : new Date();
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+    if (end > new Date()) end = new Date();
+    return {
+        fromA: _cmpFmtDT(new Date(start.getTime() - 7 * 86400000)),
+        toA: _cmpFmtDT(start),
+        fromB: _cmpFmtDT(start),
+        toB: _cmpFmtDT(end)
+    };
+}
+
+/* "Mon, 10/05, 00:00 – 23:59" in the UI language; the second date only when the day changes. */
+function _cmpRangeText(from, to) {
+    var a = new Date(from), b = new Date(to);
+    if (isNaN(a.getTime()) || isNaN(b.getTime())) return '';
+    var lang = document.documentElement.lang || undefined;
+    var day = {weekday: 'short', month: '2-digit', day: '2-digit'};
+    var time = {hour: '2-digit', minute: '2-digit'};
+    var start = a.toLocaleDateString(lang, day) + ', ' + a.toLocaleTimeString(lang, time);
+    var end = (a.toDateString() === b.toDateString() ? '' : b.toLocaleDateString(lang, day) + ', ') + b.toLocaleTimeString(lang, time);
+    return start + ' \u2013 ' + end;
+}
+
+function _cmpUpdatePeriodText() {
+    document.getElementById('comparison-period-a-text').textContent = _cmpRangeText(
+        document.getElementById('comparison-from-a').value, document.getElementById('comparison-to-a').value);
+    document.getElementById('comparison-period-b-text').textContent = _cmpRangeText(
+        document.getElementById('comparison-from-b').value, document.getElementById('comparison-to-b').value);
+}
+
 /* ── UI Handlers ── */
+/* Chips (and the select on phones) pick the comparison; only "Custom" shows the date fields. */
+function _cmpSetPreset(preset) {
+    _cmpPreset = preset;
+    syncSegments('comparison-preset-tabs', function(b) { return b.dataset.value === preset; });
+    document.getElementById('comparison-preset').value = preset;
+    document.getElementById('comparison-custom').hidden = preset !== 'custom';
+    document.getElementById('comparison-periods').hidden = preset === 'custom';
+    document.getElementById('comparison-case-row').hidden = preset !== 'case';
+}
+
 function _cmpApplyPreset() {
-    var preset = document.getElementById('comparison-preset').value;
-    var dates = _cmpPresetDates(preset);
-    if (!dates) return;
+    var dates = _cmpPreset === 'case' ? _cmpCaseDates() : _cmpPresetDates(_cmpPreset);
+    if (!dates) return false;
     document.getElementById('comparison-from-a').value = dates.fromA;
     document.getElementById('comparison-to-a').value = dates.toA;
     document.getElementById('comparison-from-b').value = dates.fromB;
     document.getElementById('comparison-to-b').value = dates.toB;
+    _cmpUpdatePeriodText();
+    return true;
 }
 
-function _cmpOnPresetChange() {
-    _cmpApplyPreset();
-    if (document.getElementById('comparison-preset').value !== 'custom') _cmpRunComparison();
+function _cmpChoosePreset(preset) {
+    _cmpSetPreset(preset);
+    docsightWriteViewState('comparison', {preset: _CMP_LINKABLE_PRESETS.indexOf(preset) !== -1 ? preset : ''});
+    // Custom keeps the current times to edit; every other choice compares right away.
+    if (preset !== 'custom' && _cmpApplyPreset()) _cmpRunComparison();
 }
+
+function comparisonPresetSelected() {
+    _cmpChoosePreset(getPillValue('comparison-preset-tabs') || 'yesterday_today');
+}
+window.comparisonPresetSelected = comparisonPresetSelected;
 
 function _cmpOnDateChange() {
-    document.getElementById('comparison-preset').value = 'custom';
+    _cmpSetPreset('custom');
+}
+
+function _cmpAdjustTimes() {
+    _cmpChoosePreset('custom');
+    document.getElementById('comparison-from-a').focus();
+}
+
+/* Cases with a start date, open ones first, for the "Around a case" chip. */
+function _cmpLoadCases() {
+    return fetch(docsightUrl('/api/incidents'))
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .then(function(data) {
+            var list = Array.isArray(data) ? data : (data && data.incidents) || [];
+            _cmpCases = list.filter(function(c) { return c.start_date; }).sort(function(a, b) {
+                var open = (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1);
+                return open || String(b.start_date).localeCompare(String(a.start_date));
+            });
+            var select = document.getElementById('comparison-case');
+            select.textContent = '';
+            _cmpCases.forEach(function(c) {
+                var option = document.createElement('option');
+                var start = formatDocsightTime(c.start_date, 'date');
+                var end = c.end_date ? formatDocsightTime(c.end_date, 'date') : (T.incident_duration_ongoing || 'ongoing');
+                option.value = String(c.id);
+                option.textContent = c.name + ' \u00b7 ' + start + ' \u2013 ' + end;
+                select.appendChild(option);
+            });
+            var hasCases = _cmpCases.length > 0;
+            document.querySelector('#comparison-preset-tabs [data-value="case"]').hidden = !hasCases;
+            var option = document.querySelector('#comparison-preset option[value="case"]');
+            option.hidden = !hasCases;
+            option.disabled = !hasCases;
+        })
+        .catch(function() { _cmpCases = []; });
 }
 
 function _cmpRunComparison() {
@@ -198,7 +289,7 @@ function _cmpRenderCharts(data) {
             text: T['docsight.comparison.empty_no_data_text'],
             action: {
                 label: T['docsight.comparison.empty_no_data_action'] || 'Choose other periods',
-                onClick: function() { document.getElementById('comparison-preset').focus(); }
+                onClick: _cmpAdjustTimes
             },
             glossary: 'before_after_comparison'
         });
@@ -419,12 +510,25 @@ function initComparison() {
             }
         });
 
-        document.getElementById('comparison-preset').addEventListener('change', _cmpOnPresetChange);
-        document.getElementById('comparison-run-btn').addEventListener('click', _cmpRunComparison);
+        document.getElementById('comparison-preset').addEventListener('change', function(event) {
+            _cmpChoosePreset(event.target.value);
+        });
+        document.getElementById('comparison-case').addEventListener('change', function() {
+            if (_cmpApplyPreset()) _cmpRunComparison();
+        });
+        document.getElementById('comparison-adjust-btn').addEventListener('click', _cmpAdjustTimes);
+        document.getElementById('comparison-run-btn').addEventListener('click', function() {
+            _cmpUpdatePeriodText();
+            _cmpRunComparison();
+        });
+        _cmpLoadCases();
     }
 
-    /* Apply the default preset and show its result on each view */
-    _cmpApplyPreset();
+    /* "#comparison?preset=last_this_week" opens that comparison; otherwise the last one. */
+    var linked = docsightReadViewState('comparison').preset;
+    if (_CMP_LINKABLE_PRESETS.indexOf(linked) !== -1) _cmpPreset = linked;
+    _cmpSetPreset(_cmpPreset);
+    if (_cmpPreset !== 'custom') _cmpApplyPreset();
     _cmpRunComparison();
 }
 
