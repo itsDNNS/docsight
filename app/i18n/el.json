@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Μη διορθώσιμα σφάλματα ανά ημέρα",
   "undo": "Αναίρεση",
   "event_ack_done_one": "Το συμβάν επιβεβαιώθηκε",
-  "event_ack_done_many": "Επιβεβαιωμένα συμβάντα: {count}"
+  "event_ack_done_many": "Επιβεβαιωμένα συμβάντα: {count}",
+  "event_journal_note": "Σημείωση ημερολογίου"
 }

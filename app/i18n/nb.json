@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Ukorrigerbare feil per dag",
   "undo": "Angre",
   "event_ack_done_one": "Hendelse kvittert",
-  "event_ack_done_many": "{count} hendelser kvittert"
+  "event_ack_done_many": "{count} hendelser kvittert",
+  "event_journal_note": "Journalnotat"
 }

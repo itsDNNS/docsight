@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Błędy niekorygowalne na dzień",
   "undo": "Cofnij",
   "event_ack_done_one": "Zdarzenie potwierdzone",
-  "event_ack_done_many": "Potwierdzone zdarzenia: {count}"
+  "event_ack_done_many": "Potwierdzone zdarzenia: {count}",
+  "event_journal_note": "Notatka w dzienniku"
 }

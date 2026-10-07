@@ -69,3 +69,22 @@ test('markUnacknowledged takes back exactly the listed acknowledgements', () => 
     assert.deepEqual(events.map(e => e.acknowledged), [0, 1, 0]);
     assert.equal(data.markUnacknowledged(events, []), 0);
 });
+
+test('journal notes lead their day and stay inside the loaded span', () => {
+    const days = data.buildTimeline([ev(5, '2026-10-07T09:00:00', 'a'), ev(4, '2026-10-05T08:00:00', 'b')]);
+    const notes = [
+        {id: 1, date: '2026-10-07', title: 'Older note today'},
+        {id: 2, date: '2026-10-07', title: 'Newer note today'},
+        {id: 3, date: '2026-10-06', title: 'Quiet day'},
+        {id: 4, date: '2026-10-01', title: 'Before the loaded span'},
+        {id: 5, date: 'not a date', title: 'Ignored'},
+    ];
+    const merged = data.addNotes(days, notes, {oldestDay: '2026-10-05', newestDay: '2026-10-07'});
+    assert.deepEqual(merged.map(d => d.day), ['2026-10-07', '2026-10-06', '2026-10-05']);
+    assert.deepEqual(merged[0].items.map(i => i.key), ['n2', 'n1', 'e5']);
+    assert.deepEqual(merged[1].items.map(i => i.key), ['n3']);
+    assert.equal(merged[1].count, 0);
+    assert.deepEqual(days[0].items.map(i => i.key), ['e5']);
+    const everything = data.addNotes(days, notes, {oldestDay: null, newestDay: '2026-10-07'});
+    assert.deepEqual(everything.map(d => d.day), ['2026-10-07', '2026-10-06', '2026-10-05', '2026-10-01']);
+});

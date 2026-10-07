@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Neispravljive pogreške po danu",
   "undo": "Poništi",
   "event_ack_done_one": "Događaj potvrđen",
-  "event_ack_done_many": "Potvrđeni događaji: {count}"
+  "event_ack_done_many": "Potvrđeni događaji: {count}",
+  "event_journal_note": "Bilješka u dnevniku"
 }

@@ -45,6 +45,8 @@ def _serve_events(page, events):
         re.compile(r".*/api/events\?.*"),
         lambda route: route.fulfill(json={"events": events, "unacknowledged_count": 0}),
     )
+    # The demo journal's notes would join a fully loaded, served log; tests that want notes serve their own.
+    page.route(re.compile(r".*/api/journal\?limit=1000.*"), lambda route: route.fulfill(json=[]))
 
 
 def _timeline_geometry(page):
@@ -273,6 +275,68 @@ def test_acknowledged_events_stay_acknowledged_when_the_undo_time_runs_out(demo_
     expect(page.locator("#toast")).to_be_hidden()
     expect(run).to_have_class(re.compile(r"\bev-acked\b"))
     assert calls == ["acknowledge"]
+NOTES = [
+    {"id": 501, "date": "2026-10-04", "title": "Technician replaced the amplifier", "incident_id": 7},
+    {"id": 502, "date": "2026-10-02", "title": "Quiet day note", "incident_id": None},
+]
+
+
+def _serve_notes(page, notes):
+    page.route(re.compile(r".*/api/journal\?limit=1000.*"), lambda route: route.fulfill(json=notes))
+    page.route(re.compile(r".*/api/incidents$"), lambda route: route.fulfill(json=[{"id": 7, "name": "Evening dropouts"}]))
+    page.route(re.compile(r".*/api/journal/501$"), lambda route: route.fulfill(json={**NOTES[0], "description": "", "icon": None, "attachments": []}))
+
+
+def test_journal_notes_sit_at_their_day_and_open_the_entry(demo_page):
+    page = demo_page
+    _serve_events(page, json.loads(json.dumps(RUN_EVENTS)))
+    _serve_notes(page, NOTES)
+    _open_events(page, DESKTOP_VIEWPORT)
+
+    note = page.locator('#events-feed .ev-note[data-key="n501"]')
+    expect(note).to_be_visible()
+    expect(note).to_contain_text("Journal-Notiz")
+    expect(note).to_contain_text("Technician replaced the amplifier")
+    expect(note).to_contain_text("Evening dropouts")
+    # Notes carry no time, so they lead their day; they offer neither selection nor acknowledge.
+    day = note.locator("xpath=ancestor::section[1]")
+    expect(day.locator(".ev-row").first).to_have_attribute("data-key", "n501")
+    expect(note.locator("input, .ev-ack")).to_have_count(0)
+    # The whole log is loaded, so an older day with only a note gets its own section.
+    quiet = page.locator('#events-feed .ev-note[data-key="n502"]')
+    expect(quiet).to_be_visible()
+    expect(quiet.locator("xpath=ancestor::section[1]").locator(".ev-row")).to_have_count(1)
+
+    note.get_by_role("button").click()
+    expect(page.locator("#entry-modal")).to_be_visible()
+    expect(page.locator("#entry-title-input")).to_have_value("Technician replaced the amplifier")
+
+
+def test_notes_older_than_the_loaded_page_wait_for_it(demo_page):
+    page = demo_page
+    events = [{"id": 1000 - i, "timestamp": f"2026-10-04T{23 - i // 3:02d}:{(i % 3) * 15:02d}:00", "severity": "info",
+               "event_type": "health_change" if i % 2 else "snr_change", "message": "x", "details": {}, "acknowledged": 1}
+              for i in range(50)]
+    _serve_events(page, events)
+    _serve_notes(page, [
+        {"id": 601, "date": "2026-10-05", "title": "After the newest event", "incident_id": None},
+        {"id": 602, "date": "2026-10-03", "title": "Before the loaded page", "incident_id": None},
+    ])
+    _open_events(page, DESKTOP_VIEWPORT)
+    expect(page.locator("#events-show-more")).to_be_visible()
+    expect(page.locator('#events-feed .ev-note[data-key="n601"]')).to_be_visible()
+    expect(page.locator('#events-feed .ev-note[data-key="n602"]')).to_have_count(0)
+
+
+def test_severity_filters_show_events_only(demo_page):
+    page = demo_page
+    _serve_events(page, json.loads(json.dumps(RUN_EVENTS)))
+    _serve_notes(page, NOTES)
+    _open_events(page, DESKTOP_VIEWPORT)
+    expect(page.locator("#events-feed .ev-note")).to_have_count(2)
+    page.locator('#events-severity-tabs [data-severity="warning"]').click()
+    expect(page.locator("#events-feed .ev-row").first).to_be_visible()
+    expect(page.locator("#events-feed .ev-note")).to_have_count(0)
 
 
 def test_badge_only_counts_recent_unacknowledged_warnings(demo_page):

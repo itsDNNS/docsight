@@ -1260,5 +1260,6 @@
   "trend_errors_per_day": "Nicht korrigierbare Fehler pro Tag",
   "undo": "Rückgängig",
   "event_ack_done_one": "Ereignis bestätigt",
-  "event_ack_done_many": "{count} Ereignisse bestätigt"
+  "event_ack_done_many": "{count} Ereignisse bestätigt",
+  "event_journal_note": "Journal-Notiz"
 }

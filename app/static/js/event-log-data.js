@@ -116,6 +116,37 @@
         return changed;
     }
 
+    /* Journal notes join the day sections they belong to. Notes carry a date
+       but no time, so they lead their day. Only days inside the loaded span get
+       notes: from oldestDay (null while every older event is loaded) to newestDay;
+       a day with notes but no events gets its own section. */
+    function addNotes(days, notes, span) {
+        var oldest = span && span.oldestDay;
+        var newest = span && span.newestDay;
+        var result = (days || []).map(function (day) {
+            return {day: day.day, items: day.items.slice(), count: day.count};
+        });
+        var byDay = {};
+        result.forEach(function (day) { byDay[day.day] = day; });
+        var inSpan = (notes || []).filter(function (note) {
+            var day = String(note.date || '');
+            return /^\d{4}-\d{2}-\d{2}$/.test(day) && (!oldest || day >= oldest) && (!newest || day <= newest);
+        }).sort(function (a, b) { return b.id - a.id; });
+        var leading = {};
+        inSpan.forEach(function (note) {
+            var day = byDay[note.date];
+            if (!day) {
+                day = {day: note.date, items: [], count: 0};
+                byDay[note.date] = day;
+                result.push(day);
+            }
+            var at = leading[note.date] || 0;
+            day.items.splice(at, 0, {kind: 'note', key: 'n' + note.id, note: note});
+            leading[note.date] = at + 1;
+        });
+        return result.sort(function (a, b) { return a.day < b.day ? 1 : a.day > b.day ? -1 : 0; });
+    }
+
     return {
         severity: severity,
         worstSeverity: worstSeverity,
@@ -123,6 +154,7 @@
         buildTimeline: buildTimeline,
         unacknowledgedIds: unacknowledgedIds,
         markAcknowledged: markAcknowledged,
-        markUnacknowledged: markUnacknowledged
+        markUnacknowledged: markUnacknowledged,
+        addNotes: addNotes
     };
 });
