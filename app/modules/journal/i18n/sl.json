@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Prikaži vse vnose",
   "journal_empty_search_text": "Poskusite drug izraz ali počistite iskanje.",
   "journal_empty_search_action": "Počisti iskanje",
-  "entry_deleted": "Vnos izbrisan"
+  "entry_deleted": "Vnos izbrisan",
+  "case_cards_label": "Primeri",
+  "case_notes_one": "1 opomba",
+  "case_notes_many": "Opombe: {count}",
+  "case_lights_ready": "Pripravljeno: {count}",
+  "case_lights_stale": "Zastarelo: {count}",
+  "case_lights_missing": "Manjka: {count}",
+  "case_next_missing": "Manjka: {item}",
+  "case_next_stale": "Zastarelo: {item}",
+  "case_next_ready": "Dokazi so popolni",
+  "case_continue": "Nadaljuj",
+  "case_open": "Odpri"
 }

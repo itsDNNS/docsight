@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Prikaži sve unose",
   "journal_empty_search_text": "Pokušajte s drugim pojmom ili očistite pretraživanje.",
   "journal_empty_search_action": "Očisti pretraživanje",
-  "entry_deleted": "Unos izbrisan"
+  "entry_deleted": "Unos izbrisan",
+  "case_cards_label": "Slučajevi",
+  "case_notes_one": "1 bilješka",
+  "case_notes_many": "Bilješke: {count}",
+  "case_lights_ready": "Spremno: {count}",
+  "case_lights_stale": "Zastarjelo: {count}",
+  "case_lights_missing": "Nedostaje: {count}",
+  "case_next_missing": "Nedostaje: {item}",
+  "case_next_stale": "Zastarjelo: {item}",
+  "case_next_ready": "Dokazi su potpuni",
+  "case_continue": "Nastavi",
+  "case_open": "Otvori"
 }

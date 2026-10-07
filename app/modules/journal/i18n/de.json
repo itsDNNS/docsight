@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Alle Einträge anzeigen",
   "journal_empty_search_text": "Versuche einen anderen Begriff oder leere die Suche.",
   "journal_empty_search_action": "Suche leeren",
-  "entry_deleted": "Eintrag gelöscht"
+  "entry_deleted": "Eintrag gelöscht",
+  "case_cards_label": "Fälle",
+  "case_notes_one": "1 Notiz",
+  "case_notes_many": "{count} Notizen",
+  "case_lights_ready": "{count} bereit",
+  "case_lights_stale": "{count} veraltet",
+  "case_lights_missing": "{count} fehlen",
+  "case_next_missing": "Fehlt: {item}",
+  "case_next_stale": "Veraltet: {item}",
+  "case_next_ready": "Nachweise vollständig",
+  "case_continue": "Weiter",
+  "case_open": "Öffnen"
 }

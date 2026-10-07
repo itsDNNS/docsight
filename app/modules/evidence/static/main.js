@@ -354,6 +354,13 @@ function _evidenceLoad() {
 }
 
 /* #evidence?from=YYYY-MM-DDTHH:MM&to=… (local time) opens the journey for that window. */
+function _evidenceHashCase() {
+    var hash = location.hash || '';
+    var query = hash.indexOf('?') === -1 ? '' : hash.slice(hash.indexOf('?') + 1);
+    var id = new URLSearchParams(query).get('case');
+    return id && /^\d+$/.test(id) ? id : null;
+}
+
 function _evidenceApplyHashWindow() {
     var hash = location.hash || '';
     var query = hash.indexOf('?') === -1 ? '' : hash.slice(hash.indexOf('?') + 1);
@@ -396,7 +403,20 @@ function initEvidence() {
             });
         });
     }
-    _evidenceLoadCases();
+    var casesLoaded = _evidenceLoadCases();
+    // A case handed over from the case overview (#evidence?case=7) opens its checklist.
+    var handedCase = _evidenceHashCase();
+    if (handedCase) {
+        casesLoaded.then(function() {
+            var caseSelect = document.getElementById('evidence-incident-id');
+            if (!caseSelect) return;
+            caseSelect.value = handedCase;
+            if (caseSelect.value !== handedCase) return;
+            _evidenceMarkRange(null);
+            _evidenceLoad();
+        });
+        return;
+    }
     // A handed-over window wins; otherwise the first visit evaluates the last 24 hours right away.
     if (!_evidenceApplyHashWindow() && firstOpen) {
         var range = _evidenceQuickRange('last24h', Date.now());

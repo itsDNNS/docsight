@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Kuva kõik kirjed",
   "journal_empty_search_text": "Proovi teist otsingusõna või tühjenda otsing.",
   "journal_empty_search_action": "Tühjenda otsing",
-  "entry_deleted": "Kanne kustutatud"
+  "entry_deleted": "Kanne kustutatud",
+  "case_cards_label": "Juhtumid",
+  "case_notes_one": "1 märge",
+  "case_notes_many": "Märkeid: {count}",
+  "case_lights_ready": "Valmis: {count}",
+  "case_lights_stale": "Aegunud: {count}",
+  "case_lights_missing": "Puudu: {count}",
+  "case_next_missing": "Puudu: {item}",
+  "case_next_stale": "Aegunud: {item}",
+  "case_next_ready": "Tõendid on koos",
+  "case_continue": "Jätka",
+  "case_open": "Ava"
 }

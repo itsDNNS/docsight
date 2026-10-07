@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Show all entries",
   "journal_empty_search_text": "Try a different term or clear the search.",
   "journal_empty_search_action": "Clear search",
-  "entry_deleted": "Entry deleted"
+  "entry_deleted": "Entry deleted",
+  "case_cards_label": "Cases",
+  "case_notes_one": "1 note",
+  "case_notes_many": "{count} notes",
+  "case_lights_ready": "{count} ready",
+  "case_lights_stale": "{count} stale",
+  "case_lights_missing": "{count} missing",
+  "case_next_missing": "Missing: {item}",
+  "case_next_stale": "Outdated: {item}",
+  "case_next_ready": "Evidence ready",
+  "case_continue": "Continue",
+  "case_open": "Open"
 }

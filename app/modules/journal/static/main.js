@@ -930,8 +930,106 @@ function loadIncidents() {
         .then(function(results) {
             _incidentsData = results[0] || [];
             renderIncidentBar(_incidentsData);
+            renderCaseCards(_incidentsData);
         })
         .catch(function() { _incidentsData = []; });
+}
+
+/* ── Case overview ──
+   One card per case (open ones first, at most six): status, window, notes, the
+   evidence state as ready / stale / missing and the next useful step. Continue
+   opens the case's evidence checklist; Open shows its timeline. */
+var CASE_CARD_LIMIT = 6;
+var CASE_BADGE = {open: 'badge-warn', resolved: 'badge-good', escalated: 'badge-crit'};
+
+function _caseText(key, fallback, values) {
+    var text = T[key] || fallback;
+    Object.keys(values || {}).forEach(function(name) { text = text.replace('{' + name + '}', values[name]); });
+    return text;
+}
+
+function _caseEl(tag, className, text) {
+    var el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text !== undefined && text !== null) el.textContent = text;
+    return el;
+}
+
+function _caseWindow(inc) {
+    if (!inc.start_date) return T.event_case_no_window || 'No window yet';
+    return formatDocsightTime(inc.start_date, 'date') + ' – ' +
+        (inc.end_date ? formatDocsightTime(inc.end_date, 'date') : (T.event_case_running || 'ongoing'));
+}
+
+function renderCaseCards(incidents) {
+    var root = document.getElementById('case-cards');
+    if (!root) return;
+    root.textContent = '';
+    var cases = (incidents || []).slice().sort(function(a, b) {
+        return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) ||
+            String(b.start_date || '').localeCompare(String(a.start_date || ''));
+    }).slice(0, CASE_CARD_LIMIT);
+    root.hidden = !cases.length || _timelineActive;
+    var withEvidence = !!document.getElementById('view-evidence');
+    cases.forEach(function(inc) {
+        var card = _caseEl('article', 'card case-card');
+        card.setAttribute('data-case-id', inc.id);
+        var head = _caseEl('div', 'case-card-head');
+        head.appendChild(_caseEl('h3', 'case-card-name', inc.name));
+        head.appendChild(_caseEl('span', 'badge ' + (CASE_BADGE[inc.status] || ''), T['incident_status_' + inc.status] || inc.status));
+        card.appendChild(head);
+        var notes = inc.entry_count === 1
+            ? (T.case_notes_one || '1 note')
+            : _caseText('case_notes_many', '{count} notes', {count: inc.entry_count || 0});
+        card.appendChild(_caseEl('p', 'case-card-meta', _caseWindow(inc) + ' · ' + notes));
+        var lights = _caseEl('p', 'case-card-lights');
+        lights.hidden = true;
+        card.appendChild(lights);
+        var foot = _caseEl('div', 'case-card-foot');
+        var next = _caseEl('span', 'case-card-next');
+        foot.appendChild(next);
+        var open = inc.status === 'open';
+        var button = _caseEl('button', 'btn btn-sm ' + (open ? 'btn-primary' : 'btn-secondary'),
+            open && withEvidence ? (T.case_continue || 'Continue') : (T.case_open || 'Open'));
+        button.type = 'button';
+        button.addEventListener('click', function() {
+            if (open && withEvidence) location.hash = '#evidence?case=' + inc.id;
+            else openIncidentTimeline(inc.id);
+        });
+        foot.appendChild(button);
+        card.appendChild(foot);
+        root.appendChild(card);
+        if (withEvidence && inc.start_date) _loadCaseEvidence(inc, lights, next);
+    });
+}
+
+function _loadCaseEvidence(inc, lights, next) {
+    fetch(docsightUrl('/api/evidence/checklist?incident_id=' + encodeURIComponent(inc.id)))
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(payload) {
+            if (!payload || !payload.summary) return;
+            var counts = [
+                ['ready', payload.summary.present || 0, 'case_lights_ready', '{count} ready'],
+                ['stale', payload.summary.stale || 0, 'case_lights_stale', '{count} stale'],
+                ['missing', payload.summary.missing || 0, 'case_lights_missing', '{count} missing']
+            ];
+            counts.forEach(function(entry) {
+                if (!entry[1]) return;
+                var light = _caseEl('span', 'case-light case-light-' + entry[0]);
+                light.appendChild(_caseEl('span', 'case-light-dot'));
+                light.appendChild(document.createTextNode(_caseText(entry[2], entry[3], {count: entry[1]})));
+                lights.appendChild(light);
+            });
+            lights.hidden = !lights.childNodes.length;
+            var items = payload.items || [];
+            var missing = items.filter(function(item) { return item.status === 'missing'; })[0];
+            var stale = items.filter(function(item) { return item.status === 'stale'; })[0];
+            var label = function(item) { return T[item.label_key] || item.key; };
+            next.textContent = missing ? _caseText('case_next_missing', 'Missing: {item}', {item: label(missing)})
+                : stale ? _caseText('case_next_stale', 'Outdated: {item}', {item: label(stale)})
+                : (T.case_next_ready || 'Evidence ready');
+        })
+        .catch(function() {});
 }
 
 function renderIncidentBar(incidents) {
@@ -1048,6 +1146,8 @@ window.openIncidentTimeline = function(incidentId) {
     // Show timeline container with loading state
     var timelineView = document.getElementById('incident-timeline-view');
     timelineView.hidden = false;
+    var caseCards = document.getElementById('case-cards');
+    if (caseCards) caseCards.hidden = true;
     var header = document.getElementById('incident-timeline-header');
     header.innerHTML = '<div class="spinner incident-timeline-spinner"></div>';
 
@@ -1071,6 +1171,8 @@ window.closeIncidentTimeline = function() {
     var timelineView = document.getElementById('incident-timeline-view');
     timelineView.hidden = true;
     _timelineActive = false;
+    var caseCards = document.getElementById('case-cards');
+    if (caseCards) caseCards.hidden = !caseCards.childNodes.length;
 
     // Destroy chart to free memory
     if (_timelineChartInstance) {

@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Pokaż wszystkie wpisy",
   "journal_empty_search_text": "Spróbuj innego wyrażenia lub wyczyść wyszukiwanie.",
   "journal_empty_search_action": "Wyczyść wyszukiwanie",
-  "entry_deleted": "Wpis usunięty"
+  "entry_deleted": "Wpis usunięty",
+  "case_cards_label": "Sprawy",
+  "case_notes_one": "1 notatka",
+  "case_notes_many": "Notatki: {count}",
+  "case_lights_ready": "Gotowe: {count}",
+  "case_lights_stale": "Nieaktualne: {count}",
+  "case_lights_missing": "Brakuje: {count}",
+  "case_next_missing": "Brakuje: {item}",
+  "case_next_stale": "Nieaktualne: {item}",
+  "case_next_ready": "Dowody kompletne",
+  "case_continue": "Dalej",
+  "case_open": "Otwórz"
 }

@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Rādīt visus ierakstus",
   "journal_empty_search_text": "Mēģiniet citu vārdu vai notīriet meklēšanu.",
   "journal_empty_search_action": "Notīrīt meklēšanu",
-  "entry_deleted": "Ieraksts dzēsts"
+  "entry_deleted": "Ieraksts dzēsts",
+  "case_cards_label": "Gadījumi",
+  "case_notes_one": "1 piezīme",
+  "case_notes_many": "Piezīmes: {count}",
+  "case_lights_ready": "Gatavi: {count}",
+  "case_lights_stale": "Novecojuši: {count}",
+  "case_lights_missing": "Trūkst: {count}",
+  "case_next_missing": "Trūkst: {item}",
+  "case_next_stale": "Novecojis: {item}",
+  "case_next_ready": "Pierādījumi pilnīgi",
+  "case_continue": "Turpināt",
+  "case_open": "Atvērt"
 }

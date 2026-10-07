@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Afișează toate intrările",
   "journal_empty_search_text": "Încercați alt termen sau ștergeți căutarea.",
   "journal_empty_search_action": "Șterge căutarea",
-  "entry_deleted": "Intrare ștearsă"
+  "entry_deleted": "Intrare ștearsă",
+  "case_cards_label": "Cazuri",
+  "case_notes_one": "1 notă",
+  "case_notes_many": "Note: {count}",
+  "case_lights_ready": "Pregătite: {count}",
+  "case_lights_stale": "Învechite: {count}",
+  "case_lights_missing": "Lipsă: {count}",
+  "case_next_missing": "Lipsește: {item}",
+  "case_next_stale": "Învechit: {item}",
+  "case_next_ready": "Dovezi complete",
+  "case_continue": "Continuă",
+  "case_open": "Deschide"
 }

@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Taispeáin gach iontráil",
   "journal_empty_search_text": "Bain triail as téarma eile nó glan an cuardach.",
   "journal_empty_search_action": "Glan an cuardach",
-  "entry_deleted": "Iontráil scriosta"
+  "entry_deleted": "Iontráil scriosta",
+  "case_cards_label": "Cásanna",
+  "case_notes_one": "1 nóta",
+  "case_notes_many": "Nótaí: {count}",
+  "case_lights_ready": "Réidh: {count}",
+  "case_lights_stale": "As dáta: {count}",
+  "case_lights_missing": "Ar iarraidh: {count}",
+  "case_next_missing": "Ar iarraidh: {item}",
+  "case_next_stale": "As dáta: {item}",
+  "case_next_ready": "Fianaise iomlán",
+  "case_continue": "Ar aghaidh",
+  "case_open": "Oscail"
 }

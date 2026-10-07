@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Összes bejegyzés megjelenítése",
   "journal_empty_search_text": "Próbáljon más kifejezést, vagy törölje a keresést.",
   "journal_empty_search_action": "Keresés törlése",
-  "entry_deleted": "Bejegyzés törölve"
+  "entry_deleted": "Bejegyzés törölve",
+  "case_cards_label": "Esetek",
+  "case_notes_one": "1 jegyzet",
+  "case_notes_many": "{count} jegyzet",
+  "case_lights_ready": "{count} kész",
+  "case_lights_stale": "{count} elavult",
+  "case_lights_missing": "{count} hiányzik",
+  "case_next_missing": "Hiányzik: {item}",
+  "case_next_stale": "Elavult: {item}",
+  "case_next_ready": "A bizonyítékok teljesek",
+  "case_continue": "Tovább",
+  "case_open": "Megnyitás"
 }

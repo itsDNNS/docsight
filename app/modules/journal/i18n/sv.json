@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Visa alla poster",
   "journal_empty_search_text": "Prova ett annat ord eller rensa sökningen.",
   "journal_empty_search_action": "Rensa sökning",
-  "entry_deleted": "Post borttagen"
+  "entry_deleted": "Post borttagen",
+  "case_cards_label": "Ärenden",
+  "case_notes_one": "1 anteckning",
+  "case_notes_many": "{count} anteckningar",
+  "case_lights_ready": "{count} klara",
+  "case_lights_stale": "{count} inaktuella",
+  "case_lights_missing": "{count} saknas",
+  "case_next_missing": "Saknas: {item}",
+  "case_next_stale": "Inaktuellt: {item}",
+  "case_next_ready": "Underlaget är komplett",
+  "case_continue": "Fortsätt",
+  "case_open": "Öppna"
 }

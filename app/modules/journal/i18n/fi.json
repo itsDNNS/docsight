@@ -138,5 +138,16 @@
   "journal_empty_case_action": "Näytä kaikki merkinnät",
   "journal_empty_search_text": "Kokeile toista hakusanaa tai tyhjennä haku.",
   "journal_empty_search_action": "Tyhjennä haku",
-  "entry_deleted": "Merkintä poistettu"
+  "entry_deleted": "Merkintä poistettu",
+  "case_cards_label": "Tapaukset",
+  "case_notes_one": "1 merkintä",
+  "case_notes_many": "Merkintöjä: {count}",
+  "case_lights_ready": "Valmiina: {count}",
+  "case_lights_stale": "Vanhentuneita: {count}",
+  "case_lights_missing": "Puuttuu: {count}",
+  "case_next_missing": "Puuttuu: {item}",
+  "case_next_stale": "Vanhentunut: {item}",
+  "case_next_ready": "Todisteet valmiina",
+  "case_continue": "Jatka",
+  "case_open": "Avaa"
 }
