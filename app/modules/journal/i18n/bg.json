@@ -149,5 +149,17 @@
   "case_next_stale": "Остаряло: {item}",
   "case_next_ready": "Доказателствата са пълни",
   "case_continue": "Продължи",
-  "case_open": "Отвори"
+  "case_open": "Отвори",
+  "case_steps_label": "Стъпки на случая",
+  "case_step_window": "Период · {range}",
+  "case_step_window_missing": "Период · още не е зададен",
+  "case_step_set_window": "Задай период",
+  "case_step_evidence": "Доказателства · готови {ready} от {total}",
+  "case_step_evidence_plain": "Доказателства",
+  "case_step_export": "Експорт · отчет или PDF",
+  "case_step_done": "готово",
+  "case_step_now": "текуща стъпка",
+  "case_step_later": "по-късно",
+  "case_evidence_details": "Източници на доказателства",
+  "case_open_checklist": "Отвори пълния списък с доказателства"
 }

@@ -363,7 +363,7 @@ function populateIncidentSelect(selectedId) {
     });
 }
 
-function openEntryModal(entryId) {
+function openEntryModal(entryId, incidentId) {
     var modal = document.getElementById('entry-modal');
     var titleEl = document.getElementById('entry-modal-title');
     var idEl = document.getElementById('entry-id');
@@ -411,7 +411,7 @@ function openEntryModal(entryId) {
         iconVal.value = '';
         renderIconPicker('');
         updateModalIcon();
-        populateIncidentSelect(_activeIncidentFilter > 0 ? _activeIncidentFilter : null);
+        populateIncidentSelect(incidentId || (_activeIncidentFilter > 0 ? _activeIncidentFilter : null));
         deleteBtn.hidden = true;
         attachSection.hidden = false;
         if (uploadBtn) uploadBtn.disabled = true;
@@ -506,7 +506,9 @@ function saveEntry() {
                 showToast(res.data.error || 'Error', 'error');
                 return;
             }
-            loadJournal();
+            // A note added from a case lands in that case's timeline.
+            if (_timelineActive && _timelineIncidentId) openIncidentTimeline(_timelineIncidentId);
+            else loadJournal();
             loadIncidents();
             if (!entryId && res.data.id) {
                 // New entry: switch modal to edit mode in-place (keep it open)
@@ -990,12 +992,9 @@ function renderCaseCards(incidents) {
         foot.appendChild(next);
         var open = inc.status === 'open';
         var button = _caseEl('button', 'btn btn-sm ' + (open ? 'btn-primary' : 'btn-secondary'),
-            open && withEvidence ? (T.case_continue || 'Continue') : (T.case_open || 'Open'));
+            open ? (T.case_continue || 'Continue') : (T.case_open || 'Open'));
         button.type = 'button';
-        button.addEventListener('click', function() {
-            if (open && withEvidence) location.hash = '#evidence?case=' + inc.id;
-            else openIncidentTimeline(inc.id);
-        });
+        button.addEventListener('click', function() { openIncidentTimeline(inc.id); });
         foot.appendChild(button);
         card.appendChild(foot);
         root.appendChild(card);
@@ -1003,15 +1002,26 @@ function renderCaseCards(incidents) {
     });
 }
 
+/* Evidence sources of a case. The report item is left out: exporting is the
+   case's last step, not a piece of evidence. */
+function _caseEvidenceItems(payload) {
+    return (payload.items || []).filter(function(item) { return item.key !== 'report'; });
+}
+
+function _caseEvidenceCount(items, status) {
+    return items.filter(function(item) { return item.status === status; }).length;
+}
+
 function _loadCaseEvidence(inc, lights, next) {
     fetch(docsightUrl('/api/evidence/checklist?incident_id=' + encodeURIComponent(inc.id)))
         .then(function(r) { return r.ok ? r.json() : null; })
         .then(function(payload) {
-            if (!payload || !payload.summary) return;
+            if (!payload) return;
+            var items = _caseEvidenceItems(payload);
             var counts = [
-                ['ready', payload.summary.present || 0, 'case_lights_ready', '{count} ready'],
-                ['stale', payload.summary.stale || 0, 'case_lights_stale', '{count} stale'],
-                ['missing', payload.summary.missing || 0, 'case_lights_missing', '{count} missing']
+                ['ready', _caseEvidenceCount(items, 'present'), 'case_lights_ready', '{count} ready'],
+                ['stale', _caseEvidenceCount(items, 'stale'), 'case_lights_stale', '{count} stale'],
+                ['missing', _caseEvidenceCount(items, 'missing'), 'case_lights_missing', '{count} missing']
             ];
             counts.forEach(function(entry) {
                 if (!entry[1]) return;
@@ -1021,7 +1031,6 @@ function _loadCaseEvidence(inc, lights, next) {
                 lights.appendChild(light);
             });
             lights.hidden = !lights.childNodes.length;
-            var items = payload.items || [];
             var missing = items.filter(function(item) { return item.status === 'missing'; })[0];
             var stale = items.filter(function(item) { return item.status === 'stale'; })[0];
             var label = function(item) { return T[item.label_key] || item.key; };
@@ -1129,6 +1138,7 @@ function renderIncidentSummary(incidentId) {
 /* ── Incident Timeline ── */
 var _timelineActive = false;
 var _timelineChartInstance = null;
+var _timelineIncidentId = null;
 
 window.openIncidentTimeline = function(incidentId) {
     // Hide journal UI elements
@@ -1152,6 +1162,7 @@ window.openIncidentTimeline = function(incidentId) {
     header.innerHTML = '<div class="spinner incident-timeline-spinner"></div>';
 
     _timelineActive = true;
+    _timelineIncidentId = incidentId;
 
     fetch(docsightUrl('/api/incidents/' + incidentId + '/timeline'))
         .then(function(r) { return r.json(); })
@@ -1173,6 +1184,8 @@ window.closeIncidentTimeline = function() {
     _timelineActive = false;
     var caseCards = document.getElementById('case-cards');
     if (caseCards) caseCards.hidden = !caseCards.childNodes.length;
+    var caseSteps = document.getElementById('incident-timeline-steps');
+    if (caseSteps) caseSteps.hidden = true;
 
     // Destroy chart to free memory
     if (_timelineChartInstance) {
@@ -1247,6 +1260,101 @@ function _loadIncidentStatusTrack(inc) {
     });
 }
 
+/* ── Case steps: window → evidence → export ──
+   The step that needs attention is marked; missing or stale evidence offers
+   the action that fills it in, right in the case. */
+function _caseStep(number, state, text) {
+    var step = _caseEl('li', 'case-step case-step-' + state);
+    var mark = _caseEl('span', 'case-step-mark', state === 'done' ? '\u2713' : String(number));
+    mark.setAttribute('aria-hidden', 'true');
+    step.appendChild(mark);
+    step.appendChild(_caseEl('span', 'case-step-text', text));
+    if (state === 'now') step.setAttribute('aria-current', 'step');
+    var sr = _caseEl('span', 'sr-only', ' (' + (state === 'done' ? (T.case_step_done || 'done') : state === 'now' ? (T.case_step_now || 'current step') : (T.case_step_later || 'later')) + ')');
+    step.appendChild(sr);
+    return step;
+}
+
+function _caseEvidenceAction(item, inc) {
+    var action = item.action || {};
+    var key = action.action || action.view;
+    if (!key) return null;
+    var button = _caseEl('button', 'btn btn-ghost btn-sm', T['docsight.evidence.action.' + key] || T['docsight.evidence.action.review'] || 'Open related view');
+    button.type = 'button';
+    button.addEventListener('click', function() {
+        if (action.action === 'add_note') openEntryModal(null, inc.id);
+        else if (action.view && typeof switchView === 'function') switchView(action.view);
+    });
+    return button;
+}
+
+function renderCaseSteps(inc) {
+    var root = document.getElementById('incident-timeline-steps');
+    if (!root) return;
+    root.textContent = '';
+    // A checklist that arrives after another case was opened is dropped.
+    var token = {};
+    root._caseStepsToken = token;
+    // Without the evidence module there is nothing to collect: window, then export.
+    var withEvidence = !!document.getElementById('view-evidence');
+    var exportNumber = withEvidence ? 3 : 2;
+    var list = _caseEl('ol', 'case-steps');
+    root.appendChild(list);
+    root.hidden = false;
+    if (!inc.start_date) {
+        list.appendChild(_caseStep(1, 'now', T.case_step_window_missing || 'Window · not set yet'));
+        if (withEvidence) list.appendChild(_caseStep(2, 'later', T.case_step_evidence_plain || 'Evidence'));
+        list.appendChild(_caseStep(exportNumber, 'later', T.case_step_export || 'Export · report or PDF'));
+        var setWindow = _caseEl('button', 'btn btn-primary btn-sm case-steps-action', T.case_step_set_window || 'Set window');
+        setWindow.type = 'button';
+        setWindow.addEventListener('click', function() { openIncidentModal(inc.id); });
+        root.appendChild(setWindow);
+        return;
+    }
+    list.appendChild(_caseStep(1, 'done', _caseText('case_step_window', 'Window · {range}', {range: _caseWindow(inc)})));
+    if (!withEvidence) {
+        list.appendChild(_caseStep(exportNumber, 'now', T.case_step_export || 'Export · report or PDF'));
+        return;
+    }
+    var evidenceStep = _caseStep(2, 'now', T.case_step_evidence_plain || 'Evidence');
+    var exportStep = _caseStep(3, 'later', T.case_step_export || 'Export · report or PDF');
+    list.appendChild(evidenceStep);
+    list.appendChild(exportStep);
+    fetch(docsightUrl('/api/evidence/checklist?incident_id=' + encodeURIComponent(inc.id)))
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(payload) {
+            if (!payload || !_timelineActive || root._caseStepsToken !== token) return;
+            var items = _caseEvidenceItems(payload);
+            var ready = _caseEvidenceCount(items, 'present');
+            var open = _caseEvidenceCount(items, 'stale') + _caseEvidenceCount(items, 'missing');
+            var total = ready + open;
+            evidenceStep.replaceWith(_caseStep(2, open ? 'now' : 'done',
+                _caseText('case_step_evidence', 'Evidence · {ready} of {total} ready', {ready: ready, total: total})));
+            exportStep.replaceWith(_caseStep(3, open ? 'later' : 'now', T.case_step_export || 'Export · report or PDF'));
+            var details = _caseEl('details', 'case-evidence-details');
+            details.open = open > 0;
+            details.appendChild(_caseEl('summary', 'case-evidence-toggle', T.case_evidence_details || 'Evidence sources'));
+            var grid = _caseEl('ul', 'case-evidence');
+            items.forEach(function(item) {
+                if (item.status === 'not_applicable' || item.status === 'unavailable') return;
+                var row = _caseEl('li', 'case-evidence-item');
+                row.appendChild(_caseEl('span', 'case-evidence-name', T[item.label_key] || item.key));
+                var actionButton = item.status === 'present' ? null : _caseEvidenceAction(item, inc);
+                var badge = _caseEl('span', 'badge ' + ({present: 'badge-good', stale: 'badge-warn', missing: 'badge-crit'}[item.status] || 'badge-muted'),
+                    T['docsight.evidence.status.' + item.status] || item.status);
+                row.appendChild(badge);
+                if (actionButton) row.appendChild(actionButton);
+                grid.appendChild(row);
+            });
+            details.appendChild(grid);
+            var checklist = _caseEl('a', 'case-evidence-checklist', T.case_open_checklist || 'Open the full evidence checklist');
+            checklist.href = '#evidence?case=' + encodeURIComponent(inc.id);
+            details.appendChild(checklist);
+            root.appendChild(details);
+        })
+        .catch(function() {});
+}
+
 function renderIncidentTimeline(data) {
     var inc = data.incident;
     var entries = data.entries || [];
@@ -1306,6 +1414,7 @@ function renderIncidentTimeline(data) {
         downloadIncidentPdf(inc.id, inc.name);
     });
     header.appendChild(pdfBtn);
+    renderCaseSteps(inc);
 
     // -- 2. Journal Entries as Cards --
     var entriesDiv = document.getElementById('incident-timeline-entries');
@@ -1803,7 +1912,8 @@ function saveIncident() {
             }
             closeIncidentModal();
             loadIncidents();
-            loadJournal();
+            if (_timelineActive && _timelineIncidentId) openIncidentTimeline(_timelineIncidentId);
+            else loadJournal();
         })
         .catch(function() { showToast(T.network_error || 'Error', 'error'); });
 }

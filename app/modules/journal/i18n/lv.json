@@ -149,5 +149,17 @@
   "case_next_stale": "Novecojis: {item}",
   "case_next_ready": "Pierādījumi pilnīgi",
   "case_continue": "Turpināt",
-  "case_open": "Atvērt"
+  "case_open": "Atvērt",
+  "case_steps_label": "Gadījuma soļi",
+  "case_step_window": "Periods · {range}",
+  "case_step_window_missing": "Periods · vēl nav iestatīts",
+  "case_step_set_window": "Iestatīt periodu",
+  "case_step_evidence": "Pierādījumi · gatavi {ready} no {total}",
+  "case_step_evidence_plain": "Pierādījumi",
+  "case_step_export": "Eksports · atskaite vai PDF",
+  "case_step_done": "gatavs",
+  "case_step_now": "pašreizējais solis",
+  "case_step_later": "vēlāk",
+  "case_evidence_details": "Pierādījumu avoti",
+  "case_open_checklist": "Atvērt pilno pierādījumu sarakstu"
 }

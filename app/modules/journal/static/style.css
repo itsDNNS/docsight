@@ -1274,3 +1274,30 @@ mark.search-highlight {
 .case-light-missing .case-light-dot { background: var(--crit); }
 .case-card-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); margin-top: auto; }
 .case-card-next { font-size: 0.85rem; color: var(--text-secondary); }
+
+/* ── Case steps inside a case: window → evidence → export ── */
+.case-steps-card[hidden] { display: none; }
+.case-steps { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-lg); margin: 0; padding: 0; list-style: none; }
+.case-step { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.9rem; }
+.case-step-mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; flex: none;
+    border: 1px solid var(--input-border); border-radius: 50%;
+    font-size: 0.8rem; font-weight: 600;
+}
+.case-step-done .case-step-mark { border-color: transparent; background: var(--good-muted); color: var(--good); }
+.case-step-now { color: var(--text); font-weight: 600; }
+.case-step-now .case-step-mark { border-color: transparent; background: var(--accent); color: var(--text-on-accent); }
+.case-steps-action { margin-top: var(--space-md); }
+.case-evidence-details { margin-top: var(--space-md); }
+.case-evidence-toggle { width: fit-content; padding: 12px 0; color: var(--muted); font-size: 0.85rem; cursor: pointer; }
+.case-evidence-toggle:hover { color: var(--text); }
+.case-evidence { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-sm); margin: 0; padding: 0; list-style: none; }
+.case-evidence-item {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--space-sm);
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
+}
+.case-evidence-name { flex: 1 1 auto; min-width: 0; color: var(--text); }
+.case-evidence-item .btn { flex: 1 0 100%; color: var(--accent); justify-content: flex-start; min-height: 36px; margin: 0 -8px -4px; padding: 0 8px; }
+.case-evidence-checklist { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--space-xs); color: var(--accent); font-size: 0.85rem; }

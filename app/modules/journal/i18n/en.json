@@ -149,5 +149,17 @@
   "case_next_stale": "Outdated: {item}",
   "case_next_ready": "Evidence ready",
   "case_continue": "Continue",
-  "case_open": "Open"
+  "case_open": "Open",
+  "case_steps_label": "Case steps",
+  "case_step_window": "Window · {range}",
+  "case_step_window_missing": "Window · not set yet",
+  "case_step_set_window": "Set window",
+  "case_step_evidence": "Evidence · {ready} of {total} ready",
+  "case_step_evidence_plain": "Evidence",
+  "case_step_export": "Export · report or PDF",
+  "case_step_done": "done",
+  "case_step_now": "current step",
+  "case_step_later": "later",
+  "case_evidence_details": "Evidence sources",
+  "case_open_checklist": "Open the full evidence checklist"
 }

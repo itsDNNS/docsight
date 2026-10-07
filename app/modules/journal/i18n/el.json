@@ -149,5 +149,17 @@
   "case_next_stale": "Παλιό: {item}",
   "case_next_ready": "Πλήρη αποδεικτικά",
   "case_continue": "Συνέχεια",
-  "case_open": "Άνοιγμα"
+  "case_open": "Άνοιγμα",
+  "case_steps_label": "Βήματα υπόθεσης",
+  "case_step_window": "Διάστημα · {range}",
+  "case_step_window_missing": "Διάστημα · δεν έχει οριστεί",
+  "case_step_set_window": "Ορισμός διαστήματος",
+  "case_step_evidence": "Αποδεικτικά · έτοιμα {ready} από {total}",
+  "case_step_evidence_plain": "Αποδεικτικά",
+  "case_step_export": "Εξαγωγή · αναφορά ή PDF",
+  "case_step_done": "ολοκληρώθηκε",
+  "case_step_now": "τρέχον βήμα",
+  "case_step_later": "αργότερα",
+  "case_evidence_details": "Πηγές αποδεικτικών",
+  "case_open_checklist": "Άνοιγμα πλήρους λίστας αποδεικτικών"
 }

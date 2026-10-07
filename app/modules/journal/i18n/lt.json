@@ -149,5 +149,17 @@
   "case_next_stale": "Pasenęs: {item}",
   "case_next_ready": "Įrodymai surinkti",
   "case_continue": "Tęsti",
-  "case_open": "Atidaryti"
+  "case_open": "Atidaryti",
+  "case_steps_label": "Atvejo žingsniai",
+  "case_step_window": "Laikotarpis · {range}",
+  "case_step_window_missing": "Laikotarpis · dar nenustatytas",
+  "case_step_set_window": "Nustatyti laikotarpį",
+  "case_step_evidence": "Įrodymai · paruošta {ready} iš {total}",
+  "case_step_evidence_plain": "Įrodymai",
+  "case_step_export": "Eksportas · ataskaita arba PDF",
+  "case_step_done": "atlikta",
+  "case_step_now": "dabartinis žingsnis",
+  "case_step_later": "vėliau",
+  "case_evidence_details": "Įrodymų šaltiniai",
+  "case_open_checklist": "Atidaryti visą įrodymų sąrašą"
 }

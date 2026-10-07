@@ -149,5 +149,17 @@
   "case_next_stale": "Verouderd: {item}",
   "case_next_ready": "Bewijs compleet",
   "case_continue": "Verder",
-  "case_open": "Openen"
+  "case_open": "Openen",
+  "case_steps_label": "Stappen van de zaak",
+  "case_step_window": "Periode · {range}",
+  "case_step_window_missing": "Periode · nog niet ingesteld",
+  "case_step_set_window": "Periode instellen",
+  "case_step_evidence": "Bewijs · {ready} van {total} gereed",
+  "case_step_evidence_plain": "Bewijs",
+  "case_step_export": "Exporteren · rapport of pdf",
+  "case_step_done": "klaar",
+  "case_step_now": "huidige stap",
+  "case_step_later": "later",
+  "case_evidence_details": "Bronnen van bewijs",
+  "case_open_checklist": "Volledige bewijschecklist openen"
 }

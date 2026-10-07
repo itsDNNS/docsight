@@ -149,5 +149,17 @@
   "case_next_stale": "Datato: {item}",
   "case_next_ready": "Prove complete",
   "case_continue": "Continua",
-  "case_open": "Apri"
+  "case_open": "Apri",
+  "case_steps_label": "Passi del caso",
+  "case_step_window": "Periodo · {range}",
+  "case_step_window_missing": "Periodo · non ancora impostato",
+  "case_step_set_window": "Imposta periodo",
+  "case_step_evidence": "Prove · {ready} di {total} pronte",
+  "case_step_evidence_plain": "Prove",
+  "case_step_export": "Esporta · report o PDF",
+  "case_step_done": "fatto",
+  "case_step_now": "passo attuale",
+  "case_step_later": "dopo",
+  "case_evidence_details": "Fonti delle prove",
+  "case_open_checklist": "Apri l'elenco completo delle prove"
 }

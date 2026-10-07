@@ -149,5 +149,17 @@
   "case_next_stale": "Zastarelo: {item}",
   "case_next_ready": "Dokazi so popolni",
   "case_continue": "Nadaljuj",
-  "case_open": "Odpri"
+  "case_open": "Odpri",
+  "case_steps_label": "Koraki primera",
+  "case_step_window": "Obdobje · {range}",
+  "case_step_window_missing": "Obdobje · še ni nastavljeno",
+  "case_step_set_window": "Nastavi obdobje",
+  "case_step_evidence": "Dokazi · pripravljenih {ready} od {total}",
+  "case_step_evidence_plain": "Dokazi",
+  "case_step_export": "Izvoz · poročilo ali PDF",
+  "case_step_done": "končano",
+  "case_step_now": "trenutni korak",
+  "case_step_later": "pozneje",
+  "case_evidence_details": "Viri dokazov",
+  "case_open_checklist": "Odpri celoten seznam dokazov"
 }
