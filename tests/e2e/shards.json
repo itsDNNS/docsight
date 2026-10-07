@@ -5,68 +5,74 @@
   "shards": [
     {
       "id": 1,
-      "collected_cases": 197,
+      "collected_cases": 101,
       "files": [
-        "test_auth.py",
-        "test_channels.py",
-        "test_glossary_page.py",
-        "test_module_views.py",
-        "test_notice_center.py",
-        "test_security.py",
-        "test_settings.py"
-      ]
-    },
-    {
-      "id": 2,
-      "collected_cases": 117,
-      "files": [
-        "test_case_status_track.py",
-        "test_community_theme.py",
-        "test_events.py",
-        "test_glossary.py",
-        "test_mobile_quality_gate.py",
-        "test_modulation_visual.py",
-        "test_onboarding_checklist.py",
-        "test_segment_utilization.py",
+        "test_charts.py",
+        "test_i18n.py",
+        "test_modals.py",
+        "test_pwa_gate.py",
         "test_theme_tokens.py"
       ]
     },
     {
-      "id": 3,
-      "collected_cases": 112,
+      "id": 2,
+      "collected_cases": 86,
       "files": [
-        "test_charts.py",
+        "test_auth.py",
         "test_connection_monitor.py",
-        "test_empty_states.py",
-        "test_pwa_gate.py",
+        "test_notice_center.py",
         "test_real_proxy_path_prefix.py",
+        "test_segment_utilization.py",
+        "test_theme.py"
+      ]
+    },
+    {
+      "id": 3,
+      "collected_cases": 121,
+      "files": [
+        "test_correlation_ui.py",
+        "test_event_log_redesign.py",
+        "test_events.py",
+        "test_glossary_page.py",
+        "test_modulation_visual.py",
+        "test_onboarding_checklist.py",
         "test_responsive.py"
       ]
     },
     {
       "id": 4,
-      "collected_cases": 123,
+      "collected_cases": 100,
       "files": [
-        "test_community_drivers.py",
-        "test_comparison.py",
-        "test_evidence_report_scope.py",
+        "test_case_status_track.py",
+        "test_channels.py",
+        "test_community_theme.py",
+        "test_empty_states.py",
         "test_modulation.py",
-        "test_path_prefix_browser.py",
-        "test_setup.py",
         "test_tkg_compensation.py"
       ]
     },
     {
       "id": 5,
-      "collected_cases": 169,
+      "collected_cases": 188,
       "files": [
-        "test_correlation_ui.py",
+        "test_evidence_report_scope.py",
+        "test_glossary.py",
+        "test_mobile_quality_gate.py",
+        "test_module_views.py",
+        "test_security.py",
+        "test_settings.py"
+      ]
+    },
+    {
+      "id": 6,
+      "collected_cases": 122,
+      "files": [
+        "test_community_drivers.py",
+        "test_comparison.py",
         "test_dashboard.py",
-        "test_event_log_redesign.py",
         "test_glossary_visual.py",
-        "test_i18n.py",
-        "test_modals.py",
-        "test_theme.py"
+        "test_path_prefix_browser.py",
+        "test_setup.py"
       ]
     }
   ]

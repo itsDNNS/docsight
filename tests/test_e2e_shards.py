@@ -103,6 +103,16 @@ def test_repository_manifest_covers_every_e2e_file_once():
     assert manifest["baseline_cpu_seconds"] > 0
 
 
+def test_workflow_matrix_runs_every_manifest_shard():
+    """A shard added to the manifest must also get a runner, and vice versa."""
+    manifest = load_manifest(MANIFEST)
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    ids = json.dumps([str(shard["id"]) for shard in manifest["shards"]], separators=(",", ":"))
+
+    assert f"|| '{ids}'" in workflow
+    assert f"max-parallel: {len(manifest['shards'])}" in workflow
+
+
 @pytest.mark.parametrize("defect", ["missing", "duplicate", "stale"])
 def test_manifest_validation_rejects_incomplete_or_ambiguous_membership(
     tmp_path, defect
@@ -313,8 +323,8 @@ def test_workflow_runs_safe_non_retrying_shards_and_an_always_gate():
 
     assert "fail-fast: false" in workflow
     assert "single_process:" in workflow
-    assert "'[\"1\",\"2\",\"3\",\"4\",\"5\"]'" in workflow
-    assert "max-parallel: 5" in workflow
+    assert "'[\"1\",\"2\",\"3\",\"4\",\"5\",\"6\"]'" in workflow
+    assert "max-parallel: 6" in workflow
     assert "E2E_JOB_STARTED_EPOCH" in workflow
     assert "python scripts/e2e_shards.py run" in workflow
     assert "python scripts/e2e_shards.py summarize" in workflow
