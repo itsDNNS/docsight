@@ -864,6 +864,13 @@ def _assess_ds_channel(
     return _channel_health(issues), _health_detail(issues)
 
 
+def _keep_power_display_offset(raw_channel, channel):
+    """Carry a driver's correction of the modem's displayed power to the UI."""
+    offset = _parse_float(raw_channel.get("powerDisplayOffset"))
+    if offset:
+        channel["modem_power_offset_db"] = offset
+
+
 def _assess_us_channel(ch, docsis_ver="3.0"):
     """Assess a single upstream channel. Returns (health, health_detail)."""
     issues = []
@@ -1050,6 +1057,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
         }
         if ch.get("profile_modulation"):
             channel["profile_modulation"] = ch["profile_modulation"]
+        _keep_power_display_offset(ch, channel)
         us_channels.append(channel)
     for ch in us31:
         health, health_detail = _assess_us_channel(ch, "3.1")
@@ -1089,6 +1097,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
         }
         if profile_modulation:
             channel["profile_modulation"] = profile_modulation
+        _keep_power_display_offset(ch, channel)
         us_channels.append(channel)
 
     us_channels.sort(key=lambda c: c["channel_id"])

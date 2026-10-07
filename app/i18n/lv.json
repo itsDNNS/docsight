@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Pievienot šī perioda dienas gadījumam (tuvināto apgabalu, ja tuvināts)",
   "correlation_case_summary": "Periods {range}",
   "correlation_case_name": "Korelācija {range}",
-  "correlation_added_to_case": "Periods pievienots gadījumam “{case}”"
+  "correlation_added_to_case": "Periods pievienots gadījumam “{case}”",
+  "power_offset_note": "Modems šeit rāda {shown} dBmV. Šo kanālu tas rāda par {offset} dB zemāk nekā robežvērtību atsauce, tāpēc DOCSight pieskaita {offset} dB."
 }

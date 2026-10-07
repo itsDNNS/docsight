@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "De dagen van deze periode aan een zaak toevoegen (ingezoomd bereik indien ingezoomd)",
   "correlation_case_summary": "Periode {range}",
   "correlation_case_name": "Correlatie {range}",
-  "correlation_added_to_case": "Periode toegevoegd aan ‘{case}’"
+  "correlation_added_to_case": "Periode toegevoegd aan ‘{case}’",
+  "power_offset_note": "Het modem toont hier {shown} dBmV. Het toont dit kanaal {offset} dB lager dan de referentie van de drempels, daarom telt DOCSight {offset} dB op."
 }

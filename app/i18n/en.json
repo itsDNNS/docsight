@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Add the days of this time range to a case (zoomed range if zoomed)",
   "correlation_case_summary": "Time range {range}",
   "correlation_case_name": "Correlation {range}",
-  "correlation_added_to_case": "Time range added to “{case}”"
+  "correlation_added_to_case": "Time range added to “{case}”",
+  "power_offset_note": "The modem shows {shown} dBmV here. It displays this channel {offset} dB lower than the reference the thresholds use, so DOCSight adds {offset} dB."
 }

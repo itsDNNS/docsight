@@ -384,6 +384,21 @@ class TestIndexRoute:
         assert header("SNR").search(docsis30_head)
         assert not header("MER").search(docsis30_head)
 
+    def test_upstream_power_corrected_by_the_driver_explains_the_modem_value(self, client, sample_analysis):
+        sample_analysis["us_channels"] = [
+            dict(sample_analysis["us_channels"][0], channel_id=10, docsis_version="3.1", power=48.2,
+                 modulation="256QAM", modem_power_offset_db=6.0),
+            dict(sample_analysis["us_channels"][0], channel_id=11, power=44.0),
+        ]
+        current_runtime().update_state(analysis=sample_analysis)
+
+        html = client.get("/?lang=de").get_data(as_text=True)
+        hints = re.findall(r'<span class="glossary-hint power-offset-hint"[^>]*>(.*?)</span>', html, re.S)
+        assert len(hints) == 1
+        assert hints[0].startswith("+6 dB")
+        assert "Das Modem zeigt hier 42.2 dBmV" in hints[0]
+        assert "6 dB niedriger" in hints[0]
+
     def test_channel_tables_show_theoretical_capacity_column(self, client, sample_analysis):
         sample_analysis["ds_channels"][0]["theoretical_bitrate"] = 55.62
         sample_analysis["us_channels"][0]["theoretical_bitrate"] = 30.72

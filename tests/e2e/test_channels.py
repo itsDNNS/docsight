@@ -138,3 +138,31 @@ class TestChannelStatusMatrix:
         demo_page.locator('.line-status-actions a[href="#channels?mode=status"]').click()
         demo_page.wait_for_selector("#channel-status-body .cs-direction")
         expect(demo_page.locator("#view-channels")).to_be_visible()
+
+
+def test_channel_timeline_explains_a_power_value_the_driver_corrected(demo_page):
+    """A FRITZ!Box DOCSIS 3.1 upstream channel shows +6 dB with the value the modem itself displays."""
+    page = demo_page
+    marked = {}
+
+    def channels(route):
+        data = route.fetch().json()
+        channel = data["us_channels"][0]
+        channel.update({"docsis_version": "3.1", "modem_power_offset_db": 6.0})
+        marked.update(channel)
+        route.fulfill(json=data)
+
+    base = page.url.split("#", 1)[0].split("?", 1)[0]
+    channel_id = page.request.get(base + "api/channels").json()["us_channels"][0]["channel_id"]
+    page.route("**/api/channels", channels)
+    page.goto(base + f"?lang=de#channels?mode=timeline&dir=us&channel={channel_id}&range=6h", wait_until="networkidle")
+
+    bar = page.locator("#channel-info-bar")
+    expect(bar).to_be_visible()
+    expect(bar).to_contain_text("Pegel")
+    hint = bar.locator(".power-offset-hint")
+    expect(hint).to_contain_text("+6 dB")
+    shown = f"{marked['power'] - 6:.1f}"
+    expect(hint.locator(".glossary-popover")).to_contain_text(f"Das Modem zeigt hier {shown} dBmV")
+    hint.click()
+    expect(page.locator(".glossary-popover-link")).to_be_visible()

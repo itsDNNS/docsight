@@ -52,6 +52,9 @@ class TestFritzBoxDriver:
         assert result["channelUs"]["docsis30"][0]["powerLevel"] == "44.0"
         # 3.1 channel compensated: 38.0 + 6.0 = 44.0
         assert result["channelUs"]["docsis31"][0]["powerLevel"] == "44.0"
+        # The correction stays with the channel, so the UI can explain the difference.
+        assert result["channelUs"]["docsis31"][0]["powerDisplayOffset"] == 6.0
+        assert "powerDisplayOffset" not in result["channelUs"]["docsis30"][0]
 
     def test_compensate_no_us31(self):
         """No crash when channelUs or docsis31 is missing."""

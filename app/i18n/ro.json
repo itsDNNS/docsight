@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Adaugă zilele acestei perioade la un caz (zona mărită, dacă există)",
   "correlation_case_summary": "Perioada {range}",
   "correlation_case_name": "Corelație {range}",
-  "correlation_added_to_case": "Perioadă adăugată la „{case}”"
+  "correlation_added_to_case": "Perioadă adăugată la „{case}”",
+  "power_offset_note": "Modemul arată aici {shown} dBmV. Afișează acest canal cu {offset} dB mai jos decât referința pragurilor, așa că DOCSight adaugă {offset} dB."
 }

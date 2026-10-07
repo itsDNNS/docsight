@@ -1,0 +1,4 @@
+{# A driver corrected the power the modem displays; say so next to the value. #}
+{%- set offset = ch.modem_power_offset_db -%}
+{%- set shown = ch.power - offset -%}
+<span class="glossary-hint power-offset-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}">{{ '%+g'|format(offset) }} dB<div class="glossary-popover">{{ t.get('power_offset_note', 'The modem shows {shown} dBmV here. It displays this channel {offset} dB lower than the reference the thresholds use, so DOCSight adds {offset} dB.')|replace('{shown}', '%.1f'|format(shown))|replace('{offset}', '%g'|format(offset)) }}</div></span>

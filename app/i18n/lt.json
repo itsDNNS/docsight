@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Pridėti šio laikotarpio dienas prie atvejo (priartintą sritį, jei priartinta)",
   "correlation_case_summary": "Laikotarpis {range}",
   "correlation_case_name": "Koreliacija {range}",
-  "correlation_added_to_case": "Laikotarpis pridėtas prie „{case}“"
+  "correlation_added_to_case": "Laikotarpis pridėtas prie „{case}“",
+  "power_offset_note": "Modemas čia rodo {shown} dBmV. Šį kanalą jis rodo {offset} dB žemiau nei ribų atskaitos lygis, todėl DOCSight prideda {offset} dB."
 }

@@ -129,6 +129,13 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
     height: auto;
     justify-content: flex-start;
   }
+  /* Text hints keep their pill shape at full touch height. */
+  .glossary-hint.power-offset-hint {
+    width: auto;
+    margin-left: 6px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+  }
 
   .metric-card .glossary-hint {
     top: 4px;
@@ -725,4 +732,16 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   .glossary-panel .glossary-aliases {
     display: none;
   }
+}
+
+/* A driver's correction of the modem's displayed power, next to the value. */
+.power-offset-hint {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--info-muted);
+  color: var(--text-secondary);
+  font-size: var(--fs-min);
+  font-weight: 600;
+  white-space: nowrap;
 }

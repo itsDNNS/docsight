@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Dodaj dneve tega obdobja k primeru (povečani obseg, če je povečan)",
   "correlation_case_summary": "Obdobje {range}",
   "correlation_case_name": "Korelacija {range}",
-  "correlation_added_to_case": "Obdobje dodano k »{case}«"
+  "correlation_added_to_case": "Obdobje dodano k »{case}«",
+  "power_offset_note": "Modem tu kaže {shown} dBmV. Ta kanal prikazuje {offset} dB nižje od reference mejnih vrednosti, zato DOCSight prišteje {offset} dB."
 }

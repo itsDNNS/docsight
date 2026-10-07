@@ -1279,5 +1279,6 @@
   "correlation_save_as_case_hint": "Dodaj dni tego okresu do sprawy (powiększony zakres, jeśli jest)",
   "correlation_case_summary": "Okres {range}",
   "correlation_case_name": "Korelacja {range}",
-  "correlation_added_to_case": "Dodano okres do „{case}”"
+  "correlation_added_to_case": "Dodano okres do „{case}”",
+  "power_offset_note": "Modem pokazuje tu {shown} dBmV. Pokazuje ten kanał o {offset} dB niżej niż odniesienie progów, więc DOCSight dodaje {offset} dB."
 }
