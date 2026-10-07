@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 769,
+  "expected_total": 770,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -32,7 +32,7 @@
     },
     {
       "id": 3,
-      "collected_cases": 131,
+      "collected_cases": 132,
       "files": [
         "test_correlation_ui.py",
         "test_event_log_redesign.py",

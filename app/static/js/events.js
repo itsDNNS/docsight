@@ -457,17 +457,27 @@ function _markTruncatedEventRows(feed) {
     if (marked && typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-// A narrower window can cut off messages that fitted before.
-var _eventTruncationTimer = null;
-if (typeof window.addEventListener === 'function') {
-    window.addEventListener('resize', function() {
-        clearTimeout(_eventTruncationTimer);
-        _eventTruncationTimer = setTimeout(function() {
-            var feed = document.getElementById('events-feed');
-            if (feed && feed.offsetParent !== null) _markTruncatedEventRows(feed);
-        }, 150);
-    });
+/* Whether a message is cut off is only known with the feed laid out. The feed
+   can be rendered while its view is hidden (then nothing measures), and the
+   cut-off point moves when the view appears, the window narrows or a web font
+   finishes loading, so each of those checks again. */
+function _watchEventTruncation() {
+    var feed = document.getElementById('events-feed');
+    if (!feed) return;
+    var timer = null;
+    var recheck = function() {
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+            if (feed.offsetParent !== null) _markTruncatedEventRows(feed);
+        }, 100);
+    };
+    if (typeof ResizeObserver === 'function') new ResizeObserver(recheck).observe(feed);
+    else if (typeof window.addEventListener === 'function') window.addEventListener('resize', recheck);
+    if (document.fonts && typeof document.fonts.addEventListener === 'function') {
+        document.fonts.addEventListener('loadingdone', recheck);
+    }
 }
+_watchEventTruncation();
 
 function _eventGroupHtml(group) {
     var meta = _eventSeverityMeta({severity: group.severity});

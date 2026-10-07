@@ -560,3 +560,24 @@ def test_a_cut_off_device_message_shows_it_opens_and_reads_in_full(demo_page):
     for part in ["AR01.02.068.13_052421_711.SIP.10.VF", "AR01.05.063.13_081725_735.SIP.10.VF", "Prior uptime", "Reason: unknown"]:
         expect(message).to_contain_text(part)
     assert message.evaluate("el => el.scrollWidth <= el.clientWidth + 1")
+
+
+def test_a_log_rendered_while_hidden_marks_cut_off_messages_once_shown(demo_page):
+    """On a fresh load the log can render before its view is shown; showing it checks again."""
+    page = demo_page
+    _serve_events(page, ALIGNMENT_EVENTS)
+    page.set_viewport_size({"width": 1100, "height": 900})
+    page.goto(f"{_base_url(page)}/?lang=en#events", wait_until="networkidle")
+    row = page.locator('#events-feed [data-event-id="59"] > .ev-main')
+    expect(row).to_have_attribute("aria-expanded", "false")
+
+    # Render the log while its view is hidden, then show the view without rendering again.
+    page.evaluate("""() => {
+        const view = document.getElementById('view-events');
+        view.classList.remove('active');
+        _renderEventTimeline();
+    }""")
+    assert row.get_attribute("data-toggle") is None
+    page.evaluate("document.getElementById('view-events').classList.add('active')")
+    expect(row).to_have_attribute("aria-expanded", "false")
+    expect(row.locator(".ev-chevron")).to_be_visible()
