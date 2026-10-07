@@ -34,6 +34,10 @@ class ResultError(RuntimeError):
     """Shard artifacts do not prove a complete successful test union."""
 
 
+CPU_BUDGET_FACTOR = 1.25
+CALIBRATION_ROUNDS = 15
+
+
 @dataclass(frozen=True)
 class ResultSummary:
     total: int
@@ -41,6 +45,8 @@ class ResultSummary:
     wall_seconds: tuple[float, ...]
     job_wall_seconds: tuple[float, ...]
     cpu_seconds: float
+    normalized_cpu_seconds: float
+    cpu_budget_seconds: float | None
     peak_rss_kb: int
 
 
@@ -136,6 +142,35 @@ def _child_usage() -> tuple[float, float, int]:
         return 0.0, 0.0, 0
     usage = resource.getrusage(resource.RUSAGE_CHILDREN)
     return usage.ru_utime, usage.ru_stime, usage.ru_maxrss
+
+
+def _cpu_calibration() -> float:
+    """CPU seconds of a fixed interpreter workload on this runner.
+
+    Hosted runners differ in speed: the same shard used 230 s of CPU on one
+    run and 420 s on another. Receipts carry this measurement, so the budget
+    compares work instead of runner hardware. The fastest of several rounds
+    filters out moments where a neighbour takes the core.
+    """
+    rounds = []
+    for _ in range(CALIBRATION_ROUNDS):
+        started = time.process_time()
+        table = {}
+        for index in range(300_000):
+            key = f"k{index % 997}"
+            table[key] = table.get(key, 0) + index * 3 % 7
+        rounds.append(time.process_time() - started)
+    return round(min(rounds), 6)
+
+
+def _cpu_model() -> str:
+    try:
+        for line in Path("/proc/cpuinfo").read_text(encoding="utf-8").splitlines():
+            if line.startswith("model name"):
+                return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return platform.processor() or platform.machine()
 
 
 def _marked_process_inventory(marker: str) -> tuple[list[dict], list[dict]]:
@@ -249,6 +284,8 @@ def summarize_results(
     wall_seconds = []
     job_wall_seconds = []
     total_cpu_seconds = 0.0
+    normalized_cpu_seconds = 0.0
+    baseline_calibration = manifest.get("baseline_calibration_seconds")
     peak_rss_kb = 0
     for shard in expected_shards:
         shard_id = shard["id"]
@@ -316,6 +353,9 @@ def summarize_results(
             raise ResultError(f"shard {shard_id} has invalid CPU time")
         if not isinstance(rss, int) or rss < 0:
             raise ResultError(f"shard {shard_id} has invalid peak RSS")
+        calibration = receipt.get("calibration_seconds")
+        if not isinstance(calibration, (int, float)) or calibration <= 0:
+            raise ResultError(f"shard {shard_id} run receipt lacks a CPU calibration")
         if shard_id != "all" and wall >= 720:
             raise ResultError(f"shard {shard_id} exceeded the 12-minute wall limit")
         if shard_id != "all" and job_wall >= 720:
@@ -326,6 +366,9 @@ def summarize_results(
         wall_seconds.append(float(wall))
         job_wall_seconds.append(float(job_wall))
         total_cpu_seconds += float(cpu)
+        # CPU time scaled to the baseline runner's speed.
+        if isinstance(baseline_calibration, (int, float)) and baseline_calibration > 0:
+            normalized_cpu_seconds += float(cpu) * baseline_calibration / calibration
         peak_rss_kb = max(peak_rss_kb, rss)
 
     duplicates = sorted(node for node, count in Counter(all_nodes).items() if count > 1)
@@ -335,14 +378,28 @@ def summarize_results(
         raise ResultError(
             f"collected union is {len(all_nodes)}; expected exactly {expected_total}"
         )
-    baseline_cpu_seconds = manifest.get("baseline_cpu_seconds")
+    cpu_budget_seconds = None
     if required_ids != ["all"]:
-        if not isinstance(baseline_cpu_seconds, (int, float)) or baseline_cpu_seconds <= 0:
-            raise ResultError("manifest lacks a measured positive baseline_cpu_seconds")
-        if total_cpu_seconds > baseline_cpu_seconds * 1.25:
+        baseline = {
+            key: manifest.get(key)
+            for key in ("baseline_cpu_seconds", "baseline_cases", "baseline_calibration_seconds")
+        }
+        for key, value in baseline.items():
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
+                raise ResultError(f"manifest lacks a measured positive {key}")
+        # The baseline holds per case, so the budget grows with the suite;
+        # only work that got more expensive per case runs out of it.
+        cpu_budget_seconds = (
+            baseline["baseline_cpu_seconds"]
+            * expected_total
+            / baseline["baseline_cases"]
+            * CPU_BUDGET_FACTOR
+        )
+        if normalized_cpu_seconds > cpu_budget_seconds:
             raise ResultError(
-                f"aggregate CPU {total_cpu_seconds:.2f}s exceeds the 25% budget over "
-                f"baseline {baseline_cpu_seconds:.2f}s"
+                f"aggregate CPU {normalized_cpu_seconds:.2f}s (normalized to the baseline "
+                f"runner; {total_cpu_seconds:.2f}s measured) exceeds the 25% budget of "
+                f"{cpu_budget_seconds:.2f}s for {expected_total} cases"
             )
     return ResultSummary(
         len(all_nodes),
@@ -350,6 +407,8 @@ def summarize_results(
         tuple(wall_seconds),
         tuple(job_wall_seconds),
         total_cpu_seconds,
+        normalized_cpu_seconds,
+        cpu_budget_seconds,
         peak_rss_kb,
     )
 
@@ -443,6 +502,7 @@ def _run(args, manifest: dict) -> int:
     environment = os.environ.copy()
     environment["DOCSIGHT_E2E_RUN_ID"] = marker
     baseline_processes, baseline_listeners = _marked_process_inventory(marker)
+    calibration_seconds = _cpu_calibration()
     before_user, before_system, _ = _child_usage()
     started_utc = dt.datetime.now(dt.UTC).isoformat()
     started = time.monotonic()
@@ -484,6 +544,8 @@ def _run(args, manifest: dict) -> int:
         "cpu_seconds": round(
             (after_user - before_user) + (after_system - before_system), 3
         ),
+        "calibration_seconds": calibration_seconds,
+        "cpu_model": _cpu_model(),
         "peak_rss_kb": peak_rss_kb,
         "platform": platform.platform(),
         "retry_count": 0,
@@ -565,7 +627,14 @@ def main(argv: list[str] | None = None) -> int:
                 f"complete E2E union: {summary.total} cases "
                 f"across shards {summary.per_shard}; wall={summary.wall_seconds}; "
                 f"job-wall={summary.job_wall_seconds}; "
-                f"cpu={summary.cpu_seconds:.2f}s; peak-rss={summary.peak_rss_kb} KiB"
+                f"cpu={summary.cpu_seconds:.2f}s; "
+                f"normalized-cpu={summary.normalized_cpu_seconds:.2f}s"
+                + (
+                    f" of {summary.cpu_budget_seconds:.2f}s"
+                    if summary.cpu_budget_seconds is not None
+                    else ""
+                )
+                + f"; peak-rss={summary.peak_rss_kb} KiB"
             )
     except (ManifestError, ResultError) as exc:
         print(f"E2E shard validation failed: {exc}", file=sys.stderr)
