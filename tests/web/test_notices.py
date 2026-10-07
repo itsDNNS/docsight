@@ -71,7 +71,9 @@ def test_dashboard_renders_notice_until_dismissed(client, config_mgr, local_noti
 
     config_mgr.save({"dismissed_notice_ids": ["docsight-test-notice"]})
     response = client.get("/")
-    assert b"Bundled maintainer notice" not in response.data
+    # Read notices leave the page but stay listed in the notice center.
+    assert b"data-notice-id=\"docsight-test-notice\"" not in response.data
+    assert b"class=\"notice-center-item notice-info read\" data-notice-center-item=\"docsight-test-notice\"" in response.data
 
 
 def test_settings_about_panel_renders_notices_and_privacy_copy(client, local_notices):

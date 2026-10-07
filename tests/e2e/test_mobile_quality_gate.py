@@ -1,5 +1,6 @@
 """Focused mobile viewport quality gate for high-value DOCSight surfaces."""
 
+import pytest
 from playwright.sync_api import expect
 
 MOBILE_VIEWPORT = {"width": 393, "height": 852}
@@ -254,3 +255,19 @@ def test_mobile_navigation_and_high_value_modals_pass_quality_gate(demo_page):
             assert spacing["lastBottom"] <= spacing["footerTop"] - 8, f"{label} footer covers content"
             assert spacing["bodyBottom"] <= spacing["footerTop"] - 8, f"{label} body overlaps footer"
         _close_modal(page, selector)
+
+
+@pytest.mark.parametrize("path", ["/", "/settings"])
+def test_top_bar_fits_small_phones(page, live_server, path):
+    """The top bar keeps every action on screen down to 320px phones."""
+    page.set_viewport_size({"width": 320, "height": 640})
+    page.goto(f"{live_server}{path}")
+    page.wait_for_load_state("networkidle")
+    fit = page.evaluate(
+        """() => ({
+            document: document.documentElement.scrollWidth - window.innerWidth,
+            actions: Math.round(document.querySelector('.topnav-actions').getBoundingClientRect().right - window.innerWidth),
+        })"""
+    )
+    assert fit["document"] <= 0 and fit["actions"] <= 0, fit
+    expect(page.get_by_role("link", name="DOCSight", exact=True)).to_be_visible()

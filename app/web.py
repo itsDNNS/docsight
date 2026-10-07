@@ -28,7 +28,7 @@ from .glossary import (
     glossary_term_views,
 )
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
-from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
+from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices, get_notice_center
 from .module_loader import module_static_url
 from .runtime import current_runtime
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name, to_local as _to_local
@@ -333,6 +333,7 @@ def inject_auth():
         "desktop_preview_doc_url": DESKTOP_PREVIEW_DOC_URL,
         "desktop_preview_notice_id": DESKTOP_PREVIEW_NOTICE_ID,
         "desktop_preview_notice_dismissed": desktop_mode and DESKTOP_PREVIEW_NOTICE_ID in _get_dismissed_notice_ids(),
+        "notice_center": get_notice_center(_get_dismissed_notice_ids()),
         "demo_mode_forced": bool(
             _config_manager
             and getattr(_config_manager, "is_demo_mode_forced", lambda: False)()

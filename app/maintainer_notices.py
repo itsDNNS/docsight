@@ -139,6 +139,26 @@ def serialize_notice(notice: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def get_notice_center(
+    dismissed_ids: Any = None,
+    *,
+    notices: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Every valid bundled notice for the notice center, unread first.
+
+    Dismissed notices stay listed as read, so they remain reachable.
+    """
+    dismissed = _coerce_dismissed_ids(dismissed_ids)
+    center: list[dict[str, Any]] = []
+    for notice in LOCAL_NOTICES if notices is None else notices:
+        try:
+            center.append({**serialize_notice(notice), "read": notice["id"] in dismissed})
+        except (NoticeValidationError, AttributeError, TypeError, ValueError):
+            continue
+    center.sort(key=lambda item: (item["read"], SEVERITY_ORDER[item["severity"]], item["id"]))
+    return center
+
+
 def get_active_notices(
     dismissed_ids: Any = None,
     location: str | None = None,

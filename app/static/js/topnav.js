@@ -16,7 +16,7 @@
     function groupToggle(group) { return group.querySelector('.topnav-toggle'); }
     function groupPanel(group) { return group.querySelector('.topnav-panel'); }
     function panelItems(group) {
-        return Array.from(groupPanel(group).querySelectorAll('.nav-item, a[href], input')).filter(function(el) {
+        return Array.from(groupPanel(group).querySelectorAll('.nav-item, a[href], input, button')).filter(function(el) {
             return !el.disabled && el.offsetParent !== null;
         });
     }

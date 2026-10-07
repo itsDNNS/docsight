@@ -1,6 +1,7 @@
 """E2E tests for responsive / mobile layout."""
 
 import re
+from pathlib import Path
 
 import pytest
 from playwright.sync_api import expect
@@ -551,3 +552,18 @@ def test_bnetz_table_aligns_actions_and_names_each_verdict_on_desktop(demo_page)
     assert all(geometry["verdictTexts"])
     assert geometry["cellPadding"] >= 12
     assert geometry["unnamedActions"] == 0
+
+
+def test_top_bar_fits_narrow_desktops_in_every_language(page, live_server):
+    """At 1024px, the smallest desktop layout, every language keeps the top bar on screen."""
+    languages = sorted(path.stem for path in (Path(__file__).parents[2] / "app" / "i18n").glob("*.json"))
+    page.set_viewport_size({"width": 1024, "height": 700})
+    overflowing = {}
+    for lang in languages:
+        for path in ("/", "/settings"):
+            page.goto(f"{live_server}{path}?lang={lang}")
+            page.wait_for_load_state("networkidle")
+            overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+            if overflow > 0:
+                overflowing[f"{lang} {path}"] = overflow
+    assert overflowing == {}
