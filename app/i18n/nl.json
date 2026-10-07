@@ -243,7 +243,6 @@
   "metric_status_label": "Status",
   "signal_family_status_label": "Familiestatus",
   "metric_channel_span": "Kanaal min-max",
-  "metric_error_count": "Totaal aantal fouten",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1253,5 +1252,10 @@
   "palette_shortcuts": "Sneltoetsen",
   "palette_shortcut_open": "Zoeken openen",
   "palette_shortcut_help": "Deze sneltoetsen tonen",
-  "palette_shortcut_note": "Lettersneltoetsen werken zolang geen tekstveld de focus heeft."
+  "palette_shortcut_note": "Lettersneltoetsen werken zolang geen tekstveld de focus heeft.",
+  "chart_bands_label": "Doelbereiken",
+  "trend_errors_per_minutes": "Niet-corrigeerbare fouten per {minutes} minuten",
+  "trend_errors_per_hour": "Niet-corrigeerbare fouten per uur",
+  "trend_errors_per_hours": "Niet-corrigeerbare fouten per {hours} uur",
+  "trend_errors_per_day": "Niet-corrigeerbare fouten per dag"
 }

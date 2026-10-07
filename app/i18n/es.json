@@ -243,7 +243,6 @@
   "metric_status_label": "Estado",
   "signal_family_status_label": "Estado de la familia",
   "metric_channel_span": "Min-max canal",
-  "metric_error_count": "Total de errores",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1248,5 +1247,10 @@
   "palette_shortcuts": "Atajos de teclado",
   "palette_shortcut_open": "Abrir la búsqueda",
   "palette_shortcut_help": "Mostrar estos atajos",
-  "palette_shortcut_note": "Los atajos de letras funcionan siempre que ningún campo de texto tenga el foco."
+  "palette_shortcut_note": "Los atajos de letras funcionan siempre que ningún campo de texto tenga el foco.",
+  "chart_bands_label": "Rangos objetivo",
+  "trend_errors_per_minutes": "Errores no corregibles cada {minutes} minutos",
+  "trend_errors_per_hour": "Errores no corregibles por hora",
+  "trend_errors_per_hours": "Errores no corregibles cada {hours} horas",
+  "trend_errors_per_day": "Errores no corregibles por día"
 }

@@ -8,6 +8,8 @@ var currentView = 'live';
 var DEFAULT_Y_AXIS_SIZE = 58;
 var DEFAULT_ZOOM_Y_AXIS_SIZE = 64;
 var DEFAULT_X_EDGE_PADDING = 1.5;
+/* Dense series: half a sample, enough for the outermost bar. */
+var DENSE_X_EDGE_PADDING = 0.5;
 
 /* ── Shared Helpers ── */
 // TEMPERATURE_UNIT is set by index.html; default to celsius if not present
@@ -149,13 +151,6 @@ function chartXRange(u) {
     return { min: xData[0] - edgePadding, max: xData[xData.length - 1] + edgePadding };
 }
 
-function fillToScaleMin(u, seriesIdx) {
-    var series = u && u.series ? u.series[seriesIdx] : null;
-    var scaleKey = series && series.scale ? series.scale : 'y';
-    var scale = u && u.scales ? (u.scales[scaleKey] || u.scales.y) : null;
-    return scale && scale.min != null ? scale.min : 0;
-}
-
 function buildEvenIndexTicks(count, maxTicks) {
     if (count <= 0) return [];
     if (!maxTicks || maxTicks < 2) maxTicks = 2;
@@ -288,31 +283,116 @@ function bandPlugin(minSeriesIdx, maxSeriesIdx, color) {
     };
 }
 
-/* ── DOCSIS Threshold Definitions ── */
+/* ── DOCSIS Target Bands ──
+   Bands behind power and SNR charts: good, tolerated, marginal and critical,
+   in the theme's status colors. The last entry fixes the default y range. */
+function _band(min, max, band) { return {min: min, max: max, band: band}; }
 var DS_POWER_THRESHOLDS = [
-    {value: -4, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
-    {value: 13, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
-    {value: -8, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
-    {value: 20, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
-    {value: -15, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
-    {value: 25, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
+    _band(-4, 13, 'good'),
+    _band(-8, -4, 'tolerated'), _band(13, 20, 'tolerated'),
+    _band(-15, -8, 'marginal'), _band(20, 25, 'marginal'),
+    _band(-60, -15, 'critical'), _band(25, 60, 'critical'),
     {yMin: -18, yMax: 28}
 ];
 var DS_SNR_THRESHOLDS = [
-    {value: 33, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
-    {value: 29, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
-    {value: 25, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
+    _band(33, 100, 'good'),
+    _band(29, 33, 'tolerated'),
+    _band(25, 29, 'marginal'),
+    _band(-100, 25, 'critical'),
     {yMin: 20, yMax: 50}
 ];
 var US_POWER_THRESHOLDS = [
-    {value: 41, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
-    {value: 47, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
-    {value: 35, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
-    {value: 53, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
-    {value: 20, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
-    {value: 60, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
+    _band(41, 47, 'good'),
+    _band(35, 41, 'tolerated'), _band(47, 53, 'tolerated'),
+    _band(20, 35, 'marginal'), _band(53, 60, 'marginal'),
+    _band(-100, 20, 'critical'), _band(60, 160, 'critical'),
     {yMin: 17, yMax: 63}
 ];
+
+/* Status token and strength per band; the token is read at draw time, so every theme applies. */
+var BAND_STYLE = {
+    good: ['--good', 0.12],
+    tolerated: ['--tolerated', 0.14],
+    marginal: ['--warn', 0.12],
+    critical: ['--crit', 0.18]
+};
+
+var _themeColorProbe = null;
+/* Resolves a CSS color token of the current theme to rgba() with the given alpha. */
+function docsightThemeColor(token, alpha) {
+    if (!document.body || typeof getComputedStyle !== 'function') return 'rgba(128,128,128,' + alpha + ')';
+    if (!_themeColorProbe) {
+        _themeColorProbe = document.createElement('span');
+        _themeColorProbe.style.display = 'none';
+        document.body.appendChild(_themeColorProbe);
+    }
+    _themeColorProbe.style.color = 'var(' + token + ')';
+    var rgb = (getComputedStyle(_themeColorProbe).color.match(/[\d.]+/g) || [128, 128, 128]).slice(0, 3);
+    return 'rgba(' + rgb.join(',') + ',' + alpha + ')';
+}
+
+/* Bars are drawn slightly translucent; colors that already carry alpha (rgba()) stay as they are. */
+function barFill(color) {
+    var value = color || '#a855f7';
+    return /^#[0-9a-f]{6}$/i.test(value) ? value + 'cc' : value;
+}
+
+function bandFill(band) {
+    var style = BAND_STYLE[band];
+    return style ? docsightThemeColor(style[0], style[1]) : 'transparent';
+}
+
+/* ── Uncorrectable errors per interval ──
+   Trend rows carry cumulative counters. Each interval gets the sum of the
+   increases inside it; after a modem restart the counter starts again at zero,
+   so a drop counts as the new value, never as a negative change. Timestamps
+   are wall-clock time in the configured zone, so buckets follow its days. */
+var ERROR_BUCKET_MINUTES = {'1h': 5, '6h': 15, '1d': 60, '2d': 120, '3d': 180, '7d': 360, '30d': 1440, '90d': 1440};
+
+function docsightErrorBucketMinutes(range) {
+    return ERROR_BUCKET_MINUTES[range] || 60;
+}
+
+function _wallClockMinutes(timestamp) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(timestamp || ''));
+    if (!m) return null;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 60000;
+}
+
+function _wallClockLabel(minutes) {
+    return new Date(minutes * 60000).toISOString().slice(0, 19);
+}
+
+function docsightErrorBuckets(rows, range, field) {
+    var size = docsightErrorBucketMinutes(range);
+    var key = field || 'ds_uncorrectable_errors';
+    var buckets = [];
+    var previous = null;
+    (rows || []).forEach(function(row) {
+        var value = row[key];
+        var minutes = _wallClockMinutes(row.timestamp);
+        if (value === null || value === undefined || minutes === null) return;
+        var increase = previous === null ? 0 : (value >= previous ? value - previous : value);
+        previous = value;
+        var start = Math.floor(minutes / size) * size;
+        var last = buckets[buckets.length - 1];
+        if (!last || last.start !== start) {
+            last = {start: start, timestamp: _wallClockLabel(start), errors: 0};
+            buckets.push(last);
+        }
+        last.errors += increase;
+    });
+    // Intervals without readings stay empty, so the bars keep their place in time.
+    var filled = [];
+    buckets.forEach(function(bucket) {
+        var previousBucket = filled[filled.length - 1];
+        for (var start = previousBucket ? previousBucket.start + size : bucket.start; start < bucket.start; start += size) {
+            filled.push({start: start, timestamp: _wallClockLabel(start), errors: null});
+        }
+        filled.push(bucket);
+    });
+    return filled;
+}
 
 /* ── Zone Plugin (uPlot hooks) ── */
 function zonesPlugin(zones) {
@@ -333,6 +413,13 @@ function zonesPlugin(zones) {
                 var dpr = window.devicePixelRatio || 1;
                 zones.forEach(function(z) {
                     if (z.yMin !== undefined) return; /* skip metadata entries */
+                    if (z.band) {
+                        var btop = u.valToPos(z.max, 'y', true);
+                        var bbottom = u.valToPos(z.min, 'y', true);
+                        ctx.fillStyle = bandFill(z.band);
+                        ctx.fillRect(left, btop, width, bbottom - btop);
+                        return;
+                    }
                     if (z.fill !== false) {
                         var ztop = u.valToPos(z.max, 'y', true);
                         var zbottom = u.valToPos(z.min, 'y', true);
@@ -513,7 +600,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             label: ds.label,
             stroke: ds.color || 'rgba(168,85,247,0.9)',
             width: ds.lineWidth !== undefined ? ds.lineWidth : (isBar ? 0 : 2),
-            fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined),
+            fill: isBar ? barFill(ds.color) : (ds.fill || undefined),
             points: { show: showPoints, size: ds.pointSize || 6 },
             spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false,
             show: ds.show !== undefined ? ds.show : true,
@@ -616,9 +703,21 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     if (n <= wantTicks) {
         for (var li = 0; li < n; li++) xSplits.push(xData[li]);
     } else {
-        var gap = (n - 1) / (wantTicks - 1);
+        /* Dense series fill the width; the outer labels move inward by half a label instead. */
+        var insetIndex = 0;
+        if (!(opts && opts.xEdgePadding !== undefined)) {
+            xEdgePadding = DENSE_X_EDGE_PADDING;
+            var plotPx = Math.max(width - yAxisSize - 24, 1);
+            var halfLabel = estimateLongestLabelWidth(labels, 40) / 2 + 4;
+            insetIndex = Math.min(Math.ceil(halfLabel / plotPx * (n - 1)), Math.floor((n - 1) / 3));
+        }
+        var firstTick = insetIndex, lastTick = n - 1 - insetIndex;
+        // The inset leaves less room between the outer labels; fit the tick count to it.
+        var tickRoom = Math.max(width - yAxisSize - 24, 1) * (lastTick - firstTick) / (n - 1);
+        wantTicks = Math.max(2, Math.min(wantTicks, Math.floor(tickRoom / (estimateLongestLabelWidth(labels, 40) + 18)) + 1));
+        var gap = (lastTick - firstTick) / (wantTicks - 1);
         for (var ti = 0; ti < wantTicks; ti++) {
-            xSplits.push(xData[Math.round(ti * gap)]);
+            xSplits.push(xData[firstTick + Math.round(ti * gap)]);
         }
     }
 
@@ -830,7 +929,7 @@ function openChartZoom(canvasId) {
                 label: ds.label,
                 stroke: ds.color || 'rgba(168,85,247,0.9)',
                 width: ds.lineWidth !== undefined ? ds.lineWidth : (isBar ? 0 : 2),
-                fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined),
+                fill: isBar ? barFill(ds.color) : (ds.fill || undefined),
                 points: { show: zoomShowPoints, size: isBar ? 0 : (ds.pointSize || (n > 30 ? 4 : 8)) },
                 spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false
             };

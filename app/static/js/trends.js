@@ -7,7 +7,6 @@ var _trendRange = '1d';
 var _lastTrendData = null;
 var _lastTrendWeather = null;
 var _lastTrendRange = '1d';
-var POWER_TREND_FILL = 'rgba(168,85,247,0.15)';
 
 function _trendRangeHours(range) {
     var map = { day: 24, week: 168, month: 720 };
@@ -109,6 +108,17 @@ function _setTrendErrorsVisible(visible) {
     }
 }
 
+function _setTrendErrorsTitle(minutes) {
+    var title = document.getElementById('trend-errors-title');
+    if (!title) return;
+    var text;
+    if (minutes >= 1440) text = T.trend_errors_per_day || 'Uncorrectable errors per day';
+    else if (minutes === 60) text = T.trend_errors_per_hour || 'Uncorrectable errors per hour';
+    else if (minutes > 60) text = (T.trend_errors_per_hours || 'Uncorrectable errors per {hours} hours').replace('{hours}', minutes / 60);
+    else text = (T.trend_errors_per_minutes || 'Uncorrectable errors per {minutes} minutes').replace('{minutes}', minutes);
+    title.textContent = text;
+}
+
 function _renderTrendCharts() {
     var data = _lastTrendData;
     var range = _lastTrendRange;
@@ -117,20 +127,22 @@ function _renderTrendCharts() {
     var xLabels = docsightFormatXAxisLabels(timestamps, range);
     var tempOpts = (_lastTrendWeather && _lastTrendWeather.length > 0) ? { tempData: _lastTrendWeather } : null;
     renderChart('chart-ds-power', xLabels,
-        [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],
+        [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7'}],
         null, DS_POWER_THRESHOLDS, tempOpts);
     renderChart('chart-ds-snr', xLabels,
-        [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],
+        [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7'}],
         null, DS_SNR_THRESHOLDS, tempOpts);
     renderChart('chart-us-power', xLabels,
-        [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],
+        [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7'}],
         null, US_POWER_THRESHOLDS, tempOpts);
     var showErrors = _hasTrendDocsisErrorSeries(data);
     _setTrendErrorsVisible(showErrors);
     if (showErrors) {
-        renderChart('chart-errors', xLabels, [
-            {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
-            {label: T.uncorrectable, data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
+        // New uncorrectable errors per interval; the cumulative counter hides when they happened.
+        var buckets = docsightErrorBuckets(data, range);
+        _setTrendErrorsTitle(docsightErrorBucketMinutes(range));
+        renderChart('chart-errors', docsightFormatXAxisLabels(buckets.map(function(b) { return b.timestamp; }), range), [
+            {label: T.uncorrectable, data: buckets.map(function(b) { return b.errors; }), color: docsightThemeColor('--crit', 0.8)}
         ], 'bar');
     }
 }

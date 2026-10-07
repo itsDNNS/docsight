@@ -243,7 +243,6 @@
   "metric_status_label": "Stan",
   "signal_family_status_label": "Stan rodziny",
   "metric_channel_span": "Kanał min.-maks",
-  "metric_error_count": "Całkowita liczba błędów",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1253,5 +1252,10 @@
   "palette_shortcuts": "Skróty klawiszowe",
   "palette_shortcut_open": "Otwórz wyszukiwanie",
   "palette_shortcut_help": "Pokaż te skróty",
-  "palette_shortcut_note": "Skróty literowe działają, gdy żadne pole tekstowe nie ma fokusu."
+  "palette_shortcut_note": "Skróty literowe działają, gdy żadne pole tekstowe nie ma fokusu.",
+  "chart_bands_label": "Zakresy docelowe",
+  "trend_errors_per_minutes": "Błędy niekorygowalne na {minutes} minut",
+  "trend_errors_per_hour": "Błędy niekorygowalne na godzinę",
+  "trend_errors_per_hours": "Błędy niekorygowalne na {hours} godz.",
+  "trend_errors_per_day": "Błędy niekorygowalne na dzień"
 }
