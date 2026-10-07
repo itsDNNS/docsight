@@ -42,6 +42,8 @@ E2E_BROWSER_PATHS = [
     "tests/test_e2e_harness.py",
     "tests/test_e2e_shards.py",
     "scripts/e2e_shards.py",
+    # The browser jobs' own setup: a change there has to run them.
+    "scripts/install_playwright_chromium.sh",
     "requirements.txt",
     "requirements-test.txt",
     ".github/workflows/full-e2e.yml",
@@ -483,11 +485,31 @@ def test_browser_jobs_install_chromium_from_the_cache(name):
         assert names.index("Cache the Playwright browser and its system packages") < names.index("Install dependencies")
 
 
-def test_the_chromium_install_script_caches_the_apt_archives():
+def test_the_chromium_install_script_caches_the_apt_archives_and_lists():
     script = (ROOT / "scripts" / "install_playwright_chromium.sh").read_text(encoding="utf-8")
-    assert 'Dir::Cache::Archives \\"$archives/\\"' in script
-    assert "python -m playwright install --with-deps chromium" in script
-    assert 'sudo chown -R "$(id -u):$(id -g)" "$archives"' in script
+    assert "Dir::Cache::Archives" in script and "Dir::State::Lists" in script
+    assert 'archives="$cache/archives"' in script and 'lists="$cache/lists"' in script
+    assert 'sudo chown -R "$(id -u):$(id -g)" "$cache"' in script
+
+
+def test_a_warm_cache_installs_chromium_without_asking_a_mirror():
+    script = (ROOT / "scripts" / "install_playwright_chromium.sh").read_text(encoding="utf-8")
+    browser = script.index("python -m playwright install chromium")
+    offline = script.index("apt-get install -y --no-install-recommends --no-download $packages")
+    fallback = script.index("python -m playwright install-deps chromium")
+    assert browser < offline < fallback
+    # The fast path must not refresh the package lists, which is what reaches a mirror.
+    commands = "\n".join(line for line in script.splitlines() if not line.lstrip().startswith("#"))
+    assert "apt-get update" not in commands
+    assert "--with-deps" not in commands
+
+
+def test_the_chromium_install_script_does_not_wait_on_a_silent_mirror():
+    script = (ROOT / "scripts" / "install_playwright_chromium.sh").read_text(encoding="utf-8")
+    config = script.index("80docsight-network")
+    assert config < script.index("python -m playwright install-deps chromium")
+    for setting in ('Acquire::http::Timeout "30";', 'Acquire::https::Timeout "30";', 'Acquire::Retries "3";'):
+        assert setting in script, setting
 
 
 def _run_step(job, name):
@@ -517,3 +539,4 @@ def test_windows_lane_runs_the_full_portable_suite_in_parallel():
     windows_tests = ROOT / "packaging" / "windows"
     assert "pytest-xdist" in (windows_tests / "requirements-test-windows.in").read_text(encoding="utf-8").split()
     assert "pytest-xdist==" in (windows_tests / "requirements-test-windows.txt").read_text(encoding="utf-8")
+
