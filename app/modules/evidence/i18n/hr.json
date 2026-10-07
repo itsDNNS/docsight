@@ -80,5 +80,6 @@
   "empty_title": "Provjeri koji su dokazi dostupni",
   "empty_action": "Provjeri zadnja 24 sata",
   "empty_window_title": "Odaberi vremenski raspon",
-  "latest": "Posljednje: {time}"
+  "latest": "Posljednje: {time}",
+  "count_label": "Podatkovne točke u ovom razdoblju"
 }

@@ -80,5 +80,6 @@
   "empty_title": "Pārbaudīt, kādi pierādījumi ir pieejami",
   "empty_action": "Pārbaudīt pēdējās 24 stundas",
   "empty_window_title": "Izvēlēties laika intervālu",
-  "latest": "Pēdējais: {time}"
+  "latest": "Pēdējais: {time}",
+  "count_label": "Datu punkti šajā periodā"
 }

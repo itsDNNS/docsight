@@ -80,5 +80,6 @@
   "empty_title": "Check which evidence is ready",
   "empty_action": "Check the last 24 hours",
   "empty_window_title": "Choose a time range",
-  "latest": "Latest: {time}"
+  "latest": "Latest: {time}",
+  "count_label": "Data points in this window"
 }

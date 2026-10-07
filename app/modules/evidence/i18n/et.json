@@ -80,5 +80,6 @@
   "empty_title": "Kontrolli, millised tõendid on olemas",
   "empty_action": "Kontrolli viimast 24 tundi",
   "empty_window_title": "Vali ajavahemik",
-  "latest": "Viimati: {time}"
+  "latest": "Viimati: {time}",
+  "count_label": "Andmepunktid selles ajavahemikus"
 }

@@ -80,5 +80,6 @@
   "empty_title": "Seiceáil cén fhianaise atá ar fáil",
   "empty_action": "Seiceáil na 24 uair dheireanacha",
   "empty_window_title": "Roghnaigh raon ama",
-  "latest": "Is déanaí: {time}"
+  "latest": "Is déanaí: {time}",
+  "count_label": "Pointí sonraí sa tréimhse seo"
 }

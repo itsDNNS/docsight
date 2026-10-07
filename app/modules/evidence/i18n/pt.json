@@ -80,5 +80,6 @@
   "empty_title": "Verificar que provas estão disponíveis",
   "empty_action": "Verificar as últimas 24 horas",
   "empty_window_title": "Escolher um intervalo de tempo",
-  "latest": "Último: {time}"
+  "latest": "Último: {time}",
+  "count_label": "Pontos de dados neste período"
 }

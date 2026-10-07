@@ -80,5 +80,6 @@
   "empty_title": "Prüfen, welche Nachweise vorliegen",
   "empty_action": "Letzte 24 Stunden prüfen",
   "empty_window_title": "Zeitraum wählen",
-  "latest": "Zuletzt: {time}"
+  "latest": "Zuletzt: {time}",
+  "count_label": "Datenpunkte in diesem Zeitraum"
 }

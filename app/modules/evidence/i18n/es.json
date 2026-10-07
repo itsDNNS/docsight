@@ -80,5 +80,6 @@
   "empty_title": "Comprobar qué pruebas están disponibles",
   "empty_action": "Comprobar las últimas 24 horas",
   "empty_window_title": "Elegir un rango de tiempo",
-  "latest": "Último: {time}"
+  "latest": "Último: {time}",
+  "count_label": "Datos en este periodo"
 }

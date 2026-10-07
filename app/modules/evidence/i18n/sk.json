@@ -80,5 +80,6 @@
   "empty_title": "Skontrolovať, aké dôkazy sú k dispozícii",
   "empty_action": "Skontrolovať posledných 24 hodín",
   "empty_window_title": "Vybrať časový rozsah",
-  "latest": "Naposledy: {time}"
+  "latest": "Naposledy: {time}",
+  "count_label": "Dátové body v tomto období"
 }
