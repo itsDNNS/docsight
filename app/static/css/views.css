@@ -79,8 +79,10 @@
 /* Chart header with icon */
 .chart-card-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: var(--space-sm);
     margin-bottom: var(--space-md, 16px);
 }
 .chart-header-content {
@@ -742,6 +744,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 .chart-export-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
 }
 .chart-export-btn {

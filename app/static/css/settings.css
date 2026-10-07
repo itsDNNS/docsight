@@ -1169,7 +1169,7 @@ button.notification-collapse-button {
 .sc-trigger-card:has(.sc-trigger-toggle:checked) .sc-trigger-icon {
   color: var(--amethyst-light);
 }
-.sc-trigger-name { font-weight: 500; }
+.sc-trigger-name { font-weight: 500; overflow-wrap: anywhere; hyphens: auto; }
 .sc-trigger-desc {
   color: var(--muted);
   font-size: 0.85rem;
