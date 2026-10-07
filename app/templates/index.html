@@ -454,11 +454,13 @@
             </a>
         </div>
         {% elif has_speedtest %}
-        <button type="button" class="home-kpi home-kpi-empty" id="home-kpi-speedtest" data-action="openSpeedtestSetupModal">
+        <div class="home-kpi home-kpi-empty" id="home-kpi-speedtest">
             <span class="home-kpi-label"><i data-lucide="rabbit"></i>{{ t.get('home_kpi_last_speedtest', 'Last speedtest') }}{% if speedtest_levels %} <span class="glossary-hint" data-glossary-term-id="speedtest" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ speedtest_levels.get('eli5', '') }} {{ speedtest_levels.get('advanced', '') }}</div></span>{% endif %}</span>
-            <span class="home-kpi-value"><strong>&#8212;</strong></span>
-            <span class="home-kpi-sub">{{ t.speedtest_setup }}</span>
-        </button>
+            <button type="button" class="home-kpi-link" data-action="openSpeedtestSetupModal">
+                <span class="home-kpi-value"><strong>&#8212;</strong></span>
+                <span class="home-kpi-sub">{{ t.speedtest_setup }}</span>
+            </button>
+        </div>
         {% endif %}
     </section>
 

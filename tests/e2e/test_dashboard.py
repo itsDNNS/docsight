@@ -748,3 +748,20 @@ def test_gaming_component_rows_expand_by_click_enter_and_space(demo_page):
     row.press(" ")
     expect(row).to_have_attribute("aria-expanded", "true")
     assert demo_page.evaluate("window.scrollY") == scroll_before
+
+
+def test_speedtest_setup_tile_matches_the_other_figures(page, vodafone_tg_server):
+    """Without a configured Speedtest Tracker the tile offers the setup, styled like its neighbours."""
+    page.goto(vodafone_tg_server.base_url + "/?lang=en", wait_until="networkidle")
+
+    tile = page.locator("#home-kpi-speedtest")
+    expect(tile).to_be_visible()
+    assert tile.evaluate("node => node.tagName") == "DIV"
+    setup = tile.locator("button.home-kpi-link")
+    expect(setup).to_contain_text("Speedtest Setup")
+    assert setup.evaluate("node => getComputedStyle(node).backgroundColor") == "rgba(0, 0, 0, 0)"
+    # The glossary hint is its own control, not nested inside the setup button.
+    expect(tile.locator("button .glossary-hint")).to_have_count(0)
+
+    setup.click()
+    expect(page.locator("#speedtest-setup-modal")).to_be_visible()
