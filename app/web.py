@@ -59,6 +59,8 @@ def _server_tz_info():
 log = logging.getLogger("docsis.web")
 
 DESKTOP_PREVIEW_NOTICE_ID = "docsight-desktop-preview-v0"
+# Hidden like a notice once the user dismisses it.
+ONBOARDING_CHECKLIST_ID = "docsight-onboarding-checklist-v1"
 DESKTOP_PREVIEW_DOC_URL = "https://github.com/itsDNNS/docsight/wiki/Windows-Desktop-Preview"
 
 
@@ -425,6 +427,35 @@ def glossary_page():
     )
 
 
+def _onboarding_checklist(config_manager, demo_mode):
+    """The overview's "Get more out of DOCSight" checklist after setup, or None.
+
+    Each item reflects the saved configuration and links to its settings section.
+    The checklist disappears once every item is done or the user dismisses it,
+    and it does not show in demo mode.
+    """
+    if not config_manager or demo_mode or ONBOARDING_CHECKLIST_ID in _get_dismissed_notice_ids():
+        return None
+    module_loader = current_runtime().module_loader
+    enabled = {module.id for module in (module_loader.get_enabled_modules() if module_loader else [])}
+    candidates = [
+        ("speedtest", "docsight.speedtest", config_manager.is_speedtest_configured, "sources"),
+        ("connection_monitor", "docsight.connection_monitor",
+         lambda: bool(config_manager.get("connection_monitor_enabled", False)), "sources"),
+        ("notifications", None, config_manager.is_notify_configured, "notifications"),
+        ("backup", "docsight.backup", config_manager.is_backup_configured, "data"),
+    ]
+    items = [
+        {"id": item_id, "done": bool(is_done()), "section": section}
+        for item_id, module_id, is_done, section in candidates
+        if module_id is None or module_id in enabled
+    ]
+    done = sum(1 for item in items if item["done"])
+    if not items or done == len(items):
+        return None
+    return {"id": ONBOARDING_CHECKLIST_ID, "items": items, "done": done, "total": len(items)}
+
+
 def _shell_nav_context(config_manager):
     """What the shared top navigation needs to know about configured sources."""
     if not config_manager:
@@ -526,6 +557,7 @@ def index():
         has_us_ofdma=signal_health_view.has_us_ofdma(analysis),
         device_info=dev_info,
         demo_mode=demo_mode,
+        onboarding_checklist=_onboarding_checklist(_config_manager, demo_mode),
         gaming_index=gaming_index,
         bnetz_latest=bnetz_latest,
         metric_ranges=signal_health_view.build_metric_ranges(analysis, get_thresholds()),

@@ -2267,3 +2267,100 @@ button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 
   .demo-banner-actions { display: flex; flex: 1 1 100%; gap: 6px; }
   .demo-banner-actions .btn { min-height: 32px; padding: 4px 10px; white-space: nowrap; }
 }
+
+/* ── Overview: "Get more out of DOCSight" checklist after setup ── */
+.onboarding-checklist {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+.onboarding-checklist-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.onboarding-checklist-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.onboarding-checklist-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.onboarding-checklist-progress progress {
+  width: 96px;
+  height: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tint-emphasis);
+  overflow: hidden;
+  appearance: none;
+}
+.onboarding-checklist-progress progress::-webkit-progress-bar { background: var(--tint-emphasis); }
+.onboarding-checklist-progress progress::-webkit-progress-value { background: var(--good); border-radius: 999px; }
+.onboarding-checklist-progress progress::-moz-progress-bar { background: var(--good); border-radius: 999px; }
+.onboarding-checklist-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.onboarding-item {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+.onboarding-item > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--muted);
+}
+.onboarding-item.done > svg { color: var(--good); }
+.onboarding-item strong {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.onboarding-item.done strong {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+  text-decoration-color: var(--muted);
+}
+.onboarding-item p {
+  margin: 2px 0 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.onboarding-item.done p { margin-bottom: 0; }
+.onboarding-item a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.onboarding-item a:hover { text-decoration: underline; }
+.onboarding-item a svg { width: 14px; height: 14px; }
+@media (max-width: 640px) {
+  .onboarding-checklist { padding: var(--space-md); }
+  .onboarding-checklist-head { flex-wrap: wrap; }
+  .onboarding-checklist-head h2 { flex: 1; }
+  .onboarding-checklist-progress { order: 3; width: 100%; margin-left: 0; }
+  .onboarding-checklist-progress progress { flex: 1; width: auto; }
+}
