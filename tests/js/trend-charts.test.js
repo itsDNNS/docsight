@@ -105,3 +105,23 @@ test('bars keep colors that already carry alpha', () => {
     assert.equal(e.barFill('#f44336'), '#f44336cc');
     assert.equal(e.barFill('rgba(248,149,141,0.8)'), 'rgba(248,149,141,0.8)');
 });
+
+test('before/after periods count errors per slot from their own start', () => {
+    const e = engine();
+    const rows = [
+        {timestamp: '2026-03-08T00:10:00Z', uncorr_errors: 100},
+        {timestamp: '2026-03-08T00:40:00Z', uncorr_errors: 120},
+        {timestamp: '2026-03-08T02:20:00Z', uncorr_errors: 15},
+        {timestamp: '2026-03-08T02:50:00Z', uncorr_errors: null},
+        {timestamp: '2026-03-09T00:00:00Z', uncorr_errors: 40},
+    ];
+    const start = Date.parse('2026-03-08T00:00:00Z');
+    assert.deepEqual(Array.from(e.docsightErrorSlots(rows, start, 4, 60)), [20, null, 15, null]);
+});
+
+test('the interval follows the compared span like the range presets', () => {
+    const e = engine();
+    assert.deepEqual([30, 360, 1439, 1440 * 7, 1440 * 30, 1440 * 365].map(e.docsightErrorBucketMinutesForSpan),
+        [5, 15, 60, 360, 1440, 1440]);
+    assert.equal(e.docsightErrorsTitle(360), 'Uncorrectable errors per 6 hours');
+});

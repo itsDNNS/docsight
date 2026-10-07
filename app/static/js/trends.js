@@ -110,13 +110,7 @@ function _setTrendErrorsVisible(visible) {
 
 function _setTrendErrorsTitle(minutes) {
     var title = document.getElementById('trend-errors-title');
-    if (!title) return;
-    var text;
-    if (minutes >= 1440) text = T.trend_errors_per_day || 'Uncorrectable errors per day';
-    else if (minutes === 60) text = T.trend_errors_per_hour || 'Uncorrectable errors per hour';
-    else if (minutes > 60) text = (T.trend_errors_per_hours || 'Uncorrectable errors per {hours} hours').replace('{hours}', minutes / 60);
-    else text = (T.trend_errors_per_minutes || 'Uncorrectable errors per {minutes} minutes').replace('{minutes}', minutes);
-    title.textContent = text;
+    if (title) title.textContent = docsightErrorsTitle(minutes);
 }
 
 function _renderTrendCharts() {

@@ -320,11 +320,28 @@ function _cmpRenderCharts(data) {
     var showErrors = _cmpPeriodSupportsDocsisErrors(pa) || _cmpPeriodSupportsDocsisErrors(pb);
     _cmpSetErrorsChartVisible(showErrors);
     if (showErrors) {
-        renderChart('cmp-chart-errors', xLabels, [
-            {label: labelA, data: extract(mappedA, 'uncorr_errors'), color: '#2196f3'},
-            {label: labelB, data: extract(mappedB, 'uncorr_errors'), color: '#ff9800'}
-        ], 'bar');
+        _cmpRenderErrors(pa, pb, labelA, labelB);
     }
+}
+
+/* New uncorrectable errors per interval, like Trends. Both periods count from
+   their own start, so bar n of A and bar n of B cover the same offset. */
+function _cmpRenderErrors(pa, pb, labelA, labelB) {
+    var startA = Date.parse(pa.from);
+    var startB = Date.parse(pb.from);
+    var spanMs = Math.max(Date.parse(pa.to) - startA, Date.parse(pb.to) - startB, 60000);
+    var minutes = docsightErrorBucketMinutesForSpan(spanMs / 60000);
+    var slots = Math.ceil(spanMs / (minutes * 60000));
+    var labels = [];
+    for (var i = 0; i < slots; i++) {
+        labels.push(docsightFormatXAxisLabel(startB + i * minutes * 60000, String(Math.round(spanMs / 1000)) + 's'));
+    }
+    var title = document.getElementById('comparison-errors-title');
+    if (title) title.textContent = docsightErrorsTitle(minutes);
+    renderChart('cmp-chart-errors', labels, [
+        {label: labelA, data: docsightErrorSlots(pa.timeseries, startA, slots, minutes), color: '#2196f3'},
+        {label: labelB, data: docsightErrorSlots(pb.timeseries, startB, slots, minutes), color: '#ff9800'}
+    ], 'bar');
 }
 
 /* ── Delta Table ── */

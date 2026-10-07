@@ -353,6 +353,35 @@ function docsightErrorBucketMinutes(range) {
     return ERROR_BUCKET_MINUTES[range] || 60;
 }
 
+/* Interval size for a span given in minutes, matching the range presets. */
+function docsightErrorBucketMinutesForSpan(minutes) {
+    var spans = [['1h', 60], ['6h', 360], ['1d', 1440], ['2d', 2880], ['3d', 4320], ['7d', 10080], ['30d', 43200]];
+    for (var i = 0; i < spans.length; i++) {
+        if (minutes <= spans[i][1]) return ERROR_BUCKET_MINUTES[spans[i][0]];
+    }
+    return 1440;
+}
+
+function docsightErrorsTitle(minutes) {
+    if (minutes >= 1440) return T.trend_errors_per_day || 'Uncorrectable errors per day';
+    if (minutes === 60) return T.trend_errors_per_hour || 'Uncorrectable errors per hour';
+    if (minutes > 60) return (T.trend_errors_per_hours || 'Uncorrectable errors per {hours} hours').replace('{hours}', minutes / 60);
+    return (T.trend_errors_per_minutes || 'Uncorrectable errors per {minutes} minutes').replace('{minutes}', minutes);
+}
+
+/* New errors between readings of a cumulative counter. A counter that drops
+   was reset (modem restart), so its new value counts, never a negative change. */
+function _errorIncreases(rows, key, visit) {
+    var previous = null;
+    (rows || []).forEach(function(row) {
+        var value = row[key];
+        if (value === null || value === undefined) return;
+        var increase = previous === null ? 0 : (value >= previous ? value - previous : value);
+        previous = value;
+        visit(row, increase);
+    });
+}
+
 function _wallClockMinutes(timestamp) {
     var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(timestamp || ''));
     if (!m) return null;
@@ -367,13 +396,9 @@ function docsightErrorBuckets(rows, range, field) {
     var size = docsightErrorBucketMinutes(range);
     var key = field || 'ds_uncorrectable_errors';
     var buckets = [];
-    var previous = null;
-    (rows || []).forEach(function(row) {
-        var value = row[key];
+    _errorIncreases(rows, key, function(row, increase) {
         var minutes = _wallClockMinutes(row.timestamp);
-        if (value === null || value === undefined || minutes === null) return;
-        var increase = previous === null ? 0 : (value >= previous ? value - previous : value);
-        previous = value;
+        if (minutes === null) return;
         var start = Math.floor(minutes / size) * size;
         var last = buckets[buckets.length - 1];
         if (!last || last.start !== start) {
@@ -392,6 +417,19 @@ function docsightErrorBuckets(rows, range, field) {
         filled.push(bucket);
     });
     return filled;
+}
+
+/* Errors per interval counted from a period's start, so two periods line up
+   slot by slot in the before/after comparison. Slots without readings are null. */
+function docsightErrorSlots(rows, startMs, slots, minutes, field) {
+    var values = [];
+    for (var i = 0; i < slots; i++) values.push(null);
+    _errorIncreases(rows, field || 'uncorr_errors', function(row, increase) {
+        var slot = Math.floor((Date.parse(row.timestamp) - startMs) / (minutes * 60000));
+        if (!(slot >= 0 && slot < slots)) return;
+        values[slot] = (values[slot] || 0) + increase;
+    });
+    return values;
 }
 
 /* ── Zone Plugin (uPlot hooks) ── */

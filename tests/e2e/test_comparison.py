@@ -214,6 +214,26 @@ class TestComparisonView:
         expect(demo_page.locator("#comparison-health")).to_be_visible()
         expect(demo_page.locator("#comparison-errors-card")).to_be_visible()
 
+    def test_errors_are_counted_per_interval_from_each_period_start(self, demo_page):
+        payload = _comparison_payload(True, 0)
+
+        def readings(day, counters):
+            return [{"timestamp": f"2026-03-{day}T{hour:02d}:30:00Z", "uncorr_errors": value, "ds_power_avg": 3.1,
+                     "ds_snr_avg": 34.2, "us_power_avg": 42.1, "health": "good"} for hour, value in counters]
+
+        payload["period_a"]["timeseries"] = readings("01", [(1, 500), (2, 530), (4, 560)])
+        # Period B's modem restarted between the two readings: its new value counts.
+        payload["period_b"]["timeseries"] = readings("08", [(1, 900), (2, 12)])
+        demo_page.route("**/api/comparison**", lambda route: route.fulfill(json=payload))
+        navigate_to_comparison(demo_page)
+
+        _rerun(demo_page)
+
+        expect(demo_page.locator("#comparison-errors-title")).to_have_text("Uncorrectable errors per hour")
+        series = demo_page.evaluate("window.charts['cmp-chart-errors'].data.slice(1).map(s => Array.from(s).slice(0, 5))")
+        assert series == [[None, 0, 30, None, 30], [None, 0, 12, None, None]]
+        assert demo_page.evaluate("window.charts['cmp-chart-errors'].data[0].length") == 24
+
     def test_comparison_can_open_report_modal_with_attached_evidence(self, demo_page):
         demo_page.route(
             "**/api/comparison**",
