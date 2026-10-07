@@ -460,6 +460,36 @@ def test_changed_workflows_keep_every_action_sha_pinned(name):
     assert all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", action) for action in uses)
 
 
+@pytest.mark.parametrize("name", ["full-e2e.yml", "test.yml", "visual-review.yml"])
+def test_browser_jobs_install_chromium_from_the_cache(name):
+    """A slow Ubuntu mirror must not decide how long a browser job takes."""
+    browser_jobs = {
+        job_id: job["steps"]
+        for job_id, job in load_workflow(name)["jobs"].items()
+        if any("playwright" in step.get("run", "") for step in job.get("steps", []))
+    }
+    assert browser_jobs
+    for job_id, steps in browser_jobs.items():
+        runs = "\n".join(step.get("run", "") for step in steps)
+        assert "playwright install" not in runs, job_id
+        assert "scripts/install_playwright_chromium.sh" in runs, job_id
+        names = [step.get("name") for step in steps]
+        cache = steps[names.index("Cache the Playwright browser and its system packages")]
+        assert cache["uses"].startswith("actions/cache@")
+        assert "~/.cache/ms-playwright" in cache["with"]["path"]
+        assert "~/.cache/playwright-apt" in cache["with"]["path"]
+        assert "steps.runner-image.outputs.version" in cache["with"]["key"]
+        assert names.index("Read the runner image") < names.index("Cache the Playwright browser and its system packages")
+        assert names.index("Cache the Playwright browser and its system packages") < names.index("Install dependencies")
+
+
+def test_the_chromium_install_script_caches_the_apt_archives():
+    script = (ROOT / "scripts" / "install_playwright_chromium.sh").read_text(encoding="utf-8")
+    assert 'Dir::Cache::Archives \\"$archives/\\"' in script
+    assert "python -m playwright install --with-deps chromium" in script
+    assert 'sudo chown -R "$(id -u):$(id -g)" "$archives"' in script
+
+
 def _run_step(job, name):
     return next(step for step in load_workflow("test.yml")["jobs"][job]["steps"] if step["name"] == name)
 
