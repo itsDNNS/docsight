@@ -1,0 +1,8 @@
+{#- What the colored bands behind power and SNR charts mean. Spans the chart grid's full width. -#}
+<p class="chart-band-legend">
+    <span class="chart-band-legend-title">{{ t.get('chart_bands_label', 'Target bands') }}</span>
+    <span class="chart-band-legend-item"><span class="chart-band-swatch chart-band-good" aria-hidden="true"></span>{{ t.get('health_good', 'Good') }}</span>
+    <span class="chart-band-legend-item"><span class="chart-band-swatch chart-band-tolerated" aria-hidden="true"></span>{{ t.get('health_tolerated', 'Tolerated') }}</span>
+    <span class="chart-band-legend-item"><span class="chart-band-swatch chart-band-marginal" aria-hidden="true"></span>{{ t.get('health_marginal', 'Marginal') }}</span>
+    <span class="chart-band-legend-item"><span class="chart-band-swatch chart-band-critical" aria-hidden="true"></span>{{ t.get('health_critical', 'Critical') }}</span>
+</p>

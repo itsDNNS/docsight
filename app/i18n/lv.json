@@ -243,7 +243,6 @@
   "metric_status_label": "Statuss",
   "signal_family_status_label": "Saimes statuss",
   "metric_channel_span": "Kanāls min-maks",
-  "metric_error_count": "Kopējais kļūdu skaits",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1253,5 +1252,10 @@
   "palette_shortcuts": "Īsinājumtaustiņi",
   "palette_shortcut_open": "Atvērt meklēšanu",
   "palette_shortcut_help": "Rādīt šos īsinājumtaustiņus",
-  "palette_shortcut_note": "Burtu īsinājumtaustiņi darbojas, kad neviens teksta lauks nav fokusā."
+  "palette_shortcut_note": "Burtu īsinājumtaustiņi darbojas, kad neviens teksta lauks nav fokusā.",
+  "chart_bands_label": "Mērķa diapazoni",
+  "trend_errors_per_minutes": "Nelabojamās kļūdas {minutes} minūtēs",
+  "trend_errors_per_hour": "Nelabojamās kļūdas stundā",
+  "trend_errors_per_hours": "Nelabojamās kļūdas {hours} stundās",
+  "trend_errors_per_day": "Nelabojamās kļūdas dienā"
 }

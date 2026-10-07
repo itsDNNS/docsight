@@ -243,7 +243,6 @@
   "metric_status_label": "Stádas",
   "signal_family_status_label": "Stádas an teaghlaigh",
   "metric_channel_span": "Channel min-max",
-  "metric_error_count": "Áireamh earráide iomlán",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1253,5 +1252,10 @@
   "palette_shortcuts": "Aicearraí méarchláir",
   "palette_shortcut_open": "Oscail an cuardach",
   "palette_shortcut_help": "Taispeáin na haicearraí seo",
-  "palette_shortcut_note": "Oibríonn aicearraí litreacha nuair nach bhfuil fócas ar aon réimse téacs."
+  "palette_shortcut_note": "Oibríonn aicearraí litreacha nuair nach bhfuil fócas ar aon réimse téacs.",
+  "chart_bands_label": "Raonta sprice",
+  "trend_errors_per_minutes": "Earráidí do-cheartaithe in aghaidh {minutes} nóiméad",
+  "trend_errors_per_hour": "Earráidí do-cheartaithe in aghaidh na huaire",
+  "trend_errors_per_hours": "Earráidí do-cheartaithe in aghaidh {hours} uair",
+  "trend_errors_per_day": "Earráidí do-cheartaithe in aghaidh an lae"
 }

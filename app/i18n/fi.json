@@ -243,7 +243,6 @@
   "metric_status_label": "Tila",
   "signal_family_status_label": "Signaaliperheen tila",
   "metric_channel_span": "Kanava min-max",
-  "metric_error_count": "Virheiden kokonaismäärä",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1253,5 +1252,10 @@
   "palette_shortcuts": "Pikanäppäimet",
   "palette_shortcut_open": "Avaa haku",
   "palette_shortcut_help": "Näytä nämä pikanäppäimet",
-  "palette_shortcut_note": "Kirjainpikanäppäimet toimivat, kun mikään tekstikenttä ei ole aktiivinen."
+  "palette_shortcut_note": "Kirjainpikanäppäimet toimivat, kun mikään tekstikenttä ei ole aktiivinen.",
+  "chart_bands_label": "Tavoitealueet",
+  "trend_errors_per_minutes": "Korjaamattomat virheet {minutes} minuutin jaksoissa",
+  "trend_errors_per_hour": "Korjaamattomat virheet tunnissa",
+  "trend_errors_per_hours": "Korjaamattomat virheet {hours} tunnin jaksoissa",
+  "trend_errors_per_day": "Korjaamattomat virheet päivässä"
 }

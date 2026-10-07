@@ -243,7 +243,6 @@
   "metric_status_label": "Stare",
   "signal_family_status_label": "Starea familiei",
   "metric_channel_span": "Canal min-max",
-  "metric_error_count": "Număr total de erori",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1253,5 +1252,10 @@
   "palette_shortcuts": "Comenzi rapide de la tastatură",
   "palette_shortcut_open": "Deschide căutarea",
   "palette_shortcut_help": "Arată aceste comenzi rapide",
-  "palette_shortcut_note": "Comenzile cu litere funcționează cât timp niciun câmp de text nu are focusul."
+  "palette_shortcut_note": "Comenzile cu litere funcționează cât timp niciun câmp de text nu are focusul.",
+  "chart_bands_label": "Intervale țintă",
+  "trend_errors_per_minutes": "Erori necorectabile la fiecare {minutes} minute",
+  "trend_errors_per_hour": "Erori necorectabile pe oră",
+  "trend_errors_per_hours": "Erori necorectabile la fiecare {hours} ore",
+  "trend_errors_per_day": "Erori necorectabile pe zi"
 }

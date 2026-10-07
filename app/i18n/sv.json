@@ -243,7 +243,6 @@
   "metric_status_label": "Status",
   "signal_family_status_label": "Familjestatus",
   "metric_channel_span": "Kanal min-max",
-  "metric_error_count": "Totalt antal fel",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1253,5 +1252,10 @@
   "palette_shortcuts": "Kortkommandon",
   "palette_shortcut_open": "Öppna sökningen",
   "palette_shortcut_help": "Visa dessa kortkommandon",
-  "palette_shortcut_note": "Bokstavskommandon fungerar så länge inget textfält har fokus."
+  "palette_shortcut_note": "Bokstavskommandon fungerar så länge inget textfält har fokus.",
+  "chart_bands_label": "Målområden",
+  "trend_errors_per_minutes": "Okorrigerbara fel per {minutes} minuter",
+  "trend_errors_per_hour": "Okorrigerbara fel per timme",
+  "trend_errors_per_hours": "Okorrigerbara fel per {hours} timmar",
+  "trend_errors_per_day": "Okorrigerbara fel per dag"
 }

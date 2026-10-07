@@ -137,54 +137,56 @@ class TestTrendCharts:
         assert box["width"] > 100
         assert box["height"] > 50
 
-    def test_trend_single_metric_charts_fill_to_visible_axis_floor(self, demo_page):
-        """DS Power, DS SNR, and US Power charts should fill to the visible y-axis floor."""
+    def test_trend_power_and_snr_charts_draw_target_bands_instead_of_a_fill(self, demo_page):
+        """Power and SNR show the good/tolerated/marginal/critical bands in theme colors, without an area fill."""
         navigate_to_trends(demo_page)
         for chart_id in ["chart-ds-power", "chart-ds-snr", "chart-us-power"]:
             wait_for_uplot(demo_page, chart_id)
 
-        fills = demo_page.evaluate(
+        charts = demo_page.evaluate(
             """
             () => ['chart-ds-power', 'chart-ds-snr', 'chart-us-power'].map((chartId) => {
                 const chart = window.charts[chartId];
-                const dataset = chart._docsightParams.datasets[0];
+                const params = chart._docsightParams;
                 return {
-                    chartId,
-                    configuredFill: dataset.fill,
-                    fillToValue: chart.series[1].fillTo(chart, 1),
+                    fill: params.datasets[0].fill || null,
+                    bands: [...new Set(params.zones.filter(z => z.band).map(z => z.band))].sort(),
                     yMin: chart.scales.y.min,
                 };
             })
             """
         )
+        assert [chart["fill"] for chart in charts] == [None, None, None]
+        assert all(chart["bands"] == ["critical", "good", "marginal", "tolerated"] for chart in charts)
+        assert [chart["yMin"] for chart in charts] == [-18, 20, 17]
+        good = demo_page.evaluate("bandFill('good')")
+        token = demo_page.evaluate(
+            "(() => { const s = document.createElement('span'); s.style.color = 'var(--good)'; document.body.append(s);"
+            " const c = getComputedStyle(s).color; s.remove(); return c.match(/[\\d.]+/g).slice(0, 3).join(','); })()"
+        )
+        assert good.startswith(f"rgba({token},")
+        expect(demo_page.locator("#charts-grid .chart-band-legend")).to_be_visible()
 
-        assert fills == [
-            {
-                "chartId": "chart-ds-power",
-                "configuredFill": "rgba(168,85,247,0.15)",
-                "fillToValue": -18,
-                "yMin": -18,
-            },
-            {
-                "chartId": "chart-ds-snr",
-                "configuredFill": "rgba(168,85,247,0.15)",
-                "fillToValue": 20,
-                "yMin": 20,
-            },
-            {
-                "chartId": "chart-us-power",
-                "configuredFill": "rgba(168,85,247,0.15)",
-                "fillToValue": 17,
-                "yMin": 17,
-            },
-        ]
-
-    def test_errors_bar_chart(self, demo_page):
-        """Errors chart should render as bar chart with 2 series."""
+    def test_errors_chart_counts_uncorrectable_errors_per_interval(self, demo_page):
+        """The errors chart shows new uncorrectable errors per interval, never negative."""
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-errors")
-        legend = demo_page.locator("#chart-errors .u-legend")
-        assert legend.is_visible()
+        chart = demo_page.evaluate(
+            """
+            () => {
+                const chart = window.charts['chart-errors'];
+                return {
+                    type: chart._docsightParams.type,
+                    series: chart._docsightParams.datasets.map(ds => ds.label),
+                    values: chart._docsightParams.datasets[0].data,
+                };
+            }
+            """
+        )
+        assert chart["type"] == "bar"
+        assert chart["series"] == [demo_page.evaluate("T.uncorrectable")]
+        assert all(value is None or value >= 0 for value in chart["values"])
+        expect(demo_page.locator("#trend-errors-title")).to_have_text("Uncorrectable errors per hour")
 
     def test_trend_tabs_switch_range(self, demo_page):
         """Clicking normalized 7d tab should reload charts."""
@@ -403,6 +405,8 @@ class TestChannelCharts:
                     firstX: xData[0],
                     lastX: xData[xData.length - 1],
                     splitCount: xSplits.length,
+                    firstSplit: xSplits[0],
+                    lastSplit: xSplits[xSplits.length - 1],
                     samples: xData.length,
                     fill: chart.series[1].fill || null,
                     pointsVisible: chart.series[1].points.show === true,
@@ -411,8 +415,11 @@ class TestChannelCharts:
             """
         )
         assert layout["yAxisSize"] >= 72
-        assert layout["firstX"] - layout["xMin"] >= 4
-        assert layout["xMax"] - layout["lastX"] >= 4
+        # Dense series use the full width; the outer labels move inward instead.
+        assert layout["firstX"] - layout["xMin"] <= 0.5
+        assert layout["xMax"] - layout["lastX"] <= 0.5
+        assert layout["firstSplit"] > layout["firstX"]
+        assert layout["lastSplit"] < layout["lastX"]
         assert layout["splitCount"] <= 4
         assert layout["splitCount"] < layout["samples"]
         assert layout["fill"] is None

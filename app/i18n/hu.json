@@ -243,7 +243,6 @@
   "metric_status_label": "Állapot",
   "signal_family_status_label": "Jelcsalád állapota",
   "metric_channel_span": "Csatorna min-max",
-  "metric_error_count": "Teljes hibaszám",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1253,5 +1252,10 @@
   "palette_shortcuts": "Billentyűparancsok",
   "palette_shortcut_open": "Keresés megnyitása",
   "palette_shortcut_help": "Ezeknek a parancsoknak a megjelenítése",
-  "palette_shortcut_note": "A betűs parancsok akkor működnek, ha egyetlen szövegmező sincs fókuszban."
+  "palette_shortcut_note": "A betűs parancsok akkor működnek, ha egyetlen szövegmező sincs fókuszban.",
+  "chart_bands_label": "Célsávok",
+  "trend_errors_per_minutes": "Javíthatatlan hibák {minutes} percenként",
+  "trend_errors_per_hour": "Javíthatatlan hibák óránként",
+  "trend_errors_per_hours": "Javíthatatlan hibák {hours} óránként",
+  "trend_errors_per_day": "Javíthatatlan hibák naponta"
 }

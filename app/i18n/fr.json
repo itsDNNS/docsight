@@ -243,7 +243,6 @@
   "metric_status_label": "Statut",
   "signal_family_status_label": "État de la famille",
   "metric_channel_span": "Min-max canal",
-  "metric_error_count": "Total d'erreurs",
   "metric_snr_label_sc_qam": "DS SNR (SC-QAM)",
   "metric_snr_label_ofdm": "DS MER (OFDM)",
   "metric_snr_label_fallback": "SNR/MER",
@@ -1245,5 +1244,10 @@
   "palette_shortcuts": "Raccourcis clavier",
   "palette_shortcut_open": "Ouvrir la recherche",
   "palette_shortcut_help": "Afficher ces raccourcis",
-  "palette_shortcut_note": "Les raccourcis à une lettre fonctionnent tant qu’aucun champ de texte n’a le focus."
+  "palette_shortcut_note": "Les raccourcis à une lettre fonctionnent tant qu’aucun champ de texte n’a le focus.",
+  "chart_bands_label": "Plages cibles",
+  "trend_errors_per_minutes": "Erreurs non corrigibles par tranche de {minutes} minutes",
+  "trend_errors_per_hour": "Erreurs non corrigibles par heure",
+  "trend_errors_per_hours": "Erreurs non corrigibles par tranche de {hours} heures",
+  "trend_errors_per_day": "Erreurs non corrigibles par jour"
 }

@@ -887,6 +887,7 @@
     </div>
     <div id="trend-no-data" class="view-empty" hidden></div>
     <div class="charts-grid" id="charts-grid">
+        {% include 'partials/band_legend.html' %}
         <!-- DS Power Chart -->
         <div class="chart-card">
             <div class="chart-card-header">
@@ -938,7 +939,7 @@
                         <line x1="12" y1="8" x2="12" y2="12"/>
                         <line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
-                    <div class="chart-label">{{ t.metric_error_count }}</div>
+                    <div class="chart-label" id="trend-errors-title">{{ t.get('trend_errors_per_hour', 'Uncorrectable errors per hour') }}</div>
                 </div>
                 <button class="chart-expand-btn" data-chart="chart-errors" title="{{ t.expand }}">&#x26F6;</button>
             </div>
@@ -1376,6 +1377,7 @@
                        glossary='channel_timeline', hidden=True) }}
         <div id="channel-no-data" class="view-empty" hidden></div>
         <div id="channel-charts" class="charts-grid" hidden>
+            {% include 'partials/band_legend.html' %}
             <div class="chart-card">
                 <div class="chart-card-header">
                     <div class="chart-header-content">
@@ -1426,6 +1428,7 @@
             <div class="skeleton skel-chart"></div>
         </div>
         <div id="compare-charts" class="charts-grid" hidden>
+            {% include 'partials/band_legend.html' %}
             <div class="chart-card">
                 <div class="chart-card-header">
                     <div class="chart-header-content">

@@ -76,6 +76,24 @@
     border-color: var(--accent);
 }
 
+/* Legend for the target bands behind power and SNR charts (BAND_STYLE in chart-engine.js); the small swatches are stronger than the bands so they stay distinguishable. */
+.chart-band-legend {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+    margin: 0;
+    font-size: var(--fs-min);
+    color: var(--muted);
+}
+.chart-band-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.chart-band-swatch { width: 14px; height: 10px; border-radius: 3px; }
+.chart-band-good { background: color-mix(in srgb, var(--good) 35%, transparent); }
+.chart-band-tolerated { background: color-mix(in srgb, var(--tolerated) 40%, transparent); }
+.chart-band-marginal { background: color-mix(in srgb, var(--warn) 35%, transparent); }
+.chart-band-critical { background: color-mix(in srgb, var(--crit) 50%, transparent); }
+
 /* Chart header with icon */
 .chart-card-header {
     display: flex;
