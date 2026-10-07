@@ -376,6 +376,8 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                     if (s && openGroupLabels.indexOf(s.textContent.trim()) !== -1) {
                         if (el.matches('details.channel-group')) el.setAttribute('open', '');
                         else el.classList.add('open');
+                        var toggle = el.querySelector('.docsis-group-toggle');
+                        if (toggle) toggle.setAttribute('aria-expanded', 'true');
                     }
                 });
 

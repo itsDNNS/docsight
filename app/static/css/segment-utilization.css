@@ -163,12 +163,12 @@
     padding: 2px 8px;
     border-radius: 999px;
     background: rgba(168, 85, 247, 0.15);
-    color: rgba(168, 85, 247, 1);
+    color: color-mix(in srgb, rgb(168, 85, 247) 50%, var(--text));
 }
 
 .fritz-cable-event-direction.is-upstream {
     background: rgba(99, 102, 241, 0.15);
-    color: rgba(129, 140, 248, 1);
+    color: color-mix(in srgb, rgb(129, 140, 248) 50%, var(--text));
 }
 
 .fritz-cable-event-time {

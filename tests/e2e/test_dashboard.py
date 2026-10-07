@@ -430,23 +430,27 @@ class TestDashboardSections:
 
     def test_docsis_groups_expose_expanded_state(self, demo_page):
         open_view(demo_page, "channels")
-        header = demo_page.locator("#view-channels .docsis-group-header").first
-        assert header.get_attribute("aria-expanded") == "false"
-        assert header.get_attribute("aria-controls")
-        header.press("Enter")
-        assert header.get_attribute("aria-expanded") == "true"
+        toggle = demo_page.locator("#view-channels .docsis-group-toggle").first
+        assert toggle.evaluate("node => node.tagName") == "BUTTON"
+        assert toggle.get_attribute("aria-expanded") == "false"
+        assert toggle.get_attribute("aria-controls")
+        assert toggle.locator("a, button, input, [tabindex], .glossary-hint").count() == 0
+        toggle.press("Enter")
+        assert toggle.get_attribute("aria-expanded") == "true"
 
     def test_docsis_group_glossary_hint_opens_the_glossary_without_toggling_the_group(self, demo_page):
         open_view(demo_page, "channels")
         header = demo_page.locator("#view-channels .docsis-group-header").first
+        toggle = header.locator(".docsis-group-toggle")
         header.scroll_into_view_if_needed()
         header.locator(".glossary-hint").click()
         expect(demo_page.locator("body > .glossary-popover")).to_be_visible()
-        expect(header).to_have_attribute("aria-expanded", "false")
+        expect(toggle).to_have_attribute("aria-expanded", "false")
         demo_page.keyboard.press("Escape")
 
-        header.click(position={"x": 8, "y": 8})
-        expect(header).to_have_attribute("aria-expanded", "true")
+        # The rest of the row still opens the group.
+        header.locator(".docsis-group-count").click()
+        expect(toggle).to_have_attribute("aria-expanded", "true")
         expect(header.locator("xpath=..")).to_have_class(re.compile(r"\bopen\b"))
 
     def test_settings_link_exists(self, demo_page):

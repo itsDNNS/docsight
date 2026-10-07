@@ -803,7 +803,8 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     color: var(--muted);
 }
 .correlation-chart-legend span[data-metric] {
-    color: var(--corr-color);
+    /* Half text color keeps the series hue readable on light and dark cards. */
+    color: color-mix(in srgb, var(--corr-color) 50%, var(--text));
     cursor: pointer;
     transition: opacity 0.2s var(--ease-out-expo), filter 0.2s var(--ease-out-expo);
     user-select: none;
@@ -817,7 +818,8 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     background: var(--tint-emphasis);
 }
 .correlation-chart-legend span[data-metric].disabled {
-    opacity: 0.5;
+    /* Off, but still a control: muted text and a dashed outline instead of fading below readable contrast. */
+    color: var(--muted);
     border-style: dashed;
 }
 .correlation-chart-legend span[data-metric]:active {
@@ -827,9 +829,6 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .correlation-chart-legend span[data-metric]:focus-visible {
     outline: 2px solid var(--amethyst);
     outline-offset: 2px;
-}
-.correlation-chart-legend span[data-metric].disabled:hover {
-    opacity: 0.5;
 }
 .correlation-speedtest-hint {
     max-width: 760px;
@@ -878,7 +877,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .corr-event-filter-type .corr-event-filter-count { font-size: max(var(--fs-min), 0.85em); }
 .corr-event-filter-severities { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 22px; margin-top: 2px; }
 .corr-event-filter-severity { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-secondary); font-size: max(var(--fs-min), 0.85em); }
-.corr-legend-filter-count { font-size: max(var(--fs-min), 0.7em); opacity: 0.7; }
+.corr-legend-filter-count { font-size: max(var(--fs-min), 0.7em); }
 .corr-tone-accent { color: var(--accent); }
 .corr-tone-good { color: var(--good); }
 .corr-tone-warn { color: var(--warn); }

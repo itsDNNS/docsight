@@ -20,7 +20,9 @@
     activeOpenedByFocus = false;
     if (activeHint) {
       activeHint.classList.remove('open');
-      activeHint.removeAttribute('aria-describedby');
+      var ownDescription = activeHint.getAttribute('data-glossary-description');
+      if (ownDescription) activeHint.setAttribute('aria-describedby', ownDescription);
+      else activeHint.removeAttribute('aria-describedby');
       activeHint.setAttribute('aria-expanded', 'false');
       activeHint = null;
     }
@@ -80,6 +82,14 @@
     }
   }
 
+  var hintCount = 0;
+
+  function visibleText(hint) {
+    var copy = hint.cloneNode(true);
+    copy.querySelectorAll('.glossary-popover').forEach(function (popover) { popover.remove(); });
+    return copy.textContent.trim();
+  }
+
   // Make hints keyboard-accessible (re-runnable after innerHTML refresh)
   function initHints() {
     document.querySelectorAll('.glossary-hint').forEach(function (hint) {
@@ -87,7 +97,7 @@
       hint.setAttribute('data-glossary-init', '1');
       hint.setAttribute('tabindex', '0');
       hint.setAttribute('role', 'button');
-      // Use the popover text as aria-label for i18n, skip empty hints
+      // Skip hints without an explanation
       var source = hint.querySelector('.glossary-popover');
       var label = source ? source.textContent.trim() : '';
       if (!label) {
@@ -96,10 +106,18 @@
         hint.removeAttribute('role');
         return;
       }
-      hint.setAttribute('aria-label', label);
+      if (visibleText(hint)) {
+        // Hints with visible text keep it as their name; the explanation describes them.
+        if (!source.id) source.id = 'glossary-hint-text-' + (++hintCount);
+        hint.setAttribute('data-glossary-description', source.id);
+        hint.setAttribute('aria-describedby', source.id);
+      } else {
+        hint.setAttribute('aria-label', label);
+      }
       hint.setAttribute('aria-expanded', 'false');
     });
   }
+
   initHints();
 
   // Expose for dashboard refresh cycle, and for the help panel that replaces the popover

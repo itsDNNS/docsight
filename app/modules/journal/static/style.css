@@ -85,7 +85,7 @@
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-lg);
     background: var(--accent);
-    color: #fff;
+    color: var(--text-on-accent);
     border: none;
     border-radius: var(--radius-pill);
     cursor: pointer;
@@ -838,7 +838,7 @@ mark.search-highlight {
     margin-top: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
     background: var(--accent);
-    color: #fff;
+    color: var(--text-on-accent);
     border: none;
     border-radius: var(--radius-pill);
     cursor: pointer;

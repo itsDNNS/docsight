@@ -11,6 +11,7 @@
      data-focus-target="sel"   click focuses the first element matching the selector
      data-toggle-open          click toggles the "open" class and aria-expanded
      data-toggle-open="parent" the same, with the "open" class on the parent element
+     data-toggle-open="<sel>"  the same, with the "open" class on the closest match
    Elements with role="button" also run their click action on Enter and Space.
    A click on a control nested inside an action element (a link, button, form
    field or glossary hint) belongs to that control, not to the outer action. */
@@ -61,7 +62,8 @@
             var focusOn = targetOf(el, 'data-focus-target');
             if (focusOn) focusOn.focus();
         } else {
-            var holder = el.getAttribute('data-toggle-open') === 'parent' ? el.parentElement : el;
+            var scope = el.getAttribute('data-toggle-open');
+            var holder = scope === 'parent' ? el.parentElement : (scope ? el.closest(scope) : el) || el;
             holder.classList.toggle('open');
             el.setAttribute('aria-expanded', String(holder.classList.contains('open')));
         }

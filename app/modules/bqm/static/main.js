@@ -62,6 +62,13 @@ function updateBqmQuickButtons() {
     syncSegments(quickRange, function(btn) { return btn.id === 'bqm-' + selected + '-btn'; });
 }
 
+function bqmScreenReaderText(text) {
+    var span = document.createElement('span');
+    span.className = 'sr-only';
+    span.textContent = text;
+    return span;
+}
+
 function renderBqmCalendar(year, month) {
     updateBqmQuickButtons();
     var grid = document.getElementById('bqm-calendar-grid');
@@ -86,19 +93,23 @@ function renderBqmCalendar(year, month) {
         var cell = document.createElement('button');
         cell.type = 'button';
         cell.className = 'bqm-day';
-        cell.textContent = d;
         cell.setAttribute('data-date', dateStr);
-        cell.setAttribute('aria-label', dateStr);
+        // The visible day stays part of the name; month, year and data kind are read out around it.
+        var status = '';
         if (_bqmAvailableDates.has(dateStr)) {
             cell.classList.add('has-data');
             if (_bqmCsvDates.has(dateStr)) {
                 cell.classList.add('has-csv');
-                cell.setAttribute('aria-label', dateStr + ' — CSV data available');
+                status = 'CSV';
             } else if (_bqmPngDates.has(dateStr)) {
                 cell.classList.add('has-png');
-                cell.setAttribute('aria-label', dateStr + ' — cached PNG available');
+                status = T.bqm_cached_png || 'Cached PNG';
             }
-        } else {
+        }
+        cell.appendChild(bqmScreenReaderText(monthNames[month] + ' '));
+        cell.appendChild(document.createTextNode(String(d)));
+        cell.appendChild(bqmScreenReaderText(' ' + year + (status ? ', ' + status : '')));
+        if (!_bqmAvailableDates.has(dateStr)) {
             cell.disabled = true;
         }
         if (dateStr === today) cell.classList.add('today');
