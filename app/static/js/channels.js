@@ -397,8 +397,9 @@ function _channelStatusRow(direction, row, ctx) {
     button.type = 'button';
     button.dataset.direction = direction;
     button.dataset.channelId = row.channel_id;
-    button.setAttribute('aria-label', (T.channel_status_open || 'Open charts for {channel}').replace('{channel}', name)
-        + ', ' + _channelStatusWord(row.health));
+    // The visible text stays part of the name; the action and the state are added for screen readers.
+    var action = (T.channel_status_open || 'Open charts for {channel}').split('{channel}');
+    if (action[0]) button.appendChild(_channelStatusEl('span', 'sr-only', action[0]));
 
     var label = _channelStatusEl('span', 'cs-label', name);
     var sub = row.family;
@@ -425,6 +426,7 @@ function _channelStatusRow(direction, row, ctx) {
     delta.appendChild(document.createTextNode(_channelStatusDelta(row)));
     current.appendChild(delta);
     button.appendChild(current);
+    button.appendChild(_channelStatusEl('span', 'sr-only', (action[1] || '') + ', ' + _channelStatusWord(row.health)));
 
     button.addEventListener('click', function() { ctx.onRow(direction, row); });
     return button;

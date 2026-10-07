@@ -653,7 +653,7 @@
 
     <div class="home-split">
         <section class="home-findings" aria-labelledby="home-findings-title">
-            <h3 id="home-findings-title">{{ t.get('line_status_findings', 'Findings & recommendation') }}</h3>
+            <h2 id="home-findings-title">{{ t.get('line_status_findings', 'Findings & recommendation') }}</h2>
             {% if active_issues %}
             {% set lead_issue = active_issues[0] %}
             <p class="home-findings-lead">{{ issue_labels.get(lead_issue, lead_issue) }}{% if issue_actions.get(lead_issue) %} · {{ issue_actions[lead_issue] }}{% endif %}</p>
@@ -735,7 +735,7 @@
         </section>
         <section class="home-events" aria-labelledby="home-events-title">
             <div class="home-events-head">
-                <h3 id="home-events-title">{{ t.get('home_recent_events', 'Recent events') }}</h3>
+                <h2 id="home-events-title">{{ t.get('home_recent_events', 'Recent events') }}</h2>
                 <a class="home-link" href="#events">{{ t.get('home_all_events', 'All events') }} <i data-lucide="arrow-right"></i></a>
             </div>
             <ol class="home-events-list" id="home-events-list" data-empty="{{ t.get('home_events_empty', 'No events yet.') }}" aria-live="polite"></ol>

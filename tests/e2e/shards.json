@@ -1,12 +1,13 @@
 {
   "version": 1,
-  "expected_total": 718,
+  "expected_total": 727,
   "baseline_cpu_seconds": 1860.908,
   "shards": [
     {
       "id": 1,
-      "collected_cases": 101,
+      "collected_cases": 110,
       "files": [
+        "test_accessibility_findings.py",
         "test_charts.py",
         "test_i18n.py",
         "test_modals.py",

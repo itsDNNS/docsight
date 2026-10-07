@@ -137,7 +137,7 @@ body.is-offline .offline-banner { display: flex; }
 .metric-card[role="button"] { cursor: pointer; }
 .hero-refresh-button:focus-visible,
 .metric-card[role="button"]:focus-visible,
-.docsis-group-header:focus-visible {
+.docsis-group-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
@@ -534,9 +534,22 @@ body.is-offline .offline-banner { display: flex; }
 @media (max-width: 768px) {
   .docsis-group-header .glossary-hint { margin-inline: -12px; }
 }
-.docsis-group-header:active { opacity: 0.7; }
-.docsis-group-header svg { width: 16px; height: 16px; color: var(--muted); transition: transform 0.2s; }
-.docsis-group.open .docsis-group-header svg { transform: rotate(90deg); }
+/* Fills the row's height; the rest of the row forwards its clicks, so the touch area stays the whole row. */
+.docsis-group-toggle {
+  display: inline-flex;
+  align-self: stretch;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.docsis-group-toggle:active { opacity: 0.7; }
+.docsis-group-toggle svg { width: 16px; height: 16px; color: var(--muted); transition: transform 0.2s; }
+.docsis-group.open .docsis-group-toggle svg { transform: rotate(90deg); }
 .docsis-group .table-scroll { display: none; }
 .docsis-group.open .table-scroll { display: block; }
 
@@ -2159,7 +2172,7 @@ button.ls-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .home-kpi-sub { font-size: var(--fs-min); color: var(--muted); }
 .home-kpi-empty .home-kpi-sub { color: var(--accent); }
 .home-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-xl, 32px); margin-bottom: var(--space-lg); }
-.home-findings h3, .home-events h3 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 650; color: var(--text); }
+.home-findings h2, .home-events h2 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 650; color: var(--text); }
 .home-findings-lead { margin: 0 0 6px; font-size: 0.95rem; line-height: 1.55; color: var(--text-secondary); }
 .home-events-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .home-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: var(--accent); text-decoration: none; }

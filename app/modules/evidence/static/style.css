@@ -198,25 +198,25 @@
 .evidence-status-present .evidence-badge,
 .evidence-status-present .evidence-item-icon,
 .evidence-source-row.evidence-status-present .evidence-source-status {
-    color: #86efac;
+    color: var(--good);
 }
 
 .evidence-status-stale .evidence-badge,
 .evidence-status-stale .evidence-item-icon,
 .evidence-source-row.evidence-status-stale .evidence-source-status {
-    color: #fde68a;
+    color: var(--warn);
 }
 
 .evidence-status-missing .evidence-badge,
 .evidence-status-missing .evidence-item-icon,
 .evidence-source-row.evidence-status-missing .evidence-source-status {
-    color: #fca5a5;
+    color: var(--crit);
 }
 
 .evidence-status-optional .evidence-badge,
 .evidence-status-optional .evidence-item-icon,
 .evidence-source-row.evidence-status-optional .evidence-source-status {
-    color: #c4b5fd;
+    color: var(--text-secondary);
 }
 
 .evidence-status-not_applicable .evidence-badge,

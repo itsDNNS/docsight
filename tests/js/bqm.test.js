@@ -31,7 +31,7 @@ function setup() {
     class FixedDate extends Date {
         constructor(...args) { super(...(args.length ? args : ['2026-01-02T12:00:00'])); }
     }
-    const c = vm.createContext({DOCSightEmptyState: emptyState, document: {getElementById: id => elements[id], createElement: () => element('cell')},
+    const c = vm.createContext({DOCSightEmptyState: emptyState, document: {getElementById: id => elements[id], createElement: () => element('cell'), createTextNode: text => ({nodeType: 3, textContent: String(text)})},
         Date: FixedDate,
         T: {}, todayStr: () => '2026-01-02', pad: n => String(n).padStart(2, '0'),
         formatDateDE: s => s, clearTimeout() {}, docsightUrl: s => s,

@@ -703,8 +703,10 @@ class TestBqmUiRender:
         assert 'aria-label="{{ t.get(\'bqm_csv_import\', \'Import CSV\') }}"' in html
         assert 'aria-label="{{ t.bqm_delete }}"' in html
         assert "document.createElement('button')" in js
-        assert "CSV data available" in js
-        assert "cached PNG available" in js
+        # The visible day number stays in the name; month, year and data kind are screen reader text.
+        assert "cell.appendChild(document.createTextNode(String(d)));" in js
+        assert "bqmScreenReaderText(monthNames[month] + ' ')" in js
+        assert "T.bqm_cached_png || 'Cached PNG'" in js
 
 
 class TestBqmChartConfig:
