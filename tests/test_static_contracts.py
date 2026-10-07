@@ -623,9 +623,9 @@ def test_translation_lookups_resolve_to_catalog_keys() -> None:
 
 
 # Visible template text that is the same in every language: units, product and
-# protocol names, and German legal sources quoted by the German-only TKG module.
+# protocol names, key caps, and German legal sources quoted by the German-only TKG module.
 UNTRANSLATED_TEMPLATE_TEXT = {
-    "BNetzA", "Breitbandmessung", "Bundesnetzagentur", "CSV", "DOCSIS", "DOCSight", "DOCSight -", "Desktop Preview:",
+    "BNetzA", "Breitbandmessung", "Bundesnetzagentur", "CSV", "esc", "DOCSIS", "DOCSight", "DOCSight -", "Desktop Preview:",
     "GitHub", "Host", "JSON", "MHz", "Markdown", "PNG", "Port", "Smokeping", "ThinkBroadband BQM", "Verbraucherzentrale",
     "· DOCSIS", "— Abs. 4", "— Dennis",
 }

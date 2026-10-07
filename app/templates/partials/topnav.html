@@ -186,6 +186,9 @@
                 <i data-lucide="refresh-cw"></i>
             </button>
             {% endif %}
+            <button type="button" class="topnav-search" id="command-palette-open" data-action="openCommandPalette" aria-haspopup="dialog" title="{{ t.get('palette_title', 'Search DOCSight') }}">
+                <i data-lucide="search"></i><span class="topnav-search-label">{{ t.get('palette_open', 'Search') }}</span><kbd class="topnav-search-key" data-palette-mod aria-hidden="true"></kbd>
+            </button>
             {# Notice center: every notice stays listed; unread ones carry the count. #}
             {% set center_notices = notice_center or [] %}
             {% set show_desktop_notice = desktop_mode %}
@@ -289,3 +292,4 @@
     </div>
 </header>
 <div class="topnav-backdrop" id="topnav-backdrop" hidden></div>
+{% include 'partials/command_palette.html' %}

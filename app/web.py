@@ -662,6 +662,7 @@ def settings():
             location="settings",
         ),
         modem_poll_status=_modem_poll_status(current_runtime().get_state()),
+        glossary_terms=get_glossary_terms(lang),
         **nav,
     )
 
