@@ -1099,3 +1099,93 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 }
 .graph-frame-foot a { margin-left: auto; color: var(--accent); }
 .graph-frame-message { margin: 0; padding: var(--space-lg); color: var(--text-secondary); text-align: center; }
+
+/* ── Snapshot panel: the snapshot behind a chart point ──
+   A side panel on wide screens, a bottom sheet on phones. */
+.snapshot-panel {
+  position: fixed;
+  top: 76px;
+  right: var(--space-md);
+  bottom: var(--space-md);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 2 * var(--space-md)));
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-lg);
+}
+.snapshot-panel[hidden] { display: none; }
+.snapshot-panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.snapshot-panel-heading { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.snapshot-panel-title { margin: 0; color: var(--text); font-size: 1rem; font-weight: 650; }
+.snapshot-panel-title:focus { outline: none; }
+.snapshot-panel-sub { flex-basis: 100%; margin: 0; color: var(--text-secondary); font-size: var(--fs-min); }
+.snapshot-panel-nav { display: flex; gap: 6px; }
+.snapshot-panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.snapshot-panel-icon svg { width: 18px; height: 18px; }
+.snapshot-panel-icon:disabled { opacity: 0.4; cursor: default; }
+.snapshot-panel-icon:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
+.snapshot-panel-body { flex: 1; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: var(--space-md); }
+.snapshot-panel-body[aria-busy="true"] { opacity: 0.6; }
+.snapshot-panel-message { margin: 0; color: var(--text-secondary); }
+.snapshot-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+.snapshot-kpi { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); }
+.snapshot-kpi-label { color: var(--text-secondary); font-size: var(--fs-min); }
+.snapshot-kpi-value { color: var(--text); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.snapshot-kpi.is-warn .snapshot-kpi-value { color: var(--warn); }
+.snapshot-kpi-detail { color: var(--text-secondary); font-size: var(--fs-min); font-variant-numeric: tabular-nums; }
+.snapshot-section-title {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+  font-size: var(--fs-min);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.snapshot-issues { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.snapshot-channels { width: 100%; border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.snapshot-channels th { padding: 4px 6px; color: var(--text-secondary); font-weight: 500; text-align: left; }
+.snapshot-channels td { padding: 6px; border-top: 1px solid var(--glass-border); color: var(--text); }
+.snapshot-channels .dt-num { text-align: right; }
+.snapshot-channels td[data-health="critical"] { color: var(--crit); }
+.snapshot-channels td[data-health="marginal"], .snapshot-channels td[data-health="warning"] { color: var(--warn); }
+.snapshot-panel-foot { display: flex; flex-wrap: wrap; gap: var(--space-sm); padding: 12px 16px; border-top: 1px solid var(--glass-border); }
+.snapshot-panel-foot[hidden] { display: none; }
+/* Chart points open their snapshot. */
+.u-over.is-point-clickable { cursor: pointer; }
+
+@media (max-width: 640px) {
+  .snapshot-panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    /* Sits on the bottom navigation, which stays usable. */
+    bottom: calc(var(--bottom-nav-h, 0px) + var(--safe-bottom, 0px));
+    width: auto;
+    max-height: 78vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .snapshot-panel-icon { width: 44px; height: 44px; }
+  .snapshot-panel-foot .btn { min-height: 44px; }
+}

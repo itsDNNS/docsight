@@ -1019,7 +1019,17 @@ function _renderChannelTimelineCharts() {
         if (powerLabel) powerLabel.textContent = T.power_dbmv || 'Power (dBmV)';
         _setChartCardVisible('channel-errors-card', 'chart-ch-errors', false);
     }
-    renderChart('chart-ch-power', xLabels, powerDatasets, null, powerThresholds, tempOpts);
+    // Clicking a point opens the snapshot taken at that time.
+    var powerOpts = Object.assign({}, tempOpts || {}, {onPointClick: function(idx) {
+        if (typeof DOCSightSnapshotPanel === 'undefined' || !data[idx]) return;
+        var mount = document.getElementById('chart-ch-power');
+        var card = mount && mount.closest('.chart-card');
+        var label = card && card.querySelector('.chart-label');
+        DOCSightSnapshotPanel.open(data[idx].timestamp, {
+            canvasId: 'chart-ch-power', index: idx, source: label ? label.textContent.trim() : ''
+        });
+    }});
+    renderChart('chart-ch-power', xLabels, powerDatasets, null, powerThresholds, powerOpts);
 
     // Modulation timeline (stepped line chart)
     var modCard = document.getElementById('channel-modulation-card');

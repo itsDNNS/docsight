@@ -1767,6 +1767,29 @@
 
 <!-- Export Modal -->
 {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
+{# The snapshot behind a chart point (snapshot-panel.js). A side panel, not a
+   modal: the chart stays usable and marks the open point. #}
+<div id="snapshot-panel" class="snapshot-panel" role="dialog" aria-modal="false" aria-labelledby="snapshot-panel-title" hidden>
+    <div class="snapshot-panel-head">
+        <div class="snapshot-panel-heading">
+            <h2 id="snapshot-panel-title" class="snapshot-panel-title" tabindex="-1">{{ t.get('snapshot_label', 'Snapshot') }}</h2>
+            <span id="snapshot-panel-health" class="badge" hidden></span>
+            <p id="snapshot-panel-sub" class="snapshot-panel-sub"></p>
+        </div>
+        <div class="snapshot-panel-nav">
+            <button type="button" class="snapshot-panel-icon" id="snapshot-prev" aria-label="{{ t.get('snapshot_earlier', 'Earlier snapshot') }}" title="{{ t.get('snapshot_earlier', 'Earlier snapshot') }}"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
+            <button type="button" class="snapshot-panel-icon" id="snapshot-next" aria-label="{{ t.get('snapshot_later', 'Later snapshot') }}" title="{{ t.get('snapshot_later', 'Later snapshot') }}"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
+            <button type="button" class="snapshot-panel-icon" id="snapshot-close" aria-label="{{ t.close }}" title="{{ t.close }}"><i data-lucide="x" aria-hidden="true"></i></button>
+        </div>
+    </div>
+    <div class="snapshot-panel-body" id="snapshot-panel-body" aria-live="polite" tabindex="0"></div>
+    <div class="snapshot-panel-foot" id="snapshot-panel-foot" hidden>
+        <button type="button" class="btn btn-primary btn-sm" id="snapshot-open-channel"></button>
+        <button type="button" class="btn btn-secondary btn-sm" id="snapshot-add-case" hidden>{{ t.get('snapshot_add_case', 'Add to case…') }}</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="snapshot-copy">{{ t.get('snapshot_copy', 'Copy as text') }}</button>
+    </div>
+</div>
+
 <dialog class="modal-overlay" id="add-to-case-modal" role="dialog" aria-modal="true" aria-labelledby="add-to-case-title">
     <div class="modal">
         <div class="modal-header">
@@ -1887,6 +1910,7 @@
 <script src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
 {% endif %}
 <script src="{{ url_for('static', filename='js/trends.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/snapshot-panel.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/channels.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/line-status.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/integrations.js', v=version) }}"></script>
