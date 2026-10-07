@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Încă fără perioadă",
   "event_added_to_case_one": "1 eveniment adăugat la „{case}”",
   "event_added_to_case_many": "Evenimente adăugate la „{case}”: {count}",
-  "event_open_case": "Deschide cazul"
+  "event_open_case": "Deschide cazul",
+  "correlation_save_as_case": "Salvează ca un caz",
+  "correlation_save_as_case_hint": "Adaugă zilele acestei perioade la un caz (zona mărită, dacă există)",
+  "correlation_case_summary": "Perioada {range}",
+  "correlation_case_name": "Corelație {range}",
+  "correlation_added_to_case": "Perioadă adăugată la „{case}”"
 }

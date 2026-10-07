@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Még nincs időszak",
   "event_added_to_case_one": "1 esemény hozzáadva ehhez: „{case}”",
   "event_added_to_case_many": "{count} esemény hozzáadva ehhez: „{case}”",
-  "event_open_case": "Eset megnyitása"
+  "event_open_case": "Eset megnyitása",
+  "correlation_save_as_case": "Mentés esetként",
+  "correlation_save_as_case_hint": "Az időszak napjainak hozzáadása egy esethez (nagyításkor a nagyított tartomány)",
+  "correlation_case_summary": "Időszak: {range}",
+  "correlation_case_name": "Korreláció {range}",
+  "correlation_added_to_case": "Időszak hozzáadva ehhez: „{case}”"
 }

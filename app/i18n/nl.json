@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Nog geen periode",
   "event_added_to_case_one": "1 gebeurtenis toegevoegd aan ‘{case}’",
   "event_added_to_case_many": "{count} gebeurtenissen toegevoegd aan ‘{case}’",
-  "event_open_case": "Zaak openen"
+  "event_open_case": "Zaak openen",
+  "correlation_save_as_case": "Opslaan als zaak",
+  "correlation_save_as_case_hint": "De dagen van deze periode aan een zaak toevoegen (ingezoomd bereik indien ingezoomd)",
+  "correlation_case_summary": "Periode {range}",
+  "correlation_case_name": "Correlatie {range}",
+  "correlation_added_to_case": "Periode toegevoegd aan ‘{case}’"
 }

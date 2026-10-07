@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Ainda sem período",
   "event_added_to_case_one": "1 evento adicionado a «{case}»",
   "event_added_to_case_many": "{count} eventos adicionados a «{case}»",
-  "event_open_case": "Abrir caso"
+  "event_open_case": "Abrir caso",
+  "correlation_save_as_case": "Guardar como caso",
+  "correlation_save_as_case_hint": "Adicionar os dias deste período a um caso (a área ampliada, se houver)",
+  "correlation_case_summary": "Período {range}",
+  "correlation_case_name": "Correlação {range}",
+  "correlation_added_to_case": "Período adicionado a «{case}»"
 }

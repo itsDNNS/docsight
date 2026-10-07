@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Perioda vēl nav",
   "event_added_to_case_one": "1 notikums pievienots gadījumam “{case}”",
   "event_added_to_case_many": "Gadījumam “{case}” pievienoti notikumi: {count}",
-  "event_open_case": "Atvērt gadījumu"
+  "event_open_case": "Atvērt gadījumu",
+  "correlation_save_as_case": "Saglabāt kā gadījumu",
+  "correlation_save_as_case_hint": "Pievienot šī perioda dienas gadījumam (tuvināto apgabalu, ja tuvināts)",
+  "correlation_case_summary": "Periods {range}",
+  "correlation_case_name": "Korelācija {range}",
+  "correlation_added_to_case": "Periods pievienots gadījumam “{case}”"
 }

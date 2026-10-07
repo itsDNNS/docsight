@@ -1266,5 +1266,10 @@
   "event_case_no_window": "Pas encore de période",
   "event_added_to_case_one": "1 événement ajouté à « {case} »",
   "event_added_to_case_many": "{count} événements ajoutés à « {case} »",
-  "event_open_case": "Ouvrir le dossier"
+  "event_open_case": "Ouvrir le dossier",
+  "correlation_save_as_case": "Enregistrer comme dossier",
+  "correlation_save_as_case_hint": "Ajouter les jours de cette période à un dossier (zone zoomée le cas échéant)",
+  "correlation_case_summary": "Période {range}",
+  "correlation_case_name": "Corrélation {range}",
+  "correlation_added_to_case": "Période ajoutée à « {case} »"
 }

@@ -941,6 +941,24 @@ function _corrUseRangeAsEvidence() {
 }
 window._corrUseRangeAsEvidence = _corrUseRangeAsEvidence;
 
+/* The shown (or zoomed) range joins a case by its days, like events from the log. */
+function _corrSaveRangeAsCase() {
+    var st = _corrChartState;
+    if (!st || !isFinite(st.tMin) || !isFinite(st.tMax) || typeof DOCSightCasePicker === 'undefined') return;
+    var timeZone = typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined;
+    var from = DOCSightBrowserContracts.localInputValue(st.tMin, timeZone, false).slice(0, 10);
+    var to = DOCSightBrowserContracts.localInputValue(st.tMax, timeZone, true).slice(0, 10);
+    var range = formatDocsightTime(from, 'date') + (from === to ? '' : ' – ' + formatDocsightTime(to, 'date'));
+    DOCSightCasePicker.open({
+        startDate: from,
+        endDate: to,
+        summary: (T.correlation_case_summary || 'Time range {range}').replace('{range}', range),
+        name: (T.correlation_case_name || 'Correlation {range}').replace('{range}', range),
+        added: T.correlation_added_to_case || 'Time range added to “{case}”'
+    });
+}
+window._corrSaveRangeAsCase = _corrSaveRangeAsCase;
+
 function _corrResetZoom() {
     _corrZoom = null;
     if ((_correlationData && _correlationData.length > 0) || _corrTargetData.length > 0) {

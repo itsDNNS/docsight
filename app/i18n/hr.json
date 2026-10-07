@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Još bez razdoblja",
   "event_added_to_case_one": "1 događaj dodan slučaju „{case}”",
   "event_added_to_case_many": "Slučaju „{case}” dodani događaji: {count}",
-  "event_open_case": "Otvori slučaj"
+  "event_open_case": "Otvori slučaj",
+  "correlation_save_as_case": "Spremi kao slučaj",
+  "correlation_save_as_case_hint": "Dodaj dane ovog razdoblja slučaju (uvećani raspon ako je uvećan)",
+  "correlation_case_summary": "Razdoblje {range}",
+  "correlation_case_name": "Korelacija {range}",
+  "correlation_added_to_case": "Razdoblje dodano slučaju „{case}”"
 }
