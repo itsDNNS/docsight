@@ -1,5 +1,6 @@
 """E2E tests for the Before/After Comparison feature."""
 
+import re
 from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import expect
@@ -62,6 +63,11 @@ def _comparison_payload(errors_supported, uncorr_errors):
     }
 
 
+def _rerun(page):
+    """Run the active comparison again, as picking its chip does."""
+    page.locator('#comparison-preset-tabs [data-value="yesterday_today"]').click()
+
+
 def navigate_to_comparison(page):
     """Open the comparison view and wait for the control bar."""
     open_view(page, "comparison")
@@ -69,6 +75,35 @@ def navigate_to_comparison(page):
 
 
 class TestComparisonView:
+    def test_a_case_chip_compares_the_week_before_with_the_case_window(self, demo_page):
+        requests = []
+
+        def fulfill(route):
+            requests.append(route.request.url)
+            route.fulfill(json=_comparison_payload(True, 0))
+
+        demo_page.route("**/api/incidents", lambda route: route.fulfill(json=[
+            {"id": 7, "name": "Evening dropouts", "status": "open", "start_date": "2026-03-10", "end_date": "2026-03-12"},
+            {"id": 8, "name": "No start yet", "status": "open", "start_date": None, "end_date": None},
+        ]))
+        demo_page.route("**/api/comparison**", fulfill)
+        navigate_to_comparison(demo_page)
+
+        chip = demo_page.locator('#comparison-preset-tabs [data-value="case"]')
+        expect(chip).to_be_visible()
+        expect(demo_page.locator("#comparison-case option")).to_have_count(1)
+        chip.click()
+        expect(demo_page.locator("#comparison-case-row")).to_be_visible()
+        demo_page.wait_for_timeout(300)
+
+        query = parse_qs(urlparse(requests[-1]).query)
+        local = demo_page.evaluate(
+            """() => ['2026-03-03T00:00', '2026-03-10T00:00', '2026-03-12T23:59']
+                .map(v => new Date(v).toISOString().replace(/\\.\\d{3}Z$/, 'Z'))"""
+        )
+        assert [query["from_a"][0], query["to_a"][0], query["from_b"][0], query["to_b"][0]] == [
+            local[0], local[1], local[1], local[2]]
+
     def test_default_preset_runs_on_open_and_on_preset_change(self, demo_page):
         requests = []
 
@@ -91,15 +126,23 @@ class TestComparisonView:
             }"""
         )
         assert from_a == local_yesterday
+        # The chosen periods read as text; the date fields only open for custom times.
+        expect(demo_page.locator("#comparison-period-a-text")).not_to_be_empty()
+        expect(demo_page.locator("#comparison-from-a")).to_be_hidden()
+        demo_page.locator("#comparison-adjust-btn").click()
+        expect(demo_page.locator("#comparison-from-a")).to_be_focused()
         widths = demo_page.locator("#comparison-from-a, #comparison-to-a, #comparison-from-b, #comparison-to-b").evaluate_all(
             "inputs => inputs.map((input) => input.getBoundingClientRect().width)"
         )
         assert min(widths) >= 230
+        assert len(requests) == 1
 
-        demo_page.select_option("#comparison-preset", "last_this_week")
+        demo_page.locator('#comparison-preset-tabs [data-value="last_this_week"]').click()
+        expect(demo_page.locator("#comparison-from-a")).to_be_hidden()
         expect(demo_page.locator("#comparison-health")).to_be_visible()
         demo_page.wait_for_timeout(300)
         assert len(requests) == 2
+        expect(demo_page).to_have_url(re.compile(r"#comparison\?preset=last_this_week$"))
 
     def test_nav_item_visible(self, demo_page):
         nav = demo_page.locator('.nav-item[data-view="comparison"]')
@@ -111,7 +154,7 @@ class TestComparisonView:
             lambda route: route.fulfill(json=_comparison_payload(True, 0)),
         )
         navigate_to_comparison(demo_page)
-        demo_page.locator("#comparison-run-btn").click()
+        _rerun(demo_page)
 
         expect(demo_page.locator("#comparison-health")).to_be_visible()
         assert demo_page.locator("#comparison-health-bars-a .comparison-health-row").count() == 5
@@ -124,7 +167,7 @@ class TestComparisonView:
         )
         navigate_to_comparison(demo_page)
 
-        demo_page.locator("#comparison-run-btn").click()
+        _rerun(demo_page)
 
         expect(demo_page.locator("#comparison-health")).to_be_visible()
         expect(demo_page.locator("#comparison-errors-card")).to_be_hidden()
@@ -137,7 +180,7 @@ class TestComparisonView:
         )
         navigate_to_comparison(demo_page)
 
-        demo_page.locator("#comparison-run-btn").click()
+        _rerun(demo_page)
 
         expect(demo_page.locator("#comparison-delta")).to_be_visible()
         expect(demo_page.locator("#comparison-delta")).not_to_contain_text("Uncorr. Errors")
@@ -153,7 +196,7 @@ class TestComparisonView:
         demo_page.route("**/api/comparison**", lambda route: route.fulfill(json=payload))
         navigate_to_comparison(demo_page)
 
-        demo_page.locator("#comparison-run-btn").click()
+        _rerun(demo_page)
 
         expect(demo_page.locator("#comparison-health")).to_be_visible()
         expect(demo_page.locator("#comparison-errors-card")).to_be_hidden()
@@ -166,7 +209,7 @@ class TestComparisonView:
         )
         navigate_to_comparison(demo_page)
 
-        demo_page.locator("#comparison-run-btn").click()
+        _rerun(demo_page)
 
         expect(demo_page.locator("#comparison-health")).to_be_visible()
         expect(demo_page.locator("#comparison-errors-card")).to_be_visible()
@@ -177,7 +220,7 @@ class TestComparisonView:
             lambda route: route.fulfill(json=_comparison_payload(True, 0)),
         )
         navigate_to_comparison(demo_page)
-        demo_page.locator("#comparison-run-btn").click()
+        _rerun(demo_page)
         expect(demo_page.locator("#comparison-health")).to_be_visible()
 
         demo_page.locator("button.comparison-report-btn").click()

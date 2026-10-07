@@ -250,7 +250,8 @@ def test_comparison_without_data_lets_the_user_choose_other_periods(demo_page):
     empty = page.locator("#comparison-placeholder")
     _expect_state(empty, "No data in selected period", "Choose other periods")
     empty.locator(".view-empty-action").click()
-    expect(page.locator("#comparison-preset")).to_be_focused()
+    # Choosing other periods opens the custom times at the first field.
+    expect(page.locator("#comparison-from-a")).to_be_focused()
 
 
 def test_evidence_failure_offers_a_retry(demo_page):
