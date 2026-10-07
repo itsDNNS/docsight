@@ -277,3 +277,14 @@ def test_a_slow_earlier_window_cannot_replace_a_newer_case_result(demo_page, liv
     held[0].fulfill(json=_payload())
     demo_page.wait_for_timeout(300)
     expect(demo_page.locator("#evidence-window-label")).to_contain_text(case["name"])
+
+
+def test_counts_say_what_they_count(demo_page):
+    demo_page.evaluate("switchView('evidence')")
+    expect(demo_page.locator("#evidence-results")).to_be_visible(timeout=15000)
+    pill = demo_page.locator("#evidence-items .evidence-count-pill").first
+    expect(pill).to_be_visible()
+    expect(pill).to_have_attribute("title", "Data points in this window")
+    number = pill.evaluate("node => [...node.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('')")
+    assert number.isdigit()
+    expect(pill.locator(".sr-only")).to_have_text("Data points in this window: ")

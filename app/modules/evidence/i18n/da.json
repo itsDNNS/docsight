@@ -80,5 +80,6 @@
   "empty_title": "Tjek, hvilken dokumentation der findes",
   "empty_action": "Tjek de seneste 24 timer",
   "empty_window_title": "Vælg et tidsinterval",
-  "latest": "Senest: {time}"
+  "latest": "Senest: {time}",
+  "count_label": "Datapunkter i denne periode"
 }

@@ -80,5 +80,6 @@
   "empty_title": "Controleren welk bewijs beschikbaar is",
   "empty_action": "Afgelopen 24 uur controleren",
   "empty_window_title": "Tijdsbereik kiezen",
-  "latest": "Laatste: {time}"
+  "latest": "Laatste: {time}",
+  "count_label": "Meetpunten in deze periode"
 }

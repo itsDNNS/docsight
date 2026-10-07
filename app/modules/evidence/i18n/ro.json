@@ -80,5 +80,6 @@
   "empty_title": "Verifică ce dovezi sunt disponibile",
   "empty_action": "Verifică ultimele 24 de ore",
   "empty_window_title": "Alege un interval de timp",
-  "latest": "Ultima: {time}"
+  "latest": "Ultima: {time}",
+  "count_label": "Puncte de date în această perioadă"
 }

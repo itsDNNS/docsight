@@ -80,5 +80,6 @@
   "empty_title": "Sprawdź, jakie dowody są dostępne",
   "empty_action": "Sprawdź ostatnie 24 godziny",
   "empty_window_title": "Wybierz zakres czasu",
-  "latest": "Ostatnio: {time}"
+  "latest": "Ostatnio: {time}",
+  "count_label": "Punkty danych w tym okresie"
 }

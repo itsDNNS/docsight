@@ -80,5 +80,6 @@
   "empty_title": "Elérhető bizonyítékok ellenőrzése",
   "empty_action": "Az elmúlt 24 óra ellenőrzése",
   "empty_window_title": "Időtartomány kiválasztása",
-  "latest": "Legutóbb: {time}"
+  "latest": "Legutóbb: {time}",
+  "count_label": "Adatpontok ebben az időszakban"
 }

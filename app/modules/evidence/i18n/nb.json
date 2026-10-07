@@ -80,5 +80,6 @@
   "empty_title": "Sjekk hvilke bevis som finnes",
   "empty_action": "Sjekk de siste 24 timene",
   "empty_window_title": "Velg et tidsintervall",
-  "latest": "Sist: {time}"
+  "latest": "Sist: {time}",
+  "count_label": "Datapunkter i denne perioden"
 }

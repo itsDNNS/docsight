@@ -80,5 +80,6 @@
   "empty_title": "Preveri, kateri dokazi so na voljo",
   "empty_action": "Preveri zadnjih 24 ur",
   "empty_window_title": "Izberi časovni razpon",
-  "latest": "Nazadnje: {time}"
+  "latest": "Nazadnje: {time}",
+  "count_label": "Podatkovne točke v tem obdobju"
 }

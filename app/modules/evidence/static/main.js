@@ -149,12 +149,19 @@ function _evidenceSourceLabel(source) {
     return _evidenceT('docsight.evidence.source.' + source.key, String(source.key || '').replace(/_/g, ' '));
 }
 
+/* A bare number does not say what it counts; the label does, without plural forms. */
+function _evidenceCount(className, count) {
+    var label = _evidenceEscape(_evidenceT('docsight.evidence.count_label', 'Data points in this window'));
+    return '<span class="' + className + '" title="' + label + '"><span class="sr-only">' + label + ': </span>' +
+        _evidenceEscape(count) + '</span>';
+}
+
 function _evidenceRenderSourceBreakdown(item) {
     if (!item.sources || !item.sources.length) return '';
     return '<div class="evidence-source-list">' + item.sources.map(function(source) {
         var status = _evidenceSafeStatus(source.status);
         var count = typeof source.count === 'number' && source.count > 0
-            ? '<span class="evidence-source-count">' + _evidenceEscape(source.count) + '</span>'
+            ? _evidenceCount('evidence-source-count', source.count)
             : '';
         return '<div class="evidence-source-row evidence-status-' + status + '">' +
             '<span>' + _evidenceEscape(_evidenceSourceLabel(source)) + '</span>' +
@@ -214,7 +221,7 @@ function _evidenceRenderItems(items) {
         var label = _evidenceEscape(_evidenceT(item.label_key, item.key));
         var hint = _evidenceEscape(_evidenceT(item.hint_key, 'Review this evidence source.'));
         var count = typeof item.count === 'number' && item.count > 0
-            ? '<span class="evidence-count-pill">' + _evidenceEscape(item.count) + '</span>'
+            ? _evidenceCount('evidence-count-pill', item.count)
             : '';
         var sources = _evidenceRenderSourceBreakdown(item);
         var last = item.last_ts

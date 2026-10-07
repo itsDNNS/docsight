@@ -80,5 +80,6 @@
   "empty_title": "Vérifier quelles preuves sont disponibles",
   "empty_action": "Vérifier les dernières 24 heures",
   "empty_window_title": "Choisir une plage horaire",
-  "latest": "Dernier : {time}"
+  "latest": "Dernier : {time}",
+  "count_label": "Points de données dans cette période"
 }
