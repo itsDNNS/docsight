@@ -26,6 +26,8 @@ def _manifest(*shards):
         "version": 1,
         "expected_total": 3,
         "baseline_cpu_seconds": 100,
+        "baseline_cases": 3,
+        "baseline_calibration_seconds": 0.1,
         "shards": [
             {
                 "id": index,
@@ -75,6 +77,8 @@ def _write_result(
         "wall_seconds": 1.0,
         "job_wall_seconds": 1.0,
         "cpu_seconds": 1.0,
+        "calibration_seconds": 0.1,
+        "cpu_model": "test cpu",
         "peak_rss_kb": 1024,
         "platform": "test-linux",
         "retry_count": 0,
@@ -101,6 +105,9 @@ def test_repository_manifest_covers_every_e2e_file_once():
     validate_manifest(manifest, E2E_DIR)
 
     assert manifest["baseline_cpu_seconds"] > 0
+    assert manifest["baseline_calibration_seconds"] > 0
+    # The baseline was measured on the suite as it was then.
+    assert 0 < manifest["baseline_cases"] <= manifest["expected_total"]
 
 
 def test_workflow_matrix_runs_every_manifest_shard():
@@ -247,6 +254,7 @@ def test_summary_rejects_cross_shard_nodes_and_failed_junit(tmp_path):
         ("process", "process or listener leaks"),
         ("listener", "process or listener leaks"),
         ("missing-metric", "invalid wall time"),
+        ("calibration", "lacks a CPU calibration"),
     ],
 )
 def test_summary_rejects_incomplete_or_over_budget_run_receipts(
@@ -282,12 +290,60 @@ def test_summary_rejects_incomplete_or_over_budget_run_receipts(
             receipt["leaked_processes"] = [{"pid": 42, "name": "python"}]
         elif defect == "listener":
             receipt["leaked_listeners"] = [{"pid": 42, "port": 43129}]
+        elif defect == "calibration":
+            del receipt["calibration_seconds"]
         else:
             receipt["wall_seconds"] = None
         receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
 
     with pytest.raises(ResultError, match=match):
         summarize_results(tmp_path, manifest, e2e_dir=e2e_dir)
+
+
+def _budget_run(tmp_path, manifest, receipts):
+    e2e_dir = tmp_path / "e2e"
+    e2e_dir.mkdir()
+    for index, receipt in enumerate(receipts, 1):
+        name = f"test_{index}.py"
+        (e2e_dir / name).write_text("", encoding="utf-8")
+        _write_result(tmp_path, index, [name], [f"tests/e2e/{name}::test_case"], receipt_overrides=receipt)
+    return summarize_results(tmp_path, manifest, e2e_dir=e2e_dir)
+
+
+def test_cpu_budget_compares_work_instead_of_runner_speed(tmp_path):
+    manifest = _manifest(["test_1.py"], ["test_2.py"], ["test_3.py"])
+    manifest["baseline_cpu_seconds"] = 300
+    # A runner half as fast needs twice the CPU time for the same work.
+    slow = {"cpu_seconds": 180, "calibration_seconds": 0.2}
+    summary = _budget_run(tmp_path, manifest, [slow, slow, slow])
+    assert summary.cpu_seconds == 540
+    assert summary.normalized_cpu_seconds == pytest.approx(270)
+    assert summary.cpu_budget_seconds == pytest.approx(375)
+
+
+def test_cpu_budget_still_catches_more_work_on_a_fast_runner(tmp_path):
+    manifest = _manifest(["test_1.py"], ["test_2.py"], ["test_3.py"])
+    manifest["baseline_cpu_seconds"] = 300
+    heavy = {"cpu_seconds": 130, "calibration_seconds": 0.1}
+    with pytest.raises(ResultError, match=r"390.00s .*exceeds the 25% budget of 375.00s for 3 cases"):
+        _budget_run(tmp_path, manifest, [heavy, heavy, heavy])
+
+
+def test_cpu_budget_grows_with_the_suite(tmp_path):
+    manifest = _manifest(["test_1.py"], ["test_2.py"], ["test_3.py"])
+    manifest["baseline_cpu_seconds"] = 200
+    manifest["baseline_cases"] = 2
+    # 100 s per case at the baseline: three cases get 300 s plus 25 %.
+    receipt = {"cpu_seconds": 120, "calibration_seconds": 0.1}
+    assert _budget_run(tmp_path, manifest, [receipt] * 3).cpu_budget_seconds == pytest.approx(375)
+
+
+@pytest.mark.parametrize("key", ["baseline_cpu_seconds", "baseline_cases", "baseline_calibration_seconds"])
+def test_sharded_runs_need_the_measured_baseline(tmp_path, key):
+    manifest = _manifest(["test_1.py"], ["test_2.py"], ["test_3.py"])
+    del manifest[key]
+    with pytest.raises(ResultError, match=f"lacks a measured positive {key}"):
+        _budget_run(tmp_path, manifest, [{}, {}, {}])
 
 
 def test_single_process_baseline_receipt_may_exceed_shard_wall_limit(tmp_path):

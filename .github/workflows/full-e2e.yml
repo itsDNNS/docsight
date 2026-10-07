@@ -11,7 +11,7 @@ on:
         default: false
         type: boolean
       single_process:
-        description: Run the canonical unsharded CPU/RAM baseline
+        description: Run the whole suite in one process (diagnostics; the CPU budget baseline comes from sharded runs)
         required: false
         default: false
         type: boolean
