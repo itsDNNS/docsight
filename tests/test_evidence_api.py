@@ -9,17 +9,15 @@ class FakeCoreStorage:
     db_path = ":memory:"
 
     def __init__(self):
-        self.snapshot_loads = 0
+        self.coverage_queries = 0
         self.timeline_sources = None
 
+    def get_range_coverage(self, start_ts, end_ts):
+        self.coverage_queries += 1
+        return 1, end_ts
+
     def get_range_data(self, start_ts, end_ts):
-        self.snapshot_loads += 1
-        return [{
-            "timestamp": end_ts,
-            "summary": {"health": "critical"},
-            "ds_channels": [],
-            "us_channels": [],
-        }]
+        raise AssertionError("the checklist must not load full snapshots")
 
     def get_correlation_timeline(self, start_ts, end_ts, sources=None):
         self.requested_range = (start_ts, end_ts)
@@ -34,7 +32,7 @@ class FakeCoreStorage:
 
 
 class TestEvidenceChecklistApi:
-    def test_checklist_loads_snapshots_exactly_once_and_skips_modem_timeline(self):
+    def test_checklist_counts_snapshots_once_without_loading_them_and_skips_modem_timeline(self):
         from app.modules.evidence import routes
 
         core = FakeCoreStorage()
@@ -54,7 +52,7 @@ class TestEvidenceChecklistApi:
                  patch.object(routes, "_get_connection_latency_rows", return_value=[]):
                 response = getattr(routes.api_evidence_checklist, "__wrapped__")()
 
-        assert core.snapshot_loads == 1
+        assert core.coverage_queries == 1
         assert core.timeline_sources is not None
         assert "modem" not in core.timeline_sources
         signal = next(item for item in response.get_json()["items"] if item["key"] == "signal")

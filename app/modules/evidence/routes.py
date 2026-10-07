@@ -12,13 +12,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request
 
-from app.aggregation import (
-    ThresholdContext,
-    Window,
-    aggregate_snapshot_period,
-    canonical_utc_timestamp,
-)
-from app.analyzer import threshold_snapshot
+from app.aggregation import canonical_utc_timestamp
 from app.modules.journal.storage import JournalStorage
 from app.storage.sqlite import open_read
 from app.tz import get_tz_name, local_date_to_utc_range, local_to_utc, local_today
@@ -299,13 +293,13 @@ def api_evidence_checklist():
             return jsonify({"error": "from/to must be valid ISO timestamps"}), 400
         journal_entries = _get_journal_entries_for_window(core.db_path, window["from"], window["to"])
 
-    snapshots = core.get_range_data(window["from"], window["to"])
-    thresholds = ThresholdContext.from_analyzer_snapshot(threshold_snapshot())
-    snapshot_aggregate = aggregate_snapshot_period(
-        snapshots,
-        window=Window(window["from"], window["to"]),
-        thresholds=thresholds,
-    )
+    # The checklist only needs how many snapshots the window holds and the latest one;
+    # counting in SQL avoids loading and aggregating months of channel data.
+    snapshot_count, last_snapshot = core.get_range_coverage(window["from"], window["to"])
+    snapshot_aggregate = {
+        "snapshot_count": snapshot_count,
+        "last_observed_at": canonical_utc_timestamp(last_snapshot) if last_snapshot else None,
+    }
     timeline = core.get_correlation_timeline(
         window["from"],
         window["to"],
