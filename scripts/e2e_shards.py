@@ -213,8 +213,17 @@ def summarize_results(
         except (OSError, json.JSONDecodeError) as exc:
             raise ResultError(f"invalid shard metadata {metadata_path}: {exc}") from exc
         shard_id = metadata.get("shard")
+        attempt = metadata.get("attempt", 1)
+        if not isinstance(attempt, int) or attempt < 1:
+            raise ResultError(f"invalid attempt in shard metadata {metadata_path}")
+        # Re-running failed jobs keeps the earlier attempts' artifacts;
+        # only the latest attempt of a shard counts.
         if shard_id in by_shard:
-            raise ResultError(f"duplicate shard result for shard {shard_id}")
+            previous = by_shard[shard_id][1].get("attempt", 1)
+            if attempt == previous:
+                raise ResultError(f"duplicate shard result for shard {shard_id}")
+            if attempt < previous:
+                continue
         by_shard[shard_id] = (metadata_path.parent, metadata)
 
     if "all" in by_shard:
@@ -349,7 +358,11 @@ def _write_metadata(output_dir: Path, shard: dict) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "shard-metadata.json").write_text(
         json.dumps(
-            {"shard": shard["id"], "files": shard["files"]},
+            {
+                "shard": shard["id"],
+                "files": shard["files"],
+                "attempt": int(os.environ.get("GITHUB_RUN_ATTEMPT") or 1),
+            },
             indent=2,
             sort_keys=True,
         )

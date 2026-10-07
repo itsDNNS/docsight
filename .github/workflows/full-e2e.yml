@@ -188,7 +188,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: full-e2e-shard-${{ matrix.shard }}
+          name: full-e2e-shard-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
           if-no-files-found: error
           path: |
             test-results/shard-${{ matrix.shard }}/

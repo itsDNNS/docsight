@@ -38,12 +38,25 @@ def _manifest(*shards):
 
 
 def _write_result(
-    root, shard_id, files, node_ids, *, failures=0, receipt_overrides=None
+    root,
+    shard_id,
+    files,
+    node_ids,
+    *,
+    failures=0,
+    receipt_overrides=None,
+    attempt=None,
 ):
-    directory = root / f"full-e2e-shard-{shard_id}"
+    name = f"full-e2e-shard-{shard_id}"
+    if attempt is not None:
+        name += f"-attempt-{attempt}"
+    directory = root / name
     directory.mkdir(parents=True, exist_ok=True)
+    metadata = {"shard": shard_id, "files": files}
+    if attempt is not None:
+        metadata["attempt"] = attempt
     (directory / "shard-metadata.json").write_text(
-        json.dumps({"shard": shard_id, "files": files}), encoding="utf-8"
+        json.dumps(metadata), encoding="utf-8"
     )
     (directory / "collected.txt").write_text(
         "".join(f"{node_id}\n" for node_id in node_ids), encoding="utf-8"
@@ -126,6 +139,62 @@ def test_summary_requires_every_shard_and_exact_node_id_union(tmp_path):
     assert summarize_results(
         tmp_path, manifest, e2e_dir=e2e_dir
     ).total == 3
+
+
+@pytest.mark.parametrize("failed_attempt, passed_attempt", [(1, 2), (2, 3)])
+def test_summary_validates_only_the_latest_attempt_of_each_shard(
+    tmp_path, failed_attempt, passed_attempt
+):
+    """Re-running a failed shard leaves its earlier artifact behind; the newest
+    attempt decides."""
+    manifest = _manifest(["test_a.py"], ["test_b.py"], ["test_c.py"])
+    e2e_dir = tmp_path / "e2e"
+    e2e_dir.mkdir()
+    for name in ("test_a.py", "test_b.py", "test_c.py"):
+        (e2e_dir / name).write_text("", encoding="utf-8")
+    for shard_id, name in ((1, "a"), (2, "b")):
+        _write_result(
+            tmp_path,
+            shard_id,
+            [f"test_{name}.py"],
+            [f"tests/e2e/test_{name}.py::test_{name}"],
+            attempt=1,
+        )
+    _write_result(
+        tmp_path,
+        3,
+        ["test_c.py"],
+        ["tests/e2e/test_c.py::test_c"],
+        attempt=failed_attempt,
+        receipt_overrides={"job_wall_seconds": 731.0, "wall_seconds": 640.0},
+    )
+
+    with pytest.raises(ResultError, match="shard 3 exceeded the 12-minute job wall"):
+        summarize_results(tmp_path, manifest, e2e_dir=e2e_dir)
+
+    _write_result(
+        tmp_path,
+        3,
+        ["test_c.py"],
+        ["tests/e2e/test_c.py::test_c"],
+        attempt=passed_attempt,
+    )
+    assert summarize_results(tmp_path, manifest, e2e_dir=e2e_dir).total == 3
+
+
+def test_summary_rejects_two_results_from_the_same_attempt(tmp_path):
+    manifest = _manifest(["test_a.py"], ["test_b.py"], ["test_c.py"])
+    e2e_dir = tmp_path / "e2e"
+    e2e_dir.mkdir()
+    for name in ("test_a.py", "test_b.py", "test_c.py"):
+        (e2e_dir / name).write_text("", encoding="utf-8")
+    for root in (tmp_path, tmp_path / "copy"):
+        _write_result(
+            root, 1, ["test_a.py"], ["tests/e2e/test_a.py::test_a"], attempt=2
+        )
+
+    with pytest.raises(ResultError, match="duplicate shard result for shard 1"):
+        summarize_results(tmp_path, manifest, e2e_dir=e2e_dir)
 
 
 def test_summary_rejects_cross_shard_nodes_and_failed_junit(tmp_path):
@@ -253,6 +322,10 @@ def test_workflow_runs_safe_non_retrying_shards_and_an_always_gate():
     assert "run-receipt.json" in workflow
     assert "if: always()" in workflow
     assert "Upload shard results, logs, and traces" in workflow
+    assert (
+        "name: full-e2e-shard-${{ matrix.shard }}-attempt-${{ github.run_attempt }}"
+        in workflow
+    )
     assert "tests/e2e/screenshots/" in workflow
     assert "--tracing=retain-on-failure" in workflow
     assert "reverse:" in workflow
