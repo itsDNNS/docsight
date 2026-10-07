@@ -462,6 +462,41 @@
         {% endif %}
     </section>
 
+    {% if onboarding_checklist %}
+    {% set checklist = onboarding_checklist %}
+    {% set checklist_text = {
+        'speedtest': (t.get('onboarding_speedtest_title', 'Speed tests'), t.get('onboarding_speedtest_text', 'Real throughput next to the signal.')),
+        'connection_monitor': (t.get('onboarding_connection_monitor_title', 'Connection Monitor'), t.get('onboarding_connection_monitor_text', 'Catches short dropouts between polls.')),
+        'notifications': (t.get('onboarding_notifications_title', 'Notifications'), t.get('onboarding_notifications_text', 'A message when the line degrades.')),
+        'backup': (t.get('onboarding_backup_title', 'Automatic backup'), t.get('onboarding_backup_text', 'History stays safe across updates.')),
+    } %}
+    <section class="onboarding-checklist" data-notice-id="{{ checklist.id }}" aria-labelledby="onboarding-checklist-title">
+        <div class="onboarding-checklist-head">
+            <h2 id="onboarding-checklist-title">{{ t.get('onboarding_title', 'Get more out of DOCSight') }}</h2>
+            <span class="onboarding-checklist-progress">
+                <span>{{ t.get('onboarding_progress', '{done} of {total} done').replace('{done}', checklist.done|string).replace('{total}', checklist.total|string) }}</span>
+                <progress max="{{ checklist.total }}" value="{{ checklist.done }}" aria-hidden="true"></progress>
+            </span>
+            <button type="button" class="modal-close" data-action="dismissMaintainerNotice" data-action-args='{{ [checklist.id]|tojson }}' aria-label="{{ t.get('onboarding_dismiss', 'Hide checklist') }}" title="{{ t.get('onboarding_dismiss', 'Hide checklist') }}"><i data-lucide="x" aria-hidden="true"></i></button>
+        </div>
+        <ul class="onboarding-checklist-items">
+            {% for item in checklist['items'] %}
+            {% set text = checklist_text[item.id] %}
+            <li class="onboarding-item{{ ' done' if item.done else '' }}" data-onboarding-item="{{ item.id }}">
+                <i data-lucide="{{ 'circle-check' if item.done else 'circle' }}" aria-hidden="true"></i>
+                <div>
+                    <strong>{{ text[0] }}<span class="sr-only"> · {{ t.get('onboarding_done', 'Done') if item.done else t.get('onboarding_open', 'Not set up yet') }}</span></strong>
+                    <p>{{ text[1] }}</p>
+                    {% if not item.done %}
+                    <a href="{{ url_for('settings', _anchor=item.section) }}">{{ t.get('onboarding_setup', 'Set up') }}<i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
     {% if status_first %}
     {% if show_desktop_preview_notice %}{{ desktop_preview_notice() }}{% endif %}
     {% if info_notices %}{{ notice_stack(info_notices) }}{% endif %}
