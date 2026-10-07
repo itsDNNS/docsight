@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Laikotarpio dar nėra",
   "event_added_to_case_one": "1 įvykis pridėtas prie „{case}“",
   "event_added_to_case_many": "Prie „{case}“ pridėta įvykių: {count}",
-  "event_open_case": "Atidaryti atvejį"
+  "event_open_case": "Atidaryti atvejį",
+  "correlation_save_as_case": "Išsaugoti kaip atvejį",
+  "correlation_save_as_case_hint": "Pridėti šio laikotarpio dienas prie atvejo (priartintą sritį, jei priartinta)",
+  "correlation_case_summary": "Laikotarpis {range}",
+  "correlation_case_name": "Koreliacija {range}",
+  "correlation_added_to_case": "Laikotarpis pridėtas prie „{case}“"
 }

@@ -2,6 +2,7 @@
 
 import csv
 import io
+import re
 
 from datetime import datetime, timedelta, timezone
 
@@ -1649,3 +1650,44 @@ def test_toggling_a_lane_renders_once_without_a_resize_echo(demo_page):
     # One render for the click; the height change of the hidden lane must not add a second one.
     assert page.evaluate("window.__corrRenders") == 1
     assert "state" not in page.evaluate("window._corrChartState.layout.order")
+
+
+def test_zoomed_correlation_range_can_start_a_case_with_its_days(demo_page):
+    page = demo_page
+    sent = []
+
+    def cases(route):
+        if route.request.method == "POST":
+            sent.append(route.request.post_data_json)
+            route.fulfill(status=201, json={"id": 9})
+        else:
+            route.fulfill(json=[])
+
+    page.route(re.compile(r".*/api/incidents$"), cases)
+    _open_correlation(page, expect_table=False)
+    box = page.locator("#correlation-overlay").bounding_box()
+    geometry = page.evaluate("({left: window._corrChartState.pad.left, width: window._corrChartState.plotW, top: window._corrChartState.pad.top})")
+    y = box["y"] + geometry["top"] + 40
+    page.mouse.move(box["x"] + geometry["left"] + geometry["width"] * 0.3, y)
+    page.mouse.down()
+    page.mouse.move(box["x"] + geometry["left"] + geometry["width"] * 0.6, y, steps=5)
+    page.mouse.up()
+    days = page.evaluate(
+        """() => {
+            const st = window._corrChartState;
+            const tz = typeof DOCSIGHT_TIME_ZONE !== 'undefined' ? DOCSIGHT_TIME_ZONE : undefined;
+            return [DOCSightBrowserContracts.localInputValue(st.tMin, tz, false).slice(0, 10),
+                    DOCSightBrowserContracts.localInputValue(st.tMax, tz, true).slice(0, 10)];
+        }"""
+    )
+
+    page.locator("#correlation-case-btn").click()
+    dialog = page.locator("#add-to-case-modal")
+    expect(dialog).to_be_visible()
+    # Without cases the dialog starts on a new case with a suggested name.
+    expect(dialog.locator('input[value="new"]')).to_be_checked()
+    expect(dialog.locator("#add-to-case-name")).not_to_have_value("")
+    dialog.locator("#add-to-case-name").fill("Evening dropouts")
+    dialog.locator("#add-to-case-submit").click()
+    expect(page.locator("#toast")).to_contain_text("“Evening dropouts”")
+    assert sent == [{"name": "Evening dropouts", "status": "open", "start_date": days[0], "end_date": days[1]}]

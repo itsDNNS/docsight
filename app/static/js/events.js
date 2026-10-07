@@ -542,120 +542,28 @@ function _pickedEvents() {
     return _eventsLoaded.filter(function(ev) { return _eventsSelected[ev.id]; });
 }
 
-/* ── Add selected events to a case ──
-   A case's timeline and evidence follow its date window, so adding events widens
-   the window of an existing case or starts a new case with the events' days. */
-var _addToCaseEvents = [];
-
-function _eventDay(ev) { return DOCSightEventLogData.dayKey(ev); }
-
+/* ── Add selected events to a case (case-picker.js) ── */
 function openAddToCase() {
-    _addToCaseEvents = _pickedEvents();
-    if (!_addToCaseEvents.length) return;
-    var days = _addToCaseEvents.map(_eventDay).filter(Boolean).sort();
+    var events = _pickedEvents();
+    if (!events.length) return;
+    var days = events.map(DOCSightEventLogData.dayKey).filter(Boolean).sort();
     var first = days[0], last = days[days.length - 1];
-    var summary = document.getElementById('add-to-case-summary');
     var range = formatDocsightTime(first, 'date') + (first === last ? '' : ' – ' + formatDocsightTime(last, 'date'));
-    summary.textContent = _eventFmt(_addToCaseEvents.length === 1 ? 'event_add_to_case_one' : 'event_add_to_case_many',
-        _addToCaseEvents.length === 1 ? '1 event from {range}' : '{count} events from {range}', _addToCaseEvents.length).replace('{range}', range);
-    var name = document.getElementById('add-to-case-name');
-    name.value = _eventTypeLabel(_addToCaseEvents[0].event_type) + ' · ' + formatDocsightTime(first, 'date');
-    var list = document.getElementById('add-to-case-list');
-    list.textContent = '';
-    fetch(docsightUrl('/api/incidents'))
-        .then(function(r) { return r.ok ? r.json() : []; })
-        .catch(function() { return []; })
-        .then(function(cases) {
-            (cases || []).slice().sort(function(a, b) {
-                return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1);
-            }).forEach(function(c) {
-                var option = document.createElement('label');
-                option.className = 'case-pick-option';
-                var input = document.createElement('input');
-                input.type = 'radio';
-                input.name = 'add-to-case';
-                input.value = String(c.id);
-                input.setAttribute('data-change-action', 'syncAddToCase');
-                var text = document.createElement('span');
-                text.className = 'case-pick-text';
-                var title = document.createElement('span');
-                title.className = 'case-pick-name';
-                title.textContent = c.name;
-                var span = document.createElement('span');
-                span.className = 'case-pick-window';
-                span.textContent = c.start_date
-                    ? formatDocsightTime(c.start_date, 'date') + ' – ' + (c.end_date ? formatDocsightTime(c.end_date, 'date') : (T.event_case_running || 'ongoing'))
-                    : (T.event_case_no_window || 'No window yet');
-                text.appendChild(title);
-                text.appendChild(span);
-                option.appendChild(input);
-                option.appendChild(text);
-                list.appendChild(option);
-            });
-            var firstOpen = list.querySelector('input');
-            (firstOpen || document.querySelector('#add-to-case-modal input[value="new"]')).checked = true;
-            syncAddToCase();
-            window.DOCSightModal.open('add-to-case-modal');
-        });
-}
-
-function syncAddToCase() {
-    var chosen = document.querySelector('#add-to-case-modal input[name="add-to-case"]:checked');
-    var isNew = !chosen || chosen.value === 'new';
-    var nameWrap = document.querySelector('#add-to-case-modal .case-pick-new-name');
-    if (nameWrap) nameWrap.hidden = !isNew;
-}
-
-function closeAddToCase() {
-    window.DOCSightModal.close('add-to-case-modal');
-}
-
-function submitAddToCase() {
-    var chosen = document.querySelector('#add-to-case-modal input[name="add-to-case"]:checked');
-    var days = _addToCaseEvents.map(_eventDay).filter(Boolean).sort();
-    if (!chosen || !days.length) return;
-    var span_ = {start_date: days[0], end_date: days[days.length - 1]};
-    var request;
-    if (chosen.value === 'new') {
-        var name = document.getElementById('add-to-case-name').value.trim();
-        if (!name) { document.getElementById('add-to-case-name').focus(); return; }
-        request = fetch(docsightUrl('/api/incidents'), {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name: name, status: 'open', start_date: span_.start_date, end_date: span_.end_date})
-        }).then(function(r) {
-            if (!r.ok) throw new Error('Create failed');
-            return r.json().then(function(data) { return {id: data.id, name: name}; });
-        });
-    } else {
-        var caseName = chosen.closest('label').querySelector('.case-pick-name').textContent;
-        request = fetch(docsightUrl('/api/incidents/' + encodeURIComponent(chosen.value) + '/extend'), {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(span_)
-        }).then(function(r) {
-            if (!r.ok) throw new Error('Extend failed');
-            return {id: Number(chosen.value), name: caseName};
-        });
-    }
-    var count = _addToCaseEvents.length;
-    request.then(function(result) {
-        closeAddToCase();
-        _addToCaseEvents.forEach(function(ev) { delete _eventsSelected[ev.id]; });
-        _syncEventSelection();
-        if (typeof showToast === 'function') {
-            var message = count === 1
-                ? (T.event_added_to_case_one || '1 event added to “{case}”')
-                : _eventFmt('event_added_to_case_many', '{count} events added to “{case}”', count);
-            showToast(message.replace('{case}', result.name), 'success', {
-                action: {label: T.event_open_case || 'Open case', onClick: function() { _openCase(result.id); }}
-            });
+    var count = events.length;
+    DOCSightCasePicker.open({
+        startDate: first,
+        endDate: last,
+        summary: _eventFmt(count === 1 ? 'event_add_to_case_one' : 'event_add_to_case_many',
+            count === 1 ? '1 event from {range}' : '{count} events from {range}', count).replace('{range}', range),
+        name: _eventTypeLabel(events[0].event_type) + ' · ' + formatDocsightTime(first, 'date'),
+        added: count === 1
+            ? (T.event_added_to_case_one || '1 event added to “{case}”')
+            : _eventFmt('event_added_to_case_many', '{count} events added to “{case}”', count),
+        onAdded: function() {
+            events.forEach(function(ev) { delete _eventsSelected[ev.id]; });
+            _syncEventSelection();
         }
-    }).catch(function() {
-        if (typeof showToast === 'function') showToast(T.network_error || 'Error', 'error');
     });
-}
-
-function _openCase(id) {
-    if (typeof switchView === 'function') switchView('journal');
-    if (typeof filterByIncident === 'function') filterByIncident(id);
 }
 
 function _postEventAcknowledgements(ids, undo) {

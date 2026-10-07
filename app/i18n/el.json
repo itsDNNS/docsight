@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Χωρίς διάστημα ακόμη",
   "event_added_to_case_one": "1 συμβάν προστέθηκε στην «{case}»",
   "event_added_to_case_many": "Συμβάντα που προστέθηκαν στην «{case}»: {count}",
-  "event_open_case": "Άνοιγμα υπόθεσης"
+  "event_open_case": "Άνοιγμα υπόθεσης",
+  "correlation_save_as_case": "Αποθήκευση ως υπόθεση",
+  "correlation_save_as_case_hint": "Προσθήκη των ημερών αυτού του διαστήματος σε υπόθεση (το μεγεθυσμένο εύρος, αν υπάρχει)",
+  "correlation_case_summary": "Διάστημα {range}",
+  "correlation_case_name": "Συσχέτιση {range}",
+  "correlation_added_to_case": "Το διάστημα προστέθηκε στην «{case}»"
 }

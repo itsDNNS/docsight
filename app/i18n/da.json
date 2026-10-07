@@ -1274,5 +1274,10 @@
   "event_case_no_window": "Ingen periode endnu",
   "event_added_to_case_one": "1 hændelse føjet til “{case}”",
   "event_added_to_case_many": "{count} hændelser føjet til “{case}”",
-  "event_open_case": "Åbn sag"
+  "event_open_case": "Åbn sag",
+  "correlation_save_as_case": "Gem som sag",
+  "correlation_save_as_case_hint": "Føj dagene i denne periode til en sag (det zoomede område, hvis der er zoomet)",
+  "correlation_case_summary": "Periode {range}",
+  "correlation_case_name": "Korrelation {range}",
+  "correlation_added_to_case": "Periode føjet til “{case}”"
 }
