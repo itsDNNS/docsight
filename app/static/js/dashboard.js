@@ -455,11 +455,13 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
         });
     }
 
-    /* type: 'success' (also 'ok'), 'error' or 'info'. A newer toast restarts the timer. */
+    /* type: 'success' (also 'ok' or true), 'error' (also false) or 'info', so callers
+       written for the settings page's boolean showToast read the same here.
+       A newer toast restarts the timer. */
     var toastTimer = null;
     function showToast(msg, type) {
         var toast = document.getElementById('toast');
-        var tone = {ok: 'success', error: 'error', info: 'info'}[type] || 'success';
+        var tone = type === false ? 'error' : ({ok: 'success', error: 'error', info: 'info'}[type] || 'success');
         toast.textContent = msg;
         toast.className = 'toast toast-' + tone + ' show';
         clearTimeout(toastTimer);
