@@ -13,17 +13,41 @@ from tests.e2e.support.navigation import open_view
 
 
 def navigate_to_trends(page):
-    """Switch to Trends view and wait for charts to load."""
+    """Switch to Trends view and wait for its first chart."""
     open_view(page, "trends")
-    page.wait_for_timeout(1500)
+    wait_for_uplot(page, "chart-ds-power")
 
 
 def navigate_to_channels(page, mode="timeline"):
-    """Switch to Channels view; chart tests start from the per-channel timeline."""
+    """Switch to Channels view; chart tests start from the per-channel timeline.
+
+    Waits until the channel list is loaded and a channel the timeline opened
+    with (the line status focus) has drawn, so later selections do not race it.
+    """
     open_view(page, "channels")
     if mode != "status":
         page.locator(f'#channel-mode-tabs .segmented-option[data-value="{mode}"]').click()
-    page.wait_for_timeout(500)
+    page.wait_for_function(
+        """() => {
+            const select = document.getElementById('channel-select');
+            return select.options.length > 1 && (!select.value || !!document.querySelector('#chart-ch-power .uplot canvas'));
+        }"""
+    )
+
+
+def series_labels(page, chart_id):
+    return page.evaluate("id => window.charts[id].series.map((s) => s.label)", chart_id)
+
+
+def wait_for_series(page, chart_ids, label, present=True):
+    """Wait until every chart has (or no longer has) a series with this label."""
+    page.wait_for_function(
+        """([ids, label, present]) => ids.every(id => {
+            const chart = window.charts[id];
+            return !!chart && chart.series.some(s => s.label === label) === present;
+        })""",
+        arg=[chart_ids, label, present],
+    )
 
 
 def wait_for_uplot(page, container_id, timeout=5000):
@@ -193,12 +217,11 @@ class TestTrendCharts:
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        range_tab = demo_page.locator('.segmented-option[data-range="7d"]')
-        if range_tab.count() > 0:
-            range_tab.click()
-            demo_page.wait_for_timeout(1500)
-            canvases = count_uplot_canvases(demo_page, "chart-ds-power")
-            assert canvases >= 1, "Chart should still render after range switch"
+        previous_canvas = demo_page.locator("#chart-ds-power .uplot canvas").first.element_handle()
+        demo_page.locator('#trend-tabs .segmented-option[data-range="7d"]').click()
+        wait_for_uplot_replacement(demo_page, "chart-ds-power", previous_canvas)
+        previous_canvas.dispose()
+        assert count_uplot_canvases(demo_page, "chart-ds-power") >= 1, "Chart should still render after range switch"
 
     def test_crosshair_sync_between_trends(self, demo_page):
         """Hovering one trend chart should show crosshair on all trend charts."""
@@ -207,14 +230,13 @@ class TestTrendCharts:
         wait_for_uplot(demo_page, "chart-ds-snr")
 
         # Hover over DS Power chart
-        ds_power = demo_page.locator("#chart-ds-power .uplot .u-over")
-        box = ds_power.bounding_box()
-        if box:
-            demo_page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-            demo_page.wait_for_timeout(200)
-            # Crosshair cursor elements should appear
-            cursors = demo_page.locator("#chart-ds-snr .uplot .u-cursor-x")
-            assert cursors.count() > 0, "Synced crosshair should appear on SNR chart"
+        box = demo_page.locator("#chart-ds-power .uplot .u-over").bounding_box()
+        demo_page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        # The synced crosshair moves into the SNR chart's plot.
+        demo_page.wait_for_function(
+            "() => window.charts['chart-ds-snr'].cursor.left > 0"
+        )
+        assert demo_page.locator("#chart-ds-snr .uplot .u-cursor-x").count() > 0, "Synced crosshair should appear on SNR chart"
 
 
 # ── Chart Zoom Modal ──
@@ -228,52 +250,36 @@ class TestChartZoom:
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        expand_btn = demo_page.locator('.chart-expand-btn[data-chart="chart-ds-power"]')
-        if expand_btn.count() > 0:
-            expand_btn.click()
-            demo_page.wait_for_timeout(300)
-            overlay = demo_page.locator("#chart-zoom-overlay")
-            assert overlay.is_visible()
+        demo_page.locator('.chart-expand-btn[data-chart="chart-ds-power"]').click()
+        expect(demo_page.locator("#chart-zoom-overlay")).to_be_visible()
 
     def test_zoom_modal_renders_chart(self, demo_page):
         """Zoom modal should render a uPlot chart inside."""
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        expand_btn = demo_page.locator('.chart-expand-btn[data-chart="chart-ds-power"]')
-        if expand_btn.count() > 0:
-            expand_btn.click()
-            demo_page.wait_for_timeout(300)
-            zoom_canvas = demo_page.locator("#chart-zoom-canvas .uplot canvas")
-            assert zoom_canvas.count() >= 1, "Zoom modal should contain a uPlot chart"
+        demo_page.locator('.chart-expand-btn[data-chart="chart-ds-power"]').click()
+        wait_for_uplot(demo_page, "chart-zoom-canvas")
 
     def test_zoom_modal_closes_on_escape(self, demo_page):
         """ESC key should close the zoom modal."""
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        expand_btn = demo_page.locator('.chart-expand-btn[data-chart="chart-ds-power"]')
-        if expand_btn.count() > 0:
-            expand_btn.click()
-            demo_page.wait_for_timeout(300)
-            assert demo_page.locator("#chart-zoom-overlay").is_visible()
-            demo_page.keyboard.press("Escape")
-            demo_page.wait_for_timeout(200)
-            assert not demo_page.locator("#chart-zoom-overlay").is_visible()
+        demo_page.locator('.chart-expand-btn[data-chart="chart-ds-power"]').click()
+        expect(demo_page.locator("#chart-zoom-overlay")).to_be_visible()
+        demo_page.keyboard.press("Escape")
+        expect(demo_page.locator("#chart-zoom-overlay")).to_be_hidden()
 
     def test_zoom_modal_closes_on_button(self, demo_page):
         """Close button should close the zoom modal."""
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        expand_btn = demo_page.locator('.chart-expand-btn[data-chart="chart-ds-power"]')
-        if expand_btn.count() > 0:
-            expand_btn.click()
-            demo_page.wait_for_timeout(300)
-            close_btn = demo_page.locator(".chart-zoom-modal .modal-close")
-            close_btn.click()
-            demo_page.wait_for_timeout(200)
-            assert not demo_page.locator("#chart-zoom-overlay").is_visible()
+        demo_page.locator('.chart-expand-btn[data-chart="chart-ds-power"]').click()
+        expect(demo_page.locator("#chart-zoom-overlay")).to_be_visible()
+        demo_page.locator(".chart-zoom-modal .modal-close").click()
+        expect(demo_page.locator("#chart-zoom-overlay")).to_be_hidden()
 
 
 # ── Channel Timeline Charts ──
@@ -452,49 +458,28 @@ class TestChannelCharts:
         """Selecting a channel should render Power and Errors charts."""
         navigate_to_channels(demo_page)
 
-        # Select first channel in the dropdown
-        select = demo_page.locator("#channel-select")
-        if select.count() > 0:
-            options = select.locator("option")
-            if options.count() > 1:
-                # Select the first non-empty option
-                select.select_option(index=1)
-                demo_page.wait_for_timeout(1500)
-
-                # Power chart should render
-                power_chart = demo_page.locator("#chart-ch-power .uplot canvas")
-                assert power_chart.count() >= 1, "Channel power chart should render"
+        demo_page.locator("#channel-select").select_option("ds-1")
+        # Only downstream channels draw SNR next to power, so this waits for ds-1 to replace the opening channel.
+        wait_for_series(demo_page, ["chart-ch-power"], "SNR (dB)")
+        wait_for_uplot(demo_page, "chart-ch-power")
 
     def test_channel_errors_chart_renders(self, demo_page):
         """Channel errors bar chart should render for DS channels."""
         navigate_to_channels(demo_page)
-        select = demo_page.locator("#channel-select")
-        if select.count() > 0:
-            options = select.locator("option")
-            if options.count() > 1:
-                select.select_option(index=1)
-                demo_page.wait_for_timeout(1500)
-                errors_card = demo_page.locator("#channel-errors-card")
-                if errors_card.is_visible():
-                    errors_chart = demo_page.locator("#chart-ch-errors .uplot canvas")
-                    assert errors_chart.count() >= 1
+        demo_page.locator("#channel-select").select_option("ds-1")
+        expect(demo_page.locator("#channel-errors-card")).to_be_visible()
+        wait_for_uplot(demo_page, "chart-ch-errors")
 
     def test_channel_time_range_tabs(self, demo_page):
         """Channel time range tabs should reload charts."""
         navigate_to_channels(demo_page)
-        select = demo_page.locator("#channel-select")
-        if select.count() > 0:
-            options = select.locator("option")
-            if options.count() > 1:
-                select.select_option(index=1)
-                demo_page.wait_for_timeout(1500)
-                # Click 7d tab
-                tab_7d = demo_page.locator('.channel-range-tab[data-range="7d"]')
-                if tab_7d.count() > 0:
-                    tab_7d.click()
-                    demo_page.wait_for_timeout(1500)
-                    power_chart = demo_page.locator("#chart-ch-power .uplot canvas")
-                    assert power_chart.count() >= 1
+        demo_page.locator("#channel-select").select_option("ds-1")
+        wait_for_uplot(demo_page, "chart-ch-power")
+        previous_canvas = demo_page.locator("#chart-ch-power .uplot canvas").first.element_handle()
+        demo_page.locator('#channel-time-tabs .segmented-option[data-value="7d"]').click()
+        wait_for_uplot_replacement(demo_page, "chart-ch-power", previous_canvas)
+        previous_canvas.dispose()
+        assert "range=7d" in demo_page.url
 
 
 # ── Compare Charts ──
@@ -556,37 +541,19 @@ class TestCompareCharts:
         """Compare mode with channels should render power overlay chart."""
         navigate_to_channels(demo_page)
 
-        # Switch to compare tab
-        compare_tab = demo_page.locator('.channel-mode-tab[data-mode="compare"]')
-        if compare_tab.count() > 0:
-            compare_tab.click()
-            demo_page.wait_for_timeout(500)
-
-            # Add a channel to compare
-            add_btn = demo_page.locator("#compare-add-btn, .compare-add-btn")
-            if add_btn.count() > 0:
-                add_btn.click()
-                demo_page.wait_for_timeout(1500)
-
-                cmp_power = demo_page.locator("#chart-cmp-power .uplot canvas")
-                if cmp_power.count() >= 1:
-                    assert True  # Power chart rendered
+        demo_page.locator('.segmented-option[data-value="compare"]').click()
+        demo_page.locator("#compare-channel-select").select_option(index=1)
+        demo_page.locator("#compare-add-btn").click()
+        expect(demo_page.locator("#compare-chips .compare-chip")).to_have_count(1)
+        wait_for_uplot(demo_page, "chart-cmp-power")
 
     def test_compare_all_downstream_preset_renders_chart(self, demo_page):
         """All Downstream preset should render the compare charts without manual picks."""
         navigate_to_channels(demo_page)
-        compare_tab = demo_page.locator('.segmented-option[data-value="compare"]')
-        if compare_tab.count() > 0:
-            compare_tab.first.click()
-            demo_page.wait_for_timeout(500)
-
-            add_all_btn = demo_page.locator("#compare-add-all-btn")
-            if add_all_btn.count() > 0:
-                add_all_btn.click()
-                demo_page.wait_for_timeout(1500)
-                wait_for_uplot(demo_page, "chart-cmp-power")
-                chips = demo_page.locator("#compare-chips .compare-chip")
-                assert chips.count() >= 1
+        demo_page.locator('.segmented-option[data-value="compare"]').click()
+        demo_page.locator("#compare-add-all-btn").click()
+        wait_for_uplot(demo_page, "chart-cmp-power")
+        assert demo_page.locator("#compare-chips .compare-chip").count() >= 1
 
 
 class TestChannelTemperatureOverlay:
@@ -653,8 +620,8 @@ class TestChannelTemperatureOverlay:
             "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
         )
         toggle.click()
-        demo_page.wait_for_timeout(300)
-        assert toggle.get_attribute("aria-pressed") == "true"
+        expect(toggle).to_have_attribute("aria-pressed", "true")
+        wait_for_series(demo_page, ["chart-ch-power", "chart-ch-modulation"], "Temperature")
 
         overlay = demo_page.evaluate(
             """
@@ -699,7 +666,7 @@ class TestChannelTemperatureOverlay:
         demo_page.locator("#chart-zoom-overlay .modal-close").click()
 
         toggle.click()
-        demo_page.wait_for_timeout(300)
+        wait_for_series(demo_page, ["chart-ch-power", "chart-ch-modulation"], "Temperature", present=False)
         labels_after_toggle = demo_page.evaluate(
             """
             () => ({
@@ -822,7 +789,7 @@ class TestChannelTemperatureOverlay:
         assert len(weather_requests) == 1
         assert toggle.get_attribute("aria-pressed") == "false"
         toggle.click()
-        demo_page.wait_for_timeout(300)
+        wait_for_series(demo_page, ["chart-cmp-power", "chart-cmp-modulation"], "Temperature")
 
         overlay = demo_page.evaluate(
             """
@@ -923,10 +890,7 @@ class TestChannelTemperatureOverlay:
         demo_page.locator("#channel-select").select_option("ds-1")
         wait_for_uplot(demo_page, "chart-ch-power")
         demo_page.locator("#channel-temp-toggle-btn").click()
-        demo_page.wait_for_timeout(300)
-        assert "Temperature" in demo_page.evaluate(
-            "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
-        )
+        wait_for_series(demo_page, ["chart-ch-power"], "Temperature")
 
         demo_page.locator('.segmented-option[data-value="compare"]').click()
         demo_page.locator("#compare-add-all-btn").click()
@@ -938,10 +902,7 @@ class TestChannelTemperatureOverlay:
 
         demo_page.locator('.segmented-option[data-value="timeline"]').click()
         demo_page.locator("#channel-temp-toggle-btn").click()
-        demo_page.wait_for_timeout(300)
-        assert "Temperature" not in demo_page.evaluate(
-            "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
-        )
+        wait_for_series(demo_page, ["chart-ch-power"], "Temperature", present=False)
 
         demo_page.locator('.segmented-option[data-value="compare"]').click()
         assert demo_page.locator("#compare-temp-toggle-btn").get_attribute("aria-pressed") == "false"
@@ -1010,9 +971,7 @@ class TestUnsupportedDocsisErrorCharts:
         )
 
         navigate_to_channels(demo_page)
-        compare_tab = demo_page.locator('.segmented-option[data-value="compare"]')
-        compare_tab.first.click()
-        demo_page.wait_for_timeout(500)
+        demo_page.locator('.segmented-option[data-value="compare"]').click()
         demo_page.locator("#compare-add-all-btn").click()
         wait_for_uplot(demo_page, "chart-cmp-power")
 
@@ -1033,7 +992,6 @@ class TestChartTheme:
             document.documentElement.setAttribute('data-theme', 'dark');
             localStorage.setItem('docsis-theme', 'dark');
         """)
-        demo_page.wait_for_timeout(200)
 
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
@@ -1047,7 +1005,6 @@ class TestChartTheme:
             document.documentElement.setAttribute('data-theme', 'light');
             localStorage.setItem('docsis-theme', 'light');
         """)
-        demo_page.wait_for_timeout(200)
 
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
@@ -1059,7 +1016,6 @@ class TestChartTheme:
             document.documentElement.setAttribute('data-theme', 'dark');
             localStorage.setItem('docsis-theme', 'dark');
         """)
-        demo_page.wait_for_timeout(200)
 
 
 # ── Responsive Sizing ──
@@ -1083,25 +1039,17 @@ class TestChartResponsive:
         """Charts should resize when viewport width changes."""
         # Start with a wide viewport
         demo_page.set_viewport_size({"width": 1280, "height": 720})
-        demo_page.wait_for_timeout(300)
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
         initial = demo_page.locator("#chart-ds-power .uplot canvas").first.bounding_box()
 
-        # Resize viewport narrower
+        # Resize viewport narrower; the chart follows after its resize debounce.
         demo_page.set_viewport_size({"width": 600, "height": 800})
-        demo_page.wait_for_timeout(800)
-
-        after = demo_page.locator("#chart-ds-power .uplot canvas").first.bounding_box()
-        if initial and after:
-            # The chart width should change (either direction is fine, just verify it reacts)
-            assert abs(after["width"] - initial["width"]) > 10, \
-                f"Chart should resize: {initial['width']} vs {after['width']}"
-
-        # Restore viewport
-        demo_page.set_viewport_size({"width": 1280, "height": 720})
-        demo_page.wait_for_timeout(500)
+        demo_page.wait_for_function(
+            "width => Math.abs(document.querySelector('#chart-ds-power .uplot canvas').getBoundingClientRect().width - width) > 10",
+            arg=initial["width"],
+        )
 
 
 # ── Tooltip ──
@@ -1115,33 +1063,21 @@ class TestChartTooltip:
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        over = demo_page.locator("#chart-ds-power .uplot .u-over")
-        box = over.bounding_box()
-        if box:
-            demo_page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-            demo_page.wait_for_timeout(300)
-            tooltip = demo_page.locator("#chart-ds-power .uplot-tooltip")
-            if tooltip.count() > 0:
-                assert tooltip.first.is_visible()
+        box = demo_page.locator("#chart-ds-power .uplot .u-over").bounding_box()
+        demo_page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        expect(demo_page.locator("#chart-ds-power .uplot-tooltip")).to_be_visible()
 
     def test_tooltip_disappears_on_mouse_leave(self, demo_page):
         """Tooltip should hide when mouse leaves the chart."""
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        over = demo_page.locator("#chart-ds-power .uplot .u-over")
-        box = over.bounding_box()
-        if box:
-            # Hover to show tooltip
-            demo_page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-            demo_page.wait_for_timeout(300)
-            # Move away
-            demo_page.mouse.move(0, 0)
-            demo_page.wait_for_timeout(300)
-            tooltip = demo_page.locator("#chart-ds-power .uplot-tooltip")
-            if tooltip.count() > 0:
-                display = tooltip.first.evaluate("el => getComputedStyle(el).display")
-                assert display == "none" or not tooltip.first.is_visible()
+        box = demo_page.locator("#chart-ds-power .uplot .u-over").bounding_box()
+        tooltip = demo_page.locator("#chart-ds-power .uplot-tooltip")
+        demo_page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        expect(tooltip).to_be_visible()
+        demo_page.mouse.move(0, 0)
+        expect(tooltip).to_be_hidden()
 
 
 # ── No Console Errors ──
@@ -1155,7 +1091,7 @@ class TestNoJSErrors:
         errors = []
         demo_page.on("pageerror", lambda err: errors.append(str(err)))
         demo_page.reload()
-        demo_page.wait_for_timeout(2000)
+        wait_for_uplot(demo_page, "hero-trend-chart")
         chart_errors = [e for e in errors if "Chart" in e or "uPlot" in e or "canvas" in e.lower()]
         assert len(chart_errors) == 0, f"JS errors on load: {chart_errors}"
 
@@ -1189,7 +1125,7 @@ class TestChartCleanup:
 
         # Switch to another view
         open_view(demo_page, "live")
-        demo_page.wait_for_timeout(500)
+        expect(demo_page.locator("#view-trends")).to_be_hidden()
 
         # Switch back — charts should re-render without stacking
         navigate_to_trends(demo_page)
@@ -1292,7 +1228,7 @@ class TestSignalLifecycle:
         assert len(attempts) == 2
 
     def test_stale_legacy_cannot_replace_current_sparse_module_data(self, page, live_server):
-        from tests.e2e.support.signal_trends import start, painted, wait_count, rows, spark_pixels, show_family_sparks
+        from tests.e2e.support.signal_trends import start, painted, wait_count, rows, spark_pixels, show_family_sparks, wait_js
         held = []
         start(page, live_server, legacy=lambda route: held.append(route))
         painted(page)
@@ -1304,8 +1240,10 @@ class TestSignalLifecycle:
                    'connection_monitor_latency_ms': value, 'ds_uncorrectable_errors': value}
                   for row, value in zip(rows(), [10, 30, 12])]
         held[1].fulfill(json=sparse)
-        page.wait_for_timeout(100)
-        assert spark_pixels(page, '#spark-errors')
+        wait_js(page, """() => {
+            const c = document.querySelector('#spark-errors');
+            return Array.from(c.getContext('2d').getImageData(0, 0, c.width, c.height).data).some((v, i) => i % 4 === 3 && v > 0);
+        }""")
         bitmap = page.locator('#spark-errors').evaluate('c => c.toDataURL()')
         held[0].fulfill(json=rows(1))
         page.wait_for_load_state('networkidle')
