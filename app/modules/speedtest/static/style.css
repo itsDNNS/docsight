@@ -167,11 +167,6 @@
     .st-signal-detail .st-us-mods span {
         word-break: break-word;
     }
-    .trend-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
 }
 
 #speedtest-show-more {

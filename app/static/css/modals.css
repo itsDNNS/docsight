@@ -45,12 +45,6 @@
     width: 100%;
     overflow: hidden;
 }
-.no-data-msg {
-    text-align: center;
-    padding: var(--space-2xl) var(--space-lg);
-    color: var(--muted);
-    font-size: max(var(--fs-min), 0.95em);
-}
 
 
 /* ── Report evidence builder ── */
