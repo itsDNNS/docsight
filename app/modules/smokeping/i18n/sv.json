@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "SmokePing-kontrollen beror på den sparade bas-URL:en och målet i SmokePing-inställningarna. Spara värdena först och läs sedan in vyn igen för att bekräfta livedata.",
   "smokeping_empty_title": "Inga SmokePing-mål konfigurerade",
   "smokeping_empty_text": "Lägg till målen från din SmokePing-konfiguration i inställningarna för att se deras latensdiagram här.",
-  "smokeping_empty_action": "Öppna SmokePing-inställningar"
+  "smokeping_empty_action": "Öppna SmokePing-inställningar",
+  "smokeping_span_3h": "senaste 3 timmarna",
+  "smokeping_span_30h": "senaste 30 timmarna",
+  "smokeping_span_10d": "senaste 10 dagarna",
+  "smokeping_span_1y": "senaste året",
+  "smokeping_closest_to": "närmast {range}",
+  "smokeping_frame_source": "SmokePing ritar 3 h, 30 h, 10 d eller 1 år",
+  "smokeping_open_source": "Öppna i SmokePing"
 }

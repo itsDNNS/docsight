@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "Ověření SmokePing závisí na základní URL a cíli uložených v nastavení SmokePing. Nejprve tyto hodnoty uložte a pak obnovte toto zobrazení, abyste ověřili živá data.",
   "smokeping_empty_title": "Nejsou nastaveny žádné cíle SmokePing",
   "smokeping_empty_text": "Přidejte v nastavení cíle z konfigurace SmokePing, aby se zde zobrazily jejich grafy latence.",
-  "smokeping_empty_action": "Otevřít nastavení SmokePing"
+  "smokeping_empty_action": "Otevřít nastavení SmokePing",
+  "smokeping_span_3h": "poslední 3 hodiny",
+  "smokeping_span_30h": "posledních 30 hodin",
+  "smokeping_span_10d": "posledních 10 dní",
+  "smokeping_span_1y": "poslední rok",
+  "smokeping_closest_to": "nejblíže {range}",
+  "smokeping_frame_source": "SmokePing kreslí 3 h, 30 h, 10 d nebo 1 r",
+  "smokeping_open_source": "Otevřít ve SmokePingu"
 }

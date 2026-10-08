@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "Ο έλεγχος του SmokePing εξαρτάται από το βασικό URL και τον στόχο που είναι αποθηκευμένα στις ρυθμίσεις SmokePing. Αποθηκεύστε πρώτα αυτές τις τιμές και μετά ανανεώστε αυτή την προβολή για να επιβεβαιώσετε τα ζωντανά δεδομένα.",
   "smokeping_empty_title": "Δεν έχουν ρυθμιστεί στόχοι SmokePing",
   "smokeping_empty_text": "Πρόσθεσε στις ρυθμίσεις τους στόχους από τη ρύθμιση του SmokePing για να δεις εδώ τα γραφήματα καθυστέρησής τους.",
-  "smokeping_empty_action": "Άνοιγμα ρυθμίσεων SmokePing"
+  "smokeping_empty_action": "Άνοιγμα ρυθμίσεων SmokePing",
+  "smokeping_span_3h": "τελευταίες 3 ώρες",
+  "smokeping_span_30h": "τελευταίες 30 ώρες",
+  "smokeping_span_10d": "τελευταίες 10 ημέρες",
+  "smokeping_span_1y": "τελευταίο έτος",
+  "smokeping_closest_to": "πλησιέστερο στο {range}",
+  "smokeping_frame_source": "Το SmokePing σχεδιάζει 3 ώ, 30 ώ, 10 η ή 1 έ",
+  "smokeping_open_source": "Άνοιγμα στο SmokePing"
 }

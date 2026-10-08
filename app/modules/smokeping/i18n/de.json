@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "Die SmokePing-Prüfung braucht die gespeicherte Basis-URL und das Ziel in den SmokePing-Einstellungen. Speichere diese Werte zuerst und lade dann diese Ansicht neu, um Live-Daten zu bestätigen.",
   "smokeping_empty_title": "Keine SmokePing-Ziele eingerichtet",
   "smokeping_empty_text": "Trage die Ziele aus deiner SmokePing-Konfiguration in den Einstellungen ein, um hier ihre Latenzgraphen zu sehen.",
-  "smokeping_empty_action": "SmokePing-Einstellungen öffnen"
+  "smokeping_empty_action": "SmokePing-Einstellungen öffnen",
+  "smokeping_span_3h": "letzte 3 Stunden",
+  "smokeping_span_30h": "letzte 30 Stunden",
+  "smokeping_span_10d": "letzte 10 Tage",
+  "smokeping_span_1y": "letztes Jahr",
+  "smokeping_closest_to": "nächstliegend zu {range}",
+  "smokeping_frame_source": "SmokePing zeichnet 3 h, 30 h, 10 d oder 1 y",
+  "smokeping_open_source": "In SmokePing öffnen"
 }

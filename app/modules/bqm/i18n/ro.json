@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Tip de fișier neacceptat. Sunt acceptate numai imagini PNG și JPEG.",
   "bqm_import_validation_ready": "{0} gata",
   "bqm_import_validation_dates": "{0} are nevoie de o întâlnire",
-  "bqm_csv_import": "BQM CSV import"
+  "bqm_csv_import": "BQM CSV import",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · un grafic pe zi",
+  "bqm_window_day": "toată ziua",
+  "bqm_window_today": "azi până acum"
 }

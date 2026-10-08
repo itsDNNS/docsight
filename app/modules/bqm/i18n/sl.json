@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Nepodprta vrsta datoteke. Podprte so samo slike PNG in JPEG.",
   "bqm_import_validation_ready": "{0} pripravljen",
   "bqm_import_validation_dates": "{0} potrebuje zmenek",
-  "bqm_csv_import": "BQM CSV uvoz"
+  "bqm_csv_import": "BQM CSV uvoz",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · en graf na dan",
+  "bqm_window_day": "ves dan",
+  "bqm_window_today": "danes doslej"
 }

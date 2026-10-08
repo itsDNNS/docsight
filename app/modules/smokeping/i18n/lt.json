@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "SmokePing patikrinimas priklauso nuo SmokePing nustatymuose įrašyto bazinio URL ir tikslo. Pirmiausia įrašykite šias reikšmes, tada atnaujinkite šį rodinį, kad patvirtintumėte tiesioginius duomenis.",
   "smokeping_empty_title": "Nesukonfigūruota jokių SmokePing tikslų",
   "smokeping_empty_text": "Nustatymuose pridėkite tikslus iš savo SmokePing konfigūracijos, kad čia matytumėte jų delsos grafikus.",
-  "smokeping_empty_action": "Atidaryti SmokePing nustatymus"
+  "smokeping_empty_action": "Atidaryti SmokePing nustatymus",
+  "smokeping_span_3h": "paskutinės 3 valandos",
+  "smokeping_span_30h": "paskutinės 30 valandų",
+  "smokeping_span_10d": "paskutinės 10 dienų",
+  "smokeping_span_1y": "paskutiniai metai",
+  "smokeping_closest_to": "artimiausia {range}",
+  "smokeping_frame_source": "SmokePing braižo 3 val., 30 val., 10 d. arba 1 m.",
+  "smokeping_open_source": "Atidaryti SmokePing"
 }

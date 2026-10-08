@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "SmokePingi kontroll sõltub SmokePingi seadetes salvestatud baas-URL-ist ja sihtmärgist. Salvesta need väärtused kõigepealt ja laadi siis see vaade uuesti, et otseandmeid kinnitada.",
   "smokeping_empty_title": "SmokePingi sihtmärke pole seadistatud",
   "smokeping_empty_text": "Lisa seadetesse sihtmärgid oma SmokePingi seadistusest, et näha siin nende latentsusgraafikuid.",
-  "smokeping_empty_action": "Ava SmokePingi seaded"
+  "smokeping_empty_action": "Ava SmokePingi seaded",
+  "smokeping_span_3h": "viimased 3 tundi",
+  "smokeping_span_30h": "viimased 30 tundi",
+  "smokeping_span_10d": "viimased 10 päeva",
+  "smokeping_span_1y": "viimane aasta",
+  "smokeping_closest_to": "lähim: {range}",
+  "smokeping_frame_source": "SmokePing joonistab 3 h, 30 h, 10 p või 1 a",
+  "smokeping_open_source": "Ava SmokePingis"
 }

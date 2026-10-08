@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "Проверката на SmokePing зависи от базовия URL адрес и целта, запазени в настройките на SmokePing. Първо запазете тези стойности, след това опреснете този изглед, за да потвърдите данните на живо.",
   "smokeping_empty_title": "Няма настроени цели за SmokePing",
   "smokeping_empty_text": "Добави в настройките целите от конфигурацията на SmokePing, за да видиш тук графиките им на латентност.",
-  "smokeping_empty_action": "Отвори настройките на SmokePing"
+  "smokeping_empty_action": "Отвори настройките на SmokePing",
+  "smokeping_span_3h": "последните 3 часа",
+  "smokeping_span_30h": "последните 30 часа",
+  "smokeping_span_10d": "последните 10 дни",
+  "smokeping_span_1y": "последната година",
+  "smokeping_closest_to": "най-близо до {range}",
+  "smokeping_frame_source": "SmokePing рисува 3 ч, 30 ч, 10 д или 1 г",
+  "smokeping_open_source": "Отвори в SmokePing"
 }

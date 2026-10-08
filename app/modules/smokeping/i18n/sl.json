@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "Preverjanje SmokePing je odvisno od osnovnega URL-ja in cilja, shranjenih v nastavitvah SmokePing. Najprej shranite te vrednosti, nato osvežite ta pogled, da potrdite podatke v živo.",
   "smokeping_empty_title": "Ni nastavljenih ciljev SmokePing",
   "smokeping_empty_text": "V nastavitvah dodajte cilje iz svoje konfiguracije SmokePing, da boste tukaj videli njihove grafe zakasnitve.",
-  "smokeping_empty_action": "Odpri nastavitve SmokePing"
+  "smokeping_empty_action": "Odpri nastavitve SmokePing",
+  "smokeping_span_3h": "zadnje 3 ure",
+  "smokeping_span_30h": "zadnjih 30 ur",
+  "smokeping_span_10d": "zadnjih 10 dni",
+  "smokeping_span_1y": "zadnje leto",
+  "smokeping_closest_to": "najbližje {range}",
+  "smokeping_frame_source": "SmokePing riše 3 h, 30 h, 10 d ali 1 l",
+  "smokeping_open_source": "Odpri v SmokePingu"
 }

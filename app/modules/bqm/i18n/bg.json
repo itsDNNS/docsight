@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Неподдържан файлов тип. Поддържат се само PNG и JPEG изображения.",
   "bqm_import_validation_ready": "{0} готов",
   "bqm_import_validation_dates": "{0} има нужда от среща",
-  "bqm_csv_import": "BQM CSV импортиране"
+  "bqm_csv_import": "BQM CSV импортиране",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · една графика на ден",
+  "bqm_window_day": "цял ден",
+  "bqm_window_today": "днес досега"
 }

@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "A SmokePing ellenőrzése a SmokePing-beállításokban mentett alap-URL-től és céltól függ. Először mentse ezeket, majd frissítse ezt a nézetet az élő adatok megerősítéséhez.",
   "smokeping_empty_title": "Nincs beállított SmokePing-cél",
   "smokeping_empty_text": "Add hozzá a beállításokban a SmokePing-konfigurációd céljait, hogy itt lásd a késleltetési grafikonjaikat.",
-  "smokeping_empty_action": "SmokePing-beállítások megnyitása"
+  "smokeping_empty_action": "SmokePing-beállítások megnyitása",
+  "smokeping_span_3h": "utolsó 3 óra",
+  "smokeping_span_30h": "utolsó 30 óra",
+  "smokeping_span_10d": "utolsó 10 nap",
+  "smokeping_span_1y": "utolsó év",
+  "smokeping_closest_to": "legközelebb: {range}",
+  "smokeping_frame_source": "A SmokePing 3 órát, 30 órát, 10 napot vagy 1 évet rajzol",
+  "smokeping_open_source": "Megnyitás a SmokePingben"
 }

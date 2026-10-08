@@ -26,5 +26,12 @@
   "smokeping_setup_validation_path": "SmokePing pārbaude ir atkarīga no SmokePing iestatījumos saglabātā bāzes URL un mērķa. Vispirms saglabājiet šīs vērtības un pēc tam atsvaidziniet šo skatu, lai apstiprinātu tiešos datus.",
   "smokeping_empty_title": "Nav konfigurētu SmokePing mērķu",
   "smokeping_empty_text": "Iestatījumos pievienojiet mērķus no savas SmokePing konfigurācijas, lai šeit redzētu to latentuma grafikus.",
-  "smokeping_empty_action": "Atvērt SmokePing iestatījumus"
+  "smokeping_empty_action": "Atvērt SmokePing iestatījumus",
+  "smokeping_span_3h": "pēdējās 3 stundas",
+  "smokeping_span_30h": "pēdējās 30 stundas",
+  "smokeping_span_10d": "pēdējās 10 dienas",
+  "smokeping_span_1y": "pēdējais gads",
+  "smokeping_closest_to": "tuvākais {range}",
+  "smokeping_frame_source": "SmokePing zīmē 3 h, 30 h, 10 d vai 1 g",
+  "smokeping_open_source": "Atvērt SmokePing"
 }

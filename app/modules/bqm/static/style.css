@@ -174,31 +174,10 @@
     margin-left: var(--space-sm);
 }
 
-/* ── Card ── */
-.bqm-card {
-    background: var(--card);
-    border: 1px solid var(--card-border, var(--input-border));
-    border-radius: var(--radius-lg);
-    padding: var(--space-lg);
-    margin-bottom: var(--space-xl);
-    transition: all 0.2s var(--ease-out-expo);
-}
-.bqm-card:hover {
-    border-color: var(--accent);
-    box-shadow: 0 4px 12px var(--amethyst-muted);
-}
-.bqm-card #bqm-image-wrap {
-    margin-top: var(--space-md);
-    text-align: center;
-}
-#bqm-image {
-    max-width: 100%;
-    border-radius: 8px;
-}
+/* ── Graph (inside the shared graph frame) ── */
 .bqm-chart-container {
     width: 100%;
     min-height: 220px;
-    margin-top: var(--space-md);
 }
 .bqm-chart-container .uplot {
     width: 100%;

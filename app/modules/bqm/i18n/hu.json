@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Nem támogatott fájltípus. Csak a PNG és JPEG képek támogatottak.",
   "bqm_import_validation_ready": "A {0} készen áll",
   "bqm_import_validation_dates": "A {0}-nek időpontra van szüksége",
-  "bqm_csv_import": "BQM CSV import"
+  "bqm_csv_import": "BQM CSV import",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · napi egy grafikon",
+  "bqm_window_day": "egész nap",
+  "bqm_window_today": "ma eddig"
 }

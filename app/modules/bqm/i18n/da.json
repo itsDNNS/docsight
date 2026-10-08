@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Ikke-understøttet filtype. Kun PNG- og JPEG-billeder understøttes.",
   "bqm_import_validation_ready": "{0} klar",
   "bqm_import_validation_dates": "{0} har brug for en dato",
-  "bqm_csv_import": "BQM CSV import"
+  "bqm_csv_import": "BQM CSV import",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · én graf pr. dag",
+  "bqm_window_day": "hele dagen",
+  "bqm_window_today": "i dag indtil nu"
 }

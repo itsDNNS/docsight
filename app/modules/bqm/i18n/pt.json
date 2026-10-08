@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Tipo de arquivo não suportado. Somente imagens PNG e JPEG são suportadas.",
   "bqm_import_validation_ready": "{0} pronto",
   "bqm_import_validation_dates": "{0} precisa de um encontro",
-  "bqm_csv_import": "Importação BQM CSV"
+  "bqm_csv_import": "Importação BQM CSV",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · um gráfico por dia",
+  "bqm_window_day": "dia inteiro",
+  "bqm_window_today": "hoje até agora"
 }

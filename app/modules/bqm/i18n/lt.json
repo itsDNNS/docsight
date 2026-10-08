@@ -86,5 +86,9 @@
   "bqm_import_validation_unsupported": "Nepalaikomas failo tipas. Palaikomi tik PNG ir JPEG vaizdai.",
   "bqm_import_validation_ready": "{0} paruoštas",
   "bqm_import_validation_dates": "{0} reikia pasimatymo",
-  "bqm_csv_import": "BQM CSV importas"
+  "bqm_csv_import": "BQM CSV importas",
+  "bqm_frame_title": "Broadband Quality Monitor",
+  "bqm_frame_source": "thinkbroadband Broadband Quality Monitor · viena diagrama per dieną",
+  "bqm_window_day": "visa diena",
+  "bqm_window_today": "šiandien iki šiol"
 }

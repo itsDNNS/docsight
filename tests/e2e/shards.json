@@ -1,17 +1,18 @@
 {
   "version": 1,
-  "expected_total": 771,
+  "expected_total": 775,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
   "shards": [
     {
       "id": 1,
-      "collected_cases": 114,
+      "collected_cases": 118,
       "files": [
         "test_accessibility_findings.py",
         "test_chart_touch.py",
         "test_charts.py",
+        "test_graph_frames.py",
         "test_i18n.py",
         "test_modals.py",
         "test_pwa_gate.py",

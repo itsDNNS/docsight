@@ -368,9 +368,9 @@ class TestSmokepingEscaping:
         demo_page.evaluate("window.__smokepingDomXss = false")
 
         open_view(demo_page, "smokeping")
-        label = demo_page.locator("#smokeping-content .chart-label").first
+        label = demo_page.locator("#smokeping-content .graph-frame-title").first
         label.wait_for(state="visible")
 
-        assert label.inner_text() == target
+        assert label.inner_text() == "SmokePing \u00b7 " + target
         assert label.locator("img").count() == 0
         assert demo_page.evaluate("window.__smokepingDomXss") is False
