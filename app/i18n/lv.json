@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signāls {time}",
   "snapshot_added_to_case": "Momentuzņēmuma diena pievienota “{case}”",
   "snapshot_error": "Neizdevās ielādēt šī punkta momentuzņēmumu.",
-  "chart_gap_no_data": "Nav datu"
+  "chart_gap_no_data": "Nav datu",
+  "window_earlier": "Iepriekšējais periods",
+  "window_later": "Nākamais periods",
+  "window_past": "Pagājušais periods",
+  "window_back_to_now": "Atpakaļ uz tagadni",
+  "window_swipe_hint": "Pavelciet diagrammu uz sāniem, lai redzētu agrāku vai vēlāku periodu."
 }

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 
 from app.analyzer import get_thresholds
-from app.time_ranges import parse_time_range_hours
+from app.time_ranges import parse_time_range_hours, parse_window_end
 from app.tz import local_to_utc, utc_now, utc_cutoff
 from app.web_auth import require_auth
 from app.gaming_index import compute_gaming_index
@@ -243,6 +243,7 @@ def api_correlation():
 
     Query params:
       hours: int (default 24, max 2160 / 90d)
+      end: local wall-clock time the window ends at (default now)
       sources: comma-separated list of modem,speedtest,events,bnetz,capture,segment (default all)
     """
     _storage = current_runtime().storage
@@ -250,8 +251,15 @@ def api_correlation():
         return jsonify([])
     hours = request.args.get("hours", 24, type=int)
     hours = max(1, min(hours, 2160))
-    end_ts = utc_now()
-    start_ts = utc_cutoff(hours=hours)
+    end = parse_window_end(request.args.get("end"), get_tz_name(current_runtime().config_manager))
+    if end is False:
+        return jsonify({"error": "end must be YYYY-MM-DDTHH:MM[:SS]"}), 400
+    if end is None:
+        end_ts = utc_now()
+        start_ts = utc_cutoff(hours=hours)
+    else:
+        end_ts = end.strftime("%Y-%m-%dT%H:%M:%SZ")
+        start_ts = (end - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     sources_param = request.args.get("sources", "")
     if sources_param:

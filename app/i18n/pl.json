@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Sygnał {time}",
   "snapshot_added_to_case": "Dzień migawki dodany do „{case}”",
   "snapshot_error": "Nie udało się wczytać migawki dla tego punktu.",
-  "chart_gap_no_data": "Brak danych"
+  "chart_gap_no_data": "Brak danych",
+  "window_earlier": "Wcześniejszy okres",
+  "window_later": "Późniejszy okres",
+  "window_past": "Miniony okres",
+  "window_back_to_now": "Wróć do teraz",
+  "window_swipe_hint": "Przesuń wykres w bok, aby zobaczyć wcześniejszy lub późniejszy okres."
 }

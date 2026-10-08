@@ -1,0 +1,23 @@
+{# Step a time-range window back and forward by its own length (window-shift.js).
+   window_shift wraps the range picker with the two arrows; window_past is the
+   line that shows a window in the past and the way back to now. #}
+{% macro window_shift(prefix) %}
+<div class="window-shift" id="{{ prefix }}-window-shift">
+    <button type="button" class="btn btn-secondary btn-sm window-shift-step" id="{{ prefix }}-window-earlier" aria-label="{{ t.window_earlier }}" title="{{ t.window_earlier }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    {{ caller() }}
+    <button type="button" class="btn btn-secondary btn-sm window-shift-step" id="{{ prefix }}-window-later" aria-label="{{ t.window_later }}" title="{{ t.window_later }}" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+</div>
+{% endmacro %}
+
+{% macro window_past(prefix) %}
+<div class="window-past" id="{{ prefix }}-window-past" hidden>
+    <span class="badge badge-warn">{{ t.window_past }}</span>
+    <span class="window-past-range" id="{{ prefix }}-window-range"></span>
+    <button type="button" class="btn btn-primary btn-sm" id="{{ prefix }}-window-now">{{ t.window_back_to_now }}</button>
+</div>
+<p class="window-shift-hint" id="{{ prefix }}-window-hint" hidden>{{ t.window_swipe_hint }}</p>
+{% endmacro %}

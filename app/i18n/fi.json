@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signaali {time}",
   "snapshot_added_to_case": "Tilannekuvan päivä lisätty tapaukseen ”{case}”",
   "snapshot_error": "Tämän kohdan tilannekuvaa ei voitu ladata.",
-  "chart_gap_no_data": "Ei tietoja"
+  "chart_gap_no_data": "Ei tietoja",
+  "window_earlier": "Edellinen jakso",
+  "window_later": "Seuraava jakso",
+  "window_past": "Mennyt jakso",
+  "window_back_to_now": "Takaisin nykyhetkeen",
+  "window_swipe_hint": "Pyyhkäise kaaviota sivuttain nähdäksesi aiemman tai myöhemmän jakson."
 }

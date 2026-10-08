@@ -414,6 +414,25 @@ class TestCorrelationAPI:
         old_date = _api_response_date(old_ts)
         assert any(entry["source"] == "modem" and entry["timestamp"].startswith(old_date) for entry in data)
 
+    def test_correlation_end_moves_the_window_into_the_past(
+        self, client_with_storage, config_mgr, storage, sample_analysis
+    ):
+        config_mgr.save({"timezone": "Europe/Berlin"})
+        with sqlite3.connect(storage.db_path) as conn:
+            for ts in ("2026-10-03T15:30:00Z", "2026-10-03T17:30:00Z", "2026-10-03T18:30:00Z", utc_now()):
+                conn.execute(
+                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
+                    (ts, json.dumps(sample_analysis["summary"]), json.dumps(sample_analysis["ds_channels"]),
+                     json.dumps(sample_analysis["us_channels"])),
+                )
+
+        # 20:00 in Berlin is 18:00 UTC; the window covers 16:00 to 18:00 UTC.
+        resp = client_with_storage.get("/api/correlation?hours=2&sources=modem&end=2026-10-03T20:00")
+
+        assert resp.status_code == 200
+        assert [entry["timestamp"] for entry in json.loads(resp.data)] == ["2026-10-03T17:30:00Z"]
+        assert client_with_storage.get("/api/correlation?hours=2&end=soon").status_code == 400
+
     def test_correlation_clamps_above_ninety_days(self, client_with_storage, storage, sample_analysis):
         inside_ts = utc_cutoff(days=80)
         outside_ts = utc_cutoff(days=100)

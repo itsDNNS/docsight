@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signaal {time}",
   "snapshot_added_to_case": "Hetktõmmise päev lisati juhtumisse „{case}”",
   "snapshot_error": "Selle punkti hetktõmmist ei saanud laadida.",
-  "chart_gap_no_data": "Andmed puuduvad"
+  "chart_gap_no_data": "Andmed puuduvad",
+  "window_earlier": "Eelmine periood",
+  "window_later": "Järgmine periood",
+  "window_past": "Möödunud periood",
+  "window_back_to_now": "Tagasi praegusesse",
+  "window_swipe_hint": "Libista graafikut külgsuunas, et näha varasemat või hilisemat perioodi."
 }

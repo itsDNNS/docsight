@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
 
-from app.time_ranges import parse_time_range_hours
+from app.time_ranges import parse_time_range_hours, parse_window_end
 from app.web_auth import require_auth
 
 log = logging.getLogger("docsis.web")
@@ -52,7 +52,7 @@ def _format_error_count(value) -> str:
 data_bp = Blueprint("data_bp", __name__)
 
 
-def _append_connection_monitor_trends(data: list[dict], hours: int) -> None:
+def _append_connection_monitor_trends(data: list[dict], hours: int, end: datetime) -> None:
     """Add Connection Monitor latency samples for home-card sparklines.
 
     The dashboard sparkline renderer consumes /api/trends generically via
@@ -83,11 +83,12 @@ def _append_connection_monitor_trends(data: list[dict], hours: int) -> None:
         if hours > 24:
             return
 
-        start_ts = datetime.now(timezone.utc).timestamp() - hours * 3600
+        end_ts = end.timestamp()
+        start_ts = end_ts - hours * 3600
         buckets: dict[int, list[float]] = defaultdict(list)
         for target in enabled_targets:
             samples = [
-                sample for sample in storage.get_samples(target["id"], start=start_ts, limit=0)
+                sample for sample in storage.get_samples(target["id"], start=start_ts, end=end_ts, limit=0)
                 if not sample.get("timeout") and sample.get("latency_ms") is not None
             ]
             for sample in samples:
@@ -112,12 +113,11 @@ def _append_connection_monitor_trends(data: list[dict], hours: int) -> None:
         log.debug("Unable to append Connection Monitor trend data", exc_info=True)
 
 
-def _append_speedtest_trends(data: list[dict], db_path: str, hours: int) -> None:
+def _append_speedtest_trends(data: list[dict], db_path: str, hours: int, end: datetime) -> None:
     """Add Speedtest download/upload rows for dashboard sparklines."""
     try:
         from app.modules.speedtest.storage import SpeedtestStorage
 
-        end = datetime.now(timezone.utc)
         start = end - timedelta(hours=hours)
         storage = SpeedtestStorage(db_path)
         for row in storage.get_speedtest_in_range(
@@ -132,6 +132,9 @@ def _append_speedtest_trends(data: list[dict], db_path: str, hours: int) -> None
             })
     except Exception:
         log.debug("Unable to append Speedtest trend data", exc_info=True)
+
+
+_UTC_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 @data_bp.route("/api/trends/signal")
@@ -155,13 +158,15 @@ def api_trends():
     Supports the normalized UI ranges (1h, 6h, 1d, 2d, 3d, 7d, 30d, 90d)
     plus the legacy day/week/month names for backwards compatibility.
     The date query parameter anchors only legacy day/week/month requests;
-    normalized ranges are rolling windows ending at the current snapshot time.
+    normalized ranges are rolling windows ending now, or at ``end`` (local
+    wall-clock time) for a window in the past.
     """
     _storage = current_runtime().storage
     if not _storage:
         return jsonify([])
     range_type = (request.args.get("range", "1d") or "1d").strip().lower()
     date_str = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
+    tz_name = get_tz_name(current_runtime().config_manager)
 
     hours = parse_time_range_hours(range_type, default="1d", allow_legacy=True)
     if hours is None:
@@ -183,11 +188,19 @@ def api_trends():
         start = (ref_date - timedelta(days=29)).strftime("%Y-%m-%d")
         data = _storage.get_summary_range(start, date_str)
     else:
-        data = _storage.get_summary_since(hours)
-        _append_speedtest_trends(data, _storage.db_path, hours)
-        _append_connection_monitor_trends(data, hours)
+        end = parse_window_end(request.args.get("end"), tz_name)
+        if end is False:
+            return jsonify({"error": "end must be YYYY-MM-DDTHH:MM[:SS]"}), 400
+        if end is None:
+            data = _storage.get_summary_since(hours)
+            end = datetime.now(timezone.utc)
+        else:
+            start = end - timedelta(hours=hours)
+            data = _storage.get_summary_between(start.strftime(_UTC_FMT), end.strftime(_UTC_FMT))
+        _append_speedtest_trends(data, _storage.db_path, hours, end)
+        _append_connection_monitor_trends(data, hours, end)
         data.sort(key=lambda row: row.get("timestamp") or "")
-    localize_timestamps(data, get_tz_name(current_runtime().config_manager))
+    localize_timestamps(data, tz_name)
     return jsonify(data)
 
 

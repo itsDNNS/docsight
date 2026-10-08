@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signal {time}",
   "snapshot_added_to_case": "Dagen för ögonblicksbilden tillagd i ”{case}”",
   "snapshot_error": "Ögonblicksbilden för den här punkten kunde inte läsas in.",
-  "chart_gap_no_data": "Inga data"
+  "chart_gap_no_data": "Inga data",
+  "window_earlier": "Föregående period",
+  "window_later": "Nästa period",
+  "window_past": "Tidigare period",
+  "window_back_to_now": "Tillbaka till nu",
+  "window_swipe_hint": "Svep åt sidan över ett diagram för en tidigare eller senare period."
 }

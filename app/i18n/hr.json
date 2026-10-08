@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signal {time}",
   "snapshot_added_to_case": "Dan snimke dodan u „{case}”",
   "snapshot_error": "Snimku za ovu točku nije moguće učitati.",
-  "chart_gap_no_data": "Nema podataka"
+  "chart_gap_no_data": "Nema podataka",
+  "window_earlier": "Prethodno razdoblje",
+  "window_later": "Sljedeće razdoblje",
+  "window_past": "Prošlo razdoblje",
+  "window_back_to_now": "Natrag na sada",
+  "window_swipe_hint": "Povucite grafikon u stranu za ranije ili kasnije razdoblje."
 }

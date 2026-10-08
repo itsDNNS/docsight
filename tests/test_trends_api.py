@@ -96,6 +96,77 @@ class TestTrendsRangeEndpoint:
         assert len(data) == 1
         assert data[0]["ds_power_avg"] == 2.0
 
+    def test_end_moves_the_window_into_the_past(self, client):
+        flask_client, storage = client
+        current_runtime().config_manager.save({"timezone": "Europe/Berlin"})
+        _insert_snapshot(storage, _analysis(1.0), "2026-10-03T08:00:00Z")
+        _insert_snapshot(storage, _analysis(2.0), "2026-10-03T17:30:00Z")
+        _insert_snapshot(storage, _analysis(3.0), "2026-10-03T18:30:00Z")
+        _insert_snapshot(storage, _analysis(4.0), _utc_ts(timedelta(minutes=20)))
+
+        # 20:00 in Berlin is 18:00 UTC; 6h back reaches 12:00 UTC.
+        resp = flask_client.get("/api/trends?range=6h&end=2026-10-03T20:00")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert [row["ds_power_avg"] for row in data] == [2.0]
+        assert data[0]["timestamp"] == "2026-10-03T19:30:00"
+
+    def test_error_counters_in_a_past_window_unwrap_from_earlier_history(self, client):
+        flask_client, storage = client
+        current_runtime().config_manager.save({"timezone": "UTC"})
+        _insert_snapshot(storage, _analysis(1.0, ds_correctable_errors=4_294_495_351, ds_uncorrectable_errors=0),
+                         "2026-10-02T10:00:00Z")
+        _insert_snapshot(storage, _analysis(2.0, ds_correctable_errors=692_254, ds_uncorrectable_errors=0),
+                         "2026-10-03T10:00:00Z")
+
+        resp = flask_client.get("/api/trends?range=1h&end=2026-10-03T10:30")
+
+        assert [row["ds_correctable_errors"] for row in resp.json] == [4_295_659_550]
+
+    def test_an_end_that_is_not_in_the_past_means_now(self, client):
+        flask_client, storage = client
+        current_runtime().config_manager.save({"timezone": "UTC"})
+        _insert_snapshot(storage, _analysis(2.0), _utc_ts(timedelta(minutes=20)))
+        later = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M")
+
+        resp = flask_client.get(f"/api/trends?range=1h&end={later}")
+
+        assert [row["ds_power_avg"] for row in resp.json] == [2.0]
+
+    def test_an_unreadable_end_is_rejected(self, client):
+        flask_client, storage = client
+
+        resp = flask_client.get("/api/trends?range=1d&end=yesterday")
+
+        assert resp.status_code == 400
+
+    def test_sparkline_extras_follow_a_past_window(self, client):
+        flask_client, storage = client
+        current_runtime().config_manager.save({"timezone": "UTC"})
+        _insert_snapshot(storage, _analysis(2.0), "2026-10-03T09:40:00Z")
+        SpeedtestStorage(storage.db_path).save_speedtest_results([
+            {"id": 1, "timestamp": "2026-10-03T09:45:00Z", "download_mbps": 500.0, "upload_mbps": 50.0,
+             "download_human": "500 Mbps", "upload_human": "50 Mbps", "ping_ms": 10.0, "jitter_ms": 1.0,
+             "packet_loss_pct": 0.0},
+            {"id": 2, "timestamp": _utc_ts(timedelta(minutes=5)), "download_mbps": 800.0, "upload_mbps": 60.0,
+             "download_human": "800 Mbps", "upload_human": "60 Mbps", "ping_ms": 10.0, "jitter_ms": 1.0,
+             "packet_loss_pct": 0.0},
+        ])
+        cm_storage = ConnectionMonitorStorage(str(Path(current_runtime().config_manager.data_dir) / "connection_monitor.db"))
+        target_id = cm_storage.create_target("Gateway", "192.0.2.1", enabled=True)
+        past = int(datetime(2026, 10, 3, 9, 50, tzinfo=timezone.utc).timestamp())
+        recent = int((datetime.now(timezone.utc) - timedelta(minutes=5)).timestamp() // 60) * 60
+        cm_storage.save_samples([
+            {"target_id": target_id, "timestamp": past, "latency_ms": 18.0, "timeout": False, "probe_method": "icmp"},
+            {"target_id": target_id, "timestamp": recent, "latency_ms": 30.0, "timeout": False, "probe_method": "icmp"},
+        ])
+
+        data = flask_client.get("/api/trends?range=1h&end=2026-10-03T10:00").json
+
+        assert [row["speedtest_download"] for row in data if row.get("source") == "speedtest"] == [500.0]
+        assert [row["connection_monitor_latency_ms"] for row in data if row.get("source") == "connection_monitor"] == [18.0]
+
     def test_legacy_trend_ranges_still_work(self, client):
         flask_client, storage = client
         storage.save_snapshot(_analysis(2.0))

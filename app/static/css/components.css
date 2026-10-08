@@ -1189,3 +1189,28 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   .snapshot-panel-icon { width: 44px; height: 44px; }
   .snapshot-panel-foot .btn { min-height: 44px; }
 }
+
+/* ── Window shift: arrows around a range picker, and the line for a window in the past ── */
+.window-shift {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 6px);
+  min-width: 0;
+}
+.window-shift-step { padding: 0; width: 36px; flex: none; }
+.window-past {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs, 6px) var(--space-sm, 8px);
+  margin: calc(-1 * var(--space-sm, 8px)) 0 var(--space-md, 16px);
+}
+.window-past[hidden], .window-shift-hint[hidden] { display: none; }
+.window-past-range { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.window-shift-hint { margin: 0 0 var(--space-sm, 8px); color: var(--text-secondary); font-size: var(--fs-min); }
+@media (max-width: 768px) {
+  .window-shift { width: 100%; }
+  .window-shift .segmented { flex: 1; min-width: 0; }
+  .window-shift-step { width: 44px; }
+  .window-past-range { font-size: 0.875rem; }
+}
