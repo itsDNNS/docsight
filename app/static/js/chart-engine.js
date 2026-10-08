@@ -1031,7 +1031,14 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     var axes = [
         {
             scale: 'x',
-            splits: function() { return xSplits; },
+            splits: function(u, axisIdx, scaleMin, scaleMax) {
+                // A zoomed time axis labels what is in view.
+                if (timeSeries && zoomable && u._zoomRange) {
+                    return buildTimeSplits(xData, labels, [scaleMin, scaleMax],
+                        Math.max(u.bbox.width / (window.devicePixelRatio || 1), 1), estimateLongestLabelWidth(labels, 40));
+                }
+                return xSplits;
+            },
             values: function(u, vals) {
                 if (opts && opts.xValueCallback) return vals.map(function(v) { return opts.xValueCallback(v); });
                 return vals.map(function(v) { return xLabelMap[v] || ''; });

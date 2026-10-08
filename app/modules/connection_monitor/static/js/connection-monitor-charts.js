@@ -3,7 +3,7 @@
  * All targets overlaid in one chart with threshold zones and packet loss markers.
  * Uses renderChart() from chart-engine.js with custom loss markers plugin.
  */
-/* global renderChart, charts, bandPlugin */
+/* global renderChart, charts, bandPlugin, chartXRange */
 var CMCharts = (function() {
     'use strict';
 
@@ -60,6 +60,7 @@ var CMCharts = (function() {
     /**
      * uPlot plugin: drag-to-zoom on X-axis, double-click to reset.
      * Requires zoomable:true in renderChart opts (disables fixed x-scale range).
+     * The x-axis is time, so a reset returns to the full data range.
      */
     function zoomPlugin() {
         function showResetBtn(u) {
@@ -70,7 +71,7 @@ var CMCharts = (function() {
             btn.className = 'chart-zoom-reset';
             btn.onclick = function() {
                 u._zoomRange = null;
-                u.setScale('x', { min: 0, max: u.data[0].length - 1 });
+                u.setScale('x', chartXRange(u));
                 btn.style.display = 'none';
             };
             u.root.style.position = 'relative';
@@ -90,14 +91,15 @@ var CMCharts = (function() {
                 ready: [function(u) {
                     u.over.addEventListener('dblclick', function() {
                         u._zoomRange = null;
-                        u.setScale('x', { min: 0, max: u.data[0].length - 1 });
+                        u.setScale('x', chartXRange(u));
                         hideResetBtn(u);
                     });
                 }],
                 setSelect: [function(u) {
                     var min = u.posToVal(u.select.left, 'x');
                     var max = u.posToVal(u.select.left + u.select.width, 'x');
-                    if (max - min > 1) {
+                    // A drag of a few pixels is a click, not a zoom.
+                    if (u.select.width > 4) {
                         u._zoomRange = { min: min, max: max };
                         u.setScale('x', u._zoomRange);
                         showResetBtn(u);
@@ -109,11 +111,11 @@ var CMCharts = (function() {
     }
 
     /**
-     * uPlot plugin: draw red vertical lines at packet loss indices.
+     * uPlot plugin: draw red vertical lines at the times of packet loss.
      * Uses 'draw' hook so lines render ON TOP of series (like PingPlotter).
      */
-    function lossMarkersPlugin(lossIndices) {
-        if (!lossIndices || lossIndices.length === 0) return {};
+    function lossMarkersPlugin(lossTimes) {
+        if (!lossTimes || lossTimes.length === 0) return {};
         return {
             hooks: {
                 draw: [function(u) {
@@ -125,8 +127,8 @@ var CMCharts = (function() {
                     ctx.clip();
                     ctx.strokeStyle = 'rgba(239,68,68,0.7)';
                     ctx.lineWidth = 1.5 * dpr;
-                    for (var i = 0; i < lossIndices.length; i++) {
-                        var x = u.valToPos(lossIndices[i], 'x', true);
+                    for (var i = 0; i < lossTimes.length; i++) {
+                        var x = u.valToPos(lossTimes[i], 'x', true);
                         if (x >= u.bbox.left && x <= u.bbox.left + u.bbox.width) {
                             ctx.beginPath();
                             ctx.moveTo(x, u.bbox.top);
@@ -158,7 +160,7 @@ var CMCharts = (function() {
                     for (var i = 0; i < spikes.length; i++) {
                         var series = u.series[spikes[i].seriesIdx];
                         if (series && series.show === false) continue;  // target hidden via legend
-                        var x = u.valToPos(spikes[i].index, 'x', true);
+                        var x = u.valToPos(spikes[i].time, 'x', true);
                         if (x < u.bbox.left || x > u.bbox.left + u.bbox.width) continue;
                         ctx.fillStyle = spikes[i].color;
                         ctx.beginPath();
@@ -235,10 +237,6 @@ var CMCharts = (function() {
         var timestamps = Object.keys(timeMap).map(Number).sort(function(a, b) { return a - b; });
         if (timestamps.length === 0) return;
 
-        // Build index lookup
-        var tsIndex = {};
-        for (var i = 0; i < timestamps.length; i++) tsIndex[timestamps[i]] = i;
-
         var rangeSeconds = timestamps[timestamps.length - 1] - timestamps[0];
         var axisRange;
         if (range !== undefined && range !== null) {
@@ -260,7 +258,7 @@ var CMCharts = (function() {
             var sampleMap = {};
             td.samples.forEach(function(s) {
                 sampleMap[s.timestamp] = s;
-                if (lossPctOf(s) > 0) lossSet[tsIndex[s.timestamp]] = true;
+                if (lossPctOf(s) > 0) lossSet[s.timestamp] = true;
             });
             var data = new Array(timestamps.length);
             var minData = new Array(timestamps.length);
@@ -303,7 +301,7 @@ var CMCharts = (function() {
             }
         });
 
-        var lossIndices = Object.keys(lossSet).map(Number).sort(function(a, b) { return a - b; });
+        var lossTimes = Object.keys(lossSet).map(Number).sort(function(a, b) { return a - b; });
 
         var yMax = latencyAxisMax(lineValues, peak, showSpikes);
 
@@ -314,7 +312,7 @@ var CMCharts = (function() {
                 var v = t.data[i];
                 if (v == null) continue;
                 var high = t.maxData[i] != null ? Math.max(v, t.maxData[i]) : v;
-                if (high > yMax) spikes.push({ index: i, color: t.color, seriesIdx: t.seriesIdx });
+                if (high > yMax) spikes.push({ time: timestamps[i], color: t.color, seriesIdx: t.seriesIdx });
             }
         });
 
@@ -328,6 +326,8 @@ var CMCharts = (function() {
         ];
 
         renderChart(containerId, labels, datasets, 'line', zones, {
+            // Points by time, so a pause in the monitoring shows as a gap.
+            times: timestamps,
             yMin: 0,
             // Fixed range: chart-engine would otherwise grow the axis to the highest point.
             scales: { y: { range: function() { return [0, yMax]; } } },
@@ -342,7 +342,7 @@ var CMCharts = (function() {
                 if (val == null) return '';
                 return ctx.dataset.label + ': ' + val.toFixed(1) + ' ms';
             },
-            plugins: [lossMarkersPlugin(lossIndices), spikeMarkersPlugin(spikes), zoomPlugin()].concat(bandPlugins)
+            plugins: [lossMarkersPlugin(lossTimes), spikeMarkersPlugin(spikes), zoomPlugin()].concat(bandPlugins)
         });
         syncSpikeToggle(spikes.length > 0);
     }
