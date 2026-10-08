@@ -9,16 +9,40 @@ import re
 
 import pytest
 from playwright.sync_api import expect
+from tests.e2e.support.correlation import wait_for_correlation
 from tests.e2e.support.navigation import open_view
 
 
 # ── Helpers ──
 
 
+def wait_for_segment_load(page):
+    """Wait until the view shows data or a message, and its saturation events have loaded.
+
+    Opening the view or picking a range hides the content and starts a new load
+    in the same click, so an earlier load cannot satisfy this.
+    """
+    page.wait_for_function(
+        """() => {
+            if (!document.getElementById('fritz-cable-message').hidden) return true;
+            if (document.getElementById('fritz-cable-content').hidden) return false;
+            // With events, the list is shown and the status hidden (it keeps its loading class).
+            const list = document.getElementById('fritz-cable-events-list');
+            const status = document.getElementById('fritz-cable-events-status');
+            return list.style.display !== 'none' || !status.classList.contains('is-loading');
+        }"""
+    )
+
+
 def navigate_to_segment(page):
     """Switch to Segment Utilization view and wait for data to load."""
     open_view(page, "segment-utilization")
-    page.wait_for_timeout(2000)
+    wait_for_segment_load(page)
+
+
+def select_segment_range(page, value):
+    page.locator(f'#fritz-cable-range-tabs .segmented-option[data-range="{value}"]').click()
+    wait_for_segment_load(page)
 
 
 def wait_for_content(page, timeout=5000):
@@ -57,9 +81,7 @@ class TestSegmentNavigation:
     def test_view_hidden_when_on_other_tab(self, fritzbox_page):
         """Segment view should be hidden when another tab is active."""
         open_view(fritzbox_page, "live")
-        fritzbox_page.wait_for_timeout(300)
-        view = fritzbox_page.locator("#view-segment-utilization")
-        assert not view.is_visible()
+        expect(fritzbox_page.locator("#view-segment-utilization")).to_be_hidden()
 
 
 # ── Skeleton & Loading ──
@@ -216,8 +238,7 @@ class TestSegmentRangeTabs:
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
         tab = fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="24h"]')
-        tab.click()
-        fritzbox_page.wait_for_timeout(2000)
+        select_segment_range(fritzbox_page, "24h")
         assert "active" in tab.get_attribute("class")
         # Charts should still be rendered
         canvases = fritzbox_page.locator("#fritz-cable-ds-chart .uplot canvas").count()
@@ -228,8 +249,7 @@ class TestSegmentRangeTabs:
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
         tab = fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="7d"]')
-        tab.click()
-        fritzbox_page.wait_for_timeout(2000)
+        select_segment_range(fritzbox_page, "7d")
         assert "active" in tab.get_attribute("class")
         # The range stays in the URL and survives a reload.
         expect(fritzbox_page).to_have_url(re.compile(r"#segment-utilization\?range=7d$"))
@@ -242,16 +262,14 @@ class TestSegmentRangeTabs:
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
         tab = fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="30d"]')
-        tab.click()
-        fritzbox_page.wait_for_timeout(2000)
+        select_segment_range(fritzbox_page, "30d")
         assert "active" in tab.get_attribute("class")
 
     def test_only_one_tab_active_at_a_time(self, fritzbox_page):
         """Only one range tab should be active at any time."""
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
-        fritzbox_page.locator('#fritz-cable-range-tabs .segmented-option[data-range="24h"]').click()
-        fritzbox_page.wait_for_timeout(1000)
+        select_segment_range(fritzbox_page, "24h")
         active_tabs = fritzbox_page.locator("#fritz-cable-range-tabs .segmented-option.active")
         assert active_tabs.count() == 1, f"Expected 1 active tab, got {active_tabs.count()}"
 
@@ -376,7 +394,6 @@ class TestSegmentTheme:
     def test_charts_render_in_dark_mode(self, fritzbox_page):
         """Charts should render in dark mode."""
         fritzbox_page.evaluate("document.documentElement.setAttribute('data-theme', 'dark')")
-        fritzbox_page.wait_for_timeout(200)
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
         fritzbox_page.wait_for_selector("#fritz-cable-ds-chart .uplot", timeout=5000)
@@ -386,7 +403,6 @@ class TestSegmentTheme:
     def test_charts_render_in_light_mode(self, fritzbox_page):
         """Charts should render in light mode."""
         fritzbox_page.evaluate("document.documentElement.setAttribute('data-theme', 'light')")
-        fritzbox_page.wait_for_timeout(200)
         navigate_to_segment(fritzbox_page)
         wait_for_content(fritzbox_page)
         fritzbox_page.wait_for_selector("#fritz-cable-ds-chart .uplot", timeout=5000)
@@ -405,23 +421,20 @@ class TestSegmentCorrelation:
     def test_correlation_view_loads_for_fritzbox(self, fritzbox_page):
         """Correlation view should load without errors for FritzBox."""
         open_view(fritzbox_page, "correlation")
-        fritzbox_page.wait_for_timeout(2000)
+        wait_for_correlation(fritzbox_page)
         view = fritzbox_page.locator("#view-correlation")
         assert view.is_visible()
 
     def test_correlation_legend_has_segment_entries(self, fritzbox_page):
         """Correlation legend should include Segment DS/US entries."""
         open_view(fritzbox_page, "correlation")
-        fritzbox_page.wait_for_timeout(3000)
-        legend = fritzbox_page.locator("#correlation-legend, .correlation-legend")
-        if legend.count() > 0:
-            text = legend.text_content()
-            assert "Segment" in text, f"Legend should mention Segment, got: {text}"
+        wait_for_correlation(fritzbox_page)
+        expect(fritzbox_page.locator("#correlation-legend")).to_contain_text("Segment")
 
     def test_correlation_shows_the_signal_state_lane_and_line_metrics_have_no_area_fill(self, fritzbox_page):
         """The signal state lane starts enabled and isolated line metrics render without area fills."""
         open_view(fritzbox_page, "correlation")
-        fritzbox_page.wait_for_timeout(3000)
+        wait_for_correlation(fritzbox_page)
 
         signal_state = fritzbox_page.locator('#correlation-legend span[data-metric="signalState"]')
         assert signal_state.count() == 1
@@ -479,7 +492,7 @@ class TestSegmentCorrelation:
         errors = []
         fritzbox_page.on("pageerror", lambda err: errors.append(str(err)))
         open_view(fritzbox_page, "correlation")
-        fritzbox_page.wait_for_timeout(3000)
+        wait_for_correlation(fritzbox_page)
 
         overlay = fritzbox_page.locator("canvas#correlation-overlay")
         box = overlay.bounding_box()
@@ -527,14 +540,10 @@ class TestSegmentCorrelation:
         fritzbox_page.mouse.move(
             box["x"] + modem_point["x"], box["y"] + box["height"] * 0.45
         )
-        fritzbox_page.wait_for_timeout(400)
 
-        tooltip = fritzbox_page.locator("#correlation-tooltip")
-        assert tooltip.is_visible(), "Correlation tooltip should appear on hover"
-
-        assert modem_row.evaluate("el => el.classList.contains('corr-highlight')"), (
-            "Unified timeline should highlight the hovered modem transition row"
-        )
+        expect(fritzbox_page.locator("#correlation-tooltip")).to_be_visible()
+        # The unified timeline highlights the hovered modem transition row.
+        expect(modem_row).to_have_class(re.compile(r"\bcorr-highlight\b"))
 
         hover_errors = [e for e in errors if "hoverT" in e or "undefined" in e.lower()]
         assert len(hover_errors) == 0, f"Correlation hover should not raise JS errors: {hover_errors}"
@@ -595,10 +604,8 @@ class TestSegmentHashNavigation:
     def test_direct_hash_loads_segment_view(self, page, fritzbox_server):
         """Navigating to /#segment-utilization should show the segment tab."""
         page.goto(f"{fritzbox_server}/#segment-utilization")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2000)
-        view = page.locator("#view-segment-utilization")
-        assert view.is_visible()
+        wait_for_segment_load(page)
+        expect(page.locator("#view-segment-utilization")).to_be_visible()
 
     def test_direct_hash_loads_data(self, page, fritzbox_server):
         """Direct hash navigation should load and display chart data."""
@@ -620,7 +627,6 @@ class TestSegmentNoJSErrors:
         errors = []
         fritzbox_page.on("pageerror", lambda err: errors.append(str(err)))
         navigate_to_segment(fritzbox_page)
-        fritzbox_page.wait_for_timeout(3000)
         assert len(errors) == 0, f"JS errors on segment load: {errors}"
 
     def test_no_errors_on_range_switch(self, fritzbox_page):
@@ -630,8 +636,7 @@ class TestSegmentNoJSErrors:
         errors = []
         fritzbox_page.on("pageerror", lambda err: errors.append(str(err)))
         for rng in ["24h", "7d", "30d", "all"]:
-            fritzbox_page.locator(f'#fritz-cable-range-tabs .segmented-option[data-range="{rng}"]').click()
-            fritzbox_page.wait_for_timeout(1500)
+            select_segment_range(fritzbox_page, rng)
         assert len(errors) == 0, f"JS errors on range switch: {errors}"
 
     def test_no_errors_on_view_switching(self, fritzbox_page):
@@ -639,11 +644,9 @@ class TestSegmentNoJSErrors:
         errors = []
         fritzbox_page.on("pageerror", lambda err: errors.append(str(err)))
         navigate_to_segment(fritzbox_page)
-        fritzbox_page.wait_for_timeout(1500)
         open_view(fritzbox_page, "live")
-        fritzbox_page.wait_for_timeout(500)
+        expect(fritzbox_page.locator("#view-segment-utilization")).to_be_hidden()
         navigate_to_segment(fritzbox_page)
-        fritzbox_page.wait_for_timeout(1500)
         assert len(errors) == 0, f"JS errors on view switching: {errors}"
 
 
