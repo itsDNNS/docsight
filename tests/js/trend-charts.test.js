@@ -203,3 +203,23 @@ test('a single point on a time axis stays in view as a dot with its label', () =
     assert.deepEqual(Array.from(chart.options.axes[0].splits()), [1791440580]);
     assert.equal(chart.options.series[1].points.show, true);
 });
+
+test('a zoom survives a redraw of the same data but not a window it no longer covers', () => {
+    const e = engine();
+    const scales = [];
+    e.uPlot.prototype.setScale = function(key, range) { scales.push(range); };
+    e.requestAnimationFrame = fn => fn();
+    const times = [1000, 1060, 1120, 1180, 1240];
+    const draw = (t) => e.renderChart('chart', t.map(String), [{label: 'x', data: [1, 2, 3, 4, 5]}], null, null, {times: t, zoomable: true});
+    draw(times);
+    e.charts.chart._zoomRange = {min: 1060, max: 1180};
+    draw(times);
+    assert.deepEqual(e.charts.chart._zoomRange, {min: 1060, max: 1180});
+    // The refresh moves a window that ends now a little; the zoom still overlaps it.
+    e.charts.chart._zoomRange = {min: 1000, max: 1120};
+    draw(times.map(t => t + 60));
+    assert.deepEqual(e.charts.chart._zoomRange, {min: 1000, max: 1120});
+    draw(times.map(t => t - 86400));
+    assert.equal(e.charts.chart._zoomRange, undefined);
+    assert.equal(scales.length, 2);
+});

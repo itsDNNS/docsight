@@ -1161,8 +1161,9 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     chart._docsightParams = params;
     chart._docsightOriginal = timeSeries ? timeSeries.original : null;
 
-    /* Restore zoom state from previous chart instance (survives destroy/recreate) */
-    if (savedZoom && zoomable) {
+    /* Restore zoom state from previous chart instance (survives destroy/recreate),
+       unless the new data no longer reaches it, e.g. after moving the window. */
+    if (savedZoom && zoomable && xData.length && savedZoom.max > xData[0] && savedZoom.min < xData[xData.length - 1]) {
         chart._zoomRange = savedZoom;
         chart.setScale('x', savedZoom);
     }

@@ -2,7 +2,7 @@
  * Connection Monitor Detail View - PingPlotter-style
  * Fetches all targets in parallel, renders combined chart with zones + loss markers.
  */
-/* global CMCharts */
+/* global CMCharts, DOCSightWindowShift */
 (function() {
     'use strict';
 
@@ -11,10 +11,30 @@
     var refreshTimer = null;
     var lastResolution = 'raw';
     var pinnedDayView = null; // { date: 'YYYY-MM-DD', start: epoch, end: epoch } when viewing a pinned day
+    var cmWindow = null; // the arrows next to the range tabs; created in init()
+
+    // End of the shown window in epoch seconds: now, or the past end the arrows moved to.
+    function windowEnd() {
+        var end = cmWindow && cmWindow.param();
+        return end ? DOCSightWindowShift.fromParam(end) / 1000 : Date.now() / 1000;
+    }
+
+    function inPastWindow() {
+        return !!(cmWindow && cmWindow.param());
+    }
+
+    function writeViewState() {
+        var tab = document.querySelector('#cm-range-tabs .segmented-option.active');
+        docsightWriteViewState('connection-monitor', {
+            range: tab ? tab.textContent.trim() : null,
+            end: cmWindow ? cmWindow.param() : null
+        });
+    }
 
     function updateRefreshInterval() {
         if (refreshTimer) clearInterval(refreshTimer);
-        if (pinnedDayView) return; // no auto-refresh for pinned day views
+        // Pinned days and windows in the past do not change; only "now" refreshes.
+        if (pinnedDayView || inPastWindow()) return;
         var interval = currentRange <= 86400 ? 10000 : 60000;
         refreshTimer = setInterval(function() {
             var view = document.getElementById('cm-detail-view');
@@ -32,16 +52,18 @@
     window.cmRangeTabSelected = function() {
         var tab = document.querySelector('#cm-range-tabs .segmented-option.active');
         if (!tab) return;
-        docsightWriteViewState('connection-monitor', {range: tab.textContent.trim()});
+        writeViewState();
         window.cmSetRange(tab, Number(tab.getAttribute('data-cm-range')));
     };
 
-    /* "#connection-monitor?range=7d" opens the monitor with that range. */
+    /* "#connection-monitor?range=7d&end=2026-10-05T20:00" opens the monitor with that window. */
     function applyRangeFromUrl() {
-        var range = docsightReadViewState('connection-monitor').range;
+        var state = docsightReadViewState('connection-monitor');
+        var range = state.range;
         var tab = Array.prototype.find.call(document.querySelectorAll('#cm-range-tabs .segmented-option'), function(b) {
             return b.textContent.trim() === range;
         });
+        if (cmWindow) cmWindow.restore(state.end);
         if (!tab) return;
         currentRange = Number(tab.getAttribute('data-cm-range'));
         syncSegments('cm-range-tabs', function(b) { return b === tab; });
@@ -54,6 +76,7 @@
             b.classList.remove('active');
         });
         btn.classList.add('active');
+        if (cmWindow) cmWindow.sync();
         updatePinButton();
         loadData();
         updateRefreshInterval();
@@ -63,8 +86,8 @@
         if (pinnedDayView) {
             return { start: pinnedDayView.start, end: pinnedDayView.end };
         }
-        var now = Date.now() / 1000;
-        return { start: now - currentRange, end: now };
+        var end = windowEnd();
+        return { start: end - currentRange, end: end };
     }
 
     function triggerExport(url) {
@@ -106,7 +129,8 @@
         var label = document.getElementById('cm-pinned-label');
         if (!btn || !bar || !daysContainer) return;
 
-        var showPinAction = currentRange === 86400 && !pinnedDayView;
+        // "Pin this day" pins today, so it only fits the 1d window that ends now.
+        var showPinAction = currentRange === 86400 && !pinnedDayView && !inPastWindow();
         var hasPinnedDays = daysContainer.children.length > 0;
 
         btn.hidden = !showPinAction;
@@ -192,6 +216,9 @@
             start: utcStart,
             end: utcEnd
         };
+        // A pinned day replaces a past window; the arrows start from now again.
+        if (cmWindow) cmWindow.restore(null);
+        writeViewState();
 
         // Deactivate range buttons
         document.querySelectorAll('[data-cm-range]').forEach(function(b) {
@@ -206,6 +233,23 @@
     }
 
     function init() {
+        cmWindow = DOCSightWindowShift.create('cm', {
+            hours: function() { return currentRange / 3600; },
+            onChange: function() {
+                // Stepping from a pinned day goes back to the range tabs.
+                if (pinnedDayView) {
+                    pinnedDayView = null;
+                    syncSegments('cm-range-tabs', function(b) { return Number(b.dataset.cmRange) === currentRange; });
+                    loadPinnedDays();
+                }
+                writeViewState();
+                updatePinButton();
+                loadData();
+                updateRefreshInterval();
+            },
+            swipeArea: document.getElementById('cm-charts-section')
+        });
+
         var pinBtn = document.getElementById('cm-pin-day-btn');
         if (pinBtn) {
             pinBtn.onclick = pinCurrentDay;
@@ -281,17 +325,20 @@
             .catch(function() {});
     }
 
+    var loadSeq = 0;
+
     function loadData() {
         if (targets.length === 0) { showNoData('targets'); return; }
+        // Steps, range clicks and the refresh overlap; only the latest load may draw.
+        var seq = ++loadSeq;
 
-        var now = Date.now() / 1000;
         var start, end;
         if (pinnedDayView) {
             start = pinnedDayView.start;
             end = pinnedDayView.end;
         } else {
-            start = now - currentRange;
-            end = now;
+            end = windowEnd();
+            start = end - currentRange;
         }
         var maxPoints = pinnedDayView ? 0 : getMaxPointsForRange(currentRange);
 
@@ -320,6 +367,7 @@
 
         Promise.all([Promise.all(samplePromises), Promise.all(outagePromises), statsPromise])
             .then(function(results) {
+                if (seq !== loadSeq) return;
                 var allTargetData = results[0];
                 var allOutageData = results[1];
                 var statsByTarget = results[2] || {};
