@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import pytest
 
 from tests.e2e.prefix_proxy import serve_prefix_proxy
+from tests.e2e.support.browser_errors import BrowserErrors
 from tests.e2e.support.application import (
     seed_fritzbox_segment_data,
     serve_server,
@@ -81,6 +82,26 @@ def browser_type_launch_args(browser_type_launch_args):
             "--no-sandbox",
         ],
     }
+
+
+@pytest.fixture(autouse=True)
+def browser_errors(request, monkeypatch):
+    """Fail a test whose pages throw or log a console error.
+
+    Watches every context the test opens, through the `context` fixture or
+    `browser.new_context()`. A test that provokes errors on purpose marks itself
+    with `@pytest.mark.allow_browser_errors(reason)`.
+    """
+    if "browser" not in request.fixturenames:
+        yield None
+        return
+    browser = request.getfixturevalue("browser")
+    collector = BrowserErrors()
+    new_context = browser.new_context
+    monkeypatch.setattr(browser, "new_context", lambda *a, **kw: collector.watch_context(new_context(*a, **kw)))
+    yield collector
+    if collector.errors and not request.node.get_closest_marker("allow_browser_errors"):
+        pytest.fail("Browser errors during the test:\n" + "\n".join(collector.errors), pytrace=False)
 
 
 @pytest.fixture(scope="session")

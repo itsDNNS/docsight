@@ -544,6 +544,7 @@ class TestSignalRefresh:
         assert 'Newest trend marker' in page.locator('#view-dashboard').text_content()
         assert 'Stale trend marker' not in page.locator('#view-dashboard').text_content()
 
+    @pytest.mark.allow_browser_errors("the signal API answers 503 on purpose; the hero chart logs the handled failure")
     def test_refresh_failure_retains_chart_and_modules_still_update(self, page, live_server):
         from tests.e2e.support.signal_trends import start, painted, rows, wait_count, click_refresh, spark_pixels, show_family_sparks
         requests = start(page, live_server)
