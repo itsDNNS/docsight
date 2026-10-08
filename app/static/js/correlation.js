@@ -93,11 +93,10 @@ function _corrSetOverlayActionable(overlay, actionable) {
     else overlay.removeAttribute('tabindex');
 }
 
+// Resolves to {state, targets}; the caller keeps it only if it is still the latest load.
 function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
     if (typeof CORRELATION_CM_AVAILABLE === 'undefined' || !CORRELATION_CM_AVAILABLE) {
-        _corrCmState = 'module_absent';
-        _corrTargetData = [];
-        return Promise.resolve(null);
+        return Promise.resolve({state: 'module_absent', targets: []});
     }
     var boundedPoints = Math.min(1000, Math.max(1, Number(maxPoints) || 300));
     return fetch(docsightUrl('/api/connection-monitor/targets'))
@@ -107,17 +106,9 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
         })
         .catch(function() { return null; })
         .then(function(targets) {
-            if (!targets) {
-                _corrCmState = 'fetch_error';
-                _corrTargetData = [];
-                return null;
-            }
+            if (!targets) return {state: 'fetch_error', targets: []};
             var enabled = targets.filter(function(target) { return !!target.enabled; });
-            if (enabled.length === 0) {
-                _corrCmState = 'targets_absent';
-                _corrTargetData = [];
-                return [];
-            }
+            if (enabled.length === 0) return {state: 'targets_absent', targets: []};
             var requests = enabled.map(function(target) {
                 var url = docsightUrl('/api/connection-monitor/samples/' + target.id
                     + '?start=' + encodeURIComponent(startEpoch)
@@ -135,17 +126,9 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
                     .catch(function() { return null; });
             });
             return Promise.all(requests).then(function(results) {
-                if (results.some(function(result) { return result === null; })) {
-                    _corrCmState = 'fetch_error';
-                    _corrTargetData = [];
-                    return null;
-                }
-                _corrTargetData = results;
+                if (results.some(function(result) { return result === null; })) return {state: 'fetch_error', targets: []};
                 var allSamples = results.reduce(function(total, entry) { return total + entry.samples.length; }, 0);
-                if (allSamples === 0) {
-                    _corrCmState = 'no_samples';
-                    return results;
-                }
+                if (allSamples === 0) return {state: 'no_samples', targets: results};
                 var startMs = startEpoch * 1000;
                 var endMs = endEpoch * 1000;
                 var intersects = results.some(function(entry) {
@@ -154,9 +137,7 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
                         return interval && interval.startMs < endMs && interval.endMs > startMs;
                     });
                 });
-                _corrCmState = intersects ? 'ready' : 'samples_outside_range';
-                if (!intersects) _corrTargetData = [];
-                return results;
+                return intersects ? {state: 'ready', targets: results} : {state: 'samples_outside_range', targets: []};
             });
         });
 }
@@ -223,30 +204,57 @@ function _corrDrawSpeedMarks(ctx, marks, baselineY, colors, visibleMetrics) {
     });
 })();
 
-/* The channel status track follows the selected correlation range. */
-function _corrLoadStatusTrack(range) {
+/* The channel status track follows the selected correlation range and its end. */
+function _corrLoadStatusTrack(range, startMs, endParam) {
     var section = document.getElementById('correlation-status');
     if (!section || !window.DOCSightStatusTrack) return;
-    window.DOCSightStatusTrack.load(document.getElementById('correlation-status-track'), 'range=' + encodeURIComponent(range), {
+    var query = endParam
+        ? 'start=' + encodeURIComponent(DOCSightWindowShift.toParam(startMs) + ':00') + '&end=' + encodeURIComponent(endParam + ':00')
+        : 'range=' + encodeURIComponent(range);
+    window.DOCSightStatusTrack.load(document.getElementById('correlation-status-track'), query, {
         range: range,
         idPrefix: 'correlation-status',
         timelineRange: function() { return range; }
     }).then(function(shown) { section.hidden = !shown; });
 }
 
+// The window ends now unless the arrows (or a swipe) moved it into the past.
+var _corrWindow = DOCSightWindowShift.create('correlation', {
+    hours: function() { return CorrelationData.rangeHours(getPillValue('correlation-tabs')); },
+    onChange: function() {
+        _corrWriteViewState();
+        loadCorrelationData();
+    },
+    swipeArea: document.getElementById('correlation-chart-container'),
+    swipeTarget: '.correlation-overlay'
+});
+
+function _corrWriteViewState() {
+    docsightWriteViewState('correlation', {range: getPillValue('correlation-tabs') || '1d', end: _corrWindow.param()});
+}
+
 /* A range tab was picked: keep it in the URL, then load. */
 function correlationRangeSelected() {
-    docsightWriteViewState('correlation', {range: getPillValue('correlation-tabs') || '1d'});
+    _corrWriteViewState();
+    _corrWindow.sync();
     loadCorrelationData();
 }
 
 function applyCorrelationViewState() {
-    docsightSelectSegment('correlation-tabs', 'data-value', docsightReadViewState('correlation').range);
+    var state = docsightReadViewState('correlation');
+    docsightSelectSegment('correlation-tabs', 'data-value', state.range);
+    _corrWindow.restore(state.end);
 }
 
+var _corrLoadSeq = 0;
+
 function loadCorrelationData() {
+    // Quick steps or range clicks overlap; only the latest request may draw.
+    var seq = ++_corrLoadSeq;
     var hours = CorrelationData.rangeHours(getPillValue('correlation-tabs'));
-    _corrLoadStatusTrack(getPillValue('correlation-tabs') || '1d');
+    var endParam = _corrWindow.param();
+    var now = new Date(endParam ? DOCSightWindowShift.fromParam(endParam) : Date.now());
+    _corrLoadStatusTrack(getPillValue('correlation-tabs') || '1d', now.getTime() - parseInt(hours) * 3600000, endParam);
 
     var loading = document.getElementById('correlation-loading');
     var noData = document.getElementById('correlation-no-data');
@@ -261,7 +269,6 @@ function loadCorrelationData() {
     tableCard.hidden = true;
 
     /* Calculate time range for weather fetch */
-    var now = new Date();
     var wEnd = now.toISOString().substring(0, 19) + 'Z';
     var wStart = new Date(now.getTime() - parseInt(hours) * 3600000).toISOString().substring(0, 19) + 'Z';
     var startEpoch = Math.floor(new Date(wStart).getTime() / 1000);
@@ -272,16 +279,17 @@ function loadCorrelationData() {
     var segmentUrl = docsightUrl('/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd));
 
     Promise.all([
-        fetch(docsightUrl('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture')).then(function(r) { return r.json(); }),
+        fetch(docsightUrl('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture' + (endParam ? '&end=' + encodeURIComponent(endParam) : ''))).then(function(r) { return r.json(); }),
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         fetch(segmentUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         _corrFetchReachability(startEpoch, endEpoch, 300).catch(function() {
-            _corrCmState = 'fetch_error';
-            _corrTargetData = [];
-            return null;
+            return {state: 'fetch_error', targets: []};
         })
     ]).then(function(results) {
+            if (seq !== _corrLoadSeq) return;
             var data = Array.isArray(results[0]) ? results[0] : [];
+            _corrCmState = results[3].state;
+            _corrTargetData = results[3].targets;
             _corrWeatherData = results[1] || [];
             _corrSegmentData = results[2] || [];
             loading.hidden = true;
@@ -297,6 +305,7 @@ function loadCorrelationData() {
             if (data.length > 0) renderCorrelationTable(data);
         })
         .catch(function() {
+            if (seq !== _corrLoadSeq) return;
             loading.hidden = true;
             DOCSightEmptyState.showError(noData, {retry: loadCorrelationData});
         });

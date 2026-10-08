@@ -36,6 +36,7 @@ var DOCSightWindowShift = (function() {
      * opts.hours(): length of the selected range in hours.
      * opts.onChange(): called after the user moved the window.
      * opts.swipeArea: element whose charts take a horizontal swipe.
+     * opts.swipeTarget: selector of the chart surfaces in it (uPlot plots by default).
      */
     function create(prefix, opts) {
         var earlier = document.getElementById(prefix + '-window-earlier');
@@ -79,11 +80,12 @@ var DOCSightWindowShift = (function() {
         // A quick horizontal swipe steps the window: right for earlier, left for
         // later. Press and hold reads values instead (.is-scrubbing), not a swipe.
         var area = opts.swipeArea;
+        var surface = opts.swipeTarget || '.u-over';
         if (area) {
             var start = null;
             area.addEventListener('touchstart', function(event) {
                 var touch = event.touches.length === 1 ? event.touches[0] : null;
-                start = touch && touch.target.closest && touch.target.closest('.u-over')
+                start = touch && touch.target.closest && touch.target.closest(surface)
                     ? {x: touch.clientX, y: touch.clientY, time: Date.now(), scrub: false} : null;
             }, {passive: true});
             area.addEventListener('touchmove', function() {
