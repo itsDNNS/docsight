@@ -24,7 +24,7 @@ def _get_bnetz_storage():
     if not core_storage:
         return None
     return current_runtime().derived_storage.get(
-        "bnetz", lambda: BnetzStorage(core_storage.db_path)
+        f"bnetz:{core_storage.db_path}", lambda: BnetzStorage(core_storage.db_path)
     )
 
 

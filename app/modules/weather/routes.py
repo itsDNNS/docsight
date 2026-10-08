@@ -17,7 +17,7 @@ def _get_weather_storage():
     if not core_storage:
         return None
     return current_runtime().derived_storage.get(
-        "weather", lambda: WeatherStorage(core_storage.db_path)
+        f"weather:{core_storage.db_path}", lambda: WeatherStorage(core_storage.db_path)
     )
 
 

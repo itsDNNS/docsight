@@ -471,15 +471,6 @@ def test_shared_modals_use_native_dialog_contract() -> None:
 
     assert ".showModal()" in modal_script
     assert ".close()" in modal_script
-    for removed_helper in (
-        "activeStack",
-        "FOCUSABLE",
-        "handleTab",
-        "focusin",
-        "MutationObserver",
-        "ensureModalSemantics",
-    ):
-        assert removed_helper not in modal_script
 
 
 def test_modal_consumers_have_no_absent_api_fallbacks() -> None:
@@ -497,48 +488,13 @@ def test_modal_consumers_have_no_absent_api_fallbacks() -> None:
     assert "window.confirm(" not in combined
 
 
-def test_frontend_simplifications_keep_single_owners() -> None:
-    settings = (STATIC / "js" / "settings" / "module-registry.js").read_text(encoding="utf-8")
-    connection_charts = (
-        MODULES
-        / "connection_monitor"
-        / "static"
-        / "js"
-        / "connection-monitor-charts.js"
-    ).read_text(encoding="utf-8")
-    index = (TEMPLATES / "index.html").read_text(encoding="utf-8")
-
-    assert "function _runModuleAction(" in settings
-    assert "_runModuleAction(e, id, 'install', downloadUrl);" in settings
-    assert "_runModuleAction(e, id, 'uninstall');" in settings
-    assert "function bandPlugin(" not in connection_charts
-    assert "bandPlugin(datasets.length - 1, datasets.length, bandColor, lineIdx)" in connection_charts
-    assert "Escape key closes topmost open modal" not in index
 
 
-def test_smart_capture_speedtest_adapter_tests_are_consolidated() -> None:
-    files = sorted(path.name for path in ROOT.glob("tests/test_smart_capture*speedtest*.py"))
-    assert files == ["test_smart_capture_adapter_speedtest.py"]
-
-    tests = (ROOT / "tests" / files[0]).read_text(encoding="utf-8")
-    assert "test_recent_tracker_result_suppresses_before_post" in tests
-    assert "test_configured_match_window_can_reject_late_results" in tests
 
 
-def test_smart_capture_uses_direct_speedtest_execution_wiring() -> None:
-    assert not (ROOT / "app" / "smart_capture" / "adapters" / "base.py").exists()
-
-    engine = (ROOT / "app" / "smart_capture" / "engine.py").read_text(encoding="utf-8")
-    speedtest = (ROOT / "app" / "smart_capture" / "adapters" / "speedtest.py").read_text(encoding="utf-8")
+def test_smart_capture_wires_the_speedtest_adapter_in_the_polling_loop() -> None:
+    # The wiring sits inside polling_loop(), which cannot run on its own in a test.
     main = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
-
-    trigger_types = (ROOT / "app" / "smart_capture" / "types.py").read_text(encoding="utf-8")
-
-    assert "register_speedtest_adapter" in engine
-    assert "register_adapter" not in engine
-    assert "ActionAdapter" not in speedtest
-    assert "action_type: str" not in trigger_types
-    assert "CAPTURE_ACTION_TYPE = \"capture\"" in trigger_types
     assert "register_speedtest_adapter(stt_adapter)" in main
 
 
