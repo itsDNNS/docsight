@@ -626,6 +626,46 @@ function touchScrubPlugin() {
     }]}};
 }
 
+/* ── Click a point ──
+   A click (not a drag) on the plot reports the point under the cursor, and the
+   chart can mark one point with a vertical line, e.g. while its snapshot is open. */
+function pointClickPlugin(onClick) {
+    return {hooks: {
+        init: [function(u) {
+            var downX = null;
+            u.over.classList.add('is-point-clickable');
+            u.over.addEventListener('mousedown', function(event) { downX = event.clientX; });
+            u.over.addEventListener('click', function(event) {
+                var moved = downX !== null && Math.abs(event.clientX - downX) > 4;
+                downX = null;
+                if (moved || u.cursor.idx == null) return;
+                onClick(u.cursor.idx, u);
+            });
+        }],
+        draw: [function(u) {
+            var idx = u._docsightMarkedIdx;
+            if (idx == null || u.data[0][idx] == null) return;
+            var x = u.valToPos(u.data[0][idx], 'x', true);
+            var ctx = u.ctx;
+            ctx.save();
+            ctx.strokeStyle = docsightThemeColor('--accent', 1);
+            ctx.lineWidth = 2 * (window.devicePixelRatio || 1);
+            ctx.beginPath();
+            ctx.moveTo(x, u.bbox.top);
+            ctx.lineTo(x, u.bbox.top + u.bbox.height);
+            ctx.stroke();
+            ctx.restore();
+        }]
+    }};
+}
+
+function docsightMarkChartPoint(canvasId, idx) {
+    var chart = charts[canvasId];
+    if (!chart) return;
+    chart._docsightMarkedIdx = idx;
+    chart.redraw(false, false);
+}
+
 /* ── Helper: prepare uPlot container from canvas/div element ── */
 function prepareContainer(canvasId) {
     var el = document.getElementById(canvasId);
@@ -912,6 +952,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     }
     /* Plugins */
     var plugins = [tooltipPlugin(labels, tooltipLabelCallback), touchScrubPlugin()];
+    if (opts && opts.onPointClick) plugins.push(pointClickPlugin(opts.onPointClick));
     if (zones) plugins.push(zonesPlugin(zones));
     if (opts && opts.plugins) { opts.plugins.forEach(function(p) { plugins.push(p); }); }
 

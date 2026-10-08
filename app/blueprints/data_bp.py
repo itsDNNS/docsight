@@ -1,6 +1,6 @@
 """Data retrieval routes: trends, export, snapshots."""
 from app.runtime import current_runtime
-from app.tz import localize_timestamps, get_tz_name
+from app.tz import localize_timestamps, get_tz_name, local_to_utc
 import logging
 import os
 from collections import defaultdict
@@ -404,6 +404,43 @@ def api_snapshots():
     if _storage:
         return jsonify(_storage.get_snapshot_list())
     return jsonify([])
+
+
+@data_bp.route("/api/snapshots/at")
+@require_auth
+def api_snapshot_at():
+    """The snapshot nearest to a local time, or the one before or after it.
+
+    ``time`` is wall-clock time in the configured zone, as the charts show it;
+    ``step`` -1 or 1 moves to the previous or next snapshot. The previous
+    snapshot's uncorrectable counter lets the panel show new errors.
+    """
+    storage = current_runtime().storage
+    if not storage:
+        return jsonify({"error": "No storage"}), 500
+    value = (request.args.get("time") or "")[:19]
+    step = request.args.get("step", "0")
+    if step not in ("-1", "0", "1"):
+        return jsonify({"error": "step must be -1, 0 or 1"}), 400
+    try:
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return jsonify({"error": "time must be YYYY-MM-DDTHH:MM:SS"}), 400
+    tz_name = get_tz_name(current_runtime().config_manager)
+    timestamp = storage.get_snapshot_timestamp_near(local_to_utc(value, tz_name), int(step))
+    snapshot = storage.get_snapshot(timestamp) if timestamp else None
+    if not snapshot:
+        return jsonify({"error": "Snapshot not found"}), 404
+    snapshot.pop("raw_data", None)
+    previous = storage.get_snapshot_summary_before(timestamp)
+    payload = {
+        "snapshot": snapshot,
+        "previous_uncorrectable": previous.get("ds_uncorrectable_errors") if previous else None,
+        "has_previous": previous is not None,
+        "has_next": storage.get_snapshot_timestamp_near(timestamp, 1) is not None,
+    }
+    localize_timestamps(snapshot, tz_name)
+    return jsonify(payload)
 
 
 @data_bp.route("/api/snapshots/<path:timestamp>")

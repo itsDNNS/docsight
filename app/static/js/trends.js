@@ -119,26 +119,47 @@ function _renderTrendCharts() {
     if (!data || data.length === 0) return;
     var timestamps = data.map(function(d) { return d.timestamp || ''; });
     var xLabels = docsightFormatXAxisLabels(timestamps, range);
+    // Clicking a point opens the snapshot taken at that time.
+    var chartOpts = function(canvasId, titleId) {
+        var opts = Object.assign({}, tempOpts || {});
+        opts.onPointClick = function(idx) {
+            _openTrendSnapshot(canvasId, idx, timestamps[idx], titleId);
+        };
+        return opts;
+    };
     var tempOpts = (_lastTrendWeather && _lastTrendWeather.length > 0) ? { tempData: _lastTrendWeather } : null;
     renderChart('chart-ds-power', xLabels,
         [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7'}],
-        null, DS_POWER_THRESHOLDS, tempOpts);
+        null, DS_POWER_THRESHOLDS, chartOpts('chart-ds-power', 'chart-ds-power'));
     renderChart('chart-ds-snr', xLabels,
         [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7'}],
-        null, DS_SNR_THRESHOLDS, tempOpts);
+        null, DS_SNR_THRESHOLDS, chartOpts('chart-ds-snr', 'chart-ds-snr'));
     renderChart('chart-us-power', xLabels,
         [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7'}],
-        null, US_POWER_THRESHOLDS, tempOpts);
+        null, US_POWER_THRESHOLDS, chartOpts('chart-us-power', 'chart-us-power'));
     var showErrors = _hasTrendDocsisErrorSeries(data);
     _setTrendErrorsVisible(showErrors);
     if (showErrors) {
         // New uncorrectable errors per interval; the cumulative counter hides when they happened.
         var buckets = docsightErrorBuckets(data, range);
         _setTrendErrorsTitle(docsightErrorBucketMinutes(range));
+        var bucketMinutes = docsightErrorBucketMinutes(range);
         renderChart('chart-errors', docsightFormatXAxisLabels(buckets.map(function(b) { return b.timestamp; }), range), [
             {label: T.uncorrectable, data: buckets.map(function(b) { return b.errors; }), color: docsightThemeColor('--crit', 0.8)}
-        ], 'bar');
+        ], 'bar', null, {onPointClick: function(idx) {
+            // A bar covers an interval; its last snapshot shows what the interval ended with.
+            var end = new Date(Date.parse(buckets[idx].timestamp + 'Z') + (bucketMinutes * 60 - 1) * 1000).toISOString().slice(0, 19);
+            _openTrendSnapshot('chart-errors', idx, end, 'trend-errors-title');
+        }});
     }
+}
+
+function _openTrendSnapshot(canvasId, idx, time, titleId) {
+    if (!time || typeof DOCSightSnapshotPanel === 'undefined') return;
+    var title = document.getElementById(titleId);
+    var card = title && title.closest ? title.closest('.chart-card') : null;
+    var label = card ? card.querySelector('.chart-label') : null;
+    DOCSightSnapshotPanel.open(time, {canvasId: canvasId, index: idx, source: label ? label.textContent.trim() : ''});
 }
 
 function loadTrends(range) {

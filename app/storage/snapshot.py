@@ -167,6 +167,38 @@ class SnapshotMethods:
             ).fetchall()
         return [r[0] for r in rows]
 
+    def get_snapshot_timestamp_near(self, timestamp: str, direction: int = 0) -> str | None:
+        """Timestamp of the snapshot nearest to ``timestamp`` (UTC).
+
+        ``direction`` -1 or 1 asks for the snapshot strictly before or after it instead.
+        """
+        with self._read() as conn:
+            def one(sql):
+                row = conn.execute(sql, (timestamp,)).fetchone()
+                return row[0] if row else None
+
+            before_sql = "SELECT timestamp FROM snapshots WHERE timestamp {} ? ORDER BY timestamp DESC LIMIT 1"
+            after_sql = "SELECT timestamp FROM snapshots WHERE timestamp {} ? ORDER BY timestamp ASC LIMIT 1"
+            if direction < 0:
+                return one(before_sql.format("<"))
+            if direction > 0:
+                return one(after_sql.format(">"))
+            before = one(before_sql.format("<="))
+            after = one(after_sql.format(">="))
+        if before is None or after is None:
+            return before or after
+        target = _parse_utc(timestamp)
+        return before if target - _parse_utc(before) <= _parse_utc(after) - target else after
+
+    def get_snapshot_summary_before(self, timestamp: str) -> dict | None:
+        """Summary of the snapshot just before ``timestamp``, for per-snapshot changes."""
+        with self._read() as conn:
+            row = conn.execute(
+                "SELECT summary_json FROM snapshots WHERE timestamp < ? ORDER BY timestamp DESC LIMIT 1",
+                (timestamp,),
+            ).fetchone()
+        return _normalize_summary_errors(json.loads(row[0])) if row else None
+
     def get_latest_snapshot(self) -> AnalysisResult | None:
         """Load the latest stored snapshot, or None when no baseline exists."""
         with self._read() as conn:

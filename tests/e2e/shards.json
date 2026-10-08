@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 775,
+  "expected_total": 780,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -60,14 +60,15 @@
     },
     {
       "id": 5,
-      "collected_cases": 194,
+      "collected_cases": 199,
       "files": [
         "test_evidence_report_scope.py",
         "test_glossary.py",
         "test_mobile_quality_gate.py",
         "test_module_views.py",
         "test_security.py",
-        "test_settings.py"
+        "test_settings.py",
+        "test_snapshot_panel.py"
       ]
     },
     {
