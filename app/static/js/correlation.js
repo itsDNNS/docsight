@@ -15,6 +15,7 @@ var _corrEventFilter = {};
 var _corrEventSeverityFilter = {};
 var _OPERATIONAL_EVENTS = { monitoring_started: true, monitoring_stopped: true };
 var CorrelationData = window.DOCSightCorrelationData;
+var CorrelationChart = window.DOCSightCorrelationChart;
 function _corrCloseEventPopover() {
     var pop = document.getElementById('corr-event-popover');
     if (!pop) return;
@@ -140,41 +141,6 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
                 return intersects ? {state: 'ready', targets: results} : {state: 'samples_outside_range', targets: []};
             });
         });
-}
-
-function _corrDrawSpeedMarks(ctx, marks, baselineY, colors, visibleMetrics) {
-    if (visibleMetrics.download) {
-        for (var di = 0; di < marks.length; di++) {
-            var mark = marks[di];
-            if (!mark.visible || !mark.hasDownload) continue;
-            ctx.beginPath();
-            ctx.moveTo(mark.downloadX, baselineY);
-            ctx.lineTo(mark.downloadX, mark.downloadY);
-            ctx.strokeStyle = colors.download;
-            ctx.lineWidth = mark.stemWidth;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(mark.downloadX, mark.downloadY, mark.headRadius, 0, Math.PI * 2);
-            ctx.fillStyle = colors.download;
-            ctx.fill();
-        }
-    }
-    if (visibleMetrics.upload) {
-        for (var ui = 0; ui < marks.length; ui++) {
-            var mark = marks[ui];
-            if (!mark.visible || !mark.hasUpload) continue;
-            ctx.beginPath();
-            ctx.moveTo(mark.uploadX, baselineY);
-            ctx.lineTo(mark.uploadX, mark.uploadY);
-            ctx.strokeStyle = colors.upload;
-            ctx.lineWidth = mark.stemWidth;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(mark.uploadX, mark.uploadY, mark.headRadius, 0, Math.PI * 2);
-            ctx.fillStyle = colors.upload;
-            ctx.fill();
-        }
-    }
 }
 
 // Re-render chart when the container gets wider or narrower. The height follows the
@@ -311,16 +277,6 @@ function loadCorrelationData() {
         });
 }
 
-/* Lane heights below the main signal band, in display order. */
-var CORR_LANES = [
-    { key: 'state', height: 10 },
-    { key: 'errors', height: 30 },
-    { key: 'speed', height: 48 },
-    { key: 'segment', height: 34 },
-    { key: 'events', height: 14 },
-    { key: 'reachability', height: 18 }
-];
-
 function renderCorrelationChart(data) {
     _corrCloseEventPopover();
     // Clear pin state when chart is redrawn (legend toggle, zoom, resize)
@@ -328,36 +284,11 @@ function renderCorrelationChart(data) {
     var canvas = document.getElementById('correlation-chart');
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    var rect = canvas.parentElement.getBoundingClientRect();
-    var W = rect.width;
-    var hasLoadedReachability = _corrTargetData.some(function(entry) {
-        var target = CorrelationData.target(entry);
-        return (entry.samples || []).some(function(sample) { return !!CorrelationData.sampleInterval(sample, target); });
+    var W = canvas.parentElement.getBoundingClientRect().width;
+    var prep = CorrelationChart.prepare({
+        data: data, weather: _corrWeatherData, segment: _corrSegmentData, targets: _corrTargetData, visible: _corrVisible
     });
-
-    var modem = data.filter(function(d) { return d.source === 'modem'; });
-    var speedtest = data.filter(function(d) { return d.source === 'speedtest'; });
-    var events = data.filter(function(d) { return d.source === 'event'; });
-    var weather = _corrWeatherData || [];
-    var segment = _corrSegmentData || [];
-    var errorDeltas = CorrelationData.errorDeltas(modem);
-    var hasErrorData = errorDeltas.some(function(d) { return d.delta !== null; });
-    var errorMax = errorDeltas.reduce(function(max, d) { return d.delta !== null && d.delta > max ? d.delta : max; }, 0);
-
-    // Every source gets its own lane and scale; hidden sources take no space.
-    var laneVisible = {
-        state: modem.length > 0 && _corrVisible.signalState,
-        errors: hasErrorData && _corrVisible.errors,
-        speed: speedtest.length > 0 && (_corrVisible.download || _corrVisible.upload),
-        segment: segment.length > 0 && (_corrVisible.segmentDs || _corrVisible.segmentUs),
-        events: events.length > 0 && _corrVisible.events,
-        reachability: hasLoadedReachability && _corrVisible.reachability
-    };
-    var layout = CorrelationData.laneLayout({
-        top: 26, mainHeight: 200, labelHeight: 16, gap: 8, axisGap: 4, axisHeight: 22,
-        lanes: CORR_LANES.filter(function(lane) { return laneVisible[lane.key]; })
-    });
-    var H = layout.height;
+    var H = prep.layout.height;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     canvas.style.width = W + 'px';
@@ -377,396 +308,62 @@ function renderCorrelationChart(data) {
     octx.scale(dpr, dpr);
     octx.clearRect(0, 0, W, H);
 
-    if (modem.length === 0 && speedtest.length === 0 && !hasLoadedReachability) {
-        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#888';
+    var rootStyle = getComputedStyle(document.documentElement);
+    var colors = CorrelationChart.colors(function(prop, fallback) { return rootStyle.getPropertyValue(prop).trim() || fallback; });
+    if (prep.empty) {
+        ctx.fillStyle = colors.text;
         ctx.font = '13px system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(T.correlation_no_data, W / 2, H / 2);
         return;
     }
 
-    // Time range (with zoom support)
-    var allTs = data.map(function(d) { return docsightParseTime(d.timestamp).getTime(); }).filter(function(ts) { return isFinite(ts); });
-    _corrTargetData.forEach(function(entry) {
-        var target = CorrelationData.target(entry);
-        (entry.samples || []).forEach(function(sample) {
-            var interval = CorrelationData.sampleInterval(sample, target);
-            if (!interval) return;
-            allTs.push(interval.startMs, interval.endMs);
-        });
-    });
-    var hasValidSelectedRange = _corrSelectedRange
-        && typeof _corrSelectedRange.startMs === 'number' && isFinite(_corrSelectedRange.startMs)
-        && typeof _corrSelectedRange.endMs === 'number' && isFinite(_corrSelectedRange.endMs)
-        && _corrSelectedRange.endMs > _corrSelectedRange.startMs;
-    if (!hasValidSelectedRange && allTs.length === 0) return;
-    var tMinFull = hasValidSelectedRange ? _corrSelectedRange.startMs : Math.min.apply(null, allTs);
-    var tMaxFull = hasValidSelectedRange ? _corrSelectedRange.endMs : Math.max.apply(null, allTs);
-    if (tMinFull === tMaxFull) { tMaxFull = tMinFull + 3600000; }
-    var tMin = _corrZoom ? _corrZoom.tMin : tMinFull;
-    var tMax = _corrZoom ? _corrZoom.tMax : tMaxFull;
-
-    // ── Main band: power (dBmV, left), SNR (dB, right), temperature (°C/°F, outer right) ──
-    var mainTop = layout.main.y;
-    var mainH = layout.main.height;
-    function bandY(v, min, max) { return mainTop + mainH - (v - min) / (max - min) * mainH; }
-
-    var dsPowerValues = modem.map(function(d) { return d.ds_power_avg; }).filter(function(v) { return typeof v === 'number' && isFinite(v); });
-    var txValues = modem.map(function(d) { return d.us_power_avg; }).filter(function(v) { return typeof v === 'number' && isFinite(v) && v > 0; });
-    var showDsPower = _corrVisible.dsPower && dsPowerValues.length > 0;
-    var showTxPower = _corrVisible.txPower && txValues.length > 0;
-    // DS and US power share one dBmV axis so their levels stay directly comparable.
-    var powerValues = (showDsPower ? dsPowerValues : []).concat(showTxPower ? txValues : []);
-    if (!powerValues.length) powerValues = dsPowerValues.concat(txValues);
-    var powerMin = powerValues.length ? Math.floor(Math.min.apply(null, powerValues) - 2) : -10;
-    var powerMax = powerValues.length ? Math.ceil(Math.max.apply(null, powerValues) + 2) : 55;
-    function yPower(v) { return bandY(v, powerMin, powerMax); }
-    var yTx = yPower;
-    var yDsPower = yPower;
-
-    var snrValues = modem.map(function(d) { return d.ds_snr_min || 0; }).filter(function(v) { return v > 0; });
-    var showSnr = _corrVisible.snr && snrValues.length > 0;
-    var snrMin = snrValues.length ? Math.floor(Math.min.apply(null, snrValues) - 2) : 20;
-    var snrMax = snrValues.length ? Math.ceil(Math.max.apply(null, snrValues) + 2) : 45;
-    function ySnr(v) { return bandY(v, snrMin, snrMax); }
-
-    var _isFahrenheit = typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit';
-    function _toDisplayTemp(c) { return _isFahrenheit ? c * 9 / 5 + 32 : c; }
-    var tempValues = weather.map(function(d) { return _toDisplayTemp(d.temperature); }).filter(function(v) { return v != null && !isNaN(v); });
-    var showTemp = _corrVisible.temperature && tempValues.length > 1;
-    var tempMin = tempValues.length ? Math.floor(Math.min.apply(null, tempValues) - 2) : (_isFahrenheit ? 14 : -10);
-    var tempMax = tempValues.length ? Math.ceil(Math.max.apply(null, tempValues) + 2) : (_isFahrenheit ? 104 : 40);
-    function yTemp(v) { return bandY(_toDisplayTemp(v), tempMin, tempMax); }
-    var tempUnit = _isFahrenheit ? '°F' : '°C';
-
-    // Axis widths: dBmV on the left; dB and temperature each get their own right axis.
     ctx.font = '12px system-ui, sans-serif';
-    var axisWidth = function(values) {
-        return Math.ceil(Math.max.apply(null, values.map(function(v) { return ctx.measureText(String(v)).width; }))) + 10;
-    };
-    var snrAxisWidth = showSnr ? Math.max(30, axisWidth([snrMin, snrMax])) : 0;
-    var tempAxisWidth = showTemp ? Math.max(30, axisWidth([tempMin, tempMax])) : 0;
-    var laneAxisWidth = laneVisible.speed ? axisWidth([CorrelationData.niceCeil(1000) + ' Mbps']) : 0;
-    var pad = {
-        top: mainTop,
-        left: Math.max(44, axisWidth([powerMin, powerMax]) + 4),
-        right: Math.max(16, snrAxisWidth + tempAxisWidth, laneAxisWidth) + 8,
-        bottom: H - mainTop - mainH
-    };
-    var plotW = W - pad.left - pad.right;
-    var plotH = mainH;
-    function xScale(ts) { return pad.left + (ts - tMin) / (tMax - tMin) * plotW; }
-
-    // ── Lanes ──
-    var lanes = layout.lanes;
-    var speedValues = speedtest.map(function(d) { return CorrelationData.measurement(d.download_mbps); })
-        .concat(speedtest.map(function(d) { return CorrelationData.measurement(d.upload_mbps); }))
-        .filter(function(v) { return v !== null; });
-    var dlMin = 0;
-    var dlMax = CorrelationData.niceCeil(speedValues.length ? Math.max.apply(null, speedValues) : 500);
-    var speedLane = lanes.speed || { y: mainTop, height: mainH };
-    function yDl(v) { return speedLane.y + speedLane.height - (v - dlMin) / (dlMax - dlMin) * speedLane.height; }
-    var segmentLane = lanes.segment || { y: mainTop, height: mainH };
-    function ySegment(v) { return segmentLane.y + segmentLane.height - (v / 100) * segmentLane.height; }
-    var errorScaleMax = CorrelationData.niceCeil(errorMax);
-
-    function _cssColor(prop, fallback) {
-        var s = getComputedStyle(document.documentElement);
-        return s.getPropertyValue(prop).trim() || fallback;
-    }
-    var segDsColor = _cssColor('--corr-color-seg-ds', '#0ea5e9');
-    var segUsColor = _cssColor('--corr-color-seg-us', '#6366f1');
-    var downloadColor = _cssColor('--corr-color-download', '#0ea5e9');
-    var uploadColor = _cssColor('--corr-color-upload', '#06b6d4');
-    var snrColor = _cssColor('--corr-color-snr', '#3b82f6');
-    var txColor = _cssColor('--corr-color-tx-power', '#f59e0b');
-    var dsPowerColor = _cssColor('--corr-color-ds-power', '#a855f7');
-    var errorColor = _cssColor('--corr-color-errors', 'rgba(239,68,68,0.6)');
-    var tempColor = _cssColor('--corr-color-temperature', '#f97316');
-    var textColor = _cssColor('--muted', '#888');
-    var gridColor = _cssColor('--input-border', '#333');
-    var goodColor = _cssColor('--good', '#4caf50');
-    var toleratedColor = _cssColor('--tolerated', '#84cc16');
-    var warnColor = _cssColor('--warn', '#ff9800');
-    var critColor = _cssColor('--crit', '#f44336');
-    var accentColor = _cssColor('--accent', '#2196f3');
-    var laneTint = _cssColor('--tint-emphasis', 'rgba(127,127,127,0.08)');
-    var healthColors = { good: goodColor, tolerated: toleratedColor, marginal: warnColor, critical: critColor };
-    var reachabilityColors = { ok: goodColor, degraded: warnColor, down: critColor, unknown: textColor };
-    var reachabilityBucketCount = Math.min(300, Math.max(1, Math.floor(plotW / 3)));
-    var reachabilityBuckets = hasLoadedReachability
-        ? CorrelationData.bucketReachability(_corrTargetData, tMin, tMax, reachabilityBucketCount)
-        : [];
-    var reachabilityLane = lanes.reachability && reachabilityBuckets.length > 0
-        ? { y: lanes.reachability.y, height: lanes.reachability.height }
-        : null;
-
-    // Store chart state for tooltip lookups
-    var sortedSpeedtest = speedtest.slice().sort(function(a, b) {
-        return docsightParseTime(a.timestamp).getTime() - docsightParseTime(b.timestamp).getTime();
+    var st = CorrelationChart.scales(prep, {
+        width: W, visible: _corrVisible, zoom: _corrZoom, selectedRange: _corrSelectedRange,
+        fahrenheit: typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit',
+        measure: function(text) { return ctx.measureText(text).width; },
+        parseTime: docsightParseTime, colors: colors, dpr: dpr
     });
-    var speedMarks = CorrelationData.buildSpeedMarks(sortedSpeedtest, xScale, yDl, tMin, tMax, {
-        download: _corrVisible.download,
-        upload: _corrVisible.upload
-    }, docsightParseTime);
-    _corrChartState = {
-        pad: pad, plotW: plotW, plotH: plotH, W: W, H: H, layout: layout,
-        tMin: tMin, tMax: tMax, tMinFull: tMinFull, tMaxFull: tMaxFull,
-        snrMin: snrMin, snrMax: snrMax, txMin: powerMin, txMax: powerMax,
-        dsPowerMin: powerMin, dsPowerMax: powerMax, errorMax: errorMax, errorDeltas: errorDeltas,
-        tempMin: tempMin, tempMax: tempMax,
-        dlMin: dlMin, dlMax: dlMax,
-        modem: modem, speedtest: sortedSpeedtest, speedMarks: speedMarks, events: events, data: data,
-        weather: weather, segment: segment, reachabilityBuckets: reachabilityBuckets, reachabilityLane: reachabilityLane,
-        xScale: xScale, ySnr: ySnr, yTx: yTx, yDsPower: yDsPower, yDl: yDl, yTemp: yTemp, ySegment: ySegment,
-        colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: downloadColor, upload: uploadColor, event: warnColor, errors: errorColor, temperature: tempColor, segmentDs: segDsColor, segmentUs: segUsColor, reachability: reachabilityColors, health: healthColors, text: textColor, grid: gridColor },
-        dpr: dpr
-    };
-
-    function axisCaption(text, x, align) {
-        ctx.fillStyle = textColor;
-        ctx.font = '11px system-ui, sans-serif';
-        ctx.textAlign = align;
-        ctx.fillText(text, x, mainTop - 10);
-    }
-    function niceStep(min, max) { return CorrelationData.niceCeil((max - min) / 5); }
-
-    // Power grid and left axis (falls back to the SNR scale when no power is shown).
-    ctx.font = '12px system-ui, sans-serif';
-    var powerShown = showDsPower || showTxPower;
-    var gridMin = powerShown ? powerMin : snrMin;
-    var gridMax = powerShown ? powerMax : snrMax;
-    var gridStep = niceStep(gridMin, gridMax);
-    for (var gv = Math.ceil(gridMin / gridStep) * gridStep; gv <= gridMax; gv += gridStep) {
-        var gy = bandY(gv, gridMin, gridMax);
-        ctx.strokeStyle = gridColor;
-        ctx.lineWidth = 0.5;
-        ctx.setLineDash([2, 4]);
-        ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(pad.left + plotW, gy); ctx.stroke();
-        ctx.setLineDash([]);
-        if (powerShown) {
-            ctx.fillStyle = textColor;
-            ctx.textAlign = 'right';
-            ctx.fillText(String(gv), pad.left - 6, gy + 4);
-        }
-    }
-    if (powerShown) axisCaption('dBmV', pad.left - 6, 'right');
-
-    // SNR axis on the right.
-    if (showSnr) {
-        var snrX = pad.left + plotW + 6;
-        var snrStep = niceStep(snrMin, snrMax);
-        ctx.fillStyle = snrColor;
-        ctx.textAlign = 'left';
-        ctx.font = '12px system-ui, sans-serif';
-        for (var sv = Math.ceil(snrMin / snrStep) * snrStep; sv <= snrMax; sv += snrStep) {
-            ctx.fillText(String(sv), snrX, ySnr(sv) + 4);
-        }
-        axisCaption('dB', snrX, 'left');
-    }
-    // Temperature axis to the right of the SNR axis.
-    if (showTemp) {
-        var tempX = pad.left + plotW + 6 + snrAxisWidth;
-        var tempStep = niceStep(tempMin, tempMax);
-        ctx.fillStyle = tempColor;
-        ctx.textAlign = 'left';
-        ctx.font = '12px system-ui, sans-serif';
-        for (var tv = Math.ceil(tempMin / tempStep) * tempStep; tv <= tempMax; tv += tempStep) {
-            ctx.fillText(String(tv), tempX, bandY(tv, tempMin, tempMax) + 4);
-        }
-        axisCaption(tempUnit, tempX, 'left');
-    }
-
-    // Connect observations directly; smoothed curves imply unmeasured trends.
-    function drawSeries(points, color, width, dash) {
-        ctx.beginPath();
-        var started = false;
-        points.forEach(function(point) {
-            if (point === null) return;
-            if (started) ctx.lineTo(point[0], point[1]);
-            else { ctx.moveTo(point[0], point[1]); started = true; }
-        });
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        ctx.setLineDash(dash);
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
-    function modemX(entry) { return xScale(docsightParseTime(entry.timestamp).getTime()); }
-    if (showSnr && modem.length > 1) {
-        drawSeries(modem.map(function(d) { return [modemX(d), ySnr(d.ds_snr_min || snrMin)]; }), snrColor, 2, []);
-    }
-    if (showTxPower && modem.length > 1) {
-        drawSeries(modem.map(function(d) { return d.us_power_avg ? [modemX(d), yTx(d.us_power_avg)] : null; }), txColor, 2, [6, 3]);
-    }
-    if (showDsPower && modem.length > 1) {
-        drawSeries(modem.map(function(d) { return d.ds_power_avg != null ? [modemX(d), yDsPower(d.ds_power_avg)] : null; }), dsPowerColor, 1.5, [2, 3]);
-    }
-    if (showTemp) {
-        drawSeries(weather.map(function(d) {
-            return d.temperature == null ? null : [xScale(docsightParseTime(d.timestamp).getTime()), yTemp(d.temperature)];
-        }), tempColor, 1.5, [5, 3]);
-    }
-
-    // Lane labels and backgrounds share one style; each lane draws its own values.
-    var laneLabels = {
-        state: T.correlation_lane_state || 'Signal state',
-        errors: (T.correlation_lane_errors || 'Uncorrectable errors per interval'),
-        speed: (T.correlation_lane_speed || 'Speedtests (Mbps) · single measurements'),
-        segment: (T.correlation_lane_segment || 'Segment load (%)'),
-        events: (T.correlation_lane_events || 'Events · ○ info △ warning ◇ critical'),
-        reachability: (T.correlation_lane_reachability || 'Reachability · gaps unknown')
-    };
-    layout.order.forEach(function(key) {
-        var lane = lanes[key];
-        ctx.fillStyle = textColor;
-        ctx.font = '11px system-ui, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(laneLabels[key], pad.left, lane.labelY + 11);
-        ctx.fillStyle = laneTint;
-        ctx.fillRect(pad.left, lane.y, plotW, lane.height);
-    });
-    function laneTick(text, lane, y) {
-        ctx.fillStyle = textColor;
-        ctx.font = '11px system-ui, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(text, pad.left + plotW + 6, y);
-    }
-
-    if (lanes.state) {
-        for (var si = 0; si < modem.length; si++) {
-            var sx1 = modemX(modem[si]);
-            var sx2 = si < modem.length - 1 ? modemX(modem[si + 1]) : Math.min(pad.left + plotW, sx1 + 3);
-            if (sx2 < pad.left || sx1 > pad.left + plotW) continue;
-            ctx.fillStyle = healthColors[modem[si].health] || laneTint;
-            ctx.fillRect(Math.max(pad.left, sx1), lanes.state.y, Math.max(1, Math.min(pad.left + plotW, sx2) - Math.max(pad.left, sx1)), lanes.state.height);
-        }
-    }
-
-    if (lanes.errors) {
-        var errorLane = lanes.errors;
-        for (var ei = 0; ei < errorDeltas.length; ei++) {
-            var delta = errorDeltas[ei].delta;
-            if (!delta) continue;
-            var ex = modemX(modem[ei]);
-            if (ex < pad.left || ex > pad.left + plotW) continue;
-            var eh = Math.max(2, delta / errorScaleMax * errorLane.height);
-            ctx.fillStyle = errorColor;
-            ctx.fillRect(ex - 1.5, errorLane.y + errorLane.height - eh, 3, eh);
-        }
-        laneTick(String(errorScaleMax), errorLane, errorLane.y + 9);
-        laneTick('0', errorLane, errorLane.y + errorLane.height);
-    }
-
-    // Speedtests are point-in-time measurements: stems and heads, never a line.
-    if (lanes.speed) {
-        _corrDrawSpeedMarks(ctx, speedMarks, yDl(0), {
-            download: downloadColor,
-            upload: uploadColor
-        }, {
-            download: _corrVisible.download,
-            upload: _corrVisible.upload
-        });
-        laneTick(dlMax + ' Mbps', lanes.speed, lanes.speed.y + 9);
-        laneTick('0', lanes.speed, lanes.speed.y + lanes.speed.height);
-    }
-
-    if (lanes.segment) {
-        if (_corrVisible.segmentDs) {
-            drawSeries(segment.map(function(d) {
-                return d.ds_total == null ? null : [xScale(docsightParseTime(d.timestamp).getTime()), ySegment(d.ds_total)];
-            }), segDsColor, 1.5, []);
-        }
-        if (_corrVisible.segmentUs) {
-            drawSeries(segment.map(function(d) {
-                return d.us_total == null ? null : [xScale(docsightParseTime(d.timestamp).getTime()), ySegment(d.us_total)];
-            }), segUsColor, 1.5, []);
-        }
-        laneTick('100 %', lanes.segment, lanes.segment.y + 9);
-        laneTick('0', lanes.segment, lanes.segment.y + lanes.segment.height);
-    }
-
-    // Events: shape carries the severity (circle info, triangle warning, diamond critical).
-    var filteredEvents = _corrFilteredEvents(events);
-    if (lanes.events) {
-        var eventMid = lanes.events.y + lanes.events.height / 2;
-        for (var vi = 0; vi < filteredEvents.length; vi++) {
-            var vx = xScale(docsightParseTime(filteredEvents[vi].timestamp).getTime());
-            if (vx < pad.left || vx > pad.left + plotW) continue;
-            var sev = CorrelationData.normalizeSeverity(filteredEvents[vi]);
-            ctx.strokeStyle = sev === 'critical' ? critColor : sev === 'warning' ? warnColor : textColor;
-            ctx.fillStyle = ctx.strokeStyle;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            if (sev === 'critical') {
-                ctx.moveTo(vx, eventMid - 6); ctx.lineTo(vx + 6, eventMid); ctx.lineTo(vx, eventMid + 6); ctx.lineTo(vx - 6, eventMid); ctx.closePath();
-                ctx.fill();
-            } else if (sev === 'warning') {
-                ctx.moveTo(vx, eventMid - 6); ctx.lineTo(vx + 6, eventMid + 5); ctx.lineTo(vx - 6, eventMid + 5); ctx.closePath();
-                ctx.stroke();
-            } else {
-                ctx.arc(vx, eventMid, 4, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
-    }
-
-    if (reachabilityLane) {
-        ctx.save();
-        for (var rb = 0; rb < reachabilityBuckets.length; rb++) {
-            var reachBucket = reachabilityBuckets[rb];
-            var reachX1 = Math.max(pad.left, xScale(reachBucket.startMs));
-            var reachX2 = Math.min(pad.left + plotW, xScale(reachBucket.endMs));
-            if (reachX2 <= reachX1) continue;
-            ctx.globalAlpha = reachBucket.state === 'unknown' ? 0.35 : 0.82;
-            ctx.fillStyle = reachabilityColors[reachBucket.state];
-            ctx.fillRect(reachX1, reachabilityLane.y, Math.max(1, reachX2 - reachX1), reachabilityLane.height);
-            ctx.globalAlpha = 0.7;
-            ctx.strokeStyle = gridColor;
-            ctx.lineWidth = 0.5;
-            ctx.strokeRect(reachX1, reachabilityLane.y, Math.max(1, reachX2 - reachX1), reachabilityLane.height);
-            if (reachX2 - reachX1 >= 18) {
-                ctx.globalAlpha = 0.95;
-                ctx.fillStyle = reachBucket.state === 'unknown' ? textColor : '#fff';
-                ctx.font = 'bold 12px system-ui, sans-serif';
-                ctx.textAlign = 'center';
-                var stateMark = reachBucket.state === 'ok' ? '✓' : reachBucket.state === 'degraded' ? '!' : reachBucket.state === 'down' ? '×' : '?';
-                ctx.fillText(stateMark, (reachX1 + reachX2) / 2, reachabilityLane.y + 13);
-            }
-        }
-        ctx.restore();
-    }
-
-    // Shared time axis below the last lane.
-    ctx.fillStyle = textColor;
-    ctx.font = '12px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    var labelCount = Math.min(8, Math.floor(plotW / 80));
+    if (!st) return;
+    _corrChartState = st;
     var range = getPillValue('correlation-tabs') || '1d';
-    for (var li = 0; li <= labelCount; li++) {
-        var t = tMin + (tMax - tMin) * li / labelCount;
-        ctx.fillText(docsightFormatXAxisLabel(t, range), xScale(t), layout.axisY + 14);
-    }
+    CorrelationChart.draw(ctx, st, {
+        visible: _corrVisible,
+        events: _corrFilteredEvents(st.events),
+        parseTime: docsightParseTime,
+        axisLabel: function(t) { return docsightFormatXAxisLabel(t, range); },
+        labels: {
+            state: T.correlation_lane_state || 'Signal state',
+            errors: T.correlation_lane_errors || 'Uncorrectable errors per interval',
+            speed: T.correlation_lane_speed || 'Speedtests (Mbps) · single measurements',
+            segment: T.correlation_lane_segment || 'Segment load (%)',
+            events: T.correlation_lane_events || 'Events · ○ info △ warning ◇ critical',
+            reachability: T.correlation_lane_reachability || 'Reachability · gaps unknown'
+        }
+    });
+    var modem = st.modem, speedtest = st.speedtest, events = st.events, weather = st.weather, segment = st.segment;
+    var reachabilityBuckets = st.reachabilityBuckets, reachabilityLane = st.reachabilityLane;
 
     // Interactive Legend
     var legend = document.getElementById('correlation-legend');
     var legendItems = [];
     if (modem.length > 0) {
-        if (dsPowerValues.length > 0) {
-            legendItems.push({ metric: 'dsPower', color: dsPowerColor, label: '&#183;&#183; ' + (T.chart_ds_power || 'DS Power (dBmV)') });
+        if (st.hasPowerData) {
+            legendItems.push({ metric: 'dsPower', color: colors.dsPower, label: '&#183;&#183; ' + (T.chart_ds_power || 'DS Power (dBmV)') });
         }
-        if (txValues.length > 0) {
-            legendItems.push({ metric: 'txPower', color: txColor, label: '&#9476; ' + (T.chart_us_power || 'US Power (dBmV)') });
+        if (st.hasTxData) {
+            legendItems.push({ metric: 'txPower', color: colors.txPower, label: '&#9476; ' + (T.chart_us_power || 'US Power (dBmV)') });
         }
-        legendItems.push({ metric: 'snr', color: snrColor, label: '&#9644; ' + (T.chart_snr || 'SNR (dB)') });
-        legendItems.push({ metric: 'signalState', color: goodColor, label: '&#9646; ' + (T.correlation_lane_state || 'Signal state') });
-        if (hasErrorData) {
+        legendItems.push({ metric: 'snr', color: colors.snr, label: '&#9644; ' + (T.chart_snr || 'SNR (dB)') });
+        legendItems.push({ metric: 'signalState', color: colors.health.good, label: '&#9646; ' + (T.correlation_lane_state || 'Signal state') });
+        if (st.hasErrorData) {
             legendItems.push({ metric: 'errors', color: 'rgba(239,68,68,0.8)', label: '&#9612; ' + (T.correlation_errors || 'Errors') });
         }
     }
     if (speedtest.length > 0) {
-        legendItems.push({ metric: 'download', color: downloadColor, label: '&#9474;&#9679; ' + (T.correlation_download || 'Download (Mbps)') });
-        legendItems.push({ metric: 'upload', color: uploadColor, label: '&#9474;&#9679; ' + (T.correlation_upload || 'Upload (Mbps)') });
+        legendItems.push({ metric: 'download', color: colors.download, label: '&#9474;&#9679; ' + (T.correlation_download || 'Download (Mbps)') });
+        legendItems.push({ metric: 'upload', color: colors.upload, label: '&#9474;&#9679; ' + (T.correlation_upload || 'Upload (Mbps)') });
     }
     if (events.length > 0) {
         // Populate filters for all event types/severities in current data
@@ -783,17 +380,17 @@ function renderCorrelationChart(data) {
             _corrEnsureEventSeverityFilter(et);
             if (_corrEventAllowed(events[i])) visibleEventCount++;
         }
-        legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; ' + (T.correlation_events || 'Events'), eventTypes: eventTypes, eventSeverityCounts: eventSeverityCounts, visibleEventCount: visibleEventCount, totalEventCount: events.length });
+        legendItems.push({ metric: 'events', color: colors.warn, label: '&#9650; ' + (T.correlation_events || 'Events'), eventTypes: eventTypes, eventSeverityCounts: eventSeverityCounts, visibleEventCount: visibleEventCount, totalEventCount: events.length });
     }
     if (weather.length > 0) {
-        legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (' + (typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit' ? '°F' : '°C') + ')' });
+        legendItems.push({ metric: 'temperature', color: colors.temperature, label: '- - ' + (T.temperature || 'Temperature') + ' (' + (typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit' ? '°F' : '°C') + ')' });
     }
     if (segment.length > 0) {
-        legendItems.push({ metric: 'segmentDs', color: segDsColor, label: '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)') });
-        legendItems.push({ metric: 'segmentUs', color: segUsColor, label: '&#9644; ' + (T.seg_correlation_us || 'Segment US (%)') });
+        legendItems.push({ metric: 'segmentDs', color: colors.segmentDs, label: '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)') });
+        legendItems.push({ metric: 'segmentUs', color: colors.segmentUs, label: '&#9644; ' + (T.seg_correlation_us || 'Segment US (%)') });
     }
     if (reachabilityBuckets.length > 0) {
-        legendItems.push({ metric: 'reachability', color: accentColor, label: '&#9646; ' + (T.correlation_reachability || 'Reachability') });
+        legendItems.push({ metric: 'reachability', color: colors.accent, label: '&#9646; ' + (T.correlation_reachability || 'Reachability') });
     }
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : 'disabled';
@@ -854,7 +451,7 @@ function renderCorrelationChart(data) {
                 var severityFilter = _corrEnsureEventSeverityFilter(et);
                 html += '<div class="corr-event-filter-group">' +
                     '<label class="corr-event-filter-type">' +
-                    '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '"' + checked + ' data-color="' + _corrEscapeAttr(warnColor) + '"> ' +
+                    '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '"' + checked + ' data-color="' + _corrEscapeAttr(colors.warn) + '"> ' +
                     '<span class="corr-event-filter-name">' + escapeHtml(label) + '</span> <span class="corr-event-filter-count">(' + eventTypes[et] + ')</span></label>' +
                     '<div class="corr-event-filter-severities">';
                 for (var sj = 0; sj < CorrelationData.SEVERITIES.length; sj++) {
@@ -862,7 +459,7 @@ function renderCorrelationChart(data) {
                     var svChecked = severityFilter[sv] !== false ? ' checked' : '';
                     var svCount = (eventSeverityCounts[et] && eventSeverityCounts[et][sv]) || 0;
                     html += '<label class="corr-event-filter-severity">' +
-                        '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '" data-event-severity="' + _corrEscapeAttr(sv) + '"' + svChecked + ' data-color="' + _corrEscapeAttr(warnColor) + '"> ' +
+                        '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '" data-event-severity="' + _corrEscapeAttr(sv) + '"' + svChecked + ' data-color="' + _corrEscapeAttr(colors.warn) + '"> ' +
                         escapeHtml(severityLabel[sv] || sv) + ' <span class="corr-event-filter-count">(' + svCount + ')</span></label>';
                 }
                 html += '</div></div>';
@@ -1114,55 +711,21 @@ function _setupCorrelationTooltip(overlay, octx) {
         // guard ensures displayTs and the table highlight do not snap to a modem
         // timestamp when every modem series has been hidden.
         var anyModemVisible = _corrVisible.snr || _corrVisible.txPower || _corrVisible.dsPower || _corrVisible.errors || _corrVisible.signalState;
-        var nearestModem = null;
-        if (st.modem.length > 0 && anyModemVisible) {
-            var bestDist = Infinity;
-            for (var i = 0; i < st.modem.length; i++) {
-                var ts = docsightParseTime(st.modem[i].timestamp).getTime();
-                var dist = Math.abs(ts - tHover);
-                if (dist < bestDist) { bestDist = dist; nearestModem = st.modem[i]; }
-            }
-        }
+        var nearestModem = anyModemVisible ? st.modem[CorrelationChart.nearestIndex(st.modem, tHover, docsightParseTime)] || null : null;
 
-        // Find nearest speedtest point
-        var nearestSpeed = null;
-        var nearestSpeedMark = null;
-        if (st.speedtest.length > 0 && (_corrVisible.download || _corrVisible.upload)) {
-            var bestDist = Infinity;
-            for (var i = 0; i < st.speedtest.length; i++) {
-                if (!st.speedMarks[i] || !st.speedMarks[i].visible) continue;
-                var ts = docsightParseTime(st.speedtest[i].timestamp).getTime();
-                var dist = Math.abs(ts - tHover);
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    nearestSpeed = st.speedtest[i];
-                    nearestSpeedMark = st.speedMarks[i];
-                }
-            }
-        }
+        // Nearest speedtest whose mark is drawn
+        var speedIdx = _corrVisible.download || _corrVisible.upload
+            ? CorrelationChart.nearestIndex(st.speedtest, tHover, docsightParseTime, function(i) { return !st.speedMarks[i] || !st.speedMarks[i].visible; })
+            : -1;
+        var nearestSpeed = speedIdx >= 0 ? st.speedtest[speedIdx] : null;
+        var nearestSpeedMark = speedIdx >= 0 ? st.speedMarks[speedIdx] : null;
 
-        // Find nearest event (respecting type filter)
-        var nearestEvent = null;
+        // Nearest event (respecting type filter) and weather point
         var visibleEvents = _corrFilteredEvents(st.events);
-        if (visibleEvents.length > 0) {
-            var bestDist = Infinity;
-            for (var i = 0; i < visibleEvents.length; i++) {
-                var ts = docsightParseTime(visibleEvents[i].timestamp).getTime();
-                var dist = Math.abs(ts - tHover);
-                if (dist < bestDist) { bestDist = dist; nearestEvent = visibleEvents[i]; }
-            }
-        }
-
-        // Find nearest weather point
-        var nearestWeather = null;
-        if (st.weather && st.weather.length > 0 && _corrVisible.temperature) {
-            var bestDist = Infinity;
-            for (var i = 0; i < st.weather.length; i++) {
-                var ts = docsightParseTime(st.weather[i].timestamp).getTime();
-                var dist = Math.abs(ts - tHover);
-                if (dist < bestDist) { bestDist = dist; nearestWeather = st.weather[i]; }
-            }
-        }
+        var nearestEvent = visibleEvents[CorrelationChart.nearestIndex(visibleEvents, tHover, docsightParseTime)] || null;
+        var nearestWeather = _corrVisible.temperature && st.weather
+            ? st.weather[CorrelationChart.nearestIndex(st.weather, tHover, docsightParseTime)] || null
+            : null;
 
         // Draw crosshair on overlay
         newOctx.clearRect(0, 0, st.W, st.H);
@@ -1176,75 +739,19 @@ function _setupCorrelationTooltip(overlay, octx) {
         newOctx.setLineDash([]);
 
         // Draw highlight dots at nearest data points
-        if (nearestModem && _corrVisible.snr) {
-            var dx = st.xScale(docsightParseTime(nearestModem.timestamp).getTime());
-            var dy = st.ySnr(nearestModem.ds_snr_min || st.snrMin);
-            newOctx.beginPath();
-            newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
-            newOctx.fillStyle = st.colors.snr;
-            newOctx.fill();
-            newOctx.strokeStyle = '#fff';
-            newOctx.lineWidth = 2;
-            newOctx.stroke();
+        var dot = CorrelationChart.drawDot;
+        if (nearestModem) {
+            var modemX = st.xScale(docsightParseTime(nearestModem.timestamp).getTime());
+            if (_corrVisible.snr) dot(newOctx, modemX, st.ySnr(nearestModem.ds_snr_min || st.snrMin), 5, st.colors.snr);
+            if (_corrVisible.txPower && nearestModem.us_power_avg) dot(newOctx, modemX, st.yTx(nearestModem.us_power_avg), 5, st.colors.txPower);
+            if (_corrVisible.dsPower && nearestModem.ds_power_avg != null) dot(newOctx, modemX, st.yDsPower(nearestModem.ds_power_avg), 5, st.colors.dsPower);
         }
-        if (nearestModem && _corrVisible.txPower && nearestModem.us_power_avg) {
-            var dx = st.xScale(docsightParseTime(nearestModem.timestamp).getTime());
-            var dy = st.yTx(nearestModem.us_power_avg);
-            newOctx.beginPath();
-            newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
-            newOctx.fillStyle = st.colors.txPower;
-            newOctx.fill();
-            newOctx.strokeStyle = '#fff';
-            newOctx.lineWidth = 2;
-            newOctx.stroke();
+        if (nearestSpeedMark) {
+            if (_corrVisible.download && nearestSpeedMark.hasDownload) dot(newOctx, nearestSpeedMark.downloadX, nearestSpeedMark.downloadY, 5, st.colors.download);
+            if (_corrVisible.upload && nearestSpeedMark.hasUpload) dot(newOctx, nearestSpeedMark.uploadX, nearestSpeedMark.uploadY, 5, st.colors.upload);
         }
-        if (nearestModem && _corrVisible.dsPower && nearestModem.ds_power_avg != null) {
-            var dx = st.xScale(docsightParseTime(nearestModem.timestamp).getTime());
-            var dy = st.yDsPower(nearestModem.ds_power_avg);
-            newOctx.beginPath();
-            newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
-            newOctx.fillStyle = st.colors.dsPower;
-            newOctx.fill();
-            newOctx.strokeStyle = '#fff';
-            newOctx.lineWidth = 2;
-            newOctx.stroke();
-        }
-        if (nearestSpeed && nearestSpeedMark) {
-            if (_corrVisible.download && nearestSpeedMark.hasDownload) {
-                var dx = nearestSpeedMark.downloadX;
-                var dy = nearestSpeedMark.downloadY;
-                newOctx.beginPath();
-                newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
-                newOctx.fillStyle = st.colors.download;
-                newOctx.fill();
-                newOctx.strokeStyle = '#fff';
-                newOctx.lineWidth = 2;
-                newOctx.stroke();
-            }
-            if (_corrVisible.upload && nearestSpeedMark.hasUpload) {
-                var dx = nearestSpeedMark.uploadX;
-                var dy = nearestSpeedMark.uploadY;
-                newOctx.beginPath();
-                newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
-                newOctx.fillStyle = st.colors.upload;
-                newOctx.fill();
-                newOctx.strokeStyle = '#fff';
-                newOctx.lineWidth = 2;
-                newOctx.stroke();
-            }
-        }
-
-        // Draw temperature highlight dot
-        if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
-            var dx = st.xScale(docsightParseTime(nearestWeather.timestamp).getTime());
-            var dy = st.yTemp(nearestWeather.temperature);
-            newOctx.beginPath();
-            newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
-            newOctx.fillStyle = st.colors.temperature;
-            newOctx.fill();
-            newOctx.strokeStyle = '#fff';
-            newOctx.lineWidth = 2;
-            newOctx.stroke();
+        if (nearestWeather && nearestWeather.temperature != null) {
+            dot(newOctx, st.xScale(docsightParseTime(nearestWeather.timestamp).getTime()), st.yTemp(nearestWeather.temperature), 5, st.colors.temperature);
         }
 
         // Build tooltip content
@@ -1333,19 +840,13 @@ function _setupCorrelationTooltip(overlay, octx) {
             html += '<div class="tt-row">' + (T.correlation_reachability_drilldown || 'Open Connection Monitor details') + '</div>';
         }
         // Segment utilization tooltip (numeric-only server data, same innerHTML pattern as above)
-        if (st.segment && st.segment.length > 0) {
-            var nearestSeg = null, segDist = Infinity;
-            for (var si = 0; si < st.segment.length; si++) {
-                var sd = Math.abs(docsightParseTime(st.segment[si].timestamp).getTime() - tHover);
-                if (sd < segDist) { segDist = sd; nearestSeg = st.segment[si]; }
+        var nearestSeg = st.segment && st.segment[CorrelationChart.nearestIndex(st.segment, tHover, docsightParseTime)];
+        if (nearestSeg && Math.abs(docsightParseTime(nearestSeg.timestamp).getTime() - tHover) < (st.tMax - st.tMin) * 0.05) {
+            if (_corrVisible.segmentDs && nearestSeg.ds_total != null) {
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.segmentDs) + '"></span> ' + (T.seg_correlation_ds || 'Segment DS') + ': ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
             }
-            if (nearestSeg && segDist < (st.tMax - st.tMin) * 0.05) {
-                if (_corrVisible.segmentDs && nearestSeg.ds_total != null) {
-                    html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.segmentDs) + '"></span> ' + (T.seg_correlation_ds || 'Segment DS') + ': ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
-                }
-                if (_corrVisible.segmentUs && nearestSeg.us_total != null) {
-                    html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.segmentUs) + '"></span> ' + (T.seg_correlation_us || 'Segment US') + ': ' + nearestSeg.us_total.toFixed(1) + '%</div>';
-                }
+            if (_corrVisible.segmentUs && nearestSeg.us_total != null) {
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.segmentUs) + '"></span> ' + (T.seg_correlation_us || 'Segment US') + ': ' + nearestSeg.us_total.toFixed(1) + '%</div>';
             }
         }
 
@@ -1465,26 +966,8 @@ function _corrHighlightFromTable(timestamp, source) {
     if (source === 'modem') {
         for (var i = 0; i < st.modem.length; i++) {
             if (st.modem[i].timestamp === timestamp) {
-                if (_corrVisible.snr) {
-                    var dy = st.ySnr(st.modem[i].ds_snr_min || st.snrMin);
-                    octx.beginPath();
-                    octx.arc(x, dy, 6, 0, Math.PI * 2);
-                    octx.fillStyle = st.colors.snr;
-                    octx.fill();
-                    octx.strokeStyle = '#fff';
-                    octx.lineWidth = 2;
-                    octx.stroke();
-                }
-                if (_corrVisible.txPower && st.modem[i].us_power_avg) {
-                    var dy = st.yTx(st.modem[i].us_power_avg);
-                    octx.beginPath();
-                    octx.arc(x, dy, 6, 0, Math.PI * 2);
-                    octx.fillStyle = st.colors.txPower;
-                    octx.fill();
-                    octx.strokeStyle = '#fff';
-                    octx.lineWidth = 2;
-                    octx.stroke();
-                }
+                if (_corrVisible.snr) CorrelationChart.drawDot(octx, x, st.ySnr(st.modem[i].ds_snr_min || st.snrMin), 6, st.colors.snr);
+                if (_corrVisible.txPower && st.modem[i].us_power_avg) CorrelationChart.drawDot(octx, x, st.yTx(st.modem[i].us_power_avg), 6, st.colors.txPower);
                 break;
             }
         }
@@ -1492,24 +975,8 @@ function _corrHighlightFromTable(timestamp, source) {
         for (var i = 0; i < st.speedtest.length; i++) {
             if (st.speedtest[i].timestamp === timestamp) {
                 var speedMark = st.speedMarks[i];
-                if (_corrVisible.download && speedMark.hasDownload) {
-                    octx.beginPath();
-                    octx.arc(speedMark.downloadX, speedMark.downloadY, 6, 0, Math.PI * 2);
-                    octx.fillStyle = st.colors.download;
-                    octx.fill();
-                    octx.strokeStyle = '#fff';
-                    octx.lineWidth = 2;
-                    octx.stroke();
-                }
-                if (_corrVisible.upload && speedMark.hasUpload) {
-                    octx.beginPath();
-                    octx.arc(speedMark.uploadX, speedMark.uploadY, 6, 0, Math.PI * 2);
-                    octx.fillStyle = st.colors.upload;
-                    octx.fill();
-                    octx.strokeStyle = '#fff';
-                    octx.lineWidth = 2;
-                    octx.stroke();
-                }
+                if (_corrVisible.download && speedMark.hasDownload) CorrelationChart.drawDot(octx, speedMark.downloadX, speedMark.downloadY, 6, st.colors.download);
+                if (_corrVisible.upload && speedMark.hasUpload) CorrelationChart.drawDot(octx, speedMark.uploadX, speedMark.uploadY, 6, st.colors.upload);
                 break;
             }
         }
