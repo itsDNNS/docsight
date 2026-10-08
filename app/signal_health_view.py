@@ -83,8 +83,9 @@ def _family_modulation_threshold_candidates(family):
 
 
 def _power_metric_health(value, threshold):
+    # A value the modem does not report is unknown, not good.
     if value is None:
-        return "good"
+        return "missing"
     good = threshold.get("good") or [-4.0, 13.0]
     warning = threshold.get("warning") or good
     critical = threshold.get("critical") or [warning[0] - 2.0, warning[1] + 2.0]
@@ -102,7 +103,7 @@ def _power_metric_health(value, threshold):
 
 def _snr_metric_health(value, threshold):
     if value is None:
-        return "good"
+        return "missing"
     crit_min = float(threshold.get("critical_min", 29.0))
     warn_min = float(threshold.get("warning_min", threshold.get("good_min", 33.0)))
     good_min = float(threshold.get("good_min", 33.0))
