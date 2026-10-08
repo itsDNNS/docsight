@@ -1,4 +1,4 @@
-var CACHE_VERSION = 'v108';
+var CACHE_VERSION = 'v109';
 var REGISTRATION_SCOPE = new URL(self.registration.scope);
 
 if (REGISTRATION_SCOPE.origin !== self.location.origin || REGISTRATION_SCOPE.pathname.slice(-1) !== '/') {

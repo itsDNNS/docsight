@@ -7,7 +7,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 // The journal's scripts, in the order the page loads them.
-const source = ['static/js/journal-timeline.js', 'static/js/journal-cases.js', 'static/main.js']
+const source = ['static/js/journal-entry.js', 'static/js/journal-timeline.js', 'static/js/journal-cases.js', 'static/main.js']
     .map(file => fs.readFileSync(path.resolve(__dirname, '../../app/modules/journal', file), 'utf8'))
     .join('\n');
 
