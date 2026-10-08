@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Istantanea del {time}",
   "snapshot_case_name": "Segnale del {time}",
   "snapshot_added_to_case": "Giorno dell'istantanea aggiunto a «{case}»",
-  "snapshot_error": "Impossibile caricare l'istantanea di questo punto."
+  "snapshot_error": "Impossibile caricare l'istantanea di questo punto.",
+  "chart_gap_no_data": "Nessun dato"
 }

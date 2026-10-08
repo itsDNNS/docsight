@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Snapshot of {time}",
   "snapshot_case_name": "Signal on {time}",
   "snapshot_added_to_case": "Snapshot day added to “{case}”",
-  "snapshot_error": "Could not load the snapshot for this point."
+  "snapshot_error": "Could not load the snapshot for this point.",
+  "chart_gap_no_data": "No data"
 }

@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Στιγμιότυπο {time}",
   "snapshot_case_name": "Σήμα στις {time}",
   "snapshot_added_to_case": "Η ημέρα του στιγμιότυπου προστέθηκε στο «{case}»",
-  "snapshot_error": "Δεν ήταν δυνατή η φόρτωση του στιγμιότυπου για αυτό το σημείο."
+  "snapshot_error": "Δεν ήταν δυνατή η φόρτωση του στιγμιότυπου για αυτό το σημείο.",
+  "chart_gap_no_data": "Χωρίς δεδομένα"
 }

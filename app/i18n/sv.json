@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Ögonblicksbild från {time}",
   "snapshot_case_name": "Signal {time}",
   "snapshot_added_to_case": "Dagen för ögonblicksbilden tillagd i ”{case}”",
-  "snapshot_error": "Ögonblicksbilden för den här punkten kunde inte läsas in."
+  "snapshot_error": "Ögonblicksbilden för den här punkten kunde inte läsas in.",
+  "chart_gap_no_data": "Inga data"
 }

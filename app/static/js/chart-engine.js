@@ -509,7 +509,7 @@ function tooltipPlugin(labels, tooltipLabelCallback) {
     }
     function setCursor(u) {
         var idx = u.cursor.idx;
-        if (idx == null) {
+        if (idx == null || labels[idx] === null) {
             tooltip.style.display = 'none';
             return;
         }
@@ -626,6 +626,149 @@ function touchScrubPlugin() {
     }]}};
 }
 
+/* ── Time axis and gaps ──
+   Charts that pass opts.times place their points by time. A pause much longer
+   than the usual interval (no polls: modem offline, DOCSight stopped) breaks the
+   line and is drawn as a hatched "No data" band, so a missing hour never reads
+   as a calm, continuous signal. */
+var GAP_FACTOR = 3;
+
+function _medianInterval(times) {
+    var steps = [];
+    for (var i = 1; i < times.length; i++) {
+        var step = times[i] - times[i - 1];
+        if (step > 0) steps.push(step);
+    }
+    if (!steps.length) return 0;
+    steps.sort(function(a, b) { return a - b; });
+    return steps[Math.floor(steps.length / 2)];
+}
+
+/* Inserts a null point into every series at each gap. Returns the new columns,
+   the gaps, and the map from drawn points back to the caller's indices. */
+function docsightTimeSeries(labels, datasets, times, tempData) {
+    var interval = _medianInterval(times);
+    var out = {labels: [], times: [], data: datasets.map(function() { return []; }), temp: tempData ? [] : null,
+        gaps: [], original: [], interval: interval};
+    for (var i = 0; i < times.length; i++) {
+        var gap = i > 0 && interval > 0 ? times[i] - times[i - 1] : 0;
+        if (gap > interval * GAP_FACTOR) {
+            out.gaps.push({start: times[i - 1], end: times[i]});
+            out.labels.push(null);
+            out.times.push(times[i - 1] + Math.min(interval, gap / 2));
+            out.data.forEach(function(series) { series.push(null); });
+            if (out.temp) out.temp.push(null);
+            out.original.push(null);
+        }
+        out.labels.push(labels[i]);
+        out.times.push(times[i]);
+        datasets.forEach(function(ds, k) { out.data[k].push(ds.data[i]); });
+        if (out.temp) out.temp.push(tempData[i]);
+        out.original.push(i);
+    }
+    return out;
+}
+
+/* Gaps in a regular series where intervals without readings are null, such as
+   the error buckets: a run of at least GAP_FACTOR empty intervals is a gap. */
+function docsightNullRunGaps(times, values) {
+    var gaps = [];
+    var runStart = -1;
+    for (var i = 0; i <= values.length; i++) {
+        var empty = i < values.length && values[i] == null;
+        if (empty && runStart === -1) runStart = i;
+        if (!empty && runStart !== -1) {
+            if (i - runStart >= GAP_FACTOR && runStart > 0 && i < values.length) {
+                gaps.push({start: times[runStart - 1], end: times[i]});
+            }
+            runStart = -1;
+        }
+    }
+    return gaps;
+}
+
+/* Wall-clock timestamps ("2026-10-06T14:00:00") as seconds for spacing points. */
+function docsightTimesFromStamps(stamps) {
+    return stamps.map(function(stamp) {
+        var ms = Date.parse(String(stamp || '').slice(0, 19) + 'Z');
+        return isNaN(ms) ? null : ms / 1000;
+    });
+}
+
+function docsightGapLabel(seconds) {
+    var minutes = Math.round(seconds / 60);
+    var days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60), mins = minutes % 60;
+    var text = days ? days + ' d' + (hours ? ' ' + hours + ' h' : '')
+        : hours ? hours + ' h' + (mins ? ' ' + mins + ' min' : '') : mins + ' min';
+    return {title: T.chart_gap_no_data || 'No data', duration: text};
+}
+
+/* Labels sit on data points at least a label apart in pixels, so uneven
+   spacing in time cannot put two of them on top of each other. */
+function buildTimeSplits(xData, labels, range, plotPx, labelPx) {
+    var span = range[1] - range[0];
+    if (!(span > 0)) return xData.slice(0, 1);
+    var toPx = function(x) { return (x - range[0]) / span * plotPx; };
+    var splits = [];
+    var lastPx = -Infinity;
+    var half = labelPx / 2;
+    for (var i = 0; i < xData.length; i++) {
+        if (labels[i] === null) continue;
+        var px = toPx(xData[i]);
+        if (px < half - 4 || px > plotPx - half + 4) continue;
+        if (px - lastPx < labelPx + 18) continue;
+        splits.push(xData[i]);
+        lastPx = px;
+    }
+    return splits;
+}
+
+function gapBandsPlugin(gaps) {
+    return {hooks: {drawAxes: [function(u) {
+        if (!gaps.length) return;
+        var ctx = u.ctx;
+        var dpr = window.devicePixelRatio || 1;
+        var stroke = docsightThemeColor('--text-secondary', 0.35);
+        var text = docsightThemeColor('--text-secondary', 1);
+        gaps.forEach(function(gap) {
+            var x0 = Math.max(u.valToPos(gap.start, 'x', true), u.bbox.left);
+            var x1 = Math.min(u.valToPos(gap.end, 'x', true), u.bbox.left + u.bbox.width);
+            if (x1 - x0 < 2) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x0, u.bbox.top, x1 - x0, u.bbox.height);
+            ctx.clip();
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = dpr;
+            for (var x = x0 - u.bbox.height; x < x1; x += 8 * dpr) {
+                ctx.beginPath();
+                ctx.moveTo(x, u.bbox.top + u.bbox.height);
+                ctx.lineTo(x + u.bbox.height, u.bbox.top);
+                ctx.stroke();
+            }
+            // One line if it fits, else title over duration, else the hatching alone.
+            var label = docsightGapLabel(gap.end - gap.start);
+            ctx.font = (11 * dpr) + 'px system-ui';
+            var lines = [label.title + ' · ' + label.duration];
+            var room = x1 - x0 - 12 * dpr;
+            if (ctx.measureText(lines[0]).width > room) lines = [label.title, label.duration];
+            var width = Math.max.apply(null, lines.map(function(line) { return ctx.measureText(line).width; }));
+            if (width <= room) {
+                var mid = (x0 + x1) / 2;
+                ctx.fillStyle = docsightThemeColor('--card', 0.9);
+                ctx.fillRect(mid - width / 2 - 4 * dpr, u.bbox.top + 6 * dpr, width + 8 * dpr, (4 + 14 * lines.length) * dpr);
+                ctx.fillStyle = text;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                lines.forEach(function(line, i) {
+                    ctx.fillText(line, mid, u.bbox.top + (8 + 14 * i) * dpr);
+                });
+            }
+            ctx.restore();
+        });
+    }]}};
+}
+
 /* ── Click a point ──
    A click (not a drag) on the plot reports the point under the cursor, and the
    chart can mark one point with a vertical line, e.g. while its snapshot is open. */
@@ -662,7 +805,8 @@ function pointClickPlugin(onClick) {
 function docsightMarkChartPoint(canvasId, idx) {
     var chart = charts[canvasId];
     if (!chart) return;
-    chart._docsightMarkedIdx = idx;
+    if (idx != null && chart._docsightOriginal) idx = chart._docsightOriginal.indexOf(idx);
+    chart._docsightMarkedIdx = idx === -1 ? null : idx;
     chart.redraw(false, false);
 }
 
@@ -706,12 +850,22 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
     var textColor = isDark ? '#888' : '#666';
     var isBar = type === 'bar';
-    var n = labels.length;
     var yAxisSize = opts && opts.yAxisSize ? opts.yAxisSize : DEFAULT_Y_AXIS_SIZE;
     var width = container.offsetWidth || 400;
+    var params = {labels: labels, datasets: datasets, type: type, zones: zones, opts: opts};
+
+    /* Time axis: points by time, gaps break the line (see docsightTimeSeries). */
+    var timeSeries = opts && opts.times && opts.times.length === labels.length && opts.times.every(function(t) { return t != null; })
+        ? docsightTimeSeries(labels, datasets, opts.times, opts.tempData || null) : null;
+    if (timeSeries) {
+        labels = timeSeries.labels;
+        datasets = datasets.map(function(ds, k) { return Object.assign({}, ds, {data: timeSeries.data[k]}); });
+        if (opts.tempData) opts = Object.assign({}, opts, {tempData: timeSeries.temp});
+    }
+    var n = labels.length;
 
     /* Build columnar data: [xIndices, series1, series2, ...] */
-    var xData = opts && opts.xData ? opts.xData.slice() : [];
+    var xData = timeSeries ? timeSeries.times.slice() : (opts && opts.xData ? opts.xData.slice() : []);
     if (!xData.length) {
         for (var xi = 0; xi < n; xi++) xData.push(xi);
     }
@@ -733,8 +887,9 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     var barPaths = isBar ? uPlot.paths.bars({size: [0.7, 50], gap: 1}) : null;
 
     allDatasets.forEach(function(ds) {
+        // A single reading has no line to draw, so it shows as a dot.
         var showPoints = ds.showPoints;
-        if (showPoints === undefined) showPoints = false;
+        if (showPoints === undefined) showPoints = n === 1 && !isBar;
         var s = {
             label: ds.label,
             stroke: ds.color || 'rgba(168,85,247,0.9)',
@@ -814,7 +969,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         };
     } else {
         scales.x.range = function() {
-            if (xData.length <= 1) return [-xEdgePadding, xEdgePadding];
+            if (xData.length <= 1) return [(xData[0] || 0) - xEdgePadding, (xData[0] || 0) + xEdgePadding];
             return [xData[0] - xEdgePadding, xData[xData.length - 1] + xEdgePadding];
         };
     }
@@ -839,7 +994,13 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     /* Axes — pick evenly spaced label positions */
     var xSplits = [];
     var wantTicks = calculateMaxXTicks(labels, width, yAxisSize, opts && opts.maxXTicks ? opts.maxXTicks : 6);
-    if (n <= wantTicks) {
+    if (timeSeries) {
+        // Dense time series fill the width with half an interval of padding;
+        // labels are placed by pixel distance, not by count.
+        if (n > wantTicks && !(opts && opts.xEdgePadding !== undefined)) xEdgePadding = timeSeries.interval * DENSE_X_EDGE_PADDING;
+        var timeRange = xData.length > 1 ? [xData[0] - xEdgePadding, xData[xData.length - 1] + xEdgePadding] : [xData[0] - 1, xData[0] + 1];
+        xSplits = buildTimeSplits(xData, labels, timeRange, Math.max(width - yAxisSize - 24, 1), estimateLongestLabelWidth(labels, 40));
+    } else if (n <= wantTicks) {
         for (var li = 0; li < n; li++) xSplits.push(xData[li]);
     } else {
         /* Dense series fill the width; the outer labels move inward by half a label instead. */
@@ -956,7 +1117,15 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     }
     /* Plugins */
     var plugins = [tooltipPlugin(labels, tooltipLabelCallback), touchScrubPlugin()];
-    if (opts && opts.onPointClick) plugins.push(pointClickPlugin(opts.onPointClick));
+    if (opts && opts.onPointClick) {
+        var onPointClick = opts.onPointClick;
+        plugins.push(pointClickPlugin(timeSeries ? function(idx, u) {
+            // Report the caller's index; a gap has no point to open.
+            var original = timeSeries.original[idx];
+            if (original != null) onPointClick(original, u);
+        } : onPointClick));
+    }
+    if (timeSeries) plugins.push(gapBandsPlugin(timeSeries.gaps.concat(opts.gaps || [])));
     if (zones) plugins.push(zonesPlugin(zones));
     if (opts && opts.plugins) { opts.plugins.forEach(function(p) { plugins.push(p); }); }
 
@@ -982,7 +1151,8 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     var chart = new uPlot(uOpts, uData, container);
     charts[canvasId] = chart;
     chart._docsightXEdgePadding = xEdgePadding;
-    chart._docsightParams = {labels: labels, datasets: datasets, type: type, zones: zones, opts: opts};
+    chart._docsightParams = params;
+    chart._docsightOriginal = timeSeries ? timeSeries.original : null;
 
     /* Restore zoom state from previous chart instance (survives destroy/recreate) */
     if (savedZoom && zoomable) {
@@ -1046,6 +1216,15 @@ function openChartZoom(canvasId) {
         var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
         var textColor = isDark ? '#888' : '#666';
         var isBar = params.type === 'bar';
+        var zoomTime = params.opts && params.opts.times && params.opts.times.length === params.labels.length
+            ? docsightTimeSeries(params.labels, params.datasets, params.opts.times, params.opts.tempData || null) : null;
+        if (zoomTime) {
+            params = Object.assign({}, params, {
+                labels: zoomTime.labels,
+                datasets: params.datasets.map(function(ds, k) { return Object.assign({}, ds, {data: zoomTime.data[k]}); }),
+                opts: params.opts.tempData ? Object.assign({}, params.opts, {tempData: zoomTime.temp}) : params.opts
+            });
+        }
         var n = params.labels.length;
         var zoomYAxisSize = params.opts && params.opts.zoomYAxisSize ? params.opts.zoomYAxisSize : DEFAULT_ZOOM_Y_AXIS_SIZE;
         var w = zoomContainer.offsetWidth || 800;
@@ -1053,8 +1232,8 @@ function openChartZoom(canvasId) {
         if (h < 300) h = 300;
 
         /* Build data */
-        var xData = [];
-        for (var xi = 0; xi < n; xi++) xData.push(xi);
+        var xData = zoomTime ? zoomTime.times.slice() : [];
+        if (!zoomTime) for (var xi = 0; xi < n; xi++) xData.push(xi);
         var zoomXEdgePadding = calculateXEdgePadding(params.labels, xData, w, zoomYAxisSize, params.opts && params.opts.zoomXEdgePadding);
         var uData = [xData];
         params.datasets.forEach(function(ds) { uData.push(ds.data); });
@@ -1068,7 +1247,7 @@ function openChartZoom(canvasId) {
         var uSeries = [{ label: 'X', value: function(u, v) { return params.labels[v] || ''; } }];
         params.datasets.forEach(function(ds) {
             var zoomShowPoints = ds.showPoints;
-            if (zoomShowPoints === undefined) zoomShowPoints = false;
+            if (zoomShowPoints === undefined) zoomShowPoints = n === 1;
             var s = {
                 label: ds.label,
                 stroke: ds.color || 'rgba(168,85,247,0.9)',
@@ -1122,7 +1301,7 @@ function openChartZoom(canvasId) {
         if (params.opts && params.opts.yMax !== undefined) yRange[1] = params.opts.yMax;
 
         var scales = {
-            x: { time: false, range: function() { return [-zoomXEdgePadding, n - 1 + zoomXEdgePadding]; } },
+            x: { time: false, range: function() { return [xData[0] - zoomXEdgePadding, xData[xData.length - 1] + zoomXEdgePadding]; } },
             y: {}
         };
         if (yRange[0] !== null && yRange[1] !== null) {
@@ -1140,13 +1319,18 @@ function openChartZoom(canvasId) {
         var zLabelWidth = estimateLongestLabelWidth(params.labels, 60);
 
         var zoomMaxTicks = calculateMaxXTicks(params.labels, w, zoomYAxisSize, 10);
-        var zoomXSplits = buildEvenIndexTicks(n, zoomMaxTicks);
+        var zoomXSplits = zoomTime
+            ? buildTimeSplits(xData, params.labels, [xData[0] - zoomXEdgePadding, xData[xData.length - 1] + zoomXEdgePadding], Math.max(w - zoomYAxisSize - 24, 1), zLabelWidth)
+            : buildEvenIndexTicks(n, zoomMaxTicks);
         var axes = [
             {
                 scale: 'x',
                 space: zLabelWidth,
                 splits: function() { return zoomXSplits; },
-                values: function(u, vals) { return vals.map(function(v) { return params.labels[v] || ''; }); },
+                values: function(u, vals) {
+                    if (!zoomTime) return vals.map(function(v) { return params.labels[v] || ''; });
+                    return vals.map(function(v) { var i = xData.indexOf(v); return i === -1 ? '' : (params.labels[i] || ''); });
+                },
                 stroke: textColor,
                 grid: { stroke: gridColor, width: 1 },
                 ticks: { stroke: gridColor, width: 1 },
@@ -1189,6 +1373,7 @@ function openChartZoom(canvasId) {
 
         /* Plugins */
         var plugins = [tooltipPlugin(params.labels, zoomTooltipCb), touchScrubPlugin()];
+        if (zoomTime) plugins.push(gapBandsPlugin(zoomTime.gaps));
         if (params.zones) plugins.push(zonesPlugin(params.zones));
 
         var uOpts = {
