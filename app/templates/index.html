@@ -586,9 +586,9 @@
         {% set metric_value = metric.get('avg') %}
         {% set family_count = family.get('count', 0) %}
         <div class="metric-card glass" id="{{ card_id }}">
-            {% if glossary_text %}<span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ glossary_text }}</div></span>{% endif %}
             <div class="metric-header">
                 <span class="metric-label">{{ label }}</span>
+                {% if glossary_text %}<span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ glossary_text }}</div></span>{% endif %}
                 <div class="metric-icon {{ icon_class }}"><i data-lucide="{{ icon_name }}"></i></div>
             </div>
             <div class="metric-value-row">
@@ -1264,9 +1264,9 @@
                 {% if not has_signal_family_metric_cards %}
                 {# Card 1: DS Power (legacy aggregate fallback) #}
                 <div class="metric-card glass">
-                    <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span>
                     <div class="metric-header">
                         <span class="metric-label">{{ t.signal_ds_power }}</span>
+                        <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span>
                         <div class="metric-icon purple"><i data-lucide="arrow-down"></i></div>
                     </div>
                     <div class="metric-value-row">
@@ -1285,9 +1285,9 @@
 
                 {# Card 2: US Power (legacy aggregate fallback) #}
                 <div class="metric-card glass">
-                    <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span>
                     <div class="metric-header">
                         <span class="metric-label">{{ t.signal_us_power }}</span>
+                        <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span>
                         <div class="metric-icon blue"><i data-lucide="arrow-up"></i></div>
                     </div>
                     <div class="metric-value-row">
@@ -1311,9 +1311,9 @@
                 {% set snr_min = snr_display.min if snr_display.min is defined and snr_display.min is not none else s.ds_snr_min %}
                 {% set snr_max = snr_display.max if snr_display.max is defined and snr_display.max is not none else s.ds_snr_max %}
                 <div class="metric-card glass">
-                    <span class="glossary-hint" data-glossary-term-id="snr_mer" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_snr }}</div></span>
                     <div class="metric-header">
                         <span class="metric-label">{{ snr_label }}</span>
+                        <span class="glossary-hint" data-glossary-term-id="snr_mer" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_snr }}</div></span>
                         <div class="metric-icon green"><i data-lucide="signal"></i></div>
                     </div>
                     <div class="metric-value-row">
@@ -1358,9 +1358,9 @@
                 {% set error_total_channels = error_coverage.get('total_channels', s.ds_total) %}
                 {% set error_coverage_text = t.get('error_ratio_coverage', 'Calculated from {comparable} of {total} downstream channels').replace('{comparable}', comparable_channels|string).replace('{total}', error_total_channels|string) %}
                 <div class="metric-card glass" id="metric-errors-card">
-                    <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
                     <div class="metric-header">
                         <span class="metric-label">{{ t.card_errors }}</span>
+                        <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
                         <div class="metric-icon amber"><i data-lucide="alert-triangle"></i></div>
                     </div>
                     <div class="metric-value-row">

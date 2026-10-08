@@ -14,13 +14,9 @@
   border-radius: 4px;
 }
 
-/* Inside metric cards: position in top-left corner, reveal on hover */
+/* Inside metric cards: right after the title, revealed on hover; the card icon stays right */
 .metric-card .glossary-hint {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  margin: 0;
-  z-index: 2;
+  margin: 0 auto 0 0;
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -137,9 +133,10 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
     border-radius: var(--radius-pill);
   }
 
+  /* The 44px touch target overlaps the header row instead of making it taller. */
   .metric-card .glossary-hint {
-    top: 4px;
-    left: 4px;
+    margin-block: -12px;
+    margin-inline-start: -12px;
     opacity: 1;
   }
   .mod-kpi-item .glossary-hint {
