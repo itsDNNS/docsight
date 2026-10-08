@@ -146,9 +146,9 @@ docker-compose.dev.yml - Development Docker setup
 
 ## Internationalization (i18n)
 
-Translations live in `app/i18n/` as JSON files. The core interface has a 24-language European language pack; built-in modules keep `en.json` source catalogs and fall back to English unless a module explicitly ships its own locale file.
+Translations live in JSON files. The core interface has a 24-language European language pack in `app/i18n/`. Every built-in module with UI strings ships the same 24 languages in `app/modules/<module>/i18n/`: an `en.json` source catalog plus one `<lang>.json` per language. At runtime, missing keys fall back to English, but that fallback is not a maintenance option for built-in catalogs: `tests/test_static_contracts.py` requires every key, placeholder, and protected term in every core and built-in module language file. Community modules may ship only `en.json` and rely on the English fallback.
 
-Each core locale file has a `_meta` field with `language_name` and `flag`. When adding or changing core UI strings, update **all existing core language files**. When adding or changing module UI strings, update the module's `en.json` source catalog and rely on English fallback unless the module intentionally owns a translated catalog.
+Each core locale file has a `_meta` field with `language_name` and `flag`; module locale files have no `_meta`. When adding or changing core UI strings, update **all existing core language files**. When adding or changing strings of a built-in module, update its `en.json` source catalog **and all of its language files**. Run `python scripts/i18n_check.py --validate` to list missing or extra keys in core and module catalogs, and run the Python test suite, which enforces the complete catalogs.
 
 ### Adding a New Language
 
@@ -169,7 +169,7 @@ We prefer new languages to be contributed by people who actually use the tool in
 - **Keep changes focused and minimal.** Smaller PRs are easier to review and more likely to be merged.
 - **Follow the pipeline architecture.** New functionality must integrate into the existing data flow, not bypass it.
 - Add tests for new functionality
-- Maintain all existing language translations in `app/i18n/*.json` (run `python scripts/i18n_check.py --validate`)
+- Maintain all existing language translations in `app/i18n/*.json` and `app/modules/*/i18n/*.json` (run `python scripts/i18n_check.py --validate`)
 - Run the full test suite before submitting a PR
 - AI-generated bulk PRs without prior discussion will not be merged
 
