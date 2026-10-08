@@ -144,6 +144,9 @@ def phone(browser, live_server):
     page.goto(f"{live_server}/?lang=en#trends?range=1d", wait_until="networkidle")
     expect(page.locator("#chart-ds-power .u-over")).to_be_visible()
     page.locator("#chart-ds-power").scroll_into_view_if_needed()
+    # Gestures are told apart by time (a swipe is quick, a hold is still). The page
+    # clock stands still so a busy machine cannot turn one into the other.
+    page.clock.pause_at(page.evaluate("Date.now()") / 1000)
     cdp = context.new_cdp_session(page)
     yield page, cdp
     context.close()
@@ -160,7 +163,7 @@ def _swipe(page, cdp, direction, hold_ms=0):
     start = box["x"] + box["width"] * (0.2 if direction > 0 else 0.8)
     _touch(cdp, "touchStart", start, y)
     if hold_ms:
-        page.wait_for_timeout(hold_ms)
+        page.clock.run_for(hold_ms)
     for step in range(1, 7):
         _touch(cdp, "touchMove", start + direction * step * 30, y)
     _touch(cdp, "touchEnd")
@@ -174,6 +177,8 @@ def test_a_swipe_on_a_phone_steps_the_window_and_holding_reads_values(phone):
     _swipe(page, cdp, 1)
     end = _hash_end(page)
     assert end is not None
+    # The charts are rebuilt for the new window; a touch keeps the element it started on.
+    _shows_window_ending_at(page, end)
     expect(page.locator("#trend-window-past")).to_be_visible()
     # The hint has done its job after the first swipe.
     expect(page.locator("#trend-window-hint")).to_be_hidden()
