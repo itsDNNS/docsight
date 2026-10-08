@@ -2,14 +2,15 @@
 
 ## Supported Versions
 
-We release security updates for the following versions:
+Security fixes go into the `main` branch and ship with the next release. Releases are named by date (`vYYYY-MM-DD.N`).
 
 | Version | Supported          |
 | ------- | ------------------ |
-| v2.x (main) | :white_check_mark: |
-| v1.x (legacy) | :x: (no longer supported) |
+| Latest release (`stable` image tag) | :white_check_mark: |
+| `main` (`latest` image tag) | :white_check_mark: |
+| Older releases | :x: |
 
-**Recommendation:** Always use the latest release from the `main` branch for the newest features and security fixes.
+**Recommendation:** Use the `stable` image tag, which always points to the newest release, and update when a new release is published.
 
 ## Reporting a Vulnerability
 
