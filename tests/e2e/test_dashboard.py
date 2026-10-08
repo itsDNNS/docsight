@@ -605,8 +605,12 @@ class TestHomeOverview:
     def test_refresh_keeps_the_family_section_open(self, demo_page):
         open_channel_families(demo_page)
         open_view(demo_page, "live")
+        # The E2E server has no collector, so a real poll fails and the page would not refresh.
+        demo_page.route("**/api/poll", lambda route: route.fulfill(json={"success": True}))
+        # The refresh replaces the section with the new snapshot's markup; wait for the new node.
+        demo_page.evaluate("document.getElementById('channel-families').dataset.beforeRefresh = 'true'")
         demo_page.locator(".hero-refresh-button").click()
-        demo_page.wait_for_load_state("networkidle")
+        demo_page.wait_for_function("() => !document.getElementById('channel-families').dataset.beforeRefresh")
         expect(demo_page.locator("#channel-families")).to_have_attribute("open", "")
         expect(demo_page.locator("#channel-families #metric-us-ofdma-card")).to_have_count(1)
 

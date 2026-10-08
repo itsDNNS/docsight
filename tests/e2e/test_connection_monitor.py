@@ -103,8 +103,9 @@ def test_connection_monitor_target_chips_show_and_hide_lines(demo_page):
     assert page.evaluate(series_shown, target_id) is False
 
     # A new range redraws the chart; the hidden target stays hidden.
+    page.evaluate("window.previousCmChart = window.charts['cm-combined-chart']")
     page.locator('#cm-range-tabs [data-cm-range="86400"]').click()
-    page.wait_for_load_state("networkidle")
+    page.wait_for_function("() => window.charts['cm-combined-chart'] !== window.previousCmChart")
     expect(page.locator(f'#cm-target-chips [data-target-id="{target_id}"]')).to_have_attribute("aria-pressed", "false")
     assert page.evaluate(series_shown, target_id) is False
     page.locator(f'#cm-target-chips [data-target-id="{target_id}"]').click()
