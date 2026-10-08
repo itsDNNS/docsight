@@ -1,3 +1,4 @@
+{% from "partials/window_shift.html" import window_shift, window_past with context %}
 <div class="view-content cm-monitor" id="cm-detail-view"
      data-l-remove="{{ t.get('docsight.connection_monitor.cm_remove', 'Remove') }}"
      data-l-raw-log-download="{{ t.get('docsight.connection_monitor.cm_raw_log_download', 'Download raw log') }}">
@@ -13,6 +14,7 @@
                  data-mode-badge="{{ t.get('docsight.connection_monitor.cm_mode_badge', '{method} mode') }}"
                  data-hint-tcp="{{ t.get('docsight.connection_monitor.cm_method_hint_tcp', 'Using TCP probing. For more accurate ICMP probing, add cap_add: [NET_RAW] to your Docker Compose.') }}"
             ></div>
+            {% call window_shift('cm') %}
             <div class="segmented" data-pill-action="cmRangeTabSelected" id="cm-range-tabs" role="group" aria-label="{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}">
                 <button class="segmented-option active" data-cm-range="3600" aria-pressed="true">1h</button>
                 <button class="segmented-option" data-cm-range="21600" aria-pressed="false">6h</button>
@@ -23,6 +25,7 @@
                 <button class="segmented-option" data-cm-range="2592000" aria-pressed="false">30d</button>
                 <button class="segmented-option" data-cm-range="7776000" aria-pressed="false">90d</button>
             </div>
+            {% endcall %}
             {# Downloads live in one menu; the page itself stays about the measurements. #}
             <details class="cm-more" id="cm-more" hidden>
                 <summary class="cm-more-toggle" aria-label="{{ t.get('more_actions', 'More actions') }}" title="{{ t.get('more_actions', 'More actions') }}">
@@ -39,6 +42,8 @@
             </details>
         </div>
     </div>
+
+    {{ window_past('cm') }}
 
     <div id="cm-pinned-days-bar" class="cm-pinned-bar" hidden>
         <button id="cm-pin-day-btn" type="button" class="cm-pin-day-btn"

@@ -346,9 +346,11 @@ def api_get_samples(target_id):
 
     time_range = (end - start) if has_explicit_range else 0
 
-    # Determine resolution
+    # Determine resolution. Raw samples are kept for _RAW_MAX_AGE, so a short
+    # window further back blends in the aggregated tiers like a long one.
     if resolution == "auto":
-        if not has_explicit_range or time_range <= 86400:
+        raw_kept = has_explicit_range and start >= time.time() - _RAW_MAX_AGE
+        if not has_explicit_range or (time_range <= 86400 and raw_kept):
             res_name, bucket_seconds, blended = "raw", None, False
         elif time_range <= _RAW_MAX_AGE:
             res_name, bucket_seconds, blended = "raw", None, True

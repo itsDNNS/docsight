@@ -257,6 +257,39 @@ class TestSamplesResolution:
         assert data["samples"][1]["min_latency_ms"] is None
         assert [sample["bucket_seconds"] for sample in data["samples"]] == [60, None]
 
+    def test_auto_1d_window_beyond_raw_retention_uses_the_aggregates(self, client):
+        """A one-day window two weeks back has no raw samples left; its 1-min buckets show instead."""
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        end = now - 14 * 86400
+        with storage._connect() as conn:
+            conn.execute(
+                """INSERT INTO connection_samples_aggregated
+                   (target_id, bucket_start, bucket_seconds,
+                    avg_latency_ms, min_latency_ms, max_latency_ms,
+                    p95_latency_ms, packet_loss_pct, sample_count)
+                   VALUES (?, ?, 60, 15.0, 10.0, 20.0, 18.0, 0.0, 12)""",
+                (tid, end - 3600),
+            )
+        resp = c.get(f"/api/connection-monitor/samples/{tid}?start={end - 86400}&end={end}")
+        data = resp.get_json()
+        assert data["meta"]["blended"] is True
+        assert data["meta"]["tiers_used"] == ["1min"]
+        assert [sample["latency_ms"] for sample in data["samples"]] == [15.0]
+
+    def test_auto_1d_window_within_raw_retention_stays_raw(self, client):
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1")
+        end = time.time() - 2 * 86400
+        storage.save_samples([
+            {"target_id": tid, "timestamp": end - 3600, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        data = c.get(f"/api/connection-monitor/samples/{tid}?start={end - 86400}&end={end}").get_json()
+        assert data["meta"]["resolution"] == "raw"
+        assert data["meta"]["blended"] is False
+        assert [sample["latency_ms"] for sample in data["samples"]] == [10.0]
+
     def test_auto_90d_range_keeps_recent_raw_data(self, client):
         """A 90d range should still show current raw data even before older buckets exist."""
         c, storage = client
