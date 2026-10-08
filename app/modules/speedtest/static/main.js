@@ -160,10 +160,10 @@ function computeMedian(arr) {
     return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-/* Booked speed in Mbps from the chart canvas; 0 when neither config nor modem knows it. */
+/* Booked speed in Mbps from the chart container; 0 when neither config nor modem knows it. */
 function _speedtestBooked(direction) {
-    var canvas = document.getElementById('speedtest-chart');
-    var value = canvas ? Number(canvas.getAttribute('data-booked-' + direction)) : 0;
+    var container = document.getElementById('speedtest-chart-container');
+    var value = container ? Number(container.getAttribute('data-booked-' + direction)) : 0;
     return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
@@ -499,261 +499,73 @@ function toggleSpeedtestSignal(btn) {
     }
 }
 
+/* Background tint between neighbouring results: green when both reach the limit, red otherwise. */
+function _speedtestTintPlugin(limit) {
+    return {hooks: {drawAxes: [function(u) {
+        var xs = u.data[0], dls = u.data[1];
+        var ctx = u.ctx;
+        ctx.save();
+        for (var i = 0; i < xs.length - 1; i++) {
+            if (dls[i] == null || dls[i + 1] == null) continue;
+            var x1 = u.valToPos(xs[i], 'x', true), x2 = u.valToPos(xs[i + 1], 'x', true);
+            ctx.fillStyle = dls[i] >= limit && dls[i + 1] >= limit ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)';
+            ctx.fillRect(x1, u.bbox.top, x2 - x1, u.bbox.height);
+        }
+        ctx.restore();
+    }]}};
+}
+
 function renderSpeedtestChart() {
     var container = document.getElementById('speedtest-chart-container');
-    var canvas = document.getElementById('speedtest-chart');
-    if (!container || !canvas) return;
+    if (!container || !document.getElementById('speedtest-chart')) return;
     // Sort data chronologically for chart (oldest first)
     var data = _speedtestAllData.slice().sort(function(a, b) {
         return docsightParseTime(a.timestamp) - docsightParseTime(b.timestamp);
     });
     if (data.length < 2) { container.hidden = true; return; }
     container.hidden = false;
-    var wrap = canvas.parentElement;
-    var dpr = window.devicePixelRatio || 1;
-    var w = wrap.clientWidth;
-    var h = canvas.clientHeight || 250;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    var ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    // Padding (reduced on narrow screens)
-    var mobile = w < 500;
-    var padL = mobile ? 40 : 60, padR = mobile ? 30 : 60, padT = 20, padB = 30;
-    var cw = w - padL - padR;
-    var ch = h - padT - padB;
-    // Extract data arrays
-    var dls = [], uls = [], pings = [], times = [];
+    // Axis labels follow the range like Signal Trends; the tooltip names the full time.
+    var range = getPillValue('speedtest-tabs') || '7';
+    var hours = range === 'all' ? 'all' : Number(range) * 24;
+    var labels = [], titles = [], times = [], dls = [], uls = [], pings = [];
     for (var i = 0; i < data.length; i++) {
+        var t = docsightParseTime(data[i].timestamp);
+        labels.push(docsightFormatXAxisLabel(t, hours));
+        titles.push(formatSpeedtestTimestamp(data[i].timestamp));
+        times.push(t.getTime() / 1000);
         dls.push(parseFloat(data[i].download_mbps) || 0);
         uls.push(parseFloat(data[i].upload_mbps) || 0);
         var ping = data[i].ping_ms == null ? NaN : Number(data[i].ping_ms);
         pings.push(Number.isFinite(ping) ? ping : null);
-        times.push(docsightParseTime(data[i].timestamp));
     }
-    // Scales
-    var bookedDl = _speedtestBooked('download');
-    var threshold = _speedtestLimit('download', dls);
+    var limit = _speedtestLimit('download', dls);
     // The reference line marks the booked speed, or the 80 % median limit when none is known.
-    var reference = bookedDl || threshold;
+    var reference = _speedtestBooked('download') || limit;
     var maxSpeed = Math.max.apply(null, dls.concat(uls, [reference])) * 1.1 || 1;
     var maxPing = Math.max.apply(null, pings) * 1.1 || 1;
-    function xPos(idx) { return padL + (idx / (data.length - 1)) * cw; }
-    function ySpeed(v) { return padT + ch - (v / maxSpeed) * ch; }
-    function yPing(v) { return padT + ch - (v / maxPing) * ch; }
-    // Clear
-    ctx.clearRect(0, 0, w, h);
-    // Background zones (green/red tint per segment)
-    for (var i = 0; i < data.length - 1; i++) {
-        var x1 = xPos(i), x2 = xPos(i + 1);
-        var isHealthy = dls[i] >= threshold && dls[i + 1] >= threshold;
-        ctx.fillStyle = isHealthy ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)';
-        ctx.fillRect(x1, padT, x2 - x1, ch);
-    }
-    // Grid lines + left Y axis labels (speed)
-    var cs = getComputedStyle(document.documentElement);
-    var mutedColor = cs.getPropertyValue('--muted').trim() || '#888';
-    var gridColor = cs.getPropertyValue('--border-subtle').trim() || 'rgba(255,255,255,0.07)';
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = 1;
-    var monoFont = cs.getPropertyValue('--font-mono').trim() || 'monospace';
-    ctx.font = '12px ' + monoFont;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    var gridLines = 5;
-    for (var g = 0; g <= gridLines; g++) {
-        var gy = padT + (g / gridLines) * ch;
-        var speedVal = maxSpeed - (g / gridLines) * maxSpeed;
-        var pingVal = maxPing - (g / gridLines) * maxPing;
-        ctx.beginPath();
-        ctx.moveTo(padL, gy);
-        ctx.lineTo(w - padR, gy);
-        ctx.stroke();
-        ctx.fillStyle = mutedColor;
-        ctx.textAlign = 'right';
-        ctx.fillText(speedVal.toFixed(0), padL - 6, gy);
-        ctx.textAlign = 'left';
-        ctx.fillText(pingVal.toFixed(0), w - padR + 6, gy);
-    }
-    ctx.fillStyle = mutedColor;
-    ctx.font = '12px ' + monoFont;
-    ctx.textAlign = 'center';
-    ctx.save();
-    ctx.translate(12, padT + ch / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Mbps', 0, 0);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(w - 10, padT + ch / 2);
-    ctx.rotate(Math.PI / 2);
-    ctx.fillText('ms', 0, 0);
-    ctx.restore();
-    // X axis labels (timestamps)
-    ctx.fillStyle = mutedColor;
-    ctx.font = '12px ' + monoFont;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    // About 120px per localized "date, time" label keeps them from overlapping on narrow screens.
-    var labelCount = Math.min(6, data.length, Math.max(2, Math.floor(cw / 120)));
-    for (var li = 0; li < labelCount; li++) {
-        var idx = Math.round(li * (data.length - 1) / (labelCount - 1));
-        var t = times[idx];
-        var label = docsightFormatAxisTime(t, 'monthday-time');
-        // Edge labels align to the plot ends so they stay inside the canvas.
-        ctx.textAlign = li === 0 ? 'left' : (li === labelCount - 1 ? 'right' : 'center');
-        ctx.fillText(label, xPos(idx), padT + ch + 6);
-    }
-    // Reference line (dashed)
-    ctx.setLineDash([6, 4]);
-    ctx.strokeStyle = mutedColor;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    var threshY = ySpeed(reference);
-    ctx.moveTo(padL, threshY);
-    ctx.lineTo(w - padR, threshY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // Helper: draw filled line with gradient (Phase 4.2)
-    function drawLine(values, yFn, color, gradientColors) {
-        var start = 0;
-        while (start < values.length) {
-            while (start < values.length && values[start] == null) start++;
-            if (start === values.length) break;
-            var end = start + 1;
-            while (end < values.length && values[end] != null) end++;
-            // Filled area with gradient
-            ctx.beginPath();
-            ctx.moveTo(xPos(start), padT + ch);
-            for (var i = start; i < end; i++) {
-                ctx.lineTo(xPos(i), yFn(values[i]));
-            }
-            ctx.lineTo(xPos(end - 1), padT + ch);
-            ctx.closePath();
-
-            // Create gradient if provided
-            if (gradientColors && gradientColors.length === 2) {
-                var gradient = ctx.createLinearGradient(0, padT, 0, padT + ch);
-                gradient.addColorStop(0, gradientColors[0]);
-                gradient.addColorStop(1, gradientColors[1]);
-                ctx.fillStyle = gradient;
-            } else {
-                ctx.fillStyle = gradientColors;
-            }
-            ctx.fill();
-
-            // Line with smooth curves
-            ctx.beginPath();
-            for (var i = start; i < end; i++) {
-                if (i === start) {
-                    ctx.moveTo(xPos(i), yFn(values[i]));
-                } else {
-                    // Smooth curve approximation using quadratic curves
-                    var prevX = xPos(i - 1);
-                    var prevY = yFn(values[i - 1]);
-                    var currX = xPos(i);
-                    var currY = yFn(values[i]);
-                    var cpX = (prevX + currX) / 2;
-                    var cpY = (prevY + currY) / 2;
-                    ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
-                    if (i === end - 1) {
-                        ctx.lineTo(currX, currY);
-                    }
-                }
-            }
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            start = end;
-        }
-    }
-    
-    // Phase 4.2: Purple gradient for download, green for upload, amber line for ping
-    drawLine(uls, ySpeed, '#22c55e', ['rgba(34,197,94,0.3)', 'rgba(34,197,94,0)']);
-    drawLine(dls, ySpeed, '#a855f7', ['rgba(168,85,247,0.3)', 'rgba(168,85,247,0)']);
-    drawLine(pings, yPing, '#f59e0b', 'rgba(245,158,11,0.10)');
-    // Hover / touch interaction
-    var tooltip = document.getElementById('speedtest-chart-tooltip');
-    // Move tooltip to body so it's never clipped
-    if (tooltip.parentElement !== document.body) document.body.appendChild(tooltip);
-    tooltip.style.position = 'fixed';
-    function showTooltipAt(clientX, clientY) {
-        var rect = canvas.getBoundingClientRect();
-        var scaleX = w / rect.width;
-        var scaleY = h / rect.height;
-        var mx = (clientX - rect.left) * scaleX;
-        var my = (clientY - rect.top) * scaleY;
-        if (mx < padL || mx > w - padR || my < padT || my > padT + ch) {
-            tooltip.style.display = 'none'; return;
-        }
-        var ratio = (mx - padL) / cw;
-        var idx = Math.round(ratio * (data.length - 1));
-        if (idx < 0) idx = 0;
-        if (idx >= data.length) idx = data.length - 1;
-        tooltip.style.display = 'block';
-        tooltip.textContent = '';
-        var strong = document.createElement('strong');
-        strong.textContent = formatSpeedtestTimestamp(data[idx].timestamp);
-        tooltip.appendChild(strong);
-        var lines = [
-            {color: '#a855f7', sym: '\u25BC', label: T.speedtest_dl || 'DL', val: dls[idx].toFixed(2) + ' Mbps'},
-            {color: '#22c55e', sym: '\u25B2', label: T.speedtest_ul || 'UL', val: uls[idx].toFixed(2) + ' Mbps'},
-            {color: '#f59e0b', sym: '\u25CF', label: T.speedtest_ping || 'Ping', val: pings[idx] == null ? '\u2014' : pings[idx].toFixed(1) + ' ms'}
-        ];
-        lines.forEach(function(line) {
-            tooltip.appendChild(document.createElement('br'));
-            var span = document.createElement('span');
-            span.style.color = line.color;
-            span.textContent = line.sym;
-            tooltip.appendChild(span);
-            tooltip.appendChild(document.createTextNode(' ' + line.label + ': ' + line.val));
-        });
-        // Position with edge detection (horizontal + vertical)
-        var tipW = tooltip.offsetWidth || 160;
-        var tipH = tooltip.offsetHeight || 60;
-        var leftPos = clientX + 14;
-        if (leftPos + tipW > window.innerWidth - 8) {
-            leftPos = clientX - tipW - 14;
-        }
-        var topPos = clientY - 10;
-        if (topPos + tipH > window.innerHeight - 8) {
-            topPos = clientY - tipH - 14;
-        }
-        tooltip.style.left = leftPos + 'px';
-        tooltip.style.top = topPos + 'px';
-    }
-    function onMouseMove(e) { showTooltipAt(e.clientX, e.clientY); }
-    function onMouseLeave() { tooltip.style.display = 'none'; }
-    function onTouchMove(e) {
-        if (e.touches.length === 1) {
-            e.preventDefault();
-            var touch = e.touches[0];
-            showTooltipAt(touch.clientX, touch.clientY);
-        }
-    }
-    function onTouchEnd() { tooltip.style.display = 'none'; }
-    // Clean up old handlers
-    if (canvas._chartMoveHandler) canvas.removeEventListener('mousemove', canvas._chartMoveHandler);
-    if (canvas._chartLeaveHandler) canvas.removeEventListener('mouseleave', canvas._chartLeaveHandler);
-    if (canvas._chartTouchMoveHandler) canvas.removeEventListener('touchmove', canvas._chartTouchMoveHandler);
-    if (canvas._chartTouchEndHandler) {
-        canvas.removeEventListener('touchend', canvas._chartTouchEndHandler);
-        canvas.removeEventListener('touchcancel', canvas._chartTouchEndHandler);
-    }
-    canvas._chartMoveHandler = onMouseMove;
-    canvas._chartLeaveHandler = onMouseLeave;
-    canvas._chartTouchMoveHandler = onTouchMove;
-    canvas._chartTouchEndHandler = onTouchEnd;
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mouseleave', onMouseLeave);
-    canvas.addEventListener('touchmove', onTouchMove, {passive: false});
-    canvas.addEventListener('touchend', onTouchEnd);
-    canvas.addEventListener('touchcancel', onTouchEnd);
+    var muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#888';
+    var pingLabel = T.speedtest_ping || 'Ping';
+    renderChart('speedtest-chart', labels, [
+        {label: T.speedtest_dl || 'DL', data: dls, color: '#a855f7', fill: 'rgba(168,85,247,0.12)'},
+        {label: T.speedtest_ul || 'UL', data: uls, color: '#22c55e', fill: 'rgba(34,197,94,0.10)'},
+        {label: pingLabel, data: pings, color: '#f59e0b', scale: 'ping'}
+    ], null, [{yMin: 0, yMax: maxSpeed}, {value: reference, fill: false, lineColor: muted}], {
+        times: times,
+        tooltipTitles: titles,
+        legend: false,
+        heightRatio: 0.3,
+        minHeight: 200,
+        maxHeight: 280,
+        scales: {ping: {range: function() { return [0, maxPing]; }}},
+        axes: [{scale: 'ping', side: 1, stroke: muted, grid: {show: false}, ticks: {show: false},
+            font: '12px system-ui', size: 40, gap: 4}],
+        tooltipLabelCallback: function(ctx) {
+            var ping = ctx.dataset.label === pingLabel;
+            return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(ping ? 1 : 2) + (ping ? ' ms' : ' Mbps');
+        },
+        plugins: [_speedtestTintPlugin(limit)]
+    });
 }
-
-// Resize handler for speedtest chart only
-window.addEventListener('resize', function() {
-    if (_speedtestAllData.length >= 2) renderSpeedtestChart();
-});
 
 function showMoreSpeedtest() {
     _speedtestVisible += 50;

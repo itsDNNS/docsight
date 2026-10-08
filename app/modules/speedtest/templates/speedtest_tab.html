@@ -20,7 +20,9 @@
         <div class="skeleton skel-chart"></div>
     </div>
     <div id="speedtest-no-data" class="view-empty" hidden></div>
-    <div id="speedtest-chart-container" hidden>
+    {% set st_booked_dl = booked_download if (booked_download and booked_download > 0) else ((connection_info.max_downstream_kbps // 1000) if connection_info and connection_info.max_downstream_kbps else 0) %}
+    {% set st_booked_ul = booked_upload if (booked_upload and booked_upload > 0) else ((connection_info.max_upstream_kbps // 1000) if connection_info and connection_info.max_upstream_kbps else 0) %}
+    <div id="speedtest-chart-container" data-booked-download="{{ st_booked_dl }}" data-booked-upload="{{ st_booked_ul }}" hidden>
         <!-- Phase 4.2: Modern card wrapper for speedtest chart -->
         <div class="speedtest-chart-card">
             <div class="chart-card-header">
@@ -32,11 +34,8 @@
                     <div class="chart-label">{{ t.speedtest_history }}</div>
                 </div>
             </div>
-            {% set st_booked_dl = booked_download if (booked_download and booked_download > 0) else ((connection_info.max_downstream_kbps // 1000) if connection_info and connection_info.max_downstream_kbps else 0) %}
-            {% set st_booked_ul = booked_upload if (booked_upload and booked_upload > 0) else ((connection_info.max_upstream_kbps // 1000) if connection_info and connection_info.max_upstream_kbps else 0) %}
             <div class="speedtest-chart-wrap">
-                <canvas id="speedtest-chart" data-booked-download="{{ st_booked_dl }}" data-booked-upload="{{ st_booked_ul }}"></canvas>
-                <div class="speedtest-chart-tooltip" id="speedtest-chart-tooltip"></div>
+                <div id="speedtest-chart"></div>
                 <div class="speedtest-chart-legend">
                     <span class="legend-dl">{{ t.legend_download }}</span>
                     <span class="legend-ul">{{ t.legend_upload }}</span>

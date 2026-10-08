@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 800,
+  "expected_total": 807,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -53,7 +53,7 @@
     },
     {
       "id": 4,
-      "collected_cases": 107,
+      "collected_cases": 114,
       "files": [
         "test_case_cards.py",
         "test_case_status_track.py",
@@ -62,6 +62,7 @@
         "test_community_theme.py",
         "test_empty_states.py",
         "test_modulation.py",
+        "test_speedtest_chart.py",
         "test_tkg_compensation.py"
       ]
     },
