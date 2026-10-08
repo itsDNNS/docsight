@@ -6,10 +6,10 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(
-    path.resolve(__dirname, '../../app/modules/journal/static/main.js'),
-    'utf8'
-);
+// The journal's scripts, in the order the page loads them.
+const source = ['static/js/journal-timeline.js', 'static/main.js']
+    .map(file => fs.readFileSync(path.resolve(__dirname, '../../app/modules/journal', file), 'utf8'))
+    .join('\n');
 
 function functionBody(name, nextName) {
     const start = source.indexOf(`function ${name}(`);
@@ -126,7 +126,7 @@ function journalHarness() {
         showToast: () => assert.fail('Unexpected toast')
     });
     context.window = context;
-    vm.runInContext(source, context, {filename: 'journal/main.js'});
+    vm.runInContext(source, context, {filename: 'journal'});
     for (const id of ['header', 'entries', 'chart-card', 'signals', 'bnetz']) {
         nodes.set('incident-timeline-' + id, document.createElement('div'));
     }
