@@ -190,6 +190,9 @@ def _local_input(page, offset_ms, round_up):
 
 
 def test_quick_ranges_fill_the_window_in_the_configured_time_zone(demo_page):
+    # The page and the expectations both read the clock; a minute boundary between
+    # the click and the expectation would make them differ, so the time stands still.
+    demo_page.clock.set_fixed_time(demo_page.evaluate("Math.floor(Date.now() / 60000) * 60 + 30"))
     requests = []
     demo_page.route("**/api/evidence/checklist?**", lambda route: (requests.append(route.request.url), route.fulfill(json=_payload())))
     demo_page.evaluate("switchView('evidence')")
