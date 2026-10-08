@@ -221,3 +221,73 @@ def test_dispatcher_adds_pwa_channel_and_reuses_severity_and_cooldown_controls(t
     assert mock_webpush.call_count == 1
     sent = json.loads(mock_webpush.call_args.kwargs["data"])
     assert sent["body"] == "Sent"
+
+
+
+def _b64(raw: bytes) -> str:
+    import base64
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def test_web_push_encrypts_for_the_subscriber_and_signs_with_vapid():
+    """A real round trip: the subscriber's key decrypts the body, the VAPID key verifies the header."""
+    import base64
+    import os
+
+    import http_ece
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from py_vapid import Vapid02
+
+    from app.notifier import webpush
+
+    subscriber = ec.generate_private_key(ec.SECP256R1())
+    subscriber_public = subscriber.public_key().public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+    auth = os.urandom(16)
+    vapid = ec.generate_private_key(ec.SECP256R1())
+    vapid_private = _b64(vapid.private_numbers().private_value.to_bytes(32, "big"))
+    vapid_public = _b64(vapid.public_key().public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint))
+    subscription = {
+        "endpoint": "https://push.example.test/send/abc123",
+        "keys": {"p256dh": _b64(subscriber_public), "auth": _b64(auth)},
+    }
+
+    with patch("app.notifier.requests.post", return_value=MagicMock(status_code=201)) as post:
+        webpush(subscription_info=subscription, data='{"title":"T"}',
+                vapid_private_key=vapid_private, vapid_claims={"sub": "mailto:admin@example.test"})
+
+    endpoint, kwargs = post.call_args.args[0], post.call_args.kwargs
+    assert endpoint == subscription["endpoint"]
+    assert http_ece.decrypt(kwargs["data"], private_key=subscriber, auth_secret=auth, version="aes128gcm") == b'{"title":"T"}'
+    headers = kwargs["headers"]
+    assert headers["Content-Encoding"] == "aes128gcm"
+    assert headers["TTL"] == "0"
+    assert kwargs["timeout"] == 10
+    authorization = headers["Authorization"]
+    assert f",k={vapid_public}" in authorization
+    assert Vapid02.verify(authorization)
+    token = authorization.split("t=", 1)[1].split(",", 1)[0]
+    claims = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "=="))
+    assert claims["aud"] == "https://push.example.test"
+    assert claims["sub"] == "mailto:admin@example.test"
+
+
+def test_web_push_raises_with_the_response_when_the_service_refuses():
+    import pytest
+    from app.notifier import WebPushException, webpush
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+
+    subscriber = ec.generate_private_key(ec.SECP256R1()).public_key().public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+    vapid = ec.generate_private_key(ec.SECP256R1())
+    subscription = {"endpoint": "https://push.example.test/x", "keys": {"p256dh": _b64(subscriber), "auth": _b64(b"0" * 16)}}
+    gone = MagicMock(status_code=410)
+    with patch("app.notifier.requests.post", return_value=gone):
+        with pytest.raises(WebPushException) as raised:
+            webpush(subscription_info=subscription, data="x",
+                    vapid_private_key=_b64(vapid.private_numbers().private_value.to_bytes(32, "big")),
+                    vapid_claims={"sub": "mailto:a@example.test"})
+    assert raised.value.response is gone

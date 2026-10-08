@@ -2,24 +2,57 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import re
 import time
 from abc import ABC, abstractmethod
 from urllib.parse import quote, urlsplit
-import requests
 
-try:
-    from pywebpush import WebPushException, webpush
-except Exception:  # pragma: no cover - dependency availability is exercised by runtime config
-    WebPushException = Exception
-    webpush = None
+import http_ece
+import requests
+from cryptography.hazmat.primitives.asymmetric import ec
+from py_vapid import Vapid
 
 from .types import EventDict, NotificationPayload, NotificationTestResult
 from .tz import utc_now
 
 log = logging.getLogger("docsis.notifier")
+
+
+class WebPushException(Exception):
+    """A push service rejected a message; ``response`` carries its status."""
+
+    def __init__(self, message, response=None):
+        super().__init__(message)
+        self.response = response
+
+
+def _urlsafe_b64decode(value):
+    value = value.encode() if isinstance(value, str) else value
+    return base64.urlsafe_b64decode(value + b"=" * (-len(value) % 4))
+
+
+def webpush(subscription_info, data, vapid_private_key, vapid_claims, timeout=10):
+    """Encrypt ``data`` for one browser subscription (RFC 8291) and post it with VAPID (RFC 8292)."""
+    endpoint = subscription_info["endpoint"]
+    keys = subscription_info["keys"]
+    body = http_ece.encrypt(
+        data.encode(),
+        private_key=ec.generate_private_key(ec.SECP256R1()),
+        dh=_urlsafe_b64decode(keys["p256dh"]),
+        auth_secret=_urlsafe_b64decode(keys["auth"]),
+        version="aes128gcm",
+    )
+    url = urlsplit(endpoint)
+    claims = {**vapid_claims, "aud": f"{url.scheme}://{url.netloc}", "exp": int(time.time()) + 12 * 3600}
+    headers = Vapid.from_string(private_key=vapid_private_key).sign(claims)
+    headers.update({"Content-Encoding": "aes128gcm", "TTL": "0"})
+    response = requests.post(endpoint, data=body, headers=headers, timeout=timeout)
+    if response.status_code > 202:
+        raise WebPushException(f"Push failed: HTTP {response.status_code}", response=response)
+    return response
 
 SEVERITY_ORDER = {"info": 0, "warning": 1, "critical": 2}
 
@@ -225,10 +258,6 @@ class WebPushChannel(NotificationChannel):
             return None
 
     def send(self, payload: NotificationPayload) -> bool:
-        if webpush is None:
-            self._last_error = "Web Push dependency unavailable"
-            log.warning("Web Push unavailable: pywebpush is not installed")
-            return False
         if not self._storage or not self._vapid_private_key:
             self._last_error = "Web Push is not configured"
             return False
