@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Tilannekuva {time}",
   "snapshot_case_name": "Signaali {time}",
   "snapshot_added_to_case": "Tilannekuvan päivä lisätty tapaukseen ”{case}”",
-  "snapshot_error": "Tämän kohdan tilannekuvaa ei voitu ladata."
+  "snapshot_error": "Tämän kohdan tilannekuvaa ei voitu ladata.",
+  "chart_gap_no_data": "Ei tietoja"
 }

@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Pillanatkép: {time}",
   "snapshot_case_name": "Jel: {time}",
   "snapshot_added_to_case": "A pillanatkép napja hozzáadva: „{case}”",
-  "snapshot_error": "Ennek a pontnak a pillanatképe nem tölthető be."
+  "snapshot_error": "Ennek a pontnak a pillanatképe nem tölthető be.",
+  "chart_gap_no_data": "Nincs adat"
 }

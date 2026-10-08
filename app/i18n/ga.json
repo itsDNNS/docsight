@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Léargas ó {time}",
   "snapshot_case_name": "Comhartha ar {time}",
   "snapshot_added_to_case": "Lá an léargais curtha le “{case}”",
-  "snapshot_error": "Níorbh fhéidir an léargas don phointe seo a lódáil."
+  "snapshot_error": "Níorbh fhéidir an léargas don phointe seo a lódáil.",
+  "chart_gap_no_data": "Gan sonraí"
 }

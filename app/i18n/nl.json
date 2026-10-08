@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Momentopname van {time}",
   "snapshot_case_name": "Signaal op {time}",
   "snapshot_added_to_case": "Dag van de momentopname toegevoegd aan ‘{case}’",
-  "snapshot_error": "De momentopname voor dit punt kon niet worden geladen."
+  "snapshot_error": "De momentopname voor dit punt kon niet worden geladen.",
+  "chart_gap_no_data": "Geen gegevens"
 }

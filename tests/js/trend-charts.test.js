@@ -140,3 +140,56 @@ test('axis labels on short dense series keep one even gap that fits a label', ()
         assert.ok(gaps.every(gap => gap * pxPerPoint >= 60 + 18 - 0.01), `n=${n} gaps ${gaps}`);
     }
 });
+
+test('a pause much longer than the poll interval breaks the series and is reported as a gap', () => {
+    const e = engine();
+    const times = [0, 60, 120, 1000, 1060];
+    const series = e.docsightTimeSeries(['a', 'b', 'c', 'd', 'e'], [{data: [1, 2, 3, 4, 5]}], times, null);
+    assert.equal(series.interval, 60);
+    assert.deepEqual(Array.from(series.labels), ['a', 'b', 'c', null, 'd', 'e']);
+    assert.deepEqual(Array.from(series.data[0]), [1, 2, 3, null, 4, 5]);
+    assert.deepEqual(Array.from(series.original), [0, 1, 2, null, 3, 4]);
+    assert.deepEqual(JSON.parse(JSON.stringify(series.gaps)), [{start: 120, end: 1000}]);
+    // The break point sits inside the gap, so the line ends at the last reading.
+    assert.ok(series.times[3] > 120 && series.times[3] < 1000);
+    // Regular polls have no gap.
+    assert.deepEqual(Array.from(e.docsightTimeSeries(['a', 'b', 'c'], [{data: [1, 2, 3]}], [0, 60, 150], null).gaps), []);
+});
+
+test('runs of empty intervals are gaps in regular series such as the error bars', () => {
+    const e = engine();
+    const times = [0, 10, 20, 30, 40, 50, 60];
+    assert.deepEqual(JSON.parse(JSON.stringify(e.docsightNullRunGaps(times, [1, null, null, null, 2, null, 3]))), [{start: 0, end: 40}]);
+    // Short runs and runs at the ends are not gaps.
+    assert.deepEqual(Array.from(e.docsightNullRunGaps(times, [1, null, 2, 3, 4, 5, 6])), []);
+    assert.deepEqual(Array.from(e.docsightNullRunGaps(times, [null, null, null, null, 2, 3, 4])), []);
+});
+
+test('time axis labels stay a label apart however unevenly the points are spaced', () => {
+    const e = engine();
+    // Two stretches of polls with a long pause between them.
+    const times = [];
+    for (let t = 0; t <= 6000; t += 300) times.push(t);
+    for (let t = 20000; t <= 26000; t += 300) times.push(t);
+    const labels = times.map((_, i) => `0${i % 10}:00 PM`);
+    const range = [-150, 26150];
+    const splits = Array.from(e.buildTimeSplits(times, labels, range, 500, 60));
+    const px = splits.map(t => (t - range[0]) / (range[1] - range[0]) * 500);
+    assert.ok(px.every((x, i) => i === 0 || x - px[i - 1] >= 78), `splits ${splits}`);
+    assert.ok(px.every(x => x >= 26 && x <= 474), `inset ${px}`);
+    assert.ok(splits.some(t => t <= 6000) && splits.some(t => t >= 20000), 'both stretches are labelled');
+});
+
+test('charts with times place points by time and map clicks back to the caller', () => {
+    const e = engine();
+    const times = [0, 60, 120, 1000, 1060];
+    e.renderChart('chart', ['a', 'b', 'c', 'd', 'e'], [{label: 'x', data: [1, 2, 3, 4, 5]}], null, null, {times});
+    const chart = e.charts.chart;
+    assert.equal(chart.data[0].length, 6);
+    assert.equal(chart.data[0][4], 1000);
+    assert.deepEqual(Array.from(chart._docsightOriginal), [0, 1, 2, null, 3, 4]);
+    assert.equal(e.docsightGapLabel(880).title, 'No data');
+    assert.equal(e.docsightGapLabel(880).duration, '15 min');
+    assert.equal(e.docsightGapLabel(6 * 3600 + 900).duration, '6 h 15 min');
+    assert.equal(e.docsightGapLabel(29 * 3600).duration, '1 d 5 h');
+});

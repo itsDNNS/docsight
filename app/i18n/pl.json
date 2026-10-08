@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Migawka z {time}",
   "snapshot_case_name": "Sygnał {time}",
   "snapshot_added_to_case": "Dzień migawki dodany do „{case}”",
-  "snapshot_error": "Nie udało się wczytać migawki dla tego punktu."
+  "snapshot_error": "Nie udało się wczytać migawki dla tego punktu.",
+  "chart_gap_no_data": "Brak danych"
 }

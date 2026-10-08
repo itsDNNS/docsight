@@ -119,9 +119,11 @@ function _renderTrendCharts() {
     if (!data || data.length === 0) return;
     var timestamps = data.map(function(d) { return d.timestamp || ''; });
     var xLabels = docsightFormatXAxisLabels(timestamps, range);
-    // Clicking a point opens the snapshot taken at that time.
+    // Points by time, so a pause in the polls shows as a gap.
+    var times = docsightTimesFromStamps(timestamps);
     var chartOpts = function(canvasId, titleId) {
-        var opts = Object.assign({}, tempOpts || {});
+        var opts = Object.assign({times: times}, tempOpts || {});
+        // Clicking a point opens the snapshot taken at that time.
         opts.onPointClick = function(idx) {
             _openTrendSnapshot(canvasId, idx, timestamps[idx], titleId);
         };
@@ -144,9 +146,10 @@ function _renderTrendCharts() {
         var buckets = docsightErrorBuckets(data, range);
         _setTrendErrorsTitle(docsightErrorBucketMinutes(range));
         var bucketMinutes = docsightErrorBucketMinutes(range);
+        var bucketTimes = docsightTimesFromStamps(buckets.map(function(b) { return b.timestamp; }));
         renderChart('chart-errors', docsightFormatXAxisLabels(buckets.map(function(b) { return b.timestamp; }), range), [
             {label: T.uncorrectable, data: buckets.map(function(b) { return b.errors; }), color: docsightThemeColor('--crit', 0.8)}
-        ], 'bar', null, {onPointClick: function(idx) {
+        ], 'bar', null, {times: bucketTimes, gaps: docsightNullRunGaps(bucketTimes, buckets.map(function(b) { return b.errors; })), onPointClick: function(idx) {
             // A bar covers an interval; its last snapshot shows what the interval ended with.
             var end = new Date(Date.parse(buckets[idx].timestamp + 'Z') + (bucketMinutes * 60 - 1) * 1000).toISOString().slice(0, 19);
             _openTrendSnapshot('chart-errors', idx, end, 'trend-errors-title');

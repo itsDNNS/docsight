@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Øjebliksbillede fra {time}",
   "snapshot_case_name": "Signal {time}",
   "snapshot_added_to_case": "Dagen for øjebliksbilledet føjet til “{case}”",
-  "snapshot_error": "Øjebliksbilledet for dette punkt kunne ikke indlæses."
+  "snapshot_error": "Øjebliksbilledet for dette punkt kunne ikke indlæses.",
+  "chart_gap_no_data": "Ingen data"
 }

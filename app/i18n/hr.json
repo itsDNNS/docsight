@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Snimka od {time}",
   "snapshot_case_name": "Signal {time}",
   "snapshot_added_to_case": "Dan snimke dodan u „{case}”",
-  "snapshot_error": "Snimku za ovu točku nije moguće učitati."
+  "snapshot_error": "Snimku za ovu točku nije moguće učitati.",
+  "chart_gap_no_data": "Nema podataka"
 }

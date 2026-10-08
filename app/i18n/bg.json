@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Снимка от {time}",
   "snapshot_case_name": "Сигнал на {time}",
   "snapshot_added_to_case": "Денят на снимката е добавен към „{case}“",
-  "snapshot_error": "Снимката за тази точка не можа да се зареди."
+  "snapshot_error": "Снимката за тази точка не можа да се зареди.",
+  "chart_gap_no_data": "Няма данни"
 }

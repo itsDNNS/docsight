@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Instantâneo de {time}",
   "snapshot_case_name": "Sinal em {time}",
   "snapshot_added_to_case": "Dia do instantâneo adicionado a “{case}”",
-  "snapshot_error": "Não foi possível carregar o instantâneo deste ponto."
+  "snapshot_error": "Não foi possível carregar o instantâneo deste ponto.",
+  "chart_gap_no_data": "Sem dados"
 }

@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Snímek z {time}",
   "snapshot_case_name": "Signál {time}",
   "snapshot_added_to_case": "Den snímku přidán k „{case}“",
-  "snapshot_error": "Snímek pro tento bod se nepodařilo načíst."
+  "snapshot_error": "Snímek pro tento bod se nepodařilo načíst.",
+  "chart_gap_no_data": "Žádná data"
 }

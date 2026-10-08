@@ -1020,7 +1020,7 @@ function _renderChannelTimelineCharts() {
         _setChartCardVisible('channel-errors-card', 'chart-ch-errors', false);
     }
     // Clicking a point opens the snapshot taken at that time.
-    var powerOpts = Object.assign({}, tempOpts || {}, {onPointClick: function(idx) {
+    var powerOpts = Object.assign({}, tempOpts || {}, {times: docsightTimesFromStamps(data.map(function(d) { return d.timestamp; })), onPointClick: function(idx) {
         if (typeof DOCSightSnapshotPanel === 'undefined' || !data[idx]) return;
         var mount = document.getElementById('chart-ch-power');
         var card = mount && mount.closest('.chart-card');

@@ -1305,5 +1305,6 @@
   "snapshot_case_summary": "Snapshot vom {time}",
   "snapshot_case_name": "Signal am {time}",
   "snapshot_added_to_case": "Snapshot-Tag zu „{case}“ hinzugefügt",
-  "snapshot_error": "Der Snapshot zu diesem Punkt konnte nicht geladen werden."
+  "snapshot_error": "Der Snapshot zu diesem Punkt konnte nicht geladen werden.",
+  "chart_gap_no_data": "Keine Daten"
 }
