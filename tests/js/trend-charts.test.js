@@ -193,3 +193,13 @@ test('charts with times place points by time and map clicks back to the caller',
     assert.equal(e.docsightGapLabel(6 * 3600 + 900).duration, '6 h 15 min');
     assert.equal(e.docsightGapLabel(29 * 3600).duration, '1 d 5 h');
 });
+
+test('a single point on a time axis stays in view as a dot with its label', () => {
+    const e = engine();
+    e.renderChart('chart', ['06:23 AM'], [{label: 'x', data: [4.5]}], null, null, {times: [1791440580]});
+    const chart = e.charts.chart;
+    const [min, max] = chart.options.scales.x.range();
+    assert.ok(min < 1791440580 && max > 1791440580, `range ${min}..${max}`);
+    assert.deepEqual(Array.from(chart.options.axes[0].splits()), [1791440580]);
+    assert.equal(chart.options.series[1].points.show, true);
+});

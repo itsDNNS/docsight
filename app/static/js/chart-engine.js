@@ -887,8 +887,9 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     var barPaths = isBar ? uPlot.paths.bars({size: [0.7, 50], gap: 1}) : null;
 
     allDatasets.forEach(function(ds) {
+        // A single reading has no line to draw, so it shows as a dot.
         var showPoints = ds.showPoints;
-        if (showPoints === undefined) showPoints = false;
+        if (showPoints === undefined) showPoints = n === 1 && !isBar;
         var s = {
             label: ds.label,
             stroke: ds.color || 'rgba(168,85,247,0.9)',
@@ -968,7 +969,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         };
     } else {
         scales.x.range = function() {
-            if (xData.length <= 1) return [-xEdgePadding, xEdgePadding];
+            if (xData.length <= 1) return [(xData[0] || 0) - xEdgePadding, (xData[0] || 0) + xEdgePadding];
             return [xData[0] - xEdgePadding, xData[xData.length - 1] + xEdgePadding];
         };
     }
@@ -1246,7 +1247,7 @@ function openChartZoom(canvasId) {
         var uSeries = [{ label: 'X', value: function(u, v) { return params.labels[v] || ''; } }];
         params.datasets.forEach(function(ds) {
             var zoomShowPoints = ds.showPoints;
-            if (zoomShowPoints === undefined) zoomShowPoints = false;
+            if (zoomShowPoints === undefined) zoomShowPoints = n === 1;
             var s = {
                 label: ds.label,
                 stroke: ds.color || 'rgba(168,85,247,0.9)',

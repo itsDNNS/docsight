@@ -30,7 +30,7 @@ function browser() {
 for (const count of [1, 30, 31, 100]) {
     for (const type of ['line', 'bar']) {
         for (const mode of ['normal', 'zoom']) {
-            test(`${mode} ${type}, ${count} samples: points are opt-in and bars always opt out`, () => {
+            test(`${mode} ${type}, ${count} samples: points are opt-in (a single sample shows as a dot) and bars always opt out`, () => {
                 const b = browser();
                 b._tempOverlayVisible = true;
                 const data = Array.from({length: count}, (_, i) => i === 1 ? null : i);
@@ -41,7 +41,7 @@ for (const count of [1, 30, 31, 100]) {
                 if (mode === 'zoom') b.openChartZoom('chart');
                 const chart = mode === 'zoom' ? b.zoomChart : b.charts.chart;
                 assert.deepEqual(Array.from(chart.options.series.slice(1), s => s.points.show),
-                    type === 'bar' ? [false, false, false] : [false, false, true, false]);
+                    type === 'bar' ? [false, false, false] : [count === 1, false, true, false]);
                 assert.equal(chart.data[1], data);
                 assert.equal(chart.options.series[1].spanGaps, false);
                 assert.equal(chart.options.cursor.points.show, false);
