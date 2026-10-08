@@ -895,6 +895,32 @@ class TestIndexRoute:
         assert injected_ranges["ds_ofdm_mer"]["good_label"] == "≥ 45 dB"
         assert injected_ranges["ds_ofdm_mer"]["bands"] != metric_ranges["ds_ofdm_mer"]["bands"]
 
+    def test_unreported_power_and_snr_are_missing_not_good(self, sample_analysis):
+        for key in ("ds_power_avg", "us_power_avg", "ds_snr_avg"):
+            sample_analysis["summary"][key] = None
+        for channel in sample_analysis["ds_channels"]:
+            channel["snr"] = None
+        ranges = build_metric_ranges(sample_analysis, get_thresholds())
+        assert ranges["ds_power"]["health"] == "missing"
+        assert ranges["us_power"]["health"] == "missing"
+        assert ranges["snr"]["health"] == "missing"
+
+    def test_unreported_power_reads_as_unavailable_on_home_and_in_the_family_readings(self, client, sample_analysis):
+        sample_analysis["summary"]["us_power_avg"] = None
+        sample_analysis["summary"]["us_power_min"] = None
+        sample_analysis["summary"]["us_power_max"] = None
+        current_runtime().update_state(analysis=sample_analysis)
+
+        html = client.get("/?lang=en").get_data(as_text=True)
+
+        kpi = html[html.index('id="home-kpi-upstream"'):html.index('id="home-kpi-errors"')]
+        assert "None" not in kpi
+        assert "Not reported by this modem" in kpi
+        card = _metric_card(html, "US Power")
+        assert "None" not in card
+        assert 'badge badge-muted">Unavailable</span>' in card
+        assert "metric-range-viz" not in card
+
     def test_legacy_metric_card_keeps_generic_status_label(self, client, sample_analysis):
         current_runtime().update_state(analysis=sample_analysis)
 
