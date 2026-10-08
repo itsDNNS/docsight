@@ -56,34 +56,9 @@
     padding: 18px;
 }
 
-.fritz-cable-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
 .fritz-cable-panel-title {
     font-weight: 600;
     font-size: max(var(--fs-min), 0.95em);
-}
-
-.fritz-cable-legend {
-    display: flex;
-    gap: 12px;
-    font-size: max(var(--fs-min), 0.85em);
-}
-
-.fritz-cable-legend-total {
-    color: var(--text);
-}
-
-.fritz-cable-legend-own {
-    color: var(--text-secondary, #888);
-}
-
-.fritz-cable-chart {
-    min-height: 200px;
 }
 
 .fritz-cable-note {

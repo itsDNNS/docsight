@@ -30,20 +30,6 @@
   .desktop-only { display: flex !important; }
 }
 
-/* ── Offline Indicator ── */
-.offline-banner {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px var(--space-md);
-  background: var(--warn-muted);
-  color: var(--warn);
-  font-size: 0.78rem;
-  font-weight: 500;
-}
-.offline-banner svg { width: 14px; height: 14px; }
-body.is-offline .offline-banner { display: flex; }
 
 /* ── View System ── */
 .view { display: none; }
@@ -54,51 +40,6 @@ body.is-offline .offline-banner { display: flex; }
   padding: var(--space-md);
   margin-bottom: var(--space-md);
   animation: staggerIn 0.5s var(--ease-out-expo) both;
-}
-.hero-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
-}
-.hero-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-.hero-icon-wrap {
-  width: 44px; height: 44px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.hero-icon-wrap.good { background: var(--good-muted); color: var(--good); }
-.hero-icon-wrap.tolerated { background: var(--tolerated-muted); color: var(--tolerated); }
-.hero-icon-wrap.warn { background: var(--warn-muted); color: var(--warn); }
-.hero-icon-wrap.crit { background: var(--crit-muted); color: var(--crit); }
-.hero-icon-wrap svg { width: 22px; height: 22px; }
-
-.hero-title {
-  font-size: clamp(1.25rem, 1rem + 0.5vw, 1.5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-.hero-subtitle {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  margin-top: 2px;
-}
-
-.hero-right {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-md);
 }
 
 .hero-meta {
@@ -140,18 +81,6 @@ body.is-offline .offline-banner { display: flex; }
 .docsis-group-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-}
-
-.hero-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-left: auto;
-}
-.hero-actions .last-update {
-  color: var(--muted);
-  font-size: 0.75rem;
-  white-space: nowrap;
 }
 
 .hero-chart-wrap {
@@ -229,45 +158,6 @@ body.is-offline .offline-banner { display: flex; }
   gap: 4px;
 }
 .insight-action svg { flex-shrink: 0; }
-.insights-healthy {
-  padding: var(--space-md);
-  margin-bottom: var(--space-md);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  animation: staggerIn 0.5s var(--ease-out-expo) 0.25s both;
-}
-.insights-healthy-icon {
-  width: 24px; height: 24px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--good-muted);
-  color: var(--good);
-  flex-shrink: 0;
-}
-.insights-healthy-icon svg { width: 14px; height: 14px; }
-.insights-healthy-text { font-size: 0.85rem; color: var(--text-secondary); }
-.insights-tolerated {
-  padding: var(--space-md);
-  margin-bottom: var(--space-md);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  animation: staggerIn 0.5s var(--ease-out-expo) 0.25s both;
-}
-.insights-tolerated-icon {
-  width: 24px; height: 24px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--tolerated-muted);
-  color: var(--tolerated);
-  flex-shrink: 0;
-}
-.insights-tolerated-icon svg { width: 14px; height: 14px; }
 
 /* ── Metric Cards ── */
 .metrics-grid {
@@ -353,19 +243,12 @@ body.is-offline .offline-banner { display: flex; }
   font-size: var(--fs-min);
   color: var(--muted);
 }
-.metric-basis-row {
-  align-items: flex-start;
-  line-height: 1.25;
-}
 .metric-sub-label {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: var(--fs-min);
   flex-shrink: 0;
-}
-.metric-basis-copy {
-  color: var(--text-secondary);
 }
 
 /* ── Channel Health Overview (Ring Gauges) ── */
@@ -383,82 +266,7 @@ body.is-offline .offline-banner { display: flex; }
   animation: staggerIn 0.5s var(--ease-out-expo) 0.22s both;
 }
 .health-ring-card:nth-child(2) { animation-delay: 0.28s; }
-.ring-wrap {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-}
-.ring-wrap canvas { width: 80px; height: 80px; }
-.ring-center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.ring-pct {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-.ring-label-small {
-  font-size: var(--fs-min);
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: 1px;
-}
-.ring-details { flex: 1; min-width: 0; }
-.ring-title { font-size: 0.9rem; font-weight: 600; margin-bottom: var(--space-xs); }
-.ring-legend { display: flex; flex-direction: column; gap: 3px; }
-.ring-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-.ring-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.ring-legend-count {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: var(--fs-min);
-  font-weight: 600;
-}
 
-/* Ring tooltip */
-.ring-tooltip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--elevated);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
-  z-index: 10;
-  box-shadow: var(--shadow-md);
-}
-.ring-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: var(--elevated);
-}
-.ring-wrap:hover .ring-tooltip,
-.ring-wrap:active .ring-tooltip,
-.ring-wrap.touched .ring-tooltip { opacity: 1; }
 
 /* ── Channel Tables ── */
 .channels-section {
@@ -576,17 +384,6 @@ body.is-offline .offline-banner { display: flex; }
 }
 .metric-card.glass::before { display: none; }
 
-.insights-healthy.glass,
-.insights-tolerated.glass {
-  background: var(--tint-subtle);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-color: var(--border-tint);
-  border-radius: var(--radius-sm);
-}
-.insights-healthy.glass::before,
-.insights-tolerated.glass::before { display: none; }
-
 .channels-section.glass {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -604,7 +401,6 @@ body.is-offline .offline-banner { display: flex; }
 @media (min-width: 640px) {
   .metrics-grid { grid-template-columns: 1fr 1fr; gap: var(--space-md); }
   .health-overview { grid-template-columns: 1fr 1fr; }
-  .hero-header { flex-direction: row; align-items: flex-start; justify-content: space-between; }
   /* .hero-status uses flex-basis: auto (content-based) rather than the
      shorthand `flex: 1` (which expands to `1 1 0%`). With a 0 basis the
      flex algorithm only fed the left column the leftover free space after
@@ -614,8 +410,6 @@ body.is-offline .offline-banner { display: flex; }
      width up front, so the available space is shared proportionally
      between both sides during shrink and the hero-title always has room
      to render (reported as issue #336). */
-  .hero-status { flex: 1 1 auto; min-width: 0; }
-  .hero-right { flex-shrink: 1; min-width: 0; justify-content: flex-end; }
   .hero-meta { min-width: 0; }
   /* .hero-meta keeps its base `flex-wrap: wrap` at this breakpoint. A prior
      `flex-wrap: nowrap` override forced the meta strip onto one line, which
@@ -632,25 +426,17 @@ body.is-offline .offline-banner { display: flex; }
   .metric-spark { width: 120px; height: 40px; }
   /* metric-value uses clamp() for fluid scaling */
   .health-ring-card { padding: var(--space-lg); gap: var(--space-lg); }
-  .ring-wrap { width: 100px; height: 100px; }
-  .ring-wrap canvas { width: 100px; height: 100px; }
-  .ring-pct { font-size: 1.4rem; }
-  .ring-title { font-size: 0.95rem; }
   .insights-panel { padding: var(--space-lg); margin-bottom: var(--space-lg); }
-  .insights-healthy, .insights-tolerated { padding: var(--space-lg); margin-bottom: var(--space-lg); }
   .channel-header { padding: var(--space-lg) var(--space-lg) var(--space-md); flex-direction: row; align-items: center; justify-content: space-between; }
 }
 
 /* Desktop: navigation in the top bar */
 @media (min-width: 1024px) {
   .hero-card { padding: var(--space-lg); margin-bottom: var(--space-lg); }
-  .hero-icon-wrap { width: 48px; height: 48px; }
-  .hero-icon-wrap svg { width: 24px; height: 24px; }
   /* hero-title uses clamp() for fluid scaling */
   .metrics-grid { grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin-bottom: var(--space-xl); }
   .health-overview { gap: var(--space-md); margin-bottom: var(--space-2xl); }
   .insights-panel { margin-bottom: var(--space-xl); }
-  .insights-healthy, .insights-tolerated { margin-bottom: var(--space-xl); }
   .channels-section { margin-bottom: var(--space-lg); }
 }
 
@@ -662,7 +448,6 @@ body.is-offline .offline-banner { display: flex; }
 /* Small phones */
 @media (max-width: 360px) {
   .health-ring-card { flex-direction: column; text-align: center; }
-  .ring-legend { align-items: center; }
   .gaming-score { order: -1; }
 }
 
@@ -813,29 +598,6 @@ body:has(#view-dashboard.active) .app-main {
   gap: var(--space-sm);
   overflow: hidden;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 .dashboard-hero .hero-modulation-context {
@@ -1005,58 +767,6 @@ body:has(#view-dashboard.active) .app-main {
   overflow: hidden;
 }
 
-.dashboard-section-header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: var(--space-md);
-  margin: var(--space-lg) 0 var(--space-sm);
-}
-
-.dashboard-section-header h2 {
-  margin: 0;
-  color: var(--text);
-  font-size: 1rem;
-  font-weight: 750;
-  letter-spacing: 0;
-}
-
-.dashboard-section-header > span {
-  max-width: min(72ch, calc(100vw - 24rem));
-  min-width: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  text-align: right;
-  text-wrap: pretty;
-}
-
-.dashboard-section-context {
-  display: grid;
-  gap: 2px;
-}
-
-.dashboard-section-context strong {
-  color: var(--text-secondary);
-  font-size: var(--fs-min);
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.dashboard-section-context span {
-  color: var(--muted);
-}
-
-.dashboard-section-kicker {
-  display: block;
-  margin-bottom: 2px;
-  color: color-mix(in srgb, var(--info) 86%, var(--text-secondary));
-  font-size: var(--fs-min);
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 .metrics-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
@@ -1142,21 +852,8 @@ body:has(#view-dashboard.active) .app-main {
   line-height: 1.3;
 }
 
-.metrics-grid .metric-context-row {
-  gap: 8px 14px;
-  min-height: 44px;
-  align-content: flex-start;
-}
-
 .metrics-grid .metric-status-row {
   min-height: 22px;
-}
-
-.metrics-grid .metric-status-cause {
-  color: var(--muted);
-  font-size: var(--fs-min);
-  line-height: 1;
-  margin-left: 4px;
 }
 
 .metrics-grid .metric-average-row {
@@ -1350,9 +1047,7 @@ body:has(#view-dashboard.active) .app-main {
   opacity: 0.78;
 }
 
-.dashboard-view .insights-panel,
-.dashboard-view .insights-healthy,
-.dashboard-view .insights-tolerated {
+.dashboard-view .insights-panel {
   border-color: var(--dash-border);
   border-radius: 8px;
   background: color-mix(in srgb, var(--surface) 42%, transparent);
@@ -1684,19 +1379,6 @@ body:has(#view-dashboard.active) .app-main {
   background: color-mix(in srgb, var(--surface) 52%, transparent);
 }
 
-.dashboard-view .ring-title {
-  font-size: 1rem;
-  letter-spacing: 0;
-}
-
-.dashboard-view .ring-legend {
-  gap: 5px;
-}
-
-.dashboard-view .ring-legend-item {
-  min-width: 0;
-}
-
 .dashboard-channel-panel {
   min-width: 0;
   border-color: var(--dash-border);
@@ -1777,7 +1459,6 @@ body:has(#view-dashboard.active) .app-main {
   }
 
 
-
   .dashboard-view .insights-meta .hero-meta {
     gap: 4px 0;
   }
@@ -1809,15 +1490,6 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 @media (max-width: 760px) {
-  .dashboard-section-header {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .dashboard-section-header > span {
-    max-width: none;
-    text-align: left;
-  }
 
   .dashboard-view .insights-meta .hero-meta {
     gap: 3px 0;

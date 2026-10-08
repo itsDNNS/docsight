@@ -11,74 +11,9 @@
     max-width: 1440px;
 }
 
-.cm-console-head {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-lg);
-    padding: 20px;
-    border: 1px solid var(--cm-panel-border);
-    border-radius: 8px;
-    overflow: hidden;
-    background:
-        linear-gradient(90deg, color-mix(in srgb, var(--info) 14%, transparent), transparent 42%),
-        linear-gradient(180deg, color-mix(in srgb, var(--surface) 95%, transparent), color-mix(in srgb, var(--void-deep) 74%, transparent));
-}
-
-.cm-console-head::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image:
-        linear-gradient(color-mix(in srgb, var(--muted) 7%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, var(--muted) 6%, transparent) 1px, transparent 1px);
-    background-size: 36px 36px;
-    mask-image: linear-gradient(90deg, transparent, #000 20%, #000 72%, transparent);
-    pointer-events: none;
-}
-
-.cm-title-block,
 .cm-capability {
     position: relative;
     z-index: 1;
-}
-
-.cm-title-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.cm-title-row h2 {
-    margin: 0;
-    font-size: 1.45rem;
-    line-height: 1.1;
-    letter-spacing: 0;
-}
-
-.cm-title-icon {
-    width: 40px;
-    height: 40px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    color: var(--info);
-    background: color-mix(in srgb, var(--info) 15%, transparent);
-    border: 1px solid color-mix(in srgb, var(--info) 28%, transparent);
-}
-
-.cm-title-icon svg {
-    width: 20px;
-    height: 20px;
-}
-
-.cm-title-block p {
-    margin: 6px 0 0 52px;
-    max-width: 560px;
-    color: var(--cm-text-soft);
-    font-size: 0.84rem;
 }
 
 
@@ -381,18 +316,6 @@
     min-width: 0;
 }
 
-.cm-visually-hidden {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    padding: 0 !important;
-    margin: -1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    white-space: nowrap !important;
-    border: 0 !important;
-}
-
 #cm-per-target-stats .cm-target-table thead {
     position: absolute;
     width: 1px;
@@ -585,16 +508,6 @@
 }
 
 @media (max-width: 760px) {
-    .cm-console-head {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        padding: var(--space-md);
-    }
-
-    .cm-title-block p {
-        margin-left: 0;
-    }
 
     .cm-capability {
         justify-content: flex-start;

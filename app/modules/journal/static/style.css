@@ -739,17 +739,6 @@ mark.search-highlight {
     font-size: 0.9rem;
     font-family: inherit;
 }
-.incident-container-panel .entry-count-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--radius-sm);
-    background: var(--accent-muted);
-    color: var(--accent);
-    font-size: 0.8rem;
-    font-weight: 600;
-}
 
 /* Entry Modal: Incident Select */
 

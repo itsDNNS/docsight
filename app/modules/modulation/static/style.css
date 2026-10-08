@@ -235,9 +235,6 @@
 .mod-kpi-item-value.critical { color: var(--crit, #ef4444); }
 
 /* Legacy selectors (JS uses these on old KPI cards too) */
-.modulation-kpi-value.good { color: var(--good, #10b981); }
-.modulation-kpi-value.warning { color: var(--warn, #f59e0b); }
-.modulation-kpi-value.critical { color: var(--crit, #ef4444); }
 
 .modulation-chart-wrap {
     position: relative;

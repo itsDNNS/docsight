@@ -430,10 +430,6 @@ body {
   text-decoration: none;
 }
 .desktop-preview-badge-sidebar { margin-top: var(--space-sm); min-height: auto !important; }
-.desktop-preview-badge-settings { margin-top: 4px; }
-.sidebar > .desktop-preview-badge-settings {
-  margin: 0 var(--space-sm) var(--space-sm);
-}
 .desktop-preview-badge-mobile {
   flex-shrink: 0;
   margin-left: var(--space-xs);
@@ -753,15 +749,8 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%);
   background-size: 300% 100%;
 }
-.skel-label { height: 11px; width: 65px; }
-.skel-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); }
-.skel-value { height: 30px; width: 90px; }
-.skel-spark { width: 88px; height: 32px; }
-.skel-badge { height: 20px; width: 55px; border-radius: var(--radius-pill); }
-.skel-range { height: 12px; width: 75px; }
 .skel-chart { height: 200px; width: 100%; border-radius: var(--radius-lg); }
 .skel-row { height: 40px; width: 100%; margin-bottom: 8px; }
-.skel-bar { height: 160px; width: 100%; border-radius: var(--radius-lg); }
 
 /* ── Maintainer Notices ── */
 .notice-stack {
