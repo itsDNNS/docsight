@@ -46,6 +46,7 @@ var DOCSightWindowShift = (function() {
         var now = document.getElementById(prefix + '-window-now');
         var hint = document.getElementById(prefix + '-window-hint');
         var end = null;
+        var leftNowAt = null; // the minute the window left "now", for the way back
 
         function sync() {
             var past = end !== null;
@@ -62,13 +63,18 @@ var DOCSightWindowShift = (function() {
         function set(value) {
             end = value !== null && value !== undefined && value < Date.now() - MINUTE_MS
                 ? Math.floor(value / MINUTE_MS) * MINUTE_MS : null;
+            if (end === null) leftNowAt = null;
             sync();
         }
 
         function step(direction) {
             if (direction > 0 && end === null) return false;
             var length = opts.hours() * 3600 * 1000;
-            set((end === null ? Date.now() : end) + direction * length);
+            if (end === null) leftNowAt = Math.floor(Date.now() / MINUTE_MS) * MINUTE_MS;
+            var next = (end === null ? Date.now() : end) + direction * length;
+            // Stepping forward to where the window left "now" is "now" again, however
+            // long the user looked at the past windows.
+            set(direction > 0 && leftNowAt !== null && next >= leftNowAt ? null : next);
             opts.onChange();
             return true;
         }
