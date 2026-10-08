@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 796,
+  "expected_total": 798,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -21,7 +21,7 @@
     },
     {
       "id": 2,
-      "collected_cases": 104,
+      "collected_cases": 106,
       "files": [
         "test_auth.py",
         "test_chart_gaps.py",
@@ -29,6 +29,7 @@
         "test_cm_window_shift.py",
         "test_connection_monitor.py",
         "test_correlation_window_shift.py",
+        "test_metric_card_hint.py",
         "test_notice_center.py",
         "test_real_proxy_path_prefix.py",
         "test_segment_utilization.py",
