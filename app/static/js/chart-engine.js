@@ -8,6 +8,7 @@ var currentView = 'live';
 var DEFAULT_Y_AXIS_SIZE = 58;
 var DEFAULT_ZOOM_Y_AXIS_SIZE = 64;
 var DEFAULT_X_EDGE_PADDING = 1.5;
+var TEMP_AXIS_SIZE = 40;
 /* Dense series: half a sample, enough for the outermost bar. */
 var DENSE_X_EDGE_PADDING = 0.5;
 
@@ -869,13 +870,17 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     if (!xData.length) {
         for (var xi = 0; xi < n; xi++) xData.push(xi);
     }
-    var xEdgePadding = calculateXEdgePadding(labels, xData, width, yAxisSize, opts && opts.xEdgePadding);
     var uData = [xData];
     var allDatasets = datasets.slice();
 
     /* Temperature overlay */
     var tempData = opts && opts.tempData && _tempOverlayVisible ? opts.tempData : null;
     var hasTemp = tempData && tempData.some(function(v) { return v !== null; }) && !isBar;
+
+    /* Label spacing needs the plot width: the y axis plus any axis on the right. */
+    var axesPx = yAxisSize + (hasTemp ? TEMP_AXIS_SIZE : 0);
+    if (opts && opts.axes) opts.axes.forEach(function(axis) { axesPx += axis.size || 0; });
+    var xEdgePadding = calculateXEdgePadding(labels, xData, width, axesPx, opts && opts.xEdgePadding);
 
     allDatasets.forEach(function(ds) { uData.push(ds.data); });
     if (hasTemp) uData.push(tempData);
@@ -993,13 +998,13 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
 
     /* Axes — pick evenly spaced label positions */
     var xSplits = [];
-    var wantTicks = calculateMaxXTicks(labels, width, yAxisSize, opts && opts.maxXTicks ? opts.maxXTicks : 6);
+    var wantTicks = calculateMaxXTicks(labels, width, axesPx, opts && opts.maxXTicks ? opts.maxXTicks : 6);
     if (timeSeries) {
         // Dense time series fill the width with half an interval of padding;
         // labels are placed by pixel distance, not by count.
         if (n > wantTicks && !(opts && opts.xEdgePadding !== undefined)) xEdgePadding = timeSeries.interval * DENSE_X_EDGE_PADDING;
         var timeRange = xData.length > 1 ? [xData[0] - xEdgePadding, xData[xData.length - 1] + xEdgePadding] : [xData[0] - 1, xData[0] + 1];
-        xSplits = buildTimeSplits(xData, labels, timeRange, Math.max(width - yAxisSize - 24, 1), estimateLongestLabelWidth(labels, 40));
+        xSplits = buildTimeSplits(xData, labels, timeRange, Math.max(width - axesPx - 24, 1), estimateLongestLabelWidth(labels, 40));
     } else if (n <= wantTicks) {
         for (var li = 0; li < n; li++) xSplits.push(xData[li]);
     } else {
@@ -1007,7 +1012,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         var insetIndex = 0;
         if (!(opts && opts.xEdgePadding !== undefined)) {
             xEdgePadding = DENSE_X_EDGE_PADDING;
-            var plotPx = Math.max(width - yAxisSize - 24, 1);
+            var plotPx = Math.max(width - axesPx - 24, 1);
             var halfLabel = estimateLongestLabelWidth(labels, 40) / 2 + 4;
             insetIndex = Math.min(Math.ceil(halfLabel / plotPx * (n - 1)), Math.floor((n - 1) / 3));
         }
@@ -1016,7 +1021,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         // fractional gap rounded per tick alternates long and short steps, and on
         // short series the short ones put two labels on top of each other. Use one
         // whole step that is at least a label wide.
-        var pxPerPoint = Math.max(width - yAxisSize - 24, 1) / (n - 1);
+        var pxPerPoint = Math.max(width - axesPx - 24, 1) / (n - 1);
         var minStep = Math.ceil((estimateLongestLabelWidth(labels, 40) + 18) / pxPerPoint);
         var step = Math.max(1, minStep, Math.ceil((lastTick - firstTick) / Math.max(wantTicks - 1, 1)));
         for (var ti = firstTick; ti <= lastTick; ti += step) xSplits.push(xData[ti]);
@@ -1099,7 +1104,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             grid: { show: false },
             ticks: { stroke: 'rgba(249,115,22,0.3)', width: 1 },
             font: '12px system-ui',
-            size: 40,
+            size: TEMP_AXIS_SIZE,
             gap: 4,
             values: function(u, vals) { return vals.map(function(v) { return fmtTempAxis(v); }); }
         });
@@ -1123,7 +1128,12 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         cursor.drag = { x: true, y: false, uni: 10 };
     }
     /* Plugins */
-    var plugins = [tooltipPlugin(labels, tooltipLabelCallback), touchScrubPlugin()];
+    /* Tooltip titles default to the axis labels; opts.tooltipTitles holds one per input point. */
+    var titles = labels;
+    if (opts && opts.tooltipTitles) {
+        titles = timeSeries ? timeSeries.original.map(function(i) { return i == null ? null : opts.tooltipTitles[i]; }) : opts.tooltipTitles;
+    }
+    var plugins = [tooltipPlugin(titles, tooltipLabelCallback), touchScrubPlugin()];
     if (opts && opts.onPointClick) {
         var onPointClick = opts.onPointClick;
         plugins.push(pointClickPlugin(timeSeries ? function(idx, u) {

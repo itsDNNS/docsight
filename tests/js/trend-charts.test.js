@@ -223,3 +223,41 @@ test('a zoom survives a redraw of the same data but not a window it no longer co
     assert.equal(e.charts.chart._zoomRange, undefined);
     assert.equal(scales.length, 2);
 });
+
+test('an axis on the right leaves less room, so the time labels spread out further', () => {
+    const times = Array.from({length: 60}, (_, i) => i * 900);
+    const labels = times.map(() => '04:54 PM');
+    const render = axes => {
+        const e = engine();
+        e.renderChart('chart', labels, [{label: 'x', data: times.map(() => 1)}], null, null, {times, axes});
+        const chart = e.charts.chart;
+        return {splits: Array.from(chart.options.axes[0].splits()), range: chart.options.scales.x.range()};
+    };
+    const wide = render(undefined);
+    const narrow = render([{scale: 'ping', side: 1, size: 120}]);
+    assert.ok(narrow.splits.length < wide.splits.length, `${narrow.splits.length} vs ${wide.splits.length}`);
+    // On the plot that is really left (600 px minus both axes), labels stay a label (60 px) plus 18 px apart.
+    const plot = 600 - 58 - 120 - 24, [min, max] = narrow.range;
+    const px = narrow.splits.map(t => (t - min) / (max - min) * plot);
+    assert.ok(px.every((x, i) => i === 0 || x - px[i - 1] >= 78), `${px}`);
+});
+
+test('tooltip titles follow the caller points across a gap', () => {
+    const e = engine();
+    const made = [];
+    e.document.createElement = () => {
+        const el = {style: {}, children: [], textContent: '', appendChild(c) { this.children.push(c); }};
+        made.push(el);
+        return el;
+    };
+    e.renderChart('chart', ['a', 'b', 'c', 'd'], [{label: 'x', data: [1, 2, 3, 4]}], null, null,
+        {times: [0, 60, 120, 6000], tooltipTitles: ['first', 'second', 'third', 'fourth']});
+    const chart = e.charts.chart;
+    assert.deepEqual(Array.from(chart._docsightOriginal), [0, 1, 2, null, 3]);
+    const tooltip = chart.options.plugins[0].hooks;
+    const u = {over: {appendChild() {}, offsetWidth: 500, offsetHeight: 200}, series: chart.options.series,
+        data: chart.data, cursor: {idx: 4, left: 10, top: 10}};
+    tooltip.init[0](u);
+    tooltip.setCursor[0](u);
+    assert.equal(made.find(el => el.className === 'uplot-tooltip-time').textContent, 'fourth');
+});

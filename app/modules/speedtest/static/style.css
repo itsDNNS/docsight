@@ -68,11 +68,6 @@
     position: relative;
     width: 100%;
 }
-.speedtest-chart-wrap canvas {
-    display: block;
-    width: 100%;
-    height: 250px;
-}
 .speedtest-chart-legend {
     display: flex;
     gap: 18px;
@@ -94,11 +89,6 @@
 .legend-ul::before { background: #22c55e; }
 .legend-ping::before { background: #f59e0b; }
 .speedtest-chart-legend .legend-thresh::before { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px); border-radius: 0; width: 14px; height: 2px; vertical-align: middle; }
-.speedtest-chart-tooltip {
-    position: absolute; pointer-events: none; display: none;
-    background: rgba(0,0,0,0.85); color: #e0e0e0; font-size: max(var(--fs-min), 0.78em);
-    padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 1000;
-}
 
 /* Table card wrapper for speedtest table */
 #speedtest-table-wrap.table-card {
@@ -148,9 +138,6 @@
     }
     .speedtest-chart-card {
         padding: var(--space-sm, 12px);
-    }
-    .speedtest-chart-wrap canvas {
-        height: 180px;
     }
     .speedtest-chart-legend {
         flex-wrap: wrap;
