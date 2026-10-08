@@ -26,15 +26,39 @@ python -m playwright install chromium
 packages=$(python -m playwright install-deps --dry-run chromium \
     | sed -n 's/.*--no-install-recommends \([^"]*\).*/\1/p')
 
+if [ -z "$packages" ]; then
+    echo "Could not read Chromium's system packages from Playwright" >&2
+    exit 1
+fi
+
+# One install from a mirror, bounded. apt's own timeouts do not catch every
+# stall: three runs hung after "noble-security InRelease" until the job limit,
+# one of them for six hours. A stalled attempt is killed and the next one
+# starts with a fresh index update.
+install_from_mirror() {
+    # shellcheck disable=SC2086 # the package names are meant to split
+    sudo timeout --kill-after=10 300 apt-get update \
+        && sudo timeout --kill-after=10 600 apt-get install -y --no-install-recommends $packages
+}
+
 # Warm cache: the cached package lists and .deb files are enough, so install
 # without `apt-get update` and without downloading. Anything missing falls back
-# to the regular install, which updates the lists and downloads from a mirror.
+# to a mirror, which also fills the cache for the next run.
 # shellcheck disable=SC2086 # the package names are meant to split
-if [ -n "$packages" ] && sudo apt-get install -y --no-install-recommends --no-download $packages; then
+if sudo apt-get install -y --no-install-recommends --no-download $packages; then
     echo "Chromium system packages installed from the Actions cache"
 else
-    echo "Cache incomplete; installing Chromium system packages from the mirror"
-    python -m playwright install-deps chromium
+    echo "Cache incomplete; installing Chromium system packages from a mirror"
+    attempt=1
+    until install_from_mirror; do
+        if [ "$attempt" -ge 3 ]; then
+            echo "Installing Chromium system packages failed after $attempt attempts" >&2
+            exit 1
+        fi
+        attempt=$((attempt + 1))
+        echo "Mirror install stalled or failed; attempt $attempt of 3"
+        sleep 5
+    done
 fi
 
 # apt leaves root- and _apt-owned files behind; the cache saves as the runner user.

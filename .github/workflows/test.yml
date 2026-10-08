@@ -14,6 +14,7 @@ permissions:
 jobs:
   changes:
     if: github.event_name != 'schedule'
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -134,6 +135,7 @@ jobs:
           needs.changes.outputs.docs == 'true'
         )
       )
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     steps:
@@ -174,6 +176,7 @@ jobs:
       !cancelled() &&
       needs.changes.result == 'success' &&
       needs.changes.outputs.python == 'true'
+    timeout-minutes: 20
     runs-on: ubuntu-latest
 
     steps:
@@ -228,6 +231,7 @@ jobs:
       !cancelled() &&
       needs.changes.result == 'success' &&
       needs.changes.outputs.js == 'true'
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     steps:
@@ -285,6 +289,7 @@ jobs:
       !cancelled() &&
       needs.changes.result == 'success' &&
       needs.changes.outputs.browser == 'true'
+    timeout-minutes: 25
     runs-on: ubuntu-latest
 
     steps:
@@ -335,6 +340,7 @@ jobs:
           needs.changes.outputs.deps == 'true'
         )
       )
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     steps:
@@ -355,6 +361,7 @@ jobs:
       !cancelled() &&
       needs.changes.result == 'success' &&
       needs.changes.outputs.i18n == 'true'
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     steps:
@@ -373,6 +380,7 @@ jobs:
     name: tests-summary
     needs: [changes, docs, test, test-windows, mobile-e2e, test-js, i18n, audit]
     if: always()
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
       - name: Verify routed test results
