@@ -4,170 +4,280 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DOCSight | Self-hosted evidence for cable internet problems</title>
-  <meta name="description" content="DOCSight turns DOCSIS signal history, speed tests, latency, modem events and incident notes into a local evidence trail for intermittent cable problems.">
+  <meta name="description" content="DOCSight keeps DOCSIS signal history, speed tests, latency, events and notes together on your own hardware, so you can find out what is wrong with your connection and prove it to your provider.">
   <meta name="robots" content="index,follow">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#06080f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8f6f3" media="(prefers-color-scheme: light)">
   <link rel="canonical" href="https://itsdnns.github.io/docsight/">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10' stroke-width='1.6' opacity='0.45'/%3E%3Cpath d='M4.5 12.5h3l2-5 3 10 2.5-7 1.5 2h3' stroke-width='1.9'/%3E%3C/svg%3E">
+  <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="DOCSight">
   <meta property="og:title" content="DOCSight | Your ISP says everything is fine. DOCSight shows the timeline.">
-  <meta property="og:description" content="Self-hosted DOCSIS evidence for bad evenings, packet loss, modem events and complaint-ready reports.">
+  <meta property="og:description" content="Self-hosted monitoring for your cable connection: signal history, speed tests, latency, events and notes in one timeline, and reports for your provider.">
   <meta property="og:image" content="https://itsdnns.github.io/docsight/screenshots/social-preview.png">
   <meta property="og:url" content="https://itsdnns.github.io/docsight/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="DOCSight | Self-hosted evidence for cable internet problems">
-  <meta name="twitter:description" content="Build a local evidence trail from modem signal data, speed, latency, events and incident notes.">
+  <meta name="twitter:description" content="Signal history, speed tests, latency, events and notes in one local timeline, and reports for your provider.">
   <meta name="twitter:image" content="https://itsdnns.github.io/docsight/screenshots/social-preview.png">
   <style>
+    /* Outfit, self-hosted like in the app (SIL Open Font License 1.1, see fonts/OFL-Outfit.txt) */
+    @font-face {
+      font-family: 'Outfit';
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: swap;
+      src: url(fonts/outfit-latin-ext.woff2) format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Outfit';
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: swap;
+      src: url(fonts/outfit-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+
+    /* Colors from the app's default theme (app/static/css/tokens.css) */
     :root {
       color-scheme: dark;
-      --bg: #08111f;
-      --bg-2: #0d1930;
-      --card: rgba(15, 28, 51, 0.78);
-      --card-strong: rgba(19, 34, 62, 0.95);
-      --line: rgba(167, 190, 255, 0.18);
-      --text: #f5f7fb;
-      --muted: #b9c5d8;
-      --soft: #8fa2c4;
-      --accent: #7dd3fc;
-      --accent-2: #a78bfa;
-      --good: #5eead4;
-      --warn: #fbbf24;
-      --bad: #fb7185;
-      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      --bg: #06080f;
+      --surface: #111628;
+      --elevated: #181e35;
+      --accent: #7c3aed;
+      --accent-text: #b49cfa;
+      --accent-soft: rgba(124, 58, 237, 0.16);
+      --text: #e8edff;
+      --text-secondary: #9ba3c8;
+      --muted: #7d85a9;
+      --line: rgba(232, 237, 255, 0.1);
+      --line-strong: rgba(232, 237, 255, 0.18);
+      --good: #10b981;
+      --crit: #ef4444;
+      --glow: rgba(124, 58, 237, 0.22);
+      --shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+      --code-bg: #0b0f1d;
+      --nav-bg: rgba(6, 8, 15, 0.82);
+      --font-sans: 'Outfit', system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
+    @media (prefers-color-scheme: light) {
+      :root {
+        color-scheme: light;
+        --bg: #f8f6f3;
+        --surface: #ffffff;
+        --elevated: #f0edf5;
+        --accent-text: #6d28d9;
+        --accent-soft: rgba(124, 58, 237, 0.1);
+        --text: #1a1520;
+        --text-secondary: #5e5673;
+        --muted: #706788;
+        --line: rgba(26, 21, 32, 0.1);
+        --line-strong: rgba(26, 21, 32, 0.18);
+        --good: #059669;
+        --crit: #dc2626;
+        --glow: rgba(124, 58, 237, 0.12);
+        --shadow: 0 20px 56px rgba(26, 21, 32, 0.14);
+        --code-bg: #1a1520;
+        --nav-bg: rgba(248, 246, 243, 0.86);
+      }
+    }
+
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
     body {
       margin: 0;
       min-width: 320px;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(125, 211, 252, 0.22), transparent 34rem),
-        radial-gradient(circle at 85% 8%, rgba(167, 139, 250, 0.18), transparent 30rem),
-        linear-gradient(180deg, var(--bg), #050914 64%, #05070d);
-      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 1.0625rem;
       line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
     }
-    a { color: inherit; }
-    img { max-width: 100%; height: auto; display: block; }
-    .wrap { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+    a { color: var(--accent-text); text-underline-offset: 3px; }
+    img { display: block; max-width: 100%; height: auto; }
+    .wrap { width: min(1160px, calc(100% - 32px)); margin: 0 auto; }
+    .narrow { max-width: 720px; }
+
+    /* Navigation */
     .nav {
       position: sticky;
       top: 0;
       z-index: 10;
+      background: var(--nav-bg);
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
       border-bottom: 1px solid var(--line);
-      background: rgba(8, 17, 31, 0.82);
-      backdrop-filter: blur(16px);
     }
-    .nav-inner {
-      min-height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -0.03em; text-decoration: none; }
-    .brand svg { width: 38px; height: 38px; flex: none; }
-    .nav-links { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: flex-end; color: var(--muted); font-size: 0.94rem; }
-    .nav-links a { text-decoration: none; }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 64px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; text-decoration: none; }
+    .brand svg { width: 30px; height: 30px; flex: none; }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 0.95rem; }
     .nav-links a:hover { color: var(--text); }
+    .nav-links .nav-github { display: inline-flex; align-items: center; gap: 8px; color: var(--text); padding: 7px 14px; border: 1px solid var(--line-strong); border-radius: 100px; }
+    .nav-github svg { width: 16px; height: 16px; }
     .mobile-menu { display: none; position: relative; }
-    .mobile-menu summary { cursor: pointer; list-style: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; color: var(--text); font-weight: 750; background: rgba(255,255,255,0.06); }
+    .mobile-menu summary { list-style: none; cursor: pointer; padding: 7px 14px; border: 1px solid var(--line-strong); border-radius: 100px; font-weight: 600; font-size: 0.95rem; }
     .mobile-menu summary::-webkit-details-marker { display: none; }
-    .mobile-menu-panel { position: absolute; right: 0; top: calc(100% + 10px); width: min(240px, calc(100vw - 22px)); display: grid; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 18px; background: rgba(8,17,31,0.98); box-shadow: var(--shadow); }
-    .mobile-menu-panel a { padding: 10px 12px; border-radius: 12px; text-decoration: none; color: var(--muted); }
-    .mobile-menu-panel a:hover { background: rgba(255,255,255,0.06); color: var(--text); }
-    .hero { padding: 86px 0 58px; }
-    .hero-grid { display: grid; grid-template-columns: minmax(0, 0.86fr) minmax(320px, 1.14fr); gap: 44px; align-items: center; }
-    .eyebrow { color: var(--accent); font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.78rem; }
-    h1 { margin: 16px 0 18px; font-size: clamp(2.45rem, 5vw, 4.9rem); line-height: 1; letter-spacing: -0.07em; }
-    .lead { margin: 0; color: #d8e2f4; font-size: clamp(1.08rem, 2vw, 1.32rem); max-width: 670px; }
-    .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 30px 0 24px; }
-    .preview-boundary { flex: 0 0 100%; max-width: 670px; margin: 0; color: var(--soft); font-size: 0.9rem; }
+    .mobile-menu-panel { position: absolute; right: 0; top: calc(100% + 8px); width: 220px; display: grid; gap: 2px; padding: 8px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: var(--shadow); }
+    .mobile-menu-panel a { padding: 10px 12px; border-radius: 10px; color: var(--text); text-decoration: none; }
+    .mobile-menu-panel a:hover { background: var(--elevated); }
+
+    /* Buttons */
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; }
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       min-height: 46px;
-      padding: 0 18px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      text-decoration: none;
-      font-weight: 750;
+      padding: 0 22px;
+      border-radius: 100px;
+      border: 1px solid var(--line-strong);
       color: var(--text);
-      background: rgba(255,255,255,0.06);
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: background-color 0.15s, border-color 0.15s;
     }
-    .btn.primary { border: 0; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #06111f; }
-    .btn:hover { transform: translateY(-1px); }
-    .trust { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.92rem; }
-    .trust li { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.04); }
-    .trust-promise { margin-top: 18px; padding: 16px 18px; border: 1px solid rgba(125,211,252,0.24); border-radius: 22px; background: rgba(125,211,252,0.07); color: var(--muted); }
-    .trust-promise strong { display: block; color: var(--text); margin-bottom: 5px; }
-    .trust-promise p { margin: 0 0 8px; }
-    .trust-promise p:last-child { margin-bottom: 0; }
-    .trust-promise a { color: var(--accent); font-weight: 750; text-decoration: none; }
-    .trust-promise a:hover { text-decoration: underline; }
-    .hero-shot { position: relative; overflow: clip; border-radius: 34px; }
-    .hero-shot::before {
+    .btn:hover { background: var(--elevated); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { background: #6d28d9; border-color: #6d28d9; }
+    .btn svg { width: 18px; height: 18px; }
+
+    /* Hero */
+    .hero { position: relative; padding: 88px 0 0; overflow: clip; }
+    .hero::before {
       content: "";
       position: absolute;
-      inset: 10% -5% -6% 8%;
-      border-radius: 40px;
-      background: linear-gradient(135deg, rgba(125,211,252,0.35), rgba(167,139,250,0.16));
-      filter: blur(30px);
-      opacity: 0.9;
+      left: 50%;
+      top: -240px;
+      width: 1100px;
+      height: 720px;
+      transform: translateX(-50%);
+      background: radial-gradient(closest-side, var(--glow), transparent);
+      pointer-events: none;
     }
-    .screenshot-card { position: relative; border: 1px solid var(--line); border-radius: 28px; overflow: hidden; box-shadow: var(--shadow); background: var(--card-strong); }
-    .screenshot-card img { width: 100%; }
-    .caption { color: #c5d1e4; font-size: 1rem; margin-top: 12px; }
-    section { padding: 70px 0; border-top: 1px solid rgba(167,190,255,0.12); }
-    .section-head { max-width: 760px; margin-bottom: 28px; }
-    h2 { margin: 0 0 12px; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.02; letter-spacing: -0.055em; }
-    .section-head p, .card p, .proof-copy p, .journey-card p { color: var(--muted); margin: 0; }
-    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-    .card { padding: 22px; border: 1px solid var(--line); border-radius: 24px; background: var(--card); box-shadow: 0 18px 50px rgba(0,0,0,0.18); }
-    .card strong { display: block; margin-bottom: 8px; font-size: 1.08rem; }
-    .metric { font-size: 2rem; line-height: 1; letter-spacing: -0.04em; color: var(--accent); font-weight: 850; margin-bottom: 8px; }
-    .journey-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-    .journey-card { border: 1px solid var(--line); border-radius: 26px; background: var(--card); overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.2); }
-    .journey-card .copy { padding: 18px 20px 22px; }
-    .journey-card h3 { margin: 0 0 8px; font-size: 1.2rem; }
-    .proof { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr); gap: 24px; align-items: center; }
-    .proof-copy { padding: 8px 0; }
-    .proof-list { margin: 22px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; }
-    .proof-list li { display: flex; gap: 10px; color: var(--muted); }
-    .proof-list li::before { content: "✓"; color: var(--good); font-weight: 900; }
-    .connect-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .connect-item { padding: 16px; border-radius: 18px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--muted); }
-    .connect-item strong { display: block; color: var(--text); margin-bottom: 4px; }
-    .compare { display: grid; gap: 10px; }
-    .compare-row { display: grid; grid-template-columns: 0.8fr 1fr 1.15fr; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,0.04); }
-    .compare-row span { color: var(--muted); }
-    .fit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .good { border-color: rgba(94,234,212,0.32); }
-    .bad { border-color: rgba(251,113,133,0.28); }
-    .cta { text-align: center; padding: 76px 20px; border: 1px solid var(--line); border-radius: 34px; background: linear-gradient(135deg, rgba(125,211,252,0.16), rgba(167,139,250,0.12)); }
-    .cta p { color: var(--muted); max-width: 680px; margin: 0 auto 26px; }
-    footer { color: var(--soft); padding: 44px 0; }
-    footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; align-items: center; border-top: 1px solid rgba(167,190,255,0.12); padding-top: 24px; }
-    footer a { color: var(--muted); text-decoration: none; margin-left: 14px; }
-    @media (max-width: 920px) {
-      .hero-grid, .proof { grid-template-columns: 1fr; }
-      .cards, .journey-grid { grid-template-columns: 1fr; }
-      .connect-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .compare-row { grid-template-columns: 1fr; }
+    .hero-copy { position: relative; text-align: center; margin: 0 auto; max-width: 860px; }
+    .eyebrow { margin: 0 0 18px; color: var(--accent-text); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(2.4rem, 5.6vw, 4.25rem); line-height: 1.06; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+    .lead { margin: 22px auto 0; max-width: 680px; color: var(--text-secondary); font-size: clamp(1.1rem, 2vw, 1.3rem); line-height: 1.55; text-wrap: pretty; }
+    .hero .actions { justify-content: center; margin-top: 34px; }
+    .hero-note { margin: 18px 0 0; color: var(--muted); font-size: 0.95rem; }
+    .hero .hero-shot { position: relative; margin: 56px auto 0; }
+
+    .shot { margin: 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: var(--shadow); }
+    .shot a { display: block; }
+    .caption { margin: 14px 0 0; color: var(--muted); font-size: 0.92rem; text-align: center; }
+
+    /* Sections */
+    section { padding: 112px 0 0; }
+    .section-head { max-width: 720px; margin-bottom: 48px; }
+    .section-head.center { margin-left: auto; margin-right: auto; text-align: center; }
+    .kicker { margin: 0 0 10px; color: var(--accent-text); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    h2 { margin: 0; font-size: clamp(1.9rem, 3.6vw, 2.75rem); line-height: 1.12; letter-spacing: -0.02em; font-weight: 700; text-wrap: balance; }
+    h3 { margin: 0; font-size: 1.35rem; line-height: 1.25; letter-spacing: -0.01em; font-weight: 650; }
+    .section-head p { margin: 14px 0 0; color: var(--text-secondary); font-size: 1.15rem; text-wrap: pretty; }
+
+    /* Detect, understand, prove */
+    .steps { display: grid; gap: 88px; }
+    .step { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 56px; align-items: center; }
+    .step:nth-child(even) { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); }
+    .step:nth-child(even) .step-copy { order: 2; }
+    .step-num { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin-bottom: 18px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-text); font-weight: 700; }
+    .step-copy h3 { font-size: 1.6rem; }
+    .step-copy p { margin: 12px 0 0; color: var(--text-secondary); }
+    .step-copy .more { display: inline-block; margin-top: 14px; font-weight: 600; text-decoration: none; }
+    .step-copy .more:hover { text-decoration: underline; }
+
+    /* Proof pack */
+    .proof { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 56px; align-items: center; padding: 48px; border: 1px solid var(--line); border-radius: 28px; background: var(--surface); }
+    .proof h2 { font-size: clamp(1.7rem, 3vw, 2.3rem); }
+    .proof p { margin: 14px 0 0; color: var(--text-secondary); }
+    .proof .actions { margin-top: 26px; }
+
+    /* Features */
+    .features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .feature { padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+    .feature h3 { display: flex; align-items: center; gap: 12px; }
+    .feature h3 svg { width: 22px; height: 22px; flex: none; color: var(--accent-text); }
+    .feature ul { margin: 16px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+    .feature li a { display: inline-block; padding: 5px 12px; border-radius: 100px; background: var(--elevated); color: var(--text); font-size: 0.95rem; text-decoration: none; }
+    .feature li a:hover { background: var(--accent-soft); color: var(--accent-text); }
+    .feature p { margin: 14px 0 0; color: var(--text-secondary); font-size: 0.98rem; }
+
+    /* Trust and hardware */
+    .duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .panel { padding: 36px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
+    .panel h2 { font-size: clamp(1.6rem, 2.6vw, 2rem); }
+    .panel p { margin: 14px 0 0; color: var(--text-secondary); }
+    .panel .links { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px 18px; font-weight: 600; }
+    .panel .links a { text-decoration: none; }
+    .panel .links a:hover { text-decoration: underline; }
+    .big-number { display: block; margin-bottom: 6px; color: var(--accent-text); font-size: 3.2rem; line-height: 1; font-weight: 700; letter-spacing: -0.03em; }
+    .fit { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; color: var(--text-secondary); }
+    .fit li { position: relative; padding-left: 28px; }
+    .fit li::before { position: absolute; left: 0; top: 0; font-weight: 700; }
+    .fit.yes li::before { content: "✓"; color: var(--good); }
+    .fit.no li::before { content: "✕"; color: var(--crit); }
+
+    /* Get started */
+    .start { padding: 56px; border: 1px solid var(--line); border-radius: 28px; background: var(--surface); position: relative; overflow: clip; }
+    .start::before { content: ""; position: absolute; right: -200px; top: -260px; width: 640px; height: 640px; background: radial-gradient(closest-side, var(--glow), transparent); pointer-events: none; }
+    .start > * { position: relative; }
+    .commands { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 36px; }
+    .command { min-width: 0; }
+    .command-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .command h3 { font-size: 1.05rem; }
+    .command p { margin: 4px 0 12px; color: var(--text-secondary); font-size: 0.98rem; }
+    .code { margin: 0; padding: 18px 20px; border-radius: 14px; background: var(--code-bg); color: #e8edff; font-family: var(--font-mono); font-size: 0.86rem; line-height: 1.7; white-space: pre; overflow-x: auto; border: 1px solid rgba(232, 237, 255, 0.1); }
+    .copy { flex: none; padding: 4px 12px; border: 1px solid var(--line-strong); border-radius: 100px; background: transparent; color: var(--text); font: 600 0.82rem var(--font-sans); cursor: pointer; }
+    .copy:hover { background: var(--elevated); }
+    .command code { font-family: var(--font-mono); font-size: 0.9em; padding: 1px 6px; border-radius: 6px; background: var(--elevated); }
+    .start-after { margin: 24px 0 0; color: var(--text-secondary); }
+    .start-links { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .preview-note { margin: 16px 0 0; color: var(--muted); font-size: 0.92rem; }
+
+    /* Footer */
+    footer { margin-top: 112px; padding: 36px 0 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.95rem; }
+    .footer-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+    .footer-links a { color: var(--text-secondary); text-decoration: none; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-tagline { width: 100%; margin: 0; font-size: 0.88rem; }
+
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+
+    @media (max-width: 960px) {
+      .step, .proof { grid-template-columns: 1fr; gap: 28px; }
+      .step:nth-child(even) { grid-template-columns: 1fr; }
+      .step:nth-child(even) .step-copy { order: 0; }
+      .proof { padding: 32px; }
+      .features, .duo, .commands { grid-template-columns: minmax(0, 1fr); }
+      .start { padding: 36px; }
+      .steps { gap: 64px; }
     }
-    @media (max-width: 640px) {
-      .wrap { width: min(100% - 22px, 1120px); }
-      .nav-inner { min-height: 64px; }
+    @media (max-width: 720px) {
       .nav-links { display: none; }
       .mobile-menu { display: block; }
-      .hero { padding-top: 52px; }
-      .cards, .fit-grid, .connect-grid { grid-template-columns: 1fr; }
-      section { padding: 54px 0; }
-      .hero-actions .btn { width: 100%; }
-      footer .wrap { display: block; }
-      footer a { display: inline-block; margin: 10px 14px 0 0; }
+      .hero { padding-top: 56px; }
+      .hero .hero-shot { margin-top: 40px; }
+      .hero .actions .btn { flex: 1 1 100%; }
+      section { padding-top: 80px; }
+      .section-head { margin-bottom: 32px; }
+      .proof, .panel, .start, .feature { padding: 24px; border-radius: 20px; }
+      .shot { border-radius: 10px; }
+      .code { padding: 14px 16px; font-size: 0.76rem; }
+      footer { margin-top: 80px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .btn { transition: none; }
     }
   </style>
 </head>
@@ -175,24 +285,27 @@
   <nav class="nav" aria-label="Main navigation">
     <div class="wrap nav-inner">
       <a class="brand" href="#top" aria-label="DOCSight home">
-        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#7c3aed" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="1.6" opacity="0.45"/><path d="M4.5 12.5h3l2-5 3 10 2.5-7 1.5 2h3" stroke-width="1.9"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="1.6" opacity="0.45"/><path d="M4.5 12.5h3l2-5 3 10 2.5-7 1.5 2h3" stroke-width="1.9"/></svg>
         <span>DOCSight</span>
       </a>
       <div class="nav-links">
-        <a href="#journey">Journey</a>
-        <a href="#proof">Proof pack</a>
-        <a href="#connects">Signals</a>
-        <a href="#compare">Compare</a>
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#hardware">Hardware</a>
+        <a href="#get-started">Get started</a>
         <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>
-        <a href="https://github.com/itsDNNS/docsight">GitHub</a>
+        <a class="nav-github" href="https://github.com/itsDNNS/docsight">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
       </div>
       <details class="mobile-menu">
         <summary>Menu</summary>
         <div class="mobile-menu-panel">
-          <a href="#journey">Journey</a>
-          <a href="#proof">Proof pack</a>
-          <a href="#connects">Signals</a>
-          <a href="#compare">Compare</a>
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#hardware">Hardware</a>
+          <a href="#get-started">Get started</a>
           <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>
           <a href="https://github.com/itsDNNS/docsight">GitHub</a>
         </div>
@@ -202,136 +315,173 @@
 
   <main id="top">
     <header class="hero">
-      <div class="wrap hero-grid">
-        <div>
-          <div class="eyebrow">Self-hosted broadband evidence</div>
+      <div class="wrap">
+        <div class="hero-copy">
+          <p class="eyebrow">Self-hosted · Open source</p>
           <h1>Your ISP says everything is fine. DOCSight shows the timeline.</h1>
-          <p class="lead">DOCSight records signal history, speed tests, latency, modem events and your own notes locally, so intermittent cable problems do not disappear into "looks fine from here".</p>
-          <div class="hero-actions">
-            <a class="btn primary" href="https://github.com/itsDNNS/docsight#option-1-try-the-demo">Try the demo</a>
-            <a class="btn" href="https://github.com/itsDNNS/docsight/releases/latest">Download Windows Preview</a>
-            <p class="preview-boundary">The Windows download is an unsigned portable Preview for short local tests. For continuous monitoring, use Docker on an always-on machine.</p>
-            <a class="btn" href="#proof">See example evidence</a>
-            <a class="btn" href="https://github.com/itsDNNS/docsight/wiki/Installation">Install DOCSight</a>
+          <p class="lead">DOCSight keeps DOCSIS signal history, speed tests, latency, events and notes together on your own hardware, so you can find out what is wrong with your connection and prove it to your provider.</p>
+          <div class="actions">
+            <a class="btn primary" href="#get-started">Try the demo</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight">
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              View on GitHub
+            </a>
           </div>
-          <ul class="trust" aria-label="Project highlights">
-            <li>Self-hosted</li>
-            <li>Local data</li>
-            <li>Demo mode</li>
-            <li>Reports</li>
-            <li>22 modem families, including experimental PYUR FAST3896-15 support with <a href="https://github.com/itsDNNS/docsight/issues/865">login, collection and one-day operation confirmed by the reporter</a></li>
-            <li>MIT licensed</li>
-          </ul>
-          <div class="trust-promise" aria-label="Local-first trust promise">
-            <strong>No silent uploads.</strong>
-            <p>DOCSight runs locally: modem data, logs, reports, credentials, tokens, or installation identifiers are not uploaded automatically.</p>
-            <p>Optional integrations are configured by you. Exports and reports are generated locally and reviewed by you before sharing.</p>
-            <p><a href="https://github.com/itsDNNS/docsight/blob/main/SECURITY.md">Security policy</a> · <a href="https://github.com/itsDNNS/docsight/blob/main/DATA_CONTRACT.md">Data contract</a></p>
-          </div>
+          <p class="hero-note">MIT licensed · Runs in Docker · No modem needed for the demo</p>
         </div>
-        <div class="hero-shot">
-          <div class="screenshot-card">
-            <img src="screenshots/dashboard-hero.png" alt="DOCSight Home with the line status per channel, key figures and the latest speed test">
-          </div>
-          <p class="caption">The real interface with synthetic demo data: line status, key figures and the latest events on one page.</p>
-        </div>
+        <figure class="hero-shot shot">
+          <picture>
+            <source media="(prefers-color-scheme: light)" srcset="screenshots/dashboard-light.png">
+            <img src="screenshots/dashboard-hero.png" width="1600" height="900" alt="DOCSight Home with the line status per channel, key figures and the latest speed test">
+          </picture>
+        </figure>
+        <p class="caption">The real interface with synthetic demo data.</p>
       </div>
     </header>
 
-    <section aria-labelledby="why-title">
+    <section id="how" aria-labelledby="how-title">
       <div class="wrap">
         <div class="section-head">
-          <h2 id="why-title">The line looks normal when support checks.</h2>
-          <p>The bad evenings happen later. A speedtest screenshot shows the symptom, and a modem screenshot shows one moment. DOCSight keeps the timeline.</p>
+          <p class="kicker">Detect, understand, prove</p>
+          <h2 id="how-title">The line looks fine when support checks. The bad evenings happen later.</h2>
+          <p>A speed test shows the symptom and a modem page shows one moment. DOCSight records all of it around the clock and keeps the timeline.</p>
         </div>
-        <div class="cards">
-          <div class="card"><div class="metric">1</div><strong>Bad evening</strong><p>Record drops, slowdowns, packet loss and signal changes while they happen.</p></div>
-          <div class="card"><div class="metric">2</div><strong>Visible pattern</strong><p>See whether the same window repeats across signal, latency, speed and modem events.</p></div>
-          <div class="card"><div class="metric">3</div><strong>Evidence package</strong><p>Bring reports, notes and before/after comparisons to the next support call.</p></div>
+        <div class="steps">
+          <article class="step">
+            <div class="step-copy">
+              <span class="step-num">1</span>
+              <h3>Find the pattern</h3>
+              <p>Signal history with target bands for power and SNR, and uncorrectable errors per interval. Step back in time, or click a point to open the full snapshot.</p>
+              <a class="more" href="https://github.com/itsDNNS/docsight/wiki/Features-Signal-Trends">Signal Trends →</a>
+            </div>
+            <figure class="shot"><img src="screenshots/trends.png" width="1600" height="900" loading="lazy" alt="Signal Trends with target bands for power and SNR and uncorrectable errors per interval"></figure>
+          </article>
+          <article class="step">
+            <div class="step-copy">
+              <span class="step-num">2</span>
+              <h3>Connect the signals</h3>
+              <p>Signal, errors, speed tests, segment load and reachability on one timeline, so you can see whether a speed dip lines up with the line itself.</p>
+              <a class="more" href="https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis">Correlation →</a>
+            </div>
+            <figure class="shot"><img src="screenshots/correlation.png" width="1600" height="900" loading="lazy" alt="Correlation with signal, errors, speed tests, segment load and reachability on one timeline"></figure>
+          </article>
+          <article class="step">
+            <div class="step-copy">
+              <span class="step-num">3</span>
+              <h3>Collect it in a case</h3>
+              <p>Cases gather events, notes and snapshots, and show which evidence is ready and which is still missing.</p>
+              <a class="more" href="https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal">Incident Journal →</a>
+            </div>
+            <figure class="shot"><img src="screenshots/journal.png" width="1600" height="900" loading="lazy" alt="Incident Journal with case cards and their evidence state"></figure>
+          </article>
+          <article class="step">
+            <div class="step-copy">
+              <span class="step-num">4</span>
+              <h3>Bring it to your provider</h3>
+              <p>The Evidence Journey checks a time window and builds the report, the complaint letter and the PDF.</p>
+              <a class="more" href="https://github.com/itsDNNS/docsight/wiki/Features-Evidence-Journey">Evidence Journey →</a>
+            </div>
+            <figure class="shot"><img src="screenshots/complaint-workflow.png" width="1600" height="900" loading="lazy" alt="Evidence Journey checking which evidence exists for a time window"></figure>
+          </article>
         </div>
-      </div>
-    </section>
-
-    <section id="journey" aria-labelledby="journey-title">
-      <div class="wrap">
-        <div class="section-head">
-          <h2 id="journey-title">From bad evening to evidence package</h2>
-          <p>DOCSight is not a generic monitoring dashboard. The product is shaped around the support workflow cable users actually need.</p>
-        </div>
-        <div class="journey-grid">
-          <article class="journey-card">
-            <img src="screenshots/dashboard-dark.png" alt="DOCSight dashboard with current signal health, speed and active issue cards">
-            <div class="copy"><h3>See what is happening now</h3><p>Current signal health, speed, latency and active issues sit in one view.</p></div>
-          </article>
-          <article class="journey-card">
-            <img src="screenshots/trends.png" alt="DOCSight signal trends showing long-term signal patterns">
-            <div class="copy"><h3>Find the pattern</h3><p>Bad evenings stop looking random when the history is visible.</p></div>
-          </article>
-          <article class="journey-card">
-            <img src="screenshots/correlation.png" alt="DOCSight correlation view lining up signal, speed and event history">
-            <div class="copy"><h3>Connect the signals</h3><p>Signal drops, packet loss, speed dips, modem events and notes line up in one timeline.</p></div>
-          </article>
-          <article class="journey-card">
-            <img src="screenshots/complaint-workflow.png" alt="DOCSight evidence package workflow for local report generation">
-            <div class="copy"><h3>Bring something useful to support</h3><p>Turn the timeline into a report, checklist and support-ready evidence package.</p></div>
-          </article>
-        </div>
-        <p class="caption">Screenshots show the real interface with synthetic demo data.</p>
       </div>
     </section>
 
     <section id="proof" aria-labelledby="proof-title">
-      <div class="wrap proof">
-        <div class="screenshot-card">
-          <img src="screenshots/bad-day-evidence.png" alt="Correlation for a past day with an SNR drop, uncorrectable errors and a critical signal state">
-        </div>
-        <div class="proof-copy">
-          <div class="eyebrow">Demo-safe proof pack</div>
-          <h2 id="proof-title">See the output before you connect real hardware.</h2>
-          <p>The sample uses synthetic data. It shows what a bad day can look like without exposing a real provider, IP address, MAC address, serial number or customer data.</p>
-          <ul class="proof-list">
-            <li>Bad evening screenshot with signal, speed, packet loss, events and notes</li>
-            <li>Germany-oriented sample complaint report PDF</li>
-            <li>Community templates for redacted setup and evidence stories</li>
-          </ul>
-          <div class="hero-actions">
-            <a class="btn primary" href="samples/demo-complaint-report.pdf">Open sample PDF</a>
-            <a class="btn" href="https://github.com/itsDNNS/docsight/wiki/Proof-Pack">Read proof-pack notes</a>
+      <div class="wrap">
+        <div class="proof">
+          <figure class="shot"><img src="screenshots/bad-day-evidence.png" width="1600" height="900" loading="lazy" alt="Correlation for a past day with an SNR drop, uncorrectable errors and a critical signal state"></figure>
+          <div>
+            <p class="kicker">Proof pack</p>
+            <h2 id="proof-title">See the output before you connect your own modem.</h2>
+            <p>A bad day with synthetic data, and the complaint report DOCSight builds from it. No real provider, address or customer data.</p>
+            <div class="actions">
+              <a class="btn primary" href="samples/demo-complaint-report.pdf">Open sample report (PDF)</a>
+              <a class="btn" href="https://github.com/itsDNNS/docsight/wiki/Proof-Pack">Proof pack notes</a>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="connects" aria-labelledby="connects-title">
+    <section id="features" aria-labelledby="features-title">
       <div class="wrap">
         <div class="section-head">
-          <h2 id="connects-title">What DOCSight connects</h2>
-          <p>The value is not another chart. The value is putting the pieces of the cable problem in the same place.</p>
+          <p class="kicker">Features</p>
+          <h2 id="features-title">Everything about your line in one place</h2>
+          <p>Each feature has its own page in the Wiki.</p>
         </div>
-        <div class="connect-grid" role="list">
-          <div class="connect-item" role="listitem"><strong>DOCSIS signal</strong>Power, SNR, channels and modulation.</div>
-          <div class="connect-item" role="listitem"><strong>Speed tests</strong>Download, upload, ping and jitter history.</div>
-          <div class="connect-item" role="listitem"><strong>Latency</strong>Packet loss, outages and route checks.</div>
-          <div class="connect-item" role="listitem"><strong>Modem events</strong>Restarts, drops and signal anomalies.</div>
-          <div class="connect-item" role="listitem"><strong>Incident notes</strong>What you saw, when it happened and what changed.</div>
-          <div class="connect-item" role="listitem"><strong>Before/after</strong>Compare technician visits or ISP changes.</div>
-          <div class="connect-item" role="listitem"><strong>Reports</strong>PDF output and complaint-ready text.</div>
-          <div class="connect-item" role="listitem"><strong>Local storage</strong>Evidence stays on your own hardware.</div>
+        <div class="features">
+          <div class="feature">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Signal</h3>
+            <ul>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Dashboard">Home with line status</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Signal-Trends">Signal Trends</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline">Channels and Channel Timeline</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Modulation-Performance">Modulation</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Segment-Utilization">Cable Segment Utilization</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis">Correlation</a></li>
+            </ul>
+          </div>
+          <div class="feature">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>Connection</h3>
+            <ul>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Connection-Monitor">Connection Monitor with outages and traceroutes</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Speedtest">Speedtest Tracker</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-BQM">BQM</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Smokeping">Smokeping</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Gaming-Quality">Gaming Quality</a></li>
+            </ul>
+          </div>
+          <div class="feature">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg>Events and cases</h3>
+            <ul>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Event-Log">Event Log</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal">Incident Journal and cases</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Evidence-Journey">Evidence Journey</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Before-After-Comparison">Before/After</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture">Smart Capture</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint">Complaint letters</a></li>
+            </ul>
+            <p>For Germany: <a href="https://github.com/itsDNNS/docsight/wiki/Features-BNetzA">BNetzA measurements</a> and <a href="https://github.com/itsDNNS/docsight/wiki/Features-TKG-Compensation">TKG compensation</a>.</p>
+          </div>
+          <div class="feature">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Platform</h3>
+            <ul>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Home-Assistant">Home Assistant</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Notifications">Notifications and browser push</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore">Backup and restore</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Themes">Themes</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight-modules">Community modules</a></li>
+              <li><a href="https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export">AI export with local redaction</a></li>
+            </ul>
+            <p>24 languages, and installable as an app.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="compare" aria-labelledby="compare-title">
-      <div class="wrap">
-        <div class="section-head">
-          <h2 id="compare-title">Where DOCSight fits</h2>
-          <p>DOCSight works alongside monitoring tools. Its job is the missing evidence layer for cable-line problems.</p>
+    <section id="hardware" aria-labelledby="hardware-title">
+      <div class="wrap duo">
+        <div class="panel">
+          <span class="big-number">22</span>
+          <h2 id="hardware-title">modem families supported</h2>
+          <p>DOCSight has drivers for 22 modem families, among them AVM FRITZ!Box Cable, Vodafone Station (CGA4233, TG3442DE), Sercomm Ultra Hub 7, Connect Box (CH7465), Sagemcom F@st 3896 and F3896LG, PYUR FAST3896-15 (experimental), Technicolor TC4400, Arris SURFboard, Hitron CODA and Netgear CM1000/CM3000.</p>
+          <p>Not on cable? Generic Router mode works with fiber, DSL and satellite: speed tests, latency monitoring, notes and reports, without DOCSIS signal data.</p>
+          <div class="links">
+            <a href="https://github.com/itsDNNS/docsight/wiki/Supported-Modems">Supported modems →</a>
+            <a href="https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support">Add your own modem →</a>
+          </div>
         </div>
-        <div class="compare" role="list">
-          <div class="compare-row" role="listitem"><strong>Uptime monitors</strong><span>Show whether something is reachable.</span><span>DOCSight adds cable signal history, modem events, incident notes and report output.</span></div>
-          <div class="compare-row" role="listitem"><strong>Speedtest history</strong><span>Shows speed symptoms.</span><span>DOCSight shows whether dips line up with signal, latency, packet loss or events.</span></div>
-          <div class="compare-row" role="listitem"><strong>SmokePing and BQM</strong><span>Show latency and packet loss from the outside.</span><span>DOCSight adds the local DOCSIS view and report workflow.</span></div>
-          <div class="compare-row" role="listitem"><strong>Modem screenshots</strong><span>Show one moment in time.</span><span>DOCSight keeps the searchable timeline and before/after context.</span></div>
+        <div class="panel" aria-labelledby="data-title">
+          <p class="kicker">Local first</p>
+          <h2 id="data-title">Your data stays with you</h2>
+          <p>History and reports stay on your own hardware. Modem data, logs, credentials and tokens are never uploaded automatically, and optional integrations only talk to the services you configure.</p>
+          <p>Reports and exports are built locally. Review them before you share them: they can contain connection details and notes.</p>
+          <div class="links">
+            <a href="https://github.com/itsDNNS/docsight/blob/main/DATA_CONTRACT.md">Data contract →</a>
+            <a href="https://github.com/itsDNNS/docsight/blob/main/SECURITY.md">Security policy →</a>
+          </div>
         </div>
       </div>
     </section>
@@ -339,41 +489,107 @@
     <section aria-labelledby="fit-title">
       <div class="wrap">
         <div class="section-head">
-          <h2 id="fit-title">Strong fit, clear boundaries</h2>
-          <p>DOCSight is strongest when it can see cable signal data. Generic Router mode is useful too, but DOCSIS evidence is the main reason it exists.</p>
+          <p class="kicker">Is it for you?</p>
+          <h2 id="fit-title">Built for cable problems that come and go</h2>
         </div>
-        <div class="fit-grid">
-          <div class="card good"><strong>Use DOCSight if</strong><p>You have recurring cable drops, bad evenings, unstable video calls, gaming jitter, suspicious signal values, or an ISP support loop that needs better evidence.</p></div>
-          <div class="card bad"><strong>Skip it if</strong><p>You only need HTTP uptime alerts, a public status page, a managed cloud service, or a promised support outcome. DOCSight documents evidence, it does not fix the line for you.</p></div>
+        <div class="duo">
+          <div class="panel">
+            <h3>Use DOCSight if</h3>
+            <ul class="fit yes">
+              <li>your connection drops or slows down at certain times</li>
+              <li>video calls freeze or games lag in the evening</li>
+              <li>signal values look suspicious and you want a history</li>
+              <li>support keeps saying the line is fine and you need evidence</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Look elsewhere if</h3>
+            <ul class="fit no">
+              <li>you only need uptime alerts for websites</li>
+              <li>you want a public status page or a managed cloud service</li>
+              <li>you expect a tool to fix the line: DOCSight documents the problem, your provider fixes it</li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
 
-    <section aria-labelledby="start-title">
+    <section id="get-started" aria-labelledby="start-title">
       <div class="wrap">
-        <div class="cta">
+        <div class="start">
+          <p class="kicker">Get started</p>
           <h2 id="start-title">Start with the demo, then connect your own modem.</h2>
-          <p>No router is required for the first look. Demo mode gives you realistic history so you can decide whether DOCSight fits your evidence workflow.</p>
-          <div class="hero-actions" style="justify-content:center">
-            <a class="btn primary" href="https://github.com/itsDNNS/docsight#option-1-try-the-demo">Try the demo</a>
-            <a class="btn" href="https://github.com/itsDNNS/docsight/wiki/Supported-Modems">Check supported modems</a>
-            <a class="btn" href="https://github.com/itsDNNS/docsight/discussions">Ask in Discussions</a>
+          <div class="commands">
+            <div class="command">
+              <div class="command-head"><h3>Try the demo</h3></div>
+              <p>Realistic history with synthetic data, no modem required.</p>
+              <pre class="code" data-command="docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:stable">docker run -d --name docsight-demo \
+  -p 8765:8765 -e DEMO_MODE=true \
+  ghcr.io/itsdnns/docsight:stable</pre>
+            </div>
+            <div class="command">
+              <div class="command-head"><h3>Connect your modem or router</h3></div>
+              <p>Configuration and history stay in the <code>docsight_data</code> volume.</p>
+              <pre class="code" data-command="docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:stable">docker run -d --name docsight \
+  --restart unless-stopped \
+  -p 8765:8765 \
+  -v docsight_data:/data \
+  ghcr.io/itsdnns/docsight:stable</pre>
+            </div>
           </div>
+          <p class="start-after">Then open port 8765 on that machine in your browser. The setup asks for your connection type, finds the modem on request and tests the connection.</p>
+          <div class="start-links">
+            <a class="btn primary" href="https://github.com/itsDNNS/docsight/wiki/Installation">Installation guide</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/blob/main/docker-compose.yml">Docker Compose</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/wiki/Windows-Quick-Start">Windows quick start</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/releases/latest">Windows Desktop Preview</a>
+          </div>
+          <p class="preview-note">The Windows Desktop Preview is an unsigned portable build for short local tests. For continuous monitoring, run Docker on an always-on machine.</p>
         </div>
       </div>
     </section>
   </main>
 
   <footer>
-    <div class="wrap">
-      <span>DOCSight is open source and self-hosted.</span>
-      <span>
+    <div class="wrap footer-inner">
+      <a class="brand" href="#top" aria-label="DOCSight home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="1.6" opacity="0.45"/><path d="M4.5 12.5h3l2-5 3 10 2.5-7 1.5 2h3" stroke-width="1.9"/></svg>
+        <span>DOCSight</span>
+      </a>
+      <div class="footer-links">
         <a href="https://github.com/itsDNNS/docsight">GitHub</a>
         <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>
         <a href="https://github.com/itsDNNS/docsight/releases">Releases</a>
+        <a href="https://github.com/itsDNNS/docsight/discussions">Discussions</a>
         <a href="https://github.com/sponsors/itsDNNS">Sponsor</a>
-      </span>
+      </div>
+      <p class="footer-tagline">Open source under the MIT license. DOCSight = DOCSIS + Insight (+ a quiet sigh from every cable internet user).</p>
     </div>
   </footer>
+
+  <script>
+    // Copy buttons for the install commands. They copy the one-line form, which also works
+    // outside POSIX shells; without the Clipboard API the commands stay selectable.
+    if (navigator.clipboard) {
+      document.querySelectorAll('.command').forEach((command) => {
+        const block = command.querySelector('.code');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'copy';
+        button.textContent = 'Copy';
+        button.setAttribute('aria-label', 'Copy command');
+        button.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(block.dataset.command);
+            button.textContent = 'Copied';
+          } catch (error) {
+            button.textContent = 'Select it';
+          }
+          setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+        });
+        command.querySelector('.command-head').appendChild(button);
+      });
+    }
+  </script>
 </body>
 </html>
