@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signal {time}",
   "snapshot_added_to_case": "Dan posnetka dodan v »{case}«",
   "snapshot_error": "Posnetka za to točko ni bilo mogoče naložiti.",
-  "chart_gap_no_data": "Ni podatkov"
+  "chart_gap_no_data": "Ni podatkov",
+  "window_earlier": "Prejšnje obdobje",
+  "window_later": "Naslednje obdobje",
+  "window_past": "Preteklo obdobje",
+  "window_back_to_now": "Nazaj na zdaj",
+  "window_swipe_hint": "Podrsajte po grafu vstran za prejšnje ali poznejše obdobje."
 }

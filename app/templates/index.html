@@ -1,4 +1,5 @@
 {% from "partials/empty_state.html" import empty_state with context %}
+{% from "partials/window_shift.html" import window_shift, window_past with context %}
 {% set builtin_module_views = {
     'docsight.journal': 'journal',
     'docsight.bqm': 'bqm',
@@ -868,6 +869,7 @@
             <h2 class="view-page-title" id="trend-title">{{ t.signal_trends }}</h2>
         </div>
         <div class="view-page-actions">
+            {% call window_shift('trend') %}
             <div class="segmented" id="trend-tabs" role="group" aria-label="{{ t.time_range }}">
                 <button class="segmented-option" data-range="1h" aria-pressed="false">1h</button>
                 <button class="segmented-option" data-range="6h" aria-pressed="false">6h</button>
@@ -878,6 +880,7 @@
                 <button class="segmented-option" data-range="30d" aria-pressed="false">30d</button>
                 <button class="segmented-option" data-range="90d" aria-pressed="false">90d</button>
             </div>
+            {% endcall %}
             <button type="button" class="btn btn-secondary btn-sm temp-toggle" id="temp-toggle-btn" aria-pressed="false" hidden title="{{ t.temp_overlay_show }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
@@ -885,6 +888,7 @@
             </button>
         </div>
     </div>
+    {{ window_past('trend') }}
     <div id="trend-no-data" class="view-empty" hidden></div>
     <div class="charts-grid" id="charts-grid">
         {% include 'partials/band_legend.html' %}
@@ -1909,6 +1913,7 @@
 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
 <script src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
 {% endif %}
+<script src="{{ url_for('static', filename='js/window-shift.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/trends.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/snapshot-panel.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/channels.js', v=version) }}"></script>

@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signál {time}",
   "snapshot_added_to_case": "Den snímku přidán k „{case}“",
   "snapshot_error": "Snímek pro tento bod se nepodařilo načíst.",
-  "chart_gap_no_data": "Žádná data"
+  "chart_gap_no_data": "Žádná data",
+  "window_earlier": "Předchozí období",
+  "window_later": "Následující období",
+  "window_past": "Minulé období",
+  "window_back_to_now": "Zpět na současnost",
+  "window_swipe_hint": "Přejeďte grafem do strany pro dřívější nebo pozdější období."
 }

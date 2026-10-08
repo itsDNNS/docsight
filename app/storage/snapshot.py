@@ -389,6 +389,17 @@ class SnapshotMethods:
             ).fetchall()
         return self._summary_rows_to_entries(rows, start_ts=cutoff)
 
+    def get_summary_between(self, start_ts, end_ts):
+        """Get summary snapshots between two UTC timestamps, e.g. a window in the past."""
+        with self._read() as conn:
+            rows = conn.execute(
+                "SELECT timestamp, summary_json FROM snapshots "
+                "WHERE timestamp >= ? AND timestamp <= ? "
+                "ORDER BY timestamp",
+                (_unwrap_anchor_start(end_ts), end_ts),
+            ).fetchall()
+        return self._summary_rows_to_entries(rows, start_ts=start_ts, end_ts=end_ts)
+
     def get_summary_range(self, start_date, end_date):
         """Get all snapshots (summary only) between two dates. Like get_intraday_data but multi-day.
 

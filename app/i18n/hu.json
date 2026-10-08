@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Jel: {time}",
   "snapshot_added_to_case": "A pillanatkép napja hozzáadva: „{case}”",
   "snapshot_error": "Ennek a pontnak a pillanatképe nem tölthető be.",
-  "chart_gap_no_data": "Nincs adat"
+  "chart_gap_no_data": "Nincs adat",
+  "window_earlier": "Előző időszak",
+  "window_later": "Következő időszak",
+  "window_past": "Korábbi időszak",
+  "window_back_to_now": "Vissza a jelenhez",
+  "window_swipe_hint": "Húzza oldalra a diagramot egy korábbi vagy későbbi időszakért."
 }

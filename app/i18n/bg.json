@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Сигнал на {time}",
   "snapshot_added_to_case": "Денят на снимката е добавен към „{case}“",
   "snapshot_error": "Снимката за тази точка не можа да се зареди.",
-  "chart_gap_no_data": "Няма данни"
+  "chart_gap_no_data": "Няма данни",
+  "window_earlier": "Предишен период",
+  "window_later": "Следващ период",
+  "window_past": "Минал период",
+  "window_back_to_now": "Обратно към сега",
+  "window_swipe_hint": "Плъзнете диаграма настрани за по-ранен или по-късен период."
 }

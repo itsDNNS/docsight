@@ -7,6 +7,7 @@ var _trendRange = '1d';
 var _lastTrendData = null;
 var _lastTrendWeather = null;
 var _lastTrendRange = '1d';
+var _trendLoadSeq = 0;
 
 function _trendRangeHours(range) {
     var map = { day: 24, week: 168, month: 720 };
@@ -21,22 +22,40 @@ function _trendRangeHours(range) {
 function updateTrendTabs() {
     syncSegments('trend-tabs', function(btn) { return btn.getAttribute('data-range') === _trendRange; });
 }
+
+// The window ends now unless the arrows (or a swipe) moved it into the past.
+var _trendWindow = DOCSightWindowShift.create('trend', {
+    hours: function() { return _trendRangeHours(_trendRange); },
+    onChange: function() {
+        _writeTrendsViewState();
+        loadTrends(_trendRange);
+    },
+    swipeArea: document.getElementById('charts-grid')
+});
+
+function _writeTrendsViewState() {
+    docsightWriteViewState('trends', {range: _trendRange, end: _trendWindow.param()});
+}
+
 document.querySelectorAll('#trend-tabs .segmented-option').forEach(function(btn) {
     btn.addEventListener('click', function() {
         _trendRange = this.getAttribute('data-range');
-        docsightWriteViewState('trends', {range: _trendRange});
+        _writeTrendsViewState();
         updateTrendTabs();
+        _trendWindow.sync();
         loadTrends(_trendRange);
     });
 });
 
 function applyTrendsViewState() {
-    var range = docsightReadViewState('trends').range;
-    if (docsightSelectSegment('trend-tabs', 'data-range', range)) _trendRange = range;
+    var state = docsightReadViewState('trends');
+    if (docsightSelectSegment('trend-tabs', 'data-range', state.range)) _trendRange = state.range;
+    _trendWindow.restore(state.end);
 }
 
 function _getWeatherRange(range) {
-    var endDt = new Date();
+    var param = _trendWindow.param();
+    var endDt = new Date(param ? DOCSightWindowShift.fromParam(param) : Date.now());
     var startDt = new Date(endDt.getTime() - _trendRangeHours(range) * 3600000);
     var end = endDt.toISOString().substring(0, 19) + 'Z';
     var start = startDt.toISOString().substring(0, 19) + 'Z';
@@ -171,15 +190,19 @@ function loadTrends(range) {
     var grid = document.getElementById('charts-grid');
     if (title) title.textContent = T.signal_trends || 'Signal Trends';
     _lastTrendRange = range;
+    // Quick steps or range clicks overlap; only the latest request may draw.
+    var seq = ++_trendLoadSeq;
 
     var wr = _getWeatherRange(range);
-    var trendsUrl = docsightUrl('/api/trends?range=' + encodeURIComponent(range || '1d'));
+    var end = _trendWindow.param();
+    var trendsUrl = docsightUrl('/api/trends?range=' + encodeURIComponent(range || '1d') + (end ? '&end=' + encodeURIComponent(end) : ''));
     var weatherUrl = docsightUrl('/api/weather/range?start=' + encodeURIComponent(wr.start) + '&end=' + encodeURIComponent(wr.end));
 
     Promise.all([
         fetch(trendsUrl).then(function(r) { return r.json(); }),
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
     ]).then(function(results) {
+            if (seq !== _trendLoadSeq) return;
             var data = (results[0] || []).filter(_isDocsisTrendRow);
             var weatherData = results[1];
             if (!data || data.length === 0) {
@@ -198,6 +221,7 @@ function loadTrends(range) {
             _renderTrendCharts();
         })
         .catch(function() {
+            if (seq !== _trendLoadSeq) return;
             DOCSightEmptyState.showError(noData, {retry: function() { loadTrends(range); }});
             grid.style.display = 'none';
         });

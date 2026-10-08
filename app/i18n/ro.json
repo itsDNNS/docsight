@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Semnal din {time}",
   "snapshot_added_to_case": "Ziua instantaneului adăugată la „{case}”",
   "snapshot_error": "Instantaneul pentru acest punct nu a putut fi încărcat.",
-  "chart_gap_no_data": "Fără date"
+  "chart_gap_no_data": "Fără date",
+  "window_earlier": "Perioada anterioară",
+  "window_later": "Perioada următoare",
+  "window_past": "Perioadă trecută",
+  "window_back_to_now": "Înapoi la prezent",
+  "window_swipe_hint": "Glisați un grafic lateral pentru o perioadă anterioară sau ulterioară."
 }

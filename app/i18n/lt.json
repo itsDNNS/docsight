@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signalas {time}",
   "snapshot_added_to_case": "Būsenos diena pridėta prie „{case}“",
   "snapshot_error": "Nepavyko įkelti šio taško būsenos.",
-  "chart_gap_no_data": "Duomenų nėra"
+  "chart_gap_no_data": "Duomenų nėra",
+  "window_earlier": "Ankstesnis laikotarpis",
+  "window_later": "Vėlesnis laikotarpis",
+  "window_past": "Praėjęs laikotarpis",
+  "window_back_to_now": "Grįžti į dabartį",
+  "window_swipe_hint": "Perbraukite diagramą į šoną, kad pamatytumėte ankstesnį ar vėlesnį laikotarpį."
 }

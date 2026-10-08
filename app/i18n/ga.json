@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Comhartha ar {time}",
   "snapshot_added_to_case": "Lá an léargais curtha le “{case}”",
   "snapshot_error": "Níorbh fhéidir an léargas don phointe seo a lódáil.",
-  "chart_gap_no_data": "Gan sonraí"
+  "chart_gap_no_data": "Gan sonraí",
+  "window_earlier": "Tréimhse roimhe",
+  "window_later": "Tréimhse ina dhiaidh",
+  "window_past": "Tréimhse a chuaigh thart",
+  "window_back_to_now": "Ar ais go dtí anois",
+  "window_swipe_hint": "Svaidhpeáil cairt ó thaobh go taobh le haghaidh tréimhse níos luaithe nó níos déanaí."
 }

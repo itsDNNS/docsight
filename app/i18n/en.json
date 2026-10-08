@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signal on {time}",
   "snapshot_added_to_case": "Snapshot day added to “{case}”",
   "snapshot_error": "Could not load the snapshot for this point.",
-  "chart_gap_no_data": "No data"
+  "chart_gap_no_data": "No data",
+  "window_earlier": "Earlier period",
+  "window_later": "Later period",
+  "window_past": "Past period",
+  "window_back_to_now": "Back to now",
+  "window_swipe_hint": "Swipe a chart sideways for an earlier or later period."
 }

@@ -1306,5 +1306,10 @@
   "snapshot_case_name": "Signal {time}",
   "snapshot_added_to_case": "Dagen for øyeblikksbildet lagt til i «{case}»",
   "snapshot_error": "Øyeblikksbildet for dette punktet kunne ikke lastes.",
-  "chart_gap_no_data": "Ingen data"
+  "chart_gap_no_data": "Ingen data",
+  "window_earlier": "Forrige periode",
+  "window_later": "Neste periode",
+  "window_past": "Tidligere periode",
+  "window_back_to_now": "Tilbake til nå",
+  "window_swipe_hint": "Sveip sidelengs over et diagram for en tidligere eller senere periode."
 }

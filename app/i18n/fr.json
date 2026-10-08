@@ -1298,5 +1298,10 @@
   "snapshot_case_name": "Signal du {time}",
   "snapshot_added_to_case": "Jour de l'instantané ajouté à « {case} »",
   "snapshot_error": "Impossible de charger l'instantané de ce point.",
-  "chart_gap_no_data": "Aucune donnée"
+  "chart_gap_no_data": "Aucune donnée",
+  "window_earlier": "Période précédente",
+  "window_later": "Période suivante",
+  "window_past": "Période passée",
+  "window_back_to_now": "Revenir à maintenant",
+  "window_swipe_hint": "Balayez un graphique latéralement pour une période antérieure ou ultérieure."
 }
