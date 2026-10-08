@@ -496,20 +496,36 @@ def test_a_warm_cache_installs_chromium_without_asking_a_mirror():
     script = (ROOT / "scripts" / "install_playwright_chromium.sh").read_text(encoding="utf-8")
     browser = script.index("python -m playwright install chromium")
     offline = script.index("apt-get install -y --no-install-recommends --no-download $packages")
-    fallback = script.index("python -m playwright install-deps chromium")
+    fallback = script.index("until install_from_mirror; do")
     assert browser < offline < fallback
-    # The fast path must not refresh the package lists, which is what reaches a mirror.
+    # Only the mirror fallback refreshes the package lists.
+    mirror = script[script.index("install_from_mirror() {"):script.index("\n}\n", script.index("install_from_mirror() {"))]
     commands = "\n".join(line for line in script.splitlines() if not line.lstrip().startswith("#"))
-    assert "apt-get update" not in commands
+    assert commands.count("apt-get update") == 1 and "apt-get update" in mirror
     assert "--with-deps" not in commands
+
+
+def test_a_stalled_mirror_install_is_killed_and_retried():
+    script = (ROOT / "scripts" / "install_playwright_chromium.sh").read_text(encoding="utf-8")
+    assert "sudo timeout --kill-after=10 300 apt-get update" in script
+    assert "sudo timeout --kill-after=10 600 apt-get install -y --no-install-recommends $packages" in script
+    assert 'if [ "$attempt" -ge 3 ]; then' in script
 
 
 def test_the_chromium_install_script_does_not_wait_on_a_silent_mirror():
     script = (ROOT / "scripts" / "install_playwright_chromium.sh").read_text(encoding="utf-8")
     config = script.index("80docsight-network")
-    assert config < script.index("python -m playwright install-deps chromium")
+    assert config < script.index("until install_from_mirror; do")
     for setting in ('Acquire::http::Timeout "30";', 'Acquire::https::Timeout "30";', 'Acquire::Retries "3";'):
         assert setting in script, setting
+
+
+@pytest.mark.parametrize("workflow", ["test.yml", "full-e2e.yml", "visual-review.yml"])
+def test_every_job_has_a_time_limit(workflow):
+    """Without one, a hung step holds a runner for GitHub's six-hour maximum."""
+    jobs = load_workflow(workflow)["jobs"]
+    missing = [name for name, job in jobs.items() if "timeout-minutes" not in job]
+    assert missing == []
 
 
 def _run_step(job, name):
