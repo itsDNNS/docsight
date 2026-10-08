@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 798,
+  "expected_total": 800,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -21,9 +21,10 @@
     },
     {
       "id": 2,
-      "collected_cases": 106,
+      "collected_cases": 108,
       "files": [
         "test_auth.py",
+        "test_browser_errors.py",
         "test_chart_gaps.py",
         "test_cm_time_axis.py",
         "test_cm_window_shift.py",

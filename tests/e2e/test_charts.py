@@ -1250,6 +1250,7 @@ class TestSignalLifecycle:
         assert page.evaluate('dashboardTrendsProbe.charts.at(-1).data') == [
             [0, 1, 2], [0, None, 3], [42, 43, 44], [36, 37, 38]]
 
+    @pytest.mark.allow_browser_errors("the signal API answers 503 on purpose; the hero chart logs the handled failure")
     def test_failure_does_not_block_modules_and_public_refresh_recovers(self, page, live_server):
         from tests.e2e.support.signal_trends import start, painted, wait_count, spark_pixels, rows, show_family_sparks
         attempts = []
@@ -1324,6 +1325,7 @@ class TestSignalLifecycle:
         assert len(requests['signal']) == 1
         assert page.locator('#spark-connection-monitor').count() == 0
 
+    @pytest.mark.allow_browser_errors("the signal API answers 503 on purpose; the hero chart logs the handled failure")
     def test_theme_preserves_error_after_previously_empty_history(self, page, live_server):
         from tests.e2e.support.signal_trends import start, toggle_theme
         start(page, live_server, signal=lambda route: route.fulfill(json=[]))
