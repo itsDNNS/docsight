@@ -153,3 +153,24 @@ test('drawn axis stays at typical latency when a raw line sample spikes', () => 
     view.toggle.onclick();
     assert.deepEqual(view.yRange(0, 550), [0, 633]);
 });
+
+test('the chart is on a time axis and its loss and spike markers sit at the sample times', () => {
+    const view = charts();
+    const target = rawTarget(typicalWithOneSpike);
+    target.samples[3].packet_loss_pct = 50;
+    view.render([target]);
+    assert.deepEqual(Array.from(view.last().opts.times.slice(0, 3)), [1000, 1005, 1010]);
+
+    const positions = [];
+    const u = {
+        ctx: {save() {}, restore() {}, beginPath() {}, rect() {}, clip() {}, moveTo() {}, lineTo() {}, stroke() {}, closePath() {}, fill() {}},
+        bbox: {left: 0, top: 0, width: 1e9, height: 100},
+        series: [{}, {show: true}],
+        valToPos: (value) => { positions.push(value); return value; },
+    };
+    view.last().opts.plugins[0].hooks.draw[0](u);
+    assert.deepEqual(positions, [1015]);
+    positions.length = 0;
+    view.spikeMarkers().hooks.draw[0](u);
+    assert.deepEqual(positions, [1000 + 200 * 5]);
+});
