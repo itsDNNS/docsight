@@ -851,13 +851,17 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             insetIndex = Math.min(Math.ceil(halfLabel / plotPx * (n - 1)), Math.floor((n - 1) / 3));
         }
         var firstTick = insetIndex, lastTick = n - 1 - insetIndex;
-        // The inset leaves less room between the outer labels; fit the tick count to it.
-        var tickRoom = Math.max(width - yAxisSize - 24, 1) * (lastTick - firstTick) / (n - 1);
-        wantTicks = Math.max(2, Math.min(wantTicks, Math.floor(tickRoom / (estimateLongestLabelWidth(labels, 40) + 18)) + 1));
-        var gap = (lastTick - firstTick) / (wantTicks - 1);
-        for (var ti = 0; ti < wantTicks; ti++) {
-            xSplits.push(xData[firstTick + Math.round(ti * gap)]);
-        }
+        // Ticks sit on data points, so they are a whole number of points apart. A
+        // fractional gap rounded per tick alternates long and short steps, and on
+        // short series the short ones put two labels on top of each other. Use one
+        // whole step that is at least a label wide.
+        var pxPerPoint = Math.max(width - yAxisSize - 24, 1) / (n - 1);
+        var minStep = Math.ceil((estimateLongestLabelWidth(labels, 40) + 18) / pxPerPoint);
+        var step = Math.max(1, minStep, Math.ceil((lastTick - firstTick) / Math.max(wantTicks - 1, 1)));
+        for (var ti = firstTick; ti <= lastTick; ti += step) xSplits.push(xData[ti]);
+        // The last label goes to the end when it fits; otherwise the evenly spaced one stays.
+        var lastPlaced = firstTick + Math.floor((lastTick - firstTick) / step) * step;
+        if (lastPlaced !== lastTick && lastTick - lastPlaced >= minStep) xSplits.push(xData[lastTick]);
     }
 
     var xLabelMap = {};

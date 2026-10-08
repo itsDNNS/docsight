@@ -1,6 +1,7 @@
 """E2E tests for authentication flows."""
 
 import pytest
+from playwright.sync_api import expect
 from tests.e2e.support.navigation import reveal_in_nav
 
 
@@ -21,8 +22,8 @@ class TestLoginFlow:
         auth_page.goto(f"{auth_server}/login")
         auth_page.fill('input[name="password"]', "wrong-password")
         auth_page.click('button[type="submit"]')
-        error = auth_page.get_by_role("alert")
-        assert error.is_visible()
+        # The form posts and the login page comes back with the error; wait for it.
+        expect(auth_page.get_by_role("alert")).to_be_visible()
 
     def test_correct_password_redirects_to_dashboard(self, auth_page, auth_server):
         auth_page.goto(f"{auth_server}/login")
@@ -47,7 +48,7 @@ class TestLoginFlow:
         auth_page.wait_for_load_state("networkidle")
 
         logout_button = reveal_in_nav(auth_page, 'form[action="/logout"] button[type="submit"]')
-        assert logout_button.is_visible()
+        expect(logout_button).to_be_visible()
         logout_button.click()
         auth_page.wait_for_url("**/login")
 
