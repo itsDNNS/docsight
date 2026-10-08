@@ -165,9 +165,9 @@ def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, wid
     page.goto(live_server + "/#bqm")
     page.evaluate("theme => document.documentElement.setAttribute('data-theme', theme)", theme)
     expect(page.locator("#bqm-today-btn")).to_have_attribute("aria-pressed", "true")
+    page.evaluate("window.previousBqmChart = charts['bqm-chart-container']")
     page.locator("#bqm-today-btn").click()
-    page.wait_for_function("() => !!charts['bqm-chart-container']")
-    page.wait_for_load_state("networkidle")
+    page.wait_for_function("() => charts['bqm-chart-container'] && charts['bqm-chart-container'] !== window.previousBqmChart")
 
     def selection(name):
         for key in ("today", "yesterday", "7d", "30d"):

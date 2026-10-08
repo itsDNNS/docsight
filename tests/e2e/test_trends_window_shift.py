@@ -25,6 +25,16 @@ def _shows_window_ending_at(page, end):
         "end => _lastTrendData && _lastTrendData[_lastTrendData.length - 1].timestamp.slice(0, 16) <= end", arg=end)
 
 
+def _shows_window_between(page, after, end):
+    page.wait_for_function(
+        """([after, end]) => {
+            const last = _lastTrendData && _lastTrendData[_lastTrendData.length - 1].timestamp.slice(0, 16);
+            return !!last && last > after && last <= end;
+        }""",
+        arg=[after, end],
+    )
+
+
 def _shows_data_after(page, time):
     page.wait_for_function(
         "time => _lastTrendData && _lastTrendData[_lastTrendData.length - 1].timestamp.slice(0, 16) > time", arg=time)
@@ -61,18 +71,17 @@ def test_the_arrows_step_the_window_by_its_length_and_back_to_now(page, live_ser
     assert first in ends
 
     page.click("#trend-window-earlier")
-    page.wait_for_load_state("networkidle")
     second = _hash_end(page)
+    # The window shown so far ends a day after this one, so its last point is later.
     _shows_window_ending_at(page, second)
     assert _instant(page, first) - _instant(page, second) == 24 * 3600 * 1000
 
     page.click("#trend-window-later")
-    page.wait_for_load_state("networkidle")
     assert _hash_end(page) == first
+    _shows_window_between(page, second, first)
 
     # One more step reaches now: the window follows new polls again.
     page.click("#trend-window-later")
-    page.wait_for_load_state("networkidle")
     assert _hash_end(page) is None
     _shows_data_after(page, first)
     expect(past).to_be_hidden()
@@ -96,12 +105,10 @@ def test_a_deep_link_restores_a_past_window_and_back_to_now_leaves_it(page, live
 
     # A new range keeps the end; the span follows the new length.
     page.click('#trend-tabs [data-range="1d"]')
-    page.wait_for_load_state("networkidle")
     assert _hash_end(page) == end
     expect(page.locator("#trend-window-range")).to_have_text(re.compile(rf"{day_before}, .*"))
 
     page.click("#trend-window-now")
-    page.wait_for_load_state("networkidle")
     assert _hash_end(page) is None
     assert "range=1d" in page.evaluate("location.hash")
     expect(page.locator("#trend-window-past")).to_be_hidden()
@@ -167,7 +174,6 @@ def _swipe(page, cdp, direction, hold_ms=0):
     for step in range(1, 7):
         _touch(cdp, "touchMove", start + direction * step * 30, y)
     _touch(cdp, "touchEnd")
-    page.wait_for_load_state("networkidle")
 
 
 def test_a_swipe_on_a_phone_steps_the_window_and_holding_reads_values(phone):
