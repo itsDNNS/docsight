@@ -79,6 +79,7 @@ def test_a_swipe_on_the_correlation_chart_steps_the_window(browser, live_server)
     expect(overlay).to_be_visible()
     overlay.scroll_into_view_if_needed()
     box = overlay.bounding_box()
+    page.clock.pause_at(page.evaluate("Date.now()") / 1000)  # a busy machine cannot slow the swipe
     cdp = context.new_cdp_session(page)
     y = box["y"] + box["height"] / 3
     x = box["x"] + box["width"] * 0.2
