@@ -61,3 +61,6 @@ tests/e2e/screenshots/
 
 # Local test run output (E2E server logs, Playwright traces)
 test-results/
+
+# Node
+node_modules/

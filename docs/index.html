@@ -67,7 +67,7 @@
       gap: 24px;
     }
     .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -0.03em; text-decoration: none; }
-    .brand img { width: 38px; height: 38px; }
+    .brand svg { width: 38px; height: 38px; flex: none; }
     .nav-links { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: flex-end; color: var(--muted); font-size: 0.94rem; }
     .nav-links a { text-decoration: none; }
     .nav-links a:hover { color: var(--text); }
@@ -175,7 +175,7 @@
   <nav class="nav" aria-label="Main navigation">
     <div class="wrap nav-inner">
       <a class="brand" href="#top" aria-label="DOCSight home">
-        <img src="docsight-logo-v2.svg" alt="" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#7c3aed" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="1.6" opacity="0.45"/><path d="M4.5 12.5h3l2-5 3 10 2.5-7 1.5 2h3" stroke-width="1.9"/></svg>
         <span>DOCSight</span>
       </a>
       <div class="nav-links">
@@ -219,7 +219,7 @@
             <li>Local data</li>
             <li>Demo mode</li>
             <li>Reports</li>
-            <li>22 modem families, including experimental PYUR FAST3896-15 support on the main branch with <a href="https://github.com/itsDNNS/docsight/issues/865">login, collection and one-day operation confirmed by the reporter</a></li>
+            <li>22 modem families, including experimental PYUR FAST3896-15 support with <a href="https://github.com/itsDNNS/docsight/issues/865">login, collection and one-day operation confirmed by the reporter</a></li>
             <li>MIT licensed</li>
           </ul>
           <div class="trust-promise" aria-label="Local-first trust promise">
@@ -231,9 +231,9 @@
         </div>
         <div class="hero-shot">
           <div class="screenshot-card">
-            <img src="screenshots/dashboard-hero.png" alt="DOCSight product dashboard with signal health, speed, latency and connection cards">
+            <img src="screenshots/dashboard-hero.png" alt="DOCSight Home with the line status per channel, key figures and the latest speed test">
           </div>
-          <p class="caption">Synthetic demo data in the sidebar layout of tagged releases up to v2026-09-16.1: signal health, speed, latency and connection context in one dashboard.</p>
+          <p class="caption">The real interface with synthetic demo data: line status, key figures and the latest events on one page.</p>
         </div>
       </div>
     </header>
@@ -276,19 +276,19 @@
             <div class="copy"><h3>Bring something useful to support</h3><p>Turn the timeline into a report, checklist and support-ready evidence package.</p></div>
           </article>
         </div>
-        <p class="caption">Screenshots show synthetic demo data in the sidebar layout of tagged releases up to v2026-09-16.1.</p>
+        <p class="caption">Screenshots show the real interface with synthetic demo data.</p>
       </div>
     </section>
 
     <section id="proof" aria-labelledby="proof-title">
       <div class="wrap proof">
         <div class="screenshot-card">
-          <img src="screenshots/bad-day-evidence.png" alt="Demo bad evening evidence timeline with degraded signal and event context">
+          <img src="screenshots/bad-day-evidence.png" alt="Correlation for a past day with an SNR drop, uncorrectable errors and a critical signal state">
         </div>
         <div class="proof-copy">
           <div class="eyebrow">Demo-safe proof pack</div>
           <h2 id="proof-title">See the output before you connect real hardware.</h2>
-          <p>The sample uses synthetic data. It shows what a bad evening can look like without exposing a real provider, IP address, MAC address, serial number or customer data.</p>
+          <p>The sample uses synthetic data. It shows what a bad day can look like without exposing a real provider, IP address, MAC address, serial number or customer data.</p>
           <ul class="proof-list">
             <li>Bad evening screenshot with signal, speed, packet loss, events and notes</li>
             <li>Germany-oriented sample complaint report PDF</li>
