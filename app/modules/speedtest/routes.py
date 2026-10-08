@@ -27,7 +27,7 @@ def _get_speedtest_storage():
     if not core_storage:
         return None
     return current_runtime().derived_storage.get(
-        "speedtest", lambda: SpeedtestStorage(core_storage.db_path)
+        f"speedtest:{core_storage.db_path}", lambda: SpeedtestStorage(core_storage.db_path)
     )
 
 

@@ -24,7 +24,7 @@ def _get_storage():
     if not storage:
         return None
     return current_runtime().derived_storage.get(
-        "segment_utilization", lambda: SegmentUtilizationStorage(storage.db_path)
+        f"segment_utilization:{storage.db_path}", lambda: SegmentUtilizationStorage(storage.db_path)
     )
 
 

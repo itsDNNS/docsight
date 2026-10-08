@@ -109,6 +109,23 @@ def test_two_apps_isolate_runtime_auth_storage_and_requests(tmp_path, order):
             )
         assert all(item.db_path == runtime.storage.db_path for item in derived)
 
+    # Module storages follow the core database when it changes, and come back to the
+    # same instances when it changes back.
+    from app.blueprints.segment_bp import _get_storage as _get_segment_storage
+    from app.modules.weather.routes import _get_weather_storage
+
+    providers = (_get_bnetz_storage, _get_bqm_storage, _get_speedtest_storage, _get_weather_storage, _get_segment_storage)
+    original = runtime_a.storage
+    other = SnapshotStorage(str(tmp_path / "other.db"))
+    with app_a.app_context():
+        first = [provider() for provider in providers]
+        runtime_a.storage = other
+        moved = [provider() for provider in providers]
+        runtime_a.storage = original
+        back = [provider() for provider in providers]
+    assert all(item.db_path == other.db_path for item in moved)
+    assert all(a is b for a, b in zip(first, back))
+
     key_b = app_b.secret_key
     auth_state_b = (tmp_path / "b" / ".auth_state").read_bytes()
     key_a = app_a.secret_key

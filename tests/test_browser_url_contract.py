@@ -14,55 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / "app/static/js/url-contract.js"
 DEMO_BANNER = ROOT / "app/static/js/demo-banner.js"
 
-EXPECTED_CONTRACT_CALLS = {
-    "app/static/js/dashboard.js": 1,
-    "app/static/js/service-worker-registration.js": 3,
-    "app/static/js/setup.js": 9,
-    "app/static/js/settings.js": 0,
-    "app/static/js/settings-bootstrap.js": 0,
-    "app/static/js/settings/backups.js": 5,
-    "app/static/js/settings/connections.js": 6,
-    "app/static/js/settings/form-state.js": 0,
-    "app/static/js/settings/form.js": 1,
-    "app/static/js/settings/module-registry.js": 2,
-    "app/static/js/settings/navigation.js": 0,
-    "app/static/js/settings/notifications.js": 3,
-    "app/static/js/settings/search.js": 0,
-    "app/static/js/settings/smart-capture.js": 1,
-    "app/static/js/settings/themes.js": 3,
-    "app/static/js/settings/tokens.js": 3,
-    "app/modules/bqm/static/main.js": 9,
-    "app/static/js/channels.js": 10,
-    "app/static/js/command-palette.js": 3,
-    "app/static/js/line-status.js": 0,
-    "app/static/js/correlation-data.js": 0,
-    "app/static/js/correlation.js": 5,
-    "app/static/js/demo-banner.js": 3,
-    "app/static/js/event-log-data.js": 0,
-    "app/static/js/empty-state.js": 1,
-    "app/static/js/events.js": 8,
-    "app/static/js/case-picker.js": 3,
-    "app/static/js/snapshot-panel.js": 1,
-    "app/static/js/glossary.js": 1,
-    "app/static/js/hero-chart.js": 0,
-    "app/static/js/signal-series.js": 1,
-    "app/static/js/integrations.js": 5,
-    "app/modules/journal/static/main.js": 24,
-    "app/static/js/notices.js": 1,
-    "app/static/js/segment-utilization.js": 3,
-    "app/static/js/sparklines.js": 1,
-    "app/modules/speedtest/static/main.js": 7,
-    "app/static/js/trends.js": 2,
-    "app/static/js/utils.js": 3,
-    "app/modules/comparison/static/main.js": 2,
-    "app/modules/evidence/static/main.js": 3,
-    "app/modules/connection_monitor/static/js/connection-monitor-card.js": 2,
-    "app/modules/connection_monitor/static/js/connection-monitor-summary.js": 2,
-    "app/modules/connection_monitor/static/js/connection-monitor-detail.js": 13,
-    "app/modules/connection_monitor/static/js/connection-monitor-settings.js": 4,
-    "app/modules/modulation/static/main.js": 2,
-    "app/modules/smokeping/static/main.js": 3,
-}
+# Every script the browser runs, except the vendor bundles and the helper itself.
+BROWSER_SCRIPTS = sorted(
+    path for path in [*ROOT.glob("app/static/js/**/*.js"), *ROOT.glob("app/modules/*/static/**/*.js")]
+    if "vendor" not in path.parts and path != HELPER
+)
 
 NODE_HARNESS = r"""
 const fs = require('fs');
@@ -338,149 +294,66 @@ def test_demo_redirect_fails_closed_on_unexpected_api_destination(response_next)
     }
 
 
-REPRESENTATIVE_SITES = [
-    (
-        "settings provider icon",
-        ROOT / "app/static/js/settings/connections.js",
-        "icon.src = docsightUrl(iconMap[isp] || '/static/img/providers/generic.svg');",
-    ),
-    (
-        "direct fetch",
-        ROOT / "app/modules/bqm/static/main.js",
-        "fetch(docsightUrl('/api/bqm/data/dates'))",
-    ),
-    (
-        "assigned URL then fetch",
-        ROOT / "app/static/js/channels.js",
-        "var url = docsightUrl('/api/weather/range?start='",
-    ),
-    (
-        "DOM-constructed link",
-        ROOT / "app/static/js/integrations.js",
-        "pdfLink.href = docsightUrl('/api/bnetz/pdf/'",
-    ),
-    (
-        "image source",
-        ROOT / "app/modules/smokeping/static/main.js",
-        "img.src = docsightUrl('/api/smokeping/graph/'",
-    ),
-    (
-        "download href",
-        ROOT / "app/static/js/events.js",
-        "exportLink.href = docsightUrl('/api/events/export.csv'",
-    ),
-    (
-        "navigation",
-        ROOT / "app/static/js/utils.js",
-        "window.location.href = docsightUrl('/api/report?'",
-    ),
-    (
-        "built-in module",
-        ROOT / "app/modules/comparison/static/main.js",
-        "var url = docsightUrl('/api/comparison?from_a='",
-    ),
-    (
-        "connection-monitor settings asset",
-        ROOT / "app/modules/connection_monitor/static/js/connection-monitor-settings.js",
-        "fetch(docsightUrl('/api/connection-monitor/targets/' + target.id)",
-    ),
-]
+_FORBIDDEN_FORMS = (
+    "fetch('/api",
+    'fetch("/api',
+    "fetch('/health",
+    'fetch("/health',
+    "var url = '/api",
+    'var url = "/api',
+    "return '/api",
+    'return "/api',
+    'href="/api',
+    "href='/api",
+    'src="/api',
+    "src='/api",
+    "window.location.assign('/login')",
+    'window.location.assign("/login")',
+    "window.location.href = '/api",
+    'window.location.href = "/api',
+)
+# Assets and DOM/navigation assignments, including fallback expressions.
+_UNWRAPPED_SINK = re.compile(
+    r"(?:\b(?:href|src)\s*=(?:(?!docsightUrl\()[^;\n])*?"
+    r"|(?:\breturn\b|\b(?:var|let|const)\s+\w+\s*="
+    r"|\b(?:window\.)?location(?:\.href)?\s*="
+    r"|\b(?:fetch|(?:window\.)?location\.(?:assign|replace))\s*\()\s*)"
+    r"['\"]/(?:api|static|modules)\b"
+)
 
 
-def _missing_representative_sites(overrides: dict[Path, str] | None = None) -> list[str]:
-    overrides = overrides or {}
-    missing = []
-    for label, path, required in REPRESENTATIVE_SITES:
-        source = overrides.get(path, path.read_text(encoding="utf-8"))
-        if required not in source:
-            missing.append(label)
-    return missing
+def _unwrapped_url_sinks(source: str) -> list[str]:
+    """Root-relative app URLs that reach a request, link, asset or navigation without docsightUrl()."""
+    found = [form for form in _FORBIDDEN_FORMS if form in source]
+    found += [match.group() for match in _UNWRAPPED_SINK.finditer(source)]
+    return found
 
 
-def test_representative_real_url_sites_use_the_contract():
-    assert _missing_representative_sites() == []
+@pytest.mark.parametrize("unwrapped,wrapped", [
+    ("fetch('/api/bqm/data/dates')", "fetch(docsightUrl('/api/bqm/data/dates'))"),
+    ("var url = '/api/weather/range?start=' + start;", "var url = docsightUrl('/api/weather/range?start=' + start);"),
+    ("icon.src = iconMap[isp] || '/static/img/generic.svg';", "icon.src = docsightUrl(iconMap[isp] || '/static/img/generic.svg');"),
+    ("pdfLink.href = '/api/bnetz/pdf/' + id;", "pdfLink.href = docsightUrl('/api/bnetz/pdf/' + id);"),
+    ("img.src = '/api/smokeping/graph/' + target;", "img.src = docsightUrl('/api/smokeping/graph/' + target);"),
+    ("window.location.href = '/api/report?' + query;", "window.location.href = docsightUrl('/api/report?' + query);"),
+    ("window.location.assign('/login')", "window.location.assign(docsightUrl('/login'))"),
+    ("return '/api/events';", "return docsightUrl('/api/events');"),
+])
+def test_the_scanner_finds_an_unwrapped_app_url(unwrapped, wrapped):
+    assert _unwrapped_url_sinks(unwrapped)
+    assert _unwrapped_url_sinks(wrapped) == []
 
 
-def test_inventoried_files_keep_the_reviewed_contract_sites():
-    settings_files = {path.relative_to(ROOT).as_posix() for path in (ROOT / "app/static/js/settings").glob("*.js")}
-    assert settings_files == {path for path in EXPECTED_CONTRACT_CALLS if path.startswith("app/static/js/settings/")}
-    actual = {
-        relative: (ROOT / relative).read_text(encoding="utf-8").count("docsightUrl(")
-        for relative in EXPECTED_CONTRACT_CALLS
-    }
-
-    assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 159  # reviewed browser URL contract sites
-
-
-def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():
-    offenders = []
-    forbidden_forms = (
-        "fetch('/api",
-        'fetch("/api',
-        "fetch('/health",
-        'fetch("/health',
-        "var url = '/api",
-        'var url = "/api',
-        "return '/api",
-        'return "/api',
-        'href="/api',
-        "href='/api",
-        'src="/api',
-        "src='/api",
-        "window.location.assign('/login')",
-        'window.location.assign("/login")',
-        "window.location.href = '/api",
-        'window.location.href = "/api',
-    )
-    for relative in EXPECTED_CONTRACT_CALLS:
-        source = (ROOT / relative).read_text(encoding="utf-8")
-        for form in forbidden_forms:
-            if form in source:
-                offenders.append(f"{relative}: {form}")
-        # Include assets and DOM/navigation assignments, including fallback expressions.
-        for match in re.finditer(
-            r"(?:\b(?:href|src)\s*=(?:(?!docsightUrl\()[^;\n])*?"
-            r"|(?:\breturn\b|\b(?:var|let|const)\s+\w+\s*="
-            r"|\b(?:window\.)?location(?:\.href)?\s*="
-            r"|\b(?:fetch|(?:window\.)?location\.(?:assign|replace))\s*\()\s*)"
-            r"['\"]/(?:api|static|modules)\b", source
-        ):
-            offenders.append(f"{relative}: {match.group()}")
-
+def test_browser_scripts_send_every_app_url_through_the_contract():
+    assert BROWSER_SCRIPTS
+    offenders = [
+        f"{path.relative_to(ROOT).as_posix()}: {sink}"
+        for path in BROWSER_SCRIPTS
+        for sink in _unwrapped_url_sinks(path.read_text(encoding="utf-8"))
+    ]
     assert offenders == []
 
 
-@pytest.mark.parametrize("label,path,required", REPRESENTATIVE_SITES)
-def test_representative_site_mutations_are_detected(label, path, required):
-    source = path.read_text(encoding="utf-8")
-    mutated = source.replace(required, required.replace("docsightUrl(", "", 1), 1)
-
-    assert mutated != source
-    assert label in _missing_representative_sites({path: mutated})
-
-
-def test_pwa_fetches_use_the_browser_url_contract():
-    settings = (ROOT / "app/static/js/settings/notifications.js").read_text(encoding="utf-8")
-    unwrapped = [
-        line.strip()
-        for line in settings.splitlines()
-        if "fetch('/" in line
-    ]
-
-    assert unwrapped == []
-    assert "fetch(docsightUrl('/api/notifications/pwa/status'))" in settings
-    assert "fetch(docsightUrl('/api/notifications/pwa/subscribe')," in settings
-    assert "fetch(docsightUrl('/api/notifications/pwa/unsubscribe')," in settings
-
-
-def test_settings_owners_preserve_mounted_endpoints():
-    owners = list((ROOT / "app/static/js/settings").glob("*.js"))
-    assert owners
-    for owner in owners:
-        source = owner.read_text(encoding="utf-8")
-        assert not re.search(r"fetch\(['\"]/", source), owner
+def test_settings_requests_go_through_the_contract():
     form = (ROOT / "app/static/js/settings/form.js").read_text(encoding="utf-8")
     assert "fetch(docsightUrl(url)" in form
-    assert "post('/api/config', data)" in form
-    assert "post('/api/modules/batch', {modules: modules})" in form

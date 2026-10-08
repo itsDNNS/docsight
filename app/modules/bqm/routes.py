@@ -29,7 +29,7 @@ def _get_bqm_storage():
     if not core_storage:
         return None
     return current_runtime().derived_storage.get(
-        "bqm", lambda: BqmStorage(core_storage.db_path)
+        f"bqm:{core_storage.db_path}", lambda: BqmStorage(core_storage.db_path)
     )
 
 

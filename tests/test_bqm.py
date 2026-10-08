@@ -337,10 +337,6 @@ class TestBQMCollector:
 # ── API Tests ──
 
 
-def _reset_bqm_module_storage():
-    """Reset the BQM module's lazy-initialized storage between tests."""
-    import app.modules.bqm.routes as bqm_routes
-
 
 def _enabled_bqm_loader():
     module = ModuleInfo(
@@ -401,14 +397,12 @@ def bqm_client(tmp_path, bqm_api_storage):
     current_runtime().storage = s
     previous_module_loader = current_runtime().module_loader
     current_runtime().module_loader = _enabled_bqm_loader()
-    _reset_bqm_module_storage()
     app.config["TESTING"] = True
     try:
         with app.test_client() as client:
             yield client, today
     finally:
         current_runtime().module_loader = previous_module_loader
-        _reset_bqm_module_storage()
 
 
 class TestBQMAPI:
@@ -442,7 +436,6 @@ class TestBQMAPI:
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr
         current_runtime().storage = None
-        _reset_bqm_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.get("/api/bqm/dates")
@@ -619,7 +612,6 @@ class TestBQMLive:
         mgr.save({"modem_password": "test", "modem_type": "fritzbox", "bqm_url": "https://example.com/graph.png"})
         current_runtime().config_manager = mgr
         current_runtime().storage = None
-        _reset_bqm_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.get("/api/bqm/live")

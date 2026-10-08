@@ -270,10 +270,6 @@ class TestSpeedtestConfig:
 # ── API Tests ──
 
 
-def _reset_speedtest_module_storage():
-    """Reset the speedtest module's lazy-initialized storage between tests."""
-    import app.modules.speedtest.routes as speedtest_routes
-
 
 @pytest.fixture
 def speedtest_client(tmp_path):
@@ -287,11 +283,9 @@ def speedtest_client(tmp_path):
     })
     current_runtime().config_manager = mgr
     current_runtime().storage = None
-    _reset_speedtest_module_storage()
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
-    _reset_speedtest_module_storage()
 
 
 class TestSpeedtestAPI:
@@ -487,7 +481,6 @@ class TestSpeedtestAPI:
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr
         current_runtime().storage = None
-        _reset_speedtest_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.get("/api/speedtest?days=7")
@@ -571,7 +564,6 @@ class TestSpeedtestRun:
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr
         current_runtime().storage = None
-        _reset_speedtest_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.post("/api/speedtest/run")
@@ -590,7 +582,6 @@ class TestSpeedtestRun:
         })
         current_runtime().config_manager = mgr
         current_runtime().storage = None
-        _reset_speedtest_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.post("/api/speedtest/run")
