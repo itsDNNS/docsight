@@ -8,13 +8,13 @@ const test = require('node:test');
 
 const contracts = require('../../app/static/js/browser-contracts.js');
 
-function windowShift(timeZone, elements) {
+function windowShift(timeZone, elements, clock) {
     const context = {
         DOCSightBrowserContracts: contracts,
         DOCSIGHT_TIME_ZONE: timeZone,
         formatDocsightTime: (ms) => new Date(ms).toISOString().slice(0, 16),
         document: {getElementById: (id) => (elements || {})[id] || null},
-        Date
+        Date: clock ? class extends Date { static now() { return clock.now; } } : Date
     };
     context.window = context;
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../app/static/js/window-shift.js'), 'utf8'), context);
@@ -69,4 +69,25 @@ test('the arrows step by the window length; reaching now ends the past window', 
     // A deep link to the future is a window that ends now.
     shift.restore('2999-01-01T00:00');
     assert.equal(shift.param(), null);
+});
+
+
+test('stepping forward to where the window left now is now again, also minutes later', () => {
+    const ids = ['earlier', 'later', 'past', 'range', 'now', 'hint'];
+    const elements = Object.fromEntries(ids.map((id) => ['t-window-' + id, element()]));
+    const clock = {now: Date.parse('2026-10-08T10:24:50Z')};
+    const shift = windowShift('UTC', elements, clock).create('t', {hours: () => 24, onChange: () => {}});
+
+    elements['t-window-earlier'].click();
+    assert.equal(shift.param(), '2026-10-07T10:24');
+    clock.now += 5 * 60 * 1000;
+    elements['t-window-later'].click();
+    assert.equal(shift.param(), null);
+    assert.equal(elements['t-window-past'].hidden, true);
+
+    // Two steps back and one forward stays in the past.
+    elements['t-window-earlier'].click();
+    elements['t-window-earlier'].click();
+    elements['t-window-later'].click();
+    assert.equal(shift.param(), '2026-10-07T10:29');
 });
