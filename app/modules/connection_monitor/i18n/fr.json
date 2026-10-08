@@ -43,9 +43,6 @@
   "cm_outage_target": "Cible",
   "cm_outage_ongoing": "En cours",
   "cm_outage_none": "Aucune coupure sur cette période",
-  "cm_export_csv": "Exporter en CSV",
-  "cm_raw_log_title": "Journal brut des pings",
-  "cm_raw_log_desc": "Télécharge les mesures de ping brutes comme preuve pour ton fournisseur. Utilise la période actuelle ou le jour épinglé.",
   "cm_raw_log_download": "Télécharger le journal brut",
   "cm_no_data": "Pas encore de données. Active le Connection Monitor dans les paramètres pour commencer la collecte.",
   "cm_per_target_title": "Statistiques par cible",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Résultat partiel (délai dépassé)",
   "cm_empty_title": "Aucune cible activée",
   "cm_empty_action": "Ouvrir les paramètres du Connection Monitor",
-  "cm_empty_range_text": "Les cibles activées n’ont pas encore de mesures sur cette période."
+  "cm_empty_range_text": "Les cibles activées n’ont pas encore de mesures sur cette période.",
+  "cm_export_outages": "Exporter les pannes (CSV)",
+  "cm_targets_label": "Cibles : afficher ou masquer dans le graphique",
+  "cm_chip_loss": "{value} de perte",
+  "cm_mode_badge": "Mode {method}"
 }

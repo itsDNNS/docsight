@@ -43,9 +43,6 @@
   "cm_outage_target": "Ziel",
   "cm_outage_ongoing": "Andauernd",
   "cm_outage_none": "Keine Ausfälle in diesem Zeitraum",
-  "cm_export_csv": "Als CSV exportieren",
-  "cm_raw_log_title": "Rohdaten der Pings",
-  "cm_raw_log_desc": "Lade die einzelnen Ping-Messwerte als Nachweis für den Anbieter herunter. Verwendet den aktuellen Zeitraum oder den angehefteten Tag.",
   "cm_raw_log_download": "Rohdaten herunterladen",
   "cm_no_data": "Noch keine Daten. Schalte den Connection Monitor in den Einstellungen ein, um mit der Erfassung zu beginnen.",
   "cm_per_target_title": "Statistik je Ziel",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Teilergebnis (Zeitüberschreitung)",
   "cm_empty_title": "Keine Ziele eingeschaltet",
   "cm_empty_action": "Connection-Monitor-Einstellungen öffnen",
-  "cm_empty_range_text": "Für die eingeschalteten Ziele gibt es in diesem Zeitraum noch keine Messwerte."
+  "cm_empty_range_text": "Für die eingeschalteten Ziele gibt es in diesem Zeitraum noch keine Messwerte.",
+  "cm_export_outages": "Ausfälle exportieren (CSV)",
+  "cm_targets_label": "Ziele: im Diagramm ein- oder ausblenden",
+  "cm_chip_loss": "{value} Verlust",
+  "cm_mode_badge": "{method}-Modus"
 }

@@ -1,5 +1,6 @@
 """E2E coverage for Connection Monitor workflows."""
 
+import re
 import time
 
 import pytest
@@ -41,37 +42,91 @@ def test_connection_monitor_pin_day_action_does_not_shift_range_navigation(demo_
     expect(page.locator("#view-connection-monitor #cm-range-tabs #cm-pin-day-btn")).to_have_count(0)
 
 
-def test_connection_monitor_raw_ping_log_panel_is_discoverable(demo_page):
-    """The Connection Monitor view should expose the ISP-ready raw ping log export panel."""
+def _open_cm(page, width=1440, range_="7d"):
+    page.set_viewport_size({"width": width, "height": 900 if width > 500 else 844})
+    page.goto(page.url.split("#", 1)[0] + f"#connection-monitor?range={range_}", wait_until="networkidle")
+    expect(page.locator("#cm-target-chips .cm-target-chip").first).to_be_visible()
+
+
+def test_connection_monitor_downloads_live_in_the_more_menu(demo_page):
+    """Raw ping logs and outage CSVs per target are one menu away instead of a page panel."""
     page = demo_page
-    page.evaluate("switchView('connection-monitor')")
-    page.wait_for_selector("#view-connection-monitor.active", state="visible")
+    _open_cm(page)
+    expect(page.locator("#cm-raw-log-panel")).to_have_count(0)
+    targets = page.locator("#cm-target-chips .cm-target-chip").count()
 
-    panel = page.locator("#cm-raw-log-panel")
-    expect(panel).to_be_visible()
-    expect(panel.get_by_text("Raw Ping Log")).to_be_visible()
-    expect(panel.get_by_text("Download per-ping raw samples")).to_be_visible()
+    toggle = page.locator("#cm-more > summary")
+    expect(toggle).to_have_attribute("aria-label", "More actions")
+    menu = page.locator("#cm-more .cm-more-menu")
+    expect(menu).to_be_hidden()
+    toggle.click()
+    expect(menu).to_be_visible()
+    expect(menu).to_contain_text("Download raw log")
+    expect(menu).to_contain_text("Export outages (CSV)")
+    expect(page.locator("#cm-raw-log-links .cm-more-item")).to_have_count(targets)
+    expect(page.locator("#cm-export-links .cm-more-item")).to_have_count(targets)
+
+    with page.expect_download() as download:
+        page.locator("#cm-raw-log-links .cm-more-item").first.click()
+    assert "/api/connection-monitor/export/" in download.value.url
+    assert "format=pinglog" in download.value.url
+    expect(menu).to_be_hidden()
+
+    toggle.click()
+    page.keyboard.press("Escape")
+    expect(menu).to_be_hidden()
+    expect(toggle).to_be_focused()
+    toggle.click()
+    page.locator("#cm-target-chips").click(position={"x": 2, "y": 2})
+    expect(menu).to_be_hidden()
 
 
-def test_connection_monitor_mobile_surfaces_raw_ping_log_without_deep_scroll(demo_page):
-    """Mobile users should see raw-log downloads before the long chart/details stack."""
+def test_connection_monitor_target_chips_show_and_hide_lines(demo_page):
+    """Each target is a chip with its line color and loss; pressing it hides the line and it stays hidden."""
     page = demo_page
-    page.set_viewport_size({"width": 390, "height": 844})
-    page.evaluate("switchView('connection-monitor')")
-    page.wait_for_selector("#view-connection-monitor.active", state="visible")
+    _open_cm(page)
+    chips = page.locator("#cm-target-chips .cm-target-chip")
+    first = chips.first
+    expect(first).to_have_attribute("aria-pressed", "true")
+    expect(first.locator(".cm-target-chip-loss")).to_contain_text("loss")
+    expect(page.locator("#cm-combined-chart .u-legend")).to_have_count(0)
+    target_id = first.get_attribute("data-target-id")
+    series_shown = """id => {
+        const chart = window.charts['cm-combined-chart'];
+        const label = document.querySelector(`#cm-target-chips [data-target-id="${id}"] .cm-target-chip-name`).textContent;
+        return chart.series.find(s => String(s.label).startsWith(label)).show;
+    }"""
+    assert page.evaluate(series_shown, target_id) is True
 
-    first_raw_log_button = page.locator("#cm-raw-log-links .cm-chip-btn").first
-    expect(first_raw_log_button).to_be_visible()
-    button_box = first_raw_log_button.bounding_box()
-    chart_box = page.locator("#cm-charts-section").bounding_box()
-    panel_box = page.locator("#cm-raw-log-panel").bounding_box()
-    assert button_box is not None
-    assert chart_box is not None
-    assert panel_box is not None
-    assert 0 <= panel_box["y"]
-    assert 0 <= button_box["y"]
-    assert panel_box["y"] < chart_box["y"], "raw log panel should appear before the long chart stack"
-    assert button_box["y"] + button_box["height"] <= 844, "raw log download actions should be fully visible without deep mobile scrolling"
+    first.click()
+    expect(first).to_have_attribute("aria-pressed", "false")
+    assert page.evaluate(series_shown, target_id) is False
+
+    # A new range redraws the chart; the hidden target stays hidden.
+    page.locator('#cm-range-tabs [data-cm-range="86400"]').click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator(f'#cm-target-chips [data-target-id="{target_id}"]')).to_have_attribute("aria-pressed", "false")
+    assert page.evaluate(series_shown, target_id) is False
+    page.locator(f'#cm-target-chips [data-target-id="{target_id}"]').click()
+    assert page.evaluate(series_shown, target_id) is True
+
+
+def test_connection_monitor_mobile_keeps_chips_and_menu_above_the_chart(demo_page):
+    """On phones the targets and the download menu are reachable before the long chart stack."""
+    page = demo_page
+    _open_cm(page, width=390)
+    chips = page.locator("#cm-target-chips").bounding_box()
+    toggle = page.locator("#cm-more > summary").bounding_box()
+    chart = page.locator("#cm-charts-section").bounding_box()
+    assert chips["y"] < chart["y"]
+    assert toggle["y"] + toggle["height"] <= 844
+    assert toggle["width"] >= 44 and toggle["height"] >= 44
+    for box in page.locator("#cm-target-chips .cm-target-chip").evaluate_all("els => els.map(e => e.getBoundingClientRect().height)"):
+        assert box >= 44
+    page.locator("#cm-more > summary").click()
+    menu = page.locator("#cm-more .cm-more-menu").bounding_box()
+    assert menu["x"] >= 0 and menu["x"] + menu["width"] <= 390, menu
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
 
 
 @pytest.mark.parametrize("width", [1440, 390])
@@ -106,8 +161,13 @@ def test_connection_monitor_keeps_observations_per_target_without_fault_inferenc
     expect(rows.nth(0).locator('td')).to_have_text(['Local probe(10.0.0.10)', '-', '-', '-', '0'])
     expect(rows.nth(1).locator('td')).to_have_text(['Public probe(example.net)', '21.5 ms', '48.0 ms', '5.00%', '120'])
     expect(page.locator('#cm-combined-chart .uplot')).to_be_visible()
-    expect(page.locator('#cm-export-links .cm-chip-btn')).to_have_count(2)
-    expect(page.locator('#cm-raw-log-links .cm-chip-btn')).to_have_count(2)
+    expect(page.locator('#cm-export-links .cm-more-item')).to_have_count(2)
+    expect(page.locator('#cm-raw-log-links .cm-more-item')).to_have_count(2)
+    chips = page.locator('#cm-target-chips .cm-target-chip')
+    expect(chips).to_have_count(2)
+    expect(chips.nth(0)).to_contain_text('Local probe')
+    expect(chips.nth(1)).to_contain_text('21.5 ms')
+    expect(chips.nth(1).locator('.cm-target-chip-loss')).to_have_class(re.compile(r'is-crit'))
     expect(page.locator('.cm-diagnosis, #cm-stats-cards, #cm-availability')).to_have_count(0)
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1')
 

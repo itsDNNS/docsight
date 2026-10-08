@@ -114,8 +114,7 @@
     border: 1px solid color-mix(in srgb, var(--warn) 28%, transparent);
 }
 
-.cm-pinned-label,
-.cm-export-group > span {
+.cm-pinned-label {
     color: var(--muted);
     font-size: var(--fs-min);
     font-weight: 700;
@@ -125,7 +124,6 @@
 }
 
 .cm-pinned-days,
-.cm-export-links,
 .cm-traceroute-targets {
     display: flex;
     align-items: center;
@@ -302,18 +300,6 @@
     gap: var(--space-md);
 }
 
-.cm-raw-log-panel {
-    grid-column: 1 / -1;
-}
-
-.cm-panel-copy {
-    margin: 8px 0 0;
-    color: var(--cm-text-soft);
-    font-size: 0.82rem;
-    line-height: 1.45;
-}
-
-.cm-export-group,
 .cm-traceroute-actions {
     display: flex;
     align-items: center;
@@ -631,7 +617,6 @@
         min-height: 260px;
     }
 
-    .cm-export-group,
     .cm-traceroute-actions {
         display: grid;
         grid-template-columns: 1fr;
@@ -640,14 +625,12 @@
         width: 100%;
     }
 
-    .cm-export-links,
     .cm-traceroute-targets {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         width: 100%;
     }
 
-    .cm-export-links .cm-chip-btn,
     .cm-traceroute-targets .cm-chip-btn,
     .cm-traceroute-btn {
         width: 100%;
@@ -660,8 +643,119 @@
 }
 
 @media (max-width: 420px) {
-    .cm-export-links,
     .cm-traceroute-targets {
         grid-template-columns: 1fr;
     }
+}
+
+/* Targets as chips: line color, average latency and loss. Pressing one shows or
+   hides the target in the chart; the chips are the chart's legend. */
+.cm-target-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin: 0 0 var(--space-md);
+}
+.cm-target-chips[hidden] { display: none; }
+.cm-target-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 6px 14px;
+    border: 1px solid var(--cm-panel-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.cm-target-chip:hover { border-color: color-mix(in srgb, var(--info) 30%, var(--cm-panel-border)); }
+.cm-target-chip:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
+/* Hidden targets: dashed outline and an empty swatch, text still readable. */
+.cm-target-chip[aria-pressed="false"] {
+    border-style: dashed;
+    background: transparent;
+    color: var(--text-secondary);
+}
+.cm-target-chip[aria-pressed="false"] .cm-target-swatch {
+    background: transparent !important;
+    box-shadow: inset 0 0 0 1.5px var(--text-secondary);
+}
+.cm-target-chip[aria-pressed="false"] .cm-target-chip-loss { color: inherit; }
+.cm-target-swatch { width: 14px; height: 4px; flex: none; border-radius: 2px; }
+.cm-target-chip-facts {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+.cm-target-chip-loss.is-good { color: var(--good); }
+.cm-target-chip-loss.is-warn { color: var(--warn); }
+.cm-target-chip-loss.is-crit { color: var(--crit); }
+
+/* Downloads in one menu next to the range picker. */
+.cm-more { position: relative; }
+.cm-more[hidden] { display: none; }
+.cm-more-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--cm-panel-border);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    list-style: none;
+    cursor: pointer;
+}
+.cm-more-toggle::-webkit-details-marker { display: none; }
+.cm-more-toggle svg { width: 18px; height: 18px; }
+.cm-more-toggle:hover,
+.cm-more[open] > .cm-more-toggle { color: var(--text); border-color: color-mix(in srgb, var(--info) 30%, var(--cm-panel-border)); }
+.cm-more-toggle:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
+.cm-more-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    min-width: 240px;
+    padding: 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    background: var(--elevated);
+    box-shadow: var(--shadow-lg);
+}
+.cm-more-heading {
+    margin: 8px 10px 4px;
+    color: var(--muted);
+    font-size: var(--fs-min);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.cm-more-items { display: flex; flex-direction: column; }
+.cm-more-item {
+    min-height: 40px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.88rem;
+    text-align: left;
+    cursor: pointer;
+}
+.cm-more-item:hover,
+.cm-more-item:focus-visible { background: color-mix(in srgb, var(--info) 12%, transparent); outline: none; }
+
+@media (max-width: 760px) {
+    .cm-target-chip,
+    .cm-more-item { min-height: 44px; }
+    .cm-more-toggle { width: 44px; height: 44px; }
+    /* The button wraps to the left edge on phones; the menu opens rightwards. */
+    .cm-more-menu { right: auto; left: 0; max-width: calc(100vw - 2 * var(--space-md)); }
 }

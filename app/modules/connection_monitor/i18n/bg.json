@@ -43,9 +43,6 @@
   "cm_outage_target": "Цел",
   "cm_outage_ongoing": "В ход",
   "cm_outage_none": "Няма прекъсвания в този период",
-  "cm_export_csv": "Експортирай CSV",
-  "cm_raw_log_title": "Суров дневник на ping",
-  "cm_raw_log_desc": "Изтегли отделните ping измервания като доказателство за доставчика. Използва текущия период или закачения ден.",
   "cm_raw_log_download": "Изтегли суровия дневник",
   "cm_no_data": "Все още няма данни. Включи Connection Monitor в настройките, за да започне събирането.",
   "cm_per_target_title": "Статистика по цел",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Частичен резултат (изтекло време)",
   "cm_empty_title": "Няма включени цели",
   "cm_empty_action": "Отвори настройките на Connection Monitor",
-  "cm_empty_range_text": "Включените цели все още нямат измервания в този период."
+  "cm_empty_range_text": "Включените цели все още нямат измервания в този период.",
+  "cm_export_outages": "Експорт на прекъсванията (CSV)",
+  "cm_targets_label": "Цели: показване или скриване в графиката",
+  "cm_chip_loss": "{value} загуби",
+  "cm_mode_badge": "Режим {method}"
 }

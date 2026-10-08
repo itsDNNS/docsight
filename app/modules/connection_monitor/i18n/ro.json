@@ -43,9 +43,6 @@
   "cm_outage_target": "Țintă",
   "cm_outage_ongoing": "În desfășurare",
   "cm_outage_none": "Nicio întrerupere în acest interval",
-  "cm_export_csv": "Exportă CSV",
-  "cm_raw_log_title": "Jurnal brut al ping-urilor",
-  "cm_raw_log_desc": "Descarcă măsurătorile individuale de ping ca dovadă pentru furnizor. Folosește perioada curentă sau ziua fixată.",
   "cm_raw_log_download": "Descarcă jurnalul brut",
   "cm_no_data": "Încă nu există date. Activează Connection Monitor din setări pentru a începe colectarea.",
   "cm_per_target_title": "Statistici pe țintă",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Rezultat parțial (timp expirat)",
   "cm_empty_title": "Nicio țintă activată",
   "cm_empty_action": "Deschide setările Connection Monitor",
-  "cm_empty_range_text": "Țintele activate nu au încă măsurători în această perioadă."
+  "cm_empty_range_text": "Țintele activate nu au încă măsurători în această perioadă.",
+  "cm_export_outages": "Exportă întreruperile (CSV)",
+  "cm_targets_label": "Ținte: afișează sau ascunde în grafic",
+  "cm_chip_loss": "{value} pierderi",
+  "cm_mode_badge": "Mod {method}"
 }

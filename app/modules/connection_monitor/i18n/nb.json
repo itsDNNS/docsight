@@ -43,9 +43,6 @@
   "cm_outage_target": "Mål",
   "cm_outage_ongoing": "Pågår",
   "cm_outage_none": "Ingen brudd i dette tidsrommet",
-  "cm_export_csv": "Eksporter CSV",
-  "cm_raw_log_title": "Rå pinglogg",
-  "cm_raw_log_desc": "Last ned de enkelte pingmålingene som dokumentasjon til leverandøren. Bruker gjeldende periode eller den festede dagen.",
   "cm_raw_log_download": "Last ned rålogg",
   "cm_no_data": "Ingen data ennå. Slå på Connection Monitor i innstillingene for å begynne innsamlingen.",
   "cm_per_target_title": "Statistikk per mål",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Delvis resultat (tidsavbrudd)",
   "cm_empty_title": "Ingen mål slått på",
   "cm_empty_action": "Åpne innstillinger for Connection Monitor",
-  "cm_empty_range_text": "De aktive målene har ennå ingen målinger i denne perioden."
+  "cm_empty_range_text": "De aktive målene har ennå ingen målinger i denne perioden.",
+  "cm_export_outages": "Eksporter avbrudd (CSV)",
+  "cm_targets_label": "Mål: vis eller skjul i diagrammet",
+  "cm_chip_loss": "{value} tap",
+  "cm_mode_badge": "{method}-modus"
 }

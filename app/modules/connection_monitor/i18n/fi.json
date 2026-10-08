@@ -43,9 +43,6 @@
   "cm_outage_target": "Kohde",
   "cm_outage_ongoing": "Käynnissä",
   "cm_outage_none": "Ei katkoja tällä aikavälillä",
-  "cm_export_csv": "Vie CSV",
-  "cm_raw_log_title": "Raaka ping-loki",
-  "cm_raw_log_desc": "Lataa yksittäiset ping-mittaukset todisteeksi palveluntarjoajallesi. Käyttää nykyistä aikaväliä tai kiinnitettyä päivää.",
   "cm_raw_log_download": "Lataa raakaloki",
   "cm_no_data": "Ei vielä tietoja. Ota Connection Monitor käyttöön asetuksissa aloittaaksesi keräämisen.",
   "cm_per_target_title": "Kohdekohtaiset tilastot",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Osittainen tulos (aikakatkaisu)",
   "cm_empty_title": "Ei käytössä olevia kohteita",
   "cm_empty_action": "Avaa Connection Monitorin asetukset",
-  "cm_empty_range_text": "Käytössä olevilla kohteilla ei ole vielä mittauksia tältä aikaväliltä."
+  "cm_empty_range_text": "Käytössä olevilla kohteilla ei ole vielä mittauksia tältä aikaväliltä.",
+  "cm_export_outages": "Vie katkokset (CSV)",
+  "cm_targets_label": "Kohteet: näytä tai piilota kaaviossa",
+  "cm_chip_loss": "{value} hävikki",
+  "cm_mode_badge": "{method}-tila"
 }

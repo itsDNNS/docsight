@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 770,
+  "expected_total": 771,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -20,7 +20,7 @@
     },
     {
       "id": 2,
-      "collected_cases": 87,
+      "collected_cases": 88,
       "files": [
         "test_auth.py",
         "test_connection_monitor.py",

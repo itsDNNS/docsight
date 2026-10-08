@@ -241,10 +241,12 @@ function zoomPlugin() {
     };
 }
 
-function bandPlugin(minSeriesIdx, maxSeriesIdx, color) {
+function bandPlugin(minSeriesIdx, maxSeriesIdx, color, lineSeriesIdx) {
     return {
         hooks: {
             draw: [function(u) {
+                // A band belongs to its line: hiding the line hides the band.
+                if (lineSeriesIdx && u.series[lineSeriesIdx] && u.series[lineSeriesIdx].show === false) return;
                 var ctx = u.ctx;
                 var minData = u.data[minSeriesIdx];
                 var maxData = u.data[maxSeriesIdx];
@@ -928,7 +930,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         axes: axes,
         series: uSeries,
         cursor: cursor,
-        legend: { show: allDatasets.length + (hasTemp ? 1 : 0) > 1, live: false },
+        legend: { show: !(opts && opts.legend === false) && allDatasets.length + (hasTemp ? 1 : 0) > 1, live: false },
         plugins: plugins
     };
 

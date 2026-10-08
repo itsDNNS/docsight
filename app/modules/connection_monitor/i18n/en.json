@@ -43,9 +43,6 @@
   "cm_outage_target": "Target",
   "cm_outage_ongoing": "Ongoing",
   "cm_outage_none": "No outages in this range",
-  "cm_export_csv": "Export CSV",
-  "cm_raw_log_title": "Raw Ping Log",
-  "cm_raw_log_desc": "Download per-ping raw samples for ISP evidence. Uses the current time range or selected pinned day.",
   "cm_raw_log_download": "Download raw log",
   "cm_no_data": "No data yet. Enable the Connection Monitor in settings to start collecting.",
   "cm_per_target_title": "Per-Target Statistics",
@@ -79,5 +76,9 @@
   "traceroute.partial_result": "Partial result (timeout)",
   "cm_empty_title": "No targets enabled",
   "cm_empty_action": "Open Connection Monitor settings",
-  "cm_empty_range_text": "The enabled targets have no samples for this period yet."
+  "cm_empty_range_text": "The enabled targets have no samples for this period yet.",
+  "cm_export_outages": "Export outages (CSV)",
+  "cm_targets_label": "Targets: show or hide in the chart",
+  "cm_chip_loss": "{value} loss",
+  "cm_mode_badge": "{method} mode"
 }
