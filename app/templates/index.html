@@ -990,6 +990,7 @@
             <span class="view-page-subtitle">{{ t.get('correlation_subtitle', 'Build evidence for ISP complaints') }}</span>
         </div>
         <div class="view-page-actions">
+            {% call window_shift('correlation') %}
             <div class="segmented" data-pill-action="correlationRangeSelected" id="correlation-tabs" role="group" aria-label="{{ t.time_range }}">
                 <button class="segmented-option" data-value="1h" aria-pressed="false">1h</button>
                 <button class="segmented-option" data-value="6h" aria-pressed="false">6h</button>
@@ -1000,8 +1001,10 @@
                 <button class="segmented-option" data-value="30d" aria-pressed="false">30d</button>
                 <button class="segmented-option" data-value="90d" aria-pressed="false">90d</button>
             </div>
+            {% endcall %}
         </div>
     </div>
+    {{ window_past('correlation') }}
 
     <div id="correlation-loading" class="waiting" hidden>
         <div class="skeleton skel-chart"></div>
