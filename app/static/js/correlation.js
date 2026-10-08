@@ -10,77 +10,16 @@ var _corrCmState = typeof CORRELATION_CM_AVAILABLE !== 'undefined' && CORRELATIO
 var _corrSelectedRange = null;
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 var _corrZoom = null; // { tMin, tMax } when zoomed in
-// Event type/severity sub-filter: operational events hidden by default
-var _corrEventFilter = {};
-var _corrEventSeverityFilter = {};
-var _OPERATIONAL_EVENTS = { monitoring_started: true, monitoring_stopped: true };
 var CorrelationData = window.DOCSightCorrelationData;
 var CorrelationChart = window.DOCSightCorrelationChart;
-function _corrCloseEventPopover() {
-    var pop = document.getElementById('corr-event-popover');
-    if (!pop) return;
-    if (pop._corrCleanup) pop._corrCleanup();
-    pop.remove();
-}
-function _corrPositionEventPopover(pop, anchor) {
-    if (!pop || !anchor) return;
-    var margin = 8;
-    var anchorRect = anchor.getBoundingClientRect();
-    pop.style.maxHeight = Math.max(160, window.innerHeight - (margin * 2)) + 'px';
-
-    // Measure after attaching to the body so positioning is based on the real viewport.
-    var popRect = pop.getBoundingClientRect();
-    var left = anchorRect.left;
-    if (left + popRect.width > window.innerWidth - margin) {
-        left = window.innerWidth - margin - popRect.width;
-    }
-    left = Math.max(margin, left);
-
-    var top = anchorRect.bottom + margin;
-    if (top + popRect.height > window.innerHeight - margin) {
-        top = anchorRect.top - popRect.height - margin;
-    }
-    top = Math.max(margin, top);
-
-    pop.style.left = left + 'px';
-    pop.style.top = top + 'px';
-}
-function _corrEscapeAttr(value) {
-    return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-/* Colors computed at runtime reach CSS as --corr-color through the CSSOM,
-   never as inline style attributes in built HTML. */
-function _corrApplyColors(root) {
-    root.querySelectorAll('[data-color]').forEach(function(el) {
-        el.style.setProperty('--corr-color', el.getAttribute('data-color'));
-    });
-}
-function _corrEnsureEventSeverityFilter(eventType) {
-    if (!(eventType in _corrEventSeverityFilter)) {
-        _corrEventSeverityFilter[eventType] = { info: true, warning: true, critical: true };
-    }
-    return _corrEventSeverityFilter[eventType];
-}
-function _corrEventTypeAllowed(e) {
-    var t = e.event_type || 'unknown';
-    if (!(t in _corrEventFilter)) _corrEventFilter[t] = !_OPERATIONAL_EVENTS[t];
-    return _corrEventFilter[t];
-}
-function _corrEventSeverityAllowed(e) {
-    var t = e.event_type || 'unknown';
-    var severity = CorrelationData.normalizeSeverity(e);
-    var severityFilter = _corrEnsureEventSeverityFilter(t);
-    if (!(severity in severityFilter)) severityFilter[severity] = true;
-    return severityFilter[severity] !== false;
-}
-function _corrEventAllowed(e) {
-    return _corrEventTypeAllowed(e) && _corrEventSeverityAllowed(e);
-}
+var CorrelationLegend = window.DOCSightCorrelationLegend;
+// Event type/severity sub-filter: operational events hidden by default
+var _corrEvents = CorrelationLegend.eventFilter();
+var _corrEscapeAttr = CorrelationLegend.escapeAttr;
+var _corrApplyColors = CorrelationLegend.applyColors;
+var _corrCloseEventPopover = CorrelationLegend.closePopover;
 function _corrFilteredEvents(events) {
-    if (!_corrVisible.events) return [];
-    return events.filter(function(e) {
-        return _corrEventAllowed(e);
-    });
+    return _corrVisible.events ? events.filter(_corrEvents.allowed) : [];
 }
 
 function _corrFormatTimestamp(timestamp) {
@@ -319,9 +258,10 @@ function renderCorrelationChart(data) {
     }
 
     ctx.font = '12px system-ui, sans-serif';
+    var fahrenheit = typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit';
     var st = CorrelationChart.scales(prep, {
         width: W, visible: _corrVisible, zoom: _corrZoom, selectedRange: _corrSelectedRange,
-        fahrenheit: typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit',
+        fahrenheit: fahrenheit,
         measure: function(text) { return ctx.measureText(text).width; },
         parseTime: docsightParseTime, colors: colors, dpr: dpr
     });
@@ -342,72 +282,20 @@ function renderCorrelationChart(data) {
             reachability: T.correlation_lane_reachability || 'Reachability · gaps unknown'
         }
     });
-    var modem = st.modem, speedtest = st.speedtest, events = st.events, weather = st.weather, segment = st.segment;
-    var reachabilityBuckets = st.reachabilityBuckets, reachabilityLane = st.reachabilityLane;
 
-    // Interactive Legend
-    var legend = document.getElementById('correlation-legend');
-    var legendItems = [];
-    if (modem.length > 0) {
-        if (st.hasPowerData) {
-            legendItems.push({ metric: 'dsPower', color: colors.dsPower, label: '&#183;&#183; ' + (T.chart_ds_power || 'DS Power (dBmV)') });
+    CorrelationLegend.render(document.getElementById('correlation-legend'), CorrelationLegend.items(st, _corrEvents, T, fahrenheit), {
+        visible: _corrVisible, filter: _corrEvents, T: T, eventColor: colors.warn,
+        onToggle: function() { renderCorrelationChart(data); },
+        onFilterChange: function() {
+            renderCorrelationChart(data);
+            renderCorrelationTable(data);
         }
-        if (st.hasTxData) {
-            legendItems.push({ metric: 'txPower', color: colors.txPower, label: '&#9476; ' + (T.chart_us_power || 'US Power (dBmV)') });
-        }
-        legendItems.push({ metric: 'snr', color: colors.snr, label: '&#9644; ' + (T.chart_snr || 'SNR (dB)') });
-        legendItems.push({ metric: 'signalState', color: colors.health.good, label: '&#9646; ' + (T.correlation_lane_state || 'Signal state') });
-        if (st.hasErrorData) {
-            legendItems.push({ metric: 'errors', color: 'rgba(239,68,68,0.8)', label: '&#9612; ' + (T.correlation_errors || 'Errors') });
-        }
-    }
-    if (speedtest.length > 0) {
-        legendItems.push({ metric: 'download', color: colors.download, label: '&#9474;&#9679; ' + (T.correlation_download || 'Download (Mbps)') });
-        legendItems.push({ metric: 'upload', color: colors.upload, label: '&#9474;&#9679; ' + (T.correlation_upload || 'Upload (Mbps)') });
-    }
-    if (events.length > 0) {
-        // Populate filters for all event types/severities in current data
-        var eventTypes = {};
-        var eventSeverityCounts = {};
-        var visibleEventCount = 0;
-        for (var i = 0; i < events.length; i++) {
-            var et = events[i].event_type || 'unknown';
-            var sev = CorrelationData.normalizeSeverity(events[i]);
-            eventTypes[et] = (eventTypes[et] || 0) + 1;
-            if (!(et in eventSeverityCounts)) eventSeverityCounts[et] = {};
-            eventSeverityCounts[et][sev] = (eventSeverityCounts[et][sev] || 0) + 1;
-            if (!(et in _corrEventFilter)) _corrEventFilter[et] = !_OPERATIONAL_EVENTS[et];
-            _corrEnsureEventSeverityFilter(et);
-            if (_corrEventAllowed(events[i])) visibleEventCount++;
-        }
-        legendItems.push({ metric: 'events', color: colors.warn, label: '&#9650; ' + (T.correlation_events || 'Events'), eventTypes: eventTypes, eventSeverityCounts: eventSeverityCounts, visibleEventCount: visibleEventCount, totalEventCount: events.length });
-    }
-    if (weather.length > 0) {
-        legendItems.push({ metric: 'temperature', color: colors.temperature, label: '- - ' + (T.temperature || 'Temperature') + ' (' + (typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit' ? '°F' : '°C') + ')' });
-    }
-    if (segment.length > 0) {
-        legendItems.push({ metric: 'segmentDs', color: colors.segmentDs, label: '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)') });
-        legendItems.push({ metric: 'segmentUs', color: colors.segmentUs, label: '&#9644; ' + (T.seg_correlation_us || 'Segment US (%)') });
-    }
-    if (reachabilityBuckets.length > 0) {
-        legendItems.push({ metric: 'reachability', color: colors.accent, label: '&#9646; ' + (T.correlation_reachability || 'Reachability') });
-    }
-    legend.innerHTML = legendItems.map(function(item) {
-        var cls = _corrVisible[item.metric] ? '' : 'disabled';
-        if (item.metric === 'events') {
-            var filterBadge = item.visibleEventCount < item.totalEventCount ? ' <span class="corr-legend-filter-count">(' + item.visibleEventCount + '/' + item.totalEventCount + ')</span>' : '';
-            var eventCls = cls ? cls + ' corr-legend-events' : 'corr-legend-events';
-            return '<span data-metric="events" tabindex="0" role="button" aria-pressed="' + (cls ? 'false' : 'true') + '" class="' + eventCls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" data-color="' + _corrEscapeAttr(item.color) + '">' + item.label + filterBadge +
-                ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '">&#9881;</span></span>';
-        }
-        return '<span data-metric="' + item.metric + '" tabindex="0" role="button" aria-pressed="' + (cls ? 'false' : 'true') + '" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" data-color="' + _corrEscapeAttr(item.color) + '">' + item.label + '</span>';
-    }).join('');
-    _corrApplyColors(legend);
+    });
 
     var overlayLabel = T.correlation_chart_aria_label || 'Signal correlation chart';
-    if (reachabilityBuckets.length > 0) {
+    if (st.reachabilityBuckets.length > 0) {
         var reachabilityCounts = { ok: 0, degraded: 0, down: 0, unknown: 0 };
-        reachabilityBuckets.forEach(function(bucket) { reachabilityCounts[bucket.state]++; });
+        st.reachabilityBuckets.forEach(function(bucket) { reachabilityCounts[bucket.state]++; });
         overlayLabel += '. ' + (T.correlation_reachability_aria || 'Reachability summary') + ': '
             + (T.correlation_reachability_ok || 'OK') + ' ' + reachabilityCounts.ok + ', '
             + (T.correlation_reachability_degraded || 'Degraded') + ' ' + reachabilityCounts.degraded + ', '
@@ -415,118 +303,7 @@ function renderCorrelationChart(data) {
             + (T.correlation_reachability_unknown || 'Unknown') + ' ' + reachabilityCounts.unknown + '.';
     }
     overlay.setAttribute('aria-label', overlayLabel);
-    _corrSetOverlayActionable(overlay, !!(reachabilityLane && _corrVisible.reachability));
-
-    // Event filter popover
-    var filterBtn = legend.querySelector('.corr-event-filter-btn');
-    if (filterBtn) {
-        filterBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            var existing = document.getElementById('corr-event-popover');
-            if (existing) { _corrCloseEventPopover(); return; }
-            var pop = document.createElement('div');
-            pop.id = 'corr-event-popover';
-            pop.className = 'corr-event-popover';
-            var typeLabel = {
-                health_change: T.event_type_health_change || 'Health Change',
-                power_change: T.event_type_power_change || 'Power Change',
-                snr_change: T.event_type_snr_change || 'SNR Change',
-                channel_change: T.event_type_channel_change || 'Channel Change',
-                modulation_change: T.event_type_modulation_change || 'Modulation Change',
-                error_spike: T.event_type_error_spike || 'Error Spike',
-                monitoring_started: T.event_type_monitoring_started || 'Monitoring Started',
-                monitoring_stopped: T.event_type_monitoring_stopped || 'Monitoring Stopped'
-            };
-            var severityLabel = {
-                info: T.event_severity_info || 'Info',
-                warning: T.event_severity_warning || 'Warning',
-                critical: T.event_severity_critical || 'Critical'
-            };
-            var html = '<div class="corr-event-filter-title">' + (T.event_filter_title || 'Event Types') + '</div>';
-            var sortedTypes = Object.keys(eventTypes).sort();
-            for (var si = 0; si < sortedTypes.length; si++) {
-                var et = sortedTypes[si];
-                var checked = _corrEventFilter[et] ? ' checked' : '';
-                var label = typeLabel[et] || et.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-                var severityFilter = _corrEnsureEventSeverityFilter(et);
-                html += '<div class="corr-event-filter-group">' +
-                    '<label class="corr-event-filter-type">' +
-                    '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '"' + checked + ' data-color="' + _corrEscapeAttr(colors.warn) + '"> ' +
-                    '<span class="corr-event-filter-name">' + escapeHtml(label) + '</span> <span class="corr-event-filter-count">(' + eventTypes[et] + ')</span></label>' +
-                    '<div class="corr-event-filter-severities">';
-                for (var sj = 0; sj < CorrelationData.SEVERITIES.length; sj++) {
-                    var sv = CorrelationData.SEVERITIES[sj];
-                    var svChecked = severityFilter[sv] !== false ? ' checked' : '';
-                    var svCount = (eventSeverityCounts[et] && eventSeverityCounts[et][sv]) || 0;
-                    html += '<label class="corr-event-filter-severity">' +
-                        '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '" data-event-severity="' + _corrEscapeAttr(sv) + '"' + svChecked + ' data-color="' + _corrEscapeAttr(colors.warn) + '"> ' +
-                        escapeHtml(severityLabel[sv] || sv) + ' <span class="corr-event-filter-count">(' + svCount + ')</span></label>';
-                }
-                html += '</div></div>';
-            }
-            pop.innerHTML = html;
-            _corrApplyColors(pop);
-            document.body.appendChild(pop);
-            _corrPositionEventPopover(pop, filterBtn);
-            var positionPopover = function() { _corrPositionEventPopover(pop, filterBtn); };
-            var closePopover = null;
-            window.addEventListener('resize', positionPopover);
-            window.addEventListener('scroll', positionPopover, true);
-            pop._corrCleanup = function() {
-                window.removeEventListener('resize', positionPopover);
-                window.removeEventListener('scroll', positionPopover, true);
-                if (closePopover) document.removeEventListener('click', closePopover);
-            };
-            // Prevent clicks inside popover from bubbling to legend toggle
-            pop.addEventListener('click', function(e) { e.stopPropagation(); });
-            pop.querySelectorAll('input[data-event-type]:not([data-event-severity])').forEach(function(cb) {
-                cb.addEventListener('change', function() {
-                    _corrEventFilter[this.getAttribute('data-event-type')] = this.checked;
-                    renderCorrelationChart(data);
-                    renderCorrelationTable(data);
-                });
-            });
-            pop.querySelectorAll('input[data-event-severity]').forEach(function(cb) {
-                cb.addEventListener('change', function() {
-                    var eventType = this.getAttribute('data-event-type') || 'unknown';
-                    var severity = this.getAttribute('data-event-severity') || 'info';
-                    _corrEnsureEventSeverityFilter(eventType)[severity] = this.checked;
-                    renderCorrelationChart(data);
-                    renderCorrelationTable(data);
-                });
-            });
-            // Close on outside click
-            setTimeout(function() {
-                closePopover = function(ev) {
-                    if (!pop.contains(ev.target) && ev.target !== filterBtn) {
-                        _corrCloseEventPopover();
-                    }
-                };
-                document.addEventListener('click', closePopover);
-            }, 0);
-        });
-    }
-
-    // Legend click handlers
-    var legendSpans = legend.querySelectorAll('span[data-metric]');
-    for (var li = 0; li < legendSpans.length; li++) {
-        legendSpans[li].addEventListener('click', function(e) {
-            if (e.target.classList.contains('corr-event-filter-btn')) return;
-            var metric = this.getAttribute('data-metric');
-            // Prevent disabling all metrics
-            var visibleCount = 0;
-            for (var k in _corrVisible) { if (_corrVisible[k]) visibleCount++; }
-            if (_corrVisible[metric] && visibleCount <= 1) return;
-            _corrVisible[metric] = !_corrVisible[metric];
-            renderCorrelationChart(data);
-        });
-        legendSpans[li].addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                this.click();
-            }
-        });
-    }
+    _corrSetOverlayActionable(overlay, !!(st.reachabilityLane && _corrVisible.reachability));
 
     // Show/hide zoom reset button
     var zoomBtn = document.getElementById('correlation-zoom-reset');
@@ -1137,7 +914,7 @@ function renderCorrelationTable(data) {
         // Skip modem entries that are not health transitions
         if (e.source === 'modem' && !modemTransitionTs[e.timestamp]) continue;
         // Keep table rows aligned with the event filters used by chart markers.
-        if (e.source === 'event' && !_corrEventAllowed(e)) continue;
+        if (e.source === 'event' && !_corrEvents.allowed(e)) continue;
 
         var tr = document.createElement('tr');
         tr.setAttribute('data-ts', e.timestamp);
