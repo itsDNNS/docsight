@@ -27,6 +27,7 @@ jobs:
       js: ${{ steps.filter.outputs.js }}
       i18n: ${{ steps.filter.outputs.i18n }}
       deps: ${{ steps.filter.outputs.deps }}
+      locks: ${{ steps.filter.outputs.locks }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -120,6 +121,14 @@ jobs:
               - '.github/workflows/test.yml'
             deps:
               - 'requirements.txt'
+              - 'packaging/windows/requirements-runtime-windows.txt'
+              - '.github/workflows/test.yml'
+            locks:
+              - 'requirements*.in'
+              - 'requirements*.txt'
+              - 'packaging/windows/requirements*'
+              - 'scripts/sync_locks.py'
+              - 'tests/test_sync_locks.py'
               - '.github/workflows/test.yml'
 
   docs:
@@ -354,6 +363,48 @@ jobs:
         with:
           inputs: requirements.txt
 
+      # The Windows desktop build ships this lock. Its packages only install on
+      # Windows, so audit the pinned versions without letting pip resolve them.
+      - name: Audit the Windows runtime lock for known vulnerabilities
+        uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
+        with:
+          inputs: packaging/windows/requirements-runtime-windows.txt
+          no-deps: true
+          internal-be-careful-extra-flags: --disable-pip
+
+  locks:
+    needs: changes
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.locks == 'true'
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.13"
+
+      # Dependabot only updates requirements.txt; the Windows locks repeat its pins.
+      - name: Check that every dependency lock matches its inputs
+        run: |
+          python scripts/sync_locks.py
+          if ! git diff --exit-code; then
+            echo "::error::A dependency lock is out of date. Run 'python scripts/sync_locks.py' and commit the result."
+            exit 1
+          fi
+
   i18n:
     needs: changes
     if: >-
@@ -378,7 +429,7 @@ jobs:
 
   tests-summary:
     name: tests-summary
-    needs: [changes, docs, test, test-windows, mobile-e2e, test-js, i18n, audit]
+    needs: [changes, docs, test, test-windows, mobile-e2e, test-js, i18n, audit, locks]
     if: always()
     timeout-minutes: 5
     runs-on: ubuntu-latest
@@ -394,6 +445,7 @@ jobs:
           JS_CHANGED: ${{ needs.changes.outputs.js }}
           I18N_CHANGED: ${{ needs.changes.outputs.i18n }}
           DEPS_CHANGED: ${{ needs.changes.outputs.deps }}
+          LOCKS_CHANGED: ${{ needs.changes.outputs.locks }}
           DOCS_RESULT: ${{ needs.docs.result }}
           PYTHON_RESULT: ${{ needs.test.result }}
           WINDOWS_RESULT: ${{ needs.test-windows.result }}
@@ -401,6 +453,7 @@ jobs:
           JS_RESULT: ${{ needs.test-js.result }}
           I18N_RESULT: ${{ needs.i18n.result }}
           DEPS_RESULT: ${{ needs.audit.result }}
+          LOCKS_RESULT: ${{ needs.locks.result }}
         run: |
           python - <<'PY'
           import os
@@ -415,6 +468,7 @@ jobs:
               "js": (os.environ["JS_CHANGED"], os.environ["JS_RESULT"]),
               "i18n": (os.environ["I18N_CHANGED"], os.environ["I18N_RESULT"]),
               "deps": (os.environ["DEPS_CHANGED"], os.environ["DEPS_RESULT"]),
+              "locks": (os.environ["LOCKS_CHANGED"], os.environ["LOCKS_RESULT"]),
           }
 
           failed = [name for name, (_, result) in routes.items()
