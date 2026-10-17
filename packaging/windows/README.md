@@ -165,7 +165,10 @@ intended release scope, and verification guidance.
 
 The build uses a Windows-resolved, hash-pinned runtime install from
 `requirements-runtime-windows.txt` and a cross-platform, hash-pinned build-tool
-install from `requirements-build.txt`. The generated `VERSION` file is bundled
+install from `requirements-build.txt`. The Windows runtime lock repeats the pins
+from the root `requirements.txt`, so after any dependency change run
+`python scripts/sync_locks.py` and commit the updated locks; CI fails when a lock
+is out of date. The generated `VERSION` file is bundled
 next to the packaged `app/` tree so `/health` reports the build version. The
 same label is stored unchanged as the executable's human-readable
 `ProductVersion`.

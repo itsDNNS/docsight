@@ -119,7 +119,19 @@ TEST_FILTERS = {
         "tests/test_i18n_check.py",
         ".github/workflows/test.yml",
     ],
-    "deps": ["requirements.txt", ".github/workflows/test.yml"],
+    "deps": [
+        "requirements.txt",
+        "packaging/windows/requirements-runtime-windows.txt",
+        ".github/workflows/test.yml",
+    ],
+    "locks": [
+        "requirements*.in",
+        "requirements*.txt",
+        "packaging/windows/requirements*",
+        "scripts/sync_locks.py",
+        "tests/test_sync_locks.py",
+        ".github/workflows/test.yml",
+    ],
 }
 
 
@@ -366,6 +378,7 @@ def test_test_workflow_jobs_are_routed_through_the_detector():
         "mobile-e2e": "browser",
         "test-js": "js",
         "i18n": "i18n",
+        "locks": "locks",
     }
 
     for job_name, output in routes.items():
@@ -395,6 +408,7 @@ def test_tests_summary_is_always_present_and_fails_closed():
         "test-js",
         "i18n",
         "audit",
+        "locks",
     }
     assert summary["if"] == "always()"
 
@@ -410,6 +424,7 @@ def test_tests_summary_is_always_present_and_fails_closed():
         "JS_CHANGED",
         "I18N_CHANGED",
         "DEPS_CHANGED",
+        "LOCKS_CHANGED",
         "DOCS_RESULT",
         "PYTHON_RESULT",
         "WINDOWS_RESULT",
@@ -417,6 +432,7 @@ def test_tests_summary_is_always_present_and_fails_closed():
         "JS_RESULT",
         "I18N_RESULT",
         "DEPS_RESULT",
+        "LOCKS_RESULT",
     }
     assert 'result in {"failure", "cancelled"}' in script
     assert 'event_name == "schedule"' in script
