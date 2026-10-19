@@ -775,7 +775,6 @@
   "review_settings": "Felülvizsgálat és befejezés",
   "review_settings_desc": "Tekintse át a konfigurációt, és fejezze be a beállítást",
   "poll_interval_desc": "Milyen gyakran kell lekérni a DOCSIS adatokat",
-  "minutes": "Jegyzőkönyv",
   "saving": "Mentés...",
   "setup_failed": "A telepítés nem sikerült. Kérjük, próbálja újra.",
   "connection_successful": "Sikeres csatlakozás!",

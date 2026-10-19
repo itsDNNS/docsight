@@ -10,6 +10,7 @@ from flask import Flask
 from app import analyzer, config as cfg
 from app.i18n import _TRANSLATIONS
 from app.module_loader import ModuleLoader
+from tests.fs_helpers import symlink_or_skip
 
 
 def _manifest(
@@ -303,7 +304,7 @@ def test_dialogs_resolve_or_reject_complete_plan(tmp_path, reference):
     (module / "templates/dialogs.html").write_text('<dialog id="contributed-dialog"></dialog>')
     outside = tmp_path / "outside.html"
     outside.write_text("outside")
-    (module / "templates/escape.html").symlink_to(outside)
+    symlink_or_skip(module / "templates/escape.html", outside)
     (module / "static").mkdir()
     (module / "static/main.js").write_text("/* dialogs */")
     (module / "i18n").mkdir()

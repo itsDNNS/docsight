@@ -11,6 +11,7 @@ from app.config import ConfigManager
 from app.manifest_contract import validate_manifest_contract
 from app.module_loader import ModuleLoader
 from app.runtime import get_runtime
+from tests.fs_helpers import symlink_or_skip
 
 DRIVER_ID = "community.example"
 DRIVER_SOURCE = '''from app.drivers.generic import GenericDriver
@@ -147,7 +148,7 @@ def test_driver_symlink_outside_module_rejected(tmp_path):
     directory, _ = write_driver(tmp_path / "modules")
     (tmp_path / "secret.py").write_text('raise AssertionError("must not import")')
     (directory / "driver.py").unlink()
-    (directory / "driver.py").symlink_to(tmp_path / "secret.py")
+    symlink_or_skip(directory / "driver.py", tmp_path / "secret.py")
     _, runtime = make_app(tmp_path)
     module = next(m for m in runtime.module_loader.get_modules() if m.id == DRIVER_ID)
     assert module.error == "driver contribution reference is unsafe"

@@ -775,7 +775,6 @@
   "review_settings": "Vaadake üle ja lõpetage",
   "review_settings_desc": "Vaadake oma konfiguratsioon üle ja viige seadistamine lõpule",
   "poll_interval_desc": "Kui sageli DOCSIS andmeid tuua",
-  "minutes": "Protokoll",
   "saving": "Salvestamine...",
   "setup_failed": "Seadistamine ebaõnnestus. Palun proovi uuesti.",
   "connection_successful": "Ühendus õnnestus!",

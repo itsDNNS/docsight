@@ -775,7 +775,6 @@
   "review_settings": "Granska och slutför",
   "review_settings_desc": "Granska din konfiguration och slutför installationen",
   "poll_interval_desc": "Hur ofta man hämtar DOCSIS-data",
-  "minutes": "Minuter",
   "saving": "Sparar...",
   "setup_failed": "Installationen misslyckades. Försök igen.",
   "connection_successful": "Anslutningen lyckad!",

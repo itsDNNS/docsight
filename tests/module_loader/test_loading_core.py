@@ -13,6 +13,7 @@ from flask import Flask
 from werkzeug.exceptions import NotFound
 import app.module_loader as module_loader
 from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
+from tests.fs_helpers import symlink_or_skip
 
 class TestRegisterModuleConfig:
     """Test module config defaults registration."""
@@ -407,10 +408,7 @@ class TestStaticAndTemplates:
         outside_file = outside_dir / "secret.js"
         outside_file.write_text("secret", encoding="utf-8")
         symlink = static_dir / "escape.js"
-        try:
-            symlink.symlink_to(outside_file)
-        except OSError:
-            pytest.skip("symlinks are unavailable in this environment")
+        symlink_or_skip(symlink, outside_file)
 
         setup_module_static(app, "test.mod", str(module_dir), "static/")
         view = app.view_functions[module_loader.module_static_endpoint("test.mod")]

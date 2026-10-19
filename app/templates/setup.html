@@ -272,10 +272,10 @@
 
         <div class="form-grid">
             <div class="form-field">
-                <label class="form-label" for="poll_interval">{{ t.poll_interval }} ({{ t.minutes }})</label>
+                <label class="form-label" for="poll_interval">{{ t.interval_sec }}</label>
                 <input class="form-input" type="number" id="poll_interval" name="poll_interval"
                        min="{{ poll_min }}" max="{{ poll_max }}"
-                       value="{{ config.poll_interval or 5 }}" required>
+                       value="{{ config.poll_interval or poll_default }}" required>
                 <span class="form-hint">{{ t.poll_interval_desc }} (min: {{ poll_min }}, max: {{ poll_max }})</span>
             </div>
 
@@ -325,7 +325,7 @@
         <div class="setup-info">
             <strong>{{ t.modem_connection }}:</strong><br>
             <span id="review-modem-type"></span> @ <span id="review-modem-url"></span><br><br>
-            <strong>{{ t.poll_interval }}:</strong> <span id="review-poll"></span> {{ t.minutes }}<br>
+            <strong>{{ t.poll_interval }}:</strong> <span id="review-poll"></span> s<br>
             <strong>{{ t.timezone }}:</strong> <span id="review-tz"></span>
         </div>
 

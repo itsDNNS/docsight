@@ -775,7 +775,6 @@
   "review_settings": "Przejrzyj i uzupełnij",
   "review_settings_desc": "Przejrzyj konfigurację i dokończ konfigurację",
   "poll_interval_desc": "Jak często pobierać dane DOCSIS",
-  "minutes": "Minut",
   "saving": "Zapisywanie...",
   "setup_failed": "Instalacja nie powiodła się. Spróbuj ponownie.",
   "connection_successful": "Połączenie pomyślne!",

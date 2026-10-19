@@ -775,7 +775,6 @@
   "review_settings": "Tarkista ja suorita loppuun",
   "review_settings_desc": "Tarkista kokoonpanosi ja suorita asennus loppuun",
   "poll_interval_desc": "Kuinka usein DOCSIS-tiedot noudetaan",
-  "minutes": "Pöytäkirja",
   "saving": "Tallennetaan...",
   "setup_failed": "Asennus epäonnistui. Yritä uudelleen.",
   "connection_successful": "Yhteys onnistui!",
