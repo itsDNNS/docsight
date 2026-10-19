@@ -1,7 +1,7 @@
 {
   "title": "Calidad de modulación",
-  "upstream": "Río arriba",
-  "downstream": "Río abajo",
+  "upstream": "Ascendente",
+  "downstream": "Descendente",
   "today": "Hoy",
   "days_label": "Días",
   "health_index": "índice de salud",

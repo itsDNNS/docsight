@@ -1,7 +1,7 @@
 {
   "title": "Ποιότητα διαμόρφωσης",
-  "upstream": "Αντίθετα στο ρεύμα",
-  "downstream": "Κατάντια",
+  "upstream": "Upstream",
+  "downstream": "Downstream",
   "today": "Σήμερα",
   "days_label": "Μέρες",
   "health_index": "Δείκτης υγείας",

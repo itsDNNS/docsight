@@ -1,7 +1,7 @@
 {
   "title": "Jakość modulacji",
-  "upstream": "Pod prąd",
-  "downstream": "W dół rzeki",
+  "upstream": "Upstream",
+  "downstream": "Downstream",
   "today": "Dzisiaj",
   "days_label": "Dni",
   "health_index": "Indeks zdrowia",
@@ -32,7 +32,7 @@
   "channel_summary": "Podsumowanie kanału",
   "protocol_group_label": "Grupa protokołów",
   "glossary_health_index": "Wskaźnik stanu zdrowia: łączny wynik (0-100) odzwierciedlający ogólną jakość modulacji we wszystkich kanałach. Wyższa oznacza mniejszą degradację sygnału.",
-  "glossary_low_qam": "Ekspozycja Low-QAM: heurystyka DOCSight dla procentu próbek przy niskich poziomach modulacji. W przypadku wcześniejszej wersji DOCSIS 3.1 liczy się to 64QAM i niższych; 128QAM wpływa na indeks kondycji, ale nie jest liczony jako Low-QAM. Wysoka ekspozycja wskazuje na utrzymujące się problemy z sygnałem.",
+  "glossary_low_qam": "Ekspozycja Low-QAM: heurystyka DOCSight określająca odsetek próbek z niskim poziomem modulacji. W przypadku US DOCSIS 3.1 liczone są 64QAM i niższe; 128QAM wpływa na indeks kondycji, ale nie jest liczony jako Low-QAM. Wysoki odsetek wskazuje na utrzymujące się problemy z sygnałem.",
   "low_qam_denominator_hint": "Nieznane próbki pozostają w sumie",
   "low_qam_legend_hint_d31_us": "Upstream DOCSIS 3.1: 64QAM i starsze to Low-QAM (czerwony). 128QAM jest na granicy (bursztynowy). 256QAM i nowsze są zdrowe.",
   "low_qam_legend_hint_d30_us": "Upstream DOCSIS 3.0: 64QAM to zdrowe maksimum (zielone). 32QAM jest zredukowany (bursztynowy); 16QAM i poniżej są niskie (czerwone).",

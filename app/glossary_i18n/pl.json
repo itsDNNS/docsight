@@ -135,7 +135,7 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "w dół"
+      "title": "Downstream"
     },
     {
       "aliases": [
@@ -222,7 +222,7 @@
         "technician": "W diagnostyce OFDM porównuj zmiany profili, wskaźniki zbliżone do MER, zachowanie codewordów/błędów oraz sąsiednie dane SC-QAM. Traktuj nieobsługiwane pola profilu jako granicę danych, a nie dowód dobrej lub złej jakości usługi."
       },
       "misconceptions": [
-        "Brak pojemności OFDM nie oznacza, że ​​kanał jest nieużywany; W DOCSight może po prostu brakować bezpiecznych danych na poziomie profilu."
+        "Brak pojemności OFDM nie oznacza, że kanał jest nieużywany; W DOCSight może po prostu brakować bezpiecznych danych na poziomie profilu."
       ],
       "protected_terms": [
         "OFDM",

@@ -25,7 +25,7 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "DOCSIS bruker en blanding av nedstrøms- og oppstrømskanalfamilier som SC-QAM, OFDM og OFDMA. Hver familie eksponerer ulike bevis, så DOCSight holder kanaltype, retning og støttestatus atskilt.",
+        "advanced": "DOCSIS bruker en blanding av downstream- og upstream-kanalfamilier som SC-QAM, OFDM og OFDMA. Hver familie eksponerer ulike bevis, så DOCSight holder kanaltype, retning og støttestatus atskilt.",
         "basic": "DOCSIS frakter internettjeneste over koaksialkabel. DOCSight leser modem-, kanal- og signaldata fra støttede DOCSIS-enheter, så bevisene gjelder kabeltilgangslinjen, ikke DSL.",
         "eli5": "DOCSIS er kabel-internett-språket som et kabelmodem og leverandørnettverket snakker sammen.",
         "technician": "Bruk DOCSIS-bevis som modemsidens RF/MAC-kontekst: kanallås, effekt, MER/SNR, modulasjon, feil og hendelser. Leverandørens provisjonering, CMTS-policy, segmentbelastning og IP-ruting krever fortsatt eksplisitte støttende kilder."
@@ -119,15 +119,15 @@
       "aliases": [
         "Nedlastingsretning",
         "DS",
-        "Nedstrømskanaler"
+        "Downstream-kanaler"
       ],
       "category": "modulation_channels",
       "id": "downstream",
       "levels": {
-        "advanced": "Bevis for nedstrøm kan komme fra SC-QAM- og OFDM-kanaler. Effekt, SNR/MER, modulasjons-/profildata og kanallås beskriver om modemet kan motta bæresignalet rent.",
-        "basic": "Nedstrømskanaler frakter nedlastinger og annen innkommende trafikk. DOCSight viser låsestatus og signalkvalitet for disse separat fra oppstrømskanalene.",
-        "eli5": "Nedstrøm er data som går fra leverandørens nett til modemet ditt.",
-        "technician": "Undersøk nedstrømsproblemer ved å sammenholde berørte kanaler, endringer i MER/SNR, vekst i korrigerbare/ukorrigerbare feil, endringer i OFDM-profil og hendelsestidsstempler, i stedet for å behandle én mottaksverdi som hele diagnosen."
+        "advanced": "Bevis for downstream kan komme fra SC-QAM- og OFDM-kanaler. Effekt, SNR/MER, modulasjons-/profildata og kanallås beskriver om modemet kan motta bæresignalet rent.",
+        "basic": "Downstream-kanaler frakter nedlastinger og annen innkommende trafikk. DOCSight viser låsestatus og signalkvalitet for disse separat fra upstream-kanalene.",
+        "eli5": "Downstream er data som går fra leverandørens nett til modemet ditt.",
+        "technician": "Undersøk downstream-problemer ved å sammenholde berørte kanaler, endringer i MER/SNR, vekst i korrigerbare/ukorrigerbare feil, endringer i OFDM-profil og hendelsestidsstempler, i stedet for å behandle én mottaksverdi som hele diagnosen."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -135,21 +135,21 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Nedstrøms"
+      "title": "Downstream"
     },
     {
       "aliases": [
         "Opplastingsretning",
         "US",
-        "Oppstrømskanaler"
+        "Upstream-kanaler"
       ],
       "category": "modulation_channels",
       "id": "upstream",
       "levels": {
-        "advanced": "Oppstrøm kan bruke SC-QAM eller OFDMA. Sendeeffekt, modulasjonsfall, ranging-atferd og støysymptomer i returveien er ofte viktigere enn verdier på nedlastingssiden.",
-        "basic": "Oppstrømskanaler frakter opplastinger, forespørsler og modemets ranging. DOCSight bruker dem som bevis for signalet på opplastingssiden.",
-        "eli5": "Oppstrøm er data som går fra modemet ditt tilbake til leverandørens nett.",
-        "technician": "Ved oppstrømsfeil bør du sammenligne effektendringer, kanalfrafall, mangler i OFDMA-støtte, T3/T4-hendelser og perioder med latens eller pakketap. Manglende oppstrømsfelt betyr ikke støttet eller ikke rapportert, ikke automatisk null."
+        "advanced": "Upstream kan bruke SC-QAM eller OFDMA. Sendeeffekt, modulasjonsfall, ranging-atferd og støysymptomer i returveien er ofte viktigere enn verdier på nedlastingssiden.",
+        "basic": "Upstream-kanaler frakter opplastinger, forespørsler og modemets ranging. DOCSight bruker dem som bevis for signalet på opplastingssiden.",
+        "eli5": "Upstream er data som går fra modemet ditt tilbake til leverandørens nett.",
+        "technician": "Ved upstream-feil bør du sammenligne effektendringer, kanalfrafall, mangler i OFDMA-støtte, T3/T4-hendelser og perioder med latens eller pakketap. Manglende upstream-felt betyr ikke støttet eller ikke rapportert, ikke automatisk null."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -157,7 +157,7 @@
         "SC-QAM",
         "OFDMA"
       ],
-      "title": "Oppstrøms"
+      "title": "Upstream"
     },
     {
       "aliases": [
@@ -169,7 +169,7 @@
       "id": "channel_bonding",
       "levels": {
         "advanced": "Bonding kombinerer kanalkapasitet, men det brukbare resultatet avhenger av retning, kanalfamilie, låsestatus, profiler, planleggeroppførsel og tjenestekonfigurasjon.",
-        "basic": "DOCSIS-modemer bruker ofte flere nedstrøms- og oppstrømskanaler samtidig. DOCSight grupperer synlige kanaler slik at du kan se hva som er bundet, låst og friskt.",
+        "basic": "DOCSIS-modemer bruker ofte flere downstream- og upstream-kanaler samtidig. DOCSight grupperer synlige kanaler slik at du kan se hva som er bundet, låst og friskt.",
         "eli5": "Channel bonding lar et modem bruke flere kabelkanaler sammen.",
         "technician": "Når du gjennomgår bonding-bevis, se etter manglende eller degraderte medlemmer i bunten, familiespesifikk helse, og om symptomene rammer én kanal, én retning eller hele servicegruppen."
       },
@@ -209,15 +209,15 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 nedstrøms",
+        "DOCSIS 3.1 downstream",
         "Ortogonal frekvens-divisjonsmultipleksing"
       ],
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
         "advanced": "OFDM-helse avhenger av profiler, ekskluderte underbærebølger, PLC/låsestatus og profiltilgjengelighet. Manglende profilinformasjon bør forbli ukjent i stedet for å fylles med gjettet kapasitet.",
-        "basic": "DOCSIS 3.1 bruker OFDM for brede nedstrøms mottakskanaler. DOCSight merker den separat fordi OFDM-bevis skiller seg fra klassiske SC-QAM-rader.",
-        "eli5": "OFDM er DOCSIS 3.1-nedstrømskanaltypen som er bygd opp av mange små underbærebølger.",
+        "basic": "DOCSIS 3.1 bruker OFDM for brede downstream mottakskanaler. DOCSight merker den separat fordi OFDM-bevis skiller seg fra klassiske SC-QAM-rader.",
+        "eli5": "OFDM er DOCSIS 3.1-downstream-kanaltypen som er bygd opp av mange små underbærebølger.",
         "technician": "For OFDM-diagnostikk, sammenlign profilendringer, MER-lignende indikatorer, codeword-/feiladferd og tilstøtende SC-QAM-bevis. Behandle ustøttede profilfelt som en databegrensning, ikke som bevis på god eller dårlig tjeneste."
       },
       "misconceptions": [
@@ -232,16 +232,16 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 oppstrøms",
+        "DOCSIS 3.1 upstream",
         "Ortogonal frekvensdelt multitilgang"
       ],
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
         "advanced": "OFDMA avhenger av profiler, underbærebølger, minislots, støy i returveien og planleggerkontekst. Manglende felt, None eller null betyr ustøttet eller ikke rapportert, ikke målt til null.",
-        "basic": "OFDMA lar mange modemer dele deler av en bred oppstrømsblokk. DOCSight merker den separat fra SC-QAM-oppstrømskanaler.",
-        "eli5": "OFDMA er DOCSIS 3.1-kanaltypen for oppstrømstrafikk.",
-        "technician": "Diagnostiser OFDMA med oppstrømshendelser, sendeadferd, profiltilgjengelighet og timing for latens/tap. Unngå SC-QAM-lignende kapasitetsgjetting med mindre modemet eksponerer de nødvendige OFDMA-detaljene."
+        "basic": "OFDMA lar mange modemer dele deler av en bred upstream-blokk. DOCSight merker den separat fra SC-QAM-upstream-kanaler.",
+        "eli5": "OFDMA er DOCSIS 3.1-kanaltypen for upstream-trafikk.",
+        "technician": "Diagnostiser OFDMA med upstream-hendelser, sendeadferd, profiltilgjengelighet og timing for latens/tap. Unngå SC-QAM-lignende kapasitetsgjetting med mindre modemet eksponerer de nødvendige OFDMA-detaljene."
       },
       "misconceptions": [
         "En OFDMA-kanal uten et vist kapasitetsnummer kan fortsatt være aktiv og viktig."
@@ -282,14 +282,14 @@
       "aliases": [
         "Signalnivå",
         "dBmV",
-        "Motta strøm",
+        "Mottakseffekt",
         "Sendeeffekt"
       ],
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "Effekt må tolkes ut fra retning og kanaltype. Et nedstrøms mottaksnivå, et oppstrøms sendenivå og et OFDMA-rapportert effektfelt er ikke sammenlignbare målinger.",
-        "basic": "DOCSight kan vise nedstrøms mottakseffekt og oppstrøms sendeeffekt når modemet rapporterer dem. De to retningene betyr forskjellige ting.",
+        "advanced": "Effekt må tolkes ut fra retning og kanaltype. Et downstream mottaksnivå, et upstream sendenivå og et OFDMA-rapportert effektfelt er ikke sammenlignbare målinger.",
+        "basic": "DOCSight kan vise downstream mottakseffekt og upstream sendeeffekt når modemet rapporterer dem. De to retningene betyr forskjellige ting.",
         "eli5": "Effektnivå sier hvor sterkt kabelsignalet ser ut til å være, eller hvor hardt modemet må sende tilbake.",
         "technician": "Bruk effektbevis sammen med MER/SNR, modulasjon, låsestatus, historikk for kabelsplittere/kabling, og tidspunkt. Ikke la ustøttede eller manglende effektfelt fremstå som nullmålinger."
       },

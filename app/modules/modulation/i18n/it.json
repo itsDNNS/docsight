@@ -1,7 +1,7 @@
 {
   "title": "Qualità della modulazione",
-  "upstream": "A monte",
-  "downstream": "A valle",
+  "upstream": "Upstream",
+  "downstream": "Downstream",
   "today": "Oggi",
   "days_label": "Giorni",
   "health_index": "Indice di salute",

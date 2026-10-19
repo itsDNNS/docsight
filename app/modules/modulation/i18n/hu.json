@@ -1,7 +1,7 @@
 {
   "title": "Moduláció minősége",
   "upstream": "Upstream",
-  "downstream": "Lefelé",
+  "downstream": "Downstream",
   "today": "Ma",
   "days_label": "Napok",
   "health_index": "Egészségügyi index",
@@ -34,7 +34,7 @@
   "glossary_health_index": "Egészségi index: egy összesített pontszám (0-100), amely az összes csatorna általános modulációs minőségét tükrözi. A magasabb kisebb jelromlást jelent.",
   "glossary_low_qam": "Low-QAM expozíció: DOCSight heurisztika a minták százalékos arányára alacsony modulációs szinteken. Az upstream DOCSIS 3.1 esetében ez a 64QAM és az alatti értékeket jelenti; A 128QAM hatással van az állapotindexre, de nem számít Low-QAM-nek. A magas expozíció tartós jelproblémákat jelez.",
   "low_qam_denominator_hint": "Az ismeretlen minták az összesítésben maradnak",
-  "low_qam_legend_hint_d31_us": "Felfelé DOCSIS 3.1: 64QAM és alatta Low-QAM (piros). A 128QAM határvonal (borostyánsárga). A 256QAM és az újabbak egészségesek.",
+  "low_qam_legend_hint_d31_us": "US DOCSIS 3.1 upstream: a 64QAM és alatta Low-QAM (piros). A 128QAM határeset (sárga). A 256QAM és felette egészségesnek számít.",
   "low_qam_legend_hint_d30_us": "Upstream DOCSIS 3.0: 64QAM az egészséges maximum (zöld). A 32QAM csökkentett (borostyánsárga); A 16QAM és az alatti értékek alacsonyak (piros).",
   "capacity_short": "Kapacitásbecslés",
   "capacity_tooltip": "Layer-1 becslés a támogatott SC-QAM csatornákra; a nem támogatott OFDM/OFDMA csatornák nem mutatnak becslést; nem használható IP átviteli sebesség",

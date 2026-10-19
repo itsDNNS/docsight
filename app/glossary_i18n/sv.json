@@ -25,7 +25,7 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "DOCSIS använder en blandning av nedströms- och uppströmskanalfamiljer som SC-QAM, OFDM och OFDMA. Varje familj ger olika typer av underlag, så DOCSight håller kanaltyp, riktning och supportstatus åtskilda.",
+        "advanced": "DOCSIS använder en blandning av downstream- och upstream-kanalfamiljer som SC-QAM, OFDM och OFDMA. Varje familj ger olika typer av underlag, så DOCSight håller kanaltyp, riktning och supportstatus åtskilda.",
         "basic": "DOCSIS levererar internettjänst via koaxialkabel. DOCSight läser modem-, kanal- och signaldata från DOCSIS-enheter som stöds, så dess underlag gäller den kabelbaserade accesslänken snarare än DSL.",
         "eli5": "DOCSIS är kabel-internet-språket som talas mellan ett kabelmodem och leverantörens nätverk.",
         "technician": "Använd DOCSIS-underlag som modemsidans RF/MAC-kontext: kanallåsning, effekt, MER/SNR, modulation, fel och händelser. Leverantörens provisionering, CMTS-policy, segmentbelastning och IP-routing kräver fortfarande separata underlag."
@@ -119,7 +119,7 @@
       "aliases": [
         "Nedladdningsriktning",
         "DS",
-        "Nedströmskanaler"
+        "Downstream-kanaler"
       ],
       "category": "modulation_channels",
       "id": "downstream",
@@ -135,13 +135,13 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Nedströms"
+      "title": "Downstream"
     },
     {
       "aliases": [
         "Uppladdningsriktning",
         "US",
-        "Uppströmskanaler"
+        "Upstream-kanaler"
       ],
       "category": "modulation_channels",
       "id": "upstream",
@@ -157,7 +157,7 @@
         "SC-QAM",
         "OFDMA"
       ],
-      "title": "Uppströms"
+      "title": "Upstream"
     },
     {
       "aliases": [
@@ -169,7 +169,7 @@
       "id": "channel_bonding",
       "levels": {
         "advanced": "Bonding kombinerar kanalkapacitet, men det användbara resultatet beror på riktning, kanalfamilj, låsstatus, profiler, schemaläggarens beteende och tjänstekonfiguration.",
-        "basic": "DOCSIS-modem använder ofta flera nedströms- och uppströmskanaler samtidigt. DOCSight grupperar synliga kanaler så att du kan se vad som är buntat, låst och friskt.",
+        "basic": "DOCSIS-modem använder ofta flera downstream- och upstream-kanaler samtidigt. DOCSight grupperar synliga kanaler så att du kan se vad som är buntat, låst och friskt.",
         "eli5": "Channel bonding gör att en modem kan använda flera kabelkanaler samtidigt.",
         "technician": "Vid granskning av bonding-underlag, leta efter saknade eller försämrade medlemmar i bunten, familjespecifik hälsa, och om symptomen påverkar en enskild kanal, en riktning eller hela service group."
       },
@@ -209,15 +209,15 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 nedströms",
+        "DOCSIS 3.1 downstream",
         "Ortogonal frekvensdelningsmultiplexing"
       ],
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
         "advanced": "OFDM-hälsa beror på profiler, uteslutna underbärvågor, PLC/låsstatus och profiltillgänglighet. Saknad profilinformation bör förbli okänd i stället för att fyllas i med gissad kapacitet.",
-        "basic": "DOCSIS 3.1 använder OFDM för breda nedströms mottagningskanaler. DOCSight märker den separat eftersom OFDM-bevis skiljer sig från klassiska SC-QAM-rader.",
-        "eli5": "OFDM är DOCSIS 3.1-nedströmskanalens typ, uppbyggd av många små underbärvågor.",
+        "basic": "DOCSIS 3.1 använder OFDM för breda downstream mottagningskanaler. DOCSight märker den separat eftersom OFDM-bevis skiljer sig från klassiska SC-QAM-rader.",
+        "eli5": "OFDM är DOCSIS 3.1-downstream-kanalens typ, uppbyggd av många små underbärvågor.",
         "technician": "Vid OFDM-diagnostik, jämför profilförändringar, MER-liknande indikatorer, codeword/felbeteende och angränsande SC-QAM-bevis. Behandla ostödda profilfält som en databegränsning, inte som bevis på god eller dålig tjänst."
       },
       "misconceptions": [
@@ -232,16 +232,16 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 uppströms",
+        "DOCSIS 3.1 upstream",
         "Ortogonal frekvensdelad multipelåtkomst"
       ],
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
         "advanced": "OFDMA beror på profiler, subbärare, minislots, brus i returvägen och schemaläggarens kontext. Fält som saknas, är None eller null betyder ej stött eller ej rapporterat, inte uppmätt noll.",
-        "basic": "OFDMA gör att många modem kan dela delar av ett brett uppströmsblock. DOCSight visar det separat från SC-QAM-uppströmskanaler.",
-        "eli5": "OFDMA är DOCSIS 3.1:s kanaltyp för uppströms.",
-        "technician": "Felsök OFDMA med uppströmshändelser, sändningsbeteende, profiltillgänglighet samt tidpunkt för latens/paketförlust. Undvik SC-QAM-liknande kapacitetsgissningar om inte modemet exponerar nödvändiga OFDMA-detaljer."
+        "basic": "OFDMA gör att många modem kan dela delar av ett brett upstream-block. DOCSight visar det separat från SC-QAM-upstream-kanaler.",
+        "eli5": "OFDMA är DOCSIS 3.1:s kanaltyp för upstream.",
+        "technician": "Felsök OFDMA med upstream-händelser, sändningsbeteende, profiltillgänglighet samt tidpunkt för latens/paketförlust. Undvik SC-QAM-liknande kapacitetsgissningar om inte modemet exponerar nödvändiga OFDMA-detaljer."
       },
       "misconceptions": [
         "En OFDMA-kanal utan ett visat kapacitetsnummer kan fortfarande vara aktiv och viktig."
@@ -288,8 +288,8 @@
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "Effekt måste tolkas utifrån riktning och kanaltyp. En nedströms mottagningsnivå, en uppströms sändningsnivå och ett OFDMA-rapporterat effektfält är inte utbytbara mätvärden.",
-        "basic": "DOCSight kan visa nedströms mottagningseffekt och uppströms sändningseffekt när modemet rapporterar dem. De två riktningarna betyder olika saker.",
+        "advanced": "Effekt måste tolkas utifrån riktning och kanaltyp. En downstream mottagningsnivå, en upstream sändningsnivå och ett OFDMA-rapporterat effektfält är inte utbytbara mätvärden.",
+        "basic": "DOCSight kan visa downstream mottagningseffekt och upstream sändningseffekt när modemet rapporterar dem. De två riktningarna betyder olika saker.",
         "eli5": "Effektnivå visar hur starkt kabelsignalen upplevs, eller hur hårt modemet måste sända tillbaka.",
         "technician": "Använd effektdata tillsammans med MER/SNR, modulation, låsstatus, historik för splitters/kablage och tidpunkt. Gör aldrig om obestyrkta eller saknade effektfält till nollvärdesmätningar."
       },

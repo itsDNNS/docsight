@@ -135,7 +135,7 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Stroomafwaarts"
+      "title": "Downstream"
     },
     {
       "aliases": [

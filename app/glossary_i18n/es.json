@@ -119,7 +119,7 @@
       "aliases": [
         "Dirección de descarga",
         "DS",
-        "Canales de descarga"
+        "Canales descendentes"
       ],
       "category": "modulation_channels",
       "id": "downstream",
@@ -135,7 +135,7 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "aguas abajo"
+      "title": "Descendente"
     },
     {
       "aliases": [

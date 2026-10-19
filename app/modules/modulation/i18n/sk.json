@@ -1,7 +1,7 @@
 {
   "title": "Kvalita modulácie",
-  "upstream": "Proti prúdu",
-  "downstream": "Po prúde",
+  "upstream": "Upstream",
+  "downstream": "Downstream",
   "today": "Dnes",
   "days_label": "dní",
   "health_index": "Index zdravia",

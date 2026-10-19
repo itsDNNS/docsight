@@ -1,7 +1,7 @@
 {
   "title": "Modulatie kwaliteit",
-  "upstream": "Stroomopwaarts",
-  "downstream": "Stroomafwaarts",
+  "upstream": "Upstream",
+  "downstream": "Downstream",
   "today": "Vandaag",
   "days_label": "Dagen",
   "health_index": "Gezondheidsindex",

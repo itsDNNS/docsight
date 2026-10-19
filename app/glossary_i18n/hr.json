@@ -119,7 +119,7 @@
       "aliases": [
         "Smjer preuzimanja",
         "DS",
-        "Nizvodni kanali"
+        "Silazni kanali"
       ],
       "category": "modulation_channels",
       "id": "downstream",
@@ -135,7 +135,7 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Nizvodno"
+      "title": "Silazno"
     },
     {
       "aliases": [
@@ -209,7 +209,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 nizvodno",
+        "DOCSIS 3.1 silazno",
         "Ortogonalno frekvencijsko multipleksiranje"
       ],
       "category": "modulation_channels",
@@ -232,7 +232,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 uzvodno",
+        "DOCSIS 3.1 uzlazno",
         "Višestruki pristup s ortogonalnom frekvencijskom podjelom"
       ],
       "category": "modulation_channels",

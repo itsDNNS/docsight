@@ -119,7 +119,7 @@
       "aliases": [
         "Direcția de descărcare",
         "DS",
-        "Canale în aval"
+        "Canale downstream"
       ],
       "category": "modulation_channels",
       "id": "downstream",
@@ -135,13 +135,13 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "În aval"
+      "title": "Downstream"
     },
     {
       "aliases": [
         "Direcția de încărcare",
         "US",
-        "Canale în amonte"
+        "Canale upstream"
       ],
       "category": "modulation_channels",
       "id": "upstream",
@@ -157,7 +157,7 @@
         "SC-QAM",
         "OFDMA"
       ],
-      "title": "În amonte"
+      "title": "Upstream"
     },
     {
       "aliases": [
@@ -209,7 +209,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 în aval",
+        "DOCSIS 3.1 downstream",
         "Multiplexare ortogonală cu diviziune de frecvență"
       ],
       "category": "modulation_channels",
@@ -232,7 +232,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 în amonte",
+        "DOCSIS 3.1 upstream",
         "Acces multiplu cu diviziune ortogonală de frecvență"
       ],
       "category": "modulation_channels",

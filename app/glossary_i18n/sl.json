@@ -25,7 +25,7 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "DOCSIS uporablja mešanico prenosnih in sprejemnih kanalskih družin, kot so SC-QAM, OFDM in OFDMA. Vsaka družina razkriva drugačne dokaze, zato DOCSight ločeno vodi vrsto kanala, smer in status podpore.",
+        "advanced": "DOCSIS uporablja mešanico družin downstream in upstream kanalov, kot so SC-QAM, OFDM in OFDMA. Vsaka družina razkriva drugačne podatke, zato DOCSight ločeno vodi vrsto kanala, smer in stanje podpore.",
         "basic": "DOCSIS prenaša internetno storitev prek koaksialnega kabla. DOCSight bere podatke o modemu, kanalih in signalu s podprtih naprav DOCSIS, zato so njegovi dokazi vezani na kabelsko dostopovno povezavo, ne na DSL.",
         "eli5": "DOCSIS je jezik kabelskega interneta, ki ga govorita kabelski modem in omrežje ponudnika.",
         "technician": "Dokaze DOCSIS uporabljajte kot RF/MAC kontekst na strani modema: zaklep kanala, moč, MER/SNR, modulacijo, napake in dogodke. Za nastavitve ponudnika, politiko CMTS, obremenitev segmenta in IP usmerjanje so še vedno potrebni izrecni dodatni viri."
@@ -119,7 +119,7 @@
       "aliases": [
         "Smer prenosa",
         "DS",
-        "Kanali navzdol"
+        "Downstream kanali"
       ],
       "category": "modulation_channels",
       "id": "downstream",
@@ -135,7 +135,7 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Dolvodno"
+      "title": "Downstream"
     },
     {
       "aliases": [
@@ -209,7 +209,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 navzdol",
+        "DOCSIS 3.1 downstream",
         "Ortogonalno frekvenčno razdeljeno multipleksiranje"
       ],
       "category": "modulation_channels",
@@ -232,16 +232,16 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 navzgor",
+        "DOCSIS 3.1 upstream",
         "Večkratni dostop s pravokotno frekvenčno razdelitvijo"
       ],
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
         "advanced": "OFDMA je odvisen od profilov, podnosilcev, mini-rež, šuma povratne poti in konteksta razporejevalnika. Manjkajoča, None ali null polja pomenijo nepodprto ali neposredovano, ne izmerjeno ničlo.",
-        "basic": "OFDMA omogoča, da si več modemov deli dele širokega zgornjega bloka. DOCSight ga prikazuje ločeno od zgornjih kanalov SC-QAM.",
+        "basic": "OFDMA omogoča, da si več modemov deli dele širokega upstream bloka. DOCSight ga prikazuje ločeno od SC-QAM upstream kanalov.",
         "eli5": "OFDMA je vrsta zgornjega (upstream) kanala pri DOCSIS 3.1.",
-        "technician": "OFDMA diagnosticiraj z dogodki zgornjega kanala, oddajnim vedenjem, razpoložljivostjo profilov ter časovnim potekom zakasnitve in izgub. Ne uporabljaj ocen zmogljivosti v slogu SC-QAM, razen če modem izpostavi zahtevane podrobnosti OFDMA."
+        "technician": "OFDMA diagnosticiraj z upstream dogodki, oddajnim vedenjem, razpoložljivostjo profilov ter časovnim potekom zakasnitve in izgub. Ne uporabljaj ocen zmogljivosti v slogu SC-QAM, razen če modem izpostavi zahtevane podrobnosti OFDMA."
       },
       "misconceptions": [
         "Kanal OFDMA brez prikazane številke zmogljivosti je lahko še vedno aktiven in pomemben."
