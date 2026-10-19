@@ -15,6 +15,7 @@ from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.runtime import current_runtime
 from app.theme_registry import download_theme
+from tests.fs_helpers import symlink_or_skip
 
 
 @pytest.fixture
@@ -141,7 +142,7 @@ def test_download_cleanup_does_not_follow_target_symlinks(tmp_path, destination,
     sentinel = target / "keep.txt"
     sentinel.write_text("keep", encoding="utf-8")
     alias = modules_dir / "failed"
-    alias.symlink_to(target, target_is_directory=True)
+    symlink_or_skip(alias, target, target_is_directory=True)
 
     with patch("shutil.rmtree") as remove:
         _remove_downloaded_module(str(modules_dir), str(alias) + suffix)
@@ -157,7 +158,7 @@ def test_download_cleanup_accepts_configured_root_alias(tmp_path):
     sentinel = modules_dir / "keep.txt"
     sentinel.write_text("keep", encoding="utf-8")
     alias = tmp_path / "configured_modules"
-    alias.symlink_to(modules_dir, target_is_directory=True)
+    symlink_or_skip(alias, modules_dir, target_is_directory=True)
 
     _remove_downloaded_module(str(alias), str(alias / "failed"))
 
@@ -488,7 +489,7 @@ class TestThemesInstall:
             if target_kind != "dangling_symlink":
                 link_target.mkdir(exist_ok=True)
                 (link_target / "keep.txt").write_text("keep", encoding="utf-8")
-            target.symlink_to(link_target, target_is_directory=True)
+            symlink_or_skip(target, link_target, target_is_directory=True)
             original_link = os.readlink(target)
 
         with patch("app.module_download.urllib.request.urlopen") as transport, \

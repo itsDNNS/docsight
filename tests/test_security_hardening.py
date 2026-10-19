@@ -16,6 +16,7 @@ from app.collectors import _ModuleConfigProxy
 from app.config import ConfigManager, SECRET_KEYS, HASH_KEYS
 from app.runtime import current_runtime
 from tests.test_auth import _login_csrf
+from tests.fs_helpers import symlink_or_skip
 
 
 # ── Reverse proxy / X-Forwarded-For ──
@@ -254,7 +255,7 @@ class TestSafeChildPath:
         sentinel = target / "keep.txt"
         sentinel.write_text("keep", encoding="utf-8")
         alias = base / "root_alias"
-        alias.symlink_to(target, target_is_directory=True)
+        symlink_or_skip(alias, target, target_is_directory=True)
 
         with patch("shutil.rmtree") as remove:
             with pytest.raises(ValueError):

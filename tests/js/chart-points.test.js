@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const test = require('node:test');
 
-function browser() {
+function browser(lang = 'en') {
     const elements = new Map();
     const element = () => ({tagName: 'DIV', style: {}, offsetWidth: 800,
         offsetHeight: 400, closest: () => null});
@@ -17,7 +17,7 @@ function browser() {
         document: {getElementById(id) {
             if (!elements.has(id)) elements.set(id, element());
             return elements.get(id);
-        }, documentElement: {getAttribute: () => 'dark'}},
+        }, documentElement: {lang, getAttribute: () => 'dark'}},
         uPlot: Chart, T: {}, setTimeout: fn => fn(),
         ResizeObserver: class {observe() {} disconnect() {}},
         DOCSightModal: {open() {}, close() {}},
@@ -74,6 +74,8 @@ test('compact axis labels keep close ticks distinct', () => {
     assert.deepEqual(Array.from(b.fmtKTicks([1000000, 2000000])), ['1M', '2M']);
     // Steps that would need three decimals fall back to the full number.
     assert.deepEqual(Array.from(b.fmtKTicks([35054, 35055, 35056])), ['35,054', '35,055', '35,056']);
+    // The full number is grouped in the UI language, not the system locale.
+    assert.deepEqual(Array.from(browser('de').fmtKTicks([35054, 35055, 35056])), ['35.054', '35.055', '35.056']);
     // Tooltips and other single values keep the short form.
     assert.equal(b.fmtK(35100), '35.1k');
     assert.equal(b.fmtK(638000), '638k');
