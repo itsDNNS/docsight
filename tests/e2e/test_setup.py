@@ -447,6 +447,22 @@ class TestGuidedModemChoice:
         finally:
             context.close()
 
+    def test_poll_interval_is_entered_in_seconds_and_bounded(self, setup_page):
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="other"]').check()
+        _click_next(setup_page)
+        poll = setup_page.locator("#poll_interval")
+        expect(poll).to_have_value("900")
+        poll.fill("15")
+        _click_next(setup_page)
+        expect(setup_page.locator(".step-content[data-step='2']")).to_be_visible()
+        assert poll.evaluate("el => el.validity.rangeUnderflow")
+        poll.fill("1800")
+        _click_next(setup_page)
+        expect(setup_page.locator(".step-content[data-step='3']")).to_be_visible()
+        expect(setup_page.locator("#review-poll")).to_have_text("1800")
+        expect(setup_page.locator(".step-content[data-step='3'] .setup-info")).to_contain_text("1800 s")
+
     def test_submission_carries_the_driver_but_not_the_connection_kind(self, setup_page):
         posted = []
 

@@ -475,6 +475,8 @@ function validateStep(step) {
         }
     }
     if (step === 2) {
+        // Seconds, bounded by POLL_MIN/POLL_MAX; the browser names the bound that was missed.
+        if (!document.getElementById('poll_interval').reportValidity()) return false;
         var field = document.getElementById('timezone');
         if (_timezoneOptions().indexOf(field.value) === -1) {
             _showStepError(2, SETUP_T.setup_timezone_invalid);

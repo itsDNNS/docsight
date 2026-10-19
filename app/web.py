@@ -14,7 +14,7 @@ from flask import current_app, render_template, request, jsonify, redirect, sess
 from markupsafe import Markup
 from zoneinfo import available_timezones
 
-from .config import MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
+from .config import DEFAULTS, MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
 from .base_path import normalize_base_path
 from . import signal_health_view
@@ -618,7 +618,7 @@ def setup():
     modem_catalog = driver_registry.get_setup_catalog(other_label=t.get("setup_modem_other_group", "Other"))
     iana_tz = _guess_iana_timezone()
     theme = _config_manager.get_theme() if _config_manager else "dark"
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, modem_catalog=modem_catalog, driver_hints=driver_hints, timezones=_get_iana_timezones(), iana_tz=iana_tz, theme=theme)
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, poll_default=DEFAULTS["poll_interval"], t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, modem_catalog=modem_catalog, driver_hints=driver_hints, timezones=_get_iana_timezones(), iana_tz=iana_tz, theme=theme)
 
 
 @require_auth
