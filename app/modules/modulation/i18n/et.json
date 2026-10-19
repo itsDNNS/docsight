@@ -17,7 +17,7 @@
   "channels_label": "Kanalid",
   "dominant_modulation": "Domineeriv modulatsioon",
   "degraded_channels": "degradeerunud",
-  "disclaimer": "Terviseindeksid ja modulatsioonistatistika on hinnangud, mis põhinevad perioodilistel küsitlustel.",
+  "disclaimer": "Terviseindeksid ja modulatsioonistatistika on hinnangud, mis põhinevad perioodilistel päringutel.",
   "click_day_hint": "Kanalite üksikasjade vaatamiseks klõpsake päevaribal",
   "no_degradation": "Lagunemist ei täheldatud",
   "degraded_windows": "lagunenud aknad",

@@ -17,7 +17,7 @@
   "channels_label": "Kanaler",
   "dominant_modulation": "Dominant modulering",
   "degraded_channels": "degradert",
-  "disclaimer": "Helseindekser og modulasjonsstatistikk er estimater basert på periodiske undersøkelser.",
+  "disclaimer": "Helseindekser og modulasjonsstatistikk er estimater basert på periodiske avlesninger.",
   "click_day_hint": "Klikk på en dagslinje for å se detaljer per kanal",
   "no_degradation": "Ingen degradering observert",
   "degraded_windows": "ødelagte vinduer",
