@@ -25,6 +25,7 @@ from app.modules.backup.backup import (
     validate_backup,
 )
 from app.modules.backup.collector import BackupCollector
+from tests.fs_helpers import symlink_or_skip
 
 
 # ── Fixtures ──
@@ -611,7 +612,7 @@ class TestBrowseDirectory:
         target = tmp_path / "secret"
         target.mkdir()
         link = root / "escape"
-        link.symlink_to(target)
+        symlink_or_skip(link, target)
 
         # Browsing the symlink target should be rejected
         with pytest.raises(ValueError, match="not allowed"):
