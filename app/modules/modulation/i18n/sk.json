@@ -17,7 +17,7 @@
   "channels_label": "Kanály",
   "dominant_modulation": "Dominantná modulácia",
   "degraded_channels": "degradované",
-  "disclaimer": "Zdravotné indexy a modulačné štatistiky sú odhady založené na pravidelných vzorkách prieskumov.",
+  "disclaimer": "Zdravotné indexy a modulačné štatistiky sú odhady založené na pravidelných dopytoch.",
   "click_day_hint": "Kliknutím na dennú lištu zobrazíte podrobnosti o jednotlivých kanáloch",
   "no_degradation": "Nebola pozorovaná žiadna degradácia",
   "degraded_windows": "znehodnotené okná",

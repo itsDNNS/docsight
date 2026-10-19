@@ -21,7 +21,7 @@
   "speedtest_setup_validate_text": "Αποθηκεύστε το URL στις ρυθμίσεις και μετά επιβεβαιώστε ότι το DOCSight διαβάζει τα πρόσφατα αποτελέσματα των τεστ ταχύτητας.",
   "speedtest_setup_open_settings": "Άνοιγμα ρυθμίσεων Speedtest",
   "speedtest_setup_validation_path": "Το Speedtest μπορεί να δοκιμαστεί στις ρυθμίσεις Speedtest αφού αποθηκευτούν το βασικό URL και το διακριτικό API. Το DOCSight χρησιμοποιεί τα αποθηκευμένα διαπιστευτήρια για τη δοκιμή σύνδεσης.",
-  "clear_cache_confirm": "Εκκαθάριση όλων των αποθηκευμένων αποτελεσμάτων Speedtest; Θα συγχρονιστούν ξανά στον επόμενο κύκλο ερωτήσεων.",
+  "clear_cache_confirm": "Εκκαθάριση όλων των αποθηκευμένων αποτελεσμάτων Speedtest; Θα συγχρονιστούν ξανά στον επόμενο κύκλο ανάγνωσης.",
   "speedtest_no_results": "δεν υπάρχουν ακόμη αποτελέσματα",
   "speedtest_setup_howto_title": "Πώς ρυθμίζεται",
   "speedtest_setup_step_1": "Εγκατάστησε το <b>Speedtest Tracker</b> με Docker (<a href='https://github.com/alexjustesen/speedtest-tracker' target='_blank'>github.com/alexjustesen/speedtest-tracker</a>)",

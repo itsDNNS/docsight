@@ -17,7 +17,7 @@
   "channels_label": "Canali",
   "dominant_modulation": "Modulazione dominante",
   "degraded_channels": "degradato",
-  "disclaimer": "Gli indici sanitari e le statistiche di modulazione sono stime basate su campioni di sondaggi periodici.",
+  "disclaimer": "Gli indici sanitari e le statistiche di modulazione sono stime basate su interrogazioni periodiche.",
   "click_day_hint": "Fare clic su una barra del giorno per visualizzare i dettagli per canale",
   "no_degradation": "Nessun degrado osservato",
   "degraded_windows": "finestre degradate",

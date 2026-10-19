@@ -50,7 +50,7 @@
   "bqm_validate_success": "Monitor gecontroleerd.",
   "bqm_validate_failed": "Controle mislukt.",
   "bqm_chart_latency": "Latentie",
-  "bqm_chart_lost_polls": "Verloren peilingen",
+  "bqm_chart_lost_polls": "Verloren opvragingen",
   "bqm_chart_avg": "Gem. latentie",
   "bqm_chart_range": "Min/max-bereik",
   "bqm_chart_loss": "Pakketverlies",

@@ -17,7 +17,7 @@
   "channels_label": "Csatornák",
   "dominant_modulation": "Domináns moduláció",
   "degraded_channels": "leépült",
-  "disclaimer": "Az egészségügyi indexek és a modulációs statisztikák időszakos közvélemény-kutatási mintákon alapuló becslések.",
+  "disclaimer": "Az egészségügyi indexek és a modulációs statisztikák időszakos lekérdezési mintákon alapuló becslések.",
   "click_day_hint": "Kattintson egy napsávra a csatornánkénti részletek megtekintéséhez",
   "no_degradation": "Degradáció nem figyelhető meg",
   "degraded_windows": "leromlott ablakok",
