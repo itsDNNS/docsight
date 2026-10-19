@@ -12,6 +12,7 @@ from app.glossary import (
     get_related_terms,
     validate_glossary_catalog,
 )
+from tests.fs_helpers import symlink_or_skip
 
 
 def test_glossary_catalog_schema_is_valid():
@@ -116,7 +117,7 @@ def test_glossary_media_schema_rejects_files_resolving_outside_static_root(tmp_p
     static_root.mkdir()
     outside_file = tmp_path / "outside.svg"
     outside_file.write_text("<svg xmlns=\"http://www.w3.org/2000/svg\"/>", encoding="utf-8")
-    (static_root / "escaped.svg").symlink_to(outside_file)
+    symlink_or_skip(static_root / "escaped.svg", outside_file)
     term = _media_test_term(({"src": "/static/escaped.svg", "alt": "Escaped diagram"},))
 
     errors = validate_glossary_catalog((term,), static_root=static_root)
