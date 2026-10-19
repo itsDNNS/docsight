@@ -775,7 +775,6 @@
   "review_settings": "Gennemgå og fuldfør",
   "review_settings_desc": "Gennemgå din konfiguration og fuldfør opsætningen",
   "poll_interval_desc": "Hvor ofte skal DOCSIS-data hentes",
-  "minutes": "Minutter",
   "saving": "Gemmer...",
   "setup_failed": "Opsætning mislykkedes. Prøv venligst igen.",
   "connection_successful": "Forbindelsen lykkedes!",
