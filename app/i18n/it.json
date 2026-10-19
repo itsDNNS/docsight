@@ -775,7 +775,6 @@
   "review_settings": "Rivedi e completa",
   "review_settings_desc": "Rivedi la configurazione e completa l'impostazione",
   "poll_interval_desc": "La frequenza con cui recuperare i dati DOCSIS",
-  "minutes": "Minuti",
   "saving": "Salvataggio...",
   "setup_failed": "Installazione non riuscita. Per favore riprova.",
   "connection_successful": "Connessione riuscita!",

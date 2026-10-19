@@ -775,7 +775,6 @@
   "review_settings": "Revisar e concluir",
   "review_settings_desc": "Revise sua configuração e conclua a configuração",
   "poll_interval_desc": "Com que frequência buscar dados DOCSIS",
-  "minutes": "Minutos",
   "saving": "Salvando...",
   "setup_failed": "Falha na configuração. Por favor, tente novamente.",
   "connection_successful": "Conexão bem sucedida!",

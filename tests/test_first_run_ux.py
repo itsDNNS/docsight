@@ -134,6 +134,21 @@ def test_desktop_preview_setup_copy_is_env_gated(tmp_path, monkeypatch):
     assert b"Docker" in desktop.data
 
 
+def test_setup_poll_interval_is_labelled_and_defaulted_in_seconds(tmp_path):
+    current_runtime().config_manager = ConfigManager(str(tmp_path / "data"))
+    current_runtime().storage = None
+    app.config["TESTING"] = True
+
+    with app.test_client() as client:
+        html = client.get("/setup", headers={"Accept-Language": "en"}).get_data(as_text=True)
+
+    field = re.search(r'<input[^>]*id="poll_interval"[^>]*>', html).group(0)
+    assert 'min="60"' in field and 'max="14400"' in field and 'value="900"' in field
+    assert 'for="poll_interval">Interval (seconds)</label>' in html
+    assert '<span id="review-poll"></span> s<br>' in html
+    assert "Minutes" not in html
+
+
 def test_first_run_keys_are_complete_nonempty_and_placeholder_compatible():
     locale_paths = sorted(I18N_DIR.glob("*.json"))
     assert {path.stem for path in locale_paths} == set(LANGUAGES)
