@@ -119,7 +119,7 @@
       "aliases": [
         "Allalaadimise suund",
         "DS",
-        "Allavoolu kanalid"
+        "Downstream-kanalid"
       ],
       "category": "modulation_channels",
       "id": "downstream",
@@ -135,13 +135,13 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Allavoolu"
+      "title": "Downstream"
     },
     {
       "aliases": [
         "Üleslaadimise suund",
-        "USA",
-        "Ülesvoolu kanalid"
+        "US",
+        "Upstream-kanalid"
       ],
       "category": "modulation_channels",
       "id": "upstream",
@@ -157,7 +157,7 @@
         "SC-QAM",
         "OFDMA"
       ],
-      "title": "Ülesvoolu"
+      "title": "Upstream"
     },
     {
       "aliases": [
@@ -210,7 +210,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 allavoolu",
+        "DOCSIS 3.1 downstream",
         "Ortogonaalne sagedusjaotusega multipleksimine"
       ],
       "category": "modulation_channels",
@@ -233,7 +233,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 ülesvoolu",
+        "DOCSIS 3.1 upstream",
         "Ortogonaalne sagedusjaotusega mitmikjuurdepääs"
       ],
       "category": "modulation_channels",

@@ -1,7 +1,7 @@
 {
   "title": "Moduleringskvalitet",
-  "upstream": "Uppströms",
-  "downstream": "Nedströms",
+  "upstream": "Upstream",
+  "downstream": "Downstream",
   "today": "I dag",
   "days_label": "dagar",
   "health_index": "Hälsoindex",
@@ -32,7 +32,7 @@
   "channel_summary": "Kanalsammanfattning",
   "protocol_group_label": "Protokollgrupp",
   "glossary_health_index": "Hälsoindex: ett samlat resultat (0-100) som återspeglar den övergripande moduleringskvaliteten över alla kanaler. Högre betyder mindre signalförsämring.",
-  "glossary_low_qam": "Low-QAM exponering: DOCSight heuristisk för procentandelen av sampel vid låga moduleringsnivåer. För uppströms DOCSIS 3.1 räknas detta 64QAM och lägre; 128QAM påverkar hälsoindexet men räknas inte som Low-QAM. Hög exponering indikerar ihållande signalproblem.",
+  "glossary_low_qam": "Low-QAM-exponering: DOCSight-heuristik för andelen mätpunkter med låga moduleringsnivåer. För US DOCSIS 3.1 räknas 64QAM och lägre; 128QAM påverkar hälsoindexet men räknas inte som Low-QAM. Hög andel tyder på ihållande signalproblem.",
   "low_qam_denominator_hint": "Okända prover stannar i totalen",
   "low_qam_legend_hint_d31_us": "Upstream DOCSIS 3.1: 64QAM och nedan är Low-QAM (röd). 128QAM är borderline (gult). 256QAM och uppåt är friska.",
   "low_qam_legend_hint_d30_us": "Upstream DOCSIS 3.0: 64QAM är det hälsosamma maximum (grönt). 32QAM reduceras (gult); 16QAM och lägre är låga (röda).",

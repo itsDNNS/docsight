@@ -1,7 +1,7 @@
 {
   "title": "Качество на модулацията",
-  "upstream": "Нагоре по течението",
-  "downstream": "Надолу по течението",
+  "upstream": "Upstream",
+  "downstream": "Downstream",
   "today": "Днес",
   "days_label": "Дни",
   "health_index": "Здравен индекс",

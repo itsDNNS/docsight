@@ -119,7 +119,7 @@
       "aliases": [
         "Lejupielādes virziens",
         "DS",
-        "Pakārtotie kanāli"
+        "Downstream kanāli"
       ],
       "category": "modulation_channels",
       "id": "downstream",
@@ -135,13 +135,13 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Pa straumi"
+      "title": "Downstream"
     },
     {
       "aliases": [
         "Augšupielādes virziens",
-        "ASV",
-        "Augšupējie kanāli"
+        "US",
+        "Upstream kanāli"
       ],
       "category": "modulation_channels",
       "id": "upstream",
@@ -157,7 +157,7 @@
         "SC-QAM",
         "OFDMA"
       ],
-      "title": "Augšup straume"
+      "title": "Upstream"
     },
     {
       "aliases": [
@@ -210,7 +210,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 lejupvērstā",
+        "DOCSIS 3.1 downstream",
         "Ortogonālā frekvences dalīšanas multipleksēšana"
       ],
       "category": "modulation_channels",
@@ -233,7 +233,7 @@
     },
     {
       "aliases": [
-        "DOCSIS 3.1 augšpus",
+        "DOCSIS 3.1 upstream",
         "Ortogonāla frekvenču dalījuma daudzpiekļuve"
       ],
       "category": "modulation_channels",

@@ -119,7 +119,7 @@
       "aliases": [
         "Smer sťahovania",
         "DS",
-        "Dolné kanály"
+        "Downstream kanály"
       ],
       "category": "modulation_channels",
       "id": "downstream",
@@ -135,7 +135,7 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Po prúde"
+      "title": "Downstream"
     },
     {
       "aliases": [

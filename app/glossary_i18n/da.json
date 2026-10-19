@@ -135,7 +135,7 @@
         "SC-QAM",
         "OFDM"
       ],
-      "title": "Nedstrøms"
+      "title": "Downstream"
     },
     {
       "aliases": [
@@ -282,7 +282,7 @@
       "aliases": [
         "Signalniveau",
         "dBmV",
-        "Modtag strøm",
+        "Modtageeffekt",
         "Sendeeffekt"
       ],
       "category": "signal_quality",
