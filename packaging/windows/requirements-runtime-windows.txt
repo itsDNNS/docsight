@@ -593,9 +593,8 @@ pillow==13.0.0 \
     #   -r packaging/windows/../../requirements.txt
     #   fpdf2
     #   pystray
-py-vapid==1.9.4 \
-    --hash=sha256:a004023560cbc54e34fc06380a0580f04ffcc788e84fb6d19e9339eeb6551a28 \
-    --hash=sha256:f165a5bf90dcf966b226114f01f178f137579a09784c7f0628fa2f0a299741b6
+py-vapid==1.9.6 \
+    --hash=sha256:06d775951016f63f0d0d6dd8babd333fc2f831f0769fd5db2e1ec8cfbbccc70f
     # via -r packaging/windows/../../requirements.txt
 pycparser==3.0 \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
