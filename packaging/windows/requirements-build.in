@@ -1,1 +1,2 @@
 pyinstaller==6.17.0
+setuptools>=84.1.0  # security floor for pyinstaller transitive dependency
