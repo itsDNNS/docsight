@@ -1,5 +1,6 @@
 requests>=2.34.2
 urllib3>=2.8.0  # security floor for requests transitive dependency
+certifi>=2026.10.19  # security floor for requests transitive dependency
 paho-mqtt>=2.1
 flask>=3.1
 werkzeug>=3.1.9  # security floor for Flask transitive dependency
@@ -9,8 +10,8 @@ cryptography>=50.0.2
 py-vapid>=1.9.4  # Web Push: VAPID signing
 http-ece>=1.2.1  # Web Push: payload encryption
 fpdf2>=2.8.9
-pillow>=12.3.0  # security floor for fpdf2 transitive dependency
+pillow>=13.0.0  # security floor for fpdf2 transitive dependency
 beautifulsoup4>=4.15.0
 soupsieve>=3.0.3  # security floor for BeautifulSoup transitive dependency
-pypdf>=6.20.1
+pypdf>=6.21.2
 openpyxl>=3.1.5
