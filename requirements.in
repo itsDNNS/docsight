@@ -12,6 +12,6 @@ http-ece>=1.2.1  # Web Push: payload encryption
 fpdf2>=2.8.9
 pillow>=13.0.0  # security floor for fpdf2 transitive dependency
 beautifulsoup4>=4.15.0
-soupsieve>=3.0.3  # security floor for BeautifulSoup transitive dependency
+soupsieve>=3.0.4  # security floor for BeautifulSoup transitive dependency
 pypdf>=6.21.2
 openpyxl>=3.1.5
