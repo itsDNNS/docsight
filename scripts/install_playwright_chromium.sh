@@ -22,30 +22,43 @@ printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Re
 # The browser itself comes from ~/.cache/ms-playwright when cached.
 python -m playwright install chromium
 
-# Chromium's system packages, exactly as `playwright install-deps` would install them.
-packages=$(python -m playwright install-deps --dry-run chromium \
-    | sed -n 's/.*--no-install-recommends \([^"]*\).*/\1/p')
-
-if [ -z "$packages" ]; then
-    echo "Could not read Chromium's system packages from Playwright" >&2
-    exit 1
-fi
+# Prints the Chromium system packages that are still missing, nothing when all
+# are installed. Playwright simulates its install with apt-get, so this fails
+# when apt's package lists cannot resolve them yet (cold cache).
+missing_packages() {
+    local report
+    if report=$(python -m playwright install-deps --dry-run chromium 2>&1); then
+        return 0
+    fi
+    case $report in
+        *"Missing system dependencies"*)
+            printf '%s\n' "$report" | sed -n 's/^  \([a-z0-9][^ ]*\)$/\1/p' ;;
+        *)
+            printf '%s\n' "$report" >&2
+            return 1 ;;
+    esac
+}
 
 # One install from a mirror, bounded. apt's own timeouts do not catch every
 # stall: three runs hung after "noble-security InRelease" until the job limit,
 # one of them for six hours. A stalled attempt is killed and the next one
 # starts with a fresh index update.
 install_from_mirror() {
+    local packages
+    sudo timeout --kill-after=10 300 apt-get update || return 1
+    packages=$(missing_packages) || return 1
+    [ -z "$packages" ] && return 0
     # shellcheck disable=SC2086 # the package names are meant to split
-    sudo timeout --kill-after=10 300 apt-get update \
-        && sudo timeout --kill-after=10 600 apt-get install -y --no-install-recommends $packages
+    sudo timeout --kill-after=10 600 apt-get install -y --no-install-recommends $packages
 }
 
 # Warm cache: the cached package lists and .deb files are enough, so install
 # without `apt-get update` and without downloading. Anything missing falls back
 # to a mirror, which also fills the cache for the next run.
 # shellcheck disable=SC2086 # the package names are meant to split
-if sudo apt-get install -y --no-install-recommends --no-download $packages; then
+if packages=$(missing_packages) && [ -z "$packages" ]; then
+    echo "Chromium system packages are already installed"
+elif [ -n "$packages" ] && sudo apt-get install -y --no-install-recommends --no-download $packages; then
     echo "Chromium system packages installed from the Actions cache"
 else
     echo "Cache incomplete; installing Chromium system packages from a mirror"
