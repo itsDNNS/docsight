@@ -66,7 +66,7 @@ The Python suite covers analyzers, collectors, drivers, event detection, API end
 Install the browser test dependencies before running this suite:
 
 ```bash
-python -m pip install pytest-playwright==0.7.2 playwright==1.58.0
+python -m pip install pytest-playwright==0.7.2 playwright==1.64.1
 python -m playwright install chromium
 ```
 
