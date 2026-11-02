@@ -3,6 +3,7 @@
 from app.version import get_app_version
 from urllib.parse import urlsplit
 
+import pytest
 from playwright.sync_api import Error as PlaywrightError, expect
 
 
@@ -135,8 +136,9 @@ def test_static_js_and_css_requests_include_app_version(page, live_server):
     assert offenders == []
 
 
+@pytest.mark.allow_browser_errors("offline, the signal API fetch fails on purpose; the hero chart logs the handled failure")
 def test_offline_cached_shell_is_explicitly_read_only(
-    page, context, path_prefix_servers
+    page, context, path_prefix_servers, browser_errors
 ):
     """Offline reload should show cached shell state without pretending live data is current."""
     _open_authenticated_pwa(page, path_prefix_servers)
@@ -163,3 +165,5 @@ def test_offline_cached_shell_is_explicitly_read_only(
         assert page.locator("#refresh-btn").is_disabled()
     finally:
         context.set_offline(False)
+    unexpected = [e for e in browser_errors.errors if "[HeroChart] Failed to load data" not in e]
+    assert unexpected == []
