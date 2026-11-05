@@ -307,12 +307,6 @@ cryptography==50.0.2 \
     #   -r packaging/windows/../../requirements.txt
     #   http-ece
     #   py-vapid
-defusedxml==0.7.1 \
-    --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
-    --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
-    # via
-    #   -r packaging/windows/../../requirements.txt
-    #   fpdf2
 et-xmlfile==2.0.0 \
     --hash=sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa \
     --hash=sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54
@@ -377,9 +371,9 @@ fonttools==4.62.1 \
     # via
     #   -r packaging/windows/../../requirements.txt
     #   fpdf2
-fpdf2==2.8.9 \
-    --hash=sha256:5b0b3786f5236a2b3cc83c1fee567df17ddd314f8c4e13d820d8f09b617ab4f0 \
-    --hash=sha256:6e1d94af6d6311950a23dec7fb5fc84b000203eb59aee8e76c1e701b12a14976
+fpdf2==2.9.0 \
+    --hash=sha256:af2e7e06a5a2f9e32e24b146b56f58166142dfff45f55370ab03bfac9c8e3e21 \
+    --hash=sha256:e57f9eb183a61bbfc1a16ccb3eb68654f9ef3de0d9a78e37015a0df2eb29ab89
     # via -r packaging/windows/../../requirements.txt
 http-ece==1.2.1 \
     --hash=sha256:8c6ab23116bbf6affda894acfd5f2ca0fb8facbcbb72121c11c75c33e7ce8cff
