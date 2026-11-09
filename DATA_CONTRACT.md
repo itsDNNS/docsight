@@ -248,8 +248,9 @@ All optional remote behavior must follow these constraints:
 Setup can look for a modem on the local network, but only when the user clicks **Search my network for the modem**. Nothing is probed automatically, on startup, or in the background.
 
 - DOCSight sends one GET request for the start page (`/`) to each of four fixed private addresses: `192.168.100.1`, `192.168.0.1`, `192.168.178.1`, and `10.0.0.1`. HTTPS is tried for an address only when HTTP fails.
-- Each request has a 2-second timeout. At most 64 KiB of the start page are read.
-- The requests carry no credentials, do not log in, and do not change anything on the device. The browser cannot supply other addresses.
+- Hitron login pages show their model name only after a script reads it from `/1/Device/CM/Version`, which answers without a login. When a start page loads that script (`jquery.hitronext.js`) and no model name matched, DOCSight sends one more GET to that endpoint on the same address and uses only its `modelName`.
+- Each request has a 2-second timeout. At most 64 KiB of each reply are retained and inspected.
+- The requests carry no credentials, do not log in, and do not change anything on the device. Credentials and proxies from the environment are not used, and redirects are followed only on the same address. The browser cannot supply other addresses.
 - The start page is only searched for model names of the built-in drivers. Neither the page nor the result is stored or logged. The user confirms any suggestion before it is used.
 - No traffic leaves the local network.
 

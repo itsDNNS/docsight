@@ -66,13 +66,16 @@ class HitronCoda4680Driver(ModemDriver):
             raise RuntimeError(f"Hitron CODA-4680 login failed: {exc}") from exc
 
         body = self._json_body(resp)
-        if body is not None:
+        if body is not None or resp.text.strip():
             if not isinstance(body, dict):
                 raise RuntimeError("Hitron CODA-4680 login returned invalid JSON payload")
             self._ensure_ok(body, "login")
+            # A wrong password still answers errCode "000"; the outcome is in "result".
+            if str(body.get("result", "success")).lower() != "success":
+                raise RuntimeError(f"Hitron CODA-4680 login rejected: {body['result']}")
 
-        # The login response can be an empty 200. Verify that the authenticated
-        # session can read a protected endpoint before reporting success.
+        # The login response can be an empty 200. The version endpoint answers
+        # without a login, but after a failed one the modem serves its login page.
         self._device_info_cache = self._parse_device_info(
             self._fetch_payload("/1/Device/CM/Version", raise_on_error=True, allow_reauth=False)
         )
@@ -144,6 +147,14 @@ class HitronCoda4680Driver(ModemDriver):
                 raise RuntimeError(f"Hitron CODA-4680 fetch {path} failed: {exc}") from exc
             log.warning("Hitron CODA-4680 fetch %s failed: %s", path, exc)
             return {}
+
+        # Without a valid session the modem answers 200 with its HTML login page.
+        if payload is None and "jquery.hitronext.js" in resp.text:
+            if allow_reauth:
+                log.info("Hitron CODA-4680 endpoint %s returned the login page; retrying after login", path)
+                return self._retry_after_reauth(path, raise_on_error=raise_on_error)
+            if raise_on_error:
+                raise RuntimeError(f"Hitron CODA-4680 login rejected: {path} returned the login page")
 
         if not isinstance(payload, dict):
             if raise_on_error:
