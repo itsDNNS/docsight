@@ -115,7 +115,11 @@ def test_hitron_login_page_model_is_read_from_its_public_version_endpoint():
     assert get.calls[0][1] == get.calls[1][1]
 
 
-@pytest.mark.parametrize("version", [None, b"<html></html>", b'["CODA-4680"]', b'{"modelName": 4680}', b"[" * 60000])
+@pytest.mark.parametrize(
+    "version",
+    [None, b"<html></html>", b'["CODA-4680"]', b'{"modelName": 4680}', b"[" * 60000],
+    ids=["missing", "html", "list", "non-string-model", "deeply-nested"],
+)
 def test_unusable_hitron_version_reply_suggests_nothing(version):
     pages = {"http://192.168.0.1": HITRON_LOGIN_PAGE}
     if version is not None:
