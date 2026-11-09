@@ -4,21 +4,27 @@ Only runs when the user asks for it. It sends one short GET request to each
 of a few fixed private addresses that cable modems and routers commonly use,
 reads the start page and looks for model names of the built-in drivers. It
 never logs in, sends no credentials and nothing leaves the local network.
+Hitron login pages fill in their model name from a public endpoint, so for
+those one more GET reads only the model name from it.
 """
 
 from __future__ import annotations
 
 import html
+import json
 import re
 import warnings
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urljoin
 
 import requests
 import urllib3
+from urllib3.util import parse_url
 
 CANDIDATE_HOSTS = ("192.168.100.1", "192.168.0.1", "192.168.178.1", "10.0.0.1")
 PROBE_TIMEOUT_SECONDS = 2.0
 MAX_BODY_BYTES = 64 * 1024
+MAX_REDIRECTS = 5
 
 # Model names as they appear on start pages. A match is a suggestion the user
 # confirms; several matches (e.g. the SURFboard family) are all offered.
@@ -37,7 +43,7 @@ DRIVER_KEYWORDS: dict[str, tuple[str, ...]] = {
     "ch7465": ("ch7465", "connect box"),
     "ch7465_play": ("ch7465",),
     "hitron": ("coda-56", "coda56"),
-    "hitron_coda_4680": ("coda-4680", "coda4680"),
+    "hitron_coda_4680": ("coda-4680", "coda4680", "coda-4582", "coda4582"),
     "f3896lg": ("f3896lg", "hub 5"),
     "sagemcom": ("f@st 3896", "f@st3896"),
     "pyur_fast3896": ("fast3896",),
@@ -78,21 +84,61 @@ def _read_start_page(url: str, get) -> str | None:
                     break
             raw = b"".join(chunks)[:MAX_BODY_BYTES]
             return raw.decode(response.encoding or "utf-8", errors="replace")
-    except requests.RequestException:
+    except (requests.RequestException, LookupError, UnicodeError):
         return None
 
 
-def probe_host(host: str, get=requests.get, known_drivers=None) -> dict | None:
+def _hitron_model(url: str, get) -> str | None:
+    try:
+        model = json.loads(_read_start_page(url + "/1/Device/CM/Version", get) or "").get("modelName")
+    except (ValueError, AttributeError, RecursionError):
+        return None
+    return model if isinstance(model, str) else None
+
+
+class _ProbeSession(requests.Session):
+    def get_redirect_target(self, resp):
+        return None  # _get follows redirects itself, so requests never reads their replies.
+
+
+def _get(url, **kwargs):
+    """GET without .netrc credentials or proxies from the environment.
+
+    Redirects are followed only on the same address and without credentials
+    (e.g. "/" to the login page); replies of followed redirects are not read.
+    """
+    with _ProbeSession() as session:
+        session.trust_env = False
+        for _ in range(MAX_REDIRECTS):
+            response = session.get(url, **kwargs)
+            try:
+                # parse_url is the parser requests uses; urlsplit reads some URLs differently.
+                target = urljoin(url, response.headers.get("Location", ""))
+                follow = response.is_redirect and parse_url(target).host == parse_url(url).host
+                follow = follow and parse_url(target).auth is None
+            except ValueError:
+                follow = False
+            if not follow:
+                return response
+            response.close()
+            url = target
+    raise requests.TooManyRedirects(url)
+
+
+def probe_host(host: str, get=_get, known_drivers=None) -> dict | None:
     """Ask one address for its start page; HTTPS is tried when HTTP fails."""
     for scheme in ("http", "https"):
         url = f"{scheme}://{host}"
         body = _read_start_page(url, get)
         if body is not None:
-            return {"host": host, "url": url, "drivers": match_drivers(body, known_drivers)}
+            drivers = match_drivers(body, known_drivers)
+            if not drivers and "jquery.hitronext.js" in body:
+                drivers = match_drivers(_hitron_model(url, get), known_drivers)
+            return {"host": host, "url": url, "drivers": drivers}
     return None
 
 
-def detect_modems(get=requests.get, known_drivers=None) -> list[dict]:
+def detect_modems(get=_get, known_drivers=None) -> list[dict]:
     """Probe all candidate addresses in parallel; answering devices in address order."""
     # Modems use self-signed certificates; nothing is sent that would need protecting.
     with warnings.catch_warnings():

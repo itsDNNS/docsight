@@ -9,6 +9,7 @@ import requests
 from app.analyzer import analyze
 from app.drivers import driver_registry
 from app.drivers.hitron_coda_4680 import HitronCoda4680Driver
+from app.modem_diagnosis import classify_failure
 
 
 DS_INFO = {
@@ -143,6 +144,16 @@ def make_response(payload=None):
     return resp
 
 
+LOGIN_PAGE = '<html><head><title></title><script src="lib/jquery.hitronext.js"></script></head></html>'
+
+
+def make_login_page_response():
+    resp = MagicMock(status_code=200, text=LOGIN_PAGE)
+    resp.raise_for_status = MagicMock()
+    resp.json.side_effect = ValueError("not json")
+    return resp
+
+
 def make_http_error_response(status_code=403):
     resp = MagicMock(status_code=status_code)
     error = requests.HTTPError(f"{status_code} Client Error")
@@ -193,6 +204,40 @@ class TestLogin:
         with patch.object(driver._session, "post", return_value=make_response(["not", "an", "object"])):
             with pytest.raises(RuntimeError, match="login returned invalid JSON payload"):
                 driver.login()
+
+    def test_login_rejects_non_empty_reply_that_is_not_json(self, driver):
+        with patch.object(driver._session, "post", return_value=make_login_page_response()):
+            with patch.object(driver, "_fetch_payload", return_value=VERSION) as fetch:
+                with pytest.raises(RuntimeError, match="login returned invalid JSON payload"):
+                    driver.login()
+
+        fetch.assert_not_called()
+
+    def test_login_rejects_result_other_than_success(self, driver):
+        rejected = {"errCode": "000", "errMsg": "", "result": "Error_Password_Wrong"}
+        with patch.object(driver._session, "post", return_value=make_response(rejected)):
+            with patch.object(driver, "_fetch_payload", return_value=VERSION) as fetch:
+                with pytest.raises(RuntimeError, match="login rejected: Error_Password_Wrong") as error:
+                    driver.login()
+
+        fetch.assert_not_called()
+        assert classify_failure(error.value, "login") == "auth"
+
+    def test_login_accepts_success_result(self, driver):
+        accepted = {"errCode": "000", "errMsg": "", "result": "success"}
+        with patch.object(driver._session, "post", return_value=make_response(accepted)):
+            with patch.object(driver, "_fetch_payload", return_value=VERSION) as fetch:
+                driver.login()
+
+        fetch.assert_called_once_with("/1/Device/CM/Version", raise_on_error=True, allow_reauth=False)
+
+    def test_login_is_rejected_when_version_check_returns_login_page(self, driver):
+        with patch.object(driver._session, "post", return_value=make_response(None)):
+            with patch.object(driver._session, "get", return_value=make_login_page_response()):
+                with pytest.raises(RuntimeError, match="login rejected") as error:
+                    driver.login()
+
+        assert classify_failure(error.value, "login") == "auth"
 
 
 class TestDeviceInfo:
@@ -397,6 +442,50 @@ class TestDocsisData:
 
         login.assert_called_once_with()
         assert get.call_count == 2
+
+    def test_fetch_payload_reauthenticates_once_when_session_returns_login_page(self, driver):
+        with patch.object(
+            driver._session,
+            "get",
+            side_effect=[make_login_page_response(), make_response(DS_INFO)],
+        ) as get:
+            with patch.object(driver, "login") as login:
+                payload = driver._fetch_payload("/1/Device/CM/DsInfo")
+
+        assert payload == DS_INFO
+        login.assert_called_once_with()
+        assert get.call_count == 2
+
+    def test_fetch_payload_does_not_loop_when_retry_also_returns_login_page(self, driver):
+        with patch.object(
+            driver._session,
+            "get",
+            side_effect=[make_login_page_response(), make_login_page_response()],
+        ) as get:
+            with patch.object(driver, "login") as login:
+                payload = driver._fetch_payload("/1/Device/CM/DsInfo")
+
+        assert payload == {}
+        login.assert_called_once_with()
+        assert get.call_count == 2
+
+    def test_fetch_payload_does_not_reauthenticate_for_json_mentioning_the_login_script(self, driver):
+        payload = dict(SYS_INFO, note="jquery.hitronext.js")
+        with patch.object(driver._session, "get", return_value=make_response(payload)):
+            with patch.object(driver, "login") as login:
+                assert driver._fetch_payload("/1/Device/CM/SysInfo") == payload
+
+        login.assert_not_called()
+
+    def test_fetch_payload_does_not_reauthenticate_for_other_html(self, driver):
+        resp = make_login_page_response()
+        resp.text = "<html><body>Service unavailable</body></html>"
+        with patch.object(driver._session, "get", return_value=resp):
+            with patch.object(driver, "login") as login:
+                with pytest.raises(RuntimeError, match="returned invalid JSON payload"):
+                    driver._fetch_payload("/1/Device/CM/Version", raise_on_error=True)
+
+        login.assert_not_called()
 
     def test_fetch_payload_returns_empty_when_reauth_login_fails(self, driver):
         with patch.object(driver._session, "get", return_value=make_http_error_response(403)) as get:
