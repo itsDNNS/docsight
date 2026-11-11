@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Channel {ch} ({ch_type}): {metric} of {value} dB is below expected minimum ({spec} dB) by {pct}%.",
   "diag_note_stored_critical_high": "Channel {ch} ({ch_type}): {metric} of {value} {unit} was recorded as critically high by the stored analyzer result; the exact historical threshold is unavailable.",
   "diag_note_stored_critical_low": "Channel {ch} ({ch_type}): {metric} of {value} {unit} was recorded as critically low by the stored analyzer result; the exact historical threshold is unavailable.",
-  "diag_note_isp_hint": "Values this far outside specification typically indicate an ISP-side configuration or infrastructure issue, not a customer equipment problem.",
+  "diag_note_isp_hint": "Values this far outside the reference ranges typically indicate an ISP-side configuration or infrastructure issue, not a customer equipment problem.",
   "complaint_diag_header": "Diagnostic analysis:",
   "incident_report_title": "DOCSight Complaint Report",
   "section_incident_summary": "Incident Summary",

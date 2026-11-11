@@ -118,7 +118,7 @@ class TestSetThresholds:
     def test_fallback_when_empty(self):
         analyzer._thresholds = {}
         t = analyzer._get_ds_power_thresholds("256QAM")
-        assert t["good_min"] == -4.0  # fallback value (Vodafone pNTP spec v1.06)
+        assert t["good_min"] == -4.0  # fallback uses the VFKD profile values
 
 
 class TestOFDMAUpstream:

@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Channel {ch} ({ch_type}): Tá {metric} de {value} dB faoi bhun an íosmhéid ionchais ({spec} dB) faoi {pct} %.",
   "diag_note_stored_critical_high": "Cainéal {ch} ({ch_type}): taifeadadh {metric} de {value} {unit} mar luach rí-ard criticiúil i dtoradh stóráilte an anailíseora; níl an tairseach stairiúil chruinn ar fáil.",
   "diag_note_stored_critical_low": "Cainéal {ch} ({ch_type}): taifeadadh {metric} de {value} {unit} mar luach rí-íseal criticiúil i dtoradh stóráilte an anailíseora; níl an tairseach stairiúil chruinn ar fáil.",
-  "diag_note_isp_hint": "Léiríonn luachanna atá i bhfad lasmuigh den tsonraíocht seo go hiondúil ceist chumraíochta nó bonneagair ar thaobh an ISP, ní fadhb trealaimh custaiméara.",
+  "diag_note_isp_hint": "Léiríonn luachanna atá chomh fada sin lasmuigh de na raonta tagartha go hiondúil ceist chumraíochta nó bonneagair ar thaobh an ISP, ní fadhb trealaimh custaiméara.",
   "complaint_diag_header": "anailís dhiagnóiseach:",
   "incident_report_title": "DOCSight Tuairisc Ghearáin",
   "section_incident_summary": "Achoimre ar Theagmhas",

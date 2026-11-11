@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Kanal {ch} ({ch_type}): {metric} ja {value} dB on {pct}% võrra madalam eeldatavast miinimumist ({spec} dB).",
   "diag_note_stored_critical_high": "Kanal {ch} ({ch_type}): salvestatud analüsaatori tulemus märkis näidu {metric} {value} {unit} kriitiliselt kõrgeks; täpne ajalooline lävi pole saadaval.",
   "diag_note_stored_critical_low": "Kanal {ch} ({ch_type}): salvestatud analüsaatori tulemus märkis näidu {metric} {value} {unit} kriitiliselt madalaks; täpne ajalooline lävi pole saadaval.",
-  "diag_note_isp_hint": "Spetsifikatsioonist kaugele jäävad väärtused viitavad tavaliselt ISP-poolsele konfiguratsiooni- või infrastruktuuriprobleemile, mitte kliendi seadmeprobleemile.",
+  "diag_note_isp_hint": "Võrdlusvahemikest nii kaugele jäävad väärtused viitavad tavaliselt ISP-poolsele konfiguratsiooni- või infrastruktuuriprobleemile, mitte kliendi seadmeprobleemile.",
   "complaint_diag_header": "Diagnostiline analüüs:",
   "incident_report_title": "DOCSight kaebuse aruanne",
   "section_incident_summary": "Juhtumi kokkuvõte",

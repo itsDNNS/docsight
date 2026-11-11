@@ -117,7 +117,7 @@
   "diag_note_snr_low": "{ch} csatorna ({ch_type}): {metric}/{value} dB {pct}%-kal a várt minimum ({spec} dB) alatt van.",
   "diag_note_stored_critical_high": "{ch}. csatorna ({ch_type}): a tárolt elemzési eredmény a(z) {metric} {value} {unit} értékét kritikusan magasnak rögzítette; a pontos korábbi küszöbérték nem érhető el.",
   "diag_note_stored_critical_low": "{ch}. csatorna ({ch_type}): a tárolt elemzési eredmény a(z) {metric} {value} {unit} értékét kritikusan alacsonynak rögzítette; a pontos korábbi küszöbérték nem érhető el.",
-  "diag_note_isp_hint": "A specifikáción túlmutató értékek jellemzően ISP-oldali konfigurációs vagy infrastruktúra-problémát jeleznek, nem pedig az ügyfél berendezési problémáját.",
+  "diag_note_isp_hint": "A referenciatartományokon ennyire kívül eső értékek jellemzően ISP-oldali konfigurációs vagy infrastruktúra-problémát jeleznek, nem pedig az ügyfél berendezési problémáját.",
   "complaint_diag_header": "Diagnosztikai elemzés:",
   "incident_report_title": "DOCSight panaszjelentés",
   "section_incident_summary": "Incidens összefoglalója",

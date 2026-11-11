@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Kanāls {ch} ({ch_type}): {metric} no {value} dB ir mazāks par paredzēto minimumu ({spec} dB) par {pct}%.",
   "diag_note_stored_critical_high": "Kanāls {ch} ({ch_type}): saglabātajā analizatora rezultātā {metric} vērtība {value} {unit} tika reģistrēta kā kritiski augsta; precīzs vēsturiskais slieksnis nav pieejams.",
   "diag_note_stored_critical_low": "Kanāls {ch} ({ch_type}): saglabātajā analizatora rezultātā {metric} vērtība {value} {unit} tika reģistrēta kā kritiski zema; precīzs vēsturiskais slieksnis nav pieejams.",
-  "diag_note_isp_hint": "Vērtības, kas tik tālu neatbilst specifikācijai, parasti norāda uz ISP puses konfigurācijas vai infrastruktūras problēmu, nevis klienta aprīkojuma problēmu.",
+  "diag_note_isp_hint": "Vērtības, kas ir tik tālu ārpus atsauces diapazoniem, parasti norāda uz ISP puses konfigurācijas vai infrastruktūras problēmu, nevis klienta aprīkojuma problēmu.",
   "complaint_diag_header": "Diagnostikas analīze:",
   "incident_report_title": "DOCSight sūdzības ziņojums",
   "section_incident_summary": "Incidenta kopsavilkums",

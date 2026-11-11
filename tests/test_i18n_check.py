@@ -199,3 +199,24 @@ def test_low_upstream_power_copy_is_its_own_and_covers_all_core_locales():
     low_texts = [english[key] for key in low_to_high] + [english["glossary_us_power"]]
     unreachable = re.compile(r"(\bnot|n't|\bfail\w*\s+to|\bunable\s+to)\s+(be\s+)?reach", re.IGNORECASE)
     assert [text for text in low_texts if unreachable.search(text)] == []
+
+
+def test_upstream_tolerated_copy_credits_the_threshold_profile_not_the_isp():
+    """The tolerated upstream bands are DOCSight conventions, not ISP limits."""
+    core_i18n_dir = Path("app/i18n")
+    locale_paths = sorted(path for path in core_i18n_dir.glob("*.json") if path.name != "template.json")
+    english = json.loads((core_i18n_dir / "en.json").read_text(encoding="utf-8"))
+    keys = ("issue_us_power_tolerated_low_desc", "issue_us_power_tolerated_high_desc")
+
+    for key in keys:
+        assert "active threshold profile" in english[key]
+        assert "ISP" not in english[key]
+    assert len(locale_paths) == 24
+    for path in locale_paths:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        low, high = (data[key] for key in keys)
+        assert low != high, f"{path.stem}: low and high tolerated texts are identical"
+        assert low.split(". ")[-1] == high.split(". ")[-1], f"{path.stem}: tolerated reason differs"
+        if path.stem != "en":
+            for key in keys:
+                assert data[key] != english[key], f"{path.stem}/{key} is an English fallback"

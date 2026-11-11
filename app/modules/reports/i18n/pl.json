@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Kanał {ch} ({ch_type}): {metric} z {value} dB jest poniżej oczekiwanego minimum ({spec} dB) o {pct}%.",
   "diag_note_stored_critical_high": "Kanał {ch} ({ch_type}): zapisany wynik analizatora oznaczył {metric} o wartości {value} {unit} jako krytycznie wysoki; dokładny historyczny próg jest niedostępny.",
   "diag_note_stored_critical_low": "Kanał {ch} ({ch_type}): zapisany wynik analizatora oznaczył {metric} o wartości {value} {unit} jako krytycznie niski; dokładny historyczny próg jest niedostępny.",
-  "diag_note_isp_hint": "Wartości znacznie odbiegające od specyfikacji zazwyczaj wskazują na problem z konfiguracją lub infrastrukturą po stronie dostawcy usług internetowych, a nie na problem ze sprzętem klienta.",
+  "diag_note_isp_hint": "Wartości tak daleko wykraczające poza zakresy odniesienia zazwyczaj wskazują na problem z konfiguracją lub infrastrukturą po stronie dostawcy usług internetowych, a nie na problem ze sprzętem klienta.",
   "complaint_diag_header": "Analiza diagnostyczna:",
   "incident_report_title": "Raport reklamacyjny DOCSight",
   "section_incident_summary": "Podsumowanie zdarzenia",

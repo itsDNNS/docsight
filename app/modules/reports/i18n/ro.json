@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Canalul {ch} ({ch_type}): {metric} din {value} dB este sub minimul așteptat ({spec} dB) cu {pct}%.",
   "diag_note_stored_critical_high": "Canalul {ch} ({ch_type}): rezultatul stocat al analizorului a înregistrat {metric} de {value} {unit} ca fiind critic de ridicat; pragul istoric exact nu este disponibil.",
   "diag_note_stored_critical_low": "Canalul {ch} ({ch_type}): rezultatul stocat al analizorului a înregistrat {metric} de {value} {unit} ca fiind critic de scăzut; pragul istoric exact nu este disponibil.",
-  "diag_note_isp_hint": "Valorile în afara specificațiilor indică de obicei o problemă de configurare sau de infrastructură la nivelul ISP-ului, nu o problemă cu echipamentul clientului.",
+  "diag_note_isp_hint": "Valorile aflate atât de mult în afara intervalelor de referință indică de obicei o problemă de configurare sau de infrastructură la nivelul ISP-ului, nu o problemă cu echipamentul clientului.",
   "complaint_diag_header": "Analiza diagnostică:",
   "incident_report_title": "DOCSight Raport de reclamație",
   "section_incident_summary": "Rezumatul incidentului",
