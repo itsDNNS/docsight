@@ -131,7 +131,7 @@ def _format_diagnostic_note(note, s):
     if "spec_max" in note:
         template = s.get(
             "diag_note_high",
-            "Channel {ch} ({ch_type}): {metric} of {value} dBmV exceeds spec "
+            "Channel {ch} ({ch_type}): {metric} of {value} dBmV exceeds expected "
             "maximum ({spec} dBmV) by {pct}%.",
         )
         spec = note["spec_max"]
@@ -139,13 +139,13 @@ def _format_diagnostic_note(note, s):
         if note["type"] == "snr_low":
             template = s.get(
                 "diag_note_snr_low",
-                "Channel {ch} ({ch_type}): {metric} of {value} dB is below spec "
+                "Channel {ch} ({ch_type}): {metric} of {value} dB is below expected "
                 "minimum ({spec} dB) by {pct}%.",
             )
         else:
             template = s.get(
                 "diag_note_low",
-                "Channel {ch} ({ch_type}): {metric} of {value} dBmV is below spec "
+                "Channel {ch} ({ch_type}): {metric} of {value} dBmV is below expected "
                 "minimum ({spec} dBmV) by {pct}%.",
             )
         spec = note["spec_min"]

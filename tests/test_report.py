@@ -206,7 +206,7 @@ def test_default_warn_thresholds():
     # 256QAM warning: -6.0 to 15.0
     assert "-6.0" in warn["ds_power"]
     assert "15.0" in warn["ds_power"]
-    # EuroDOCSIS 3.0 tolerated: 37.1 to 51.0
+    # VFKD SC-QAM upstream tolerated: 37.1 to 51.0 (DOCSight convention)
     assert "37.1" in warn["us_power"]
     assert "51.0" in warn["us_power"]
     # SNR 256QAM warning_min: 31.0
@@ -418,3 +418,20 @@ def test_report_names_low_and_high_upstream_power_differently_in_every_language(
         for severity in ("critical", "marginal", "tolerated"):
             low, high = labels[f"us_power_{severity}_low"], labels[f"us_power_{severity}_high"]
             assert low and high and low != high, f"{lang}/{severity}"
+
+
+def test_diagnostic_note_fallback_text_matches_the_english_catalog():
+    """The built-in fallback must not call a configured bound a spec limit."""
+    from app.modules.reports.report import _format_diagnostic_note
+
+    base = {
+        "channel_id": 3, "channel_type": "SC-QAM", "value": 30.0,
+        "deviation_pct": 14, "observed_at": "2026-01-01 00:00",
+    }
+    notes = [
+        {**base, "type": "us_power_low", "metric": "upstream power", "spec_min": 35.0},
+        {**base, "type": "us_power_high", "metric": "upstream power", "spec_max": 53.0},
+        {**base, "type": "snr_low", "metric": "SNR/MER", "spec_min": 33.0},
+    ]
+    for note in notes:
+        assert _format_diagnostic_note(note, {}) == _format_diagnostic_note(note, REPORT_STRINGS["en"])

@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Kanal {ch} ({ch_type}): {metric} af {value} dB er under forventet minimum ({spec} dB) med {pct}%.",
   "diag_note_stored_critical_high": "Kanal {ch} ({ch_type}): {metric} på {value} {unit} blev registreret som kritisk høj i det gemte analyseresultat; den nøjagtige historiske tærskel er ikke tilgængelig.",
   "diag_note_stored_critical_low": "Kanal {ch} ({ch_type}): {metric} på {value} {unit} blev registreret som kritisk lav i det gemte analyseresultat; den nøjagtige historiske tærskel er ikke tilgængelig.",
-  "diag_note_isp_hint": "Værdier, der ligger så langt uden for specifikationen, indikerer typisk et konfigurations- eller infrastrukturproblem på ISP-siden, ikke et problem med kundens udstyr.",
+  "diag_note_isp_hint": "Værdier, der ligger så langt uden for referenceområderne, indikerer typisk et konfigurations- eller infrastrukturproblem på ISP-siden, ikke et problem med kundens udstyr.",
   "complaint_diag_header": "Diagnostisk analyse:",
   "incident_report_title": "DOCSight klagerapport",
   "section_incident_summary": "Hændelsesoversigt",

@@ -9,7 +9,7 @@ from __future__ import annotations
 import copy
 import logging
 from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from .docsis_utils import (
     classify_channel_family as _shared_classify_channel_family,
@@ -25,6 +25,7 @@ from .error_counters import (
     calculate_error_counter_growth,
     uncorrectable_percentage,
 )
+from .threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
 from .tz import _parse_utc, utc_now
 
@@ -35,31 +36,13 @@ _thresholds = {}
 ANALYZER_SCHEMA_VERSION = 3
 _threshold_profile = {"id": None, "version": None}
 
-# Hardcoded fallback (VFKD values) used if no threshold profile is loaded
+# Fallback used if no threshold profile is loaded: the shipped VFKD values.
+# Their sources are documented in the profile metadata, which is left out here.
+_VFKD_PROFILE = next(p for p in BUILTIN_THRESHOLD_PROFILES if p["id"] == "docsight.thresholds_vfkd")
 _FALLBACK_THRESHOLDS = {
-    "downstream_power": {
-        "_default": "256QAM",
-        "64QAM":   {"good": [-10.0, 7.0],  "warning": [-12.0, 12.0], "critical": [-14.0, 16.0]},
-        "256QAM":  {"good": [-4.0, 13.0],  "warning": [-6.0, 15.0],  "critical": [-8.0, 16.0]},
-        "1024QAM": {"good": [-2.0, 15.0],  "warning": [-4.0, 16.0],  "critical": [-6.0, 16.0]},
-        "4096QAM": {"good": [-2.0, 15.0],  "warning": [-4.0, 16.0],  "critical": [-6.0, 16.0]},
-        "ofdm":    {"good": [-12.0, 12.0], "warning": [-15.0, 15.0], "critical": [-15.0, 15.0]},
-    },
-    "upstream_power": {
-        "_default": "sc_qam",
-        "sc_qam": {"good": [41.1, 47.0], "warning": [37.1, 51.0], "critical": [35.0, 53.0]},
-        "ofdma":  {"good": [44.1, 47.0], "warning": [40.1, 48.0], "critical": [38.0, 50.0]},
-    },
-    "snr": {
-        "_default": "256QAM",
-        "64QAM":   {"good_min": 27.0, "warning_min": 25.0, "critical_min": 23.0},
-        "256QAM":  {"good_min": 33.0, "warning_min": 31.0, "critical_min": 29.0},
-        "ofdm":    {"good_min": 27.0, "warning_min": 25.5, "critical_min": 24.5},
-        "1024QAM": {"good_min": 39.0, "warning_min": 37.0, "critical_min": 36.0},
-        "4096QAM": {"good_min": 40.0, "warning_min": 38.0, "critical_min": 36.0},
-    },
-    "upstream_modulation": {"critical_max_qam": 4, "warning_max_qam": 16},
-    "errors": {"uncorrectable_pct": {"warning": 1.0, "critical": 3.0, "min_codewords": 1000}},
+    key: copy.deepcopy(value)
+    for key, value in cast(dict[str, Any], _VFKD_PROFILE["thresholds"]).items()
+    if key != "_meta"
 }
 
 

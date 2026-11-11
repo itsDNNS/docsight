@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Kanal {ch} ({ch_type}): {metric} od {value} dB ispod je očekivanog minimuma ({spec} dB) za {pct}%.",
   "diag_note_stored_critical_high": "Kanal {ch} ({ch_type}): pohranjeni rezultat analizatora zabilježio je {metric} od {value} {unit} kao kritično visok; točan povijesni prag nije dostupan.",
   "diag_note_stored_critical_low": "Kanal {ch} ({ch_type}): pohranjeni rezultat analizatora zabilježio je {metric} od {value} {unit} kao kritično nizak; točan povijesni prag nije dostupan.",
-  "diag_note_isp_hint": "Vrijednosti koje su tako daleko izvan specifikacije obično ukazuju na problem konfiguracije ili infrastrukture na strani ISP-a, a ne na problem opreme korisnika.",
+  "diag_note_isp_hint": "Vrijednosti koje su tako daleko izvan referentnih raspona obično ukazuju na problem konfiguracije ili infrastrukture na strani ISP-a, a ne na problem opreme korisnika.",
   "complaint_diag_header": "Dijagnostička analiza:",
   "incident_report_title": "DOCSight Izvješće o pritužbi",
   "section_incident_summary": "Sažetak incidenta",

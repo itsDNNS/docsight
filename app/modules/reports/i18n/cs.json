@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Kanál {ch} ({ch_type}): {metric} z {value} dB je pod očekávaným minimem ({spec} dB) o {pct} %.",
   "diag_note_stored_critical_high": "Kanál {ch} ({ch_type}): hodnota {metric} {value} {unit} byla v uloženém výsledku analyzátoru zaznamenána jako kriticky vysoká; přesný historický práh není k dispozici.",
   "diag_note_stored_critical_low": "Kanál {ch} ({ch_type}): hodnota {metric} {value} {unit} byla v uloženém výsledku analyzátoru zaznamenána jako kriticky nízká; přesný historický práh není k dispozici.",
-  "diag_note_isp_hint": "Hodnoty daleko mimo specifikaci obvykle označují problém s konfigurací nebo infrastrukturou na straně ISP, nikoli problém se zařízením zákazníka.",
+  "diag_note_isp_hint": "Hodnoty takto daleko mimo referenční rozsahy obvykle označují problém s konfigurací nebo infrastrukturou na straně ISP, nikoli problém se zařízením zákazníka.",
   "complaint_diag_header": "Diagnostická analýza:",
   "incident_report_title": "Reklamační zpráva DOCSight",
   "section_incident_summary": "Shrnutí incidentu",

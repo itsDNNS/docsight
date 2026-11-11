@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Kanalas {ch} ({ch_type}): {metric} iš {value} dB {pct} % yra mažesnis už numatomą minimumą ({spec} dB).",
   "diag_note_stored_critical_high": "Kanalas {ch} ({ch_type}): išsaugotame analizatoriaus rezultate {metric} reikšmė {value} {unit} pažymėta kaip kritiškai aukšta; tikslus istorinis slenkstis nepasiekiamas.",
   "diag_note_stored_critical_low": "Kanalas {ch} ({ch_type}): išsaugotame analizatoriaus rezultate {metric} reikšmė {value} {unit} pažymėta kaip kritiškai žema; tikslus istorinis slenkstis nepasiekiamas.",
-  "diag_note_isp_hint": "Tokios reikšmės, kurios neatitinka specifikacijos, paprastai nurodo IPT konfigūracijos arba infrastruktūros problemą, o ne kliento įrangos problemą.",
+  "diag_note_isp_hint": "Taip toli už atskaitos diapazonų esančios reikšmės paprastai nurodo IPT konfigūracijos arba infrastruktūros problemą, o ne kliento įrangos problemą.",
   "complaint_diag_header": "Diagnostinė analizė:",
   "incident_report_title": "DOCSight skundo ataskaita",
   "section_incident_summary": "Incidento suvestinė",

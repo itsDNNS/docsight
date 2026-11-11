@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Kanava {ch} ({ch_type}): {metric} / {value} dB on odotetun vähimmäisarvon ({spec} dB) alapuolella {pct} %:lla.",
   "diag_note_stored_critical_high": "Kanava {ch} ({ch_type}): tallennettu analyysitulos kirjasi arvon {metric} {value} {unit} kriittisen korkeaksi; tarkkaa historiallista raja-arvoa ei ole saatavilla.",
   "diag_note_stored_critical_low": "Kanava {ch} ({ch_type}): tallennettu analyysitulos kirjasi arvon {metric} {value} {unit} kriittisen matalaksi; tarkkaa historiallista raja-arvoa ei ole saatavilla.",
-  "diag_note_isp_hint": "Arvot, jotka ovat näin kaukana määritelmien ulkopuolella, osoittavat tyypillisesti ISP-puolen kokoonpano- tai infrastruktuuriongelmaa, eivät asiakkaan laiteongelmaa.",
+  "diag_note_isp_hint": "Arvot, jotka ovat näin kaukana referenssialueiden ulkopuolella, osoittavat tyypillisesti ISP-puolen kokoonpano- tai infrastruktuuriongelmaa, eivät asiakkaan laiteongelmaa.",
   "complaint_diag_header": "Diagnostinen analyysi:",
   "incident_report_title": "DOCSight-valitusraportti",
   "section_incident_summary": "Tapahtuman yhteenveto",

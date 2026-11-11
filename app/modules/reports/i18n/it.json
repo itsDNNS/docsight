@@ -117,7 +117,7 @@
   "diag_note_snr_low": "Canale {ch} ({ch_type}): {metric} di {value} dB è inferiore al minimo previsto ({spec} dB) di {pct}%.",
   "diag_note_stored_critical_high": "Canale {ch} ({ch_type}): il risultato memorizzato dell’analizzatore ha registrato {metric} di {value} {unit} come criticamente alto; la soglia storica esatta non è disponibile.",
   "diag_note_stored_critical_low": "Canale {ch} ({ch_type}): il risultato memorizzato dell’analizzatore ha registrato {metric} di {value} {unit} come criticamente basso; la soglia storica esatta non è disponibile.",
-  "diag_note_isp_hint": "Valori così lontani dalle specifiche indicano in genere un problema di configurazione o infrastruttura lato ISP, non un problema relativo alle apparecchiature del cliente.",
+  "diag_note_isp_hint": "Valori così lontani dagli intervalli di riferimento indicano in genere un problema di configurazione o infrastruttura lato ISP, non un problema relativo alle apparecchiature del cliente.",
   "complaint_diag_header": "Analisi diagnostica:",
   "incident_report_title": "DOCSight Rapporto reclamo",
   "section_incident_summary": "Riepilogo dell'incidente",
