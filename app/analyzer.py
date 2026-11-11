@@ -38,7 +38,7 @@ ANALYZER_SCHEMA_VERSION = 4
 # First schema whose stored error baseline uses comparable counters. Later
 # schemas keep that baseline instead of starting a fresh one after an update.
 _ERROR_BASELINE_SCHEMA = 3
-_threshold_profile = {"id": None, "version": None}
+_threshold_profile = {"id": None, "version": None, "name": None}
 
 # Fallback used if no threshold profile is loaded: the shipped VFKD values.
 # Their sources are documented in the profile metadata, which is left out here.
@@ -55,11 +55,12 @@ def set_thresholds(
     *,
     profile_id: str | None = None,
     profile_version: str | None = None,
+    profile_name: str | None = None,
 ) -> None:
     """Set thresholds from a loaded threshold profile."""
     global _thresholds, _threshold_profile
     _thresholds = data
-    _threshold_profile = {"id": profile_id, "version": profile_version}
+    _threshold_profile = {"id": profile_id, "version": profile_version, "name": profile_name}
     log.info("Thresholds updated (%d sections)", len(data))
 
 
@@ -68,7 +69,31 @@ def get_analysis_metadata(app_version: str | None = None) -> dict[str, object]:
     return {
         "analyzer_schema": ANALYZER_SCHEMA_VERSION,
         "app_version": app_version,
-        "threshold_profile": dict(_threshold_profile),
+        "threshold_profile": _profile_identity(),
+    }
+
+
+def _profile_identity() -> dict[str, Any]:
+    return {"id": _threshold_profile.get("id"), "version": _threshold_profile.get("version")}
+
+
+def active_threshold_profile() -> dict[str, Any]:
+    """Describe the profile whose values the analyzer currently applies."""
+    if _thresholds:
+        profile = dict(_threshold_profile)
+        meta = _thresholds.get("_meta")
+    else:
+        profile = {key: _VFKD_PROFILE[key] for key in ("id", "version", "name")}
+        meta = cast(dict[str, Any], _VFKD_PROFILE["thresholds"])["_meta"]
+    name = profile.get("name") or profile.get("id")
+    version = profile.get("version")
+    # Only shipped profiles may use a short label; a community profile that
+    # copied built-in metadata must still be named as itself.
+    builtin = next((p for p in BUILTIN_THRESHOLD_PROFILES if p["id"] == profile.get("id")), {})
+    return {
+        "label": f"{name} {version}" if name and version else name,
+        "short_name": builtin.get("short_name") or name,
+        "meta": copy.deepcopy(meta) if isinstance(meta, dict) else {},
     }
 
 
@@ -121,9 +146,9 @@ def _get_ds_power_thresholds(modulation=None, *, channel_family: str | None = No
     )
 
 
-def _get_us_power_thresholds(channel_type=None):
-    """Get US power thresholds by channel type (sc_qam or ofdma)."""
-    us = _t().get("upstream_power", {})
+def resolve_us_power_thresholds(channel_type=None, *, thresholds: Mapping[str, Any]):
+    """Resolve upstream power thresholds from an explicit plain-data mapping."""
+    us = thresholds.get("upstream_power", {})
     default_key = us.get("_default", "sc_qam")
     if channel_type and channel_type.upper() in ("OFDMA",):
         key = "ofdma"
@@ -141,6 +166,11 @@ def _get_us_power_thresholds(channel_type=None):
         "crit_min": crit[0],
         "crit_max": crit[1],
     }
+
+
+def _get_us_power_thresholds(channel_type=None):
+    """Get US power thresholds by channel type (sc_qam or ofdma)."""
+    return resolve_us_power_thresholds(channel_type, thresholds=_t())
 
 
 def resolve_snr_thresholds(
@@ -539,7 +569,7 @@ def threshold_snapshot() -> dict[str, Any]:
     """Return an independent plain-data capture of active thresholds and provenance."""
     return {
         "thresholds": copy.deepcopy(_t()),
-        "profile": copy.deepcopy(_threshold_profile),
+        "profile": _profile_identity(),
     }
 
 

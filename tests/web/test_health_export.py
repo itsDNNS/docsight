@@ -187,6 +187,36 @@ class TestExportEndpoint:
         assert "DOCSIS" in data["text"]
         assert "Vodafone" in data["text"]
 
+    def test_export_reference_values_name_the_active_threshold_profile(self, client, sample_analysis, tmp_path):
+        from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
+        from tests.threshold_profile_helpers import (
+            registered_builtin_profiles,
+            registered_community_profile,
+        )
+
+        current_runtime().update_state(analysis=sample_analysis)
+        storage = Mock(db_path=str(tmp_path / "unused.db"))
+        storage.get_recent_events.return_value = []
+        current_runtime().storage = storage
+        headings = []
+        with patch("app.modules.speedtest.storage.SpeedtestStorage") as speedtests, patch(
+            "app.modules.journal.storage.JournalStorage"
+        ) as journal:
+            speedtests.return_value.get_recent_speedtests.return_value = []
+            journal.return_value.get_active_entries.return_value = []
+            for profile in (registered_builtin_profiles(), registered_community_profile(tmp_path)):
+                with profile:
+                    report = client.get("/api/export").get_json()["text"]
+                headings.append(next(line for line in report.splitlines() if line.startswith("## Reference Values")))
+
+        # The community profile has no 256QAM warning band, so the good band is tolerated.
+        assert "| 256QAM | -3.0 to 10.0 | -3.0 to 10.0 | < -7.0 or > 14.0 |" in report
+        assert "| 256QAM | >= 34.0 | >= 34.0 | < 30.0 |" in report
+        assert headings == [
+            f"## Reference Values (VFKD Thresholds {BUILTIN_THRESHOLD_PROFILES[0]['version']})",
+            "## Reference Values (Strict Cable 2.3.0)",
+        ]
+
 
 class TestExportUnsupportedLegacyCounters:
     def test_export_treats_legacy_unsupported_zero_error_counters_as_unavailable(self):

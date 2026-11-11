@@ -11,6 +11,8 @@ BUILTIN_THRESHOLD_PROFILES: tuple[dict[str, object], ...] = (
     {
         "id": "docsight.thresholds_vfkd",
         "name": "VFKD Thresholds",
+        # Label for the reference column of report threshold tables.
+        "short_name": "VFKD",
         "description": "Signal thresholds based on the Vodafone pNTP and referenced DOCSIS specifications, with DOCSight conventions for values the specification does not define",
         "version": "1.2.0",
         # Earlier versions with identical threshold numbers. Snapshots stored

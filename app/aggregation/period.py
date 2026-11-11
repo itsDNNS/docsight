@@ -125,6 +125,20 @@ def _snr_warning_threshold(
     return "missing", None
 
 
+def _has_measured_power(snapshot: Mapping[str, Any], summary: Mapping[str, Any], direction: str) -> bool:
+    """Whether summary power extremes were measured.
+
+    The analyzer writes 0 when no channel of a direction reports power, which
+    must not become the lowest recorded power.
+    """
+    if summary.get(f"{direction}_total") == 0:
+        return False
+    channels = snapshot.get(f"{direction}_channels")
+    return not (isinstance(channels, list) and channels and all(
+        isinstance(ch, Mapping) and "power" in ch and ch["power"] is None for ch in channels
+    ))
+
+
 def _bad_channels(
     ordered: Sequence[Mapping[str, Any]], direction: str
 ) -> list[tuple[Any, int]]:
@@ -222,14 +236,12 @@ def aggregate_snapshot_period(
             if value is not None:
                 average_values[output_key].append(value)
 
-        for key in ("ds_power_max", "ds_power_min"):
-            raw = summary.get(key)
-            numeric = _number(raw)
-            if numeric is None:
-                continue
-            current = worst[key]
+        raw = summary.get("ds_power_max")
+        numeric = _number(raw)
+        if numeric is not None:
+            current = worst["ds_power_max"]
             if current is None or abs(numeric) > abs(float(current)):
-                worst[key] = raw
+                worst["ds_power_max"] = raw
 
         raw = summary.get("us_power_max")
         numeric = _number(raw)
@@ -237,6 +249,13 @@ def aggregate_snapshot_period(
             current = _number(worst["us_power_max"])
             if current is None or numeric > current:
                 worst["us_power_max"] = raw
+
+        raw = summary.get("ds_power_min")
+        numeric = _number(raw)
+        if numeric is not None and _has_measured_power(snapshot, summary, "ds"):
+            current = _number(worst["ds_power_min"])
+            if current is None or numeric < current:
+                worst["ds_power_min"] = raw
 
         raw_snr = summary.get("ds_snr_min")
         numeric_snr = _number(raw_snr)
