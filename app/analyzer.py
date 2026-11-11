@@ -312,7 +312,9 @@ def _recalculate_summary_health(summary) -> None:
 
 
 def _has_comparable_baseline_schema(schema) -> bool:
-    return not isinstance(schema, bool) and isinstance(schema, (int, float)) and schema >= _ERROR_BASELINE_SCHEMA
+    if isinstance(schema, float) and schema.is_integer():
+        schema = int(schema)
+    return isinstance(schema, int) and not isinstance(schema, bool) and schema >= _ERROR_BASELINE_SCHEMA
 
 
 def _recent_spike_active(last_spike_ts: str | None) -> bool:

@@ -81,9 +81,11 @@ function _fmtUptime(seconds) {
 }
 
 function _healthDot(h) {
-    var cls = (h === 'good' || h === 'marginal' || h === 'poor' || h === 'tolerated') ? h : 'unknown';
-    var labels = {good: T.health_good || 'Good', tolerated: T.health_tolerated || 'Tolerated', marginal: T.health_marginal || 'Marginal', poor: T.health_critical || 'Critical'};
-    return '<span class="health-dot ' + cls + '"></span>' + escapeHtml(labels[h] || h);
+    /* The analyzer stores "critical"; "poor" is the older name for the same level. */
+    var level = h === 'poor' ? 'critical' : h;
+    var classes = {good: 'good', tolerated: 'tolerated', marginal: 'marginal', critical: 'poor'};
+    var labels = {good: T.health_good || 'Good', tolerated: T.health_tolerated || 'Tolerated', marginal: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'};
+    return '<span class="health-dot ' + (classes[level] || 'unknown') + '"></span>' + escapeHtml(labels[level] || h);
 }
 
 function _eventChannelMeta(c) {

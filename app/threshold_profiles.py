@@ -14,7 +14,8 @@ BUILTIN_THRESHOLD_PROFILES: tuple[dict[str, object], ...] = (
         "description": "Signal thresholds based on the Vodafone pNTP and referenced DOCSIS specifications, with DOCSight conventions for values the specification does not define",
         "version": "1.2.0",
         # Earlier versions with identical threshold numbers. Snapshots stored
-        # with them keep exact numeric provenance in reports.
+        # with them keep exact numeric provenance in reports. Clear this when
+        # any threshold number changes.
         "same_thresholds_as": ("1.1.0",),
         "author": "itsDNNS",
         "minAppVersion": "2026.2",
