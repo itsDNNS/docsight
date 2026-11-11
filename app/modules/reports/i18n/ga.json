@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR beagán faoi bhun an idéalach",
     "us_modulation_critical": "Modhnú upstream díghrádaithe go criticiúil",
     "us_modulation_marginal": "Modhnú upstream díghrádaithe",
+    "us_modulation_tolerated": "Modhnú upstream laghdaithe beagán",
+    "ds_modulation_critical": "Modhnú downstream díghrádaithe go criticiúil",
+    "ds_modulation_marginal": "Modhnú downstream díghrádaithe",
+    "ds_modulation_tolerated": "Modhnú downstream laghdaithe beagán",
     "uncorr_errors_high": "Earráidí arda do-cheartaithe",
     "uncorr_errors_critical": "Tá ráta earráide do-cheartaithe ríthábhachtach"
   },

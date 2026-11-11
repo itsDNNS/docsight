@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR något under ideal",
     "us_modulation_critical": "Upstream-modulering kritiskt försämrad",
     "us_modulation_marginal": "Upstream-modulering försämrad",
+    "us_modulation_tolerated": "Upstream-modulering något sänkt",
+    "ds_modulation_critical": "Downstream-modulering kritiskt försämrad",
+    "ds_modulation_marginal": "Downstream-modulering försämrad",
+    "ds_modulation_tolerated": "Downstream-modulering något sänkt",
     "uncorr_errors_high": "Höga okorrigerbara fel",
     "uncorr_errors_critical": "Okorrigerbar felfrekvens kritisk"
   },

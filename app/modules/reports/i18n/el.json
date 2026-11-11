@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR λίγο πιο κάτω από το ιδανικό",
     "us_modulation_critical": "Κρίσιμα υποβαθμισμένη διαμόρφωση upstream",
     "us_modulation_marginal": "Υποβαθμισμένη διαμόρφωση upstream",
+    "us_modulation_tolerated": "Ελαφρώς μειωμένη διαμόρφωση upstream",
+    "ds_modulation_critical": "Κρίσιμα υποβαθμισμένη διαμόρφωση downstream",
+    "ds_modulation_marginal": "Υποβαθμισμένη διαμόρφωση downstream",
+    "ds_modulation_tolerated": "Ελαφρώς μειωμένη διαμόρφωση downstream",
     "uncorr_errors_high": "Υψηλά μη διορθώσιμα σφάλματα",
     "uncorr_errors_critical": "Το μη διορθωμένο ποσοστό σφάλματος είναι κρίσιμο"
   },

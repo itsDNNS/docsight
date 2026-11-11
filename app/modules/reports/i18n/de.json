@@ -161,6 +161,10 @@
     "snr_tolerated": "Signal-Rausch-Verhältnis leicht unter dem Ideal",
     "us_modulation_critical": "Upstream-Modulation kritisch herabgesetzt",
     "us_modulation_marginal": "Upstream-Modulation herabgesetzt",
+    "us_modulation_tolerated": "Upstream-Modulation leicht herabgesetzt",
+    "ds_modulation_critical": "Downstream-Modulation kritisch herabgesetzt",
+    "ds_modulation_marginal": "Downstream-Modulation herabgesetzt",
+    "ds_modulation_tolerated": "Downstream-Modulation leicht herabgesetzt",
     "uncorr_errors_high": "Hohe Anzahl unkorrigierbarer Fehler",
     "uncorr_errors_critical": "Unkorrigierbare Fehlerrate kritisch"
   },

@@ -1221,12 +1221,33 @@ class TestIndexRoute:
         assert 'class="hero-modulation-card hero-modulation-warn"' in html
         assert 'href="#modulation"' in html
 
+    def test_home_marks_tolerated_upstream_modulation_instead_of_normal(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "health": "tolerated",
+            "health_issues": ["us_modulation_tolerated"],
+        })
+        sample_analysis["us_channels"][0].update({
+            "modulation": "128QAM",
+            "health": "tolerated",
+            "health_detail": "modulation tolerated",
+        })
+        current_runtime().update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        card = html.split('data-modulation-dir="us"', 1)[1].split('class="hero-modulation-card ', 1)[0][:1500]
+        assert 'class="hero-modulation-card hero-modulation-tolerated"' in html
+        assert "Upstream modulation slightly reduced" in card
+        assert "No modulation degradation detected" not in card
+
     @pytest.mark.parametrize(
         ("issue", "detail", "expected_label"),
         [
-            ("ds_modulation_critical", "modulation critical", "Modulation kritisch degradiert"),
-            ("ds_modulation_marginal", "modulation warning", "Modulation degradiert"),
-            ("ds_modulation_tolerated", "modulation tolerated", "Modulation degradiert"),
+            ("ds_modulation_critical", "modulation critical", "Downstream-Modulation kritisch herabgesetzt"),
+            ("ds_modulation_marginal", "modulation warning", "Downstream-Modulation herabgesetzt"),
+            ("ds_modulation_tolerated", "modulation tolerated", "Downstream-Modulation leicht herabgesetzt"),
         ],
     )
     def test_home_translates_downstream_modulation_issues_in_german_dashboard(
@@ -1247,8 +1268,13 @@ class TestIndexRoute:
 
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        assert issue not in html
-        assert expected_label in html
+        # The translation bootstrap JSON carries the report catalog, whose
+        # labels are keyed by issue; only the rendered page must not show it.
+        # Tolerated findings stay out of the findings list, so their label is
+        # only in the translations the snapshot panel reads.
+        rendered = html.split('id="docsight-dashboard-bootstrap"', 1)[0]
+        assert issue not in rendered
+        assert expected_label in (html if issue.endswith("_tolerated") else rendered)
         assert "Downstream-Details bleiben in der Modulationsansicht" in html
 
     def test_home_marks_critical_upstream_modulation(self, client, sample_analysis):

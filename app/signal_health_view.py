@@ -409,6 +409,9 @@ def build_home_modulation_context(analysis):
             elif "us_modulation_marginal" in issues or "us_modulation_warn" in issues:
                 health = "warn"
                 issue = "us_modulation_marginal"
+            elif "us_modulation_tolerated" in issues:
+                health = "tolerated"
+                issue = "us_modulation_tolerated"
         return {
             "dir": direction,
             "health": health,

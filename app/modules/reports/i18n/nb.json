@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR litt under ideal",
     "us_modulation_critical": "Upstream-modulasjon kritisk redusert",
     "us_modulation_marginal": "Upstream-modulasjon redusert",
+    "us_modulation_tolerated": "Upstream-modulasjon litt redusert",
+    "ds_modulation_critical": "Downstream-modulasjon kritisk redusert",
+    "ds_modulation_marginal": "Downstream-modulasjon redusert",
+    "ds_modulation_tolerated": "Downstream-modulasjon litt redusert",
     "uncorr_errors_high": "Høye ukorrigerbare feil",
     "uncorr_errors_critical": "Ukorrigerbar feilrate kritisk"
   },

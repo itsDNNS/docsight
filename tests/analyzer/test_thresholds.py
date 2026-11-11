@@ -192,6 +192,26 @@ class TestOFDMAUpstream:
         assert result["summary"]["health"] == "marginal"
         assert "us_modulation_marginal" in result["summary"]["health_issues"]
 
+    def test_tolerated_ofdma_profile_modulation_reaches_the_summary(self):
+        """A channel rated tolerated must not leave the overall health at good."""
+        data = _make_data(
+            us31=[{
+                "channelID": 5,
+                "frequency": "18.000 - 44.000",
+                "powerLevel": "45.0",
+                "modulation": "OFDMA",
+                "profile_modulation": "128QAM",
+                "type": "OFDMA",
+                "multiplex": "OFDMA",
+            }]
+        )
+
+        result = analyze(data)
+        channel = result["us_channels"][0]
+        assert channel["health"] == "tolerated"
+        assert result["summary"]["health"] == "tolerated"
+        assert result["summary"]["health_issues"] == ["us_modulation_tolerated"]
+
     @pytest.mark.parametrize(
         ("profile_modulation", "expected_health"),
         [

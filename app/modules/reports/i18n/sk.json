@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR mierne pod ideálnou hodnotou",
     "us_modulation_critical": "Upstream modulácia kriticky degradovaná",
     "us_modulation_marginal": "Upstream modulácia degradovaná",
+    "us_modulation_tolerated": "Upstream modulácia mierne znížená",
+    "ds_modulation_critical": "Downstream modulácia kriticky degradovaná",
+    "ds_modulation_marginal": "Downstream modulácia degradovaná",
+    "ds_modulation_tolerated": "Downstream modulácia mierne znížená",
     "uncorr_errors_high": "Vysoké neopraviteľné chyby",
     "uncorr_errors_critical": "Neopraviteľná chybovosť kritická"
   },

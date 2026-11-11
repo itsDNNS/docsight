@@ -1225,6 +1225,8 @@ def analyze(data: DocsisData) -> AnalysisResult:
         issues.append("us_modulation_critical")
     elif any("modulation warning" in c["health_detail"] for c in us_channels):
         issues.append("us_modulation_marginal")
+    elif any("modulation tolerated" in c["health_detail"] for c in us_channels):
+        issues.append("us_modulation_tolerated")
 
     # SNR: aggregate from individual channel health_detail
     if any("snr critical" in c["health_detail"] for c in ds_channels):

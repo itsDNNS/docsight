@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR nekoliko pod idealnim",
     "us_modulation_critical": "Upstream modulacija je kritično poslabšana",
     "us_modulation_marginal": "Upstream modulacija je poslabšana",
+    "us_modulation_tolerated": "Upstream modulacija je nekoliko znižana",
+    "ds_modulation_critical": "Downstream modulacija je kritično poslabšana",
+    "ds_modulation_marginal": "Downstream modulacija je poslabšana",
+    "ds_modulation_tolerated": "Downstream modulacija je nekoliko znižana",
     "uncorr_errors_high": "Visoke nepopravljive napake",
     "uncorr_errors_critical": "Kritična stopnja nepopravljivih napak"
   },

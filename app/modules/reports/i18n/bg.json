@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR малко под идеала",
     "us_modulation_critical": "Upstream модулацията е критично влошена",
     "us_modulation_marginal": "Upstream модулацията е влошена",
+    "us_modulation_tolerated": "Upstream модулацията е леко понижена",
+    "ds_modulation_critical": "Downstream модулацията е критично влошена",
+    "ds_modulation_marginal": "Downstream модулацията е влошена",
+    "ds_modulation_tolerated": "Downstream модулацията е леко понижена",
     "uncorr_errors_high": "Високи некоригируеми грешки",
     "uncorr_errors_critical": "Критичен процент некоригируеми грешки"
   },

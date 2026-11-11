@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR valamivel az ideális alatt van",
     "us_modulation_critical": "Az upstream moduláció kritikusan leromlott",
     "us_modulation_marginal": "Az upstream moduláció leromlott",
+    "us_modulation_tolerated": "Az upstream moduláció kissé csökkent",
+    "ds_modulation_critical": "A downstream moduláció kritikusan leromlott",
+    "ds_modulation_marginal": "A downstream moduláció leromlott",
+    "ds_modulation_tolerated": "A downstream moduláció kissé csökkent",
     "uncorr_errors_high": "Magas javíthatatlan hibák",
     "uncorr_errors_critical": "Nem javítható hibaarány kritikus"
   },

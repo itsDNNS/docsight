@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR nieco poniżej ideału",
     "us_modulation_critical": "Modulacja upstream krytycznie pogorszona",
     "us_modulation_marginal": "Pogorszona modulacja upstream",
+    "us_modulation_tolerated": "Modulacja upstream nieco obniżona",
+    "ds_modulation_critical": "Modulacja downstream krytycznie pogorszona",
+    "ds_modulation_marginal": "Pogorszona modulacja downstream",
+    "ds_modulation_tolerated": "Modulacja downstream nieco obniżona",
     "uncorr_errors_high": "Wysokie błędy, których nie da się naprawić",
     "uncorr_errors_critical": "Poziom błędów niemożliwych do skorygowania jest krytyczny"
   },

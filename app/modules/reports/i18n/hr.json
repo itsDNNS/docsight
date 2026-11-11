@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR malo ispod idealnog",
     "us_modulation_critical": "Uzlazna modulacija kritično degradirana",
     "us_modulation_marginal": "Uzlazna modulacija degradirana",
+    "us_modulation_tolerated": "Uzlazna modulacija malo smanjena",
+    "ds_modulation_critical": "Silazna modulacija kritično degradirana",
+    "ds_modulation_marginal": "Silazna modulacija degradirana",
+    "ds_modulation_tolerated": "Silazna modulacija malo smanjena",
     "uncorr_errors_high": "Visoke pogreške koje se ne mogu ispraviti",
     "uncorr_errors_critical": "Stopa grešaka koje se ne mogu ispraviti je kritična"
   },

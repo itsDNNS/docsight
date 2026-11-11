@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR um pouco abaixo do ideal",
     "us_modulation_critical": "Modulação upstream criticamente degradada",
     "us_modulation_marginal": "Modulação upstream degradada",
+    "us_modulation_tolerated": "Modulação upstream ligeiramente reduzida",
+    "ds_modulation_critical": "Modulação downstream criticamente degradada",
+    "ds_modulation_marginal": "Modulação downstream degradada",
+    "ds_modulation_tolerated": "Modulação downstream ligeiramente reduzida",
     "uncorr_errors_high": "Altos erros incorrigíveis",
     "uncorr_errors_critical": "Taxa de erro incorrigível crítica"
   },

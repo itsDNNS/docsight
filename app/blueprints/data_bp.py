@@ -29,6 +29,10 @@ _ISSUE_LABELS = {
     "snr_tolerated": "Signal-to-noise ratio slightly below ideal",
     "us_modulation_critical": "Upstream modulation critically degraded",
     "us_modulation_marginal": "Upstream modulation degraded",
+    "us_modulation_tolerated": "Upstream modulation slightly reduced",
+    "ds_modulation_critical": "Downstream modulation critically degraded",
+    "ds_modulation_marginal": "Downstream modulation degraded",
+    "ds_modulation_tolerated": "Downstream modulation slightly reduced",
     "uncorr_errors_high": "High uncorrectable errors",
     "uncorr_errors_critical": "Uncorrectable error rate critical",
 }

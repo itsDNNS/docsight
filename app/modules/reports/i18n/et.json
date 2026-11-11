@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR ideaalist veidi allapoole",
     "us_modulation_critical": "Upstream-modulatsioon on kriitiliselt halvenenud",
     "us_modulation_marginal": "Upstream-modulatsioon on halvenenud",
+    "us_modulation_tolerated": "Upstream-modulatsioon on veidi madalam",
+    "ds_modulation_critical": "Downstream-modulatsioon on kriitiliselt halvenenud",
+    "ds_modulation_marginal": "Downstream-modulatsioon on halvenenud",
+    "ds_modulation_tolerated": "Downstream-modulatsioon on veidi madalam",
     "uncorr_errors_high": "Suured parandamatud vead",
     "uncorr_errors_critical": "Parandamatu veamäär kriitiline"
   },

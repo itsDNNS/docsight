@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR ușor sub ideal",
     "us_modulation_critical": "Modulația upstream este critic degradată",
     "us_modulation_marginal": "Modulația upstream este degradată",
+    "us_modulation_tolerated": "Modulația upstream este ușor redusă",
+    "ds_modulation_critical": "Modulația downstream este critic degradată",
+    "ds_modulation_marginal": "Modulația downstream este degradată",
+    "ds_modulation_tolerated": "Modulația downstream este ușor redusă",
     "uncorr_errors_high": "Erori neremediabile ridicate",
     "uncorr_errors_critical": "Rata de eroare necorecabilă critică"
   },
