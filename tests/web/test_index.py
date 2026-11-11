@@ -4,6 +4,7 @@ import json
 import re
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
+from html import unescape
 from pathlib import Path
 
 import pytest
@@ -1652,3 +1653,47 @@ class TestHomeNoticePlacement:
         home = _dashboard_html(self._render(client, monkeypatch, no_docsis_analysis, severities=("info",)))
 
         assert home.index('data-notice-id="info-1"') < home.index('no-docsis-placeholder')
+
+
+class TestUpstreamPowerFindings:
+    """Low and high upstream power are different situations and get their own advice."""
+
+    LOCALES = sorted(path.stem for path in (Path(__file__).resolve().parents[2] / "app" / "i18n").glob("*.json"))
+
+    def _insight(self, client, sample_analysis, issue, lang="en"):
+        analysis = deepcopy(sample_analysis)
+        analysis["summary"]["health"] = "critical" if "critical" in issue else "marginal"
+        analysis["summary"]["health_issues"] = [issue]
+        current_runtime().update_state(analysis=analysis)
+        resp = client.get(f"/?lang={lang}")
+        assert resp.status_code == 200
+        card = re.search(
+            r'<div class="insight-explanation">(.*?)</div>.*?<div class="insight-action"><i data-lucide="arrow-right"></i>(.*?)</div>',
+            resp.get_data(as_text=True),
+            re.S,
+        )
+        assert card, f"no insight card with an action for {issue} ({lang})"
+        return unescape(card.group(1).strip()), unescape(card.group(2).strip())
+
+    @pytest.mark.parametrize("severity", ["critical", "marginal"])
+    def test_low_power_uses_its_own_description_and_action(self, client, sample_analysis, severity):
+        from app.i18n import get_translations
+
+        t = get_translations("en")
+        low_desc, low_action = self._insight(client, sample_analysis, f"us_power_{severity}_low")
+        high_desc, high_action = self._insight(client, sample_analysis, f"us_power_{severity}_high")
+
+        assert low_desc == t[f"issue_us_power_{severity}_low_desc"]
+        assert low_action == t[f"insight_action_us_power_{severity}_low"]
+        assert high_desc == t[f"issue_us_power_{severity}_high_desc"]
+        assert high_action == t[f"insight_action_us_power_{severity}"]
+        assert low_desc != high_desc and low_action != high_action
+        assert "attenuation" in low_desc
+
+    @pytest.mark.parametrize("lang", LOCALES)
+    def test_every_language_separates_low_and_high_advice(self, client, sample_analysis, lang):
+        for severity in ("critical", "marginal"):
+            low = self._insight(client, sample_analysis, f"us_power_{severity}_low", lang)
+            high = self._insight(client, sample_analysis, f"us_power_{severity}_high", lang)
+            assert all(low) and all(high)
+            assert low[0] != high[0] and low[1] != high[1]
