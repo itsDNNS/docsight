@@ -221,9 +221,9 @@ class DemoCollector(Collector):
         """
         return {
             "1024QAM": 0.0,
-            "512QAM": 0.8,
-            "256QAM": 1.6,
-            "128QAM": 2.6,
+            "512QAM": 1.2,
+            "256QAM": 2.4,
+            "128QAM": 3.4,
         }.get(profile_modulation, 0.0)
 
     def _generate_data(self):

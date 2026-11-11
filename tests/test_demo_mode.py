@@ -577,6 +577,17 @@ class TestDemoCollectorOFDMA:
             poll_interval=300,
         )
 
+    def test_live_demo_keeps_a_deviating_ofdma_channel_to_focus(self, storage):
+        """The channel timeline opens on the line status focus, which needs a deviating channel."""
+        collector = self._collector(storage)
+        collector._poll_count = 1
+
+        analysis = analyzer.analyze(collector._generate_data())
+
+        ofdma = next(ch for ch in analysis["us_channels"] if ch["docsis_version"] == "3.1")
+        assert ofdma["health"] != "good"
+        assert "power" in ofdma["health_detail"] and "high" in ofdma["health_detail"]
+
     def test_generate_data_includes_docsis31_upstream_ofdma(self, storage):
         collector = self._collector(storage)
         collector._poll_count = 1
