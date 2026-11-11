@@ -85,7 +85,7 @@
   "measurements_tolerated": "Toleruojama sveikata",
   "worst_recorded": "Blogiausios įrašytos vertės",
   "ds_power_worst": "DS galia (blogiausia vertė)",
-  "us_power_worst": "US galia (blogiausia vertė)",
+  "us_power_worst": "US galia (blogiausias maksimumas)",
   "ds_snr_worst": "DS SNR (blogiausia min.)",
   "uncorr_err_max": "Netaisomos klaidos (maks.)",
   "corr_err_max": "Taisomos klaidos (maks.)",

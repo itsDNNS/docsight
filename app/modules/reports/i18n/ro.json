@@ -85,7 +85,7 @@
   "measurements_tolerated": "Sanatate TOLERATA",
   "worst_recorded": "Cele mai proaste valori înregistrate",
   "ds_power_worst": "DS Power (cea mai proastă valoare)",
-  "us_power_worst": "Putere US (cea mai proastă valoare)",
+  "us_power_worst": "Putere US (cel mai prost maxim)",
   "ds_snr_worst": "DS SNR (cel mai rău min.)",
   "uncorr_err_max": "Erori necorectabile (maximum)",
   "corr_err_max": "Erori corectabile (maximum)",

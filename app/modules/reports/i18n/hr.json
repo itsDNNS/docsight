@@ -85,7 +85,7 @@
   "measurements_tolerated": "TOLERISAN zdravlje",
   "worst_recorded": "Najgore zabilježene vrijednosti",
   "ds_power_worst": "DS snaga (najlošija vrijednost)",
-  "us_power_worst": "US snaga (najlošija vrijednost)",
+  "us_power_worst": "US snaga (najlošiji maksimum)",
   "ds_snr_worst": "DS SNR (najgori min)",
   "uncorr_err_max": "Neispravljive pogreške (maks.)",
   "corr_err_max": "Ispravljive pogreške (maks.)",

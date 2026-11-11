@@ -85,7 +85,7 @@
   "measurements_tolerated": "TOLEREERDE gezondheid",
   "worst_recorded": "Slechtste geregistreerde waarden",
   "ds_power_worst": "DS Power (slechtste waarde)",
-  "us_power_worst": "US Power (slechtste waarde)",
+  "us_power_worst": "US Power (slechtste max)",
   "ds_snr_worst": "DS SNR (slechtste min)",
   "uncorr_err_max": "Oncorrigeerbare fouten (max.)",
   "corr_err_max": "Corrigeerbare fouten (max.)",

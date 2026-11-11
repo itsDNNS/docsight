@@ -85,7 +85,7 @@
   "measurements_tolerated": "TALULEV tervis",
   "worst_recorded": "Halvimad salvestatud väärtused",
   "ds_power_worst": "DS-võimsus (halvim väärtus)",
-  "us_power_worst": "US-võimsus (halvim väärtus)",
+  "us_power_worst": "US-võimsus (halvim maksimum)",
   "ds_snr_worst": "DS SNR (halvim min)",
   "uncorr_err_max": "Parandamatud vead (max)",
   "corr_err_max": "Parandatavad vead (max)",

@@ -85,7 +85,7 @@
   "measurements_tolerated": "TŰRÉS egészség",
   "worst_recorded": "Legrosszabb rögzített értékek",
   "ds_power_worst": "DS teljesítmény (legrosszabb érték)",
-  "us_power_worst": "US Power (legrosszabb érték)",
+  "us_power_worst": "US Power (legrosszabb max)",
   "ds_snr_worst": "DS SNR (legrosszabb perc)",
   "uncorr_err_max": "Javíthatatlan hibák (max.)",
   "corr_err_max": "Javítható hibák (max.)",

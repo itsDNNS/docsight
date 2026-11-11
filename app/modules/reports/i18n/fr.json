@@ -85,7 +85,7 @@
   "measurements_tolerated": "État TOLÉRÉ",
   "worst_recorded": "Pires valeurs enregistrées",
   "ds_power_worst": "Puiss DS (pire valeur)",
-  "us_power_worst": "Puiss US (pire valeur)",
+  "us_power_worst": "Puiss US (pire max)",
   "ds_snr_worst": "SNR DS (pire min)",
   "uncorr_err_max": "Erreurs non corrigeables (max)",
   "corr_err_max": "Erreurs corrigeables (max)",

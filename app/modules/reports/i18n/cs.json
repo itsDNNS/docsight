@@ -85,7 +85,7 @@
   "measurements_tolerated": "TOLEROVANÉ zdraví",
   "worst_recorded": "Nejhorší zaznamenané hodnoty",
   "ds_power_worst": "DS Power (nejhorší hodnota)",
-  "us_power_worst": "US výkon (nejhorší hodnota)",
+  "us_power_worst": "US výkon (nejhorší maximum)",
   "ds_snr_worst": "DS SNR (nejhorší min)",
   "uncorr_err_max": "Neopravitelné chyby (max.)",
   "corr_err_max": "Opravitelné chyby (max.)",

@@ -20,6 +20,8 @@ from tests.threshold_profile_helpers import (
     registered_community_profile,
 )
 
+_VFKD_VERSION = BUILTIN_THRESHOLD_PROFILES[0]["version"]
+
 _SUMMARY = {
     "ds_total": 2, "us_total": 2,
     "ds_power_min": -1.2, "ds_power_max": 5.3, "ds_power_avg": 2.1,
@@ -62,7 +64,7 @@ def test_vfkd_table_keeps_its_reference_and_marks_upstream_conventions():
         assert refs[("US Modulation", "QAM Order")] == "VFKD"
         assert refs[("US Power", "sc_qam")] == "VFKD *"
         assert refs[("US Power", "ofdma")] == "VFKD *"
-        assert "Threshold profile: VFKD Thresholds 1.2.0" in page
+        assert f"Threshold profile: VFKD Thresholds {_VFKD_VERSION}" in page
         assert "* Marked rows include values that are DOCSight conventions rather than specification values." in page
 
 
@@ -107,6 +109,18 @@ def test_long_profile_name_is_shortened_in_the_table_and_named_in_full_below(tmp
     assert f" {name} 2.3.0" in note
 
 
+def test_shortened_profile_name_keeps_its_convention_marker(tmp_path):
+    name = "Regional Cable Operator Community Thresholds"
+    vfkd_meta = BUILTIN_THRESHOLD_PROFILES[0]["thresholds"]["_meta"]
+    with registered_community_profile(tmp_path, name=name, meta=vfkd_meta):
+        page = _threshold_page(_pdf_text(generate_report([_snapshot("2026-11-01T10:00:00")])))
+
+    table = page.split("Threshold profile:", 1)[0]
+    sc_qam_row = next(line for line in table.splitlines() if line.startswith("US Power sc_qam"))
+    assert sc_qam_row.endswith("… *")
+    assert "* Marked rows include values" in page
+
+
 def test_report_warning_ranges_follow_the_analyzer_for_the_active_profile(tmp_path):
     with registered_community_profile(tmp_path):
         text = generate_complaint_text([_snapshot("2026-11-01T10:00:00")])
@@ -127,20 +141,30 @@ def test_threshold_table_tolerates_only_the_good_band_when_a_profile_has_no_warn
     assert rows[("SNR/MER", "256QAM")]["tolerated"] == ">= 34.0 dB"
 
 
-def test_report_quotes_low_power_when_it_is_further_out_of_range():
+def test_report_quotes_low_downstream_power_when_it_is_further_out_of_range():
     snapshots = [
-        _snapshot("2026-11-01T10:00:00", us_power_min=33.0, us_power_max=44.0,
-                  ds_power_min=-9.0, ds_power_max=5.0),
-        _snapshot("2026-11-02T10:00:00", us_power_min=40.0, us_power_max=46.0),
+        _snapshot("2026-11-01T10:00:00", ds_power_min=-9.0, ds_power_max=5.0),
+        _snapshot("2026-11-02T10:00:00"),
     ]
 
     letter = generate_complaint_text(snapshots)
     report = _pdf_text(generate_report(snapshots))
 
-    assert "Worst upstream power: 33.0 dBmV (threshold: 37.1 to 51.0 dBmV)" in letter
     assert "Worst downstream power: -9.0 dBmV (threshold: -6.0 to 15.0 dBmV)" in letter
-    assert "US Power (worst): 33.0 dBmV" in report
     assert "DS Power (worst): -9.0 dBmV" in report
+
+
+def test_report_does_not_present_low_upstream_power_as_the_worst_value():
+    # Low upstream power on its own is rated at most marginal and usually
+    # harmless, so the letter keeps quoting the highest upstream power.
+    snapshots = [_snapshot("2026-11-01T10:00:00", us_power_min=33.0, us_power_max=44.0)]
+
+    letter = generate_complaint_text(snapshots)
+    report = _pdf_text(generate_report(snapshots))
+
+    assert "Worst upstream power: 44.0 dBmV (threshold: 37.1 to 51.0 dBmV)" in letter
+    assert "US Power (worst max): 44.0 dBmV" in report
+    assert "33.0 dBmV" not in letter
 
 
 def test_report_quotes_low_downstream_power_next_to_hotter_snapshots():

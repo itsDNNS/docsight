@@ -85,7 +85,7 @@
   "measurements_tolerated": "PRENOSNO zdravje",
   "worst_recorded": "Najslabše zabeležene vrednosti",
   "ds_power_worst": "DS Power (najslabša vrednost)",
-  "us_power_worst": "US moč (najslabša vrednost)",
+  "us_power_worst": "US moč (najslabši maksimum)",
   "ds_snr_worst": "DS SNR (najslabši min.)",
   "uncorr_err_max": "Nepopravljive napake (največ)",
   "corr_err_max": "Popravljive napake (največ)",

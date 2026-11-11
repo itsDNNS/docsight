@@ -85,7 +85,7 @@
   "measurements_tolerated": "TOLERAT hälsa",
   "worst_recorded": "Sämsta registrerade värden",
   "ds_power_worst": "DS Power (sämsta värde)",
-  "us_power_worst": "US Power (sämsta värde)",
+  "us_power_worst": "US Power (sämsta max)",
   "ds_snr_worst": "DS SNR (sämsta min)",
   "uncorr_err_max": "Okorrigerbara fel (max)",
   "corr_err_max": "Korrigerbara fel (max)",

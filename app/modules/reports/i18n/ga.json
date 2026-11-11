@@ -85,7 +85,7 @@
   "measurements_tolerated": "TOLERATED sláinte",
   "worst_recorded": "Luachanna Taifeadta is Measa",
   "ds_power_worst": "DS Power (an luach is measa)",
-  "us_power_worst": "US Power (an luach is measa)",
+  "us_power_worst": "US Power (an t-uasmhéid is measa)",
   "ds_snr_worst": "DS SNR (nóiméad is measa)",
   "uncorr_err_max": "Earráidí Do-cheartaithe (uas)",
   "corr_err_max": "Earráidí Incheartaithe (uas)",

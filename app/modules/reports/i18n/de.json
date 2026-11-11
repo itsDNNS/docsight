@@ -85,7 +85,7 @@
   "measurements_tolerated": "Zustand TOLERIERT",
   "worst_recorded": "Schlechteste gemessene Werte",
   "ds_power_worst": "DS-Pegel (schlechtester Wert)",
-  "us_power_worst": "US-Pegel (schlechtester Wert)",
+  "us_power_worst": "US-Pegel (schlechtester Max.)",
   "ds_snr_worst": "DS-SNR (schlechtester Min.)",
   "uncorr_err_max": "Nicht korrigierbare Fehler (Max.)",
   "corr_err_max": "Korrigierbare Fehler (Max.)",

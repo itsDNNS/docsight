@@ -85,7 +85,7 @@
   "measurements_tolerated": "ΥΓΕΙΑ ΑΝΕΚΤΗ",
   "worst_recorded": "Οι χειρότερες τιμές που έχουν καταγραφεί",
   "ds_power_worst": "DS Power (χειρότερη τιμή)",
-  "us_power_worst": "Ισχύς US (χειρότερη τιμή)",
+  "us_power_worst": "Ισχύς US (χειρότερο μέγιστο)",
   "ds_snr_worst": "DS SNR (χειρότερο λεπτό)",
   "uncorr_err_max": "Μη διορθωμένα σφάλματα (μέγ.)",
   "corr_err_max": "Διορθώσιμα σφάλματα (μέγ.)",

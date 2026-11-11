@@ -30,7 +30,6 @@ _RAW_WORST_FIELDS = {
     "ds_power_max": "ds_power_max",
     "ds_power_min": "ds_power_min",
     "us_power_max": "us_power_max",
-    "us_power_min": "us_power_min",
     "ds_snr_min": "ds_snr_min",
     "ds_uncorrectable_max": "ds_uncorrectable_errors",
     "ds_correctable_max": "ds_correctable_errors",
@@ -172,7 +171,6 @@ def aggregate_snapshot_period(
         "ds_power_max": None,
         "ds_power_min": None,
         "us_power_max": None,
-        "us_power_min": None,
         "ds_snr_min": None,
         "ds_snr_warn_min": None,
         "ds_uncorrectable_max": None,
@@ -252,15 +250,12 @@ def aggregate_snapshot_period(
             if current is None or numeric > current:
                 worst["us_power_max"] = raw
 
-        for direction in ("ds", "us"):
-            key = f"{direction}_power_min"
-            raw = summary.get(key)
-            numeric = _number(raw)
-            if numeric is None or not _has_measured_power(snapshot, summary, direction):
-                continue
-            current = _number(worst[key])
+        raw = summary.get("ds_power_min")
+        numeric = _number(raw)
+        if numeric is not None and _has_measured_power(snapshot, summary, "ds"):
+            current = _number(worst["ds_power_min"])
             if current is None or numeric < current:
-                worst[key] = raw
+                worst["ds_power_min"] = raw
 
         raw_snr = summary.get("ds_snr_min")
         numeric_snr = _number(raw_snr)

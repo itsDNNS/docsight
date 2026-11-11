@@ -85,7 +85,7 @@
   "measurements_tolerated": "PIEcieša veselība",
   "worst_recorded": "Sliktākās reģistrētās vērtības",
   "ds_power_worst": "DS jauda (sliktākā vērtība)",
-  "us_power_worst": "US jauda (sliktākā vērtība)",
+  "us_power_worst": "US jauda (sliktākais maksimums)",
   "ds_snr_worst": "DS SNR (sliktākā min.)",
   "uncorr_err_max": "Nelabojamas kļūdas (maks.)",
   "corr_err_max": "Labojamās kļūdas (maks.)",

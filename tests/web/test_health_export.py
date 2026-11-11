@@ -188,6 +188,7 @@ class TestExportEndpoint:
         assert "Vodafone" in data["text"]
 
     def test_export_reference_values_name_the_active_threshold_profile(self, client, sample_analysis, tmp_path):
+        from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
         from tests.threshold_profile_helpers import (
             registered_builtin_profiles,
             registered_community_profile,
@@ -212,7 +213,7 @@ class TestExportEndpoint:
         assert "| 256QAM | -3.0 to 10.0 | -3.0 to 10.0 | < -7.0 or > 14.0 |" in report
         assert "| 256QAM | >= 34.0 | >= 34.0 | < 30.0 |" in report
         assert headings == [
-            "## Reference Values (VFKD Thresholds 1.2.0)",
+            f"## Reference Values (VFKD Thresholds {BUILTIN_THRESHOLD_PROFILES[0]['version']})",
             "## Reference Values (Strict Cable 2.3.0)",
         ]
 

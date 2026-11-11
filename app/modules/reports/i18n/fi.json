@@ -85,7 +85,7 @@
   "measurements_tolerated": "SIETTY terveys",
   "worst_recorded": "Huonoimmat tallennetut arvot",
   "ds_power_worst": "DS-teho (huonoin arvo)",
-  "us_power_worst": "US-teho (huonoin arvo)",
+  "us_power_worst": "US-teho (huonoin maksimi)",
   "ds_snr_worst": "DS SNR (huonoin minuutti)",
   "uncorr_err_max": "Korjaamattomat virheet (enintään)",
   "corr_err_max": "Korjattavat virheet (enintään)",

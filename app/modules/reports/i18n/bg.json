@@ -85,7 +85,7 @@
   "measurements_tolerated": "ТОЛЕРИРАНО здраве",
   "worst_recorded": "Най-лошите записани стойности",
   "ds_power_worst": "DS Power (най-лоша стойност)",
-  "us_power_worst": "US мощност (най-лоша стойност)",
+  "us_power_worst": "US мощност (най-лош максимум)",
   "ds_snr_worst": "DS SNR (най-лош мин.)",
   "uncorr_err_max": "Некоригируеми грешки (макс.)",
   "corr_err_max": "Коригируеми грешки (макс.)",

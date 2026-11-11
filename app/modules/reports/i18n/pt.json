@@ -85,7 +85,7 @@
   "measurements_tolerated": "Saúde TOLERADA",
   "worst_recorded": "Piores Valores Registrados",
   "ds_power_worst": "DS Power (pior valor)",
-  "us_power_worst": "Potência US (pior valor)",
+  "us_power_worst": "Potência US (pior máximo)",
   "ds_snr_worst": "DS SNR (pior mínimo)",
   "uncorr_err_max": "Erros incorrigíveis (máx.)",
   "corr_err_max": "Erros corrigíveis (máx.)",
