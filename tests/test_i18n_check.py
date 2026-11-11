@@ -192,8 +192,9 @@ def test_low_upstream_power_copy_is_its_own_and_covers_all_core_locales():
             assert data[low] != data[high], f"{path.stem}/{low} repeats the high power advice"
             if path.stem != "en":
                 assert data[low] != english[low], f"{path.stem}/{low} is an English fallback"
-        # The ranges depend on the active threshold profile, so the hint names none.
-        assert not re.search(r"\d\s*dBmV", data["glossary_us_power"]), f"{path.stem}/glossary_us_power names fixed dBmV values"
+        # The ranges depend on the active threshold profile, so the hints name none.
+        for key in ("glossary_us_power", "glossary_ds_power", "glossary_snr"):
+            assert not re.search(r"\d\s*dB", data[key]), f"{path.stem}/{key} names fixed dB values"
         # Low OFDMA power is not rated at all, which the hint has to say.
         assert "OFDMA" in data["glossary_us_power"], f"{path.stem}/glossary_us_power misses the OFDMA rule"
 
@@ -222,3 +223,26 @@ def test_upstream_tolerated_copy_credits_the_threshold_profile_not_the_isp():
         if path.stem != "en":
             for key in keys:
                 assert data[key] != english[key], f"{path.stem}/{key} is an English fallback"
+
+
+def test_core_locales_carry_no_english_sentences():
+    """A sentence copied from en.json is an untranslated leftover, not a translation.
+
+    Short labels and product names may legitimately match English, so only
+    values with at least two lowercase words are checked.
+    """
+    core_i18n_dir = Path(__file__).resolve().parent.parent / "app" / "i18n"
+    english = json.loads((core_i18n_dir / "en.json").read_text(encoding="utf-8"))
+    sentence = re.compile(r"[a-z]{4,} [a-z]{3,}")
+    leftovers = {}
+    for path in sorted(core_i18n_dir.glob("*.json")):
+        if path.stem == "en":
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        same = sorted(
+            key for key, value in data.items()
+            if isinstance(value, str) and value == english.get(key) and sentence.search(value)
+        )
+        if same:
+            leftovers[path.stem] = same
+    assert leftovers == {}
