@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.modules.reports.report import (
     IncidentReport, generate_report, generate_incident_report, generate_complaint_text,
-    _format_threshold_table, _default_warn_thresholds,
+    _format_threshold_table, _default_warn_thresholds, REPORT_STRINGS,
 )
 
 
@@ -409,3 +409,12 @@ def test_generate_incident_report_embeds_customer_details_in_complaint_closing()
     assert "[Ihr Name]" not in text
     assert "[Kundennummer]" not in text
     assert "[Adresse]" not in text
+
+
+def test_report_names_low_and_high_upstream_power_differently_in_every_language():
+    assert len(REPORT_STRINGS) == 24
+    for lang, strings in REPORT_STRINGS.items():
+        labels = strings["issue_labels"]
+        for severity in ("critical", "marginal", "tolerated"):
+            low, high = labels[f"us_power_{severity}_low"], labels[f"us_power_{severity}_high"]
+            assert low and high and low != high, f"{lang}/{severity}"

@@ -171,3 +171,31 @@ def test_signal_family_status_and_signal_quality_copy_cover_all_core_locales():
             assert not fixed_db_pattern.search(data[key]), f"{path.stem}/{key} contains a fixed dB threshold"
             if path.stem != "en":
                 assert data[key] != english[key], f"{path.stem}/{key} is an English fallback"
+
+
+def test_low_upstream_power_copy_is_its_own_and_covers_all_core_locales():
+    core_i18n_dir = Path("app/i18n")
+    locale_paths = sorted(path for path in core_i18n_dir.glob("*.json") if path.name != "template.json")
+    english = json.loads((core_i18n_dir / "en.json").read_text(encoding="utf-8"))
+    low_to_high = {
+        "issue_us_power_critical_low_desc": "issue_us_power_critical_high_desc",
+        "issue_us_power_marginal_low_desc": "issue_us_power_marginal_high_desc",
+        "insight_action_us_power_critical_low": "insight_action_us_power_critical",
+        "insight_action_us_power_marginal_low": "insight_action_us_power_marginal",
+    }
+
+    assert len(locale_paths) == 24
+    for path in locale_paths:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        for low, high in low_to_high.items():
+            assert data.get(low), f"{path.stem}/{low} missing"
+            assert data[low] != data[high], f"{path.stem}/{low} repeats the high power advice"
+            if path.stem != "en":
+                assert data[low] != english[low], f"{path.stem}/{low} is an English fallback"
+        # The ranges depend on the active threshold profile, so the hint names none.
+        assert not re.search(r"\d\s*dBmV", data["glossary_us_power"]), f"{path.stem}/glossary_us_power names fixed dBmV values"
+
+    # Low transmit power does not mean the modem fails to reach the provider.
+    low_texts = [english[key] for key in low_to_high] + [english["glossary_us_power"]]
+    unreachable = re.compile(r"(\bnot|n't|\bfail\w*\s+to|\bunable\s+to)\s+(be\s+)?reach", re.IGNORECASE)
+    assert [text for text in low_texts if unreachable.search(text)] == []
