@@ -247,7 +247,7 @@ class TestCMCollectorSmartCapture:
         collector._core_storage.save_events_with_ids = MagicMock()
 
         samples = [{"target_id": 1, "timeout": False}]
-        collector._check_events(samples)
+        collector._check_events(samples, [{"id": 1, "label": "Cloudflare DNS", "host": "1.1.1.1"}])
 
         # Verify save_events_with_ids was called (not save_events)
         collector._core_storage.save_events_with_ids.assert_called_once_with(test_events)

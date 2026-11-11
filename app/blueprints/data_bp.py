@@ -299,8 +299,10 @@ def api_export():
                 "|-----------|----------|------|---------|",
             ]
             for ev in events:
+                # Messages can contain user text such as target labels (#1106).
+                message = " ".join(str(ev["message"]).split()).replace("|", "\\|")
                 lines.append(
-                    f"| {ev['timestamp']} | {ev['severity']} | {ev['event_type']} | {ev['message']} |"
+                    f"| {ev['timestamp']} | {ev['severity']} | {ev['event_type']} | {message} |"
                 )
 
         speedtests = []

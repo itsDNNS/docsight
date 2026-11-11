@@ -302,3 +302,60 @@ def test_unreadable_stored_interval_does_not_stop_probing(tmp_path, monkeypatch,
     assert result.success is True
     assert result.data == {"probed": 2}
     assert {t["poll_interval_ms"] for t in collector.get_storage().get_targets()} == {5000}
+
+
+class TestEventTargetIdentity:
+    """Repro of #1106: create two targets, delete the first, create another."""
+
+    def test_events_name_targets_after_delete_and_survive_rename_and_delete(
+        self, mock_deps, tmp_path,
+    ):
+        from app.storage import SnapshotStorage
+
+        config_mgr, _storage, web = mock_deps
+        core = SnapshotStorage(str(tmp_path / "docsis_history.db"), max_days=7)
+        with patch("app.modules.connection_monitor.collector.ProbeEngine") as MockEngine:
+            MockEngine.return_value.probe.return_value = ProbeResult(
+                latency_ms=None, timeout=True, method="tcp"
+            )
+            collector = ConnectionMonitorCollector(
+                config_mgr=config_mgr, storage=core, web=web
+            )
+        cm = collector.get_storage()
+        first = cm.create_target("First", "192.0.2.1")
+        second = cm.create_target("Second", "192.0.2.2")
+        cm.delete_target(first)
+        third = cm.create_target("Third", "192.0.2.3")
+        collector._seeded = True
+        collector._last_cleanup = time.time()
+
+        # Stable keys stay as they are: two live targets with IDs 2 and 3.
+        assert (second, third) == (2, 3)
+        assert [t["id"] for t in cm.get_targets()] == [2, 3]
+
+        for _ in range(5):
+            collector._last_probe = {}
+            collector.collect()
+
+        def unreachable():
+            return {
+                e["details"]["target_id"]: e
+                for e in core.get_events(event_type="cm_target_unreachable")
+            }
+
+        events = unreachable()
+        assert set(events) == {2, 3}
+        assert events[3]["message"] == "Target Third (192.0.2.3) unreachable (5 consecutive timeouts)"
+        assert events[3]["details"]["target_label"] == "Third"
+        assert events[3]["details"]["target_host"] == "192.0.2.3"
+        assert events[2]["details"]["target_label"] == "Second"
+
+        # Renaming or deleting a target later does not rewrite its history,
+        # also not after the storage is opened again.
+        cm.update_target(third, label="Renamed", host="198.51.100.3")
+        cm.delete_target(second)
+        core = SnapshotStorage(str(tmp_path / "docsis_history.db"), max_days=7)
+        events = unreachable()
+        assert events[3]["details"]["target_label"] == "Third"
+        assert events[3]["details"]["target_host"] == "192.0.2.3"
+        assert events[2]["message"] == "Target Second (192.0.2.2) unreachable (5 consecutive timeouts)"

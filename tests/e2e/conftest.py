@@ -19,6 +19,7 @@ from tests.e2e.support.lifecycle import (
     reserve_local_port,
     running_processes,
 )
+from tests.e2e.support.connection_monitor import seed_connection_monitor_events
 from tests.e2e.support.profiles import ServerProfile, ServerTarget
 from tests.e2e.support.vodafone import seed_vodafone_tg_data
 
@@ -65,6 +66,11 @@ AUTH_TEST_CREDENTIAL = "e2e-test-password"
 VODAFONE_TG_PROFILE = ServerProfile(
     "vodafone-tg", configured=True, demo_mode=False,
     modem_type="vodafone_station", seed_callback=seed_vodafone_tg_data,
+)
+
+CM_EVENTS_PROFILE = ServerProfile(
+    "cm-events", configured=True, demo_mode=False,
+    seed_callback=seed_connection_monitor_events,
 )
 
 
@@ -169,6 +175,15 @@ def _new_proxy(label, upstream_port, mount_path, forwarded_prefix_chain):
 def live_server(tmp_path_factory):
     target, spec = _new_target(
         "demo", tmp_path_factory.mktemp("docsight_e2e_demo"), DEMO_PROFILE
+    )
+    with running_processes([spec]):
+        yield target.base_url
+
+
+@pytest.fixture(scope="session")
+def cm_events_server(tmp_path_factory):
+    target, spec = _new_target(
+        "cm-events", tmp_path_factory.mktemp("docsight_e2e_cm_events"), CM_EVENTS_PROFILE
     )
     with running_processes([spec]):
         yield target.base_url

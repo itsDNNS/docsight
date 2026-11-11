@@ -95,6 +95,24 @@ function _eventChannelMeta(c) {
     return meta;
 }
 
+/* Fills {name} placeholders in one pass, so values are inserted literally and
+   never read as placeholders or replacement patterns such as "$&". */
+function _fillTemplate(template, values) {
+    return String(template).replace(/\{(\w+)\}/g, function(match, key) {
+        return Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : match;
+    });
+}
+
+/* Connection Monitor events keep the target's label and address from when they
+   happened (#1106). Older events stored only the target's stable ID, which is
+   not a position in today's target list. */
+function _cmTargetName(d) {
+    var label = String(d.target_label || '').trim();
+    var host = String(d.target_host || '').trim();
+    if (label && host && label !== host) return label + ' (' + host + ')';
+    return label || host || _fillTemplate(T.event_target_id || 'Target ID {id}', {id: d.target_id != null ? d.target_id : '?'});
+}
+
 /* Rendered next to the event type, so the message names only the direction
    and the values, never the measurement again. */
 function formatEventMessage(ev) {
@@ -231,11 +249,17 @@ function formatEventMessage(ev) {
             return ipParts.length ? ipParts.join(' · ') : escapeHtml(_eventTypeLabel(ev.event_type));
         }
 
+        case 'cm_target_unreachable':
+            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_timeouts || '{count} consecutive timeouts',
+                {count: _fmtNumText(d.consecutive_timeouts)}));
+
+        case 'cm_target_recovered':
+            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_recovered || 'reachable again after {count} timeouts',
+                {count: _fmtNumText(d.was_down_for)}));
+
         case 'cm_packet_loss_warning':
-            return escapeHtml((T.event_target || 'Target') + ' ' + (d.target_id != null ? d.target_id : '') + ': ' +
-                (T.event_cm_packet_loss || '{loss} packet loss over {window}')
-                    .replace('{loss}', _fmtNumText(d.packet_loss_pct) + ' %')
-                    .replace('{window}', _fmtNumText(d.window_seconds) + ' s'));
+            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_packet_loss || '{loss} packet loss over {window}',
+                {loss: _fmtNumText(d.packet_loss_pct) + ' %', window: _fmtNumText(d.window_seconds) + ' s'}));
 
         default:
             return escapeHtml(ev.message);
