@@ -112,7 +112,7 @@ class ConnectionMonitorCollector(Collector):
                 self._cm_storage.save_samples(samples)
 
             # Check events
-            self._check_events(samples)
+            self._check_events(samples, due)
 
             # Periodic aggregation + retention cleanup
             if now - self._last_cleanup >= _CLEANUP_INTERVAL_S:
@@ -159,12 +159,21 @@ class ConnectionMonitorCollector(Collector):
                 })
         return samples
 
-    def _check_events(self, samples: list[dict]):
-        """Run event rules and save any emitted events."""
+    def _check_events(self, samples: list[dict], targets: list[dict]):
+        """Run event rules and save any emitted events.
+
+        Events snapshot the label and host of the probed target, so they
+        keep naming it after it is renamed or deleted (#1106).
+        """
+        identity = {
+            t["id"]: {"target_label": t.get("label"), "target_host": t.get("host")}
+            for t in targets
+        }
         all_events = []
         for s in samples:
             events = self._event_rules.check_probe_result(
-                target_id=s["target_id"], timeout=s["timeout"]
+                target_id=s["target_id"], timeout=s["timeout"],
+                **identity.get(s["target_id"], {}),
             )
             all_events.extend(events)
 
@@ -180,6 +189,7 @@ class ConnectionMonitorCollector(Collector):
             loss_pct = summary.get("packet_loss_pct") or 0.0
             events = self._event_rules.check_window_stats(
                 target_id=tid, packet_loss_pct=loss_pct, window_seconds=window_seconds,
+                **identity.get(tid, {}),
             )
             all_events.extend(events)
 

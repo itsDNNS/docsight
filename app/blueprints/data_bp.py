@@ -3,6 +3,7 @@ from app.runtime import current_runtime
 from app.tz import localize_timestamps, get_tz_name, local_to_utc
 import logging
 import os
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -299,8 +300,15 @@ def api_export():
                 "|-----------|----------|------|---------|",
             ]
             for ev in events:
+                # Messages can contain user text such as target labels (#1106). Escape
+                # pipes, and the backslashes right before them so they are kept as text.
+                message = re.sub(
+                    r"(\\*)\|",
+                    lambda m: m.group(1) * 2 + "\\|",
+                    " ".join(str(ev["message"]).split()),
+                )
                 lines.append(
-                    f"| {ev['timestamp']} | {ev['severity']} | {ev['event_type']} | {ev['message']} |"
+                    f"| {ev['timestamp']} | {ev['severity']} | {ev['event_type']} | {message} |"
                 )
 
         speedtests = []

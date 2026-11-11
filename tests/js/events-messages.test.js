@@ -56,3 +56,70 @@ test('event messages render from details in the UI language', () => {
     assert.match(format(EVENTS[3]), /Firmware v1 v2 · Laufzeit davor 1 d 2 h 3 min · WAN-IP geändert · Grund: firmware upgrade/);
     assert.match(format(EVENTS[6]), /Speedtest ausgelöst durch Gesundheitsänderung/);
 });
+
+// Connection Monitor events name the target as it was when they happened (#1106).
+function rawFormatter() {
+    const context = {
+        T: german, URLSearchParams, setInterval() {}, docsightUrl: url => url, formatDocsightTime: String,
+        fetch: () => new Promise(() => {}),
+        escapeHtml: value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+        document: {getElementById: () => null, querySelectorAll: () => [], addEventListener() {}, documentElement: {lang: 'de'}},
+    };
+    context.window = context;
+    vm.createContext(context);
+    for (const file of ['view-state.js', 'event-log-data.js', 'events.js']) {
+        vm.runInContext(fs.readFileSync(path.join(root, 'app/static/js', file), 'utf8'), context, {filename: file});
+    }
+    return context;
+}
+
+const CM_DETAILS = {
+    cm_target_unreachable: {consecutive_timeouts: 5},
+    cm_target_recovered: {was_down_for: 7},
+    cm_packet_loss_warning: {packet_loss_pct: 4.5, window_seconds: 60},
+};
+const cmEvent = (type, identity) => ({
+    event_type: type, message: 'English raw message',
+    details: Object.assign({target_id: 3}, identity, CM_DETAILS[type]),
+});
+
+test('connection events name the target snapshot in the UI language', () => {
+    const format = formatter();
+    const named = {target_label: 'Cloudflare DNS', target_host: '1.1.1.1'};
+    assert.equal(format(cmEvent('cm_target_unreachable', named)), 'Cloudflare DNS (1.1.1.1): 5 Zeitüberschreitungen in Folge');
+    assert.equal(format(cmEvent('cm_target_recovered', named)), 'Cloudflare DNS (1.1.1.1): wieder erreichbar nach 7 Zeitüberschreitungen');
+    assert.equal(format(cmEvent('cm_packet_loss_warning', named)), 'Cloudflare DNS (1.1.1.1): 4,5 % Paketverlust über 60 s');
+    assert.equal(format(cmEvent('cm_packet_loss_warning', {target_label: '', target_host: '1.1.1.1'})), '1.1.1.1: 4,5 % Paketverlust über 60 s');
+    assert.equal(format(cmEvent('cm_packet_loss_warning', {target_label: '1.1.1.1', target_host: '1.1.1.1'})), '1.1.1.1: 4,5 % Paketverlust über 60 s');
+    assert.equal(format(cmEvent('cm_packet_loss_warning', {target_label: 'Gateway', target_host: ''})), 'Gateway: 4,5 % Paketverlust über 60 s');
+});
+
+test('older connection events without a snapshot name only the target ID', () => {
+    const format = formatter();
+    for (const type of Object.keys(CM_DETAILS)) {
+        const text = format(cmEvent(type, {}));
+        assert.match(text, /^Ziel-ID 3: /, `${type}: ${text}`);
+        assert.doesNotMatch(text, /English|gelöscht/, `${type}: ${text}`);
+    }
+    assert.equal(format(cmEvent('cm_target_unreachable', {target_label: '', target_host: ''})), 'Ziel-ID 3: 5 Zeitüberschreitungen in Folge');
+    assert.equal(format(cmEvent('cm_target_unreachable', {target_label: null, target_host: null})), 'Ziel-ID 3: 5 Zeitüberschreitungen in Folge');
+    assert.equal(format(cmEvent('cm_target_recovered', {target_label: null, target_host: '1.1.1.1'})), '1.1.1.1: wieder erreichbar nach 7 Zeitüberschreitungen');
+    assert.equal(format(cmEvent('cm_packet_loss_warning', {target_label: 'Gateway', target_host: null})), 'Gateway: 4,5 % Paketverlust über 60 s');
+});
+
+test('connection event types have translated labels', () => {
+    const context = rawFormatter();
+    for (const type of Object.keys(CM_DETAILS)) {
+        assert.equal(context._eventTypeLabel(type), german['event_type_' + type], type);
+    }
+});
+
+test('target labels and addresses are escaped and never treated as replacement patterns', () => {
+    const context = rawFormatter();
+    const identity = {target_label: '<img src=x onerror=alert(1)> $& $1 {loss}', target_host: '<b>h</b> $` {window} {count}'};
+    for (const type of Object.keys(CM_DETAILS)) {
+        const html = context.formatEventMessage(cmEvent(type, identity));
+        assert.doesNotMatch(html, /<img|<b>/, `${type}: ${html}`);
+        assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt; $&amp; $1 {loss} (&lt;b&gt;h&lt;/b&gt; $` {window} {count})'), `${type}: ${html}`);
+    }
+});

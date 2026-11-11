@@ -135,11 +135,14 @@ class ConnectionMonitorStorage:
     def save_samples(self, samples: list[dict]):
         if not samples:
             return
+        # A target deleted while its probe ran has no row left; skip its samples
+        # instead of failing the foreign key and losing every sample of the cycle.
         bulk_write(
             self.db_path,
             """INSERT INTO connection_samples
                (target_id, timestamp, latency_ms, timeout, probe_method)
-               VALUES (:target_id, :timestamp, :latency_ms, :timeout, :probe_method)""",
+               SELECT :target_id, :timestamp, :latency_ms, :timeout, :probe_method
+               WHERE EXISTS (SELECT 1 FROM connection_targets WHERE id = :target_id)""",
             samples,
         )
 
