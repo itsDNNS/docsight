@@ -211,7 +211,7 @@ class TestCMCollectorSmartCapture:
                 collector.set_smart_capture(mock_engine)
                 assert collector._smart_capture is mock_engine
 
-    def test_check_events_calls_evaluate_with_annotated_events(self):
+    def test_check_events_calls_evaluate_with_annotated_events(self, request):
         """_check_events() must save via save_events_with_ids and pass annotated events to evaluate."""
         from unittest.mock import patch, call
         cm_defaults = {
@@ -220,7 +220,8 @@ class TestCMCollectorSmartCapture:
             "connection_monitor_loss_warning_pct": "2.0",
         }
         with patch("app.modules.connection_monitor.collector.ConnectionMonitorStorage"):
-            with patch("app.modules.connection_monitor.collector.ProbeEngine"):
+            with patch("app.modules.connection_monitor.collector.ProbeEngine"), \
+                    patch("app.modules.connection_monitor.collector.TracerouteProbe"):
                 from app.modules.connection_monitor.collector import ConnectionMonitorCollector
                 config = MagicMock()
                 config.get = MagicMock(side_effect=lambda k, d=None: cm_defaults.get(k, d))
@@ -228,6 +229,9 @@ class TestCMCollectorSmartCapture:
                 storage.db_path = ":memory:"
                 web = MagicMock()
                 collector = ConnectionMonitorCollector(config_mgr=config, storage=storage, web=web)
+        # The packet loss event reaches the traceroute trigger; keep it offline.
+        collector._traceroute_probe.run.return_value = MagicMock(hops=[])
+        request.addfinalizer(collector.stop)
 
         mock_engine = MagicMock()
         collector.set_smart_capture(mock_engine)

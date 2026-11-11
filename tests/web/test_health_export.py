@@ -81,6 +81,30 @@ class TestExportEndpoint:
             storage.get_recent_events.assert_called_once_with(hours=hours)
             speedtests.return_value.get_recent_speedtests.assert_called_once_with(limit=limit)
 
+    @pytest.mark.parametrize("label, cell", [
+        ("Lab \\| A", "Lab \\\\\\| A"),
+        ("Lab \\\\| A", "Lab \\\\\\\\\\| A"),
+        ("C:\\lab", "C:\\lab"),
+    ])
+    def test_export_keeps_backslashes_before_pipes_distinct(self, client, sample_analysis, label, cell):
+        """A pipe escape must not swallow a backslash the label already had (#1106).
+
+        GFM keeps ``\\|`` as one cell either way but renders it as ``|``, so the
+        backslashes before a pipe are escaped too. Other backslashes stay as they are.
+        """
+        current_runtime().update_state(analysis=sample_analysis)
+        storage = Mock(db_path="unused.db")
+        storage.get_recent_events.return_value = [{
+            "timestamp": "2026-11-11T10:00:00Z", "severity": "critical",
+            "event_type": "cm_target_unreachable", "message": f"Target {label} unreachable",
+        }]
+        current_runtime().storage = storage
+
+        report = client.get("/api/export?mode=update").get_json()["text"]
+
+        rows = [line for line in report.splitlines() if "cm_target_unreachable" in line]
+        assert rows == [f"| 2026-11-11T10:00:00Z | critical | cm_target_unreachable | Target {cell} unreachable |"]
+
     def test_export_keeps_user_text_in_one_event_table_cell(self, client, sample_analysis):
         """Target labels in event messages (#1106) must not split the Markdown table."""
         current_runtime().update_state(analysis=sample_analysis)

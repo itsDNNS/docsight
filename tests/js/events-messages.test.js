@@ -102,6 +102,9 @@ test('older connection events without a snapshot name only the target ID', () =>
         assert.doesNotMatch(text, /English|gelöscht/, `${type}: ${text}`);
     }
     assert.equal(format(cmEvent('cm_target_unreachable', {target_label: '', target_host: ''})), 'Ziel-ID 3: 5 Zeitüberschreitungen in Folge');
+    assert.equal(format(cmEvent('cm_target_unreachable', {target_label: null, target_host: null})), 'Ziel-ID 3: 5 Zeitüberschreitungen in Folge');
+    assert.equal(format(cmEvent('cm_target_recovered', {target_label: null, target_host: '1.1.1.1'})), '1.1.1.1: wieder erreichbar nach 7 Zeitüberschreitungen');
+    assert.equal(format(cmEvent('cm_packet_loss_warning', {target_label: 'Gateway', target_host: null})), 'Gateway: 4,5 % Paketverlust über 60 s');
 });
 
 test('connection event types have translated labels', () => {
