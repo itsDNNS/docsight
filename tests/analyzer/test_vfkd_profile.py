@@ -106,4 +106,6 @@ def test_vfkd_profile_cites_the_document_version_it_links():
 
 
 def test_vfkd_profile_description_does_not_claim_the_spec_for_all_values():
-    assert "convention" in _VFKD["description"].lower()
+    description = _VFKD["description"].lower()
+    assert "convention" in description
+    assert "official" not in description
