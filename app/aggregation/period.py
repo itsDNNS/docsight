@@ -30,6 +30,7 @@ _RAW_WORST_FIELDS = {
     "ds_power_max": "ds_power_max",
     "ds_power_min": "ds_power_min",
     "us_power_max": "us_power_max",
+    "us_power_min": "us_power_min",
     "ds_snr_min": "ds_snr_min",
     "ds_uncorrectable_max": "ds_uncorrectable_errors",
     "ds_correctable_max": "ds_correctable_errors",
@@ -125,6 +126,20 @@ def _snr_warning_threshold(
     return "missing", None
 
 
+def _has_measured_power(snapshot: Mapping[str, Any], summary: Mapping[str, Any], direction: str) -> bool:
+    """Whether summary power extremes were measured.
+
+    The analyzer writes 0 when no channel of a direction reports power, which
+    must not become the lowest recorded power.
+    """
+    if summary.get(f"{direction}_total") == 0:
+        return False
+    channels = snapshot.get(f"{direction}_channels")
+    return not (isinstance(channels, list) and channels and all(
+        isinstance(ch, Mapping) and "power" in ch and ch["power"] is None for ch in channels
+    ))
+
+
 def _bad_channels(
     ordered: Sequence[Mapping[str, Any]], direction: str
 ) -> list[tuple[Any, int]]:
@@ -157,6 +172,7 @@ def aggregate_snapshot_period(
         "ds_power_max": None,
         "ds_power_min": None,
         "us_power_max": None,
+        "us_power_min": None,
         "ds_snr_min": None,
         "ds_snr_warn_min": None,
         "ds_uncorrectable_max": None,
@@ -222,14 +238,12 @@ def aggregate_snapshot_period(
             if value is not None:
                 average_values[output_key].append(value)
 
-        for key in ("ds_power_max", "ds_power_min"):
-            raw = summary.get(key)
-            numeric = _number(raw)
-            if numeric is None:
-                continue
-            current = worst[key]
+        raw = summary.get("ds_power_max")
+        numeric = _number(raw)
+        if numeric is not None:
+            current = worst["ds_power_max"]
             if current is None or abs(numeric) > abs(float(current)):
-                worst[key] = raw
+                worst["ds_power_max"] = raw
 
         raw = summary.get("us_power_max")
         numeric = _number(raw)
@@ -237,6 +251,16 @@ def aggregate_snapshot_period(
             current = _number(worst["us_power_max"])
             if current is None or numeric > current:
                 worst["us_power_max"] = raw
+
+        for direction in ("ds", "us"):
+            key = f"{direction}_power_min"
+            raw = summary.get(key)
+            numeric = _number(raw)
+            if numeric is None or not _has_measured_power(snapshot, summary, direction):
+                continue
+            current = _number(worst[key])
+            if current is None or numeric < current:
+                worst[key] = raw
 
         raw_snr = summary.get("ds_snr_min")
         numeric_snr = _number(raw_snr)

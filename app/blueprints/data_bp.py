@@ -350,9 +350,7 @@ def api_export():
     # ── Dynamic reference values from active threshold profile ──
     from app import analyzer as _analyzer
     _thresh = _analyzer.get_thresholds()
-
-    _meta = _analyzer._t().get("_meta", {})
-    profile_name = _meta.get("operator", "Active Profile")
+    profile_name = _analyzer.active_threshold_profile()["label"] or "Active Profile"
 
     lines += ["", f"## Reference Values ({profile_name})", ""]
 
@@ -365,7 +363,8 @@ def api_export():
     for mod in sorted(k for k in _ds if not k.startswith("_")):
         t = _ds[mod]
         g = t.get("good", [0, 0])
-        w = t.get("warning", [0, 0])
+        # Without a warning band the analyzer tolerates only the good band.
+        w = t.get("warning", g)
         c = t.get("critical", [0, 0])
         lines.append(f"| {mod} | {g[0]} to {g[1]} | {w[0]} to {w[1]} | < {c[0]} or > {c[1]} |")
 
@@ -379,7 +378,7 @@ def api_export():
     for key in sorted(k for k in _us if not k.startswith("_")):
         t = _us[key]
         g = t.get("good", [0, 0])
-        w = t.get("warning", [0, 0])
+        w = t.get("warning", g)
         c = t.get("critical", [0, 0])
         lines.append(f"| {key} | {g[0]} to {g[1]} | {w[0]} to {w[1]} | > {c[1]} |")
     lines.append("")
@@ -397,7 +396,7 @@ def api_export():
         lines.append(
             f"| {mod} "
             f"| >= {t.get('good_min', 0)} "
-            f"| >= {t.get('warning_min', 0)} "
+            f"| >= {t.get('warning_min', t.get('good_min', 0))} "
             f"| < {t.get('critical_min', 0)} |"
         )
 

@@ -286,6 +286,7 @@ def register_plan(app: Flask, plan: RegistrationPlan) -> None:
                 contribution.thresholds_data,
                 profile_id=contribution.module_id,
                 profile_version=contribution.version,
+                profile_name=info.name,
             )
         directory = contribution.template_dir
         if directory and directory not in template_dirs:
