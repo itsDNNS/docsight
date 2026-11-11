@@ -43,7 +43,8 @@ def _format_threshold_table():
             "critical": f"{c[0]} to {c[1]} dBmV",
             "ref": "VFKD",
         })
-    # US Power - per channel type
+    # US Power - per channel type. Low upstream power is rated at most
+    # marginal, so only the maximum is a critical bound.
     us = t.get("upstream_power", {})
     for key in sorted(k for k in us if not k.startswith("_")):
         v = us[key]
@@ -55,7 +56,7 @@ def _format_threshold_table():
             "variant": key,
             "good": f"{g[0]} to {g[1]} dBmV",
             "tolerated": f"{w[0]} to {w[1]} dBmV",
-            "critical": f"{c[0]} to {c[1]} dBmV",
+            "critical": f"<= {c[1]} dBmV",
             "ref": "VFKD",
         })
     # SNR - per modulation
@@ -308,7 +309,7 @@ class IncidentReport(FPDF):
             return (39, 174, 96)
         elif health == "tolerated":
             return (132, 204, 22)
-        elif health == "marginal":
+        elif health in ("marginal", "warning"):  # channels say "warning"
             return (243, 156, 18)
         return (231, 76, 60)
 

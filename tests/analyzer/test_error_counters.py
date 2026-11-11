@@ -1,5 +1,7 @@
 """Regression tests for downstream error-counter cohort semantics."""
 
+import pytest
+
 from app.analyzer import analyze, apply_cumulative_error_baseline
 
 
@@ -129,6 +131,26 @@ def test_schema_3_baseline_uses_comparable_growth_and_keeps_raw_growth_separate(
     assert baseline["ds_comparable_correctable_recent_delta"] == 900
     assert baseline["ds_comparable_uncorrectable_recent_delta"] == 100
     assert baseline["ds_raw_uncorrectable_recent_delta"] == 2600
+
+
+@pytest.mark.parametrize("stored_schema", [3, 3.0])
+def test_schema_3_baseline_survives_later_analyzer_schemas(stored_schema):
+    """Later schema bumps do not change counter semantics, so the baseline is kept."""
+    first = analyze(_data(_channel(1, "3.0", 9000, 0, family="sc_qam")))
+    first["analysis_meta"] = {"analyzer_schema": stored_schema}
+    previous = analyze(_data(_channel(1, "3.0", 9900, 100, family="sc_qam")))
+    apply_cumulative_error_baseline(previous, first)
+    previous["analysis_meta"] = {"analyzer_schema": stored_schema}
+    current = analyze(_data(_channel(1, "3.0", 10800, 200, family="sc_qam")))
+
+    apply_cumulative_error_baseline(current, previous)
+
+    baseline = current["summary"]["error_baseline"]
+    assert baseline["schema_baseline"] is False
+    assert baseline["ds_comparable_correctable_baseline"] == 9000
+    assert baseline["ds_comparable_uncorrectable_delta"] == 200
+    assert current["summary"]["ds_uncorr_pct"] == 10.0
+    assert "uncorr_errors_critical" in current["summary"]["health_issues"]
 
 
 def test_uncorrectable_only_growth_stays_out_of_ratio_health():

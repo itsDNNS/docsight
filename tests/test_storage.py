@@ -28,8 +28,8 @@ def sample_analysis():
 
 class TestSnapshotStorage:
     def test_current_analyzer_schema_and_builtin_profile_versions(self):
-        assert analyzer.ANALYZER_SCHEMA_VERSION == 3
-        assert BUILTIN_THRESHOLD_PROFILES[0]["version"] == "1.1.0"
+        assert analyzer.ANALYZER_SCHEMA_VERSION == 4
+        assert BUILTIN_THRESHOLD_PROFILES[0]["version"] == "1.2.0"
 
     def test_save_and_list(self, storage, sample_analysis):
         storage.save_snapshot(sample_analysis)

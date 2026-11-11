@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from app.storage import SnapshotStorage
 from app.analyzer import analyze, apply_cumulative_error_baseline
 from app.event_detector import EventDetector
+from app.smart_capture.sub_filters import health_sub_filter
 from app.config import ConfigManager
 from app.runtime import current_runtime
 
@@ -1671,3 +1672,73 @@ def test_modulation_change_includes_analyzer_modulation_health(detector):
     assert mod_event["severity"] == "warning"
     assert change["current_modulation_health"] == "warning"
     assert change["channel_type"] == "OFDMA"
+
+
+class TestLowUpstreamPowerHealthEvents:
+    """Health consumers follow the capped rating of low upstream power."""
+
+    @staticmethod
+    def _analysis(us_power):
+        return analyze({
+            "channelDs": {"docsis30": [{
+                "channelID": 1, "frequency": "602 MHz", "powerLevel": "3.0",
+                "modulation": "256QAM", "mse": "-35.0", "corrErrors": 0, "nonCorrErrors": 0,
+            }], "docsis31": []},
+            "channelUs": {"docsis30": [{
+                "channelID": 3, "frequency": "37 MHz", "powerLevel": str(us_power),
+                "modulation": "64QAM", "multiplex": "ATDMA",
+            }], "docsis31": []},
+        })
+
+    def test_dropping_to_low_upstream_power_is_a_warning_not_critical(self, detector):
+        detector.check(self._analysis(44.0))
+        events = detector.check(self._analysis(34.8))
+
+        health = next(e for e in events if e["event_type"] == "health_change")
+        assert health["severity"] == "warning"
+        assert health["details"] == {"prev": "good", "current": "marginal"}
+        assert health_sub_filter({"sc_trigger_health_level": "any_degradation"}, health) is True
+        assert health_sub_filter({"sc_trigger_health_level": "critical_only"}, health) is False
+
+    def test_high_upstream_power_still_raises_a_critical_event(self, detector):
+        detector.check(self._analysis(44.0))
+        events = detector.check(self._analysis(55.0))
+
+        health = next(e for e in events if e["event_type"] == "health_change")
+        assert health["severity"] == "critical"
+        assert health_sub_filter({"sc_trigger_health_level": "critical_only"}, health) is True
+
+    def test_first_poll_after_a_critical_low_snapshot_reports_a_recovery(self, detector):
+        stored = _old_critical_low_snapshot()
+        detector.seed(stored, snapshot_id=7)
+
+        events = detector.check(self._analysis(34.8))
+
+        health = next(e for e in events if e["event_type"] == "health_change")
+        assert health["severity"] == "info"
+        assert (health["details"]["prev"], health["details"]["current"]) == ("critical", "marginal")
+
+
+def _old_critical_low_snapshot():
+    """A snapshot stored by analyzer schema 3, when low upstream power was critical."""
+    return {
+        "analysis_meta": {
+            "analyzer_schema": 3,
+            "threshold_profile": {"id": "docsight.thresholds_vfkd", "version": "1.1.0"},
+        },
+        "summary": {
+            "health": "critical", "health_issues": ["us_power_critical_low"],
+            "ds_power_avg": 3.0, "us_power_avg": 34.8, "ds_snr_min": 35.0,
+            "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
+        },
+        "ds_channels": [{
+            "channel_id": 1, "frequency": "602 MHz", "power": 3.0, "snr": 35.0,
+            "modulation": "256QAM", "health": "good", "health_detail": "",
+            "correctable_errors": 0, "uncorrectable_errors": 0, "docsis_version": "3.0",
+        }],
+        "us_channels": [{
+            "channel_id": 3, "frequency": "37 MHz", "power": 34.8, "modulation": "64QAM",
+            "health": "critical", "health_detail": "power critical low", "power_health": "critical",
+            "docsis_version": "3.0",
+        }],
+    }

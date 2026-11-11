@@ -123,3 +123,17 @@ test('target labels and addresses are escaped and never treated as replacement p
         assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt; $&amp; $1 {loss} (&lt;b&gt;h&lt;/b&gt; $` {window} {count})'), `${type}: ${html}`);
     }
 });
+
+test('health changes show the critical level with its colour and translated name', () => {
+    const context = rawFormatter();
+    const html = context.formatEventMessage({
+        event_type: 'health_change', message: 'Health recovered from critical to marginal',
+        details: {prev: 'critical', current: 'marginal'},
+    });
+
+    assert.match(html, /<span class="health-dot poor"><\/span>Kritisch/);
+    assert.match(html, /<span class="health-dot marginal"><\/span>Grenzwertig/);
+    assert.doesNotMatch(html, /unknown|critical/);
+    assert.match(context.formatEventMessage({event_type: 'health_change', message: '', details: {prev: 'good', current: 'poor'}}),
+        /<span class="health-dot poor"><\/span>Kritisch/);
+});

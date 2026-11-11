@@ -33,7 +33,11 @@ log = logging.getLogger("docsis.analyzer")
 
 # --- Dynamic thresholds (set by module loader) ---
 _thresholds = {}
-ANALYZER_SCHEMA_VERSION = 3
+# 4: low upstream power on its own is rated at most warning/marginal.
+ANALYZER_SCHEMA_VERSION = 4
+# First schema whose stored error baseline uses comparable counters. Later
+# schemas keep that baseline instead of starting a fresh one after an update.
+_ERROR_BASELINE_SCHEMA = 3
 _threshold_profile = {"id": None, "version": None}
 
 # Fallback used if no threshold profile is loaded: the shipped VFKD values.
@@ -307,6 +311,12 @@ def _recalculate_summary_health(summary) -> None:
         summary["health"] = "tolerated"
 
 
+def _has_comparable_baseline_schema(schema) -> bool:
+    if isinstance(schema, float) and schema.is_integer():
+        schema = int(schema)
+    return isinstance(schema, int) and not isinstance(schema, bool) and schema >= _ERROR_BASELINE_SCHEMA
+
+
 def _recent_spike_active(last_spike_ts: str | None) -> bool:
     """Return True while an observed error spike is still inside its expiry window."""
     if not last_spike_ts:
@@ -339,7 +349,7 @@ def apply_cumulative_error_baseline(
     Modems often expose correctable/uncorrectable counters as totals since the
     last modem reboot. The analyzer keeps all available raw totals in the
     summary and channel data, but health should not treat pre-existing counters
-    as active trouble forever. Once a schema-3 predecessor exists, score the
+    as active trouble forever. Once a predecessor of schema 3 or later exists, score the
     ratio from cumulative growth on channels that expose both counter types.
     Raw all-channel uncorrectable growth is tracked separately for evidence.
     Cohort changes and counter decreases establish a fresh baseline.
@@ -370,7 +380,7 @@ def apply_cumulative_error_baseline(
         current_counters,
         previous_counters,
         previous_baseline=previous_baseline,
-        force_fresh_baseline=previous_schema != ANALYZER_SCHEMA_VERSION or not has_comparable_provenance,
+        force_fresh_baseline=not _has_comparable_baseline_schema(previous_schema) or not has_comparable_provenance,
     )
 
     et = _get_uncorr_thresholds()
@@ -877,9 +887,13 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
         power = _parse_float(raw_power)
         if power is not None:
             pt = _get_us_power_thresholds(channel_type)
-            if power < pt["crit_min"]:
-                issues.append("power critical low")
-            elif power > pt["crit_max"]:
+            # Low transmit power is rated at most as a warning. It usually means
+            # low attenuation in the home wiring, does not degrade the modem's
+            # own link, and the operator specification defines no lower limit.
+            # Rating the channel, not only the summary, keeps the channel badge,
+            # line status and overall health consistent. The profile's critical
+            # minimum still scales displays and explains older snapshots.
+            if power > pt["crit_max"]:
                 issues.append("power critical high")
             elif power < pt["warn_min"]:
                 issues.append("power warning low")
@@ -1156,22 +1170,22 @@ def analyze(data: DocsisData) -> AnalysisResult:
     elif any("modulation tolerated" in c["health_detail"] for c in ds_channels):
         issues.append("ds_modulation_tolerated")
 
-    # US power: aggregate from individual channel health_detail (directional)
-    us_crit_low = any("power critical low" in c["health_detail"] for c in us_channels)
+    # US power: aggregate from individual channel health_detail (directional).
+    # Low power caps at marginal (see _assess_us_channel). Snapshots stored
+    # before analyzer schema 4 may still carry us_power_critical_low, which
+    # keeps its texts so their history stays readable.
     us_crit_high = any("power critical high" in c["health_detail"] for c in us_channels)
     us_warn_low = any("power warning low" in c["health_detail"] for c in us_channels)
     us_warn_high = any("power warning high" in c["health_detail"] for c in us_channels)
     us_tol_low = any("power tolerated low" in c["health_detail"] for c in us_channels)
     us_tol_high = any("power tolerated high" in c["health_detail"] for c in us_channels)
-    if us_crit_low:
-        issues.append("us_power_critical_low")
     if us_crit_high:
         issues.append("us_power_critical_high")
-    if us_warn_low and not us_crit_low:
+    if us_warn_low:
         issues.append("us_power_marginal_low")
     if us_warn_high and not us_crit_high:
         issues.append("us_power_marginal_high")
-    if us_tol_low and not us_crit_low and not us_warn_low:
+    if us_tol_low and not us_warn_low:
         issues.append("us_power_tolerated_low")
     if us_tol_high and not us_crit_high and not us_warn_high:
         issues.append("us_power_tolerated_high")

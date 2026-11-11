@@ -304,11 +304,12 @@ var DS_SNR_THRESHOLDS = [
     _band(-100, 25, 'critical'),
     {yMin: 20, yMax: 50}
 ];
+/* Low upstream power is rated at most marginal, so the low side has no critical band. */
 var US_POWER_THRESHOLDS = [
     _band(41, 47, 'good'),
     _band(35, 41, 'tolerated'), _band(47, 53, 'tolerated'),
-    _band(20, 35, 'marginal'), _band(53, 60, 'marginal'),
-    _band(-100, 20, 'critical'), _band(60, 160, 'critical'),
+    _band(-100, 35, 'marginal'), _band(53, 60, 'marginal'),
+    _band(60, 160, 'critical'),
     {yMin: 17, yMax: 63}
 ];
 

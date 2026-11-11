@@ -189,14 +189,6 @@ class TestHealthCritical:
                 ),
             },
             {
-                "label": "us power critical low",
-                "expected_issue": "us_power_critical_low",
-                "data": _make_data(
-                    ds30=[_make_ds30(1, power=2.0, mse="-35")],
-                    us30=[_make_us30(1, power=33.0)],
-                ),
-            },
-            {
                 "label": "snr critical",
                 "expected_issue": "snr_critical",
                 "data": _make_data(
@@ -249,6 +241,93 @@ class TestHealthCritical:
         assert "us_power_critical_high" in issues
         assert "snr_critical" in issues
         assert "uncorr_errors_critical" in issues
+
+
+class TestLowUpstreamPowerAlone:
+    """Low upstream power is outside the nominal window but does not hurt the link.
+
+    The specification defines no lower upstream limit, so low power on its own
+    is rated at most marginal. High upstream power stays critical.
+    """
+
+    def _make_ofdma(self, power):
+        return {
+            "channelID": 9,
+            "frequency": "30-60 MHz",
+            "powerLevel": str(power),
+            "type": "OFDMA",
+            "modulation": "OFDMA",
+            "profile_modulation": "1024QAM",
+        }
+
+    def test_only_low_sc_qam_power_is_marginal(self):
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=33.0), _make_us30(2, power=44.0)],
+        ))
+
+        assert result["summary"]["health"] == "marginal"
+        assert result["summary"]["health_issues"] == ["us_power_marginal_low"]
+        low = result["us_channels"][0]
+        assert low["health"] == "warning"
+        assert low["power_health"] == "warning"
+        assert low["health_detail"] == "power warning low"
+
+    def test_only_low_ofdma_power_is_marginal(self):
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[self._make_ofdma(30.0)],
+        ))
+
+        assert result["summary"]["health"] == "marginal"
+        assert result["summary"]["health_issues"] == ["us_power_marginal_low"]
+        assert result["us_channels"][0]["health"] == "warning"
+
+    def test_low_power_is_never_good(self):
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=10.0)],
+        ))
+
+        assert result["summary"]["health"] == "marginal"
+        assert result["us_channels"][0]["health"] == "warning"
+
+    def test_only_high_power_stays_critical(self):
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=55.0)],
+        ))
+
+        assert result["summary"]["health"] == "critical"
+        assert result["summary"]["health_issues"] == ["us_power_critical_high"]
+        assert result["us_channels"][0]["health"] == "critical"
+        assert result["us_channels"][0]["health_detail"] == "power critical high"
+
+    def test_low_and_high_channels_stay_critical(self):
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=33.0), _make_us30(2, power=55.0)],
+        ))
+
+        assert result["summary"]["health"] == "critical"
+        assert result["summary"]["health_issues"] == ["us_power_critical_high", "us_power_marginal_low"]
+
+    @pytest.mark.parametrize(
+        "ds_channel, us_channel, critical_issue",
+        [
+            (_make_ds30(1, power=2.0, mse="-27"), _make_us30(1, power=33.0), "snr_critical"),
+            (_make_ds30(1, power=21.0, mse="-35"), _make_us30(1, power=33.0), "ds_power_critical"),
+            (_make_ds30(1, power=2.0, mse="-35"), _make_us30(1, power=33.0, modulation="QPSK"), "us_modulation_critical"),
+            (_make_ds30(1, power=2.0, mse="-35", corr=9000, uncorr=1000), _make_us30(1, power=33.0), "uncorr_errors_critical"),
+        ],
+    )
+    def test_low_power_with_another_critical_finding_stays_critical(self, ds_channel, us_channel, critical_issue):
+        result = analyze(_make_data(ds30=[ds_channel], us30=[us_channel]))
+
+        assert result["summary"]["health"] == "critical"
+        assert critical_issue in result["summary"]["health_issues"]
+        assert "us_power_marginal_low" in result["summary"]["health_issues"]
+        assert "us_power_critical_low" not in result["summary"]["health_issues"]
 
 
 # -- Channel parsing --

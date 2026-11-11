@@ -177,6 +177,35 @@ def test_exact_builtin_profile_reconstructs_family_threshold_and_direction(
     assert note["deviation_pct"] > 0
 
 
+def test_snapshot_from_the_previous_vfkd_version_keeps_exact_upstream_provenance(monkeypatch):
+    """Profile 1.1.0 had the same numbers; its stored critical lows keep their spec claim."""
+    from app import analyzer
+    from app.modules.reports.report import derive_historical_report_data
+
+    monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds())
+    snapshot = _snapshot(
+        "2026-05-01T00:00:00Z",
+        health="critical",
+        summary={"health_issues": ["us_power_critical_low"]},
+        us_channels=[{
+            "channel_id": 3,
+            "type": "SC-QAM",
+            "docsis_version": "3.0",
+            "power": 34.8,
+            "power_health": "critical",
+            "health": "critical",
+            "health_detail": "power critical low",
+        }],
+    )
+    snapshot["analysis_meta"] = _builtin_analysis_meta(version="1.1.0")
+
+    note = derive_historical_report_data([snapshot])["diagnostic_notes"][0]
+
+    assert note["type"] == "us_power_low"
+    assert note["spec_min"] == 35.0
+    assert note["deviation_pct"] == 1
+
+
 def test_builtin_profile_version_mismatch_uses_neutral_stored_critical(monkeypatch):
     from app import analyzer
     from app.modules.reports.report import derive_historical_report_data

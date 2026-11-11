@@ -81,6 +81,24 @@ class TestExportEndpoint:
             storage.get_recent_events.assert_called_once_with(hours=hours)
             speedtests.return_value.get_recent_speedtests.assert_called_once_with(limit=limit)
 
+    def test_export_reference_values_name_no_critical_lower_upstream_bound(self, client, sample_analysis, tmp_path):
+        current_runtime().update_state(analysis=sample_analysis)
+        storage = Mock(db_path=str(tmp_path / "unused.db"))
+        storage.get_recent_events.return_value = []
+        current_runtime().storage = storage
+        with patch("app.modules.speedtest.storage.SpeedtestStorage") as speedtests, patch(
+            "app.modules.journal.storage.JournalStorage"
+        ) as journal:
+            speedtests.return_value.get_recent_speedtests.return_value = []
+            journal.return_value.get_active_entries.return_value = []
+            report = client.get("/api/export").get_json()["text"]
+
+        upstream = report.split("### Upstream Power (dBmV)", 1)[1].split("### SNR", 1)[0]
+        assert "| sc_qam | 41.1 to 47.0 | 37.1 to 51.0 | > 53.0 |" in upstream
+        assert "| ofdma | 44.1 to 47.0 | 40.1 to 48.0 | > 50.0 |" in upstream
+        assert "Low upstream power on its own is rated at most marginal" in upstream
+        assert "| 256QAM | -4.0 to 13.0 | -6.0 to 15.0 | < -8.0 or > 16.0 |" in report
+
     @pytest.mark.parametrize("label, cell", [
         ("Lab \\| A", "Lab \\\\\\| A"),
         ("Lab \\\\| A", "Lab \\\\\\\\\\| A"),
