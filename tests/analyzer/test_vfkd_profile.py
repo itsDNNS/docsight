@@ -81,8 +81,22 @@ def test_upstream_power_source_classes():
             "warning_max": "convention",
             "critical_min": "convention",
             "critical_max": "convention",
+            "plausible_min": "specification",
         },
     }
+
+
+def test_ofdma_plausible_minimum_matches_the_analyzer():
+    """P1.6min from the DOCSIS 3.1 PHY is the only OFDMA lower bound the analyzer rates."""
+    entry = _META["upstream_power_sources"]["ofdma"]["plausible_min"]
+    assert entry["value_dbmv"] == analyzer.OFDMA_MIN_PLAUSIBLE_POWER_DBMV == 17.0
+    assert "7.4.12.2" in entry["basis"]
+    ofdma = analyzer.resolve_us_power_thresholds("OFDMA", thresholds=_THRESHOLDS)
+    assert ofdma["rate_low"] is False
+    assert ofdma["plausible_min"] == 17.0
+    sc_qam = analyzer.resolve_us_power_thresholds("ATDMA", thresholds=_THRESHOLDS)
+    assert sc_qam["rate_low"] is True
+    assert sc_qam["plausible_min"] is None
 
 
 def test_converted_upstream_values_follow_from_the_specification():

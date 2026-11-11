@@ -8,6 +8,12 @@ from typing import Literal
 Direction = Literal["ds", "us", "downstream", "upstream", "DS", "US"]
 DocsisChannelFamily = Literal["sc_qam", "ofdm", "ofdma", "unknown"]
 
+# CableLabs DOCSIS 3.1 PHY (CM-SP-PHYv3.1-I08, section 7.4.12.2): P1.6min,
+# the lowest equivalent channel power per 1.6 MHz a cable modem transmits.
+# Drivers report OFDMA power per 1.6 MHz or higher (6.4 MHz equivalent, total
+# power), so a reported OFDMA level below it is not a real transmit level.
+OFDMA_MIN_PLAUSIBLE_POWER_DBMV = 17.0
+
 # QAM hierarchy: higher value = better modulation
 QAM_ORDER = {
     "QPSK": 1, "4QAM": 1,

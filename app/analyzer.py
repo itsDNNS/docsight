@@ -25,6 +25,7 @@ from .error_counters import (
     calculate_error_counter_growth,
     uncorrectable_percentage,
 )
+from .docsis_utils import OFDMA_MIN_PLAUSIBLE_POWER_DBMV
 from .threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
 from .tz import _parse_utc, utc_now
@@ -34,7 +35,8 @@ log = logging.getLogger("docsis.analyzer")
 # --- Dynamic thresholds (set by module loader) ---
 _thresholds = {}
 # 4: low upstream power on its own is rated at most warning/marginal.
-ANALYZER_SCHEMA_VERSION = 4
+# 5: low OFDMA upstream power is not rated (no OFDM level range in the spec).
+ANALYZER_SCHEMA_VERSION = 5
 # First schema whose stored error baseline uses comparable counters. Later
 # schemas keep that baseline instead of starting a fresh one after an update.
 _ERROR_BASELINE_SCHEMA = 3
@@ -147,7 +149,13 @@ def _get_ds_power_thresholds(modulation=None, *, channel_family: str | None = No
 
 
 def resolve_us_power_thresholds(channel_type=None, *, thresholds: Mapping[str, Any]):
-    """Resolve upstream power thresholds from an explicit plain-data mapping."""
+    """Resolve upstream power thresholds from an explicit plain-data mapping.
+
+    ``rate_low`` is False for OFDMA: the operator specification gives no OFDM
+    level range and DOCSIS 3.1 only defines what a modem can transmit, so low
+    OFDMA power is not rated and the profile minimums only scale displays.
+    Levels below ``plausible_min`` are still rated as a warning.
+    """
     us = thresholds.get("upstream_power", {})
     default_key = us.get("_default", "sc_qam")
     if channel_type and channel_type.upper() in ("OFDMA",):
@@ -158,6 +166,7 @@ def resolve_us_power_thresholds(channel_type=None, *, thresholds: Mapping[str, A
     good = t.get("good", [41.0, 47.0])
     warn = t.get("warning", good)
     crit = t.get("critical", [35.0, 53.0])
+    rate_low = key != "ofdma"
     return {
         "good_min": good[0],
         "good_max": good[1],
@@ -165,6 +174,8 @@ def resolve_us_power_thresholds(channel_type=None, *, thresholds: Mapping[str, A
         "warn_max": warn[1],
         "crit_min": crit[0],
         "crit_max": crit[1],
+        "rate_low": rate_low,
+        "plausible_min": None if rate_low else OFDMA_MIN_PLAUSIBLE_POWER_DBMV,
     }
 
 
@@ -923,13 +934,20 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
             # Rating the channel, not only the summary, keeps the channel badge,
             # line status and overall health consistent. The profile's critical
             # minimum still scales displays and explains older snapshots.
+            # Low OFDMA power is not rated at all (see resolve_us_power_thresholds);
+            # the OFDMA profile modulation carries the line quality there, and
+            # sudden drops are reported as power_change events.
+            rate_low = pt["rate_low"]
+            plausible_min = pt["plausible_min"]
             if power > pt["crit_max"]:
                 issues.append("power critical high")
-            elif power < pt["warn_min"]:
+            elif plausible_min is not None and power < plausible_min:
+                issues.append("power warning low")
+            elif rate_low and power < pt["warn_min"]:
                 issues.append("power warning low")
             elif power > pt["warn_max"]:
                 issues.append("power warning high")
-            elif power < pt["good_min"]:
+            elif rate_low and power < pt["good_min"]:
                 issues.append("power tolerated low")
             elif power > pt["good_max"]:
                 issues.append("power tolerated high")

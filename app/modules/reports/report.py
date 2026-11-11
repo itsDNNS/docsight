@@ -69,19 +69,23 @@ def _format_threshold_table():
             "convention": False,
         })
     # US Power - per channel type. Low upstream power is rated at most
-    # marginal, so only the maximum is a critical bound.
+    # marginal, so only the maximum is a critical bound. Low OFDMA power is
+    # not rated, so its lower bound is the plausible minimum of the analyzer.
     us = t.get("upstream_power", {})
     for key in sorted(k for k in us if not k.startswith("_")):
         v = us[key]
         g = v.get("good", [0, 0])
         w = v.get("warning", g)
         c = v.get("critical", [0, 0])
+        rated = resolve_us_power_thresholds("OFDMA" if key == "ofdma" else None, thresholds=t)
+        good_min = g[0] if rated["rate_low"] else rated["plausible_min"]
+        warn_min = w[0] if rated["rate_low"] else rated["plausible_min"]
         convention = _has_convention(us_sources.get(key))
         rows.append({
             "category": "US Power",
             "variant": key,
-            "good": f"{g[0]} to {g[1]} dBmV",
-            "tolerated": f"{w[0]} to {w[1]} dBmV",
+            "good": f"{good_min} to {g[1]} dBmV",
+            "tolerated": f"{warn_min} to {w[1]} dBmV",
             "critical": f"<= {c[1]} dBmV",
             "ref": f"{reference} *" if convention else reference,
             "convention": convention,

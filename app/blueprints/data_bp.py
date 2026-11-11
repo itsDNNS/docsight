@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
 
+from app.docsis_utils import OFDMA_MIN_PLAUSIBLE_POWER_DBMV
 from app.time_ranges import parse_time_range_hours, parse_window_end
 from app.web_auth import require_auth
 
@@ -384,9 +385,18 @@ def api_export():
         g = t.get("good", [0, 0])
         w = t.get("warning", g)
         c = t.get("critical", [0, 0])
-        lines.append(f"| {key} | {g[0]} to {g[1]} | {w[0]} to {w[1]} | > {c[1]} |")
+        if key == "ofdma":
+            # Low OFDMA power is not rated, only levels below P1.6min.
+            low = OFDMA_MIN_PLAUSIBLE_POWER_DBMV
+            lines.append(f"| {key} | {low} to {g[1]} | {low} to {w[1]} | > {c[1]} |")
+        else:
+            lines.append(f"| {key} | {g[0]} to {g[1]} | {w[0]} to {w[1]} | > {c[1]} |")
     lines.append("")
     lines.append("Low upstream power on its own is rated at most marginal.")
+    lines.append(
+        "Low OFDMA upstream power is not rated, because the specification defines no OFDM level range; "
+        f"levels below {OFDMA_MIN_PLAUSIBLE_POWER_DBMV} dBmV (DOCSIS 3.1 P1.6min) are rated marginal."
+    )
 
     lines += [
         "",

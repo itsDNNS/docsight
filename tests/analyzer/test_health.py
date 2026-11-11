@@ -247,7 +247,9 @@ class TestLowUpstreamPowerAlone:
     """Low upstream power is outside the nominal window but does not hurt the link.
 
     The specification defines no lower upstream limit, so low power on its own
-    is rated at most marginal. High upstream power stays critical.
+    is rated at most marginal. Low OFDMA power is not rated, because the
+    specification gives no OFDM level range at all. High upstream power stays
+    critical.
     """
 
     def _make_ofdma(self, power):
@@ -273,15 +275,73 @@ class TestLowUpstreamPowerAlone:
         assert low["power_health"] == "warning"
         assert low["health_detail"] == "power warning low"
 
-    def test_only_low_ofdma_power_is_marginal(self):
+    @pytest.mark.parametrize("power", [17.0, 30.0, 35.0, 40.0, 44.0])
+    def test_low_ofdma_power_is_not_rated(self, power):
+        """The specification defines no OFDM level range, so low OFDMA power is not a finding."""
         result = analyze(_make_data(
             ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us31=[self._make_ofdma(30.0)],
+            us31=[self._make_ofdma(power)],
+        ))
+
+        assert result["summary"]["health"] == "good"
+        assert result["summary"]["health_issues"] == []
+        channel = result["us_channels"][0]
+        assert channel["health"] == "good"
+        assert "power_health" not in channel
+        assert channel["health_detail"] == ""
+
+    @pytest.mark.parametrize("power", [0.0, 16.9])
+    def test_implausible_ofdma_power_is_not_good(self, power):
+        """Below P1.6min no modem transmits, so the value is a warning, not good."""
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[self._make_ofdma(power)],
         ))
 
         assert result["summary"]["health"] == "marginal"
         assert result["summary"]["health_issues"] == ["us_power_marginal_low"]
-        assert result["us_channels"][0]["health"] == "warning"
+        assert result["us_channels"][0]["health_detail"] == "power warning low"
+
+    @pytest.mark.parametrize(
+        "power, health, issues",
+        [
+            (49.0, "marginal", ["us_power_marginal_high"]),
+            (51.0, "critical", ["us_power_critical_high"]),
+        ],
+    )
+    def test_high_ofdma_power_is_still_rated(self, power, health, issues):
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[self._make_ofdma(power)],
+        ))
+
+        assert result["summary"]["health"] == health
+        assert result["summary"]["health_issues"] == issues
+
+    def test_low_ofdma_power_with_reduced_profile_modulation_is_marginal(self):
+        """On OFDMA the line quality shows in the profile modulation, not the level."""
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[{**self._make_ofdma(35.0), "profile_modulation": "64QAM"}],
+        ))
+
+        assert result["summary"]["health"] == "marginal"
+        assert result["summary"]["health_issues"] == ["us_modulation_marginal"]
+        assert result["us_channels"][0]["health_detail"] == "modulation warning"
+
+    def test_low_ofdma_and_low_sc_qam_power_rate_only_the_sc_qam_channel(self):
+        """The FRITZ!Box line from Discussion #1108: SC-QAM below 37.1 stays marginal."""
+        result = analyze(_make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=34.8), _make_us30(2, power=37.5)],
+            us31=[self._make_ofdma(35.0)],
+        ))
+
+        assert result["summary"]["health"] == "marginal"
+        assert result["summary"]["health_issues"] == ["us_power_marginal_low"]
+        by_id = {ch["channel_id"]: ch for ch in result["us_channels"]}
+        assert by_id[1]["health"] == "warning"
+        assert by_id[9]["health"] == "good"
 
     def test_low_power_is_never_good(self):
         result = analyze(_make_data(

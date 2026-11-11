@@ -210,6 +210,17 @@ def test_threshold_table_has_no_critical_lower_bound_for_upstream_power():
     assert ds_256["critical"] == "-8.0 to 16.0 dBmV"
 
 
+def test_threshold_table_names_no_lower_ofdma_bound_but_the_plausible_minimum():
+    """Low OFDMA power is not rated; only levels below P1.6min (17 dBmV) are."""
+    rows = _format_threshold_table()
+    us_rows = {r["variant"]: r for r in rows if r["category"] == "US Power"}
+
+    assert us_rows["ofdma"]["good"] == "17.0 to 47.0 dBmV"
+    assert us_rows["ofdma"]["tolerated"] == "17.0 to 48.0 dBmV"
+    assert us_rows["sc_qam"]["good"] == "41.1 to 47.0 dBmV"
+    assert us_rows["sc_qam"]["tolerated"] == "37.1 to 51.0 dBmV"
+
+
 def test_default_warn_thresholds():
     warn = _default_warn_thresholds()
     assert "ds_power" in warn

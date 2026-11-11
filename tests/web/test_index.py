@@ -919,10 +919,25 @@ class TestIndexRoute:
 
         ranges = build_metric_ranges(sample_analysis, get_thresholds())
 
-        for key in ("us_power", "us_sc_qam_power", "us_ofdma_power"):
+        for key in ("us_power", "us_sc_qam_power"):
             assert ranges[key]["health"] == "warn", key
             assert ranges[key]["bands"][0]["kind"] == "warn", key
             assert ranges[key]["bands"][-1]["kind"] == "crit", key
+
+    @pytest.mark.parametrize("value, health", [(30.0, "good"), (17.0, "good"), (16.0, "warn"), (49.0, "warn"), (51.0, "crit")])
+    def test_ofdma_power_card_rates_only_the_high_side_and_implausible_levels(self, sample_analysis, value, health):
+        """Low OFDMA power is not rated, so the card must not contradict the analyzer."""
+        sample_analysis["summary"]["signal_families"] = {
+            "downstream": {"families": {}},
+            "upstream": {"families": {"ofdma": {"power": _family_metric("good", value, value, value)}}},
+        }
+
+        ranges = build_metric_ranges(sample_analysis, get_thresholds())
+
+        ofdma = ranges["us_ofdma_power"]
+        assert ofdma["health"] == health
+        assert [band["kind"] for band in ofdma["bands"]] == ["good", "tolerated", "warn", "crit"]
+        assert ofdma["good_label"] == "<= 47 dBmV"
 
     def test_high_upstream_and_low_downstream_power_cards_stay_critical(self, sample_analysis):
         sample_analysis["summary"].update(us_power_avg=55.0, ds_power_avg=-9.0)

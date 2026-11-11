@@ -588,7 +588,8 @@ class TestDemoCollectorOFDMA:
         assert ch["type"] == "OFDMA"
         assert ch["modulation"] == "OFDMA"
         assert ch["profile_modulation"] == "256QAM"
-        assert ch["powerLevel"] < 44.1
+        # A lower profile comes with higher transmit power, as on a degraded return path.
+        assert ch["powerLevel"] > 45.0
 
     def test_historical_bad_period_makes_ofdma_problematic(self, storage):
         collector = self._collector(storage)

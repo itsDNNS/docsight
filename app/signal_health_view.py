@@ -2,7 +2,7 @@
 
 import math
 
-from .docsis_utils import classify_channel_family, qam_rank
+from .docsis_utils import OFDMA_MIN_PLAUSIBLE_POWER_DBMV, classify_channel_family, qam_rank
 
 
 def _to_float(value):
@@ -82,7 +82,13 @@ def _family_modulation_threshold_candidates(family):
     return candidates
 
 
-def _power_metric_health(value, threshold, *, low_critical=True):
+def _power_metric_health(value, threshold, *, low_critical=True, rate_low=True):
+    """Rate a power value like the analyzer.
+
+    Upstream passes ``low_critical=False`` (low power is at most a warning) and,
+    for OFDMA, ``rate_low=False`` (low power is not rated, only levels below
+    P1.6min are a warning).
+    """
     # A value the modem does not report is unknown, not good.
     if value is None:
         return "missing"
@@ -92,6 +98,9 @@ def _power_metric_health(value, threshold, *, low_critical=True):
     crit_min, crit_max = float(critical[0]), float(critical[1])
     warn_min, warn_max = float(warning[0]), float(warning[1])
     good_min, good_max = float(good[0]), float(good[1])
+    if not rate_low:
+        crit_min = warn_min = good_min = OFDMA_MIN_PLAUSIBLE_POWER_DBMV
+        low_critical = False
     if value > crit_max or (low_critical and value < crit_min):
         return "crit"
     if value < warn_min or value > warn_max:
@@ -116,8 +125,12 @@ def _snr_metric_health(value, threshold):
     return "good"
 
 
-def _power_metric_range(value, observed_min, observed_max, threshold, unit, *, low_critical=True):
-    """Build a power range; upstream passes low_critical=False to match the analyzer."""
+def _power_metric_range(value, observed_min, observed_max, threshold, unit, *, low_critical=True, rate_low=True):
+    """Build a power range; upstream passes low_critical/rate_low to match the analyzer.
+
+    Without a rated low side (OFDMA) the profile minimums only scale the bar,
+    and everything below the good maximum is drawn as good.
+    """
     good = threshold.get("good") or [-4.0, 13.0]
     warning = threshold.get("warning") or good
     critical = threshold.get("critical") or [warning[0] - 2.0, warning[1] + 2.0]
@@ -127,24 +140,34 @@ def _power_metric_range(value, observed_min, observed_max, threshold, unit, *, l
     padding = max((crit_max - crit_min) * 0.06, 0.5)
     minimum = crit_min - padding
     maximum = crit_max + padding
+    if rate_low:
+        low_bands = [
+            _range_band("crit" if low_critical else "warn", minimum, crit_min, minimum, maximum),
+            _range_band("warn", crit_min, warn_min, minimum, maximum),
+            _range_band("tolerated", warn_min, good_min, minimum, maximum),
+            _range_band("good", good_min, good_max, minimum, maximum),
+        ]
+    else:
+        low_bands = [_range_band("good", minimum, good_max, minimum, maximum)]
     bands = [
-        _range_band("crit" if low_critical else "warn", minimum, crit_min, minimum, maximum),
-        _range_band("warn", crit_min, warn_min, minimum, maximum),
-        _range_band("tolerated", warn_min, good_min, minimum, maximum),
-        _range_band("good", good_min, good_max, minimum, maximum),
+        *low_bands,
         _range_band("tolerated", good_max, warn_max, minimum, maximum),
         _range_band("warn", warn_max, crit_max, minimum, maximum),
         _range_band("crit", crit_max, maximum, minimum, maximum),
     ]
     span_start, span_width = _range_span(observed_min, observed_max, minimum, maximum)
     return {
-        "health": _power_metric_health(value, threshold, low_critical=low_critical),
+        "health": _power_metric_health(value, threshold, low_critical=low_critical, rate_low=rate_low),
         "marker": _range_pct(value, minimum, maximum),
         "span_start": span_start,
         "span_width": span_width,
         "low_label": f"{_format_range_value(crit_min)} {unit}",
         "high_label": f"{_format_range_value(crit_max)} {unit}",
-        "good_label": f"{_format_range_value(good_min)} - {_format_range_value(good_max)} {unit}",
+        "good_label": (
+            f"{_format_range_value(good_min)} - {_format_range_value(good_max)} {unit}"
+            if rate_low
+            else f"<= {_format_range_value(good_max)} {unit}"
+        ),
         "bands": [band for band in bands if band],
     }
 
@@ -270,14 +293,18 @@ def build_metric_ranges(analysis, thresholds):
         maximum = _to_float(metric.get("max"))
         return value, minimum if minimum is not None else value, maximum if maximum is not None else value
 
-    def _add_family_range(range_key, family, metric_name, candidates, threshold_group="snr"):
+    def _add_family_range(range_key, family, metric_name, candidates, threshold_group="snr", *, rate_low=True):
         values = _family_metric_values(family, metric_name)
         if not values:
             return
         threshold = _choose_threshold(thresholds.get(threshold_group, {}), candidates)
         if metric_name == "power":
             ranges[range_key] = _power_metric_range(
-                *values, threshold, "dBmV", low_critical=threshold_group != "upstream_power"
+                *values,
+                threshold,
+                "dBmV",
+                low_critical=threshold_group != "upstream_power",
+                rate_low=rate_low,
             )
         else:
             ranges[range_key] = _snr_metric_range(*values, threshold)
@@ -289,7 +316,8 @@ def build_metric_ranges(analysis, thresholds):
     _add_family_range("ds_sc_qam_snr", ds_families.get("sc_qam"), "snr", sc_qam_candidates)
     _add_family_range("ds_ofdm_mer", ds_families.get("ofdm"), "mer", ofdm_candidates)
     _add_family_range("us_sc_qam_power", us_families.get("sc_qam"), "power", ["sc_qam"], "upstream_power")
-    _add_family_range("us_ofdma_power", us_families.get("ofdma"), "power", ["ofdma"], "upstream_power")
+    # Low OFDMA power is not rated (see analyzer.resolve_us_power_thresholds).
+    _add_family_range("us_ofdma_power", us_families.get("ofdma"), "power", ["ofdma"], "upstream_power", rate_low=False)
     return ranges
 
 

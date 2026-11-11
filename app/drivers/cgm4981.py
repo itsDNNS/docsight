@@ -25,11 +25,10 @@ Implementation notes
 - The three tables share row labels (e.g. "Channel ID" appears in all three).
   This driver parses them by HTML section to avoid label-collision issues.
 - OFDM / OFDMA upstream channel power thresholds differ from SC-QAM.
-  Cox provisions OFDMA upstream at lower per-channel power (~37 dBmV is normal).
-  Low upstream power is rated at most marginal. Install a community threshold
-  profile with lower OFDMA minimums if DOCSight flags these as marginal:
-      ``upstream_power.ofdma.warning: [35.0, 48.0]``
-      ``upstream_power.ofdma.good:    [37.0, 47.0]``
+  Cox provisions OFDMA upstream at lower per-channel power (~37 dBmV is normal,
+  consistent with power per 1.6 MHz). Low OFDMA upstream power is not rated,
+  so these values are not flagged; only levels above the profile's OFDMA
+  maximums or below 17 dBmV (DOCSIS 3.1 P1.6min) are.
 """
 
 from __future__ import annotations

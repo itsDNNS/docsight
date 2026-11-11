@@ -95,8 +95,9 @@ class TestExportEndpoint:
 
         upstream = report.split("### Upstream Power (dBmV)", 1)[1].split("### SNR", 1)[0]
         assert "| sc_qam | 41.1 to 47.0 | 37.1 to 51.0 | > 53.0 |" in upstream
-        assert "| ofdma | 44.1 to 47.0 | 40.1 to 48.0 | > 50.0 |" in upstream
+        assert "| ofdma | 17.0 to 47.0 | 17.0 to 48.0 | > 50.0 |" in upstream
         assert "Low upstream power on its own is rated at most marginal" in upstream
+        assert "Low OFDMA upstream power is not rated" in upstream
         assert "| 256QAM | -4.0 to 13.0 | -6.0 to 15.0 | < -8.0 or > 16.0 |" in report
 
     @pytest.mark.parametrize("label, cell", [

@@ -194,6 +194,8 @@ def test_low_upstream_power_copy_is_its_own_and_covers_all_core_locales():
                 assert data[low] != english[low], f"{path.stem}/{low} is an English fallback"
         # The ranges depend on the active threshold profile, so the hint names none.
         assert not re.search(r"\d\s*dBmV", data["glossary_us_power"]), f"{path.stem}/glossary_us_power names fixed dBmV values"
+        # Low OFDMA power is not rated at all, which the hint has to say.
+        assert "OFDMA" in data["glossary_us_power"], f"{path.stem}/glossary_us_power misses the OFDMA rule"
 
     # Low transmit power does not mean the modem fails to reach the provider.
     low_texts = [english[key] for key in low_to_high] + [english["glossary_us_power"]]
