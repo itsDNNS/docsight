@@ -111,7 +111,8 @@ def _historical_builtin_thresholds(snapshot):
     profile_id = profile_ref.get("id")
     profile_version = profile_ref.get("version")
     for profile in BUILTIN_THRESHOLD_PROFILES:
-        if profile.get("id") != profile_id or profile.get("version") != profile_version:
+        versions = (profile.get("version"), *profile.get("same_thresholds_as", ()))
+        if profile.get("id") != profile_id or profile_version not in versions:
             continue
         thresholds = profile.get("thresholds")
         return thresholds if isinstance(thresholds, dict) else None

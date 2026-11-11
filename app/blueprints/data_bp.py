@@ -381,7 +381,9 @@ def api_export():
         g = t.get("good", [0, 0])
         w = t.get("warning", [0, 0])
         c = t.get("critical", [0, 0])
-        lines.append(f"| {key} | {g[0]} to {g[1]} | {w[0]} to {w[1]} | < {c[0]} or > {c[1]} |")
+        lines.append(f"| {key} | {g[0]} to {g[1]} | {w[0]} to {w[1]} | > {c[1]} |")
+    lines.append("")
+    lines.append("Low upstream power on its own is rated at most marginal.")
 
     lines += [
         "",

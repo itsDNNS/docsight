@@ -72,6 +72,14 @@ test('power and SNR bands cover their target ranges without gaps', () => {
     }
 });
 
+test('low upstream power is drawn as marginal at most, high upstream power as critical', () => {
+    const e = engine();
+    const bands = e.US_POWER_THRESHOLDS.filter(z => z.band);
+    const below = bands.filter(z => z.max <= 41);
+    assert.ok(below.length > 0 && below.every(z => z.band !== 'critical'));
+    assert.ok(bands.some(z => z.min >= 53 && z.band === 'critical'));
+});
+
 test('dense charts use the full width and move the outer labels inward', () => {
     const e = engine();
     const labels = Array.from({length: 200}, (_, i) => `10/${String(i % 30 + 1).padStart(2, '0')}, 08:${String(i % 60).padStart(2, '0')} AM`);

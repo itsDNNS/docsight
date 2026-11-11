@@ -906,6 +906,33 @@ class TestIndexRoute:
         assert ranges["us_power"]["health"] == "missing"
         assert ranges["snr"]["health"] == "missing"
 
+    def test_low_upstream_power_card_is_at_most_warning(self, sample_analysis):
+        summary = sample_analysis["summary"]
+        summary.update(us_power_min=33.0, us_power_avg=34.0, us_power_max=35.0)
+        summary["signal_families"] = {
+            "downstream": {"families": {}},
+            "upstream": {"families": {
+                "sc_qam": {"power": _family_metric("warning", 34.0, 33.0, 35.0)},
+                "ofdma": {"power": _family_metric("warning", 30.0, 30.0, 30.0)},
+            }},
+        }
+
+        ranges = build_metric_ranges(sample_analysis, get_thresholds())
+
+        for key in ("us_power", "us_sc_qam_power", "us_ofdma_power"):
+            assert ranges[key]["health"] == "warn", key
+            assert ranges[key]["bands"][0]["kind"] == "warn", key
+            assert ranges[key]["bands"][-1]["kind"] == "crit", key
+
+    def test_high_upstream_and_low_downstream_power_cards_stay_critical(self, sample_analysis):
+        sample_analysis["summary"].update(us_power_avg=55.0, ds_power_avg=-9.0)
+
+        ranges = build_metric_ranges(sample_analysis, get_thresholds())
+
+        assert ranges["us_power"]["health"] == "crit"
+        assert ranges["ds_power"]["health"] == "crit"
+        assert ranges["ds_power"]["bands"][0]["kind"] == "crit"
+
     def test_unreported_power_reads_as_unavailable_on_home_and_in_the_family_readings(self, client, sample_analysis):
         sample_analysis["summary"]["us_power_avg"] = None
         sample_analysis["summary"]["us_power_min"] = None
@@ -1697,3 +1724,65 @@ class TestUpstreamPowerFindings:
             high = self._insight(client, sample_analysis, f"us_power_{severity}_high", lang)
             assert all(low) and all(high)
             assert low[0] != high[0] and low[1] != high[1]
+
+
+class TestLowUpstreamPowerDashboard:
+    """Only low upstream power reads as marginal everywhere; stored critical history still renders."""
+
+    @staticmethod
+    def _render(client, analysis):
+        current_runtime().update_state(analysis=analysis)
+        resp = client.get("/?lang=en")
+        assert resp.status_code == 200
+        return resp.get_data(as_text=True)
+
+    @staticmethod
+    def _only_low_analysis():
+        return analyze({
+            "channelDs": {"docsis30": [{
+                "channelID": 1, "frequency": "602 MHz", "powerLevel": "3.0",
+                "modulation": "256QAM", "mse": "-35.0", "corrErrors": 0, "nonCorrErrors": 0,
+            }], "docsis31": []},
+            "channelUs": {"docsis30": [
+                {"channelID": 3, "frequency": "37 MHz", "powerLevel": "34.8", "modulation": "64QAM", "multiplex": "ATDMA"},
+                {"channelID": 4, "frequency": "44 MHz", "powerLevel": "42.0", "modulation": "64QAM", "multiplex": "ATDMA"},
+            ], "docsis31": []},
+        })
+
+    def test_only_low_upstream_power_renders_marginal_with_low_advice(self, client):
+        from app.i18n import get_translations
+
+        t = get_translations("en")
+        html = self._render(client, self._only_low_analysis())
+
+        assert 'class="hero-card glass dashboard-hero health-warn"' in html
+        assert 'data-line-status="warning"' in html
+        assert '<div class="insight-card insight-warn">' in html
+        assert "insight-crit" not in html
+        assert t["issue_us_power_marginal_low_desc"] in unescape(html)
+        assert t["insight_action_us_power_marginal_low"] in unescape(html)
+        assert f'<span class="badge badge-warn" title="{t["ch_power_warning_low"]}">' in html
+        assert "badge badge-crit" not in html
+
+    def test_stored_critical_low_snapshot_still_renders(self, client):
+        from app.i18n import get_translations
+
+        t = get_translations("en")
+        old = self._only_low_analysis()
+        old["analysis_meta"] = {
+            "analyzer_schema": 3,
+            "threshold_profile": {"id": "docsight.thresholds_vfkd", "version": "1.1.0"},
+        }
+        old["summary"].update(health="critical", health_issues=["us_power_critical_low"])
+        old["us_channels"][0].update(
+            health="critical", power_health="critical", health_detail="power critical low"
+        )
+
+        html = unescape(self._render(client, old))
+
+        assert 'class="hero-card glass dashboard-hero health-crit"' in html
+        assert '<div class="insight-card insight-crit">' in html
+        assert t["issue_us_power_critical_low"] in html
+        assert t["issue_us_power_critical_low_desc"] in html
+        assert t["insight_action_us_power_critical_low"] in html
+        assert f'<span class="badge badge-crit" title="{t["ch_power_critical_low"]}">' in html

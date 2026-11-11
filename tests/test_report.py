@@ -4,6 +4,7 @@ import io
 import sys
 import os
 
+import pytest
 from pypdf import PdfReader
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -196,6 +197,17 @@ def test_format_threshold_table_uses_real_values():
     assert len(us_mod) == 1
     assert "16" in us_mod[0]["tolerated"]
     assert "4" in us_mod[0]["critical"]
+
+
+def test_threshold_table_has_no_critical_lower_bound_for_upstream_power():
+    rows = _format_threshold_table()
+    us_rows = {r["variant"]: r for r in rows if r["category"] == "US Power"}
+    ds_256 = next(r for r in rows if r["category"] == "DS Power" and r["variant"] == "256QAM")
+
+    # Low upstream power is rated at most marginal, so only the maximum is critical.
+    assert us_rows["sc_qam"]["critical"] == "<= 53.0 dBmV"
+    assert us_rows["ofdma"]["critical"] == "<= 50.0 dBmV"
+    assert ds_256["critical"] == "-8.0 to 16.0 dBmV"
 
 
 def test_default_warn_thresholds():
@@ -435,3 +447,55 @@ def test_diagnostic_note_fallback_text_matches_the_english_catalog():
     ]
     for note in notes:
         assert _format_diagnostic_note(note, {}) == _format_diagnostic_note(note, REPORT_STRINGS["en"])
+
+
+def _low_upstream_snapshot(timestamp, *, schema, version, health, issue, channel_health, detail):
+    return {
+        "timestamp": timestamp,
+        "analysis_meta": {
+            "analyzer_schema": schema,
+            "threshold_profile": {"id": "docsight.thresholds_vfkd", "version": version},
+        },
+        "summary": {**MOCK_ANALYSIS["summary"], "health": health, "health_issues": [issue]},
+        "ds_channels": MOCK_ANALYSIS["ds_channels"],
+        "us_channels": [{
+            "channel_id": 3, "frequency": "37 MHz", "power": 34.8, "modulation": "64QAM",
+            "multiplex": "ATDMA", "docsis_version": "3.0", "health": channel_health,
+            "power_health": channel_health, "health_detail": detail,
+        }],
+    }
+
+
+def test_report_keeps_stored_critical_low_and_drops_it_for_new_marginal_snapshots():
+    old = _low_upstream_snapshot(
+        "2026-11-01T10:00:00", schema=3, version="1.1.0", health="critical",
+        issue="us_power_critical_low", channel_health="critical", detail="power critical low",
+    )
+    new = _low_upstream_snapshot(
+        "2026-11-02T10:00:00", schema=4, version="1.2.0", health="marginal",
+        issue="us_power_marginal_low", channel_health="warning", detail="power warning low",
+    )
+
+    old_text = _report_text([old])
+    new_text = _report_text([new])
+
+    assert "CRITICAL health: 1" in old_text
+    assert "34.8 dBmV is below expected minimum (35.0 dBmV)" in old_text
+    assert "CRITICAL health: 0" in new_text
+    assert "below expected minimum" not in new_text
+
+
+@pytest.mark.parametrize(
+    "health, expected",
+    [("good", "good"), ("tolerated", "tolerated"), ("marginal", "marginal"),
+     ("warning", "marginal"), ("critical", "critical")],
+)
+def test_channel_health_colours_match_the_rating(health, expected):
+    pdf = IncidentReport()
+    colours = {
+        "good": (39, 174, 96), "tolerated": (132, 204, 22),
+        "marginal": (243, 156, 18), "critical": (231, 76, 60),
+    }
+
+    # Channels report "warning" where the summary says "marginal"; neither is critical.
+    assert pdf._health_color(health) == colours[expected]

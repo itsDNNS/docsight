@@ -137,7 +137,8 @@ class TestOFDMAUpstream:
         cases = [
             {"label": "good", "power": "45.0", "expected": "good"},
             {"label": "tolerated", "power": "40.5", "expected": "tolerated"},
-            {"label": "critical low", "power": "37.0", "expected": "critical"},
+            {"label": "below critical minimum, capped", "power": "37.0", "expected": "warning"},
+            {"label": "critical high", "power": "51.0", "expected": "critical"},
         ]
 
         for case in cases:

@@ -3,6 +3,7 @@
 import json
 from unittest.mock import MagicMock, call
 
+from app.analyzer import analyze
 from app.modules.mqtt.publisher import MQTTPublisher
 
 
@@ -59,3 +60,26 @@ def test_missing_gaming_measurement_clears_retained_score_and_grade():
         call("docsight/gaming_quality_score", "", retain=True),
         call("docsight/gaming_quality_grade", "", retain=True),
     ])
+
+
+def test_only_low_upstream_power_publishes_marginal_health():
+    publisher = object.__new__(MQTTPublisher)
+    publisher.topic_prefix = "docsight"
+    publisher.client = MagicMock()
+    analysis = analyze({
+        "channelDs": {"docsis30": [{
+            "channelID": 1, "frequency": "602 MHz", "powerLevel": "3.0",
+            "modulation": "256QAM", "mse": "-35.0", "corrErrors": 0, "nonCorrErrors": 0,
+        }], "docsis31": []},
+        "channelUs": {"docsis30": [{
+            "channelID": 3, "frequency": "37 MHz", "powerLevel": "34.8",
+            "modulation": "64QAM", "multiplex": "ATDMA",
+        }], "docsis31": []},
+    })
+
+    publisher.publish_data(analysis)
+
+    published = {call.args[0]: call.args[1] for call in publisher.client.publish.call_args_list}
+    assert published["docsight/health"] == "marginal"
+    assert published["docsight/health_details"] == "US power below ideal"
+    assert json.loads(published["docsight/channel/us_ch3"])["health"] == "warning"
