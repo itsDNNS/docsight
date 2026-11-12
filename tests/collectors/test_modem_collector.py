@@ -100,6 +100,39 @@ class TestModemCollector:
         assert mqtt.publish_discovery.call_count == 1
         assert mqtt.publish_data.call_count == 2
 
+    def test_collect_skips_mqtt_while_broker_is_unreachable(self):
+        mqtt = MagicMock(is_connected=False, connection_count=0)
+        c, *_ = self._make_collector(mqtt_pub=mqtt)
+        result = c.collect()
+        assert result.success is True
+        mqtt.publish_discovery.assert_not_called()
+        mqtt.publish_data.assert_not_called()
+
+    @patch("app.collectors.modem.time.sleep")
+    def test_collect_publishes_once_broker_connects_later(self, _sleep):
+        mqtt = MagicMock(is_connected=False, connection_count=0)
+        c, *_ = self._make_collector(mqtt_pub=mqtt)
+        c.collect()
+        mqtt.is_connected = True
+        mqtt.connection_count = 1
+        c.collect()
+        mqtt.publish_discovery.assert_called_once()
+        mqtt.publish_channel_discovery.assert_called_once()
+        mqtt.publish_data.assert_called_once()
+
+    @patch("app.collectors.modem.time.sleep")
+    def test_collect_publishes_discovery_again_after_reconnect(self, _sleep):
+        # A broker restarted without persistence has lost the retained discovery.
+        mqtt = MagicMock(is_connected=True, connection_count=1)
+        c, *_ = self._make_collector(mqtt_pub=mqtt)
+        c.collect()
+        c.collect()
+        mqtt.connection_count = 2
+        c.collect()
+        assert mqtt.publish_discovery.call_count == 2
+        assert mqtt.publish_channel_discovery.call_count == 2
+        assert mqtt.publish_data.call_count == 3
+
     def test_collect_no_mqtt(self):
         c, *_ = self._make_collector(mqtt_pub=None)
         result = c.collect()
