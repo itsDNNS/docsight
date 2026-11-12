@@ -13,5 +13,5 @@ fpdf2>=2.9.0
 pillow>=13.0.0  # security floor for fpdf2 transitive dependency
 beautifulsoup4>=4.15.0
 soupsieve>=4.0.1  # security floor for BeautifulSoup transitive dependency
-pypdf>=6.21.2
+pypdf>=7.0.0
 openpyxl>=3.1.5
