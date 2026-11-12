@@ -158,7 +158,8 @@ class DemoCollector(Collector):
         self._web = web
         self._notifier = notifier
         self._smart_capture = smart_capture
-        self._discovery_published = False
+        # Connection count of the publisher when discovery was last sent.
+        self._discovery_connection = None
         self._poll_count = 0
         self._device_info = {
             "manufacturer": "DOCSight",
@@ -278,13 +279,16 @@ class DemoCollector(Collector):
         apply_spike_suppression(analysis, last_spike_ts)
 
         # MQTT publishing
-        if self._mqtt_pub:
-            if not self._discovery_published:
+        # Skipped while the broker is unreachable; discovery is sent again
+        # after every (re)connect, so a restarted broker gets its sensors back.
+        if self._mqtt_pub and self._mqtt_pub.is_connected:
+            connection = self._mqtt_pub.connection_count
+            if self._discovery_connection != connection:
                 self._mqtt_pub.publish_discovery(self._device_info)
                 self._mqtt_pub.publish_channel_discovery(
                     analysis["ds_channels"], analysis["us_channels"], self._device_info
                 )
-                self._discovery_published = True
+                self._discovery_connection = connection
                 time.sleep(1)
             speedtest = self._web.get_state().get("speedtest_latest")
             gi = compute_gaming_index(speedtest)

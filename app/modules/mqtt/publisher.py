@@ -68,15 +68,43 @@ class MQTTPublisher:
             self.client.username_pw_set(user, password)
 
         self.client.on_connect = self._on_connect
+        self.client.on_connect_fail = self._on_connect_fail
         self.client.on_disconnect = self._on_disconnect
+        # Reconnect attempts back off from 1 s up to 60 s while the broker is down.
+        self.client.reconnect_delay_set(min_delay=1, max_delay=60)
         self._connected = False
+        self._connection_count = 0
+        self._connect_fail_logged = False
+
+    @property
+    def is_connected(self):
+        return self._connected
+
+    @property
+    def connection_count(self):
+        """Number of successful connections, so callers can tell when to send discovery again."""
+        return self._connection_count
 
     def _on_connect(self, client, _userdata, _flags, rc, _properties=None):
         if rc == 0:
             log.info("MQTT connected to %s:%d", self.host, self.port)
+            # Birth message on every connection: after a reconnect the broker
+            # still holds the "offline" will from the lost connection.
+            client.publish(self._status_topic, "online", retain=True)
             self._connected = True
+            self._connect_fail_logged = False
+            self._connection_count += 1
         else:
             log.error("MQTT connect failed: rc=%s", rc)
+
+    def _on_connect_fail(self, _client, _userdata):
+        # paho retries in the background; log once per outage, not every attempt.
+        if not self._connect_fail_logged:
+            log.warning(
+                "MQTT broker %s:%d not reachable, retrying in the background",
+                self.host, self.port,
+            )
+            self._connect_fail_logged = True
 
     def _on_disconnect(self, client, _userdata, _flags, rc, _properties=None):
         log.warning("MQTT disconnected (rc=%s)", rc)
@@ -87,22 +115,19 @@ class MQTTPublisher:
         return f"{self.topic_prefix}/status"
 
     def connect(self):
+        """Start connecting in the background.
+
+        Does not wait for the broker: when it is down at startup, the network
+        loop keeps retrying and connects once it is reachable.
+        """
         # LWT: broker publishes "offline" if we disconnect unexpectedly
         self.client.will_set(self._status_topic, "offline", retain=True)
-        self.client.connect(self.host, self.port, 60)
+        self.client.connect_async(self.host, self.port, 60)
         self.client.loop_start()
-        # Wait briefly for connection
-        for _ in range(20):
-            if self._connected:
-                break
-            time.sleep(0.25)
-        if not self._connected:
-            raise ConnectionError(f"Could not connect to MQTT broker {self.host}:{self.port}")
-        # Birth message
-        self.client.publish(self._status_topic, "online", retain=True)
 
     def disconnect(self):
-        self.client.publish(self._status_topic, "offline", retain=True)
+        if self._connected:
+            self.client.publish(self._status_topic, "offline", retain=True)
         self.client.loop_stop()
         self.client.disconnect()
 

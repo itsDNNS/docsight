@@ -167,10 +167,11 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
             public_url=config.get("public_url", ""),
         )
         try:
+            # Connects in the background and keeps retrying while the broker is down.
             mqtt_pub.connect()
             log.info("MQTT: %s:%s (prefix: %s)", config["mqtt_host"], config["mqtt_port"], config["mqtt_topic_prefix"])
         except Exception as e:
-            log.warning("MQTT connection failed: %s (continuing without MQTT)", e)
+            log.warning("MQTT setup failed: %s (continuing without MQTT)", e)
             mqtt_pub = None
     elif config_mgr.is_mqtt_configured() and not mqtt_cls:
         log.warning("MQTT configured but docsight.mqtt module not available (disabled?)")
