@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR šiek tiek žemiau idealo",
     "us_modulation_critical": "Upstream moduliacija kritiškai pablogėjusi",
     "us_modulation_marginal": "Upstream moduliacija pablogėjusi",
+    "us_modulation_tolerated": "Upstream moduliacija šiek tiek sumažėjusi",
+    "ds_modulation_critical": "Downstream moduliacija kritiškai pablogėjusi",
+    "ds_modulation_marginal": "Downstream moduliacija pablogėjusi",
+    "ds_modulation_tolerated": "Downstream moduliacija šiek tiek sumažėjusi",
     "uncorr_errors_high": "Daug neištaisomų klaidų",
     "uncorr_errors_critical": "Nepataisomas klaidų lygis kritinis"
   },

@@ -213,12 +213,17 @@ class DemoCollector(Collector):
 
     @staticmethod
     def _ofdma_power_offset(profile_modulation):
-        """Bias lower OFDMA profiles towards lower power to make the issue visible."""
+        """Bias lower OFDMA profiles towards higher power to make the issue visible.
+
+        A degraded return path makes the CMTS raise the modem's transmit power
+        and assign a lower profile. Low OFDMA power is not rated, so only the
+        high side and the profile modulation can show the problem.
+        """
         return {
             "1024QAM": 0.0,
-            "512QAM": -1.6,
-            "256QAM": -3.4,
-            "128QAM": -5.2,
+            "512QAM": 1.2,
+            "256QAM": 2.4,
+            "128QAM": 3.4,
         }.get(profile_modulation, 0.0)
 
     def _generate_data(self):
@@ -514,7 +519,7 @@ class DemoCollector(Collector):
                 + random.uniform(-0.3, 0.3)
             )
             if ofdma_bad_period:
-                power -= random.uniform(0.5, 1.2)
+                power += random.uniform(0.5, 1.2)
             power = round(power, 1)
             us_total_power += power
 
@@ -522,6 +527,7 @@ class DemoCollector(Collector):
             assessed_channel = {
                 "powerLevel": power,
                 "modulation": us31_mod,
+                "profile_modulation": profile_modulation,
                 "type": ch.get("type", "OFDMA"),
             }
             health, health_detail = _assess_us_channel(assessed_channel, "3.1")

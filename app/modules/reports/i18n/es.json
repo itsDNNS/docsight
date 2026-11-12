@@ -161,6 +161,10 @@
     "snr_tolerated": "Relación señal-ruido ligeramente por debajo del ideal",
     "us_modulation_critical": "Modulación ascendente críticamente degradada",
     "us_modulation_marginal": "Modulación ascendente degradada",
+    "us_modulation_tolerated": "Modulación ascendente ligeramente reducida",
+    "ds_modulation_critical": "Modulación descendente críticamente degradada",
+    "ds_modulation_marginal": "Modulación descendente degradada",
+    "ds_modulation_tolerated": "Modulación descendente ligeramente reducida",
     "uncorr_errors_high": "Alto número de errores no corregibles",
     "uncorr_errors_critical": "Tasa de errores no corregibles crítica"
   },

@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR iets onder ideaal",
     "us_modulation_critical": "Upstream-modulatie is ernstig verslechterd",
     "us_modulation_marginal": "Upstream-modulatie is verslechterd",
+    "us_modulation_tolerated": "Upstream-modulatie iets verlaagd",
+    "ds_modulation_critical": "Downstream-modulatie is ernstig verslechterd",
+    "ds_modulation_marginal": "Downstream-modulatie is verslechterd",
+    "ds_modulation_tolerated": "Downstream-modulatie iets verlaagd",
     "uncorr_errors_high": "Hoog aantal niet-corrigeerbare fouten",
     "uncorr_errors_critical": "Oncorrigeerbaar foutenpercentage van cruciaal belang"
   },

@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR hieman alle ideaalin",
     "us_modulation_critical": "Upstream-modulaatio on kriittisesti heikentynyt",
     "us_modulation_marginal": "Upstream-modulaatio on heikentynyt",
+    "us_modulation_tolerated": "Upstream-modulaatio hieman alentunut",
+    "ds_modulation_critical": "Downstream-modulaatio on kriittisesti heikentynyt",
+    "ds_modulation_marginal": "Downstream-modulaatio on heikentynyt",
+    "ds_modulation_tolerated": "Downstream-modulaatio hieman alentunut",
     "uncorr_errors_high": "Suuri korjaamattomia virheitä",
     "uncorr_errors_critical": "Korjaamaton virhesuhde kriittinen"
   },

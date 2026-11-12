@@ -721,6 +721,11 @@ body:has(#view-dashboard.active) .app-main {
   color: color-mix(in srgb, var(--warn) 78%, var(--text));
 }
 
+.dashboard-hero .hero-modulation-tolerated .hero-modulation-card-top strong,
+.dashboard-hero .hero-modulation-tolerated .hero-modulation-cause {
+  color: color-mix(in srgb, var(--tolerated) 78%, var(--text));
+}
+
 .dashboard-hero .hero-modulation-crit .hero-modulation-card-top strong,
 .dashboard-hero .hero-modulation-crit .hero-modulation-cause {
   color: color-mix(in srgb, var(--crit) 78%, var(--text));

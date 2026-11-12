@@ -919,10 +919,25 @@ class TestIndexRoute:
 
         ranges = build_metric_ranges(sample_analysis, get_thresholds())
 
-        for key in ("us_power", "us_sc_qam_power", "us_ofdma_power"):
+        for key in ("us_power", "us_sc_qam_power"):
             assert ranges[key]["health"] == "warn", key
             assert ranges[key]["bands"][0]["kind"] == "warn", key
             assert ranges[key]["bands"][-1]["kind"] == "crit", key
+
+    @pytest.mark.parametrize("value, health", [(30.0, "good"), (17.0, "good"), (16.0, "warn"), (49.0, "warn"), (51.0, "crit")])
+    def test_ofdma_power_card_rates_only_the_high_side_and_implausible_levels(self, sample_analysis, value, health):
+        """Low OFDMA power is not rated, so the card must not contradict the analyzer."""
+        sample_analysis["summary"]["signal_families"] = {
+            "downstream": {"families": {}},
+            "upstream": {"families": {"ofdma": {"power": _family_metric("good", value, value, value)}}},
+        }
+
+        ranges = build_metric_ranges(sample_analysis, get_thresholds())
+
+        ofdma = ranges["us_ofdma_power"]
+        assert ofdma["health"] == health
+        assert [band["kind"] for band in ofdma["bands"]] == ["good", "tolerated", "warn", "crit"]
+        assert ofdma["good_label"] == "<= 47 dBmV"
 
     def test_high_upstream_and_low_downstream_power_cards_stay_critical(self, sample_analysis):
         sample_analysis["summary"].update(us_power_avg=55.0, ds_power_avg=-9.0)
@@ -1221,12 +1236,33 @@ class TestIndexRoute:
         assert 'class="hero-modulation-card hero-modulation-warn"' in html
         assert 'href="#modulation"' in html
 
+    def test_home_marks_tolerated_upstream_modulation_instead_of_normal(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "health": "tolerated",
+            "health_issues": ["us_modulation_tolerated"],
+        })
+        sample_analysis["us_channels"][0].update({
+            "modulation": "128QAM",
+            "health": "tolerated",
+            "health_detail": "modulation tolerated",
+        })
+        current_runtime().update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        card = html.split('data-modulation-dir="us"', 1)[1].split('class="hero-modulation-card ', 1)[0][:1500]
+        assert 'class="hero-modulation-card hero-modulation-tolerated"' in html
+        assert "Upstream modulation slightly reduced" in card
+        assert "No modulation degradation detected" not in card
+
     @pytest.mark.parametrize(
         ("issue", "detail", "expected_label"),
         [
-            ("ds_modulation_critical", "modulation critical", "Modulation kritisch degradiert"),
-            ("ds_modulation_marginal", "modulation warning", "Modulation degradiert"),
-            ("ds_modulation_tolerated", "modulation tolerated", "Modulation degradiert"),
+            ("ds_modulation_critical", "modulation critical", "Downstream-Modulation kritisch herabgesetzt"),
+            ("ds_modulation_marginal", "modulation warning", "Downstream-Modulation herabgesetzt"),
+            ("ds_modulation_tolerated", "modulation tolerated", "Downstream-Modulation leicht herabgesetzt"),
         ],
     )
     def test_home_translates_downstream_modulation_issues_in_german_dashboard(
@@ -1247,8 +1283,13 @@ class TestIndexRoute:
 
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        assert issue not in html
-        assert expected_label in html
+        # The translation bootstrap JSON carries the report catalog, whose
+        # labels are keyed by issue; only the rendered page must not show it.
+        # Tolerated findings stay out of the findings list, so their label is
+        # only in the translations the snapshot panel reads.
+        rendered = html.split('id="docsight-dashboard-bootstrap"', 1)[0]
+        assert issue not in rendered
+        assert expected_label in (html if issue.endswith("_tolerated") else rendered)
         assert "Downstream-Details bleiben in der Modulationsansicht" in html
 
     def test_home_marks_critical_upstream_modulation(self, client, sample_analysis):

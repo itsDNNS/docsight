@@ -136,8 +136,11 @@ class TestOFDMAUpstream:
     def test_ofdma_channel_threshold_classifications(self):
         cases = [
             {"label": "good", "power": "45.0", "expected": "good"},
-            {"label": "tolerated", "power": "40.5", "expected": "tolerated"},
-            {"label": "below critical minimum, capped", "power": "37.0", "expected": "warning"},
+            {"label": "low side not rated", "power": "40.5", "expected": "good"},
+            {"label": "below critical minimum, not rated", "power": "37.0", "expected": "good"},
+            {"label": "below P1.6min, implausible", "power": "16.0", "expected": "warning"},
+            {"label": "tolerated high", "power": "47.5", "expected": "tolerated"},
+            {"label": "warning high", "power": "49.0", "expected": "warning"},
             {"label": "critical high", "power": "51.0", "expected": "critical"},
         ]
 
@@ -156,7 +159,7 @@ class TestOFDMAUpstream:
             us31=[{
                 "channelID": 5,
                 "frequency": "18.000 - 44.000",
-                "powerLevel": "40.0",
+                "powerLevel": "47.5",
                 "modulation": "OFDMA",
                 "profile_modulation": "128QAM",
                 "type": "OFDMA",
@@ -191,6 +194,26 @@ class TestOFDMAUpstream:
         assert "modulation warning" in channel["health_detail"]
         assert result["summary"]["health"] == "marginal"
         assert "us_modulation_marginal" in result["summary"]["health_issues"]
+
+    def test_tolerated_ofdma_profile_modulation_reaches_the_summary(self):
+        """A channel rated tolerated must not leave the overall health at good."""
+        data = _make_data(
+            us31=[{
+                "channelID": 5,
+                "frequency": "18.000 - 44.000",
+                "powerLevel": "45.0",
+                "modulation": "OFDMA",
+                "profile_modulation": "128QAM",
+                "type": "OFDMA",
+                "multiplex": "OFDMA",
+            }]
+        )
+
+        result = analyze(data)
+        channel = result["us_channels"][0]
+        assert channel["health"] == "tolerated"
+        assert result["summary"]["health"] == "tolerated"
+        assert result["summary"]["health_issues"] == ["us_modulation_tolerated"]
 
     @pytest.mark.parametrize(
         ("profile_modulation", "expected_health"),

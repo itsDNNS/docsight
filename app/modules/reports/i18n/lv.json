@@ -161,6 +161,10 @@
     "snr_tolerated": "SNR nedaudz zem ideāla",
     "us_modulation_critical": "Upstream modulācija ir kritiski degradēta",
     "us_modulation_marginal": "Upstream modulācija ir pasliktinājusies",
+    "us_modulation_tolerated": "Upstream modulācija ir nedaudz samazināta",
+    "ds_modulation_critical": "Downstream modulācija ir kritiski pasliktinājusies",
+    "ds_modulation_marginal": "Downstream modulācija ir pasliktinājusies",
+    "ds_modulation_tolerated": "Downstream modulācija ir nedaudz samazināta",
     "uncorr_errors_high": "Liels nelabojamu kļūdu skaits",
     "uncorr_errors_critical": "Nelabojams kļūdu līmenis ir kritisks"
   },

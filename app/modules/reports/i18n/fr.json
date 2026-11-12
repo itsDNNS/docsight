@@ -161,6 +161,10 @@
     "snr_tolerated": "Rapport signal-bruit légèrement sous l'idéal",
     "us_modulation_critical": "Modulation montante critiquement dégradée",
     "us_modulation_marginal": "Modulation montante dégradée",
+    "us_modulation_tolerated": "Modulation montante légèrement réduite",
+    "ds_modulation_critical": "Modulation descendante critiquement dégradée",
+    "ds_modulation_marginal": "Modulation descendante dégradée",
+    "ds_modulation_tolerated": "Modulation descendante légèrement réduite",
     "uncorr_errors_high": "Nombre élevé d'erreurs non corrigeables",
     "uncorr_errors_critical": "Taux d'erreurs non corrigeables critique"
   },
