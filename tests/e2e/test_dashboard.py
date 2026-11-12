@@ -734,10 +734,51 @@ class TestStatusFirst:
         demo_page.set_viewport_size({"width": 1280, "height": 800})
         refresh = demo_page.locator(".hero-refresh-button")
         expect(refresh).to_have_accessible_name("Refresh")
+        # The demo uptime follows the clock. Measure with its widest value so the
+        # result does not depend on the time of day.
+        replaced = demo_page.evaluate(
+            """() => {
+                const item = [...document.querySelectorAll('.insights-meta .hero-meta-item')]
+                    .find(el => /^\\d+d \\d+h \\d+m$/.test(el.textContent.trim()));
+                if (!item) return false;
+                const text = [...item.childNodes].reverse().find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+                text.textContent = ' 99d 23h 59m';
+                return true;
+            }"""
+        )
+        assert replaced
         tops = demo_page.evaluate(
             "() => [...document.querySelectorAll('.insights-meta .hero-meta-item')].filter(el => el.offsetParent).map(el => el.getBoundingClientRect().top)"
         )
         assert max(tops) - min(tops) < 8, tops
+
+    def test_meta_row_never_wraps_refresh_alone(self, demo_page):
+        # Longer real-world values push the row past one line. Grow an earlier item step by
+        # step: whenever the row wraps, the refresh button stays next to the countdown.
+        demo_page.set_viewport_size({"width": 1280, "height": 800})
+        expect(demo_page.locator(".hero-refresh-button")).to_be_visible()
+        orphaned = demo_page.evaluate(
+            """() => {
+                const items = [...document.querySelectorAll('.insights-meta .hero-meta-item')].filter(el => el.offsetParent);
+                const grow = items[1];
+                const countdown = document.getElementById('desktop-countdown');
+                const refresh = document.querySelector('.insights-meta .hero-refresh-button');
+                const top = el => el.getBoundingClientRect().top;
+                const bad = [];
+                let wrapped = false;
+                for (let px = 0; px <= 240; px += 2) {
+                    grow.style.paddingLeft = px + 'px';
+                    grow.style.maxWidth = 'none';
+                    if (top(refresh) - top(items[0]) > 8) wrapped = true;
+                    if (Math.abs(top(countdown) - top(refresh)) >= 8) bad.push(px);
+                }
+                grow.style.paddingLeft = '';
+                grow.style.maxWidth = '';
+                return {wrapped, bad};
+            }"""
+        )
+        assert orphaned["wrapped"], orphaned
+        assert orphaned["bad"] == [], orphaned
 
 
 def test_gaming_component_rows_expand_by_click_enter_and_space(demo_page):
