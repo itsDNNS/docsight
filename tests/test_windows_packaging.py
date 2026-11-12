@@ -447,8 +447,12 @@ def test_build_lock_contains_windows_pyinstaller_dependencies():
 
 def test_runtime_windows_lock_contains_windows_marked_dependencies():
     lock_text = (WINDOWS_PACKAGING / "requirements-runtime-windows.txt").read_text(encoding="utf-8")
+    main_lock = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+    click_pin = re.search(r"^click==\S+", main_lock, re.MULTILINE)
 
-    assert "click==8.5.0" in lock_text
+    # The Windows runtime keeps the same Click as the main lock.
+    assert click_pin is not None
+    assert f"{click_pin.group(0)} " in lock_text
     assert "colorama==" not in lock_text
     assert "tzdata==2026.2" in lock_text
     assert "pystray==0.19.5" in lock_text
