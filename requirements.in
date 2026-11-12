@@ -1,10 +1,10 @@
 requests>=2.34.2
 urllib3>=2.8.0  # security floor for requests transitive dependency
 certifi>=2026.10.19  # security floor for requests transitive dependency
-paho-mqtt>=2.1
+paho-mqtt>=2.2.0
 flask>=3.1
 werkzeug>=3.1.9  # security floor for Flask transitive dependency
-click>=8.5.0  # security floor for Flask transitive dependency
+click>=8.5.1  # security floor for Flask transitive dependency
 waitress>=3.0.2
 cryptography>=50.0.2
 py-vapid>=1.9.6  # Web Push: VAPID signing
