@@ -295,6 +295,34 @@ class TestDemoMarking:
 # ── Purge Tests ──
 
 
+class TestDemoMqtt:
+    @patch("app.collectors.demo.time.sleep")
+    def test_publishes_after_late_connect_and_rediscovers_after_reconnect(self, _sleep, storage, sample_analysis):
+        mqtt = MagicMock(is_connected=False, connection_count=0)
+        collector = DemoCollector(
+            analyzer_fn=MagicMock(return_value=sample_analysis),
+            event_detector=MagicMock(check=MagicMock(return_value=[])),
+            storage=storage,
+            mqtt_pub=mqtt,
+            web=MagicMock(),
+            poll_interval=900,
+        )
+        with patch.object(collector, "_seed_demo_data"), \
+             patch.object(collector, "_generate_data", return_value={}):
+            collector.collect()
+            mqtt.publish_data.assert_not_called()
+
+            mqtt.is_connected = True
+            mqtt.connection_count = 1
+            collector.collect()
+            collector.collect()
+            mqtt.connection_count = 2
+            collector.collect()
+
+        assert mqtt.publish_discovery.call_count == 2
+        assert mqtt.publish_data.call_count == 3
+
+
 class TestPurgeDemoData:
     def test_purge_removes_only_demo(self, storage):
         """Purge should delete is_demo=1 rows and keep is_demo=0 rows."""
