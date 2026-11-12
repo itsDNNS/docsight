@@ -344,11 +344,14 @@
                             <i data-lucide="gamepad-2" class="hero-gaming-icon"></i> {{ t.gaming_badge_label }} <span class="badge hero-gaming-grade {{ _badge_class }}">{{ gaming_index.grade }}</span>
                         </span>
                         {% endif %}
-                        <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
-                        <button type="button" class="hero-meta-item desktop-only hero-refresh-button" title="{{ t.refresh }}" aria-label="{{ t.refresh }}"
-                            data-click-target="#refresh-btn">
-                            <i data-lucide="refresh-cw"></i>
-                        </button>
+                        {# Countdown and refresh wrap as one unit, so the refresh button never ends up alone on a line. #}
+                        <span class="hero-meta-tail desktop-only">
+                            <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
+                            <button type="button" class="hero-meta-item desktop-only hero-refresh-button" title="{{ t.refresh }}" aria-label="{{ t.refresh }}"
+                                data-click-target="#refresh-btn">
+                                <i data-lucide="refresh-cw"></i>
+                            </button>
+                        </span>
                 </div>
             </div>
     {% endset %}

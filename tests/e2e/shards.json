@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 811,
+  "expected_total": 812,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -81,7 +81,7 @@
     },
     {
       "id": 6,
-      "collected_cases": 137,
+      "collected_cases": 138,
       "files": [
         "test_command_palette.py",
         "test_community_drivers.py",
