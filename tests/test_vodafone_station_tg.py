@@ -344,3 +344,34 @@ def test_auth_error_triggers_reauth_and_retry():
     assert result["hw_version"] == "HW1"
     assert result["docsis_status"] == "online"
     assert result["reboot_reason"] == "power on"
+
+
+def test_docsis_fetch_logs_in_again_after_device_info_dropped_session():
+    """A failed device info fetch drops the TG session; the DOCSIS fetch in
+    the same poll must log in again instead of failing (#1123)."""
+    html = (Path(__file__).parent / "fixtures/vodafone_tg/status_docsis_data.html").read_text()
+    tg = VodafoneStationDriver("http://dummy", "admin", "dummy")
+    tg._variant = tg.VARIANT_TG
+    tg._tg_nonce = "test-session"
+    responses = iter([
+        requests.HTTPError(response=MagicMock(status_code=500)),
+        MagicMock(status_code=200, text=html),
+    ])
+
+    def fake_get(url, *args, **kwargs):
+        nxt = next(responses)
+        if isinstance(nxt, Exception):
+            raise nxt
+        return nxt
+
+    def fake_login():
+        tg._tg_nonce = "fresh-session"
+
+    with patch.object(tg._session, "get", side_effect=fake_get), \
+         patch.object(tg._session, "post"), \
+         patch.object(tg, "_login_tg", side_effect=fake_login) as login:
+        assert tg.get_device_info()["model"] == "Vodafone Station (TG6442VF/TG3442DE)"
+        data = tg.get_docsis_data()
+
+    login.assert_called_once()
+    assert [ch["channelID"] for ch in data["channelDs"]["docsis30"]] == [7, 8]

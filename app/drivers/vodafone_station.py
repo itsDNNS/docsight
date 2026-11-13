@@ -565,7 +565,8 @@ class VodafoneStationDriver(ModemDriver):
         ("-1.2 dBmV/1158.8 dBuV"), SNRLevel (downstream only).
         """
         if not self._tg_nonce:
-            raise RuntimeError("TG: Not authenticated. Call login() first.")
+            # A failed device info fetch drops the session earlier in the same poll.
+            self._login_tg()
 
         try:
             r = self._tg_docsis_request()
