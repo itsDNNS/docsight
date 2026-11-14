@@ -21,6 +21,11 @@ class TestHelpers:
     def test_convert_date_iso(self):
         assert _convert_date("2025-02-04") == "2025-02-04"
 
+    def test_convert_date_rejects_trailing_text(self):
+        assert _convert_date("2025-02-04<b>x</b>") is None
+        assert _convert_date("04.02.2025 extra") is None
+        assert _convert_date("not a date") is None
+
 
 class TestCsvParser:
     def test_valid_csv_semicolon(self):
