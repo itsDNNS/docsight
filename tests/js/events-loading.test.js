@@ -8,11 +8,27 @@ const test = require('node:test');
 
 function browser() {
     const ids = new Map(), requests = [];
+    // Enough of the DOM for the feed, which inserts and replaces its day sections.
+    function section(html, parent) {
+        return {
+            html, parent,
+            getAttribute: name => (html.match(new RegExp(name + '="([^"]*)"')) || [])[1] || null,
+            get nextElementSibling() { return parent.nodes[parent.nodes.indexOf(this) + 1] || null; },
+            get previousElementSibling() { return parent.nodes[parent.nodes.indexOf(this) - 1] || null; },
+            insertAdjacentHTML(_position, markup) { parent.nodes.splice(parent.nodes.indexOf(this), 0, section(markup, parent)); },
+            remove() { parent.nodes.splice(parent.nodes.indexOf(this), 1); },
+            querySelectorAll: () => [],
+        };
+    }
     function element() {
         return {
-            children: [], style: {}, textContent: '', hidden: false, html: '',
-            set innerHTML(value) { this.html = value; },
+            children: [], nodes: [], style: {}, textContent: '', hidden: false, markup: '',
+            get html() { return this.nodes.length ? this.nodes.map(node => node.html).join('') : this.markup; },
+            set innerHTML(value) { this.markup = value; },
             get innerHTML() { return this.html; },
+            get firstElementChild() { return this.nodes[0] || null; },
+            get lastElementChild() { return this.nodes[this.nodes.length - 1] || null; },
+            insertAdjacentHTML(_position, markup) { this.nodes.push(section(markup, this)); },
             classList: { contains: () => true, toggle() {} },
             setAttribute() {}, appendChild(child) { this.children.push(child); },
             querySelectorAll: () => [], querySelector: () => null,
@@ -185,4 +201,23 @@ test('a failed first load offers a retry of the same request', async () => {
     assert.equal(empty.kind, 'error');
     empty.retry();
     assert.match(b.requests[2].url, /offset=0/);
+});
+
+test('showing more keeps the newer days and only rebuilds the days that changed', async () => {
+    const b = browser();
+    const dated = (data, day) => ({...data, events: data.events.map(ev => ({...ev, timestamp: day + 'T10:00:00'}))});
+    const first = dated(page(25), '2026-09-07');
+    first.events.push(...dated(page(25, 26), '2026-09-06').events);
+    b.context.loadEvents();
+    await b.reply(1, first);
+    const feed = b.node('events-feed');
+    const [newest, partial] = feed.nodes;
+    b.context.loadMoreEvents();
+    const second = dated(page(5, 51), '2026-09-06');
+    second.events.push(...dated(page(5, 56), '2026-09-05').events);
+    await b.reply(2, second);
+    assert.deepEqual(feed.nodes.map(node => node.getAttribute('data-day')), ['2026-09-07', '2026-09-06', '2026-09-05']);
+    assert.equal(feed.nodes[0], newest);
+    assert.notEqual(feed.nodes[1], partial);
+    assert.equal(b.rows(), 60);
 });

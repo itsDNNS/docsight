@@ -571,10 +571,11 @@ def test_a_log_rendered_while_hidden_marks_cut_off_messages_once_shown(demo_page
     row = page.locator('#events-feed [data-event-id="59"] > .ev-main')
     expect(row).to_have_attribute("aria-expanded", "false")
 
-    # Render the log while its view is hidden, then show the view without rendering again.
+    # Render the log afresh while its view is hidden, then show the view without rendering again.
     page.evaluate("""() => {
         const view = document.getElementById('view-events');
         view.classList.remove('active');
+        document.getElementById('events-feed').replaceChildren();
         _renderEventTimeline();
     }""")
     assert row.get_attribute("data-toggle") is None

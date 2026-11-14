@@ -18,6 +18,8 @@ function card() {
     const elements = Object.fromEntries(ids.map(id => ['cm-card-' + id, element()]));
     const listeners = {};
     const views = [];
+    const page = {hidden: false};
+    elements['cm-card-latency'].closest = selector => (selector === '.view.active' ? {} : null);
     elements['connection-monitor-card'] = {
         attrs: {},
         setAttribute(name, value) { this.attrs[name] = value; },
@@ -26,9 +28,11 @@ function card() {
     };
     let refresh;
     let response;
+    let requests = 0;
     const context = {
         document: {
             readyState: 'complete', addEventListener() {},
+            get hidden() { return page.hidden; },
             getElementById: id => elements[id], createElement: element,
         },
         location: {href: ''},
@@ -36,6 +40,7 @@ function card() {
         docsightUrl: url => url,
         setInterval: callback => { refresh = callback; },
         fetch: async () => {
+            requests += 1;
             if (response instanceof Error) throw response;
             return response;
         },
@@ -43,6 +48,8 @@ function card() {
     context.window = context;
     vm.runInNewContext(fs.readFileSync('app/modules/connection_monitor/static/js/connection-monitor-card.js', 'utf8'), context);
     return {
+        page,
+        requests: () => requests,
         elements,
         views,
         location: context.location,
@@ -116,4 +123,16 @@ test('card opens Settings while the monitor is off and the detail view otherwise
     view.click();
     assert.equal(view.location.href, '');
     assert.deepEqual(view.views, ['connection-monitor']);
+});
+
+test('card does not poll while the tab is hidden', async () => {
+    const view = card();
+    await new Promise(setImmediate);
+    const initial = view.requests();
+    view.page.hidden = true;
+    await view.update({1: healthy});
+    assert.equal(view.requests(), initial);
+    view.page.hidden = false;
+    await view.update({1: healthy});
+    assert.equal(view.requests(), initial + 1);
 });

@@ -527,9 +527,11 @@ class TestSignalRefresh:
         start(page, live_server)
         painted(page)
         page.wait_for_load_state('networkidle')
-        html = page.request.get(live_server).text()
+        # The refresh asks only for the dashboard fragment, never the whole page.
+        html = page.request.get(live_server + '/?fragment=dashboard').text()
+        assert '<html' not in html and 'id="view-dashboard"' in html
         held = []
-        page.route(live_server + '/', lambda route: held.append(route))
+        page.route(live_server + '/?fragment=dashboard', lambda route: held.append(route))
         page.clock.install()
         click_refresh(page)
         wait_count(page, held, 1)

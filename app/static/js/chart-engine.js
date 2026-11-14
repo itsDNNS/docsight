@@ -322,17 +322,27 @@ var BAND_STYLE = {
 };
 
 var _themeColorProbe = null;
+var _themeColorCache = {};
+var _themeColorKey = null;
 /* Resolves a CSS color token of the current theme to rgba() with the given alpha. */
 function docsightThemeColor(token, alpha) {
     if (!document.body || typeof getComputedStyle !== 'function') return 'rgba(128,128,128,' + alpha + ')';
-    if (!_themeColorProbe) {
-        _themeColorProbe = document.createElement('span');
-        _themeColorProbe.style.display = 'none';
-        document.body.appendChild(_themeColorProbe);
+    // Charts ask on every redraw; resolve each token once per mode and set of theme styles.
+    var key = document.documentElement.getAttribute('data-theme') + '|' + document.styleSheets.length;
+    if (key !== _themeColorKey) {
+        _themeColorCache = {};
+        _themeColorKey = key;
     }
-    _themeColorProbe.style.color = 'var(' + token + ')';
-    var rgb = (getComputedStyle(_themeColorProbe).color.match(/[\d.]+/g) || [128, 128, 128]).slice(0, 3);
-    return 'rgba(' + rgb.join(',') + ',' + alpha + ')';
+    if (!_themeColorCache[token]) {
+        if (!_themeColorProbe) {
+            _themeColorProbe = document.createElement('span');
+            _themeColorProbe.style.display = 'none';
+            document.body.appendChild(_themeColorProbe);
+        }
+        _themeColorProbe.style.color = 'var(' + token + ')';
+        _themeColorCache[token] = (getComputedStyle(_themeColorProbe).color.match(/[\d.]+/g) || [128, 128, 128]).slice(0, 3).join(',');
+    }
+    return 'rgba(' + _themeColorCache[token] + ',' + alpha + ')';
 }
 
 /* Bars are drawn slightly translucent; colors that already carry alpha (rgba()) stay as they are. */

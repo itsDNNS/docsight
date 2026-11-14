@@ -219,5 +219,11 @@
         bindCard();
         updateCard();
     }
-    setInterval(updateCard, REFRESH_INTERVAL);
+    // Poll only while the card is on screen; catch up as soon as the tab is visible again.
+    function poll() {
+        var card = document.getElementById('cm-card-latency');
+        if (card && !document.hidden && card.closest('.view.active')) updateCard();
+    }
+    setInterval(poll, REFRESH_INTERVAL);
+    document.addEventListener('visibilitychange', poll);
 })();

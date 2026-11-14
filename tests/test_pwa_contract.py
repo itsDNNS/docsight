@@ -405,6 +405,31 @@ def test_offline_shell_uses_the_mounted_fallback_and_explicit_marker():
     ]
 
 
+@pytest.mark.parametrize("offline", [False, True])
+def test_dashboard_fragment_is_never_cached_and_reports_offline(offline):
+    result = _run_service_worker(
+        "https://example.test/docsight/",
+        failFetch=offline,
+        cachedShell=True,
+        inspectResponses=True,
+        fetches=[{"method": "GET", "url": "https://example.test/docsight/?fragment=dashboard", "accept": "*/*"}],
+    )
+
+    assert result["fetches"] == [
+        {
+            "responded": True,
+            "fetches": 1,
+            "openedCaches": [],
+            "status": 503 if offline else 200,
+            "offlineHeader": "true" if offline else None,
+            "offlineMarked": False,
+        }
+    ]
+    assert result["operations"]["puts"] == [
+        put for put in result["operations"]["puts"] if put["cache"] != result["shellCache"]
+    ]
+
+
 @pytest.mark.parametrize("failure", ["open", "put"])
 @pytest.mark.parametrize(
     "probe",

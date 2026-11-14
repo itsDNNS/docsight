@@ -6,8 +6,10 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 function summary() {
+    const page = {hidden: false, activeView: true};
     const source = {
         attrs: {},
+        closest: selector => (selector === '.view.active' && page.activeView ? {} : null),
         setAttribute(name, value) { this.attrs[name] = value; },
         getAttribute(name) { return this.attrs[name]; },
     };
@@ -16,9 +18,11 @@ function summary() {
     const listeners = {};
     let refresh;
     let response;
+    let requests = 0;
     const context = {
         document: {
             readyState: 'complete',
+            get hidden() { return page.hidden; },
             addEventListener(type, callback) { listeners[type] = callback; },
             getElementById: id => elements[id],
         },
@@ -26,6 +30,7 @@ function summary() {
         docsightUrl: url => url,
         setInterval: callback => { refresh = callback; },
         fetch: async () => {
+            requests += 1;
             if (response instanceof Error) throw response;
             return response;
         },
@@ -33,6 +38,9 @@ function summary() {
     context.window = context;
     vm.runInNewContext(fs.readFileSync('app/modules/connection_monitor/static/js/connection-monitor-summary.js', 'utf8'), context);
     return {
+        page,
+        requests: () => requests,
+        listeners,
         location: context.location,
         state: () => source.attrs['data-cm-state'],
         health: () => source.attrs['data-cm-health'],
@@ -105,4 +113,20 @@ test('opens Settings only while the monitor is off', async () => {
     await view.update({});
     assert.equal(view.click(), true);
     assert.equal(view.location.href, '/settings#mod-docsight_connection_monitor');
+});
+
+test('polls only while the summary is on screen and catches up when the tab returns', async () => {
+    const view = summary();
+    await new Promise(setImmediate);
+    const initial = view.requests();
+    view.page.hidden = true;
+    await view.update({1: healthy});
+    view.page.hidden = false;
+    view.page.activeView = false;
+    await view.update({1: healthy});
+    assert.equal(view.requests(), initial);
+    view.page.activeView = true;
+    view.listeners.visibilitychange();
+    await new Promise(setImmediate);
+    assert.equal(view.requests(), initial + 1);
 });
