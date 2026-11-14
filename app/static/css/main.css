@@ -366,9 +366,6 @@
   -webkit-overflow-scrolling: touch;
   position: relative;
 }
-.table-scroll::-webkit-scrollbar { height: 6px; }
-.table-scroll::-webkit-scrollbar-track { background: transparent; }
-.table-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 3px; }
 
 
 /* ── Surface Hierarchy ──

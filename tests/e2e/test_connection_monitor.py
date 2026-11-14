@@ -173,6 +173,33 @@ def test_connection_monitor_keeps_observations_per_target_without_fault_inferenc
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1')
 
 
+@pytest.mark.parametrize("duration_format", ["native", "fallback"])
+def test_connection_monitor_outage_durations_are_whole_units(demo_page, duration_format):
+    """Outage durations arrive with one decimal and must not leak float noise into the log."""
+    page = demo_page
+    if duration_format == "fallback":
+        page.add_init_script("delete Intl.DurationFormat")
+    now = time.time()
+    page.route("**/api/connection-monitor/targets", lambda route: route.fulfill(json=[
+        {"id": 1, "enabled": True, "label": "Probe", "host": "example.net"},
+    ]))
+    page.route("**/api/connection-monitor/samples/1?**", lambda route: route.fulfill(json={
+        "samples": [{"timestamp": now, "latency_ms": 12, "packet_loss_pct": 0, "sample_count": 1}],
+        "meta": {"resolution": "raw"},
+    }))
+    page.route("**/api/connection-monitor/stats?**", lambda route: route.fulfill(json={}))
+    page.route("**/api/connection-monitor/outages/1?**", lambda route: route.fulfill(json=[
+        {"start": now - 9000, "end": now - 5280, "duration_seconds": 3720.0},
+        {"start": now - 3000, "end": now - 2874.7, "duration_seconds": 125.3},
+        {"start": now - 600, "end": now - 557.4, "duration_seconds": 42.6},
+    ]))
+    page.reload(wait_until="networkidle")
+    page.evaluate("switchView('connection-monitor')")
+
+    durations = page.locator("#cm-outage-table tbody td.dt-num")
+    expect(durations).to_have_text(["43s", "2m 5s", "1h 2m"])
+
+
 def test_connection_monitor_reset_zoom_follows_the_theme(demo_page):
     """The reset button after a drag-zoom uses the shared chart style instead of fixed dark colors."""
     page = demo_page

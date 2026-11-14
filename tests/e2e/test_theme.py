@@ -25,6 +25,15 @@ class TestTheme:
         theme = demo_page.locator("html").get_attribute("data-theme")
         assert theme == "dark"
 
+    def test_native_controls_follow_the_active_mode(self, demo_page):
+        """color-scheme sits on the page, so native controls and scrollbars match the theme."""
+        scheme = "el => getComputedStyle(el).colorScheme"
+        assert demo_page.locator("html").evaluate(scheme) == "dark"
+        assert demo_page.locator("body").evaluate(scheme) == "dark"
+        demo_page.evaluate("document.documentElement.setAttribute('data-theme', 'light')")
+        assert demo_page.locator("html").evaluate(scheme) == "light"
+        assert demo_page.locator("body").evaluate(scheme) == "light"
+
     def test_settings_has_theme_attribute(self, settings_page):
         theme = settings_page.locator("html").get_attribute("data-theme")
         assert theme in ("dark", "light")
