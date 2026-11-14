@@ -17,6 +17,15 @@ class TestSecurityHeaders:
         assert resp.headers["X-XSS-Protection"] == "1; mode=block"
         assert resp.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
 
+    def test_csp_allows_only_own_scripts(self, client):
+        directives = dict(
+            part.strip().split(" ", 1)
+            for part in client.get("/health").headers["Content-Security-Policy"].split(";")
+        )
+        assert directives["script-src"] == "'self' 'unsafe-inline'"
+        assert directives["object-src"] == "'none'"
+        assert directives["base-uri"] == "'none'"
+
     def test_headers_on_health(self, client):
         resp = client.get("/health")
         assert resp.headers["X-Content-Type-Options"] == "nosniff"
