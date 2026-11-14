@@ -9,6 +9,12 @@
     'docsight.connection_monitor': 'connection-monitor',
     'docsight.evidence': 'evidence'
 } %}
+{% set connection_monitor_installed = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
+{% set shell_page = 'dashboard' %}
+{% set has_speedtest = modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
+{% set has_evidence = modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}
+{#- The dashboard refresh asks for ?fragment=dashboard and gets only the Home view and the current channel values. -#}
+{% if not fragment %}
 <!DOCTYPE html>
 <html lang="{{ lang }}" data-theme="{{ theme|default('dark') }}">
 <head>
@@ -44,7 +50,6 @@
 </head>
 <body>
 <a class="skip-link" id="skip-link" href="#main-content">{{ t.get('skip_to_content', 'Skip to content') }}</a>
-{% set connection_monitor_installed = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
 <div id="offline-status-banner" class="offline-status-banner" role="status" aria-live="polite" hidden>
     <strong>{{ t.offline_title }}</strong>
     <span>{{ t.offline_banner_text }}</span>
@@ -53,10 +58,7 @@
 <div class="app-layout">
 
 <!-- Top navigation: one DOM for desktop (top bar, dropdown panels) and mobile (bottom bar, sheets) -->
-{% set shell_page = 'dashboard' %}
 {% include 'partials/topnav.html' %}
-{% set has_speedtest = modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
-{% set has_evidence = modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}
 
 <!-- Main Area -->
 <main class="app-main" id="main-content" tabindex="-1">
@@ -64,6 +66,7 @@
 
 <!-- ═══ View: Dashboard ═══ -->
 <div class="main-content">
+{% endif %}
 <div id="view-dashboard" class="view active dashboard-view">
 
 {% include 'demo_banner.html' %}
@@ -787,7 +790,7 @@
         {% endif %}
     </nav>
     {% endif %}
-    {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
+    {% if not fragment and modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
     <script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-summary.js', v=version) }}"></script>
     {% endif %}
 
@@ -875,6 +878,7 @@
     </div>
 {% endif %}
 </div>
+{% if not fragment %}
 
 <!-- ═══ View: Trends ═══ -->
 <div id="view-trends" class="view">
@@ -1252,6 +1256,7 @@
             <div id="channel-status-body"></div>
         </section>
         {# Always present so the dashboard refresh can fill it once the first poll arrives. #}
+{% endif %}
         <div id="channel-current-values">
         {% if analysis and (analysis.ds_channels or analysis.us_channels) %}
         <div class="channel-status-tables">
@@ -1406,6 +1411,7 @@
         </details>
         {% endif %}
         </div>
+{% if not fragment %}
     </div>
 
     <!-- ── Timeline Sub-View ── -->
@@ -1963,3 +1969,4 @@
 <script defer src="{{ url_for('static', filename='js/service-worker-registration.js', v=version) }}"></script>
 </body>
 </html>
+{% endif %}

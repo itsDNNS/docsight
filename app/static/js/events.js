@@ -465,12 +465,17 @@ function _loadEventNotes() {
    is only known after layout. */
 var EVENT_CHEVRON = '<i data-lucide="chevron-down" class="ev-chevron" aria-hidden="true"></i>';
 
-function _markTruncatedEventRows(feed) {
-    if (!feed.querySelectorAll) return;
-    var marked = false;
-    feed.querySelectorAll('div.ev-main[data-key]:not([data-toggle])').forEach(function(main) {
-        var msg = main.querySelector('.ev-msg');
-        if (!msg || msg.scrollWidth <= msg.clientWidth + 1) return;
+function _markTruncatedEventRows(roots) {
+    // Measure every row first and change the DOM afterwards, so layout runs once.
+    var cutOff = [];
+    roots.forEach(function(root) {
+        if (!root.querySelectorAll) return;
+        root.querySelectorAll('div.ev-main[data-key]:not([data-toggle])').forEach(function(main) {
+            var msg = main.querySelector('.ev-msg');
+            if (msg && msg.scrollWidth > msg.clientWidth + 1) cutOff.push(main);
+        });
+    });
+    cutOff.forEach(function(main) {
         var key = main.getAttribute('data-key');
         main.setAttribute('role', 'button');
         main.setAttribute('tabindex', '0');
@@ -478,9 +483,8 @@ function _markTruncatedEventRows(feed) {
         main.setAttribute('aria-expanded', String(!!_eventsExpanded[key]));
         // The same chevron as other rows that open, so a cut-off message shows it can be read in full.
         main.insertAdjacentHTML('beforeend', EVENT_CHEVRON);
-        marked = true;
     });
-    if (marked && typeof lucide !== 'undefined') lucide.createIcons();
+    if (cutOff.length && typeof lucide !== 'undefined') lucide.createIcons({nodes: cutOff});
 }
 
 /* Whether a message is cut off is only known with the feed laid out. The feed
@@ -494,7 +498,7 @@ function _watchEventTruncation() {
     var recheck = function() {
         clearTimeout(timer);
         timer = setTimeout(function() {
-            if (feed.offsetParent !== null) _markTruncatedEventRows(feed);
+            if (feed.offsetParent !== null) _markTruncatedEventRows([feed]);
         }, 100);
     };
     if (typeof ResizeObserver === 'function') new ResizeObserver(recheck).observe(feed);
@@ -533,24 +537,55 @@ function _eventGroupHtml(group) {
     '</li>';
 }
 
+function _eventDayHtml(day) {
+    var headId = 'events-day-' + (day.day || 'unknown');
+    var parts = _eventDayParts(day.day);
+    return '<section class="ev-day" data-day="' + escapeHtml(day.day || 'unknown') + '" aria-labelledby="' + headId + '">' +
+        '<h3 class="ev-day-head" id="' + headId + '"><span class="ev-day-name">' + escapeHtml(parts.name) + '</span>' +
+            '<span class="ev-day-date">' + escapeHtml(parts.date) + '</span></h3>' +
+        '<ol class="ev-rows">' + day.items.map(function(item) {
+            if (item.kind === 'note') return _eventNoteHtml(item.note);
+            return item.kind === 'group' ? _eventGroupHtml(item) : _eventRowHtml(item.event);
+        }).join('') + '</ol>' +
+    '</section>';
+}
+
+/* Only days whose markup changed are rebuilt: "show more" adds the older days,
+   acknowledging rewrites one day, and the rest of the feed stays as it is. */
+var _eventDayMarkup = {};
+
 function _renderEventTimeline() {
     var feed = document.getElementById('events-feed');
     if (!feed) return;
-    feed.innerHTML = _eventTimelineDays().map(function(day) {
-        var headId = 'events-day-' + (day.day || 'unknown');
-        var parts = _eventDayParts(day.day);
-        return '<section class="ev-day" aria-labelledby="' + headId + '">' +
-            '<h3 class="ev-day-head" id="' + headId + '"><span class="ev-day-name">' + escapeHtml(parts.name) + '</span>' +
-                '<span class="ev-day-date">' + escapeHtml(parts.date) + '</span></h3>' +
-            '<ol class="ev-rows">' + day.items.map(function(item) {
-                if (item.kind === 'note') return _eventNoteHtml(item.note);
-                return item.kind === 'group' ? _eventGroupHtml(item) : _eventRowHtml(item.event);
-            }).join('') + '</ol>' +
-        '</section>';
-    }).join('');
+    var markup = {};
+    var changed = [];
+    var next = feed.firstElementChild;
+    _eventTimelineDays().forEach(function(day) {
+        var key = day.day || 'unknown';
+        var html = _eventDayHtml(day);
+        markup[key] = html;
+        var current = next && next.getAttribute('data-day') === key ? next : null;
+        if (current && _eventDayMarkup[key] === html) {
+            next = current.nextElementSibling;
+            return;
+        }
+        if (next) next.insertAdjacentHTML('beforebegin', html);
+        else feed.insertAdjacentHTML('beforeend', html);
+        changed.push(next ? next.previousElementSibling : feed.lastElementChild);
+        if (current) {
+            next = current.nextElementSibling;
+            current.remove();
+        }
+    });
+    while (next) {
+        var stale = next;
+        next = next.nextElementSibling;
+        stale.remove();
+    }
+    _eventDayMarkup = markup;
     _syncEventSelection();
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-    _markTruncatedEventRows(feed);
+    if (changed.length && typeof lucide !== 'undefined') lucide.createIcons({nodes: changed});
+    _markTruncatedEventRows(changed);
 }
 
 /* ── Selection and acknowledgement ── */
@@ -898,7 +933,7 @@ function loadHomeEvents() {
                     '</a>';
                 current.appendChild(item);
             });
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [current]});
         })
         .catch(function() {});
 }

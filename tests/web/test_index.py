@@ -294,6 +294,18 @@ class TestIndexRoute:
         assert resp.status_code == 200
         assert b"DOCSight" in resp.data
 
+    def test_dashboard_fragment_holds_only_what_the_refresh_swaps(self, client, sample_analysis):
+        current_runtime().update_state(analysis=sample_analysis)
+        full = client.get("/").get_data(as_text=True)
+        fragment = client.get("/?fragment=dashboard").get_data(as_text=True)
+
+        assert re.findall(r'<div id="([\w-]+)"', fragment)[:1] == ["view-dashboard"]
+        assert 'id="channel-current-values"' in fragment and 'id="channel-families"' in fragment
+        for absent in ("<html", "<script", 'id="view-trends"', 'id="view-channels"', 'id="topnav"'):
+            assert absent not in fragment
+        assert fragment.count("<div") == fragment.count("</div>")
+        assert len(fragment) < len(full) / 5
+
     def test_index_with_lang(self, client, sample_analysis):
         current_runtime().update_state(analysis=sample_analysis)
         resp = client.get("/?lang=de")

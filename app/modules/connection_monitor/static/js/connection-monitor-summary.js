@@ -101,5 +101,11 @@
     } else {
         start();
     }
-    setInterval(update, REFRESH_INTERVAL);
+    // Poll only while the summary is on screen; catch up as soon as the tab is visible again.
+    function poll() {
+        var el = source();
+        if (el && !document.hidden && el.closest('.view.active')) update();
+    }
+    setInterval(poll, REFRESH_INTERVAL);
+    document.addEventListener('visibilitychange', poll);
 })();

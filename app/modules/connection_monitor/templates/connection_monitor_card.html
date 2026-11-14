@@ -40,4 +40,6 @@
     </div>
 </div>
 
+{% if not fragment %}
 <script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-card.js', v=version) }}"></script>
+{% endif %}

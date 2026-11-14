@@ -550,6 +550,8 @@ def index():
 
     return render_template(
         "index.html",
+        # The dashboard refresh only needs the Home view and the current channel values
+        fragment=request.args.get("fragment") == "dashboard",
         analysis=analysis,
         last_update=state["last_update"],
         poll_interval=state["poll_interval"],

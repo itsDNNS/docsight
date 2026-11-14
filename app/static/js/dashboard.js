@@ -270,23 +270,49 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
     }
 
     var htmlRefreshId = 0;
+
+    // Gives the browser a chance to handle input between the steps of a refresh.
+    function yieldToMain() {
+        if (window.scheduler && typeof window.scheduler.yield === 'function') return window.scheduler.yield();
+        return new Promise(function(resolve) { setTimeout(resolve, 0); });
+    }
+
+    function dashboardFragmentUrl() {
+        var url = new URL(window.location.href);
+        url.hash = '';
+        url.searchParams.set('fragment', 'dashboard');
+        return url.toString();
+    }
+
     function refreshData() {
         var refreshId = ++htmlRefreshId;
         var generation = window.DOCSightSignalSeries.invalidate();
-        fetch(window.location.href)
+        function current() {
+            if (refreshId !== htmlRefreshId) throw new Error('Stale dashboard HTML');
+        }
+        var swapped = [];
+        fetch(dashboardFragmentUrl())
             .then(function(r) {
-                if (refreshId !== htmlRefreshId) throw new Error('Stale dashboard HTML');
-                if (!r.ok) throw new Error('Dashboard refresh failed: ' + r.status);
+                current();
                 if (r.headers && r.headers.get('X-DOCSight-Offline-Shell') === 'true') {
                     window.__DOCSIGHT_OFFLINE_SHELL__ = true;
                     if (typeof window.updateOfflineStatus === 'function') window.updateOfflineStatus();
                     throw new Error('Offline shell fallback');
                 }
+                if (!r.ok) throw new Error('Dashboard refresh failed: ' + r.status);
                 return r.text();
             })
             .then(function(html) {
-                if (refreshId !== htmlRefreshId) return;
+                current();
+                return yieldToMain().then(function() { return html; });
+            })
+            .then(function(html) {
+                current();
                 var doc = new DOMParser().parseFromString(html, 'text/html');
+                return yieldToMain().then(function() { return doc; });
+            })
+            .then(function(doc) {
+                current();
 
                 // Save expanded channel groups by label text
                 var openGroupLabels = [];
@@ -305,6 +331,7 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                     var freshHero = freshDash.querySelector('#hero-trend-chart');
                     if (hero && freshHero) freshHero.replaceWith(hero);
                     currentDash.replaceChildren.apply(currentDash, Array.from(freshDash.childNodes));
+                    swapped.push(currentDash);
                 }
 
                 // The Channels page shows the same snapshot's tables and family readings.
@@ -315,13 +342,7 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                     currentValues.replaceChildren.apply(currentValues, Array.from(freshValues.childNodes));
                     var families = currentValues.querySelector('#channel-families');
                     if (families && familiesOpen) families.setAttribute('open', '');
-                }
-
-                // Update topbar timestamp
-                var freshMeta = doc.querySelector('#topbar-meta');
-                var currentMeta = document.querySelector('#topbar-meta');
-                if (freshMeta && currentMeta) {
-                    currentMeta.innerHTML = freshMeta.innerHTML;
+                    swapped.push(currentValues);
                 }
 
                 // Reset countdown after refresh
@@ -339,6 +360,13 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                     }
                 });
 
+                // Lucide icons and glossary keyboard access are lost with the replaced nodes
+                if (swapped.length) lucide.createIcons({nodes: swapped});
+                if (typeof window.initGlossaryHints === 'function') window.initGlossaryHints();
+                return yieldToMain();
+            })
+            .then(function() {
+                current();
                 // Fetch current signals while preserving the rendered Hero
                 if (typeof window.refreshHeroChart === 'function') {
                     window.refreshHeroChart(generation);
@@ -349,12 +377,6 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                     window.refreshSparklines(generation);
                 }
 
-                // Re-init Lucide icons (lost on innerHTML replace)
-                lucide.createIcons();
-
-                // Re-init glossary keyboard a11y (lost on innerHTML replace)
-                if (typeof window.initGlossaryHints === 'function') window.initGlossaryHints();
-
                 if (typeof window.loadHomeEvents === 'function') window.loadHomeEvents();
 
                 // Refresh event badge count (respecting current filters)
@@ -363,6 +385,7 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                 }
             })
             .catch(function(err) {
+                if (refreshId !== htmlRefreshId) return;
                 console.warn('Auto-refresh failed:', err);
             });
     }

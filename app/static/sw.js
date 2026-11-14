@@ -115,6 +115,14 @@ function handleShellRequest(request, url) {
     });
 }
 
+/* The dashboard refresh fragment is never a page to fall back to; offline it only
+   reports that the cached shell is showing. */
+function handleFragmentRequest(request) {
+  return fetch(request).catch(function() {
+    return new Response('', { status: 503, headers: OFFLINE_SHELL_HEADERS });
+  });
+}
+
 function handleStaticRequest(request) {
   return caches.open(STATIC_CACHE).then(function(cache) {
     return cache.match(request).then(function(cached) {
@@ -215,6 +223,11 @@ self.addEventListener('fetch', function(event) {
 
   if (isStaticRequest(url)) {
     event.respondWith(handleStaticRequest(request));
+    return;
+  }
+
+  if (url.searchParams.get('fragment') === 'dashboard') {
+    event.respondWith(handleFragmentRequest(request));
     return;
   }
 
