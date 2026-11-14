@@ -872,17 +872,38 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 
 .corr-event-filter-btn {
     cursor: pointer;
-    font-size: max(var(--fs-min), 0.8em);
-    opacity: 0.6;
-    margin-left: var(--space-xs);
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: 999px;
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    opacity: 0.75;
+    margin-left: -4px;
     transition: opacity 0.15s var(--ease-out-expo);
 }
-.corr-event-filter-btn:hover {
+.corr-event-filter-btn svg,
+.corr-event-filter-btn i:where([data-lucide]) {
+    width: 14px;
+    height: 14px;
+}
+.corr-event-filter-btn:hover,
+.corr-event-filter-btn:focus-visible {
     opacity: 1;
+}
+.corr-event-filter-btn:focus-visible {
+    outline: 2px solid var(--amethyst);
+    outline-offset: 2px;
 }
 
 .corr-event-popover {
     position: fixed;
+    inset: auto;
+    margin: 0;
+    color: inherit;
     z-index: 10000;
     background: var(--bg);
     border: 1px solid var(--card-border);

@@ -106,9 +106,7 @@
 
     function closePopover() {
         var pop = document.getElementById('corr-event-popover');
-        if (!pop) return;
-        if (pop._corrCleanup) pop._corrCleanup();
-        pop.remove();
+        if (pop && pop.matches(':popover-open')) pop.hidePopover();
     }
 
     function positionPopover(pop, anchor) {
@@ -162,76 +160,86 @@
         return html;
     }
 
-    function openPopover(button, events, options) {
-        var T = options.T;
-        var pop = document.createElement('div');
+    /* One native popover next to the legend: the gear opens it through popovertarget, so
+       Escape, outside clicks, focus return and the expanded state come from the browser.
+       It sits outside the legend, which is rebuilt on every redraw. */
+    function eventPopover(legend) {
+        var pop = document.getElementById('corr-event-popover');
+        if (pop) return pop;
+        pop = document.createElement('div');
         pop.id = 'corr-event-popover';
         pop.className = 'corr-event-popover';
-        pop.innerHTML = popoverHtml(events, options.filter, options.eventColor, T);
-        applyColors(pop);
-        document.body.appendChild(pop);
-        positionPopover(pop, button);
-        var position = function () { positionPopover(pop, button); };
-        var closeOnOutside = null;
-        window.addEventListener('resize', position);
-        window.addEventListener('scroll', position, true);
-        pop._corrCleanup = function () {
-            window.removeEventListener('resize', position);
-            window.removeEventListener('scroll', position, true);
-            if (closeOnOutside) document.removeEventListener('click', closeOnOutside);
-        };
-        // Prevent clicks inside popover from bubbling to legend toggle
-        pop.addEventListener('click', function (e) { e.stopPropagation(); });
-        pop.querySelectorAll('input[data-event-type]').forEach(function (box) {
-            box.addEventListener('change', function () {
-                var type = this.getAttribute('data-event-type') || 'unknown';
-                var sev = this.getAttribute('data-event-severity');
-                if (sev) options.filter.severity(type)[sev] = this.checked;
-                else options.filter.types[type] = this.checked;
-                options.onFilterChange();
-            });
+        pop.setAttribute('popover', 'auto');
+        legend.after(pop);
+        var position = function () { positionPopover(pop, pop._corr.button); };
+        pop.addEventListener('beforetoggle', function (e) {
+            if (e.newState !== 'open') return;
+            var state = pop._corr;
+            pop.innerHTML = popoverHtml(state.events, state.options.filter, state.options.eventColor, state.options.T);
+            applyColors(pop);
+            var first = pop.querySelector('input');
+            if (first) first.setAttribute('autofocus', '');
+            // Placed before the first frame; the toggle event below arrives later.
+            requestAnimationFrame(position);
         });
-        // Close on outside click
-        setTimeout(function () {
-            closeOnOutside = function (ev) {
-                if (!pop.contains(ev.target) && ev.target !== button) closePopover();
-            };
-            document.addEventListener('click', closeOnOutside);
-        }, 0);
+        // The gear that opened it may have been rebuilt meanwhile; Escape returns to the current one.
+        pop.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') pop._corrEscape = true;
+        });
+        pop.addEventListener('toggle', function (e) {
+            var open = e.newState === 'open';
+            if (!open && pop._corrEscape && pop._corr.button.isConnected) pop._corr.button.focus();
+            pop._corrEscape = false;
+            if (open) position();
+            window[open ? 'addEventListener' : 'removeEventListener']('resize', position);
+            window[open ? 'addEventListener' : 'removeEventListener']('scroll', position, true);
+        });
+        pop.addEventListener('change', function (e) {
+            var box = e.target;
+            var type = box.getAttribute('data-event-type') || 'unknown';
+            var sev = box.getAttribute('data-event-severity');
+            if (sev) pop._corr.options.filter.severity(type)[sev] = box.checked;
+            else pop._corr.options.filter.types[type] = box.checked;
+            pop._corr.options.onFilterChange();
+        });
+        return pop;
     }
 
     /* Renders the legend into el. options: {visible, filter, T, eventColor, onToggle(), onFilterChange()}. */
     function render(el, list, options) {
         var T = options.T;
         var hint = T.correlation_toggle_hint || 'Click to toggle';
+        var filterLabel = escapeAttr(T.correlation_event_filter || 'Event Filter');
+        // The legend is rebuilt on every redraw; keyboard focus stays on the same control.
+        var focused = el.contains(document.activeElement) ? document.activeElement : null;
+        var focusSelector = focused && focused.classList.contains('corr-event-filter-btn') ? '.corr-event-filter-btn'
+            : focused && focused.getAttribute('data-metric') ? '[data-metric="' + focused.getAttribute('data-metric') + '"]' : null;
         el.innerHTML = list.map(function (item) {
             var on = !!options.visible[item.metric];
             var attrs = 'data-metric="' + item.metric + '" tabindex="0" role="button" aria-pressed="' + on + '"';
             var extra = '';
+            var gear = '';
             var cls = on ? '' : 'disabled';
             if (item.events) {
                 cls = cls ? cls + ' corr-legend-events' : 'corr-legend-events';
                 if (item.events.visible < item.events.total) {
                     extra = ' <span class="corr-legend-filter-count">(' + item.events.visible + '/' + item.events.total + ')</span>';
                 }
-                extra += ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '">&#9881;</span>';
+                gear = '<button type="button" class="corr-event-filter-btn" popovertarget="corr-event-popover" aria-label="' + filterLabel +
+                    '" title="' + filterLabel + '"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></button>';
             }
-            return '<span ' + attrs + ' class="' + cls + '" title="' + hint + '" data-color="' + escapeAttr(item.color) + '">' + item.label + extra + '</span>';
+            return '<span ' + attrs + ' class="' + cls + '" title="' + hint + '" data-color="' + escapeAttr(item.color) + '">' + item.label + extra + '</span>' + gear;
         }).join('');
         applyColors(el);
+        if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [el]});
 
         var button = el.querySelector('.corr-event-filter-btn');
         var eventsItem = list.filter(function (item) { return item.events; })[0];
         if (button && eventsItem) {
-            button.addEventListener('click', function (e) {
-                e.stopPropagation();
-                if (document.getElementById('corr-event-popover')) { closePopover(); return; }
-                openPopover(button, eventsItem.events, options);
-            });
+            eventPopover(el)._corr = {button: button, events: eventsItem.events, options: options};
         }
         el.querySelectorAll('span[data-metric]').forEach(function (span) {
-            span.addEventListener('click', function (e) {
-                if (e.target.classList.contains('corr-event-filter-btn')) return;
+            span.addEventListener('click', function () {
                 if (toggle(options.visible, this.getAttribute('data-metric'))) options.onToggle();
             });
             span.addEventListener('keydown', function (e) {
@@ -241,6 +249,8 @@
                 }
             });
         });
+        var refocus = focusSelector && el.querySelector(focusSelector);
+        if (refocus) refocus.focus();
     }
 
     return {

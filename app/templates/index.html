@@ -265,9 +265,9 @@
                         </span>
                         {% endif %}
                         {% if isp_name %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ t.isp_name_tooltip }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="cloud"></i> {{ isp_name }}
+                            <span class="glossary-popover">{{ t.isp_name_tooltip }}</span>
                         </span>
                         {% endif %}
                         {% if device_info and device_info.model %}
@@ -279,9 +279,9 @@
                         </span>
                         {% endif %}
                         {% if device_info and device_info.hw_version %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ t.hw_version_tooltip }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="cpu"></i> {{ device_info.hw_version }}
+                            <span class="glossary-popover">{{ t.hw_version_tooltip }}</span>
                         </span>
                         {% endif %}
                         {% if device_info and device_info.sw_version %}
@@ -293,26 +293,26 @@
                         </span>
                         {% endif %}
                         {% if device_info and device_info.get('uptime_seconds') is not none %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ t.uptime_tooltip }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="clock"></i> {{ device_info.uptime_seconds|fmt_uptime }}
+                            <span class="glossary-popover">{{ t.uptime_tooltip }}</span>
                         </span>
                         {% endif %}
                         {% if device_info and device_info.reboot_reason %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ t.reboot_reason_tooltip }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="rotate-cw-square"></i> {{ device_info.reboot_reason }}
+                            <span class="glossary-popover">{{ t.reboot_reason_tooltip }}</span>
                         </span>
                         {% endif %}
                         {% if device_info and device_info.docsis_status %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ t.docsis_status_tooltip }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="arrow-down-up"></i> {{ device_info.docsis_status }}
+                            <span class="glossary-popover">{{ t.docsis_status_tooltip }}</span>
                         </span>
                         {% endif %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ t.channel_count_tooltip }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch
+                            <span class="glossary-popover">{{ t.channel_count_tooltip }}</span>
                         </span>
                         <span class="hero-meta-item hero-meta-hint glossary-hint"
                             title="{{ t.get('docsis_basics_label', 'DOCSIS basics') }}"
@@ -328,23 +328,23 @@
                         <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ booked_download|int }}/{{ booked_upload|int }} MBit/s</span>
                         {% endif %}
                         {% if device_info and device_info.wan_ipv4 %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ t.wan_ipv4_tooltip }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="globe"></i> {{ device_info.wan_ipv4 }}
+                            <span class="glossary-popover">{{ t.wan_ipv4_tooltip }}</span>
                         </span>
                         {% endif %}
                         {% if device_info and device_info.wan_ipv6 %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ t.wan_ipv6_tooltip }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="globe"></i> {{ device_info.wan_ipv6 }}
+                            <span class="glossary-popover">{{ t.wan_ipv6_tooltip }}</span>
                         </span>
                         {% endif %}
                         {% if gaming_quality_enabled and gaming_index %}
                         {% set _g = gaming_index.grade|upper %}
                         {% set _badge_class = 'badge-good' if _g in ('A', 'B') else ('badge-warn' if _g == 'C' else 'badge-crit') %}
-                        <span class="hero-meta-item hero-meta-hint"
-                            title="{{ gaming_index.score }}/100 — {{ t['gaming_grade_' ~ gaming_index.grade|lower] }}">
+                        <span class="hero-meta-item hero-meta-hint glossary-hint">
                             <i data-lucide="gamepad-2" class="hero-gaming-icon"></i> {{ t.gaming_badge_label }} <span class="badge hero-gaming-grade {{ _badge_class }}">{{ gaming_index.grade }}</span>
+                            <span class="glossary-popover">{{ gaming_index.score }}/100 — {{ t['gaming_grade_' ~ gaming_index.grade|lower] }}</span>
                         </span>
                         {% endif %}
                         {# Countdown and refresh wrap as one unit, so the refresh button never ends up alone on a line. #}

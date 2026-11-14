@@ -1096,6 +1096,7 @@
   "cm_card_partial": "Osittainen",
   "speed_contract_good_label": "≥ 80 % sopimuksesta",
   "glossary_page_title": "Sanasto",
+  "glossary_hint_label": "Selitys",
   "glossary_page_intro": "Hae kaapeli- ja DOCSIS-termejä ja lue lyhyt yhteenveto sekä varsinainen selitys.",
   "glossary_filter_title": "Etsi termi",
   "glossary_search_label": "Hae termejä",

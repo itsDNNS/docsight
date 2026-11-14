@@ -14,15 +14,20 @@
   border-radius: 4px;
 }
 
-/* Inside metric cards: right after the title, revealed on hover; the card icon stays right */
+/* Inside metric cards: right after the title; the card icon stays right */
 .metric-card .glossary-hint {
   margin: 0 auto 0 0;
-  opacity: 0;
-  transition: opacity 0.2s;
 }
-.metric-card:hover .glossary-hint,
-.metric-card .glossary-hint:focus-visible {
-  opacity: 1;
+/* Revealed on hover only where hover exists; touch screens always show it */
+@media (hover: hover) {
+  .metric-card .glossary-hint {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .metric-card:hover .glossary-hint,
+  .metric-card .glossary-hint:focus-visible {
+    opacity: 1;
+  }
 }
 
 /* Inside modulation KPI strip: inline, no absolute positioning */
@@ -47,15 +52,17 @@
   color: var(--amethyst-light);
 }
 
-/* Hidden source text inside hints (JS copies to body-level overlay) */
+/* Hidden source text inside hints (JS copies it into the shared popover) */
 .glossary-hint .glossary-popover {
   display: none !important;
 }
 
-/* Body-level overlay popover (appended by JS) */
-body > .glossary-popover {
-  display: none;
+/* The shared popover, placed after the open hint by JS and shown in the top layer */
+#glossary-popover-overlay {
   position: fixed;
+  inset: auto;
+  margin: 0;
+  overflow: visible;
   width: max-content;
   max-width: min(320px, calc(100vw - 24px));
   padding: 12px 16px;
@@ -76,7 +83,7 @@ body > .glossary-popover {
 }
 
 /* Arrow */
-body > .glossary-popover::before {
+#glossary-popover-overlay::before {
   content: '';
   position: absolute;
   left: var(--glossary-arrow-left, 50%);
@@ -89,7 +96,7 @@ body > .glossary-popover::before {
   border-top: 1px solid var(--glass-border);
 }
 
-body > .glossary-popover.above::before {
+#glossary-popover-overlay.above::before {
   top: auto;
   bottom: -5px;
   border-left: none;
@@ -98,7 +105,7 @@ body > .glossary-popover.above::before {
   border-bottom: 1px solid var(--glass-border);
 }
 
-body > .glossary-popover .glossary-popover-link {
+#glossary-popover-overlay .glossary-popover-link {
   display: block;
   margin-top: 10px;
   color: var(--amethyst-light);
@@ -106,8 +113,8 @@ body > .glossary-popover .glossary-popover-link {
   text-decoration: none;
 }
 
-body > .glossary-popover .glossary-popover-link:hover,
-body > .glossary-popover .glossary-popover-link:focus-visible {
+#glossary-popover-overlay .glossary-popover-link:hover,
+#glossary-popover-overlay .glossary-popover-link:focus-visible {
   text-decoration: underline;
 }
 
@@ -143,7 +150,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   .mod-kpi-item .glossary-hint {
     flex: 0 0 44px;
   }
-  body > .glossary-popover:not(.dashboard-meta-popover) {
+  #glossary-popover-overlay:not(.dashboard-meta-popover) {
     left: 16px !important;
     right: 16px;
     top: auto !important;
@@ -151,7 +158,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
     width: auto;
     max-width: none;
   }
-  body > .glossary-popover:not(.dashboard-meta-popover)::before {
+  #glossary-popover-overlay:not(.dashboard-meta-popover)::before {
     display: none;
   }
 }

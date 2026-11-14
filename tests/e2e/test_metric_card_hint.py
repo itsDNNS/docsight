@@ -24,3 +24,14 @@ def test_the_help_icon_does_not_cover_the_card_title(browser, live_server, width
     }""").json_value()
     assert overlaps == []
     context.close()
+
+
+@pytest.mark.parametrize("touch", [True, False])
+def test_the_help_icon_is_visible_without_hover_on_wide_touch_screens(browser, live_server, touch):
+    context = browser.new_context(viewport={"width": 1024, "height": 900}, has_touch=touch, is_mobile=touch)
+    page = context.new_page()
+    page.goto(f"{live_server}/?lang=en#channels?mode=status", wait_until="networkidle")
+    page.evaluate("document.getElementById('channel-families').open = true")
+    opacity = page.locator("#channel-families .metric-card .glossary-hint").first.evaluate("el => getComputedStyle(el).opacity")
+    assert opacity == ("1" if touch else "0")
+    context.close()

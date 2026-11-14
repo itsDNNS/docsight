@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 819,
+  "expected_total": 826,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -21,7 +21,7 @@
     },
     {
       "id": 2,
-      "collected_cases": 114,
+      "collected_cases": 116,
       "files": [
         "test_auth.py",
         "test_browser_errors.py",
@@ -41,7 +41,7 @@
     },
     {
       "id": 3,
-      "collected_cases": 135,
+      "collected_cases": 136,
       "files": [
         "test_correlation_ui.py",
         "test_event_log_redesign.py",
@@ -69,7 +69,7 @@
     },
     {
       "id": 5,
-      "collected_cases": 199,
+      "collected_cases": 203,
       "files": [
         "test_evidence_report_scope.py",
         "test_glossary.py",

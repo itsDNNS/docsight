@@ -305,7 +305,7 @@ class TestDashboardSections:
         assert "Demo Router" in item.locator(".glossary-popover").text_content()
 
         item.focus()
-        overlay = demo_page.locator("body > #glossary-popover-overlay")
+        overlay = demo_page.locator("#glossary-popover-overlay")
         assert overlay.is_visible()
         assert item.get_attribute("aria-expanded") == "true"
         assert "Demo Router" in overlay.text_content()
@@ -324,14 +324,14 @@ class TestDashboardSections:
         item = demo_page.locator(".dashboard-view .insights-meta .hero-meta-item", has=demo_page.locator("svg.lucide-router")).first
         item.click()
 
-        overlay = demo_page.locator("body > #glossary-popover-overlay")
+        overlay = demo_page.locator("#glossary-popover-overlay")
         assert overlay.is_visible()
 
         metrics = demo_page.evaluate(
             """() => {
                 const item = Array.from(document.querySelectorAll('.dashboard-view .insights-meta .hero-meta-item'))
                     .find((el) => el.querySelector('svg.lucide-router'));
-                const overlay = document.querySelector('body > #glossary-popover-overlay');
+                const overlay = document.querySelector('#glossary-popover-overlay');
                 if (!item || !overlay) throw new Error('meta item or overlay missing');
                 const itemRect = item.getBoundingClientRect();
                 const overlayRect = overlay.getBoundingClientRect();
@@ -444,7 +444,7 @@ class TestDashboardSections:
         toggle = header.locator(".docsis-group-toggle")
         header.scroll_into_view_if_needed()
         header.locator(".glossary-hint").click()
-        expect(demo_page.locator("body > .glossary-popover")).to_be_visible()
+        expect(demo_page.locator("#glossary-popover-overlay")).to_be_visible()
         expect(toggle).to_have_attribute("aria-expanded", "false")
         demo_page.keyboard.press("Escape")
 
@@ -740,10 +740,11 @@ class TestStatusFirst:
         # result does not depend on the time of day.
         replaced = demo_page.evaluate(
             """() => {
-                const item = [...document.querySelectorAll('.insights-meta .hero-meta-item')]
-                    .find(el => /^\\d+d \\d+h \\d+m$/.test(el.textContent.trim()));
-                if (!item) return false;
-                const text = [...item.childNodes].reverse().find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+                // The visible text node; the hidden explanation sits in the same item.
+                const text = [...document.querySelectorAll('.insights-meta .hero-meta-item')]
+                    .flatMap(el => [...el.childNodes])
+                    .find(n => n.nodeType === Node.TEXT_NODE && /^\\d+d \\d+h \\d+m$/.test(n.textContent.trim()));
+                if (!text) return false;
                 text.textContent = ' 99d 23h 59m';
                 return true;
             }"""
