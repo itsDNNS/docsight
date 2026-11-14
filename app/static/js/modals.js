@@ -80,6 +80,7 @@
     document.addEventListener('click', function(event) {
         var dialog = event.target;
         if (!dialog || dialog.tagName !== 'DIALOG' || !dialog.open) return;
+        if (!window.docsightBackdropClick(event, dialog)) return;
         if (dialog.getAttribute('data-modal-dismissible') === 'false') return;
         if (dialog.id === 'docsight-confirm-modal' && confirmState) {
             resolveConfirm(false);
@@ -117,7 +118,7 @@
             '</div>'
         ].join('');
         dialog.addEventListener('click', function(event) {
-            if (event.target === dialog) resolveConfirm(false);
+            if (window.docsightBackdropClick(event, dialog)) resolveConfirm(false);
         });
         dialog.addEventListener('cancel', function(event) {
             event.preventDefault();

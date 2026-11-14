@@ -200,6 +200,18 @@ def test_connection_monitor_outage_durations_are_whole_units(demo_page, duration
     expect(durations).to_have_text(["43s", "2m 5s", "1h 2m"])
 
 
+def test_connection_monitor_tcp_hint_is_keyboard_reachable(demo_page):
+    """The TCP mode hint is added after load and must still become a focusable toggletip."""
+    page = demo_page
+    page.route("**/api/connection-monitor/capability", lambda route: route.fulfill(json={"method": "tcp"}))
+    page.reload(wait_until="networkidle")
+    page.evaluate("switchView('connection-monitor')")
+
+    hint = page.locator("#cm-capability-info .glossary-hint")
+    expect(hint).to_have_attribute("tabindex", "0")
+    expect(hint).to_have_attribute("role", "button")
+
+
 def test_connection_monitor_reset_zoom_follows_the_theme(demo_page):
     """The reset button after a drag-zoom uses the shared chart style instead of fixed dark colors."""
     page = demo_page
