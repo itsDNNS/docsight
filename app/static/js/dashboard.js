@@ -94,48 +94,6 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
     /* BQM state variables → BQM module */
     /* todayStr, pad, formatDateDE → chart-engine.js */
 
-    /* ── Sortable Tables ── */
-    function initSortableTables() {
-        document.querySelectorAll('table.sortable').forEach(function(table) {
-            var headers = table.querySelectorAll('th');
-            headers.forEach(function(th, colIdx) {
-                th.addEventListener('click', function() {
-                    sortTable(table, colIdx, th);
-                });
-            });
-        });
-    }
-    initSortableTables();
-
-    function sortTable(table, colIdx, th) {
-        var tbody = table.querySelector('tbody');
-        var rows = Array.from(tbody.querySelectorAll('tr'));
-        var asc = th.getAttribute('data-sort-dir') !== 'asc';
-
-        table.querySelectorAll('th').forEach(function(h) {
-            h.removeAttribute('data-sort-dir');
-            h.removeAttribute('aria-sort');
-            h.classList.remove('sort-asc', 'sort-desc');
-        });
-        th.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
-        th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
-        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
-
-        rows.sort(function(a, b) {
-            var cellA = a.cells[colIdx];
-            var cellB = b.cells[colIdx];
-            var valA = cellA.getAttribute('data-sort') || cellA.textContent.trim();
-            var valB = cellB.getAttribute('data-sort') || cellB.textContent.trim();
-            var numA = parseFloat(valA);
-            var numB = parseFloat(valB);
-            if (!isNaN(numA) && !isNaN(numB)) {
-                return asc ? numA - numB : numB - numA;
-            }
-            return asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        });
-        rows.forEach(function(row) { tbody.appendChild(row); });
-    }
-
     /* ── Top navigation: destinations switch views in place ── */
     var topnav = document.getElementById('topnav');
     DOCSightNav.onView = function(view) { switchView(view); };
@@ -380,9 +338,6 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                         if (toggle) toggle.setAttribute('aria-expanded', 'true');
                     }
                 });
-
-                // Re-init sortable tables (event listeners lost on innerHTML replace)
-                initSortableTables();
 
                 // Fetch current signals while preserving the rendered Hero
                 if (typeof window.refreshHeroChart === 'function') {

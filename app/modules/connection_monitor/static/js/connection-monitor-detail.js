@@ -298,6 +298,7 @@
                     hint.appendChild(popover);
                     el.appendChild(hint);
                     if (window.lucide) lucide.createIcons();
+                    if (typeof window.initGlossaryHints === 'function') window.initGlossaryHints();
                 }
             })
             .catch(function() {});

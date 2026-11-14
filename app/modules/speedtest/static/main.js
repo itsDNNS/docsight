@@ -138,14 +138,11 @@ function handleSpeedtestSort(col) {
     }
     var ths = document.querySelectorAll('#speedtest-table thead th');
     ths.forEach(function(th) {
+        var active = th.getAttribute('data-col') === col;
+        if (active) th.setAttribute('aria-sort', _speedtestSortDir === 'asc' ? 'ascending' : 'descending');
+        else th.removeAttribute('aria-sort');
         var indicator = th.querySelector('.sort-indicator');
-        if (indicator) {
-            if (th.getAttribute('data-col') === col) {
-                indicator.textContent = _speedtestSortDir === 'asc' ? '▲' : '▼';
-            } else {
-                indicator.textContent = '';
-            }
-        }
+        if (indicator) indicator.textContent = active ? (_speedtestSortDir === 'asc' ? '▲' : '▼') : '';
     });
     sortSpeedtestData();
     _speedtestVisible = 50;

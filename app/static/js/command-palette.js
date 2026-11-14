@@ -405,7 +405,7 @@
         closePalette();
     });
     dialog.addEventListener('click', function(event) {
-        if (event.target === dialog) closePalette();
+        if (window.docsightBackdropClick(event, dialog)) closePalette();
     });
 
     /* ── Keyboard shortcuts ── */
