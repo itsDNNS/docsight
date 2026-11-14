@@ -33,17 +33,16 @@ def _parse_de_float(s):
 
 
 def _convert_date(date_str):
-    """Convert DD.MM.YYYY to YYYY-MM-DD, pass through YYYY-MM-DD as-is."""
+    """Convert DD.MM.YYYY to YYYY-MM-DD, keep YYYY-MM-DD, reject anything else."""
     if not date_str:
         return None
     date_str = date_str.strip()
-    m = re.match(r"(\d{2})\.(\d{2})\.(\d{4})", date_str)
+    m = re.fullmatch(r"(\d{2})\.(\d{2})\.(\d{4})", date_str)
     if m:
         return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
-    # Already ISO format
-    if re.match(r"\d{4}-\d{2}-\d{2}", date_str):
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_str):
         return date_str
-    return date_str
+    return None
 
 
 def parse_bnetz_csv(csv_content):

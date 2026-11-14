@@ -1,9 +1,10 @@
 /* ═══ DOCSight Utility Functions ═══ */
 
+var HTML_ESCAPES = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'};
+
+/* Quotes too, because callers also build attribute values with it. */
 function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
-    return div.innerHTML;
+    return String(str).replace(/[&<>"']/g, function(c) { return HTML_ESCAPES[c]; });
 }
 
 /* Copy each column header into its cells' data-label, the label a data

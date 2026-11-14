@@ -255,7 +255,7 @@ function renderIncidentTimeline(data) {
             var verdictText = hasDeviation ? (T.bnetz_verdict_deviation || 'Deviation') : (T.bnetz_verdict_ok || 'OK');
             var verdictClass = hasDeviation ? 'val-crit' : 'val-good';
             bHtml += '<div class="incident-timeline-bnetz-item">';
-            bHtml += '<span>' + formatDateDE(m.date) + '</span>';
+            bHtml += '<span>' + escapeHtml(formatDateDE(m.date)) + '</span>';
             bHtml += '<span>\u2193 ' + (m.download_measured_avg || 0).toFixed(1) + ' / ' + (m.download_max_tariff || 0).toFixed(0) + ' Mbps</span>';
             bHtml += '<span>\u2191 ' + (m.upload_measured_avg || 0).toFixed(1) + ' / ' + (m.upload_max_tariff || 0).toFixed(0) + ' Mbps</span>';
             bHtml += '<span class="incident-timeline-bnetz-verdict ' + verdictClass + '">' + verdictText + '</span>';
