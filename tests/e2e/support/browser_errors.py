@@ -12,6 +12,10 @@ ALLOWED_CONSOLE_ERRORS = (
     re.compile(r"^Failed to load resource: net::ERR_"),
 )
 
+# Trusted Types run in report-only mode, where the browser logs a violation only as info.
+# Every HTML string has to go through the docsight policy, so a violation is a fault too.
+TRUSTED_TYPES_VIOLATION = re.compile(r"requires 'Trusted(HTML|Script|ScriptURL)' assignment")
+
 
 class BrowserErrors:
     def __init__(self):
@@ -33,6 +37,9 @@ class BrowserErrors:
         page.on("load", lambda: self._leaving.discard(id(page)))
 
     def _console(self, page, message):
+        if TRUSTED_TYPES_VIOLATION.search(message.text):
+            self.errors.append(f"Trusted Types violation on {page.url}: {message.text}")
+            return
         if message.type != "error":
             return
         if any(pattern.search(message.text) for pattern in ALLOWED_CONSOLE_ERRORS):

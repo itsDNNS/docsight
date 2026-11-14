@@ -391,9 +391,9 @@ function copyComplaint() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textarea.value).then(function() {
             var orig = btn.innerHTML;
-            btn.innerHTML = '&#10003; ' + (T.copied || 'Copied!');
+            btn.innerHTML = docsightHTML('&#10003; ' + (T.copied || 'Copied!'));
             setReportBuilderStatus(T.report_builder_copied || 'Letter text copied. Attach the PDF package when you contact your ISP.', 'success');
-            setTimeout(function() { btn.innerHTML = orig; }, 2000);
+            setTimeout(function() { btn.innerHTML = docsightHTML(orig); }, 2000);
         });
     } else {
         document.execCommand('copy');

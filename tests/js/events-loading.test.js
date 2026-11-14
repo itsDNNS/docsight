@@ -54,7 +54,7 @@ function browser() {
         fetch: (url, options) => new Promise((resolve, reject) => requests.push({url, options, resolve, reject})),
     };
     context.window = context;
-    for (const file of ['view-state.js', 'event-log-data.js', 'events.js']) {
+    for (const file of ['trusted-html.js', 'view-state.js', 'event-log-data.js', 'events.js']) {
         vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../app/static/js', file), 'utf8'), context);
     }
     return {

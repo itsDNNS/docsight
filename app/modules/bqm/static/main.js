@@ -76,7 +76,7 @@ function renderBqmCalendar(year, month) {
     if (!grid || !label) return;
     var monthNames = T.month_names || ['January','February','March','April','May','June','July','August','September','October','November','December'];
     label.textContent = monthNames[month] + ' ' + year;
-    grid.innerHTML = '';
+    grid.replaceChildren();
     var firstDay = new Date(year, month, 1);
     // Monday-start: 0=Mon..6=Sun
     var startDow = (firstDay.getDay() + 6) % 7;
@@ -545,7 +545,7 @@ function openBqmImportModal() {
     _setBqmImportFinished(false);
     document.getElementById('bqm-import-overwrite').checked = false;
     document.getElementById('bqm-import-offset').value = '0';
-    document.getElementById('bqm-import-tbody').innerHTML = '';
+    document.getElementById('bqm-import-tbody').replaceChildren();
     setBqmImportValidationState(T.bqm_import_validation_choose || 'Choose PNG or JPEG BQM graph images. DOCSight will preview dates before importing.', 'info');
     window.DOCSightModal.open('bqm-import-modal');
 }
@@ -618,7 +618,7 @@ function handleBqmImportFiles(fileList) {
 
 function renderBqmImportPreview() {
     var tbody = document.getElementById('bqm-import-tbody');
-    tbody.innerHTML = '';
+    tbody.replaceChildren();
     var datesDetected = 0;
     var datesMissing = 0;
 
@@ -789,7 +789,7 @@ function showBqmImportResult(data) {
 
     // Show skipped dates if any (safe: date strings from server)
     if (data.skipped_dates && data.skipped_dates.length) {
-        tbody.innerHTML = '';
+        tbody.replaceChildren();
         var tr = document.createElement('tr');
         var td = document.createElement('td');
         td.colSpan = 4;

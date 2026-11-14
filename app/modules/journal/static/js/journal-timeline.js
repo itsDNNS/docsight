@@ -24,7 +24,7 @@ window.openIncidentTimeline = function(incidentId) {
     var caseCards = document.getElementById('case-cards');
     if (caseCards) caseCards.hidden = true;
     var header = document.getElementById('incident-timeline-header');
-    header.innerHTML = '<div class="spinner incident-timeline-spinner"></div>';
+    header.innerHTML = docsightHTML('<div class="spinner incident-timeline-spinner"></div>');
 
     _timelineActive = true;
     _timelineIncidentId = incidentId;
@@ -33,13 +33,13 @@ window.openIncidentTimeline = function(incidentId) {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.error) {
-                header.innerHTML = '<div class="incident-timeline-empty">' + escapeHtml(data.error) + '</div>';
+                header.innerHTML = docsightHTML('<div class="incident-timeline-empty">' + escapeHtml(data.error) + '</div>');
                 return;
             }
             renderIncidentTimeline(data);
         })
         .catch(function() {
-            header.innerHTML = '<div class="incident-timeline-empty">' + (T.network_error || 'Error') + '</div>';
+            header.innerHTML = docsightHTML('<div class="incident-timeline-empty">' + (T.network_error || 'Error') + '</div>');
         });
 };
 
@@ -62,7 +62,7 @@ window.closeIncidentTimeline = function() {
 };
 
 function renderIncidentPdfButton(btn) {
-    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+    btn.innerHTML = docsightHTML('<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>');
     btn.appendChild(document.createTextNode(' ' + (T.incident_download_pdf || 'Download PDF Report')));
 }
 
@@ -175,7 +175,7 @@ function renderIncidentTimeline(data) {
     if (inc.description) {
         hHtml += '<div class="incident-timeline-desc">' + escapeHtml(inc.description) + '</div>';
     }
-    header.innerHTML = hHtml;
+    header.innerHTML = docsightHTML(hHtml);
     var pdfBtn = document.createElement('button');
     pdfBtn.type = 'button';
     pdfBtn.className = 'incident-timeline-pdf-btn';
@@ -214,7 +214,7 @@ function renderIncidentTimeline(data) {
             eHtml += '</div></div>';
         });
         eHtml += '</div>';
-        entriesDiv.innerHTML = eHtml;
+        entriesDiv.innerHTML = docsightHTML(eHtml);
     }
 
     // -- 3. Channel status during the case window (its own request, started first) --
@@ -223,11 +223,11 @@ function renderIncidentTimeline(data) {
     // -- 4. Signal Timeline Chart --
     var chartCard = document.getElementById('incident-timeline-chart-card');
     if (timeline.length === 0) {
-        chartCard.querySelector('.incident-timeline-chart-wrap').innerHTML =
-            '<div class="incident-timeline-empty">' + (T.timeline_no_data || 'No signal data for this period') + '</div>';
+        chartCard.querySelector('.incident-timeline-chart-wrap').innerHTML = docsightHTML(
+            '<div class="incident-timeline-empty">' + (T.timeline_no_data || 'No signal data for this period') + '</div>');
     } else {
-        chartCard.querySelector('.incident-timeline-chart-wrap').innerHTML =
-            '<canvas id="incident-timeline-canvas"></canvas>';
+        chartCard.querySelector('.incident-timeline-chart-wrap').innerHTML = docsightHTML(
+            '<canvas id="incident-timeline-canvas"></canvas>');
         _renderTimelineChart(timeline);
     }
 
@@ -261,7 +261,7 @@ function renderIncidentTimeline(data) {
             bHtml += '<span class="incident-timeline-bnetz-verdict ' + verdictClass + '">' + verdictText + '</span>';
             bHtml += '</div>';
         });
-        bnetzDiv.innerHTML = bHtml;
+        bnetzDiv.innerHTML = docsightHTML(bHtml);
     }
 
     // Re-initialize Lucide icons
@@ -544,7 +544,7 @@ function _renderTimelineTable(data) {
     }
 
     tHtml += '</tbody></table>';
-    div.innerHTML = tHtml;
+    div.innerHTML = docsightHTML(tHtml);
     labelDataTable(document.getElementById('incident-timeline-table'));
     // Event messages carry arrow icons.
     if (typeof lucide !== 'undefined') lucide.createIcons();

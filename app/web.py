@@ -683,15 +683,22 @@ def add_security_headers(response):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # Inline scripts stay allowed only while an enabled community module still needs them.
+    inline_modules = current_app.extensions.get("docsight_inline_script_modules", ())
+    script_src = "'self' 'unsafe-inline'" if inline_modules else "'self'"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        f"script-src {script_src}; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https:; "
         "connect-src 'self'; "
         "object-src 'none'; "
         "base-uri 'none'"
+    )
+    # Reports HTML written past the docsight policy (static/js/trusted-html.js) without blocking it.
+    response.headers["Content-Security-Policy-Report-Only"] = (
+        "require-trusted-types-for 'script'; trusted-types docsight"
     )
     return response
 

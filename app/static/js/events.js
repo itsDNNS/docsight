@@ -482,7 +482,7 @@ function _markTruncatedEventRows(roots) {
         main.setAttribute('data-toggle', key);
         main.setAttribute('aria-expanded', String(!!_eventsExpanded[key]));
         // The same chevron as other rows that open, so a cut-off message shows it can be read in full.
-        main.insertAdjacentHTML('beforeend', EVENT_CHEVRON);
+        main.insertAdjacentHTML('beforeend', docsightHTML(EVENT_CHEVRON));
     });
     if (cutOff.length && typeof lucide !== 'undefined') lucide.createIcons({nodes: cutOff});
 }
@@ -569,8 +569,8 @@ function _renderEventTimeline() {
             next = current.nextElementSibling;
             return;
         }
-        if (next) next.insertAdjacentHTML('beforebegin', html);
-        else feed.insertAdjacentHTML('beforeend', html);
+        if (next) next.insertAdjacentHTML('beforebegin', docsightHTML(html));
+        else feed.insertAdjacentHTML('beforeend', docsightHTML(html));
         changed.push(next ? next.previousElementSibling : feed.lastElementChild);
         if (current) {
             next = current.nextElementSibling;
@@ -925,12 +925,12 @@ function loadHomeEvents() {
                 var meta = _eventSeverityMeta(ev);
                 var severity = meta.severity;
                 var item = document.createElement('li');
-                item.innerHTML =
+                item.innerHTML = docsightHTML(
                     '<a class="home-event home-event-' + severity + '" href="#events">' +
                         '<span class="home-event-time">' + escapeHtml(_homeEventTime(ev.timestamp)) + '</span>' +
                         '<i data-lucide="' + meta.icon + '" class="home-event-icon" aria-label="' + escapeHtml(meta.label) + '"></i>' +
                         '<span class="home-event-text"><b>' + escapeHtml(_eventTypeLabel(ev.event_type)) + '</b>' + formatEventMessage(ev) + '</span>' +
-                    '</a>';
+                    '</a>');
                 current.appendChild(item);
             });
             if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [current]});

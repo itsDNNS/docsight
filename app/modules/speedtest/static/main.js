@@ -46,7 +46,7 @@ function loadSpeedtestHistory() {
     var loading = document.getElementById('speedtest-loading');
     var moreWrap = document.getElementById('speedtest-show-more');
     if (!tbody || !table || !noData) return;
-    tbody.innerHTML = '';
+    tbody.replaceChildren();
     table.hidden = true;
     DOCSightEmptyState.hide(noData);
     if (loading) loading.hidden = false;
@@ -181,7 +181,7 @@ function renderSpeedtestRows() {
     var moreWrap = document.getElementById('speedtest-show-more');
     var moreBtn = document.getElementById('speedtest-more-btn');
     if (!tbody) return;
-    tbody.innerHTML = '';
+    tbody.replaceChildren();
     var downloads = [], uploads = [];
     for (var j = 0; j < _speedtestAllData.length; j++) {
         var d = _speedtestAllData[j];
@@ -210,7 +210,7 @@ function renderSpeedtestRows() {
         var scBadge = r.smart_capture
             ? '<td class="st-sc-col"><span class="sc-badge">' + escapeHtml(T.sc_badge_label || 'Smart Capture') + '</span></td>'
             : '<td class="st-sc-col"></td>';
-        tr.innerHTML = '<td class="st-expand-col dt-lead"><button class="st-expand-btn" data-id="' + r.id + '" data-action="toggleSpeedtestSignal" data-action-pass="element"'
+        tr.innerHTML = docsightHTML('<td class="st-expand-col dt-lead"><button class="st-expand-btn" data-id="' + r.id + '" data-action="toggleSpeedtestSignal" data-action-pass="element"'
             + ' aria-label="' + expandLabel + '" title="' + expandLabel + '" aria-expanded="false" aria-controls="st-signal-' + r.id + '">'
             + '<i data-lucide="chevron-right" aria-hidden="true"></i></button></td>'
             + _speedtestCell('st-col-time dt-primary', T.timestamp || 'Timestamp', escapeHtml(formatSpeedtestTimestamp(r.timestamp)))
@@ -220,7 +220,7 @@ function renderSpeedtestRows() {
             + _speedtestCell('st-col-ping dt-num', T.ping || 'Ping', r.ping_ms == null ? '&#8212;' : escapeHtml(String(r.ping_ms)) + ' ms', pingClass)
             + _speedtestCell('st-col-jitter dt-num', T.jitter || 'Jitter', r.jitter_ms == null ? '&#8212;' : escapeHtml(String(r.jitter_ms)) + ' ms', jitterClass)
             + _speedtestCell('st-col-loss dt-num', T.packet_loss || 'Packet Loss', r.packet_loss_pct == null ? '&#8212;' : r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%')
-            + scBadge;
+            + scBadge);
         tbody.appendChild(tr);
     }
     if (moreWrap && moreBtn) {

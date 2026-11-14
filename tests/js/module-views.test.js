@@ -16,6 +16,7 @@ function element() {
             contains: name => classes.has(name),
             toggle(name, on) { if (on) classes.add(name); else classes.delete(name); }
         },
+        replaceChildren() { this.innerHTML = ''; },
         addEventListener() {}, removeEventListener() {},
         querySelectorAll: () => [], querySelector: () => null,
         setAttribute() {}, getAttribute: () => null,
@@ -53,6 +54,7 @@ function browser(ids = [], hash = '') {
     };
     context.window = context;
     vm.createContext(context);
+    run(context, 'app/static/js/trusted-html.js');
     run(context, 'app/static/js/view-state.js');
     return {context, elements, listeners, timers, listenerCount: () => listenerCount};
 }

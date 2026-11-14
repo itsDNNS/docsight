@@ -126,6 +126,7 @@ function journalHarness() {
         showToast: () => assert.fail('Unexpected toast')
     });
     context.window = context;
+    vm.runInContext(fs.readFileSync('app/static/js/trusted-html.js', 'utf8'), context, {filename: 'trusted-html'});
     vm.runInContext(source, context, {filename: 'journal'});
     for (const id of ['header', 'entries', 'chart-card', 'signals', 'bnetz']) {
         nodes.set('incident-timeline-' + id, document.createElement('div'));

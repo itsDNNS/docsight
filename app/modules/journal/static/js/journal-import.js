@@ -154,7 +154,7 @@ function handleImportFile(input) {
 function renderImportPreview(data) {
     _importPreviewData = data;
     var tbody = document.getElementById('import-tbody');
-    tbody.innerHTML = '';
+    tbody.replaceChildren();
 
     var dupeCount = data.duplicates || 0;
     var validCount = data.total - data.skipped;
@@ -184,12 +184,12 @@ function renderImportPreview(data) {
         } else {
             dateCell = escapeHtml(row.date);
         }
-        tr.innerHTML =
+        tr.innerHTML = docsightHTML(
             '<td class="dt-lead"><input type="checkbox" class="import-row-cb" data-idx="' + i + '" ' + checked + ' data-change-action="updateImportSelectionState"></td>' +
             '<td class="import-icon-cell">' + iconHtml + '</td>' +
             '<td class="import-date-cell">' + dateCell + '</td>' +
             '<td class="dt-primary">' + escapeHtml(row.title) + dupeBadge + '</td>' +
-            '<td class="journal-hide-mobile">' + escapeHtml(desc) + '</td>';
+            '<td class="journal-hide-mobile">' + escapeHtml(desc) + '</td>');
         tbody.appendChild(tr);
     });
     labelDataTable(document.getElementById('import-table'));
