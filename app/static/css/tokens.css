@@ -2,6 +2,8 @@
 
 /* ── Color Palette: Dark (default) ── */
 :root {
+  /* Native controls, scrollbars and autofill follow the mode */
+  color-scheme: dark;
   /* Theme core: the tokens a community theme sets (wiki: Themes) */
   --bg: #06080f;
   --surface: #111628;
@@ -115,6 +117,7 @@
 
 /* ── Color Palette: Light ── */
 [data-theme="light"] {
+  color-scheme: light;
   --good-muted: color-mix(in srgb, var(--good) 12%, transparent);
   --warn-muted: color-mix(in srgb, var(--warn) 12%, transparent);
   --crit-muted: color-mix(in srgb, var(--crit) 12%, transparent);

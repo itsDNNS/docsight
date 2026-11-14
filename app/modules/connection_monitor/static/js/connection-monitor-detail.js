@@ -566,11 +566,20 @@
         labelDataTable(document.getElementById('cm-outage-table'));
     }
 
+    // Outage durations arrive with one decimal; whole seconds keep the output clean.
     function formatDuration(seconds) {
-        if (seconds < 60) return seconds + 's';
-        if (seconds < 3600) return Math.floor(seconds / 60) + 'm ' + (seconds % 60) + 's';
+        seconds = Math.round(seconds);
         var h = Math.floor(seconds / 3600);
         var m = Math.floor((seconds % 3600) / 60);
+        var s = seconds % 60;
+        if (typeof Intl.DurationFormat === 'function') {
+            try {
+                return new Intl.DurationFormat(document.documentElement.lang || undefined, {style: 'narrow'})
+                    .format(h ? {hours: h, minutes: m} : {minutes: m, seconds: s});
+            } catch (error) { /* invalid page language: use the fallback */ }
+        }
+        if (seconds < 60) return s + 's';
+        if (seconds < 3600) return m + 'm ' + s + 's';
         return h + 'h ' + m + 'm';
     }
 
