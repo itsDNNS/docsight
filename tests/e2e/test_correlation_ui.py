@@ -1366,6 +1366,8 @@ def test_correlation_event_filter_popover_stays_above_the_cards_below_the_chart(
     page.locator("#correlation-legend .corr-event-filter-btn").click()
     popover = page.locator("#corr-event-popover")
     expect(popover).to_be_visible()
+    # It is placed next to the gear in the frame it first appears in.
+    page.wait_for_function("() => document.getElementById('corr-event-popover').getBoundingClientRect().top > 0")
 
     layering = popover.evaluate(
         """
@@ -1393,14 +1395,14 @@ def test_correlation_event_filter_popover_stays_above_the_cards_below_the_chart(
                 overlapsTable: rect.bottom > tableRect.top,
                 popoverBottom: rect.bottom,
                 tableTop: tableRect.top,
-                popoverParentTag: node.parentElement && node.parentElement.tagName,
+                inTopLayer: node.matches(':popover-open'),
             };
         }
         """
     )
 
     assert layering["overlapsTable"]
-    assert layering["popoverParentTag"] == "BODY"
+    assert layering["inTopLayer"]
     assert layering["blockers"] == []
 
 
@@ -1691,3 +1693,26 @@ def test_zoomed_correlation_range_can_start_a_case_with_its_days(demo_page):
     dialog.locator("#add-to-case-submit").click()
     expect(page.locator("#toast")).to_contain_text("“Evening dropouts”")
     assert sent == [{"name": "Evening dropouts", "status": "open", "start_date": days[0], "end_date": days[1]}]
+
+
+def test_correlation_event_filter_works_from_the_keyboard(demo_page):
+    page = demo_page
+    _route_sample_correlation(page)
+    _open_correlation(page)
+
+    gear = page.locator("#correlation-legend .corr-event-filter-btn")
+    assert gear.evaluate("el => el.tagName === 'BUTTON' && !el.closest('[role=button]')")
+    gear.focus()
+    page.keyboard.press("Enter")
+    popover = page.locator("#corr-event-popover")
+    expect(popover).to_be_visible()
+    first = popover.locator("input").first
+    expect(first).to_be_focused()
+    page.keyboard.press("Space")
+    # The filter stays open while it is used, so more types can be changed in a row.
+    expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(0/2)")
+    expect(popover).to_be_visible()
+    page.keyboard.press("Escape")
+    expect(popover).to_be_hidden()
+    expect(page.locator("#correlation-legend .corr-event-filter-btn")).to_be_focused()
+

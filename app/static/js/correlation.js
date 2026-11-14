@@ -206,6 +206,8 @@ function loadCorrelationData() {
             }
             chartContainer.hidden = false;
             tableCard.hidden = data.length === 0;
+            // New data can bring other event types; the filter stays open while it is used.
+            _corrCloseEventPopover();
             renderCorrelationChart(data);
             if (data.length > 0) renderCorrelationTable(data);
         })
@@ -217,7 +219,6 @@ function loadCorrelationData() {
 }
 
 function renderCorrelationChart(data) {
-    _corrCloseEventPopover();
     // Clear pin state when chart is redrawn (legend toggle, zoom, resize)
     if (_corrPinnedRow) _corrUnpinRow();
     var canvas = document.getElementById('correlation-chart');

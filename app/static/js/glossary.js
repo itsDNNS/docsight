@@ -3,26 +3,23 @@
 (function () {
   'use strict';
 
-  // Single shared popover appended to body (escapes overflow:hidden + transform)
+  // One shared popover, placed right after the open hint so Tab moves from the hint
+  // into its link. The top layer keeps it clear of overflow:hidden and transforms.
   var overlay = document.createElement('div');
   overlay.className = 'glossary-popover';
   overlay.id = 'glossary-popover-overlay';
-  overlay.setAttribute('role', 'tooltip');
-  document.body.appendChild(overlay);
+  overlay.setAttribute('popover', 'manual');
 
   var activeHint = null;
   var activeOpenedByFocus = false;
 
   function closeAll() {
-    overlay.style.display = 'none';
+    if (overlay.matches(':popover-open')) overlay.hidePopover();
     overlay.classList.remove('above', 'dashboard-meta-popover');
     overlay.style.removeProperty('--glossary-arrow-left');
     activeOpenedByFocus = false;
     if (activeHint) {
       activeHint.classList.remove('open');
-      var ownDescription = activeHint.getAttribute('data-glossary-description');
-      if (ownDescription) activeHint.setAttribute('aria-describedby', ownDescription);
-      else activeHint.removeAttribute('aria-describedby');
       activeHint.setAttribute('aria-expanded', 'false');
       activeHint = null;
     }
@@ -43,11 +40,11 @@
       link.textContent = hint.getAttribute('data-glossary-term-label') || 'Open glossary article';
       overlay.appendChild(link);
     }
-    overlay.style.display = 'block';
+    hint.after(overlay);
+    overlay.showPopover();
     overlay.classList.remove('above');
     overlay.classList.toggle('dashboard-meta-popover', isDashboardMeta);
     overlay.style.removeProperty('--glossary-arrow-left');
-    hint.setAttribute('aria-describedby', 'glossary-popover-overlay');
     hint.setAttribute('aria-expanded', 'true');
 
     function clamp(value, min, max) {
@@ -106,14 +103,12 @@
         hint.removeAttribute('role');
         return;
       }
-      if (visibleText(hint)) {
-        // Hints with visible text keep it as their name; the explanation describes them.
-        if (!source.id) source.id = 'glossary-hint-text-' + (++hintCount);
-        hint.setAttribute('data-glossary-description', source.id);
-        hint.setAttribute('aria-describedby', source.id);
-      } else {
-        hint.setAttribute('aria-label', label);
+      // Visible text or a short name names the hint; the explanation describes it once.
+      if (!visibleText(hint) && !hint.hasAttribute('aria-label')) {
+        hint.setAttribute('aria-label', (window.T && T.glossary_hint_label) || 'Explanation');
       }
+      if (!source.id) source.id = 'glossary-hint-text-' + (++hintCount);
+      hint.setAttribute('aria-describedby', source.id);
       hint.setAttribute('aria-expanded', 'false');
     });
   }
@@ -166,7 +161,7 @@
 
   document.addEventListener('focusin', function (e) {
     var hint = e.target.closest('.glossary-hint');
-    if (!hint) return;
+    if (!hint || refocusing) return;
     var source = hint.querySelector('.glossary-popover');
     if (!source || !source.textContent.trim()) return;
     closeAll();
@@ -189,7 +184,17 @@
     }, 0);
   });
 
+  // Escape closes the explanation and, from inside it, returns focus to its hint.
+  var refocusing = false;
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeAll();
+    if (e.key !== 'Escape' || !activeHint) return;
+    var hint = activeHint;
+    var returnFocus = overlay.contains(document.activeElement);
+    closeAll();
+    if (returnFocus) {
+      refocusing = true;
+      hint.focus();
+      refocusing = false;
+    }
   });
 })();
