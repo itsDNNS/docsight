@@ -101,6 +101,18 @@ class TestSetupWizardFlow:
         step2 = setup_page.locator(".step-content[data-step='2']")
         expect(step2).to_be_visible()
 
+    def test_step_change_moves_focus_to_the_new_step(self, setup_page):
+        _start_fresh(setup_page)
+        setup_page.locator('input[name="connection_kind"][value="other"]').check()
+        _click_next(setup_page)
+        heading = setup_page.locator(".step-content[data-step='2'] h2.card-title")
+        expect(heading).to_be_focused()
+        expect(setup_page.locator(".stepper-step[data-step='2']")).to_have_attribute("aria-current", "step")
+        assert setup_page.locator(".stepper-step[aria-current]").count() == 1
+        _click_back(setup_page)
+        expect(setup_page.locator(".step-content[data-step='1'] h2.card-title")).to_be_focused()
+        expect(setup_page.locator(".stepper-step[data-step='1']")).to_have_attribute("aria-current", "step")
+
     def test_step2_back_to_step1(self, setup_page):
         _start_fresh(setup_page)
         setup_page.locator('input[name="connection_kind"][value="other"]').check()

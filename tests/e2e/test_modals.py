@@ -20,8 +20,8 @@ def test_modal_focus_trap_escape_and_return_focus(demo_page):
 
     modal = demo_page.locator("#entry-modal")
     expect(modal).to_be_visible()
-    expect(modal).to_have_attribute("role", "dialog")
-    expect(modal).to_have_attribute("aria-modal", "true")
+    # A native dialog opened with showModal() is a modal dialog without extra ARIA.
+    assert modal.evaluate("el => el.tagName === 'DIALOG' && el.matches(':modal') && !el.hasAttribute('role')")
 
     focused_inside = demo_page.evaluate(
         """
@@ -69,8 +69,8 @@ def test_settings_backup_browser_uses_accessible_modal_contract(settings_page):
 
     modal = settings_page.locator("#browse-modal")
     expect(modal).to_be_visible()
-    expect(modal).to_have_attribute("role", "dialog")
-    expect(modal).to_have_attribute("aria-modal", "true")
+    # A native dialog opened with showModal() is a modal dialog without extra ARIA.
+    assert modal.evaluate("el => el.tagName === 'DIALOG' && el.matches(':modal') && !el.hasAttribute('role')")
     expect(modal).to_have_attribute("aria-labelledby", "browse-modal-title")
     expect(modal.locator("#browse-selected-path")).to_be_visible()
     expect(modal.locator("#browse-status")).to_be_visible()
@@ -109,7 +109,7 @@ def test_styled_confirm_dialog_replaces_native_confirm_for_speedtest_cache(setti
 
     confirm_modal = settings_page.locator("#docsight-confirm-modal")
     expect(confirm_modal).to_be_visible()
-    expect(confirm_modal).to_have_attribute("role", "dialog")
+    assert confirm_modal.evaluate("el => el.matches(':modal') && !el.hasAttribute('role')")
     expect(confirm_modal).to_contain_text("Clear")
     expect(confirm_modal.get_by_role("button", name="Cancel")).to_be_visible()
     assert native_dialogs == []
@@ -809,3 +809,42 @@ def test_report_modal_closes_on_escape_and_backdrop_but_not_from_inside(demo_pag
     expect(modal).to_be_visible()
     demo_page.mouse.click(box["x"] / 2, box["y"] + box["height"] / 2)
     expect(modal).not_to_be_visible()
+
+
+def test_page_behind_an_open_modal_does_not_scroll(demo_page):
+    demo_page.set_viewport_size({"width": 1280, "height": 700})
+    _open_journal(demo_page)
+    demo_page.get_by_role("button", name="New Entry").click()
+    expect(demo_page.locator("#entry-modal")).to_be_visible()
+    before = demo_page.evaluate("scrollY")
+    # Wheel over the backdrop, outside the dialog box.
+    demo_page.mouse.move(20, 350)
+    demo_page.mouse.wheel(0, 800)
+    demo_page.wait_for_timeout(300)
+    assert demo_page.evaluate("scrollY") == before
+    assert demo_page.evaluate("getComputedStyle(document.documentElement).overflow") == "hidden"
+    demo_page.keyboard.press("Escape")
+    expect(demo_page.locator("#entry-modal")).to_be_hidden()
+    assert demo_page.evaluate("getComputedStyle(document.documentElement).overflow") != "hidden"
+
+
+def test_journal_entry_asks_before_discarding_a_typed_description(demo_page):
+    _open_journal(demo_page)
+    demo_page.get_by_role("button", name="New Entry").click()
+    modal = demo_page.locator("#entry-modal")
+    expect(modal).to_be_visible()
+    demo_page.locator("#entry-desc").fill("Outage since 8 pm, modem blinking")
+
+    demo_page.keyboard.press("Escape")
+    confirm = demo_page.locator("#docsight-confirm-modal")
+    expect(confirm).to_be_visible()
+    confirm.get_by_role("button", name="Keep editing").click()
+    expect(confirm).to_be_hidden()
+    expect(modal).to_be_visible()
+    expect(demo_page.locator("#entry-desc")).to_have_value("Outage since 8 pm, modem blinking")
+
+    # A press and release on the backdrop asks too.
+    demo_page.mouse.click(5, 5)
+    expect(confirm).to_be_visible()
+    confirm.get_by_role("button", name="Discard").click()
+    expect(modal).to_be_hidden()

@@ -124,7 +124,7 @@
 
 <!-- Stepper -->
 <div class="setup-stepper" id="setup-stepper" hidden>
-    <div class="stepper-step active" data-step="1">
+    <div class="stepper-step active" data-step="1" aria-current="step">
         <div class="stepper-circle"><i data-lucide="radio" class="setup-icon-md"></i></div>
         <span class="stepper-label">{{ t.modem_connection }}</span>
     </div>
@@ -151,7 +151,7 @@
                     <i data-lucide="radio"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t.modem_connection }}</div>
+                    <h2 class="card-title" tabindex="-1">{{ t.modem_connection }}</h2>
                     <div class="card-subtitle">{{ t.modem_connection_desc }}</div>
                 </div>
             </div>
@@ -264,7 +264,7 @@
                     <i data-lucide="sliders-horizontal"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t.general_settings }}</div>
+                    <h2 class="card-title" tabindex="-1">{{ t.general_settings }}</h2>
                     <div class="card-subtitle">{{ t.general_settings_desc }}</div>
                 </div>
             </div>
@@ -316,7 +316,7 @@
                     <i data-lucide="check-circle"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t.review_settings }}</div>
+                    <h2 class="card-title" tabindex="-1">{{ t.review_settings }}</h2>
                     <div class="card-subtitle">{{ t.review_settings_desc }}</div>
                 </div>
             </div>

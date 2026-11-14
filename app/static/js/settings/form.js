@@ -1,5 +1,5 @@
 'use strict';
-DOCSightSettings.form = function({state, showsSaveFooter}) {
+DOCSightSettings.form = function({state, showsSaveFooter, revealField}) {
 /* ── Toast ── */
 var toastTimer = null;
 function showToast(msg, ok) {
@@ -303,7 +303,56 @@ function scheduleReload() {
     }, 800);
 }
 
+/* Field errors: the browser's message under the field, linked for screen readers. */
+function _fieldErrorId(field) {
+    return (field.id || field.name) + '-error';
+}
+
+function showFieldError(field) {
+    var id = _fieldErrorId(field);
+    var message = document.getElementById(id);
+    if (!message) {
+        message = document.createElement('span');
+        message.id = id;
+        message.className = 'field-error';
+        field.insertAdjacentElement('afterend', message);
+        field.setAttribute('aria-describedby', ((field.getAttribute('aria-describedby') || '') + ' ' + id).trim());
+    }
+    message.textContent = field.validationMessage;
+    field.setAttribute('aria-invalid', 'true');
+}
+
+function syncFieldError(field) {
+    if (field.getAttribute('aria-invalid') !== 'true') return;
+    if (!field.validity.valid) {
+        showFieldError(field);
+        return;
+    }
+    field.removeAttribute('aria-invalid');
+    var message = document.getElementById(_fieldErrorId(field));
+    if (message) message.textContent = '';
+}
+
+/* min, max and required are checked before anything is sent. The first invalid
+   field that can be shown is opened and pointed at; fields that stay hidden are
+   left to the server. */
+function reportInvalidField() {
+    var fields = document.getElementById('settings-form').querySelectorAll('input, select, textarea');
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        if (!field.willValidate || field.checkValidity()) continue;
+        revealField(field);
+        if (!field.getClientRects().length) continue;
+        // Centered, so the fixed save bar does not cover it.
+        field.scrollIntoView({block: 'center'});
+        field.reportValidity();
+        return true;
+    }
+    return false;
+}
+
 function save(options) {
+    if (!(options && options.instant) && reportInvalidField()) return Promise.resolve(false);
     pending++;
     queue = queue.catch(function() {}).then(function() {
         var error = document.getElementById('global-error');
@@ -376,6 +425,8 @@ function init() {
     }
     form.addEventListener('input', changed);
     form.addEventListener('change', changed);
+    form.addEventListener('invalid', function(e) { showFieldError(e.target); }, true);
+    form.addEventListener('input', function(e) { syncFieldError(e.target); });
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         save();

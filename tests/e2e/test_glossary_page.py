@@ -370,3 +370,20 @@ def test_article_links_to_the_views_where_the_term_appears(page, live_server):
     expect(links).to_have_text(["Overview", "Channels"])
     links.nth(1).click()
     page.wait_for_selector("#view-channels.active", state="visible")
+
+
+def test_glossary_mobile_picker_is_a_modal_dialog(page, live_server):
+    page.set_viewport_size({"width": 393, "height": 852})
+    page.goto(f"{live_server}/?lang=en&term=docsis#glossary?term=docsis")
+    page.wait_for_selector("#view-glossary.active", state="visible")
+
+    trigger = page.locator(".glossary-mobile-picker-trigger")
+    trigger.click()
+    picker = page.locator("#glossary-mobile-picker")
+    assert picker.evaluate("el => el.tagName === 'DIALOG' && el.matches(':modal') && !el.querySelector('[role=dialog]')")
+    expect(trigger).to_have_attribute("aria-expanded", "true")
+    # A tap above the sheet lands on the dialog's backdrop and closes it.
+    page.mouse.click(196, 40)
+    expect(picker).to_be_hidden()
+    expect(trigger).to_have_attribute("aria-expanded", "false")
+    expect(trigger).to_be_focused()

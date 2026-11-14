@@ -93,6 +93,8 @@ function init() {
     }
     input.addEventListener('input', render);
     input.addEventListener('keydown', function(event) {
+        // While an input method composes text, Enter and the arrows belong to it.
+        if (event.isComposing) return;
         if (event.key === 'Escape') {
             input.value = '';
             render();

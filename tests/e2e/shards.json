@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "expected_total": 826,
+  "expected_total": 836,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
   "shards": [
     {
       "id": 1,
-      "collected_cases": 118,
+      "collected_cases": 120,
       "files": [
         "test_accessibility_findings.py",
         "test_chart_touch.py",
@@ -41,7 +41,7 @@
     },
     {
       "id": 3,
-      "collected_cases": 136,
+      "collected_cases": 137,
       "files": [
         "test_correlation_ui.py",
         "test_event_log_redesign.py",
@@ -54,7 +54,7 @@
     },
     {
       "id": 4,
-      "collected_cases": 115,
+      "collected_cases": 121,
       "files": [
         "test_case_cards.py",
         "test_case_status_track.py",
@@ -62,6 +62,7 @@
         "test_channels.py",
         "test_community_theme.py",
         "test_empty_states.py",
+        "test_form_accessibility.py",
         "test_modulation.py",
         "test_speedtest_chart.py",
         "test_tkg_compensation.py"
@@ -82,7 +83,7 @@
     },
     {
       "id": 6,
-      "collected_cases": 138,
+      "collected_cases": 139,
       "files": [
         "test_command_palette.py",
         "test_community_drivers.py",

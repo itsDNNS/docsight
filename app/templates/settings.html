@@ -89,8 +89,8 @@
                     <p class="settings-save-hint" id="settings-save-hint">{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}</p>
                 </div>
             </div>
-            <div class="error-msg" id="global-error"></div>
-            <form id="settings-form" autocomplete="off">
+            <div class="error-msg" id="global-error" role="alert"></div>
+            <form id="settings-form" autocomplete="off" novalidate>
                 {% include 'demo_banner.html' %}
 
                 {% if desktop_mode and not desktop_preview_notice_dismissed %}
