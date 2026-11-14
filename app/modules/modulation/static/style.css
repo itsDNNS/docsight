@@ -111,7 +111,8 @@
 }
 
 .mod-capacity-basics-hint svg,
-.mod-capacity-basics-hint i {
+.mod-capacity-basics-hint i,
+.mod-capacity-basics-hint i:where([data-lucide]) {
     width: 13px;
     height: 13px;
 }
@@ -133,7 +134,7 @@
     line-height: 1.45;
 }
 
-.mod-capacity-note svg {
+.mod-capacity-note svg, .mod-capacity-note i:where([data-lucide]) {
     flex: none;
     width: 16px;
     height: 16px;
@@ -488,7 +489,8 @@
     line-height: 1.5;
 }
 .modulation-disclaimer i,
-.modulation-disclaimer svg {
+.modulation-disclaimer svg,
+.modulation-disclaimer i:where([data-lucide]) {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
@@ -505,7 +507,8 @@
     font-size: max(var(--fs-min), 0.8em);
 }
 .modulation-click-hint i,
-.modulation-click-hint svg {
+.modulation-click-hint svg,
+.modulation-click-hint i:where([data-lucide]) {
     width: 14px;
     height: 14px;
 }

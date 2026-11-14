@@ -412,6 +412,8 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         media=(
             {
                 'src': '/static/glossary/shared-medium.svg',
+                'width': 800,
+                'height': 360,
                 'alt': 'Several homes connected to one shared neighborhood cable segment',
                 'caption': (
                     'Homes on the same cable segment share part of the access network. '
@@ -995,6 +997,9 @@ def _validate_media_entries(
                 errors.append(f"{term_id}: media {index} src must resolve to an existing regular file")
         if not alt:
             errors.append(f"{term_id}: media {index} missing alt")
+        # The size reserves the image's space before the lazy image loads
+        if not all(isinstance(item.get(key), int) and item[key] > 0 for key in ("width", "height")):
+            errors.append(f"{term_id}: media {index} needs a positive width and height")
         if "caption" in item and not caption:
             errors.append(f"{term_id}: media {index} empty caption")
     return errors

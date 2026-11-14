@@ -68,7 +68,7 @@
     filter: brightness(0.85);
 }
 /* Purple pill button (matching Acknowledge All style) */
-.journal-header-actions .btn-new-entry svg {
+.journal-header-actions .btn-new-entry svg, .journal-header-actions .btn-new-entry i:where([data-lucide]) {
     width: 16px;
     height: 16px;
 }
@@ -807,7 +807,7 @@ mark.search-highlight {
     align-items: center;
     gap: var(--space-xs);
 }
-.incident-timeline-meta-item svg {
+.incident-timeline-meta-item svg, .incident-timeline-meta-item i:where([data-lucide]) {
     width: 14px;
     height: 14px;
     color: var(--muted);
@@ -855,7 +855,7 @@ mark.search-highlight {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
-.incident-timeline-pdf-btn svg {
+.incident-timeline-pdf-btn svg, .incident-timeline-pdf-btn i:where([data-lucide]) {
     width: 16px;
     height: 16px;
 }
@@ -870,7 +870,7 @@ mark.search-highlight {
     align-items: center;
     gap: var(--space-sm);
 }
-.incident-timeline-section-title svg {
+.incident-timeline-section-title svg, .incident-timeline-section-title i:where([data-lucide]) {
     width: 16px;
     height: 16px;
     color: var(--accent);
@@ -910,7 +910,7 @@ mark.search-highlight {
     background: var(--accent-muted);
     color: var(--accent);
 }
-.incident-timeline-entry-icon svg {
+.incident-timeline-entry-icon svg, .incident-timeline-entry-icon i:where([data-lucide]) {
     width: 14px;
     height: 14px;
 }
@@ -1202,7 +1202,9 @@ mark.search-highlight {
 
 /* ── Table columns, toolbar icons and dialog layout ── */
 .btn-bulk-toggle svg,
-.incident-timeline-back svg {
+.incident-timeline-back svg,
+.btn-bulk-toggle i:where([data-lucide]),
+.incident-timeline-back i:where([data-lucide]) {
     width: 14px;
     height: 14px;
 }

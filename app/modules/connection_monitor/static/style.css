@@ -133,7 +133,7 @@
     opacity: 1;
 }
 
-.cm-pin-day-btn svg {
+.cm-pin-day-btn svg, .cm-pin-day-btn i:where([data-lucide]) {
     width: 13px;
     height: 13px;
 }
@@ -187,7 +187,7 @@
     min-width: 0;
 }
 
-.cm-panel-title svg {
+.cm-panel-title svg, .cm-panel-title i:where([data-lucide]) {
     width: 17px;
     height: 17px;
     color: var(--info);
@@ -250,7 +250,7 @@
     border-radius: 8px;
 }
 
-.cm-traceroute-btn svg {
+.cm-traceroute-btn svg, .cm-traceroute-btn i:where([data-lucide]) {
     width: 15px;
     height: 15px;
 }
@@ -402,7 +402,7 @@
     font-weight: 700;
 }
 
-.cm-traceroute-alert svg {
+.cm-traceroute-alert svg, .cm-traceroute-alert i:where([data-lucide]) {
     width: 16px;
     height: 16px;
     flex: 0 0 auto;
@@ -625,7 +625,7 @@
     cursor: pointer;
 }
 .cm-more-toggle::-webkit-details-marker { display: none; }
-.cm-more-toggle svg { width: 18px; height: 18px; }
+.cm-more-toggle svg, .cm-more-toggle i:where([data-lucide]) { width: 18px; height: 18px; }
 .cm-more-toggle:hover,
 .cm-more[open] > .cm-more-toggle { color: var(--text); border-color: color-mix(in srgb, var(--info) 30%, var(--cm-panel-border)); }
 .cm-more-toggle:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }

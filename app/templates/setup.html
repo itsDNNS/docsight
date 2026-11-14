@@ -17,7 +17,7 @@
     {% include 'partials/theme_vars.html' %}
     {% include 'partials/browser_url_bootstrap.html' %}
     {% include 'partials/theme_bootstrap.html' %}
-    <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
+    <script defer src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>
 
@@ -395,9 +395,9 @@
     'indexUrl': url_for('index'),
     'loginUrl': url_for('login')
 }|tojson }}</script>
-<script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/setup.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/setup.js', v=version) }}"></script>
 
 </body>
 </html>

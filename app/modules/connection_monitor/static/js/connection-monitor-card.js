@@ -209,7 +209,8 @@
     }
 
     // Initial load + periodic refresh
-    if (document.readyState === 'loading') {
+    // Deferred scripts run before DOMContentLoaded; wait for it so later scripts are loaded too.
+    if (document.readyState !== 'complete') {
         document.addEventListener('DOMContentLoaded', function() {
             bindCard();
             updateCard();

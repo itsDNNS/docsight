@@ -482,7 +482,7 @@
           "--crit-muted": "rgba(248, 149, 141, 0.15)",
           "--info": "#8fb3dc",
           "--info-muted": "rgba(143, 179, 220, 0.15)",
-          "--font-sans": "'DM Sans', system-ui, -apple-system, sans-serif"
+          "--font-sans": "'DM Sans', 'DM Sans Fallback', system-ui, -apple-system, sans-serif"
         },
         "light": {
           "--bg": "#f1f4f7",
@@ -520,7 +520,7 @@
           "--crit-muted": "rgba(161, 55, 53, 0.10)",
           "--info": "#456990",
           "--info-muted": "rgba(69, 105, 144, 0.10)",
-          "--font-sans": "'DM Sans', system-ui, -apple-system, sans-serif"
+          "--font-sans": "'DM Sans', 'DM Sans Fallback', system-ui, -apple-system, sans-serif"
         }
       }
     },

@@ -37,7 +37,9 @@ def test_glossary_media_schema_accepts_existing_local_static_media(tmp_path):
     media_path = tmp_path / "glossary" / "ofdm.svg"
     media_path.parent.mkdir()
     media_path.write_text("<svg xmlns=\"http://www.w3.org/2000/svg\"/>", encoding="utf-8")
-    term = _media_test_term(({"src": "/static/glossary/ofdm.svg", "alt": "OFDM diagram"},))
+    term = _media_test_term(
+        ({"src": "/static/glossary/ofdm.svg", "alt": "OFDM diagram", "width": 800, "height": 360},)
+    )
 
     assert validate_glossary_catalog((term,), static_root=tmp_path) == []
 
@@ -47,7 +49,7 @@ def test_glossary_media_schema_decodes_safe_local_static_media_paths(tmp_path):
     media_path.parent.mkdir()
     media_path.write_text("<svg xmlns=\"http://www.w3.org/2000/svg\"/>", encoding="utf-8")
     term = _media_test_term(
-        ({"src": "/static/glossary/shared%20diagram.svg", "alt": "Shared cable diagram"},)
+        ({"src": "/static/glossary/shared%20diagram.svg", "alt": "Shared cable diagram", "width": 800, "height": 360},)
     )
 
     assert validate_glossary_catalog((term,), static_root=tmp_path) == []
@@ -89,6 +91,8 @@ def test_glossary_media_schema_rejects_external_or_unsafe_media(tmp_path):
         ({"src": "", "alt": "OFDM diagram"}, "missing src"),
         ({"src": None, "alt": "OFDM diagram"}, "missing src"),
         ({"src": "/static/glossary/ofdm.svg", "alt": None}, "missing alt"),
+        ({"src": "/static/glossary/ofdm.svg", "alt": "OFDM diagram"}, "positive width and height"),
+        ({"src": "/static/glossary/ofdm.svg", "alt": "OFDM diagram", "width": 800, "height": "360"}, "positive width and height"),
         ("/static/glossary/ofdm.svg", "must be an object"),
     ]
 
@@ -132,6 +136,8 @@ def test_shared_medium_has_canonical_english_media():
     assert term["media"] == [
         {
             "src": "/static/glossary/shared-medium.svg",
+            "width": 800,
+            "height": 360,
             "alt": "Several homes connected to one shared neighborhood cable segment",
             "caption": (
                 "Homes on the same cable segment share part of the access network. "

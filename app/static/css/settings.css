@@ -92,7 +92,7 @@
   text-align: left;
   cursor: pointer;
 }
-.settings-index-item svg { width: 18px; height: 18px; flex: none; opacity: 0.75; }
+.settings-index-item svg, .settings-index-item i:where([data-lucide]) { width: 18px; height: 18px; flex: none; opacity: 0.75; }
 .settings-index-item:hover { background: var(--tint-hover); color: var(--text); }
 .settings-index-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .settings-index-item.active { background: var(--tint-emphasis); color: var(--text); font-weight: 600; }
@@ -371,7 +371,7 @@ button.notification-collapse-button {
 .backup-file { font-size: max(var(--fs-min), 0.8em); }
 .backup-meta { color: var(--muted); font-size: max(var(--fs-min), 0.8em); white-space: nowrap; }
 .backup-actions { text-align: right; }
-.backup-actions svg { width: 12px; height: 12px; }
+.backup-actions svg, .backup-actions i:where([data-lucide]) { width: 12px; height: 12px; }
 .backup-list-empty { color: var(--muted); font-style: italic; }
 .backup-list-error { color: var(--crit); }
 
@@ -592,7 +592,7 @@ button.notification-collapse-button {
   font-size: 0.82rem;
   color: var(--text-secondary);
 }
-.support-star > i, .support-star > svg {
+.support-star > i, .support-star > svg, .support-star > i:where([data-lucide]) {
   width: 16px;
   height: 16px;
   color: var(--warn);
@@ -613,7 +613,7 @@ button.notification-collapse-button {
 .support-star-link:hover {
   color: var(--text);
 }
-.support-star-link i, .support-star-link svg {
+.support-star-link i, .support-star-link svg, .support-star-link i:where([data-lucide]) {
   width: 14px;
   height: 14px;
 }
@@ -839,7 +839,7 @@ button.notification-collapse-button {
   line-height: 1.4;
 }
 
-.theme-contrast-warning svg {
+.theme-contrast-warning svg, .theme-contrast-warning i:where([data-lucide]) {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
@@ -1167,7 +1167,7 @@ button.notification-collapse-button {
   padding: var(--space-md);
   color: var(--text-secondary);
 }
-.empty-state.compact svg {
+.empty-state.compact svg, .empty-state.compact i:where([data-lucide]) {
   color: var(--good);
   width: 18px;
   height: 18px;
@@ -1189,9 +1189,11 @@ button.notification-collapse-button {
 .test-result-static { display: flex; }
 .isp-icon-preview { display: none; width: 28px; height: 28px; border-radius: 6px; }
 .registry-empty-icon { width: 40px; height: 40px; opacity: 0.3; }
-.theme-active-badge svg { width: 14px; height: 14px; }
+.theme-active-badge svg, .theme-active-badge i:where([data-lucide]) { width: 14px; height: 14px; }
 .sc-history-loading svg,
-.registry-loading svg { width: 18px; height: 18px; }
+.registry-loading svg,
+.sc-history-loading i:where([data-lucide]),
+.registry-loading i:where([data-lucide]) { width: 18px; height: 18px; }
 .backup-path-input { cursor: pointer; }
 .backup-auto-settings.is-off { opacity: 0.5; }
 .cm-targets-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }

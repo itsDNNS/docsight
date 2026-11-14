@@ -40,7 +40,7 @@
     {% endif %}
     {% include 'partials/browser_url_bootstrap.html' %}
     {% include 'partials/theme_bootstrap.html' %}
-    <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
+    <script defer src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>
 <a class="skip-link" id="skip-link" href="#main-content">{{ t.get('skip_to_content', 'Skip to content') }}</a>
@@ -788,7 +788,7 @@
     </nav>
     {% endif %}
     {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-    <script src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-summary.js', v=version) }}"></script>
+    <script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-summary.js', v=version) }}"></script>
     {% endif %}
 
     {# ── Module Cards (mixed with core, sorted by order) ── #}
@@ -1908,12 +1908,12 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 {% include 'partials/glossary_panel.html' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/uPlot.min.css', v=version) }}">
-<script src="{{ url_for('static', filename='vendor/uPlot.min.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/signal-series.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/hero-chart.js') }}?v={{ version|urlencode }}"></script>
-<script src="{{ url_for('static', filename='js/sparklines.js') }}?v={{ version|urlencode }}"></script>
+<script defer src="{{ url_for('static', filename='vendor/uPlot.min.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/signal-series.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/hero-chart.js') }}?v={{ version|urlencode }}"></script>
+<script defer src="{{ url_for('static', filename='js/sparklines.js') }}?v={{ version|urlencode }}"></script>
 
-<script src="{{ url_for('static', filename='js/chart-engine.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/chart-engine.js', v=version) }}"></script>
 <script type="application/json" id="docsight-dashboard-bootstrap">{{ {
     'translations': t,
     'language': lang,
@@ -1921,45 +1921,45 @@
     'connectionMonitorAvailable': connection_monitor_installed|length > 0,
     'timeZone': time_zone or none
 }|tojson }}</script>
-<script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/segmented.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/view-state.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/empty-state.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/command-palette.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/dashboard.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/segmented.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/view-state.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/empty-state.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/command-palette.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/dashboard.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
-<script src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
+<script defer src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/window-shift.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/trends.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/snapshot-panel.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/channels.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/line-status.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/integrations.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/event-log-data.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/events.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/case-picker.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/correlation-data.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/correlation-chart.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/correlation-legend.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/correlation.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/segment-utilization.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/glossary-page.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/glossary.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/window-shift.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/trends.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/snapshot-panel.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/channels.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/line-status.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/integrations.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/event-log-data.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/events.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/case-picker.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/correlation-data.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/correlation-chart.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/correlation-legend.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/correlation.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/segment-utilization.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/glossary-page.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/glossary.js', v=version) }}"></script>
 
 {% for mod in modules if mod.has_js %}
-<script src="{{ module_static_url(mod.id, 'main.js', v=version) }}"></script>
+<script defer src="{{ module_static_url(mod.id, 'main.js', v=version) }}"></script>
 {% endfor %}
 
-<script src="{{ url_for('static', filename='js/dashboard-routing.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/dashboard-routing.js', v=version) }}"></script>
 
 
-<script src="{{ url_for('static', filename='js/service-worker-registration.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/service-worker-registration.js', v=version) }}"></script>
 </body>
 </html>

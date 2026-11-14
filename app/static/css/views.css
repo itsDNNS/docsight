@@ -308,7 +308,9 @@
 }
 .btn-ack-all[hidden] { display: none; }
 .btn-ack-all svg,
-.btn-export-events svg { width: 15px; height: 15px; }
+.btn-export-events svg,
+.btn-ack-all i:where([data-lucide]),
+.btn-export-events i:where([data-lucide]) { width: 15px; height: 15px; }
 .btn-ack-all:active { opacity: 0.8; }
 .btn-ack-all:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 
@@ -500,7 +502,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     white-space: nowrap;
 }
 .ev-sev { grid-column: sev; display: inline-flex; color: var(--info); }
-.ev-sev svg { width: 16px; height: 16px; }
+.ev-sev svg, .ev-sev i:where([data-lucide]) { width: 16px; height: 16px; }
 .ev-sev-warning > .ev-main .ev-sev { color: var(--warn); }
 .ev-sev-critical > .ev-main .ev-sev { color: var(--crit); }
 .ev-type {
@@ -560,7 +562,9 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 }
 .ev-ack:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 .ev-ack svg,
-.ev-ack-done svg { width: 16px; height: 16px; }
+.ev-ack-done svg,
+.ev-ack i:where([data-lucide]),
+.ev-ack-done i:where([data-lucide]) { width: 16px; height: 16px; }
 .ev-ack-done { color: var(--muted); opacity: 0.6; }
 /* Expanded rows unclamp the message and show its extra lines in place. */
 .ev-main[aria-expanded="true"] { align-items: start; }
@@ -670,7 +674,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     flex-wrap: wrap;
     min-width: 0;
 }
-.btn.bnetz-upload-btn svg {
+.btn.bnetz-upload-btn svg, .btn.bnetz-upload-btn i:where([data-lucide]) {
     width: 14px;
     height: 14px;
     vertical-align: -2px;
@@ -687,7 +691,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     align-items: center;
     gap: 8px;
 }
-#bnetz-watcher-status svg {
+#bnetz-watcher-status svg, #bnetz-watcher-status i:where([data-lucide]) {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
@@ -776,7 +780,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     cursor: pointer;
     transition: all 0.2s var(--ease-out-expo);
 }
-.chart-export-btn svg {
+.chart-export-btn svg, .chart-export-btn i:where([data-lucide]) {
     width: 14px;
     height: 14px;
     flex: none;
@@ -1054,7 +1058,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
     align-items: center;
     gap: 4px;
 }
-.gaming-no-speedtest-hint i, .gaming-no-speedtest-hint svg {
+.gaming-no-speedtest-hint i, .gaming-no-speedtest-hint svg, .gaming-no-speedtest-hint i:where([data-lucide]) {
     width: 14px; height: 14px; flex-shrink: 0;
 }
 .gaming-section-title {
@@ -1082,7 +1086,7 @@ div.ev-main:not([data-toggle]) { cursor: default; }
 .gaming-comp-row:hover { background: var(--tint-hover, rgba(255,255,255,0.04)); }
 .gaming-comp-row:focus-visible { outline: 2px solid var(--amethyst); outline-offset: -2px; }
 .gaming-comp-icon { display: flex; color: var(--muted); flex-shrink: 0; }
-.gaming-comp-icon i, .gaming-comp-icon svg { width: 16px; height: 16px; }
+.gaming-comp-icon i, .gaming-comp-icon svg, .gaming-comp-icon i:where([data-lucide]) { width: 16px; height: 16px; }
 .gaming-comp-name { font-weight: 600; font-size: max(var(--fs-min), 0.88em); flex-shrink: 0; }
 .gaming-comp-value {
     font-size: max(var(--fs-min), 0.85em);
