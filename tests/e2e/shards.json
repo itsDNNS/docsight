@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 815,
+  "expected_total": 817,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -21,7 +21,7 @@
     },
     {
       "id": 2,
-      "collected_cases": 111,
+      "collected_cases": 112,
       "files": [
         "test_auth.py",
         "test_browser_errors.py",
@@ -53,7 +53,7 @@
     },
     {
       "id": 4,
-      "collected_cases": 114,
+      "collected_cases": 115,
       "files": [
         "test_case_cards.py",
         "test_case_status_track.py",

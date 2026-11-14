@@ -20,6 +20,15 @@
 
     var NESTED_CONTROLS = 'a[href], button, input, select, textarea, .glossary-hint';
 
+    /* A click on a modal's backdrop lands on the <dialog> itself, but so does
+       one that started inside the panel, e.g. a text selection released
+       outside. Only a press that also began on the backdrop dismisses. */
+    var pressTarget = null;
+    document.addEventListener('pointerdown', function(event) { pressTarget = event.target; }, true);
+    window.docsightBackdropClick = function(event, dialog) {
+        return event.target === dialog && pressTarget === dialog;
+    };
+
     function callNamed(el, attr) {
         var fn = window[el.getAttribute(attr)];
         if (typeof fn !== 'function') return;
@@ -38,7 +47,7 @@
         if (!(target instanceof Element)) return;
 
         var dialog = target.closest('dialog[data-dialog-close]');
-        if (dialog && target === dialog) {
+        if (dialog && window.docsightBackdropClick(event, dialog)) {
             callNamed(dialog, 'data-dialog-close');
             return;
         }

@@ -800,5 +800,12 @@ def test_report_modal_closes_on_escape_and_backdrop_but_not_from_inside(demo_pag
     modal.locator("#report-modal-title").click()
     expect(modal).to_be_visible()
     box = modal.locator(".modal").bounding_box()
+    # A text selection that starts in the panel and ends on the backdrop keeps it open.
+    title = modal.locator("#report-modal-title").bounding_box()
+    demo_page.mouse.move(title["x"] + 4, title["y"] + title["height"] / 2)
+    demo_page.mouse.down()
+    demo_page.mouse.move(box["x"] / 2, box["y"] + box["height"] / 2, steps=5)
+    demo_page.mouse.up()
+    expect(modal).to_be_visible()
     demo_page.mouse.click(box["x"] / 2, box["y"] + box["height"] / 2)
     expect(modal).not_to_be_visible()
