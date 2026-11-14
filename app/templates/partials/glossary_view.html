@@ -131,13 +131,12 @@
 </section>
 </div>
 
-<div id="glossary-mobile-picker" class="glossary-mobile-picker" data-glossary-picker hidden>
-    <div class="glossary-mobile-picker-backdrop" data-glossary-picker-close></div>
-    <section class="glossary-mobile-picker-sheet" role="dialog" aria-modal="true" aria-labelledby="glossary-mobile-picker-title" data-glossary-panel>
+<dialog id="glossary-mobile-picker" class="glossary-mobile-picker" data-glossary-picker aria-labelledby="glossary-mobile-picker-title">
+    <section class="glossary-mobile-picker-sheet" data-glossary-panel>
         <button type="button" class="modal-close glossary-mobile-picker-close" data-glossary-picker-close aria-label="{{ t.get('glossary_close_picker', 'Close term picker') }}"><i data-lucide="x" aria-hidden="true"></i></button>
         <div class="glossary-mobile-picker-handle" aria-hidden="true"></div>
         <h3 id="glossary-mobile-picker-title">{{ t.get('glossary_filter_title', 'Find a term') }}</h3>
         {{ glossary.search_field('glossary-mobile-search', 'glossary-mobile-result-count') }}
         {{ glossary.term_list('glossary-mobile-terms', 'glossary-mobile-result-count', 'glossary-mobile-no-results') }}
     </section>
-</div>
+</dialog>

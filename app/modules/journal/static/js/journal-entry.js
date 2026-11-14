@@ -40,6 +40,8 @@ function populateIncidentSelect(selectedId) {
     });
 }
 
+var _entryDescOnOpen = '';
+
 function openEntryModal(entryId, incidentId) {
     var modal = document.getElementById('entry-modal');
     var titleEl = document.getElementById('entry-modal-title');
@@ -68,6 +70,7 @@ function openEntryModal(entryId, incidentId) {
                 dateEl.value = entry.date;
                 titleInput.value = entry.title;
                 descEl.value = entry.description || '';
+                _entryDescOnOpen = descEl.value;
                 iconVal.value = entry.icon || '';
                 renderIconPicker(entry.icon || '');
                 updateModalIcon();
@@ -85,6 +88,7 @@ function openEntryModal(entryId, incidentId) {
         dateEl.value = todayStr();
         titleInput.value = '';
         descEl.value = '';
+        _entryDescOnOpen = '';
         iconVal.value = '';
         renderIconPicker('');
         updateModalIcon();
@@ -105,6 +109,24 @@ function openEntryModal(entryId, incidentId) {
 
 function closeEntryModal() {
     window.DOCSightModal.close('entry-modal');
+}
+
+/* Escape and a backdrop click ask first when a typed description would be lost. */
+function dismissEntryModal() {
+    var desc = document.getElementById('entry-desc');
+    if (!desc || !desc.value.trim() || desc.value === _entryDescOnOpen) {
+        closeEntryModal();
+        return;
+    }
+    window.DOCSightModal.confirm({
+        title: T.entry_discard_title || 'Discard the description?',
+        message: T.entry_discard_message || 'The description you typed has not been saved.',
+        confirmText: T.entry_discard_action || 'Discard',
+        cancelText: T.entry_keep_editing || 'Keep editing',
+        danger: true
+    }).then(function(discard) {
+        if (discard) closeEntryModal();
+    });
 }
 
 function renderAttachments(attachments, container, incidentId) {

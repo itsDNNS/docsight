@@ -58,6 +58,8 @@ body {
 .card-title-group { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .card-title-group > div { min-width: 0; }
 .card-title { margin: 0; font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+/* Headings receive focus from scripts (a new wizard step), not from Tab */
+.card-title[tabindex="-1"]:focus { outline: none; }
 .card-subtitle { margin: 2px 0 0; font-size: 0.8125rem; color: var(--muted); }
 .card-icon {
   display: flex;
@@ -316,6 +318,8 @@ body {
   overflow: visible;
 }
 .modal-overlay[open] { display: flex; }
+/* The page behind an open modal stays put; the gutter keeps it from shifting sideways */
+:root:has(:modal) { overflow: hidden; scrollbar-gutter: stable; }
 .modal-overlay::backdrop { background: var(--overlay); }
 .modal {
   display: flex;
@@ -362,7 +366,7 @@ body {
 .modal-close:hover { color: var(--text); background: var(--tint-hover); }
 .modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .modal-hint { margin: 12px 0 0; color: var(--muted); font-size: max(var(--fs-min), 0.85em); }
-.modal-body { flex: 1; min-height: 0; overflow-y: auto; padding-top: 16px; padding-bottom: 16px; }
+.modal-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-top: 16px; padding-bottom: 16px; }
 .modal-footer {
   display: flex;
   align-items: center;
@@ -564,6 +568,17 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 .form-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-muted); }
 .form-input:disabled,
 .form-select:disabled { opacity: 0.6; cursor: not-allowed; }
+/* Invalid once the user has edited the field or tried to save */
+.form-input:is(:user-invalid, [aria-invalid="true"]),
+.form-select:is(:user-invalid, [aria-invalid="true"]) { border-color: var(--crit); }
+.field-error { display: block; margin-top: 4px; font-size: 0.75rem; color: var(--crit); }
+.field-error:empty { display: none; }
+/* Below 16px, iOS zooms the page when a field gets focus */
+@media (max-width: 768px), (pointer: coarse) {
+  :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea) {
+    font-size: max(1rem, 1em);
+  }
+}
 /* The arrow is drawn from two gradients so it follows the theme's --muted color. */
 .form-select {
   appearance: none;

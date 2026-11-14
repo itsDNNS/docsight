@@ -15,6 +15,7 @@ function nextStep(step) {
     document.querySelectorAll('.stepper-step').forEach(el => {
         el.classList.remove('active');
         el.classList.remove('done');
+        el.removeAttribute('aria-current');
     });
 
     for(let i = 1; i < step; i++) {
@@ -22,7 +23,9 @@ function nextStep(step) {
     }
 
     document.querySelector(`.step-content[data-step="${step}"]`).classList.add('active');
-    document.querySelector(`.stepper-step[data-step="${step}"]`).classList.add('active');
+    var stepperStep = document.querySelector(`.stepper-step[data-step="${step}"]`);
+    stepperStep.classList.add('active');
+    stepperStep.setAttribute('aria-current', 'step');
 
     if(step === 3) {
         updateReview();
@@ -30,6 +33,8 @@ function nextStep(step) {
 
     currentStep = step;
     window.scrollTo({top: 0, behavior: 'smooth'});
+    // The button that was pressed is now hidden; continue reading at the new step's heading.
+    document.querySelector(`.step-content[data-step="${step}"] .card-title`).focus({preventScroll: true});
 }
 
 function prevStep(step) {
@@ -411,6 +416,8 @@ function _setActiveModemOption(option) {
 }
 
 function _onModemSearchKey(event) {
+    // While an input method composes text, Enter and the arrows belong to it.
+    if (event.isComposing) return;
     var visible = _modemOptions(true);
     var active = document.querySelector('#modem-options .is-active');
     var index = visible.indexOf(active);

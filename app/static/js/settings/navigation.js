@@ -166,6 +166,17 @@ function _syncCardCollapseAria(card) {
     }
 }
 
+/* Opens the section and card that hold a field, so the browser can point at it. */
+function revealField(field) {
+    var panel = field.closest('.settings-panel');
+    if (panel && panel.id.indexOf('panel-') === 0 && !panel.classList.contains('active')) switchSection(panel.id.slice(6));
+    var card = field.closest('.collapsible-card.collapsed');
+    if (card) {
+        card.classList.remove('collapsed');
+        _syncCardCollapseAria(card);
+    }
+}
+
 function toggleCardCollapse(headerEl) {
     var card = headerEl.closest('.collapsible-card');
     if (card) {
@@ -189,5 +200,5 @@ function init() {
 function showsSaveFooter() {
     return _currentSection !== 'about';
 }
-return {init, showsSaveFooter, switchSection, toggleCardCollapse, syncCard: _syncCardCollapseAria};
+return {init, showsSaveFooter, switchSection, toggleCardCollapse, revealField, syncCard: _syncCardCollapseAria};
 };

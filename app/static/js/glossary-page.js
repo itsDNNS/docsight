@@ -217,13 +217,13 @@
   }
 
   function getPickerFocusableElements() {
-    if (!picker || picker.hidden) return [];
-    var dialog = picker.querySelector('[role="dialog"]') || picker;
-    return Array.prototype.slice.call(dialog.querySelectorAll(focusableSelector)).filter(isVisible);
+    if (!picker || !picker.open) return [];
+    return Array.prototype.slice.call(picker.querySelectorAll(focusableSelector)).filter(isVisible);
   }
 
+  // The modal dialog makes the page inert; Tab still wraps inside the sheet like the other modals.
   function trapPickerFocus(event) {
-    if (event.key !== 'Tab' || !picker || picker.hidden) return;
+    if (event.key !== 'Tab' || !picker || !picker.open) return;
 
     var focusableElements = getPickerFocusableElements();
     if (!focusableElements.length) {
@@ -399,7 +399,8 @@
       filterPanel(panel);
     });
     input.addEventListener('keydown', function (event) {
-      if (event.key !== 'Enter') return;
+      // While an input method composes text, Enter and the arrows belong to it.
+      if (event.key !== 'Enter' || event.isComposing) return;
       var firstVisible = Array.prototype.slice.call(panel.querySelectorAll('[data-glossary-term]')).find(function (term) {
         return !term.hidden;
       });
@@ -416,21 +417,29 @@
   });
 
   function openPicker() {
-    if (!picker) return;
+    if (!picker || picker.open) return;
     lastFocused = document.activeElement;
-    picker.hidden = false;
+    picker.showModal();
     if (openButton) openButton.setAttribute('aria-expanded', 'true');
     var search = picker.querySelector('[data-glossary-search]');
     if (search) search.focus({ preventScroll: true });
   }
 
   function closePicker() {
-    if (!picker || picker.hidden) return;
-    picker.hidden = true;
-    if (openButton) openButton.setAttribute('aria-expanded', 'false');
-    if (lastFocused && typeof lastFocused.focus === 'function') {
-      lastFocused.focus({ preventScroll: true });
-    }
+    if (picker && picker.open) picker.close();
+  }
+
+  // Also runs when Escape closes the dialog natively.
+  if (picker) {
+    picker.addEventListener('close', function () {
+      if (openButton) openButton.setAttribute('aria-expanded', 'false');
+      if (lastFocused && typeof lastFocused.focus === 'function') {
+        lastFocused.focus({ preventScroll: true });
+      }
+    });
+    picker.addEventListener('click', function (event) {
+      if (window.docsightBackdropClick ? window.docsightBackdropClick(event, picker) : event.target === picker) closePicker();
+    });
   }
 
   if (openButton) {
@@ -469,10 +478,6 @@
   if (parsed) setActiveTerm(parsed.term);
 
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && picker && !picker.hidden) {
-      closePicker();
-      return;
-    }
     if (event.key === 'Escape' && helpPanel && !helpPanel.hidden) {
       closeGlossaryPanel();
       return;

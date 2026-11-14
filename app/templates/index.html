@@ -1653,7 +1653,7 @@
 
 <!-- Smokeping Setup Modal -->
 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
-<dialog class="modal-overlay" id="smokeping-setup-modal" role="dialog" aria-modal="true" aria-labelledby="smokeping-setup-modal-title">
+<dialog class="modal-overlay" id="smokeping-setup-modal" aria-labelledby="smokeping-setup-modal-title">
     <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
             <h2 id="smokeping-setup-modal-title">📡 {{ t.get('smokeping_setup_guided_title', 'SmokePing setup') }}</h2>
@@ -1673,7 +1673,7 @@
 {% endif %}
 
 <!-- Report Modal -->
-<dialog class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" data-dialog-close="closeReportModal">
+<dialog class="modal-overlay" id="report-modal" aria-labelledby="report-modal-title" data-dialog-close="closeReportModal">
     <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="report-modal-title">{{ t.get('report_builder_title', 'ISP-ready evidence package') }}</h2>
@@ -1741,9 +1741,12 @@
                 <div class="report-customer">
                     <p class="report-customer-hint">{{ t.report_customer_hint }}</p>
                     <div class="report-customer-fields">
-                        <input id="report-name" type="text" value="{{ report_customer_name }}" placeholder="{{ t.report_name }}" class="form-input">
-                        <input id="report-number" type="text" value="{{ report_customer_number }}" placeholder="{{ t.report_customer_number }}" class="form-input">
-                        <textarea id="report-address" rows="3" placeholder="{{ t.report_address }}" class="form-input">{{ report_customer_address }}</textarea>
+                        <label class="form-field"><span class="form-label">{{ t.report_name }}</span>
+                            <input id="report-name" type="text" value="{{ report_customer_name }}" autocomplete="name" class="form-input"></label>
+                        <label class="form-field"><span class="form-label">{{ t.report_customer_number }}</span>
+                            <input id="report-number" type="text" value="{{ report_customer_number }}" class="form-input"></label>
+                        <label class="form-field"><span class="form-label">{{ t.report_address }}</span>
+                            <textarea id="report-address" rows="3" autocomplete="street-address" class="form-input">{{ report_customer_address }}</textarea></label>
                     </div>
                 </div>
                 <section class="report-supporting-evidence" aria-labelledby="report-supporting-evidence-title">
@@ -1785,7 +1788,7 @@
 </dialog>
 
 <!-- Chart Zoom Modal -->
-<dialog class="chart-zoom-overlay" id="chart-zoom-overlay" role="dialog" aria-modal="true" aria-labelledby="chart-zoom-title" data-dialog-close="closeChartZoom">
+<dialog class="chart-zoom-overlay" id="chart-zoom-overlay" aria-labelledby="chart-zoom-title" data-dialog-close="closeChartZoom">
     <div class="chart-zoom-modal">
         <div class="modal-header">
             <h2 id="chart-zoom-title"></h2>
@@ -1820,7 +1823,7 @@
     </div>
 </div>
 
-<dialog class="modal-overlay" id="add-to-case-modal" role="dialog" aria-modal="true" aria-labelledby="add-to-case-title">
+<dialog class="modal-overlay" id="add-to-case-modal" aria-labelledby="add-to-case-title">
     <div class="modal">
         <div class="modal-header">
             <h2 id="add-to-case-title">{{ t.get('event_add_to_case_title', 'Add to case') }}</h2>
@@ -1849,7 +1852,7 @@
     </div>
 </dialog>
 {% endif %}
-<dialog class="modal-overlay" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+<dialog class="modal-overlay" id="export-modal" aria-labelledby="export-modal-title">
     <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="export-modal-title">{{ t.export_title }}</h2>

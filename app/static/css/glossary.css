@@ -501,8 +501,7 @@
   line-height: 1.45;
 }
 
-.glossary-mobile-picker-trigger,
-.glossary-mobile-picker {
+.glossary-mobile-picker-trigger {
   display: none;
 }
 
@@ -568,16 +567,22 @@
     display: none;
   }
 
-  .glossary-mobile-picker {
+  .glossary-mobile-picker[open] {
     position: fixed;
     inset: 0;
-    z-index: 10000;
     display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
   }
 
-  .glossary-mobile-picker-backdrop {
-    position: absolute;
-    inset: 0;
+  .glossary-mobile-picker::backdrop {
     background: var(--overlay);
   }
 

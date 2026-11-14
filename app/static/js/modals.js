@@ -81,7 +81,8 @@
         var dialog = event.target;
         if (!dialog || dialog.tagName !== 'DIALOG' || !dialog.open) return;
         if (!window.docsightBackdropClick(event, dialog)) return;
-        if (dialog.getAttribute('data-modal-dismissible') === 'false') return;
+        // Dialogs with data-dialog-close decide themselves (actions.js calls their handler).
+        if (dialog.hasAttribute('data-dialog-close') || dialog.getAttribute('data-modal-dismissible') === 'false') return;
         if (dialog.id === 'docsight-confirm-modal' && confirmState) {
             resolveConfirm(false);
         } else {
@@ -95,8 +96,6 @@
         var dialog = document.createElement('dialog');
         dialog.id = 'docsight-confirm-modal';
         dialog.className = 'modal-overlay docsight-confirm-overlay';
-        dialog.setAttribute('role', 'dialog');
-        dialog.setAttribute('aria-modal', 'true');
         dialog.setAttribute('aria-labelledby', 'docsight-confirm-title');
         dialog.innerHTML = [
             '<div class="modal">',
@@ -131,7 +130,8 @@
         var typedInput = document.getElementById('docsight-confirm-typed-input');
         typedInput.addEventListener('input', updateConfirmOk);
         typedInput.addEventListener('keydown', function(event) {
-            if (event.key !== 'Enter' || !confirmState) return;
+            // While an input method composes text, Enter and the arrows belong to it.
+            if (event.key !== 'Enter' || event.isComposing || !confirmState) return;
             updateConfirmOk();
             if (document.getElementById('docsight-confirm-ok').disabled) return;
             event.preventDefault();

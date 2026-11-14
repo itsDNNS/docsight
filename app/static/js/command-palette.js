@@ -380,6 +380,8 @@
     });
 
     input.addEventListener('keydown', function(event) {
+        // While an input method composes text, Enter and the arrows belong to it.
+        if (event.isComposing) return;
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault();
             if (!options.length) return;

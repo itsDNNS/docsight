@@ -1,5 +1,5 @@
 <!-- ═══ Entry Modal ═══ -->
-<dialog class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+<dialog class="modal-overlay" id="entry-modal" aria-labelledby="entry-modal-title" data-dialog-close="dismissEntryModal">
     <div class="modal">
         <div class="modal-header">
             <div class="entry-modal-heading">
@@ -60,7 +60,7 @@
 </dialog>
 
 <!-- ═══ Incident Container Modal ═══ -->
-<dialog class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title">
+<dialog class="modal-overlay" id="incident-container-modal" aria-labelledby="incident-container-modal-title">
     <div class="modal incident-container-panel">
         <div class="modal-header">
             <h2 id="incident-container-modal-title"></h2>
@@ -125,7 +125,7 @@
 </dialog>
 
 <!-- ═══ Import Modal ═══ -->
-<dialog class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+<dialog class="modal-overlay" id="import-modal" aria-labelledby="import-modal-title">
     <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="import-modal-title">{{ t.import_incidents }}</h2>

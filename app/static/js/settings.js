@@ -2,7 +2,8 @@
 (function(S) {
     'use strict';
     var navigation;
-    var form = S.form({state: S.state, showsSaveFooter: function() { return navigation.showsSaveFooter(); }});
+    var form = S.form({state: S.state, showsSaveFooter: function() { return navigation.showsSaveFooter(); },
+        revealField: function(field) { navigation.revealField(field); }});
     var tokens = S.tokens({showToast: form.showToast});
     var connections = S.connections({getFormData: form.getFormData});
     var backups = S.backups({showToast: form.showToast});
