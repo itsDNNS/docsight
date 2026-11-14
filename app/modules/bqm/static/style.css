@@ -275,7 +275,7 @@
 }
 
 /* ── Toolbar icons, CSV import and image import dialog ── */
-.bqm-import-btn svg {
+.bqm-import-btn svg, .bqm-import-btn i:where([data-lucide]) {
     display: block;
 }
 .bqm-csv-import {

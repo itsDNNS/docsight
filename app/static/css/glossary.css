@@ -32,7 +32,8 @@
 }
 
 .glossary-hint > i,
-.glossary-hint > svg {
+.glossary-hint > svg,
+.glossary-hint > i:where([data-lucide]) {
   width: 13px;
   height: 13px;
   color: var(--muted);
@@ -166,7 +167,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   display: block;
 }
 
-.glossary-search-field svg {
+.glossary-search-field svg, .glossary-search-field i:where([data-lucide]) {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -540,7 +541,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
     cursor: pointer;
   }
 
-  .glossary-mobile-picker-trigger svg {
+  .glossary-mobile-picker-trigger svg, .glossary-mobile-picker-trigger i:where([data-lucide]) {
     width: 16px;
     height: 16px;
     flex: none;
@@ -698,7 +699,7 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   color: var(--text);
 }
 
-.glossary-panel-back svg {
+.glossary-panel-back svg, .glossary-panel-back i:where([data-lucide]) {
   width: 16px;
   height: 16px;
 }

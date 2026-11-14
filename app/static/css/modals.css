@@ -333,7 +333,7 @@
     height: 16px;
     cursor: pointer;
 }
-.export-mode-selector svg {
+.export-mode-selector svg, .export-mode-selector i:where([data-lucide]) {
     width: 16px;
     height: 16px;
     color: var(--amethyst-light);

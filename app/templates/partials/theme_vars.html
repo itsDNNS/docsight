@@ -1,3 +1,10 @@
+{#- Preload the active theme's UI font so text renders in it sooner. -#}
+{%- set ui_font = ((active_theme_data or {}).get('dark') or {}).get('--font-sans', "'Outfit'") %}
+{%- if ui_font.startswith("'Outfit'") %}
+    <link rel="preload" href="{{ url_for('static', filename='fonts/outfit-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+{%- elif ui_font.startswith("'DM Sans'") %}
+    <link rel="preload" href="{{ url_for('static', filename='fonts/dm-sans-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+{%- endif %}
 {#- The active theme's tokens. Include after tokens.css so they win over the defaults. -#}
 {% if active_theme_data %}
     <style id="theme-module-vars">

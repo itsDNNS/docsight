@@ -20,7 +20,9 @@
     {% include 'partials/theme_vars.html' %}
     {% include 'partials/browser_url_bootstrap.html' %}
     {% include 'partials/theme_bootstrap.html' %}
-    <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
+    <script defer src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
+    {# Before module settings scripts, which come earlier in document order #}
+    <script defer src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
 </head>
 <body>
 <a class="skip-link" id="skip-link" href="#main-content">{{ t.get('skip_to_content', 'Skip to content') }}</a>
@@ -184,29 +186,28 @@
     'moduleSecretFields': module_secret_fields,
     'savedModuleSecretFields': saved_module_secret_fields
 }|tojson }}</script>
-<script src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings-bootstrap.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/command-palette.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/form-state.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/form.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/navigation.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/tokens.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/connections.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/notifications.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/backups.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/themes.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/smart-capture.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/module-registry.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings/search.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/settings.js', v=version) }}"></script>
-<script src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings-bootstrap.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/topnav.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/command-palette.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/form-state.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/form.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/navigation.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/tokens.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/connections.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/notifications.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/backups.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/themes.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/smart-capture.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/module-registry.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings/search.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/settings.js', v=version) }}"></script>
+<script defer src="{{ url_for('static', filename='js/actions.js', v=version) }}"></script>
 {% for mod in modules if mod.has_js %}
-<script src="{{ module_static_url(mod.id, 'main.js', v=version) }}"></script>
+<script defer src="{{ module_static_url(mod.id, 'main.js', v=version) }}"></script>
 {% endfor %}
 
 </body>

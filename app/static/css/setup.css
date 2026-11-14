@@ -64,7 +64,7 @@
   position: relative;
   z-index: 2;
 }
-.stepper-circle svg { width: 20px; height: 20px; }
+.stepper-circle svg, .stepper-circle i:where([data-lucide]) { width: 20px; height: 20px; }
 .stepper-step.active .stepper-circle,
 .stepper-step.done .stepper-circle {
   background: var(--accent);
@@ -114,7 +114,7 @@
   justify-content: center;
   flex: 0 0 auto;
 }
-.first-run-card-heading .card-icon svg {
+.first-run-card-heading .card-icon svg, .first-run-card-heading .card-icon i:where([data-lucide]) {
   width: 22px;
   height: 22px;
 }
@@ -144,7 +144,7 @@
   line-height: 1.45;
   text-align: center;
 }
-.first-run-trust svg {
+.first-run-trust svg, .first-run-trust i:where([data-lucide]) {
   flex: 0 0 auto;
   margin-top: 1px;
 }
@@ -249,7 +249,7 @@
   accent-color: var(--amethyst);
 }
 .setup-choice-icon { display: inline-flex; color: var(--amethyst-light); }
-.setup-choice-icon svg { width: 20px; height: 20px; }
+.setup-choice-icon svg, .setup-choice-icon i:where([data-lucide]) { width: 20px; height: 20px; }
 .setup-choice-text { display: grid; gap: 2px; }
 .setup-choice-text strong { color: var(--text); font-size: 0.95rem; }
 .setup-choice-text span { color: var(--muted); font-size: 0.8rem; line-height: 1.4; }

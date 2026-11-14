@@ -3,6 +3,8 @@
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
+/* Icon placeholders take the SVG's default size until Lucide swaps them; rules that size an icon's svg size its placeholder too */
+:where(i[data-lucide]) { display: inline-block; width: 24px; height: 24px; }
 html { height: -webkit-fill-available; }
 body {
   font-family: var(--font-sans);
@@ -69,7 +71,8 @@ body {
   color: var(--text-secondary);
 }
 .card-icon svg,
-.card-icon i { width: 18px; height: 18px; }
+.card-icon i,
+.card-icon i:where([data-lucide]) { width: 18px; height: 18px; }
 @media (max-width: 768px) {
   .card { padding: var(--space-md); }
 }
@@ -100,7 +103,7 @@ body {
   transition: background-color 0.2s var(--ease-out-expo), border-color 0.2s var(--ease-out-expo),
     color 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo), transform 0.2s var(--ease-out-expo);
 }
-.btn svg { width: 16px; height: 16px; flex: none; }
+.btn svg, .btn i:where([data-lucide]) { width: 16px; height: 16px; flex: none; }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn:active:not(:disabled) { transform: scale(0.98); }
 .btn:disabled,
@@ -110,8 +113,8 @@ body {
   box-shadow: none;
 }
 .btn-sm { min-height: 32px; padding: 0 12px; font-size: 0.8125rem; }
-.btn-sm svg { width: 14px; height: 14px; }
-.btn-sm svg { width: 14px; height: 14px; }
+.btn-sm svg, .btn-sm i:where([data-lucide]) { width: 14px; height: 14px; }
+.btn-sm svg, .btn-sm i:where([data-lucide]) { width: 14px; height: 14px; }
 @media (pointer: coarse), (max-width: 640px) {
   .btn,
   .btn-sm,
@@ -493,7 +496,7 @@ body {
   background: var(--amethyst-muted);
   color: var(--accent);
 }
-.view-empty-icon svg { width: 22px; height: 22px; }
+.view-empty-icon svg, .view-empty-icon i:where([data-lucide]) { width: 22px; height: 22px; }
 .view-empty-title {
   margin: var(--space-xs) 0 0;
   color: var(--text);
@@ -783,7 +786,7 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
 }
 .notice-warning .notice-icon { background: var(--warn-muted); color: var(--warn); }
 .notice-critical .notice-icon { background: var(--crit-muted); color: var(--crit); }
-.notice-icon svg { width: 18px; height: 18px; }
+.notice-icon svg, .notice-icon i:where([data-lucide]) { width: 18px; height: 18px; }
 .notice-content {
   display: grid;
   gap: 6px;
@@ -830,7 +833,7 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   color: var(--text);
   background: rgba(255,255,255,0.08);
 }
-.notice-dismiss svg { width: 16px; height: 16px; }
+.notice-dismiss svg, .notice-dismiss i:where([data-lucide]) { width: 16px; height: 16px; }
 
 /* ── Scrollbar ── */
 :root {
@@ -877,7 +880,7 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   min-width: 0;
   flex: 1;
 }
-.demo-banner-copy > svg {
+.demo-banner-copy > svg, .demo-banner-copy > i:where([data-lucide]) {
   width: 16px;
   height: 16px;
   color: var(--muted);
@@ -1026,7 +1029,7 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   color: var(--text-secondary);
   font-size: 0.88rem;
 }
-.notice-line > svg { flex: none; width: 16px; height: 16px; color: var(--info); }
+.notice-line > svg, .notice-line > i:where([data-lucide]) { flex: none; width: 16px; height: 16px; color: var(--info); }
 .notice-line.notice-warning { background: var(--warn-muted); }
 .notice-line.notice-warning > svg { color: var(--warn); }
 .notice-line.notice-critical { background: var(--crit-muted); }
@@ -1135,7 +1138,7 @@ textarea.form-input { min-height: 88px; padding: 10px 12px; line-height: 1.45; r
   color: var(--text);
   cursor: pointer;
 }
-.snapshot-panel-icon svg { width: 18px; height: 18px; }
+.snapshot-panel-icon svg, .snapshot-panel-icon i:where([data-lucide]) { width: 18px; height: 18px; }
 .snapshot-panel-icon:disabled { opacity: 0.4; cursor: default; }
 .snapshot-panel-icon:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 .snapshot-panel-body { flex: 1; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: var(--space-md); }

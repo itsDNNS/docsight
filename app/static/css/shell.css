@@ -29,7 +29,7 @@
   position: relative;
   white-space: nowrap;
 }
-.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.75; }
+.nav-item svg, .nav-item i:where([data-lucide]) { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.75; }
 .nav-item:hover { background: var(--tint-hover); color: var(--text); }
 .nav-item:active { background: var(--tint-active); }
 .nav-item:focus { outline: none; }
@@ -88,7 +88,7 @@
   white-space: nowrap;
 }
 .topnav-dest.nav-item { width: auto; overflow: visible; }
-.topnav-dest svg { width: 18px; height: 18px; flex-shrink: 0; }
+.topnav-dest svg, .topnav-dest i:where([data-lucide]) { width: 18px; height: 18px; flex-shrink: 0; }
 .topnav-dest:hover { background: var(--tint-hover); color: var(--text); }
 .topnav-dest:focus-visible, .topnav-icon-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .topnav-dest.active, .topnav-dest[aria-expanded="true"] {
@@ -115,7 +115,7 @@
 }
 .topnav-icon-button:hover, .topnav-icon-button[aria-expanded="true"] { background: var(--tint-hover); color: var(--text); }
 .topnav-icon-button.active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
-.topnav-icon-button svg { width: 20px; height: 20px; }
+.topnav-icon-button svg, .topnav-icon-button i:where([data-lucide]) { width: 20px; height: 20px; }
 /* Where room is short, the mark stands in for the name (still read out). */
 @media (max-width: 479px), (min-width: 1024px) and (max-width: 1279px) {
   .topnav-brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -188,7 +188,7 @@
   font: inherit;
   cursor: pointer;
 }
-.topnav-search svg { width: 20px; height: 20px; flex-shrink: 0; }
+.topnav-search svg, .topnav-search i:where([data-lucide]) { width: 20px; height: 20px; flex-shrink: 0; }
 .topnav-search:hover { background: var(--tint-hover); color: var(--text); }
 .topnav-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .topnav-search-label, .topnav-search-key { display: none; }
@@ -200,7 +200,7 @@
     border: 1px solid var(--input-border);
     font-size: 0.88rem;
   }
-  .topnav-search svg { width: 16px; height: 16px; }
+  .topnav-search svg, .topnav-search i:where([data-lucide]) { width: 16px; height: 16px; }
   .topnav-search-label { display: inline; min-width: 64px; text-align: left; }
   .topnav-search-key { display: inline-flex; }
 }
@@ -245,7 +245,7 @@
   border-bottom: 1px solid var(--glass-border);
   color: var(--muted);
 }
-.command-palette-search svg { width: 18px; height: 18px; flex-shrink: 0; }
+.command-palette-search svg, .command-palette-search i:where([data-lucide]) { width: 18px; height: 18px; flex-shrink: 0; }
 .command-palette-input {
   flex: 1;
   min-width: 0;
@@ -277,7 +277,7 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
-.command-palette-option svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-secondary); }
+.command-palette-option svg, .command-palette-option i:where([data-lucide]) { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-secondary); }
 .command-palette-option[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .command-palette-option mark { background: none; color: inherit; font-weight: 700; }
 .command-palette-option-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -362,7 +362,7 @@ body.nav-sheet-open { overflow: hidden; }
     font-size: var(--fs-min);
   }
   .topnav-dest.nav-item { width: 100%; }
-  .topnav-dest svg { width: 22px; height: 22px; }
+  .topnav-dest svg, .topnav-dest i:where([data-lucide]) { width: 22px; height: 22px; }
   .topnav-dest.active, .topnav-dest[aria-expanded="true"] { background: none; color: var(--accent); }
   .topnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   .topnav-caret { display: none; }
@@ -432,7 +432,7 @@ body.nav-sheet-open { overflow: hidden; }
   align-items: center;
   gap: 6px;
 }
-.dark-toggle-label svg { width: 14px; height: 14px; }
+.dark-toggle-label svg, .dark-toggle-label i:where([data-lucide]) { width: 14px; height: 14px; }
 
 
 /* ── Main Content (mobile-first) ── */

@@ -81,3 +81,22 @@
 }
 
 /* Inter fonts removed — unused, Outfit is the primary font */
+
+/* Arial scaled to each UI font's metrics, so text keeps its size while the web font loads */
+@font-face {
+  font-family: 'Outfit Fallback';
+  src: local('Arial'), local('Liberation Sans');
+  size-adjust: 99.62%;
+  ascent-override: 100.39%;
+  descent-override: 26.1%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'DM Sans Fallback';
+  src: local('Arial'), local('Liberation Sans');
+  size-adjust: 105.6%;
+  ascent-override: 93.94%;
+  descent-override: 29.36%;
+  line-gap-override: 0%;
+}

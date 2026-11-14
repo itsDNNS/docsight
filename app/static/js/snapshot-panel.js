@@ -264,6 +264,7 @@
     }
 
     window.DOCSightSnapshotPanel = {open: open, close: close, newErrors: newErrors, weakestChannels: weakestChannels};
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    // Deferred scripts run before DOMContentLoaded; wait for it so later scripts are loaded too.
+    if (document.readyState !== 'complete') document.addEventListener('DOMContentLoaded', init);
     else init();
 })();
