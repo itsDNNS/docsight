@@ -4,6 +4,7 @@ import functools
 import logging
 import os
 import secrets
+import time
 from collections.abc import Mapping
 
 from cryptography.hazmat.primitives import hashes, hmac
@@ -26,10 +27,8 @@ _AUTH_STATE_CONTEXT = b"docsight-admin-auth-state-v1\0"
 _SESSION_LIFETIME_DEFAULT_DAYS = 30
 _SESSION_LIFETIME_MIN_DAYS = 1
 _SESSION_LIFETIME_MAX_DAYS = 365
-_SETUP_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-_SETUP_CODE_GROUPS = 3
-_SETUP_CODE_GROUP_LENGTH = 4
 _SETUP_PASSWORD_MIN_LENGTH = 8
+_SETUP_WINDOW_SECONDS = 900  # 15 min after start
 
 
 def _get_client_ip():
@@ -219,40 +218,25 @@ def password_setup_pending():
     return not _get_admin_password() and not _open_without_password()
 
 
-def password_setup_code():
-    """Return this process's setup code, creating and logging it on first use."""
-    runtime = current_runtime()
-    if not runtime.password_setup_code:
-        raw = "".join(
-            secrets.choice(_SETUP_CODE_ALPHABET)
-            for _ in range(_SETUP_CODE_GROUPS * _SETUP_CODE_GROUP_LENGTH)
-        )
-        runtime.password_setup_code = "-".join(
-            raw[i:i + _SETUP_CODE_GROUP_LENGTH]
-            for i in range(0, len(raw), _SETUP_CODE_GROUP_LENGTH)
-        )
-        log.warning(
-            "DOCSight has no admin password yet. Open DOCSight in your browser "
-            "and enter this setup code to set one: %s",
-            runtime.password_setup_code,
-        )
-    return runtime.password_setup_code
+def password_setup_open():
+    """The first admin password can only be set shortly after DOCSight starts."""
+    return time.monotonic() < current_runtime().password_setup_deadline
 
 
 def announce_password_setup(app):
-    """Log the setup code at startup, so the operator finds it in the log."""
+    """Open the password setup window and tell the operator about it in the log."""
     with app.app_context():
+        current_runtime().password_setup_deadline = time.monotonic() + _SETUP_WINDOW_SECONDS
         if password_setup_pending():
-            password_setup_code()
+            log.warning(
+                "DOCSight has no admin password yet. Open DOCSight in your browser within "
+                "15 minutes to set one. After that, restart DOCSight to set it."
+            )
         elif not _get_admin_password() and current_app.config.get("DOCSIGHT_AUTH_DISABLED"):
             log.warning(
                 "AUTH_DISABLED is set: DOCSight runs without an admin password, so everyone "
                 "who can reach it can see and change everything, including stored passwords."
             )
-
-
-def _normalized_setup_code(value):
-    return "".join(ch for ch in str(value or "").upper() if ch.isalnum())
 
 
 def _auth_required(*, session_only=False):
@@ -344,34 +328,27 @@ def _set_first_admin_password():
     """Validate a setup submission and sign in with the new admin password."""
     _config_manager = current_runtime().config_manager
     ip = _get_client_ip()
-    limiter = current_runtime().login_rate_limiter
     if not _valid_login_csrf_token(request.form.get("csrf_token", "")):
-        limiter.record_failure(ip)
         audit_log.warning("Password setup rejected: invalid csrf token for ip=%s", ip)
         return "password_setup_failed", 400
-    wait = limiter.retry_after(ip)
-    if wait > 0:
-        audit_log.warning("Password setup rate-limited: ip=%s (retry in %ds)", ip, int(wait))
-        return "login_rate_limited", 200
-    expected = _normalized_setup_code(password_setup_code())
-    candidate = _normalized_setup_code(request.form.get("setup_code", ""))
-    if not candidate or not secrets.compare_digest(candidate.encode(), expected.encode()):
-        limiter.record_failure(ip)
-        audit_log.warning("Password setup failed: wrong setup code from ip=%s", ip)
-        return "password_setup_code_invalid", 200
+    if not password_setup_open():
+        audit_log.warning("Password setup rejected: setup window closed for ip=%s", ip)
+        return "password_setup_expired", 403
     password = request.form.get("password", "")
     if len(password) < _SETUP_PASSWORD_MIN_LENGTH:
         return "password_setup_too_short", 200
     if not _secret_values_match(password, request.form.get("password_confirm", "")):
         return "password_setup_mismatch", 200
-    # Hashed here: save() would keep a password that starts like a hash ("scrypt:...") as it is.
-    _config_manager.save({"admin_password": generate_password_hash(password)})
+    with current_runtime().password_setup_lock:
+        # Two visitors may submit at once; only the first may set the password.
+        if _get_admin_password():
+            return "password_setup_failed", 409
+        # Hashed here: save() would keep a password that starts like a hash ("scrypt:...") as it is.
+        _config_manager.save({"admin_password": generate_password_hash(password)})
     stored = _config_manager.get("admin_password", "")
     _invalidate_admin_sessions()
-    current_runtime().password_setup_code = ""
-    limiter.reset(ip)
     session.permanent = True
     session["authenticated"] = True
     session[_AUTH_MARKER_SESSION_KEY] = _admin_session_marker(stored)
-    audit_log.info("Admin password set through the setup code: ip=%s", ip)
+    audit_log.info("First admin password set: ip=%s", ip)
     return None, 302

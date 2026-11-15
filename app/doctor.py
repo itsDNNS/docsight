@@ -490,7 +490,7 @@ def _check_admin_password(raw_config: Mapping[str, Any], environ: Mapping[str, s
         return result("pass", "the desktop app only listens on this computer")
     if auth_disabled_requested(environ):
         return result("warn", "AUTH_DISABLED is set: everyone who reaches DOCSight can see and change everything")
-    return result("warn", "no admin password yet: open DOCSight and enter the setup code from the log")
+    return result("warn", "no admin password yet: open DOCSight within 15 minutes after it starts and set one")
 
 
 def _check_module_inline_code(raw_config: Mapping[str, Any], environ: Mapping[str, str]) -> CheckResult:

@@ -1,4 +1,4 @@
-"""Without an admin password, DOCSight stays locked until the setup code from the log proves access."""
+"""Without an admin password, DOCSight stays locked until someone sets one shortly after start."""
 
 import logging
 import re
@@ -16,17 +16,12 @@ def _csrf(client):
     return match.group(1).decode()
 
 
-def _code(app):
-    return get_runtime(app).password_setup_code
-
-
 NEW_ADMIN_CREDENTIAL = "correct horse"
 
 
-def _submit(client, code, password=NEW_ADMIN_CREDENTIAL, confirm=None, csrf=None):
+def _submit(client, password=NEW_ADMIN_CREDENTIAL, confirm=None, csrf=None):
     return client.post("/password-setup", data={
         "csrf_token": _csrf(client) if csrf is None else csrf,
-        "setup_code": code,
         "password": password,
         "password_confirm": password if confirm is None else confirm,
     })
@@ -53,35 +48,26 @@ def test_without_a_password_every_page_and_api_waits_for_the_password(locked_app
     assert get_runtime(locked_app).config_manager.get("admin_password") == ""
 
 
-def test_the_setup_code_is_logged_at_startup(make_app, caplog):
+def test_the_setup_window_is_logged_at_startup(make_app, caplog):
     with caplog.at_level(logging.WARNING, logger="docsis.web"):
-        app = make_app(environ={})
+        make_app(environ={})
 
-    code = _code(app)
-    assert re.fullmatch(r"[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}", code)
-    assert any(code in record.getMessage() for record in caplog.records)
+    assert any("within 15 minutes" in record.getMessage() for record in caplog.records)
 
 
-def test_a_wrong_code_neither_sets_a_password_nor_unlocks(locked_app):
+def test_after_the_window_the_page_asks_for_a_restart(locked_app):
     client = locked_app.test_client()
+    csrf = _csrf(client)
+    get_runtime(locked_app).password_setup_deadline = 0.0
 
-    response = _submit(client, "AAAA-BBBB-CCCC")
+    page = client.get("/password-setup")
+    response = _submit(client, csrf=csrf)
 
-    assert response.status_code == 200
-    assert b"setup code does not match" in response.data
+    assert b"Restart DOCSight" in page.data
+    assert b'name="password"' not in page.data
+    assert response.status_code == 403
     assert get_runtime(locked_app).config_manager.get("admin_password") == ""
     assert client.get("/").headers["Location"].endswith("/password-setup")
-
-
-def test_wrong_codes_are_rate_limited(locked_app):
-    client = locked_app.test_client()
-    for _ in range(5):
-        _submit(client, "AAAA-BBBB-CCCC")
-
-    response = _submit(client, _code(locked_app))
-
-    assert b"Too many attempts" in response.data
-    assert get_runtime(locked_app).config_manager.get("admin_password") == ""
 
 
 @pytest.mark.parametrize(("password", "confirm", "message"), [
@@ -91,7 +77,7 @@ def test_wrong_codes_are_rate_limited(locked_app):
 def test_the_new_password_must_be_long_enough_and_confirmed(locked_app, password, confirm, message):
     client = locked_app.test_client()
 
-    response = _submit(client, _code(locked_app), password=password, confirm=confirm)
+    response = _submit(client, password=password, confirm=confirm)
 
     assert message in response.data
     assert get_runtime(locked_app).config_manager.get("admin_password") == ""
@@ -101,22 +87,20 @@ def test_a_missing_csrf_token_is_rejected(locked_app):
     client = locked_app.test_client()
     client.get("/password-setup")
 
-    response = _submit(client, _code(locked_app), csrf="")
+    response = _submit(client, csrf="")
 
     assert response.status_code == 400
     assert get_runtime(locked_app).config_manager.get("admin_password") == ""
 
 
-def test_the_right_code_sets_a_hashed_password_and_signs_in(locked_app):
+def test_the_first_password_is_hashed_and_signs_in(locked_app):
     client = locked_app.test_client()
-    code = _code(locked_app).lower().replace("-", " ")
 
-    response = _submit(client, code)
+    response = _submit(client)
 
     assert response.status_code == 302
     stored = get_runtime(locked_app).config_manager.get("admin_password")
     assert stored.startswith(("scrypt:", "pbkdf2:"))
-    assert _code(locked_app) == ""
     # Signed in: the unconfigured instance continues with the first-run setup.
     assert client.get("/").headers["Location"].endswith("/setup")
     assert client.get("/setup").status_code == 200
@@ -132,14 +116,12 @@ def test_an_explicit_opt_out_and_the_desktop_app_stay_open(make_app, environ):
 
     assert client.get("/").headers["Location"].endswith("/setup")
     assert client.get("/password-setup").headers["Location"].endswith("/")
-    assert _code(app) == ""
 
 
 def test_demo_mode_stays_open(make_app, make_config):
     app = make_app(config_manager=make_config({"demo_mode": True}), environ={})
 
     assert app.test_client().get("/").status_code == 200
-    assert _code(app) == ""
 
 
 def test_only_a_deliberate_opt_out_shows_the_open_instance_warning(make_app):
@@ -174,7 +156,7 @@ def _login(client, credential):
 
 def test_a_password_that_looks_like_a_hash_still_signs_in(locked_app):
     credential = "scrypt:not-a-hash"
-    _submit(locked_app.test_client(), _code(locked_app), password=credential)
+    _submit(locked_app.test_client(), password=credential)
 
     response = _login(locked_app.test_client(), credential)
 
@@ -184,7 +166,7 @@ def test_a_password_that_looks_like_a_hash_still_signs_in(locked_app):
 
 def test_settings_hash_a_password_that_looks_like_a_hash(locked_app):
     client = locked_app.test_client()
-    _submit(client, _code(locked_app))
+    _submit(client)
     credential = "pbkdf2:also-not-a-hash"
 
     assert client.post("/api/config", json={"admin_password": credential}).get_json()["success"] is True
@@ -192,17 +174,29 @@ def test_settings_hash_a_password_that_looks_like_a_hash(locked_app):
     assert _login(locked_app.test_client(), credential).headers["Location"].endswith("/")
 
 
-def test_removing_the_password_later_locks_again_with_a_fresh_code(locked_app, caplog):
-    client = locked_app.test_client()
-    _submit(client, _code(locked_app))
+def test_removing_the_password_later_locks_again(locked_app):
+    _submit(locked_app.test_client())
     get_runtime(locked_app).config_manager.save({"admin_password": ""})
+    client = locked_app.test_client()
 
-    with caplog.at_level(logging.WARNING, logger="docsis.web"):
-        page = locked_app.test_client().get("/password-setup")
+    assert client.get("/").headers["Location"].endswith("/password-setup")
+    assert b'name="password"' in client.get("/password-setup").data
 
-    assert page.status_code == 200
-    code = _code(locked_app)
-    assert code and any(code in record.getMessage() for record in caplog.records)
+
+def test_a_second_submission_in_a_race_cannot_replace_the_first_password(locked_app, monkeypatch):
+    slow_client = locked_app.test_client()
+    csrf = _csrf(slow_client)
+    # The slow request passed its checks before the first password was saved.
+    monkeypatch.setattr("app.web.password_setup_pending", lambda: True)
+    monkeypatch.setattr("app.web._sync_auth_state", lambda: None)
+    monkeypatch.setattr("app.web_auth._valid_login_csrf_token", lambda token: True)
+    _submit(locked_app.test_client())
+    first = get_runtime(locked_app).config_manager.get("admin_password")
+
+    response = _submit(slow_client, password=NEW_ADMIN_CREDENTIAL + "!", csrf=csrf)
+
+    assert response.status_code == 409
+    assert get_runtime(locked_app).config_manager.get("admin_password") == first
 
 
 def test_a_deliberate_opt_out_is_logged_at_startup(make_app, caplog):

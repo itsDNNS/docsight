@@ -233,10 +233,10 @@ def first_run_server(tmp_path):
 
 @pytest.fixture()
 def password_setup_server(tmp_path):
-    """A fresh install without an admin password, and the log that carries its setup code."""
+    """A fresh install without an admin password."""
     target, spec = _new_target("password-setup", tmp_path / "password-setup", PASSWORD_SETUP_PROFILE)
     with running_processes([spec]):
-        yield target.base_url, spec.log_path
+        yield target.base_url
 
 
 @pytest.fixture(scope="session")
