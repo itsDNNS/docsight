@@ -41,7 +41,7 @@ from .web_locale import get_lang, get_setup_lang
 from .version import get_app_version
 from .web_auth import (
     require_auth, _get_admin_password, _authenticate_login, _get_login_csrf_token, _sync_auth_state,
-    _set_first_admin_password, password_setup_pending,
+    _set_first_admin_password, password_setup_code, password_setup_pending,
 )
 
 _IANA_REGIONS = {"Africa", "America", "Antarctica", "Arctic", "Asia",
@@ -291,6 +291,8 @@ def password_setup():
     _sync_auth_state()
     if not password_setup_pending():
         return redirect(url_for("index"))
+    # A password removed later locks DOCSight again; the page must point at a code that exists.
+    password_setup_code()
     lang = get_lang()
     t = get_translations(lang)
     theme = _config_manager.get_theme() if _config_manager else "dark"

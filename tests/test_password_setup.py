@@ -164,3 +164,42 @@ def test_doctor_reports_the_admin_password_state(raw_config, environ, status):
 
     assert result.id == "auth.admin_password"
     assert result.status == status
+
+
+def _login(client, credential):
+    page = client.get("/login")
+    csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+    return client.post("/login", data={"password": credential, "csrf_token": csrf})
+
+
+def test_a_password_that_looks_like_a_hash_still_signs_in(locked_app):
+    credential = "scrypt:not-a-hash"
+    _submit(locked_app.test_client(), _code(locked_app), password=credential)
+
+    response = _login(locked_app.test_client(), credential)
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+
+
+def test_settings_hash_a_password_that_looks_like_a_hash(locked_app):
+    client = locked_app.test_client()
+    _submit(client, _code(locked_app))
+    credential = "pbkdf2:also-not-a-hash"
+
+    assert client.post("/api/config", json={"admin_password": credential}).get_json()["success"] is True
+
+    assert _login(locked_app.test_client(), credential).headers["Location"].endswith("/")
+
+
+def test_removing_the_password_later_locks_again_with_a_fresh_code(locked_app, caplog):
+    client = locked_app.test_client()
+    _submit(client, _code(locked_app))
+    get_runtime(locked_app).config_manager.save({"admin_password": ""})
+
+    with caplog.at_level(logging.WARNING, logger="docsis.web"):
+        page = locked_app.test_client().get("/password-setup")
+
+    assert page.status_code == 200
+    code = _code(locked_app)
+    assert code and any(code in record.getMessage() for record in caplog.records)

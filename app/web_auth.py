@@ -8,7 +8,7 @@ from collections.abc import Mapping
 
 from cryptography.hazmat.primitives import hashes, hmac
 from flask import current_app, jsonify, redirect, request, session, url_for
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from .runtime import current_runtime
 
@@ -359,7 +359,8 @@ def _set_first_admin_password():
         return "password_setup_too_short", 200
     if not _secret_values_match(password, request.form.get("password_confirm", "")):
         return "password_setup_mismatch", 200
-    _config_manager.save({"admin_password": password})
+    # Hashed here: save() would keep a password that starts like a hash ("scrypt:...") as it is.
+    _config_manager.save({"admin_password": generate_password_hash(password)})
     stored = _config_manager.get("admin_password", "")
     _invalidate_admin_sessions()
     current_runtime().password_setup_code = ""

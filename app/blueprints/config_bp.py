@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, request, jsonify
+from werkzeug.security import generate_password_hash
 
 from app.web_auth import (
     require_auth, _require_session_auth, _admin_password_matches,
@@ -73,6 +74,9 @@ def api_config():
             or _admin_password_matches(previous_admin_password, data["admin_password"])
         ):
             del data["admin_password"]
+        elif admin_password_requested and data["admin_password"]:
+            # Hashed here: save() would keep a password that starts like a hash ("scrypt:...") as it is.
+            data["admin_password"] = generate_password_hash(str(data["admin_password"]))
         # Validate timezone if provided
         if "timezone" in data and data["timezone"]:
             try:
