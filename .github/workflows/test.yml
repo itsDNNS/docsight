@@ -288,7 +288,13 @@ jobs:
           pip install --require-hashes -r packaging/windows/requirements-runtime-windows.txt
           pip install --require-hashes -r packaging/windows/requirements-test-windows.txt
 
+      # The suite writes thousands of SQLite databases and config files under
+      # tmp_path. TEMP defaults to the runner's slow C: drive; runner.temp sits on
+      # D: next to the workspace.
       - name: Run portable Windows tests
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         run: python -m pytest tests/ -n auto --tb=short --ignore=tests/e2e -m "not linux_only and not wiki"
 
   mobile-e2e:
