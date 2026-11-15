@@ -123,12 +123,26 @@ jobs:
               || { echo "build on port $port did not finish seeding"; exit 1; }
           done
 
+      # Most of a capture is waiting for each view to settle, so both builds are captured
+      # side by side, each with two browsers (four in all, one per runner core). Every
+      # theme and size has its own browser context, and capture only reads from the build.
       - name: Capture the base and the pull request
         run: |
           python head/scripts/visual_review.py capture --url http://127.0.0.1:8801 --out "$REVIEW_DIR/base" \
-            --now "$REVIEW_NOW" --password "$REVIEW_PASSWORD"
+            --now "$REVIEW_NOW" --password "$REVIEW_PASSWORD" --workers 2 > "$REVIEW_DIR/capture-base.log" 2>&1 &
+          base_pid=$!
           python head/scripts/visual_review.py capture --url http://127.0.0.1:8802 --out "$REVIEW_DIR/head" \
-            --now "$REVIEW_NOW" --password "$REVIEW_PASSWORD"
+            --now "$REVIEW_NOW" --password "$REVIEW_PASSWORD" --workers 2 > "$REVIEW_DIR/capture-head.log" 2>&1 &
+          head_pid=$!
+          status=0
+          wait "$base_pid" || status=1
+          wait "$head_pid" || status=1
+          for side in base head; do
+            echo "::group::Capture of $side"
+            cat "$REVIEW_DIR/capture-$side.log"
+            echo "::endgroup::"
+          done
+          exit "$status"
 
       - name: Compare
         run: |
