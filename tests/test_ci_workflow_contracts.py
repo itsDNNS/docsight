@@ -572,3 +572,9 @@ def test_windows_lane_runs_the_full_portable_suite_in_parallel():
     assert "pytest-xdist" in (windows_tests / "requirements-test-windows.in").read_text(encoding="utf-8").split()
     assert "pytest-xdist==" in (windows_tests / "requirements-test-windows.txt").read_text(encoding="utf-8")
 
+
+def test_windows_lane_keeps_test_temp_files_off_the_slow_system_drive():
+    env = _run_step("test-windows", "Run portable Windows tests")["env"]
+    assert env["TEMP"] == "${{ runner.temp }}"
+    assert env["TMP"] == "${{ runner.temp }}"
+

@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+import inspect
 import socket
+import sqlite3
 import sys
+import threading
 import urllib.request
+from contextlib import closing
 from types import ModuleType
 
 import pytest
 
-from tests.e2e.support.application import serve_server
+from tests.e2e.support.application import (
+    SEED_CACHE_ENV,
+    demo_seed_cache_entry,
+    install_demo_seed_cache,
+    restore_seeded_databases,
+    serve_server,
+)
 from tests.e2e.support.lifecycle import (
     HarnessCleanupError,
     ProcessSpec,
@@ -340,3 +350,150 @@ def test_production_startup_keeps_reserved_socket_through_app_main(
     serve_server(target, listener_socket=listener)
 
     assert observed == {"sockets": [listener], "threads": 4}
+
+
+class _FakeRuntime:
+    def __init__(self):
+        self.state = {"analysis": None}
+
+    def get_state(self):
+        return dict(self.state)
+
+    def update_state(self, **fields):
+        self.state.update(fields)
+
+
+class _FakeStorage:
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.max_days = 7
+
+
+_SEED_RUNS = {}
+
+
+class _FakeCollector:
+    """Seeds like DemoCollector: database rows plus in-memory state."""
+
+    def __init__(self, storage, runtime, extra=None):
+        self._storage = storage
+        self._web = runtime
+        self._counters = {"3.0": 0}
+        self._extra = extra
+
+    @property
+    def seed_runs(self):
+        # Counted outside the instance so a replayed seed cannot copy it.
+        return _SEED_RUNS.get(id(self), 0)
+
+    def _seed_demo_data(self):
+        _SEED_RUNS[id(self)] = self.seed_runs + 1
+        with closing(sqlite3.connect(self._storage.db_path)) as connection:
+            connection.execute("CREATE TABLE IF NOT EXISTS snapshots (value INTEGER)")
+            connection.executemany(
+                "INSERT INTO snapshots VALUES (?)", [(index,) for index in range(50)]
+            )
+            connection.commit()
+        self._counters = {"3.0": 4711}
+        self._storage.max_days = 0
+        self._web.update_state(speedtest_latest={"download": 250.0})
+        if self._extra is not None:
+            self._extra(self)
+
+
+def _fresh_server(data_dir, extra=None):
+    data_dir.mkdir(parents=True, exist_ok=True)
+    with closing(sqlite3.connect(data_dir / "docsis_history.db")) as connection:
+        connection.execute("CREATE TABLE IF NOT EXISTS _meta (key TEXT)")
+    runtime = _FakeRuntime()
+    storage = _FakeStorage(str(data_dir / "docsis_history.db"))
+    return _FakeCollector(storage, runtime, extra), runtime, storage
+
+
+def test_seed_cache_key_follows_modules_and_modem_not_mount_or_password(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv(SEED_CACHE_ENV, str(tmp_path))
+    demo = ServerProfile("demo", configured=True, demo_mode=True)
+    mounted = ServerProfile(
+        "mount-auth", configured=True, demo_mode=True, mount_path="/docsight",
+        base_path="/docsight", trusted_prefix_hops=2,
+    )
+
+    assert demo_seed_cache_entry(demo) == demo_seed_cache_entry(mounted)
+    for other in (
+        ServerProfile("tkg", configured=True, demo_mode=True, disabled_modules="docsight.bnetz"),
+        ServerProfile("fritzbox", configured=True, demo_mode=True, modem_type="fritzbox"),
+        ServerProfile("configured", configured=True, demo_mode=False),
+    ):
+        assert demo_seed_cache_entry(other) != demo_seed_cache_entry(demo)
+    assert demo_seed_cache_entry(
+        ServerProfile("setup", configured=False, demo_mode=False)
+    ) is None
+    assert demo_seed_cache_entry(
+        ServerProfile("own-seed", configured=True, demo_mode=False, seed_callback=print)
+    ) is None
+    monkeypatch.delenv(SEED_CACHE_ENV)
+    assert demo_seed_cache_entry(demo) is None
+
+
+def test_seed_cache_replays_databases_and_state_without_seeding_again(tmp_path):
+    entry = tmp_path / "cache" / "demo-key"
+    entry.parent.mkdir()
+    first, first_runtime, first_storage = _fresh_server(tmp_path / "first")
+    assert restore_seeded_databases(entry, str(tmp_path / "first")) is None
+    install_demo_seed_cache(
+        first, first_runtime, first_storage, entry, None, str(tmp_path / "first")
+    )
+    first._seed_demo_data()
+    assert first.seed_runs == 1
+    assert (entry / "docsis_history.db").is_file()
+    assert not list(entry.parent.glob(".demo-key-*"))
+
+    second_dir = tmp_path / "second"
+    state = restore_seeded_databases(entry, str(second_dir))
+    second, second_runtime, second_storage = _fresh_server(second_dir)
+    install_demo_seed_cache(
+        second, second_runtime, second_storage, entry, state, str(second_dir)
+    )
+    second._seed_demo_data()
+
+    assert second.seed_runs == 0
+    assert second._counters == {"3.0": 4711}
+    assert second_storage.max_days == 0
+    assert second_runtime.state["speedtest_latest"] == {"download": 250.0}
+    with closing(sqlite3.connect(second_dir / "docsis_history.db")) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM snapshots").fetchone() == (50,)
+    # The replayed state is a copy, not shared with the template.
+    second._counters["3.0"] = 1
+    assert restore_seeded_databases(entry, str(tmp_path / "third"))["collector"][
+        "_counters"
+    ] == {"3.0": 4711}
+
+
+@pytest.mark.parametrize("defect", ["unpicklable-state", "foreign-file"])
+def test_seed_cache_never_publishes_a_seed_it_cannot_replay(tmp_path, defect):
+    def extra(collector):
+        if defect == "unpicklable-state":
+            collector._lock = threading.Lock()
+        else:
+            (tmp_path / "server" / "extra.bin").write_bytes(b"seeded elsewhere")
+
+    entry = tmp_path / "cache" / "demo-key"
+    entry.parent.mkdir()
+    collector, runtime, storage = _fresh_server(tmp_path / "server", extra)
+    install_demo_seed_cache(
+        collector, runtime, storage, entry, None, str(tmp_path / "server")
+    )
+    collector._seed_demo_data()
+
+    assert collector.seed_runs == 1
+    assert not entry.exists()
+    assert restore_seeded_databases(entry, str(tmp_path / "next")) is None
+
+
+def test_demo_collector_still_seeds_through_the_replaced_hook():
+    from app.collectors.demo import DemoCollector
+
+    source = inspect.getsource(DemoCollector.collect)
+    assert "self._seed_demo_data()" in source

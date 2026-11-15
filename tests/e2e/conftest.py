@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import shutil
+import tempfile
 from dataclasses import dataclass
 
 import pytest
@@ -10,6 +12,7 @@ import pytest
 from tests.e2e.prefix_proxy import serve_prefix_proxy
 from tests.e2e.support.browser_errors import BrowserErrors
 from tests.e2e.support.application import (
+    SEED_CACHE_ENV,
     seed_fritzbox_segment_data,
     serve_server,
 )
@@ -73,6 +76,26 @@ CM_EVENTS_PROFILE = ServerProfile(
     "cm-events", configured=True, demo_mode=False,
     seed_callback=seed_connection_monitor_events,
 )
+
+
+def pytest_configure(config):
+    """Give this run one seed cache that every worker's servers share.
+
+    xdist workers inherit the controller's environment, so only the process
+    that creates the directory removes it again.
+    """
+    if os.environ.get(SEED_CACHE_ENV):
+        return
+    directory = tempfile.mkdtemp(prefix="docsight-e2e-seed-")
+    os.environ[SEED_CACHE_ENV] = directory
+    config._docsight_seed_cache = directory
+
+
+def pytest_unconfigure(config):
+    directory = getattr(config, "_docsight_seed_cache", None)
+    if directory:
+        os.environ.pop(SEED_CACHE_ENV, None)
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 @pytest.fixture(scope="session")
