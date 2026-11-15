@@ -93,3 +93,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: VERSION=${{ steps.version.outputs.tag }}
+          # Without a layer cache every run rebuilt the builder stage for all
+          # three platforms, including cffi/markupsafe/pillow wheels compiled
+          # under QEMU (pillow alone ~215 s on arm/v7). Release tag runs only
+          # read the cache so they do not add tag-scoped copies to the
+          # repository's Actions cache budget.
+          cache-from: type=gha,scope=docker-image
+          cache-to: ${{ !startsWith(github.ref, 'refs/tags/') && 'type=gha,scope=docker-image,mode=max,ignore-error=true' || '' }}

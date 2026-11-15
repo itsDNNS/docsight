@@ -18,9 +18,7 @@ RUN mkdir -p /build/out && \
 
 # --- runtime stage: slim final image ---
 FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
-ARG VERSION=dev
 WORKDIR /app
-RUN echo "${VERSION}" > /app/VERSION
 
 COPY --from=builder /install /usr/local
 COPY --from=builder /build/out/docsight-icmp-helper /usr/local/bin/docsight-icmp-helper
@@ -42,6 +40,11 @@ RUN adduser --disabled-password --gecos "" --uid 1000 appuser && \
 COPY app/ ./app/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+# VERSION changes on every CI build (it contains the run number). Declare and
+# write it last so it does not invalidate the cached layers above, especially
+# the apt-get layer that runs under QEMU for the arm platforms.
+ARG VERSION=dev
+RUN echo "${VERSION}" > /app/VERSION
 HEALTHCHECK --interval=60s --timeout=5s --retries=3 \
     CMD ["python", "-m", "app.healthcheck"]
 ENTRYPOINT ["/entrypoint.sh"]
