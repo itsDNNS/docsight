@@ -1,13 +1,23 @@
 """Shared factory fixtures for DOCSight tests."""
 
+import functools
 import os
 from pathlib import Path
 
 import pytest
 
+from app import version as _version
 from app.app_factory import create_app, default_module_loader_factory
 from app.config import ConfigManager
 from app.runtime import DerivedStorageCache, LoginRateLimiter, RuntimeState, get_runtime
+
+
+# Every create_app() asks git for the display version, and an untagged or shallow
+# checkout answers "no tag" each time. The suite builds hundreds of apps, so that
+# was hundreds of git processes per worker, which cost seconds on Windows runners.
+# The tags cannot change during a test run, so each question is asked once.
+# tests/test_version.py replaces _git_tag with fakes and still sees the real logic.
+_version._git_tag = functools.lru_cache(maxsize=None)(_version._git_tag)
 
 
 # Route tests run without an admin password; DOCSight is only open then when the operator opts out.
