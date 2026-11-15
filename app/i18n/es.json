@@ -344,7 +344,7 @@
   "auth_open_warning": "DOCSight funciona sin contraseña de administrador porque AUTH_DISABLED está activado. Cualquiera que pueda acceder puede ver y cambiar todo, incluidas las contraseñas guardadas.",
   "logout": "Cerrar sesión",
   "admin_password": "Contraseña de admin",
-  "admin_password_hint": "Dejar vacío para desactivar la autenticación",
+  "admin_password_hint": "Todos la necesitan para iniciar sesión. Para usar DOCSight sin contraseña a propósito, establece AUTH_DISABLED=true.",
   "card_signal_quality": "Descendente",
   "card_upstream": "Ascendente",
   "card_errors": "Errores",

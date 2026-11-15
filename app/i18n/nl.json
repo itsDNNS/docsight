@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight draait zonder beheerderswachtwoord omdat AUTH_DISABLED is ingesteld. Iedereen die DOCSight kan bereiken, kan alles zien en wijzigen, ook opgeslagen wachtwoorden.",
   "logout": "Uitloggen",
   "admin_password": "Beheerderswachtwoord",
-  "admin_password_hint": "Laat leeg om authenticatie uit te schakelen",
+  "admin_password_hint": "Iedereen heeft het nodig om in te loggen. Wil je DOCSight bewust zonder wachtwoord gebruiken, stel dan AUTH_DISABLED=true in.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Fouten",

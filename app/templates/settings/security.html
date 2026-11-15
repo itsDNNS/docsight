@@ -20,7 +20,7 @@
     <div class="form-grid">
         <div class="form-field">
             <label class="form-label" for="admin_password">{{ t.admin_password }}</label>
-            <input class="form-input" type="password" id="admin_password" name="admin_password" value="" autocomplete="new-password" placeholder="{% if config.admin_password %}{{ t.saved_ph }}{% else %}{{ t.admin_password_hint }}{% endif %}"{% if config.admin_password %} data-saved-secret="true"{% endif %}>
+            <input class="form-input" type="password" id="admin_password" name="admin_password" value="" autocomplete="new-password"{% if config.admin_password %} placeholder="{{ t.saved_ph }}" data-saved-secret="true"{% endif %}>
         </div>
     </div>
 </div>

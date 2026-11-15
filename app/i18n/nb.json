@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight kjører uten administratorpassord fordi AUTH_DISABLED er satt. Alle som når DOCSight, kan se og endre alt, også lagrede passord.",
   "logout": "Logg ut",
   "admin_password": "Admin Passord",
-  "admin_password_hint": "La stå tomt for å deaktivere autentisering",
+  "admin_password_hint": "Alle trenger det for å logge inn. For å kjøre DOCSight uten passord med vilje, sett AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Feil",

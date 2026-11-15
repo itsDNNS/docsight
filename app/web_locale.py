@@ -18,12 +18,12 @@ def get_lang():
     return "en"
 
 
-def get_setup_lang():
-    """Resolve and persist the language for the unconfigured setup route."""
+def get_setup_lang(*, persist=True):
+    """Resolve the browser's language for setup pages, storing it unless persist is False."""
     _config_manager = current_runtime().config_manager
     lang = request.args.get("lang")
     if lang in LANGUAGES:
-        if _config_manager:
+        if _config_manager and persist:
             _config_manager.save({"language": lang})
         return lang
 
@@ -43,6 +43,6 @@ def get_setup_lang():
             inferred = base
             break
 
-    if _config_manager:
+    if _config_manager and persist:
         _config_manager.save({"language": inferred})
     return inferred

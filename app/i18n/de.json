@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight läuft ohne Admin-Passwort, weil AUTH_DISABLED gesetzt ist. Jeder, der DOCSight erreicht, kann alles sehen und ändern, auch gespeicherte Passwörter.",
   "logout": "Abmelden",
   "admin_password": "Admin-Passwort",
-  "admin_password_hint": "Leer lassen um Authentifizierung zu deaktivieren",
+  "admin_password_hint": "Jeder braucht es zum Anmelden. Um DOCSight bewusst ohne Passwort zu betreiben, setze AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Fehler",

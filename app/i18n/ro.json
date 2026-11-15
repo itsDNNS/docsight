@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight rulează fără parolă de administrator deoarece AUTH_DISABLED este setat. Oricine îl poate accesa poate vedea și modifica totul, inclusiv parolele salvate.",
   "logout": "Deconectare",
   "admin_password": "Parolă de administrator",
-  "admin_password_hint": "Lăsați gol pentru a dezactiva autentificarea",
+  "admin_password_hint": "Oricine are nevoie de ea pentru autentificare. Pentru a rula DOCSight intenționat fără parolă, setează AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Erori",

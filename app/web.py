@@ -291,7 +291,8 @@ def password_setup():
     _sync_auth_state()
     if not password_setup_pending():
         return redirect(url_for("index"))
-    lang = get_lang()
+    # Follow the browser like the setup does, but an anonymous visitor must not change the config.
+    lang = get_setup_lang(persist=False)
     t = get_translations(lang)
     theme = _config_manager.get_theme() if _config_manager else "dark"
     error = None

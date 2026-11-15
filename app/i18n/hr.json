@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight radi bez administratorske lozinke jer je postavljen AUTH_DISABLED. Svatko tko mu može pristupiti može sve vidjeti i mijenjati, uključujući spremljene lozinke.",
   "logout": "Odjava",
   "admin_password": "Lozinka administratora",
-  "admin_password_hint": "Ostavite prazno za onemogućavanje provjere autentičnosti",
+  "admin_password_hint": "Svima je potrebna za prijavu. Za namjerni rad DOCSighta bez lozinke postavite AUTH_DISABLED=true.",
   "card_signal_quality": "Silazno",
   "card_upstream": "Uzlazno",
   "card_errors": "Pogreške",

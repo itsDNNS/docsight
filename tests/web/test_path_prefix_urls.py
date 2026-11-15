@@ -246,7 +246,7 @@ def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path)
     app.config["TESTING"] = True
     with app.test_client() as client:
         auth_redirect = client.get("/settings", environ_overrides=PREFIX_ENV)
-        restore_redirect = client.post(
+        restore_response = client.post(
             "/api/restore/validate", environ_overrides=PREFIX_ENV
         )
         login_page = client.get("/login", environ_overrides=PREFIX_ENV)
@@ -263,7 +263,8 @@ def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path)
         logout_redirect = client.post("/logout", environ_overrides=PREFIX_ENV)
 
     assert auth_redirect.headers["Location"] == "/docsight/login"
-    assert restore_redirect.headers["Location"] == "/docsight/login"
+    # Restore is an API: it answers 401 instead of redirecting.
+    assert restore_response.status_code == 401
     assert login_redirect.headers["Location"] == "/docsight/"
     assert 'action="/docsight/logout"' in authenticated_dashboard.get_data(as_text=True)
     assert logout_redirect.headers["Location"] == "/docsight/login"

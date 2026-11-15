@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight běží bez hesla správce, protože je nastaveno AUTH_DISABLED. Kdokoli, kdo se k němu dostane, může vše vidět a měnit, včetně uložených hesel.",
   "logout": "Odhlásit se",
   "admin_password": "Heslo správce",
-  "admin_password_hint": "Ponechejte prázdné pro deaktivaci ověřování",
+  "admin_password_hint": "Každý ho potřebuje k přihlášení. Chcete-li DOCSight záměrně provozovat bez hesla, nastavte AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Chyby",

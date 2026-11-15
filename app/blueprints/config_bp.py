@@ -11,7 +11,7 @@ from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash
 
 from app.web_auth import (
-    require_auth, _require_session_auth, _admin_password_matches,
+    require_auth, _require_session_auth, _admin_password_matches, _open_without_password,
     _invalidate_admin_sessions, _secret_values_match, _get_client_ip,
 )
 from app.config import (
@@ -74,6 +74,11 @@ def api_config():
             or _admin_password_matches(previous_admin_password, data["admin_password"])
         ):
             del data["admin_password"]
+        elif admin_password_requested and not data["admin_password"] and not _open_without_password():
+            return jsonify({
+                "success": False,
+                "error": "DOCSight needs an admin password. To run without one, set AUTH_DISABLED=true.",
+            }), 400
         elif admin_password_requested and data["admin_password"]:
             # Hashed here: save() would keep a password that starts like a hash ("scrypt:...") as it is.
             data["admin_password"] = generate_password_hash(str(data["admin_password"]))

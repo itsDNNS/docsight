@@ -349,7 +349,7 @@
   "auth_open_warning": "Ritheann DOCSight gan pasfhocal riarthóra mar go bhfuil AUTH_DISABLED socraithe. Is féidir le duine ar bith a shroicheann é gach rud a fheiceáil agus a athrú, pasfhocail stóráilte san áireamh.",
   "logout": "Lógó amach",
   "admin_password": "Pasfhocal Riaracháin",
-  "admin_password_hint": "Fág folamh chun fíordheimhniú a dhíchumasú",
+  "admin_password_hint": "Teastaíonn sé ó gach duine chun síniú isteach. Chun DOCSight a rith d’aon ghnó gan pasfhocal, socraigh AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Earráidí",

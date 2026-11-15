@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight działa bez hasła administratora, ponieważ ustawiono AUTH_DISABLED. Każdy, kto ma do niego dostęp, może wszystko zobaczyć i zmienić, także zapisane hasła.",
   "logout": "Wyloguj się",
   "admin_password": "Hasło administratora",
-  "admin_password_hint": "Pozostaw puste, aby wyłączyć uwierzytelnianie",
+  "admin_password_hint": "Każdy potrzebuje go do logowania. Aby celowo używać DOCSight bez hasła, ustaw AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Błędy",

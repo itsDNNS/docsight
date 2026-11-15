@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight работи без администраторска парола, защото е зададено AUTH_DISABLED. Всеки, който има достъп до него, може да вижда и променя всичко, включително запазените пароли.",
   "logout": "Излезте",
   "admin_password": "Административна парола",
-  "admin_password_hint": "Оставете празно, за да деактивирате удостоверяването",
+  "admin_password_hint": "Всеки има нужда от нея, за да влезе. За да използвате DOCSight съзнателно без парола, задайте AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Грешки",

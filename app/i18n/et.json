@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight töötab ilma administraatori paroolita, sest AUTH_DISABLED on seatud. Igaüks, kes DOCSightile ligi pääseb, saab kõike näha ja muuta, ka salvestatud paroole.",
   "logout": "Logi välja",
   "admin_password": "Administraatori parool",
-  "admin_password_hint": "Autentimise keelamiseks jätke tühjaks",
+  "admin_password_hint": "Igaüks vajab seda sisselogimiseks. Et DOCSight teadlikult ilma paroolita töötaks, sea AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Vead",

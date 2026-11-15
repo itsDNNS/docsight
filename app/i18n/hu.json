@@ -349,7 +349,7 @@
   "auth_open_warning": "A DOCSight rendszergazdai jelszó nélkül fut, mert az AUTH_DISABLED be van állítva. Bárki, aki eléri, mindent láthat és módosíthat, a tárolt jelszavakat is.",
   "logout": "Kijelentkezés",
   "admin_password": "Adminisztrátori jelszó",
-  "admin_password_hint": "Hagyja üresen a hitelesítés letiltásához",
+  "admin_password_hint": "Mindenkinek szüksége van rá a bejelentkezéshez. Ha szándékosan jelszó nélkül szeretnéd futtatni a DOCSightot, állítsd be: AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Hibák",

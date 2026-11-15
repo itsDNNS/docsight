@@ -206,3 +206,21 @@ def test_a_deliberate_opt_out_is_logged_at_startup(make_app, caplog):
         make_app(environ={"AUTH_DISABLED": "true"})
 
     assert any("AUTH_DISABLED is set" in record.getMessage() for record in caplog.records)
+
+
+def test_settings_cannot_clear_the_password_without_the_opt_out(locked_app):
+    client = locked_app.test_client()
+    _submit(client)
+
+    response = client.post("/api/config", json={"admin_password": ""})
+
+    assert response.status_code == 400
+    assert "AUTH_DISABLED" in response.get_json()["error"]
+    assert get_runtime(locked_app).config_manager.get("admin_password")
+
+
+def test_the_setup_page_follows_the_browser_language_without_storing_it(locked_app):
+    page = locked_app.test_client().get("/password-setup", headers={"Accept-Language": "de-DE,de;q=0.9"})
+
+    assert "Admin-Passwort festlegen" in page.get_data(as_text=True)
+    assert not get_runtime(locked_app).config_manager.has_stored_value("language")

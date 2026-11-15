@@ -349,7 +349,7 @@
   "auth_open_warning": "Το DOCSight λειτουργεί χωρίς κωδικό διαχειριστή, επειδή έχει οριστεί το AUTH_DISABLED. Όποιος έχει πρόσβαση σε αυτό μπορεί να δει και να αλλάξει τα πάντα, ακόμη και αποθηκευμένους κωδικούς.",
   "logout": "Αποσύνδεση",
   "admin_password": "Κωδικός πρόσβασης διαχειριστή",
-  "admin_password_hint": "Αφήστε κενό για να απενεργοποιήσετε τον έλεγχο ταυτότητας",
+  "admin_password_hint": "Όλοι τον χρειάζονται για να συνδεθούν. Για να λειτουργεί το DOCSight σκόπιμα χωρίς κωδικό, ορίστε AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Σφάλματα",

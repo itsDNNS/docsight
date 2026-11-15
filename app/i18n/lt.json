@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight veikia be administratoriaus slaptažodžio, nes nustatytas AUTH_DISABLED. Bet kas, kas gali jį pasiekti, gali viską matyti ir keisti, įskaitant išsaugotus slaptažodžius.",
   "logout": "Atsijungti",
   "admin_password": "Administratoriaus slaptažodis",
-  "admin_password_hint": "Palikite tuščią, kad išjungtumėte autentifikavimą",
+  "admin_password_hint": "Jo reikia visiems, norintiems prisijungti. Jei sąmoningai norite naudoti DOCSight be slaptažodžio, nustatykite AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Klaidos",

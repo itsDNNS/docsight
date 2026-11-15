@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight deluje brez skrbniškega gesla, ker je nastavljen AUTH_DISABLED. Kdorkoli, ki ga lahko doseže, lahko vse vidi in spremeni, tudi shranjena gesla.",
   "logout": "Odjava",
   "admin_password": "Administratorsko geslo",
-  "admin_password_hint": "Pustite prazno, da onemogočite preverjanje pristnosti",
+  "admin_password_hint": "Vsak ga potrebuje za prijavo. Če želite DOCSight namerno uporabljati brez gesla, nastavite AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Napake",

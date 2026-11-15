@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight darbojas bez administratora paroles, jo ir iestatīts AUTH_DISABLED. Ikviens, kas var tam piekļūt, var visu redzēt un mainīt, arī saglabātās paroles.",
   "logout": "Atteikties",
   "admin_password": "Administratora parole",
-  "admin_password_hint": "Atstājiet tukšu, lai atspējotu autentifikāciju",
+  "admin_password_hint": "Tā ir vajadzīga ikvienam, lai pieteiktos. Lai DOCSight apzināti darbotos bez paroles, iestatiet AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Kļūdas",

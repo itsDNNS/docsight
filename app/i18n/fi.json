@@ -349,7 +349,7 @@
   "auth_open_warning": "DOCSight toimii ilman ylläpitäjän salasanaa, koska AUTH_DISABLED on asetettu. Kuka tahansa, joka tavoittaa sen, voi nähdä ja muuttaa kaiken, myös tallennetut salasanat.",
   "logout": "Kirjaudu ulos",
   "admin_password": "Järjestelmänvalvojan salasana",
-  "admin_password_hint": "Poista todennus käytöstä jättämällä tyhjäksi",
+  "admin_password_hint": "Jokainen tarvitsee sen kirjautuakseen. Jos haluat tarkoituksella käyttää DOCSightia ilman salasanaa, aseta AUTH_DISABLED=true.",
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Virheet",

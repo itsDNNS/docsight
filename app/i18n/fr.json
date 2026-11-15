@@ -341,7 +341,7 @@
   "auth_open_warning": "DOCSight fonctionne sans mot de passe administrateur car AUTH_DISABLED est défini. Toute personne qui peut y accéder peut tout voir et tout modifier, y compris les mots de passe enregistrés.",
   "logout": "Déconnexion",
   "admin_password": "Mot de passe admin",
-  "admin_password_hint": "Laisser vide pour désactiver l'authentification",
+  "admin_password_hint": "Tout le monde en a besoin pour se connecter. Pour utiliser DOCSight volontairement sans mot de passe, définissez AUTH_DISABLED=true.",
   "card_signal_quality": "Descendant",
   "card_upstream": "Montant",
   "card_errors": "Erreurs",
