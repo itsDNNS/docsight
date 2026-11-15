@@ -244,6 +244,11 @@ def announce_password_setup(app):
     with app.app_context():
         if password_setup_pending():
             password_setup_code()
+        elif not _get_admin_password() and current_app.config.get("DOCSIGHT_AUTH_DISABLED"):
+            log.warning(
+                "AUTH_DISABLED is set: DOCSight runs without an admin password, so everyone "
+                "who can reach it can see and change everything, including stored passwords."
+            )
 
 
 def _normalized_setup_code(value):

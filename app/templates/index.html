@@ -72,14 +72,6 @@
 
 {% include 'demo_banner.html' %}
 
-{% if auth_open_warning %}
-<div class="notice-line notice-warning" role="status">
-    <i data-lucide="shield-alert" aria-hidden="true"></i>
-    <span class="notice-line-text">{{ t.auth_open_warning }}</span>
-    <a class="btn btn-ghost btn-sm" href="{{ url_for('settings') }}#security">{{ t.security }}</a>
-</div>
-{% endif %}
-
 {# One slim line for the most important unread notice; the notice center in the top bar
    lists all of them. Urgent notices stay above everything, others follow the key figures. #}
 {% macro notice_line(notice_id, severity, title) -%}

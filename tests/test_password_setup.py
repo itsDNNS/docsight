@@ -203,3 +203,10 @@ def test_removing_the_password_later_locks_again_with_a_fresh_code(locked_app, c
     assert page.status_code == 200
     code = _code(locked_app)
     assert code and any(code in record.getMessage() for record in caplog.records)
+
+
+def test_a_deliberate_opt_out_is_logged_at_startup(make_app, caplog):
+    with caplog.at_level(logging.WARNING, logger="docsis.web"):
+        make_app(environ={"AUTH_DISABLED": "true"})
+
+    assert any("AUTH_DISABLED is set" in record.getMessage() for record in caplog.records)
