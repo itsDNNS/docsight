@@ -149,7 +149,8 @@ def api_restore_validate():
         meta = validate_backup(data)
         return jsonify({"valid": True, "meta": meta})
     except ValueError as e:
-        return jsonify({"valid": False, "error": str(e)}), 400
+        log.warning("Backup validation failed: %s", e)
+        return jsonify({"valid": False, "error": "Invalid backup file"}), 400
 
 
 @bp.route("/api/restore", methods=["POST"])
@@ -184,10 +185,11 @@ def api_restore():
             "configured": _config_manager.is_configured(),
         })
     except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        log.error("Restore failed: %s", e)
-        return jsonify({"error": str(e)}), 500
+        log.warning("Restore rejected: %s", e)
+        return jsonify({"error": "Invalid or damaged backup file"}), 400
+    except Exception:
+        log.exception("Restore failed")
+        return jsonify({"error": "Restore failed. See the DOCSight log for details."}), 500
 
 
 @bp.route("/api/browse")

@@ -442,6 +442,56 @@ class TestValidateBackup:
             validate_backup(buf)
 
 
+
+class TestRestoreRouteErrors:
+    """Restore responses carry fixed messages; exception details stay in the log."""
+
+    @staticmethod
+    def _upload(client, url):
+        return client.post(
+            url,
+            data={"file": (BytesIO(b"not a backup"), "backup.tar.gz")},
+            content_type="multipart/form-data",
+        )
+
+    def test_validate_hides_exception_text(self, data_dir, monkeypatch):
+        from app.modules.backup import routes
+
+        def reject(_data):
+            raise ValueError("Unsafe path in archive: ../etc/passwd")
+
+        monkeypatch.setattr(routes, "validate_backup", reject)
+        client = TestBackupDownloadRoute._app(data_dir, monkeypatch).test_client()
+
+        response = self._upload(client, "/api/restore/validate")
+
+        assert response.status_code == 400
+        assert response.get_json() == {"valid": False, "error": "Invalid backup file"}
+
+    @pytest.mark.parametrize(
+        ("error", "status", "message"),
+        [
+            (ValueError("integrity check: /data/docsis_history.db"), 400,
+             "Invalid or damaged backup file"),
+            (OSError("[Errno 13] Permission denied: '/data/config.json'"), 500,
+             "Restore failed. See the DOCSight log for details."),
+        ],
+    )
+    def test_restore_hides_exception_text(self, data_dir, monkeypatch, error, status, message):
+        from app.modules.backup import routes
+
+        def fail(_data, _data_dir):
+            raise error
+
+        monkeypatch.setattr(routes, "restore_backup", fail)
+        client = TestBackupDownloadRoute._app(data_dir, monkeypatch).test_client()
+
+        response = self._upload(client, "/api/restore")
+
+        assert response.status_code == status
+        assert response.get_json() == {"error": message}
+
+
 # ── TestRestore ──
 
 
