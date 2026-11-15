@@ -475,6 +475,48 @@ def _check_backup(raw_config: Mapping[str, Any], environ: Mapping[str, str]) -> 
     )
 
 
+def _check_module_inline_code(raw_config: Mapping[str, Any], environ: Mapping[str, str]) -> CheckResult:
+    """Enabled community modules with inline JavaScript keep inline scripts allowed in the CSP."""
+    from .module_inline_code import module_has_inline_code
+    from .module_paths import DEFAULT_MODULES_DIR
+
+    root = Path(environ.get("MODULES_DIR") or DEFAULT_MODULES_DIR)
+    disabled_value = _config_value(raw_config, environ, "disabled_modules")
+    disabled = {item.strip() for item in str(disabled_value or "").split(",") if item.strip()}
+    if not root.is_dir():
+        return CheckResult(
+            id="modules.inline_scripts",
+            category="modules",
+            status="skipped",
+            message="no community modules directory",
+            core=False,
+        )
+    needing = []
+    for manifest in sorted(root.glob("*/manifest.json")):
+        try:
+            module_id = json.loads(manifest.read_text(encoding="utf-8")).get("id")
+        except (OSError, ValueError, AttributeError):
+            continue
+        if isinstance(module_id, str) and module_id not in disabled and module_has_inline_code(manifest.parent):
+            needing.append(module_id)
+    if needing:
+        return CheckResult(
+            id="modules.inline_scripts",
+            category="modules",
+            status="warn",
+            message="community modules with inline JavaScript keep inline scripts allowed; update them",
+            core=False,
+            details={"modules": needing},
+        )
+    return CheckResult(
+        id="modules.inline_scripts",
+        category="modules",
+        status="pass",
+        message="no enabled community module needs inline scripts",
+        core=False,
+    )
+
+
 def _integration_check(
     check_id: str,
     name: str,
@@ -596,6 +638,7 @@ def build_report(data_dir: str | None = None, environ: Mapping[str, str] | None 
     checks.append(_check_database(root))
     checks.append(_check_backup(raw_config, env))
     checks.extend(_check_integrations(raw_config, env))
+    checks.append(_check_module_inline_code(raw_config, env))
 
     serializable_checks = [check.as_dict() for check in checks]
     # Final defensive scrub in case a future check forgot to redact details.

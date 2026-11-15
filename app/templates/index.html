@@ -46,6 +46,7 @@
     {% endif %}
     {% include 'partials/browser_url_bootstrap.html' %}
     {% include 'partials/theme_bootstrap.html' %}
+    <script defer src="{{ url_for('static', filename='js/trusted-html.js', v=version) }}"></script>
     <script defer src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>

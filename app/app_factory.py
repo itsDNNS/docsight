@@ -13,6 +13,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import web, web_auth
 from .base_path import configure_base_path
+from .module_inline_code import modules_with_inline_code
 from .module_loader import ModuleLoader
 from .version import get_app_version
 from .registration import (
@@ -154,6 +155,14 @@ def create_app(
     manifest = canonical_manifest(app, loader)
     fingerprint = manifest_fingerprint(manifest)
     app.extensions["docsight_module_loader"] = loader
+    inline_modules = modules_with_inline_code(getattr(loader, "get_modules", tuple)())
+    app.extensions["docsight_inline_script_modules"] = inline_modules
+    if inline_modules:
+        LOG.warning(
+            "Inline scripts stay allowed for community modules that need them: %s. "
+            "Update these modules so DOCSight can block inline scripts.",
+            ", ".join(inline_modules),
+        )
     app.extensions["docsight_registration_manifest"] = manifest
     app.extensions["docsight_registration_fingerprint"] = fingerprint
     LOG.info("registration manifest sha256=%s", fingerprint)

@@ -628,7 +628,7 @@ function _setupCorrelationTooltip(overlay, octx) {
             }
         }
 
-        tooltip.innerHTML = html;
+        tooltip.innerHTML = docsightHTML(html);
         _corrApplyColors(tooltip);
         tooltip.style.display = 'block';
 
@@ -970,10 +970,10 @@ function renderCorrelationTable(data) {
             details = escapeHtml(typeLabels[e.event_type] || e.event_type || '');
         }
 
-        tr.innerHTML = '<td data-label="' + escapeHtml(T.timestamp || 'Timestamp') + '" class="correlation-cell-timestamp">' + ts + '</td>'
+        tr.innerHTML = docsightHTML('<td data-label="' + escapeHtml(T.timestamp || 'Timestamp') + '" class="correlation-cell-timestamp">' + ts + '</td>'
             + '<td data-label="' + escapeHtml(T.source || 'Source') + '" class="correlation-cell-source">' + src + '</td>'
             + '<td data-label="' + escapeHtml(T.event_message || 'Message') + '" class="correlation-cell-message">' + msg + '</td>'
-            + '<td data-label="' + escapeHtml(T.event_details || 'Details') + '" class="correlation-cell-details">' + details + '</td>';
+            + '<td data-label="' + escapeHtml(T.event_details || 'Details') + '" class="correlation-cell-details">' + details + '</td>');
         tr.addEventListener('mouseenter', function() {
             if (_corrPinnedRow) return;
             var rowTs = this.getAttribute('data-ts');

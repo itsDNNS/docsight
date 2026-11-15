@@ -115,7 +115,7 @@ function _loadCaseEvidence(inc, lights, next) {
 function renderIncidentBar(incidents) {
     var bar = document.getElementById('incident-filter-bar');
     if (!bar) return;
-    bar.innerHTML = '';
+    bar.replaceChildren();
     bar.hidden = false;
 
     // "All" pill
@@ -123,14 +123,14 @@ function renderIncidentBar(incidents) {
     incidents.forEach(function(inc) { totalCount += (inc.entry_count || 0); });
     var allPill = document.createElement('button');
     allPill.className = 'incident-pill' + (_activeIncidentFilter === null ? ' active' : '');
-    allPill.innerHTML = (T.incident_filter_all || 'All');
+    allPill.textContent = T.incident_filter_all || 'All';
     allPill.onclick = function() { filterByIncident(null); };
     bar.appendChild(allPill);
 
     // "Unassigned" pill
     var unPill = document.createElement('button');
     unPill.className = 'incident-pill' + (_activeIncidentFilter === 0 ? ' active' : '');
-    unPill.innerHTML = (T.incident_filter_unassigned || 'Unassigned');
+    unPill.textContent = T.incident_filter_unassigned || 'Unassigned';
     unPill.onclick = function() { filterByIncident(0); };
     bar.appendChild(unPill);
 
@@ -139,8 +139,8 @@ function renderIncidentBar(incidents) {
         var pill = document.createElement('button');
         pill.className = 'incident-pill incident-pill-has-edit' + (_activeIncidentFilter === inc.id ? ' active' : '');
         var statusDot = '<span class="incident-pill-status incident-pill-status-' + inc.status + '"></span>';
-        pill.innerHTML = statusDot + ' ' + escapeHtml(inc.name) + ' <span class="incident-pill-count">(' + (inc.entry_count || 0) + ')</span>' +
-            '<span class="incident-pill-edit" title="' + (T.incident_edit || 'Edit') + '">&#9998;</span>';
+        pill.innerHTML = docsightHTML(statusDot + ' ' + escapeHtml(inc.name) + ' <span class="incident-pill-count">(' + (inc.entry_count || 0) + ')</span>' +
+            '<span class="incident-pill-edit" title="' + (T.incident_edit || 'Edit') + '">&#9998;</span>');
         pill.onclick = function(e) {
             if (e.target.closest('.incident-pill-edit')) { e.stopPropagation(); openIncidentModal(inc.id); return; }
             filterByIncident(inc.id);
@@ -151,7 +151,7 @@ function renderIncidentBar(incidents) {
     // "+" add pill
     var addPill = document.createElement('button');
     addPill.className = 'incident-pill incident-pill-add';
-    addPill.innerHTML = '+';
+    addPill.textContent = '+';
     addPill.title = T.incident_new || 'New Incident';
     addPill.onclick = function() { openIncidentModal(); };
     bar.appendChild(addPill);
@@ -169,7 +169,7 @@ function renderIncidentSummary(incidentId) {
     if (!el) return;
     if (!incidentId || incidentId === 0) {
         el.hidden = true;
-        el.innerHTML = '';
+        el.replaceChildren();
         return;
     }
     var inc = null;
@@ -202,7 +202,7 @@ function renderIncidentSummary(incidentId) {
         var desc = inc.description.length > 200 ? inc.description.substring(0, 200) + '\u2026' : inc.description;
         html += '<div class="incident-summary-desc">' + escapeHtml(desc) + '</div>';
     }
-    el.innerHTML = html;
+    el.innerHTML = docsightHTML(html);
     el.hidden = false;
 }
 
@@ -305,7 +305,7 @@ function renderCaseSteps(inc) {
 function renderContainerIconPicker(selectedLabel) {
     var picker = document.getElementById('incident-container-icon-picker');
     var hiddenInput = document.getElementById('incident-container-icon-value');
-    picker.innerHTML = '';
+    picker.replaceChildren();
     function markSelected(selectedButton) {
         picker.querySelectorAll('.icon-pick').forEach(function(b) {
             b.classList.remove('active');
@@ -319,7 +319,7 @@ function renderContainerIconPicker(selectedLabel) {
     noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
     noneBtn.title = T.icon_auto || 'Auto';
     noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
-    noneBtn.innerHTML = '<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + (T.icon_auto || 'Auto') + '</span>';
+    noneBtn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + (T.icon_auto || 'Auto') + '</span>');
     noneBtn.onclick = function() {
         hiddenInput.value = '';
         markSelected(noneBtn);
@@ -332,7 +332,7 @@ function renderContainerIconPicker(selectedLabel) {
         btn.className = 'icon-pick' + (selectedLabel === entry.label ? ' active' : '');
         btn.title = label;
         btn.setAttribute('aria-pressed', selectedLabel === entry.label ? 'true' : 'false');
-        btn.innerHTML = '<span class="icon-pick-symbol">' + entry.icon + '</span><span class="icon-pick-label">' + label + '</span>';
+        btn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + entry.icon + '</span><span class="icon-pick-label">' + label + '</span>');
         btn.onclick = function() {
             hiddenInput.value = entry.label;
             markSelected(btn);

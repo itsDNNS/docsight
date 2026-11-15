@@ -97,7 +97,7 @@
         dialog.id = 'docsight-confirm-modal';
         dialog.className = 'modal-overlay docsight-confirm-overlay';
         dialog.setAttribute('aria-labelledby', 'docsight-confirm-title');
-        dialog.innerHTML = [
+        dialog.innerHTML = docsightHTML([
             '<div class="modal">',
             '  <div class="modal-header">',
             '    <h2 id="docsight-confirm-title"></h2>',
@@ -115,7 +115,7 @@
             '    <button type="button" class="btn btn-primary" id="docsight-confirm-ok"></button>',
             '  </div>',
             '</div>'
-        ].join('');
+        ].join(''));
         dialog.addEventListener('click', function(event) {
             if (window.docsightBackdropClick(event, dialog)) resolveConfirm(false);
         });

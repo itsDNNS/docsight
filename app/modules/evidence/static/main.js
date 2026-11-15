@@ -199,13 +199,13 @@ function _evidenceRenderCounts(summary) {
     var root = document.getElementById('evidence-status-counts');
     if (!root) return;
     var statuses = ['present', 'stale', 'missing', 'optional', 'not_applicable'];
-    root.innerHTML = statuses.map(function(status) {
+    root.innerHTML = docsightHTML(statuses.map(function(status) {
         var count = summary && summary[status] || 0;
         return '<div class="evidence-count evidence-status-' + status + '">' +
             '<span>' + _evidenceEscape(_evidenceStatusLabel(status)) + '</span>' +
             '<strong>' + count + '</strong>' +
             '</div>';
-    }).join('');
+    }).join(''));
 }
 
 /* Times in the UI language and the configured time zone, like the rest of the dashboard. */
@@ -216,7 +216,7 @@ function _evidenceTime(value) {
 function _evidenceRenderItems(items) {
     var root = document.getElementById('evidence-items');
     if (!root) return;
-    root.innerHTML = (items || []).map(function(item) {
+    root.innerHTML = docsightHTML((items || []).map(function(item) {
         var status = _evidenceSafeStatus(item.status);
         var label = _evidenceEscape(_evidenceT(item.label_key, item.key));
         var hint = _evidenceEscape(_evidenceT(item.hint_key, 'Review this evidence source.'));
@@ -247,7 +247,7 @@ function _evidenceRenderItems(items) {
                 '<div class="evidence-item-meta">' + last + action + '</div>' +
             '</div>' +
         '</article>';
-    }).join('');
+    }).join(''));
     root.removeEventListener('click', _evidenceRunAction);
     root.addEventListener('click', _evidenceRunAction);
     if (window.lucide && typeof window.lucide.createIcons === 'function') {

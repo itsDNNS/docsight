@@ -712,7 +712,7 @@ function loadChannelList(callback) {
     fetch(docsightUrl('/api/channels'))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            sel.innerHTML = '<option value="">' + (T.select_channel || 'Select Channel') + '</option>';
+            sel.innerHTML = docsightHTML('<option value="">' + (T.select_channel || 'Select Channel') + '</option>');
             var ds = data.ds_channels || [];
             var us = data.us_channels || [];
             if (ds.length) {
@@ -1257,7 +1257,7 @@ function populateCompareChannelList(data) {
     var dir = getCompareDirection();
     var sel = document.getElementById('compare-channel-select');
     updateCompareActionLabels();
-    sel.innerHTML = '<option value="">' + (T.select_channel || 'Select Channel') + '</option>';
+    sel.innerHTML = docsightHTML('<option value="">' + (T.select_channel || 'Select Channel') + '</option>');
     var channels = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
     channels.forEach(function(ch) {
         var ref = _channelReference(ch);
@@ -1406,7 +1406,7 @@ window.removeCompareChannel = removeCompareChannel;
 
 function renderCompareChips() {
     var container = document.getElementById('compare-chips');
-    container.innerHTML = '';
+    container.replaceChildren();
     _updateChannelSelectionControls();
     if (_comparePreset === 'all' && _compareChannels.length > 0) {
         var presetChip = document.createElement('span');

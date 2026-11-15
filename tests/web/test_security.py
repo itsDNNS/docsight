@@ -22,7 +22,7 @@ class TestSecurityHeaders:
             part.strip().split(" ", 1)
             for part in client.get("/health").headers["Content-Security-Policy"].split(";")
         )
-        assert directives["script-src"] == "'self' 'unsafe-inline'"
+        assert directives["script-src"] == "'self'"
         assert directives["object-src"] == "'none'"
         assert directives["base-uri"] == "'none'"
 

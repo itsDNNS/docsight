@@ -592,4 +592,4 @@ def test_index_template_exposes_honest_offline_state_and_scoped_pwa_lifecycle():
     assert "navigator.onLine && window.__DOCSIGHT_OFFLINE_SHELL__ !== true" in dashboard
     assert "registration.scope === docsightServiceWorkerScope" in registration
     assert "key.indexOf(docsightCacheNamespace) === 0" in registration
-    assert "register(docsightUrl('/sw.js'), { scope: docsightUrl('/') })" in registration
+    assert "register(docsightScriptURL(docsightUrl('/sw.js')), { scope: docsightUrl('/') })" in registration

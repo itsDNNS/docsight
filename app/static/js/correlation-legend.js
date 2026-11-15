@@ -175,7 +175,7 @@
         pop.addEventListener('beforetoggle', function (e) {
             if (e.newState !== 'open') return;
             var state = pop._corr;
-            pop.innerHTML = popoverHtml(state.events, state.options.filter, state.options.eventColor, state.options.T);
+            pop.innerHTML = docsightHTML(popoverHtml(state.events, state.options.filter, state.options.eventColor, state.options.T));
             applyColors(pop);
             var first = pop.querySelector('input');
             if (first) first.setAttribute('autofocus', '');
@@ -214,7 +214,7 @@
         var focused = el.contains(document.activeElement) ? document.activeElement : null;
         var focusSelector = focused && focused.classList.contains('corr-event-filter-btn') ? '.corr-event-filter-btn'
             : focused && focused.getAttribute('data-metric') ? '[data-metric="' + focused.getAttribute('data-metric') + '"]' : null;
-        el.innerHTML = list.map(function (item) {
+        el.innerHTML = docsightHTML(list.map(function (item) {
             var on = !!options.visible[item.metric];
             var attrs = 'data-metric="' + item.metric + '" tabindex="0" role="button" aria-pressed="' + on + '"';
             var extra = '';
@@ -229,7 +229,7 @@
                     '" title="' + filterLabel + '"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></button>';
             }
             return '<span ' + attrs + ' class="' + cls + '" title="' + hint + '" data-color="' + escapeAttr(item.color) + '">' + item.label + extra + '</span>' + gear;
-        }).join('');
+        }).join(''));
         applyColors(el);
         if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [el]});
 

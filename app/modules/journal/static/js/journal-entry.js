@@ -25,12 +25,12 @@ function updateModalIcon() {
         var desc = document.getElementById('entry-desc').value;
         match = detectIcon(title, desc);
     }
-    iconEl.innerHTML = match ? match.icon : '';
+    iconEl.innerHTML = docsightHTML(match ? match.icon : '');
 }
 
 function populateIncidentSelect(selectedId) {
     var sel = document.getElementById('entry-incident-select');
-    sel.innerHTML = '<option value="">' + (T.incident_none || 'No Incident') + '</option>';
+    sel.innerHTML = docsightHTML('<option value="">' + (T.incident_none || 'No Incident') + '</option>');
     _incidentsData.forEach(function(inc) {
         var opt = document.createElement('option');
         opt.value = inc.id;
@@ -57,7 +57,7 @@ function openEntryModal(entryId, incidentId) {
     var uploadHint = document.getElementById('entry-upload-hint');
     var saveBtn = document.getElementById('entry-save-btn');
 
-    attachList.innerHTML = '';
+    attachList.replaceChildren();
 
     if (entryId) {
         titleEl.textContent = T.edit_entry || 'Edit Entry';

@@ -308,7 +308,7 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
             })
             .then(function(html) {
                 current();
-                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var doc = new DOMParser().parseFromString(docsightHTML(html), 'text/html');
                 return yieldToMain().then(function() { return doc; });
             })
             .then(function(doc) {

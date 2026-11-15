@@ -104,7 +104,7 @@ function _getEntryIcon(entry) {
 function renderIconPicker(selectedLabel) {
     var picker = document.getElementById('entry-icon-picker');
     var hiddenInput = document.getElementById('entry-icon-value');
-    picker.innerHTML = '';
+    picker.replaceChildren();
     function markSelected(selectedButton) {
         picker.querySelectorAll('.icon-pick').forEach(function(b) {
             b.classList.remove('active');
@@ -119,7 +119,7 @@ function renderIconPicker(selectedLabel) {
     noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
     noneBtn.title = T.icon_auto;
     noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
-    noneBtn.innerHTML = '<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + T.icon_auto + '</span>';
+    noneBtn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + T.icon_auto + '</span>');
     noneBtn.onclick = function() {
         hiddenInput.value = '';
         markSelected(noneBtn);
@@ -134,7 +134,7 @@ function renderIconPicker(selectedLabel) {
         btn.className = 'icon-pick' + (selectedLabel === entry.label ? ' active' : '');
         btn.title = label;
         btn.setAttribute('aria-pressed', selectedLabel === entry.label ? 'true' : 'false');
-        btn.innerHTML = '<span class="icon-pick-symbol">' + entry.icon + '</span><span class="icon-pick-label">' + label + '</span>';
+        btn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + entry.icon + '</span><span class="icon-pick-label">' + label + '</span>');
         btn.onclick = function() {
             hiddenInput.value = entry.label;
             markSelected(btn);
@@ -161,7 +161,7 @@ function loadJournal(searchQuery) {
     var searchWrap = document.getElementById('journal-search-wrap');
     var searchCount = document.getElementById('journal-search-count');
     loading.hidden = false;
-    tbody.innerHTML = '';
+    tbody.replaceChildren();
     if (tableCard) tableCard.hidden = true;
     DOCSightEmptyState.hide(empty);
     if (deleteAllBtn) deleteAllBtn.hidden = true;
@@ -271,7 +271,7 @@ function renderJournalTable(data, searchQuery) {
         if (va > vb) return _journalSortAsc ? 1 : -1;
         return 0;
     });
-    tbody.innerHTML = '';
+    tbody.replaceChildren();
     var lastMonthKey = '';
     var sortByDate = _journalSortCol === 'date';
     var q = searchQuery || '';
@@ -286,7 +286,7 @@ function renderJournalTable(data, searchQuery) {
                 var monthLabel = MONTH_NAMES[monthIdx] + ' ' + parts[0];
                 var groupTr = document.createElement('tr');
                 groupTr.className = 'journal-month-header dt-detail';
-                groupTr.innerHTML = '<td colspan="' + (_bulkMode ? 6 : 5) + '">' + monthLabel + '</td>';
+                groupTr.innerHTML = docsightHTML('<td colspan="' + (_bulkMode ? 6 : 5) + '">' + monthLabel + '</td>');
                 tbody.appendChild(groupTr);
             }
         }
@@ -306,13 +306,13 @@ function renderJournalTable(data, searchQuery) {
         var titleHtml = q ? highlightText(inc.title, q) : escapeHtml(inc.title);
         var descHtml = q ? highlightText(desc, q) : escapeHtml(desc);
         var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
-        tr.innerHTML =
+        tr.innerHTML = docsightHTML(
             (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtmlAttribute(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
             '<td class="journal-icon-cell dt-lead" aria-hidden="true">' + iconHtml + '</td>' +
             '<td class="journal-date-cell" data-label="' + escapeHtmlAttribute(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
             '<td class="journal-title-cell dt-primary">' + titleHtml + '</td>' +
             '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtmlAttribute(T.incident_description || 'Description') + '">' + descHtml + '</td>' +
-            '<td class="journal-clip" data-label="' + escapeHtmlAttribute(T.attachments || 'Attachments') + '">' + clipCell + '</td>';
+            '<td class="journal-clip" data-label="' + escapeHtmlAttribute(T.attachments || 'Attachments') + '">' + clipCell + '</td>');
         tbody.appendChild(tr);
     });
     // Update sort indicators in header
@@ -406,7 +406,7 @@ function toggleBulkMode() {
         var headRow = document.getElementById('journal-thead-row');
         var th = document.createElement('th');
         th.className = 'journal-check-col';
-        th.innerHTML = '<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtmlAttribute(T.bulk_select_all || 'Select All') + '">';
+        th.innerHTML = docsightHTML('<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtmlAttribute(T.bulk_select_all || 'Select All') + '">');
         headRow.insertBefore(th, headRow.firstChild);
         // Re-render table with checkboxes
         if (_journalAllData) renderJournalTable(_journalAllData, _journalSearchQuery);
@@ -485,7 +485,7 @@ function updateBulkBar() {
 function populateBulkIncidentSelect() {
     var sel = document.getElementById('journal-bulk-incident-select');
     var prev = sel.value;
-    sel.innerHTML = '<option value="" disabled selected>' + (T.incident_assign || 'Assign to Incident') + '\u2026</option>';
+    sel.innerHTML = docsightHTML('<option value="" disabled selected>' + (T.incident_assign || 'Assign to Incident') + '\u2026</option>');
     _incidentsData.forEach(function(inc) {
         var opt = document.createElement('option');
         opt.value = inc.id;

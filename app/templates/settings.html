@@ -20,6 +20,7 @@
     {% include 'partials/theme_vars.html' %}
     {% include 'partials/browser_url_bootstrap.html' %}
     {% include 'partials/theme_bootstrap.html' %}
+    <script defer src="{{ url_for('static', filename='js/trusted-html.js', v=version) }}"></script>
     <script defer src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
     {# Before module settings scripts, which come earlier in document order #}
     <script defer src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>

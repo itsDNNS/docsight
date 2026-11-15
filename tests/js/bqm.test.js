@@ -21,7 +21,8 @@ function setup() {
             classList: {toggle(n, on) { on ? classes.add(n) : classes.delete(n); }, add(n) { classes.add(n); }, contains(n) { return classes.has(n); }},
             setAttribute(n, v) { this.attrs[n] = v; }, addEventListener(n, fn) { this[n] = fn; },
             querySelectorAll() { return this.children; },
-            appendChild(el) { this.children.push(el); }};
+            appendChild(el) { this.children.push(el); },
+            replaceChildren() { this.children = []; }};
     }
     const quickRange = element('bqm-quick-range');
     for (const id of ['today', 'yesterday', '7d', '30d']) quickRange.appendChild(element('bqm-' + id + '-btn'));
