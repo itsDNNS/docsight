@@ -162,47 +162,73 @@ def _snapshot(page, requests, out: Path, name: str, surface: dict) -> None:
     (out / f"{name}.json").write_text(json.dumps(styles, sort_keys=True), encoding="utf-8")
 
 
-def capture(url: str, out: Path, now: datetime, password: str | None = None) -> int:
+def _capture_context(browser, url: str, out: Path, now: datetime, password: str | None,
+                     theme: str, size: str) -> int:
+    """Capture every page in one theme at one size; returns the number of renderings."""
+    count = 0
+    context = browser.new_context(
+        viewport=VIEWPORTS[size], color_scheme=theme, reduced_motion="reduce",
+        locale="en-US", timezone_id="UTC",
+    )
+    context.clock.set_fixed_time(now)
+    page = context.new_page()
+    requests = _OpenRequests(page)
+    base = url.rstrip("/")
+    suffix = f"--{theme}--{size}"
+    if password:
+        page.goto(base + "/login?lang=en", wait_until="networkidle")
+        page.add_style_tag(content=STILL_CSS)
+        _snapshot(page, requests, out, "login" + suffix, LOGIN)
+        count += 1
+        page.fill("#login-password", password)
+        with page.expect_navigation(wait_until="networkidle"):
+            page.press("#login-password", "Enter")
+    page.goto(base + "/?lang=en", wait_until="networkidle")
+    page.add_style_tag(content=STILL_CSS)
+    for view in _views(page):
+        page.evaluate("view => switchView(view)", view)
+        _snapshot(page, requests, out, view + suffix, DASHBOARD)
+        count += 1
+    page.goto(base + "/settings?lang=en", wait_until="networkidle")
+    page.add_style_tag(content=STILL_CSS)
+    for section in _settings_sections(page):
+        page.evaluate("id => switchSection(id)", section)
+        _snapshot(page, requests, out, f"settings-{section}{suffix}", SETTINGS)
+        count += 1
+    context.close()
+    return count
+
+
+def _capture_contexts(url: str, out: Path, now: datetime, password: str | None, combos) -> int:
+    """Capture the given (theme, size) pairs with one browser."""
     from playwright.sync_api import sync_playwright
 
-    out.mkdir(parents=True, exist_ok=True)
     count = 0
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
-        for theme in THEMES:
-            for size, viewport in VIEWPORTS.items():
-                context = browser.new_context(
-                    viewport=viewport, color_scheme=theme, reduced_motion="reduce",
-                    locale="en-US", timezone_id="UTC",
-                )
-                context.clock.set_fixed_time(now)
-                page = context.new_page()
-                requests = _OpenRequests(page)
-                base = url.rstrip("/")
-                suffix = f"--{theme}--{size}"
-                if password:
-                    page.goto(base + "/login?lang=en", wait_until="networkidle")
-                    page.add_style_tag(content=STILL_CSS)
-                    _snapshot(page, requests, out, "login" + suffix, LOGIN)
-                    count += 1
-                    page.fill("#login-password", password)
-                    with page.expect_navigation(wait_until="networkidle"):
-                        page.press("#login-password", "Enter")
-                page.goto(base + "/?lang=en", wait_until="networkidle")
-                page.add_style_tag(content=STILL_CSS)
-                for view in _views(page):
-                    page.evaluate("view => switchView(view)", view)
-                    _snapshot(page, requests, out, view + suffix, DASHBOARD)
-                    count += 1
-                page.goto(base + "/settings?lang=en", wait_until="networkidle")
-                page.add_style_tag(content=STILL_CSS)
-                for section in _settings_sections(page):
-                    page.evaluate("id => switchSection(id)", section)
-                    _snapshot(page, requests, out, f"settings-{section}{suffix}", SETTINGS)
-                    count += 1
-                context.close()
+        for theme, size in combos:
+            count += _capture_context(browser, url, out, now, password, theme, size)
         browser.close()
     return count
+
+
+def capture(url: str, out: Path, now: datetime, password: str | None = None, workers: int = 1) -> int:
+    """Capture every theme and size. Each (theme, size) pair runs in its own browser
+    context with its own cookies and clock, so with ``workers`` > 1 the pairs are
+    split across that many processes, each with its own browser; the renderings are
+    the same, only produced side by side. Capture only reads from the instance."""
+    out.mkdir(parents=True, exist_ok=True)
+    combos = [(theme, size) for theme in THEMES for size in VIEWPORTS]
+    workers = max(1, min(workers, len(combos)))
+    if workers == 1:
+        return _capture_contexts(url, out, now, password, combos)
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    # Fresh interpreters: Playwright's sync API must not be inherited across a fork.
+    with ProcessPoolExecutor(max_workers=workers, mp_context=multiprocessing.get_context("spawn")) as pool:
+        jobs = [pool.submit(_capture_contexts, url, out, now, password, [combo]) for combo in combos]
+        return sum(job.result() for job in jobs)
 
 
 def _pixel_diff(base: Path, head: Path, diff_path: Path) -> dict:
@@ -281,6 +307,8 @@ def main(argv=None) -> int:
     cap.add_argument("--out", required=True, type=Path)
     cap.add_argument("--now", help="ISO time for the browser clock (default: now, to the minute)")
     cap.add_argument("--password", help="admin password: also capture the login page, then sign in")
+    cap.add_argument("--workers", type=int, default=1,
+                     help="capture the theme and size combinations in this many browsers side by side")
     cmp_ = sub.add_parser("compare", help="compare two captures")
     cmp_.add_argument("--base", required=True, type=Path)
     cmp_.add_argument("--head", required=True, type=Path)
@@ -290,7 +318,7 @@ def main(argv=None) -> int:
     if args.command == "capture":
         now = (datetime.fromisoformat(args.now) if args.now
                else datetime.now(timezone.utc).replace(second=0, microsecond=0))
-        count = capture(args.url, args.out, now, args.password)
+        count = capture(args.url, args.out, now, args.password, args.workers)
         print(f"captured {count} renderings into {args.out}")
         return 0 if count else 1
     print(compare(args.base, args.head, args.out))
