@@ -25,3 +25,11 @@ test('without Trusted Types the markup stays a string', () => {
     vm.runInNewContext(source, context);
     assert.equal(context.docsightHTML('<b>x</b>'), '<b>x</b>');
 });
+
+test('script URLs must stay on DOCSight\'s origin', () => {
+    const context = {location: {href: 'https://docsight.test/docsight/', origin: 'https://docsight.test'}, URL};
+    context.window = context;
+    vm.runInNewContext(source, context);
+    assert.equal(context.docsightScriptURL('/docsight/sw.js'), 'https://docsight.test/docsight/sw.js');
+    assert.throws(() => context.docsightScriptURL('https://evil.test/sw.js'), /must come from DOCSight/);
+});

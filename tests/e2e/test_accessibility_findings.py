@@ -88,10 +88,10 @@ def test_correlation_legend_stays_readable_on_and_off(demo_page, scheme):
 def test_status_badges_stay_readable(demo_page, scheme):
     _open(demo_page, "live", scheme)
     # The demo modem has no segment utilization view; render both direction badges on the overview.
-    demo_page.evaluate("""() => document.querySelector('#view-dashboard').insertAdjacentHTML('beforeend',
+    demo_page.evaluate("""() => document.querySelector('#view-dashboard').insertAdjacentHTML('beforeend', docsightHTML(
         '<div class="fritz-cable-event" id="a11y-probe"><div class="fritz-cable-event-header">'
         + '<span class="fritz-cable-event-direction is-downstream">Downstream</span>'
-        + '<span class="fritz-cable-event-direction is-upstream">Upstream</span></div></div>')""")
+        + '<span class="fritz-cable-event-direction is-upstream">Upstream</span></div></div>'))""")
     _assert_readable(demo_page.locator("#a11y-probe .fritz-cable-event-direction"), "segment directions")
 
     _open(demo_page, "evidence", scheme)

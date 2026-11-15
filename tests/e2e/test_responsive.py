@@ -385,7 +385,7 @@ class TestMobileLayout:
                 fixture.style.left = '8px';
                 fixture.style.top = '80px';
                 fixture.style.zIndex = '9999';
-                fixture.innerHTML = '<button class="chart-expand-btn" type="button" aria-label="Expand chart">⛶</button><span class="glossary-hint" tabindex="0" aria-label="Help"><i>?</i></span>';
+                fixture.innerHTML = docsightHTML('<button class="chart-expand-btn" type="button" aria-label="Expand chart">⛶</button><span class="glossary-hint" tabindex="0" aria-label="Help"><i>?</i></span>');
                 document.body.appendChild(fixture);
             }
             """

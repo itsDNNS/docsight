@@ -92,3 +92,31 @@ def test_doctor_names_enabled_modules_with_inline_code(tmp_path, monkeypatch):
     (modules / "old" / "templates" / "tab.html").write_text("<p>x</p>", encoding="utf-8")
     check = next(c for c in build_report(data_dir=str(data_dir))["checks"] if c["id"] == "modules.inline_scripts")
     assert check["status"] == "pass"
+
+
+@pytest.mark.parametrize(("tab", "strict"), [
+    ('<div id="old-tab"><button onclick="refresh()">Refresh</button></div>', False),
+    ('<div id="new-tab"><button id="refresh">Refresh</button></div>', True),
+])
+def test_the_app_keeps_inline_scripts_only_for_a_module_that_needs_them(tmp_path, tab, strict):
+    from app.app_factory import create_app, default_module_loader_factory
+    from app.config import ConfigManager
+
+    module_dir = tmp_path / "modules" / "legacy"
+    (module_dir / "templates").mkdir(parents=True)
+    (module_dir / "templates" / "tab.html").write_text(tab, encoding="utf-8")
+    (module_dir / "manifest.json").write_text(json.dumps({
+        "id": "community.legacy", "name": "Legacy", "description": "Legacy tab",
+        "version": "1.0.0", "author": "Test", "minAppVersion": "2026.2", "type": "integration",
+        "contributes": {"tab": "templates/tab.html"},
+        "menu": {"label_key": "community.legacy.title", "icon": "puzzle", "order": 90},
+    }), encoding="utf-8")
+    manager = ConfigManager(str(tmp_path / "data"))
+    app = create_app(
+        config_manager=manager, storage=None, environ={}, testing=True,
+        module_loader_factory=default_module_loader_factory(manager, search_paths=[str(tmp_path / "modules")]),
+    )
+
+    assert app.extensions["docsight_inline_script_modules"] == (() if strict else ("community.legacy",))
+    csp = app.test_client().get("/health").headers["Content-Security-Policy"]
+    assert ("script-src 'self';" in csp) is strict

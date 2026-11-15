@@ -75,8 +75,8 @@ def test_smokeping_deep_link_and_source_link(demo_page):
     expect(page.locator('#smokeping-tabs [data-smokeping-range="90d"]')).to_have_attribute("aria-pressed", "true")
 
     # The server renders this link when a SmokePing address is configured (demo mode has none).
-    page.evaluate("""() => document.getElementById('view-smokeping').insertAdjacentHTML('afterbegin',
-        '<a id="smokeping-source-link" href="http://smokeping.lan/smokeping/" target="_blank" rel="noopener" hidden>Open in SmokePing</a>')""")
+    page.evaluate("""() => document.getElementById('view-smokeping').insertAdjacentHTML('afterbegin', docsightHTML(
+        '<a id="smokeping-source-link" href="http://smokeping.lan/smokeping/" target="_blank" rel="noopener" hidden>Open in SmokePing</a>'))""")
     page.locator('#smokeping-tabs [data-smokeping-range="1h"]').click()
     link = frames.first.locator(".graph-frame-foot a")
     expect(link).to_have_attribute("href", "http://smokeping.lan/smokeping/?target=Gateway")
