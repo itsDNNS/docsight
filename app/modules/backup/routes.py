@@ -4,13 +4,11 @@ import logging
 import os
 import shutil
 import tempfile
-import time
-from collections import defaultdict
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify, redirect, send_file, url_for
+from flask import Blueprint, request, jsonify, send_file
 
-from app.web_auth import require_auth, _auth_required, _get_client_ip
+from app.web_auth import require_auth, _get_client_ip
 from app.runtime import current_runtime
 
 from werkzeug.utils import secure_filename
@@ -24,30 +22,6 @@ audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web")
 
 bp = Blueprint("backup_bp", __name__)
-
-_RESTORE_MAX_ATTEMPTS = 5
-_RESTORE_WINDOW = 3600  # 1 hour
-
-
-def _check_restore_rate_limit() -> bool:
-    """Return True if the client has exceeded the restore rate limit."""
-    restore_attempts = current_runtime().derived_storage.get(
-        "backup_restore_attempts", lambda: defaultdict(list)
-    )
-    ip = _get_client_ip()
-    now = time.time()
-    attempts = restore_attempts[ip]
-    restore_attempts[ip] = [t for t in attempts if now - t < _RESTORE_WINDOW]
-    return len(restore_attempts[ip]) >= _RESTORE_MAX_ATTEMPTS
-
-
-def _record_restore_attempt():
-    """Record a restore attempt for the current client IP."""
-    restore_attempts = current_runtime().derived_storage.get(
-        "backup_restore_attempts", lambda: defaultdict(list)
-    )
-    restore_attempts[_get_client_ip()].append(time.time())
-
 
 def _int_config(config_mgr, key, default):
     """Read an integer-like config value safely."""
@@ -160,20 +134,9 @@ def api_backup_delete(filename):
 
 
 @bp.route("/api/restore/validate", methods=["POST"])
+@require_auth
 def api_restore_validate():
-    """Validate a backup archive and return metadata.
-
-    No auth required during initial setup (not configured yet).
-    Auth required if already configured.
-    """
-    _config_manager = current_runtime().config_manager
-    if _config_manager and _config_manager.is_configured() and _auth_required():
-        return redirect(url_for("login"))
-    if not (_config_manager and _config_manager.is_configured()):
-        if _check_restore_rate_limit():
-            audit_log.warning("Restore rate limit exceeded: ip=%s", _get_client_ip())
-            return jsonify({"error": "Too many attempts"}), 429
-        _record_restore_attempt()
+    """Validate a backup archive and return metadata."""
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files["file"]
@@ -190,22 +153,12 @@ def api_restore_validate():
 
 
 @bp.route("/api/restore", methods=["POST"])
+@require_auth
 def api_restore():
-    """Restore a backup archive.
-
-    No auth required during initial setup (not configured yet).
-    Auth required if already configured.
-    """
+    """Restore a backup archive."""
     _config_manager = current_runtime().config_manager
     if _config_manager is None:
         return jsonify({"error": "Not initialized"}), 500
-    if _config_manager.is_configured() and _auth_required():
-        return redirect(url_for("login"))
-    if not _config_manager.is_configured():
-        if _check_restore_rate_limit():
-            audit_log.warning("Restore rate limit exceeded: ip=%s", _get_client_ip())
-            return jsonify({"error": "Too many attempts"}), 429
-        _record_restore_attempt()
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files["file"]

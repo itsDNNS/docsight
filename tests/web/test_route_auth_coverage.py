@@ -18,7 +18,7 @@ PUBLIC_ENDPOINT_METHODS = {
     "health": {"GET"},  # container/runtime health probe
     "metrics_bp.metrics": {"GET"},  # Prometheus scrape endpoint
     "login": {"GET", "POST"},  # authentication entrypoint
-    "password_setup": {"GET", "POST"},  # first admin password, proven by the setup code from the log
+    "password_setup": {"GET", "POST"},  # first admin password, only shortly after start
     "service_worker": {"GET"},  # PWA service-worker asset
     "setup": {"GET"},  # first-run setup page
     "static": {"GET"},  # Flask static assets

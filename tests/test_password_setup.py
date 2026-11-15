@@ -45,6 +45,8 @@ def test_without_a_password_every_page_and_api_waits_for_the_password(locked_app
     assert api.status_code == 401
     assert api.get_json() == {"error": "Admin password not set", "setup_required": True}
     assert client.get("/api/backup/list").status_code == 401
+    for restore in ("/api/restore/validate", "/api/restore"):
+        assert client.post(restore).status_code == 401, restore
     assert get_runtime(locked_app).config_manager.get("admin_password") == ""
 
 

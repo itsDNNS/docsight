@@ -1,4 +1,4 @@
-"""Tests for security audit findings: SSRF, restore rate-limit, XSS filter."""
+"""Tests for security audit findings: SSRF, restore authentication, XSS filter."""
 
 import io
 import json
@@ -9,6 +9,7 @@ import pytest
 
 from app.module_download import fetch_registry, is_trusted_url
 from app.runtime import get_runtime
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 
 # ── Finding 1: SSRF via registry URL ──
@@ -74,80 +75,48 @@ class TestFetchRegistrySSRF:
         assert len(result) == 1
 
 
-# ── Finding 2: Restore rate-limiting ──
+# ── Finding 2: Restore before the first configuration ──
 
 
-class TestRestoreRateLimit:
-    """Unauthenticated restore endpoints must be rate-limited."""
+class TestRestoreAuth:
+    """Restoring a backup replaces the admin password, so it always needs a signed-in admin."""
 
-    @pytest.fixture
-    def client(self):
+    @pytest.mark.parametrize("path", ["/api/restore/validate", "/api/restore"])
+    def test_restore_requires_a_session_before_the_modem_is_configured(self, path):
         from app.app_factory import create_app
         from app.config import ConfigManager
         from app.modules.backup.routes import bp as backup_bp
 
         with tempfile.TemporaryDirectory() as td:
             cfg = ConfigManager(td)
-            cfg.save({"demo_mode": False})
+            cfg.save({"admin_password": "route-auth-secret"})
             test_app = create_app(config_manager=cfg, environ={}, testing=True)
             test_app.register_blueprint(backup_bp)
 
-            # Patch the getters that backup routes use
-            with patch.object(get_runtime(test_app), "config_manager", cfg), \
-                 patch("app.modules.backup.routes._auth_required", return_value=False), \
-                 patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"):
-                with test_app.test_client() as c:
-                    yield c
+            with patch("app.modules.backup.routes.restore_backup") as mock_restore, \
+                 test_app.test_client() as c:
+                resp = c.post(
+                    path,
+                    data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
+                    content_type="multipart/form-data",
+                )
 
-    def test_restore_validate_rate_limited(self, client):
-        """After 5 attempts, further unauthenticated restore/validate should be blocked."""
-        for i in range(5):
-            resp = client.post(
-                "/api/restore/validate",
-                data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
-                content_type="multipart/form-data",
-            )
-            assert resp.status_code != 429, f"Blocked too early on attempt {i+1}"
-
-        # 6th attempt should be rate-limited
-        resp = client.post(
-            "/api/restore/validate",
-            data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
-            content_type="multipart/form-data",
-        )
-        assert resp.status_code == 429
-
-    def test_restore_rate_limited(self, client):
-        """After 5 attempts, further unauthenticated restore should be blocked."""
-        for i in range(5):
-            client.post(
-                "/api/restore",
-                data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
-                content_type="multipart/form-data",
-            )
-
-        resp = client.post(
-            "/api/restore",
-            data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
-            content_type="multipart/form-data",
-        )
-        assert resp.status_code == 429
+            assert not cfg.is_configured()
+            assert resp.status_code == 401
+            mock_restore.assert_not_called()
 
     def test_restore_without_config_manager_rejected(self):
         """If the config manager is not initialized, /api/restore must bail out
         before touching the filesystem — no fallback to a hardcoded data dir."""
         from app.app_factory import create_app
         from app.config import ConfigManager
-        from app.modules.backup import routes as br
         from app.modules.backup.routes import bp as backup_bp
 
         test_app = create_app(
-            config_manager=ConfigManager(tempfile.mkdtemp()), environ={}, testing=True
+            config_manager=ConfigManager(tempfile.mkdtemp()), environ=dict(OPEN_INSTANCE_ENVIRON), testing=True
         )
 
         with patch.object(get_runtime(test_app), "config_manager", None), \
-             patch("app.modules.backup.routes._auth_required", return_value=False), \
-             patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"), \
              patch("app.modules.backup.routes.restore_backup") as mock_restore:
             test_app.register_blueprint(backup_bp)
             with test_app.test_client() as c:
@@ -160,35 +129,6 @@ class TestRestoreRateLimit:
             assert resp.get_json() == {"error": "Not initialized"}
             # The missing guard previously let restore_backup run against "/data".
             mock_restore.assert_not_called()
-            # Must not count as a rate-limit attempt either — the request never
-            # reached the rate-limited code path.
-            assert get_runtime(test_app).derived_storage.value("backup_restore_attempts", {}) == {}
-
-    def test_authenticated_restore_not_rate_limited(self):
-        """Configured+authenticated instances skip the rate limit path entirely."""
-        from app.app_factory import create_app
-        from app.config import ConfigManager
-        from app.modules.backup import routes as br
-
-        with tempfile.TemporaryDirectory() as td:
-            cfg = ConfigManager(td)
-            cfg.save({"admin_password": "testpass", "modem_type": "demo"})
-            test_app = create_app(config_manager=cfg, environ={}, testing=True)
-
-            with patch.object(get_runtime(test_app), "config_manager", cfg), \
-                 patch("app.modules.backup.routes._auth_required", return_value=False), \
-                 patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"):
-                from app.modules.backup.routes import bp as backup_bp
-                test_app.register_blueprint(backup_bp)
-                with test_app.test_client() as c:
-                    for i in range(10):
-                        resp = c.post(
-                            "/api/restore/validate",
-                            data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
-                            content_type="multipart/form-data",
-                        )
-                        # Configured instance skips rate-limit code path
-                        assert resp.status_code != 429, f"Rate-limited on attempt {i+1}"
 
 
 # ── Finding 3: XSS in safe_html filter ──
