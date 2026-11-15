@@ -10,27 +10,26 @@
       "collected_cases": 120,
       "files": [
         "test_accessibility_findings.py",
-        "test_chart_touch.py",
+        "test_case_cards.py",
         "test_charts.py",
+        "test_event_log_redesign.py",
         "test_graph_frames.py",
-        "test_i18n.py",
-        "test_modals.py",
-        "test_pwa_gate.py",
-        "test_theme_tokens.py"
+        "test_journal_undo.py",
+        "test_modals.py"
       ]
     },
     {
       "id": 2,
-      "collected_cases": 117,
+      "collected_cases": 126,
       "files": [
         "test_auth.py",
         "test_browser_errors.py",
         "test_chart_gaps.py",
         "test_cm_time_axis.py",
         "test_cm_window_shift.py",
+        "test_command_palette.py",
         "test_connection_monitor.py",
         "test_correlation_window_shift.py",
-        "test_icon_placeholders.py",
         "test_metric_card_hint.py",
         "test_notice_center.py",
         "test_password_setup.py",
@@ -42,57 +41,58 @@
     },
     {
       "id": 3,
-      "collected_cases": 137,
+      "collected_cases": 119,
       "files": [
         "test_correlation_ui.py",
-        "test_event_log_redesign.py",
         "test_events.py",
         "test_glossary_page.py",
+        "test_icon_placeholders.py",
         "test_modulation_visual.py",
-        "test_onboarding_checklist.py",
-        "test_responsive.py"
+        "test_responsive.py",
+        "test_theme_tokens.py"
       ]
     },
     {
       "id": 4,
-      "collected_cases": 121,
+      "collected_cases": 115,
       "files": [
-        "test_case_cards.py",
         "test_case_status_track.py",
         "test_case_steps.py",
         "test_channels.py",
+        "test_chart_touch.py",
         "test_community_theme.py",
         "test_empty_states.py",
         "test_form_accessibility.py",
         "test_modulation.py",
-        "test_speedtest_chart.py",
         "test_tkg_compensation.py"
       ]
     },
     {
       "id": 5,
-      "collected_cases": 203,
+      "collected_cases": 212,
       "files": [
         "test_evidence_report_scope.py",
         "test_glossary.py",
         "test_mobile_quality_gate.py",
         "test_module_views.py",
+        "test_onboarding_checklist.py",
         "test_security.py",
         "test_settings.py",
-        "test_snapshot_panel.py"
+        "test_snapshot_panel.py",
+        "test_speedtest_chart.py"
       ]
     },
     {
       "id": 6,
-      "collected_cases": 139,
+      "collected_cases": 145,
       "files": [
-        "test_command_palette.py",
         "test_community_drivers.py",
         "test_comparison.py",
         "test_dashboard.py",
         "test_glossary_visual.py",
-        "test_journal_undo.py",
+        "test_i18n.py",
         "test_path_prefix_browser.py",
+        "test_pwa_gate.py",
         "test_setup.py"
       ]
     }
