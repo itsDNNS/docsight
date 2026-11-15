@@ -10,6 +10,7 @@ from urllib3.response import HTTPResponse
 
 from app import modem_detect
 from app.drivers import driver_registry
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
@@ -232,7 +233,7 @@ def setup_client(tmp_path):
     from app.app_factory import create_app
     from app.config import ConfigManager
 
-    application = create_app(config_manager=ConfigManager(str(tmp_path)))
+    application = create_app(config_manager=ConfigManager(str(tmp_path)), environ=dict(OPEN_INSTANCE_ENVIRON))
     application.config["TESTING"] = True
     return application.test_client()
 

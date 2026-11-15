@@ -11,6 +11,12 @@
             </div>
         </div>
     </div>
+    {% if auth_open_warning %}
+    <div class="notice-line notice-warning" role="status">
+        <i data-lucide="shield-alert" aria-hidden="true"></i>
+        <span class="notice-line-text">{{ t.auth_open_warning }}</span>
+    </div>
+    {% endif %}
     <div class="form-grid">
         <div class="form-field">
             <label class="form-label" for="admin_password">{{ t.admin_password }}</label>

@@ -2,6 +2,7 @@
 
 from unittest.mock import patch, MagicMock
 import pytest
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 
 @pytest.fixture
@@ -11,7 +12,7 @@ def app(tmp_path):
     from app.blueprints import segment_bp as seg_mod
     return create_app(
         config_manager=ConfigManager(str(tmp_path / "segment-config")),
-        environ={}, testing=True,
+        environ=dict(OPEN_INSTANCE_ENVIRON), testing=True,
     )
 
 

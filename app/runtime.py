@@ -360,6 +360,8 @@ class DocsightRuntime:
     modem_collector: Any | None = field(default=None, repr=False)
     collectors: list[Any] = field(default_factory=list, repr=False)
     last_manual_poll: float = field(default=0.0, repr=False)
+    # One-time code from the log that proves access before an admin password exists.
+    password_setup_code: str = field(default="", repr=False)
     _last_manual_poll_lock: threading.Lock = field(
         default_factory=threading.Lock,
         init=False,

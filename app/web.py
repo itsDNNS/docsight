@@ -39,7 +39,10 @@ from .theme_catalog import THEME_PROPERTY, THEME_UNSAFE_VALUE
 from .theme_registry import resolve_active_theme
 from .web_locale import get_lang, get_setup_lang
 from .version import get_app_version
-from .web_auth import require_auth, _get_admin_password, _authenticate_login, _get_login_csrf_token, _sync_auth_state
+from .web_auth import (
+    require_auth, _get_admin_password, _authenticate_login, _get_login_csrf_token, _sync_auth_state,
+    _set_first_admin_password, password_setup_pending,
+)
 
 _IANA_REGIONS = {"Africa", "America", "Antarctica", "Arctic", "Asia",
                  "Atlantic", "Australia", "Europe", "Indian", "Pacific"}
@@ -263,7 +266,7 @@ def login():
     _config_manager = current_runtime().config_manager
     _sync_auth_state()
     if not _get_admin_password():
-        return redirect(url_for("index"))
+        return redirect(url_for("password_setup" if password_setup_pending() else "index"))
     lang = get_lang()
     t = get_translations(lang)
     theme = _config_manager.get_theme() if _config_manager else "dark"
@@ -280,6 +283,28 @@ def login():
         )
         error = t.get(error_key, fallback)
     return render_template("login.html", t=t, lang=lang, theme=theme, error=error, csrf_token=csrf_token), status
+
+
+def password_setup():
+    """Set the first admin password, proven by the setup code from the log."""
+    _config_manager = current_runtime().config_manager
+    _sync_auth_state()
+    if not password_setup_pending():
+        return redirect(url_for("index"))
+    lang = get_lang()
+    t = get_translations(lang)
+    theme = _config_manager.get_theme() if _config_manager else "dark"
+    error = None
+    status = 200
+    csrf_token = _get_login_csrf_token()
+    if request.method == "POST":
+        error_key, status = _set_first_admin_password()
+        if error_key is None:
+            return redirect(url_for("index"))
+        error = t.get(error_key, "Could not set the password")
+    return render_template(
+        "password_setup.html", t=t, lang=lang, theme=theme, error=error, csrf_token=csrf_token,
+    ), status
 
 
 def logout():
@@ -318,6 +343,8 @@ def inject_auth():
     desktop_mode = is_desktop_preview_mode()
     return {
         "auth_enabled": auth_enabled,
+        # Deliberately open: everyone who reaches DOCSight can change everything.
+        "auth_open_warning": bool(current_app.config.get("DOCSIGHT_AUTH_DISABLED")) and not auth_enabled,
         "module_static_url": module_static_url,
         "version": APP_VERSION,
         "update_available": current_runtime().update_checker.latest(),
@@ -608,6 +635,8 @@ def desktop_runtime():
 
 def setup():
     _config_manager = current_runtime().config_manager
+    if password_setup_pending():
+        return redirect(url_for("password_setup"))
     if _config_manager and (_config_manager.is_configured() or _config_manager.is_demo_mode()):
         return redirect(url_for("index"))
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
@@ -714,6 +743,7 @@ class RouteSpec:
 CORE_ROUTES = (
     RouteSpec("/login", "login", login, ("GET", "POST")),
     RouteSpec("/logout", "logout", logout, ("POST",)),
+    RouteSpec("/password-setup", "password_setup", password_setup, ("GET", "POST")),
     RouteSpec("/", "index", index, ("GET",)),
     RouteSpec("/glossary", "glossary_page", glossary_page, ("GET",)),
     RouteSpec("/health", "health", health, ("GET",)),

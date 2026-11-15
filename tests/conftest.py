@@ -10,6 +10,10 @@ from app.config import ConfigManager
 from app.runtime import DerivedStorageCache, LoginRateLimiter, RuntimeState, get_runtime
 
 
+# Route tests run without an admin password; DOCSight is only open then when the operator opts out.
+OPEN_INSTANCE_ENVIRON = {"AUTH_DISABLED": "true"}
+
+
 FACTORY_CONTEXT_MODULES = {
     "tests.test_auth", "tests.test_bqm", "tests.test_channel_timeline",
     "tests.test_comparison_module", "tests.test_correlation", "tests.test_demo_mode",
@@ -42,7 +46,7 @@ def _factory_context_for_direct_route_tests(request, tmp_path_factory):
     application = create_app(
         config_manager=manager,
         module_loader_factory=default_module_loader_factory(manager, search_paths=[]),
-        environ={},
+        environ=dict(OPEN_INSTANCE_ENVIRON),
         testing=True,
     )
     request.module.app = application
@@ -117,7 +121,7 @@ def make_app(make_config):
             storage=storage,
             on_config_changed=on_config_changed,
             module_loader_factory=module_loader_factory,
-            environ={} if environ is None else environ,
+            environ=dict(OPEN_INSTANCE_ENVIRON) if environ is None else environ,
             testing=testing,
         )
 

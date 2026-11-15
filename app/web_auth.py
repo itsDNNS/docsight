@@ -26,6 +26,10 @@ _AUTH_STATE_CONTEXT = b"docsight-admin-auth-state-v1\0"
 _SESSION_LIFETIME_DEFAULT_DAYS = 30
 _SESSION_LIFETIME_MIN_DAYS = 1
 _SESSION_LIFETIME_MAX_DAYS = 365
+_SETUP_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+_SETUP_CODE_GROUPS = 3
+_SETUP_CODE_GROUP_LENGTH = 4
+_SETUP_PASSWORD_MIN_LENGTH = 8
 
 
 def _get_client_ip():
@@ -189,6 +193,63 @@ def _invalidate_admin_sessions():
     session.clear()
 
 
+def _truthy(value):
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def auth_disabled_requested(environ: Mapping[str, str]) -> bool:
+    """Whether the operator deliberately runs DOCSight without an admin password."""
+    return _truthy(environ.get("AUTH_DISABLED"))
+
+
+def desktop_mode_requested(environ: Mapping[str, str]) -> bool:
+    """The Windows desktop app listens only on this computer."""
+    return environ.get("DOCSIGHT_DESKTOP_MODE") == "1"
+
+
+def _open_without_password():
+    if current_app.config.get("DOCSIGHT_AUTH_DISABLED") or current_app.config.get("DOCSIGHT_DESKTOP_MODE"):
+        return True
+    _config_manager = current_runtime().config_manager
+    return bool(_config_manager and _config_manager.is_demo_mode())
+
+
+def password_setup_pending():
+    """True while nobody may use DOCSight until an admin password is set."""
+    return not _get_admin_password() and not _open_without_password()
+
+
+def password_setup_code():
+    """Return this process's setup code, creating and logging it on first use."""
+    runtime = current_runtime()
+    if not runtime.password_setup_code:
+        raw = "".join(
+            secrets.choice(_SETUP_CODE_ALPHABET)
+            for _ in range(_SETUP_CODE_GROUPS * _SETUP_CODE_GROUP_LENGTH)
+        )
+        runtime.password_setup_code = "-".join(
+            raw[i:i + _SETUP_CODE_GROUP_LENGTH]
+            for i in range(0, len(raw), _SETUP_CODE_GROUP_LENGTH)
+        )
+        log.warning(
+            "DOCSight has no admin password yet. Open DOCSight in your browser "
+            "and enter this setup code to set one: %s",
+            runtime.password_setup_code,
+        )
+    return runtime.password_setup_code
+
+
+def announce_password_setup(app):
+    """Log the setup code at startup, so the operator finds it in the log."""
+    with app.app_context():
+        if password_setup_pending():
+            password_setup_code()
+
+
+def _normalized_setup_code(value):
+    return "".join(ch for ch in str(value or "").upper() if ch.isalnum())
+
+
 def _auth_required(*, session_only=False):
     """Check if auth is enabled and user is not logged in.
 
@@ -198,7 +259,7 @@ def _auth_required(*, session_only=False):
     _storage = current_runtime().storage
     _sync_auth_state()
     if not _get_admin_password():
-        return False
+        return password_setup_pending()
     if _authenticated_session_is_valid():
         return False
     auth_header = request.headers.get("Authorization", "")
@@ -216,6 +277,10 @@ def require_auth(f, *, session_only=False):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
         if _auth_required(session_only=session_only):
+            if password_setup_pending():
+                if request.path.startswith("/api/"):
+                    return jsonify({"error": "Admin password not set", "setup_required": True}), 401
+                return redirect(url_for("password_setup"))
             if session_only and (getattr(request, "_api_token", None) or request.headers.get("Authorization", "").startswith("Bearer ")):
                 return jsonify({"error": "Session authentication required"}), 403
             if request.path.startswith("/api/"):
@@ -268,3 +333,39 @@ def _authenticate_login():
     limiter.record_failure(ip)
     audit_log.warning("Login failed: ip=%s", ip)
     return "login_failed", 200
+
+
+def _set_first_admin_password():
+    """Validate a setup submission and sign in with the new admin password."""
+    _config_manager = current_runtime().config_manager
+    ip = _get_client_ip()
+    limiter = current_runtime().login_rate_limiter
+    if not _valid_login_csrf_token(request.form.get("csrf_token", "")):
+        limiter.record_failure(ip)
+        audit_log.warning("Password setup rejected: invalid csrf token for ip=%s", ip)
+        return "password_setup_failed", 400
+    wait = limiter.retry_after(ip)
+    if wait > 0:
+        audit_log.warning("Password setup rate-limited: ip=%s (retry in %ds)", ip, int(wait))
+        return "login_rate_limited", 200
+    expected = _normalized_setup_code(password_setup_code())
+    candidate = _normalized_setup_code(request.form.get("setup_code", ""))
+    if not candidate or not secrets.compare_digest(candidate.encode(), expected.encode()):
+        limiter.record_failure(ip)
+        audit_log.warning("Password setup failed: wrong setup code from ip=%s", ip)
+        return "password_setup_code_invalid", 200
+    password = request.form.get("password", "")
+    if len(password) < _SETUP_PASSWORD_MIN_LENGTH:
+        return "password_setup_too_short", 200
+    if not _secret_values_match(password, request.form.get("password_confirm", "")):
+        return "password_setup_mismatch", 200
+    _config_manager.save({"admin_password": password})
+    stored = _config_manager.get("admin_password", "")
+    _invalidate_admin_sessions()
+    current_runtime().password_setup_code = ""
+    limiter.reset(ip)
+    session.permanent = True
+    session["authenticated"] = True
+    session[_AUTH_MARKER_SESSION_KEY] = _admin_session_marker(stored)
+    audit_log.info("Admin password set through the setup code: ip=%s", ip)
+    return None, 302
