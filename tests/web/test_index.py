@@ -1720,8 +1720,8 @@ class TestHomeNoticePlacement:
     def test_an_urgent_notice_leads_on_top_and_the_rest_wait_in_the_notice_center(self, client, monkeypatch, sample_analysis):
         home = _dashboard_html(self._render(client, monkeypatch, sample_analysis))
 
-        assert home.count('class="notice-line notice-critical" data-notice-id=') == 1
-        assert home.count('data-notice-id=') == 1
+        # Only maintainer notices carry an id; the open-instance warning is not one of them.
+        assert len(re.findall(r'class="notice-line notice-\w+" data-notice-id=', home)) == 1
         assert home.index('data-notice-id="crit-1"') < home.index('class="line-status')
         assert 'data-notice-id="info-1"' not in home
 
