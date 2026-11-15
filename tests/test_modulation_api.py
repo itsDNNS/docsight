@@ -9,6 +9,7 @@ import pytest
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.app_factory import create_app, default_module_loader_factory
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 
 def _ts_days_ago(days):
@@ -30,7 +31,7 @@ def client_no_storage(config_mgr):
     app = create_app(
         config_manager=config_mgr,
         module_loader_factory=default_module_loader_factory(config_mgr, search_paths=[]),
-        environ={}, testing=True,
+        environ=dict(OPEN_INSTANCE_ENVIRON), testing=True,
     )
     with app.test_client() as client:
         yield client
@@ -45,7 +46,7 @@ def client_with_storage(tmp_path, config_mgr):
         config_manager=config_mgr,
         storage=storage,
         module_loader_factory=default_module_loader_factory(config_mgr, search_paths=[]),
-        environ={}, testing=True,
+        environ=dict(OPEN_INSTANCE_ENVIRON), testing=True,
     )
     with app.test_client() as client:
         yield client, storage

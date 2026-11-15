@@ -7,6 +7,7 @@ import pytest
 from app.module_loader import ModuleLoader
 from app.app_factory import create_app
 from app.config import ConfigManager
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -27,7 +28,7 @@ def _create_module_app(config_manager, search_paths, *, disabled_ids=None):
     application = create_app(
         config_manager=config_manager,
         module_loader_factory=build,
-        environ={},
+        environ=dict(OPEN_INSTANCE_ENVIRON),
         testing=True,
     )
     return application, loader_box[0]

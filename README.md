@@ -50,7 +50,7 @@ Connect your own modem or router:
 docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:stable
 ```
 
-Open `http://localhost:8765` and follow the setup. It asks for your connection type, finds the modem on request and tests the connection. Configuration and history stay in the `docsight_data` volume. `stable` follows releases; `latest` follows the `main` branch.
+Open `http://localhost:8765`. DOCSight first asks you to set an admin password; this works within 15 minutes after DOCSight starts, so restart it if you open it later. The setup then asks for your connection type, finds the modem on request and tests the connection. Configuration and history stay in the `docsight_data` volume. `stable` follows releases; `latest` follows the `main` branch.
 
 [Installation guide](https://github.com/itsDNNS/docsight/wiki/Installation) · [Docker Compose](docker-compose.yml) · [Windows quick start](https://github.com/itsDNNS/docsight/wiki/Windows-Quick-Start) · [Windows Desktop Preview](https://github.com/itsDNNS/docsight/wiki/Windows-Desktop-Preview) · [Running without Docker](https://github.com/itsDNNS/docsight/wiki/Running-without-Docker)
 

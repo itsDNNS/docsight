@@ -2,6 +2,7 @@ import io
 import pytest
 
 from app.app_factory import create_app, default_module_loader_factory
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -23,7 +24,7 @@ def app(tmp_path_factory):
         config_manager=manager,
         storage=None,
         module_loader_factory=default_module_loader_factory(manager, search_paths=[]),
-        environ={},
+        environ=dict(OPEN_INSTANCE_ENVIRON),
         testing=True,
     )
     return application

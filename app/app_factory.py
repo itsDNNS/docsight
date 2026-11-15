@@ -124,6 +124,8 @@ def create_app(
         PERMANENT_SESSION_LIFETIME=timedelta(days=web_auth._session_lifetime_days(env)),
         SESSION_REFRESH_EACH_REQUEST=True,
         TESTING=testing,
+        DOCSIGHT_AUTH_DISABLED=web_auth.auth_disabled_requested(env),
+        DOCSIGHT_DESKTOP_MODE=web_auth.desktop_mode_requested(env),
     )
 
     auth_state = AuthStateStore(config_manager.data_dir)
@@ -147,6 +149,7 @@ def create_app(
     )
     attach_runtime(app, runtime)
     web_auth.bootstrap_auth_state(app, runtime)
+    web_auth.announce_password_setup(app)
     register_plan(app, complete_plan)
     web.install_core_template_hooks(app)
     runtime.module_loader = loader

@@ -11,6 +11,7 @@ from app.config import ConfigManager
 from app.manifest_contract import validate_manifest_contract
 from app.module_loader import ModuleLoader
 from app.runtime import get_runtime
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 from tests.fs_helpers import symlink_or_skip
 
 DRIVER_ID = "community.example"
@@ -49,7 +50,7 @@ def make_app(tmp_path, *, disabled="", search=True, modem_type=DRIVER_ID):
                  "modem_user": "tester", "modem_password": "test-password",
                  "disabled_modules": disabled, "update_check_enabled": False})
     application = create_app(
-        config_manager=config, testing=True, environ={},
+        config_manager=config, testing=True, environ=dict(OPEN_INSTANCE_ENVIRON),
         module_loader_factory=default_module_loader_factory(
             config, search_paths=[str(tmp_path / "modules")] if search else []),
     )
@@ -261,7 +262,7 @@ def test_builtin_override_is_app_owned_and_restores_pristine_fallback(tmp_path, 
     else:
         manifest["contributes"]["thresholds"] = "missing.json"
         (directory / "manifest.json").write_text(json.dumps(manifest))
-    restarted = create_app(config_manager=config, testing=True, environ={},
+    restarted = create_app(config_manager=config, testing=True, environ=dict(OPEN_INSTANCE_ENVIRON),
                            module_loader_factory=default_module_loader_factory(
                                config, search_paths=paths))
     restored = get_runtime(restarted)
@@ -350,7 +351,7 @@ def test_install_enable_restart_registers_driver(tmp_path, monkeypatch):
     assert DRIVER_ID in runtime.config_manager.get("disabled_modules")
 
     def restart():
-        app = create_app(config_manager=runtime.config_manager, testing=True, environ={},
+        app = create_app(config_manager=runtime.config_manager, testing=True, environ=dict(OPEN_INSTANCE_ENVIRON),
                          module_loader_factory=default_module_loader_factory(
                              runtime.config_manager, search_paths=[str(tmp_path / "modules")]))
         return app, get_runtime(app)

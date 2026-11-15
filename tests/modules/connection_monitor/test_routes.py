@@ -15,11 +15,12 @@ from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 from app.app_factory import create_app
 from app.config import ConfigManager
 from app.runtime import get_runtime
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 
 @pytest.fixture
 def app(tmp_path):
-    app = create_app(config_manager=ConfigManager(str(tmp_path / "config")), environ={}, testing=True)
+    app = create_app(config_manager=ConfigManager(str(tmp_path / "config")), environ=dict(OPEN_INSTANCE_ENVIRON), testing=True)
     app.register_blueprint(bp)
 
     db_path = str(tmp_path / "test_cm.db")

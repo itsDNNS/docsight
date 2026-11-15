@@ -12,6 +12,7 @@ from app.modules.connection_monitor.traceroute_probe import TracerouteHop, Trace
 from app.app_factory import create_app
 from app.config import ConfigManager
 from app.runtime import get_runtime
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 
 def _make_traceroute_result(hops=None, reached=True, fingerprint="abc123"):
@@ -26,7 +27,7 @@ def _make_traceroute_result(hops=None, reached=True, fingerprint="abc123"):
 
 @pytest.fixture
 def app(tmp_path):
-    app = create_app(config_manager=ConfigManager(str(tmp_path / "config")), environ={}, testing=True)
+    app = create_app(config_manager=ConfigManager(str(tmp_path / "config")), environ=dict(OPEN_INSTANCE_ENVIRON), testing=True)
     app.register_blueprint(bp)
 
     db_path = str(tmp_path / "test_cm.db")

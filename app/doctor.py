@@ -475,6 +475,24 @@ def _check_backup(raw_config: Mapping[str, Any], environ: Mapping[str, str]) -> 
     )
 
 
+def _check_admin_password(raw_config: Mapping[str, Any], environ: Mapping[str, str]) -> CheckResult:
+    """Without an admin password, DOCSight is locked until one is set, unless the operator opted out."""
+    from .web_auth import auth_disabled_requested, desktop_mode_requested
+
+    def result(status, message):
+        return CheckResult(id="auth.admin_password", category="security", status=status, message=message, core=False)
+
+    if _config_value(raw_config, environ, "admin_password"):
+        return result("pass", "an admin password is set")
+    if str(_config_value(raw_config, environ, "demo_mode")).lower() in ("true", "1", "yes", "on"):
+        return result("skipped", "demo mode needs no admin password")
+    if desktop_mode_requested(environ):
+        return result("pass", "the desktop app only listens on this computer")
+    if auth_disabled_requested(environ):
+        return result("warn", "AUTH_DISABLED is set: everyone who reaches DOCSight can see and change everything")
+    return result("warn", "no admin password yet: open DOCSight within 15 minutes after it starts and set one")
+
+
 def _check_module_inline_code(raw_config: Mapping[str, Any], environ: Mapping[str, str]) -> CheckResult:
     """Enabled community modules with inline JavaScript keep inline scripts allowed in the CSP."""
     from .module_inline_code import module_has_inline_code
@@ -638,6 +656,7 @@ def build_report(data_dir: str | None = None, environ: Mapping[str, str] | None 
     checks.append(_check_database(root))
     checks.append(_check_backup(raw_config, env))
     checks.extend(_check_integrations(raw_config, env))
+    checks.append(_check_admin_password(raw_config, env))
     checks.append(_check_module_inline_code(raw_config, env))
 
     serializable_checks = [check.as_dict() for check in checks]

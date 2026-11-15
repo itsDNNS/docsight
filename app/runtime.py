@@ -360,6 +360,9 @@ class DocsightRuntime:
     modem_collector: Any | None = field(default=None, repr=False)
     collectors: list[Any] = field(default_factory=list, repr=False)
     last_manual_poll: float = field(default=0.0, repr=False)
+    # time.monotonic() until which the first admin password may be set.
+    password_setup_deadline: float = field(default=0.0, repr=False)
+    password_setup_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
     _last_manual_poll_lock: threading.Lock = field(
         default_factory=threading.Lock,
         init=False,

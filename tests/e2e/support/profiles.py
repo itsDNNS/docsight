@@ -37,6 +37,8 @@ class ServerProfile:
     trusted_prefix_hops: int | None = None
     production_startup: bool = False
     disabled_modules: str = ""
+    # Keep DOCSight locked until the first admin password is set, as a real install is.
+    password_setup: bool = False
     post_seed_callback: Callable[[str], None] | None = field(
         default=None, repr=False, compare=False
     )
@@ -92,6 +94,9 @@ class ServerTarget:
         )
         if self.profile.demo_mode:
             environment["DEMO_MODE"] = "1"
+        if not self.admin_password and not self.profile.password_setup:
+            # Most journeys test DOCSight itself, not the first password step.
+            environment["AUTH_DISABLED"] = "true"
         if self.profile.base_path is not None:
             environment["BASE_PATH"] = self.profile.base_path
         if self.profile.trusted_prefix_hops is not None:

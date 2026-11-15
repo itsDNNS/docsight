@@ -18,6 +18,7 @@ PUBLIC_ENDPOINT_METHODS = {
     "health": {"GET"},  # container/runtime health probe
     "metrics_bp.metrics": {"GET"},  # Prometheus scrape endpoint
     "login": {"GET", "POST"},  # authentication entrypoint
+    "password_setup": {"GET", "POST"},  # first admin password, only shortly after start
     "service_worker": {"GET"},  # PWA service-worker asset
     "setup": {"GET"},  # first-run setup page
     "static": {"GET"},  # Flask static assets
@@ -141,6 +142,7 @@ def test_public_route_allowlist_matches_current_route_surface():
         ("health", "/health", ("GET",)),
         ("login", "/login", ("GET", "POST")),
         ("metrics_bp.metrics", "/metrics", ("GET",)),
+        ("password_setup", "/password-setup", ("GET", "POST")),
         ("service_worker", "/sw.js", ("GET",)),
         ("setup", "/setup", ("GET",)),
         ("static", "/static/<path:filename>", ("GET",)),

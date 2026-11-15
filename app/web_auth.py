@@ -4,11 +4,12 @@ import functools
 import logging
 import os
 import secrets
+import time
 from collections.abc import Mapping
 
 from cryptography.hazmat.primitives import hashes, hmac
 from flask import current_app, jsonify, redirect, request, session, url_for
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from .runtime import current_runtime
 
@@ -26,6 +27,8 @@ _AUTH_STATE_CONTEXT = b"docsight-admin-auth-state-v1\0"
 _SESSION_LIFETIME_DEFAULT_DAYS = 30
 _SESSION_LIFETIME_MIN_DAYS = 1
 _SESSION_LIFETIME_MAX_DAYS = 365
+_SETUP_PASSWORD_MIN_LENGTH = 8
+_SETUP_WINDOW_SECONDS = 900  # 15 min after start
 
 
 def _get_client_ip():
@@ -189,6 +192,53 @@ def _invalidate_admin_sessions():
     session.clear()
 
 
+def _truthy(value):
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def auth_disabled_requested(environ: Mapping[str, str]) -> bool:
+    """Whether the operator deliberately runs DOCSight without an admin password."""
+    return _truthy(environ.get("AUTH_DISABLED"))
+
+
+def desktop_mode_requested(environ: Mapping[str, str]) -> bool:
+    """The Windows desktop app listens only on this computer."""
+    return environ.get("DOCSIGHT_DESKTOP_MODE") == "1"
+
+
+def _open_without_password():
+    if current_app.config.get("DOCSIGHT_AUTH_DISABLED") or current_app.config.get("DOCSIGHT_DESKTOP_MODE"):
+        return True
+    _config_manager = current_runtime().config_manager
+    return bool(_config_manager and _config_manager.is_demo_mode())
+
+
+def password_setup_pending():
+    """True while nobody may use DOCSight until an admin password is set."""
+    return not _get_admin_password() and not _open_without_password()
+
+
+def password_setup_open():
+    """The first admin password can only be set shortly after DOCSight starts."""
+    return time.monotonic() < current_runtime().password_setup_deadline
+
+
+def announce_password_setup(app):
+    """Open the password setup window and tell the operator about it in the log."""
+    with app.app_context():
+        current_runtime().password_setup_deadline = time.monotonic() + _SETUP_WINDOW_SECONDS
+        if password_setup_pending():
+            log.warning(
+                "DOCSight has no admin password yet. Open DOCSight in your browser within "
+                "15 minutes to set one. After that, restart DOCSight to set it."
+            )
+        elif not _get_admin_password() and current_app.config.get("DOCSIGHT_AUTH_DISABLED"):
+            log.warning(
+                "AUTH_DISABLED is set: DOCSight runs without an admin password, so everyone "
+                "who can reach it can see and change everything, including stored passwords."
+            )
+
+
 def _auth_required(*, session_only=False):
     """Check if auth is enabled and user is not logged in.
 
@@ -198,7 +248,7 @@ def _auth_required(*, session_only=False):
     _storage = current_runtime().storage
     _sync_auth_state()
     if not _get_admin_password():
-        return False
+        return password_setup_pending()
     if _authenticated_session_is_valid():
         return False
     auth_header = request.headers.get("Authorization", "")
@@ -216,6 +266,10 @@ def require_auth(f, *, session_only=False):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
         if _auth_required(session_only=session_only):
+            if password_setup_pending():
+                if request.path.startswith("/api/"):
+                    return jsonify({"error": "Admin password not set", "setup_required": True}), 401
+                return redirect(url_for("password_setup"))
             if session_only and (getattr(request, "_api_token", None) or request.headers.get("Authorization", "").startswith("Bearer ")):
                 return jsonify({"error": "Session authentication required"}), 403
             if request.path.startswith("/api/"):
@@ -268,3 +322,33 @@ def _authenticate_login():
     limiter.record_failure(ip)
     audit_log.warning("Login failed: ip=%s", ip)
     return "login_failed", 200
+
+
+def _set_first_admin_password():
+    """Validate a setup submission and sign in with the new admin password."""
+    _config_manager = current_runtime().config_manager
+    ip = _get_client_ip()
+    if not _valid_login_csrf_token(request.form.get("csrf_token", "")):
+        audit_log.warning("Password setup rejected: invalid csrf token for ip=%s", ip)
+        return "password_setup_failed", 400
+    if not password_setup_open():
+        audit_log.warning("Password setup rejected: setup window closed for ip=%s", ip)
+        return "password_setup_expired", 403
+    password = request.form.get("password", "")
+    if len(password) < _SETUP_PASSWORD_MIN_LENGTH:
+        return "password_setup_too_short", 200
+    if not _secret_values_match(password, request.form.get("password_confirm", "")):
+        return "password_setup_mismatch", 200
+    with current_runtime().password_setup_lock:
+        # Two visitors may submit at once; only the first may set the password.
+        if _get_admin_password():
+            return "password_setup_failed", 409
+        # Hashed here: save() would keep a password that starts like a hash ("scrypt:...") as it is.
+        _config_manager.save({"admin_password": generate_password_hash(password)})
+    stored = _config_manager.get("admin_password", "")
+    _invalidate_admin_sessions()
+    session.permanent = True
+    session["authenticated"] = True
+    session[_AUTH_MARKER_SESSION_KEY] = _admin_session_marker(stored)
+    audit_log.info("First admin password set: ip=%s", ip)
+    return None, 302

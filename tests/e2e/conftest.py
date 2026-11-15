@@ -29,6 +29,7 @@ CONFIGURED_PROFILE = ServerProfile(
     "configured", configured=True, demo_mode=False
 )
 SETUP_PROFILE = ServerProfile("setup", configured=False, demo_mode=False)
+PASSWORD_SETUP_PROFILE = ServerProfile("password-setup", configured=False, demo_mode=False, password_setup=True)
 FIRST_RUN_PROFILE = ServerProfile(
     "first-run-production-startup",
     configured=False,
@@ -226,6 +227,14 @@ def first_run_server(tmp_path):
     target, spec = _new_target(
         "first-run", tmp_path / "first-run", FIRST_RUN_PROFILE
     )
+    with running_processes([spec]):
+        yield target.base_url
+
+
+@pytest.fixture()
+def password_setup_server(tmp_path):
+    """A fresh install without an admin password."""
+    target, spec = _new_target("password-setup", tmp_path / "password-setup", PASSWORD_SETUP_PROFILE)
     with running_processes([spec]):
         yield target.base_url
 
