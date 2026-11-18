@@ -7,20 +7,7 @@ from app.web import format_uptime
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.runtime import current_runtime
-
-
-_SAMPLE_ANALYSIS = {
-    "summary": {
-        "ds_total": 33, "us_total": 4,
-        "ds_power_min": -1.0, "ds_power_max": 5.0, "ds_power_avg": 2.5,
-        "us_power_min": 40.0, "us_power_max": 45.0, "us_power_avg": 42.5,
-        "ds_snr_min": 35.0, "ds_snr_avg": 37.0,
-        "ds_correctable_errors": 1234, "ds_uncorrectable_errors": 56,
-        "health": "good", "health_issues": [],
-    },
-    "ds_channels": [{"channel_id": 1, "power": 3.0, "snr": 35.0}],
-    "us_channels": [{"channel_id": 1, "power": 42.0}],
-}
+from tests.test_correlation import sample_analysis  # noqa: F401  (fixture)
 
 
 @pytest.fixture
@@ -37,12 +24,12 @@ def storage(tmp_path):
 
 
 @pytest.fixture
-def client(config_mgr, storage):
+def client(config_mgr, storage, sample_analysis):
     current_runtime().config_manager = config_mgr
     current_runtime().storage = storage
     app.config["TESTING"] = True
     # Seed analysis so the dashboard renders the hero card
-    current_runtime().update_state(analysis=_SAMPLE_ANALYSIS)
+    current_runtime().update_state(analysis=sample_analysis)
     with app.test_client() as c:
         yield c
 

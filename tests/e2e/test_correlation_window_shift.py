@@ -5,6 +5,8 @@ from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import expect
 
+from tests.e2e.test_cm_window_shift import _eventually, _hash_end
+
 
 def _record(page):
     seen = []
@@ -16,19 +18,6 @@ def _record(page):
 
     page.on("request", record)
     return seen
-
-
-def _eventually(page, condition):
-    for _ in range(100):
-        if condition():
-            return True
-        page.wait_for_timeout(50)
-    return condition()
-
-
-def _hash_end(page):
-    query = page.evaluate("location.hash").split("?", 1)[-1]
-    return parse_qs(query).get("end", [None])[0]
 
 
 def test_stepping_back_moves_every_source_and_the_chart_axis(page, live_server):

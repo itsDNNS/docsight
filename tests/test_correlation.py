@@ -3,14 +3,15 @@
 import json
 import sqlite3
 import pytest
-from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
 
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.tz import utc_now, utc_cutoff
 from app.config import ConfigManager
 from app.runtime import current_runtime
+from tests.conftest import insert_snapshot
 
 
 def _api_response_date(utc_ts: str) -> str:
@@ -121,18 +122,11 @@ class TestSpeedtestTimestampIndex:
 
 class TestCorrelationTimeline:
     def _seed_data(self, storage, speedtest_storage, sample_analysis):
-        """Insert modem snapshots, speedtest results, and events."""
+        """Insert modem snapshots, speedtest results, and events; return a (start, end) window over them."""
         now = datetime.now()
         # Modem snapshots
         for i in range(3):
-            ts = (now - timedelta(hours=3 - i)).strftime("%Y-%m-%dT%H:%M:%S")
-            with sqlite3.connect(storage.db_path) as conn:
-                conn.execute(
-                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                    (ts, json.dumps(sample_analysis["summary"]),
-                     json.dumps(sample_analysis["ds_channels"]),
-                     json.dumps(sample_analysis["us_channels"])),
-                )
+            insert_snapshot(storage, sample_analysis, (now - timedelta(hours=3 - i)).strftime("%Y-%m-%dT%H:%M:%S"))
         # Speedtest results
         speedtest_storage.save_speedtest_results([{
             "id": 10,
@@ -146,13 +140,11 @@ class TestCorrelationTimeline:
             (now - timedelta(hours=1, minutes=30)).strftime("%Y-%m-%dT%H:%M:%S"),
             "warning", "snr_change", "DS SNR dropped to 28.5 dB",
         )
-        return now
+        return (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S"), now.strftime("%Y-%m-%dT%H:%M:%S")
 
     def test_all_sources(self, storage, speedtest_storage, sample_analysis):
         """get_correlation_timeline returns all sources when sources=None."""
-        now = self._seed_data(storage, speedtest_storage, sample_analysis)
-        start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
-        end = now.strftime("%Y-%m-%dT%H:%M:%S")
+        start, end = self._seed_data(storage, speedtest_storage, sample_analysis)
         timeline = storage.get_correlation_timeline(start, end)
         sources = set(e["source"] for e in timeline)
         assert "modem" in sources
@@ -162,27 +154,21 @@ class TestCorrelationTimeline:
 
     def test_filtered_sources(self, storage, speedtest_storage, sample_analysis):
         """get_correlation_timeline respects sources filter."""
-        now = self._seed_data(storage, speedtest_storage, sample_analysis)
-        start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
-        end = now.strftime("%Y-%m-%dT%H:%M:%S")
+        start, end = self._seed_data(storage, speedtest_storage, sample_analysis)
         timeline = storage.get_correlation_timeline(start, end, sources={"modem"})
         assert all(e["source"] == "modem" for e in timeline)
         assert len(timeline) == 3
 
     def test_sorted_by_timestamp(self, storage, speedtest_storage, sample_analysis):
         """Timeline entries must be sorted chronologically."""
-        now = self._seed_data(storage, speedtest_storage, sample_analysis)
-        start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
-        end = now.strftime("%Y-%m-%dT%H:%M:%S")
+        start, end = self._seed_data(storage, speedtest_storage, sample_analysis)
         timeline = storage.get_correlation_timeline(start, end)
         timestamps = [e["timestamp"] for e in timeline]
         assert timestamps == sorted(timestamps)
 
     def test_modem_fields_present(self, storage, speedtest_storage, sample_analysis):
         """Modem entries must contain health, SNR, power fields."""
-        now = self._seed_data(storage, speedtest_storage, sample_analysis)
-        start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
-        end = now.strftime("%Y-%m-%dT%H:%M:%S")
+        start, end = self._seed_data(storage, speedtest_storage, sample_analysis)
         timeline = storage.get_correlation_timeline(start, end, sources={"modem"})
         m = timeline[0]
         assert m["source"] == "modem"
@@ -190,40 +176,21 @@ class TestCorrelationTimeline:
         assert "ds_snr_min" in m
         assert "ds_power_avg" in m
 
-    @pytest.mark.parametrize("remove_keys", [False, True])
-    def test_modem_unsupported_error_counters_remain_none(self, storage, sample_analysis, remove_keys):
+    @pytest.mark.parametrize("counters", [
+        pytest.param({"ds_correctable_errors": None, "ds_uncorrectable_errors": None}, id="null"),
+        pytest.param({}, id="missing"),
+        # Legacy unsupported snapshots with zero counters must not display fake zeroes.
+        pytest.param(
+            {"errors_supported": False, "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0},
+            id="unsupported-zero",
+        ),
+    ])
+    def test_modem_unsupported_error_counters_remain_none(self, storage, sample_analysis, counters):
         """Unsupported DOCSIS counters must not be normalized to zero in the timeline."""
-        unsupported = dict(sample_analysis["summary"])
-        if remove_keys:
-            unsupported.pop("ds_correctable_errors")
-            unsupported.pop("ds_uncorrectable_errors")
-        else:
-            unsupported["ds_correctable_errors"] = None
-            unsupported["ds_uncorrectable_errors"] = None
+        summary = dict(sample_analysis["summary"])
+        del summary["ds_correctable_errors"], summary["ds_uncorrectable_errors"]
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                (ts, json.dumps(unsupported), "[]", "[]"),
-            )
-
-        timeline = storage.get_correlation_timeline(ts, ts, sources={"modem"})
-
-        assert timeline[0]["ds_correctable_errors"] is None
-        assert timeline[0]["ds_uncorrectable_errors"] is None
-
-    def test_modem_errors_supported_false_zero_counters_remain_none(self, storage, sample_analysis):
-        """Legacy unsupported snapshots with zero counters must not display fake zeroes."""
-        unsupported = dict(sample_analysis["summary"])
-        unsupported["errors_supported"] = False
-        unsupported["ds_correctable_errors"] = 0
-        unsupported["ds_uncorrectable_errors"] = 0
-        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                (ts, json.dumps(unsupported), "[]", "[]"),
-            )
+        insert_snapshot(storage, {"summary": {**summary, **counters}, "ds_channels": [], "us_channels": []}, ts)
 
         timeline = storage.get_correlation_timeline(ts, ts, sources={"modem"})
 
@@ -232,9 +199,7 @@ class TestCorrelationTimeline:
 
     def test_speedtest_fields_present(self, storage, speedtest_storage, sample_analysis):
         """Speedtest entries must contain download, upload, ping."""
-        now = self._seed_data(storage, speedtest_storage, sample_analysis)
-        start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
-        end = now.strftime("%Y-%m-%dT%H:%M:%S")
+        start, end = self._seed_data(storage, speedtest_storage, sample_analysis)
         timeline = storage.get_correlation_timeline(start, end, sources={"speedtest"})
         s = timeline[0]
         assert s["source"] == "speedtest"
@@ -244,9 +209,7 @@ class TestCorrelationTimeline:
 
     def test_event_fields_present(self, storage, speedtest_storage, sample_analysis):
         """Event entries must contain severity, type, message."""
-        now = self._seed_data(storage, speedtest_storage, sample_analysis)
-        start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
-        end = now.strftime("%Y-%m-%dT%H:%M:%S")
+        start, end = self._seed_data(storage, speedtest_storage, sample_analysis)
         timeline = storage.get_correlation_timeline(start, end, sources={"events"})
         e = timeline[0]
         assert e["source"] == "event"
@@ -273,13 +236,7 @@ class TestCorrelationAPI:
     def test_correlation_endpoint_with_data(self, client_with_storage, storage, speedtest_storage, sample_analysis):
         """Correlation endpoint returns data from all sources."""
         ts = utc_now()
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                (ts, json.dumps(sample_analysis["summary"]),
-                 json.dumps(sample_analysis["ds_channels"]),
-                 json.dumps(sample_analysis["us_channels"])),
-            )
+        insert_snapshot(storage, sample_analysis, ts)
         speedtest_storage.save_speedtest_results([{
             "id": 99,
             "timestamp": ts,
@@ -341,13 +298,7 @@ class TestCorrelationAPI:
     def test_correlation_source_filter(self, client_with_storage, storage, sample_analysis):
         """Correlation endpoint respects sources filter."""
         ts = utc_now()
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                (ts, json.dumps(sample_analysis["summary"]),
-                 json.dumps(sample_analysis["ds_channels"]),
-                 json.dumps(sample_analysis["us_channels"])),
-            )
+        insert_snapshot(storage, sample_analysis, ts)
         storage.save_event(ts, "info", "health_change", "Health changed to good")
         resp = client_with_storage.get("/api/correlation?hours=1&sources=events")
         data = json.loads(resp.data)
@@ -361,13 +312,7 @@ class TestCorrelationAPI:
         """Selecting modem data must not attach its health to a speedtest."""
         ts = utc_cutoff(hours=3)
         modem_ts = utc_cutoff(hours=3, minutes=modem_age_minutes)
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                (modem_ts, json.dumps(sample_analysis["summary"]),
-                 json.dumps(sample_analysis["ds_channels"]),
-                 json.dumps(sample_analysis["us_channels"])),
-            )
+        insert_snapshot(storage, sample_analysis, modem_ts)
         speedtest_storage.save_speedtest_results([{
             "id": 100,
             "timestamp": ts,
@@ -396,16 +341,7 @@ class TestCorrelationAPI:
     def test_correlation_supports_ninety_day_range(self, client_with_storage, storage, sample_analysis):
         """Correlation API must honor 90d UI range instead of old 7d clamp."""
         old_ts = utc_cutoff(days=80)
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                (
-                    old_ts,
-                    json.dumps(sample_analysis["summary"]),
-                    json.dumps(sample_analysis["ds_channels"]),
-                    json.dumps(sample_analysis["us_channels"]),
-                ),
-            )
+        insert_snapshot(storage, sample_analysis, old_ts)
 
         resp = client_with_storage.get("/api/correlation?hours=2160&sources=modem")
 
@@ -418,13 +354,8 @@ class TestCorrelationAPI:
         self, client_with_storage, config_mgr, storage, sample_analysis
     ):
         config_mgr.save({"timezone": "Europe/Berlin"})
-        with sqlite3.connect(storage.db_path) as conn:
-            for ts in ("2026-10-03T15:30:00Z", "2026-10-03T17:30:00Z", "2026-10-03T18:30:00Z", utc_now()):
-                conn.execute(
-                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                    (ts, json.dumps(sample_analysis["summary"]), json.dumps(sample_analysis["ds_channels"]),
-                     json.dumps(sample_analysis["us_channels"])),
-                )
+        for ts in ("2026-10-03T15:30:00Z", "2026-10-03T17:30:00Z", "2026-10-03T18:30:00Z", utc_now()):
+            insert_snapshot(storage, sample_analysis, ts)
 
         # 20:00 in Berlin is 18:00 UTC; the window covers 16:00 to 18:00 UTC.
         resp = client_with_storage.get("/api/correlation?hours=2&sources=modem&end=2026-10-03T20:00")
@@ -436,17 +367,8 @@ class TestCorrelationAPI:
     def test_correlation_clamps_above_ninety_days(self, client_with_storage, storage, sample_analysis):
         inside_ts = utc_cutoff(days=80)
         outside_ts = utc_cutoff(days=100)
-        with sqlite3.connect(storage.db_path) as conn:
-            for ts in (inside_ts, outside_ts):
-                conn.execute(
-                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                    (
-                        ts,
-                        json.dumps(sample_analysis["summary"]),
-                        json.dumps(sample_analysis["ds_channels"]),
-                        json.dumps(sample_analysis["us_channels"]),
-                    ),
-                )
+        for ts in (inside_ts, outside_ts):
+            insert_snapshot(storage, sample_analysis, ts)
 
         resp = client_with_storage.get("/api/correlation?hours=9999&sources=modem")
 
@@ -458,8 +380,6 @@ class TestCorrelationAPI:
 
     def test_correlation_segment_source_filter(self, client_with_storage, storage):
         """Segment source can be explicitly selected via API sources param."""
-        from unittest.mock import patch, MagicMock
-
         mock_seg = MagicMock()
         mock_seg.get_range.return_value = [
             {"timestamp": utc_now(), "ds_total": 5.0, "us_total": 10.0,
@@ -474,16 +394,8 @@ class TestCorrelationAPI:
 
     def test_correlation_segment_excluded_when_not_requested(self, client_with_storage, storage, sample_analysis):
         """Segment source is excluded when other sources are explicitly listed."""
-        from unittest.mock import patch, MagicMock
-
         ts = utc_now()
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
-                (ts, json.dumps(sample_analysis["summary"]),
-                 json.dumps(sample_analysis["ds_channels"]),
-                 json.dumps(sample_analysis["us_channels"])),
-            )
+        insert_snapshot(storage, sample_analysis, ts)
         # Seed segment data so it would appear if filtering were broken
         mock_seg = MagicMock()
         mock_seg.get_range.return_value = [

@@ -4,9 +4,9 @@ import logging
 from app.storage.migrations import run_migrations
 from app.storage.sqlite import (
     DEFAULT_SQLITE_BUSY_TIMEOUT_MS,
+    DatabaseAccess,
     bulk_write,
     open_read,
-    write_transaction,
 )
 from .migrations import MIGRATIONS
 import threading
@@ -25,7 +25,7 @@ def _normalize_range_ts(ts, separator=" "):
     return ts[:10] + separator + ts[11:]
 
 
-class WeatherStorage:
+class WeatherStorage(DatabaseAccess):
     """Standalone weather data storage (not a mixin).
 
     Creates the weather_data table if it doesn't exist.
@@ -39,10 +39,6 @@ class WeatherStorage:
         lock_key = str(Path(db_path).expanduser().resolve(strict=False))
         self._lock = self._locks[lock_key]
         self._ensure_table()
-
-    def _connect(self):
-        """Compatibility context for internal test setup writes."""
-        return write_transaction(self.db_path)
 
     def _ensure_table(self):
         """Create the weather_data table if it doesn't exist."""

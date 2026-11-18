@@ -4,6 +4,7 @@ import pytest
 
 from app.storage import SnapshotStorage
 from app.runtime import current_runtime
+from tests.conftest import error_counter_coverage
 
 class TestSnapshotsAPI:
     @pytest.fixture
@@ -48,15 +49,9 @@ class TestSnapshotsAPI:
             "ds_comparable_correctable_errors": None,
             "ds_comparable_uncorrectable_errors": None,
             "ds_uncorr_pct": None,
-            "error_counter_coverage": {
-                "total_channels": 1,
-                "correctable_channels": 0,
-                "uncorrectable_channels": 1,
-                "comparable_channels": 0,
-                "partial_channels": 1,
-                "unsupported_channels": 0,
-                "families": {},
-            },
+            "error_counter_coverage": error_counter_coverage(
+                total=1, correctable=0, uncorrectable=1, comparable=0, partial=1,
+            ),
         })
         storage = SnapshotStorage(str(tmp_path / "partial.db"), max_days=7)
         storage.save_snapshot(sample_analysis)

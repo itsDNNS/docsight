@@ -261,10 +261,10 @@ class TestDocsisData:
         with patch.object(driver, "_fetch_payload", side_effect=lambda path: payloads[path]):
             data = driver.get_docsis_data()
 
-        assert len(data["channelDs"]["docsis30"]) == 2
-        assert len(data["channelDs"]["docsis31"]) == 1
-        assert len(data["channelUs"]["docsis30"]) == 1
-        assert len(data["channelUs"]["docsis31"]) == 1
+        assert {(d, lane): len(data[d][lane]) for d in ("channelDs", "channelUs") for lane in ("docsis30", "docsis31")} == {
+            ("channelDs", "docsis30"): 2, ("channelDs", "docsis31"): 1,
+            ("channelUs", "docsis30"): 1, ("channelUs", "docsis31"): 1,
+        }
 
         ds = data["channelDs"]["docsis30"][0]
         assert ds == {

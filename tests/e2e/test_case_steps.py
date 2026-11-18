@@ -4,6 +4,8 @@ import re
 
 from playwright.sync_api import expect
 
+from tests.e2e.test_case_cards import open_journal, serve_cases
+
 CASES = [
     {"id": 7, "name": "Evening dropouts", "status": "open", "description": "", "icon": None,
      "start_date": "2026-10-01", "end_date": "2026-10-05", "entry_count": 0},
@@ -36,31 +38,19 @@ CHECKLISTS = {
 }
 
 
-def _serve(page):
-    page.route(re.compile(r".*/api/incidents$"), lambda route: route.fulfill(json=CASES))
-    page.route(
-        re.compile(r".*/api/incidents/\d+/timeline$"),
-        lambda route: route.fulfill(json={
-            "incident": next(c for c in CASES if str(c["id"]) == route.request.url.rsplit("/", 2)[1]),
-            "entries": [], "timeline": [], "bnetz": [],
-        }),
-    )
-    page.route(
-        re.compile(r".*/api/evidence/checklist\?incident_id=\d+$"),
-        lambda route: route.fulfill(json={"summary": {}, "items": CHECKLISTS[route.request.url.rsplit("=", 1)[1]]}),
-    )
+def _open_cases(page):
+    serve_cases(page, CASES, lambda incident_id: {"summary": {}, "items": CHECKLISTS[incident_id]})
+    open_journal(page, 3)
 
 
 def _open_case(page, incident_id):
-    page.goto(page.url.split("#", 1)[0].split("?", 1)[0] + "?lang=en#journal", wait_until="networkidle")
-    expect(page.locator("#case-cards .case-card")).to_have_count(3)
     page.evaluate("id => openIncidentTimeline(id)", incident_id)
     expect(page.locator("#incident-timeline-steps")).to_be_visible()
 
 
 def test_open_evidence_is_the_current_step_and_offers_its_action(demo_page):
     page = demo_page
-    _serve(page)
+    _open_cases(page)
     _open_case(page, 7)
 
     steps = page.locator("#incident-timeline-steps .case-step")
@@ -95,7 +85,7 @@ def test_open_evidence_is_the_current_step_and_offers_its_action(demo_page):
 
 def test_a_case_with_all_evidence_moves_on_to_export(demo_page):
     page = demo_page
-    _serve(page)
+    _open_cases(page)
     _open_case(page, 8)
 
     steps = page.locator("#incident-timeline-steps .case-step")
@@ -107,7 +97,7 @@ def test_a_case_with_all_evidence_moves_on_to_export(demo_page):
 
 def test_a_case_without_window_asks_for_one_first(demo_page):
     page = demo_page
-    _serve(page)
+    _open_cases(page)
     _open_case(page, 9)
 
     steps = page.locator("#incident-timeline-steps .case-step")
@@ -124,9 +114,7 @@ def test_a_case_without_window_asks_for_one_first(demo_page):
 
 def test_without_the_evidence_module_the_window_leads_straight_to_export(demo_page):
     page = demo_page
-    _serve(page)
-    page.goto(page.url.split("#", 1)[0].split("?", 1)[0] + "?lang=en#journal", wait_until="networkidle")
-    expect(page.locator("#case-cards .case-card")).to_have_count(3)
+    _open_cases(page)
     page.evaluate("document.getElementById('view-evidence').remove()")
     page.evaluate("id => openIncidentTimeline(id)", 7)
 

@@ -1,23 +1,13 @@
 """Tests for collector discovery and polling orchestration."""
 
-"""Tests for the unified Collector Architecture."""
-
-import os
-import tempfile
 import threading
 import time
 from concurrent.futures import Future
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from app.collectors.base import Collector, CollectorResult
-from app.collectors.modem import ModemCollector
-from app.modules.speedtest.collector import SpeedtestCollector
-from app.modules.bqm.collector import BQMCollector
-from app.drivers.base import ModemDriver
-from app.drivers.fritzbox import FritzBoxDriver
-from app.drivers.ch7465 import CH7465Driver
 
 
 class TestDiscoverCollectors:

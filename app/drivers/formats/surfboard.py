@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ...types import DocsisDataFritz, RawChannel
-from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split
+from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split, ofdm_downstream
 from .primitives import hz_to_mhz
 
 
@@ -36,11 +36,7 @@ def parse_surfboard_downstream(raw: str) -> ParseResult[tuple[list[RawChannel], 
             corrected = int(fields[7])
             uncorrected = int(fields[8])
             if "OFDM" in modulation.upper():
-                docsis31.append({
-                    "channelID": channel_id, "type": "OFDM", "frequency": frequency,
-                    "powerLevel": power, "mer": snr, "mse": None,
-                    "corrErrors": corrected, "nonCorrErrors": uncorrected,
-                })
+                docsis31.append(ofdm_downstream(channel_id, frequency, power, snr, corrected, uncorrected))
             else:
                 docsis30.append({
                     "channelID": channel_id, "frequency": frequency, "powerLevel": power,

@@ -1,7 +1,10 @@
 """Shared factory fixtures for DOCSight tests."""
 
 import functools
+import json
 import os
+import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -64,12 +67,8 @@ def _factory_context_for_direct_route_tests(request, tmp_path_factory):
         yield
 
 
-@pytest.fixture(autouse=True)
-def _reset_direct_route_runtime(request):
-    if not _uses_factory_context(request.module):
-        yield
-        return
-    runtime = get_runtime(request.module.app)
+def reset_runtime(runtime):
+    """Drop the services and state a previous test wired into a shared app."""
     runtime.storage = None
     runtime.on_config_changed = None
     runtime.module_loader = None
@@ -78,6 +77,14 @@ def _reset_direct_route_runtime(request):
     runtime.state = RuntimeState()
     runtime.login_rate_limiter = LoginRateLimiter()
     runtime.derived_storage = DerivedStorageCache()
+
+
+@pytest.fixture(autouse=True)
+def _reset_direct_route_runtime(request):
+    if not _uses_factory_context(request.module):
+        yield
+        return
+    reset_runtime(get_runtime(request.module.app))
     yield
 
 
@@ -150,3 +157,131 @@ def make_client(make_app):
         return make_app(**kwargs).test_client()
 
     return factory
+
+
+@pytest.fixture
+def auth_config(tmp_path):
+    """Config with admin_password set."""
+    mgr = ConfigManager(str(tmp_path / "data"))
+    mgr.save({"modem_password": "test", "modem_type": "fritzbox", "admin_password": "secret123"})
+    return mgr
+
+
+@pytest.fixture
+def noauth_config(tmp_path):
+    """Config without admin_password."""
+    mgr = ConfigManager(str(tmp_path / "data"))
+    mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
+    return mgr
+
+
+@pytest.fixture
+def sample_analysis():
+    return {
+        "summary": {
+            "ds_total": 33,
+            "us_total": 4,
+            "ds_power_min": -1.0,
+            "ds_power_max": 5.0,
+            "ds_power_avg": 2.5,
+            "us_power_min": 40.0,
+            "us_power_max": 45.0,
+            "us_power_avg": 42.5,
+            "ds_snr_min": 35.0,
+            "ds_snr_avg": 37.0,
+            "ds_correctable_errors": 1234,
+            "ds_uncorrectable_errors": 56,
+            "health": "good",
+            "health_issues": [],
+            "us_capacity_mbps": 50.0,
+        },
+        "ds_channels": [{
+            "channel_id": 1,
+            "frequency": "602 MHz",
+            "power": 3.0,
+            "snr": 35.0,
+            "modulation": "256QAM",
+            "correctable_errors": 100,
+            "uncorrectable_errors": 5,
+            "docsis_version": "3.0",
+            "health": "good",
+            "health_detail": "",
+        }],
+        "us_channels": [{
+            "channel_id": 1,
+            "frequency": "37 MHz",
+            "power": 42.0,
+            "modulation": "64QAM",
+            "multiplex": "ATDMA",
+            "docsis_version": "3.0",
+            "health": "good",
+            "health_detail": "",
+        }],
+    }
+
+
+@pytest.fixture
+def sample_bnetz_parsed():
+    return {
+        "date": "2025-02-04",
+        "provider": "Vodafone",
+        "tariff": "GigaZuhause 1000 Kabel",
+        "download_max": 1000.0,
+        "download_normal": 850.0,
+        "download_min": 600.0,
+        "upload_max": 50.0,
+        "upload_normal": 35.0,
+        "upload_min": 15.0,
+        "measurement_count": 30,
+        "measurements_download": [{"nr": 1, "mbps": 883.29}],
+        "measurements_upload": [{"nr": 1, "mbps": 5.04}],
+        "download_measured_avg": 748.04,
+        "upload_measured_avg": 7.85,
+        "verdict_download": "deviation",
+        "verdict_upload": "deviation",
+    }
+
+
+def error_counter_coverage(*, total, correctable, uncorrectable, comparable, partial):
+    return {
+        "total_channels": total,
+        "correctable_channels": correctable,
+        "uncorrectable_channels": uncorrectable,
+        "comparable_channels": comparable,
+        "partial_channels": partial,
+        "unsupported_channels": 0,
+        "families": {},
+    }
+
+
+def mixed_error_counter_summary():
+    """Summary fields of two channels where only one reports both counters."""
+    return {
+        "errors_supported": True,
+        "ds_correctable_errors": 9900,
+        "ds_uncorrectable_errors": 1100,
+        "ds_comparable_correctable_errors": 9900,
+        "ds_comparable_uncorrectable_errors": 100,
+        "ds_uncorr_pct": 1.0,
+        "error_counter_coverage": error_counter_coverage(
+            total=2, correctable=1, uncorrectable=2, comparable=1, partial=1,
+        ),
+    }
+
+
+def utc_ts(delta):
+    return (datetime.now(timezone.utc) - delta).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def insert_snapshot(storage, analysis, timestamp):
+    """Store an analysis under an explicit timestamp, bypassing save_snapshot's clock."""
+    with sqlite3.connect(storage.db_path) as conn:
+        conn.execute(
+            "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
+            (
+                timestamp,
+                json.dumps(analysis["summary"]),
+                json.dumps(analysis["ds_channels"]),
+                json.dumps(analysis["us_channels"]),
+            ),
+        )

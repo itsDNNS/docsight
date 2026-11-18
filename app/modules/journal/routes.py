@@ -15,7 +15,7 @@ from io import BytesIO
 from flask import Blueprint, request, jsonify, send_file, make_response
 
 from app.tz import local_date_to_utc_range
-from app.web_auth import require_auth, _get_client_ip
+from app.web_auth import confirmed_delete_all, require_auth, _get_client_ip
 from app.storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_ENTRY
 
 from .import_parser import parse_file
@@ -435,11 +435,7 @@ def api_journal_batch_delete():
         return jsonify({"error": "No data"}), 400
 
     if data.get("all"):
-        if data.get("confirm") != "DELETE_ALL":
-            return jsonify({"error": "Confirmation required: set confirm to 'DELETE_ALL'"}), 400
-        deleted = _storage.delete_all_entries()
-        audit_log.info("All journal entries deleted: ip=%s count=%d", _get_client_ip(), deleted)
-        return jsonify({"deleted": deleted})
+        return confirmed_delete_all(data, _storage.delete_all_entries, "journal entries")
 
     ids = data.get("ids")
     if not ids or not isinstance(ids, list):

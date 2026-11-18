@@ -1,20 +1,10 @@
 """Tests for collector and modem driver base contracts."""
 
-"""Tests for the unified Collector Architecture."""
-
-import os
-import tempfile
 import time
 import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
 
 from app.collectors.base import Collector, CollectorResult
-from app.collectors.modem import ModemCollector
-from app.modules.speedtest.collector import SpeedtestCollector
-from app.modules.bqm.collector import BQMCollector
 from app.drivers.base import ModemDriver
-from app.drivers.fritzbox import FritzBoxDriver
-from app.drivers.ch7465 import CH7465Driver
 
 
 class TestCollectorResult:

@@ -107,6 +107,13 @@ SAMPLE_HELP_HTML = """
 """
 
 
+def serve_html(driver, text, method="get"):
+    """Patch driver._session.<method> to answer every request with text."""
+    response = MagicMock()
+    response.text = text
+    return patch.object(driver._session, method, return_value=response)
+
+
 @pytest.fixture
 def driver():
     return SB6141Driver("http://192.168.100.1", "", "")
@@ -115,11 +122,7 @@ def driver():
 @pytest.fixture
 def mock_signal(driver):
     """Patch session.get to return sample signal HTML."""
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.text = SAMPLE_SIGNAL_HTML
-
-    with patch.object(driver._session, "get", return_value=mock_response):
+    with serve_html(driver, SAMPLE_SIGNAL_HTML):
         yield driver
 
 
@@ -140,11 +143,7 @@ class TestDriverInit:
 
 class TestLogin:
     def test_login_verifies_reachability(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = SAMPLE_SIGNAL_HTML
-
-        with patch.object(driver._session, "get", return_value=mock_resp) as mock_get:
+        with serve_html(driver, SAMPLE_SIGNAL_HTML) as mock_get:
             driver.login()
             url = mock_get.call_args[0][0]
             assert "cmSignalData.htm" in url
@@ -232,11 +231,7 @@ class TestUpstream:
 
 class TestDeviceInfo:
     def test_parses_help_page(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = SAMPLE_HELP_HTML
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, SAMPLE_HELP_HTML):
             info = driver.get_device_info()
 
         assert info["manufacturer"] == "ARRIS Group, Inc."
@@ -291,11 +286,7 @@ class TestValueHelpers:
 
 class TestEdgeCases:
     def test_no_tables(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "<html><body></body></html>"
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, "<html><body></body></html>"):
             data = driver.get_docsis_data()
             assert data["channelDs"]["docsis30"] == []
             assert data["channelUs"]["docsis30"] == []
@@ -312,11 +303,7 @@ class TestEdgeCases:
         </table>
         </body></html>"""
 
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = html
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, html):
             data = driver.get_docsis_data()
             assert len(data["channelDs"]["docsis30"]) == 2
             assert data["channelDs"]["docsis30"][0]["corrErrors"] == 0

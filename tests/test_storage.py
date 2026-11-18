@@ -9,6 +9,7 @@ from app.storage import snapshot as snapshot_module
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
+from tests.conftest import mixed_error_counter_summary
 
 
 @pytest.fixture
@@ -277,23 +278,7 @@ class TestSnapshotStorage:
         assert intraday[0]["ds_uncorrectable_errors"] == 0
 
     def test_snapshot_preserves_raw_mixed_counter_values_and_additive_coverage(self, storage, sample_analysis):
-        sample_analysis["summary"].update({
-            "errors_supported": True,
-            "ds_correctable_errors": 9900,
-            "ds_uncorrectable_errors": 1100,
-            "ds_comparable_correctable_errors": 9900,
-            "ds_comparable_uncorrectable_errors": 100,
-            "ds_uncorr_pct": 1.0,
-            "error_counter_coverage": {
-                "total_channels": 2,
-                "correctable_channels": 1,
-                "uncorrectable_channels": 2,
-                "comparable_channels": 1,
-                "partial_channels": 1,
-                "unsupported_channels": 0,
-                "families": {},
-            },
-        })
+        sample_analysis["summary"].update(mixed_error_counter_summary())
 
         storage.save_snapshot(sample_analysis)
         snapshot = storage.get_latest_snapshot()
@@ -507,28 +492,6 @@ class TestSnapshotStorage:
 
         assert snapshots == ["2020-01-01T12:00:00Z"]
         assert events == ["2020-01-01T12:00:00Z"]
-
-
-@pytest.fixture
-def sample_bnetz_parsed():
-    return {
-        "date": "2025-02-04",
-        "provider": "Vodafone",
-        "tariff": "GigaZuhause 1000 Kabel",
-        "download_max": 1000.0,
-        "download_normal": 850.0,
-        "download_min": 600.0,
-        "upload_max": 50.0,
-        "upload_normal": 35.0,
-        "upload_min": 15.0,
-        "measurement_count": 30,
-        "measurements_download": [{"nr": 1, "mbps": 883.29}],
-        "measurements_upload": [{"nr": 1, "mbps": 5.04}],
-        "download_measured_avg": 748.04,
-        "upload_measured_avg": 7.85,
-        "verdict_download": "deviation",
-        "verdict_upload": "deviation",
-    }
 
 
 class TestBnetzStorage:

@@ -25,30 +25,35 @@ CHECKLISTS = {
 }
 
 
-def _serve(page):
-    page.route(re.compile(r".*/api/incidents$"), lambda route: route.fulfill(json=CASES))
+def serve_cases(page, cases, checklist):
+    """Route the case list, each case's timeline and its checklist, which is ``checklist(incident_id)``."""
+    page.route(re.compile(r".*/api/incidents$"), lambda route: route.fulfill(json=cases))
     page.route(
         re.compile(r".*/api/incidents/\d+/timeline$"),
         lambda route: route.fulfill(json={
-            "incident": next(c for c in CASES if str(c["id"]) == route.request.url.rsplit("/", 2)[1]),
+            "incident": next(c for c in cases if str(c["id"]) == route.request.url.rsplit("/", 2)[1]),
             "entries": [], "timeline": [], "bnetz": [],
         }),
     )
     page.route(
         re.compile(r".*/api/evidence/checklist\?incident_id=\d+$"),
-        lambda route: route.fulfill(json=CHECKLISTS[route.request.url.rsplit("=", 1)[1]]),
+        lambda route: route.fulfill(json=checklist(route.request.url.rsplit("=", 1)[1])),
     )
 
 
-def _open_journal(page):
+def open_journal(page, case_count):
     page.goto(page.url.split("#", 1)[0].split("?", 1)[0] + "?lang=en#journal", wait_until="networkidle")
-    expect(page.locator("#case-cards .case-card")).to_have_count(2)
+    expect(page.locator("#case-cards .case-card")).to_have_count(case_count)
+
+
+def _open_cases(page):
+    serve_cases(page, CASES, CHECKLISTS.__getitem__)
+    open_journal(page, 2)
 
 
 def test_cards_show_each_case_with_its_evidence_state(demo_page):
     page = demo_page
-    _serve(page)
-    _open_journal(page)
+    _open_cases(page)
 
     cards = page.locator("#case-cards .case-card")
     open_card, resolved_card = cards.nth(0), cards.nth(1)
@@ -65,8 +70,7 @@ def test_cards_show_each_case_with_its_evidence_state(demo_page):
 
 def test_continue_and_open_both_lead_into_the_case(demo_page):
     page = demo_page
-    _serve(page)
-    _open_journal(page)
+    _open_cases(page)
 
     cards = page.locator("#case-cards .case-card")
     cards.nth(1).get_by_role("button", name="Open").click()

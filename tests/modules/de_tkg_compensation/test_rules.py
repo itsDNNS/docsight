@@ -89,11 +89,11 @@ def test_missed_appointment_vectors_v6_and_v7(
     assert item.rule_ref == "TKG §58 Abs.4"
 
 
-def test_long_window_v8_has_no_legal_or_hidden_90_day_cap():
+def long_window_v8():
+    """V8: 120 confirmed outage days from day 3 after the report; returns (report date, days, result)."""
     report_date = date(2026, 1, 1)
     confirmed = _days(report_date + timedelta(days=3), 120)
-
-    result = compute_outage_compensation(
+    return report_date, confirmed, compute_outage_compensation(
         fault_report_received=report_date,
         restored=confirmed[-1],
         confirmed_full_outage_days=confirmed,
@@ -102,6 +102,10 @@ def test_long_window_v8_has_no_legal_or_hidden_90_day_cap():
         ruleset=RULESET_DE_TKG58,
         today=confirmed[-1],
     )
+
+
+def test_long_window_v8_has_no_legal_or_hidden_90_day_cap():
+    _, _, result = long_window_v8()
 
     assert len(result.days) == 120
     assert result.total_cents == 500 + 500 + (118 * 1_000)

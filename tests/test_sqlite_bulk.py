@@ -10,12 +10,12 @@ from app.storage import sqlite as sqlite_owner
 from tests.sqlite_helpers import install_counting_connect
 
 
-def _create_table(db_path):
+def _create_table(
+    db_path,
+    columns="id INTEGER PRIMARY KEY, text_value TEXT, int_value INTEGER, real_value REAL, blob_value BLOB, null_value TEXT",
+):
     with sqlite_owner.connect_sqlite(str(db_path)) as conn:
-        conn.execute(
-            "CREATE TABLE records (id INTEGER PRIMARY KEY, text_value TEXT, int_value INTEGER, "
-            "real_value REAL, blob_value BLOB, null_value TEXT)"
-        )
+        conn.execute(f"CREATE TABLE records ({columns})")
 
 
 def test_empty_bulk_does_not_open_connection(tmp_path, monkeypatch):

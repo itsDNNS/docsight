@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 
 from app.modules.de_tkg_compensation.report_windows import chunk_report_windows
 from app.modules.de_tkg_compensation.letter import render_claim_letter
@@ -12,6 +12,7 @@ from app.modules.de_tkg_compensation.rules import (
     empty_compensation_breakdown,
 )
 from app.modules.de_tkg_compensation.rules_data import RULESET_DE_TKG58
+from tests.modules.de_tkg_compensation.test_rules import long_window_v8
 
 
 def test_report_chunks_do_not_limit_claim_and_each_window_is_at_most_90_days():
@@ -57,17 +58,7 @@ def test_letter_is_deterministic_and_uses_the_calculation_breakdown():
 
 
 def test_long_window_letter_contains_the_same_complete_120_day_breakdown():
-    report_date = date(2026, 1, 1)
-    confirmed = [date(2026, 1, 4) + timedelta(days=offset) for offset in range(120)]
-    breakdown = compute_outage_compensation(
-        fault_report_received=report_date,
-        restored=confirmed[-1],
-        confirmed_full_outage_days=confirmed,
-        monthly_fee_cents=4_000,
-        replacement_solution_days=[],
-        ruleset=RULESET_DE_TKG58,
-        today=confirmed[-1],
-    )
+    report_date, confirmed, breakdown = long_window_v8()
 
     letter = render_claim_letter(
         claim={"fault_report_received_date": report_date.isoformat(), "restored_date": confirmed[-1].isoformat()},

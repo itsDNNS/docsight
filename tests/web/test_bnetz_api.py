@@ -21,28 +21,10 @@ class TestBnetzAPI:
         assert resp.status_code == 400
         assert "PDF" in resp.get_json()["error"]
 
-    def test_upload_and_list(self, storage_client):
+    def test_upload_and_list(self, storage_client, sample_bnetz_parsed):
         client, _, bnetz_st = storage_client
         # Directly insert via module storage (to avoid needing a real BNetzA PDF)
-        parsed = {
-            "date": "2025-02-04",
-            "provider": "Vodafone",
-            "tariff": "GigaZuhause 1000",
-            "download_max": 1000.0,
-            "download_normal": 850.0,
-            "download_min": 600.0,
-            "upload_max": 50.0,
-            "upload_normal": 35.0,
-            "upload_min": 15.0,
-            "measurement_count": 30,
-            "measurements_download": [],
-            "measurements_upload": [],
-            "download_measured_avg": 748.0,
-            "upload_measured_avg": 7.8,
-            "verdict_download": "deviation",
-            "verdict_upload": "deviation",
-        }
-        bnetz_st.save_bnetz_measurement(parsed, b"%PDF-test")
+        bnetz_st.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-test")
         resp = client.get("/api/bnetz/measurements")
         assert resp.status_code == 200
         data = resp.get_json()

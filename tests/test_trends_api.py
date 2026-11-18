@@ -12,10 +12,7 @@ from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.storage import SnapshotStorage
 from app.runtime import current_runtime
-
-
-def _utc_ts(delta: timedelta) -> str:
-    return (datetime.now(timezone.utc) - delta).strftime("%Y-%m-%dT%H:%M:%SZ")
+from tests.conftest import insert_snapshot as _insert_snapshot, utc_ts as _utc_ts
 
 
 def _analysis(
@@ -42,19 +39,6 @@ def _analysis(
         "ds_channels": [],
         "us_channels": [],
     }
-
-
-def _insert_snapshot(storage, analysis, timestamp):
-    with sqlite3.connect(storage.db_path) as conn:
-        conn.execute(
-            "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
-            (
-                timestamp,
-                json.dumps(analysis["summary"]),
-                json.dumps(analysis["ds_channels"]),
-                json.dumps(analysis["us_channels"]),
-            ),
-        )
 
 
 @pytest.fixture

@@ -18,24 +18,25 @@ if str(WINDOWS_DIR) not in sys.path:
 platform_adapter = importlib.import_module("desktop_platform")
 
 
-@pytest.mark.parametrize("wait_result", [0, 0x80])
-def test_named_mutex_parks_wait_release_and_close_on_one_thread(wait_result):
-    api_calls = []
-    caller_threads = []
+def thread_recording_kernel32(api_calls, wait_result=0):
+    """Fake kernel32 that records (name, thread id) for each mutex ownership call."""
 
     def record(name, result):
-        def call(*args):
-            api_calls.append((name, threading.get_ident(), args))
-            return result
+        return lambda *_args: api_calls.append((name, threading.get_ident())) or result
 
-        return call
-
-    api = SimpleNamespace(
-        CreateMutexW=record("create", 55),
+    return SimpleNamespace(
+        CreateMutexW=lambda *_args: 55,
         WaitForSingleObject=record("wait", wait_result),
         ReleaseMutex=record("release", True),
         CloseHandle=record("close", True),
     )
+
+
+@pytest.mark.parametrize("wait_result", [0, 0x80])
+def test_named_mutex_parks_wait_release_and_close_on_one_thread(wait_result):
+    api_calls = []
+    caller_threads = []
+    api = thread_recording_kernel32(api_calls, wait_result)
     mutex = platform_adapter.Win32NamedMutex("Global\\test", kernel32=api)
 
     def acquire_from_startup_worker():
@@ -48,28 +49,14 @@ def test_named_mutex_parks_wait_release_and_close_on_one_thread(wait_result):
     caller_threads.append(threading.get_ident())
     mutex.close()
 
-    ownership_calls = [
-        call for call in api_calls if call[0] in {"wait", "release", "close"}
-    ]
-    assert [call[0] for call in ownership_calls] == ["wait", "release", "close"]
-    assert len({call[1] for call in ownership_calls}) == 1
-    assert ownership_calls[0][1] not in caller_threads
+    assert [call[0] for call in api_calls] == ["wait", "release", "close"]
+    assert len({call[1] for call in api_calls}) == 1
+    assert api_calls[0][1] not in caller_threads
 
 
 def test_named_mutex_release_and_reacquire_are_safe_from_retry_thread():
     api_calls = []
-    api = SimpleNamespace(
-        CreateMutexW=lambda *_args: 55,
-        WaitForSingleObject=lambda *_args: (
-            api_calls.append(("wait", threading.get_ident())) or 0
-        ),
-        ReleaseMutex=lambda *_args: (
-            api_calls.append(("release", threading.get_ident())) or True
-        ),
-        CloseHandle=lambda *_args: (
-            api_calls.append(("close", threading.get_ident())) or True
-        ),
-    )
+    api = thread_recording_kernel32(api_calls)
     mutex = platform_adapter.Win32NamedMutex("Global\\test", kernel32=api)
     assert mutex.acquire()
     retry_caller = []

@@ -1,9 +1,8 @@
 """Tests for analyzer modulation, bitrate, and capacity calculations."""
 
 import pytest
-from unittest.mock import patch
 from app import analyzer
-from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps, _metric_healths
+from app.analyzer import analyze, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps
 from tests.analyzer.factories import (
     make_data as _make_data,
     make_ds30 as _make_ds30,
@@ -11,8 +10,6 @@ from tests.analyzer.factories import (
     make_us30 as _make_us30,
 )
 
-
-# -- parse_float --
 
 class TestParseQamOrder:
     def test_standard_qam(self):
@@ -830,23 +827,3 @@ class TestUpstreamCapacity:
         result = analyze(data)
         assert result["summary"]["us_capacity_mbps"] is None
 
-
-# -- Dynamic threshold tests --
-
-_TEST_THRESHOLDS = {
-    "downstream_power": {
-        "_default": "256QAM",
-        "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]},
-    },
-    "upstream_power": {
-        "_default": "sc_qam",
-        "sc_qam": {"good": [41, 47], "warning": [37, 51], "critical": [35, 53]},
-        "ofdma": {"good": [44, 47], "warning": [40, 48], "critical": [38, 50]},
-    },
-    "snr": {
-        "_default": "256QAM",
-        "256QAM": {"good_min": 33, "warning_min": 31, "critical_min": 30},
-    },
-    "upstream_modulation": {"critical_max_qam": 4, "warning_max_qam": 16},
-    "errors": {"uncorrectable_pct": {"warning": 1.0, "critical": 3.0}},
-}

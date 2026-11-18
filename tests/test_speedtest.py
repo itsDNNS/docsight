@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock
 from app.modules.speedtest.client import SpeedtestClient
 from app.config import ConfigManager, PASSWORD_MASK
 from app.runtime import current_runtime
+from tests.test_smart_capture_api import configured_client
 
 
 # ── Sample API responses ──
@@ -273,18 +274,10 @@ class TestSpeedtestConfig:
 
 @pytest.fixture
 def speedtest_client(tmp_path):
-    data_dir = str(tmp_path / "data")
-    mgr = ConfigManager(data_dir)
-    mgr.save({
-        "modem_password": "test",
-        "modem_type": "fritzbox",
-        "speedtest_tracker_url": "http://speedtest.local:8999",
-        "speedtest_tracker_token": "test-token",
-    })
-    current_runtime().config_manager = mgr
-    current_runtime().storage = None
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with configured_client(
+        tmp_path / "data",
+        **{"speedtest_tracker_url": "http://speedtest.local:8999", "speedtest_tracker_token": "test-token"},
+    ) as client:
         yield client
 
 
@@ -476,13 +469,7 @@ class TestSpeedtestAPI:
         assert data["ds_uncorrectable_errors"] == 0
 
     def test_api_speedtest_not_configured(self, tmp_path):
-        data_dir = str(tmp_path / "data2")
-        mgr = ConfigManager(data_dir)
-        mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        current_runtime().config_manager = mgr
-        current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with configured_client(tmp_path / "data2") as client:
             resp = client.get("/api/speedtest?days=7")
             assert resp.status_code == 200
             assert resp.get_json() == []
@@ -559,31 +546,16 @@ class TestSpeedtestRun:
         assert "Cannot reach" in resp.get_json()["error"]
 
     def test_run_not_configured(self, tmp_path):
-        data_dir = str(tmp_path / "data3")
-        mgr = ConfigManager(data_dir)
-        mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        current_runtime().config_manager = mgr
-        current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with configured_client(tmp_path / "data3") as client:
             resp = client.post("/api/speedtest/run")
             assert resp.status_code == 400
             assert "not configured" in resp.get_json()["error"]
 
     def test_run_blocked_in_demo_mode(self, tmp_path):
-        data_dir = str(tmp_path / "data4")
-        mgr = ConfigManager(data_dir)
-        mgr.save({
-            "modem_password": "test",
-            "modem_type": "fritzbox",
-            "demo_mode": True,
-            "speedtest_tracker_url": "http://speedtest.local:8999",
-            "speedtest_tracker_token": "[REDACTED]",
-        })
-        current_runtime().config_manager = mgr
-        current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with configured_client(
+            tmp_path / "data4",
+            **{"demo_mode": True, "speedtest_tracker_url": "http://speedtest.local:8999", "speedtest_tracker_token": "[REDACTED]"},
+        ) as client:
             resp = client.post("/api/speedtest/run")
             assert resp.status_code == 400
             assert "demo" in resp.get_json()["error"].lower()

@@ -14,18 +14,15 @@ import time
 import zlib
 from datetime import datetime, timedelta, timezone
 
-from .base import Collector, CollectorResult
+from .base import CollectorResult
+from .modem import AnalysisCollector
 from ..analyzer import (
     _assess_us_channel,
-    _build_signal_family_summary,
     _channel_bitrate_mbps,
     _metric_healths,
-    _recent_spike_active,
-    apply_cumulative_error_baseline,
-    apply_spike_suppression,
+    _signal_family_fields,
 )
 from ..event_detector import EventDetector
-from ..gaming_index import compute_gaming_index
 
 log = logging.getLogger("docsis.collector.demo")
 
@@ -139,7 +136,7 @@ def _load_base_data():
         return json.load(handle)
 
 
-class DemoCollector(Collector):
+class DemoCollector(AnalysisCollector):
     """Generates realistic DOCSIS data with slight random variation per poll.
 
     Uses the real analyzer pipeline — only the data source is simulated.
@@ -150,16 +147,7 @@ class DemoCollector(Collector):
     def __init__(self, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier=None, smart_capture=None):
         # Live polls continue the counters where the seeded history ends.
         self._error_counters = _DemoErrorCounters(_load_base_data())
-        super().__init__(poll_interval)
-        self._analyzer = analyzer_fn
-        self._event_detector = event_detector
-        self._storage = storage
-        self._mqtt_pub = mqtt_pub
-        self._web = web
-        self._notifier = notifier
-        self._smart_capture = smart_capture
-        # Connection count of the publisher when discovery was last sent.
-        self._discovery_connection = None
+        super().__init__(analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier, smart_capture)
         self._poll_count = 0
         self._device_info = {
             "manufacturer": "DOCSight",
@@ -267,48 +255,7 @@ class DemoCollector(Collector):
             self._web.update_state(connection_info=self._connection_info)
             self._seed_demo_data()
 
-        data = self._generate_data()
-        previous_analysis = self._storage.get_latest_snapshot()
-        last_spike_ts = self._storage.get_latest_spike_timestamp()
-        analysis = self._analyzer(data)
-        apply_cumulative_error_baseline(
-            analysis,
-            previous_analysis,
-            recent_spike_active=_recent_spike_active(last_spike_ts),
-        )
-        apply_spike_suppression(analysis, last_spike_ts)
-
-        # MQTT publishing
-        # Skipped while the broker is unreachable; discovery is sent again
-        # after every (re)connect, so a restarted broker gets its sensors back.
-        if self._mqtt_pub and self._mqtt_pub.is_connected:
-            connection = self._mqtt_pub.connection_count
-            if self._discovery_connection != connection:
-                self._mqtt_pub.publish_discovery(self._device_info)
-                self._mqtt_pub.publish_channel_discovery(
-                    analysis["ds_channels"], analysis["us_channels"], self._device_info
-                )
-                self._discovery_connection = connection
-                time.sleep(1)
-            speedtest = self._web.get_state().get("speedtest_latest")
-            gi = compute_gaming_index(speedtest)
-            self._mqtt_pub.publish_data(analysis, gaming_index=gi)
-
-        # Web state + persistent storage
-        self._web.update_state(analysis=analysis)
-        snapshot_id = self._storage.save_snapshot(analysis, is_demo=True)
-
-        # Event detection
-        events = self._event_detector.check(analysis, snapshot_id=snapshot_id)
-        if events:
-            self._storage.save_events_with_ids(events, is_demo=True)
-            log.info("Demo: detected %d event(s)", len(events))
-            if self._notifier:
-                self._notifier.dispatch(events)
-            if self._smart_capture:
-                self._smart_capture.evaluate(events)
-
-        return CollectorResult(source=self.name, data=analysis)
+        return self._process(self._generate_data(), is_demo=True)
 
     def _ensure_demo_module_tables(self):
         """Create local module tables before direct demo inserts on a fresh instance."""
@@ -566,10 +513,6 @@ class DemoCollector(Collector):
         us_bitrates = [ch["theoretical_bitrate"] for ch in us_channels if ch.get("theoretical_bitrate")]
         us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None
 
-        signal_families = _build_signal_family_summary(ds_channels, us_channels)
-        ds_family_summaries = signal_families["downstream"]["families"]
-        us_family_summaries = signal_families["upstream"]["families"]
-
         return {
             "summary": {
                 "ds_total": ds_count,
@@ -585,13 +528,7 @@ class DemoCollector(Collector):
                 "ds_correctable_errors": total_corr,
                 "ds_uncorrectable_errors": total_uncorr,
                 "us_capacity_mbps": us_capacity,
-                "signal_families": signal_families,
-                "ds_scqam_power_avg": ds_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
-                "ds_scqam_snr_avg": ds_family_summaries.get("sc_qam", {}).get("snr", {}).get("avg"),
-                "ds_ofdm_power_avg": ds_family_summaries.get("ofdm", {}).get("power", {}).get("avg"),
-                "ds_ofdm_mer_avg": ds_family_summaries.get("ofdm", {}).get("mer", {}).get("avg"),
-                "us_scqam_power_avg": us_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
-                "us_ofdma_power_avg": us_family_summaries.get("ofdma", {}).get("power", {}).get("avg"),
+                **_signal_family_fields(ds_channels, us_channels),
                 "health": health,
                 "health_issues": [],
             },

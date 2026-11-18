@@ -2,7 +2,7 @@
 
 import logging
 from app.storage.migrations import run_migrations
-from app.storage.sqlite import open_read, write_transaction
+from app.storage.sqlite import DatabaseAccess
 from .migrations import MIGRATIONS
 
 from app.tz import utc_now
@@ -10,7 +10,7 @@ from app.tz import utc_now
 log = logging.getLogger("docsis.storage.journal")
 
 
-class JournalStorage:
+class JournalStorage(DatabaseAccess):
     """Standalone journal data storage (not a mixin).
 
     Creates the journal_entries, journal_attachments, and incidents tables
@@ -24,16 +24,6 @@ class JournalStorage:
     def _ensure_table(self):
         """Create the journal tables if they don't exist."""
         run_migrations(self.db_path, MIGRATIONS)
-
-    def _connect(self):
-        """Compatibility context for internal test setup writes."""
-        return write_transaction(self.db_path)
-
-    def _read(self):
-        return open_read(self.db_path)
-
-    def _write(self):
-        return write_transaction(self.db_path)
 
     # ── Journal Entries ──
 

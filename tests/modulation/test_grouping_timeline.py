@@ -1,27 +1,10 @@
 """Tests for grouping, periods, timeline simplification, and degradation events."""
 
-"""Tests for the modulation performance engine (v2)."""
-
-import math
-
-import pytest
-
 from app.modules.modulation.engine import (
-    _parse_qam_order,
-    _canonical_label,
-    _distribution_pct,
-    _degraded_qam_threshold,
-    _health_index_for_group,
     _modulation_periods,
     _simplify_timeline,
     _channel_summary,
     _build_degraded_events,
-    compute_distribution,
-    compute_distribution_v2,
-    compute_intraday,
-    compute_trend,
-    MAX_QAM,
-    DISCLAIMER,
 )
 
 

@@ -5,30 +5,20 @@ import math
 import os
 
 from app.storage.migrations import run_migrations
-from app.storage.sqlite import bulk_write, open_read, write_transaction
+from app.storage.sqlite import DatabaseAccess, bulk_write
 from .migrations import MIGRATIONS
 import time
 
 logger = logging.getLogger(__name__)
 
 
-class ConnectionMonitorStorage:
+class ConnectionMonitorStorage(DatabaseAccess):
     """Manages connection_targets and connection_samples tables."""
 
     def __init__(self, db_path: str):
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
         self._init_tables()
-
-    def _connect(self):
-        """Compatibility context for internal test setup writes."""
-        return write_transaction(self.db_path)
-
-    def _read(self):
-        return open_read(self.db_path)
-
-    def _write(self):
-        return write_transaction(self.db_path)
 
     def _init_tables(self):
         run_migrations(self.db_path, MIGRATIONS)

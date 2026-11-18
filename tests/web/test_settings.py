@@ -11,6 +11,23 @@ from app.config import ConfigManager
 from app.module_loader import register_module_config
 from app.runtime import current_runtime
 from app import config as config_module
+from tests.test_bqm import single_module_loader
+
+SMART_CAPTURE_SELECTS = [
+    "sc_trigger_modulation_direction",
+    "sc_trigger_modulation_min_qam",
+    "sc_trigger_health_level",
+]
+SMART_CAPTURE_INPUTS = [
+    "sc_trigger_error_spike_min_delta",
+    "sc_trigger_packet_loss_min_pct",
+    "sc_global_cooldown",
+    "sc_trigger_cooldown",
+    "sc_max_actions_per_hour",
+    "sc_speedtest_min_interval",
+    "sc_speedtest_max_actions_per_day",
+    "sc_speedtest_match_window",
+]
 
 
 def _rendered_panel(html: str, panel_id: str):
@@ -84,21 +101,8 @@ class TestSettingsRoute:
             template_paths={"settings": "settings/about.html"},
         )
 
-        class Loader:
-            @staticmethod
-            def get_enabled_modules():
-                return [module]
-
-            @staticmethod
-            def get_modules():
-                return [module]
-
-            @staticmethod
-            def get_theme_modules():
-                return []
-
         previous_loader = current_runtime().module_loader
-        current_runtime().module_loader = Loader()
+        current_runtime().module_loader = single_module_loader(module)
         try:
             response = client.get("/settings?lang=en")
         finally:
@@ -319,23 +323,10 @@ class TestSettingsRoute:
         scoped_html = smart_capture + guardrails
 
         assert 'class="form-group"' not in scoped_html
-        for control_id in [
-            "sc_trigger_modulation_direction",
-            "sc_trigger_modulation_min_qam",
-            "sc_trigger_health_level",
-        ]:
+        for control_id in SMART_CAPTURE_SELECTS:
             assert re.search(rf'<select[^>]+class="form-input form-select"[^>]+id="{control_id}"', scoped_html)
             assert re.search(rf'<label[^>]+class="form-label"[^>]+for="{control_id}"', scoped_html)
-        for control_id in [
-            "sc_trigger_error_spike_min_delta",
-            "sc_trigger_packet_loss_min_pct",
-            "sc_global_cooldown",
-            "sc_trigger_cooldown",
-            "sc_max_actions_per_hour",
-            "sc_speedtest_min_interval",
-            "sc_speedtest_max_actions_per_day",
-            "sc_speedtest_match_window",
-        ]:
+        for control_id in SMART_CAPTURE_INPUTS:
             assert re.search(rf'<input[^>]+class="form-input"[^>]+id="{control_id}"', scoped_html)
             assert re.search(rf'<label[^>]+class="form-label"[^>]+for="{control_id}"', scoped_html)
 

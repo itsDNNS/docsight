@@ -2,16 +2,6 @@
 
 import time
 
-import pytest
-
-from app.modules.connection_monitor.storage import ConnectionMonitorStorage
-
-
-@pytest.fixture
-def storage(tmp_path):
-    db_path = str(tmp_path / "test_cm.db")
-    return ConnectionMonitorStorage(db_path)
-
 
 def _make_hops(count=3):
     """Helper to build a list of hop dicts."""

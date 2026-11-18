@@ -49,22 +49,6 @@ def test_keyed_sha256_digest_is_compatible_with_existing_auth_state_format():
 
 
 @pytest.fixture
-def auth_config(tmp_path):
-    """Config with admin_password set."""
-    mgr = ConfigManager(str(tmp_path / "data"))
-    mgr.save({"modem_password": "test", "modem_type": "fritzbox", "admin_password": "secret123"})
-    return mgr
-
-
-@pytest.fixture
-def noauth_config(tmp_path):
-    """Config without admin_password."""
-    mgr = ConfigManager(str(tmp_path / "data"))
-    mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-    return mgr
-
-
-@pytest.fixture
 def storage(tmp_path):
     """Provide a real SnapshotStorage for token tests."""
     return SnapshotStorage(str(tmp_path / "test_auth.db"), max_days=7)

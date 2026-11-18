@@ -11,27 +11,9 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from app.blueprints.modules_bp import _remove_downloaded_module
-from app.config import ConfigManager
-from app.storage import SnapshotStorage
-from app.runtime import current_runtime
 from app.theme_registry import download_theme
 from tests.fs_helpers import symlink_or_skip
-
-
-@pytest.fixture
-def storage(tmp_path):
-    return SnapshotStorage(str(tmp_path / "test.db"), max_days=7)
-
-
-@pytest.fixture
-def client(tmp_path, storage):
-    config_mgr = ConfigManager(str(tmp_path / "config"))
-    config_mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-    current_runtime().config_manager = config_mgr
-    current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as c:
-        yield c
+from tests.test_smart_capture_api import client, storage  # noqa: F401 (shared fixtures)
 
 
 def test_download_cleanup_is_confined_to_module_root(tmp_path):
