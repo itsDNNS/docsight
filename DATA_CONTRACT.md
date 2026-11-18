@@ -30,6 +30,8 @@ DOCSIS power and SNR summaries are null when no channel of a direction reports
 the value. Older versions stored 0 instead; on update, stored snapshots whose
 summary is 0 while none of their channels reported that value are rewritten to
 null. Snapshots backed by a channel value, including a measured 0, are kept.
+Their MQTT topics publish `None` for a missing value, which Home Assistant shows
+as unknown.
 
 ## User-owned local data
 

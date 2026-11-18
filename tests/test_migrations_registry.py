@@ -446,6 +446,10 @@ def test_unmeasured_zero_summaries_from_older_versions_become_null(tmp_path):
         (summary(0), [{"power": None, "snr": None}], [{"power": None}], summary(None)),
         (summary(0, ds_power=3.0), [{"power": 3.0, "snr": None}], [], summary(None, ds_power=3.0)),
         (summary(0, ds_snr=38.0), [{"power": 0.0, "snr": 38.0}], [{"power": 0.0}], summary(0, ds_snr=38.0)),
+        (summary(0), ["unknown"], [], summary(None)),
+        (summary(0), None, {"power": None}, summary(0)),
+        ({**summary(0), "ds_power_min": -1.0, "ds_power_max": 1.0}, [{"power": None, "snr": None}], [],
+         {**summary(None), "ds_power_min": -1.0, "ds_power_avg": 0, "ds_power_max": 1.0}),
     ]
     with sqlite3.connect(db_path) as conn:
         conn.executemany(
@@ -457,5 +461,7 @@ def test_unmeasured_zero_summaries_from_older_versions_become_null(tmp_path):
 
     with sqlite3.connect(db_path) as conn:
         stored = [row[0] for row in conn.execute("SELECT summary_json FROM snapshots ORDER BY id")]
+        migrations._apply_unmeasured_summary_null(conn)  # applying it twice changes nothing
+        assert [row[0] for row in conn.execute("SELECT summary_json FROM snapshots ORDER BY id")] == stored
     assert [json.loads(value) for value in stored[:-1]] == [row[3] for row in rows]
     assert stored[-1] == "not json"

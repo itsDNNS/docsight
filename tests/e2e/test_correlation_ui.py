@@ -1597,16 +1597,20 @@ def test_correlation_errors_are_growth_per_interval_and_one_crosshair_shows_all_
     expect(tooltip).to_contain_text("Signal state: Marginal")
 
 
-def test_correlation_tooltip_leaves_out_an_unreported_snr(demo_page):
+def test_correlation_tooltip_lists_a_measured_zero_and_leaves_out_an_unreported_snr(demo_page):
     page = demo_page
     payload, _weather = _cumulative_error_payload()
     payload[1]["ds_snr_min"] = None
+    payload[2].update(ds_snr_min=0, us_power_avg=0)
     _route_correlation(page, payload)
     _open_correlation(page)
 
     tooltip_text = _hover_correlation_timestamp(page, payload[1]["timestamp"]).inner_text()
     assert "DS Power: 2.0 dBmV" in tooltip_text
     assert "SNR:" not in tooltip_text
+    tooltip_text = _hover_correlation_timestamp(page, payload[2]["timestamp"]).inner_text()
+    assert "SNR: 0.0 dB" in tooltip_text
+    assert "TX Power: 0.0 dBmV" in tooltip_text
 
 
 def test_zoomed_correlation_range_opens_the_evidence_journey_for_the_same_window(demo_page):

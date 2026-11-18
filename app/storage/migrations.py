@@ -261,9 +261,10 @@ def _apply_unmeasured_summary_null(conn: sqlite3.Connection) -> None:
         conn.execute(
             f"UPDATE snapshots SET summary_json = json_set(summary_json, "
             f"'$.{key}_min', NULL, '$.{key}_max', NULL, '$.{key}_avg', NULL) "
-            f"WHERE json_valid(summary_json) AND json_extract(summary_json, '$.{key}_avg') = 0 "
-            f"AND json_valid({channels}) AND NOT EXISTS ("
-            f"SELECT 1 FROM json_each({channels}) WHERE json_extract(value, '$.{field}') IS NOT NULL)"
+            f"WHERE json_valid(summary_json) AND json_extract(summary_json, '$.{key}_min') = 0 "
+            f"AND json_extract(summary_json, '$.{key}_max') = 0 AND json_extract(summary_json, '$.{key}_avg') = 0 "
+            f"AND json_valid({channels}) AND json_type({channels}) = 'array' AND NOT EXISTS ("
+            f"SELECT 1 FROM json_each({channels}) WHERE type = 'object' AND json_extract(value, '$.{field}') IS NOT NULL)"
         )
 
 

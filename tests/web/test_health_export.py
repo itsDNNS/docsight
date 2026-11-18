@@ -45,10 +45,10 @@ class TestHealthEndpoint:
 class TestExportEndpoint:
     @pytest.mark.parametrize("mode,hours,limit", [("full", 48, 10), ("update", 6, 3)])
     def test_export_keeps_speedtests_without_inferred_modem_health(
-        self, client, sample_analysis, mode, hours, limit
+        self, client, sample_analysis, mode, hours, limit, tmp_path
     ):
         current_runtime().update_state(analysis=sample_analysis)
-        storage = Mock(db_path="unused.db")
+        storage = Mock(db_path=str(tmp_path / "unused.db"))
         storage.get_recent_events.return_value = []
         # This snapshot is within the old two-hour matching window, but cannot
         # establish modem health at the time of the speedtest.
@@ -105,14 +105,14 @@ class TestExportEndpoint:
         ("Lab \\\\| A", "Lab \\\\\\\\\\| A"),
         ("C:\\lab", "C:\\lab"),
     ])
-    def test_export_keeps_backslashes_before_pipes_distinct(self, client, sample_analysis, label, cell):
+    def test_export_keeps_backslashes_before_pipes_distinct(self, client, sample_analysis, label, cell, tmp_path):
         """A pipe escape must not swallow a backslash the label already had (#1106).
 
         GFM keeps ``\\|`` as one cell either way but renders it as ``|``, so the
         backslashes before a pipe are escaped too. Other backslashes stay as they are.
         """
         current_runtime().update_state(analysis=sample_analysis)
-        storage = Mock(db_path="unused.db")
+        storage = Mock(db_path=str(tmp_path / "unused.db"))
         storage.get_recent_events.return_value = [{
             "timestamp": "2026-11-11T10:00:00Z", "severity": "critical",
             "event_type": "cm_target_unreachable", "message": f"Target {label} unreachable",
@@ -124,10 +124,10 @@ class TestExportEndpoint:
         rows = [line for line in report.splitlines() if "cm_target_unreachable" in line]
         assert rows == [f"| 2026-11-11T10:00:00Z | critical | cm_target_unreachable | Target {cell} unreachable |"]
 
-    def test_export_keeps_user_text_in_one_event_table_cell(self, client, sample_analysis):
+    def test_export_keeps_user_text_in_one_event_table_cell(self, client, sample_analysis, tmp_path):
         """Target labels in event messages (#1106) must not split the Markdown table."""
         current_runtime().update_state(analysis=sample_analysis)
-        storage = Mock(db_path="unused.db")
+        storage = Mock(db_path=str(tmp_path / "unused.db"))
         storage.get_recent_events.return_value = [{
             "timestamp": "2026-11-11T10:00:00Z", "severity": "critical",
             "event_type": "cm_target_unreachable",

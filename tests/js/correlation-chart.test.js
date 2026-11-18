@@ -139,13 +139,18 @@ test('the nearest point respects skipped items, and a dot is a filled circle wit
         ['beginPath', 'arc', 'fillStyle=red', 'fill', 'strokeStyle=#fff', 'lineWidth=2', 'stroke']);
 });
 
-test('the SNR line leaves out modem points without an SNR value', () => {
-    const {st} = build([modem(1), modem(2, {ds_snr_min: null}), modem(3)]);
+test('signal lines break at a missing value and plot a measured 0 at its position', () => {
+    const {st} = build([modem(1), modem(2, {ds_snr_min: null, us_power_avg: null}), modem(3), modem(4, {ds_snr_min: 0, us_power_avg: 0})]);
     const ctx = recorder();
     chart.draw(ctx, st, {visible: ALL, events: st.events, labels: LABELS, parseTime, axisLabel: t => String(t)});
 
-    const end = ctx.calls.findIndex(c => c[0] === 'set' && c[1] === 'strokeStyle' && c[2] === colors.snr);
-    const start = ctx.calls.slice(0, end).map(c => c[0]).lastIndexOf('beginPath');
-    assert.deepEqual(ctx.calls.slice(start + 1, end).map(c => [c[0], c[1]]),
-        [['moveTo', st.xScale(T0 + HOUR)], ['lineTo', st.xScale(T0 + 3 * HOUR)]]);
+    const path = color => {
+        const end = ctx.calls.findIndex(c => c[0] === 'set' && c[1] === 'strokeStyle' && c[2] === color);
+        const start = ctx.calls.slice(0, end).map(c => c[0]).lastIndexOf('beginPath');
+        return ctx.calls.slice(start + 1, end).map(c => c.slice(0, 3));
+    };
+    const x = h => st.xScale(T0 + h * HOUR);
+    assert.ok(st.snrMin < 0 && st.txMin < 0);
+    assert.deepEqual(path(colors.snr), [['moveTo', x(1), st.ySnr(38)], ['moveTo', x(3), st.ySnr(38)], ['lineTo', x(4), st.ySnr(0)]]);
+    assert.deepEqual(path(colors.txPower), [['moveTo', x(1), st.yTx(42)], ['moveTo', x(3), st.yTx(42)], ['lineTo', x(4), st.yTx(0)]]);
 });
