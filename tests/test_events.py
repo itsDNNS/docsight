@@ -472,6 +472,19 @@ class TestEventDetector:
 
         assert [e for e in events if e["event_type"] == "snr_change"] == []
 
+    def test_poll_without_channels_emits_only_channel_changes(self, detector):
+        normal = analyze({
+            "channelDs": {"docsis30": [{"channelID": i, "powerLevel": "3.0", "modulation": "256QAM",
+                                        "mse": "-38", "corrErrors": 0, "nonCorrErrors": 0} for i in range(1, 5)]},
+            "channelUs": {"docsis30": [{"channelID": 1, "powerLevel": "44.0", "modulation": "64QAM"}]},
+        })
+        empty = analyze({"channelDs": {"docsis30": []}, "channelUs": {"docsis30": []}})
+
+        detector.check(normal)
+        events = detector.check(empty) + detector.check(normal)
+
+        assert {e["event_type"] for e in events} == {"channel_change"}
+
     def test_event_details_include_snapshot_traceability(self, detector):
         detector.check(_make_analysis(health="good"), snapshot_id=41)
 

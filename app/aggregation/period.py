@@ -125,20 +125,6 @@ def _snr_warning_threshold(
     return "missing", None
 
 
-def _has_measured_power(snapshot: Mapping[str, Any], summary: Mapping[str, Any], direction: str) -> bool:
-    """Whether summary power extremes were measured.
-
-    The analyzer writes 0 when no channel of a direction reports power, which
-    must not become the lowest recorded power.
-    """
-    if summary.get(f"{direction}_total") == 0:
-        return False
-    channels = snapshot.get(f"{direction}_channels")
-    return not (isinstance(channels, list) and channels and all(
-        isinstance(ch, Mapping) and "power" in ch and ch["power"] is None for ch in channels
-    ))
-
-
 def _bad_channels(
     ordered: Sequence[Mapping[str, Any]], direction: str
 ) -> list[tuple[Any, int]]:
@@ -252,7 +238,7 @@ def aggregate_snapshot_period(
 
         raw = summary.get("ds_power_min")
         numeric = _number(raw)
-        if numeric is not None and _has_measured_power(snapshot, summary, "ds"):
+        if numeric is not None:
             current = _number(worst["ds_power_min"])
             if current is None or numeric < current:
                 worst["ds_power_min"] = raw

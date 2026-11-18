@@ -287,7 +287,7 @@ function journalTimelineScales(data, width, height) {
     var tMax = Math.max.apply(null, allTs);
     if (tMin === tMax) tMax = tMin + 86400000;
 
-    var snrValues = modem.map(function(d) { return d.ds_snr_min || 0; }).filter(function(v) { return v > 0; });
+    var snrValues = modem.map(function(d) { return d.ds_snr_min; }).filter(Number.isFinite);
     var snrMin = snrValues.length ? Math.floor(Math.min.apply(null, snrValues) - 2) : 20;
     var snrMax = snrValues.length ? Math.ceil(Math.max.apply(null, snrValues) + 2) : 45;
 
@@ -389,7 +389,7 @@ function _renderTimelineChart(data) {
 
     // SNR line (modem)
     if (modem.length > 1) {
-        var sorted = modem.slice().sort(function(a, b) {
+        var sorted = modem.filter(function(d) { return Number.isFinite(d.ds_snr_min); }).sort(function(a, b) {
             return _timelineMs(a) - _timelineMs(b);
         });
         ctx.strokeStyle = accentColor;
@@ -397,7 +397,7 @@ function _renderTimelineChart(data) {
         ctx.beginPath();
         sorted.forEach(function(d, i) {
             var x = xScale(_timelineMs(d));
-            var y = ySnr(d.ds_snr_min || snrMin);
+            var y = ySnr(d.ds_snr_min);
             if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
         ctx.stroke();

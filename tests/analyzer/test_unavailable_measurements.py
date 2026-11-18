@@ -1,6 +1,9 @@
 """Regression tests for unavailable DOCSIS measurement semantics."""
 
+import pytest
+
 from app.analyzer import analyze
+from tests.analyzer.factories import make_data, make_ds30, make_us30
 
 
 def test_missing_and_invalid_power_values_remain_unavailable_and_excluded_from_summary():
@@ -130,3 +133,15 @@ def test_docsis_30_zero_mse_is_evaluated_as_real_snr_value():
     assert channel["health"] == "critical"
     assert "snr critical" in channel["health_detail"]
     assert "snr_critical" in result["summary"]["health_issues"]
+
+
+@pytest.mark.parametrize(("data", "expected"), [
+    (make_data(us30=[make_us30()]), {"ds_power": None, "ds_snr": None, "us_power": 42.0}),
+    (make_data(ds30=[make_ds30()]), {"ds_power": 3.0, "ds_snr": 35.0, "us_power": None}),
+    (make_data(ds30=[make_ds30(mse="n/a")], us30=[make_us30()]), {"ds_power": 3.0, "ds_snr": None, "us_power": 42.0}),
+])
+def test_summary_without_any_reported_value_is_unavailable_not_zero(data, expected):
+    summary = analyze(data)["summary"]
+    expected_fields = {f"{name}_{part}": value for name, value in expected.items() for part in ("min", "avg", "max")}
+
+    assert {key: summary[key] for key in expected_fields} == expected_fields

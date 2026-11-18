@@ -130,7 +130,7 @@
         function bandY(v, min, max) { return mainTop + mainH - (v - min) / (max - min) * mainH; }
 
         var dsPowerValues = modem.map(function (d) { return d.ds_power_avg; }).filter(finite);
-        var txValues = modem.map(function (d) { return d.us_power_avg; }).filter(function (v) { return finite(v) && v > 0; });
+        var txValues = modem.map(function (d) { return d.us_power_avg; }).filter(finite);
         var showDsPower = visible.dsPower && dsPowerValues.length > 0;
         var showTxPower = visible.txPower && txValues.length > 0;
         // DS and US power share one dBmV axis so their levels stay directly comparable.
@@ -139,7 +139,7 @@
         var power = bounds(powerValues, -10, 55);
         function yPower(v) { return bandY(v, power[0], power[1]); }
 
-        var snrValues = modem.map(function (d) { return d.ds_snr_min || 0; }).filter(function (v) { return v > 0; });
+        var snrValues = modem.map(function (d) { return d.ds_snr_min; }).filter(finite);
         var showSnr = visible.snr && snrValues.length > 0;
         var snr = bounds(snrValues, 20, 45);
         function ySnr(v) { return bandY(v, snr[0], snr[1]); }
@@ -302,13 +302,13 @@
         function x(entry) { return st.xScale(parseTime(entry.timestamp).getTime()); }
         var modem = st.modem;
         if (st.show.snr && modem.length > 1) {
-            drawSeries(modem.map(function (d) { return [x(d), st.ySnr(d.ds_snr_min || st.snrMin)]; }), c.snr, 2, []);
+            drawSeries(modem.map(function (d) { return finite(d.ds_snr_min) ? [x(d), st.ySnr(d.ds_snr_min)] : null; }), c.snr, 2, []);
         }
         if (st.show.txPower && modem.length > 1) {
-            drawSeries(modem.map(function (d) { return d.us_power_avg ? [x(d), st.yTx(d.us_power_avg)] : null; }), c.txPower, 2, [6, 3]);
+            drawSeries(modem.map(function (d) { return finite(d.us_power_avg) ? [x(d), st.yTx(d.us_power_avg)] : null; }), c.txPower, 2, [6, 3]);
         }
         if (st.show.dsPower && modem.length > 1) {
-            drawSeries(modem.map(function (d) { return d.ds_power_avg != null ? [x(d), st.yDsPower(d.ds_power_avg)] : null; }), c.dsPower, 1.5, [2, 3]);
+            drawSeries(modem.map(function (d) { return finite(d.ds_power_avg) ? [x(d), st.yDsPower(d.ds_power_avg)] : null; }), c.dsPower, 1.5, [2, 3]);
         }
         if (st.show.temperature) {
             drawSeries(st.weather.map(function (d) { return d.temperature == null ? null : [x(d), st.yTemp(d.temperature)]; }), c.temperature, 1.5, [5, 3]);

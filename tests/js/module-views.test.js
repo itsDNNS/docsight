@@ -82,6 +82,20 @@ test('Speedtest rows distinguish missing measurements from measured zero', () =>
     assert.match(rows[1], /0%/);
 });
 
+test('Speedtest signal detail leaves out power and SNR no channel reported', () => {
+    const {context} = browser();
+    context.document.createElement = () => ({...element(), children: [], appendChild(child) { this.children.push(child); }});
+    run(context, 'app/modules/speedtest/static/main.js');
+    const container = context.document.createElement('div');
+    context._renderSignalDetail({
+        found: true, health: 'good', ds_total: 0, us_total: 0, snapshot_timestamp: '2026-11-18T10:00:00Z',
+        ds_power_min: null, ds_power_avg: null, ds_power_max: null, ds_snr_min: null, ds_snr_avg: null,
+        us_power_min: null, us_power_avg: null, us_power_max: null,
+    }, container);
+    const text = container.children.map(item => item.children.map(part => part.textContent).join(': '));
+    assert.deepEqual(text, ['Health: Good', 'DS / US: 0 / 0', 'Snapshot: 2026-11-18T10:00:00Z']);
+});
+
 test('Speedtest rows name their expand toggle and show the server name', () => {
     const {context, elements} = browser(['speedtest-tbody']);
     const rows = [];

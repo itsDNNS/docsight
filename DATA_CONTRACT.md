@@ -24,6 +24,15 @@ New Speedtest results preserve missing measurements as null, including storage
 and display. Previously stored zeros cannot be distinguished from real zero
 measurements and are not rewritten.
 
+## Missing signal measurements
+
+DOCSIS power and SNR summaries are null when no channel of a direction reports
+the value. Older versions stored 0 instead; on update, stored snapshots whose
+summary is 0 while none of their channels reported that value are rewritten to
+null. Snapshots backed by a channel value, including a measured 0, are kept.
+Their MQTT topics publish `None` for a missing value, which Home Assistant shows
+as unknown.
+
 ## User-owned local data
 
 User-owned local data is created by running DOCSight against a real setup or by entering information in the app. Updates must preserve it unless the user explicitly deletes, migrates, restores, or replaces it.

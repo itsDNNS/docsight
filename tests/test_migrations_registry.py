@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import logging
 import sqlite3
 
@@ -405,7 +406,7 @@ def test_evidenced_module_legacy_shapes_reach_head_idempotently(
 def test_smart_capture_errors_from_older_versions_lose_their_details(tmp_path):
     migrations = _migrations_module()
     db_path = tmp_path / "legacy.db"
-    migrations.run_migrations(str(db_path), migrations.CORE_MIGRATIONS[:-1])
+    migrations.run_migrations(str(db_path), [m for m in migrations.CORE_MIGRATIONS if m.migration_id < "core-0006"])
     rows = [  # (action_type, status, stored error, expected error)
         ("capture", "expired", "STT returned 500: upstream body", "STT returned 500"),
         ("capture", "expired", "STT returned 5000: body", "Unexpected error, see the DOCSight log"),
@@ -430,3 +431,39 @@ def test_smart_capture_errors_from_older_versions_lose_their_details(tmp_path):
     with sqlite3.connect(db_path) as conn:
         errors = [row[0] for row in conn.execute("SELECT last_error FROM smart_capture_executions ORDER BY id")]
     assert errors == [row[3] for row in rows]
+
+
+def test_unmeasured_zero_summaries_from_older_versions_become_null(tmp_path):
+    migrations = _migrations_module()
+    db_path = tmp_path / "legacy.db"
+    migrations.run_migrations(str(db_path), [m for m in migrations.CORE_MIGRATIONS if m.migration_id < "core-0007"])
+
+    def summary(value, **measured):
+        return {f"{key}_{part}": measured.get(key, value) for key in ("ds_power", "us_power", "ds_snr") for part in ("min", "max", "avg")}
+
+    rows = [  # (summary, downstream channels, upstream channels, expected summary)
+        (summary(0), [], [], summary(None)),
+        (summary(0), [{"power": None, "snr": None}], [{"power": None}], summary(None)),
+        (summary(0, ds_power=3.0), [{"power": 3.0, "snr": None}], [], summary(None, ds_power=3.0)),
+        (summary(0, ds_snr=38.0), [{"power": 0.0, "snr": 38.0}], [{"power": 0.0}], summary(0, ds_snr=38.0)),
+        (summary(0), ["unknown"], [], summary(0, us_power=None)),
+        (summary(0), ['{"power": 0}'], [], summary(0, us_power=None)),
+        (summary(False), [], [], summary(False)),
+        (summary(0), None, {"power": None}, summary(0)),
+        ({**summary(0), "ds_power_min": -1.0, "ds_power_max": 1.0}, [{"power": None, "snr": None}], [],
+         {**summary(None), "ds_power_min": -1.0, "ds_power_avg": 0, "ds_power_max": 1.0}),
+    ]
+    with sqlite3.connect(db_path) as conn:
+        conn.executemany(
+            "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES ('t', ?, ?, ?)",
+            [tuple(json.dumps(value) for value in row[:3]) for row in rows] + [("not json", "[]", "[]")],
+        )
+
+    migrations.run_migrations(str(db_path), migrations.CORE_MIGRATIONS)
+
+    with sqlite3.connect(db_path) as conn:
+        stored = [row[0] for row in conn.execute("SELECT summary_json FROM snapshots ORDER BY id")]
+        migrations._apply_unmeasured_summary_null(conn)  # applying it twice changes nothing
+        assert [row[0] for row in conn.execute("SELECT summary_json FROM snapshots ORDER BY id")] == stored
+    assert [json.loads(value) for value in stored[:-1]] == [row[3] for row in rows]
+    assert stored[-1] == "not json"

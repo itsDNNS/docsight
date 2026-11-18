@@ -248,15 +248,15 @@ class AnalysisSummary(TypedDict):
 
     ds_total: int
     us_total: int
-    ds_power_min: float
-    ds_power_max: float
-    ds_power_avg: float
-    us_power_min: float
-    us_power_max: float
-    us_power_avg: float
-    ds_snr_min: float
-    ds_snr_max: float
-    ds_snr_avg: float
+    ds_power_min: float | None
+    ds_power_max: float | None
+    ds_power_avg: float | None
+    us_power_min: float | None
+    us_power_max: float | None
+    us_power_avg: float | None
+    ds_snr_min: float | None
+    ds_snr_max: float | None
+    ds_snr_avg: float | None
     ds_correctable_errors: int | None
     ds_uncorrectable_errors: int | None
     ds_comparable_correctable_errors: int | None
