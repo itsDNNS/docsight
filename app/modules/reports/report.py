@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 
 from fpdf import FPDF
+from fpdf.enums import ResourceAccessPolicy
 
 from app.aggregation import (
     ThresholdContext,
@@ -332,6 +333,9 @@ class IncidentReport(FPDF):
         super().__init__()
         self.lang = lang
         self._s = _get_report_strings(lang)
+        # Attachments come from users and integrations: never let an image,
+        # such as an SVG <image>, load server files or URLs.
+        self.resource_access_policy = ResourceAccessPolicy.NONE
         self.add_font("dejavu", "", os.path.join(_FONT_DIR, "DejaVuSans.ttf"))
         self.add_font("dejavu", "B", os.path.join(_FONT_DIR, "DejaVuSans-Bold.ttf"))
         self.add_font("dejavu", "I", os.path.join(_FONT_DIR, "DejaVuSans-Oblique.ttf"))

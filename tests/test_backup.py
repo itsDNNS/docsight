@@ -95,8 +95,8 @@ class TestCreateBackup:
             assert "docsis_history.db" in names
             assert "config.json" in names
             assert ".config_key" in names
-            assert ".session_key" in names
-            assert ".auth_state" in names
+            assert ".session_key" not in names
+            assert ".auth_state" not in names
 
     def test_meta_has_required_fields(self, backup_path):
         with tarfile.open(backup_path, mode="r:gz") as tar:
@@ -502,10 +502,8 @@ class TestRestore:
             result = restore_backup(archive, restore_dir)
         assert "docsis_history.db" in result["restored_files"]
         assert "config.json" in result["restored_files"]
-        assert ".auth_state" in result["restored_files"]
         assert os.path.exists(os.path.join(restore_dir, "docsis_history.db"))
         assert os.path.exists(os.path.join(restore_dir, "config.json"))
-        assert (tmp_path / "restore" / ".auth_state").read_bytes() == b"auth-state-fingerprint"
 
     def test_restored_data_correct(self, backup_path, tmp_path):
         restore_dir = str(tmp_path / "restore")

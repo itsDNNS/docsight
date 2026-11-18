@@ -95,11 +95,11 @@ DOCSight includes built-in authentication protecting all routes:
 
 DOCSight is never open by accident. Until an admin password exists, every page and API answers only with the "Set an admin password" step, and the first password can only be set within 15 minutes after DOCSight starts. After that, the page asks for a restart, so an instance that was left unclaimed cannot be taken over later by someone else on the network; the owner usually triggers the restart, for example by updating. The first submission wins and signs that browser in. Running without a password is a deliberate choice: set `AUTH_DISABLED=true`, and DOCSight shows a warning in the log, in Settings and in Doctor. Demo mode and the Windows desktop app, which only listens on the local computer, need no password.
 
-All routes are protected by the `require_auth` decorator. Sensitive management endpoints (token creation/revocation, settings) require a session login and cannot be accessed with API tokens alone.
+All routes are protected by the `require_auth` decorator. API tokens work only on `/api/` routes. They can read data, but they can only change data on routes that are explicitly open to integrations (see [API Token Security](#api-token-security)). Pages such as the dashboard and Settings, and everything else that changes state, such as settings, token management, backup and restore, modules and themes, and connection tests, require a session login. A token gets `403` there.
 
 Session cookies remain `HttpOnly` and use `SameSite=Lax`, allowing navigation from external top-level links without allowing normal cross-site subrequests to carry the cookie. Browser sessions are bound to the currently effective admin-password representation with a keyed, non-reversible marker. Changing or removing the password in Settings rotates the persistent signing key and logs out all browsers; environment-backed password changes also invalidate prior sessions when they are next used. Unchanged saved-secret masks, omitted password fields, unrelated settings saves, and safely detected re-entry of the same password do not invalidate sessions.
 
-The session key is stored in `DATA_DIR/.session_key`, so normal restarts with the same data directory preserve valid logins. `DATA_DIR/.auth_state` stores only a keyed fingerprint of the effective authentication state so that observed password removal and later same-value re-enablement cannot revive an old cookie. Both files are atomically written with mode `0600`. Cookies created before password binding was introduced do not contain the required marker and require a one-time login after upgrade. DOCSight does not store the admin password, its hash, or a reusable unkeyed password-derived value in either the cookie or auth-state file.
+The session key is stored in `DATA_DIR/.session_key`, so normal restarts with the same data directory preserve valid logins. Backups leave out `.session_key` and `.auth_state`, and a restore ignores them in older backups. `DATA_DIR/.auth_state` stores only a keyed fingerprint of the effective authentication state so that observed password removal and later same-value re-enablement cannot revive an old cookie. Both files are atomically written with mode `0600`. Cookies created before password binding was introduced do not contain the required marker and require a one-time login after upgrade. DOCSight does not store the admin password, its hash, or a reusable unkeyed password-derived value in either the cookie or auth-state file.
 
 For HTTPS deployments, enable trusted reverse-proxy mode with `REVERSE_PROXY`; DOCSight then keeps the session cookie `Secure`, so it is sent only over HTTPS. Do not expose an authenticated instance over unencrypted remote HTTP.
 
@@ -153,6 +153,8 @@ API tokens follow security best practices:
 - **Prefix display** — the first 8 characters (`dsk_XXXX`) are stored separately for identification in the UI
 - **Last-used tracking** — each successful token use updates a `last_used_at` timestamp
 - **Revocation** — tokens can be revoked instantly; revoked tokens are rejected on all subsequent requests
+- **Limited rights** — a token can read data from `/api/` routes. It can change data only where integrations need it: triggering a poll or a speedtest run, acknowledging events, creating and updating journal entries and incidents, pinning connection-monitor days, and fetching the BQM graph. Tokens cannot delete or bulk-import anything, upload attachments, or reach settings, token management, backup and restore, server directory browsing, modules and themes, connection and notification tests, connection-monitor targets and traceroutes, compensation claims and letters, or demo migration. Refused token requests are written to the audit log
+- **Restore keeps current tokens** — restoring a backup keeps the API tokens of the running instance, so a token revoked after the backup was made stays revoked
 
 ### Security Headers
 
@@ -223,7 +225,7 @@ Security-relevant events are logged to the `docsis.audit` logger:
 3. **Use strong modem passwords:** DOCSight inherits your modem's security
 4. **Review audit logs:** Check `docker logs docsight` or enable JSON audit logging for structured analysis
 5. **Backup your data:** `data/` directory contains all configuration and history
-6. **Protect backup archives:** Backups contain session-signing and encryption key material; store and transfer them like credentials
+6. **Protect backup archives:** Backups contain the encryption key for stored credentials; store and transfer them like credentials
 
 ## Defensive Review Checklist
 

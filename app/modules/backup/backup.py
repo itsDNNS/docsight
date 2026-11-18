@@ -23,10 +23,11 @@ from io import BytesIO
 
 log = logging.getLogger("docsis.backup")
 
-# Files under data_dir to include in backups
+# Files under data_dir to include in backups and to restore. Never the cookie
+# signing state (.session_key, .auth_state): it would let a backup forge sessions.
 DATA_FILES = [
     "docsis_history.db", "connection_monitor.db",
-    "config.json", ".config_key", ".session_key", ".auth_state",
+    "config.json", ".config_key",
 ]
 
 BACKUP_META_FILE = "backup_meta.json"
@@ -214,6 +215,25 @@ def validate_backup(archive_bytes):
         raise ValueError(f"Invalid archive: {e}") from e
 
 
+def _keep_live_api_tokens(live_db, staged_db):
+    """Carry the running instance's API tokens into a restored database.
+
+    Tokens are credentials, not history. Restoring an older database must not
+    bring back a token that was revoked since the backup was made.
+    """
+    with open_readonly(staged_db) as staged:
+        if not staged.execute("SELECT 1 FROM sqlite_master WHERE name = 'api_tokens'").fetchone():
+            return
+    rows = []
+    if os.path.exists(live_db):
+        with open_readonly(live_db) as live:
+            rows = live.execute("SELECT * FROM api_tokens").fetchall()
+    with write_transaction(staged_db) as conn:
+        conn.execute("DELETE FROM api_tokens")
+        for row in rows:
+            conn.execute("INSERT INTO api_tokens VALUES (?, ?, ?, ?, ?, ?, ?)", row)
+
+
 def restore_backup(archive_bytes, data_dir):
     """Restore a backup archive to data_dir.
 
@@ -284,6 +304,11 @@ def restore_backup(archive_bytes, data_dir):
                 raise ValueError(
                     f"Restored database failed integrity check: {name}: {integrity}"
                 )
+
+        if "docsis_history.db" in staged:
+            _keep_live_api_tokens(
+                os.path.join(data_dir, "docsis_history.db"), staged["docsis_history.db"]
+            )
 
         for name, staged_path in staged.items():
             destination = os.path.join(data_dir, name)

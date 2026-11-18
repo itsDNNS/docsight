@@ -224,7 +224,7 @@ def api_speedtest_signal(result_id):
 
 
 @bp.route("/api/speedtest/run", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_speedtest_run():
     """Trigger a speedtest run via the Speedtest Tracker API."""
     _config_manager = current_runtime().config_manager

@@ -129,7 +129,7 @@ def run_bqm_initial_fetch(config_manager=None, storage=None):
 
 
 @bp.route("/api/bqm/fetch-now", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_bqm_fetch_now():
     """Fetch configured BQM data immediately."""
     result = run_bqm_initial_fetch()

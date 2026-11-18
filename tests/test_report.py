@@ -510,3 +510,24 @@ def test_channel_health_colours_match_the_rating(health, expected):
 
     # Channels report "warning" where the summary says "marginal"; neither is critical.
     assert pdf._health_color(health) == colours[expected]
+
+
+
+def test_incident_report_never_loads_files_named_by_an_attachment(tmp_path):
+    from PIL import Image
+
+    secret = tmp_path / "server-image.png"
+    Image.new("RGB", (4, 4)).save(secret)
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+        f'width="10" height="10" viewBox="0 0 10 10"><image width="10" height="10" xlink:href="{secret}"/></svg>'
+    ).encode()
+    entry = {"date": "2026-05-01", "title": "Outage", "attachments": [{"id": 1, "mime_type": "image/png"}]}
+
+    pdf = generate_incident_report(
+        {"name": "Outage", "start_date": "2026-05-01", "end_date": "2026-05-01"},
+        entries=[entry], snapshots=MOCK_SNAPSHOTS, speedtests=[], bnetz_list=[],
+        attachment_loader=lambda _id: {"data": svg},
+    )
+
+    assert b"/Subtype /Image" not in bytes(pdf)

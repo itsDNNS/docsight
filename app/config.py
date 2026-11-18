@@ -292,6 +292,11 @@ class ConfigManager:
             # Value is likely plaintext (pre-encryption migration)
             return value
 
+    def reload(self):
+        """Re-read the encryption key and config.json, for example after a restore."""
+        self._fernet = self._init_fernet()
+        self._load()
+
     def _load(self):
         """Load config.json if it exists. Migrates legacy fritz_* keys to modem_*."""
         if os.path.exists(self.config_path):

@@ -231,7 +231,7 @@ def api_test_speedtest():
 
 
 @polling_bp.route("/api/poll", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_poll():
     """Trigger an immediate modem poll via ModemCollector.
 
