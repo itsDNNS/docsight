@@ -60,16 +60,21 @@ class WaitressServerAdapter:
                 if first_error is None:
                     first_error = error
 
-        attempt(self._server.close)
-        channels = tuple(self._server.active_channels.values())
-        for channel in channels:
-            attempt(channel.close)
+        # Workers first: a worker that finishes a request wakes the event loop
+        # through the server's trigger, which must still be open at that point.
+        # Only a worker still busy after the dispatcher timeout can miss it.
         attempt(
             lambda: self._server.task_dispatcher.shutdown(
                 cancel_pending=True,
                 timeout=TASK_DISPATCHER_SHUTDOWN_TIMEOUT_SECONDS,
             )
         )
+        attempt(self._server.close)
+        # A MultiSocketServer (several listen addresses) has no active_channels;
+        # its close() already closes every channel.
+        channels = tuple(getattr(self._server, "active_channels", {}).values())
+        for channel in channels:
+            attempt(channel.close)
 
         if first_error is not None:
             raise first_error

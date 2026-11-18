@@ -57,17 +57,28 @@ def test_close_closes_stable_active_channel_snapshot_and_dispatcher():
 
     WaitressServerAdapter(server).close()
 
+    # Workers stop before the server closes its trigger, which they use to wake the loop.
     assert calls == [
-        "server.close",
-        "channel-1.close",
-        "channel-2.close",
         (
             "dispatcher.shutdown",
             True,
             TASK_DISPATCHER_SHUTDOWN_TIMEOUT_SECONDS,
         ),
+        "server.close",
+        "channel-1.close",
+        "channel-2.close",
     ]
     assert TASK_DISPATCHER_SHUTDOWN_TIMEOUT_SECONDS == 1.0
+
+
+def test_close_handles_waitress_multi_socket_servers():
+    calls = []
+    server = _fake_server(calls)
+    del server.active_channels  # several listen addresses: Waitress returns a MultiSocketServer
+
+    WaitressServerAdapter(server).close()
+
+    assert calls == [("dispatcher.shutdown", True, 1.0), "server.close"]
 
 
 def test_duplicate_lifecycle_close_runs_adapter_shutdown_once():
@@ -81,10 +92,10 @@ def test_duplicate_lifecycle_close_runs_adapter_shutdown_once():
     adapter.close()
 
     assert calls == [
+        ("dispatcher.shutdown", True, 1.0),
         "server.close",
         "channel-1.close",
         "channel-2.close",
-        ("dispatcher.shutdown", True, 1.0),
     ]
 
 
@@ -97,10 +108,10 @@ def test_close_before_attach_runs_full_adapter_shutdown_once():
     lifecycle.close()
 
     assert calls == [
+        ("dispatcher.shutdown", True, 1.0),
         "server.close",
         "channel-1.close",
         "channel-2.close",
-        ("dispatcher.shutdown", True, 1.0),
     ]
 
 
