@@ -396,7 +396,7 @@ class ConfigManager:
     @staticmethod
     def _validate_url(key, value):
         """Validate that URL keys use http or https scheme only."""
-        if not value:
+        if value is None or value == "":
             return
         if not isinstance(value, str):
             raise ConfigValueError(f"{key} is not a valid URL")
@@ -418,10 +418,13 @@ class ConfigManager:
         data = dict(data)
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
 
-        # Validate URL keys before any mutation
+        # Validate URL keys and secrets before any mutation
         for key in URL_KEYS:
-            if key in data and data[key]:
+            if key in data:
                 self._validate_url(key, data[key])
+        for key in MODULE_SECRET_KEYS | SECRET_KEYS | HASH_KEYS | PRIVATE_KEYS:
+            if key in data and data[key] and not isinstance(data[key], str):
+                raise ConfigValueError(f"{key} must be text")
 
         # Integer keys only accept whole numbers; an empty value still means unset
         for key in INT_KEYS:

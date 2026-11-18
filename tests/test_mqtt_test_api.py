@@ -9,7 +9,8 @@ from paho.mqtt.reasoncodes import ReasonCode
 from app.config import PASSWORD_MASK
 
 DETAIL = "internal detail /data/.config_key"
-SAVED = {"mqtt_host": "broker.local", "mqtt_port": 8883, "mqtt_user": "u", "mqtt_password": "stored-broker-password"}
+SAVED = {"mqtt_host": "broker.local", "mqtt_port": 8883, "mqtt_user": "u", "mqtt_password": "stored-broker-password",
+         "mqtt_tls_insecure": True}
 
 
 class FakeClient:
@@ -64,7 +65,9 @@ def test_mqtt_test_waits_for_the_broker_answer(make_app, make_config, monkeypatc
     assert client.calls == calls
 
 
-@pytest.mark.parametrize("changed", [{"mqtt_host": "attacker.example"}, {"mqtt_port": 1883}, {"mqtt_user": "other"}])
+@pytest.mark.parametrize("changed", [
+    {"mqtt_host": "attacker.example"}, {"mqtt_port": 1883}, {"mqtt_user": "other"}, {"mqtt_tls_insecure": "false"},
+])
 def test_saved_password_only_goes_to_the_saved_broker(make_app, make_config, monkeypatch, changed):
     response, created = _post(make_app, make_config, monkeypatch, FakeClient("Success"), **changed)
 

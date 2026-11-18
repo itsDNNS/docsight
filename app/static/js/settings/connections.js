@@ -96,7 +96,8 @@ function testMqtt() {
     var data = getFormData();
     runConnectionTest({
         id: 'mqtt-test', url: '/api/test-mqtt', status: setMqttStatus,
-        body: {mqtt_host: data.mqtt_host, mqtt_port: data.mqtt_port, mqtt_user: data.mqtt_user, mqtt_password: data.mqtt_password, mqtt_tls_insecure: data.mqtt_tls_insecure},
+        // An anonymous broker gets no password, not even the saved-password mask.
+        body: {mqtt_host: data.mqtt_host, mqtt_port: data.mqtt_port, mqtt_user: data.mqtt_user, mqtt_password: data.mqtt_user ? data.mqtt_password : '', mqtt_tls_insecure: data.mqtt_tls_insecure},
         success: function() { return T.connected; }
     });
 }

@@ -42,12 +42,19 @@ def _pwa_push_configured(config_mgr):
 def _resolve_masked_secret(value, secret_key, submitted, saved):
     """Swap a masked secret for the saved one, but only for the saved destination.
 
-    Returns (secret, error). Without a saved secret there is nothing to protect.
+    ``saved`` returns the saved destination, including its TLS policy; it is only
+    read when a saved secret would be reused. Returns (secret, error).
     """
     if value != PASSWORD_MASK:
         return value, None
     stored = current_runtime().config_manager.get(secret_key) or None
-    if stored and submitted != saved:
+    if not stored:
+        return None, None
+    try:
+        matches = submitted == saved()
+    except (TypeError, ValueError, OverflowError):
+        matches = False
+    if not matches:
         return None, "Enter the password to test changed connection settings."
     return stored, None
 
@@ -66,11 +73,14 @@ def api_test_modem():
     try:
         data = request.get_json()
         modem_type = data.get("modem_type", "fritzbox")
+        # Drivers without a username ignore it, so it does not decide the destination.
+        uses_user = driver_registry.get_driver_hints().get(modem_type, {}).get("username_required") is not False
         password, error = _resolve_masked_secret(
             data.get("modem_password", ""), "modem_password",
-            (modem_type, data.get("modem_url") or "", data.get("modem_user") or ""),
-            (_config_manager.get("modem_type"), _config_manager.get("modem_url") or "",
-             _config_manager.get("modem_user") or ""),
+            (modem_type, data.get("modem_url") or "", data.get("modem_user") or "" if uses_user else ""),
+            # An empty saved URL never matches: the test would fall back to a default address.
+            lambda: (_config_manager.get("modem_type"), _config_manager.get("modem_url") or None,
+                     _config_manager.get("modem_user") or "" if uses_user else ""),
         )
         if error:
             return jsonify({"success": False, "error": error})
@@ -134,10 +144,11 @@ def api_test_mqtt():
         port = 0
     if not (isinstance(host, str) and isinstance(user, (str, type(None))) and 0 < port < 65536):
         return jsonify({"success": False, "error": "Invalid broker settings"}), 400
+    tls_insecure = parse_config_bool(data.get("mqtt_tls_insecure"))
     password, error = _resolve_masked_secret(
-        data.get("mqtt_password") or None, "mqtt_password", (host, port, user),
-        (_config_manager.get("mqtt_host"), parse_config_int(_config_manager.get("mqtt_port") or 1883),
-         _config_manager.get("mqtt_user") or None),
+        data.get("mqtt_password") or None, "mqtt_password", (host, port, user, tls_insecure),
+        lambda: (_config_manager.get("mqtt_host"), parse_config_int(_config_manager.get("mqtt_port") or 1883),
+                 _config_manager.get("mqtt_user") or None, parse_config_bool(_config_manager.get("mqtt_tls_insecure"))),
     )
     if error:
         return jsonify({"success": False, "error": error})
@@ -150,7 +161,7 @@ def api_test_mqtt():
 
     client, started = None, False
     try:
-        client = create_client("docsis-test", port, user, password, parse_config_bool(data.get("mqtt_tls_insecure")))
+        client = create_client("docsis-test", port, user, password, tls_insecure)
         client.on_connect = on_connect
         client.connect(host, port)
         started = client.loop_start() == MQTT_ERR_SUCCESS
@@ -256,7 +267,8 @@ def api_test_speedtest():
 
         saved_url = _config_manager.get("speedtest_tracker_url", "") if _config_manager else ""
         token = _config_manager.get("speedtest_tracker_token", "") if _config_manager else ""
-        if not saved_url or submitted_url.rstrip("/") != saved_url.rstrip("/"):
+        saved_tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
+        if not saved_url or submitted_url.rstrip("/") != saved_url.rstrip("/") or tls_insecure != saved_tls_insecure:
             return jsonify({
                 "success": False,
                 "error": "Save Speedtest Tracker settings before testing.",

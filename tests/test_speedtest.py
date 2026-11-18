@@ -361,10 +361,23 @@ class TestSpeedtestAPI:
         assert resp.get_json() == {"success": True, "results": 0}
         assert mock_get.call_args.args[0] == "http://speedtest.local:8999/api/v1/results"
 
+    @patch("app.blueprints.polling_bp.SpeedtestClient")
+    def test_api_test_speedtest_keeps_the_saved_tls_policy(self, mock_client, speedtest_client):
+        resp = speedtest_client.post("/api/test-speedtest", json={
+            "speedtest_tracker_url": "http://speedtest.local:8999",
+            "speedtest_tracker_token": PASSWORD_MASK,
+            "speedtest_tls_insecure": "true",
+        })
+
+        assert resp.get_json() == {"success": False, "error": "Save Speedtest Tracker settings before testing."}
+        mock_client.assert_not_called()
+
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_api_test_speedtest_passes_insecure_tls_flag(self, mock_get, speedtest_client):
 
-        current_runtime().config_manager.save({"speedtest_tracker_url": "https://speedtest.local:8443"})
+        current_runtime().config_manager.save({
+            "speedtest_tracker_url": "https://speedtest.local:8443", "speedtest_tls_insecure": True,
+        })
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}

@@ -103,3 +103,26 @@ def test_saved_modem_password_only_goes_to_the_saved_modem(modem_app, changed):
 
     assert response.json == {"success": False, "error": "Enter the password to test changed connection settings."}
     constructor.assert_not_called()
+
+
+def test_empty_saved_modem_url_never_receives_the_saved_password(make_app, make_config):
+    app = make_app(config_manager=make_config({"modem_type": "fritzbox", "modem_url": "", "modem_password": MODEM_PASSWORD}))
+    with patch("app.drivers.fritzbox.FritzBoxDriver", autospec=True) as constructor:
+        response = app.test_client().post("/api/test-modem", json={
+            "modem_type": "fritzbox", "modem_url": "", "modem_password": PASSWORD_MASK,
+        })
+
+    assert response.json == {"success": False, "error": "Enter the password to test changed connection settings."}
+    constructor.assert_not_called()
+
+
+def test_username_is_ignored_for_modems_without_one(make_app, make_config):
+    app = make_app(config_manager=make_config({
+        "modem_type": "ch7465_play", "modem_url": MODEM_URL, "modem_user": "leftover", "modem_password": MODEM_PASSWORD,
+    }))
+    with patch("app.drivers.ch7465.CH7465Driver", autospec=True) as constructor:
+        app.test_client().post("/api/test-modem", json={
+            "modem_type": "ch7465_play", "modem_url": MODEM_URL, "modem_user": "", "modem_password": PASSWORD_MASK,
+        })
+
+    assert constructor.call_args.args[2] == MODEM_PASSWORD

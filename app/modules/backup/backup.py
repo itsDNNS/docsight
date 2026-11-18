@@ -417,7 +417,10 @@ def browse_directory(path, allowed_roots=None):
         if data_dir:
             allowed_roots.append(data_dir)
 
-    real_path = os.path.realpath(path)
+    try:
+        real_path = os.path.realpath(path)
+    except ValueError:  # e.g. an embedded null byte; keep the library's wording out of the response
+        raise ValueError(f"Not a directory: {path}") from None
 
     # Security: ensure path is within allowed roots
     allowed = False

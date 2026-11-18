@@ -453,7 +453,7 @@ class TestConfigIntegerValidation:
             assert json.load(f)["history_days"] == 1500.5
 
 
-@pytest.mark.parametrize("url", ["http://[::1", ["http://a"], 42])
+@pytest.mark.parametrize("url", ["http://[::1", ["http://a"], 42, 0, []])
 def test_save_reports_unparsable_urls_without_library_text(tmp_path, url):
     from app.config import ConfigValueError
 
@@ -465,3 +465,10 @@ def test_save_leaves_the_callers_values_unchanged(tmp_path):
     values = {"modem_password": "secret-value", "poll_interval": "300"}
     ConfigManager(str(tmp_path)).save(values)
     assert values == {"modem_password": "secret-value", "poll_interval": "300"}
+
+
+def test_save_rejects_secrets_that_are_not_text(tmp_path):
+    from app.config import ConfigValueError
+
+    with pytest.raises(ConfigValueError, match="^mqtt_password must be text$"):
+        ConfigManager(str(tmp_path)).save({"mqtt_password": 12345})

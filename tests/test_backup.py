@@ -693,6 +693,7 @@ class TestBrowseDirectory:
         assert "exports" in result["directories"]
         assert result["path"] == os.path.realpath(data_root)
 
-    def test_browse_nonexistent_dir(self, tmp_path):
-        with pytest.raises(ValueError, match="Not a directory"):
-            browse_directory(str(tmp_path / "nope"), allowed_roots=[str(tmp_path)])
+    @pytest.mark.parametrize("name", ["nope", "bad\x00name"])
+    def test_browse_nonexistent_dir(self, tmp_path, name):
+        with pytest.raises(ValueError, match="^Not a directory: "):
+            browse_directory(str(tmp_path / name), allowed_roots=[str(tmp_path)])
