@@ -10,7 +10,6 @@ from email.utils import parsedate_to_datetime
 import pytest
 from werkzeug.security import generate_password_hash
 from app.web_auth import (
-    _AUTH_STATE_CONTEXT,
     _LOGIN_MAX_TRACKED_IPS,
     _keyed_sha256_hexdigest,
 )
@@ -43,7 +42,7 @@ def test_keyed_sha256_digest_is_compatible_with_existing_auth_state_format():
     )
 
     digest = _keyed_sha256_hexdigest(
-        key, _AUTH_STATE_CONTEXT + password_representation
+        key, b"docsight-admin-auth-state-v1\0" + password_representation
     )
 
     assert digest == "d9657a5a0e8823e7c611426f9e40f0ac2fd3af7c2df8479e90410f238bd89f31"

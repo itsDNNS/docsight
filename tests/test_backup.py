@@ -95,8 +95,8 @@ class TestCreateBackup:
             assert "docsis_history.db" in names
             assert "config.json" in names
             assert ".config_key" in names
-            assert ".session_key" in names
-            assert ".auth_state" in names
+            assert ".session_key" not in names
+            assert ".auth_state" not in names
 
     def test_meta_has_required_fields(self, backup_path):
         with tarfile.open(backup_path, mode="r:gz") as tar:
@@ -502,10 +502,31 @@ class TestRestore:
             result = restore_backup(archive, restore_dir)
         assert "docsis_history.db" in result["restored_files"]
         assert "config.json" in result["restored_files"]
-        assert ".auth_state" in result["restored_files"]
         assert os.path.exists(os.path.join(restore_dir, "docsis_history.db"))
         assert os.path.exists(os.path.join(restore_dir, "config.json"))
-        assert (tmp_path / "restore" / ".auth_state").read_bytes() == b"auth-state-fingerprint"
+
+    def test_skips_session_state_from_older_backups(self, tmp_path):
+        restore_dir = tmp_path / "restore"
+        restore_dir.mkdir()
+        (restore_dir / ".session_key").write_bytes(b"current-key")
+        archive = BytesIO()
+        with tarfile.open(fileobj=archive, mode="w:gz") as tar:
+            for name, payload in (
+                (BACKUP_META_FILE, json.dumps({"magic": "docsight-backup", "format_version": 1}).encode()),
+                ("config.json", b'{"modem_type": "fritzbox"}'),
+                (".session_key", b"key-from-backup"),
+                (".auth_state", b"fingerprint-from-backup"),
+            ):
+                info = tarfile.TarInfo(name)
+                info.size = len(payload)
+                tar.addfile(info, BytesIO(payload))
+        archive.seek(0)
+
+        result = restore_backup(archive, str(restore_dir))
+
+        assert result["restored_files"] == ["config.json"]
+        assert (restore_dir / ".session_key").read_bytes() == b"current-key"
+        assert not (restore_dir / ".auth_state").exists()
 
     def test_restored_data_correct(self, backup_path, tmp_path):
         restore_dir = str(tmp_path / "restore")

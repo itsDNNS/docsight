@@ -23,12 +23,16 @@ _LOGIN_MAX_TRACKED_IPS = 2048
 _LOGIN_CSRF_SESSION_KEY = "login_csrf_token"
 _AUTH_MARKER_SESSION_KEY = "auth_marker"
 _AUTH_MARKER_CONTEXT = b"docsight-admin-session-v1\0"
-_AUTH_STATE_CONTEXT = b"docsight-admin-auth-state-v1\0"
+# v2: backups made before this version contain .session_key. Changing the
+# context makes every existing installation rotate its signing key once on
+# startup, so cookies can no longer be forged from such a backup.
+_AUTH_STATE_CONTEXT = b"docsight-admin-auth-state-v2\0"
 _SESSION_LIFETIME_DEFAULT_DAYS = 30
 _SESSION_LIFETIME_MIN_DAYS = 1
 _SESSION_LIFETIME_MAX_DAYS = 365
 _SETUP_PASSWORD_MIN_LENGTH = 8
 _SETUP_WINDOW_SECONDS = 900  # 15 min after start
+_TOKEN_READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
 def _get_client_ip():
@@ -261,8 +265,25 @@ def _auth_required(*, session_only=False):
     return True
 
 
-def require_auth(f, *, session_only=False):
-    """Decorator: redirect to /login or return 401 JSON for API paths."""
+def _refuse_token():
+    audit_log.warning(
+        "API token refused, session required: method=%s path=%s ip=%s",
+        request.method, request.path, _get_client_ip(),
+    )
+    return jsonify({"error": "Session authentication required"}), 403
+
+
+def require_auth(f=None, *, session_only=False, token_writes=False):
+    """Decorator: redirect to /login or return 401 JSON for API paths.
+
+    API tokens are meant for integrations. They may read, but a route accepts
+    a write from a token only when it opts in with ``token_writes=True``; every
+    other write needs a signed-in admin session. ``session_only=True`` refuses
+    tokens entirely.
+    """
+    if f is None:
+        return functools.partial(require_auth, session_only=session_only, token_writes=token_writes)
+
     @functools.wraps(f)
     def decorated(*args, **kwargs):
         if _auth_required(session_only=session_only):
@@ -271,11 +292,15 @@ def require_auth(f, *, session_only=False):
                     return jsonify({"error": "Admin password not set", "setup_required": True}), 401
                 return redirect(url_for("password_setup"))
             if session_only and (getattr(request, "_api_token", None) or request.headers.get("Authorization", "").startswith("Bearer ")):
-                return jsonify({"error": "Session authentication required"}), 403
+                return _refuse_token()
             if request.path.startswith("/api/"):
                 return jsonify({"error": "Authentication required"}), 401
             return redirect(url_for("login"))
+        if getattr(request, "_api_token", None) and not token_writes and request.method not in _TOKEN_READ_METHODS:
+            return _refuse_token()
         return f(*args, **kwargs)
+
+    decorated.docsight_token_access = "none" if session_only else ("write" if token_writes else "read")
     return decorated
 
 

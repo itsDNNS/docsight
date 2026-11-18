@@ -26,8 +26,11 @@ log = logging.getLogger("docsis.backup")
 # Files under data_dir to include in backups
 DATA_FILES = [
     "docsis_history.db", "connection_monitor.db",
-    "config.json", ".config_key", ".session_key", ".auth_state",
+    "config.json", ".config_key",
 ]
+# Cookie signing state. Older backups contain these files; a restore skips
+# them, because whoever holds the session key can forge an admin session.
+SESSION_STATE_FILES = frozenset({".session_key", ".auth_state"})
 
 BACKUP_META_FILE = "backup_meta.json"
 FORMAT_VERSION = 1
@@ -245,6 +248,8 @@ def restore_backup(archive_bytes, data_dir):
         with tarfile.open(fileobj=archive_bytes, mode="r:gz") as tar:
             for member in tar.getmembers():
                 if member.name == BACKUP_META_FILE:
+                    continue
+                if member.name in SESSION_STATE_FILES:
                     continue
                 if member.name not in DATA_FILES:
                     log.warning("Skipping unknown file in backup: %s", member.name)

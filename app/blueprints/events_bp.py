@@ -181,7 +181,7 @@ def _event_ids_from_request():
 
 
 @events_bp.route("/api/events/<int:event_id>/acknowledge", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_event_acknowledge(event_id):
     """Acknowledge a single event."""
     _storage = current_runtime().storage
@@ -193,7 +193,7 @@ def api_event_acknowledge(event_id):
 
 
 @events_bp.route("/api/events/acknowledge", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_events_acknowledge():
     """Acknowledge a list of events, e.g. the selection or everything visible in the log."""
     _storage = current_runtime().storage
@@ -207,7 +207,7 @@ def api_events_acknowledge():
 
 
 @events_bp.route("/api/events/unacknowledge", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_events_unacknowledge():
     """Undo an acknowledgement right after it, e.g. from the toast's Undo."""
     _storage = current_runtime().storage
@@ -221,7 +221,7 @@ def api_events_unacknowledge():
 
 
 @events_bp.route("/api/events/acknowledge-all", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_events_acknowledge_all():
     """Acknowledge all unacknowledged events."""
     _storage = current_runtime().storage

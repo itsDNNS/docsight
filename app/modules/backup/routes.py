@@ -33,7 +33,7 @@ def _int_config(config_mgr, key, default):
 
 
 @bp.route("/api/backup", methods=["POST"])
-@require_auth
+@require_auth(session_only=True)
 def api_backup_download():
     """Create a backup and stream it as download."""
     _config_manager = current_runtime().config_manager
@@ -81,7 +81,7 @@ def api_backup_download():
 
 
 @bp.route("/api/backup/scheduled", methods=["POST"])
-@require_auth
+@require_auth(session_only=True)
 def api_backup_scheduled():
     """Create a backup in the configured backup path."""
     _config_manager = current_runtime().config_manager
@@ -100,7 +100,7 @@ def api_backup_scheduled():
 
 
 @bp.route("/api/backup/list")
-@require_auth
+@require_auth(session_only=True)
 def api_backup_list():
     """List backups in the configured backup path."""
     _config_manager = current_runtime().config_manager
@@ -111,7 +111,7 @@ def api_backup_list():
 
 
 @bp.route("/api/backup/<filename>", methods=["DELETE"])
-@require_auth
+@require_auth(session_only=True)
 def api_backup_delete(filename):
     """Delete a backup file."""
     _config_manager = current_runtime().config_manager
@@ -134,7 +134,7 @@ def api_backup_delete(filename):
 
 
 @bp.route("/api/restore/validate", methods=["POST"])
-@require_auth
+@require_auth(session_only=True)
 def api_restore_validate():
     """Validate a backup archive and return metadata."""
     if "file" not in request.files:
@@ -154,7 +154,7 @@ def api_restore_validate():
 
 
 @bp.route("/api/restore", methods=["POST"])
-@require_auth
+@require_auth(session_only=True)
 def api_restore():
     """Restore a backup archive."""
     _config_manager = current_runtime().config_manager
@@ -193,7 +193,7 @@ def api_restore():
 
 
 @bp.route("/api/browse")
-@require_auth
+@require_auth(session_only=True)
 def api_browse():
     """Browse server-side directories for backup path selection."""
     path = request.args.get("path", "/backup")

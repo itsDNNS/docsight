@@ -429,7 +429,7 @@ def api_claims_list():
 
 
 @bp.route("/api/de-tkg/claims", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_claims_create():
     storage = _storage()
     if not storage:
@@ -461,7 +461,7 @@ def api_claim_get(claim_id):
 
 
 @bp.route("/api/de-tkg/claims/<int:claim_id>", methods=["PUT"])
-@require_auth
+@require_auth(token_writes=True)
 def api_claim_update(claim_id):
     storage = _storage()
     if not storage:
@@ -497,7 +497,7 @@ def api_claim_update(claim_id):
 
 
 @bp.route("/api/de-tkg/claims/<int:claim_id>", methods=["DELETE"])
-@require_auth
+@require_auth(token_writes=True)
 def api_claim_delete(claim_id):
     storage = _storage()
     if not storage or not storage.delete(claim_id):
@@ -506,7 +506,7 @@ def api_claim_delete(claim_id):
 
 
 @bp.route("/api/de-tkg/claims/<int:claim_id>/calculate", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_claim_calculate(claim_id):
     storage = _storage()
     claim = storage.get(claim_id) if storage else None
@@ -520,7 +520,7 @@ def api_claim_calculate(claim_id):
 
 
 @bp.route("/api/de-tkg/claims/<int:claim_id>/letter", methods=["GET", "POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_claim_letter(claim_id):
     storage = _storage()
     claim = storage.get(claim_id) if storage else None

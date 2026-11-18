@@ -29,7 +29,7 @@ def _get_bnetz_storage():
 
 
 @bp.route("/api/bnetz/upload", methods=["POST"])
-@require_auth
+@require_auth(token_writes=True)
 def api_bnetz_upload():
     """Upload a BNetzA Messprotokoll PDF, parse it, and store the results."""
     bs = _get_bnetz_storage()
@@ -110,7 +110,7 @@ def api_bnetz_pdf(measurement_id):
 
 
 @bp.route("/api/bnetz/<int:measurement_id>", methods=["DELETE"])
-@require_auth
+@require_auth(token_writes=True)
 def api_bnetz_delete(measurement_id):
     """Delete a BNetzA measurement."""
     bs = _get_bnetz_storage()
