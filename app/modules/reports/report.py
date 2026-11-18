@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 
 from fpdf import FPDF
+from fpdf.enums import ResourceAccessPolicy
 
 from app.aggregation import (
     ThresholdContext,
@@ -325,6 +326,9 @@ def _get_report_strings(lang="en"):
     return strings
 
 
+_IMAGE_SIGNATURES = {"image/png": b"\x89PNG\r\n\x1a\n", "image/jpeg": b"\xff\xd8\xff"}
+
+
 class IncidentReport(FPDF):
     """Custom PDF class for DOCSight incident reports."""
 
@@ -332,6 +336,9 @@ class IncidentReport(FPDF):
         super().__init__()
         self.lang = lang
         self._s = _get_report_strings(lang)
+        # Report content comes from users and integrations. Never let it load
+        # files or URLs implicitly, for example through an SVG <image>.
+        self.resource_access_policy = ResourceAccessPolicy.NONE
         self.add_font("dejavu", "", os.path.join(_FONT_DIR, "DejaVuSans.ttf"))
         self.add_font("dejavu", "B", os.path.join(_FONT_DIR, "DejaVuSans-Bold.ttf"))
         self.add_font("dejavu", "I", os.path.join(_FONT_DIR, "DejaVuSans-Oblique.ttf"))
@@ -1020,19 +1027,20 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
             # Embed image attachments if loader provided
             if attachment_loader and entry.get("attachments"):
                 for att_meta in entry["attachments"]:
-                    mime = att_meta.get("mime_type", "")
-                    if mime not in ("image/jpeg", "image/png"):
+                    signature = _IMAGE_SIGNATURES.get(att_meta.get("mime_type", ""))
+                    if not signature:
                         continue
                     try:
                         att = attachment_loader(att_meta["id"])
-                        if not att or len(att.get("data", b"")) > 500 * 1024:
+                        data = att.get("data", b"") if att else b""
+                        # The stored MIME type comes from the uploader; embed
+                        # only bytes that really are PNG or JPEG.
+                        if not data.startswith(signature) or len(data) > 500 * 1024:
                             continue
-                        img_buf = io.BytesIO(att["data"])
-                        ext = "jpeg" if "jpeg" in mime else "png"
                         # Check remaining page space
                         if pdf.get_y() > 220:
                             pdf.add_page()
-                        pdf.image(img_buf, x=pdf.l_margin, w=min(170, pdf.epw), type=ext)
+                        pdf.image(io.BytesIO(data), x=pdf.l_margin, w=min(170, pdf.epw))
                         pdf.ln(3)
                     except Exception:
                         log.warning("Failed to embed attachment %d in incident report", att_meta.get("id", 0))

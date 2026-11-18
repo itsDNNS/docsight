@@ -257,7 +257,7 @@ def api_journal_update(entry_id):
 
 
 @bp.route("/api/journal/<int:entry_id>", methods=["DELETE"])
-@require_auth(token_writes=True)
+@require_auth
 def api_journal_delete(entry_id):
     """Delete a journal entry (CASCADE deletes attachments)."""
     _storage = _get_journal_storage()
@@ -270,7 +270,7 @@ def api_journal_delete(entry_id):
 
 
 @bp.route("/api/journal/<int:entry_id>/attachments", methods=["POST"])
-@require_auth(token_writes=True)
+@require_auth
 def api_journal_upload(entry_id):
     """Upload file attachment for a journal entry."""
     _storage = _get_journal_storage()
@@ -321,7 +321,7 @@ def api_attachment_get(attachment_id):
 
 
 @bp.route("/api/attachments/<int:attachment_id>", methods=["DELETE"])
-@require_auth(token_writes=True)
+@require_auth
 def api_attachment_delete(attachment_id):
     """Delete a single attachment."""
     _storage = _get_journal_storage()
@@ -336,7 +336,7 @@ def api_attachment_delete(attachment_id):
 # ── Journal Import API ──
 
 @bp.route("/api/journal/import/preview", methods=["POST"])
-@require_auth(token_writes=True)
+@require_auth
 def api_journal_import_preview():
     """Upload Excel/CSV file and return parsed preview with auto-detected mapping."""
     _storage = _get_journal_storage()
@@ -379,7 +379,7 @@ def api_journal_import_preview():
 
 
 @bp.route("/api/journal/import/confirm", methods=["POST"])
-@require_auth(token_writes=True)
+@require_auth
 def api_journal_import_confirm():
     """Bulk-import confirmed journal entry rows."""
     _storage = _get_journal_storage()
@@ -424,7 +424,7 @@ def api_journal_import_confirm():
 
 
 @bp.route("/api/journal/batch", methods=["DELETE"])
-@require_auth(token_writes=True)
+@require_auth
 def api_journal_batch_delete():
     """Batch delete journal entries by IDs or delete all."""
     _storage = _get_journal_storage()
@@ -606,7 +606,7 @@ def api_incident_extend(incident_id):
 
 
 @bp.route("/api/incidents/<int:incident_id>", methods=["DELETE"])
-@require_auth(token_writes=True)
+@require_auth
 def api_incident_delete(incident_id):
     """Delete an incident container (entries become unassigned)."""
     _storage = _get_journal_storage()

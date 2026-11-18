@@ -271,7 +271,7 @@ def api_speedtest_run():
 
 
 @bp.route("/api/speedtest/cache", methods=["DELETE"])
-@require_auth(token_writes=True)
+@require_auth
 def api_speedtest_clear_cache():
     """Clear the local speedtest results cache."""
     ss = _get_speedtest_storage()

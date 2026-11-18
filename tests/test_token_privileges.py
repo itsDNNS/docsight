@@ -17,41 +17,26 @@ from app.web_auth import _AUTH_STATE_CONTEXT, _keyed_sha256_hexdigest
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
-# Every route that accepts writes from an API token. Adding a route here is a
-# deliberate decision: it must not expose secrets, code, the filesystem or the
-# token boundary itself.
-EXPECTED_TOKEN_WRITE_ROUTES = {
-    "/api/poll",
-    "/api/events/<int:event_id>/acknowledge",
-    "/api/events/acknowledge",
-    "/api/events/unacknowledge",
-    "/api/events/acknowledge-all",
-    "/api/journal",
-    "/api/journal/<int:entry_id>",
-    "/api/journal/<int:entry_id>/attachments",
-    "/api/attachments/<int:attachment_id>",
-    "/api/journal/import/preview",
-    "/api/journal/import/confirm",
-    "/api/journal/batch",
-    "/api/journal/unassign",
-    "/api/incidents",
-    "/api/incidents/<int:incident_id>",
-    "/api/incidents/<int:incident_id>/extend",
-    "/api/incidents/<int:incident_id>/assign",
-    "/api/speedtest/run",
-    "/api/speedtest/cache",
-    "/api/connection-monitor/pinned-days",
-    "/api/connection-monitor/pinned-days/<date>",
-    "/api/bnetz/upload",
-    "/api/bnetz/<int:measurement_id>",
-    "/api/bqm/fetch-now",
-    "/api/bqm/import",
-    "/api/bqm/import-csv",
-    "/api/bqm/images",
-    "/api/de-tkg/claims",
-    "/api/de-tkg/claims/<int:claim_id>",
-    "/api/de-tkg/claims/<int:claim_id>/calculate",
-    "/api/de-tkg/claims/<int:claim_id>/letter",
+# Every route and method that accepts a write from an API token. Adding one
+# here is a deliberate decision: integrations may record and acknowledge, but
+# never delete, bulk-import, reach secrets, code, the filesystem or the token
+# boundary itself.
+EXPECTED_TOKEN_WRITES = {
+    ("POST", "/api/poll"),
+    ("POST", "/api/events/<int:event_id>/acknowledge"),
+    ("POST", "/api/events/acknowledge"),
+    ("POST", "/api/events/unacknowledge"),
+    ("POST", "/api/events/acknowledge-all"),
+    ("POST", "/api/journal"),
+    ("PUT", "/api/journal/<int:entry_id>"),
+    ("POST", "/api/journal/unassign"),
+    ("POST", "/api/incidents"),
+    ("PUT", "/api/incidents/<int:incident_id>"),
+    ("POST", "/api/incidents/<int:incident_id>/extend"),
+    ("POST", "/api/incidents/<int:incident_id>/assign"),
+    ("POST", "/api/speedtest/run"),
+    ("POST", "/api/connection-monitor/pinned-days"),
+    ("POST", "/api/bqm/fetch-now"),
 }
 
 PRIVILEGED_REQUESTS = [
@@ -78,6 +63,17 @@ PRIVILEGED_REQUESTS = [
     ("POST", "/api/connection-monitor/targets", {"json": {"host": "10.0.0.1", "label": "x"}}),
     ("POST", "/api/connection-monitor/traceroute/1", {}),
     ("POST", "/api/bqm/validate-monitor", {"json": {"url": "https://example.invalid"}}),
+    ("GET", "/api/tokens", {}),
+    ("GET", "/api/de-tkg/context", {}),
+    ("GET", "/api/de-tkg/claims/1/letter", {}),
+    ("POST", "/api/de-tkg/claims", {"json": {}}),
+    ("DELETE", "/api/journal/batch", {"json": {"all": True}}),
+    ("DELETE", "/api/journal/1", {}),
+    ("POST", "/api/journal/1/attachments", {}),
+    ("POST", "/api/journal/import/preview", {}),
+    ("POST", "/api/bnetz/upload", {}),
+    ("DELETE", "/api/bqm/images", {}),
+    ("DELETE", "/api/speedtest/cache", {}),
 ]
 
 
@@ -209,38 +205,69 @@ def test_session_backup_leaves_out_cookie_signing_state(secured):
     assert ".auth_state" not in names
 
 
-def test_token_write_routes_are_exactly_the_reviewed_list(secured):
+def test_token_writes_are_exactly_the_reviewed_list(secured):
     app, _, _ = secured
-    token_write_routes = set()
+    token_writes = set()
     unprotected = set()
     for rule in app.url_map.iter_rules():
         if not rule.rule.startswith("/api/"):
             continue
-        view = app.view_functions[rule.endpoint]
-        policy = getattr(view, "docsight_token_access", None)
+        policy = getattr(app.view_functions[rule.endpoint], "docsight_token_access", None)
+        writes = {(method, rule.rule) for method in rule.methods - _SAFE_METHODS}
         if policy is None:
-            unprotected.add(rule.rule)
-        elif policy == "write" and set(rule.methods) - _SAFE_METHODS:
-            token_write_routes.add(rule.rule)
+            unprotected |= writes
+        elif policy == "write":
+            token_writes |= writes
 
-    assert token_write_routes == EXPECTED_TOKEN_WRITE_ROUTES
-    assert "/api/backup" not in unprotected
+    assert token_writes == EXPECTED_TOKEN_WRITES
+    # Undecorated API routes do their own checks; none of them may write.
+    assert unprotected == set()
 
 
-def test_upgrade_rotates_a_session_key_that_older_backups_may_contain(make_app, tmp_path):
+@pytest.mark.parametrize("path", ["/", "/settings"])
+def test_token_does_not_open_pages(secured, path):
+    app, _, token = secured
+    response = app.test_client().get(path, headers=_bearer(token))
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_session_wins_over_a_token_on_session_only_routes(secured):
+    app, _, token = secured
+    client = app.test_client()
+    _login(client)
+    assert client.get("/api/tokens", headers=_bearer(token)).status_code == 200
+
+
+_OLD_KEY = bytes(range(32))
+
+
+@pytest.mark.parametrize("auth_state", ["v1", None, "not-a-fingerprint"])
+def test_upgrade_rotates_a_session_key_that_older_backups_may_contain(make_app, tmp_path, auth_state):
+    from flask.sessions import SecureCookieSessionInterface
+
     data_dir = tmp_path / "data"
     config = ConfigManager(str(data_dir))
     config.save({"modem_type": "fritzbox", "admin_password": "secret123"})
-    old_key = bytes(range(32))
-    (data_dir / ".session_key").write_bytes(old_key)
-    old_context = b"docsight-admin-auth-state-v1\0"
-    assert _AUTH_STATE_CONTEXT != old_context
-    password = config.get("admin_password")
-    (data_dir / ".auth_state").write_text(
-        _keyed_sha256_hexdigest(old_key, old_context + password.encode())
-    )
+    password = config.get("admin_password").encode()
+    (data_dir / ".session_key").write_bytes(_OLD_KEY)
+    if auth_state == "v1":
+        assert not _AUTH_STATE_CONTEXT.startswith(b"docsight-admin-auth-state-v1")
+        auth_state = _keyed_sha256_hexdigest(_OLD_KEY, b"docsight-admin-auth-state-v1\0" + password)
+    if auth_state is not None:
+        (data_dir / ".auth_state").write_text(auth_state)
 
     app = make_app(config_manager=config, environ={})
+    restarted = make_app(config_manager=config, environ={})
 
-    assert app.secret_key != old_key
-    assert (data_dir / ".session_key").read_bytes() == app.secret_key
+    assert app.secret_key != _OLD_KEY
+    assert restarted.secret_key == app.secret_key
+    forger = type(app)("forger")
+    forger.secret_key = _OLD_KEY
+    forged = SecureCookieSessionInterface().get_signing_serializer(forger).dumps({
+        "authenticated": True,
+        "auth_marker": _keyed_sha256_hexdigest(_OLD_KEY, b"docsight-admin-session-v1\0" + password),
+    })
+    client = restarted.test_client()
+    client.set_cookie("session", forged)
+    assert client.get("/api/tokens").status_code == 401

@@ -134,12 +134,13 @@ def _write_auth_state():
 
 
 def _init_auth_state():
-    """Create auth state or invalidate cookies after an offline state change."""
+    """Rotate the signing key unless auth state proves it is current.
+
+    Missing, unreadable or outdated auth state means the key may come from an
+    older version or a backup, so cookies signed with it must stop working.
+    """
     stored = current_runtime().auth_state.read_fingerprint()
-    current = _auth_state_fingerprint()
-    if stored is None:
-        _write_auth_state()
-    elif not _secret_values_match(stored, current):
+    if stored is None or not _secret_values_match(stored, _auth_state_fingerprint()):
         _rotate_session_key()
         _write_auth_state()
 
@@ -256,7 +257,8 @@ def _auth_required(*, session_only=False):
     if _authenticated_session_is_valid():
         return False
     auth_header = request.headers.get("Authorization", "")
-    if not session_only and auth_header.startswith("Bearer ") and _storage:
+    # Tokens authenticate API calls only; pages such as Settings need a session.
+    if not session_only and request.path.startswith("/api/") and auth_header.startswith("Bearer ") and _storage:
         token = auth_header[7:]
         token_info = _storage.validate_api_token(token)
         if token_info:

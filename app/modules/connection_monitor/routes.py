@@ -187,7 +187,7 @@ def api_pin_day():
 
 
 @bp.route("/api/connection-monitor/pinned-days/<date>", methods=["DELETE"])
-@require_auth(token_writes=True)
+@require_auth
 def api_unpin_day(date):
     storage = _get_cm_storage()
     if not storage.unpin_day(date):

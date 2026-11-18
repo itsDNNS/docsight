@@ -175,7 +175,7 @@ def api_restore():
             _get_client_ip(), result["restored_files"],
         )
         # Reload config so the app recognizes the restored state
-        _config_manager._load()
+        _config_manager.reload()
         _on_config_changed = current_runtime().on_config_changed
         if _on_config_changed:
             _on_config_changed()

@@ -128,7 +128,7 @@ def api_config():
 # ── API Token Management ──
 
 @config_bp.route("/api/tokens", methods=["GET"])
-@require_auth
+@require_auth(session_only=True)
 def api_tokens_list():
     """List all API tokens (without hashes)."""
     _storage = current_runtime().storage

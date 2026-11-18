@@ -280,7 +280,7 @@ def api_bqm_validate_monitor():
 
 
 @bp.route("/api/bqm/import", methods=["POST"])
-@require_auth(token_writes=True)
+@require_auth
 def api_bqm_import():
     """Bulk-import BQM graph images with per-file date mapping."""
     bs = _get_bqm_storage()
@@ -359,7 +359,7 @@ def _limit_csv_upload():
 
 
 @bp.route("/api/bqm/import-csv", methods=["POST"])
-@require_auth(token_writes=True)
+@require_auth
 def api_bqm_import_csv():
     """Bulk-import BQM CSV data (e.g. 12-month ThinkBroadband export)."""
     bs = _get_bqm_storage()
@@ -407,7 +407,7 @@ def api_bqm_import_csv():
 
 
 @bp.route("/api/bqm/images", methods=["DELETE"])
-@require_auth(token_writes=True)
+@require_auth
 def api_bqm_delete():
     """Delete BQM images: single date, range, or all."""
     bs = _get_bqm_storage()
