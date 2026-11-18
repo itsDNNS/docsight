@@ -196,6 +196,11 @@ class TestDownstream:
         data = mock_status.get_docsis_data()
         assert data["channelDs"]["docsis31"] == []
 
+    def test_ignores_later_table_whose_heading_is_split_across_elements(self, driver):
+        decoy = "<table><tr><th><b>Downstream</b> Bonded Channels</th></tr></table></body>"
+        with serve_html(driver, SAMPLE_STATUS_HTML.replace("</body>", decoy)):
+            assert len(driver.get_docsis_data()["channelDs"]["docsis30"]) == 32
+
     def test_first_channel_fields(self, mock_status):
         data = mock_status.get_docsis_data()
         ch = data["channelDs"]["docsis30"][0]

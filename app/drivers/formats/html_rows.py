@@ -218,12 +218,12 @@ def parse_sb6190_upstream(table: Tag | None) -> ParseResult[list[RawChannel]]:
     return _parse_sb_table(table, "sb6190_html", normalize_mhz, "upstream")
 
 
-def _bonded_tables(html: str) -> tuple[Tag | None, Tag | None]:
+def _bonded_tables(html: str, separator: str) -> tuple[Tag | None, Tag | None]:
     soup = BeautifulSoup(html or "", "html.parser")
     ds_table = us_table = None
     for table in soup.find_all("table"):
         heading = table.find("th")
-        text = heading.get_text(" ", strip=True).lower() if heading else ""
+        text = heading.get_text(separator, strip=True).lower() if heading else ""
         if "downstream bonded" in text:
             ds_table = table
         elif "upstream bonded" in text:
@@ -232,7 +232,8 @@ def _bonded_tables(html: str) -> tuple[Tag | None, Tag | None]:
 
 
 def _parse_sb_html(html: str, profile: str) -> ParseResult[DocsisDataFritz]:
-    ds_table, us_table = _bonded_tables(html)
+    # SB6183 headings join their text nodes with spaces, SB6190 headings without.
+    ds_table, us_table = _bonded_tables(html, " " if profile == "sb6183_html" else "")
     if profile == "sb6183_html":
         downstream = parse_sb6183_downstream(ds_table)
         upstream = parse_sb6183_upstream(us_table)

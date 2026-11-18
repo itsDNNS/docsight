@@ -34,6 +34,9 @@ def format_uptime(seconds: int) -> str:
 class AnalysisCollector(Collector):
     """Analyzes DOCSIS data, publishes it to MQTT, stores it and detects events."""
 
+    _log = log
+    _events_message = "Detected %d event(s)"
+
     def __init__(self, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier=None, smart_capture=None):
         super().__init__(poll_interval)
         self._analyzer = analyzer_fn
@@ -81,7 +84,7 @@ class AnalysisCollector(Collector):
         events = self._event_detector.check(analysis, snapshot_id=snapshot_id)
         if events:
             self._storage.save_events_with_ids(events, is_demo=is_demo)
-            log.info("Detected %d event(s)", len(events))
+            self._log.info(self._events_message, len(events))
             if self._notifier:
                 self._notifier.dispatch(events)
             if self._smart_capture:

@@ -24,12 +24,14 @@ class TestBnetzAPI:
     def test_upload_and_list(self, storage_client, sample_bnetz_parsed):
         client, _, bnetz_st = storage_client
         # Directly insert via module storage (to avoid needing a real BNetzA PDF)
-        bnetz_st.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-test")
+        parsed = {**sample_bnetz_parsed, "measurements_download": [], "measurements_upload": []}
+        bnetz_st.save_bnetz_measurement(parsed, b"%PDF-test")
         resp = client.get("/api/bnetz/measurements")
         assert resp.status_code == 200
         data = resp.get_json()
         assert len(data) == 1
         assert data[0]["provider"] == "Vodafone"
+        assert data[0]["measurements"] == {"download": [], "upload": []}
 
     def test_pdf_download(self, storage_client):
         client, _, bnetz_st = storage_client

@@ -143,6 +143,8 @@ class DemoCollector(AnalysisCollector):
     """
 
     name = "demo"
+    _log = log
+    _events_message = "Demo: detected %d event(s)"
 
     def __init__(self, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier=None, smart_capture=None):
         # Live polls continue the counters where the seeded history ends.

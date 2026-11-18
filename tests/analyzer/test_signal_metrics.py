@@ -826,4 +826,3 @@ class TestUpstreamCapacity:
         )
         result = analyze(data)
         assert result["summary"]["us_capacity_mbps"] is None
-

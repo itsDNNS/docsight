@@ -82,6 +82,14 @@ def _configured_manager(tmp_path, *, password: str = "") -> ConfigManager:
     return manager
 
 
+@pytest.fixture
+def no_docsis_analysis(no_docsis_analysis):
+    """The shared summary without fields that older snapshots lack."""
+    sparse = {"ds_snr_max", "ds_uncorr_pct", "us_capacity_mbps"}
+    summary = {key: value for key, value in no_docsis_analysis["summary"].items() if key not in sparse}
+    return {**no_docsis_analysis, "summary": summary}
+
+
 def test_dashboard_and_settings_render_prefix_aware_navigation_and_assets(
     client, no_docsis_analysis
 ):
