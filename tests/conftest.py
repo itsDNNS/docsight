@@ -3,6 +3,7 @@
 import functools
 import json
 import os
+import socket
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +14,33 @@ from app import version as _version
 from app.app_factory import create_app, default_module_loader_factory
 from app.config import ConfigManager
 from app.runtime import DerivedStorageCache, LoginRateLimiter, RuntimeState, get_runtime
+
+
+_real_connect = socket.socket.connect
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch):
+    """Tests must never reach a real modem, GitHub or anything else off this host.
+
+    Attempts fail like an unreachable host and fail the test at teardown, also
+    when they come from a background thread.
+    """
+    attempts = []
+
+    def loopback_only(sock, address):
+        host = address[0] if isinstance(address, tuple) else address
+        if sock.family in (socket.AF_INET, socket.AF_INET6) and not (
+            str(host).startswith("127.") or host in ("::1", "localhost")
+        ):
+            attempts.append(address)
+            raise OSError(f"network blocked in tests: {address}")
+        return _real_connect(sock, address)
+
+    monkeypatch.setattr(socket.socket, "connect", loopback_only)
+    yield
+    if attempts:
+        pytest.fail(f"Test tried to reach the network: {attempts}", pytrace=False)
 
 
 # Every create_app() asks git for the display version, and an untagged or shallow

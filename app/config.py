@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import stat
+import threading
 from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet
@@ -33,6 +34,10 @@ HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 MODULE_SECRET_KEYS: set[str] = set()
 MODULE_SECRET_OWNERS: dict[str, str] = {}
+
+
+class ConfigValueError(ValueError):
+    """An invalid setting, described in words that are safe to show in the form."""
 
 
 def parse_config_bool(value) -> bool:
@@ -256,8 +261,13 @@ class ConfigManager:
         self.config_path = os.path.join(data_dir, "config.json")
         self._key_path = os.path.join(data_dir, ".config_key")
         self._file_config = {}
+        self._lock = threading.RLock()
         self._fernet = self._init_fernet()
         self._load()
+
+    def locked(self):
+        """Hold while reading values that must come from the same saved state."""
+        return self._lock
 
     def _init_fernet(self):
         """Load or generate encryption key."""
@@ -294,22 +304,24 @@ class ConfigManager:
 
     def reload(self):
         """Re-read the encryption key and config.json, for example after a restore."""
-        self._fernet = self._init_fernet()
-        self._load()
+        with self._lock:
+            self._fernet = self._init_fernet()
+            self._load()
 
     def _load(self):
         """Load config.json if it exists. Migrates legacy fritz_* keys to modem_*."""
-        if os.path.exists(self.config_path):
-            try:
-                with open(self.config_path, "r") as f:
-                    self._file_config = json.load(f)
-                log.info("Loaded config from %s", self.config_path)
-                self._migrate_legacy_keys()
-            except Exception as e:
-                log.warning("Failed to load config.json: %s", e)
-                self._file_config = {}
-        else:
-            log.info("No config.json found, using defaults/env")
+        with self._lock:
+            if os.path.exists(self.config_path):
+                try:
+                    with open(self.config_path, "r") as f:
+                        self._file_config = json.load(f)
+                    log.info("Loaded config from %s", self.config_path)
+                    self._migrate_legacy_keys()
+                except Exception as e:
+                    log.warning("Failed to load config.json: %s", e)
+                    self._file_config = {}
+            else:
+                log.info("No config.json found, using defaults/env")
 
     def _migrate_legacy_keys(self):
         """Migrate fritz_* config keys to modem_* (backwards compatibility)."""
@@ -390,33 +402,52 @@ class ConfigManager:
         return key in self._file_config
 
     @staticmethod
-    def _validate_url(key, value):
-        """Validate that URL keys use http or https scheme only."""
-        if not value:
-            return
-        parsed = urlparse(value)
-        if parsed.scheme not in _ALLOWED_URL_SCHEMES:
-            raise ValueError(
-                f"Invalid URL scheme '{parsed.scheme}' for {key}. "
-                f"Only http and https are allowed."
-            )
+    def _url_error(key, value):
+        """Why a URL value is invalid, or None. Only http and https are allowed."""
+        if value is None or value == "":
+            return None
+        if not isinstance(value, str):
+            return f"{key} is not a valid URL"
+        try:
+            scheme = urlparse(value).scheme
+        except ValueError:
+            return f"{key} is not a valid URL"
+        if scheme not in _ALLOWED_URL_SCHEMES:
+            return f"Invalid URL scheme '{scheme}' for {key}. Only http and https are allowed."
+        return None
 
-    def save(self, data):
-        """Save config values to config.json. Passwords are encrypted."""
-        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
-
-        # Validate URL keys before any mutation
+    def validation_error(self, data):
+        """The form message for the first invalid value in data, or None."""
         for key in URL_KEYS:
-            if key in data and data[key]:
-                self._validate_url(key, data[key])
-
-        # Integer keys only accept whole numbers; an empty value still means unset
+            if key in data and (error := self._url_error(key, data[key])):
+                return error
+        for key in MODULE_SECRET_KEYS | SECRET_KEYS | HASH_KEYS | PRIVATE_KEYS:
+            if key in data and data[key] not in (None, "") and not isinstance(data[key], str):
+                return f"{key} must be text"
         for key in INT_KEYS:
             if key in data and data[key] not in ("", None):
                 try:
-                    data[key] = parse_config_int(data[key])
+                    parse_config_int(data[key])
                 except (ValueError, TypeError, OverflowError):
-                    raise ValueError(f"{key} must be a whole number") from None
+                    return f"{key} must be a whole number"
+        return None
+
+    def save(self, data):
+        """Save config values to config.json. Passwords are encrypted.
+
+        Invalid values raise ConfigValueError with a message meant for the form.
+        """
+        with self._lock:
+            self._save(dict(data))
+
+    def _save(self, data):
+        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+
+        if error := self.validation_error(data):
+            raise ConfigValueError(error)
+        for key in INT_KEYS:  # an empty value still means unset
+            if key in data and data[key] not in ("", None):
+                data[key] = parse_config_int(data[key])
 
         # Don't overwrite passwords with the mask placeholder
         for key in MODULE_SECRET_KEYS | SECRET_KEYS | HASH_KEYS:

@@ -26,7 +26,6 @@ from tests.analyzer.factories import (
     make_data as _make_data,
     make_ds30 as _make_ds30,
     make_ds31 as _make_ds31,
-    make_us30 as _make_us30,
 )
 
 

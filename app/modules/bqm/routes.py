@@ -334,9 +334,9 @@ def api_bqm_import():
                 skipped_dates.append(date)
             elif result == "replaced":
                 replaced += 1
-        except Exception as e:
-            log.error("BQM import error for %s: %s", fname, e)
-            errors.append({"filename": fname, "error": str(e)})
+        except Exception:
+            log.exception("BQM import error for %s", fname)
+            errors.append({"filename": fname, "error": "Import failed"})
 
     return jsonify({
         "imported": imported,
@@ -391,9 +391,9 @@ def api_bqm_import_csv():
 
     try:
         bs.store_csv_data(rows)
-    except Exception as exc:
-        log.error("BQM CSV import DB error: %s", exc)
-        return jsonify({"error": f"Database error: {exc}"}), 500
+    except Exception:
+        log.exception("BQM CSV import DB error")
+        return jsonify({"error": "Import failed. See the DOCSight log for details."}), 500
 
     dates = sorted(set(r["date"] for r in rows))
     log.info("BQM CSV import: %d rows parsed, %d days (%s to %s)",

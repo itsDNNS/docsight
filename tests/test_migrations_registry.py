@@ -400,3 +400,33 @@ def test_evidenced_module_legacy_shapes_reach_head_idempotently(
         assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
     assert migrations.run_migrations(str(db_path), module_migrations) == []
     assert schema_digest(db_path) == first_digest
+
+
+def test_smart_capture_errors_from_older_versions_lose_their_details(tmp_path):
+    migrations = _migrations_module()
+    db_path = tmp_path / "legacy.db"
+    migrations.run_migrations(str(db_path), migrations.CORE_MIGRATIONS[:-1])
+    rows = [  # (action_type, status, stored error, expected error)
+        ("capture", "expired", "STT returned 500: upstream body", "STT returned 500"),
+        ("capture", "expired", "STT returned 5000: body", "Unexpected error, see the DOCSight log"),
+        ("capture", "expired", "STT returned 2xx", "Unexpected error, see the DOCSight log"),
+        ("capture", "expired", "Invalid header b'Bearer leaked'", "Unexpected error, see the DOCSight log"),
+        ("capture", "expired", "no matching result within timeout window", "no matching result within timeout window"),
+        ("capture", "expired", None, None),
+        ("capture", "fired", "trigger response timeout; external run state unknown", "trigger response timeout; external run state unknown"),
+        ("other", "expired", "adapter specific: details", "adapter specific: details"),
+    ]
+    with sqlite3.connect(db_path) as conn:
+        conn.executemany(
+            "INSERT INTO smart_capture_executions (trigger_type, action_type, status, last_error, created_at) "
+            "VALUES ('t', ?, ?, ?, '2026-01-01T00:00:00Z')",
+            [row[:3] for row in rows],
+        )
+
+    migrations.run_migrations(str(db_path), migrations.CORE_MIGRATIONS)
+    with sqlite3.connect(db_path) as conn:  # applying it twice changes nothing
+        migrations._apply_smart_capture_error_scrub(conn)
+
+    with sqlite3.connect(db_path) as conn:
+        errors = [row[0] for row in conn.execute("SELECT last_error FROM smart_capture_executions ORDER BY id")]
+    assert errors == [row[3] for row in rows]

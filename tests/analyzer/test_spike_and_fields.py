@@ -1,15 +1,12 @@
 """Tests for spike handling and metric health fields."""
 
-import pytest
 from typing import cast
 from unittest.mock import patch
-from app import analyzer
-from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps, _metric_healths
+from app.analyzer import analyze, _metric_healths
 from app.types import AnalysisResult
 from tests.analyzer.factories import (
     make_data as _make_data,
     make_ds30 as _make_ds30,
-    make_ds31 as _make_ds31,
     make_us30 as _make_us30,
 )
 

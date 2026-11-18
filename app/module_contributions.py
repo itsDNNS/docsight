@@ -11,12 +11,13 @@ from types import ModuleType
 from typing import Any
 from uuid import uuid4
 
-from flask import abort, send_file, url_for
+from flask import abort, current_app, request, send_file, url_for
 
 from .builtin_modules import BUILTIN_PYTHON_CONTRIBUTIONS
 from .module_registry import ManifestError, ModuleInfo
 from .path_safety import safe_manifest_ref, safe_manifest_subpath
 from .theme_catalog import canonical_theme_data
+from .web_auth import require_auth
 from .registration import (
     ModuleContribution,
     PlannedRule,
@@ -104,6 +105,13 @@ def attach_builtin_python_contributions(mod: ModuleInfo) -> None:
         setattr(mod, attr_name, symbol)
 
 
+def _require_auth_unless_declared():
+    """Community routes without their own require_auth still need a sign-in."""
+    if not hasattr(current_app.view_functions.get(request.endpoint), "docsight_token_access"):
+        return require_auth(lambda: None)()
+    return None
+
+
 def resolve_module_routes(
     module_id: str,
     module_path: str,
@@ -138,6 +146,12 @@ def resolve_module_routes(
         raise ManifestError("Routes contribution does not export a Blueprint")
     planned = probe_blueprint(blueprint, source=f"module:{module_id}")
     if not builtin:
+        if planned.request_hooks:
+            raise RegistrationError(
+                f"Module {module_id} registers request hooks that would bypass sign-in: "
+                + ", ".join(planned.request_hooks)
+            )
+        blueprint.before_request(_require_auth_unless_declared)
         blocked = []
         for rule in planned.rules:
             path = rule.rule

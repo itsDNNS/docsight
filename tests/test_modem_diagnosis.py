@@ -78,3 +78,17 @@ def test_unanswered_or_malformed_addresses_are_unreachable():
     assert not diagnosis.host_reachable("http://192.168.100.1", connect=refuse)
     assert not diagnosis.host_reachable("http://:80", connect=lambda *a, **k: FakeSocket())
     assert not diagnosis.host_reachable("http://host:notaport", connect=lambda *a, **k: FakeSocket())
+
+
+@pytest.mark.parametrize("exc, stage, message", [
+    (requests.ConnectionError("HTTPConnectionPool(host='192.168.100.1')"), None, "Modem not reachable"),
+    (_http_error(401), None, "Modem login failed"),
+    (RuntimeError("Login failed: wrong password"), "login", "Modem login failed"),
+    (RuntimeError("challenge format changed"), "login", "Modem login failed, see the DOCSight log"),
+    (RuntimeError("password field missing in the channel data"), None, "Modem reading failed, see the DOCSight log"),
+    (RuntimeError("unexpected payload at /data/raw.json"), None, "Modem reading failed, see the DOCSight log"),
+])
+def test_public_message_hides_exception_details(exc, stage, message):
+    if stage:
+        exc.modem_stage = stage
+    assert diagnosis.public_message(exc) == message

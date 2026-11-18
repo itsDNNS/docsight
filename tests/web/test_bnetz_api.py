@@ -2,6 +2,8 @@
 
 import io
 
+import pytest
+
 class TestBnetzAPI:
     def test_list_empty(self, storage_client):
         client, _, _ = storage_client
@@ -13,6 +15,17 @@ class TestBnetzAPI:
         client, _, _ = storage_client
         resp = client.post("/api/bnetz/upload")
         assert resp.status_code == 400
+
+    @pytest.mark.parametrize(("content", "name", "error"), [
+        (b"not;a;measurement", "export.csv", "Could not read CSV. Is it an export of an official BNetzA measurement?"),
+        (b"\xff\xfe\x00broken", "export.csv", "Could not read CSV. Is it an export of an official BNetzA measurement?"),
+        (b"%PDF-1.4 not a protocol", "protocol.pdf", "Could not read PDF. Is it an official BNetzA measurement protocol?"),
+    ], ids=["csv-content", "csv-encoding", "pdf"])
+    def test_unreadable_upload_gets_a_fixed_message(self, storage_client, content, name, error):
+        client, _, _ = storage_client
+        data = {"file": (io.BytesIO(content), name)}
+        resp = client.post("/api/bnetz/upload?lang=en", data=data, content_type="multipart/form-data")
+        assert (resp.status_code, resp.get_json()) == (400, {"error": error})
 
     def test_upload_not_pdf(self, storage_client):
         client, _, _ = storage_client

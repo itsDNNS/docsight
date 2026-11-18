@@ -22,7 +22,7 @@ class TestFritzBoxDriver:
         mock_fb.get_docsis_data.return_value = {"channelUs": {"docsis31": []}}
         d = FritzBoxDriver("http://fritz.box", "admin", "pass")
         d.login()
-        result = d.get_docsis_data()
+        assert d.get_docsis_data() == {"channelUs": {"docsis31": []}}
         mock_fb.get_docsis_data.assert_called_once_with("http://fritz.box", "sid1")
 
     @patch("app.drivers.fritzbox.fb")

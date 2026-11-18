@@ -10,15 +10,20 @@ import os
 import shutil
 import sqlite3
 
+from app.storage.migrations import CORE_MIGRATIONS, run_migrations
 from app.storage.sqlite import (
     consistent_copy,
+    database_write_lock,
+    open_read,
     open_readonly,
+    replace_contents,
     verify_database,
     write_transaction,
 )
 import tarfile
 import tempfile
 from datetime import datetime, timezone
+from contextlib import ExitStack
 from io import BytesIO
 
 log = logging.getLogger("docsis.backup")
@@ -215,19 +220,28 @@ def validate_backup(archive_bytes):
         raise ValueError(f"Invalid archive: {e}") from e
 
 
+def _has_api_tokens(conn):
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'api_tokens'").fetchone() is not None
+
+
 def _keep_live_api_tokens(live_db, staged_db):
     """Carry the running instance's API tokens into a restored database.
 
     Tokens are credentials, not history. Restoring an older database must not
     bring back a token that was revoked since the backup was made.
     """
-    with open_readonly(staged_db) as staged:
-        if not staged.execute("SELECT 1 FROM sqlite_master WHERE name = 'api_tokens'").fetchone():
+    # A read-only connection could not remove the WAL file the migrations left.
+    with open_read(staged_db) as staged:
+        if not _has_api_tokens(staged):
             return
     rows = []
     if os.path.exists(live_db):
-        with open_readonly(live_db) as live:
-            rows = live.execute("SELECT * FROM api_tokens").fetchall()
+        try:
+            with open_readonly(live_db) as live:
+                if _has_api_tokens(live):
+                    rows = live.execute("SELECT * FROM api_tokens").fetchall()
+        except sqlite3.DatabaseError:
+            log.warning("Live database is unreadable; restoring without its API tokens")
     with write_transaction(staged_db) as conn:
         conn.execute("DELETE FROM api_tokens")
         for row in rows:
@@ -306,21 +320,28 @@ def restore_backup(archive_bytes, data_dir):
                 )
 
         if "docsis_history.db" in staged:
-            _keep_live_api_tokens(
-                os.path.join(data_dir, "docsis_history.db"), staged["docsis_history.db"]
-            )
+            # Bring an older database up to date before it goes live; the
+            # running storage only migrates at startup.
+            run_migrations(staged["docsis_history.db"], CORE_MIGRATIONS)
 
-        for name, staged_path in staged.items():
-            destination = os.path.join(data_dir, name)
-            os.replace(staged_path, destination)
-            staged[name] = None
-            if name in database_names:
-                for suffix in ("-wal", "-shm"):
-                    try:
-                        os.remove(destination + suffix)
-                    except FileNotFoundError:
-                        pass
-            restored_files.append(name)
+        with ExitStack() as locks:
+            # Writers wait until the databases are copied in, so a write such as
+            # a token revocation can neither be missed nor be overwritten.
+            for name in sorted(database_names & staged.keys()):
+                locks.enter_context(database_write_lock(os.path.join(data_dir, name)))
+            if "docsis_history.db" in staged:
+                _keep_live_api_tokens(
+                    os.path.join(data_dir, "docsis_history.db"), staged["docsis_history.db"]
+                )
+            for name, staged_path in staged.items():
+                destination = os.path.join(data_dir, name)
+                if name in database_names:
+                    # Copied in place, so open connections stay consistent.
+                    replace_contents(staged_path, destination)
+                else:
+                    os.replace(staged_path, destination)
+                    staged[name] = None
+                restored_files.append(name)
     finally:
         for staged_path in staged.values():
             if staged_path is None:
@@ -406,7 +427,10 @@ def browse_directory(path, allowed_roots=None):
         if data_dir:
             allowed_roots.append(data_dir)
 
-    real_path = os.path.realpath(path)
+    try:
+        real_path = os.path.realpath(path)
+    except ValueError:  # e.g. an embedded null byte; keep the library's wording out of the response
+        raise ValueError(f"Not a directory: {path}") from None
 
     # Security: ensure path is within allowed roots
     allowed = False

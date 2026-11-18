@@ -10,6 +10,21 @@ from app.config import parse_config_bool
 log = logging.getLogger("docsis.speedtest")
 
 
+def public_error(exc: BaseException) -> str:
+    """A fixed description of a failed Speedtest Tracker request.
+
+    Exception texts can carry the request's Authorization header, so they are
+    never shown or logged.
+    """
+    if isinstance(exc, requests.HTTPError):
+        return f"HTTP {exc.response.status_code}" if exc.response is not None else "HTTP error"
+    if isinstance(exc, requests.Timeout):  # ConnectTimeout is also a ConnectionError
+        return "Speedtest Tracker timeout"
+    if isinstance(exc, requests.ConnectionError):
+        return "Cannot reach Speedtest Tracker"
+    return "Unexpected error, see the DOCSight log"
+
+
 class SpeedtestClient:
     """Client for the Speedtest Tracker API (github.com/alexjustesen/speedtest-tracker)."""
 
@@ -108,20 +123,9 @@ class SpeedtestClient:
             resp.raise_for_status()
             results = resp.json().get("data", [])
             return [self._parse_result(r) for r in results], None
-        except requests.ConnectionError as e:
-            msg = f"ConnectionError: {str(e).split(chr(10))[0][:200]}"
-            log.warning("Failed to fetch speedtest results: %s", msg)
-            return [], msg
-        except requests.HTTPError as e:
-            msg = f"HTTP {e.response.status_code}" if e.response is not None else str(e)
-            log.warning("Failed to fetch speedtest results: %s", msg)
-            return [], msg
-        except requests.Timeout:
-            log.warning("Speedtest Tracker request timed out")
-            return [], "Timeout (15s)"
-        except Exception as e:
-            msg = f"{type(e).__name__}: {str(e).split(chr(10))[0][:200]}"
-            log.warning("Failed to fetch speedtest results: %s", msg)
+        except Exception as exc:
+            msg = public_error(exc)
+            log.warning("Failed to fetch speedtest results: %s (%s)", msg, type(exc).__name__)
             return [], msg
 
     def get_results(self, start_date=None, end_date=None, per_page=100):
@@ -152,8 +156,8 @@ class SpeedtestClient:
                     break
                 page += 1
             return all_results
-        except Exception as e:
-            log.warning("Failed to fetch speedtest results: %s", e)
+        except Exception as exc:
+            log.warning("Failed to fetch speedtest results: %s (%s)", public_error(exc), type(exc).__name__)
             return all_results
 
     def get_newer_than(self, last_id, per_page=500):
@@ -194,6 +198,6 @@ class SpeedtestClient:
             # Return in chronological order (oldest first)
             all_results.reverse()
             return all_results
-        except Exception as e:
-            log.warning("Failed to fetch newer speedtest results: %s", e)
+        except Exception as exc:
+            log.warning("Failed to fetch newer speedtest results: %s (%s)", public_error(exc), type(exc).__name__)
             return all_results

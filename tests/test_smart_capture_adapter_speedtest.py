@@ -226,40 +226,25 @@ class TestSpeedtestAdapterExecute:
         assert error is None
         assert mock_session.post.call_args.kwargs["verify"] is True
 
-    def test_failed_trigger_sets_expired(self, storage):
+    @pytest.mark.parametrize(("post", "expected"), [
+        ({"return_value": MagicMock(status_code=500, text="upstream body")}, "STT returned 500"),
+        ({"side_effect": ConnectionError("Connection refused")}, "Unexpected error, see the DOCSight log"),
+        ({"side_effect": requests.exceptions.InvalidHeader("Invalid header value b'Bearer leaked-token'")},
+         "Unexpected error, see the DOCSight log"),
+    ])
+    def test_failed_trigger_stores_only_a_fixed_error(self, storage, post, expected):
         config = _make_config()
         eid = storage.save_execution(
             trigger_type="modulation_change", action_type="capture",
             status=ExecutionStatus.PENDING,
         )
         with patch("app.smart_capture.adapters.speedtest.requests.Session") as MockSession:
-            mock_session = MagicMock()
-            mock_session.post.return_value = MagicMock(status_code=500, text="Internal Server Error")
-            MockSession.return_value = mock_session
+            MockSession.return_value = MagicMock(post=MagicMock(**post))
             adapter = SpeedtestAdapter(storage, config)
             success, error = adapter.execute(eid, {"event_type": "modulation_change"})
-        assert success is False
-        assert "500" in error
+        assert (success, error) == (False, expected)
         row = storage.get_execution(eid)
-        assert row["status"] == "expired"
-        assert row["attempt_count"] == 1
-
-    def test_connection_error_sets_expired(self, storage):
-        config = _make_config()
-        eid = storage.save_execution(
-            trigger_type="modulation_change", action_type="capture",
-            status=ExecutionStatus.PENDING,
-        )
-        with patch("app.smart_capture.adapters.speedtest.requests.Session") as MockSession:
-            mock_session = MagicMock()
-            mock_session.post.side_effect = ConnectionError("Connection refused")
-            MockSession.return_value = mock_session
-            adapter = SpeedtestAdapter(storage, config)
-            success, error = adapter.execute(eid, {"event_type": "modulation_change"})
-        assert success is False
-        row = storage.get_execution(eid)
-        assert row["status"] == "expired"
-
+        assert (row["status"], row["attempt_count"], row["last_error"]) == ("expired", 1, expected)
 
 class TestSpeedtestAdapterPreflight:
     def test_recent_tracker_result_suppresses_before_post(self, storage):

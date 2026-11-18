@@ -6,8 +6,6 @@ import pytest
 from app.config import (
     ConfigManager,
     DEFAULTS,
-    SECRET_KEYS,
-    HASH_KEYS,
     PASSWORD_MASK,
     URL_KEYS,
     parse_config_bool,
@@ -453,3 +451,42 @@ class TestConfigIntegerValidation:
         config.save({"modem_user": "x"})
         with open(os.path.join(tmp_data_dir, "config.json")) as f:
             assert json.load(f)["history_days"] == 1500.5
+
+
+@pytest.mark.parametrize("url", ["http://[::1", ["http://a"], 42, 0, []])
+def test_save_reports_unparsable_urls_without_library_text(tmp_path, url):
+    from app.config import ConfigValueError
+
+    with pytest.raises(ConfigValueError, match="^modem_url is not a valid URL$"):
+        ConfigManager(str(tmp_path)).save({"modem_url": url})
+
+
+def test_save_leaves_the_callers_values_unchanged(tmp_path):
+    values = {"modem_password": "secret-value", "poll_interval": "300"}
+    ConfigManager(str(tmp_path)).save(values)
+    assert values == {"modem_password": "secret-value", "poll_interval": "300"}
+
+
+@pytest.mark.parametrize("value", [12345, 0, False, []])
+def test_save_rejects_secrets_that_are_not_text(tmp_path, value):
+    from app.config import ConfigValueError
+
+    with pytest.raises(ConfigValueError, match="^mqtt_password must be text$"):
+        ConfigManager(str(tmp_path)).save({"mqtt_password": value})
+
+
+def test_save_waits_while_values_are_read_together(tmp_path):
+    import threading
+
+    config = ConfigManager(str(tmp_path))
+    config.save({"mqtt_host": "old.local"})
+    save = threading.Thread(target=config.save, args=({"mqtt_host": "new.local"},))
+
+    with config.locked():
+        save.start()
+        save.join(0.2)
+        assert save.is_alive()
+        assert config.get("mqtt_host") == "old.local"
+    save.join(5)
+
+    assert config.get("mqtt_host") == "new.local"

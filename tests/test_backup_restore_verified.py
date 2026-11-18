@@ -60,41 +60,53 @@ def _claim_database_bytes(tmp_path):
     return payload
 
 
-def test_restore_verifies_then_atomically_publishes_and_removes_sidecars(tmp_path, monkeypatch):
+def test_restore_verifies_then_copies_into_the_open_live_database(tmp_path, monkeypatch):
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     live = data_dir / "docsis_history.db"
     live.write_bytes(_database_bytes(tmp_path, ["old"]))
-    (data_dir / "docsis_history.db-wal").write_bytes(b"stale wal")
-    (data_dir / "docsis_history.db-shm").write_bytes(b"stale shm")
     replacement = _database_bytes(tmp_path, ["new", "second"])
 
     from app.modules.backup import backup as backup_module
 
-    real_replace = backup_module.os.replace
-    replacements = []
+    real_copy = backup_module.replace_contents
+    copies = []
 
-    def checked_replace(source, destination):
-        source = Path(source)
-        destination = Path(destination)
-        assert source.parent == data_dir
-        assert destination == live
-        assert verify_database(str(source)) == "ok"
-        replacements.append((source, destination))
-        real_replace(source, destination)
+    def checked_copy(source, target):
+        assert Path(source).parent == data_dir
+        assert Path(target) == live
+        with closing(sqlite3.connect(source)) as conn:
+            assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        copies.append(source)
+        real_copy(source, target)
 
-    monkeypatch.setattr(backup_module.os, "replace", checked_replace)
-    result = restore_backup(_archive({"docsis_history.db": replacement}), str(data_dir))
+    monkeypatch.setattr(backup_module, "replace_contents", checked_copy)
+    with closing(sqlite3.connect(live)) as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
+    # A reader in the middle of a transaction, like a running DOCSight.
+    with closing(sqlite3.connect(live, isolation_level=None)) as reader:
+        reader.execute("BEGIN")
+        assert reader.execute("SELECT value FROM records").fetchall() == [("old",)]
+        result = restore_backup(_archive({"docsis_history.db": replacement}), str(data_dir))
+        assert reader.execute("SELECT value FROM records").fetchall() == [("old",)]
+        reader.execute("COMMIT")
+        assert reader.execute("SELECT value FROM records ORDER BY rowid").fetchall() == [("new",), ("second",)]
 
     assert result["restored_files"] == ["docsis_history.db"]
-    assert len(replacements) == 1
+    assert len(copies) == 1
+    assert not list(data_dir.glob(".docsight-restore-*"))
     assert verify_database(str(live)) == "ok"
-    with sqlite3.connect(live) as conn:
-        assert conn.execute("SELECT value FROM records ORDER BY rowid").fetchall() == [
-            ("new",), ("second",)
-        ]
-    assert not (data_dir / "docsis_history.db-wal").exists()
-    assert not (data_dir / "docsis_history.db-shm").exists()
+
+
+def test_restore_replaces_a_damaged_live_database(tmp_path):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "docsis_history.db").write_bytes(b"not a database, damaged" * 100)
+
+    restore_backup(_archive({"docsis_history.db": _database_bytes(tmp_path, ["rescued"])}), str(data_dir))
+
+    with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
+        assert conn.execute("SELECT value FROM records").fetchall() == [("rescued",)]
     assert not list(data_dir.glob(".docsight-restore-*"))
 
 
@@ -164,28 +176,35 @@ def test_all_databases_are_verified_before_any_database_is_published(tmp_path, m
     assert monitor.read_bytes() == monitor_before
 
 
-def test_restore_skips_session_state_and_keeps_live_api_tokens(tmp_path):
+@pytest.mark.parametrize("backup_has_tokens", [True, False], ids=["with-tokens", "before-tokens"])
+def test_restore_skips_session_state_and_keeps_live_api_tokens(tmp_path, backup_has_tokens):
     from app.storage import SnapshotStorage
 
-    backup_db = tmp_path / "backup.db"
-    SnapshotStorage(str(backup_db), max_days=7).create_api_token("revoked-since")
+    if backup_has_tokens:
+        backup_db = tmp_path / "backup.db"
+        SnapshotStorage(str(backup_db), max_days=7).create_api_token("revoked-since")
+        backup = backup_db.read_bytes()
+    else:
+        backup = _database_bytes(tmp_path, ["old"])
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    SnapshotStorage(str(data_dir / "docsis_history.db"), max_days=7).create_api_token("current")
+    live = SnapshotStorage(str(data_dir / "docsis_history.db"), max_days=7)
+    live.create_api_token("current")
+    live.revoke_api_token(live.create_api_token("revoked")[0])
     (data_dir / ".session_key").write_bytes(b"live-key")
 
     result = restore_backup(_archive({
-        "docsis_history.db": backup_db.read_bytes(),
-        ".session_key": b"backup-key",
-        ".auth_state": b"backup-state",
+        "docsis_history.db": backup, ".session_key": b"backup-key", ".auth_state": b"backup-state",
     }), str(data_dir))
 
     assert result["restored_files"] == ["docsis_history.db"]
+    assert not list(data_dir.glob(".docsight-restore-*"))
+    assert not list(data_dir.glob("docsis_history.db-*"))
     assert (data_dir / ".session_key").read_bytes() == b"live-key"
     assert not (data_dir / ".auth_state").exists()
     with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
-        assert conn.execute("SELECT name FROM api_tokens").fetchall() == [("current",)]
-    assert not list(data_dir.glob(".docsight-restore-*"))
+        rows = conn.execute("SELECT name, revoked FROM api_tokens ORDER BY id").fetchall()
+    assert rows == [("current", 0), ("revoked", 1)]
 
 
 def test_config_reload_uses_the_restored_encryption_key(tmp_path):
@@ -199,3 +218,82 @@ def test_config_reload_uses_the_restored_encryption_key(tmp_path):
     live.reload()
 
     assert live.get("modem_password") == "from-backup"
+
+
+def test_restore_migrates_an_older_database_before_it_goes_live(tmp_path):
+    from app.storage.migrations import CORE_MIGRATIONS, run_migrations
+
+    old_db = tmp_path / "old.db"
+    run_migrations(str(old_db), CORE_MIGRATIONS[:-1])
+    with closing(sqlite3.connect(old_db)) as conn:
+        conn.execute(
+            "INSERT INTO smart_capture_executions (trigger_type, action_type, status, last_error, created_at) "
+            "VALUES ('t', 'capture', 'expired', 'STT returned 500: upstream body', '2026-01-01T00:00:00Z')"
+        )
+        conn.commit()
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    restore_backup(_archive({"docsis_history.db": old_db.read_bytes()}), str(data_dir))
+
+    with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
+        assert conn.execute("SELECT last_error FROM smart_capture_executions").fetchall() == [("STT returned 500",)]
+
+
+def test_token_revoked_during_restore_stays_revoked(tmp_path, monkeypatch):
+    import threading
+
+    from app.modules.backup import backup as backup_module
+    from app.storage import SnapshotStorage
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    live = SnapshotStorage(str(data_dir / "docsis_history.db"), max_days=7)
+    token_id, _ = live.create_api_token("integration")
+    real_copy = backup_module.replace_contents
+    revocation = threading.Thread(target=live.revoke_api_token, args=(token_id,))
+
+    def copy_while_revoking(source, target):
+        revocation.start()
+        revocation.join(0.3)
+        assert revocation.is_alive(), "the revocation must wait for the copy"
+        real_copy(source, target)
+
+    monkeypatch.setattr(backup_module, "replace_contents", copy_while_revoking)
+    restore_backup(_archive({"docsis_history.db": _database_bytes(tmp_path, ["old"])}), str(data_dir))
+    revocation.join(5)
+
+    with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
+        assert conn.execute("SELECT revoked FROM api_tokens WHERE id = ?", (token_id,)).fetchone() == (1,)
+
+
+def test_settings_save_waits_for_restore_and_reload(make_app, builtin_module_loader_factory, tmp_path, monkeypatch):
+    import threading
+
+    from app.config import ConfigManager
+
+    config = ConfigManager(str(tmp_path / "data"))
+    app = make_app(config_manager=config, module_loader_factory=builtin_module_loader_factory(config))
+    save = threading.Thread(target=config.save, args=({"language": "de"},))
+    real_reload = config.reload
+    waited = []
+
+    def restore_while_saving(_data, _data_dir):
+        save.start()
+        save.join(0.2)
+        return {"restored_files": [], "meta": {}}
+
+    def reload_after_restore():
+        waited.append(save.is_alive())  # the save is still waiting when the key is reloaded
+        real_reload()
+
+    monkeypatch.setattr("app.modules.backup.routes.restore_backup", restore_while_saving)
+    monkeypatch.setattr(config, "reload", reload_after_restore)
+    response = app.test_client().post(
+        "/api/restore", data={"file": (io.BytesIO(b"archive"), "backup.tar.gz")}, content_type="multipart/form-data",
+    )
+    save.join(5)
+
+    assert response.status_code == 200
+    assert waited == [True]
+    assert config.get("language") == "de"

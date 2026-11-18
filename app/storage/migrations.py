@@ -235,6 +235,21 @@ def _apply_meta_version(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_smart_capture_error_scrub(conn: sqlite3.Connection) -> None:
+    # Older Speedtest captures stored the tracker's response body and exception
+    # texts, which can contain credentials. Keep only the fixed status part.
+    conn.execute(
+        "UPDATE smart_capture_executions SET last_error = substr(last_error, 1, 16) "
+        "WHERE action_type = 'capture' AND last_error GLOB 'STT returned [0-9][0-9][0-9]: *'"
+    )
+    conn.execute(
+        "UPDATE smart_capture_executions SET last_error = 'Unexpected error, see the DOCSight log' "
+        "WHERE action_type = 'capture' AND status = 'expired' "
+        "AND NOT (last_error GLOB 'STT returned [0-9][0-9][0-9]' "
+        "OR last_error IN ('no matching result within timeout window', 'no action adapter configured'))"
+    )
+
+
 def _segment_applied(_conn: sqlite3.Connection) -> bool:
     # CREATE IF NOT EXISTS also repairs missing indexes on legacy databases.
     return False
@@ -254,6 +269,7 @@ CORE_MIGRATIONS: tuple[Migration, ...] = (
         _snapshot_columns_applied,
     ),
     Migration("core-0005-meta-version", _apply_meta_version, _meta_version_applied),
+    Migration("core-0006-smart-capture-error-scrub", _apply_smart_capture_error_scrub, lambda _conn: False),
 )
 
 def _segment_demo_flag_applied(conn: sqlite3.Connection) -> bool:

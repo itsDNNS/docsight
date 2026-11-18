@@ -10,6 +10,7 @@ from typing import Any
 import requests
 
 from ...config import parse_config_bool
+from ...modules.speedtest.client import public_error
 from ...tz import utc_now
 from ...types import EventDict
 from ..types import CAPTURE_ACTION_TYPE, ExecutionStatus
@@ -71,7 +72,7 @@ class SpeedtestAdapter:
                 log.info("Smart Capture: triggered STT run (execution #%d)", execution_id)
                 return True, None
 
-            error = f"STT returned {resp.status_code}: {resp.text[:200]}"
+            error = f"STT returned {resp.status_code}"
             self._storage.update_execution(
                 execution_id,
                 status=ExecutionStatus.EXPIRED,
@@ -89,16 +90,16 @@ class SpeedtestAdapter:
             log.warning("Smart Capture: STT trigger timeout for #%d; awaiting result import",
                         execution_id)
             return True, None
-        except Exception as e:
-            error = str(e)
+        except Exception as exc:
+            error = public_error(exc)
             self._storage.update_execution(
                 execution_id,
                 status=ExecutionStatus.EXPIRED,
                 last_error=error,
                 attempt_count=1,
             )
-            log.warning("Smart Capture: STT trigger error for #%d: %s",
-                        execution_id, error)
+            log.warning("Smart Capture: STT trigger error for #%d: %s (%s)",
+                        execution_id, error, type(exc).__name__)
             return False, error
 
     def _mark_fired(self, execution_id: int, event: EventDict,

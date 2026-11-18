@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "Nie udało się odczytać pliku PDF. Czy to oficjalny protokół pomiaru BNetzA?",
+  "bnetz_csv_parse_error": "Nie udało się odczytać pliku CSV. Czy to eksport z oficjalnego pomiaru BNetzA?",
   "bnetz_watcher_title": "Monitorowanie plików BNetzA",
   "bnetz_watcher_desc": "Automatyczny import plików pomiarowych",
   "bnetz_watcher_hint": "Automatycznie importuje pliki PDF i CSV z pomiarami BNetzA z monitorowanego katalogu",

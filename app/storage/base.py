@@ -2,7 +2,7 @@
 
 import os
 
-from .migrations import CORE_MIGRATIONS, SCHEMA_VERSION, run_migrations
+from .migrations import CORE_MIGRATIONS, run_migrations
 from .sqlite import DatabaseAccess
 
 

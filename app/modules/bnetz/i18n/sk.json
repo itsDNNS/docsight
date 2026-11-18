@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "PDF sa nepodarilo prečítať. Ide o oficiálny protokol merania BNetzA?",
+  "bnetz_csv_parse_error": "CSV sa nepodarilo prečítať. Ide o export z oficiálneho merania BNetzA?",
   "bnetz_watcher_title": "Sledovanie súborov BNetzA",
   "bnetz_watcher_desc": "Automaticky importovať súbory meraní",
   "bnetz_watcher_hint": "Automaticky importuje súbory PDF a CSV s meraniami BNetzA zo sledovaného priečinka",

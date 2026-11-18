@@ -1,6 +1,5 @@
 """Tests for the shared Arris HTML channel-table parser."""
 
-import pytest
 
 from app.drivers.arris_html import (
     parse_arris_channel_tables,
@@ -11,7 +10,7 @@ from app.drivers.arris_html import (
     _parse_freq_hz,
     _parse_value,
 )
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 
 
 # ---------------------------------------------------------------------------

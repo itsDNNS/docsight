@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "PDF-ul nu a putut fi citit. Este un protocol oficial de măsurare BNetzA?",
+  "bnetz_csv_parse_error": "CSV-ul nu a putut fi citit. Este un export al unei măsurători oficiale BNetzA?",
   "bnetz_watcher_title": "Monitorizare fișiere BNetzA",
   "bnetz_watcher_desc": "Importă automat fișierele de măsurare",
   "bnetz_watcher_hint": "Importă automat fișierele PDF și CSV de măsurare BNetzA dintr-un director monitorizat",

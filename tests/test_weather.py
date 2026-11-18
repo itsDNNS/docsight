@@ -2,7 +2,6 @@
 
 import sys
 import os
-import json
 
 import pytest
 from unittest.mock import MagicMock, patch
@@ -145,7 +144,6 @@ class TestWeatherStorage:
 
     def test_wal_mode_enabled(self, tmp_path):
         """WeatherStorage connections use WAL journal mode."""
-        import sqlite3
         storage = WeatherStorage(str(tmp_path / "test.db"))
         with storage._connect() as conn:
             mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
@@ -308,7 +306,6 @@ class TestWeatherAPI:
     @pytest.fixture
     def weather_client(self, tmp_path):
         # Reset module-local storage
-        from app.modules.weather import routes as weather_routes
 
         data_dir = str(tmp_path / "data_w")
         mgr = ConfigManager(data_dir)
@@ -376,7 +373,6 @@ class TestWeatherAPI:
         assert resp.status_code == 400
 
     def test_api_weather_not_configured(self, tmp_path):
-        from app.modules.weather import routes as weather_routes
         mgr = ConfigManager(str(tmp_path / "data_nc"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr

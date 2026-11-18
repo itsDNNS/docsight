@@ -1,6 +1,7 @@
 """Tests for Speedtest Tracker client and API endpoint."""
 
 import pytest
+import requests
 from unittest.mock import patch, MagicMock
 
 from app.modules.speedtest.client import SpeedtestClient
@@ -189,15 +190,21 @@ class TestSpeedtestClient:
         assert len(results) == 1
         assert error is None
 
+    @pytest.mark.parametrize(("raised", "expected"), [
+        (requests.ConnectionError("Connection refused"), "Cannot reach Speedtest Tracker"),
+        (requests.Timeout("timed out"), "Speedtest Tracker timeout"),
+        (requests.ConnectTimeout("connect timed out"), "Speedtest Tracker timeout"),
+        (requests.exceptions.InvalidHeader("Invalid header value b'Bearer leaked-token'"),
+         "Unexpected error, see the DOCSight log"),
+    ])
     @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_get_latest_with_error_connection_error(self, mock_get):
-        import requests as req
-        mock_get.side_effect = req.ConnectionError("Connection refused")
+    def test_get_latest_with_error_reports_fixed_messages(self, mock_get, raised, expected):
+        mock_get.side_effect = raised
 
         client = self._make_client()
         results, error = client.get_latest_with_error(1)
         assert results == []
-        assert "ConnectionError" in error
+        assert error == expected
 
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_get_latest_with_error_http_error(self, mock_get):
@@ -211,16 +218,6 @@ class TestSpeedtestClient:
         results, error = client.get_latest_with_error(1)
         assert results == []
         assert "401" in error
-
-    @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_get_latest_with_error_timeout(self, mock_get):
-        import requests as req
-        mock_get.side_effect = req.Timeout("timed out")
-
-        client = self._make_client()
-        results, error = client.get_latest_with_error(1)
-        assert results == []
-        assert "Timeout" in error
 
 
 # ── Config Tests ──
@@ -315,7 +312,7 @@ class TestSpeedtestAPI:
         assert mock_get.call_args.args[0] == "http://speedtest.local:8999/api/v1/results"
         assert mock_get.call_args.kwargs["verify"] is True
 
-    @patch("app.modules.speedtest.client.SpeedtestClient")
+    @patch("app.blueprints.polling_bp.SpeedtestClient")
     def test_api_test_speedtest_rejects_unsaved_destination_without_requesting_it(
         self, mock_client, speedtest_client
     ):
@@ -331,7 +328,7 @@ class TestSpeedtestAPI:
         }
         mock_client.assert_not_called()
 
-    @patch("app.modules.speedtest.client.SpeedtestClient")
+    @patch("app.blueprints.polling_bp.SpeedtestClient")
     def test_api_test_speedtest_uses_saved_credentials(self, mock_client, speedtest_client):
         mock_client.return_value.get_latest_with_error.return_value = ([], None)
 
@@ -364,10 +361,23 @@ class TestSpeedtestAPI:
         assert resp.get_json() == {"success": True, "results": 0}
         assert mock_get.call_args.args[0] == "http://speedtest.local:8999/api/v1/results"
 
+    @patch("app.blueprints.polling_bp.SpeedtestClient")
+    def test_api_test_speedtest_keeps_the_saved_tls_policy(self, mock_client, speedtest_client):
+        resp = speedtest_client.post("/api/test-speedtest", json={
+            "speedtest_tracker_url": "http://speedtest.local:8999",
+            "speedtest_tracker_token": PASSWORD_MASK,
+            "speedtest_tls_insecure": "true",
+        })
+
+        assert resp.get_json() == {"success": False, "error": "Save Speedtest Tracker settings before testing."}
+        mock_client.assert_not_called()
+
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_api_test_speedtest_passes_insecure_tls_flag(self, mock_get, speedtest_client):
 
-        current_runtime().config_manager.save({"speedtest_tracker_url": "https://speedtest.local:8443"})
+        current_runtime().config_manager.save({
+            "speedtest_tracker_url": "https://speedtest.local:8443", "speedtest_tls_insecure": True,
+        })
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
@@ -403,8 +413,7 @@ class TestSpeedtestAPI:
         })
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data["success"] is False
-        assert "ConnectionError" in data["error"]
+        assert data == {"success": False, "error": "Cannot reach Speedtest Tracker"}
 
     def test_signal_api_treats_legacy_unsupported_zero_error_counters_as_unavailable(self, speedtest_client, monkeypatch):
         import app.modules.speedtest.routes as speedtest_routes
@@ -479,7 +488,6 @@ class TestSpeedtestRun:
     """Tests for POST /api/speedtest/run."""
 
     def _reset_rate_limit(self):
-        import app.modules.speedtest.routes as sr
         current_runtime().derived_storage.set_value("speedtest_last_trigger", 0.0)
 
     @patch("app.modules.speedtest.routes.requests.post")
@@ -535,15 +543,20 @@ class TestSpeedtestRun:
         assert resp.status_code == 502
         assert resp.get_json()["success"] is False
 
+    @pytest.mark.parametrize(("raised", "status", "error"), [
+        (requests.ConnectionError("refused"), 502, "Cannot reach Speedtest Tracker"),
+        (requests.ConnectTimeout("connect timed out"), 504, "Speedtest Tracker timeout"),
+        (requests.exceptions.InvalidHeader("Invalid header value b'Bearer leaked-token'"), 500,
+         "Speedtest start failed. See the DOCSight log for details."),
+    ], ids=["connection", "connect-timeout", "invalid-header"])
     @patch("app.modules.speedtest.routes.requests.post")
-    def test_run_connection_error(self, mock_post, speedtest_client):
+    def test_run_request_failures(self, mock_post, speedtest_client, caplog, raised, status, error):
         self._reset_rate_limit()
-        import requests as req
-        mock_post.side_effect = req.ConnectionError("refused")
+        mock_post.side_effect = raised
 
         resp = speedtest_client.post("/api/speedtest/run")
-        assert resp.status_code == 502
-        assert "Cannot reach" in resp.get_json()["error"]
+        assert (resp.status_code, resp.get_json()) == (status, {"success": False, "error": error})
+        assert "leaked-token" not in caplog.text
 
     def test_run_not_configured(self, tmp_path):
         with configured_client(tmp_path / "data3") as client:

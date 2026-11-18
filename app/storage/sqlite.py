@@ -6,10 +6,13 @@ original timeout, busy-timeout, and tuple-row behavior.
 """
 
 from collections.abc import Iterable, Iterator, Sequence
-from contextlib import contextmanager
+from contextlib import closing, contextmanager, suppress
+import os
+import time
 import sqlite3
 from pathlib import Path
 import threading
+import weakref
 from typing import Any
 
 DEFAULT_SQLITE_TIMEOUT_SECONDS = 30
@@ -25,6 +28,22 @@ def connect_sqlite(db_path: str, **kwargs: Any) -> sqlite3.Connection:
 
 
 _transaction_state = threading.local()
+_write_locks: "weakref.WeakValueDictionary[str, threading.RLock]" = weakref.WeakValueDictionary()
+_write_locks_guard = threading.Lock()
+
+
+def database_write_lock(db_path: str) -> threading.RLock:
+    """The in-process lock every writer of one database file holds.
+
+    A restore holds it while it copies a backup in, so no write is lost between
+    reading the live API tokens and replacing the contents.
+    """
+    resolved = str(Path(db_path).expanduser().resolve())
+    with _write_locks_guard:
+        lock = _write_locks.get(resolved)
+        if lock is None:
+            lock = _write_locks[resolved] = threading.RLock()
+        return lock
 
 
 def _managed_timeout(timeout: float | None) -> tuple[float, int]:
@@ -79,38 +98,38 @@ def write_transaction(
     if active_paths is None:
         active_paths = set()
         _transaction_state.active_paths = active_paths
-    active_paths.add(resolved_path)
-
-    conn = None
-    try:
-        seconds, busy_timeout_ms = _managed_timeout(timeout)
-        # Explicit BEGIN/commit ownership requires legacy transaction control
-        # with implicit transactions disabled.  In sqlite3, commit() is a no-op
-        # when autocommit=True, even after an explicit BEGIN.
-        conn = connect_sqlite(
-            db_path,
-            timeout=seconds,
-            autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL,
-            isolation_level=None,
-        )
-        _apply_common_policy(conn, busy_timeout_ms)
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("BEGIN IMMEDIATE")
+    with database_write_lock(resolved_path):
+        active_paths.add(resolved_path)
+        conn = None
         try:
-            yield conn
-        except BaseException:
-            conn.rollback()
-            raise
-        else:
+            seconds, busy_timeout_ms = _managed_timeout(timeout)
+            # Explicit BEGIN/commit ownership requires legacy transaction control
+            # with implicit transactions disabled.  In sqlite3, commit() is a no-op
+            # when autocommit=True, even after an explicit BEGIN.
+            conn = connect_sqlite(
+                db_path,
+                timeout=seconds,
+                autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL,
+                isolation_level=None,
+            )
+            _apply_common_policy(conn, busy_timeout_ms)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("BEGIN IMMEDIATE")
             try:
-                conn.commit()
+                yield conn
             except BaseException:
                 conn.rollback()
                 raise
-    finally:
-        active_paths.discard(resolved_path)
-        if conn is not None:
-            conn.close()
+            else:
+                try:
+                    conn.commit()
+                except BaseException:
+                    conn.rollback()
+                    raise
+        finally:
+            active_paths.discard(resolved_path)
+            if conn is not None:
+                conn.close()
 
 
 def bulk_write(
@@ -147,6 +166,38 @@ def consistent_copy(src_db_path: str, dest_path: str) -> None:
         conn.execute("VACUUM INTO ?", (dest_path,))
     finally:
         conn.close()
+
+
+def replace_contents(source_path: str, target_path: str) -> None:
+    """Copy a database into a live one through SQLite's online backup API.
+
+    SQLite locks the target for the copy, so its readers and writers never see
+    a new file next to old WAL files, and nothing has to rename an open file.
+    A damaged target cannot take a copy, so it is replaced as a file instead.
+    """
+    deadline = time.monotonic() + DEFAULT_SQLITE_TIMEOUT_SECONDS
+
+    def give_up_when_locked_too_long(_status, _remaining, _total):
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"{target_path} stayed locked")
+
+    try:
+        with closing(connect_sqlite(source_path)) as source, closing(connect_sqlite(target_path)) as target:
+            source.backup(target, progress=give_up_when_locked_too_long)
+    except sqlite3.DatabaseError:
+        if _is_intact(target_path):
+            raise
+        os.replace(source_path, target_path)
+        for suffix in ("-wal", "-shm"):
+            with suppress(FileNotFoundError):
+                os.remove(target_path + suffix)
+
+
+def _is_intact(db_path: str) -> bool:
+    try:
+        return verify_database(db_path) == "ok"
+    except sqlite3.DatabaseError:
+        return False
 
 
 def verify_database(db_path: str) -> str:

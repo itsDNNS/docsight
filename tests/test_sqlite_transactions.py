@@ -69,3 +69,38 @@ def test_busy_failure_happens_at_begin_and_recovers_after_release(tmp_path):
 
     with sqlite_owner.write_transaction(str(db_path), timeout=0.05) as conn:
         conn.execute("INSERT INTO records VALUES ('after-release')")
+
+
+def test_write_locks_of_finished_databases_are_released(tmp_path):
+    import gc
+
+    from app.storage import sqlite as sqlite_module
+
+    db = tmp_path / "temporary.db"
+    with sqlite_module.write_transaction(str(db)) as conn:
+        conn.execute("CREATE TABLE t (v)")
+    gc.collect()
+
+    assert str(db.resolve()) not in sqlite_module._write_locks
+
+
+def test_restore_copy_gives_up_when_the_target_stays_locked(tmp_path, monkeypatch):
+    import sqlite3
+    from contextlib import closing
+
+    import pytest
+
+    from app.storage import sqlite as sqlite_module
+
+    monkeypatch.setattr(sqlite_module, "DEFAULT_SQLITE_TIMEOUT_SECONDS", 0.2)
+    monkeypatch.setattr(sqlite_module, "DEFAULT_SQLITE_BUSY_TIMEOUT_MS", 50)
+    source, target = tmp_path / "source.db", tmp_path / "target.db"
+    for path in (source, target):
+        with closing(sqlite3.connect(path)) as conn:
+            conn.execute("CREATE TABLE t (v)")
+            conn.commit()
+
+    with closing(sqlite3.connect(target, isolation_level=None)) as holder:
+        holder.execute("BEGIN EXCLUSIVE")
+        with pytest.raises(TimeoutError):
+            sqlite_module.replace_contents(str(source), str(target))

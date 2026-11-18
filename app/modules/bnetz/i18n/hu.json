@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "Nem sikerült beolvasni a PDF-et. Hivatalos BNetzA mérési jegyzőkönyv?",
+  "bnetz_csv_parse_error": "Nem sikerült beolvasni a CSV-t. Hivatalos BNetzA-mérés exportja?",
   "bnetz_watcher_title": "BNetzA fájlfigyelő",
   "bnetz_watcher_desc": "Mérési fájlok automatikus importálása",
   "bnetz_watcher_hint": "Automatikusan importálja a BNetzA mérési PDF- és CSV-fájljait egy figyelt mappából",

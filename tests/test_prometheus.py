@@ -5,7 +5,6 @@ connection_info, last_poll_timestamp) returns valid Prometheus text exposition
 format strings.
 """
 
-import pytest
 
 from app.prometheus import format_metrics
 

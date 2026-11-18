@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "PDF konnte nicht gelesen werden. Ist es ein offizielles Messprotokoll der BNetzA?",
+  "bnetz_csv_parse_error": "CSV konnte nicht gelesen werden. Ist es ein Export einer offiziellen BNetzA-Messung?",
   "bnetz_watcher_title": "BNetzA-Dateiüberwachung",
   "bnetz_watcher_desc": "Messdateien automatisch importieren",
   "bnetz_watcher_hint": "Importiert BNetzA-Mess-PDFs und -CSVs automatisch aus einem überwachten Verzeichnis",

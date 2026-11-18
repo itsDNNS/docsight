@@ -106,7 +106,11 @@ class ModemCollector(AnalysisCollector):
         self._event_detector.seed(self._storage.get_latest_snapshot())
 
     def collect(self) -> CollectorResult:
-        self._driver.login()
+        try:
+            self._driver.login()
+        except Exception as exc:
+            exc.modem_stage = "login"  # lets the poll error tell login and reading failures apart
+            raise
 
         first_fetch = self._device_info is None
         self._device_info = self._driver.get_device_info()

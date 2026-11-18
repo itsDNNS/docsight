@@ -42,151 +42,81 @@ function onIspChange() {
     }
 }
 
-/* ── Modem Test ── */
+/* ── Connection Tests ── */
+function showTestResult(el, state, text) {
+    el.className = 'test-result test-' + state;
+    el.style.display = 'flex';
+    el.textContent = '';
+    var mark = document.createElement('span');
+    mark.textContent = {loading: '\u23F3', ok: '\u2713', fail: '\u2717'}[state];
+    if (state === 'ok') mark.className = 'check-icon';
+    el.appendChild(mark);
+    el.appendChild(document.createTextNode(' ' + text));
+}
+
+function errorText(res) {
+    return T.error_prefix + ': ' + (res.error || T.unknown_error);
+}
+
+/* Posts body to url and shows progress and result in the element with the given id.
+   opts.status(state, text) mirrors the result in a connection status box. */
+function runConnectionTest(opts) {
+    var el = document.getElementById(opts.id);
+    var status = opts.status || function() {};
+    showTestResult(el, 'loading', opts.testingText || T.testing);
+    status('testing', T.testing);
+    fetch(docsightUrl(opts.url), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(opts.body)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        var text = res.success ? opts.success(res) : (opts.failure || errorText)(res);
+        showTestResult(el, res.success ? 'ok' : 'fail', text);
+        status(res.success ? 'connected' : 'disconnected', text);
+    })
+    .catch(function() {
+        var text = opts.networkText || T.network_error;
+        showTestResult(el, 'fail', text);
+        status('disconnected', text);
+    });
+}
+
 function testModem() {
-    var el = document.getElementById('modem-test');
-    el.className = 'test-result test-loading';
-    el.style.display = 'flex';
-    el.textContent = '';
-    var span = document.createElement('span');
-    span.textContent = '\u23F3';
-    el.appendChild(span);
-    el.appendChild(document.createTextNode(' ' + T.testing));
-    setModemStatus('testing', T.testing);
     var data = getFormData();
-    fetch(docsightUrl('/api/test-modem'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({modem_type: data.modem_type, modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-        el.textContent = '';
-        if (res.success) {
-            el.className = 'test-result test-ok';
-            var check = document.createElement('span');
-            check.className = 'check-icon';
-            check.textContent = '\u2713';
-            el.appendChild(check);
-            el.appendChild(document.createTextNode(' ' + T.connected + ': ' + (res.model || 'OK')));
-            setModemStatus('connected', T.connected + ': ' + (res.model || 'OK'));
-        } else {
-            el.className = 'test-result test-fail';
-            var x = document.createElement('span');
-            x.textContent = '\u2717';
-            el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + T.error_prefix + ': ' + (res.error || T.unknown_error)));
-            setModemStatus('disconnected', T.error_prefix + ': ' + (res.error || T.unknown_error));
-        }
-    })
-    .catch(function() {
-        el.textContent = '';
-        el.className = 'test-result test-fail';
-        var x = document.createElement('span');
-        x.textContent = '\u2717';
-        el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + T.network_error));
-        setModemStatus('disconnected', T.network_error);
+    runConnectionTest({
+        id: 'modem-test', url: '/api/test-modem', status: setModemStatus,
+        body: {modem_type: data.modem_type, modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password},
+        success: function(res) { return T.connected + ': ' + (res.model || 'OK'); }
     });
 }
 
-/* ── MQTT Test ── */
 function testMqtt() {
-    var el = document.getElementById('mqtt-test');
-    el.className = 'test-result test-loading';
-    el.style.display = 'flex';
-    el.textContent = '';
-    var span = document.createElement('span');
-    span.textContent = '\u23F3';
-    el.appendChild(span);
-    el.appendChild(document.createTextNode(' ' + T.testing));
-    setMqttStatus('testing', T.testing);
     var data = getFormData();
-    fetch(docsightUrl('/api/test-mqtt'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({mqtt_host: data.mqtt_host, mqtt_port: data.mqtt_port, mqtt_user: data.mqtt_user, mqtt_password: data.mqtt_password})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-        el.textContent = '';
-        if (res.success) {
-            el.className = 'test-result test-ok';
-            var check = document.createElement('span');
-            check.className = 'check-icon';
-            check.textContent = '\u2713';
-            el.appendChild(check);
-            el.appendChild(document.createTextNode(' ' + T.connected));
-            setMqttStatus('connected', T.connected);
-        } else {
-            el.className = 'test-result test-fail';
-            var x = document.createElement('span');
-            x.textContent = '\u2717';
-            el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + T.error_prefix + ': ' + (res.error || T.unknown_error)));
-            setMqttStatus('disconnected', T.error_prefix + ': ' + (res.error || T.unknown_error));
-        }
-    })
-    .catch(function() {
-        el.textContent = '';
-        el.className = 'test-result test-fail';
-        var x = document.createElement('span');
-        x.textContent = '\u2717';
-        el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + T.network_error));
-        setMqttStatus('disconnected', T.network_error);
+    runConnectionTest({
+        id: 'mqtt-test', url: '/api/test-mqtt', status: setMqttStatus,
+        // An anonymous broker gets no password, not even the saved-password mask.
+        body: {mqtt_host: data.mqtt_host, mqtt_port: data.mqtt_port, mqtt_user: data.mqtt_user, mqtt_password: data.mqtt_user ? data.mqtt_password : '', mqtt_tls_insecure: data.mqtt_tls_insecure},
+        success: function() { return T.connected; }
     });
 }
 
-/* ── Speedtest Tracker Test ── */
 function testSpeedtest() {
-    var el = document.getElementById('speedtest-test');
-    el.className = 'test-result test-loading';
-    el.style.display = 'flex';
-    el.textContent = '';
-    var span = document.createElement('span');
-    span.textContent = '\u23F3';
-    el.appendChild(span);
-    el.appendChild(document.createTextNode(' ' + T.testing));
     var data = getFormData();
-    fetch(docsightUrl('/api/test-speedtest'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
+    runConnectionTest({
+        id: 'speedtest-test', url: '/api/test-speedtest',
+        body: {
             speedtest_tracker_url: data.speedtest_tracker_url,
             speedtest_tracker_token: data.speedtest_tracker_token,
             speedtest_tls_insecure: data.speedtest_tls_insecure
-        })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-        el.textContent = '';
-        if (res.success) {
-            el.className = 'test-result test-ok';
-            var check = document.createElement('span');
-            check.className = 'check-icon';
-            check.textContent = '\u2713';
-            el.appendChild(check);
+        },
+        success: function(res) {
             if (res.results > 0) {
-                el.appendChild(document.createTextNode(' ' + T.connected + ': ' + res.latest.download + ' \u2193 / ' + res.latest.upload + ' \u2191 / ' + res.latest.ping));
-            } else {
-                el.appendChild(document.createTextNode(' ' + T.connected + ' (' + (T.speedtest_no_results || 'no results yet') + ')'));
+                return T.connected + ': ' + res.latest.download + ' \u2193 / ' + res.latest.upload + ' \u2191 / ' + res.latest.ping;
             }
-        } else {
-            el.className = 'test-result test-fail';
-            var x = document.createElement('span');
-            x.textContent = '\u2717';
-            el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + T.error_prefix + ': ' + (res.error || T.unknown_error)));
+            return T.connected + ' (' + (T.speedtest_no_results || 'no results yet') + ')';
         }
-    })
-    .catch(function() {
-        el.textContent = '';
-        el.className = 'test-result test-fail';
-        var x = document.createElement('span');
-        x.textContent = '\u2717';
-        el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + T.network_error));
     });
 }
 
@@ -224,46 +154,13 @@ function clearSpeedtestCache(btn) {
         .catch(function() { btn.disabled = false; });
 }
 
-/* ── Notification Test ── */
 function testNotifications() {
-    var el = document.getElementById('notify-test');
-    el.className = 'test-result test-loading';
-    el.style.display = 'flex';
-    el.textContent = '';
-    var span = document.createElement('span');
-    span.textContent = '\u23F3';
-    el.appendChild(span);
-    el.appendChild(document.createTextNode(' ' + (T.notify_test_sending || 'Sending test notification...')));
-    fetch(docsightUrl('/api/notifications/test'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: '{}'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-        el.textContent = '';
-        if (res.success) {
-            el.className = 'test-result test-ok';
-            var check = document.createElement('span');
-            check.className = 'check-icon';
-            check.textContent = '\u2713';
-            el.appendChild(check);
-            el.appendChild(document.createTextNode(' ' + (T.notify_test_sent || 'Test notification sent')));
-        } else {
-            el.className = 'test-result test-fail';
-            var x = document.createElement('span');
-            x.textContent = '\u2717';
-            el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + (res.error || T.unknown_error || 'Unknown error')));
-        }
-    })
-    .catch(function() {
-        el.textContent = '';
-        el.className = 'test-result test-fail';
-        var x = document.createElement('span');
-        x.textContent = '\u2717';
-        el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + (T.network_error || 'Network error')));
+    runConnectionTest({
+        id: 'notify-test', url: '/api/notifications/test', body: {},
+        testingText: T.notify_test_sending || 'Sending test notification...',
+        success: function() { return T.notify_test_sent || 'Test notification sent'; },
+        failure: function(res) { return res.error || T.unknown_error || 'Unknown error'; },
+        networkText: T.network_error || 'Network error'
     });
 }
 

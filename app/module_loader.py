@@ -79,6 +79,11 @@ def discover_builtin_threshold_modules(
         raise RegistrationError(str(exc)) from exc
 
 
+def _public_error(exc: Exception, fallback: str) -> str:
+    """Manifest and registration errors are written by DOCSight; others may carry paths."""
+    return str(exc) if isinstance(exc, (ManifestError, RegistrationError)) else fallback
+
+
 class ModuleLoader:
     """Discover modules and assemble their complete validated registration plan."""
 
@@ -126,10 +131,7 @@ class ModuleLoader:
                             mod.path, mod.contributes["theme"], "theme", validate_theme
                         ))
                     except Exception as exc:
-                        mod.error = (
-                            str(exc) if isinstance(exc, ManifestError)
-                            else "theme contribution is invalid"
-                        )
+                        mod.error = _public_error(exc, "theme contribution is invalid")
                         log.warning("Module '%s': disabled theme preview rejected", mod.id)
                 log.info("Module '%s' is disabled, skipping load", mod.id)
                 continue
@@ -141,8 +143,8 @@ class ModuleLoader:
                         f"Built-in module {mod.id} failed contribution preflight: "
                         f"{type(exc).__name__}"
                     ) from exc
-                mod.error = str(exc)
-                log.error("Module '%s' failed contribution preflight", mod.id)
+                mod.error = _public_error(exc, "contribution is invalid")
+                log.error("Module '%s' failed contribution preflight: %s", mod.id, exc)
         accepted = self._validate_resolved(resolved)
         accepted_ids = {item.module_id for item, _http in accepted}
         registry_modules = [

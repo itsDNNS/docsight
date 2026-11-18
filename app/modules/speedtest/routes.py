@@ -12,7 +12,7 @@ from app.runtime import current_runtime
 from app.i18n import get_translations
 from app.storage.sqlite import open_read
 
-from .client import SpeedtestClient
+from .client import SpeedtestClient, public_error
 from .storage import SpeedtestStorage
 
 log = logging.getLogger("docsis.web.speedtest")
@@ -261,13 +261,14 @@ def api_speedtest_run():
             error = f"Speedtest Tracker returned {resp.status_code}"
             log.warning("Manual speedtest trigger failed: %s", error)
             return jsonify({"success": False, "error": error}), 502
-    except requests.ConnectionError:
-        return jsonify({"success": False, "error": "Cannot reach Speedtest Tracker"}), 502
-    except requests.Timeout:
-        return jsonify({"success": False, "error": "Speedtest Tracker timeout"}), 504
-    except Exception as e:
-        log.warning("Manual speedtest trigger error: %s", e)
-        return jsonify({"success": False, "error": str(e)}), 500
+    except Exception as exc:
+        # Exception texts can carry the Authorization header, so only the type is logged.
+        log.warning("Manual speedtest trigger error: %s (%s)", public_error(exc), type(exc).__name__)
+        if isinstance(exc, requests.Timeout):  # ConnectTimeout is also a ConnectionError
+            return jsonify({"success": False, "error": public_error(exc)}), 504
+        if isinstance(exc, requests.ConnectionError):
+            return jsonify({"success": False, "error": public_error(exc)}), 502
+        return jsonify({"success": False, "error": "Speedtest start failed. See the DOCSight log for details."}), 500
 
 
 @bp.route("/api/speedtest/cache", methods=["DELETE"])

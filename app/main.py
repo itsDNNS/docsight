@@ -7,10 +7,10 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import analyzer
+from . import analyzer, modem_diagnosis
 from .app_factory import create_app, default_module_loader_factory
 from .base_path import validate_base_path_configuration
-from .config import ConfigManager
+from .config import ConfigManager, parse_config_bool
 from .event_detector import EventDetector
 from .module_paths import get_modules_dir
 from .runtime import DocsightRuntime, get_runtime
@@ -154,7 +154,6 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
     if mqtt_cls and config_mgr.is_mqtt_configured():
         mqtt_user = config["mqtt_user"] or None
         mqtt_password = config["mqtt_password"] or None
-        mqtt_tls_insecure = str(config.get("mqtt_tls_insecure", "")).strip().lower() in ("true", "1", "yes", "on")
         mqtt_pub = mqtt_cls(
             host=config["mqtt_host"],
             port=int(config["mqtt_port"]),
@@ -162,7 +161,7 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
             password=mqtt_password,
             topic_prefix=config["mqtt_topic_prefix"],
             ha_prefix=config["mqtt_discovery_prefix"],
-            tls_insecure=mqtt_tls_insecure,
+            tls_insecure=parse_config_bool(config.get("mqtt_tls_insecure")),
             web_port=int(config["web_port"]),
             public_url=config.get("public_url", ""),
         )
@@ -319,7 +318,7 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
                 collector.record_failure()
                 log.error("%s error: %s", collector.name, e)
                 if collector.name in ("modem", "demo"):
-                    runtime.update_state(error=e)
+                    runtime.update_state(error=modem_diagnosis.public_message(e))
 
     try:
         while not stop_event.is_set():

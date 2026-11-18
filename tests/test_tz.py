@@ -4,7 +4,6 @@ import os
 import pytest
 from datetime import datetime, timezone
 from unittest.mock import mock_open, patch
-from zoneinfo import ZoneInfo
 
 from app.tz import (
     utc_now, utc_cutoff, to_local, to_local_display,

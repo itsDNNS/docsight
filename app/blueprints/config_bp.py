@@ -58,10 +58,9 @@ def api_config():
     if not _config_manager:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
     try:
-        data = request.get_json()
-        if not data:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict) or not data:
             return jsonify({"success": False, "error": "No data"}), 400
-        data = dict(data)
         if "modem_type" in data and data["modem_type"] != _config_manager.get("modem_type"):
             registry = current_runtime().driver_registry
             key = data["modem_type"]
@@ -69,6 +68,8 @@ def api_config():
                 return jsonify({"success": False, "error": "Unavailable modem type"}), 400
         previous_admin_password = _config_manager.get("admin_password", "")
         admin_password_requested = "admin_password" in data
+        if admin_password_requested and not isinstance(data["admin_password"], (str, type(None))):
+            return jsonify({"success": False, "error": "admin_password must be text"}), 400
         if admin_password_requested and (
             data["admin_password"] == PASSWORD_MASK
             or _admin_password_matches(previous_admin_password, data["admin_password"])
@@ -94,15 +95,18 @@ def api_config():
                 pi = parse_config_int(data["poll_interval"])
                 data["poll_interval"] = max(POLL_MIN, min(POLL_MAX, pi))
             except (ValueError, TypeError, OverflowError):
-                pass  # save() rejects it with a 400
+                pass  # validation_error() rejects it with a 400
         previous_bqm_url = (_config_manager.get("bqm_url") or "").strip()
-        requested_bqm_url = (data.get("bqm_url") or "").strip() if "bqm_url" in data else previous_bqm_url
+        if error := _config_manager.validation_error(data):
+            return jsonify({"success": False, "error": error}), 400
+        _config_manager.save(data)
+        # Read back after save(), which has validated the submitted URL.
+        requested_bqm_url = (_config_manager.get("bqm_url") or "").strip()
         should_fetch_bqm = (
             bool(requested_bqm_url)
             and requested_bqm_url != previous_bqm_url
             and _should_run_bqm_initial_fetch(requested_bqm_url)
         )
-        _config_manager.save(data)
         effective_admin_password = _config_manager.get("admin_password", "")
         admin_password_changed = (
             admin_password_requested
@@ -118,11 +122,9 @@ def api_config():
         if should_fetch_bqm:
             response["bqm_initial_fetch"] = run_bqm_initial_fetch(_config_manager, current_runtime().storage)
         return jsonify(response)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-    except Exception as e:
-        log.error("Config save failed: %s", e)
-        return jsonify({"success": False, "error": str(e)}), 500
+    except Exception:
+        log.exception("Config save failed")
+        return jsonify({"success": False, "error": "Saving failed. See the DOCSight log for details."}), 500
 
 
 # ── API Token Management ──
@@ -271,6 +273,6 @@ def api_demo_migrate():
             "purged": purged,
             "next": next_paths[next_choice],
         })
-    except Exception as e:
-        log.error("Demo migration failed: %s", e)
-        return jsonify({"success": False, "error": str(e)}), 500
+    except Exception:
+        log.exception("Demo migration failed")
+        return jsonify({"success": False, "error": "Demo migration failed. See the DOCSight log for details."}), 500

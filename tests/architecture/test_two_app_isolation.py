@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import re
+from types import SimpleNamespace
 
 import pytest
 
@@ -29,7 +30,9 @@ def _login(client, password):
 
 
 @pytest.mark.parametrize("order", [("a", "b"), ("b", "a")])
-def test_two_apps_isolate_runtime_auth_storage_and_requests(tmp_path, order):
+def test_two_apps_isolate_runtime_auth_storage_and_requests(tmp_path, order, monkeypatch):
+    # App "b" checks for updates; answer without reaching GitHub.
+    monkeypatch.setattr("app.runtime.requests.get", lambda *args, **kwargs: SimpleNamespace(status_code=404))
     applications = {}
     managers = {}
     for name in order:

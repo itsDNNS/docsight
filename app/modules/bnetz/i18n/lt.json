@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "Nepavyko perskaityti PDF. Ar tai oficialus BNetzA matavimo protokolas?",
+  "bnetz_csv_parse_error": "Nepavyko perskaityti CSV. Ar tai oficialaus BNetzA matavimo eksportas?",
   "bnetz_watcher_title": "BNetzA failų stebėjimas",
   "bnetz_watcher_desc": "Automatiškai importuoti matavimo failus",
   "bnetz_watcher_hint": "Automatiškai importuoja BNetzA matavimų PDF ir CSV failus iš stebimo katalogo",

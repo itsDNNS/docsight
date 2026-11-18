@@ -1,18 +1,16 @@
 """Tests for core module loading helpers and asset wiring."""
 
 # tests/test_module_loader.py
-import importlib
 import json
 import os
 import tempfile
-import textwrap
 from types import SimpleNamespace
 
 import pytest
 from flask import Flask
 from werkzeug.exceptions import NotFound
 import app.module_loader as module_loader
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import ModuleInfo, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
 from tests.fs_helpers import symlink_or_skip
 
 class TestRegisterModuleConfig:
@@ -240,9 +238,9 @@ class TestLoadModuleRoutes:
         with open(os.path.join(mod_dir, "routes.py"), "w") as f:
             f.write(content)
 
-    def test_load_blueprint_from_routes(self):
+    def test_load_blueprint_from_routes(self, make_app):
         """Load a Blueprint from a module's routes.py."""
-        app = Flask(__name__)
+        app = make_app()
         with tempfile.TemporaryDirectory() as d:
             mod_dir = os.path.join(d, "testmod")
             os.makedirs(mod_dir)
@@ -514,9 +512,9 @@ def status():
 
         return mod_dir
 
-    def test_load_modules_end_to_end(self):
+    def test_load_modules_end_to_end(self, make_app):
         """Full load: discover -> validate -> register config + i18n + routes."""
-        app = Flask(__name__)
+        app = make_app()
         with tempfile.TemporaryDirectory() as d:
             self._make_full_module(d, "test.alpha", "Alpha")
             self._make_full_module(d, "test.beta", "Beta")

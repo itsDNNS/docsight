@@ -233,7 +233,7 @@ def test_community_own_namespace_cannot_shadow_core_actions(tmp_path, action):
     assert loader.registration_plan.blueprints == ()
 
 
-def test_community_own_namespace_allows_non_core_action(tmp_path):
+def test_community_own_namespace_allows_non_core_action(tmp_path, make_app):
     _write_module(
         tmp_path,
         "owned-status",
@@ -244,7 +244,7 @@ bp = Blueprint("owned_status_bp", __name__)
 bp.add_url_rule("/api/modules/community.owned/status", "status", lambda: "ok")
 ''',
     )
-    app = Flask(__name__)
+    app = make_app()
     loader = ModuleLoader(app, search_paths=[str(tmp_path)])
 
     info = loader.load_all()[0]
@@ -292,7 +292,7 @@ def test_implicit_static_directory_remains_optional(tmp_path):
 
 
 @pytest.mark.parametrize("reference", ["templates/dialogs.html", "templates/missing.html", "../outside.html", "/outside.html", "templates/escape.html"])
-def test_dialogs_resolve_or_reject_complete_plan(tmp_path, reference):
+def test_dialogs_resolve_or_reject_complete_plan(tmp_path, reference, make_app):
     module = _write_module(
         tmp_path, "dialogs", _manifest("community.dialogs", {
             "dialogs": reference, "static": "static/", "i18n": "i18n/",
@@ -309,7 +309,7 @@ def test_dialogs_resolve_or_reject_complete_plan(tmp_path, reference):
     (module / "static/main.js").write_text("/* dialogs */")
     (module / "i18n").mkdir()
     (module / "i18n/en.json").write_text('{"label": "Dialogs"}')
-    app = Flask(__name__)
+    app = make_app()
     before = _snapshot(app)
     loader = ModuleLoader(app, search_paths=[str(tmp_path)])
     info = loader.load_all()[0]
@@ -349,3 +349,69 @@ def test_contribution_failure_diagnostics_are_redacted(tmp_path, caplog):
     assert str(tmp_path) not in diagnostics
     assert sensitive_value not in diagnostics
     assert "SensitiveCollectorName" not in diagnostics
+
+
+def test_community_routes_without_own_auth_still_need_a_sign_in(tmp_path, make_app):
+    from app.config import ConfigManager
+    from app.storage import SnapshotStorage
+    from tests.test_auth import _login
+
+    _write_module(
+        tmp_path,
+        "unguarded",
+        _manifest("community.unguarded", {"routes": "routes.py"}),
+        '''
+from flask import Blueprint
+from app.web_auth import require_auth
+bp = Blueprint("unguarded_bp", __name__)
+bp.add_url_rule("/api/unguarded/data", "data", lambda: "ok", methods=["GET", "POST"])
+bp.add_url_rule("/api/unguarded/own", "own", require_auth(lambda: "own"), methods=["POST"])
+''',
+    )
+    config = ConfigManager(str(tmp_path / "data"))
+    config.save({"modem_type": "fritzbox", "admin_password": "secret123"})
+    storage = SnapshotStorage(str(tmp_path / "data" / "history.db"), max_days=7)
+    app = make_app(config_manager=config, storage=storage, environ={})
+    ModuleLoader(app, search_paths=[str(tmp_path)]).load_all()
+    bearer = {"Authorization": f"Bearer {storage.create_api_token('integration')[1]}"}
+    client = app.test_client()
+
+    assert client.get("/api/unguarded/data").status_code == 401
+    assert client.get("/api/unguarded/data", headers=bearer).data == b"ok"
+    assert client.post("/api/unguarded/data", headers=bearer).status_code == 403
+    assert client.post("/api/unguarded/own", headers=bearer).status_code == 403
+    _login(client)
+    assert client.post("/api/unguarded/data").data == b"ok"
+    assert client.post("/api/unguarded/own").data == b"own"
+
+
+def test_unexpected_preflight_errors_do_not_reach_the_module_list(tmp_path, make_app, monkeypatch):
+    _write_module(tmp_path, "broken-io", _manifest("community.broken_io", {"routes": "routes.py"}), "")
+    def fail(_mod):
+        raise OSError("/private/modules/broken-io/routes.py")
+
+    monkeypatch.setattr("app.module_loader.resolve_module_contribution", fail)
+
+    info = ModuleLoader(make_app(), search_paths=[str(tmp_path)]).load_all()[0]
+
+    assert info.error == "contribution is invalid"
+
+
+@pytest.mark.parametrize(("hook", "kind"), [
+    ("@bp.url_value_preprocessor\ndef pre(endpoint, values):\n    pass", "url_value_preprocessor"),
+    ("@bp.before_app_request\ndef early():\n    return 'answered before sign-in'", "before_request"),
+    ("@bp.app_errorhandler(404)\ndef missing(error):\n    return 'handled', 200", "errorhandler"),
+    ("@bp.after_app_request\ndef rewrite(response):\n    return response", "after_request"),
+    ("@bp.teardown_request\ndef cleanup(error):\n    pass", "teardown_request"),
+])
+def test_community_request_hooks_that_bypass_sign_in_are_rejected(tmp_path, make_app, hook, kind):
+    _write_module(
+        tmp_path,
+        "hooked",
+        _manifest("community.hooked", {"routes": "routes.py"}),
+        f"from flask import Blueprint\nbp = Blueprint('hooked_bp', __name__)\n{hook}\n",
+    )
+
+    info = ModuleLoader(make_app(), search_paths=[str(tmp_path)]).load_all()[0]
+
+    assert info.error == f"Module community.hooked registers request hooks that would bypass sign-in: {kind}"

@@ -1,6 +1,5 @@
 """Tests for Smart Capture per-trigger sub-filter functions."""
 
-import pytest
 from unittest.mock import MagicMock
 
 from app.smart_capture.sub_filters import (
@@ -213,7 +212,7 @@ class TestCMCollectorSmartCapture:
 
     def test_check_events_calls_evaluate_with_annotated_events(self, request):
         """_check_events() must save via save_events_with_ids and pass annotated events to evaluate."""
-        from unittest.mock import patch, call
+        from unittest.mock import patch
         cm_defaults = {
             "connection_monitor_probe_method": "auto",
             "connection_monitor_outage_threshold": "5",

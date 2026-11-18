@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "Níorbh fhéidir an PDF a léamh. An prótacal tomhais oifigiúil BNetzA é?",
+  "bnetz_csv_parse_error": "Níorbh fhéidir an CSV a léamh. An easpórtáil é ó thomhas oifigiúil BNetzA?",
   "bnetz_watcher_title": "Faireoir comhad BNetzA",
   "bnetz_watcher_desc": "Iompórtáil comhaid tomhais go huathoibríoch",
   "bnetz_watcher_hint": "Iompórtálann sé comhaid PDF agus CSV tomhais BNetzA go huathoibríoch ó fhillteán faoi fhaire",

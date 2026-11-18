@@ -6,7 +6,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Sequence
 
 from flask import Blueprint, Flask
 from jinja2 import ChoiceLoader, FileSystemLoader
@@ -43,6 +43,8 @@ class PlannedBlueprint:
     blueprint: Blueprint = field(compare=False, repr=False)
     rules: tuple[PlannedRule, ...] = ()
     registered_names: tuple[str, ...] = ()
+    # Hooks that run around every request, including ones refused at sign-in.
+    request_hooks: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -118,6 +120,15 @@ def probe_blueprint(blueprint: Blueprint, *, source: str) -> PlannedBlueprint:
             for rule in probe.url_map.iter_rules()
         )
         names = tuple(probe.blueprints)
+        request_hooks = tuple(
+            kind for kind, registry in (
+                ("url_value_preprocessor", probe.url_value_preprocessors),
+                ("before_request", probe.before_request_funcs),
+                ("errorhandler", probe.error_handler_spec),
+                ("after_request", probe.after_request_funcs),
+                ("teardown_request", probe.teardown_request_funcs),
+            ) if any(registry.values())
+        )
     except Exception as exc:
         raise RegistrationError(
             f"Blueprint '{blueprint.name}' from {source} failed preflight: {type(exc).__name__}"
@@ -126,7 +137,7 @@ def probe_blueprint(blueprint: Blueprint, *, source: str) -> PlannedBlueprint:
         for item, (was_registered, cli_name) in previous.items():
             item._got_registered_once = was_registered
             item.cli.name = cli_name
-    return PlannedBlueprint(blueprint.name, source, blueprint, rules, names)
+    return PlannedBlueprint(blueprint.name, source, blueprint, rules, names, request_hooks)
 
 
 def existing_rules(app: Flask) -> tuple[PlannedRule, ...]:
