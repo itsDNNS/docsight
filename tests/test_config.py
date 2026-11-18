@@ -467,8 +467,9 @@ def test_save_leaves_the_callers_values_unchanged(tmp_path):
     assert values == {"modem_password": "secret-value", "poll_interval": "300"}
 
 
-def test_save_rejects_secrets_that_are_not_text(tmp_path):
+@pytest.mark.parametrize("value", [12345, 0, False, []])
+def test_save_rejects_secrets_that_are_not_text(tmp_path, value):
     from app.config import ConfigValueError
 
     with pytest.raises(ConfigValueError, match="^mqtt_password must be text$"):
-        ConfigManager(str(tmp_path)).save({"mqtt_password": 12345})
+        ConfigManager(str(tmp_path)).save({"mqtt_password": value})

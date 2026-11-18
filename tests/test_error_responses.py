@@ -93,3 +93,9 @@ def test_settings_save_needs_a_json_object(app, payload):
 def test_settings_save_rejects_a_url_that_is_not_text(app):
     response = app.test_client().post("/api/config", json={"bqm_url": ["http://a"]})
     assert (response.status_code, response.get_json()) == (400, {"success": False, "error": "bqm_url is not a valid URL"})
+
+
+@pytest.mark.parametrize("password", [12345, ["a"], {"a": 1}])
+def test_settings_save_rejects_an_admin_password_that_is_not_text(app, password):
+    response = app.test_client().post("/api/config", json={"admin_password": password})
+    assert (response.status_code, response.get_json()) == (400, {"success": False, "error": "admin_password must be text"})

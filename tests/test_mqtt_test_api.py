@@ -107,3 +107,16 @@ def test_insecure_tls_skips_the_certificate_check_for_self_signed_brokers(insecu
     context = create_client("docsis-test", 8883, tls_insecure=insecure)._ssl_context
 
     assert (context.verify_mode, context.check_hostname) == (verify, hostname)
+
+
+def test_saved_port_zero_does_not_count_as_the_default_port(make_app, make_config, monkeypatch):
+    created = []
+    monkeypatch.setattr("app.blueprints.polling_bp.create_client", lambda *args: created.append(args) or FakeClient("Success"))
+    app = make_app(config_manager=make_config({**SAVED, "mqtt_port": 0}))
+
+    response = app.test_client().post("/api/test-mqtt", json={
+        "mqtt_host": "broker.local", "mqtt_user": "u", "mqtt_password": PASSWORD_MASK, "mqtt_tls_insecure": "true",
+    })
+
+    assert response.get_json() == {"success": False, "error": "Enter the password to test changed connection settings."}
+    assert created == []

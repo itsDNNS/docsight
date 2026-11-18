@@ -69,6 +69,8 @@ def api_config():
                 return jsonify({"success": False, "error": "Unavailable modem type"}), 400
         previous_admin_password = _config_manager.get("admin_password", "")
         admin_password_requested = "admin_password" in data
+        if admin_password_requested and not isinstance(data["admin_password"], (str, type(None))):
+            return jsonify({"success": False, "error": "admin_password must be text"}), 400
         if admin_password_requested and (
             data["admin_password"] == PASSWORD_MASK
             or _admin_password_matches(previous_admin_password, data["admin_password"])

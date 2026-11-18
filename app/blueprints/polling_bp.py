@@ -73,14 +73,12 @@ def api_test_modem():
     try:
         data = request.get_json()
         modem_type = data.get("modem_type", "fritzbox")
-        # Drivers without a username ignore it, so it does not decide the destination.
-        uses_user = driver_registry.get_driver_hints().get(modem_type, {}).get("username_required") is not False
         password, error = _resolve_masked_secret(
             data.get("modem_password", ""), "modem_password",
-            (modem_type, data.get("modem_url") or "", data.get("modem_user") or "" if uses_user else ""),
+            (modem_type, data.get("modem_url") or "", data.get("modem_user") or ""),
             # An empty saved URL never matches: the test would fall back to a default address.
             lambda: (_config_manager.get("modem_type"), _config_manager.get("modem_url") or None,
-                     _config_manager.get("modem_user") or "" if uses_user else ""),
+                     _config_manager.get("modem_user") or ""),
         )
         if error:
             return jsonify({"success": False, "error": error})
@@ -147,7 +145,7 @@ def api_test_mqtt():
     tls_insecure = parse_config_bool(data.get("mqtt_tls_insecure"))
     password, error = _resolve_masked_secret(
         data.get("mqtt_password") or None, "mqtt_password", (host, port, user, tls_insecure),
-        lambda: (_config_manager.get("mqtt_host"), parse_config_int(_config_manager.get("mqtt_port") or 1883),
+        lambda: (_config_manager.get("mqtt_host"), parse_config_int(_config_manager.get("mqtt_port")),
                  _config_manager.get("mqtt_user") or None, parse_config_bool(_config_manager.get("mqtt_tls_insecure"))),
     )
     if error:

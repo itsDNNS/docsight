@@ -423,7 +423,7 @@ class ConfigManager:
             if key in data:
                 self._validate_url(key, data[key])
         for key in MODULE_SECRET_KEYS | SECRET_KEYS | HASH_KEYS | PRIVATE_KEYS:
-            if key in data and data[key] and not isinstance(data[key], str):
+            if key in data and data[key] not in (None, "") and not isinstance(data[key], str):
                 raise ConfigValueError(f"{key} must be text")
 
         # Integer keys only accept whole numbers; an empty value still means unset
