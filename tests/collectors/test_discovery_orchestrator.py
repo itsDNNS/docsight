@@ -228,12 +228,22 @@ class TestPollingLoopOrchestrator:
         deadline = time.monotonic() + timeout
 
         def wait(_timeout=None):
-            if done() or time.monotonic() > deadline:
+            if done():
                 stop.set()
+            elif time.monotonic() > deadline:
+                pytest.fail(f"polling_loop did not reach the expected state within {timeout}s")
             else:
                 time.sleep(0.01)
 
         stop.wait = wait
+
+    @staticmethod
+    def _working_driver(mock_load):
+        driver = mock_load.return_value
+        driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
+        driver.get_connection_info.return_value = {}
+        driver.get_docsis_data.return_value = {}
+        return driver
 
     @patch("app.main.discover_collectors")
     def test_long_running_collector_is_tracked_until_result(
@@ -322,7 +332,7 @@ class TestPollingLoopOrchestrator:
     @patch("app.collectors.modem.ModemCollector")
     @patch("app.main.discover_collectors")
     def test_hot_swap_waits_for_in_flight_collector_with_same_name(
-        self, mock_discover, mock_modem_cls, mock_load, mock_runtime, monkeypatch
+        self, mock_discover, mock_modem_cls, mock_load, mock_runtime, storage, monkeypatch
     ):
         """A replacement modem waits for the prior modem future to finish."""
         from app import main
@@ -419,14 +429,9 @@ class TestPollingLoopOrchestrator:
     @patch("app.drivers.driver_registry.load_driver")
     def test_orchestrator_calls_enabled_collectors(self, mock_load, mock_runtime, storage):
         """Orchestrator should call collect() for enabled collectors."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        mock_driver = self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
         stop = threading.Event()
@@ -442,14 +447,9 @@ class TestPollingLoopOrchestrator:
     @patch("app.drivers.driver_registry.load_driver")
     def test_orchestrator_skips_disabled_collectors(self, mock_load, mock_runtime, storage):
         """Speedtest/BQM collectors should be skipped when not configured."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        mock_driver = self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
         stop = threading.Event()
@@ -467,7 +467,6 @@ class TestPollingLoopOrchestrator:
     @patch("app.drivers.driver_registry.load_driver")
     def test_orchestrator_handles_collector_exception(self, mock_load, mock_runtime, storage):
         """Orchestrator should catch exceptions and continue running."""
-        import threading
         from app.main import polling_loop
 
         mock_driver = MagicMock()
@@ -489,7 +488,6 @@ class TestPollingLoopOrchestrator:
     @patch("app.drivers.driver_registry.load_driver")
     def test_orchestrator_stops_on_event(self, mock_load, mock_runtime, storage):
         """Orchestrator should exit when stop_event is set."""
-        import threading
         from app.main import polling_loop
 
         mock_load.return_value = MagicMock()
@@ -506,14 +504,9 @@ class TestPollingLoopOrchestrator:
     @patch("app.drivers.driver_registry.load_driver")
     def test_driver_hot_swap_on_modem_type_change(self, mock_load, mock_runtime, storage):
         """Polling loop should hot-swap the modem driver when modem_type changes."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
         stop = threading.Event()
@@ -558,14 +551,9 @@ class TestPollingLoopOrchestrator:
     @patch("app.drivers.driver_registry.load_driver")
     def test_driver_hot_swap_on_url_change(self, mock_load, mock_runtime, storage):
         """Hot-swap should trigger when modem URL changes, not just type."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
         stop = threading.Event()
@@ -604,14 +592,9 @@ class TestPollingLoopOrchestrator:
     @patch("app.drivers.driver_registry.load_driver")
     def test_no_hot_swap_when_config_unchanged(self, mock_load, mock_runtime, storage):
         """No hot-swap should occur when modem config hasn't changed."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
         stop = threading.Event()
