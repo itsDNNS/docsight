@@ -302,7 +302,7 @@
         function x(entry) { return st.xScale(parseTime(entry.timestamp).getTime()); }
         var modem = st.modem;
         if (st.show.snr && modem.length > 1) {
-            drawSeries(modem.map(function (d) { return [x(d), st.ySnr(d.ds_snr_min || st.snrMin)]; }), c.snr, 2, []);
+            drawSeries(modem.map(function (d) { return d.ds_snr_min != null ? [x(d), st.ySnr(d.ds_snr_min || st.snrMin)] : null; }), c.snr, 2, []);
         }
         if (st.show.txPower && modem.length > 1) {
             drawSeries(modem.map(function (d) { return d.us_power_avg ? [x(d), st.yTx(d.us_power_avg)] : null; }), c.txPower, 2, [6, 3]);

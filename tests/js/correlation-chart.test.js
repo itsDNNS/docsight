@@ -138,3 +138,14 @@ test('the nearest point respects skipped items, and a dot is a filled circle wit
     assert.deepEqual(ctx.calls.map(c => c[0] === 'set' ? c[1] + '=' + c[2] : c[0]),
         ['beginPath', 'arc', 'fillStyle=red', 'fill', 'strokeStyle=#fff', 'lineWidth=2', 'stroke']);
 });
+
+test('the SNR line leaves out modem points without an SNR value', () => {
+    const {st} = build([modem(1), modem(2, {ds_snr_min: null}), modem(3)]);
+    const ctx = recorder();
+    chart.draw(ctx, st, {visible: ALL, events: st.events, labels: LABELS, parseTime, axisLabel: t => String(t)});
+
+    const end = ctx.calls.findIndex(c => c[0] === 'set' && c[1] === 'strokeStyle' && c[2] === colors.snr);
+    const start = ctx.calls.slice(0, end).map(c => c[0]).lastIndexOf('beginPath');
+    assert.deepEqual(ctx.calls.slice(start + 1, end).map(c => [c[0], c[1]]),
+        [['moveTo', st.xScale(T0 + HOUR)], ['lineTo', st.xScale(T0 + 3 * HOUR)]]);
+});

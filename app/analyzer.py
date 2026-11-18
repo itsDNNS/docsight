@@ -1164,9 +1164,11 @@ def analyze(data: DocsisData) -> AnalysisResult:
     us_channels.sort(key=lambda c: c["channel_id"])
 
     # --- Summary metrics ---
-    ds_powers = [c["power"] for c in ds_channels if c["power"] is not None]
-    us_powers = [c["power"] for c in us_channels if c["power"] is not None]
-    ds_snrs = [c["snr"] for c in ds_channels if c["snr"] is not None]
+    stats = {
+        "ds_power": _stats([c["power"] for c in ds_channels]),
+        "us_power": _stats([c["power"] for c in us_channels]),
+        "ds_snr": _stats([c["snr"] for c in ds_channels]),
+    }
 
     error_counters = aggregate_error_counters(ds_channels)
     total_corr = error_counters.raw_correctable
@@ -1184,15 +1186,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
     summary = {
         "ds_total": len(ds_channels),
         "us_total": len(us_channels),
-        "ds_power_min": round(min(ds_powers), 1) if ds_powers else 0,
-        "ds_power_max": round(max(ds_powers), 1) if ds_powers else 0,
-        "ds_power_avg": round(sum(ds_powers) / len(ds_powers), 1) if ds_powers else 0,
-        "us_power_min": round(min(us_powers), 1) if us_powers else 0,
-        "us_power_max": round(max(us_powers), 1) if us_powers else 0,
-        "us_power_avg": round(sum(us_powers) / len(us_powers), 1) if us_powers else 0,
-        "ds_snr_min": round(min(ds_snrs), 1) if ds_snrs else 0,
-        "ds_snr_max": round(max(ds_snrs), 1) if ds_snrs else 0,
-        "ds_snr_avg": round(sum(ds_snrs) / len(ds_snrs), 1) if ds_snrs else 0,
+        **{f"{name}_{part}": values[part] for name, values in stats.items() for part in ("min", "max", "avg")},
         "ds_correctable_errors": total_corr,
         "ds_uncorrectable_errors": total_uncorr,
         "ds_comparable_correctable_errors": error_counters.comparable_correctable,

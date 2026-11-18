@@ -170,12 +170,16 @@ class TestExportEndpoint:
         assert "DOCSIS" in data["text"]
         assert "Vodafone" in data["text"]
 
-    def test_export_handles_unsupported_error_counters(self, client, sample_analysis):
+    def test_export_shows_unreported_values_as_not_available(self, client, sample_analysis):
         sample_analysis["summary"].update({
             "errors_supported": False,
             "ds_correctable_errors": None,
             "ds_uncorrectable_errors": None,
+            **dict.fromkeys(("ds_power_min", "ds_power_avg", "ds_power_max", "ds_snr_min", "ds_snr_avg",
+                             "us_power_min", "us_power_avg", "us_power_max")),
         })
+        sample_analysis["ds_channels"][0].update(power=None, snr=None)
+        sample_analysis["us_channels"][0]["power"] = None
         current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/api/export")
@@ -184,6 +188,12 @@ class TestExportEndpoint:
         data = json.loads(resp.data)
         assert "| DS Correctable Errors | N/A |" in data["text"]
         assert "| DS Uncorrectable Errors | N/A |" in data["text"]
+        assert "| DS Power (Min/Avg/Max) | N/A / N/A / N/A dBmV |" in data["text"]
+        assert "| DS SNR (Min/Avg) | N/A / N/A dB |" in data["text"]
+        assert "| US Power (Min/Avg/Max) | N/A / N/A / N/A dBmV |" in data["text"]
+        assert "| 1 | 602 MHz | N/A | N/A | 256QAM |" in data["text"]
+        assert "| 1 | 37 MHz | N/A | 64QAM |" in data["text"]
+        assert "None" not in data["text"]
         assert "DOCSight" in data["text"]
         assert "DOCSIS" in data["text"]
         assert "Vodafone" in data["text"]
@@ -221,7 +231,7 @@ class TestExportEndpoint:
 
 class TestExportUnsupportedLegacyCounters:
     def test_export_treats_legacy_unsupported_zero_error_counters_as_unavailable(self):
-        from app.blueprints.data_bp import _format_error_count, _summary_error_count
+        from app.blueprints.data_bp import _format_optional, _summary_error_count
 
         summary = {
             "errors_supported": False,
@@ -229,5 +239,5 @@ class TestExportUnsupportedLegacyCounters:
             "ds_uncorrectable_errors": 0,
         }
 
-        assert _format_error_count(_summary_error_count(summary, "ds_correctable_errors")) == "N/A"
-        assert _format_error_count(_summary_error_count(summary, "ds_uncorrectable_errors")) == "N/A"
+        assert _format_optional(_summary_error_count(summary, "ds_correctable_errors"), ",") == "N/A"
+        assert _format_optional(_summary_error_count(summary, "ds_uncorrectable_errors"), ",") == "N/A"

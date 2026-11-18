@@ -50,9 +50,9 @@ def _summary_error_count(summary, key):
     return summary.get(key)
 
 
-def _format_error_count(value) -> str:
-    """Format DOCSIS error counters while preserving unsupported/null as N/A."""
-    return f"{value:,}" if value is not None else "N/A"
+def _format_optional(value, spec="") -> str:
+    """Format a measurement or counter while preserving unsupported/null as N/A."""
+    return format(value, spec) if value is not None else "N/A"
 
 
 data_bp = Blueprint("data_bp", __name__)
@@ -254,12 +254,12 @@ def api_export():
         "| Metric | Value |",
         "|--------|-------|",
         f"| Downstream Channels | {s.get('ds_total', 0)} |",
-        f"| DS Power (Min/Avg/Max) | {s.get('ds_power_min')} / {s.get('ds_power_avg')} / {s.get('ds_power_max')} dBmV |",
-        f"| DS SNR (Min/Avg) | {s.get('ds_snr_min')} / {s.get('ds_snr_avg')} dB |",
-        f"| DS Correctable Errors | {_format_error_count(_summary_error_count(s, 'ds_correctable_errors'))} |",
-        f"| DS Uncorrectable Errors | {_format_error_count(_summary_error_count(s, 'ds_uncorrectable_errors'))} |",
+        f"| DS Power (Min/Avg/Max) | {_format_optional(s.get('ds_power_min'))} / {_format_optional(s.get('ds_power_avg'))} / {_format_optional(s.get('ds_power_max'))} dBmV |",
+        f"| DS SNR (Min/Avg) | {_format_optional(s.get('ds_snr_min'))} / {_format_optional(s.get('ds_snr_avg'))} dB |",
+        f"| DS Correctable Errors | {_format_optional(_summary_error_count(s, 'ds_correctable_errors'), ',')} |",
+        f"| DS Uncorrectable Errors | {_format_optional(_summary_error_count(s, 'ds_uncorrectable_errors'), ',')} |",
         f"| Upstream Channels | {s.get('us_total', 0)} |",
-        f"| US Power (Min/Avg/Max) | {s.get('us_power_min')} / {s.get('us_power_avg')} / {s.get('us_power_max')} dBmV |",
+        f"| US Power (Min/Avg/Max) | {_format_optional(s.get('us_power_min'))} / {_format_optional(s.get('us_power_avg'))} / {_format_optional(s.get('us_power_max'))} dBmV |",
         "",
         "## Downstream Channels",
         "| Ch | Frequency | Power (dBmV) | SNR (dB) | Modulation | Corr. Errors | Uncorr. Errors | DOCSIS | Health |",
@@ -271,8 +271,8 @@ def api_export():
         err_corr = f"{corr:,}" if corr is not None else "-"
         err_uncorr = f"{uncorr:,}" if uncorr is not None else "-"
         lines.append(
-            f"| {ch.get('channel_id','')} | {ch.get('frequency','')} | {ch.get('power','')} "
-            f"| {ch.get('snr', '-')} | {ch.get('modulation','')} "
+            f"| {ch.get('channel_id','')} | {ch.get('frequency','')} | {_format_optional(ch.get('power'))} "
+            f"| {_format_optional(ch.get('snr'))} | {ch.get('modulation','')} "
             f"| {err_corr} | {err_uncorr} "
             f"| {ch.get('docsis_version','')} | {ch.get('health','')} |"
         )
@@ -284,7 +284,7 @@ def api_export():
     ]
     for ch in us:
         lines.append(
-            f"| {ch.get('channel_id','')} | {ch.get('frequency','')} | {ch.get('power','')} "
+            f"| {ch.get('channel_id','')} | {ch.get('frequency','')} | {_format_optional(ch.get('power'))} "
             f"| {ch.get('modulation','')} | {ch.get('multiplex','')} "
             f"| {ch.get('docsis_version','')} | {ch.get('health','')} |"
         )

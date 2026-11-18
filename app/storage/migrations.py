@@ -250,6 +250,23 @@ def _apply_smart_capture_error_scrub(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_unmeasured_summary_null(conn: sqlite3.Connection) -> None:
+    # Older versions stored 0 as power and SNR summary when no channel of a
+    # direction reported the value. Keep summaries backed by a channel value.
+    for key, field, channels in (
+        ("ds_power", "power", "ds_channels_json"),
+        ("us_power", "power", "us_channels_json"),
+        ("ds_snr", "snr", "ds_channels_json"),
+    ):
+        conn.execute(
+            f"UPDATE snapshots SET summary_json = json_set(summary_json, "
+            f"'$.{key}_min', NULL, '$.{key}_max', NULL, '$.{key}_avg', NULL) "
+            f"WHERE json_valid(summary_json) AND json_extract(summary_json, '$.{key}_avg') = 0 "
+            f"AND json_valid({channels}) AND NOT EXISTS ("
+            f"SELECT 1 FROM json_each({channels}) WHERE json_extract(value, '$.{field}') IS NOT NULL)"
+        )
+
+
 def _segment_applied(_conn: sqlite3.Connection) -> bool:
     # CREATE IF NOT EXISTS also repairs missing indexes on legacy databases.
     return False
@@ -270,6 +287,7 @@ CORE_MIGRATIONS: tuple[Migration, ...] = (
     ),
     Migration("core-0005-meta-version", _apply_meta_version, _meta_version_applied),
     Migration("core-0006-smart-capture-error-scrub", _apply_smart_capture_error_scrub, lambda _conn: False),
+    Migration("core-0007-unmeasured-summary-null", _apply_unmeasured_summary_null, lambda _conn: False),
 )
 
 def _segment_demo_flag_applied(conn: sqlite3.Connection) -> bool:

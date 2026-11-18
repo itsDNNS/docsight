@@ -389,7 +389,7 @@ function _renderTimelineChart(data) {
 
     // SNR line (modem)
     if (modem.length > 1) {
-        var sorted = modem.slice().sort(function(a, b) {
+        var sorted = modem.filter(function(d) { return d.ds_snr_min != null; }).sort(function(a, b) {
             return _timelineMs(a) - _timelineMs(b);
         });
         ctx.strokeStyle = accentColor;

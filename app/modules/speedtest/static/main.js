@@ -255,9 +255,9 @@ function _renderSignalDetail(data, container) {
     }
     var items = [
         {label: T.signal_health || 'Health', value: healthLabel, badge: healthClass},
-        {label: T.signal_ds_power || 'DS Power', value: data.ds_power_min + ' / ' + data.ds_power_avg + ' / ' + data.ds_power_max + ' dBmV'},
-        {label: T.signal_ds_snr || 'DS SNR', value: data.ds_snr_min + ' / ' + data.ds_snr_avg + ' dB'},
-        {label: T.signal_us_power || 'US Power', value: data.us_power_min + ' / ' + data.us_power_avg + ' / ' + data.us_power_max + ' dBmV'},
+        {label: T.signal_ds_power || 'DS Power', value: data.ds_power_avg == null ? null : data.ds_power_min + ' / ' + data.ds_power_avg + ' / ' + data.ds_power_max + ' dBmV'},
+        {label: T.signal_ds_snr || 'DS SNR', value: data.ds_snr_avg == null ? null : data.ds_snr_min + ' / ' + data.ds_snr_avg + ' dB'},
+        {label: T.signal_us_power || 'US Power', value: data.us_power_avg == null ? null : data.us_power_min + ' / ' + data.us_power_avg + ' / ' + data.us_power_max + ' dBmV'},
         {label: T.signal_errors || 'Errors', value: errorParts.length ? errorParts.join(' / ') : null},
         {label: (T.signal_ds_channels || 'DS') + ' / ' + (T.signal_us_channels || 'US'), value: (data.ds_total || 0) + ' / ' + (data.us_total || 0)}
     ];

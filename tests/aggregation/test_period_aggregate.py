@@ -181,17 +181,14 @@ def test_good_period_average_keeps_the_stored_critical_channel_as_diagnostic_dri
     assert driver["severity"] == "critical"
 
 
-def test_lowest_power_ignores_snapshots_without_measured_power():
-    no_power = _snapshot("2026-05-04T00:00:00Z", ds_total=1, ds_power_min=0, ds_power_max=0)
-    no_power["ds_channels"] = [{"channel_id": 1, "power": None}]
+def test_worst_power_and_snr_ignore_snapshots_without_measured_values():
     snapshots = [
-        _snapshot("2026-05-01T00:00:00Z", ds_power_min=8.0, ds_power_max=12.0),
-        _snapshot("2026-05-02T00:00:00Z", ds_power_min=2.0, ds_power_max=5.0),
-        # The analyzer writes 0 when a direction has no channels or no power values.
-        _snapshot("2026-05-03T00:00:00Z", ds_total=0, ds_power_min=0, ds_power_max=0),
-        no_power,
+        _snapshot("2026-05-01T00:00:00Z", ds_power_min=8.0, ds_power_max=12.0, ds_snr_min=36.0),
+        _snapshot("2026-05-02T00:00:00Z", ds_power_min=2.0, ds_power_max=5.0, ds_snr_min=34.0),
+        _snapshot("2026-05-03T00:00:00Z", ds_total=0, ds_power_min=None, ds_power_max=None, ds_snr_min=None),
     ]
 
     aggregate = aggregate_snapshot_period(snapshots, window=WINDOW, thresholds=_thresholds())
 
+    assert aggregate["worst"]["ds_snr_min"] == 34.0
     assert aggregate["worst"]["ds_power_min"] == 2.0

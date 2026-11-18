@@ -224,7 +224,7 @@ def test_restore_migrates_an_older_database_before_it_goes_live(tmp_path):
     from app.storage.migrations import CORE_MIGRATIONS, run_migrations
 
     old_db = tmp_path / "old.db"
-    run_migrations(str(old_db), CORE_MIGRATIONS[:-1])
+    run_migrations(str(old_db), [m for m in CORE_MIGRATIONS if m.migration_id < "core-0006"])
     with closing(sqlite3.connect(old_db)) as conn:
         conn.execute(
             "INSERT INTO smart_capture_executions (trigger_type, action_type, status, last_error, created_at) "

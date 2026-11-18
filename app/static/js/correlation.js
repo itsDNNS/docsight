@@ -520,7 +520,7 @@ function _setupCorrelationTooltip(overlay, octx) {
         var dot = CorrelationChart.drawDot;
         if (nearestModem) {
             var modemX = st.xScale(docsightParseTime(nearestModem.timestamp).getTime());
-            if (_corrVisible.snr) dot(newOctx, modemX, st.ySnr(nearestModem.ds_snr_min || st.snrMin), 5, st.colors.snr);
+            if (_corrVisible.snr && nearestModem.ds_snr_min != null) dot(newOctx, modemX, st.ySnr(nearestModem.ds_snr_min || st.snrMin), 5, st.colors.snr);
             if (_corrVisible.txPower && nearestModem.us_power_avg) dot(newOctx, modemX, st.yTx(nearestModem.us_power_avg), 5, st.colors.txPower);
             if (_corrVisible.dsPower && nearestModem.ds_power_avg != null) dot(newOctx, modemX, st.yDsPower(nearestModem.ds_power_avg), 5, st.colors.dsPower);
         }
@@ -545,8 +545,8 @@ function _setupCorrelationTooltip(overlay, octx) {
         }
         html += '<div class="tt-time">' + escapeHtml(_corrFormatTimestamp(displayTs)) + '</div>';
 
-        if (nearestModem && _corrVisible.snr) {
-            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.snr) + '"></span> ' + (T.correlation_tt_snr || 'SNR') + ': ' + (nearestModem.ds_snr_min || 0).toFixed(1) + ' dB</div>';
+        if (nearestModem && _corrVisible.snr && nearestModem.ds_snr_min != null) {
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.snr) + '"></span> ' + (T.correlation_tt_snr || 'SNR') + ': ' + nearestModem.ds_snr_min.toFixed(1) + ' dB</div>';
         }
         if (nearestModem && _corrVisible.txPower && nearestModem.us_power_avg) {
             html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.txPower) + '"></span> ' + (T.correlation_tt_tx_power || 'TX Power') + ': ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
@@ -744,7 +744,7 @@ function _corrHighlightFromTable(timestamp, source) {
     if (source === 'modem') {
         for (var i = 0; i < st.modem.length; i++) {
             if (st.modem[i].timestamp === timestamp) {
-                if (_corrVisible.snr) CorrelationChart.drawDot(octx, x, st.ySnr(st.modem[i].ds_snr_min || st.snrMin), 6, st.colors.snr);
+                if (_corrVisible.snr && st.modem[i].ds_snr_min != null) CorrelationChart.drawDot(octx, x, st.ySnr(st.modem[i].ds_snr_min || st.snrMin), 6, st.colors.snr);
                 if (_corrVisible.txPower && st.modem[i].us_power_avg) CorrelationChart.drawDot(octx, x, st.yTx(st.modem[i].us_power_avg), 6, st.colors.txPower);
                 break;
             }
