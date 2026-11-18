@@ -69,7 +69,7 @@ def test_run_web_defaults_to_public_bind(monkeypatch):
     lifecycle.close()
 
     assert calls == [{"host": "0.0.0.0", "port": 8765, "threads": 4}]
-    assert server_calls == ["run", "close", ("shutdown", True, 1.0)]
+    assert server_calls == ["run", ("shutdown", True, 1.0), "close"]
 
 
 def test_run_web_honors_web_host_env(monkeypatch):
