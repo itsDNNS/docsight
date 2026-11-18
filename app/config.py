@@ -398,6 +398,8 @@ class ConfigManager:
         """Validate that URL keys use http or https scheme only."""
         if not value:
             return
+        if not isinstance(value, str):
+            raise ConfigValueError(f"{key} is not a valid URL")
         try:
             scheme = urlparse(value).scheme
         except ValueError:

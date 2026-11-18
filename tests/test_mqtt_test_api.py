@@ -68,11 +68,29 @@ def test_mqtt_test_waits_for_the_broker_answer(make_app, make_config, monkeypatc
 def test_saved_password_only_goes_to_the_saved_broker(make_app, make_config, monkeypatch, changed):
     response, created = _post(make_app, make_config, monkeypatch, FakeClient("Success"), **changed)
 
-    assert response.get_json() == {"success": False, "error": "Enter the password to test a different broker."}
+    assert response.get_json() == {"success": False, "error": "Enter the password to test changed connection settings."}
     assert created == []
 
 
-@pytest.mark.parametrize(("payload", "error"), [(["not", "an", "object"], "No data"), ({"mqtt_port": "x"}, "Invalid port")])
+def test_new_broker_without_saved_password_can_be_tested(make_app, make_config, monkeypatch):
+    created = []
+    monkeypatch.setattr("app.blueprints.polling_bp.create_client", lambda *args: created.append(args) or FakeClient("Success"))
+    app = make_app(config_manager=make_config({}))
+
+    response = app.test_client().post("/api/test-mqtt", json={"mqtt_host": "new.local", "mqtt_password": PASSWORD_MASK})
+
+    assert response.get_json() == {"success": True}
+    assert created == [("docsis-test", 1883, None, None, False)]
+
+
+@pytest.mark.parametrize(("payload", "error"), [
+    (["not", "an", "object"], "No data"),
+    ({"mqtt_port": "x"}, "Invalid broker settings"),
+    ({"mqtt_port": 8.5}, "Invalid broker settings"),
+    ({"mqtt_port": 70000}, "Invalid broker settings"),
+    ({"mqtt_host": ["a"]}, "Invalid broker settings"),
+    ({"mqtt_user": 5}, "Invalid broker settings"),
+])
 def test_malformed_requests_are_rejected(make_app, make_config, payload, error):
     app = make_app(config_manager=make_config(SAVED))
     response = app.test_client().post("/api/test-mqtt", json=payload)

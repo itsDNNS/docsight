@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 837,
+  "expected_total": 840,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -69,7 +69,7 @@
     },
     {
       "id": 5,
-      "collected_cases": 212,
+      "collected_cases": 215,
       "files": [
         "test_evidence_report_scope.py",
         "test_glossary.py",

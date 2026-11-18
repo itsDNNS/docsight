@@ -84,6 +84,7 @@ def test_unanswered_or_malformed_addresses_are_unreachable():
     (requests.ConnectionError("HTTPConnectionPool(host='192.168.100.1')"), None, "Modem not reachable"),
     (_http_error(401), None, "Modem login failed"),
     (RuntimeError("Login failed: wrong password"), "login", "Modem login failed"),
+    (RuntimeError("challenge format changed"), "login", "Modem login failed, see the DOCSight log"),
     (RuntimeError("password field missing in the channel data"), None, "Modem reading failed, see the DOCSight log"),
     (RuntimeError("unexpected payload at /data/raw.json"), None, "Modem reading failed, see the DOCSight log"),
 ])

@@ -166,28 +166,35 @@ def test_all_databases_are_verified_before_any_database_is_published(tmp_path, m
     assert monitor.read_bytes() == monitor_before
 
 
-def test_restore_skips_session_state_and_keeps_live_api_tokens(tmp_path):
+@pytest.mark.parametrize("backup_has_tokens", [True, False], ids=["with-tokens", "before-tokens"])
+def test_restore_skips_session_state_and_keeps_live_api_tokens(tmp_path, backup_has_tokens):
     from app.storage import SnapshotStorage
 
-    backup_db = tmp_path / "backup.db"
-    SnapshotStorage(str(backup_db), max_days=7).create_api_token("revoked-since")
+    if backup_has_tokens:
+        backup_db = tmp_path / "backup.db"
+        SnapshotStorage(str(backup_db), max_days=7).create_api_token("revoked-since")
+        backup = backup_db.read_bytes()
+    else:
+        backup = _database_bytes(tmp_path, ["old"])
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    SnapshotStorage(str(data_dir / "docsis_history.db"), max_days=7).create_api_token("current")
+    live = SnapshotStorage(str(data_dir / "docsis_history.db"), max_days=7)
+    live.create_api_token("current")
+    live.revoke_api_token(live.create_api_token("revoked")[0])
     (data_dir / ".session_key").write_bytes(b"live-key")
 
     result = restore_backup(_archive({
-        "docsis_history.db": backup_db.read_bytes(),
-        ".session_key": b"backup-key",
-        ".auth_state": b"backup-state",
+        "docsis_history.db": backup, ".session_key": b"backup-key", ".auth_state": b"backup-state",
     }), str(data_dir))
 
     assert result["restored_files"] == ["docsis_history.db"]
+    assert not list(data_dir.glob(".docsight-restore-*"))
+    assert not list(data_dir.glob("docsis_history.db-*"))
     assert (data_dir / ".session_key").read_bytes() == b"live-key"
     assert not (data_dir / ".auth_state").exists()
     with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
-        assert conn.execute("SELECT name FROM api_tokens").fetchall() == [("current",)]
-    assert not list(data_dir.glob(".docsight-restore-*"))
+        rows = conn.execute("SELECT name, revoked FROM api_tokens ORDER BY id").fetchall()
+    assert rows == [("current", 0), ("revoked", 1)]
 
 
 def test_config_reload_uses_the_restored_encryption_key(tmp_path):

@@ -530,15 +530,20 @@ class TestSpeedtestRun:
         assert resp.status_code == 502
         assert resp.get_json()["success"] is False
 
+    @pytest.mark.parametrize(("raised", "status", "error"), [
+        (requests.ConnectionError("refused"), 502, "Cannot reach Speedtest Tracker"),
+        (requests.ConnectTimeout("connect timed out"), 504, "Speedtest Tracker timeout"),
+        (requests.exceptions.InvalidHeader("Invalid header value b'Bearer leaked-token'"), 500,
+         "Speedtest start failed. See the DOCSight log for details."),
+    ], ids=["connection", "connect-timeout", "invalid-header"])
     @patch("app.modules.speedtest.routes.requests.post")
-    def test_run_connection_error(self, mock_post, speedtest_client):
+    def test_run_request_failures(self, mock_post, speedtest_client, caplog, raised, status, error):
         self._reset_rate_limit()
-        import requests as req
-        mock_post.side_effect = req.ConnectionError("refused")
+        mock_post.side_effect = raised
 
         resp = speedtest_client.post("/api/speedtest/run")
-        assert resp.status_code == 502
-        assert "Cannot reach" in resp.get_json()["error"]
+        assert (resp.status_code, resp.get_json()) == (status, {"success": False, "error": error})
+        assert "leaked-token" not in caplog.text
 
     def test_run_not_configured(self, tmp_path):
         with configured_client(tmp_path / "data3") as client:

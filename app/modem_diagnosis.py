@@ -88,4 +88,8 @@ def public_message(exc: BaseException) -> str:
 
     The modem collector marks login failures with ``modem_stage = "login"``.
     """
-    return _PUBLIC_MESSAGES[classify_failure(exc, getattr(exc, "modem_stage", "read"))]
+    stage = getattr(exc, "modem_stage", "read")
+    reason = classify_failure(exc, stage)
+    if stage == "login" and reason == UNEXPECTED:
+        return "Modem login failed, see the DOCSight log"
+    return _PUBLIC_MESSAGES[reason]

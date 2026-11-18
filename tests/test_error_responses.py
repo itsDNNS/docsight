@@ -80,10 +80,16 @@ def test_unexpected_failure_is_logged_but_not_returned(app, monkeypatch, caplog,
     else:
         assert data == body
     assert DETAIL not in response.get_data(as_text=True)
-    assert DETAIL in caplog.text
+    # The speedtest request carries the tracker token, so its exception text is never logged.
+    assert (DETAIL in caplog.text) == (path != "/api/speedtest/run")
 
 
 @pytest.mark.parametrize("payload", [["a", "list"], "text", 42])
 def test_settings_save_needs_a_json_object(app, payload):
     response = app.test_client().post("/api/config", json=payload)
     assert (response.status_code, response.get_json()) == (400, {"success": False, "error": "No data"})
+
+
+def test_settings_save_rejects_a_url_that_is_not_text(app):
+    response = app.test_client().post("/api/config", json={"bqm_url": ["http://a"]})
+    assert (response.status_code, response.get_json()) == (400, {"success": False, "error": "bqm_url is not a valid URL"})

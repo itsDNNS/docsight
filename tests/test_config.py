@@ -453,11 +453,12 @@ class TestConfigIntegerValidation:
             assert json.load(f)["history_days"] == 1500.5
 
 
-def test_save_reports_unparsable_urls_without_library_text(tmp_path):
+@pytest.mark.parametrize("url", ["http://[::1", ["http://a"], 42])
+def test_save_reports_unparsable_urls_without_library_text(tmp_path, url):
     from app.config import ConfigValueError
 
     with pytest.raises(ConfigValueError, match="^modem_url is not a valid URL$"):
-        ConfigManager(str(tmp_path)).save({"modem_url": "http://[::1"})
+        ConfigManager(str(tmp_path)).save({"modem_url": url})
 
 
 def test_save_leaves_the_callers_values_unchanged(tmp_path):

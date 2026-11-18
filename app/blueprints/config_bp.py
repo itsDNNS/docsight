@@ -96,16 +96,17 @@ def api_config():
             except (ValueError, TypeError, OverflowError):
                 pass  # save() rejects it with a 400
         previous_bqm_url = (_config_manager.get("bqm_url") or "").strip()
-        requested_bqm_url = (data.get("bqm_url") or "").strip() if "bqm_url" in data else previous_bqm_url
+        try:
+            _config_manager.save(data)
+        except ConfigValueError as e:
+            return jsonify({"success": False, "error": str(e)}), 400
+        # Read back after save(), which has validated the submitted URL.
+        requested_bqm_url = (_config_manager.get("bqm_url") or "").strip()
         should_fetch_bqm = (
             bool(requested_bqm_url)
             and requested_bqm_url != previous_bqm_url
             and _should_run_bqm_initial_fetch(requested_bqm_url)
         )
-        try:
-            _config_manager.save(data)
-        except ConfigValueError as e:
-            return jsonify({"success": False, "error": str(e)}), 400
         effective_admin_password = _config_manager.get("admin_password", "")
         admin_password_changed = (
             admin_password_requested

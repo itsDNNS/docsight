@@ -9,7 +9,7 @@ import time
 from flask import Blueprint, request, jsonify
 
 from app.web_auth import require_auth
-from app.config import PASSWORD_MASK, parse_config_bool
+from app.config import PASSWORD_MASK, parse_config_bool, parse_config_int
 from app import modem_diagnosis
 from app.i18n import get_translations
 from app.modules.mqtt.publisher import create_client
@@ -39,6 +39,19 @@ def _pwa_push_configured(config_mgr):
     )
 
 
+def _resolve_masked_secret(value, secret_key, submitted, saved):
+    """Swap a masked secret for the saved one, but only for the saved destination.
+
+    Returns (secret, error). Without a saved secret there is nothing to protect.
+    """
+    if value != PASSWORD_MASK:
+        return value, None
+    stored = current_runtime().config_manager.get(secret_key) or None
+    if stored and submitted != saved:
+        return None, "Enter the password to test changed connection settings."
+    return stored, None
+
+
 @polling_bp.route("/api/test-modem", methods=["POST"])
 @polling_bp.route("/api/test-fritz", methods=["POST"])  # deprecated alias
 @require_auth
@@ -52,11 +65,16 @@ def api_test_modem():
     stage = "load"
     try:
         data = request.get_json()
-        # Resolve masked passwords to real values
-        password = data.get("modem_password", "")
-        if password == PASSWORD_MASK and _config_manager:
-            password = _config_manager.get("modem_password", "")
         modem_type = data.get("modem_type", "fritzbox")
+        password, error = _resolve_masked_secret(
+            data.get("modem_password", ""), "modem_password",
+            (modem_type, data.get("modem_url") or "", data.get("modem_user") or ""),
+            (_config_manager.get("modem_type"), _config_manager.get("modem_url") or "",
+             _config_manager.get("modem_user") or ""),
+        )
+        if error:
+            return jsonify({"success": False, "error": error})
+        password = password or ""
         modem_url = data.get("modem_url") or modem_url
         driver = driver_registry.load_driver(
             modem_type,
@@ -110,18 +128,19 @@ def api_test_mqtt():
         return jsonify({"success": False, "error": "No data"}), 400
     host = data.get("mqtt_host") or "localhost"
     user = data.get("mqtt_user") or None
-    password = data.get("mqtt_password") or None
     try:
-        port = int(data.get("mqtt_port") or 1883)
-    except (TypeError, ValueError):
-        return jsonify({"success": False, "error": "Invalid port"}), 400
-    if password == PASSWORD_MASK:
-        # The saved password only goes to the saved broker.
-        saved = (_config_manager.get("mqtt_host"), int(_config_manager.get("mqtt_port") or 1883),
-                 _config_manager.get("mqtt_user") or None)
-        if (host, port, user) != saved:
-            return jsonify({"success": False, "error": "Enter the password to test a different broker."})
-        password = _config_manager.get("mqtt_password") or None
+        port = parse_config_int(data.get("mqtt_port") or 1883)
+    except (TypeError, ValueError, OverflowError):
+        port = 0
+    if not (isinstance(host, str) and isinstance(user, (str, type(None))) and 0 < port < 65536):
+        return jsonify({"success": False, "error": "Invalid broker settings"}), 400
+    password, error = _resolve_masked_secret(
+        data.get("mqtt_password") or None, "mqtt_password", (host, port, user),
+        (_config_manager.get("mqtt_host"), parse_config_int(_config_manager.get("mqtt_port") or 1883),
+         _config_manager.get("mqtt_user") or None),
+    )
+    if error:
+        return jsonify({"success": False, "error": error})
     connack = threading.Event()
     answer = {}
 
@@ -129,10 +148,10 @@ def api_test_mqtt():
         answer["reason"] = reason_code
         connack.set()
 
-    client = create_client("docsis-test", port, user, password, parse_config_bool(data.get("mqtt_tls_insecure")))
-    client.on_connect = on_connect
-    started = False
+    client, started = None, False
     try:
+        client = create_client("docsis-test", port, user, password, parse_config_bool(data.get("mqtt_tls_insecure")))
+        client.on_connect = on_connect
         client.connect(host, port)
         started = client.loop_start() == MQTT_ERR_SUCCESS
         if not started or not connack.wait(MQTT_ANSWER_SECONDS):
@@ -147,9 +166,12 @@ def api_test_mqtt():
         log.exception("MQTT test failed")
         return jsonify({"success": False, "error": "MQTT test failed, see the DOCSight log"})
     finally:
-        client.disconnect()  # before joining, so the network loop stops instead of reconnecting
-        if started:
-            client.loop_stop()
+        try:
+            if client is not None:
+                client.disconnect()  # before joining, so the network loop stops instead of reconnecting
+        finally:
+            if started:
+                client.loop_stop()
 
 
 @polling_bp.route("/api/notifications/test", methods=["POST"])

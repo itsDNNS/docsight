@@ -43,7 +43,7 @@ class PlannedBlueprint:
     blueprint: Blueprint = field(compare=False, repr=False)
     rules: tuple[PlannedRule, ...] = ()
     registered_names: tuple[str, ...] = ()
-    # Hooks that can answer a request before its view (and its auth check) runs.
+    # Hooks that run around every request, including ones refused at sign-in.
     request_hooks: tuple[str, ...] = ()
 
 
@@ -125,6 +125,8 @@ def probe_blueprint(blueprint: Blueprint, *, source: str) -> PlannedBlueprint:
                 ("url_value_preprocessor", probe.url_value_preprocessors),
                 ("before_request", probe.before_request_funcs),
                 ("errorhandler", probe.error_handler_spec),
+                ("after_request", probe.after_request_funcs),
+                ("teardown_request", probe.teardown_request_funcs),
             ) if any(registry.values())
         )
     except Exception as exc:

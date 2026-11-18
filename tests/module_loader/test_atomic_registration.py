@@ -401,8 +401,10 @@ def test_unexpected_preflight_errors_do_not_reach_the_module_list(tmp_path, make
     ("@bp.url_value_preprocessor\ndef pre(endpoint, values):\n    pass", "url_value_preprocessor"),
     ("@bp.before_app_request\ndef early():\n    return 'answered before sign-in'", "before_request"),
     ("@bp.app_errorhandler(404)\ndef missing(error):\n    return 'handled', 200", "errorhandler"),
+    ("@bp.after_app_request\ndef rewrite(response):\n    return response", "after_request"),
+    ("@bp.teardown_request\ndef cleanup(error):\n    pass", "teardown_request"),
 ])
-def test_community_request_hooks_that_run_before_sign_in_are_rejected(tmp_path, make_app, hook, kind):
+def test_community_request_hooks_that_bypass_sign_in_are_rejected(tmp_path, make_app, hook, kind):
     _write_module(
         tmp_path,
         "hooked",
@@ -412,4 +414,4 @@ def test_community_request_hooks_that_run_before_sign_in_are_rejected(tmp_path, 
 
     info = ModuleLoader(make_app(), search_paths=[str(tmp_path)]).load_all()[0]
 
-    assert info.error == f"Module community.hooked registers request hooks that would run before sign-in: {kind}"
+    assert info.error == f"Module community.hooked registers request hooks that would bypass sign-in: {kind}"

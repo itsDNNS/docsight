@@ -1369,6 +1369,23 @@ class TestSpeedtestModule:
         expect(result).to_contain_text("HTTP 401")
 
 
+    @pytest.mark.parametrize(("fulfill", "text"), [
+        ({"status": 200, "content_type": "application/json", "body": '{"success": true}'}, "Test notification sent"),
+        ({"status": 200, "content_type": "application/json", "body": '{"success": false, "error": "No channel configured"}'},
+         "No channel configured"),
+        (None, "Network error"),
+    ], ids=["sent", "failed", "network"])
+    def test_notification_test_shows_each_outcome(self, settings_page, fulfill, text):
+        settings_page.route(
+            "**/api/notifications/test",
+            lambda route: route.fulfill(**fulfill) if fulfill else route.abort(),
+        )
+
+        settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.locator('[data-action="testNotifications"]').click()
+
+        expect(settings_page.locator("#notify-test")).to_contain_text(text)
+
 class TestBackupModule:
     """Backup module settings interactions."""
 

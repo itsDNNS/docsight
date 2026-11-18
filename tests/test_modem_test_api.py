@@ -20,7 +20,9 @@ ROUTES = ["/api/test-modem", "/api/test-fritz"]
 
 @pytest.fixture
 def modem_app(make_app, make_config):
-    config = make_config({"modem_password": MODEM_PASSWORD})
+    config = make_config({
+        "modem_type": "fritzbox", "modem_url": MODEM_URL, "modem_user": MODEM_USER, "modem_password": MODEM_PASSWORD,
+    })
     application = make_app(config_manager=config)
     assert get_runtime(application).driver_registry.is_builtin("fritzbox")
     return application
@@ -89,3 +91,15 @@ def test_modem_aliases_require_authentication(modem_app, route):
         constructor.assert_not_called()
     assert response.status_code == 401
     assert response.json == {"error": "Authentication required"}
+
+
+@pytest.mark.parametrize("changed", [{"modem_url": "http://attacker.invalid"}, {"modem_user": "other"}, {"modem_type": "cm3500"}])
+def test_saved_modem_password_only_goes_to_the_saved_modem(modem_app, changed):
+    with patch("app.drivers.fritzbox.FritzBoxDriver", autospec=True) as constructor:
+        response = modem_app.test_client().post("/api/test-modem", json={
+            "modem_type": "fritzbox", "modem_url": MODEM_URL, "modem_user": MODEM_USER,
+            "modem_password": PASSWORD_MASK, **changed,
+        })
+
+    assert response.json == {"success": False, "error": "Enter the password to test changed connection settings."}
+    constructor.assert_not_called()
