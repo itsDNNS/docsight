@@ -40,7 +40,7 @@ test('a single moment spans a day; missing readings fall back to fixed scales', 
     assert.deepEqual([sc.speedMax, sc.speedStep], [100, 25]);
 });
 
-test('the case chart SNR line breaks at a missing value and plots a measured 0 at its position', () => {
+test('the case chart SNR line skips a missing value and plots a measured 0 at its position', () => {
     const context = load();
     const calls = [];
     const ctx = new Proxy({}, {
@@ -63,5 +63,5 @@ test('the case chart SNR line breaks at a missing value and plots a measured 0 a
     const snrPath = calls.slice(start, calls.findIndex((c, i) => i > start && c[0] === 'stroke'));
     assert.equal(sc.snrMin, -2);
     assert.deepEqual(snrPath.filter(c => c[0] === 'moveTo' || c[0] === 'lineTo'), [['moveTo', sc.xScale(T0), sc.ySnr(36)],
-        ['moveTo', sc.xScale(T0 + 12 * HOUR), sc.ySnr(36)], ['lineTo', sc.xScale(T0 + 18 * HOUR), sc.ySnr(0)]]);
+        ['lineTo', sc.xScale(T0 + 12 * HOUR), sc.ySnr(36)], ['lineTo', sc.xScale(T0 + 18 * HOUR), sc.ySnr(0)]]);
 });

@@ -139,8 +139,9 @@ test('the nearest point respects skipped items, and a dot is a filled circle wit
         ['beginPath', 'arc', 'fillStyle=red', 'fill', 'strokeStyle=#fff', 'lineWidth=2', 'stroke']);
 });
 
-test('signal lines break at a missing value and plot a measured 0 at its position', () => {
-    const {st} = build([modem(1), modem(2, {ds_snr_min: null, us_power_avg: null}), modem(3), modem(4, {ds_snr_min: 0, us_power_avg: 0})]);
+test('signal lines skip a missing value and plot a measured 0 at its position', () => {
+    const missing = {ds_snr_min: null, us_power_avg: null};
+    const {st} = build([modem(1), modem(2, missing), modem(3, {ds_snr_min: 0, us_power_avg: 0}), modem(4, missing), modem(5)]);
     const ctx = recorder();
     chart.draw(ctx, st, {visible: ALL, events: st.events, labels: LABELS, parseTime, axisLabel: t => String(t)});
 
@@ -151,6 +152,6 @@ test('signal lines break at a missing value and plot a measured 0 at its positio
     };
     const x = h => st.xScale(T0 + h * HOUR);
     assert.ok(st.snrMin < 0 && st.txMin < 0);
-    assert.deepEqual(path(colors.snr), [['moveTo', x(1), st.ySnr(38)], ['moveTo', x(3), st.ySnr(38)], ['lineTo', x(4), st.ySnr(0)]]);
-    assert.deepEqual(path(colors.txPower), [['moveTo', x(1), st.yTx(42)], ['moveTo', x(3), st.yTx(42)], ['lineTo', x(4), st.yTx(0)]]);
+    assert.deepEqual(path(colors.snr), [['moveTo', x(1), st.ySnr(38)], ['lineTo', x(3), st.ySnr(0)], ['lineTo', x(5), st.ySnr(38)]]);
+    assert.deepEqual(path(colors.txPower), [['moveTo', x(1), st.yTx(42)], ['lineTo', x(3), st.yTx(0)], ['lineTo', x(5), st.yTx(42)]]);
 });

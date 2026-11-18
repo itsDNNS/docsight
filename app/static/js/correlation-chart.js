@@ -289,7 +289,7 @@
             ctx.beginPath();
             var started = false;
             points.forEach(function (point) {
-                if (point === null) { started = false; return; }
+                if (point === null) return;
                 if (started) ctx.lineTo(point[0], point[1]);
                 else { ctx.moveTo(point[0], point[1]); started = true; }
             });

@@ -389,17 +389,16 @@ function _renderTimelineChart(data) {
 
     // SNR line (modem)
     if (modem.length > 1) {
-        var sorted = modem.slice().sort(function(a, b) {
+        var sorted = modem.filter(function(d) { return Number.isFinite(d.ds_snr_min); }).sort(function(a, b) {
             return _timelineMs(a) - _timelineMs(b);
         });
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
         sorted.forEach(function(d, i) {
-            if (!Number.isFinite(d.ds_snr_min)) return;
             var x = xScale(_timelineMs(d));
             var y = ySnr(d.ds_snr_min);
-            if (i === 0 || !Number.isFinite(sorted[i - 1].ds_snr_min)) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
         ctx.stroke();
     }
