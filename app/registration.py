@@ -6,7 +6,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Sequence
 
 from flask import Blueprint, Flask
 from jinja2 import ChoiceLoader, FileSystemLoader

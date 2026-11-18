@@ -1,6 +1,5 @@
 """Tests for the CGM4981 driver helpers and channel parsing."""
 
-import pytest
 
 from app.drivers.cgm4981 import _float, _modulation
 

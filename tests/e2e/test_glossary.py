@@ -1,6 +1,5 @@
 """E2E tests for in-app glossary tooltips."""
 
-import pytest
 from playwright.sync_api import expect
 from tests.e2e.support.navigation import open_view
 

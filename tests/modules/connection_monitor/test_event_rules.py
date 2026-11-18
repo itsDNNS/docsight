@@ -1,6 +1,5 @@
 """Tests for Connection Monitor event rules."""
 
-import time
 import pytest
 
 from app.modules.connection_monitor.event_rules import ConnectionEventRules

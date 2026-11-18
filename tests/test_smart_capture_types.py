@@ -1,6 +1,5 @@
 """Tests for Smart Capture types."""
 
-import pytest
 
 from app.smart_capture.types import ExecutionStatus, Trigger
 

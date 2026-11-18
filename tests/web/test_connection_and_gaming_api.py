@@ -1,7 +1,6 @@
 """Tests for connection and gaming score endpoints."""
 
 from app.runtime import current_runtime
-import pytest
 
 
 class TestConnectionEndpoint:

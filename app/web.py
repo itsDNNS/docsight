@@ -635,6 +635,7 @@ def desktop_runtime():
     return jsonify(payload), status
 
 
+@require_auth
 def setup():
     _config_manager = current_runtime().config_manager
     if password_setup_pending():

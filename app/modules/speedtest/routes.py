@@ -265,9 +265,9 @@ def api_speedtest_run():
         return jsonify({"success": False, "error": "Cannot reach Speedtest Tracker"}), 502
     except requests.Timeout:
         return jsonify({"success": False, "error": "Speedtest Tracker timeout"}), 504
-    except Exception as e:
-        log.warning("Manual speedtest trigger error: %s", e)
-        return jsonify({"success": False, "error": str(e)}), 500
+    except Exception:
+        log.exception("Manual speedtest trigger error")
+        return jsonify({"success": False, "error": "Speedtest start failed. See the DOCSight log for details."}), 500
 
 
 @bp.route("/api/speedtest/cache", methods=["DELETE"])

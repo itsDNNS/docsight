@@ -1,6 +1,5 @@
 """Tests for modulation distribution and intraday/distribution outputs."""
 
-from datetime import datetime, timezone
 
 from app.modules.modulation.engine import (
     DISCLAIMER,

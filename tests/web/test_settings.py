@@ -11,6 +11,7 @@ from app.config import ConfigManager
 from app.module_loader import register_module_config
 from app.runtime import current_runtime
 from app import config as config_module
+from tests.test_auth import _login
 from tests.test_bqm import single_module_loader
 
 SMART_CAPTURE_SELECTS = [
@@ -35,17 +36,6 @@ def _rendered_panel(html: str, panel_id: str):
     panel = soup.find(id=panel_id)
     assert panel is not None
     return panel
-
-
-def _login(client, password):
-    current_runtime().login_rate_limiter.prune(float("inf"))
-    response = client.get("/login")
-    csrf_token = re.search(rb'name="csrf_token" value="([^"]+)"', response.data)
-    assert csrf_token
-    client.post(
-        "/login",
-        data={"password": password, "csrf_token": csrf_token.group(1).decode("utf-8")},
-    )
 
 
 class TestSettingsRoute:
@@ -263,6 +253,7 @@ class TestSettingsRoute:
     def test_settings_icon_only_controls_have_accessible_names(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
         current_runtime().config_manager = config_mgr
+        current_runtime().login_rate_limiter.prune(float("inf"))
         _login(client, "admin-secret-value")
 
         resp = client.get("/settings?lang=en")

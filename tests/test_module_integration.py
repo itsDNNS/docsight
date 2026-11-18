@@ -4,7 +4,6 @@ import os
 import shutil
 import sys
 
-import pytest
 from flask import Flask, current_app
 
 from app.app_factory import create_app

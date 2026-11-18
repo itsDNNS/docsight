@@ -1,6 +1,5 @@
 """E2E tests for the events view."""
 
-import pytest
 from tests.e2e.support.navigation import open_view
 
 

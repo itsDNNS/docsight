@@ -6,7 +6,6 @@ import pytest
 
 from app.modules.connection_monitor.collector import ConnectionMonitorCollector
 from app.modules.connection_monitor.probe import ProbeResult
-from app.collectors.base import CollectorResult
 
 
 @pytest.fixture(autouse=True)
@@ -109,7 +108,7 @@ class TestCollect:
             ]
             # Set last probe to now - target is not due
             collector._last_probe = {1: time.time()}
-            result = collector.collect()
+            collector.collect()
             mock_engine.probe.assert_not_called()
 
 

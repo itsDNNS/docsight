@@ -2,7 +2,6 @@
 
 import os
 import tempfile
-import pytest
 from unittest.mock import MagicMock, patch
 
 from app.modules.bnetz.collector import BnetzWatcherCollector, _read_marker, _append_marker

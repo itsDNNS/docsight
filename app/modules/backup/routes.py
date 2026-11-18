@@ -71,13 +71,13 @@ def api_backup_download():
         temp_dir = None
         audit_log.info("Backup downloaded: ip=%s", _get_client_ip())
         return response
-    except Exception as e:
+    except Exception:
         if response is not None:
             response.close()
         if temp_dir is not None:
             shutil.rmtree(temp_dir, ignore_errors=True)
-        log.error("Backup creation failed: %s", e)
-        return jsonify({"error": str(e)}), 500
+        log.exception("Backup creation failed")
+        return jsonify({"error": "Backup failed. See the DOCSight log for details."}), 500
 
 
 @bp.route("/api/backup/scheduled", methods=["POST"])
@@ -94,9 +94,9 @@ def api_backup_scheduled():
         cleanup_old_backups(backup_path, keep=retention)
         audit_log.info("Scheduled backup created: ip=%s file=%s", _get_client_ip(), filename)
         return jsonify({"success": True, "filename": filename})
-    except Exception as e:
-        log.error("Scheduled backup failed: %s", e)
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        log.exception("Scheduled backup failed")
+        return jsonify({"error": "Backup failed. See the DOCSight log for details."}), 500
 
 
 @bp.route("/api/backup/list")

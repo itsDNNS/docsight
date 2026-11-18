@@ -1,18 +1,16 @@
 """Tests for core module loading helpers and asset wiring."""
 
 # tests/test_module_loader.py
-import importlib
 import json
 import os
 import tempfile
-import textwrap
 from types import SimpleNamespace
 
 import pytest
 from flask import Flask
 from werkzeug.exceptions import NotFound
 import app.module_loader as module_loader
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import ModuleInfo, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
 from tests.fs_helpers import symlink_or_skip
 
 class TestRegisterModuleConfig:

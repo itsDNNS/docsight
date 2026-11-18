@@ -13,7 +13,7 @@ from flask import Flask
 
 from app.theme_registry import _is_trusted_url, download_theme
 from app.collectors import _ModuleConfigProxy
-from app.config import ConfigManager, SECRET_KEYS, HASH_KEYS
+from app.config import ConfigManager
 from app.runtime import current_runtime
 from tests.test_auth import _login_csrf
 from tests.fs_helpers import symlink_or_skip
@@ -173,8 +173,6 @@ class TestCommunityRouteProtection:
 
     def test_blocks_login_route(self):
         """A community module trying to register /login should be blocked."""
-        from flask import Blueprint
-        from app.module_loader import load_module_routes
 
         app = Flask(__name__)
         # Register a core /login route first

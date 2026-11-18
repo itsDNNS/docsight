@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.module_download import fetch_registry, is_trusted_url
+from app.module_download import fetch_registry
 from app.runtime import get_runtime
 from tests.conftest import OPEN_INSTANCE_ENVIRON
 

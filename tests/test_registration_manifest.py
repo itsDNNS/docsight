@@ -7,7 +7,7 @@ import os
 import subprocess
 import sys
 
-from app.app_factory import create_app, default_module_loader_factory
+from app.app_factory import create_app
 from app.config import ConfigManager
 from app.registration import canonical_manifest, manifest_fingerprint
 

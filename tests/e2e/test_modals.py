@@ -323,7 +323,6 @@ def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
 
 def test_report_modal_shows_generation_success_and_error_states(demo_page):
     """Report generation exposes progress, success, and actionable error states in the modal."""
-    request_urls = []
     demo_page.route(
         "**/api/complaint?**",
         lambda route: route.fulfill(

@@ -9,7 +9,6 @@ from tests.conftest import OPEN_INSTANCE_ENVIRON
 def app(tmp_path):
     from app.app_factory import create_app
     from app.config import ConfigManager
-    from app.blueprints import segment_bp as seg_mod
     return create_app(
         config_manager=ConfigManager(str(tmp_path / "segment-config")),
         environ=dict(OPEN_INSTANCE_ENVIRON), testing=True,

@@ -2,13 +2,11 @@
 
 import json
 import os
-import sqlite3
 import stat
 import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 
 
 SENTINELS = (

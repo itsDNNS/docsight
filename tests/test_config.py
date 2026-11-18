@@ -6,8 +6,6 @@ import pytest
 from app.config import (
     ConfigManager,
     DEFAULTS,
-    SECRET_KEYS,
-    HASH_KEYS,
     PASSWORD_MASK,
     URL_KEYS,
     parse_config_bool,

@@ -7,7 +7,6 @@ integration, and JS error-free operation.
 
 import re
 
-import pytest
 from playwright.sync_api import expect
 from tests.e2e.support.correlation import wait_for_correlation
 from tests.e2e.support.navigation import open_view

@@ -598,3 +598,18 @@ class TestApiTokenAuth:
         })
         resp = auth_client_with_storage.get("/health")
         assert resp.status_code == 200
+
+
+def test_setup_page_needs_sign_in_once_a_password_exists(make_app, tmp_path):
+    config = ConfigManager(str(tmp_path / "data"))
+    config.save({"admin_password": "secret123", "language": "en"})
+    client = make_app(config_manager=config, environ={}).test_client()
+
+    response = client.get("/setup?lang=de")
+
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+    assert config.get("language") == "en"
+    _login(client)
+    assert client.get("/setup?lang=de").status_code == 200
+    assert config.get("language") == "de"

@@ -4,14 +4,12 @@ import hashlib
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
 from app.modules.connection_monitor.traceroute_probe import (
     TracerouteProbe,
-    TracerouteHop,
-    TracerouteResult,
     HELPER_PATH,
 )
 

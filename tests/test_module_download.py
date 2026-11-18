@@ -1,6 +1,5 @@
 """Tests for the generic module downloader."""
 
-import pytest
 
 from app.module_download import is_trusted_url, validate_registry_entry, fetch_registry
 

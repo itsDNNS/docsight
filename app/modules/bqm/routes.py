@@ -334,9 +334,9 @@ def api_bqm_import():
                 skipped_dates.append(date)
             elif result == "replaced":
                 replaced += 1
-        except Exception as e:
-            log.error("BQM import error for %s: %s", fname, e)
-            errors.append({"filename": fname, "error": str(e)})
+        except Exception:
+            log.exception("BQM import error for %s", fname)
+            errors.append({"filename": fname, "error": "Import failed"})
 
     return jsonify({
         "imported": imported,

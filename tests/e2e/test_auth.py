@@ -1,6 +1,5 @@
 """E2E tests for authentication flows."""
 
-import pytest
 from playwright.sync_api import expect
 from tests.e2e.support.navigation import reveal_in_nav
 

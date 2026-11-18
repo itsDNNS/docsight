@@ -1,7 +1,6 @@
 """Tests for security-related web behavior."""
 
 from app.runtime import current_runtime
-import os
 from datetime import timedelta
 
 import pytest

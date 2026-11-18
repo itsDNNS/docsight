@@ -328,7 +328,7 @@ class TestBackupDownloadRoute:
         response = app.test_client().post("/api/backup")
 
         assert response.status_code == 500
-        assert response.get_json() == {"error": "injected route archive failure"}
+        assert response.get_json() == {"error": "Backup failed. See the DOCSight log for details."}
         assert not temp_dir.exists()
 
     def test_download_closes_stream_before_running_registered_cleanup(

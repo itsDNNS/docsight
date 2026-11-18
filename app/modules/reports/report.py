@@ -1032,11 +1032,10 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
                         if not att or len(att.get("data", b"")) > 500 * 1024:
                             continue
                         img_buf = io.BytesIO(att["data"])
-                        ext = "jpeg" if "jpeg" in mime else "png"
                         # Check remaining page space
                         if pdf.get_y() > 220:
                             pdf.add_page()
-                        pdf.image(img_buf, x=pdf.l_margin, w=min(170, pdf.epw), type=ext)
+                        pdf.image(img_buf, x=pdf.l_margin, w=min(170, pdf.epw))
                         pdf.ln(3)
                     except Exception:
                         log.warning("Failed to embed attachment %d in incident report", att_meta.get("id", 0))

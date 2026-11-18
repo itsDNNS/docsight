@@ -120,9 +120,9 @@ def api_config():
         return jsonify(response)
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
-    except Exception as e:
-        log.error("Config save failed: %s", e)
-        return jsonify({"success": False, "error": str(e)}), 500
+    except Exception:
+        log.exception("Config save failed")
+        return jsonify({"success": False, "error": "Saving failed. See the DOCSight log for details."}), 500
 
 
 # ── API Token Management ──
@@ -271,6 +271,6 @@ def api_demo_migrate():
             "purged": purged,
             "next": next_paths[next_choice],
         })
-    except Exception as e:
-        log.error("Demo migration failed: %s", e)
-        return jsonify({"success": False, "error": str(e)}), 500
+    except Exception:
+        log.exception("Demo migration failed")
+        return jsonify({"success": False, "error": "Demo migration failed. See the DOCSight log for details."}), 500

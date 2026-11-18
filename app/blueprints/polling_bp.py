@@ -9,6 +9,7 @@ from flask import Blueprint, request, jsonify
 
 from app.web_auth import require_auth
 from app.config import PASSWORD_MASK, parse_config_bool
+from app import modem_diagnosis
 from app.i18n import get_translations
 
 log = logging.getLogger("docsis.web")
@@ -41,7 +42,6 @@ def api_test_modem():
     """Test modem connection."""
     _config_manager = current_runtime().config_manager
     from app.drivers import get_driver_registry
-    from app import modem_diagnosis
     driver_registry = get_driver_registry()
     modem_type = "fritzbox"
     modem_url = "http://192.168.100.1"
@@ -265,9 +265,11 @@ def api_poll():
         # (ModemCollector already updated web state and saved snapshot)
         return jsonify({"success": True, "analysis": result.data})
 
-    except Exception as e:
-        log.error("Manual poll failed: %s", e)
-        return jsonify({"success": False, "error": str(e)}), 500
+    except Exception as exc:
+        reason = modem_diagnosis.classify_failure(exc, "read")
+        log.exception("Manual poll failed (%s)", reason)
+        return jsonify({"success": False, "error": "Modem poll failed", "reason": reason,
+                        "help_url": modem_diagnosis.HELP_URLS[reason]}), 500
     finally:
         _modem_collector._collect_lock.release()
 

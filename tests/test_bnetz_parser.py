@@ -5,7 +5,6 @@ from unittest.mock import patch, MagicMock
 from app.modules.bnetz.parser import parse_bnetz_pdf
 
 # Ensure pypdf.PdfReader is importable for patching
-import pypdf
 
 
 # Mock PDF text simulating real BNetzA Messprotokoll structure

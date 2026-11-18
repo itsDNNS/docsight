@@ -1,7 +1,6 @@
 """Tests for the Sagemcom F@st 3896 driver."""
 
 import hashlib
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest

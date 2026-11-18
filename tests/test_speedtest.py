@@ -479,7 +479,6 @@ class TestSpeedtestRun:
     """Tests for POST /api/speedtest/run."""
 
     def _reset_rate_limit(self):
-        import app.modules.speedtest.routes as sr
         current_runtime().derived_storage.set_value("speedtest_last_trigger", 0.0)
 
     @patch("app.modules.speedtest.routes.requests.post")

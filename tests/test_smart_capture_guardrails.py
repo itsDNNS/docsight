@@ -1,7 +1,5 @@
 """Tests for Smart Capture guardrails."""
 
-import time
-import pytest
 from unittest.mock import MagicMock
 
 from app.smart_capture.guardrails import GuardrailChain

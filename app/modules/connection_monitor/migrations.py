@@ -1,6 +1,6 @@
 """Connection Monitor storage schema migrations."""
 
-from app.storage.migrations import Migration, add_column_if_missing, schema_baseline, table_columns, table_exists
+from app.storage.migrations import Migration, add_column_if_missing, schema_baseline, table_columns
 
 
 _SCHEMA = (
