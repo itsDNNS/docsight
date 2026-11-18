@@ -295,7 +295,6 @@ class ConfigManager:
     def reload(self):
         """Re-read the encryption key and config.json, for example after a restore."""
         self._fernet = self._init_fernet()
-        self._file_config = {}
         self._load()
 
     def _load(self):

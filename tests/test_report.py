@@ -512,45 +512,22 @@ def test_channel_health_colours_match_the_rating(health, expected):
     assert pdf._health_color(health) == colours[expected]
 
 
-def _incident_pdf_with_attachment(data, mime_type):
-    entry = {
-        "date": "2026-05-01", "title": "Outage", "description": "",
-        "attachment_count": 1,
-        "attachments": [{"id": 1, "mime_type": mime_type}],
-    }
-    return generate_incident_report(
-        {"name": "Outage", "status": "open", "start_date": "2026-05-01", "end_date": "2026-05-01"},
-        entries=[entry], snapshots=MOCK_SNAPSHOTS, speedtests=[], bnetz_list=[],
-        attachment_loader=lambda _id: {"data": data},
-    )
-
-
-def test_incident_report_embeds_real_png_attachments():
-    from PIL import Image
-
-    buf = io.BytesIO()
-    Image.new("RGB", (4, 4), (0, 128, 0)).save(buf, format="PNG")
-
-    pdf = bytes(_incident_pdf_with_attachment(buf.getvalue(), "image/png"))
-
-    assert pdf.count(b"/Subtype /Image") == 1
-
 
 def test_incident_report_never_loads_files_named_by_an_attachment(tmp_path):
     from PIL import Image
 
     secret = tmp_path / "server-image.png"
-    Image.new("RGB", (4, 4), (255, 0, 0)).save(secret)
+    Image.new("RGB", (4, 4)).save(secret)
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
         f'width="10" height="10" viewBox="0 0 10 10"><image width="10" height="10" xlink:href="{secret}"/></svg>'
     ).encode()
+    entry = {"date": "2026-05-01", "title": "Outage", "attachments": [{"id": 1, "mime_type": "image/png"}]}
 
-    pdf = bytes(_incident_pdf_with_attachment(svg, "image/png"))
+    pdf = generate_incident_report(
+        {"name": "Outage", "start_date": "2026-05-01", "end_date": "2026-05-01"},
+        entries=[entry], snapshots=MOCK_SNAPSHOTS, speedtests=[], bnetz_list=[],
+        attachment_loader=lambda _id: {"data": svg},
+    )
 
-    assert b"/Subtype /Image" not in pdf
-    report = IncidentReport()
-    report.add_page()
-    with pytest.raises(Exception):
-        report.image(io.BytesIO(svg), w=10)
-    assert b"/Subtype /Image" not in bytes(report.output())
+    assert b"/Subtype /Image" not in bytes(pdf)

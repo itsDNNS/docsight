@@ -162,3 +162,40 @@ def test_all_databases_are_verified_before_any_database_is_published(tmp_path, m
     assert replace_calls == []
     assert main.read_bytes() == main_before
     assert monitor.read_bytes() == monitor_before
+
+
+def test_restore_skips_session_state_and_keeps_live_api_tokens(tmp_path):
+    from app.storage import SnapshotStorage
+
+    backup_db = tmp_path / "backup.db"
+    SnapshotStorage(str(backup_db), max_days=7).create_api_token("revoked-since")
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    SnapshotStorage(str(data_dir / "docsis_history.db"), max_days=7).create_api_token("current")
+    (data_dir / ".session_key").write_bytes(b"live-key")
+
+    result = restore_backup(_archive({
+        "docsis_history.db": backup_db.read_bytes(),
+        ".session_key": b"backup-key",
+        ".auth_state": b"backup-state",
+    }), str(data_dir))
+
+    assert result["restored_files"] == ["docsis_history.db"]
+    assert (data_dir / ".session_key").read_bytes() == b"live-key"
+    assert not (data_dir / ".auth_state").exists()
+    with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
+        assert conn.execute("SELECT name FROM api_tokens").fetchall() == [("current",)]
+    assert not list(data_dir.glob(".docsight-restore-*"))
+
+
+def test_config_reload_uses_the_restored_encryption_key(tmp_path):
+    from app.config import ConfigManager
+
+    ConfigManager(str(tmp_path / "backup")).save({"modem_password": "from-backup"})
+    live = ConfigManager(str(tmp_path / "live"))
+    for name in ("config.json", ".config_key"):
+        (tmp_path / "live" / name).write_bytes((tmp_path / "backup" / name).read_bytes())
+
+    live.reload()
+
+    assert live.get("modem_password") == "from-backup"

@@ -505,29 +505,6 @@ class TestRestore:
         assert os.path.exists(os.path.join(restore_dir, "docsis_history.db"))
         assert os.path.exists(os.path.join(restore_dir, "config.json"))
 
-    def test_skips_session_state_from_older_backups(self, tmp_path):
-        restore_dir = tmp_path / "restore"
-        restore_dir.mkdir()
-        (restore_dir / ".session_key").write_bytes(b"current-key")
-        archive = BytesIO()
-        with tarfile.open(fileobj=archive, mode="w:gz") as tar:
-            for name, payload in (
-                (BACKUP_META_FILE, json.dumps({"magic": "docsight-backup", "format_version": 1}).encode()),
-                ("config.json", b'{"modem_type": "fritzbox"}'),
-                (".session_key", b"key-from-backup"),
-                (".auth_state", b"fingerprint-from-backup"),
-            ):
-                info = tarfile.TarInfo(name)
-                info.size = len(payload)
-                tar.addfile(info, BytesIO(payload))
-        archive.seek(0)
-
-        result = restore_backup(archive, str(restore_dir))
-
-        assert result["restored_files"] == ["config.json"]
-        assert (restore_dir / ".session_key").read_bytes() == b"current-key"
-        assert not (restore_dir / ".auth_state").exists()
-
     def test_restored_data_correct(self, backup_path, tmp_path):
         restore_dir = str(tmp_path / "restore")
         with backup_path.open("rb") as archive:
@@ -719,44 +696,3 @@ class TestBrowseDirectory:
     def test_browse_nonexistent_dir(self, tmp_path):
         with pytest.raises(ValueError, match="Not a directory"):
             browse_directory(str(tmp_path / "nope"), allowed_roots=[str(tmp_path)])
-
-
-class TestRestoreKeepsLiveCredentials:
-    def test_restore_keeps_the_running_instances_api_tokens(self, tmp_path):
-        from app.storage import SnapshotStorage
-
-        source = tmp_path / "source"
-        source.mkdir()
-        old = SnapshotStorage(str(source / "docsis_history.db"), max_days=7)
-        old_id, _ = old.create_api_token("revoked-later")
-        (source / "config.json").write_text('{"modem_type": "fritzbox"}')
-        archive = BytesIO()
-        backup_module._write_backup_archive(str(source), archive)
-        archive.seek(0)
-
-        live_dir = tmp_path / "live"
-        live_dir.mkdir()
-        live = SnapshotStorage(str(live_dir / "docsis_history.db"), max_days=7)
-        live.create_api_token("current")
-
-        restore_backup(archive, str(live_dir))
-
-        restored = sqlite3.connect(live_dir / "docsis_history.db")
-        names = [row[0] for row in restored.execute("SELECT name FROM api_tokens")]
-        restored.close()
-        assert names == ["current"]
-        assert not list(live_dir.glob(".docsight-restore-*"))
-
-    def test_config_reload_uses_the_restored_encryption_key(self, tmp_path):
-        from app.config import ConfigManager
-
-        other = ConfigManager(str(tmp_path / "other"))
-        other.save({"modem_type": "fritzbox", "modem_password": "from-backup"})
-        live = ConfigManager(str(tmp_path / "live"))
-        live.save({"modem_type": "fritzbox", "modem_password": "live"})
-        for name in ("config.json", ".config_key"):
-            (tmp_path / "live" / name).write_bytes((tmp_path / "other" / name).read_bytes())
-
-        live.reload()
-
-        assert live.get("modem_password") == "from-backup"

@@ -23,14 +23,12 @@ from io import BytesIO
 
 log = logging.getLogger("docsis.backup")
 
-# Files under data_dir to include in backups
+# Files under data_dir to include in backups and to restore. Never the cookie
+# signing state (.session_key, .auth_state): it would let a backup forge sessions.
 DATA_FILES = [
     "docsis_history.db", "connection_monitor.db",
     "config.json", ".config_key",
 ]
-# Cookie signing state. Older backups contain these files; a restore skips
-# them, because whoever holds the session key can forge an admin session.
-SESSION_STATE_FILES = frozenset({".session_key", ".auth_state"})
 
 BACKUP_META_FILE = "backup_meta.json"
 FORMAT_VERSION = 1
@@ -217,10 +215,6 @@ def validate_backup(archive_bytes):
         raise ValueError(f"Invalid archive: {e}") from e
 
 
-def _token_columns(conn):
-    return [row[1] for row in conn.execute("PRAGMA table_info(api_tokens)")]
-
-
 def _keep_live_api_tokens(live_db, staged_db):
     """Carry the running instance's API tokens into a restored database.
 
@@ -228,27 +222,16 @@ def _keep_live_api_tokens(live_db, staged_db):
     bring back a token that was revoked since the backup was made.
     """
     with open_readonly(staged_db) as staged:
-        columns = _token_columns(staged)
-    if not columns:
-        return
-    live_rows, live_columns = [], []
+        if not staged.execute("SELECT 1 FROM sqlite_master WHERE name = 'api_tokens'").fetchone():
+            return
+    rows = []
     if os.path.exists(live_db):
         with open_readonly(live_db) as live:
-            live_columns = _token_columns(live)
-            shared = [c for c in columns if c in live_columns]
-            if shared:
-                live_rows = live.execute(
-                    f"SELECT {', '.join(shared)} FROM api_tokens"
-                ).fetchall()
-    shared = [c for c in columns if c in live_columns]
-    insert = (
-        f"INSERT INTO api_tokens ({', '.join(shared)}) "
-        f"VALUES ({', '.join('?' for _ in shared)})"
-    )
+            rows = live.execute("SELECT * FROM api_tokens").fetchall()
     with write_transaction(staged_db) as conn:
         conn.execute("DELETE FROM api_tokens")
-        for row in live_rows:
-            conn.execute(insert, row)
+        for row in rows:
+            conn.execute("INSERT INTO api_tokens VALUES (?, ?, ?, ?, ?, ?, ?)", row)
 
 
 def restore_backup(archive_bytes, data_dir):
@@ -282,8 +265,6 @@ def restore_backup(archive_bytes, data_dir):
         with tarfile.open(fileobj=archive_bytes, mode="r:gz") as tar:
             for member in tar.getmembers():
                 if member.name == BACKUP_META_FILE:
-                    continue
-                if member.name in SESSION_STATE_FILES:
                     continue
                 if member.name not in DATA_FILES:
                     log.warning("Skipping unknown file in backup: %s", member.name)
