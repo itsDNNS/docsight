@@ -587,20 +587,10 @@ def test_browser_failure_retains_mutex_until_main_thread_cleanup(
     tmp_path,
 ):
     from desktop_platform import Win32NamedMutex
+    from tests.test_desktop_platform import thread_recording_kernel32
 
     api_calls = []
-    api = SimpleNamespace(
-        CreateMutexW=lambda *_args: 55,
-        WaitForSingleObject=lambda *_args: (
-            api_calls.append(("wait", threading.get_ident())) or 0
-        ),
-        ReleaseMutex=lambda *_args: (
-            api_calls.append(("release", threading.get_ident())) or True
-        ),
-        CloseHandle=lambda *_args: (
-            api_calls.append(("close", threading.get_ident())) or True
-        ),
-    )
+    api = thread_recording_kernel32(api_calls)
     mutex = Win32NamedMutex("Global\\browser-failure", kernel32=api)
 
     class RetainingInstance:

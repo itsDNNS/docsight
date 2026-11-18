@@ -3,6 +3,7 @@
 from app.storage.migrations import (
     Migration,
     add_column_if_missing,
+    schema_baseline,
     table_columns,
     table_exists,
 )
@@ -35,16 +36,6 @@ _SCHEMA = (
 )
 
 
-def _apply_baseline(conn):
-    for statement in _SCHEMA:
-        conn.execute(statement)
-
-
-def _baseline_applied(_conn):
-    # Replay idempotent schema declarations once to repair missing indexes.
-    return False
-
-
 def _demo_applied(conn):
     return all(
         not table_exists(conn, table) or "is_demo" in table_columns(conn, table)
@@ -58,6 +49,6 @@ def _apply_demo(conn):
 
 
 MIGRATIONS = (
-    Migration("journal-0001-baseline", _apply_baseline, _baseline_applied),
+    schema_baseline("journal-0001-baseline", _SCHEMA),
     Migration("journal-0002-demo-flags", _apply_demo, _demo_applied),
 )

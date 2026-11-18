@@ -11,43 +11,18 @@ import pytest
 
 import app.web as web
 from app.config import ConfigManager
-from app.module_loader import ModuleInfo
 from app.runtime import current_runtime
+from tests.test_bqm import bqm_module, single_module_loader
 
 
 PREFIX_ENV = {"SCRIPT_NAME": "/docsight"}
 
 
 @pytest.fixture
-def sample_analysis():
-    """Minimal dashboard data needed to exercise rendered URL generation."""
-    return {
-        "summary": {
-            "ds_total": 0,
-            "us_total": 0,
-            "ds_power_min": 0,
-            "ds_power_max": 0,
-            "ds_power_avg": 0,
-            "us_power_min": 0,
-            "us_power_max": 0,
-            "us_power_avg": 0,
-            "ds_snr_min": 0,
-            "ds_snr_avg": 0,
-            "ds_correctable_errors": 0,
-            "ds_uncorrectable_errors": 0,
-            "health": "good",
-            "health_issues": [],
-        },
-        "ds_channels": [],
-        "us_channels": [],
-    }
-
-
-@pytest.fixture
 def client(tmp_path):
     """Create a configured client without relying on tests/web/conftest.py."""
     current_runtime().config_manager = _configured_manager(tmp_path)
-    current_runtime().module_loader = _enabled_bqm_loader()
+    current_runtime().module_loader = single_module_loader(bqm_module(menu={"order": 1}))
     current_runtime().storage = None
     app.config["TESTING"] = True
     with app.test_client() as test_client:
@@ -107,40 +82,18 @@ def _configured_manager(tmp_path, *, password: str = "") -> ConfigManager:
     return manager
 
 
-def _enabled_bqm_loader():
-    module = ModuleInfo(
-        id="docsight.bqm",
-        name="BQM",
-        description="Test module context",
-        version="1.0.0",
-        author="DOCSight",
-        min_app_version="2026.2",
-        type="integration",
-        contributes={},
-        path="",
-        menu={"order": 1},
-    )
-
-    class Loader:
-        @staticmethod
-        def get_enabled_modules():
-            return [module]
-
-        @staticmethod
-        def get_modules():
-            return [module]
-
-        @staticmethod
-        def get_theme_modules():
-            return []
-
-    return Loader()
+@pytest.fixture
+def no_docsis_analysis(no_docsis_analysis):
+    """The shared summary without fields that older snapshots lack."""
+    sparse = {"ds_snr_max", "ds_uncorr_pct", "us_capacity_mbps"}
+    summary = {key: value for key, value in no_docsis_analysis["summary"].items() if key not in sparse}
+    return {**no_docsis_analysis, "summary": summary}
 
 
 def test_dashboard_and_settings_render_prefix_aware_navigation_and_assets(
-    client, sample_analysis
+    client, no_docsis_analysis
 ):
-    current_runtime().update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=no_docsis_analysis)
 
     dashboard = client.get("/?lang=en", environ_overrides=PREFIX_ENV)
     settings = client.get("/settings?lang=en", environ_overrides=PREFIX_ENV)
@@ -290,9 +243,9 @@ def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path)
 
 
 def test_root_mount_keeps_existing_effective_server_generated_paths(
-    client, sample_analysis
+    client, no_docsis_analysis
 ):
-    current_runtime().update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=no_docsis_analysis)
 
     response = client.get("/?lang=en")
 
@@ -309,9 +262,9 @@ def test_root_mount_keeps_existing_effective_server_generated_paths(
     ids=["root", "docsight-prefix"],
 )
 def test_pwa_routes_and_manifest_identity_follow_effective_mount(
-    client, sample_analysis, environ, mount_path
+    client, no_docsis_analysis, environ, mount_path
 ):
-    current_runtime().update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=no_docsis_analysis)
 
     dashboard = client.get("/", environ_overrides=environ)
     service_worker = client.get("/sw.js", environ_overrides=environ)
@@ -344,9 +297,9 @@ def test_pwa_routes_and_manifest_identity_follow_effective_mount(
 
 
 def test_browser_url_bootstrap_is_minimal_canonical_and_early(
-    client, sample_analysis, tmp_path
+    client, no_docsis_analysis, tmp_path
 ):
-    current_runtime().update_state(analysis=sample_analysis)
+    current_runtime().update_state(analysis=no_docsis_analysis)
     dashboard_html = client.get(
         "/?lang=en", environ_overrides=PREFIX_ENV
     ).get_data(as_text=True)
@@ -372,8 +325,8 @@ def test_browser_url_bootstrap_is_minimal_canonical_and_early(
         _assert_url_helper_precedes_application_scripts(html, "/docsight")
 
 
-def test_root_browser_url_bootstrap_preserves_root_deployment(client, sample_analysis):
-    current_runtime().update_state(analysis=sample_analysis)
+def test_root_browser_url_bootstrap_preserves_root_deployment(client, no_docsis_analysis):
+    current_runtime().update_state(analysis=no_docsis_analysis)
 
     html = client.get("/?lang=en").get_data(as_text=True)
     bootstrap, _ = _browser_bootstrap(html)

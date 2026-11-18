@@ -102,15 +102,13 @@ def run_migrations(db_path: str, migrations: Sequence[Migration]) -> list[str]:
     return newly_recorded
 
 
-def _core_baseline_applied(_conn: sqlite3.Connection) -> bool:
-    # Replay the idempotent declarations once when adopting the registry.  A
-    # table-only shape probe would stamp historical databases that have all
-    # tables but are missing one of the required indexes.
-    return False
+def schema_baseline(migration_id: str, statements: Sequence[str]) -> Migration:
+    """Replay idempotent schema declarations once when adopting the registry.
 
-
-def _apply_core_baseline(conn: sqlite3.Connection) -> None:
-    execute_schema(conn, CORE_SCHEMA)
+    A table-only shape probe would stamp historical databases that have all
+    tables but are missing one of the required indexes.
+    """
+    return Migration(migration_id, lambda conn: execute_schema(conn, statements), lambda _conn: False)
 
 
 _LEGACY_INCIDENT_COLUMNS = {
@@ -243,7 +241,7 @@ def _segment_applied(_conn: sqlite3.Connection) -> bool:
 
 
 CORE_MIGRATIONS: tuple[Migration, ...] = (
-    Migration("core-0001-baseline", _apply_core_baseline, _core_baseline_applied),
+    schema_baseline("core-0001-baseline", CORE_SCHEMA),
     Migration(
         "core-0002-incidents-to-journal",
         _apply_incidents_migration,

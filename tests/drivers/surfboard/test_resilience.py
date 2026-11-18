@@ -1,12 +1,11 @@
 """Tests for SURFboard retries, fallbacks, and session resilience."""
 
-import hashlib
 import hmac
 
 import pytest
 from unittest.mock import patch, MagicMock
 from app.drivers.surfboard import SurfboardDriver, _LegacyTLSAdapter, _HAS_LEGACY_TLS
-from ._data import HNAP_LOGIN_PHASE1, HNAP_LOGIN_PHASE2, HNAP_DS_RESPONSE, HNAP_DEVICE_RESPONSE, HNAP_DS_RESPONSE_MOTO, HNAP_DEVICE_RESPONSE_MOTO
+from ._data import HNAP_LOGIN_PHASE1, HNAP_LOGIN_PHASE2, HNAP_DS_RESPONSE, HNAP_DS_RESPONSE_MOTO, HNAP_DEVICE_RESPONSE_MOTO
 
 class TestActionNamespace:
     def test_moto_action_namespace(self, driver):
@@ -139,26 +138,13 @@ class TestActionNamespace:
 # -- HTTP 500 namespace resilience --
 
 class TestHttp500Resilience:
-    def test_http_500_tries_other_namespace(self, driver):
+    def test_http_500_tries_other_namespace(self, driver, failing_fetch):
         """HTTP 500 triggers namespace fallback before re-auth."""
-        import requests as req
         driver._action_ns = "Customer"
         driver._logged_in = True
-        calls = []
+        calls = failing_fetch(500)
 
-        def mock_fetch():
-            calls.append(driver._action_ns)
-            if len(calls) == 1:
-                resp = MagicMock()
-                resp.status_code = 500
-                raise req.HTTPError(response=resp)
-            return {
-                "channelDs": {"docsis30": [], "docsis31": []},
-                "channelUs": {"docsis30": [], "docsis31": []},
-            }
-
-        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch):
-            data = driver.get_docsis_data()
+        data = driver.get_docsis_data()
 
         assert len(calls) == 2
         assert calls[0] == "Customer"
@@ -166,26 +152,13 @@ class TestHttp500Resilience:
         assert driver._action_ns == "Moto"
         assert "channelDs" in data
 
-    def test_http_500_preserves_session(self, driver):
+    def test_http_500_preserves_session(self, driver, failing_fetch):
         """HTTP 500 namespace switch doesn't destroy auth session."""
-        import requests as req
         driver._action_ns = "Customer"
         driver._logged_in = True
-        calls = []
+        failing_fetch(500)
 
-        def mock_fetch():
-            calls.append(1)
-            if len(calls) == 1:
-                resp = MagicMock()
-                resp.status_code = 500
-                raise req.HTTPError(response=resp)
-            return {
-                "channelDs": {"docsis30": [], "docsis31": []},
-                "channelUs": {"docsis30": [], "docsis31": []},
-            }
-
-        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch):
-            driver.get_docsis_data()
+        driver.get_docsis_data()
 
         assert driver._logged_in is True
 
@@ -412,25 +385,15 @@ class TestLegacyTLSFallback:
 # -- ConnectionError recovery in data fetch --
 
 class TestDataFetchConnectionError:
-    def test_connection_error_triggers_fresh_session_and_reauth(self, driver):
+    def test_connection_error_triggers_fresh_session_and_reauth(self, driver, failing_fetch):
         """ConnectionError during data fetch resets session and re-authenticates."""
         import requests as req
         driver._action_ns = "Customer"
         driver._logged_in = True
         session_before = driver._session
-        calls = []
+        calls = failing_fetch(req.ConnectionError("Connection reset by peer"))
 
-        def mock_fetch():
-            calls.append(len(calls) + 1)
-            if len(calls) == 1:
-                raise req.ConnectionError("Connection reset by peer")
-            return {
-                "channelDs": {"docsis30": [], "docsis31": []},
-                "channelUs": {"docsis30": [], "docsis31": []},
-            }
-
-        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch), \
-             patch.object(driver, "login") as mock_login:
+        with patch.object(driver, "login") as mock_login:
             data = driver.get_docsis_data()
 
         assert len(calls) == 2
@@ -438,36 +401,24 @@ class TestDataFetchConnectionError:
         assert driver._session is not session_before, "session must be replaced after ConnectionError"
         assert "channelDs" in data
 
-    def test_connection_error_after_http_500_namespace_switch(self, driver):
+    def test_connection_error_after_http_500_namespace_switch(self, driver, failing_fetch):
         """HTTP 500 -> namespace switch -> ConnectionError restores original namespace."""
         import requests as req
         driver._action_ns = "Customer"
         driver._logged_in = True
-        calls = []
+        # Namespace switches to Moto after the 500, but the connection drops
+        calls = failing_fetch(500, req.ConnectionError("Connection reset"))
 
-        def mock_fetch():
-            calls.append(driver._action_ns)
-            if len(calls) == 1:
-                resp = MagicMock()
-                resp.status_code = 500
-                raise req.HTTPError(response=resp)
-            if len(calls) == 2:
-                # Namespace switched to Moto, but connection drops
-                raise req.ConnectionError("Connection reset")
-            return {
-                "channelDs": {"docsis30": [], "docsis31": []},
-                "channelUs": {"docsis30": [], "docsis31": []},
-            }
-
-        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch), \
-             patch.object(driver, "login"):
+        with patch.object(driver, "login"):
             data = driver.get_docsis_data()
 
         assert calls[0] == "Customer"
         assert calls[1] == "Moto"
         # After ConnectionError in namespace retry, namespace restored to Customer
         # and re-auth path runs the third fetch
-        assert driver._action_ns == "Customer" or "channelDs" in data
+        assert calls[2:] == ["Customer"]
+        assert driver._action_ns == "Customer"
+        assert "channelDs" in data
 
     def test_connection_error_during_autodetect_resets_namespace(self, driver):
         """ConnectionError during namespace auto-detection resets speculative namespace."""
@@ -499,35 +450,11 @@ class TestDataFetchConnectionError:
 # -- Connection: close header --
 
 class TestConnectionCloseHeader:
-    def test_connection_close_header_present(self, driver):
-        """Every HNAP request includes Connection: close."""
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": "ok"}
-        mock_response.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
-             patch("app.drivers.surfboard.time") as mock_time:
-            mock_time.time.return_value = 1700000000.123
-            driver._hnap_post("Login", {"Login": {}})
-
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-            assert headers.get("Connection") == "close"
-
-    def test_connection_close_on_data_request(self, driver):
-        """Connection: close is sent on data requests, not just login."""
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": "ok"}
-        mock_response.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
-             patch("app.drivers.surfboard.time") as mock_time:
-            mock_time.time.return_value = 1700000000.123
-            driver._hnap_post("GetMultipleHNAPs", {"GetMultipleHNAPs": {}})
-
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-            assert headers.get("Connection") == "close"
+    @pytest.mark.parametrize("action", ["Login", "GetMultipleHNAPs"],
+                             ids=["present", "on_data_request"])
+    def test_connection_close_header(self, hnap_headers, action):
+        """Every HNAP request includes Connection: close, data requests as well as login."""
+        assert hnap_headers(action, now=1700000000.123).get("Connection") == "close"
 
 
 # -- _hnap_post transport-level retry --

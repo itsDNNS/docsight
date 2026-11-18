@@ -1,7 +1,7 @@
 """Tests for SURFboard channel parsing and derived values."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from app.drivers.surfboard import SurfboardDriver
 from ._data import HNAP_LOGIN_PHASE1, HNAP_LOGIN_PHASE2
 
@@ -141,30 +141,16 @@ class TestDeviceInfo:
 
 
 class TestDataFetchRetry:
-    def test_retry_on_http_500(self, driver):
+    def test_retry_on_http_500(self, driver, failing_fetch):
         """get_docsis_data retries with fresh login on HTTP 500."""
-        import requests as req
-
-        calls = []
-
-        def mock_fetch():
-            calls.append(1)
-            if len(calls) == 1:
-                resp = MagicMock()
-                resp.status_code = 500
-                raise req.HTTPError(response=resp)
-            return {
-                "channelDs": {"docsis30": [], "docsis31": []},
-                "channelUs": {"docsis30": [], "docsis31": []},
-            }
+        calls = failing_fetch(500)
 
         def mock_login_post(action, body, **kwargs):
             if body.get("Login", {}).get("Action") == "request":
                 return HNAP_LOGIN_PHASE1
             return HNAP_LOGIN_PHASE2
 
-        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch), \
-             patch.object(driver, "_hnap_post", side_effect=mock_login_post):
+        with patch.object(driver, "_hnap_post", side_effect=mock_login_post):
             data = driver.get_docsis_data()
 
         assert len(calls) == 2

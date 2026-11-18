@@ -19,6 +19,7 @@ from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
 from app.runtime import current_runtime
+from tests.conftest import error_counter_coverage, mixed_error_counter_summary
 
 
 def _metric_card(html, label):
@@ -162,6 +163,33 @@ def _configure_speedtest(config_mgr):
         "speedtest_tracker_url": "http://speedtest.local:8999",
         "speedtest_tracker_token": "test-token",
     })
+
+
+def _render_generic_speedtest_dashboard(tmp_path, analysis):
+    """Render the dashboard of a generic router with a configured, recent speedtest."""
+    mgr = ConfigManager(str(tmp_path / "data_speed"))
+    mgr.save({
+        "modem_type": "generic",
+        "speedtest_tracker_url": "http://speedtest.local",
+        "speedtest_tracker_token": "testtoken123",
+        "booked_download": 250,
+        "booked_upload": 50,
+    })
+    current_runtime().config_manager = mgr
+    current_runtime().storage = None
+    app.config["TESTING"] = True
+    current_runtime().update_state(
+        analysis=analysis,
+        speedtest_latest={
+            "download_mbps": 230.5,
+            "upload_mbps": 41.2,
+            "ping_ms": 12.0,
+            "jitter_ms": 1.5,
+            "packet_loss_pct": 0,
+        },
+    )
+    with app.test_client() as c:
+        return c.get("/")
 
 
 class TestIndexRoute:
@@ -524,15 +552,9 @@ class TestIndexRoute:
         sample_analysis["summary"]["ds_correctable_errors"] = None
         sample_analysis["summary"]["ds_uncorrectable_errors"] = 1000
         sample_analysis["summary"]["ds_uncorr_pct"] = None
-        sample_analysis["summary"]["error_counter_coverage"] = {
-            "total_channels": 1,
-            "correctable_channels": 0,
-            "uncorrectable_channels": 1,
-            "comparable_channels": 0,
-            "partial_channels": 1,
-            "unsupported_channels": 0,
-            "families": {},
-        }
+        sample_analysis["summary"]["error_counter_coverage"] = error_counter_coverage(
+            total=1, correctable=0, uncorrectable=1, comparable=0, partial=1,
+        )
         current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/")
@@ -546,25 +568,8 @@ class TestIndexRoute:
         assert b"None Corr" not in resp.data
 
     def test_index_mixed_error_support_labels_comparable_ratio_scope(self, client, sample_analysis):
-        sample_analysis["summary"].update({
-            "errors_supported": True,
-            "ds_correctable_errors": 9900,
-            "ds_uncorrectable_errors": 1100,
-            "ds_comparable_correctable_errors": 9900,
-            "ds_comparable_uncorrectable_errors": 100,
-            "ds_uncorr_pct": 1.0,
-            "health": "warning",
-            "health_issues": ["uncorr_errors_high"],
-            "error_counter_coverage": {
-                "total_channels": 2,
-                "correctable_channels": 1,
-                "uncorrectable_channels": 2,
-                "comparable_channels": 1,
-                "partial_channels": 1,
-                "unsupported_channels": 0,
-                "families": {},
-            },
-        })
+        sample_analysis["summary"].update(mixed_error_counter_summary())
+        sample_analysis["summary"].update(health="warning", health_issues=["uncorr_errors_high"])
         current_runtime().update_state(analysis=sample_analysis)
 
         resp = client.get("/")
@@ -1368,23 +1373,9 @@ class TestIndexRoute:
         assert resp.status_code == 200
         assert b"bnetz_has_deviation" not in resp.data  # card should not render
 
-    def test_no_docsis_shows_placeholder(self, client):
+    def test_no_docsis_shows_placeholder(self, client, no_docsis_analysis):
         """Generic router with empty channels shows no-DOCSIS placeholder."""
-        analysis = {
-            "summary": {
-                "ds_total": 0, "us_total": 0,
-                "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0,
-                "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0,
-                "ds_snr_min": 0, "ds_snr_avg": 0, "ds_snr_max": 0,
-                "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
-                "ds_uncorr_pct": 0,
-                "health": "good", "health_issues": [],
-                "us_capacity_mbps": 0,
-            },
-            "ds_channels": [],
-            "us_channels": [],
-        }
-        current_runtime().update_state(analysis=analysis)
+        current_runtime().update_state(analysis=no_docsis_analysis)
         resp = client.get("/")
         assert resp.status_code == 200
         assert b"no-docsis-placeholder" in resp.data
@@ -1392,46 +1383,9 @@ class TestIndexRoute:
         assert b"hero-card" not in resp.data
         assert b"channel-table" not in resp.data
 
-    def test_no_docsis_shows_speedtest_card(self, tmp_path):
+    def test_no_docsis_shows_speedtest_card(self, tmp_path, no_docsis_analysis):
         """When has_docsis=false but speedtest is configured, speed card appears."""
-        mgr = ConfigManager(str(tmp_path / "data_speed"))
-        mgr.save({
-            "modem_type": "generic",
-            "speedtest_tracker_url": "http://speedtest.local",
-            "speedtest_tracker_token": "testtoken123",
-            "booked_download": 250,
-            "booked_upload": 50,
-        })
-        current_runtime().config_manager = mgr
-        current_runtime().storage = None
-        app.config["TESTING"] = True
-
-        analysis = {
-            "summary": {
-                "ds_total": 0, "us_total": 0,
-                "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0,
-                "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0,
-                "ds_snr_min": 0, "ds_snr_avg": 0, "ds_snr_max": 0,
-                "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
-                "ds_uncorr_pct": 0,
-                "health": "good", "health_issues": [],
-                "us_capacity_mbps": 0,
-            },
-            "ds_channels": [],
-            "us_channels": [],
-        }
-        current_runtime().update_state(
-            analysis=analysis,
-            speedtest_latest={
-                "download_mbps": 230.5,
-                "upload_mbps": 41.2,
-                "ping_ms": 12.0,
-                "jitter_ms": 1.5,
-                "packet_loss_pct": 0,
-            },
-        )
-        with app.test_client() as c:
-            resp = c.get("/")
+        resp = _render_generic_speedtest_dashboard(tmp_path, no_docsis_analysis)
         assert resp.status_code == 200
         html = resp.data
         # No-DOCSIS placeholder should still appear
@@ -1442,48 +1396,9 @@ class TestIndexRoute:
         assert b"Ping:" in html
         assert b"12 ms" in html
 
-    def test_speedtest_card_uses_signal_family_card_anatomy(self, tmp_path):
+    def test_speedtest_card_uses_signal_family_card_anatomy(self, tmp_path, no_docsis_analysis):
         """Speed card follows the same rows, badge, sparkline, and range anatomy as signal-family cards."""
-        mgr = ConfigManager(str(tmp_path / "data_speed_anatomy"))
-        mgr.save({
-            "modem_type": "generic",
-            "speedtest_tracker_url": "http://speedtest.local",
-            "speedtest_tracker_token": "testtoken123",
-            "booked_download": 250,
-            "booked_upload": 50,
-        })
-        current_runtime().config_manager = mgr
-        current_runtime().storage = None
-        app.config["TESTING"] = True
-
-        analysis = {
-            "summary": {
-                "ds_total": 0, "us_total": 0,
-                "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0,
-                "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0,
-                "ds_snr_min": 0, "ds_snr_avg": 0, "ds_snr_max": 0,
-                "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
-                "ds_uncorr_pct": 0,
-                "health": "good", "health_issues": [],
-                "us_capacity_mbps": 0,
-            },
-            "ds_channels": [],
-            "us_channels": [],
-        }
-        current_runtime().update_state(
-            analysis=analysis,
-            speedtest_latest={
-                "download_mbps": 230.5,
-                "upload_mbps": 41.2,
-                "ping_ms": 12.0,
-                "jitter_ms": 1.5,
-                "packet_loss_pct": 0,
-            },
-        )
-
-        with app.test_client() as c:
-            resp = c.get("/")
-
+        resp = _render_generic_speedtest_dashboard(tmp_path, no_docsis_analysis)
         assert resp.status_code == 200
         card = _element_by_id(resp.get_data(as_text=True), "metric-speed-card")
         assert '<div class="metric-value-row">' in card

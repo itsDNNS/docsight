@@ -3,7 +3,7 @@
 import os
 
 from .migrations import CORE_MIGRATIONS, SCHEMA_VERSION, run_migrations
-from .sqlite import open_read, write_transaction
+from .sqlite import DatabaseAccess
 
 
 ALLOWED_MIME_TYPES = {
@@ -14,7 +14,7 @@ MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024
 MAX_ATTACHMENTS_PER_ENTRY = 10
 
 
-class StorageBase:
+class StorageBase(DatabaseAccess):
     """Persist DOCSIS analysis snapshots to SQLite."""
 
     def __init__(self, db_path, max_days=7):
@@ -26,9 +26,3 @@ class StorageBase:
 
     def _init_db(self):
         run_migrations(self.db_path, CORE_MIGRATIONS)
-
-    def _read(self):
-        return open_read(self.db_path)
-
-    def _write(self):
-        return write_transaction(self.db_path)

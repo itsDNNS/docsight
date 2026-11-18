@@ -17,7 +17,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_rows import parse_sb6190_downstream, parse_sb6190_upstream
+from .formats.html_rows import parse_sb6190_downstream, parse_sb6190_html, parse_sb6190_upstream
 from .formats.primitives import normalize_mhz, parse_number
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
@@ -81,22 +81,7 @@ class SB6190Driver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"SB6190 DOCSIS data retrieval failed: {e}")
 
-        soup = BeautifulSoup(r.text, "html.parser")
-        ds_table = us_table = None
-        for table in soup.find_all("table"):
-            th = table.find("th")
-            if not th:
-                continue
-            text = th.get_text(strip=True).lower()
-            if "downstream bonded" in text:
-                ds_table = table
-            elif "upstream bonded" in text:
-                us_table = table
-
-        return {
-            "channelDs": {"docsis30": self._parse_downstream(ds_table), "docsis31": []},
-            "channelUs": {"docsis30": self._parse_upstream(us_table), "docsis31": []},
-        }
+        return parse_sb6190_html(r.text).value
 
     def get_device_info(self) -> DeviceInfo:
         try:

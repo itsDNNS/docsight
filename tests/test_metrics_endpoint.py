@@ -14,22 +14,6 @@ def reset_web_state():
 
 
 @pytest.fixture
-def noauth_config(tmp_path):
-    """Config without admin_password."""
-    mgr = ConfigManager(str(tmp_path / "data"))
-    mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-    return mgr
-
-
-@pytest.fixture
-def auth_config(tmp_path):
-    """Config with admin_password set."""
-    mgr = ConfigManager(str(tmp_path / "data"))
-    mgr.save({"modem_password": "test", "modem_type": "fritzbox", "admin_password": "secret123"})
-    return mgr
-
-
-@pytest.fixture
 def protected_metrics_config(tmp_path):
     """Config with token-protected metrics enabled."""
     mgr = ConfigManager(str(tmp_path / "protected-data"))

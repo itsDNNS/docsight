@@ -2,6 +2,7 @@
 
 import sqlite3
 from datetime import date
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -13,6 +14,8 @@ from app.module_loader import ModuleInfo
 from app.storage import SnapshotStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
+from tests.test_bqm_csv_parser import PARSED_ROWS
+from tests.test_smart_capture_api import configured_client
 
 
 # ── Fetcher Tests ──
@@ -82,26 +85,7 @@ def sample_png():
 @pytest.fixture
 def sample_csv_rows():
     return [
-        {
-            "timestamp": "2026-03-15T19:00:00+00:00",
-            "date": "2026-03-15",
-            "sent_polls": 100,
-            "lost_polls": 0,
-            "latency_min_ms": 30.43,
-            "latency_avg_ms": 33.85,
-            "latency_max_ms": 52.69,
-            "score": 1,
-        },
-        {
-            "timestamp": "2026-03-15T19:01:40+00:00",
-            "date": "2026-03-15",
-            "sent_polls": 100,
-            "lost_polls": 2,
-            "latency_min_ms": 30.62,
-            "latency_avg_ms": 34.38,
-            "latency_max_ms": 54.41,
-            "score": 201,
-        },
+        *(dict(row) for row in PARSED_ROWS),
         {
             "timestamp": "2026-03-16T19:00:00+00:00",
             "date": "2026-03-16",
@@ -338,8 +322,17 @@ class TestBQMCollector:
 
 
 
-def _enabled_bqm_loader():
-    module = ModuleInfo(
+def single_module_loader(module):
+    """Module loader stub whose only (enabled) module is ``module``."""
+    return SimpleNamespace(
+        get_enabled_modules=lambda: [module],
+        get_modules=lambda: [module],
+        get_theme_modules=lambda: [],
+    )
+
+
+def bqm_module(**fields):
+    return ModuleInfo(
         id="docsight.bqm",
         name="BQM",
         description="Test module context",
@@ -349,24 +342,15 @@ def _enabled_bqm_loader():
         type="integration",
         contributes={},
         path="",
-        template_paths={"tab": "bqm_tab.html", "dialogs": "bqm_dialogs.html"},
-        has_js=True,
+        **fields,
     )
 
-    class Loader:
-        @staticmethod
-        def get_enabled_modules():
-            return [module]
 
-        @staticmethod
-        def get_modules():
-            return [module]
-
-        @staticmethod
-        def get_theme_modules():
-            return []
-
-    return Loader()
+def _enabled_bqm_loader():
+    return single_module_loader(bqm_module(
+        template_paths={"tab": "bqm_tab.html", "dialogs": "bqm_dialogs.html"},
+        has_js=True,
+    ))
 
 
 @pytest.fixture
@@ -390,16 +374,10 @@ def bqm_api_storage(tmp_path, sample_png, sample_csv_rows):
 @pytest.fixture
 def bqm_client(tmp_path, bqm_api_storage):
     s, today = bqm_api_storage
-    data_dir = str(tmp_path / "data")
-    mgr = ConfigManager(data_dir)
-    mgr.save({"modem_password": "test", "modem_type": "fritzbox", "bqm_url": "https://example.com/graph.png"})
-    current_runtime().config_manager = mgr
-    current_runtime().storage = s
     previous_module_loader = current_runtime().module_loader
     current_runtime().module_loader = _enabled_bqm_loader()
-    app.config["TESTING"] = True
     try:
-        with app.test_client() as client:
+        with configured_client(tmp_path / "data", s, bqm_url="https://example.com/graph.png") as client:
             yield client, today
     finally:
         current_runtime().module_loader = previous_module_loader
@@ -431,13 +409,7 @@ class TestBQMAPI:
         assert resp.status_code == 400
 
     def test_bqm_dates_empty(self, tmp_path):
-        data_dir = str(tmp_path / "data3")
-        mgr = ConfigManager(data_dir)
-        mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-        current_runtime().config_manager = mgr
-        current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with configured_client(tmp_path / "data3") as client:
             resp = client.get("/api/bqm/dates")
             assert resp.status_code == 200
             assert resp.get_json() == []
@@ -607,13 +579,7 @@ class TestBQMLive:
         """Both live and cached fail: returns 404."""
         mock_urlopen.side_effect = Exception("Network error")
 
-        data_dir = str(tmp_path / "data_live")
-        mgr = ConfigManager(data_dir)
-        mgr.save({"modem_password": "test", "modem_type": "fritzbox", "bqm_url": "https://example.com/graph.png"})
-        current_runtime().config_manager = mgr
-        current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with configured_client(tmp_path / "data_live", bqm_url="https://example.com/graph.png") as client:
             resp = client.get("/api/bqm/live")
             assert resp.status_code == 404
 

@@ -2,11 +2,21 @@
 
 import json
 import pytest
+from flask import current_app
 
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.smart_capture.types import ExecutionStatus
 from app.runtime import current_runtime
+
+
+def configured_client(data_dir, storage=None, **config):
+    """Point the current test app at a fresh configured modem and return its client."""
+    manager = ConfigManager(str(data_dir))
+    manager.save({"modem_password": "test", "modem_type": "fritzbox", **config})
+    current_runtime().config_manager = manager
+    current_runtime().storage = storage
+    return current_app.test_client()
 
 
 @pytest.fixture
@@ -16,12 +26,7 @@ def storage(tmp_path):
 
 @pytest.fixture
 def client(tmp_path, storage):
-    config_mgr = ConfigManager(str(tmp_path / "config"))
-    config_mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
-    current_runtime().config_manager = config_mgr
-    current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as c:
+    with configured_client(tmp_path / "config", storage) as c:
         yield c
 
 

@@ -1,9 +1,7 @@
 """Tests for analyzer health classification and summary behavior."""
 
 import pytest
-from unittest.mock import patch
-from app import analyzer
-from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps, _metric_healths
+from app.analyzer import analyze, _parse_float
 from tests.analyzer.factories import (
     make_data as _make_data,
     make_ds30 as _make_ds30,

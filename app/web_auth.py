@@ -46,6 +46,15 @@ def _get_client_ip():
     return request.remote_addr or "unknown"
 
 
+def confirmed_delete_all(data, delete_all, what):
+    """Answer a bulk delete of everything, which must carry confirm="DELETE_ALL"."""
+    if data.get("confirm") != "DELETE_ALL":
+        return jsonify({"error": "Confirmation required: set confirm to 'DELETE_ALL'"}), 400
+    deleted = delete_all()
+    audit_log.info("All %s deleted: ip=%s count=%d", what, _get_client_ip(), deleted)
+    return jsonify({"deleted": deleted})
+
+
 def _get_login_csrf_token():
     """Return the session-bound token used by the login form."""
     token = session.get(_LOGIN_CSRF_SESSION_KEY)

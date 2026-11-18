@@ -154,3 +154,19 @@ def verify_database(db_path: str) -> str:
     with open_readonly(db_path) as conn:
         row = conn.execute("PRAGMA integrity_check").fetchone()
     return str(row[0]) if row else ""
+
+
+class DatabaseAccess:
+    """Managed read and write access to the SQLite database at ``self.db_path``."""
+
+    db_path: str
+
+    def _read(self):
+        return open_read(self.db_path)
+
+    def _write(self):
+        return write_transaction(self.db_path)
+
+    def _connect(self):
+        """Compatibility context for internal test setup writes."""
+        return write_transaction(self.db_path)

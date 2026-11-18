@@ -1,15 +1,10 @@
 """Tests for theme module behavior and loading."""
 
-# tests/test_module_loader.py
-import importlib
 import json
-import os
-import tempfile
-import textwrap
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, ModuleLoader
 
 _VALID_THEME = {
     "dark": {
@@ -23,6 +18,7 @@ _VALID_THEME = {
         "--good": "#059669", "--warn": "#d97706", "--crit": "#dc2626",
     },
 }
+
 
 class TestThemeContributes:
     """Test theme module loading and validation."""
@@ -83,20 +79,6 @@ class TestThemeContributes:
             "light": {"--bg": "#ffffff"},
         }
         validate_theme(data)  # meta is optional, should not raise
-
-
-_VALID_THEME = {
-    "dark": {
-        "--bg": "#1f2937", "--surface": "#1f2937", "--card": "#1f2937",
-        "--text": "#f0f0f0", "--accent": "#a855f7",
-        "--good": "#10b981", "--warn": "#f59e0b", "--crit": "#ef4444",
-    },
-    "light": {
-        "--bg": "#ffffff", "--surface": "#ffffff", "--card": "#f9fafb",
-        "--text": "#111827", "--accent": "#9333ea",
-        "--good": "#059669", "--warn": "#d97706", "--crit": "#dc2626",
-    },
-}
 
 
 class TestThemeLoading:
@@ -178,8 +160,7 @@ class TestThemeLoading:
 class TestGetThemeModules:
     """Test the get_theme_modules helper."""
 
-    def test_returns_theme_modules_only(self, tmp_path):
-        # Theme module
+    def test_returns_theme_modules_only(self, tmp_path, load_with_regular_module):
         mod_t = tmp_path / "theme1"
         mod_t.mkdir()
         (mod_t / "manifest.json").write_text(json.dumps({
@@ -189,37 +170,14 @@ class TestGetThemeModules:
         }))
         (mod_t / "theme.json").write_text(json.dumps(_VALID_THEME))
 
-        # Regular module
-        mod_r = tmp_path / "regular"
-        mod_r.mkdir()
-        (mod_r / "manifest.json").write_text(json.dumps({
-            "id": "test.regular", "name": "R", "description": "d",
-            "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
-            "type": "integration", "contributes": {},
-        }))
-
-        app = Flask(__name__)
-        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
-        loader.load_all()
+        loader = load_with_regular_module()
 
         theme_mods = loader.get_theme_modules()
         assert len(theme_mods) == 1
         assert theme_mods[0].id == "test.theme1"
 
-    def test_returns_empty_when_no_themes(self, tmp_path):
-        mod_r = tmp_path / "regular"
-        mod_r.mkdir()
-        (mod_r / "manifest.json").write_text(json.dumps({
-            "id": "test.regular", "name": "R", "description": "d",
-            "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
-            "type": "integration", "contributes": {},
-        }))
-
-        app = Flask(__name__)
-        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
-        loader.load_all()
-
-        assert loader.get_theme_modules() == []
+    def test_returns_empty_when_no_themes(self, load_with_regular_module):
+        assert load_with_regular_module().get_theme_modules() == []
 
 
 

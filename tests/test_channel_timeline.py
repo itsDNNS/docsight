@@ -1,34 +1,16 @@
 """Tests for per-channel timeline: storage, /api/channels, /api/channel-history."""
 
 import json
-import sqlite3
-import time
 import pytest
 from datetime import datetime, timedelta, timezone
 
 from app.storage import SnapshotStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
+from tests.conftest import insert_snapshot as _insert_snapshot, utc_ts as _utc_ts
 
 
 # ── Fixtures ──
-
-def _utc_ts(delta: timedelta) -> str:
-    return (datetime.now(timezone.utc) - delta).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _insert_snapshot(storage, analysis, timestamp):
-    with sqlite3.connect(storage.db_path) as conn:
-        conn.execute(
-            "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
-            (
-                timestamp,
-                json.dumps(analysis["summary"]),
-                json.dumps(analysis["ds_channels"]),
-                json.dumps(analysis["us_channels"]),
-            ),
-        )
-
 
 def _make_analysis(ds_channels=None, us_channels=None):
     if ds_channels is None:

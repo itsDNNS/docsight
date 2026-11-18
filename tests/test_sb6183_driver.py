@@ -1,12 +1,13 @@
 """Tests for Arris SB6183 modem driver."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import requests
 
 from app.drivers.sb6183 import SB6183Driver
+from tests.test_sb6141_driver import serve_html
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "sb6183"
 SAMPLE_STATUS_HTML = (FIXTURE_DIR / "RgConnect.asp.html").read_text(encoding="utf-8")
@@ -20,10 +21,7 @@ def driver():
 
 @pytest.fixture
 def mock_status(driver):
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.text = SAMPLE_STATUS_HTML
-    with patch.object(driver._session, "get", return_value=mock_response):
+    with serve_html(driver, SAMPLE_STATUS_HTML):
         yield driver
 
 
@@ -46,18 +44,12 @@ class TestDriverInit:
 
 class TestLogin:
     def test_login_verifies_rgconnect(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = SAMPLE_STATUS_HTML
-        with patch.object(driver._session, "get", return_value=mock_resp) as mock_get:
+        with serve_html(driver, SAMPLE_STATUS_HTML) as mock_get:
             driver.login()
             assert mock_get.call_args[0][0].endswith("/RgConnect.asp")
 
     def test_login_rejects_non_status_page(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "<html><body>Product Information</body></html>"
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, "<html><body>Product Information</body></html>"):
             with pytest.raises(RuntimeError, match="status page not returned"):
                 driver.login()
 
@@ -120,10 +112,7 @@ class TestUpstream:
 
 class TestDeviceInfo:
     def test_parses_swinfo_page(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = SAMPLE_SWINFO_HTML
-        with patch.object(driver._session, "get", return_value=mock_resp) as mock_get:
+        with serve_html(driver, SAMPLE_SWINFO_HTML) as mock_get:
             info = driver.get_device_info()
         assert mock_get.call_args[0][0].endswith("/RgSwInfo.asp")
         assert info["manufacturer"] == "Arris"
@@ -143,10 +132,7 @@ class TestDeviceInfo:
 
 class TestEdgeCases:
     def test_no_tables(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "<html><body></body></html>"
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, "<html><body></body></html>"):
             data = driver.get_docsis_data()
         assert data["channelDs"]["docsis30"] == []
         assert data["channelUs"]["docsis30"] == []
@@ -166,10 +152,7 @@ class TestEdgeCases:
         <tr><td>1</td><td>Locked</td><td>ATDMA</td><td>67</td><td>5120 Ksym/sec</td><td>30400000 Hz</td><td>48.3 dBmV</td></tr>
         <tr><td>2</td><td>Not Locked</td><td>ATDMA</td><td>65</td><td>5120 Ksym/sec</td><td>17600000 Hz</td><td>47.5 dBmV</td></tr>
         </table></body></html>"""
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = html
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, html):
             data = driver.get_docsis_data()
         assert [ch["channelID"] for ch in data["channelDs"]["docsis30"]] == [6]
         assert [ch["channelID"] for ch in data["channelUs"]["docsis30"]] == [67]

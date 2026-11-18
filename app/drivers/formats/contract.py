@@ -44,6 +44,15 @@ def docsis_split(
     }
 
 
+def ofdm_downstream(channel_id, frequency, power, mer, corrected, uncorrected) -> RawChannel:
+    """A DOCSIS 3.1 OFDM downstream channel without a modulation profile."""
+    return {
+        "channelID": channel_id, "type": "OFDM", "frequency": frequency,
+        "powerLevel": power, "mer": mer, "mse": None,
+        "corrErrors": corrected, "nonCorrErrors": uncorrected,
+    }
+
+
 def docsis_result(
     ds30: ParseResult[list[RawChannel]],
     ds31: ParseResult[list[RawChannel]],

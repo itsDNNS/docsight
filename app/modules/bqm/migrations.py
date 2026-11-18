@@ -1,6 +1,6 @@
 """BQM storage schema migrations."""
 
-from app.storage.migrations import Migration, add_column_if_missing, table_columns, table_exists
+from app.storage.migrations import Migration, add_column_if_missing, schema_baseline, table_columns, table_exists
 
 
 _SCHEMA = (
@@ -25,16 +25,6 @@ _SCHEMA = (
 )
 
 
-def _apply_baseline(conn):
-    for statement in _SCHEMA:
-        conn.execute(statement)
-
-
-def _baseline_applied(_conn):
-    # Replay idempotent schema declarations once to repair missing indexes.
-    return False
-
-
 def _demo_applied(conn):
     columns = table_columns(conn, "bqm_graphs")
     return not columns or "is_demo" in columns
@@ -45,6 +35,6 @@ def _apply_demo(conn):
 
 
 MIGRATIONS = (
-    Migration("bqm-0001-baseline", _apply_baseline, _baseline_applied),
+    schema_baseline("bqm-0001-baseline", _SCHEMA),
     Migration("bqm-0002-demo-flag", _apply_demo, _demo_applied),
 )

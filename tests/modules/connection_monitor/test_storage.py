@@ -2,15 +2,8 @@
 
 import sqlite3
 import time
-import pytest
 
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
-
-
-@pytest.fixture
-def storage(tmp_path):
-    db_path = str(tmp_path / "test_cm.db")
-    return ConnectionMonitorStorage(db_path)
 
 
 class TestTargetCRUD:
@@ -302,15 +295,8 @@ class TestSummary:
         assert summary["min_latency_ms"] == 10.0
         assert summary["max_latency_ms"] == 20.0
 
-    def test_range_stats_returns_exact_metrics(self, storage):
-        tid = storage.create_target("Test", "1.1.1.1")
-        now = time.time()
-        storage.save_samples([
-            {"target_id": tid, "timestamp": now - 40, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
-            {"target_id": tid, "timestamp": now - 30, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
-            {"target_id": tid, "timestamp": now - 20, "latency_ms": 30.0, "timeout": False, "probe_method": "tcp"},
-            {"target_id": tid, "timestamp": now - 10, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
-        ])
+    def test_range_stats_returns_exact_metrics(self, storage, range_samples):
+        tid, now = range_samples
         stats = storage.get_range_stats(tid, start=now - 60, end=now)
         assert stats["sample_count"] == 4
         assert stats["latency_count"] == 3

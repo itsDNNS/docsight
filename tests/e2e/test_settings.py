@@ -5,6 +5,8 @@ import re
 import pytest
 from playwright.sync_api import expect
 
+from tests.web.test_settings import SMART_CAPTURE_INPUTS, SMART_CAPTURE_SELECTS
+
 
 def _login(auth_page, auth_server):
     auth_page.goto(f"{auth_server}/login")
@@ -496,30 +498,14 @@ class TestSettingsFormElements:
 
     def test_smart_capture_form_controls_use_shared_visual_contract(self, settings_page):
         settings_page.locator('button[data-section="evidence"]').click()
-        controls = [
-            "sc_trigger_modulation_direction",
-            "sc_trigger_modulation_min_qam",
-            "sc_trigger_error_spike_min_delta",
-            "sc_trigger_health_level",
-            "sc_trigger_packet_loss_min_pct",
-            "sc_global_cooldown",
-            "sc_trigger_cooldown",
-            "sc_max_actions_per_hour",
-            "sc_speedtest_min_interval",
-            "sc_speedtest_max_actions_per_day",
-            "sc_speedtest_match_window",
-        ]
+        controls = SMART_CAPTURE_SELECTS + SMART_CAPTURE_INPUTS
 
         for control_id in controls:
             control = settings_page.locator(f"#{control_id}")
             expect(control).to_have_class(re.compile(r".*\bform-input\b.*"))
             expect(settings_page.locator(f'label[for="{control_id}"]')).to_have_class(re.compile(r".*\bform-label\b.*"))
 
-        for control_id in [
-            "sc_trigger_modulation_direction",
-            "sc_trigger_modulation_min_qam",
-            "sc_trigger_health_level",
-        ]:
+        for control_id in SMART_CAPTURE_SELECTS:
             expect(settings_page.locator(f"#{control_id}")).to_have_class(re.compile(r".*\bform-select\b.*"))
 
         metrics = settings_page.evaluate(

@@ -8,16 +8,12 @@ import pytest
 
 from app.storage import sqlite as sqlite_owner
 from tests.sqlite_helpers import install_counting_connect
-
-
-def _create_table(db_path):
-    with sqlite_owner.connect_sqlite(str(db_path)) as conn:
-        conn.execute("CREATE TABLE records (value TEXT UNIQUE)")
+from tests.test_sqlite_bulk import _create_table
 
 
 def test_write_transaction_commits_exactly_once_and_closes(tmp_path, monkeypatch):
     db_path = tmp_path / "success.db"
-    _create_table(db_path)
+    _create_table(db_path, "value TEXT UNIQUE")
     instances = install_counting_connect(monkeypatch, sqlite_owner)
 
     with sqlite_owner.write_transaction(str(db_path)) as conn:
@@ -32,7 +28,7 @@ def test_write_transaction_commits_exactly_once_and_closes(tmp_path, monkeypatch
 
 def test_write_transaction_rolls_back_fully_and_closes(tmp_path, monkeypatch):
     db_path = tmp_path / "rollback.db"
-    _create_table(db_path)
+    _create_table(db_path, "value TEXT UNIQUE")
     instances = install_counting_connect(monkeypatch, sqlite_owner)
 
     with pytest.raises(RuntimeError, match="injected"):
@@ -60,7 +56,7 @@ def test_nested_write_transactions_are_rejected(tmp_path, same_path):
 
 def test_busy_failure_happens_at_begin_and_recovers_after_release(tmp_path):
     db_path = tmp_path / "busy.db"
-    _create_table(db_path)
+    _create_table(db_path, "value TEXT UNIQUE")
     holder = sqlite3.connect(db_path, autocommit=True)
     holder.execute("BEGIN IMMEDIATE")
     try:

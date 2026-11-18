@@ -50,37 +50,9 @@ def config_mgr(tmp_path):
 
 
 @pytest.fixture
-def sample_analysis():
-    return {
-        "summary": {
-            "ds_total": 1,
-            "us_total": 1,
-            "health": "good",
-            "health_issues": [],
-        },
-        "ds_channels": [{
-            "channel_id": 1,
-            "frequency": "602 MHz",
-            "power": 3.0,
-            "snr": 35.0,
-            "modulation": "256QAM",
-            "correctable_errors": 100,
-            "uncorrectable_errors": 5,
-            "docsis_version": "3.0",
-            "health": "good",
-            "health_detail": "",
-        }],
-        "us_channels": [{
-            "channel_id": 1,
-            "frequency": "37 MHz",
-            "power": 42.0,
-            "modulation": "64QAM",
-            "multiplex": "ATDMA",
-            "docsis_version": "3.0",
-            "health": "good",
-            "health_detail": "",
-        }],
-    }
+def sample_analysis(sample_analysis):
+    sample_analysis["summary"] = {"ds_total": 1, "us_total": 1, "health": "good", "health_issues": []}
+    return sample_analysis
 
 
 @pytest.fixture

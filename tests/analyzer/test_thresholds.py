@@ -1,7 +1,6 @@
 """Tests for analyzer threshold configuration and OFDMA handling."""
 
 import pytest
-from unittest.mock import patch
 from app import analyzer
 
 _TEST_THRESHOLDS = {
@@ -22,7 +21,7 @@ _TEST_THRESHOLDS = {
     "upstream_modulation": {"critical_max_qam": 4, "warning_max_qam": 16},
     "errors": {"uncorrectable_pct": {"warning": 1.0, "critical": 3.0}},
 }
-from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps, _metric_healths
+from app.analyzer import analyze
 from tests.analyzer.factories import (
     make_data as _make_data,
     make_ds30 as _make_ds30,
@@ -30,8 +29,6 @@ from tests.analyzer.factories import (
     make_us30 as _make_us30,
 )
 
-
-# -- parse_float --
 
 class TestSetThresholds:
     """Test dynamic threshold loading."""

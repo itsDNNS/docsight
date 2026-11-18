@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from flask import Blueprint, request, jsonify, make_response
 
-from app.web_auth import require_auth, _get_client_ip
+from app.web_auth import confirmed_delete_all, require_auth, _get_client_ip
 from app.runtime import current_runtime
 from app.tz import local_today, utc_now
 
@@ -418,11 +418,7 @@ def api_bqm_delete():
         return jsonify({"error": "No data"}), 400
 
     if data.get("all"):
-        if data.get("confirm") != "DELETE_ALL":
-            return jsonify({"error": "Confirmation required: set confirm to 'DELETE_ALL'"}), 400
-        deleted = bs.delete_all_bqm_graphs()
-        audit_log.info("All BQM images deleted: ip=%s count=%d", _get_client_ip(), deleted)
-        return jsonify({"deleted": deleted})
+        return confirmed_delete_all(data, bs.delete_all_bqm_graphs, "BQM images")
 
     start = data.get("start")
     end = data.get("end")

@@ -4,6 +4,7 @@ import pytest
 import requests
 from unittest.mock import patch, MagicMock
 from app.drivers.sb6190 import SB6190Driver
+from tests.test_sb6141_driver import serve_html
 
 
 # -- Sample HTML from SB6190 HAR capture --
@@ -92,11 +93,7 @@ def driver():
 @pytest.fixture
 def mock_status(driver):
     """Patch session.get to return sample status HTML."""
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.text = SAMPLE_STATUS_HTML
-
-    with patch.object(driver._session, "get", return_value=mock_response):
+    with serve_html(driver, SAMPLE_STATUS_HTML):
         yield driver
 
 
@@ -130,42 +127,28 @@ class TestDriverInit:
 
 class TestLogin:
     def test_login_posts_to_correct_url(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "Url:status"
-        mock_status = MagicMock()
-        mock_status.raise_for_status = MagicMock()
-        mock_status.text = SAMPLE_STATUS_HTML
-
-        with patch.object(driver._session, "post", return_value=mock_resp) as mock_post, \
-             patch.object(driver._session, "get", return_value=mock_status):
+        with serve_html(driver, "Url:status", "post") as mock_post, \
+             serve_html(driver, SAMPLE_STATUS_HTML):
             driver.login()
             url = mock_post.call_args[0][0]
             assert "/cgi-bin/adv_pwd_cgi" in url
 
     def test_login_sends_arguments_and_nonce(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "Url:status"
-        mock_status = MagicMock()
-        mock_status.raise_for_status = MagicMock()
-        mock_status.text = SAMPLE_STATUS_HTML
-
-        with patch.object(driver._session, "post", return_value=mock_resp) as mock_post, \
-             patch.object(driver._session, "get", return_value=mock_status):
+        with serve_html(driver, "Url:status", "post") as mock_post, \
+             serve_html(driver, SAMPLE_STATUS_HTML):
             driver.login()
             data = mock_post.call_args[1]["data"]
             assert "arguments" in data
             assert "ar_nonce" in data
             assert len(data["ar_nonce"]) == 8
 
-    def test_login_raises_on_error_body(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "Error: Invalid credentials"
-
-        with patch.object(driver._session, "post", return_value=mock_resp):
-            with pytest.raises(RuntimeError, match="SB6190 login rejected"):
+    @pytest.mark.parametrize("body, match", [
+        ("Error: Invalid credentials", "SB6190 login rejected"),
+        ("OK", "unexpected response"),
+    ], ids=["error_body", "no_url_in_response"])
+    def test_login_raises_on_unexpected_body(self, driver, body, match):
+        with serve_html(driver, body, "post"):
+            with pytest.raises(RuntimeError, match=match):
                 driver.login()
 
     def test_login_raises_on_connection_error(self, driver):
@@ -182,48 +165,21 @@ class TestLogin:
             with pytest.raises(RuntimeError, match="SB6190 login failed"):
                 driver.login()
 
-    def test_login_raises_when_no_url_in_response(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "OK"
-
-        with patch.object(driver._session, "post", return_value=mock_resp):
-            with pytest.raises(RuntimeError, match="unexpected response"):
-                driver.login()
-
     def test_login_verifies_authenticated_status_page(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "Url:status"
-        mock_status = MagicMock()
-        mock_status.raise_for_status = MagicMock()
-        mock_status.text = SAMPLE_STATUS_HTML
-
-        with patch.object(driver._session, "post", return_value=mock_resp), \
-             patch.object(driver._session, "get", return_value=mock_status) as mock_get:
+        with serve_html(driver, "Url:status", "post"), \
+             serve_html(driver, SAMPLE_STATUS_HTML) as mock_get:
             driver.login()
             url = mock_get.call_args[0][0]
             assert "/cgi-bin/status" in url
 
     def test_login_raises_when_authenticated_page_is_not_returned(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "Url:status"
-        mock_status = MagicMock()
-        mock_status.raise_for_status = MagicMock()
-        mock_status.text = "<html><body>Login</body></html>"
-
-        with patch.object(driver._session, "post", return_value=mock_resp), \
-             patch.object(driver._session, "get", return_value=mock_status):
+        with serve_html(driver, "Url:status", "post"), \
+             serve_html(driver, "<html><body>Login</body></html>"):
             with pytest.raises(RuntimeError, match="authenticated status page not returned"):
                 driver.login()
 
     def test_login_raises_when_authenticated_page_check_errors(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "Url:status"
-
-        with patch.object(driver._session, "post", return_value=mock_resp), \
+        with serve_html(driver, "Url:status", "post"), \
              patch.object(driver._session, "get", side_effect=requests.ConnectionError("refused")):
             with pytest.raises(RuntimeError, match="authenticated page check failed"):
                 driver.login()
@@ -239,6 +195,11 @@ class TestDownstream:
     def test_docsis31_empty(self, mock_status):
         data = mock_status.get_docsis_data()
         assert data["channelDs"]["docsis31"] == []
+
+    def test_ignores_later_table_whose_heading_is_split_across_elements(self, driver):
+        decoy = "<table><tr><th><b>Downstream</b> Bonded Channels</th></tr></table></body>"
+        with serve_html(driver, SAMPLE_STATUS_HTML.replace("</body>", decoy)):
+            assert len(driver.get_docsis_data()["channelDs"]["docsis30"]) == 32
 
     def test_first_channel_fields(self, mock_status):
         data = mock_status.get_docsis_data()
@@ -316,11 +277,7 @@ class TestUpstream:
 
 class TestDeviceInfo:
     def test_parses_swinfo_page(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = SAMPLE_SWINFO_HTML
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, SAMPLE_SWINFO_HTML):
             info = driver.get_device_info()
 
         assert info["manufacturer"] == "Arris"
@@ -372,22 +329,9 @@ class TestValueHelpers:
 # -- Edge cases --
 
 class TestEdgeCases:
-    def test_no_tables(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = "<html><body></body></html>"
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
-            data = driver.get_docsis_data()
-            assert data["channelDs"]["docsis30"] == []
-            assert data["channelUs"]["docsis30"] == []
-
-    def test_empty_html(self, driver):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = ""
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
+    @pytest.mark.parametrize("html", ["<html><body></body></html>", ""], ids=["no_tables", "empty_html"])
+    def test_no_channels(self, driver, html):
+        with serve_html(driver, html):
             data = driver.get_docsis_data()
             assert data["channelDs"]["docsis30"] == []
             assert data["channelUs"]["docsis30"] == []
@@ -405,11 +349,7 @@ class TestEdgeCases:
           <tr><td>2</td><td>Not Locked</td><td>256QAM</td><td>2</td><td>657.00 MHz</td><td>9.90 dBmV</td><td>40.64 dB</td><td>5</td><td>0</td></tr>
         </table>
         </body></html>"""
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = html
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, html):
             data = driver.get_docsis_data()
             assert len(data["channelDs"]["docsis30"]) == 1
             assert data["channelDs"]["docsis30"][0]["channelID"] == 1
@@ -422,11 +362,7 @@ class TestEdgeCases:
           <tr><td>2</td><td>Not Locked</td><td>ATDMA</td><td>2</td><td>5120 kSym/s</td><td>23.60 MHz</td><td>35.25 dBmV</td></tr>
         </table>
         </body></html>"""
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = html
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, html):
             data = driver.get_docsis_data()
             assert len(data["channelUs"]["docsis30"]) == 1
             assert data["channelUs"]["docsis30"][0]["channelID"] == 1
@@ -439,11 +375,7 @@ class TestEdgeCases:
           <tr><td>1</td><td>Locked</td><td>256QAM</td></tr>
         </table>
         </body></html>"""
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.text = html
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
+        with serve_html(driver, html):
             data = driver.get_docsis_data()
             assert data["channelDs"]["docsis30"] == []
 

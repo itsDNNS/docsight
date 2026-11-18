@@ -1,18 +1,12 @@
 """Weather storage schema migrations."""
 
-from app.storage.migrations import Migration, add_column_if_missing, table_columns, table_exists
+from app.storage.migrations import Migration, add_column_if_missing, schema_baseline, table_columns, table_exists
 
 
-def _apply_baseline(conn):
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS weather_data ("
-        "timestamp TEXT PRIMARY KEY, temperature REAL NOT NULL, is_demo INTEGER DEFAULT 0)"
-    )
-
-
-def _baseline_applied(_conn):
-    # Replay idempotent schema declarations once to repair missing indexes.
-    return False
+_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS weather_data ("
+    "timestamp TEXT PRIMARY KEY, temperature REAL NOT NULL, is_demo INTEGER DEFAULT 0)",
+)
 
 
 def _demo_applied(conn):
@@ -27,6 +21,6 @@ def _apply_demo(conn):
 
 
 MIGRATIONS = (
-    Migration("weather-0001-baseline", _apply_baseline, _baseline_applied),
+    schema_baseline("weather-0001-baseline", _SCHEMA),
     Migration("weather-0002-demo-flag", _apply_demo, _demo_applied),
 )

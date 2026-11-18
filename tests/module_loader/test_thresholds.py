@@ -1,15 +1,9 @@
 """Tests for threshold module contributions and wiring."""
 
-# tests/test_module_loader.py
-import importlib
 import json
-import os
-import tempfile
-import textwrap
 
-import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import validate_manifest, ModuleLoader
 
 _VALID_THRESHOLDS = {
     "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]}},
@@ -167,11 +161,10 @@ class TestThresholdWiring:
 class TestGetThresholdModules:
     """Test the get_threshold_modules helper."""
 
-    def test_returns_threshold_modules(self, tmp_path):
+    def test_returns_threshold_modules(self, tmp_path, load_with_regular_module):
         from app import analyzer
         orig = analyzer._thresholds.copy()
         try:
-            # Threshold module
             mod_t = tmp_path / "thresh"
             mod_t.mkdir()
             (mod_t / "manifest.json").write_text(json.dumps({
@@ -181,18 +174,7 @@ class TestGetThresholdModules:
             }))
             (mod_t / "thresholds.json").write_text(json.dumps(_VALID_THRESHOLDS))
 
-            # Regular module
-            mod_r = tmp_path / "regular"
-            mod_r.mkdir()
-            (mod_r / "manifest.json").write_text(json.dumps({
-                "id": "test.regular", "name": "R", "description": "d",
-                "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
-                "type": "integration", "contributes": {},
-            }))
-
-            app = Flask(__name__)
-            loader = ModuleLoader(app, search_paths=[str(tmp_path)])
-            loader.load_all()
+            loader = load_with_regular_module()
 
             threshold_mods = loader.get_threshold_modules()
             assert len(threshold_mods) == 1

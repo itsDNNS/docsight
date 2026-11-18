@@ -1,25 +1,13 @@
 """Tests for module loader path traversal and security constraints."""
 
-# tests/test_module_loader.py
 import json
 import os
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import validate_manifest, ManifestError, ModuleLoader
+from tests.module_loader.test_themes import _VALID_THEME
 
-_VALID_THEME = {
-    "dark": {
-        "--bg": "#1f2937", "--surface": "#1f2937", "--card": "#1f2937",
-        "--text": "#f0f0f0", "--accent": "#a855f7",
-        "--good": "#10b981", "--warn": "#f59e0b", "--crit": "#ef4444",
-    },
-    "light": {
-        "--bg": "#ffffff", "--surface": "#ffffff", "--card": "#f9fafb",
-        "--text": "#111827", "--accent": "#9333ea",
-        "--good": "#059669", "--warn": "#d97706", "--crit": "#dc2626",
-    },
-}
 
 class TestThemeSecurity:
     """Theme modules must NOT have collector, routes, or publisher."""

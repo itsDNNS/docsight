@@ -1,6 +1,6 @@
 """Speedtest storage schema migrations."""
 
-from app.storage.migrations import Migration, add_column_if_missing, table_columns, table_exists
+from app.storage.migrations import Migration, add_column_if_missing, schema_baseline, table_columns, table_exists
 
 
 _ENRICHED_COLUMNS = (
@@ -15,21 +15,15 @@ _ENRICHED_COLUMNS = (
 )
 
 
-def _apply_baseline(conn):
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS speedtest_results ("
-        "id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL, download_mbps REAL, upload_mbps REAL, "
-        "download_human TEXT, upload_human TEXT, ping_ms REAL, jitter_ms REAL, "
-        "packet_loss_pct REAL, server_id INTEGER, server_name TEXT, "
-        "is_demo INTEGER NOT NULL DEFAULT 0)"
-    )
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_speedtest_ts ON speedtest_results(timestamp)")
-    conn.execute("CREATE TABLE IF NOT EXISTS speedtest_meta (key TEXT PRIMARY KEY, value TEXT)")
-
-
-def _baseline_applied(_conn):
-    # Replay idempotent schema declarations once to repair missing indexes.
-    return False
+_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS speedtest_results ("
+    "id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL, download_mbps REAL, upload_mbps REAL, "
+    "download_human TEXT, upload_human TEXT, ping_ms REAL, jitter_ms REAL, "
+    "packet_loss_pct REAL, server_id INTEGER, server_name TEXT, "
+    "is_demo INTEGER NOT NULL DEFAULT 0)",
+    "CREATE INDEX IF NOT EXISTS idx_speedtest_ts ON speedtest_results(timestamp)",
+    "CREATE TABLE IF NOT EXISTS speedtest_meta (key TEXT PRIMARY KEY, value TEXT)",
+)
 
 
 def _columns_applied(conn):
@@ -51,6 +45,6 @@ def _apply_columns(conn):
 
 
 MIGRATIONS = (
-    Migration("speedtest-0001-baseline", _apply_baseline, _baseline_applied),
+    schema_baseline("speedtest-0001-baseline", _SCHEMA),
     Migration("speedtest-0002-columns", _apply_columns, _columns_applied),
 )

@@ -4,12 +4,26 @@ import logging
 import socket
 import subprocess
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 import pytest
 
 from app.modules.connection_monitor.probe import ProbeEngine, ProbeResult
+
+
+@contextmanager
+def icmp_helper_installed(helper_result, raw_socket_error):
+    """Patch an executable ICMP helper whose run returns (or raises) helper_result,
+    and raw sockets that raise raw_socket_error."""
+    run = ({"side_effect": helper_result} if isinstance(helper_result, BaseException)
+           else {"return_value": helper_result})
+    with patch("app.modules.connection_monitor.probe.os.path.isfile", return_value=True), \
+         patch("app.modules.connection_monitor.probe.os.access", return_value=True), \
+         patch("app.modules.connection_monitor.probe.subprocess.run", **run), \
+         patch("app.modules.connection_monitor.probe.socket.socket", side_effect=raw_socket_error):
+        yield
 
 
 def _gai(family, sockaddr):
@@ -38,10 +52,7 @@ class TestProbeEngineAutoDetection:
             stdout="ok\n",
             stderr="",
         )
-        with patch("app.modules.connection_monitor.probe.os.path.isfile", return_value=True), \
-             patch("app.modules.connection_monitor.probe.os.access", return_value=True), \
-             patch("app.modules.connection_monitor.probe.subprocess.run", return_value=helper_ok), \
-             patch("app.modules.connection_monitor.probe.socket.socket", side_effect=PermissionError):
+        with icmp_helper_installed(helper_ok, PermissionError):
             engine = ProbeEngine(method="auto")
             assert engine.detected_method == "icmp"
 
@@ -80,43 +91,50 @@ class TestProbeEngineAutoDetection:
             assert "reason" in info
 
     @pytest.mark.parametrize(
-        ("helper_error", "helper_marker"),
+        ("helper_result", "raw_socket_error", "hidden_markers"),
         [
             (
                 OSError("HELPER_OSERROR_INTERNAL_MARKER at /private/helper"),
-                "HELPER_OSERROR_INTERNAL_MARKER",
+                PermissionError(
+                    "RAW_SOCKET_PERMISSION_INTERNAL_MARKER: operation denied for /private/raw-socket"
+                ),
+                ["HELPER_OSERROR_INTERNAL_MARKER", "RAW_SOCKET_PERMISSION_INTERNAL_MARKER"],
             ),
             (
                 subprocess.TimeoutExpired(
                     cmd=["/private/HELPER_TIMEOUT_INTERNAL_MARKER", "--check"],
                     timeout=3,
                 ),
-                "HELPER_TIMEOUT_INTERNAL_MARKER",
+                PermissionError(
+                    "RAW_SOCKET_PERMISSION_INTERNAL_MARKER: operation denied for /private/raw-socket"
+                ),
+                ["HELPER_TIMEOUT_INTERNAL_MARKER", "RAW_SOCKET_PERMISSION_INTERNAL_MARKER"],
+            ),
+            (
+                subprocess.CompletedProcess(
+                    args=["/private/docsight-icmp-helper", "--check"],
+                    returncode=2,
+                    stdout="HELPER_STDOUT_INTERNAL_MARKER: kernel detail\n",
+                    stderr="HELPER_STDERR_INTERNAL_MARKER: command failed\n",
+                ),
+                OSError("RAW_SOCKET_OSERROR_INTERNAL_MARKER: unsupported protocol"),
+                [
+                    "HELPER_STDOUT_INTERNAL_MARKER",
+                    "HELPER_STDERR_INTERNAL_MARKER",
+                    "RAW_SOCKET_OSERROR_INTERNAL_MARKER",
+                ],
             ),
         ],
-        ids=["os-error", "subprocess-timeout"],
+        ids=["os-error", "subprocess-timeout", "nonzero-output"],
     )
-    def test_capability_hides_helper_check_exceptions(
-        self, caplog, helper_error, helper_marker
+    def test_capability_hides_helper_failure_details(
+        self, caplog, helper_result, raw_socket_error, hidden_markers
     ):
-        raw_marker = "RAW_SOCKET_PERMISSION_INTERNAL_MARKER"
         caplog.set_level(
             logging.DEBUG, logger="app.modules.connection_monitor.probe"
         )
 
-        with patch(
-            "app.modules.connection_monitor.probe.os.path.isfile", return_value=True
-        ), patch(
-            "app.modules.connection_monitor.probe.os.access", return_value=True
-        ), patch(
-            "app.modules.connection_monitor.probe.subprocess.run",
-            side_effect=helper_error,
-        ), patch(
-            "app.modules.connection_monitor.probe.socket.socket",
-            side_effect=PermissionError(
-                f"{raw_marker}: operation denied for /private/raw-socket"
-            ),
-        ):
+        with icmp_helper_installed(helper_result, raw_socket_error):
             info = ProbeEngine(method="auto").capability_info()
 
         assert info["method"] == "tcp"
@@ -127,48 +145,8 @@ class TestProbeEngineAutoDetection:
         )
         exposed_text = f"{info!r}\n{caplog.text}"
         assert "ICMP probing is unavailable - falling back to TCP" in caplog.text
-        assert helper_marker not in exposed_text
-        assert raw_marker not in exposed_text
-        assert "/private/" not in exposed_text
-
-    def test_capability_hides_nonzero_helper_output(self, caplog):
-        stdout_marker = "HELPER_STDOUT_INTERNAL_MARKER"
-        stderr_marker = "HELPER_STDERR_INTERNAL_MARKER"
-        raw_marker = "RAW_SOCKET_OSERROR_INTERNAL_MARKER"
-        helper_failure = subprocess.CompletedProcess(
-            args=["/private/docsight-icmp-helper", "--check"],
-            returncode=2,
-            stdout=f"{stdout_marker}: kernel detail\n",
-            stderr=f"{stderr_marker}: command failed\n",
-        )
-        caplog.set_level(
-            logging.DEBUG, logger="app.modules.connection_monitor.probe"
-        )
-
-        with patch(
-            "app.modules.connection_monitor.probe.os.path.isfile", return_value=True
-        ), patch(
-            "app.modules.connection_monitor.probe.os.access", return_value=True
-        ), patch(
-            "app.modules.connection_monitor.probe.subprocess.run",
-            return_value=helper_failure,
-        ), patch(
-            "app.modules.connection_monitor.probe.socket.socket",
-            side_effect=OSError(f"{raw_marker}: unsupported protocol"),
-        ):
-            info = ProbeEngine(method="auto").capability_info()
-
-        assert info["method"] == "tcp"
-        assert info["reason"] == "ICMP probing is unavailable"
-        assert info["hint"] == (
-            "Add cap_add: [NET_RAW] to your Docker Compose file "
-            "for ICMP probing (more accurate)."
-        )
-        exposed_text = f"{info!r}\n{caplog.text}"
-        assert "ICMP probing is unavailable - falling back to TCP" in caplog.text
-        assert stdout_marker not in exposed_text
-        assert stderr_marker not in exposed_text
-        assert raw_marker not in exposed_text
+        for marker in hidden_markers:
+            assert marker not in exposed_text
         assert "/private/" not in exposed_text
 
 

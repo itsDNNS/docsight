@@ -247,154 +247,57 @@ class TestLogin:
 # -- HNAP Auth header --
 
 class TestHnapAuth:
-    def test_auth_header_always_present(self, driver):
+    def test_auth_header_always_present(self, hnap_headers):
         """HNAP_AUTH is sent on every request, including login."""
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": "ok"}
-        mock_response.raise_for_status = MagicMock()
+        # No private key set -- should use withoutloginkey
+        assert "HNAP_AUTH" in hnap_headers("Login", now=1700000000.123)
 
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
-             patch("app.drivers.surfboard.time") as mock_time:
-            mock_time.time.return_value = 1700000000.123
-            # No private key set -- should use withoutloginkey
-            driver._hnap_post("Login", {"Login": {}})
-
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-            assert "HNAP_AUTH" in headers
-
-    def test_auth_header_format(self, driver):
+    def test_auth_header_format(self, driver, hnap_headers):
         """HNAP_AUTH = <uppercase_hex> <timestamp>"""
         driver._private_key = "TESTKEY123"
+        hnap_auth = hnap_headers("GetMultipleHNAPs", now=1700000000.123)["HNAP_AUTH"]
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": "ok"}
-        mock_response.raise_for_status = MagicMock()
+        parts = hnap_auth.split(" ")
+        assert len(parts) == 2
+        auth_hash, timestamp = parts
+        # Hash is uppercase hex (64 chars for SHA256)
+        assert len(auth_hash) == 64
+        assert auth_hash == auth_hash.upper()
+        assert auth_hash.isalnum()
 
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
-             patch("app.drivers.surfboard.time") as mock_time:
-            mock_time.time.return_value = 1700000000.123
-            driver._hnap_post("GetMultipleHNAPs", {"GetMultipleHNAPs": {}})
+    @pytest.mark.parametrize("private_key, hmac_algo, action, expected_key, digest, hash_len", [
+        # Before login, HNAP_AUTH uses 'withoutloginkey'.
+        ("", "", "Login", _HNAP_PRELOGIN_KEY, hashlib.sha256, 64),
+        # The SOAPACTION URI (with surrounding quotes) is part of the HMAC input.
+        ("TESTKEY123", "", "GetMultipleHNAPs", "TESTKEY123", hashlib.sha256, 64),
+        # After MD5 detection, HNAP_AUTH uses MD5 (32-char hex).
+        ("TESTKEY123", "md5", "GetMultipleHNAPs", "TESTKEY123", hashlib.md5, 32),
+    ], ids=["prelogin_key_when_no_private_key", "quoted_uri_in_hmac", "md5_when_detected"])
+    def test_auth_hash(self, driver, hnap_headers, private_key, hmac_algo, action,
+                       expected_key, digest, hash_len):
+        driver._private_key = private_key
+        driver._hmac_algo = hmac_algo
+        headers = hnap_headers(action)
 
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-            hnap_auth = headers["HNAP_AUTH"]
+        ts = str(int(1700000000.0 * 1000) % 2_000_000_000_000)
+        soap_action = f'"http://purenetworks.com/HNAP1/{action}"'
+        expected_hash = hmac.new(
+            expected_key.encode(),
+            (ts + soap_action).encode(),
+            digest,
+        ).hexdigest().upper()
 
-            parts = hnap_auth.split(" ")
-            assert len(parts) == 2
-            auth_hash, timestamp = parts
-            # Hash is uppercase hex (64 chars for SHA256)
-            assert len(auth_hash) == 64
-            assert auth_hash == auth_hash.upper()
-            assert auth_hash.isalnum()
+        assert headers["HNAP_AUTH"] == f"{expected_hash} {ts}"
+        assert len(headers["HNAP_AUTH"].split(" ")[0]) == hash_len
 
-    def test_auth_uses_prelogin_key_when_no_private_key(self, driver):
-        """Before login, HNAP_AUTH uses 'withoutloginkey'."""
-        driver._private_key = ""
-
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": "ok"}
-        mock_response.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
-             patch("app.drivers.surfboard.time") as mock_time:
-            mock_time.time.return_value = 1700000000.0
-            driver._hnap_post("Login", {"Login": {}})
-
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-
-            ts = str(int(1700000000.0 * 1000) % 2_000_000_000_000)
-            soap_action = '"http://purenetworks.com/HNAP1/Login"'
-            expected_hash = hmac.new(
-                _HNAP_PRELOGIN_KEY.encode(),
-                (ts + soap_action).encode(),
-                hashlib.sha256,
-            ).hexdigest().upper()
-
-            assert headers["HNAP_AUTH"] == f"{expected_hash} {ts}"
-
-    def test_auth_includes_quoted_uri_in_hmac(self, driver):
-        """The SOAPACTION URI (with surrounding quotes) is part of the HMAC input."""
+    def test_soap_action_header_set(self, driver, hnap_headers):
         driver._private_key = "TESTKEY123"
+        headers = hnap_headers("GetMultipleHNAPs")
+        assert headers["SOAPACTION"] == '"http://purenetworks.com/HNAP1/GetMultipleHNAPs"'
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": "ok"}
-        mock_response.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
-             patch("app.drivers.surfboard.time") as mock_time:
-            mock_time.time.return_value = 1700000000.0
-            driver._hnap_post("GetMultipleHNAPs", {"GetMultipleHNAPs": {}})
-
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-
-            ts = str(int(1700000000.0 * 1000) % 2_000_000_000_000)
-            soap_action = '"http://purenetworks.com/HNAP1/GetMultipleHNAPs"'
-            expected_hash = hmac.new(
-                "TESTKEY123".encode(),
-                (ts + soap_action).encode(),
-                hashlib.sha256,
-            ).hexdigest().upper()
-
-            assert headers["HNAP_AUTH"] == f"{expected_hash} {ts}"
-
-    def test_auth_md5_when_detected(self, driver):
-        """After MD5 detection, HNAP_AUTH uses MD5."""
-        driver._private_key = "TESTKEY123"
-        driver._hmac_algo = "md5"
-
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": "ok"}
-        mock_response.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
-             patch("app.drivers.surfboard.time") as mock_time:
-            mock_time.time.return_value = 1700000000.0
-            driver._hnap_post("GetMultipleHNAPs", {"GetMultipleHNAPs": {}})
-
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-
-            ts = str(int(1700000000.0 * 1000) % 2_000_000_000_000)
-            soap_action = '"http://purenetworks.com/HNAP1/GetMultipleHNAPs"'
-            expected_hash = hmac.new(
-                "TESTKEY123".encode(),
-                (ts + soap_action).encode(),
-                hashlib.md5,
-            ).hexdigest().upper()
-
-            assert headers["HNAP_AUTH"] == f"{expected_hash} {ts}"
-            # MD5 produces 32-char hex
-            auth_hash = headers["HNAP_AUTH"].split(" ")[0]
-            assert len(auth_hash) == 32
-
-    def test_soap_action_header_set(self, driver):
-        driver._private_key = "TESTKEY123"
-
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": "ok"}
-        mock_response.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post:
-            driver._hnap_post("GetMultipleHNAPs", {"GetMultipleHNAPs": {}})
-
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-            assert headers["SOAPACTION"] == '"http://purenetworks.com/HNAP1/GetMultipleHNAPs"'
-
-    def test_login_action_uses_login_uri(self, driver):
-        mock_response = MagicMock()
-        mock_response.json.return_value = HNAP_LOGIN_PHASE1
-        mock_response.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "post", return_value=mock_response) as mock_post:
-            driver._hnap_post("Login", {"Login": {}})
-
-            call_kwargs = mock_post.call_args
-            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
-            assert headers["SOAPACTION"] == '"http://purenetworks.com/HNAP1/Login"'
+    def test_login_action_uses_login_uri(self, hnap_headers):
+        headers = hnap_headers("Login")
+        assert headers["SOAPACTION"] == '"http://purenetworks.com/HNAP1/Login"'
 
     def test_chunked_read_error_is_treated_as_connection_error(self, driver):
         """Body-read connection resets are normalized to ConnectionError."""

@@ -2,37 +2,21 @@
 
 import csv
 import io
-import os
 import subprocess
 import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 import pytest
 
-from app.modules.connection_monitor.routes import bp
 from app.modules.connection_monitor.probe import ProbeEngine
-from app.modules.connection_monitor.storage import ConnectionMonitorStorage
-from app.app_factory import create_app
-from app.config import ConfigManager
 from app.runtime import get_runtime
-from tests.conftest import OPEN_INSTANCE_ENVIRON
+from tests.modules.connection_monitor.test_probe import icmp_helper_installed
 
 
 @pytest.fixture
-def app(tmp_path):
-    app = create_app(config_manager=ConfigManager(str(tmp_path / "config")), environ=dict(OPEN_INSTANCE_ENVIRON), testing=True)
-    app.register_blueprint(bp)
-
-    db_path = str(tmp_path / "test_cm.db")
-    storage = ConnectionMonitorStorage(db_path)
-
-    mock_probe = MagicMock()
-    mock_probe.capability_info.return_value = {"method": "tcp", "reason": "no ICMP permission"}
-
-    with patch("app.modules.connection_monitor.routes._get_cm_storage", return_value=storage), \
-         patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe), \
-         patch("app.modules.connection_monitor.routes._get_tz", return_value="UTC"):
-        yield app, storage
+def app(cm_app):
+    flask_app, storage, _ = cm_app
+    return flask_app, storage
 
 
 @pytest.fixture
@@ -658,16 +642,9 @@ class TestSummaryAPI:
         assert demo["avg_latency_ms"] == 12.0
         assert live["sample_count"] == 0
 
-    def test_get_range_stats(self, client):
-        c, storage = client
-        tid = storage.create_target("Test", "1.1.1.1")
-        now = time.time()
-        storage.save_samples([
-            {"target_id": tid, "timestamp": now - 40, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
-            {"target_id": tid, "timestamp": now - 30, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
-            {"target_id": tid, "timestamp": now - 20, "latency_ms": 30.0, "timeout": False, "probe_method": "tcp"},
-            {"target_id": tid, "timestamp": now - 10, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
-        ])
+    def test_get_range_stats(self, client, range_samples):
+        c, _ = client
+        tid, now = range_samples
         resp = c.get(f"/api/connection-monitor/stats?start={now - 60}&end={now}")
         assert resp.status_code == 200
         data = resp.get_json()
@@ -794,21 +771,6 @@ class TestCapabilityAPI:
 class TestAuthProtection:
     """Verify all endpoints return 401 when auth is enabled but not provided."""
 
-    @pytest.fixture
-    def auth_client(self, app):
-        """Client with auth enforcement enabled via a mock config manager."""
-        flask_app, storage = app
-        mock_cfg = MagicMock()
-        mock_cfg.get.side_effect = lambda key, default=None: {
-            "admin_password": "hashed_pw",
-        }.get(key, default)
-        mock_cfg.data_dir = os.path.dirname(storage.db_path)
-        get_runtime(flask_app).config_manager = mock_cfg
-        with flask_app.app_context():
-            from app.web_auth import _init_auth_state
-            _init_auth_state()
-            yield flask_app.test_client(), storage
-
     def test_targets_get_requires_auth(self, auth_client):
         c, _ = auth_client
         assert c.get("/api/connection-monitor/targets").status_code == 401
@@ -852,18 +814,9 @@ class TestAuthProtection:
             stderr=f"{helper_marker}: /private/helper/config\n",
         )
 
-        with patch(
-            "app.modules.connection_monitor.probe.os.path.isfile", return_value=True
-        ), patch(
-            "app.modules.connection_monitor.probe.os.access", return_value=True
-        ), patch(
-            "app.modules.connection_monitor.probe.subprocess.run",
-            return_value=helper_failure,
-        ), patch(
-            "app.modules.connection_monitor.probe.socket.socket",
-            side_effect=PermissionError(
-                f"{raw_marker}: permission denied for raw protocol"
-            ),
+        with icmp_helper_installed(
+            helper_failure,
+            PermissionError(f"{raw_marker}: permission denied for raw protocol"),
         ), patch(
             "app.modules.connection_monitor.routes._get_probe_engine",
             side_effect=lambda: ProbeEngine(method="auto"),

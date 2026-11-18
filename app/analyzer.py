@@ -850,6 +850,22 @@ def _build_signal_family_summary(ds_channels, us_channels):
     }
 
 
+def _signal_family_fields(ds_channels, us_channels):
+    """Summary fields built from the per-family channel statistics."""
+    signal_families = _build_signal_family_summary(ds_channels, us_channels)
+    ds_family_summaries = signal_families["downstream"]["families"]
+    us_family_summaries = signal_families["upstream"]["families"]
+    return {
+        "signal_families": signal_families,
+        "ds_scqam_power_avg": ds_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
+        "ds_scqam_snr_avg": ds_family_summaries.get("sc_qam", {}).get("snr", {}).get("avg"),
+        "ds_ofdm_power_avg": ds_family_summaries.get("ofdm", {}).get("power", {}).get("avg"),
+        "ds_ofdm_mer_avg": ds_family_summaries.get("ofdm", {}).get("mer", {}).get("avg"),
+        "us_scqam_power_avg": us_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
+        "us_ofdma_power_avg": us_family_summaries.get("ofdma", {}).get("power", {}).get("avg"),
+    }
+
+
 def _assess_ds_channel(
     ch,
     docsis_ver,
@@ -1165,10 +1181,6 @@ def analyze(data: DocsisData) -> AnalysisResult:
         "upstream": _capacity_coverage(us_channels),
     }
 
-    signal_families = _build_signal_family_summary(ds_channels, us_channels)
-    ds_family_summaries = signal_families["downstream"]["families"]
-    us_family_summaries = signal_families["upstream"]["families"]
-
     summary = {
         "ds_total": len(ds_channels),
         "us_total": len(us_channels),
@@ -1190,13 +1202,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
         "ds_capacity_mbps": ds_capacity,
         "us_capacity_mbps": us_capacity,
         "capacity_coverage": capacity_coverage,
-        "signal_families": signal_families,
-        "ds_scqam_power_avg": ds_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
-        "ds_scqam_snr_avg": ds_family_summaries.get("sc_qam", {}).get("snr", {}).get("avg"),
-        "ds_ofdm_power_avg": ds_family_summaries.get("ofdm", {}).get("power", {}).get("avg"),
-        "ds_ofdm_mer_avg": ds_family_summaries.get("ofdm", {}).get("mer", {}).get("avg"),
-        "us_scqam_power_avg": us_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
-        "us_ofdma_power_avg": us_family_summaries.get("ofdma", {}).get("power", {}).get("avg"),
+        **_signal_family_fields(ds_channels, us_channels),
     }
 
     # --- Overall health (aggregate from per-channel assessments) ---

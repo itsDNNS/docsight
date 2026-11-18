@@ -1,12 +1,11 @@
-import io
 import pytest
 
 from app.app_factory import create_app, default_module_loader_factory
-from tests.conftest import OPEN_INSTANCE_ENVIRON
+from tests.conftest import OPEN_INSTANCE_ENVIRON, reset_runtime
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
-from app.runtime import DerivedStorageCache, LoginRateLimiter, RuntimeState, get_runtime
+from app.runtime import get_runtime
 
 
 @pytest.fixture
@@ -34,15 +33,8 @@ def app(tmp_path_factory):
 def _app_context(app, request, config_mgr):
     request.module.app = app
     runtime = get_runtime(app)
+    reset_runtime(runtime)
     runtime.config_manager = config_mgr
-    runtime.storage = None
-    runtime.on_config_changed = None
-    runtime.module_loader = None
-    runtime.modem_collector = None
-    runtime.collectors = []
-    runtime.state = RuntimeState()
-    runtime.login_rate_limiter = LoginRateLimiter()
-    runtime.derived_storage = DerivedStorageCache()
     with app.app_context():
         yield
 
@@ -51,51 +43,6 @@ def _app_context(app, request, config_mgr):
 def client(app):
     with app.app_context(), app.test_client() as client:
         yield client
-
-
-@pytest.fixture
-def sample_analysis():
-    return {
-        "summary": {
-            "ds_total": 33,
-            "us_total": 4,
-            "ds_power_min": -1.0,
-            "ds_power_max": 5.0,
-            "ds_power_avg": 2.5,
-            "us_power_min": 40.0,
-            "us_power_max": 45.0,
-            "us_power_avg": 42.5,
-            "ds_snr_min": 35.0,
-            "ds_snr_avg": 37.0,
-            "ds_correctable_errors": 1234,
-            "ds_uncorrectable_errors": 56,
-            "health": "good",
-            "health_issues": [],
-            "us_capacity_mbps": 50.0,
-        },
-        "ds_channels": [{
-            "channel_id": 1,
-            "frequency": "602 MHz",
-            "power": 3.0,
-            "snr": 35.0,
-            "modulation": "256QAM",
-            "correctable_errors": 100,
-            "uncorrectable_errors": 5,
-            "docsis_version": "3.0",
-            "health": "good",
-            "health_detail": "",
-        }],
-        "us_channels": [{
-            "channel_id": 1,
-            "frequency": "37 MHz",
-            "power": 42.0,
-            "modulation": "64QAM",
-            "multiplex": "ATDMA",
-            "docsis_version": "3.0",
-            "health": "good",
-            "health_detail": "",
-        }],
-    }
 
 
 @pytest.fixture
