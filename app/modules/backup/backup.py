@@ -10,8 +10,10 @@ import os
 import shutil
 import sqlite3
 
+from app.storage.migrations import CORE_MIGRATIONS, run_migrations
 from app.storage.sqlite import (
     consistent_copy,
+    open_read,
     open_readonly,
     verify_database,
     write_transaction,
@@ -215,19 +217,25 @@ def validate_backup(archive_bytes):
         raise ValueError(f"Invalid archive: {e}") from e
 
 
+def _has_api_tokens(conn):
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'api_tokens'").fetchone() is not None
+
+
 def _keep_live_api_tokens(live_db, staged_db):
     """Carry the running instance's API tokens into a restored database.
 
     Tokens are credentials, not history. Restoring an older database must not
     bring back a token that was revoked since the backup was made.
     """
-    with open_readonly(staged_db) as staged:
-        if not staged.execute("SELECT 1 FROM sqlite_master WHERE name = 'api_tokens'").fetchone():
+    # A read-only connection could not remove the WAL file the migrations left.
+    with open_read(staged_db) as staged:
+        if not _has_api_tokens(staged):
             return
     rows = []
     if os.path.exists(live_db):
         with open_readonly(live_db) as live:
-            rows = live.execute("SELECT * FROM api_tokens").fetchall()
+            if _has_api_tokens(live):
+                rows = live.execute("SELECT * FROM api_tokens").fetchall()
     with write_transaction(staged_db) as conn:
         conn.execute("DELETE FROM api_tokens")
         for row in rows:
@@ -306,6 +314,9 @@ def restore_backup(archive_bytes, data_dir):
                 )
 
         if "docsis_history.db" in staged:
+            # Bring an older database up to date before it goes live; the
+            # running storage only migrates at startup.
+            run_migrations(staged["docsis_history.db"], CORE_MIGRATIONS)
             _keep_live_api_tokens(
                 os.path.join(data_dir, "docsis_history.db"), staged["docsis_history.db"]
             )

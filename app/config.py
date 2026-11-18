@@ -35,6 +35,10 @@ MODULE_SECRET_KEYS: set[str] = set()
 MODULE_SECRET_OWNERS: dict[str, str] = {}
 
 
+class ConfigValueError(ValueError):
+    """An invalid setting, described in words that are safe to show in the form."""
+
+
 def parse_config_bool(value) -> bool:
     """Parse a boolean value supplied by config, JSON, or form input."""
     if isinstance(value, bool):
@@ -394,15 +398,22 @@ class ConfigManager:
         """Validate that URL keys use http or https scheme only."""
         if not value:
             return
-        parsed = urlparse(value)
-        if parsed.scheme not in _ALLOWED_URL_SCHEMES:
-            raise ValueError(
-                f"Invalid URL scheme '{parsed.scheme}' for {key}. "
+        try:
+            scheme = urlparse(value).scheme
+        except ValueError:
+            raise ConfigValueError(f"{key} is not a valid URL") from None
+        if scheme not in _ALLOWED_URL_SCHEMES:
+            raise ConfigValueError(
+                f"Invalid URL scheme '{scheme}' for {key}. "
                 f"Only http and https are allowed."
             )
 
     def save(self, data):
-        """Save config values to config.json. Passwords are encrypted."""
+        """Save config values to config.json. Passwords are encrypted.
+
+        Invalid values raise ConfigValueError with a message meant for the form.
+        """
+        data = dict(data)
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
 
         # Validate URL keys before any mutation
@@ -416,7 +427,7 @@ class ConfigManager:
                 try:
                     data[key] = parse_config_int(data[key])
                 except (ValueError, TypeError, OverflowError):
-                    raise ValueError(f"{key} must be a whole number") from None
+                    raise ConfigValueError(f"{key} must be a whole number") from None
 
         # Don't overwrite passwords with the mask placeholder
         for key in MODULE_SECRET_KEYS | SECRET_KEYS | HASH_KEYS:

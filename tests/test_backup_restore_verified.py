@@ -79,7 +79,9 @@ def test_restore_verifies_then_atomically_publishes_and_removes_sidecars(tmp_pat
         destination = Path(destination)
         assert source.parent == data_dir
         assert destination == live
-        assert verify_database(str(source)) == "ok"
+        # A normal connection, so checking the WAL-mode file leaves no sidecar behind.
+        with closing(sqlite3.connect(source)) as conn:
+            assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         replacements.append((source, destination))
         real_replace(source, destination)
 
@@ -88,14 +90,14 @@ def test_restore_verifies_then_atomically_publishes_and_removes_sidecars(tmp_pat
 
     assert result["restored_files"] == ["docsis_history.db"]
     assert len(replacements) == 1
-    assert verify_database(str(live)) == "ok"
-    with sqlite3.connect(live) as conn:
-        assert conn.execute("SELECT value FROM records ORDER BY rowid").fetchall() == [
-            ("new",), ("second",)
-        ]
     assert not (data_dir / "docsis_history.db-wal").exists()
     assert not (data_dir / "docsis_history.db-shm").exists()
     assert not list(data_dir.glob(".docsight-restore-*"))
+    assert verify_database(str(live)) == "ok"
+    with closing(sqlite3.connect(live)) as conn:
+        assert conn.execute("SELECT value FROM records ORDER BY rowid").fetchall() == [
+            ("new",), ("second",)
+        ]
 
 
 def test_corrupt_staged_database_leaves_live_database_byte_identical(tmp_path):
@@ -199,3 +201,23 @@ def test_config_reload_uses_the_restored_encryption_key(tmp_path):
     live.reload()
 
     assert live.get("modem_password") == "from-backup"
+
+
+def test_restore_migrates_an_older_database_before_it_goes_live(tmp_path):
+    from app.storage.migrations import CORE_MIGRATIONS, run_migrations
+
+    old_db = tmp_path / "old.db"
+    run_migrations(str(old_db), CORE_MIGRATIONS[:-1])
+    with closing(sqlite3.connect(old_db)) as conn:
+        conn.execute(
+            "INSERT INTO smart_capture_executions (trigger_type, action_type, status, last_error, created_at) "
+            "VALUES ('t', 'capture', 'expired', 'STT returned 500: upstream body', '2026-01-01T00:00:00Z')"
+        )
+        conn.commit()
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    restore_backup(_archive({"docsis_history.db": old_db.read_bytes()}), str(data_dir))
+
+    with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
+        assert conn.execute("SELECT last_error FROM smart_capture_executions").fetchall() == [("STT returned 500",)]

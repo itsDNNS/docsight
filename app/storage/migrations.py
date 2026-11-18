@@ -236,16 +236,17 @@ def _apply_meta_version(conn: sqlite3.Connection) -> None:
 
 
 def _apply_smart_capture_error_scrub(conn: sqlite3.Connection) -> None:
-    # Older versions stored Speedtest Tracker response bodies and exception
-    # texts, which can contain credentials. Keep only the fixed part.
+    # Older Speedtest captures stored the tracker's response body and exception
+    # texts, which can contain credentials. Keep only the fixed status part.
     conn.execute(
-        "UPDATE smart_capture_executions SET last_error = substr(last_error, 1, instr(last_error, ':') - 1) "
-        "WHERE last_error GLOB 'STT returned [0-9]*:*'"
+        "UPDATE smart_capture_executions SET last_error = substr(last_error, 1, 16) "
+        "WHERE action_type = 'capture' AND last_error GLOB 'STT returned [0-9][0-9][0-9]: *'"
     )
     conn.execute(
         "UPDATE smart_capture_executions SET last_error = 'Unexpected error, see the DOCSight log' "
-        "WHERE status = 'expired' AND last_error NOT GLOB 'STT returned [0-9]*' "
-        "AND last_error NOT IN ('no matching result within timeout window', 'no action adapter configured')"
+        "WHERE action_type = 'capture' AND status = 'expired' "
+        "AND NOT (last_error GLOB 'STT returned [0-9][0-9][0-9]' "
+        "OR last_error IN ('no matching result within timeout window', 'no action adapter configured'))"
     )
 
 

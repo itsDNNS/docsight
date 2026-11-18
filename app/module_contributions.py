@@ -144,10 +144,14 @@ def resolve_module_routes(
     blueprint = getattr(mod, "bp", None) or getattr(mod, "blueprint", None)
     if blueprint is None:
         raise ManifestError("Routes contribution does not export a Blueprint")
-    if not builtin:
-        blueprint.before_request(_require_auth_unless_declared)
     planned = probe_blueprint(blueprint, source=f"module:{module_id}")
     if not builtin:
+        if planned.request_hooks:
+            raise RegistrationError(
+                f"Module {module_id} registers request hooks that would run before sign-in: "
+                + ", ".join(planned.request_hooks)
+            )
+        blueprint.before_request(_require_auth_unless_declared)
         blocked = []
         for rule in planned.rules:
             path = rule.rule

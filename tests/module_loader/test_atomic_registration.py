@@ -395,3 +395,21 @@ def test_unexpected_preflight_errors_do_not_reach_the_module_list(tmp_path, make
     info = ModuleLoader(make_app(), search_paths=[str(tmp_path)]).load_all()[0]
 
     assert info.error == "contribution is invalid"
+
+
+@pytest.mark.parametrize(("hook", "kind"), [
+    ("@bp.url_value_preprocessor\ndef pre(endpoint, values):\n    pass", "url_value_preprocessor"),
+    ("@bp.before_app_request\ndef early():\n    return 'answered before sign-in'", "before_request"),
+    ("@bp.app_errorhandler(404)\ndef missing(error):\n    return 'handled', 200", "errorhandler"),
+])
+def test_community_request_hooks_that_run_before_sign_in_are_rejected(tmp_path, make_app, hook, kind):
+    _write_module(
+        tmp_path,
+        "hooked",
+        _manifest("community.hooked", {"routes": "routes.py"}),
+        f"from flask import Blueprint\nbp = Blueprint('hooked_bp', __name__)\n{hook}\n",
+    )
+
+    info = ModuleLoader(make_app(), search_paths=[str(tmp_path)]).load_all()[0]
+
+    assert info.error == f"Module community.hooked registers request hooks that would run before sign-in: {kind}"

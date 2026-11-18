@@ -43,6 +43,16 @@ class TestModemCollector:
         )
         return c, driver, analyzer_fn, event_detector, storage, web
 
+    def test_login_failure_is_marked_for_the_poll_message(self):
+        c, driver, *_ = self._make_collector()
+        driver.login.side_effect = RuntimeError("Login failed: wrong password")
+
+        with pytest.raises(RuntimeError) as raised:
+            c.collect()
+
+        assert raised.value.modem_stage == "login"
+        driver.get_docsis_data.assert_not_called()
+
     def test_collect_full_pipeline(self):
         c, driver, analyzer_fn, event_detector, storage, web = self._make_collector()
         result = c.collect()

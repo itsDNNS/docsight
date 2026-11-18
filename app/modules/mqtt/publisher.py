@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import ssl
 import time
 
 import paho.mqtt.client as mqtt
@@ -47,7 +48,8 @@ def create_client(client_id, port, user=None, password=None, tls_insecure=False)
     """An MQTT client with credentials, using TLS on the secure port 8883."""
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
     if port == 8883:
-        client.tls_set()
+        # Insecure mode skips the certificate check entirely, so self-signed brokers work.
+        client.tls_set(cert_reqs=ssl.CERT_NONE if tls_insecure else None)
         if tls_insecure:
             client.tls_insecure_set(True)
             log.warning("MQTT TLS certificate verification disabled (insecure mode)")

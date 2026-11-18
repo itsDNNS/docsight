@@ -13,6 +13,7 @@ from app.config import PASSWORD_MASK, parse_config_bool
 from app import modem_diagnosis
 from app.i18n import get_translations
 from app.modules.mqtt.publisher import create_client
+from paho.mqtt.client import MQTT_ERR_SUCCESS
 from app.modules.speedtest.client import SpeedtestClient, public_error
 
 log = logging.getLogger("docsis.web")
@@ -104,11 +105,23 @@ MQTT_ANSWER_SECONDS = 5
 def api_test_mqtt():
     """Test the MQTT broker connection, including the broker's answer to the login."""
     _config_manager = current_runtime().config_manager
-    data = request.get_json(silent=True) or {}
-    # Resolve masked passwords to real values
-    password = data.get("mqtt_password", "") or None
-    if password == PASSWORD_MASK and _config_manager:
-        password = _config_manager.get("mqtt_password", "") or None
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"success": False, "error": "No data"}), 400
+    host = data.get("mqtt_host") or "localhost"
+    user = data.get("mqtt_user") or None
+    password = data.get("mqtt_password") or None
+    try:
+        port = int(data.get("mqtt_port") or 1883)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Invalid port"}), 400
+    if password == PASSWORD_MASK:
+        # The saved password only goes to the saved broker.
+        saved = (_config_manager.get("mqtt_host"), int(_config_manager.get("mqtt_port") or 1883),
+                 _config_manager.get("mqtt_user") or None)
+        if (host, port, user) != saved:
+            return jsonify({"success": False, "error": "Enter the password to test a different broker."})
+        password = _config_manager.get("mqtt_password") or None
     connack = threading.Event()
     answer = {}
 
@@ -116,15 +129,13 @@ def api_test_mqtt():
         answer["reason"] = reason_code
         connack.set()
 
-    client = None
+    client = create_client("docsis-test", port, user, password, parse_config_bool(data.get("mqtt_tls_insecure")))
+    client.on_connect = on_connect
+    started = False
     try:
-        port = int(data.get("mqtt_port", 1883))
-        client = create_client("docsis-test", port, data.get("mqtt_user", "") or None, password,
-                               parse_config_bool(data.get("mqtt_tls_insecure", False)))
-        client.on_connect = on_connect
-        client.connect(data.get("mqtt_host", "localhost"), port, 5)
-        client.loop_start()
-        if not connack.wait(MQTT_ANSWER_SECONDS):
+        client.connect(host, port)
+        started = client.loop_start() == MQTT_ERR_SUCCESS
+        if not started or not connack.wait(MQTT_ANSWER_SECONDS):
             return jsonify({"success": False, "error": "MQTT broker did not answer"})
         if answer["reason"].is_failure:
             return jsonify({"success": False, "error": f"MQTT broker refused the connection: {answer['reason']}"})
@@ -136,9 +147,9 @@ def api_test_mqtt():
         log.exception("MQTT test failed")
         return jsonify({"success": False, "error": "MQTT test failed, see the DOCSight log"})
     finally:
-        if client is not None:
+        client.disconnect()  # before joining, so the network loop stops instead of reconnecting
+        if started:
             client.loop_stop()
-            client.disconnect()
 
 
 @polling_bp.route("/api/notifications/test", methods=["POST"])

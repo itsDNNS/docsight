@@ -18,10 +18,10 @@ def public_error(exc: BaseException) -> str:
     """
     if isinstance(exc, requests.HTTPError):
         return f"HTTP {exc.response.status_code}" if exc.response is not None else "HTTP error"
+    if isinstance(exc, requests.Timeout):  # ConnectTimeout is also a ConnectionError
+        return "Speedtest Tracker timeout"
     if isinstance(exc, requests.ConnectionError):
         return "Cannot reach Speedtest Tracker"
-    if isinstance(exc, requests.Timeout):
-        return "Speedtest Tracker timeout"
     return "Unexpected error, see the DOCSight log"
 
 
@@ -156,8 +156,8 @@ class SpeedtestClient:
                     break
                 page += 1
             return all_results
-        except Exception as e:
-            log.warning("Failed to fetch speedtest results: %s", e)
+        except Exception as exc:
+            log.warning("Failed to fetch speedtest results: %s (%s)", public_error(exc), type(exc).__name__)
             return all_results
 
     def get_newer_than(self, last_id, per_page=500):
@@ -198,6 +198,6 @@ class SpeedtestClient:
             # Return in chronological order (oldest first)
             all_results.reverse()
             return all_results
-        except Exception as e:
-            log.warning("Failed to fetch newer speedtest results: %s", e)
+        except Exception as exc:
+            log.warning("Failed to fetch newer speedtest results: %s (%s)", public_error(exc), type(exc).__name__)
             return all_results

@@ -86,6 +86,6 @@ _PUBLIC_MESSAGES = {
 def public_message(exc: BaseException) -> str:
     """A fixed description of a failed modem poll that is safe to show.
 
-    A poll logs in and reads, so login wording also counts as a login failure.
+    The modem collector marks login failures with ``modem_stage = "login"``.
     """
-    return _PUBLIC_MESSAGES[classify_failure(exc, "login")]
+    return _PUBLIC_MESSAGES[classify_failure(exc, getattr(exc, "modem_stage", "read"))]

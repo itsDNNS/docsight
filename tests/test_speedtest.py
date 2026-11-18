@@ -193,6 +193,7 @@ class TestSpeedtestClient:
     @pytest.mark.parametrize(("raised", "expected"), [
         (requests.ConnectionError("Connection refused"), "Cannot reach Speedtest Tracker"),
         (requests.Timeout("timed out"), "Speedtest Tracker timeout"),
+        (requests.ConnectTimeout("connect timed out"), "Speedtest Tracker timeout"),
         (requests.exceptions.InvalidHeader("Invalid header value b'Bearer leaked-token'"),
          "Unexpected error, see the DOCSight log"),
     ])

@@ -15,6 +15,7 @@ from app.web_auth import (
     _invalidate_admin_sessions, _secret_values_match, _get_client_ip,
 )
 from app.config import (
+    ConfigValueError,
     PASSWORD_MASK,
     POLL_MAX,
     POLL_MIN,
@@ -59,9 +60,8 @@ def api_config():
         return jsonify({"success": False, "error": "Config not initialized"}), 500
     try:
         data = request.get_json(silent=True)
-        if not data:
+        if not isinstance(data, dict) or not data:
             return jsonify({"success": False, "error": "No data"}), 400
-        data = dict(data)
         if "modem_type" in data and data["modem_type"] != _config_manager.get("modem_type"):
             registry = current_runtime().driver_registry
             key = data["modem_type"]
@@ -104,8 +104,7 @@ def api_config():
         )
         try:
             _config_manager.save(data)
-        except ValueError as e:
-            # save() rejects invalid values with messages written for the form.
+        except ConfigValueError as e:
             return jsonify({"success": False, "error": str(e)}), 400
         effective_admin_password = _config_manager.get("admin_password", "")
         admin_password_changed = (

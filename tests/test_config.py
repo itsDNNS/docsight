@@ -451,3 +451,16 @@ class TestConfigIntegerValidation:
         config.save({"modem_user": "x"})
         with open(os.path.join(tmp_data_dir, "config.json")) as f:
             assert json.load(f)["history_days"] == 1500.5
+
+
+def test_save_reports_unparsable_urls_without_library_text(tmp_path):
+    from app.config import ConfigValueError
+
+    with pytest.raises(ConfigValueError, match="^modem_url is not a valid URL$"):
+        ConfigManager(str(tmp_path)).save({"modem_url": "http://[::1"})
+
+
+def test_save_leaves_the_callers_values_unchanged(tmp_path):
+    values = {"modem_password": "secret-value", "poll_interval": "300"}
+    ConfigManager(str(tmp_path)).save(values)
+    assert values == {"modem_password": "secret-value", "poll_interval": "300"}

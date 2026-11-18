@@ -43,6 +43,8 @@ class PlannedBlueprint:
     blueprint: Blueprint = field(compare=False, repr=False)
     rules: tuple[PlannedRule, ...] = ()
     registered_names: tuple[str, ...] = ()
+    # Hooks that can answer a request before its view (and its auth check) runs.
+    request_hooks: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -118,6 +120,13 @@ def probe_blueprint(blueprint: Blueprint, *, source: str) -> PlannedBlueprint:
             for rule in probe.url_map.iter_rules()
         )
         names = tuple(probe.blueprints)
+        request_hooks = tuple(
+            kind for kind, registry in (
+                ("url_value_preprocessor", probe.url_value_preprocessors),
+                ("before_request", probe.before_request_funcs),
+                ("errorhandler", probe.error_handler_spec),
+            ) if any(registry.values())
+        )
     except Exception as exc:
         raise RegistrationError(
             f"Blueprint '{blueprint.name}' from {source} failed preflight: {type(exc).__name__}"
@@ -126,7 +135,7 @@ def probe_blueprint(blueprint: Blueprint, *, source: str) -> PlannedBlueprint:
         for item, (was_registered, cli_name) in previous.items():
             item._got_registered_once = was_registered
             item.cli.name = cli_name
-    return PlannedBlueprint(blueprint.name, source, blueprint, rules, names)
+    return PlannedBlueprint(blueprint.name, source, blueprint, rules, names, request_hooks)
 
 
 def existing_rules(app: Flask) -> tuple[PlannedRule, ...]:
