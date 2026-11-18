@@ -25,6 +25,19 @@ def connect_sqlite(db_path: str, **kwargs: Any) -> sqlite3.Connection:
 
 
 _transaction_state = threading.local()
+_write_locks: dict[str, threading.RLock] = {}
+_write_locks_guard = threading.Lock()
+
+
+def database_write_lock(db_path: str) -> threading.RLock:
+    """The in-process lock every writer of one database file holds.
+
+    A restore holds it while it swaps the file, so no write lands in the file
+    that is being replaced and gets lost.
+    """
+    resolved = str(Path(db_path).expanduser().resolve())
+    with _write_locks_guard:
+        return _write_locks.setdefault(resolved, threading.RLock())
 
 
 def _managed_timeout(timeout: float | None) -> tuple[float, int]:
@@ -82,6 +95,8 @@ def write_transaction(
     active_paths.add(resolved_path)
 
     conn = None
+    lock = database_write_lock(resolved_path)
+    lock.acquire()
     try:
         seconds, busy_timeout_ms = _managed_timeout(timeout)
         # Explicit BEGIN/commit ownership requires legacy transaction control
@@ -111,6 +126,7 @@ def write_transaction(
         active_paths.discard(resolved_path)
         if conn is not None:
             conn.close()
+        lock.release()
 
 
 def bulk_write(

@@ -15,7 +15,6 @@ from app.web_auth import (
     _invalidate_admin_sessions, _secret_values_match, _get_client_ip,
 )
 from app.config import (
-    ConfigValueError,
     PASSWORD_MASK,
     POLL_MAX,
     POLL_MIN,
@@ -96,12 +95,11 @@ def api_config():
                 pi = parse_config_int(data["poll_interval"])
                 data["poll_interval"] = max(POLL_MIN, min(POLL_MAX, pi))
             except (ValueError, TypeError, OverflowError):
-                pass  # save() rejects it with a 400
+                pass  # validation_error() rejects it with a 400
         previous_bqm_url = (_config_manager.get("bqm_url") or "").strip()
-        try:
-            _config_manager.save(data)
-        except ConfigValueError as e:
-            return jsonify({"success": False, "error": str(e)}), 400
+        if error := _config_manager.validation_error(data):
+            return jsonify({"success": False, "error": error}), 400
+        _config_manager.save(data)
         # Read back after save(), which has validated the submitted URL.
         requested_bqm_url = (_config_manager.get("bqm_url") or "").strip()
         should_fetch_bqm = (

@@ -228,3 +228,30 @@ def test_restore_migrates_an_older_database_before_it_goes_live(tmp_path):
 
     with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
         assert conn.execute("SELECT last_error FROM smart_capture_executions").fetchall() == [("STT returned 500",)]
+
+
+def test_token_revoked_during_restore_stays_revoked(tmp_path, monkeypatch):
+    import threading
+
+    from app.modules.backup import backup as backup_module
+    from app.storage import SnapshotStorage
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    live = SnapshotStorage(str(data_dir / "docsis_history.db"), max_days=7)
+    token_id, _ = live.create_api_token("integration")
+    real_replace = backup_module.os.replace
+    revocation = threading.Thread(target=live.revoke_api_token, args=(token_id,))
+
+    def replace_while_revoking(source, destination):
+        revocation.start()
+        revocation.join(0.3)
+        assert revocation.is_alive(), "the revocation must wait for the swap"
+        real_replace(source, destination)
+
+    monkeypatch.setattr(backup_module.os, "replace", replace_while_revoking)
+    restore_backup(_archive({"docsis_history.db": _database_bytes(tmp_path, ["old"])}), str(data_dir))
+    revocation.join(5)
+
+    with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
+        assert conn.execute("SELECT revoked FROM api_tokens WHERE id = ?", (token_id,)).fetchone() == (1,)

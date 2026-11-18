@@ -13,6 +13,7 @@ import sqlite3
 from app.storage.migrations import CORE_MIGRATIONS, run_migrations
 from app.storage.sqlite import (
     consistent_copy,
+    database_write_lock,
     open_read,
     open_readonly,
     verify_database,
@@ -21,6 +22,7 @@ from app.storage.sqlite import (
 import tarfile
 import tempfile
 from datetime import datetime, timezone
+from contextlib import ExitStack
 from io import BytesIO
 
 log = logging.getLogger("docsis.backup")
@@ -317,21 +319,27 @@ def restore_backup(archive_bytes, data_dir):
             # Bring an older database up to date before it goes live; the
             # running storage only migrates at startup.
             run_migrations(staged["docsis_history.db"], CORE_MIGRATIONS)
-            _keep_live_api_tokens(
-                os.path.join(data_dir, "docsis_history.db"), staged["docsis_history.db"]
-            )
 
-        for name, staged_path in staged.items():
-            destination = os.path.join(data_dir, name)
-            os.replace(staged_path, destination)
-            staged[name] = None
-            if name in database_names:
-                for suffix in ("-wal", "-shm"):
-                    try:
-                        os.remove(destination + suffix)
-                    except FileNotFoundError:
-                        pass
-            restored_files.append(name)
+        with ExitStack() as locks:
+            # Writers wait until the files are swapped, so a write such as a
+            # token revocation can neither be missed nor land in a replaced file.
+            for name in sorted(database_names & staged.keys()):
+                locks.enter_context(database_write_lock(os.path.join(data_dir, name)))
+            if "docsis_history.db" in staged:
+                _keep_live_api_tokens(
+                    os.path.join(data_dir, "docsis_history.db"), staged["docsis_history.db"]
+                )
+            for name, staged_path in staged.items():
+                destination = os.path.join(data_dir, name)
+                os.replace(staged_path, destination)
+                staged[name] = None
+                if name in database_names:
+                    for suffix in ("-wal", "-shm"):
+                        try:
+                            os.remove(destination + suffix)
+                        except FileNotFoundError:
+                            pass
+                restored_files.append(name)
     finally:
         for staged_path in staged.values():
             if staged_path is None:

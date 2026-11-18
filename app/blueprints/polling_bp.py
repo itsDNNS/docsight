@@ -47,13 +47,15 @@ def _resolve_masked_secret(value, secret_key, submitted, saved):
     """
     if value != PASSWORD_MASK:
         return value, None
-    stored = current_runtime().config_manager.get(secret_key) or None
-    if not stored:
-        return None, None
-    try:
-        matches = submitted == saved()
-    except (TypeError, ValueError, OverflowError):
-        matches = False
+    config = current_runtime().config_manager
+    with config.locked():  # secret and destination from the same saved state
+        stored = config.get(secret_key) or None
+        if not stored:
+            return None, None
+        try:
+            matches = submitted == saved()
+        except (TypeError, ValueError, OverflowError):
+            matches = False
     if not matches:
         return None, "Enter the password to test changed connection settings."
     return stored, None
@@ -263,9 +265,10 @@ def api_test_speedtest():
         if not submitted_url:
             return jsonify({"success": False, "error": "URL and token are required"})
 
-        saved_url = _config_manager.get("speedtest_tracker_url", "") if _config_manager else ""
-        token = _config_manager.get("speedtest_tracker_token", "") if _config_manager else ""
-        saved_tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
+        with _config_manager.locked():  # URL, token and TLS policy from the same saved state
+            saved_url = _config_manager.get("speedtest_tracker_url", "")
+            token = _config_manager.get("speedtest_tracker_token", "")
+            saved_tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
         if not saved_url or submitted_url.rstrip("/") != saved_url.rstrip("/") or tls_insecure != saved_tls_insecure:
             return jsonify({
                 "success": False,

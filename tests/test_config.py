@@ -473,3 +473,20 @@ def test_save_rejects_secrets_that_are_not_text(tmp_path, value):
 
     with pytest.raises(ConfigValueError, match="^mqtt_password must be text$"):
         ConfigManager(str(tmp_path)).save({"mqtt_password": value})
+
+
+def test_save_waits_while_values_are_read_together(tmp_path):
+    import threading
+
+    config = ConfigManager(str(tmp_path))
+    config.save({"mqtt_host": "old.local"})
+    save = threading.Thread(target=config.save, args=({"mqtt_host": "new.local"},))
+
+    with config.locked():
+        save.start()
+        save.join(0.2)
+        assert save.is_alive()
+        assert config.get("mqtt_host") == "old.local"
+    save.join(5)
+
+    assert config.get("mqtt_host") == "new.local"
