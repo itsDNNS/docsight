@@ -168,7 +168,8 @@ def test_download_cleanup_rejects_final_canonical_redirect(monkeypatch):
 
 class TestModulesRegistry:
     def test_registry_returns_list(self, client):
-        with patch("app.blueprints.modules_bp.current_runtime") as mock_cfg:
+        with patch("app.blueprints.modules_bp.current_runtime") as mock_cfg, \
+                patch("app.blueprints.modules_bp.fetch_module_registry", return_value=[{"id": "community.example"}]):
             mock_cfg.return_value.config_manager = MagicMock()
             mock_cfg.return_value.config_manager.get = MagicMock(return_value="https://raw.githubusercontent.com/itsDNNS/docsight-modules/main/registry.json")
             resp = client.get("/api/modules/registry")

@@ -274,7 +274,8 @@ class TestLogin:
             </body></html>
         """
 
-        with patch.object(driver._session, "get", return_value=mock_response):
+        with patch.object(driver._session, "get", return_value=mock_response), \
+                patch.object(driver, "_login_via_form", return_value=False):
             with pytest.raises(RuntimeError, match="returned a login page"):
                 driver.login()
 

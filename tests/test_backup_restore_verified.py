@@ -81,16 +81,33 @@ def test_restore_verifies_then_copies_into_the_open_live_database(tmp_path, monk
         real_copy(source, target)
 
     monkeypatch.setattr(backup_module, "replace_contents", checked_copy)
-    # A connection that stays open across the restore, like a running DOCSight.
-    with closing(sqlite3.connect(live)) as reader:
+    with closing(sqlite3.connect(live)) as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
+    # A reader in the middle of a transaction, like a running DOCSight.
+    with closing(sqlite3.connect(live, isolation_level=None)) as reader:
+        reader.execute("BEGIN")
         assert reader.execute("SELECT value FROM records").fetchall() == [("old",)]
         result = restore_backup(_archive({"docsis_history.db": replacement}), str(data_dir))
+        assert reader.execute("SELECT value FROM records").fetchall() == [("old",)]
+        reader.execute("COMMIT")
         assert reader.execute("SELECT value FROM records ORDER BY rowid").fetchall() == [("new",), ("second",)]
 
     assert result["restored_files"] == ["docsis_history.db"]
     assert len(copies) == 1
     assert not list(data_dir.glob(".docsight-restore-*"))
     assert verify_database(str(live)) == "ok"
+
+
+def test_restore_replaces_a_damaged_live_database(tmp_path):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "docsis_history.db").write_bytes(b"not a database, damaged" * 100)
+
+    restore_backup(_archive({"docsis_history.db": _database_bytes(tmp_path, ["rescued"])}), str(data_dir))
+
+    with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
+        assert conn.execute("SELECT value FROM records").fetchall() == [("rescued",)]
+    assert not list(data_dir.glob(".docsight-restore-*"))
 
 
 def test_corrupt_staged_database_leaves_live_database_byte_identical(tmp_path):
@@ -257,19 +274,26 @@ def test_settings_save_waits_for_restore_and_reload(make_app, builtin_module_loa
 
     config = ConfigManager(str(tmp_path / "data"))
     app = make_app(config_manager=config, module_loader_factory=builtin_module_loader_factory(config))
+    save = threading.Thread(target=config.save, args=({"language": "de"},))
+    real_reload = config.reload
     waited = []
 
     def restore_while_saving(_data, _data_dir):
-        save = threading.Thread(target=config.save, args=({"language": "de"},))
         save.start()
         save.join(0.2)
-        waited.append(save.is_alive())
         return {"restored_files": [], "meta": {}}
 
+    def reload_after_restore():
+        waited.append(save.is_alive())  # the save is still waiting when the key is reloaded
+        real_reload()
+
     monkeypatch.setattr("app.modules.backup.routes.restore_backup", restore_while_saving)
+    monkeypatch.setattr(config, "reload", reload_after_restore)
     response = app.test_client().post(
         "/api/restore", data={"file": (io.BytesIO(b"archive"), "backup.tar.gz")}, content_type="multipart/form-data",
     )
+    save.join(5)
 
     assert response.status_code == 200
     assert waited == [True]
+    assert config.get("language") == "de"

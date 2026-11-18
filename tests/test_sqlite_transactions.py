@@ -82,3 +82,25 @@ def test_write_locks_of_finished_databases_are_released(tmp_path):
     gc.collect()
 
     assert str(db.resolve()) not in sqlite_module._write_locks
+
+
+def test_restore_copy_gives_up_when_the_target_stays_locked(tmp_path, monkeypatch):
+    import sqlite3
+    from contextlib import closing
+
+    import pytest
+
+    from app.storage import sqlite as sqlite_module
+
+    monkeypatch.setattr(sqlite_module, "DEFAULT_SQLITE_TIMEOUT_SECONDS", 0.2)
+    monkeypatch.setattr(sqlite_module, "DEFAULT_SQLITE_BUSY_TIMEOUT_MS", 50)
+    source, target = tmp_path / "source.db", tmp_path / "target.db"
+    for path in (source, target):
+        with closing(sqlite3.connect(path)) as conn:
+            conn.execute("CREATE TABLE t (v)")
+            conn.commit()
+
+    with closing(sqlite3.connect(target, isolation_level=None)) as holder:
+        holder.execute("BEGIN EXCLUSIVE")
+        with pytest.raises(TimeoutError):
+            sqlite_module.replace_contents(str(source), str(target))

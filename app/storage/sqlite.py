@@ -6,7 +6,9 @@ original timeout, busy-timeout, and tuple-row behavior.
 """
 
 from collections.abc import Iterable, Iterator, Sequence
-from contextlib import contextmanager
+from contextlib import closing, contextmanager, suppress
+import os
+import time
 import sqlite3
 from pathlib import Path
 import threading
@@ -171,16 +173,31 @@ def replace_contents(source_path: str, target_path: str) -> None:
 
     SQLite locks the target for the copy, so its readers and writers never see
     a new file next to old WAL files, and nothing has to rename an open file.
+    A damaged target cannot take a copy, so it is replaced as a file instead.
     """
-    source = connect_sqlite(source_path)
+    deadline = time.monotonic() + DEFAULT_SQLITE_TIMEOUT_SECONDS
+
+    def give_up_when_locked_too_long(_status, _remaining, _total):
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"{target_path} stayed locked")
+
     try:
-        target = connect_sqlite(target_path)
-        try:
-            source.backup(target)
-        finally:
-            target.close()
-    finally:
-        source.close()
+        with closing(connect_sqlite(source_path)) as source, closing(connect_sqlite(target_path)) as target:
+            source.backup(target, progress=give_up_when_locked_too_long)
+    except sqlite3.DatabaseError:
+        if _is_intact(target_path):
+            raise
+        os.replace(source_path, target_path)
+        for suffix in ("-wal", "-shm"):
+            with suppress(FileNotFoundError):
+                os.remove(target_path + suffix)
+
+
+def _is_intact(db_path: str) -> bool:
+    try:
+        return verify_database(db_path) == "ok"
+    except sqlite3.DatabaseError:
+        return False
 
 
 def verify_database(db_path: str) -> str:

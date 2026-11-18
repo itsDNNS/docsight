@@ -236,9 +236,12 @@ def _keep_live_api_tokens(live_db, staged_db):
             return
     rows = []
     if os.path.exists(live_db):
-        with open_readonly(live_db) as live:
-            if _has_api_tokens(live):
-                rows = live.execute("SELECT * FROM api_tokens").fetchall()
+        try:
+            with open_readonly(live_db) as live:
+                if _has_api_tokens(live):
+                    rows = live.execute("SELECT * FROM api_tokens").fetchall()
+        except sqlite3.DatabaseError:
+            log.warning("Live database is unreadable; restoring without its API tokens")
     with write_transaction(staged_db) as conn:
         conn.execute("DELETE FROM api_tokens")
         for row in rows:
