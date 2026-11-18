@@ -310,17 +310,18 @@ class ConfigManager:
 
     def _load(self):
         """Load config.json if it exists. Migrates legacy fritz_* keys to modem_*."""
-        if os.path.exists(self.config_path):
-            try:
-                with open(self.config_path, "r") as f:
-                    self._file_config = json.load(f)
-                log.info("Loaded config from %s", self.config_path)
-                self._migrate_legacy_keys()
-            except Exception as e:
-                log.warning("Failed to load config.json: %s", e)
-                self._file_config = {}
-        else:
-            log.info("No config.json found, using defaults/env")
+        with self._lock:
+            if os.path.exists(self.config_path):
+                try:
+                    with open(self.config_path, "r") as f:
+                        self._file_config = json.load(f)
+                    log.info("Loaded config from %s", self.config_path)
+                    self._migrate_legacy_keys()
+                except Exception as e:
+                    log.warning("Failed to load config.json: %s", e)
+                    self._file_config = {}
+            else:
+                log.info("No config.json found, using defaults/env")
 
     def _migrate_legacy_keys(self):
         """Migrate fritz_* config keys to modem_* (backwards compatibility)."""

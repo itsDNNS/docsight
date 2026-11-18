@@ -60,44 +60,37 @@ def _claim_database_bytes(tmp_path):
     return payload
 
 
-def test_restore_verifies_then_atomically_publishes_and_removes_sidecars(tmp_path, monkeypatch):
+def test_restore_verifies_then_copies_into_the_open_live_database(tmp_path, monkeypatch):
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     live = data_dir / "docsis_history.db"
     live.write_bytes(_database_bytes(tmp_path, ["old"]))
-    (data_dir / "docsis_history.db-wal").write_bytes(b"stale wal")
-    (data_dir / "docsis_history.db-shm").write_bytes(b"stale shm")
     replacement = _database_bytes(tmp_path, ["new", "second"])
 
     from app.modules.backup import backup as backup_module
 
-    real_replace = backup_module.os.replace
-    replacements = []
+    real_copy = backup_module.replace_contents
+    copies = []
 
-    def checked_replace(source, destination):
-        source = Path(source)
-        destination = Path(destination)
-        assert source.parent == data_dir
-        assert destination == live
-        # A normal connection, so checking the WAL-mode file leaves no sidecar behind.
+    def checked_copy(source, target):
+        assert Path(source).parent == data_dir
+        assert Path(target) == live
         with closing(sqlite3.connect(source)) as conn:
             assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
-        replacements.append((source, destination))
-        real_replace(source, destination)
+        copies.append(source)
+        real_copy(source, target)
 
-    monkeypatch.setattr(backup_module.os, "replace", checked_replace)
-    result = restore_backup(_archive({"docsis_history.db": replacement}), str(data_dir))
+    monkeypatch.setattr(backup_module, "replace_contents", checked_copy)
+    # A connection that stays open across the restore, like a running DOCSight.
+    with closing(sqlite3.connect(live)) as reader:
+        assert reader.execute("SELECT value FROM records").fetchall() == [("old",)]
+        result = restore_backup(_archive({"docsis_history.db": replacement}), str(data_dir))
+        assert reader.execute("SELECT value FROM records ORDER BY rowid").fetchall() == [("new",), ("second",)]
 
     assert result["restored_files"] == ["docsis_history.db"]
-    assert len(replacements) == 1
-    assert not (data_dir / "docsis_history.db-wal").exists()
-    assert not (data_dir / "docsis_history.db-shm").exists()
+    assert len(copies) == 1
     assert not list(data_dir.glob(".docsight-restore-*"))
     assert verify_database(str(live)) == "ok"
-    with closing(sqlite3.connect(live)) as conn:
-        assert conn.execute("SELECT value FROM records ORDER BY rowid").fetchall() == [
-            ("new",), ("second",)
-        ]
 
 
 def test_corrupt_staged_database_leaves_live_database_byte_identical(tmp_path):
@@ -240,18 +233,43 @@ def test_token_revoked_during_restore_stays_revoked(tmp_path, monkeypatch):
     data_dir.mkdir()
     live = SnapshotStorage(str(data_dir / "docsis_history.db"), max_days=7)
     token_id, _ = live.create_api_token("integration")
-    real_replace = backup_module.os.replace
+    real_copy = backup_module.replace_contents
     revocation = threading.Thread(target=live.revoke_api_token, args=(token_id,))
 
-    def replace_while_revoking(source, destination):
+    def copy_while_revoking(source, target):
         revocation.start()
         revocation.join(0.3)
-        assert revocation.is_alive(), "the revocation must wait for the swap"
-        real_replace(source, destination)
+        assert revocation.is_alive(), "the revocation must wait for the copy"
+        real_copy(source, target)
 
-    monkeypatch.setattr(backup_module.os, "replace", replace_while_revoking)
+    monkeypatch.setattr(backup_module, "replace_contents", copy_while_revoking)
     restore_backup(_archive({"docsis_history.db": _database_bytes(tmp_path, ["old"])}), str(data_dir))
     revocation.join(5)
 
     with closing(sqlite3.connect(data_dir / "docsis_history.db")) as conn:
         assert conn.execute("SELECT revoked FROM api_tokens WHERE id = ?", (token_id,)).fetchone() == (1,)
+
+
+def test_settings_save_waits_for_restore_and_reload(make_app, builtin_module_loader_factory, tmp_path, monkeypatch):
+    import threading
+
+    from app.config import ConfigManager
+
+    config = ConfigManager(str(tmp_path / "data"))
+    app = make_app(config_manager=config, module_loader_factory=builtin_module_loader_factory(config))
+    waited = []
+
+    def restore_while_saving(_data, _data_dir):
+        save = threading.Thread(target=config.save, args=({"language": "de"},))
+        save.start()
+        save.join(0.2)
+        waited.append(save.is_alive())
+        return {"restored_files": [], "meta": {}}
+
+    monkeypatch.setattr("app.modules.backup.routes.restore_backup", restore_while_saving)
+    response = app.test_client().post(
+        "/api/restore", data={"file": (io.BytesIO(b"archive"), "backup.tar.gz")}, content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    assert waited == [True]

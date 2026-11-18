@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import sqlite3
 from pathlib import Path
 import threading
+import weakref
 from typing import Any
 
 DEFAULT_SQLITE_TIMEOUT_SECONDS = 30
@@ -25,19 +26,22 @@ def connect_sqlite(db_path: str, **kwargs: Any) -> sqlite3.Connection:
 
 
 _transaction_state = threading.local()
-_write_locks: dict[str, threading.RLock] = {}
+_write_locks: "weakref.WeakValueDictionary[str, threading.RLock]" = weakref.WeakValueDictionary()
 _write_locks_guard = threading.Lock()
 
 
 def database_write_lock(db_path: str) -> threading.RLock:
     """The in-process lock every writer of one database file holds.
 
-    A restore holds it while it swaps the file, so no write lands in the file
-    that is being replaced and gets lost.
+    A restore holds it while it copies a backup in, so no write is lost between
+    reading the live API tokens and replacing the contents.
     """
     resolved = str(Path(db_path).expanduser().resolve())
     with _write_locks_guard:
-        return _write_locks.setdefault(resolved, threading.RLock())
+        lock = _write_locks.get(resolved)
+        if lock is None:
+            lock = _write_locks[resolved] = threading.RLock()
+        return lock
 
 
 def _managed_timeout(timeout: float | None) -> tuple[float, int]:
@@ -92,41 +96,38 @@ def write_transaction(
     if active_paths is None:
         active_paths = set()
         _transaction_state.active_paths = active_paths
-    active_paths.add(resolved_path)
-
-    conn = None
-    lock = database_write_lock(resolved_path)
-    lock.acquire()
-    try:
-        seconds, busy_timeout_ms = _managed_timeout(timeout)
-        # Explicit BEGIN/commit ownership requires legacy transaction control
-        # with implicit transactions disabled.  In sqlite3, commit() is a no-op
-        # when autocommit=True, even after an explicit BEGIN.
-        conn = connect_sqlite(
-            db_path,
-            timeout=seconds,
-            autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL,
-            isolation_level=None,
-        )
-        _apply_common_policy(conn, busy_timeout_ms)
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("BEGIN IMMEDIATE")
+    with database_write_lock(resolved_path):
+        active_paths.add(resolved_path)
+        conn = None
         try:
-            yield conn
-        except BaseException:
-            conn.rollback()
-            raise
-        else:
+            seconds, busy_timeout_ms = _managed_timeout(timeout)
+            # Explicit BEGIN/commit ownership requires legacy transaction control
+            # with implicit transactions disabled.  In sqlite3, commit() is a no-op
+            # when autocommit=True, even after an explicit BEGIN.
+            conn = connect_sqlite(
+                db_path,
+                timeout=seconds,
+                autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL,
+                isolation_level=None,
+            )
+            _apply_common_policy(conn, busy_timeout_ms)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("BEGIN IMMEDIATE")
             try:
-                conn.commit()
+                yield conn
             except BaseException:
                 conn.rollback()
                 raise
-    finally:
-        active_paths.discard(resolved_path)
-        if conn is not None:
-            conn.close()
-        lock.release()
+            else:
+                try:
+                    conn.commit()
+                except BaseException:
+                    conn.rollback()
+                    raise
+        finally:
+            active_paths.discard(resolved_path)
+            if conn is not None:
+                conn.close()
 
 
 def bulk_write(
@@ -163,6 +164,23 @@ def consistent_copy(src_db_path: str, dest_path: str) -> None:
         conn.execute("VACUUM INTO ?", (dest_path,))
     finally:
         conn.close()
+
+
+def replace_contents(source_path: str, target_path: str) -> None:
+    """Copy a database into a live one through SQLite's online backup API.
+
+    SQLite locks the target for the copy, so its readers and writers never see
+    a new file next to old WAL files, and nothing has to rename an open file.
+    """
+    source = connect_sqlite(source_path)
+    try:
+        target = connect_sqlite(target_path)
+        try:
+            source.backup(target)
+        finally:
+            target.close()
+    finally:
+        source.close()
 
 
 def verify_database(db_path: str) -> str:

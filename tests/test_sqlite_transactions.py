@@ -69,3 +69,16 @@ def test_busy_failure_happens_at_begin_and_recovers_after_release(tmp_path):
 
     with sqlite_owner.write_transaction(str(db_path), timeout=0.05) as conn:
         conn.execute("INSERT INTO records VALUES ('after-release')")
+
+
+def test_write_locks_of_finished_databases_are_released(tmp_path):
+    import gc
+
+    from app.storage import sqlite as sqlite_module
+
+    db = tmp_path / "temporary.db"
+    with sqlite_module.write_transaction(str(db)) as conn:
+        conn.execute("CREATE TABLE t (v)")
+    gc.collect()
+
+    assert str(db.resolve()) not in sqlite_module._write_locks

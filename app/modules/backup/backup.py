@@ -16,6 +16,7 @@ from app.storage.sqlite import (
     database_write_lock,
     open_read,
     open_readonly,
+    replace_contents,
     verify_database,
     write_transaction,
 )
@@ -321,8 +322,8 @@ def restore_backup(archive_bytes, data_dir):
             run_migrations(staged["docsis_history.db"], CORE_MIGRATIONS)
 
         with ExitStack() as locks:
-            # Writers wait until the files are swapped, so a write such as a
-            # token revocation can neither be missed nor land in a replaced file.
+            # Writers wait until the databases are copied in, so a write such as
+            # a token revocation can neither be missed nor be overwritten.
             for name in sorted(database_names & staged.keys()):
                 locks.enter_context(database_write_lock(os.path.join(data_dir, name)))
             if "docsis_history.db" in staged:
@@ -331,14 +332,12 @@ def restore_backup(archive_bytes, data_dir):
                 )
             for name, staged_path in staged.items():
                 destination = os.path.join(data_dir, name)
-                os.replace(staged_path, destination)
-                staged[name] = None
                 if name in database_names:
-                    for suffix in ("-wal", "-shm"):
-                        try:
-                            os.remove(destination + suffix)
-                        except FileNotFoundError:
-                            pass
+                    # Copied in place, so open connections stay consistent.
+                    replace_contents(staged_path, destination)
+                else:
+                    os.replace(staged_path, destination)
+                    staged[name] = None
                 restored_files.append(name)
     finally:
         for staged_path in staged.values():
