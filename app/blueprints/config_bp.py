@@ -58,7 +58,7 @@ def api_config():
     if not _config_manager:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not data:
             return jsonify({"success": False, "error": "No data"}), 400
         data = dict(data)
@@ -102,7 +102,11 @@ def api_config():
             and requested_bqm_url != previous_bqm_url
             and _should_run_bqm_initial_fetch(requested_bqm_url)
         )
-        _config_manager.save(data)
+        try:
+            _config_manager.save(data)
+        except ValueError as e:
+            # save() rejects invalid values with messages written for the form.
+            return jsonify({"success": False, "error": str(e)}), 400
         effective_admin_password = _config_manager.get("admin_password", "")
         admin_password_changed = (
             admin_password_requested
@@ -118,8 +122,6 @@ def api_config():
         if should_fetch_bqm:
             response["bqm_initial_fetch"] = run_bqm_initial_fetch(_config_manager, current_runtime().storage)
         return jsonify(response)
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)}), 400
     except Exception:
         log.exception("Config save failed")
         return jsonify({"success": False, "error": "Saving failed. See the DOCSight log for details."}), 500

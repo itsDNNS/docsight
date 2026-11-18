@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "PDF neizdevās nolasīt. Vai tas ir oficiāls BNetzA mērījumu protokols?",
+  "bnetz_csv_parse_error": "CSV neizdevās nolasīt. Vai tas ir oficiāla BNetzA mērījuma eksports?",
   "bnetz_watcher_title": "BNetzA failu uzraudzība",
   "bnetz_watcher_desc": "Automātiski importēt mērījumu failus",
   "bnetz_watcher_hint": "Automātiski importē BNetzA mērījumu PDF un CSV failus no uzraudzītas mapes",

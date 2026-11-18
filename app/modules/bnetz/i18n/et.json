@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "PDF-faili ei õnnestunud lugeda. Kas see on BNetzA ametlik mõõtmisprotokoll?",
+  "bnetz_csv_parse_error": "CSV-faili ei õnnestunud lugeda. Kas see on BNetzA ametliku mõõtmise eksport?",
   "bnetz_watcher_title": "BNetzA failijälgija",
   "bnetz_watcher_desc": "Impordi mõõtmisfailid automaatselt",
   "bnetz_watcher_hint": "Impordib BNetzA mõõtmiste PDF- ja CSV-failid automaatselt jälgitavast kaustast",

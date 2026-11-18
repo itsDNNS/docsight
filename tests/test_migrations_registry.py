@@ -400,3 +400,23 @@ def test_evidenced_module_legacy_shapes_reach_head_idempotently(
         assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
     assert migrations.run_migrations(str(db_path), module_migrations) == []
     assert schema_digest(db_path) == first_digest
+
+
+def test_smart_capture_errors_from_older_versions_lose_their_details(tmp_path):
+    migrations = _migrations_module()
+    db_path = tmp_path / "legacy.db"
+    migrations.run_migrations(str(db_path), migrations.CORE_MIGRATIONS[:-1])
+    kept = ["no matching result within timeout window", "trigger response timeout; external run state unknown"]
+    with sqlite3.connect(db_path) as conn:
+        conn.executemany(
+            "INSERT INTO smart_capture_executions (trigger_type, action_type, status, last_error, created_at) "
+            "VALUES ('t', 'capture', ?, ?, '2026-01-01T00:00:00Z')",
+            [("expired", "STT returned 500: upstream body"), ("expired", "Invalid header b'Bearer leaked'"),
+             ("expired", kept[0]), ("fired", kept[1])],
+        )
+
+    migrations.run_migrations(str(db_path), migrations.CORE_MIGRATIONS)
+
+    with sqlite3.connect(db_path) as conn:
+        errors = [row[0] for row in conn.execute("SELECT last_error FROM smart_capture_executions ORDER BY id")]
+    assert errors == ["STT returned 500", "Unexpected error, see the DOCSight log", *kept]

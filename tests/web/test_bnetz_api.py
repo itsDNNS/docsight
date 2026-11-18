@@ -14,6 +14,13 @@ class TestBnetzAPI:
         resp = client.post("/api/bnetz/upload")
         assert resp.status_code == 400
 
+    def test_unreadable_csv_gets_the_csv_message(self, storage_client):
+        client, _, _ = storage_client
+        data = {"file": (io.BytesIO(b"not;a;measurement"), "export.csv", "text/csv")}
+        resp = client.post("/api/bnetz/upload?lang=en", data=data, content_type="multipart/form-data")
+        assert resp.status_code == 400
+        assert resp.get_json() == {"error": "Could not read CSV. Is it an export of an official BNetzA measurement?"}
+
     def test_upload_not_pdf(self, storage_client):
         client, _, _ = storage_client
         data = {"file": (io.BytesIO(b"not a pdf"), "test.pdf", "application/pdf")}

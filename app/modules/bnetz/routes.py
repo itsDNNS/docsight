@@ -59,16 +59,16 @@ def api_bnetz_upload():
         try:
             csv_content = file_bytes.decode("utf-8-sig")
             parsed = parse_bnetz_csv(csv_content)
-        except (ValueError, UnicodeDecodeError) as e:
-            return jsonify({"error": t.get("bnetz_parse_error", str(e))}), 400
+        except (ValueError, UnicodeDecodeError):
+            return jsonify({"error": t.get("bnetz_csv_parse_error", "Could not read CSV.")}), 400
         measurement_id = bs.save_bnetz_measurement(parsed, pdf_bytes=None, source="upload")
     else:
         if not file_bytes[:5] == b"%PDF-":
             return jsonify({"error": "Not a valid PDF file"}), 400
         try:
             parsed = parse_bnetz_pdf(file_bytes)
-        except ValueError as e:
-            return jsonify({"error": t.get("bnetz_parse_error", str(e))}), 400
+        except ValueError:
+            return jsonify({"error": t.get("bnetz_parse_error", "Could not read PDF.")}), 400
         measurement_id = bs.save_bnetz_measurement(parsed, file_bytes, source="upload")
 
     audit_log.info(

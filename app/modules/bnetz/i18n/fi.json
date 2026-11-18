@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "PDF-tiedostoa ei voitu lukea. Onko se BNetzA:n virallinen mittauspöytäkirja?",
+  "bnetz_csv_parse_error": "CSV-tiedostoa ei voitu lukea. Onko se BNetzA:n virallisen mittauksen vienti?",
   "bnetz_watcher_title": "BNetzA-tiedostojen valvonta",
   "bnetz_watcher_desc": "Tuo mittaustiedostot automaattisesti",
   "bnetz_watcher_hint": "Tuo BNetzA-mittausten PDF- ja CSV-tiedostot automaattisesti valvotusta kansiosta",

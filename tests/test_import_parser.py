@@ -665,3 +665,8 @@ class TestIntegrationEdgeCases:
         result = parse_file(_make_csv_bytes(csv_text), "test.csv")
         assert result["total"] == 1
         assert result["rows"][0]["title"] == "Event"
+
+
+def test_unreadable_excel_file_gets_a_fixed_message():
+    with pytest.raises(ValueError, match="^Could not read the Excel file$"):
+        parse_file(b"not a zip archive", "journal.xlsx")

@@ -238,9 +238,9 @@ class TestLoadModuleRoutes:
         with open(os.path.join(mod_dir, "routes.py"), "w") as f:
             f.write(content)
 
-    def test_load_blueprint_from_routes(self):
+    def test_load_blueprint_from_routes(self, make_app):
         """Load a Blueprint from a module's routes.py."""
-        app = Flask(__name__)
+        app = make_app()
         with tempfile.TemporaryDirectory() as d:
             mod_dir = os.path.join(d, "testmod")
             os.makedirs(mod_dir)
@@ -512,9 +512,9 @@ def status():
 
         return mod_dir
 
-    def test_load_modules_end_to_end(self):
+    def test_load_modules_end_to_end(self, make_app):
         """Full load: discover -> validate -> register config + i18n + routes."""
-        app = Flask(__name__)
+        app = make_app()
         with tempfile.TemporaryDirectory() as d:
             self._make_full_module(d, "test.alpha", "Alpha")
             self._make_full_module(d, "test.beta", "Beta")

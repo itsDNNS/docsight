@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "PDF kon niet worden gelezen. Is het een officieel meetprotocol van de BNetzA?",
+  "bnetz_csv_parse_error": "CSV kon niet worden gelezen. Is het een export van een officiële BNetzA-meting?",
   "bnetz_watcher_title": "BNetzA-bestandsbewaking",
   "bnetz_watcher_desc": "Meetbestanden automatisch importeren",
   "bnetz_watcher_hint": "Importeert BNetzA-meet-PDF’s en -CSV’s automatisch uit een bewaakte map",

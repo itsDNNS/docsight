@@ -105,7 +105,7 @@ function testMqtt() {
     fetch(docsightUrl('/api/test-mqtt'), {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({mqtt_host: data.mqtt_host, mqtt_port: data.mqtt_port, mqtt_user: data.mqtt_user, mqtt_password: data.mqtt_password})
+        body: JSON.stringify({mqtt_host: data.mqtt_host, mqtt_port: data.mqtt_port, mqtt_user: data.mqtt_user, mqtt_password: data.mqtt_password, mqtt_tls_insecure: data.mqtt_tls_insecure})
     })
     .then(function(r) { return r.json(); })
     .then(function(res) {

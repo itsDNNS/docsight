@@ -43,6 +43,19 @@ def _sanitize_topic(topic):
     return topic[:200]
 
 
+def create_client(client_id, port, user=None, password=None, tls_insecure=False):
+    """An MQTT client with credentials, using TLS on the secure port 8883."""
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
+    if port == 8883:
+        client.tls_set()
+        if tls_insecure:
+            client.tls_insecure_set(True)
+            log.warning("MQTT TLS certificate verification disabled (insecure mode)")
+    if user:
+        client.username_pw_set(user, password)
+    return client
+
+
 class MQTTPublisher:
     def __init__(self, host, port=1883, user=None, password=None,
                  topic_prefix="fritzbox/docsis", ha_prefix="homeassistant",
@@ -53,20 +66,7 @@ class MQTTPublisher:
         self.ha_prefix = _sanitize_topic(ha_prefix)
         self.public_url = public_url.rstrip("/") if public_url else f"http://docsight:{web_port}"
 
-        self.client = mqtt.Client(
-            mqtt.CallbackAPIVersion.VERSION2,
-            client_id="docsight",
-        )
-        # Enable TLS if using secure port (8883)
-        if port == 8883:
-            self.client.tls_set()
-            if tls_insecure:
-                self.client.tls_insecure_set(True)
-                log.warning("MQTT TLS certificate verification disabled (insecure mode)")
-
-        if user:
-            self.client.username_pw_set(user, password)
-
+        self.client = create_client("docsight", port, user, password, tls_insecure)
         self.client.on_connect = self._on_connect
         self.client.on_connect_fail = self._on_connect_fail
         self.client.on_disconnect = self._on_disconnect

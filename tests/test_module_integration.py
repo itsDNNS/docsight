@@ -10,6 +10,7 @@ from app.app_factory import create_app
 from app.config import ConfigManager
 from app.module_loader import ModuleLoader
 from app.runtime import current_runtime, get_runtime
+from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -74,7 +75,7 @@ class TestModuleIntegration:
         app = create_app(
             config_manager=manager,
             module_loader_factory=_fixture_loader_factory(),
-            environ={},
+            environ=dict(OPEN_INSTANCE_ENVIRON),
             testing=True,
         )
         loader = get_runtime(app).module_loader

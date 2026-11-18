@@ -20,7 +20,6 @@ PUBLIC_ENDPOINT_METHODS = {
     "login": {"GET", "POST"},  # authentication entrypoint
     "password_setup": {"GET", "POST"},  # first admin password, only shortly after start
     "service_worker": {"GET"},  # PWA service-worker asset
-    "setup": {"GET"},  # first-run setup page
     "static": {"GET"},  # Flask static assets
     "web_app_manifest": {"GET"},  # public PWA installability asset
 }
@@ -144,7 +143,6 @@ def test_public_route_allowlist_matches_current_route_surface():
         ("metrics_bp.metrics", "/metrics", ("GET",)),
         ("password_setup", "/password-setup", ("GET", "POST")),
         ("service_worker", "/sw.js", ("GET",)),
-        ("setup", "/setup", ("GET",)),
         ("static", "/static/<path:filename>", ("GET",)),
         ("web_app_manifest", "/static/manifest.json", ("GET",)),
     ]

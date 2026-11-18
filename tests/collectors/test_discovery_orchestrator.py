@@ -516,7 +516,7 @@ class TestPollingLoopOrchestrator:
 
         polling_loop(config_mgr, storage, stop, mock_runtime)
 
-        mock_runtime.update_state.assert_any_call(error=mock_driver.login.side_effect)
+        mock_runtime.update_state.assert_any_call(error="Modem reading failed, see the DOCSight log")
 
     @patch("app.drivers.driver_registry.load_driver")
     def test_orchestrator_stops_on_event(self, mock_load, mock_runtime):

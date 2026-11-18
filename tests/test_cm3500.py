@@ -1,6 +1,7 @@
 """Tests for Arris CM3500B modem driver."""
 
 import pytest
+import requests
 from unittest.mock import patch, MagicMock
 from app.drivers.cm3500 import CM3500Driver
 
@@ -262,7 +263,8 @@ class TestDeviceInfo:
 
     def test_connection_info_fallback_empty(self, mock_status):
         """Returns empty dict when config_params_cgi is not reachable."""
-        assert mock_status.get_connection_info() == {}
+        with patch.object(mock_status._session, "get", side_effect=requests.ConnectionError("unreachable")):
+            assert mock_status.get_connection_info() == {}
 
 
 # -- Table section finding --

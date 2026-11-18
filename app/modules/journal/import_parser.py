@@ -35,7 +35,11 @@ def parse_file(file_bytes, filename):
 
     lower = filename.lower()
     if lower.endswith(".xlsx"):
-        raw_rows, headers_idx = _parse_xlsx(file_bytes)
+        try:
+            raw_rows, headers_idx = _parse_xlsx(file_bytes)
+        except Exception as exc:
+            # openpyxl errors may carry internal details; the client gets a fixed message.
+            raise ValueError("Could not read the Excel file") from exc
     elif lower.endswith(".csv"):
         raw_rows, headers_idx = _parse_csv(file_bytes)
     else:

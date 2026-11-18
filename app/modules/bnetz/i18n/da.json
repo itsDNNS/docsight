@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "Kunne ikke læse PDF’en. Er det en officiel BNetzA-måleprotokol?",
+  "bnetz_csv_parse_error": "Kunne ikke læse CSV-filen. Er det en eksport fra en officiel BNetzA-måling?",
   "bnetz_watcher_title": "BNetzA-filovervågning",
   "bnetz_watcher_desc": "Importér målefiler automatisk",
   "bnetz_watcher_hint": "Importerer automatisk BNetzA-måle-PDF’er og -CSV’er fra en overvåget mappe",

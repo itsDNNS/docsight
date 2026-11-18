@@ -1,5 +1,6 @@
 {
   "bnetz_parse_error": "Impossibile leggere il PDF. È un protocollo di misura ufficiale della BNetzA?",
+  "bnetz_csv_parse_error": "Impossibile leggere il CSV. È un’esportazione di una misura ufficiale della BNetzA?",
   "bnetz_watcher_title": "Monitoraggio file BNetzA",
   "bnetz_watcher_desc": "Importa automaticamente i file di misura",
   "bnetz_watcher_hint": "Importa automaticamente PDF e CSV di misura della BNetzA da una cartella monitorata",

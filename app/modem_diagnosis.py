@@ -74,3 +74,18 @@ def classify_failure(exc: BaseException, stage: str) -> str:
     if stage == "login" and _AUTH_MESSAGE.search(messages):
         return AUTH
     return UNEXPECTED
+
+
+_PUBLIC_MESSAGES = {
+    UNREACHABLE: "Modem not reachable",
+    AUTH: "Modem login failed",
+    UNEXPECTED: "Modem reading failed, see the DOCSight log",
+}
+
+
+def public_message(exc: BaseException) -> str:
+    """A fixed description of a failed modem poll that is safe to show.
+
+    A poll logs in and reads, so login wording also counts as a login failure.
+    """
+    return _PUBLIC_MESSAGES[classify_failure(exc, "login")]
