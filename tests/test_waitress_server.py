@@ -123,8 +123,12 @@ def test_close_before_attach_runs_full_adapter_shutdown_once():
 
 
 @contextmanager
-def _keep_alive_server(loop_timeout):
-    """Serve one request on a kept-alive connection, then hand over the server."""
+def _keep_alive_server(monkeypatch, loop_timeout, **listen):
+    """Serve one request on a kept-alive connection, then hand over the server.
+
+    ``loop_idle`` is set while the server loop waits in select() with nothing to
+    do. Clearing ``resume`` parks the loop before that select() for up to 0.5 s.
+    """
     try:
         socket_probe = socket.socket()
     except PermissionError:
@@ -142,18 +146,30 @@ def _keep_alive_server(loop_timeout):
 
     server = create_server(
         application,
-        host="127.0.0.1",
-        port=0,
         threads=1,
         asyncore_loop_timeout=loop_timeout,
+        **(listen or {"host": "127.0.0.1", "port": 0}),
     )
+    loop_idle, resume = threading.Event(), threading.Event()
+    resume.set()
+    real_select = select.select
+
+    def watched_select(r, w, e, timeout):
+        if not any(real_select(r, w, e, 0)):
+            loop_idle.set()
+            resume.wait(0.5)
+        try:
+            return real_select(r, w, e, timeout)
+        finally:
+            loop_idle.clear()
+
+    monkeypatch.setattr(wasyncore.select, "select", watched_select)
     lifecycle = ServerLifecycleController()
     adapter = WaitressServerAdapter(server)
     lifecycle.attach(adapter)
     server_thread = threading.Thread(target=adapter.run, daemon=True)
-    connection = http.client.HTTPConnection(
-        "127.0.0.1", int(server.effective_port), timeout=2
-    )
+    port = getattr(server, "effective_port", None) or server.effective_listen[0][1]
+    connection = http.client.HTTPConnection("127.0.0.1", int(port), timeout=2)
 
     server_thread.start()
     try:
@@ -161,7 +177,13 @@ def _keep_alive_server(loop_timeout):
         response = connection.getresponse()
         assert response.read() == b"ok"
         assert response.getheader("Connection") != "close"
-        yield server, lifecycle, server_thread
+        yield SimpleNamespace(
+            server=server,
+            lifecycle=lifecycle,
+            thread=server_thread,
+            loop_idle=loop_idle,
+            resume=resume,
+        )
     finally:
         lifecycle.close()
         connection.close()
@@ -170,39 +192,43 @@ def _keep_alive_server(loop_timeout):
 
 # A loop timeout longer than the join timeout proves that close() wakes the loop.
 @pytest.mark.parametrize("loop_timeout", [0.05, 30], ids=["busy-loop", "idle-loop"])
-def test_persistent_http_connection_does_not_pin_waitress_run(loop_timeout):
-    with _keep_alive_server(loop_timeout) as (server, lifecycle, server_thread):
+def test_persistent_http_connection_does_not_pin_waitress_run(
+    monkeypatch, loop_timeout
+):
+    with _keep_alive_server(monkeypatch, loop_timeout) as served:
+        server = served.server
         deadline = time.monotonic() + 2
-        while not server.active_channels and time.monotonic() < deadline:
+        # The worker wakes the loop once more after the response; wait it out.
+        while (
+            not server.active_channels or server.task_dispatcher.active_count
+        ) and time.monotonic() < deadline:
             time.sleep(0.01)
         assert server.active_channels
+        assert served.loop_idle.wait(2)
 
-        lifecycle.close()
-        server_thread.join(timeout=2)
+        served.lifecycle.close()
+        served.thread.join(timeout=2)
 
-        assert not server_thread.is_alive()
+        assert not served.thread.is_alive()
         with socket.socket() as replacement_listener:
             replacement_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             replacement_listener.bind(("127.0.0.1", int(server.effective_port)))
 
 
-def test_close_from_another_thread_never_hands_select_a_closed_socket(monkeypatch):
-    close_requested, loop_parked, close_returned = (threading.Event() for _ in range(3))
-    real_select = select.select
+# Several listen addresses give a server without a trigger; close() then
+# releases its sockets from the calling thread.
+@pytest.mark.parametrize(
+    "listen", [{}, {"listen": "127.0.0.1:0 127.0.0.1:0"}], ids=["one", "several"]
+)
+def test_close_from_another_thread_never_hands_select_a_closed_socket(
+    monkeypatch, listen
+):
+    with _keep_alive_server(monkeypatch, 0.05, **listen) as served:
+        served.resume.clear()
+        served.loop_idle.clear()
+        assert served.loop_idle.wait(2)  # parked between its fd lists and select()
+        served.lifecycle.close()
+        served.resume.set()
+        served.thread.join(timeout=2)
 
-    def select_after_close(*args):
-        # Park the loop between building its fd lists and select() until close() is done.
-        if close_requested.is_set() and not loop_parked.is_set():
-            loop_parked.set()
-            close_returned.wait(0.5)
-        return real_select(*args)
-
-    monkeypatch.setattr(wasyncore.select, "select", select_after_close)
-    with _keep_alive_server(0.05) as (_server, lifecycle, server_thread):
-        close_requested.set()
-        assert loop_parked.wait(2)
-        lifecycle.close()
-        close_returned.set()
-        server_thread.join(timeout=2)
-
-        assert not server_thread.is_alive()
+        assert not served.thread.is_alive()

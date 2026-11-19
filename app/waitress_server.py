@@ -47,7 +47,17 @@ class WaitressServerAdapter:
             self._loop_running = not self._closed
         try:
             return self._server.run()
+        except OSError:
+            # close() still releases sockets from its own thread when the loop
+            # starts during close(), does not answer, or has no trigger (several
+            # listen addresses). select() can then see a closed descriptor;
+            # after close() that is shutdown, not a crash.
+            if not self._closed:
+                raise
+            return None
         finally:
+            with self._close_lock:
+                self._loop_running = False
             self._loop_stopped.set()
 
     def close(self) -> None:
