@@ -97,14 +97,18 @@ def _power_metric_range(value, observed_min, observed_max, threshold, direction,
     limits = power_limits(threshold, direction)
     # Like the analyzer, an outer band wins where a profile's bands overlap, so each
     # band is drawn only inside the next outer one and may shrink to nothing.
-    # Low upstream power is never critical, so its critical minimum only marks the edge.
+    # Low upstream power is never critical, so its critical minimum only marks the edge;
+    # without a rated low side (OFDMA) the minimums do not bound the bands at all.
     crit_min, crit_max = limits["crit_min"], limits["crit_max"]
     if direction != "ds":
         crit_min = min(crit_min, limits["warn_min"])
-    warn_min = min(max(limits["warn_min"], crit_min), crit_max)
+    warn_min = min(max(limits["warn_min"], crit_min), crit_max) if rate_low else -math.inf
     warn_max = max(min(limits["warn_max"], crit_max), warn_min)
-    good_min = min(max(limits["good_min"], warn_min), warn_max)
+    good_min = min(max(limits["good_min"], warn_min), warn_max) if rate_low else -math.inf
     good_max = max(min(limits["good_max"], warn_max), good_min)
+    if not rate_low:
+        # The unrated low side is drawn as good, so the bar starts inside the good band.
+        crit_min = min(crit_min, good_max)
     padding = max((crit_max - crit_min) * 0.06, 0.5)
     minimum = crit_min - padding
     maximum = crit_max + padding
@@ -116,9 +120,16 @@ def _power_metric_range(value, observed_min, observed_max, threshold, direction,
             _range_band("good", good_min, good_max, minimum, maximum),
         ]
         rated_low = (limits["crit_min"] if direction == "ds" else -math.inf, limits["warn_min"], limits["good_min"])
+        # A good band without room has no range to show.
+        good_label = (
+            f"{_format_range_value(good_min)} - {_format_range_value(good_max)} dBmV"
+            if good_min < good_max
+            else _format_range_value(None)
+        )
     else:
         low_bands = [_range_band("good", minimum, good_max, minimum, maximum)]
         rated_low = (-math.inf, OFDMA_MIN_PLAUSIBLE_POWER_DBMV, OFDMA_MIN_PLAUSIBLE_POWER_DBMV)
+        good_label = f"<= {_format_range_value(good_max)} dBmV"
     bands = [
         *low_bands,
         _range_band("tolerated", good_max, warn_max, minimum, maximum),
@@ -133,11 +144,7 @@ def _power_metric_range(value, observed_min, observed_max, threshold, direction,
         "span_width": span_width,
         "low_label": f"{_format_range_value(crit_min)} dBmV",
         "high_label": f"{_format_range_value(crit_max)} dBmV",
-        "good_label": (
-            f"{_format_range_value(good_min)} - {_format_range_value(good_max)} dBmV"
-            if rate_low
-            else f"<= {_format_range_value(good_max)} dBmV"
-        ),
+        "good_label": good_label,
         "bands": [band for band in bands if band],
     }
 

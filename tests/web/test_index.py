@@ -933,13 +933,21 @@ class TestIndexRoute:
         assert ranges["ds_power"]["health"] == "crit"
         assert ranges["ds_power"]["bands"][0]["kind"] == "crit"
 
-    @pytest.mark.parametrize("ofdm_row, ofdm_power, ofdm_labels", [
-        ({"good": [-12, 12], "warning": [-15, 15]}, "-10.0", ["-8 dBmV", "-8 - 12 dBmV", "20 dBmV"]),
+    @pytest.mark.parametrize("ofdm_row, ofdm_power, ofdma_row, labels", [
+        ({"good": [-12, 12], "warning": [-15, 15]}, "-10.0", None,
+         {"ds_ofdm_power": ["-8 dBmV", "-8 - 12 dBmV", "20 dBmV"]}),
         # The fallback critical band leaves no room for this good and warning band.
-        ({"good": [-14, -10], "warning": [-16, -9]}, "-8.5", ["-8 dBmV", "-8 - -8 dBmV", "20 dBmV"]),
+        ({"good": [-14, -10], "warning": [-16, -9]}, "-8.5", None, {"ds_ofdm_power": ["-8 dBmV", "—", "20 dBmV"]}),
+        # Low OFDMA power is not rated, so the warning minimum must not widen the fallback good band.
+        ({"good": [-12, 12], "warning": [-15, 15]}, "-10.0", {"warning": [48, 52], "critical": [44, 55]},
+         {"us_ofdma_power": ["44 dBmV", "<= 47 dBmV", "55 dBmV"]}),
+        # An OFDMA critical minimum above the good band only scales the bar, which must still start in the good band.
+        ({"good": [-12, 12], "warning": [-15, 15]}, "-10.0",
+         {"good": [46, 48], "warning": [49, 52], "critical": [49, 55]},
+         {"us_ofdma_power": ["48 dBmV", "<= 48 dBmV", "55 dBmV"]}),
     ])
     def test_ranges_rate_and_draw_like_the_analyzer_when_the_profile_omits_a_band(
-        self, monkeypatch, ofdm_row, ofdm_power, ofdm_labels
+        self, monkeypatch, ofdm_row, ofdm_power, ofdma_row, labels
     ):
         """A contributed profile may leave out any band; the bars must fill it in like the analyzer."""
         profile = {
@@ -955,6 +963,12 @@ class TestIndexRoute:
                 "ofdm": {"good_min": 27, "warning_min": 25.5},
             },
         }
+        upstream = [{"channelID": 3, "frequency": "37 MHz", "powerLevel": "45.0", "modulation": "64QAM",
+                     "type": "ATDMA", "multiplex": "ATDMA"}]
+        if ofdma_row:
+            profile["upstream_power"]["ofdma"] = ofdma_row
+            upstream.append({"channelID": 9, "frequency": "30-65 MHz", "powerLevel": "47.5", "modulation": "OFDMA",
+                             "type": "OFDMA", "multiplex": "OFDMA", "profile_modulation": "1024QAM"})
         validate_thresholds(profile)
         monkeypatch.setattr("app.analyzer._thresholds", profile)
         analysis = analyze({
@@ -965,18 +979,21 @@ class TestIndexRoute:
                 {"channelID": 33, "frequency": "751 MHz", "powerLevel": ofdm_power, "modulation": "OFDM",
                  "mer": "28.5", "type": "OFDM", "corrErrors": 0, "nonCorrErrors": 0},
             ],
-            "upstream": [{"channelID": 3, "frequency": "37 MHz", "powerLevel": "45.0", "modulation": "64QAM",
-                          "type": "ATDMA", "multiplex": "ATDMA"}],
+            "upstream": upstream,
         })
         sc_qam, ofdm = analysis["ds_channels"]
+        us_channels = analysis["us_channels"]
 
         ranges = build_metric_ranges(analysis, get_thresholds())
 
-        for key, channel, metric in [
+        checks = [
             ("ds_sc_qam_power", sc_qam, "power"), ("ds_sc_qam_snr", sc_qam, "snr"),
             ("ds_ofdm_power", ofdm, "power"), ("ds_ofdm_mer", ofdm, "snr"),
-            ("us_power", analysis["us_channels"][0], "power"), ("us_sc_qam_power", analysis["us_channels"][0], "power"),
-        ]:
+            ("us_sc_qam_power", us_channels[0], "power"),
+        ]
+        # The upstream summary averages SC-QAM and OFDMA channels, so it follows one channel only without OFDMA.
+        checks.append(("us_ofdma_power", us_channels[1], "power") if ofdma_row else ("us_power", us_channels[0], "power"))
+        for key, channel, metric in checks:
             health = channel.get(f"{metric}_health", "good")
             bar = ranges[key]
             assert bar["health"] == {"warning": "warn", "critical": "crit"}.get(health, health), key
@@ -985,7 +1002,8 @@ class TestIndexRoute:
             under_marker = [b["kind"] for b in bar["bands"] if b["left"] <= bar["marker"] < b["left"] + b["width"]]
             assert under_marker == [bar["health"]], key
         assert ofdm["power_health"] == "critical" and ofdm["snr_health"] == "critical"
-        assert [ranges["ds_ofdm_power"][k] for k in ("low_label", "good_label", "high_label")] == ofdm_labels
+        for key, expected in labels.items():
+            assert [ranges[key][k] for k in ("low_label", "good_label", "high_label")] == expected, key
         assert [ranges["ds_ofdm_mer"][k] for k in ("low_label", "good_label")] == ["29 dB", "≥ 29 dB"]
 
     def test_unreported_power_reads_as_unavailable_on_home_and_in_the_family_readings(self, client, sample_analysis):
