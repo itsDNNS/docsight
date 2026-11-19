@@ -50,7 +50,7 @@ class CM3500Driver(ModemDriver):
         # CM3500B requires HTTPS; upgrade silently if user provided HTTP
         if url.startswith("http://"):
             url = "https://" + url[len("http://"):]
-            log.info("CM3500 requires HTTPS, switched to https")
+            log.info("CM3500 requires HTTPS, upgraded URL to %s", url)
         super().__init__(url, user, password)
         self._session = requests.Session()
         self._session.verify = False

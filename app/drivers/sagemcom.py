@@ -270,7 +270,7 @@ class SagemcomDriver(ModemDriver):
             timeout=30,
         )
         if not r.ok:
-            log.debug("Sagemcom returned HTTP %d: %s", r.status_code, r.text[:500])
+            log.debug("Sagemcom returned HTTP %d (%d bytes)", r.status_code, len(r.text))
             self._logged_in = False
         r.raise_for_status()
 

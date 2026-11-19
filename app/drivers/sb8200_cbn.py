@@ -84,7 +84,7 @@ class SB8200CBNDriver(ModemDriver):
     def __init__(self, url: str, user: str, password: str):
         if url.startswith("http://"):
             url = "https://" + url[len("http://"):]
-            log.info("SB8200 requires HTTPS, switched to https")
+            log.info("SB8200 requires HTTPS, upgraded URL to %s", url)
         super().__init__(url, user, password)
         session = requests.Session()
         # The modem presents a self-signed per-device ARRIS certificate.

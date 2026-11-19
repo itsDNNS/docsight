@@ -3,6 +3,7 @@
 import json as _json
 import logging
 import os
+import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -13,7 +14,6 @@ from .base_path import validate_base_path_configuration
 from .config import ConfigManager, parse_config_bool
 from .event_detector import EventDetector
 from .module_paths import get_modules_dir
-from .notifier import safe_endpoint_label
 from .runtime import DocsightRuntime, get_runtime
 from .server_lifecycle import ServerLifecycleController
 from .storage import SnapshotStorage
@@ -28,10 +28,24 @@ except ImportError:
     class _TransientHtmlError(Exception):  # type: ignore[no-redef]
         """Stub -- never raised when surfboard driver is absent."""
 
+_LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+# URL userinfo and query strings carry credentials and tokens (notification
+# URLs, modem login URLs); mask them in the final text, tracebacks included.
+_URL_SECRET_RE = re.compile(r"(?<=://)[^\s/'\"]+(?=@)|(?<=\?)[^\s'\"()<>]+")
+
+
+class _RedactingFormatter(logging.Formatter):
+    def format(self, record):
+        return _URL_SECRET_RE.sub("***", super().format(record))
+
+
 logging.basicConfig(
     level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format=_LOG_FORMAT,
 )
+# The desktop launcher configures its root handlers before importing this module.
+for _root_handler in logging.getLogger().handlers:
+    _root_handler.setFormatter(_RedactingFormatter(_LOG_FORMAT))
 # urllib3 logs request URLs with path and query (every request at DEBUG, header
 # parse failures at WARNING), which would copy tokens in notification and modem
 # URLs into the log.
@@ -144,7 +158,7 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
     """Flat orchestrator: tick every second, let each collector decide when to poll."""
     config = config_mgr.get_all()
 
-    log.info("Modem: %s (user: %s)", safe_endpoint_label(config["modem_url"]), config["modem_user"])
+    log.info("Modem: %s (user: %s)", config["modem_url"], config["modem_user"])
     log.info("Poll interval: %ds", config["poll_interval"])
 
     # Connect MQTT (optional, loaded from module if available)

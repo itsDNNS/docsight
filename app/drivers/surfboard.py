@@ -116,7 +116,7 @@ class SurfboardDriver(ModemDriver):
         if url.startswith("http://"):
             self._http_fallback_url = url
             url = "https://" + url[len("http://"):]
-            log.info("SURFboard trying HTTPS first")
+            log.info("SURFboard trying HTTPS first, upgraded URL to %s", url)
         elif url.startswith("https://"):
             self._http_fallback_url = "http://" + url[len("https://"):]
         super().__init__(url, user, password)
@@ -143,7 +143,7 @@ class SurfboardDriver(ModemDriver):
                 url = urlunparse(
                     parsed._replace(path="", params="", query="", fragment="")
                 )
-                log.info("SURFboard stripped path and query from the modem URL")
+                log.info("SURFboard stripped path from URL: %s", url)
             return url
         return url.rstrip("/")
 
@@ -167,10 +167,15 @@ class SurfboardDriver(ModemDriver):
             or self._url == self._http_fallback_url
         ):
             return False
+        old_url = self._url
         self._url = self._http_fallback_url
         self._transport_fallback_used = True
         self._fresh_session()
-        log.warning("SURFboard HTTPS transport failed, retrying over HTTP")
+        log.warning(
+            "SURFboard HTTPS transport failed, retrying over HTTP (%s -> %s)",
+            old_url,
+            self._url,
+        )
         return True
 
     def _mount_legacy_tls(self) -> None:
@@ -803,8 +808,8 @@ class SurfboardDriver(ModemDriver):
                 )
                 if not r.ok:
                     log.debug(
-                        "HNAP %s returned HTTP %d (%d bytes): %s",
-                        action, r.status_code, len(r.content), r.text[:500],
+                        "HNAP %s returned HTTP %d (%d bytes)",
+                        action, r.status_code, len(r.content),
                     )
                 r.raise_for_status()
                 return r.json()

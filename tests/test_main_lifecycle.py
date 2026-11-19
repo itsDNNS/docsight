@@ -1,6 +1,8 @@
 """Focused lifecycle checks for the application entrypoint."""
 
+import base64
 import logging
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import SimpleNamespace
@@ -83,3 +85,29 @@ def test_debug_logging_keeps_request_targets_out_of_the_log(caplog, extra_header
 
     assert "own debug record" in caplog.messages
     assert not [message for message in caplog.messages if "secret" in message]
+
+
+CREDENTIALS = base64.b64encode(b"admin:secret").decode()
+
+
+@pytest.mark.parametrize("message, args, cause, expected", [
+    ("Manual poll failed", (),
+     requests.HTTPError(f"401 Client Error for url: https://modem/status.html?{CREDENTIALS}"),
+     "for url: https://modem/status.html?***"),
+    ("Speedtest Tracker: %s", ("http://admin:secret@tracker:8080/api",), None,
+     "Speedtest Tracker: http://***@tracker:8080/api"),
+    ("MQTT configured but module not available (disabled?)", (), None,
+     "MQTT configured but module not available (disabled?)"),
+])
+def test_log_formatter_masks_url_credentials_and_queries(message, args, cause, expected):
+    record = logging.LogRecord("docsis.test", logging.ERROR, __file__, 1, message, args, None)
+    if cause:
+        try:
+            raise RuntimeError("login failed") from cause
+        except RuntimeError:
+            record.exc_info = sys.exc_info()
+
+    text = main._RedactingFormatter("%(message)s").format(record)
+
+    assert expected in text
+    assert "secret" not in text and CREDENTIALS not in text

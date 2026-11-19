@@ -179,13 +179,13 @@ class VodafoneStationDriver(ModemDriver):
         )
         r1.raise_for_status()
         salt_data = r1.json()
-        log.debug("CGA salt response: %s", salt_data)
+        log.debug("CGA salt response keys: %s", list(salt_data))
 
         salt = salt_data.get("salt", "")
         salt_webui = salt_data.get("saltwebui", "")
         if not salt or not salt_webui:
             raise RuntimeError(
-                f"CGA: No salt/saltwebui in response (got: {salt_data})"
+                f"CGA: No salt/saltwebui in response (keys: {list(salt_data)})"
             )
 
         # Step 2: First PBKDF2 -- password + salt -> hash1
@@ -505,8 +505,7 @@ class VodafoneStationDriver(ModemDriver):
         if p_status == "AdminMatch":
             log.info("TG login: AdminMatch (existing admin session detected)")
         elif p_status and p_status not in ("OK", "Lockout", "Fail", ""):
-            log.warning("TG login: unexpected p_status=%r (full response: %s)",
-                        p_status, {k: v for k, v in resp.items() if k not in ("encryptData", "nonce")})
+            log.warning("TG login: unexpected p_status=%r (keys: %s)", p_status, list(resp))
 
         encrypted_nonce = resp.get("encryptData", "")
         if encrypted_nonce:
