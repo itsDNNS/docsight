@@ -25,20 +25,40 @@ New Speedtest results preserve missing latency, jitter and packet-loss
 measurements as null, including storage and display. Previously stored zeros
 cannot be distinguished from real zero measurements and are not rewritten.
 
-Speedtest Tracker results that are still running are not cached. A later sync
-imports a result once it has finished, also after a newer test finished first,
-as long as its id lies within the range of the ten newest cached results. This
-assumes that Speedtest Tracker returns results in creation order, as it does
-today. When a result is fetched again, values it omits keep their stored value,
-except the time: without a measurement timestamp, the creation time replaces
-the stored one.
+Speedtest Tracker results that are still running are not cached. A delta sync
+rechecks the ids above the tenth newest cached row. It imports a result once it
+has finished, also after a newer test finished first, as long as fewer than ten
+newer rows are cached. It also fetches the cached rows without measurements in
+that range again, at most nine per sync, such as failed tests. A delta sync
+takes at most the 500 newest such results. This assumes that Speedtest Tracker
+returns results in creation order, as it does today. When a result is fetched
+again, values it omits keep their stored value. Its time is the measurement
+timestamp or, when that is missing or empty, the creation time. Only in that
+fallback: a creation time that is missing or null keeps the stored time, and
+any other creation time replaces it, an empty one with an empty time. A new
+result without any time is stored with an empty one. A reply without a list of
+results with integer ids counts as an error, not as an empty Speedtest Tracker.
+While a sync runs, the Speedtest page shows the cache as it was, which can be
+empty, until the next refresh.
 
-Older versions could cache a running result as a failed test. While fewer than
-50 results are cached, the regular sync rereads the newest 2,000 results and
-corrects such rows when Speedtest Tracker returns them with measurements. A
-larger cache keeps them. Clear Cache in the Speedtest settings deletes the
-local speedtest history and clears the dashboard tile; the next successful sync
-can then import up to 2,000 finished results that Speedtest Tracker still holds.
+Older versions could cache a running result as a failed test. The first sync
+after the update rereads the newest 2,000 results, and every sync does so while
+fewer than 50 results are cached. This corrects such rows when Speedtest
+Tracker returns them with measurements. A reread is complete when it reaches an
+empty page or the page Speedtest Tracker reports as the last one, and that page
+does not link to more results; a valid empty reread is complete as well and is
+not repeated. It is also complete once a page brings it to 2,000 finished
+results, even if Speedtest Tracker holds older ones. A page without a last page
+number counts as the last one. A reread that ends with an error is repeated by
+the next sync: after a failed request, also one that leaves the reread empty,
+or when an empty page or the page reported as the last one still links to more
+results, even if that page reaches the 2,000 results. A row whose test was
+still running during the reread is corrected by a later delta sync once the
+test has finished, as long as fewer than nine newer rows are cached, so that
+its id lies above the tenth newest cached row. Older rows keep their stored
+values. Clear Cache in the Speedtest settings deletes the local speedtest
+history and clears the dashboard tile; the next successful sync can then import
+up to 2,000 finished results that Speedtest Tracker still holds.
 
 ## Missing signal measurements
 
