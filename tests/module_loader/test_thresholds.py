@@ -18,6 +18,9 @@ _VALID_THRESHOLDS = {
 @pytest.mark.parametrize("path, value", [
     ((), ["not", "an", "object"]),
     (("downstream_power", "_default"), 256),
+    (("downstream_power", "_default"), "_default"),
+    (("snr", "_default"), "_custom"),
+    (("upstream_power", "_default"), "ofdma"),
     (("downstream_power", "256QAM", "good"), None),
     (("downstream_power", "256QAM", "good"), ["-4", "13"]),
     (("downstream_power", "256QAM", "good"), [5, -5]),
@@ -27,6 +30,7 @@ _VALID_THRESHOLDS = {
     (("snr", "256QAM", "good_min"), float("nan")),
     (("snr", "256QAM"), 33),
     (("errors", "spike_expiry_hours"), None),
+    pytest.param(("errors", "spike_expiry_hours"), 10**400, id="huge-int"),
     (("errors", "uncorrectable_pct"), 3),
     (("errors", "uncorrectable_pct", "warning"), "1"),
     (("upstream_modulation", "warning_max_qam"), True),

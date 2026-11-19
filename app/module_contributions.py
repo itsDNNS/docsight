@@ -5,7 +5,6 @@ import importlib.util
 import inspect
 import json
 import logging
-import math
 import os
 import sys
 from types import ModuleType
@@ -350,7 +349,11 @@ def setup_module_templates(
 
 
 def _finite_number(value: object) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    # Compared without float conversion, so huge integers fail instead of overflowing.
+    return (
+        isinstance(value, (int, float)) and not isinstance(value, bool)
+        and abs(value) <= sys.float_info.max
+    )
 
 
 def _check_threshold(value: object, schema: object, path: str) -> None:
@@ -384,8 +387,9 @@ def validate_thresholds(data: dict[str, object]) -> None:
         if section in data:
             _check_threshold(data[section], schema, section)
     for section in REQUIRED_THRESHOLD_SECTIONS:
-        if not isinstance(data[section].get("_default"), str):
-            raise ManifestError(f"Threshold '{section}._default' must be a string")
+        default = data[section].get("_default")
+        if not isinstance(default, str) or default.startswith("_") or default not in data[section]:
+            raise ManifestError(f"Threshold '{section}._default' must name an entry of the section")
 
 
 def validate_theme(data: dict[str, object]) -> None:

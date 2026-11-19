@@ -154,7 +154,7 @@ def uncorrectable_percentage(
     if correctable is None or uncorrectable is None:
         return None
     total = correctable + uncorrectable
-    if total < min_codewords:
+    if total <= 0 or total < min_codewords:
         return 0.0
     return round((uncorrectable / total) * 100, 2)
 
