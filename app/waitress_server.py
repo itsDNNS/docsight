@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import threading
 from collections.abc import Callable, Mapping
 from typing import Protocol
@@ -38,10 +39,27 @@ class WaitressServerAdapter:
         self._server = server
         self._close_lock = threading.Lock()
         self._closed = False
+        self._loop_running = False
+        self._loop_stopped = threading.Event()
 
     def run(self) -> object:
         """Delegate serving to Waitress."""
-        return self._server.run()
+        with self._close_lock:
+            self._loop_running = not self._closed
+        try:
+            return self._server.run()
+        except OSError as error:
+            # close() still releases sockets from its own thread when the loop
+            # starts during close(), does not answer, or has no trigger (several
+            # listen addresses). select() can then see a closed descriptor
+            # (ENOTSOCK on Windows); after close() that is shutdown, not a crash.
+            if not self._closed or error.errno not in (errno.EBADF, errno.ENOTSOCK):
+                raise
+            return None
+        finally:
+            with self._close_lock:
+                self._loop_running = False
+            self._loop_stopped.set()
 
     def close(self) -> None:
         """Release the listener, active channels, and task workers once."""
@@ -69,12 +87,28 @@ class WaitressServerAdapter:
                 timeout=TASK_DISPATCHER_SHUTDOWN_TIMEOUT_SECONDS,
             )
         )
-        attempt(self._server.close)
-        # A MultiSocketServer (several listen addresses) has no active_channels;
-        # its close() already closes every channel.
-        channels = tuple(getattr(self._server, "active_channels", {}).values())
-        for channel in channels:
-            attempt(channel.close)
+
+        def release_sockets() -> None:
+            attempt(self._server.close)
+            # A MultiSocketServer (several listen addresses) has no active_channels;
+            # its close() already closes every channel.
+            channels = tuple(getattr(self._server, "active_channels", {}).values())
+            for channel in channels:
+                attempt(channel.close)
+
+        # Closing the loop's sockets from this thread races with its select()
+        # (EBADF), and a loop blocked in select() would only notice after its
+        # timeout. So wake the loop and let it close them itself. Holding the
+        # trigger lock keeps the loop from running the thunk, which closes the
+        # trigger, before the wake-up byte is written. The direct call is a
+        # no-op afterwards and covers a loop that is not running or not answering.
+        trigger = getattr(self._server, "trigger", None)
+        if self._loop_running and trigger is not None:
+            with trigger.lock:
+                trigger.thunks.append(release_sockets)
+                attempt(trigger.pull_trigger)
+            self._loop_stopped.wait(TASK_DISPATCHER_SHUTDOWN_TIMEOUT_SECONDS)
+        release_sockets()
 
         if first_error is not None:
             raise first_error
