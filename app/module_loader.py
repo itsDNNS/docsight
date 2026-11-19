@@ -1,33 +1,22 @@
-"""Module discovery orchestration and compatibility facade."""
+"""Module discovery orchestration."""
 
 import logging
-import os  # Compatibility: callers patch the shared filesystem module here.
 
-# Public imports below intentionally preserve the legacy module-loader facade.
-from app import module_registry as _module_registry
-from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
-from app.manifest_contract import ID_PATTERN, VALID_CONTRIBUTES
 from app.module_config_registry import (
     evaluate_module_config_ownership,
     evaluate_module_secret_ownership,
-    register_module_config,
 )
 from app.module_contributions import (
-    _PROTECTED_API_PREFIXES, _PROTECTED_ROUTES,
-    _read_json_contribution,
-    attach_builtin_python_contributions, load_module_collector,
-    load_module_driver, load_module_publisher, load_module_routes, merge_module_i18n,
-    module_static_endpoint, module_static_url,
-    resolve_module_contribution,
-    setup_module_static, setup_module_templates, validate_theme,
-    validate_thresholds,
+    _read_json_contribution, resolve_module_contribution, validate_theme,
 )
 from app.module_registry import (
     ManifestError,
     ModuleInfo,
     ModuleRegistryError,
+    discover_builtin_modules,
+    discover_builtin_theme_modules,
+    discover_builtin_threshold_modules,
     discover_modules,
-    validate_manifest,
 )
 from app.registration import (
     RegistrationError,
@@ -35,48 +24,9 @@ from app.registration import (
     register_plan, validate_plan,
 )
 from app.theme_catalog import canonical_theme_data
-from app.theme_registry import BUILTIN_THEMES
-from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 
 
 log = logging.getLogger("docsis.modules")
-
-
-def discover_builtin_modules(
-    builtin_base_path: str, disabled_ids: set[str] | None = None
-) -> list[ModuleInfo]:
-    try:
-        return _module_registry.discover_builtin_modules(
-            builtin_base_path,
-            disabled_ids=disabled_ids,
-            module_dirs=BUILTIN_MODULE_DIRS,
-        )
-    except ModuleRegistryError as exc:
-        raise RegistrationError(str(exc)) from exc
-
-
-def discover_builtin_theme_modules(
-    disabled_ids: set[str] | None = None,
-) -> list[ModuleInfo]:
-    try:
-        return _module_registry.discover_builtin_theme_modules(
-            disabled_ids=disabled_ids,
-            themes=BUILTIN_THEMES,
-        )
-    except ModuleRegistryError as exc:
-        raise RegistrationError(str(exc)) from exc
-
-
-def discover_builtin_threshold_modules(
-    disabled_ids: set[str] | None = None,
-) -> list[ModuleInfo]:
-    try:
-        return _module_registry.discover_builtin_threshold_modules(
-            disabled_ids=disabled_ids,
-            profiles=BUILTIN_THRESHOLD_PROFILES,
-        )
-    except ModuleRegistryError as exc:
-        raise RegistrationError(str(exc)) from exc
 
 
 def _public_error(exc: Exception, fallback: str) -> str:
@@ -99,11 +49,14 @@ class ModuleLoader:
         """Discover, resolve, and deterministically accept complete module plans."""
         modules: list[ModuleInfo] = []
         if self._builtin_base_path:
-            modules.extend(discover_builtin_modules(
-                self._builtin_base_path, disabled_ids=self._disabled_ids,
-            ))
-            modules.extend(discover_builtin_threshold_modules(self._disabled_ids))
-            modules.extend(discover_builtin_theme_modules(self._disabled_ids))
+            try:
+                modules.extend(discover_builtin_modules(
+                    self._builtin_base_path, disabled_ids=self._disabled_ids,
+                ))
+                modules.extend(discover_builtin_threshold_modules(self._disabled_ids))
+                modules.extend(discover_builtin_theme_modules(self._disabled_ids))
+            except ModuleRegistryError as exc:
+                raise RegistrationError(str(exc)) from exc
         modules.extend(discover_modules(
             search_paths=self._search_paths, disabled_ids=self._disabled_ids,
             known_ids={mod.id for mod in modules},

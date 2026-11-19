@@ -398,7 +398,7 @@ class TestModuleDiscovery:
         current_runtime().module_loader = None
 
     def test_comparison_module_discovered(self):
-        from app.module_loader import discover_modules
+        from app.module_registry import discover_modules
 
         modules_dir = os.path.join(os.path.dirname(__file__), "..", "app", "modules")
         mods = discover_modules([modules_dir])
@@ -406,7 +406,7 @@ class TestModuleDiscovery:
         assert "docsight.comparison" in ids
 
     def test_comparison_module_has_correct_type(self):
-        from app.module_loader import discover_modules
+        from app.module_registry import discover_modules
 
         modules_dir = os.path.join(os.path.dirname(__file__), "..", "app", "modules")
         mods = discover_modules([modules_dir])

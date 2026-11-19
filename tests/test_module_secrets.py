@@ -12,7 +12,8 @@ from app import config as config_module
 from app.collectors import _ModuleConfigProxy
 from app.config import ConfigManager, PASSWORD_MASK
 from app.doctor import _is_sensitive_key
-from app.module_loader import ModuleLoader, register_module_config
+from app.module_config_registry import register_module_config
+from app.module_loader import ModuleLoader
 
 
 def _manifest(module_id: str, secret_key: str | None = None) -> dict:

@@ -9,13 +9,9 @@ import shutil
 from flask import Blueprint, jsonify, request
 
 from app.module_download import download_github_directory, fetch_registry as fetch_module_registry
-from app.module_loader import (
-    ID_PATTERN,
-    ManifestError,
-    discover_modules,
-    evaluate_module_secret_ownership,
-    validate_manifest,
-)
+from app.manifest_contract import ID_PATTERN
+from app.module_config_registry import evaluate_module_secret_ownership
+from app.module_registry import ManifestError, discover_modules, validate_manifest
 from app.module_paths import get_modules_dir
 from app.path_safety import safe_child_path
 from app.theme_registry import download_theme, fetch_registry as fetch_theme_registry

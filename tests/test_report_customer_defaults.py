@@ -11,18 +11,14 @@ from flask import Flask
 from jinja2 import ChoiceLoader, FileSystemLoader
 
 from app import config as config_module
-from app import module_loader as module_loader_module
+from app import module_registry
 
 from app.config import ConfigManager
 from app.runtime import current_runtime
-from app.module_loader import (
-    ManifestError,
-    ModuleLoader,
-    discover_modules,
-    register_module_config,
-    setup_module_templates,
-    validate_manifest,
-)
+from app.module_config_registry import register_module_config
+from app.module_contributions import setup_module_templates
+from app.module_loader import ModuleLoader
+from app.module_registry import ManifestError, discover_modules, validate_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -259,7 +255,7 @@ def test_disabled_builtin_still_registers_private_metadata(tmp_path, monkeypatch
     module_dir = builtin_root / "reports"
     module_dir.mkdir(parents=True)
     (module_dir / "manifest.json").write_text(json.dumps(_manifest()), encoding="utf-8")
-    monkeypatch.setattr(module_loader_module, "BUILTIN_MODULE_DIRS", ("reports",))
+    monkeypatch.setattr(module_registry, "BUILTIN_MODULE_DIRS", ("reports",))
     monkeypatch.setattr(config_module, "PRIVATE_KEYS", set())
     loader = ModuleLoader(
         Flask("disabled-private-module"),

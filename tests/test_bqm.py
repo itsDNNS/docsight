@@ -10,7 +10,7 @@ import pytest
 from app.modules.bqm.collector import BQMCollector
 from app.modules.bqm.thinkbroadband import fetch_graph
 from app.modules.bqm.storage import BqmStorage
-from app.module_loader import ModuleInfo
+from app.module_registry import ModuleInfo
 from app.storage import SnapshotStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime

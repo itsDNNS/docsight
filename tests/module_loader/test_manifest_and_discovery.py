@@ -5,7 +5,7 @@ import os
 import tempfile
 
 import pytest
-from app.module_loader import validate_manifest, ManifestError, discover_modules
+from app.module_registry import validate_manifest, ManifestError, discover_modules
 
 
 class TestValidateManifest:

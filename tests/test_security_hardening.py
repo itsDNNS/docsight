@@ -182,13 +182,13 @@ class TestCommunityRouteProtection:
 
         # Can't easily test without a real module file, so test the
         # protection constants directly
-        from app.module_loader import _PROTECTED_ROUTES, _PROTECTED_API_PREFIXES
+        from app.module_contributions import _PROTECTED_ROUTES, _PROTECTED_API_PREFIXES
         assert "/login" in _PROTECTED_ROUTES
         assert "/" in _PROTECTED_ROUTES
         assert any(p.startswith("/api/config") for p in _PROTECTED_API_PREFIXES)
 
     def test_api_config_prefix_protected(self):
-        from app.module_loader import _PROTECTED_API_PREFIXES
+        from app.module_contributions import _PROTECTED_API_PREFIXES
         # A route like /api/config/steal should be blocked
         test_route = "/api/config/steal"
         blocked = any(test_route.startswith(p) for p in _PROTECTED_API_PREFIXES)
@@ -196,7 +196,7 @@ class TestCommunityRouteProtection:
 
     def test_module_api_route_allowed(self):
         """Module-specific API routes like /api/weather/... should be allowed."""
-        from app.module_loader import _PROTECTED_ROUTES, _PROTECTED_API_PREFIXES
+        from app.module_contributions import _PROTECTED_ROUTES, _PROTECTED_API_PREFIXES
         test_route = "/api/weather/current"
         in_protected = test_route in _PROTECTED_ROUTES
         prefix_blocked = any(test_route.startswith(p) for p in _PROTECTED_API_PREFIXES)

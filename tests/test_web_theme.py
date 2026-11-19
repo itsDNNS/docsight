@@ -1,7 +1,7 @@
 """Tests for theme context injection in web.py."""
 
 import pytest
-from app.module_loader import ModuleInfo
+from app.module_registry import ModuleInfo
 from app.runtime import current_runtime
 
 

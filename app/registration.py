@@ -312,11 +312,6 @@ def register_plan(app: Flask, plan: RegistrationPlan) -> None:
     app.extensions["docsight_applied_registration_plans"] = (*applied, plan)
 
 
-def apply_plan(app: Flask, plan: RegistrationPlan) -> None:
-    """Compatibility adapter for the sole registrar."""
-    register_plan(app, plan)
-
-
 def build_core_plan() -> RegistrationPlan:
     from .blueprints import core_blueprints
     from .web import CORE_ROUTES

@@ -9,8 +9,14 @@ from types import SimpleNamespace
 import pytest
 from flask import Flask
 from werkzeug.exceptions import NotFound
-import app.module_loader as module_loader
-from app.module_loader import ModuleInfo, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_config_registry import register_module_config
+from app.module_contributions import (
+    load_module_collector, load_module_publisher, module_static_endpoint, module_static_url,
+    plan_module_static, resolve_module_i18n, resolve_module_routes, setup_module_templates,
+)
+from app.module_loader import ModuleLoader
+from app.module_registry import ManifestError, ModuleInfo
+from app.registration import apply_module_i18n, register_plan
 from tests.fs_helpers import symlink_or_skip
 
 class TestRegisterModuleConfig:
@@ -202,7 +208,7 @@ class TestMergeModuleI18n:
             with open(os.path.join(i18n_dir, "de.json"), "w") as f:
                 json.dump({"greeting": "Hallo vom Modul"}, f)
 
-            merge_module_i18n("test.mymod", i18n_dir)
+            apply_module_i18n("test.mymod", resolve_module_i18n(i18n_dir))
 
             from app.i18n import get_translations
             en = get_translations("en")
@@ -218,7 +224,7 @@ class TestMergeModuleI18n:
             with open(os.path.join(i18n_dir, "en.json"), "w") as f:
                 json.dump({"title": "English module title"}, f)
 
-            merge_module_i18n("test.english_only", i18n_dir)
+            apply_module_i18n("test.english_only", resolve_module_i18n(i18n_dir))
 
             from app.i18n import get_translations
             assert get_translations("en").get("test.english_only.title") == "English module title"
@@ -226,7 +232,7 @@ class TestMergeModuleI18n:
 
     def test_missing_i18n_dir_skipped(self):
         """Non-existent i18n directory is silently skipped."""
-        merge_module_i18n("test.missing", "/nonexistent/i18n")
+        apply_module_i18n("test.missing", resolve_module_i18n("/nonexistent/i18n"))
         # Should not raise
 
 
@@ -252,27 +258,22 @@ bp = Blueprint("testmod_bp", __name__)
 def hello():
     return jsonify({"msg": "hello"})
 """)
-            load_module_routes(app, "test.mod", mod_dir, "routes.py")
+            register_plan(app, resolve_module_routes("test.mod", mod_dir, "routes.py"))
             with app.test_client() as c:
                 resp = c.get("/api/modules/test.mod/hello")
                 assert resp.status_code == 200
                 assert resp.get_json()["msg"] == "hello"
 
-    def test_missing_routes_file_skipped(self):
-        """Non-existent routes.py is gracefully handled."""
-        app = Flask(__name__)
-        # Should not raise
-        load_module_routes(app, "test.missing", "/nonexistent", "routes.py")
-
-    def test_routes_file_without_blueprint_logged(self):
-        """routes.py that doesn't export bp/blueprint is warned."""
-        app = Flask(__name__)
-        with tempfile.TemporaryDirectory() as d:
-            mod_dir = os.path.join(d, "nomod")
-            os.makedirs(mod_dir)
-            self._make_routes_file(mod_dir, "x = 42\n")
-            # Should not raise, just log warning
-            load_module_routes(app, "test.nobp", mod_dir, "routes.py")
+    @pytest.mark.parametrize(("content", "error"), [
+        (None, "file not found"),
+        ("x = 42\n", "does not export a Blueprint"),
+    ])
+    def test_unusable_routes_file_rejected(self, tmp_path, content, error):
+        """A missing routes.py or one without a Blueprint rejects the contribution."""
+        if content is not None:
+            self._make_routes_file(tmp_path, content)
+        with pytest.raises(ManifestError, match=error):
+            resolve_module_routes("test.bad", str(tmp_path), "routes.py")
 
 
 class TestLoadModuleCollector:
@@ -386,7 +387,7 @@ class TestStaticAndTemplates:
             with open(os.path.join(static_dir, "test.js"), "w") as f:
                 f.write("console.log('hello');")
 
-            setup_module_static(app, "test.mod", mod_dir, "static/")
+            register_plan(app, plan_module_static("test.mod", mod_dir, "static/"))
 
             with app.test_client() as c:
                 resp = c.get("/modules/test.mod/static/test.js")
@@ -408,8 +409,8 @@ class TestStaticAndTemplates:
         symlink = static_dir / "escape.js"
         symlink_or_skip(symlink, outside_file)
 
-        setup_module_static(app, "test.mod", str(module_dir), "static/")
-        view = app.view_functions[module_loader.module_static_endpoint("test.mod")]
+        register_plan(app, plan_module_static("test.mod", str(module_dir), "static/"))
+        view = app.view_functions[module_static_endpoint("test.mod")]
 
         with app.test_request_context("/"):
             with pytest.raises(NotFound):
@@ -424,7 +425,7 @@ class TestStaticAndTemplates:
             response.close()
 
     def test_module_static_endpoint_and_url_helper_share_prefix_aware_contract(self):
-        endpoint = module_loader.module_static_endpoint("test.mod")
+        endpoint = module_static_endpoint("test.mod")
         assert endpoint == "module_static_test.mod"
 
         app = Flask(__name__)
@@ -433,17 +434,17 @@ class TestStaticAndTemplates:
             os.makedirs(static_dir)
             with open(os.path.join(static_dir, "test.js"), "w") as f:
                 f.write("console.log('hello');")
-            setup_module_static(app, "test.mod", d, "static/")
+            register_plan(app, plan_module_static("test.mod", d, "static/"))
 
             with app.test_request_context(
                 "/", environ_overrides={"SCRIPT_NAME": "/docsight"}
             ):
-                assert module_loader.module_static_url(
+                assert module_static_url(
                     "test.mod", "test.js", v="1.2.3"
                 ) == "/docsight/modules/test.mod/static/test.js?v=1.2.3"
 
             with app.test_request_context("/"):
-                assert module_loader.module_static_url(
+                assert module_static_url(
                     "test.mod", "test.js", v="1.2.3"
                 ) == "/modules/test.mod/static/test.js?v=1.2.3"
 
@@ -614,8 +615,8 @@ class TestModuleAssetDetection:
         assert all(mod.enabled and mod.error is None for mod in loaded)
         assert {mod.id for mod in loader.get_enabled_modules()} == {"foo.bar", "foo_bar"}
 
-        dotted_endpoint = module_loader.module_static_endpoint("foo.bar")
-        underscored_endpoint = module_loader.module_static_endpoint("foo_bar")
+        dotted_endpoint = module_static_endpoint("foo.bar")
+        underscored_endpoint = module_static_endpoint("foo_bar")
         assert dotted_endpoint == "module_static_foo.bar"
         assert underscored_endpoint == "module_static_foo_bar"
         assert dotted_endpoint != underscored_endpoint
@@ -633,10 +634,10 @@ class TestModuleAssetDetection:
         with app.test_request_context(
             "/", environ_overrides={"SCRIPT_NAME": "/docsight"}
         ):
-            assert module_loader.module_static_url(
+            assert module_static_url(
                 "foo.bar", "main.js", v="1.2.3"
             ) == "/docsight/modules/foo.bar/static/main.js?v=1.2.3"
-            assert module_loader.module_static_url(
+            assert module_static_url(
                 "foo_bar", "main.js", v="1.2.3"
             ) == "/docsight/modules/foo_bar/static/main.js?v=1.2.3"
 
@@ -659,18 +660,18 @@ class TestModuleAssetDetection:
         loader.load_all()
 
         mod = loader.get_enabled_modules()[0]
-        endpoint = module_loader.module_static_endpoint(mod.id)
+        endpoint = module_static_endpoint(mod.id)
         assert mod.has_js is True
         assert endpoint in app.view_functions
 
         with app.test_request_context("/"):
-            assert module_loader.module_static_url(
+            assert module_static_url(
                 mod.id, "main.js", v="1.2.3"
             ) == "/modules/community.conventional/static/main.js?v=1.2.3"
         with app.test_request_context(
             "/", environ_overrides={"SCRIPT_NAME": "/docsight"}
         ):
-            assert module_loader.module_static_url(
+            assert module_static_url(
                 mod.id, "main.js", v="1.2.3"
             ) == "/docsight/modules/community.conventional/static/main.js?v=1.2.3"
 
