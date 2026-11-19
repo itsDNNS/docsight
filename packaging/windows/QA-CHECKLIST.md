@@ -64,6 +64,7 @@ These checks require an interactive Windows notification area. They are not
 proved by the packaged smoke on a GitHub-hosted runner.
 
 - [ ] After readiness, confirm the startup window hides and exactly one DOCSight tray icon remains visible while the owner process runs.
+- [ ] Confirm the tray icon shows the DOCSight logo, the same image as the `DOCSight.exe` icon in Explorer.
 - [ ] Close every DOCSight browser tab/window. Confirm the owner process and selected loopback listener remain running intentionally.
 - [ ] Double-click the tray icon and verify the exact active `http://127.0.0.1:<port>/` URL reopens.
 - [ ] Open the tray menu and select **Open DOCSight**; verify it opens the same active URL, including when the owner selected a fallback port.

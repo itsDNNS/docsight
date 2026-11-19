@@ -1480,6 +1480,7 @@ class TkLauncher:
             self._tray = WindowsTray(
                 self.command_dispatcher,
                 self.paths.base_dir / TRAY_NOTIFICATION_MARKER,
+                get_runtime_root() / "app" / "static" / "icon.png",
             )
             self._tray.start()
         except BaseException as exc:

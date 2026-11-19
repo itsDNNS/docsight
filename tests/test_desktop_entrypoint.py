@@ -1886,9 +1886,11 @@ def test_interactive_tray_start_failure_restores_sanitized_recovery(
     view._tray_started = False
     view.render = lambda: rendered.append("render")
 
+    tray_args = []
+
     class FailingTray:
-        def __init__(self, *_args):
-            pass
+        def __init__(self, *args):
+            tray_args.append(args)
 
         def start(self):
             raise RuntimeError("private path")
@@ -1909,6 +1911,9 @@ def test_interactive_tray_start_failure_restores_sanitized_recovery(
         "Recovery available: tray_startup_failure (failure type: RuntimeError)"
     ]
     assert "private path" not in logged[0]
+    icon_path = tray_args[0][2]
+    assert icon_path == ROOT / "app" / "static" / "icon.png"
+    assert icon_path.is_file()
 
 
 def test_shutdown_is_idempotent_and_orders_server_worker_tray_cleanup():

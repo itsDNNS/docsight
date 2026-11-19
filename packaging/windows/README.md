@@ -102,7 +102,8 @@ launcher performs at most one clean retry in a fresh process.
 
 ## Tray and shutdown lifecycle
 
-The owner creates a minimal generated tray image after authenticated readiness.
+The owner creates the tray icon from the bundled `app/static/icon.png` after
+authenticated readiness.
 The first successful tray start shows a one-time notification explaining that
 closing the browser leaves DOCSight running and that the tray can reopen or
 quit it. The marker is written only after notification succeeds.
@@ -259,8 +260,8 @@ copies only the application/runtime paths it needs, and `.dockerignore` keeps th
 Windows packaging tree out of the Docker build context as well.
 
 The runtime adds `pystray` as a small notification-area adapter. Pillow was
-already present and supplies the generated notification-area image. Executable
-branding and PE metadata remain isolated under `packaging/windows/`.
+already present and loads the bundled DOCSight icon for the notification area.
+Executable branding and PE metadata remain isolated under `packaging/windows/`.
 
 ## Non-goals for this slice
 
