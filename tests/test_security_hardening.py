@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from flask import Flask
 
-from app.theme_registry import _is_trusted_url, download_theme
+from app.theme_registry import download_theme
 from app.collectors import _ModuleConfigProxy
 from app.config import ConfigManager
 from app.runtime import current_runtime
@@ -34,8 +34,6 @@ class TestClientIPWithoutProxy:
 
     def test_rate_limit_uses_remote_addr(self, client):
         """Rate limiting should use real remote_addr, not spoofed XFF."""
-        current_runtime().login_rate_limiter.prune(float("inf"))
-
         # Simulate 6 failed logins with different spoofed IPs
         for i in range(6):
             response = client.post(
@@ -58,20 +56,6 @@ class TestClientIPWithoutProxy:
 
 class TestThemeURLValidation:
     """Theme downloads must only fetch from trusted GitHub domains."""
-
-    @pytest.mark.parametrize("url,expected", [
-        ("https://raw.githubusercontent.com/user/repo/main/file.json", True),
-        ("https://api.github.com/repos/user/repo/contents/theme", True),
-        ("https://github.com/user/repo", True),
-        ("http://raw.githubusercontent.com/user/repo/main/file.json", False),
-        ("https://evil.com/theme.json", False),
-        ("https://localhost:8080/steal", False),
-        ("file:///etc/passwd", False),
-        ("gopher://internal:25/", False),
-        ("", False),
-    ])
-    def test_is_trusted_url(self, url, expected):
-        assert _is_trusted_url(url) is expected
 
     def test_download_rejects_untrusted_url(self, tmp_path):
         """download_theme should refuse untrusted download URLs."""

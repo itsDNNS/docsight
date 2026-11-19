@@ -9,15 +9,11 @@ from typing import Any
 from .module_download import (
     fetch_registry as _fetch_registry,
     download_github_directory,
-    is_trusted_url,
 )
 from .path_safety import safe_child_file
 from .theme_catalog import load_builtin_themes
 
 log = logging.getLogger("docsis.themes")
-
-# Re-export for backward compatibility (used by tests)
-_is_trusted_url = is_trusted_url
 
 # Built-in themes are application-owned data, kept in a validated JSON catalog
 # so startup does not need wrapper module directories or per-theme manifests.

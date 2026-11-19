@@ -25,5 +25,5 @@ def test_login_rate_limiter_window_backoff_reset_and_bound():
     assert "a" not in limiter.snapshot()
 
     now[0] += 101
-    limiter.prune()
+    assert limiter.retry_after("d") == 0
     assert limiter.snapshot() == {}

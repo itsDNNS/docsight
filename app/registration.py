@@ -305,7 +305,6 @@ def register_plan(app: Flask, plan: RegistrationPlan) -> None:
             template_dirs.add(directory)
     if len(template_loaders) > 1:
         app.jinja_loader = ChoiceLoader(template_loaders)
-    app.extensions["docsight_driver_registry"] = drivers
     if "docsight" in app.extensions:
         app.extensions["docsight"].driver_registry = drivers
     app.extensions["docsight_registration_plan"] = complete

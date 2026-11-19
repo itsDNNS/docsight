@@ -130,7 +130,6 @@ def create_app(
 
     auth_state = AuthStateStore(config_manager.data_dir)
     app.secret_key = auth_state.load_or_create_session_key()
-    enabled_check = getattr(config_manager, "is_update_check_enabled", None)
     runtime = DocsightRuntime(
         config_manager=config_manager,
         storage=storage,
@@ -144,7 +143,7 @@ def create_app(
         ),
         update_checker=UpdateChecker(
             app_version=get_app_version(),
-            is_enabled=enabled_check if callable(enabled_check) else lambda: False,
+            is_enabled=config_manager.is_update_check_enabled,
         ),
     )
     attach_runtime(app, runtime)
@@ -155,9 +154,7 @@ def create_app(
     runtime.module_loader = loader
     configure_base_path(app, env)
     apply_reverse_proxy(app, env)
-    manifest = canonical_manifest(app, loader)
-    fingerprint = manifest_fingerprint(manifest)
-    app.extensions["docsight_module_loader"] = loader
+    fingerprint = manifest_fingerprint(canonical_manifest(app, loader))
     inline_modules = modules_with_inline_code(getattr(loader, "get_modules", tuple)())
     app.extensions["docsight_inline_script_modules"] = inline_modules
     if inline_modules:
@@ -166,7 +163,6 @@ def create_app(
             "Update these modules so DOCSight can block inline scripts.",
             ", ".join(inline_modules),
         )
-    app.extensions["docsight_registration_manifest"] = manifest
     app.extensions["docsight_registration_fingerprint"] = fingerprint
     LOG.info("registration manifest sha256=%s", fingerprint)
     return app

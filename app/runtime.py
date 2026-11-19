@@ -7,9 +7,8 @@ import secrets
 import stat
 import threading
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import requests
@@ -194,10 +193,6 @@ class LoginRateLimiter:
             for ip in oldest[:len(self._attempts) - self._max_tracked_ips]:
                 self._attempts.pop(ip, None)
 
-    def prune(self, now: float | None = None) -> None:
-        with self._lock:
-            self._prune_locked(self._clock() if now is None else now)
-
     def retry_after(self, ip: str) -> float:
         now = self._clock()
         with self._lock:
@@ -363,6 +358,7 @@ class DocsightRuntime:
     modem_collector: Any | None = field(default=None, repr=False)
     collectors: list[Any] = field(default_factory=list, repr=False)
     last_manual_poll: float = field(default=0.0, repr=False)
+    smart_capture_ticks: int = field(default=0, repr=False)
     # time.monotonic() until which the first admin password may be set.
     password_setup_deadline: float = field(default=0.0, repr=False)
     password_setup_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
@@ -397,11 +393,6 @@ class DocsightRuntime:
     def set_last_manual_poll(self, value: float) -> None:
         with self._last_manual_poll_lock:
             self.last_manual_poll = value
-
-    @property
-    def _state(self) -> Mapping[str, object]:
-        """Read-only snapshot retained for collector duck-type compatibility."""
-        return MappingProxyType(self.get_state())
 
 
 def attach_runtime(app: Flask, runtime: DocsightRuntime) -> None:

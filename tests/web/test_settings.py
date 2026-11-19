@@ -253,7 +253,6 @@ class TestSettingsRoute:
     def test_settings_icon_only_controls_have_accessible_names(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
         current_runtime().config_manager = config_mgr
-        current_runtime().login_rate_limiter.prune(float("inf"))
         _login(client, "admin-secret-value")
 
         resp = client.get("/settings?lang=en")

@@ -21,12 +21,7 @@ from .tz import guess_iana_timezone, utc_cutoff
 from .waitress_server import WaitressServerAdapter
 
 from .collectors import discover_collectors
-
-try:
-    from .drivers.surfboard import TransientHtmlChannelPageError as _TransientHtmlError
-except ImportError:
-    class _TransientHtmlError(Exception):  # type: ignore[no-redef]
-        """Stub -- never raised when surfboard driver is absent."""
+from .drivers.surfboard import TransientHtmlChannelPageError
 
 _LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 # URL userinfo and query strings carry credentials and tokens (notification
@@ -206,6 +201,19 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
     else:
         log.info("MQTT not configured, running without Home Assistant integration")
 
+    try:
+        _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub)
+    finally:
+        if mqtt_pub:
+            try:
+                mqtt_pub.disconnect()
+            except Exception as e:
+                log.warning("MQTT disconnect failed: %s", e)
+    log.info("Polling loop stopped")
+
+
+def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
+    """Poll the collectors until stop_event is set, then stop them."""
     # Notifications (optional)
     notifier = None
     if config_mgr.is_notify_configured():
@@ -338,7 +346,7 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
                 else:
                     collector.record_failure()
                     log.warning("%s: %s", collector.name, result.error)
-            except _TransientHtmlError:
+            except TransientHtmlChannelPageError:
                 collector.record_skip()
                 log.warning(
                     "%s: transient HTML response, skipping poll", collector.name
@@ -407,18 +415,17 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
 
             _process_in_flight()
 
-            # ── Smart Capture expiry check (every 60s) ──
-            if smart_capture:
-                expiry_counter = runtime.derived_storage.value("smart_capture_expiry_counter", 0) + 1
-                runtime.derived_storage.set_value("smart_capture_expiry_counter", expiry_counter)
-                if expiry_counter >= 60:
-                    runtime.derived_storage.set_value("smart_capture_expiry_counter", 0)
-                    match_window = config_mgr.get("sc_speedtest_match_window", 900)
-                    try:
-                        expiry_minutes = max(10, int(match_window) // 60 + 5)
-                    except (TypeError, ValueError):
-                        expiry_minutes = 20
-                    cutoff = utc_cutoff(minutes=expiry_minutes)
+            # ── Smart Capture expiry check (every 60 ticks, counted across polling restarts) ──
+            runtime.smart_capture_ticks += 1
+            if runtime.smart_capture_ticks >= 60:
+                runtime.smart_capture_ticks = 0
+                match_window = config_mgr.get("sc_speedtest_match_window", 900)
+                try:
+                    expiry_minutes = max(10, int(match_window) // 60 + 5)
+                except (TypeError, ValueError):
+                    expiry_minutes = 20
+                cutoff = utc_cutoff(minutes=expiry_minutes)
+                try:
                     expired = storage.expire_stale_fired(cutoff, action_type="capture")
                     if expired:
                         log.info("Smart Capture: expired %d stale speedtest executions",
@@ -428,6 +435,8 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
                     if pending_expired:
                         log.info("Smart Capture: expired %d orphaned pending executions",
                                  pending_expired)
+                except Exception as e:
+                    log.error("Smart Capture expiry failed: %s", e)
 
             stop_event.wait(1)
     finally:
@@ -436,16 +445,8 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
             if hasattr(c, "stop"):
                 try:
                     c.stop()
-                except Exception:
-                    pass
-
-    # Cleanup MQTT
-    if mqtt_pub:
-        try:
-            mqtt_pub.disconnect()
-        except Exception:
-            pass
-    log.info("Polling loop stopped")
+                except Exception as e:
+                    log.warning("%s: stop failed: %s", c.name, e)
 
 
 def main(server_lifecycle: ServerLifecycleController | None = None):

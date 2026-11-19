@@ -191,7 +191,6 @@ def test_setup_bootstrap_tojson_keeps_hostile_translation_inert(tmp_path, monkey
 
 
 def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path):
-    current_runtime().login_rate_limiter.prune(float("inf"))
     credential = "prefix-" + "credential"
     auth_manager = _configured_manager(tmp_path, password=credential)
     current_runtime().config_manager = auth_manager
