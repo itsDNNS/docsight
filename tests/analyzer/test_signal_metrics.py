@@ -363,11 +363,6 @@ class TestSignalFamilySummaries:
         assert result["us_channels"][0]["channel_family"] == "ofdma"
         assert upstream["ofdma"]["modulation"]["value"] == "64QAM"
 
-    def test_docsis30_upstream_keeps_camel_case_profile_key(self):
-        data = _make_data(us30=[{"channelID": 5, "multiplex": "ATDMA", "profileModulation": "64QAM"}])
-
-        assert analyze(data)["us_channels"][0]["profile_modulation"] == "64QAM"
-
     def test_docsis31_upstream_qam_modulation_without_type_stays_ofdma(self):
         """Some modems expose an OFDMA profile QAM value only as `modulation`."""
         us_ofdma = {

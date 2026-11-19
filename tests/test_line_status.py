@@ -89,13 +89,19 @@ def test_low_snr_uses_the_minimum_target():
     assert measurement["delta"] == round(31.0 - limits["good_min"], 1)
 
 
-def test_modulation_only_deviation_names_the_modulation_and_its_target():
-    status = build_line_status(_analysis([], [_us(2, health="warning", detail="modulation warning", modulation="16QAM")]))
+@pytest.mark.parametrize(("channel", "value", "target"), [
+    (_us(2, health="warning", detail="modulation warning", modulation="16QAM"), "16QAM", "32QAM"),
+    # Older snapshots carry no channel_family; the target follows the family Home infers.
+    ({"channel_id": 2, "docsis_version": "3.1", "modulation": "OFDMA", "profile_modulation": "64QAM",
+      "power": 44.5, "health": "warning", "health_detail": "modulation warning"}, "64QAM", "256QAM"),
+])
+def test_modulation_only_deviation_names_the_modulation_and_its_target(channel, value, target):
+    status = build_line_status(_analysis([], [channel]))
 
     callout = status["directions"][0]["callout"]
     assert callout["measurement"] is None
-    assert callout["modulation"] == "16QAM"
-    assert callout["modulation_cause"] == {"value": "16QAM", "health": "warning", "target": "32QAM"}
+    assert callout["modulation"] == value
+    assert callout["modulation_cause"] == {"value": value, "health": "warning", "target": target}
 
 
 def test_power_and_modulation_deviations_are_both_explained():
@@ -128,7 +134,7 @@ def test_modulation_target_is_the_lowest_order_the_scoring_rates_good(direction,
             return _assess_ds_modulation(qam, "3.0" if family == "sc_qam" else docsis)
         return _assess_us_modulation(qam, family, docsis)
 
-    assert modulation_target(direction, {"channel_family": family, "docsis_version": docsis}) == f"{target}QAM"
+    assert modulation_target(direction, family, docsis) == f"{target}QAM"
     assert rated(target) == "good"
     assert rated(target // 2) != "good"
 

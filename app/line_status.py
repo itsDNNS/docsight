@@ -118,7 +118,7 @@ def _modulation_cause(direction: str, channel: dict) -> dict | None:
     return {
         "value": _modulation(channel),
         "health": channel.get("modulation_health") or _health(channel),
-        "target": modulation_target(direction, channel),
+        "target": modulation_target(direction, _family(direction, channel), channel.get("docsis_version") or "3.0"),
     }
 
 

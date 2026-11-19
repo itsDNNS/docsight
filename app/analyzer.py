@@ -279,15 +279,12 @@ def _assess_us_modulation(modulation, family: str, docsis_ver: str) -> str:
 _QAM_ORDERS = (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096)
 
 
-def modulation_target(direction: str, channel: dict) -> str | None:
+def modulation_target(direction: str, family: str, docsis_ver: str) -> str | None:
     """Return the lowest modulation the channel scoring rates good, e.g. "1024QAM".
 
     Probes the same assessment the analyzer uses, so the shown target can never
     drift from the rating. Returns None when the channel's modulation is not rated.
     """
-    family = channel.get("channel_family") or ""
-    docsis_ver = channel.get("docsis_version") or "3.0"
-
     def rated_good(order: int) -> bool:
         qam = f"{order}QAM"
         if direction == "ds":
@@ -600,10 +597,10 @@ def _channel_health(issues):
     return "tolerated"
 
 
-def _metric_healths(issues):
+def _metric_healths(issues, metrics=("power", "snr", "modulation")):
     """Extract per-metric health levels from issue list."""
     result = {}
-    for metric in ("power", "snr", "modulation"):
+    for metric in metrics:
         if any(i.startswith(metric + " critical") for i in issues):
             result[metric + "_health"] = "critical"
         elif any(i.startswith(metric + " warning") for i in issues):
@@ -926,6 +923,8 @@ def _read_channel(direction, ch, docsis_ver):
     """Return a raw channel's (modulation, profile_modulation, channel family)."""
     modulation = ch.get("modulation") or ch.get("type", "")
     profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
+    if direction == "ds" and docsis_ver == "3.0":
+        return modulation, profile_modulation, "sc_qam"
     family = _shared_classify_channel_family(direction, {
         "type": ch.get("type", ""),
         "multiplex": ch.get("multiplex", ""),
@@ -952,7 +951,7 @@ def _channel_entry(ch, measured, *, docsis_ver, family, assessment, profile_modu
             if family == "sc_qam"
             else None
         ),
-        **_metric_healths(issues),
+        **_metric_healths(issues, ("power", "snr")),
         "modulation_health": modulation_health,
     }
     if profile_modulation:
@@ -964,7 +963,6 @@ def _build_ds_channel(ch, docsis_ver):
     modulation, profile_modulation, family = _read_channel("ds", ch, docsis_ver)
     power = _parse_float(ch.get("powerLevel"))
     if docsis_ver == "3.0":
-        family = "sc_qam"
         mse = _parse_float(ch.get("mse"))
         snr = abs(mse) if mse is not None else None
     else:
@@ -995,10 +993,11 @@ def _build_us_channel(ch, docsis_ver):
         ch,
         {"power": power, "modulation": modulation, "multiplex": ch.get("multiplex", "")},
         docsis_ver=docsis_ver,
-        # DOCSIS 3.0 upstream channels are stored as SC-QAM; their rating still uses the classified family.
+        # DOCSIS 3.0 upstream channels are stored as SC-QAM with only the snake_case profile key;
+        # their rating still uses the classified family and either profile key.
         family=family if docsis_ver == "3.1" else "sc_qam",
         assessment=_assess_us_channel(power, assessed_modulation, family, docsis_ver),
-        profile_modulation=profile_modulation,
+        profile_modulation=profile_modulation if docsis_ver == "3.1" else ch.get("profile_modulation"),
         default_symbol_rate=_DEFAULT_US_SC_QAM_SYMBOL_RATE,
     )
     _keep_power_display_offset(ch, channel)
