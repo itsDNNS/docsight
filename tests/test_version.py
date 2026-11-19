@@ -1,10 +1,11 @@
 """Tests for application version provenance helpers."""
 
+import subprocess
+
 from app import version
 
 
-def test_available_app_version_uses_exact_sources_only(monkeypatch):
-    version.get_available_app_version.cache_clear()
+def test_available_app_version_uses_exact_sources_only(monkeypatch, clear_version_cache):
     calls = []
 
     monkeypatch.setattr(version, "_read_version_file", lambda: None)
@@ -23,14 +24,15 @@ def test_available_app_version_uses_exact_sources_only(monkeypatch):
     assert calls == [("--exact-match",)]
 
 
-def test_display_app_version_may_fall_back_to_nearest_tag(monkeypatch):
-    version.get_available_app_version.cache_clear()
+def test_display_app_version_may_fall_back_to_nearest_tag(running_app_version):
+    assert running_app_version == "v2026-07-01.1"
 
-    monkeypatch.setattr(version, "_read_version_file", lambda: None)
-    monkeypatch.setattr(
-        version,
-        "_git_tag",
-        lambda *args: "v2026-07-01.1" if args == ("--abbrev=0",) else None,
-    )
 
-    assert version.get_app_version() == "v2026-07-01.1"
+def test_git_tag_ignores_the_callers_repository(tmp_path, monkeypatch):
+    git = ["git", "-C", str(tmp_path), "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+           "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"]
+    for args in (["init", "-q"], ["commit", "-q", "--allow-empty", "-m", "x"], ["tag", "v-foreign"]):
+        subprocess.run([*git, *args], check=True)
+    monkeypatch.chdir(tmp_path)
+
+    assert version._git_tag.__wrapped__("--abbrev=0") != "v-foreign"

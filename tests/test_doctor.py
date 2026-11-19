@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 
 
 SENTINELS = (
@@ -111,6 +112,17 @@ def test_doctor_marks_optional_integrations_as_skipped_or_warn_not_core_fail(tmp
     assert apprise["status"] == "warn"
     assert apprise["core"] is False
     assert report["summary"]["core_fail"] is False
+
+
+@pytest.mark.parametrize("running_app_version", ["v2026-07-01.1", "192.0.2.1"], indirect=True)
+def test_doctor_reports_running_app_version(tmp_path, running_app_version):
+    from app.doctor import build_report, redact_value
+
+    report = build_report(data_dir=str(tmp_path / "data"))
+    runtime = next(check for check in report["checks"] if check["id"] == "runtime.version")
+
+    expected = redact_value(running_app_version, "app_version")
+    assert report["app_version"] == runtime["details"]["app_version"] == expected
 
 
 def test_doctor_reports_sqlite_integrity_failures_as_core_fail(tmp_path):
