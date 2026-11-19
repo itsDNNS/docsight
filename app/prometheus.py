@@ -64,16 +64,6 @@ def _format_labels(labels):
     return ",".join(f'{k}="{_escape_label_value(v)}"' for k, v in labels.items())
 
 
-def _metric(lines, help_text, metric_type, name, value, labels=None):
-    """Append HELP, TYPE, and a single value line to lines list."""
-    lines.append(f"# HELP {name} {help_text}")
-    lines.append(f"# TYPE {name} {metric_type}")
-    if labels:
-        lines.append(f"{name}{{{_format_labels(labels)}}} {value}")
-    else:
-        lines.append(f"{name} {value}")
-
-
 def _metric_family_open(lines, help_text, metric_type, name):
     """Append HELP and TYPE for a multi-value metric family."""
     lines.append(f"# HELP {name} {help_text}")
@@ -86,6 +76,44 @@ def _metric_value(lines, name, value, labels=None):
         lines.append(f"{name}{{{_format_labels(labels)}}} {value}")
     else:
         lines.append(f"{name} {value}")
+
+
+def _metric(lines, help_text, metric_type, name, value, labels=None):
+    """Append HELP, TYPE, and a single value line to lines list."""
+    _metric_family_open(lines, help_text, metric_type, name)
+    _metric_value(lines, name, value, labels)
+
+
+def _channel_qam_order(channel):
+    return _parse_qam_order(channel.get("modulation", ""))
+
+
+# Per-channel metric families in output order:
+# (analysis key, metric name, type, help text, value accessor).
+_CHANNEL_METRICS = (
+    ("ds_channels", "docsight_downstream_power_dbmv", "gauge",
+     "Downstream channel receive power level in dBmV", lambda ch: ch.get("power")),
+    ("ds_channels", "docsight_downstream_snr_db", "gauge",
+     "Downstream channel signal-to-noise ratio in dB", lambda ch: ch.get("snr")),
+    ("ds_channels", "docsight_downstream_corrected_errors_total", "counter",
+     "Downstream channel correctable codeword errors (cumulative)", lambda ch: ch.get("correctable_errors")),
+    ("ds_channels", "docsight_downstream_uncorrected_errors_total", "counter",
+     "Downstream channel uncorrectable codeword errors (cumulative)", lambda ch: ch.get("uncorrectable_errors")),
+    ("ds_channels", "docsight_downstream_modulation", "gauge",
+     "Downstream channel QAM modulation order (e.g. 256 for 256-QAM)", _channel_qam_order),
+    ("us_channels", "docsight_upstream_power_dbmv", "gauge",
+     "Upstream channel transmit power level in dBmV", lambda ch: ch.get("power")),
+    ("us_channels", "docsight_upstream_modulation", "gauge",
+     "Upstream channel QAM modulation order (e.g. 64 for 64-QAM)", _channel_qam_order),
+)
+
+# Info metrics whose label carries a mutable device value:
+# (device_info key, metric name, label name, help text prefix).
+_DEVICE_INFO_LABEL_METRICS = (
+    ("reboot_reason", "docsight_last_reboot_reason_info", "reason", "Reason reported for the last modem reboot"),
+    ("wan_ipv4", "docsight_device_wan_ipv4_info", "wan_ipv4", "WAN IPv4 address"),
+    ("wan_ipv6", "docsight_device_wan_ipv6_info", "wan_ipv6", "WAN IPv6 address"),
+)
 
 
 def format_metrics(
@@ -107,11 +135,12 @@ def format_metrics(
     """
     lines = []
 
-    # --- Health status ---
+    # --- Health status and channel counts ---
     if analysis is not None:
-        health_str = analysis.get("summary", {}).get("health", "good")
-        health_val = SUMMARY_HEALTH_RANK.get(health_str, 4)
+        summary = analysis.get("summary", {})
+        health_val = SUMMARY_HEALTH_RANK.get(summary.get("health", "good"), 4)
     else:
+        summary = {}
         health_val = 4
 
     _metric(
@@ -121,120 +150,30 @@ def format_metrics(
         "docsight_health_status",
         health_val,
     )
-
-    # --- Channel counts ---
-    if analysis is not None:
-        summary = analysis.get("summary", {})
-        ds_total = summary.get("ds_total", 0)
-        us_total = summary.get("us_total", 0)
-    else:
-        ds_total = 0
-        us_total = 0
-
     _metric(
         lines,
         "Number of active downstream channels",
         "gauge",
         "docsight_downstream_channels_total",
-        ds_total,
+        summary.get("ds_total", 0),
     )
     _metric(
         lines,
         "Number of active upstream channels",
         "gauge",
         "docsight_upstream_channels_total",
-        us_total,
+        summary.get("us_total", 0),
     )
 
-    # --- Downstream channel metrics ---
-    ds_channels = analysis.get("ds_channels", []) if analysis else []
-
-    if ds_channels:
-        _metric_family_open(
-            lines,
-            "Downstream channel receive power level in dBmV",
-            "gauge",
-            "docsight_downstream_power_dbmv",
-        )
-        for ch in ds_channels:
-            ch["channel_id"]
-            if ch.get("power") is not None:
-                _metric_value(lines, "docsight_downstream_power_dbmv", ch["power"],
-                              _channel_labels(ch))
-
-        _metric_family_open(
-            lines,
-            "Downstream channel signal-to-noise ratio in dB",
-            "gauge",
-            "docsight_downstream_snr_db",
-        )
-        for ch in ds_channels:
-            if ch.get("snr") is not None:
-                _metric_value(lines, "docsight_downstream_snr_db", ch["snr"],
-                              _channel_labels(ch))
-
-        _metric_family_open(
-            lines,
-            "Downstream channel correctable codeword errors (cumulative)",
-            "counter",
-            "docsight_downstream_corrected_errors_total",
-        )
-        for ch in ds_channels:
-            if ch.get("correctable_errors") is not None:
-                _metric_value(lines, "docsight_downstream_corrected_errors_total",
-                              ch["correctable_errors"],
-                              _channel_labels(ch))
-
-        _metric_family_open(
-            lines,
-            "Downstream channel uncorrectable codeword errors (cumulative)",
-            "counter",
-            "docsight_downstream_uncorrected_errors_total",
-        )
-        for ch in ds_channels:
-            if ch.get("uncorrectable_errors") is not None:
-                _metric_value(lines, "docsight_downstream_uncorrected_errors_total",
-                              ch["uncorrectable_errors"],
-                              _channel_labels(ch))
-
-        _metric_family_open(
-            lines,
-            "Downstream channel QAM modulation order (e.g. 256 for 256-QAM)",
-            "gauge",
-            "docsight_downstream_modulation",
-        )
-        for ch in ds_channels:
-            qam = _parse_qam_order(ch.get("modulation", ""))
-            if qam is not None:
-                _metric_value(lines, "docsight_downstream_modulation", qam,
-                              _channel_labels(ch))
-
-    # --- Upstream channel metrics ---
-    us_channels = analysis.get("us_channels", []) if analysis else []
-
-    if us_channels:
-        _metric_family_open(
-            lines,
-            "Upstream channel transmit power level in dBmV",
-            "gauge",
-            "docsight_upstream_power_dbmv",
-        )
-        for ch in us_channels:
-            if ch.get("power") is not None:
-                _metric_value(lines, "docsight_upstream_power_dbmv", ch["power"],
-                              _channel_labels(ch))
-
-        _metric_family_open(
-            lines,
-            "Upstream channel QAM modulation order (e.g. 64 for 64-QAM)",
-            "gauge",
-            "docsight_upstream_modulation",
-        )
-        for ch in us_channels:
-            qam = _parse_qam_order(ch.get("modulation", ""))
-            if qam is not None:
-                _metric_value(lines, "docsight_upstream_modulation", qam,
-                              _channel_labels(ch))
+    # --- Per-channel metrics ---
+    for key, name, metric_type, help_text, value_of in _CHANNEL_METRICS:
+        channels = analysis.get(key, []) if analysis else []
+        if channels:
+            _metric_family_open(lines, help_text, metric_type, name)
+            for ch in channels:
+                value = value_of(ch)
+                if value is not None:
+                    _metric_value(lines, name, value, _channel_labels(ch))
 
     # --- Device info ---
     if device_info is not None:
@@ -277,38 +216,17 @@ def format_metrics(
                 uptime,
             )
 
-        reboot_reason = device_info.get("reboot_reason")
-        if reboot_reason not in (None, ""):
-            _metric(
-                lines,
-                "Reason reported for the last modem reboot (label carries the value, metric is always 1)",
-                "gauge",
-                "docsight_last_reboot_reason_info",
-                1,
-                {"reason": reboot_reason},
-            )
-
-        wan_ipv4 = device_info.get("wan_ipv4")
-        if wan_ipv4 not in (None, ""):
-            _metric(
-                lines,
-                "WAN IPv4 address (label carries the value, metric is always 1)",
-                "gauge",
-                "docsight_device_wan_ipv4_info",
-                1,
-                {"wan_ipv4": wan_ipv4},
-            )
-
-        wan_ipv6 = device_info.get("wan_ipv6")
-        if wan_ipv6 not in (None, ""):
-            _metric(
-                lines,
-                "WAN IPv6 address (label carries the value, metric is always 1)",
-                "gauge",
-                "docsight_device_wan_ipv6_info",
-                1,
-                {"wan_ipv6": wan_ipv6},
-            )
+        for key, name, label, help_text in _DEVICE_INFO_LABEL_METRICS:
+            value = device_info.get(key)
+            if value not in (None, ""):
+                _metric(
+                    lines,
+                    f"{help_text} (label carries the value, metric is always 1)",
+                    "gauge",
+                    name,
+                    1,
+                    {label: value},
+                )
 
     # --- Connection info ---
     if connection_info is not None:
