@@ -1,8 +1,12 @@
 """Focused lifecycle checks for the application entrypoint."""
 
+import logging
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import SimpleNamespace
 
 import pytest
+import requests
 
 from app import main
 
@@ -47,3 +51,30 @@ def test_keyboard_shutdown_stops_polling_resources(monkeypatch):
     )
 
     assert calls == ["stop_polling"]
+
+
+class _NoContentHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(204)
+        self.end_headers()
+
+    def log_message(self, *args):
+        pass
+
+
+def test_debug_logging_keeps_request_targets_out_of_the_log(caplog):
+    server = HTTPServer(("127.0.0.1", 0), _NoContentHandler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    caplog.set_level(logging.DEBUG)
+    try:
+        requests.get(
+            f"http://127.0.0.1:{server.server_port}/hook/secret-token?key=secret-key",
+            timeout=5,
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+    logging.getLogger("docsis.main").debug("own debug record")
+
+    assert "own debug record" in caplog.messages
+    assert not [message for message in caplog.messages if "secret" in message]

@@ -31,6 +31,9 @@ logging.basicConfig(
     level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+# urllib3 logs every request path and query at DEBUG, which would copy tokens
+# embedded in notification and modem URLs into the log.
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 log = logging.getLogger("docsis.main")
 
 COLLECTOR_LONG_RUNNING_SECONDS = 120
