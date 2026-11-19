@@ -950,6 +950,21 @@ class TestEventDetector:
         assert "improved" in mod_events[0]["message"]
         assert mod_events[0]["details"]["direction"] == "upgrade"
 
+    def test_modulation_changes_follow_channel_order(self, detector):
+        """Changed channels are listed in current snapshot order, downstream before upstream."""
+        ds_order, us_order = [7, 2, 11, 1, 9, 4], [3, 1, 4, 2]
+        prev = _make_analysis(ds_total=12, us_total=4)
+        cur = _make_analysis(ds_total=12, us_total=4)
+        cur["ds_channels"] = [cur["ds_channels"][i - 1] for i in ds_order]
+        cur["us_channels"] = [cur["us_channels"][i - 1] for i in us_order]
+        for ch in cur["ds_channels"] + cur["us_channels"]:
+            ch["modulation"] = "16QAM"
+        detector.check(prev)
+        events = detector.check(cur)
+        changes = next(e for e in events if e["event_type"] == "modulation_change")["details"]["changes"]
+        assert [(c["direction"], c["channel"]) for c in changes] == (
+            [("DS", i) for i in ds_order] + [("US", i) for i in us_order])
+
     def test_error_spike(self, detector):
         detector.check(_make_analysis(ds_uncorrectable_errors=100))
         events = detector.check(_make_analysis(ds_uncorrectable_errors=2000))
@@ -1302,6 +1317,29 @@ class TestRestartDetection:
         restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
         assert len(restart_events) == 1
         assert restart_events[0]["details"]["affected_channels"] == 16
+
+    @pytest.mark.parametrize("prev_rows, cur_rows, expected", [
+        ([(i, 602, 100) for i in range(1, 17)], [(str(i), 602, 0) for i in range(1, 17)], [16]),
+        ([(1, 602, 100), (2, 610, 100), (3, 618, 100), (None, 626, 100)],
+         [(1, 602, 0), (2, 610, 0), (3, 618, 0), (None, 626, 0)], []),
+        ([(1, 602, 100), (2, 610, 100), (3, 618, 100), (4, 626, 100)],
+         [(1, 602, 0), (2, 610, 0), (3, 618, 0), (4, None, 0)], [4]),
+    ], ids=["string-ids", "id-less-rows-skipped", "frequency-blank"])
+    def test_restart_matches_channels_by_normalized_id(self, detector, prev_rows, cur_rows, expected):
+        """String and int IDs match like in every other check; rows without an ID never match."""
+        def analysis(rows):
+            channels = [{**({} if ch_id is None else {"channel_id": ch_id}), "frequency": f"{freq} MHz" if freq else "",
+                         "correctable_errors": corr, "uncorrectable_errors": corr // 10}
+                        for ch_id, freq, corr in rows]
+            result = _make_analysis(ds_channels=channels, ds_total=len(channels),
+                                    ds_uncorrectable_errors=sum(ch["uncorrectable_errors"] for ch in channels))
+            result["summary"]["ds_correctable_errors"] = sum(ch["correctable_errors"] for ch in channels)
+            return result
+
+        detector.check(analysis(prev_rows))
+        events = detector.check(analysis(cur_rows))
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert [e["details"]["affected_channels"] for e in restart_events] == expected
 
     def test_restart_partial_channels(self, detector):
         """14/16 channels decline, 2 unchanged — still detected."""

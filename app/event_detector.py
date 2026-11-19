@@ -67,6 +67,47 @@ def _coerce_float(value):
     return f
 
 
+_DIRECTIONS = (("DS", "downstream", "ds"), ("US", "upstream", "us"))
+
+
+def _channel_map(analysis, prefix):
+    """Map the ``<prefix>_channels`` of an analysis by normalized channel ID, skipping missing IDs."""
+    mapped = {}
+    for ch in analysis.get(f"{prefix}_channels", []):
+        key = _normalize_channel_id(ch.get("channel_id"))
+        if key is not None:
+            mapped[key] = ch
+    return mapped
+
+
+def _ds_snr_pairs(cur_analysis, prev_analysis):
+    """Yield ``(cur_ch, prev_ch, prev_snr, cur_snr)`` for downstream channels with SNR in both snapshots."""
+    prev_channels = _channel_map(prev_analysis, "ds")
+    for cur_ch in cur_analysis.get("ds_channels", []):
+        prev_ch = prev_channels.get(_normalize_channel_id(cur_ch.get("channel_id")))
+        if not prev_ch:
+            continue
+        prev_snr = _coerce_float(prev_ch.get("snr"))
+        cur_snr = _coerce_float(cur_ch.get("snr"))
+        if prev_snr is not None and cur_snr is not None:
+            yield cur_ch, prev_ch, prev_snr, cur_snr
+
+
+def _snr_entry(cur_ch, prev_ch, prev_snr, cur_snr):
+    """Affected-channel fields shared by both SNR event variants."""
+    delta = round(cur_snr - prev_snr, 1)
+    return {
+        "channel": cur_ch.get("channel_id"),
+        "frequency": cur_ch.get("frequency") or prev_ch.get("frequency") or "",
+        "docsis_version": cur_ch.get("docsis_version") or prev_ch.get("docsis_version") or "",
+        "channel_type": channel_type_label("DS", cur_ch, prev_ch),
+        "modulation": cur_ch.get("modulation") or prev_ch.get("modulation") or "",
+        "prev": prev_snr,
+        "current": cur_snr,
+        "delta": 0.0 if delta == -0.0 else delta,
+    }
+
+
 class EventDetector:
     """Compare consecutive analyses and emit event dicts."""
 
@@ -139,19 +180,13 @@ class EventDetector:
         cur_s = analysis.get("summary", {})
         prev_s = prev.get("summary", {})
 
-        # Health change
         self._check_health(events, ts, cur_s, prev_s)
-        # Power change
         self._check_power(events, ts, cur_s, prev_s)
-        # SNR change
         self._check_snr(events, ts, analysis, prev)
-        # Channel count change
         self._check_channels(events, ts, analysis, prev)
-        # Modulation change
         self._check_modulation(events, ts, analysis, prev)
         # Restart detection (before errors — restart causes negative delta)
         self._check_restart(events, ts, analysis, prev)
-        # Error spike
         self._check_errors(events, ts, cur_s, prev_s)
 
         self._annotate_event_details(events, snapshot_id, prev_snapshot_id)
@@ -215,39 +250,22 @@ class EventDetector:
         })
 
     def _check_power(self, events, ts, cur, prev):
-        # Downstream power avg shift
-        ds_cur = _coerce_float(cur.get("ds_power_avg"))
-        ds_prev = _coerce_float(prev.get("ds_power_avg"))
-        if ds_cur is not None and ds_prev is not None and abs(ds_cur - ds_prev) > POWER_SHIFT_THRESHOLD:
-            events.append({
-                "timestamp": ts,
-                "severity": "warning",
-                "event_type": "power_change",
-                "message": f"DS power avg shifted from {ds_prev} to {ds_cur} dBmV",
-                "details": {
-                    "direction": "downstream",
-                    "prev": ds_prev,
-                    "current": ds_cur,
-                    "threshold_delta": POWER_SHIFT_THRESHOLD,
-                },
-            })
-
-        # Upstream power avg shift
-        us_cur = _coerce_float(cur.get("us_power_avg"))
-        us_prev = _coerce_float(prev.get("us_power_avg"))
-        if us_cur is not None and us_prev is not None and abs(us_cur - us_prev) > POWER_SHIFT_THRESHOLD:
-            events.append({
-                "timestamp": ts,
-                "severity": "warning",
-                "event_type": "power_change",
-                "message": f"US power avg shifted from {us_prev} to {us_cur} dBmV",
-                "details": {
-                    "direction": "upstream",
-                    "prev": us_prev,
-                    "current": us_cur,
-                    "threshold_delta": POWER_SHIFT_THRESHOLD,
-                },
-            })
+        for label, direction, prefix in _DIRECTIONS:
+            power_cur = _coerce_float(cur.get(f"{prefix}_power_avg"))
+            power_prev = _coerce_float(prev.get(f"{prefix}_power_avg"))
+            if power_cur is not None and power_prev is not None and abs(power_cur - power_prev) > POWER_SHIFT_THRESHOLD:
+                events.append({
+                    "timestamp": ts,
+                    "severity": "warning",
+                    "event_type": "power_change",
+                    "message": f"{label} power avg shifted from {power_prev} to {power_cur} dBmV",
+                    "details": {
+                        "direction": direction,
+                        "prev": power_prev,
+                        "current": power_cur,
+                        "threshold_delta": POWER_SHIFT_THRESHOLD,
+                    },
+                })
 
     def _check_snr(self, events, ts, cur_analysis, prev_analysis):
         cur = cur_analysis.get("summary", {})
@@ -327,25 +345,9 @@ class EventDetector:
     def _snr_affected_channels_by_health(cur_analysis, prev_analysis):
         """Return analyzer health degradations, or ``None`` for legacy data."""
         analyzer_families = {"sc_qam", "ofdm"}
-        prev_channels = {}
-        for ch in prev_analysis.get("ds_channels", []):
-            key = _normalize_channel_id(ch.get("channel_id"))
-            if key is not None:
-                prev_channels[key] = ch
-
         affected = []
         found_comparable = False
-        for cur_ch in cur_analysis.get("ds_channels", []):
-            key = _normalize_channel_id(cur_ch.get("channel_id"))
-            if key is None:
-                continue
-            prev_ch = prev_channels.get(key)
-            if not prev_ch:
-                continue
-            prev_snr = _coerce_float(prev_ch.get("snr"))
-            cur_snr = _coerce_float(cur_ch.get("snr"))
-            if prev_snr is None or cur_snr is None:
-                continue
+        for cur_ch, prev_ch, prev_snr, cur_snr in _ds_snr_pairs(cur_analysis, prev_analysis):
             found_comparable = True
             prev_health = prev_ch.get("snr_health")
             cur_health = cur_ch.get("snr_health")
@@ -359,16 +361,8 @@ class EventDetector:
                 continue
             if CHANNEL_HEALTH_RANK.get(cur_health, 0) <= CHANNEL_HEALTH_RANK["good"]:
                 continue
-            delta = round(cur_snr - prev_snr, 1)
             affected.append({
-                "channel": cur_ch.get("channel_id"),
-                "frequency": cur_ch.get("frequency") or prev_ch.get("frequency") or "",
-                "docsis_version": cur_ch.get("docsis_version") or prev_ch.get("docsis_version") or "",
-                "channel_type": channel_type_label("DS", cur_ch, prev_ch),
-                "modulation": cur_ch.get("modulation") or prev_ch.get("modulation") or "",
-                "prev": prev_snr,
-                "current": cur_snr,
-                "delta": 0.0 if delta == -0.0 else delta,
+                **_snr_entry(cur_ch, prev_ch, prev_snr, cur_snr),
                 "prev_health": prev_health,
                 "current_health": cur_health,
                 "threshold": cur_health,
@@ -384,28 +378,8 @@ class EventDetector:
         to most severe. Each returned channel is tagged with the most severe
         label it crossed.
         """
-        prev_channels = {}
-        for ch in prev_analysis.get("ds_channels", []):
-            key = _normalize_channel_id(ch.get("channel_id"))
-            if key is None:
-                continue
-            prev_channels[key] = ch
-
         affected = []
-        for cur_ch in cur_analysis.get("ds_channels", []):
-            ch_id = cur_ch.get("channel_id")
-            key = _normalize_channel_id(ch_id)
-            if key is None:
-                continue
-            prev_ch = prev_channels.get(key)
-            if not prev_ch:
-                continue
-
-            prev_snr = _coerce_float(prev_ch.get("snr"))
-            cur_snr = _coerce_float(cur_ch.get("snr"))
-            if prev_snr is None or cur_snr is None:
-                continue
-
+        for cur_ch, prev_ch, prev_snr, cur_snr in _ds_snr_pairs(cur_analysis, prev_analysis):
             crossed = None
             for label, value in thresholds:
                 t = _coerce_float(value)
@@ -415,19 +389,7 @@ class EventDetector:
                     crossed = label  # ordered least → most severe; last wins
             if crossed is None:
                 continue
-
-            delta = round(cur_snr - prev_snr, 1)
-            affected.append({
-                "channel": ch_id,
-                "frequency": cur_ch.get("frequency") or prev_ch.get("frequency") or "",
-                "docsis_version": cur_ch.get("docsis_version") or prev_ch.get("docsis_version") or "",
-                "channel_type": channel_type_label("DS", cur_ch, prev_ch),
-                "modulation": cur_ch.get("modulation") or prev_ch.get("modulation") or "",
-                "prev": prev_snr,
-                "current": cur_snr,
-                "delta": 0.0 if delta == -0.0 else delta,
-                "threshold": crossed,
-            })
+            affected.append({**_snr_entry(cur_ch, prev_ch, prev_snr, cur_snr), "threshold": crossed})
 
         affected.sort(key=lambda ch: (ch["current"], str(ch["channel"])))
         return affected
@@ -435,42 +397,30 @@ class EventDetector:
     def _check_channels(self, events, ts, cur_analysis, prev_analysis):
         cur = cur_analysis.get("summary", {})
         prev = prev_analysis.get("summary", {})
-        ds_cur = cur.get("ds_total", 0)
-        ds_prev = prev.get("ds_total", 0)
-        us_cur = cur.get("us_total", 0)
-        us_prev = prev.get("us_total", 0)
 
-        def channel_map(analysis, source):
-            mapped = {}
-            for ch in analysis.get(source, []):
-                key = _normalize_channel_id(ch.get("channel_id"))
-                if key is not None:
-                    mapped[key] = ch
-            return mapped
-
-        def channel_detail(ch, direction):
+        def channel_detail(ch, label):
             detail = {
                 "channel": ch.get("channel_id"),
                 "frequency": ch.get("frequency") or "",
                 "docsis_version": ch.get("docsis_version") or "",
-                "channel_type": channel_type_label(direction, ch),
+                "channel_type": channel_type_label(label, ch),
                 "modulation": ch.get("modulation") or "",
             }
             return {k: v for k, v in detail.items() if v not in (None, "")}
 
-        def changed_channels(direction, source):
-            cur_map = channel_map(cur_analysis, source)
-            prev_map = channel_map(prev_analysis, source)
-            lost = [channel_detail(prev_map[key], direction) for key in set(prev_map) - set(cur_map)]
-            added = [channel_detail(cur_map[key], direction) for key in set(cur_map) - set(prev_map)]
+        for label, direction, prefix in _DIRECTIONS:
+            count_cur = cur.get(f"{prefix}_total", 0)
+            count_prev = prev.get(f"{prefix}_total", 0)
+            if count_cur == count_prev:
+                continue
+            cur_map = _channel_map(cur_analysis, prefix)
+            prev_map = _channel_map(prev_analysis, prefix)
+            lost = [channel_detail(prev_map[key], label) for key in set(prev_map) - set(cur_map)]
+            added = [channel_detail(cur_map[key], label) for key in set(cur_map) - set(prev_map)]
             lost.sort(key=lambda ch: str(ch.get("channel", "")))
             added.sort(key=lambda ch: str(ch.get("channel", "")))
-            return lost, added
-
-        if ds_cur != ds_prev:
-            lost, added = changed_channels("DS", "ds_channels")
-            is_loss = ds_cur < ds_prev
-            details = {"direction": "downstream", "prev": ds_prev, "current": ds_cur, "change": "loss" if is_loss else "gain"}
+            is_loss = count_cur < count_prev
+            details = {"direction": direction, "prev": count_prev, "current": count_cur, "change": "loss" if is_loss else "gain"}
             if lost:
                 details["lost_channels"] = lost
             if added:
@@ -479,35 +429,11 @@ class EventDetector:
                 "timestamp": ts,
                 "severity": "warning" if is_loss else "info",
                 "event_type": "channel_change",
-                "message": f"DS channel count changed from {ds_prev} to {ds_cur}",
-                "details": details,
-            })
-        if us_cur != us_prev:
-            lost, added = changed_channels("US", "us_channels")
-            is_loss = us_cur < us_prev
-            details = {"direction": "upstream", "prev": us_prev, "current": us_cur, "change": "loss" if is_loss else "gain"}
-            if lost:
-                details["lost_channels"] = lost
-            if added:
-                details["added_channels"] = added
-            events.append({
-                "timestamp": ts,
-                "severity": "warning" if is_loss else "info",
-                "event_type": "channel_change",
-                "message": f"US channel count changed from {us_prev} to {us_cur}",
+                "message": f"{label} channel count changed from {count_prev} to {count_cur}",
                 "details": details,
             })
 
     def _check_modulation(self, events, ts, cur_analysis, prev_analysis):
-        def channel_map(analysis, direction):
-            source = "ds_channels" if direction == "DS" else "us_channels"
-            mapped = {}
-            for ch in analysis.get(source, []):
-                key = _normalize_channel_id(ch.get("channel_id"))
-                if key is not None:
-                    mapped[key] = ch
-            return mapped
-
         def change_entry(direction, cur_ch, prev_ch):
             cur_mod = cur_ch.get("modulation", "")
             prev_mod = prev_ch.get("modulation", "")
@@ -539,27 +465,19 @@ class EventDetector:
                 entry["frequency"] = frequency
             return entry
 
-        cur_ds = channel_map(cur_analysis, "DS")
-        prev_ds = channel_map(prev_analysis, "DS")
-        cur_us = channel_map(cur_analysis, "US")
-        prev_us = channel_map(prev_analysis, "US")
-
         downgrades = []
         upgrades = []
-        for key in set(cur_ds) & set(prev_ds):
-            if cur_ds[key].get("modulation", "") != prev_ds[key].get("modulation", ""):
-                entry = change_entry("DS", cur_ds[key], prev_ds[key])
-                if entry["current_rank"] < entry["prev_rank"]:
-                    downgrades.append(entry)
-                else:
-                    upgrades.append(entry)
-        for key in set(cur_us) & set(prev_us):
-            if cur_us[key].get("modulation", "") != prev_us[key].get("modulation", ""):
-                entry = change_entry("US", cur_us[key], prev_us[key])
-                if entry["current_rank"] < entry["prev_rank"]:
-                    downgrades.append(entry)
-                else:
-                    upgrades.append(entry)
+        for label, _, prefix in _DIRECTIONS:
+            cur_map = _channel_map(cur_analysis, prefix)
+            prev_map = _channel_map(prev_analysis, prefix)
+            for key, cur_ch in cur_map.items():
+                prev_ch = prev_map.get(key)
+                if prev_ch is not None and cur_ch.get("modulation", "") != prev_ch.get("modulation", ""):
+                    entry = change_entry(label, cur_ch, prev_ch)
+                    if entry["current_rank"] < entry["prev_rank"]:
+                        downgrades.append(entry)
+                    else:
+                        upgrades.append(entry)
 
         if downgrades:
             max_drop = max(d["rank_drop"] for d in downgrades)
@@ -629,8 +547,8 @@ class EventDetector:
 
     def _check_restart(self, events, ts, cur, prev):
         """Detect modem restart via per-channel error counter reset."""
-        prev_channels = {ch["channel_id"]: ch for ch in prev.get("ds_channels", [])}
-        cur_channels = {ch["channel_id"]: ch for ch in cur.get("ds_channels", [])}
+        prev_channels = _channel_map(prev, "ds")
+        cur_channels = _channel_map(cur, "ds")
 
         overlap_ids = set(prev_channels.keys()) & set(cur_channels.keys())
 
