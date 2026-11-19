@@ -84,6 +84,10 @@ def _metric(lines, help_text, metric_type, name, value, labels=None):
     _metric_value(lines, name, value, labels)
 
 
+def _channel_qam_order(channel):
+    return _parse_qam_order(channel.get("modulation", ""))
+
+
 # Per-channel metric families in output order:
 # (analysis key, metric name, type, help text, value accessor).
 _CHANNEL_METRICS = (
@@ -96,13 +100,11 @@ _CHANNEL_METRICS = (
     ("ds_channels", "docsight_downstream_uncorrected_errors_total", "counter",
      "Downstream channel uncorrectable codeword errors (cumulative)", lambda ch: ch.get("uncorrectable_errors")),
     ("ds_channels", "docsight_downstream_modulation", "gauge",
-     "Downstream channel QAM modulation order (e.g. 256 for 256-QAM)",
-     lambda ch: _parse_qam_order(ch.get("modulation", ""))),
+     "Downstream channel QAM modulation order (e.g. 256 for 256-QAM)", _channel_qam_order),
     ("us_channels", "docsight_upstream_power_dbmv", "gauge",
      "Upstream channel transmit power level in dBmV", lambda ch: ch.get("power")),
     ("us_channels", "docsight_upstream_modulation", "gauge",
-     "Upstream channel QAM modulation order (e.g. 64 for 64-QAM)",
-     lambda ch: _parse_qam_order(ch.get("modulation", ""))),
+     "Upstream channel QAM modulation order (e.g. 64 for 64-QAM)", _channel_qam_order),
 )
 
 # Info metrics whose label carries a mutable device value:
