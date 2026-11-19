@@ -92,7 +92,7 @@ class UltraHub7Driver(ModemDriver):
                 if not self._csrf_token:
                     raise RuntimeError("CSRF token not found in initial response")
 
-                log.info("Got router ID: %s, CSRF token: %s...", self._router_id, self._csrf_token[:8])
+                log.info("Got router ID: %s and CSRF token", self._router_id)
 
                 # Step 2: Get WebUISecret from device
                 details_url = f"{self._url}/api/users/details.jst"

@@ -179,13 +179,13 @@ class VodafoneStationDriver(ModemDriver):
         )
         r1.raise_for_status()
         salt_data = r1.json()
-        log.debug("CGA salt response: %s", salt_data)
+        log.debug("CGA salt response keys: %s", list(salt_data))
 
         salt = salt_data.get("salt", "")
         salt_webui = salt_data.get("saltwebui", "")
         if not salt or not salt_webui:
             raise RuntimeError(
-                f"CGA: No salt/saltwebui in response (got: {salt_data})"
+                f"CGA: No salt/saltwebui in response (keys: {list(salt_data)})"
             )
 
         # Step 2: First PBKDF2 -- password + salt -> hash1
@@ -454,8 +454,7 @@ class VodafoneStationDriver(ModemDriver):
         # Validate hex format before parsing
         self._validate_hex(salt_hex, "mySalt")
         self._validate_hex(iv_hex, "myIv")
-        log.debug("TG extracted: sessionId=%s..., myIv=%s, mySalt=%s",
-                   session_id[:8], iv_hex, salt_hex)
+        log.debug("TG extracted: sessionId, myIv=%s, mySalt=%s", iv_hex, salt_hex)
 
         # Step 2: Derive AES key via PBKDF2
         key = pbkdf2_sha256(
@@ -506,8 +505,7 @@ class VodafoneStationDriver(ModemDriver):
         if p_status == "AdminMatch":
             log.info("TG login: AdminMatch (existing admin session detected)")
         elif p_status and p_status not in ("OK", "Lockout", "Fail", ""):
-            log.warning("TG login: unexpected p_status=%r (full response: %s)",
-                        p_status, {k: v for k, v in resp.items() if k != "encryptData"})
+            log.warning("TG login: unexpected p_status=%r (keys: %s)", p_status, list(resp))
 
         encrypted_nonce = resp.get("encryptData", "")
         if encrypted_nonce:
@@ -515,8 +513,7 @@ class VodafoneStationDriver(ModemDriver):
             nonce_full = decrypted.decode("utf-8")
             self._tg_nonce = nonce_full[:32]
             if len(nonce_full) > 32:
-                log.debug("TG nonce decrypted: %d chars (using first 32): %s",
-                          len(nonce_full), repr(nonce_full[:64]))
+                log.debug("TG nonce decrypted: %d chars (using first 32)", len(nonce_full))
         else:
             self._tg_nonce = resp.get("nonce", session_id)
 
@@ -543,10 +540,10 @@ class VodafoneStationDriver(ModemDriver):
             log.debug("TG session init failed (non-critical): %s", e)
 
         log.info("TG auth OK")
-        log.debug("TG login: p_status=%s, keys=%s, nonce=%s..., cookies=%d, "
+        log.debug("TG login: p_status=%s, keys=%s, nonce=%s, cookies=%d, "
                   "cookie_names=%s",
                   resp.get("p_status", "?"), list(resp.keys()),
-                  self._tg_nonce[:8] if self._tg_nonce else "None",
+                  "present" if self._tg_nonce else "None",
                   len(self._session.cookies),
                   list(self._session.cookies.keys()))
 
@@ -602,7 +599,7 @@ class VodafoneStationDriver(ModemDriver):
             timeout=10,
         )
         if r.status_code != 200:
-            log.warning("TG DOCSIS data response %d: %s", r.status_code, r.text[:200])
+            log.warning("TG DOCSIS data response %d (%d bytes)", r.status_code, len(r.text))
         r.raise_for_status()
         return r
 

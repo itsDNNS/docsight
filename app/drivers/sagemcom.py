@@ -83,7 +83,7 @@ class SagemcomDriver(ModemDriver):
         for attempt in range(2):
             try:
                 self._do_login()
-                log.info("Sagemcom login OK (session %s)", self._session_id)
+                log.info("Sagemcom login OK")
                 self._logged_in = True
                 return
             except requests.ConnectionError:
@@ -270,7 +270,7 @@ class SagemcomDriver(ModemDriver):
             timeout=30,
         )
         if not r.ok:
-            log.debug("Sagemcom returned HTTP %d: %s", r.status_code, r.text[:500])
+            log.debug("Sagemcom returned HTTP %d (%d bytes)", r.status_code, len(r.text))
             self._logged_in = False
         r.raise_for_status()
 
@@ -280,7 +280,7 @@ class SagemcomDriver(ModemDriver):
             for action in resp.get("reply", {}).get("actions", []):
                 act_err = action.get("error", {})
                 if act_err.get("description") != "XMO_NO_ERR":
-                    log.debug("Sagemcom action error: %s", act_err)
+                    log.debug("Sagemcom action error: %s (code=%s)", act_err.get("description"), act_err.get("code"))
             desc = error.get("description", "")
             code = error.get("code")
             msg = f"Sagemcom XMO error: {desc} (code={code})"

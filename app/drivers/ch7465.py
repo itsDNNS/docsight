@@ -137,10 +137,12 @@ class CH7465Driver(ModemDriver):
                 error_msg = "login timeout"
             elif "KDGchangePW" in error_msg or 'passwordneedstochange' in error_msg:
                 error_msg = "password must be changed"
+            else:
+                error_msg = f"unrecognized reply ({len(response_text)} bytes)"
             raise RuntimeError(f"Modem authentication failed: {error_msg}")
 
         self._session.cookies.set("SID", sid)
-        log.info("Auth OK (SID: %s)", sid)
+        log.info("Auth OK")
 
     def get_docsis_data(self) -> DocsisData:
         """Query DOCSIS channel data."""
@@ -242,7 +244,7 @@ class CH7465Driver(ModemDriver):
             timeout=10,
             allow_redirects=False,
         )
-        log.debug("Auth cookies: SID=%s; sessionToken=%s", self._session.cookies.get("SID", ""), self._session.cookies.get("sessionToken", ""))
+        log.debug("Auth cookies set: SID=%s, sessionToken=%s", "SID" in self._session.cookies, "sessionToken" in self._session.cookies)
         r.raise_for_status()
         return r.text
 
@@ -261,7 +263,6 @@ class CH7465Driver(ModemDriver):
             timeout=10,
             allow_redirects=False,
         )
-        log.debug("Auth cookies: SID=%s; sessionToken=%s", self._session.cookies.get("SID", ""), self._session.cookies.get("sessionToken", ""))
         r.raise_for_status()
         return r.text
 

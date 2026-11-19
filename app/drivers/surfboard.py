@@ -454,7 +454,7 @@ class SurfboardDriver(ModemDriver):
         public_key = login_resp.get("PublicKey", "")
 
         if not challenge or not public_key:
-            log.debug("HNAP login response: %s", login_resp)
+            log.debug("HNAP login response keys: %s", list(login_resp))
             raise RuntimeError("SURFboard login failed: no challenge received")
 
         self._cookie = cookie
@@ -808,8 +808,8 @@ class SurfboardDriver(ModemDriver):
                 )
                 if not r.ok:
                     log.debug(
-                        "HNAP %s returned HTTP %d (%d bytes): %s",
-                        action, r.status_code, len(r.content), r.text[:500],
+                        "HNAP %s returned HTTP %d (%d bytes)",
+                        action, r.status_code, len(r.content),
                     )
                 r.raise_for_status()
                 return r.json()

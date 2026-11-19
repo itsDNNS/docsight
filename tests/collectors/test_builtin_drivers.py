@@ -1,10 +1,13 @@
 """Tests for builtin modem driver behavior used by collectors."""
 
+import logging
+
 import pytest
+from requests.cookies import RequestsCookieJar
 from unittest.mock import MagicMock, patch
 
 from app.drivers.fritzbox import FritzBoxDriver
-from app.drivers.ch7465 import CH7465Driver
+from app.drivers.ch7465 import CH7465Driver, Query
 
 
 class TestFritzBoxDriver:
@@ -103,6 +106,21 @@ class TestCH7465Driver:
         payload = d._set_data.call_args[0][1]
         assert "Username" not in payload
         assert "Password" in payload
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_session_values_stay_out_of_the_log(self, mock_session_cls, caplog):
+        d = CH7465Driver("http://192.168.0.1", "", "pass")
+        d._is_play = True
+        d._session.cookies = RequestsCookieJar()
+        d._session.cookies.set("sessionToken", "secret-token")
+        d._session.post.return_value = MagicMock(text="successSID=secret-sid")
+        caplog.set_level(logging.DEBUG, logger="docsis.driver.ch7465")
+
+        d.login()
+        d._get_data(Query.GLOBAL_SETTINGS)
+
+        assert caplog.messages
+        assert not [message for message in caplog.messages if "secret" in message]
 
     @patch("app.drivers.ch7465.requests.Session")
     def test_detect_play_firmware(self, mock_session_cls):

@@ -85,7 +85,7 @@ def login(url: str, user: str, password: str) -> str:
     if sid == "0000000000000000":
         raise RuntimeError("FritzBox authentication failed")
 
-    log.info("Auth OK (SID: %s...)", sid[:8])
+    log.info("Auth OK")
     return sid
 
 

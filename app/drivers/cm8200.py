@@ -181,7 +181,10 @@ class CM8200Driver(ModemDriver):
                     continue
                 raise RuntimeError("CM8200 authentication failed: connection refused after retry")
             except requests.RequestException as e:
-                raise RuntimeError(f"CM8200 authentication failed: {e}")
+                # The request URL carries the credentials, so leave it out of the message.
+                status = getattr(e.response, "status_code", None)
+                detail = f"{type(e).__name__} (HTTP {status})" if status else type(e).__name__
+                raise RuntimeError(f"CM8200 authentication failed: {detail}") from e
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables on status page."""

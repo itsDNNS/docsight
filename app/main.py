@@ -3,6 +3,7 @@
 import json as _json
 import logging
 import os
+import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -27,10 +28,38 @@ except ImportError:
     class _TransientHtmlError(Exception):  # type: ignore[no-redef]
         """Stub -- never raised when surfboard driver is absent."""
 
+_LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+# URL userinfo and query strings carry credentials and tokens (notification
+# URLs, modem login URLs). Userinfo ends at the last "@" of the authority;
+# "url: /path?query" is how urllib3 connection errors quote the request.
+_URL_RE = re.compile(
+    r"(?:([A-Za-z][A-Za-z0-9+.-]*://)([^\s\"<>/?#]*@)?|(?<=url: )(?=/))([^\s\"<>?]*)(\?[^\s\"<>]*)?"
+)
+
+
+def _redact_urls(text: str) -> str:
+    return _URL_RE.sub(
+        lambda m: (m[1] or "") + ("***@" if m[2] else "") + m[3] + ("?***" if m[4] else ""), text
+    )
+
+
+class _RedactingFormatter(logging.Formatter):
+    def format(self, record):
+        return _redact_urls(super().format(record))
+
+
 logging.basicConfig(
     level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format=_LOG_FORMAT,
 )
+# The desktop launcher configures its root handlers before importing this module.
+for _root_handler in logging.getLogger().handlers:
+    _root_handler.setFormatter(_RedactingFormatter(_LOG_FORMAT))
+# urllib3 logs request URLs with path and query (every request at DEBUG, header
+# parse failures at WARNING), which would copy tokens in notification and modem
+# URLs into the log.
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("urllib3.connection").setLevel(logging.ERROR)
 log = logging.getLogger("docsis.main")
 
 COLLECTOR_LONG_RUNNING_SECONDS = 120
@@ -43,7 +72,7 @@ class _AuditJsonFormatter(logging.Formatter):
         return _json.dumps({
             "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
             "level": record.levelname,
-            "event": record.getMessage(),
+            "event": _redact_urls(record.getMessage()),
         }, ensure_ascii=False)
 
 
