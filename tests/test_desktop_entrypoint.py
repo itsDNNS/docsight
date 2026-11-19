@@ -1865,9 +1865,16 @@ def test_tray_log_command_uses_owner_log_folder(monkeypatch, tmp_path):
     assert opened == [tmp_path / "logs"]
 
 
+@pytest.mark.parametrize(
+    ("truncate_at", "failure_type"),
+    [(None, "FileNotFoundError"), (100, "OSError")],
+    ids=["missing", "truncated"],
+)
 def test_interactive_tray_start_failure_restores_sanitized_recovery(
     monkeypatch,
     tmp_path,
+    truncate_at,
+    failure_type,
 ):
     logged = []
     rendered = []
@@ -1886,16 +1893,18 @@ def test_interactive_tray_start_failure_restores_sanitized_recovery(
     view._tray_started = False
     view.render = lambda: rendered.append("render")
 
-    tray_args = []
-
-    class FailingTray:
-        def __init__(self, *args):
-            tray_args.append(args)
-
-        def start(self):
-            raise RuntimeError("private path")
-
-    monkeypatch.setattr(desktop, "WindowsTray", FailingTray)
+    icon_path = tmp_path / "app" / "static" / "icon.png"
+    if truncate_at is not None:
+        icon_path.parent.mkdir(parents=True)
+        icon_path.write_bytes(
+            (ROOT / "app" / "static" / "icon.png").read_bytes()[:truncate_at]
+        )
+    monkeypatch.setattr(desktop, "get_runtime_root", lambda: tmp_path)
+    monkeypatch.setitem(
+        sys.modules,
+        "pystray",
+        SimpleNamespace(Menu=lambda *items: items, MenuItem=lambda *args, **kwargs: args),
+    )
     monkeypatch.setattr(
         desktop.LOG,
         "error",
@@ -1908,12 +1917,9 @@ def test_interactive_tray_start_failure_restores_sanitized_recovery(
     assert controller.state.recovery is desktop.RecoveryCode.STARTUP_FAILED
     assert "tray controls could not start" in controller.state.status
     assert logged == [
-        "Recovery available: tray_startup_failure (failure type: RuntimeError)"
+        f"Recovery available: tray_startup_failure (failure type: {failure_type})"
     ]
-    assert "private path" not in logged[0]
-    icon_path = tray_args[0][2]
-    assert icon_path == ROOT / "app" / "static" / "icon.png"
-    assert icon_path.is_file()
+    assert view._tray is None
 
 
 def test_shutdown_is_idempotent_and_orders_server_worker_tray_cleanup():

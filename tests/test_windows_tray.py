@@ -105,7 +105,7 @@ def test_tray_uses_bundled_icon_and_default_action_opens_app(tmp_path, pystray_s
     assert default_item.label == "Open DOCSight"
     assert commands == [tray.TrayCommand.OPEN_APP]
     image = pystray_stub["icon"]
-    assert image.size == (512, 512)
+    assert (image.filename, image.size) == (str(ICON_PATH), (512, 512))
     # pystray hands Windows the image as an ICO file.
     image.save(BytesIO(), format="ICO")
 

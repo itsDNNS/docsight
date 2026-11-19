@@ -176,10 +176,10 @@ same label is stored unchanged as the executable's human-readable
 
 ### Executable resources and version mapping
 
-`DOCSight.exe` uses the checked-in `docsight.ico`, derived from
-`app/static/icon.png`, with 16, 24, 32, 48, 64, 128, and 256 pixel images. The
-build also generates a PyInstaller VERSIONINFO resource under the ignored
-`packaging/windows/build/` directory.
+`DOCSight.exe` uses the checked-in `docsight.ico` with 16, 24, 32, 48, 64, 128,
+and 256 pixel images. The notification-area icon is loaded from
+`app/static/icon.png` instead. The build also generates a PyInstaller
+VERSIONINFO resource under the ignored `packaging/windows/build/` directory.
 
 Release labels in the form `vYYYY-MM-DD.N` map directly to numeric PE versions
 `YYYY.M.D.N`; for example, `v2026-07-29.1` maps to `2026.7.29.1`. A suffixed
