@@ -19,7 +19,8 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: github-actions
-    directory: "/"
+    # The composite action keeps its own pins outside the workflow files.
+    directories: ["/", "/.github/actions/browser-test-env"]
     schedule:
       interval: weekly
     commit-message:

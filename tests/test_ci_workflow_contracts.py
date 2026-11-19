@@ -17,6 +17,7 @@ yaml = pytest.importorskip(
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
+BROWSER_ACTION = ".github/actions/browser-test-env/action.yml"
 
 
 def load_workflow(name):
@@ -322,40 +323,52 @@ def test_visual_review_is_read_only_and_informational():
     assert steps["Upload screenshots and differences"]["if"] == "always()"
 
 
-@pytest.mark.parametrize("name", ["full-e2e.yml", "docker.yml", "test.yml", "visual-review.yml"])
-def test_changed_workflows_keep_every_action_sha_pinned(name):
-    workflow = load_workflow(name)
-    uses = [
-        step["uses"]
-        for job in workflow["jobs"].values()
-        for step in job.get("steps", [])
-        if "uses" in step
-    ]
+def _steps(path):
+    document = yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
+    if "runs" in document:
+        return document["runs"]["steps"]
+    return [step for job in document["jobs"].values() for step in job.get("steps", [])]
+
+
+@pytest.mark.parametrize("path", [
+    *(f".github/workflows/{name}" for name in ("full-e2e.yml", "docker.yml", "test.yml", "visual-review.yml")),
+    BROWSER_ACTION,
+])
+def test_changed_workflows_keep_every_action_sha_pinned(path):
+    uses = [step["uses"] for step in _steps(path) if "uses" in step]
     assert uses
-    assert all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", action) for action in uses)
+    assert all(re.fullmatch(r"\./.+|[^@]+@[0-9a-f]{40}", action) for action in uses)
 
 
-@pytest.mark.parametrize("name", ["full-e2e.yml", "test.yml", "visual-review.yml"])
-def test_browser_jobs_install_chromium_from_the_cache(name):
+def test_browser_jobs_install_chromium_from_the_cache():
     """A slow Ubuntu mirror must not decide how long a browser job takes."""
-    browser_jobs = {
-        job_id: job["steps"]
-        for job_id, job in load_workflow(name)["jobs"].items()
-        if any("playwright" in step.get("run", "") for step in job.get("steps", []))
+    setups, runs = {}, []
+    for name in ("full-e2e.yml", "test.yml", "visual-review.yml"):
+        for job_id, job in load_workflow(name)["jobs"].items():
+            for step in job["steps"]:
+                runs.append(step.get("run", ""))
+                if step.get("uses", "").endswith("/browser-test-env"):
+                    setups[job_id] = (step["uses"], step.get("with"))
+    assert setups == {
+        "e2e-shards": ("./.github/actions/browser-test-env", None),
+        "mobile-e2e": ("./.github/actions/browser-test-env", None),
+        "visual-review": ("./head/.github/actions/browser-test-env", {"root": "head"}),
     }
-    assert browser_jobs
-    for job_id, steps in browser_jobs.items():
-        runs = "\n".join(step.get("run", "") for step in steps)
-        assert "playwright install" not in runs, job_id
-        assert "scripts/install_playwright_chromium.sh" in runs, job_id
-        names = [step.get("name") for step in steps]
-        cache = steps[names.index("Cache the Playwright browser and its system packages")]
-        assert cache["uses"].startswith("actions/cache@")
-        assert "~/.cache/ms-playwright" in cache["with"]["path"]
-        assert "~/.cache/playwright-apt" in cache["with"]["path"]
-        assert "steps.runner-image.outputs.version" in cache["with"]["key"]
-        assert names.index("Read the runner image") < names.index("Cache the Playwright browser and its system packages")
-        assert names.index("Cache the Playwright browser and its system packages") < names.index("Install dependencies")
+    assert not any("playwright install" in run or "install_playwright_chromium" in run for run in runs)
+
+    python, runner_image, cache, install = _steps(BROWSER_ACTION)
+    assert python["uses"].startswith("actions/setup-python@")
+    assert "${{ inputs.root }}/requirements-test.txt" in python["with"]["cache-dependency-path"]
+    assert runner_image["id"] == "runner-image"
+    assert cache["uses"].startswith("actions/cache@")
+    assert "~/.cache/ms-playwright" in cache["with"]["path"]
+    assert "~/.cache/playwright-apt" in cache["with"]["path"]
+    assert "steps.runner-image.outputs.version" in cache["with"]["key"]
+    assert install["working-directory"] == "${{ inputs.root }}"
+    assert "bash scripts/install_playwright_chromium.sh" in install["run"]
+    # A Playwright bump that misses the cache key would restore the old browser.
+    version = re.search(r" playwright==(\S+)", install["run"]).group(1)
+    assert cache["with"]["key"].startswith(f"playwright-chromium-{version}-")
 
 
 def test_the_chromium_install_script_caches_the_apt_archives_and_lists():
