@@ -135,12 +135,18 @@ def make_config(tmp_path):
 
 
 @pytest.fixture
-def mock_storage(tmp_path):
-    """Return a storage mock whose database lives in the test's temporary directory."""
+def mock_storage(tmp_path_factory):
+    """Return a storage mock whose database lives in its own temporary directory."""
     storage = MagicMock()
-    storage.db_path = str(tmp_path / "test.db")
+    storage.db_path = str(tmp_path_factory.mktemp("storage") / "test.db")
     storage.get_device_state.return_value = {}
     return storage
+
+
+@pytest.fixture
+def class_mock_storage(request, mock_storage):
+    """Expose mock_storage as self.storage to the helpers of a test class."""
+    request.instance.storage = mock_storage
 
 
 @pytest.fixture

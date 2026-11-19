@@ -7,11 +7,7 @@ import pytest
 from app.modules.bnetz.collector import BnetzWatcherCollector, _read_marker, _append_marker
 
 
-@pytest.fixture(autouse=True)
-def _storage(request, mock_storage):
-    request.instance.storage = mock_storage
-
-
+@pytest.mark.usefixtures("class_mock_storage")
 class TestBnetzWatcherEnabled:
     def _make_collector(self, watch_configured=True):
         config_mgr = MagicMock()
@@ -38,6 +34,7 @@ class TestBnetzWatcherEnabled:
         assert c.poll_interval_seconds == 300
 
 
+@pytest.mark.usefixtures("class_mock_storage")
 class TestBnetzWatcherCollect:
     def _make_collector(self, watch_dir):
         config_mgr = MagicMock()

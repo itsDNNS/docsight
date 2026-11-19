@@ -10,11 +10,7 @@ from app.modules.speedtest.collector import SpeedtestCollector
 from app.modules.bqm.collector import BQMCollector
 
 
-@pytest.fixture(autouse=True)
-def _storage(request, mock_storage):
-    request.instance.storage = mock_storage
-
-
+@pytest.mark.usefixtures("class_mock_storage")
 class TestSpeedtestCollector:
     def _make_collector(self, configured=True):
         config_mgr = MagicMock()
@@ -220,6 +216,7 @@ class TestBackupCollector:
 # ── BQMCollector Tests ──
 
 
+@pytest.mark.usefixtures("class_mock_storage")
 class TestBQMCollector:
     def _make_collector(self, configured=True, collect_time="02:00", bqm_url="https://www.thinkbroadband.com/broadband/monitoring/quality/share/bd77751689f2f7b8d47d99899335aef060c9e768-2-y.csv"):
         config_mgr = MagicMock()
