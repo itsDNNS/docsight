@@ -126,8 +126,7 @@ def test_modulation_target_is_the_lowest_order_the_scoring_rates_good(direction,
         qam = f"{order}QAM"
         if direction == "ds":
             return _assess_ds_modulation(qam, "3.0" if family == "sc_qam" else docsis)
-        probe = {"modulation": "OFDMA", "type": "OFDMA", "profile_modulation": qam} if family == "ofdma" else {"modulation": qam, "type": "ATDMA"}
-        return _assess_us_modulation(probe, docsis)
+        return _assess_us_modulation(qam, family, docsis)
 
     assert modulation_target(direction, {"channel_family": family, "docsis_version": docsis}) == f"{target}QAM"
     assert rated(target) == "good"

@@ -19,6 +19,7 @@ from .modem import AnalysisCollector
 from ..analyzer import (
     _assess_us_channel,
     _channel_bitrate_mbps,
+    _channel_health,
     _metric_healths,
     _signal_family_fields,
 )
@@ -477,14 +478,7 @@ class DemoCollector(AnalysisCollector):
             us_total_power += power
 
             us31_mod = ch.get("modulation") or ch.get("type", "OFDMA")
-            assessed_channel = {
-                "powerLevel": power,
-                "modulation": us31_mod,
-                "profile_modulation": profile_modulation,
-                "type": ch.get("type", "OFDMA"),
-            }
-            health, health_detail = _assess_us_channel(assessed_channel, "3.1")
-            metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
+            issues, _ = _assess_us_channel(power, profile_modulation, "ofdma", "3.1")
 
             us_channels.append({
                 "channel_id": ch["channelID"],
@@ -494,10 +488,10 @@ class DemoCollector(AnalysisCollector):
                 "profile_modulation": profile_modulation,
                 "multiplex": ch.get("multiplex", "OFDMA"),
                 "docsis_version": "3.1",
-                "health": health,
-                "health_detail": health_detail,
+                "health": _channel_health(issues),
+                "health_detail": " + ".join(issues),
                 "theoretical_bitrate": _channel_bitrate_mbps(us31_mod),
-                **metric_h,
+                **_metric_healths(issues),
             })
 
         ds_count = len(ds_channels)
