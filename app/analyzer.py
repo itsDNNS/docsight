@@ -158,7 +158,7 @@ def resolve_us_power_thresholds(channel_type=None, *, thresholds: Mapping[str, A
     """
     us = thresholds.get("upstream_power", {})
     default_key = us.get("_default", "sc_qam")
-    if channel_type and channel_type.upper() in ("OFDMA",):
+    if channel_type and channel_type.upper() == "OFDMA":
         key = "ofdma"
     else:
         key = "sc_qam"
@@ -253,19 +253,9 @@ def _assess_ds_modulation(modulation: str, docsis_ver: str) -> str:
     return "critical"
 
 
-def _assess_us_modulation(ch, docsis_ver: str) -> str:
-    """Return upstream modulation health, including OFDMA profile QAM."""
-    modulation = ch.get("modulation") or ch.get("type") or ""
-    profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
-    family = _classify_us_family({
-        "type": ch.get("type", ""),
-        "multiplex": ch.get("multiplex", ""),
-        "modulation": modulation,
-        "profile_modulation": profile_modulation,
-        "docsis_version": docsis_ver,
-    })
-    assessment_modulation = profile_modulation if family == "ofdma" and profile_modulation else modulation
-    qam_order = _parse_qam_order(assessment_modulation)
+def _assess_us_modulation(modulation, family: str, docsis_ver: str) -> str:
+    """Return upstream modulation health; OFDMA channels pass their profile QAM."""
+    qam_order = _parse_qam_order(modulation)
     if qam_order is None:
         return "good"
 
@@ -289,24 +279,17 @@ def _assess_us_modulation(ch, docsis_ver: str) -> str:
 _QAM_ORDERS = (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096)
 
 
-def modulation_target(direction: str, channel: dict) -> str | None:
+def modulation_target(direction: str, family: str, docsis_ver: str) -> str | None:
     """Return the lowest modulation the channel scoring rates good, e.g. "1024QAM".
 
     Probes the same assessment the analyzer uses, so the shown target can never
     drift from the rating. Returns None when the channel's modulation is not rated.
     """
-    family = channel.get("channel_family") or ""
-    docsis_ver = channel.get("docsis_version") or "3.0"
-
     def rated_good(order: int) -> bool:
         qam = f"{order}QAM"
         if direction == "ds":
             return _assess_ds_modulation(qam, "3.0" if family == "sc_qam" else docsis_ver) == "good"
-        if family == "ofdma":
-            probe = {"modulation": "OFDMA", "type": "OFDMA", "profile_modulation": qam}
-        else:
-            probe = {"modulation": qam, "type": ""}
-        return _assess_us_modulation(probe, docsis_ver) == "good"
+        return _assess_us_modulation(qam, family, docsis_ver) == "good"
 
     good = [order for order in _QAM_ORDERS if rated_good(order)]
     if not good or len(good) == len(_QAM_ORDERS):
@@ -339,17 +322,26 @@ def _uncorr_issue(issue: str) -> bool:
     return "uncorr" in issue
 
 
-def _recalculate_summary_health(summary) -> None:
-    """Recalculate aggregate health from summary health_issues."""
-    issues = summary["health_issues"]
+def _summary_health(issues) -> str:
+    """Return aggregate health from summary health_issues."""
     if not issues:
-        summary["health"] = "good"
-    elif any("critical" in i for i in issues):
-        summary["health"] = "critical"
-    elif any("marginal" in i for i in issues):
-        summary["health"] = "marginal"
-    else:
-        summary["health"] = "tolerated"
+        return "good"
+    if any("critical" in i for i in issues):
+        return "critical"
+    if any("marginal" in i for i in issues):
+        return "marginal"
+    return "tolerated"
+
+
+def _uncorr_pct_issue(uncorr_pct, et) -> str | None:
+    """Return the summary issue for an uncorrectable-error percentage."""
+    if uncorr_pct is None:
+        return None
+    if uncorr_pct >= et["critical"]:
+        return "uncorr_errors_critical"
+    if uncorr_pct >= et["warning"]:
+        return "uncorr_errors_high"
+    return None
 
 
 def _has_comparable_baseline_schema(schema) -> bool:
@@ -430,12 +422,7 @@ def apply_cumulative_error_baseline(
         growth.comparable_uncorrectable_delta,
         min_codewords=et["min_codewords"],
     )
-    uncorr_issue = None
-    if uncorr_pct is not None:
-        if uncorr_pct >= et["critical"]:
-            uncorr_issue = "uncorr_errors_critical"
-        elif uncorr_pct >= et["warning"]:
-            uncorr_issue = "uncorr_errors_high"
+    uncorr_issue = _uncorr_pct_issue(uncorr_pct, et)
 
     summary["ds_uncorr_pct"] = uncorr_pct
     summary["health_issues"] = [i for i in summary["health_issues"] if not _uncorr_issue(i)]
@@ -466,7 +453,7 @@ def apply_cumulative_error_baseline(
         "ds_correctable_delta": growth.comparable_correctable_delta,
         "ds_uncorrectable_delta": growth.comparable_uncorrectable_delta,
     }
-    _recalculate_summary_health(summary)
+    summary["health"] = _summary_health(summary["health_issues"])
 
 
 def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None) -> None:
@@ -510,7 +497,7 @@ def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None)
         "expiry_hours": expiry_hours,
     }
 
-    _recalculate_summary_health(summary)
+    summary["health"] = _summary_health(summary["health_issues"])
 
 
 # DOCSIS SC-QAM default symbol rates (kSym/s) used when modems omit the
@@ -563,7 +550,7 @@ def _capacity_coverage(channels):
     return {
         "calculated": calculated,
         "total": total,
-        "unsupported": max(0, total - calculated),
+        "unsupported": total - calculated,
     }
 
 
@@ -610,17 +597,10 @@ def _channel_health(issues):
     return "tolerated"
 
 
-def _health_detail(issues):
-    """Build a machine-readable detail string from issue list."""
-    if not issues:
-        return ""
-    return " + ".join(issues)
-
-
-def _metric_healths(issues):
+def _metric_healths(issues, metrics=("power", "snr", "modulation")):
     """Extract per-metric health levels from issue list."""
     result = {}
-    for metric in ("power", "snr", "modulation"):
+    for metric in metrics:
         if any(i.startswith(metric + " critical") for i in issues):
             result[metric + "_health"] = "critical"
         elif any(i.startswith(metric + " warning") for i in issues):
@@ -866,52 +846,32 @@ def _signal_family_fields(ds_channels, us_channels):
     }
 
 
-def _assess_ds_channel(
-    ch,
-    docsis_ver,
-    *,
-    modulation_docsis_ver: str | None = None,
-    channel_family: str | None = None,
-):
-    """Assess a single downstream channel. Returns (health, health_detail)."""
+def _assess_ds_channel(power, snr, modulation, family):
+    """Assess one downstream channel. Returns (issues, modulation_health)."""
     issues = []
-    raw_power = ch.get("powerLevel")
-    modulation = (ch.get("modulation") or ch.get("type") or "").upper().replace("-", "")
+    if power is not None:
+        pt = _get_ds_power_thresholds(modulation, channel_family=family)
+        if power < pt["crit_min"] or power > pt["crit_max"]:
+            issues.append("power critical")
+        elif power < pt["warn_min"] or power > pt["warn_max"]:
+            issues.append("power warning")
+        elif power < pt["good_min"] or power > pt["good_max"]:
+            issues.append("power tolerated")
 
-    if raw_power is not None:
-        power = _parse_float(raw_power)
-        if power is not None:
-            pt = _get_ds_power_thresholds(modulation, channel_family=channel_family)
-            if power < pt["crit_min"] or power > pt["crit_max"]:
-                issues.append("power critical")
-            elif power < pt["warn_min"] or power > pt["warn_max"]:
-                issues.append("power warning")
-            elif power < pt["good_min"] or power > pt["good_max"]:
-                issues.append("power tolerated")
-
-    snr_val = None
-    raw_mse = ch.get("mse")
-    raw_mer = ch.get("mer")
-    if docsis_ver == "3.0" and raw_mse is not None:
-        parsed_mse = _parse_float(raw_mse)
-        snr_val = abs(parsed_mse) if parsed_mse is not None else None
-    elif docsis_ver == "3.1" and raw_mer is not None:
-        snr_val = _parse_float(raw_mer)
-
-    if snr_val is not None:
-        st = _get_snr_thresholds(modulation, channel_family=channel_family)
-        if snr_val < st["crit_min"]:
+    if snr is not None:
+        st = _get_snr_thresholds(modulation, channel_family=family)
+        if snr < st["crit_min"]:
             issues.append("snr critical")
-        elif snr_val < st["warn_min"]:
+        elif snr < st["warn_min"]:
             issues.append("snr warning")
-        elif snr_val < st["good_min"]:
+        elif snr < st["good_min"]:
             issues.append("snr tolerated")
 
-    mod_issue = _modulation_issue(_assess_ds_modulation(modulation, modulation_docsis_ver or docsis_ver))
+    modulation_health = _assess_ds_modulation(modulation, "3.0" if family == "sc_qam" else "3.1")
+    mod_issue = _modulation_issue(modulation_health)
     if mod_issue:
         issues.append(mod_issue)
-
-    return _channel_health(issues), _health_detail(issues)
+    return issues, modulation_health
 
 
 def _keep_power_display_offset(raw_channel, channel):
@@ -921,58 +881,139 @@ def _keep_power_display_offset(raw_channel, channel):
         channel["modem_power_offset_db"] = offset
 
 
-def _assess_us_channel(ch, docsis_ver="3.0"):
-    """Assess a single upstream channel. Returns (health, health_detail)."""
-    issues = []
-    raw_power = ch.get("powerLevel")
+def _assess_us_channel(power, modulation, family, docsis_ver):
+    """Assess one upstream channel. Returns (issues, modulation_health).
 
-    modulation = ch.get("modulation") or ch.get("type") or ""
+    ``modulation`` is the profile QAM for OFDMA channels that report one.
+    """
+    issues = []
+    if power is not None:
+        pt = _get_us_power_thresholds(family)
+        # Low transmit power is rated at most as a warning. It usually means
+        # low attenuation in the home wiring, does not degrade the modem's
+        # own link, and the operator specification defines no lower limit.
+        # Rating the channel, not only the summary, keeps the channel badge,
+        # line status and overall health consistent. The profile's critical
+        # minimum still scales displays and explains older snapshots.
+        # Low OFDMA power is not rated at all (see resolve_us_power_thresholds);
+        # the OFDMA profile modulation carries the line quality there, and
+        # sudden drops are reported as power_change events.
+        rate_low = pt["rate_low"]
+        plausible_min = pt["plausible_min"]
+        if power > pt["crit_max"]:
+            issues.append("power critical high")
+        elif plausible_min is not None and power < plausible_min:
+            issues.append("power warning low")
+        elif rate_low and power < pt["warn_min"]:
+            issues.append("power warning low")
+        elif power > pt["warn_max"]:
+            issues.append("power warning high")
+        elif rate_low and power < pt["good_min"]:
+            issues.append("power tolerated low")
+        elif power > pt["good_max"]:
+            issues.append("power tolerated high")
+    modulation_health = _assess_us_modulation(modulation, family, docsis_ver)
+    mod_issue = _modulation_issue(modulation_health)
+    if mod_issue:
+        issues.append(mod_issue)
+    return issues, modulation_health
+
+
+def _read_channel(direction, ch, docsis_ver):
+    """Return a raw channel's (modulation, profile_modulation, channel family)."""
+    modulation = ch.get("modulation") or ch.get("type", "")
     profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
-    channel_family = _classify_us_family({
+    if direction == "ds" and docsis_ver == "3.0":
+        return modulation, profile_modulation, "sc_qam"
+    family = _shared_classify_channel_family(direction, {
         "type": ch.get("type", ""),
         "multiplex": ch.get("multiplex", ""),
         "modulation": modulation,
         "profile_modulation": profile_modulation,
         "docsis_version": docsis_ver,
     })
-    if channel_family == "ofdma":
-        channel_type = "OFDMA"
+    return modulation, profile_modulation, family
+
+
+def _channel_entry(ch, measured, *, docsis_ver, family, assessment, profile_modulation, default_symbol_rate):
+    """Build one analyzed channel from its raw row, parsed values and assessment."""
+    issues, modulation_health = assessment
+    channel = {
+        "channel_id": _parse_channel_id(ch.get("channelID", 0)),
+        "frequency": ch.get("frequency", ""),
+        **measured,
+        "docsis_version": docsis_ver,
+        "channel_family": family,
+        "health": _channel_health(issues),
+        "health_detail": " + ".join(issues),
+        "theoretical_bitrate": (
+            _channel_bitrate_mbps(measured["modulation"], ch.get("symbolRate"), default_symbol_rate)
+            if family == "sc_qam"
+            else None
+        ),
+        **_metric_healths(issues, ("power", "snr")),
+        "modulation_health": modulation_health,
+    }
+    if profile_modulation:
+        channel["profile_modulation"] = profile_modulation
+    return channel
+
+
+def _build_ds_channel(ch, docsis_ver):
+    modulation, profile_modulation, family = _read_channel("ds", ch, docsis_ver)
+    power = _parse_float(ch.get("powerLevel"))
+    if docsis_ver == "3.0":
+        mse = _parse_float(ch.get("mse"))
+        snr = abs(mse) if mse is not None else None
     else:
-        channel_type = (ch.get("type") or ch.get("multiplex") or modulation).upper().replace("-", "").strip()
+        snr = _parse_float(ch.get("mer"))
+    measured = {
+        "power": power,
+        "modulation": modulation,
+        "snr": snr,
+        "correctable_errors": ch.get("corrErrors"),
+        "uncorrectable_errors": ch.get("nonCorrErrors"),
+    }
+    return _channel_entry(
+        ch,
+        measured,
+        docsis_ver=docsis_ver,
+        family=family,
+        assessment=_assess_ds_channel(power, snr, modulation, family),
+        profile_modulation=profile_modulation,
+        default_symbol_rate=_DEFAULT_DS_SC_QAM_SYMBOL_RATE,
+    )
 
-    if raw_power is not None:
-        power = _parse_float(raw_power)
-        if power is not None:
-            pt = _get_us_power_thresholds(channel_type)
-            # Low transmit power is rated at most as a warning. It usually means
-            # low attenuation in the home wiring, does not degrade the modem's
-            # own link, and the operator specification defines no lower limit.
-            # Rating the channel, not only the summary, keeps the channel badge,
-            # line status and overall health consistent. The profile's critical
-            # minimum still scales displays and explains older snapshots.
-            # Low OFDMA power is not rated at all (see resolve_us_power_thresholds);
-            # the OFDMA profile modulation carries the line quality there, and
-            # sudden drops are reported as power_change events.
-            rate_low = pt["rate_low"]
-            plausible_min = pt["plausible_min"]
-            if power > pt["crit_max"]:
-                issues.append("power critical high")
-            elif plausible_min is not None and power < plausible_min:
-                issues.append("power warning low")
-            elif rate_low and power < pt["warn_min"]:
-                issues.append("power warning low")
-            elif power > pt["warn_max"]:
-                issues.append("power warning high")
-            elif rate_low and power < pt["good_min"]:
-                issues.append("power tolerated low")
-            elif power > pt["good_max"]:
-                issues.append("power tolerated high")
-    mod_health = _assess_us_modulation(ch, docsis_ver)
-    mod_issue = _modulation_issue(mod_health)
-    if mod_issue:
-        issues.append(mod_issue)
 
-    return _channel_health(issues), _health_detail(issues)
+def _build_us_channel(ch, docsis_ver):
+    modulation, profile_modulation, family = _read_channel("us", ch, docsis_ver)
+    power = _parse_float(ch.get("powerLevel"))
+    assessed_modulation = profile_modulation if family == "ofdma" and profile_modulation else modulation
+    channel = _channel_entry(
+        ch,
+        {"power": power, "modulation": modulation, "multiplex": ch.get("multiplex", "")},
+        docsis_ver=docsis_ver,
+        # DOCSIS 3.0 upstream channels are stored as SC-QAM with only the snake_case profile key;
+        # their rating still uses the classified family and either profile key.
+        family=family if docsis_ver == "3.1" else "sc_qam",
+        assessment=_assess_us_channel(power, assessed_modulation, family, docsis_ver),
+        profile_modulation=profile_modulation if docsis_ver == "3.1" else ch.get("profile_modulation"),
+        default_symbol_rate=_DEFAULT_US_SC_QAM_SYMBOL_RATE,
+    )
+    _keep_power_display_offset(ch, channel)
+    return channel
+
+
+def _aggregate_issue(channels, metric, critical, marginal, tolerated):
+    """Return the summary issue for the worst channel health of one metric, or None."""
+    healths = {c.get(f"{metric}_health") for c in channels}
+    if "critical" in healths:
+        return critical
+    if "warning" in healths:
+        return marginal
+    if "tolerated" in healths:
+        return tolerated
+    return None
 
 
 def analyze(data: DocsisData) -> AnalysisResult:
@@ -987,181 +1028,21 @@ def analyze(data: DocsisData) -> AnalysisResult:
     # These drivers return {"docsis": "3.1", "downstream": [...], "upstream": [...]}
     # Convert to FritzBox-compatible format for unified processing
     if "downstream" in data and "upstream" in data:
-        docsis_version = data.get("docsis", "3.1")
-        ds_key = "docsis31" if docsis_version == "3.1" else "docsis30"
-        us_key = "docsis31" if docsis_version == "3.1" else "docsis30"
-        
-        data = {
-            "channelDs": {ds_key: data["downstream"]},
-            "channelUs": {us_key: data["upstream"]},
-        }
-    
+        key = "docsis31" if data.get("docsis", "3.1") == "3.1" else "docsis30"
+        data = {"channelDs": {key: data["downstream"]}, "channelUs": {key: data["upstream"]}}
+
     ds = data.get("channelDs", {})
-    ds31 = ds.get("docsis31", [])
-    ds30 = ds.get("docsis30", [])
-
     us = data.get("channelUs", {})
-    us31 = us.get("docsis31", [])
-    us30 = us.get("docsis30", [])
-
-    # --- Parse downstream channels ---
-    ds_channels = []
-    for ch in ds30:
-        power = _parse_float(ch.get("powerLevel"))
-        raw_mse = ch.get("mse")
-        parsed_mse = _parse_float(raw_mse) if raw_mse is not None else None
-        snr = abs(parsed_mse) if parsed_mse is not None else None
-        health, health_detail = _assess_ds_channel(ch, "3.0")
-        metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
-        ds_modulation = ch.get("modulation") or ch.get("type", "")
-        metric_h["modulation_health"] = _assess_ds_modulation(ds_modulation, "3.0")
-        profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
-        bitrate = _channel_bitrate_mbps(
-            ds_modulation,
-            ch.get("symbolRate"),
-            _DEFAULT_DS_SC_QAM_SYMBOL_RATE,
-        )
-        channel = {
-            "channel_id": _parse_channel_id(ch.get("channelID", 0)),
-            "frequency": ch.get("frequency", ""),
-            "power": power,
-            "modulation": ds_modulation,
-            "snr": snr,
-            "correctable_errors": ch.get("corrErrors"),
-            "uncorrectable_errors": ch.get("nonCorrErrors"),
-            "docsis_version": "3.0",
-            "channel_family": "sc_qam",
-            "health": health,
-            "health_detail": health_detail,
-            "theoretical_bitrate": bitrate,
-            **metric_h,
-        }
-        if profile_modulation:
-            channel["profile_modulation"] = profile_modulation
-        ds_channels.append(channel)
-    for ch in ds31:
-        raw_power = ch.get("powerLevel")
-        power = _parse_float(raw_power) if raw_power is not None else None
-        raw_mer = ch.get("mer")
-        snr = _parse_float(raw_mer) if raw_mer is not None else None
-        ds_modulation = ch.get("modulation") or ch.get("type", "")
-        profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
-        channel_family = _classify_ds_family({
-            "type": ch.get("type", ""),
-            "modulation": ds_modulation,
-            "profile_modulation": profile_modulation,
-            "docsis_version": "3.1",
-        })
-        modulation_docsis_ver = "3.0" if channel_family == "sc_qam" else "3.1"
-        health, health_detail = _assess_ds_channel(
-            ch,
-            "3.1",
-            modulation_docsis_ver=modulation_docsis_ver,
-            channel_family=channel_family,
-        )
-        metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
-        metric_h["modulation_health"] = _assess_ds_modulation(ds_modulation, modulation_docsis_ver)
-        bitrate = (
-            _channel_bitrate_mbps(
-                ds_modulation,
-                ch.get("symbolRate"),
-                _DEFAULT_DS_SC_QAM_SYMBOL_RATE,
-            )
-            if channel_family == "sc_qam"
-            else None
-        )
-        channel = {
-            "channel_id": _parse_channel_id(ch.get("channelID", 0)),
-            "frequency": ch.get("frequency", ""),
-            "power": power,
-            "modulation": ds_modulation,
-            "snr": snr,
-            "correctable_errors": ch.get("corrErrors"),
-            "uncorrectable_errors": ch.get("nonCorrErrors"),
-            "docsis_version": "3.1",
-            "channel_family": channel_family,
-            "health": health,
-            "health_detail": health_detail,
-            "theoretical_bitrate": bitrate,
-            **metric_h,
-        }
-        if profile_modulation:
-            channel["profile_modulation"] = profile_modulation
-        ds_channels.append(channel)
-
-    ds_channels.sort(key=lambda c: c["channel_id"])
-
-    # --- Parse upstream channels ---
-    us_channels = []
-    for ch in us30:
-        health, health_detail = _assess_us_channel(ch, "3.0")
-        metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
-        metric_h["modulation_health"] = _assess_us_modulation(ch, "3.0")
-        mod = ch.get("modulation") or ch.get("type", "")
-        bitrate = _channel_bitrate_mbps(
-            mod,
-            ch.get("symbolRate"),
-            _DEFAULT_US_SC_QAM_SYMBOL_RATE,
-        )
-        channel = {
-            "channel_id": _parse_channel_id(ch.get("channelID", 0)),
-            "frequency": ch.get("frequency", ""),
-            "power": _parse_float(ch.get("powerLevel")),
-            "modulation": mod,
-            "multiplex": ch.get("multiplex", ""),
-            "docsis_version": "3.0",
-            "channel_family": "sc_qam",
-            "health": health,
-            "health_detail": health_detail,
-            "theoretical_bitrate": bitrate,
-            **metric_h,
-        }
-        if ch.get("profile_modulation"):
-            channel["profile_modulation"] = ch["profile_modulation"]
-        _keep_power_display_offset(ch, channel)
-        us_channels.append(channel)
-    for ch in us31:
-        health, health_detail = _assess_us_channel(ch, "3.1")
-        metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
-        metric_h["modulation_health"] = _assess_us_modulation(ch, "3.1")
-        mod = ch.get("modulation") or ch.get("type", "")
-        raw_power = ch.get("powerLevel")
-        profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
-        channel_family = _classify_us_family({
-            "type": ch.get("type", ""),
-            "multiplex": ch.get("multiplex", ""),
-            "modulation": mod,
-            "profile_modulation": profile_modulation,
-            "docsis_version": "3.1",
-        })
-        bitrate = (
-            _channel_bitrate_mbps(
-                mod,
-                ch.get("symbolRate"),
-                _DEFAULT_US_SC_QAM_SYMBOL_RATE,
-            )
-            if channel_family == "sc_qam"
-            else None
-        )
-        channel = {
-            "channel_id": _parse_channel_id(ch.get("channelID", 0)),
-            "frequency": ch.get("frequency", ""),
-            "power": _parse_float(raw_power) if raw_power is not None else None,
-            "modulation": mod,
-            "multiplex": ch.get("multiplex", ""),
-            "docsis_version": "3.1",
-            "channel_family": channel_family,
-            "health": health,
-            "health_detail": health_detail,
-            "theoretical_bitrate": bitrate,
-            **metric_h,
-        }
-        if profile_modulation:
-            channel["profile_modulation"] = profile_modulation
-        _keep_power_display_offset(ch, channel)
-        us_channels.append(channel)
-
-    us_channels.sort(key=lambda c: c["channel_id"])
+    ds_channels = sorted(
+        [_build_ds_channel(ch, "3.0") for ch in ds.get("docsis30", [])]
+        + [_build_ds_channel(ch, "3.1") for ch in ds.get("docsis31", [])],
+        key=lambda c: c["channel_id"],
+    )
+    us_channels = sorted(
+        [_build_us_channel(ch, "3.0") for ch in us.get("docsis30", [])]
+        + [_build_us_channel(ch, "3.1") for ch in us.get("docsis31", [])],
+        key=lambda c: c["channel_id"],
+    )
 
     # --- Summary metrics ---
     stats = {
@@ -1200,23 +1081,12 @@ def analyze(data: DocsisData) -> AnalysisResult:
     }
 
     # --- Overall health (aggregate from per-channel assessments) ---
-    issues = []
-
-    # DS power: aggregate from individual channel health_detail
-    if any("power critical" in c["health_detail"] for c in ds_channels):
-        issues.append("ds_power_critical")
-    elif any("power warning" in c["health_detail"] for c in ds_channels):
-        issues.append("ds_power_marginal")
-    elif any("power tolerated" in c["health_detail"] for c in ds_channels):
-        issues.append("ds_power_tolerated")
-
-    # DS modulation: aggregate from individual channel health_detail
-    if any("modulation critical" in c["health_detail"] for c in ds_channels):
-        issues.append("ds_modulation_critical")
-    elif any("modulation warning" in c["health_detail"] for c in ds_channels):
-        issues.append("ds_modulation_marginal")
-    elif any("modulation tolerated" in c["health_detail"] for c in ds_channels):
-        issues.append("ds_modulation_tolerated")
+    issues = [
+        _aggregate_issue(ds_channels, "power", "ds_power_critical", "ds_power_marginal", "ds_power_tolerated"),
+        _aggregate_issue(
+            ds_channels, "modulation", "ds_modulation_critical", "ds_modulation_marginal", "ds_modulation_tolerated"
+        ),
+    ]
 
     # US power: aggregate from individual channel health_detail (directional).
     # Low power caps at marginal (see _assess_us_channel). Snapshots stored
@@ -1238,43 +1108,22 @@ def analyze(data: DocsisData) -> AnalysisResult:
     if us_tol_high and not us_crit_high and not us_warn_high:
         issues.append("us_power_tolerated_high")
 
-    # US modulation: aggregate from individual channel health_detail
-    if any("modulation critical" in c["health_detail"] for c in us_channels):
-        issues.append("us_modulation_critical")
-    elif any("modulation warning" in c["health_detail"] for c in us_channels):
-        issues.append("us_modulation_marginal")
-    elif any("modulation tolerated" in c["health_detail"] for c in us_channels):
-        issues.append("us_modulation_tolerated")
-
-    # SNR: aggregate from individual channel health_detail
-    if any("snr critical" in c["health_detail"] for c in ds_channels):
-        issues.append("snr_critical")
-    elif any("snr warning" in c["health_detail"] for c in ds_channels):
-        issues.append("snr_marginal")
-    elif any("snr tolerated" in c["health_detail"] for c in ds_channels):
-        issues.append("snr_tolerated")
-
     et = _get_uncorr_thresholds()
     uncorr_pct = uncorrectable_percentage(
         error_counters.comparable_correctable,
         error_counters.comparable_uncorrectable,
         min_codewords=et["min_codewords"],
     )
-    if uncorr_pct is not None:
-        if uncorr_pct >= et["critical"]:
-            issues.append("uncorr_errors_critical")
-        elif uncorr_pct >= et["warning"]:
-            issues.append("uncorr_errors_high")
+    issues += [
+        _aggregate_issue(
+            us_channels, "modulation", "us_modulation_critical", "us_modulation_marginal", "us_modulation_tolerated"
+        ),
+        _aggregate_issue(ds_channels, "snr", "snr_critical", "snr_marginal", "snr_tolerated"),
+        _uncorr_pct_issue(uncorr_pct, et),
+    ]
+    issues = [issue for issue in issues if issue]
     summary["ds_uncorr_pct"] = uncorr_pct
-
-    if not issues:
-        summary["health"] = "good"
-    elif any("critical" in i for i in issues):
-        summary["health"] = "critical"
-    elif any("marginal" in i for i in issues):
-        summary["health"] = "marginal"
-    else:
-        summary["health"] = "tolerated"
+    summary["health"] = _summary_health(issues)
     summary["health_issues"] = issues
 
     log.info(

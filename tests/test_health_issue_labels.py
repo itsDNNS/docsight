@@ -22,23 +22,21 @@ APP_CATALOGS = sorted((ROOT / "app" / "i18n").glob("*.json"))
 REPORT_CATALOGS = sorted((ROOT / "app" / "modules" / "reports" / "i18n").glob("*.json"))
 
 
+def _string_constants(nodes) -> set[str]:
+    return {node.value for node in nodes if isinstance(node, ast.Constant) and isinstance(node.value, str)}
+
+
 def _summary_issue_keys() -> set[str]:
     tree = ast.parse(Path(analyzer.__file__).read_text(encoding="utf-8"))
-    analyze_fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "analyze")
+    functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
     keys = set()
-    for node in ast.walk(analyze_fn):
-        if (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "append"
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "issues"
-            and node.args
-            and isinstance(node.args[0], ast.Constant)
-            and isinstance(node.args[0].value, str)
-        ):
-            keys.add(node.args[0].value)
-    return keys
+    for node in ast.walk(functions["analyze"]):
+        if isinstance(node, ast.Call) and ast.unparse(node.func) == "issues.append":
+            keys |= _string_constants(node.args)
+        elif isinstance(node, ast.Call) and ast.unparse(node.func) == "_aggregate_issue":
+            keys |= _string_constants(node.args[2:])  # the arguments after the metric name
+    returns = [node.value for node in ast.walk(functions["_uncorr_pct_issue"]) if isinstance(node, ast.Return)]
+    return keys | _string_constants(returns)
 
 
 SUMMARY_ISSUES = sorted(_summary_issue_keys())

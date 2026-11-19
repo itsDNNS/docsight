@@ -129,6 +129,10 @@ class TestOFDMAUpstream:
         analyzer._thresholds = self._orig
         analyzer._threshold_profile = self._orig_profile
 
+    @staticmethod
+    def _analyzed(ch, lane="us31"):
+        return analyze(_make_data(**{lane: [{"channelID": 5, **ch}]}))["us_channels"][0]
+
     def test_ofdma_channel_threshold_classifications(self):
         cases = [
             {"label": "good", "power": "45.0", "expected": "good"},
@@ -142,13 +146,12 @@ class TestOFDMAUpstream:
 
         for case in cases:
             ch = {"powerLevel": case["power"], "modulation": "OFDMA", "type": "OFDMA"}
-            health, detail = analyzer._assess_us_channel(ch)
-            assert health == case["expected"], case["label"]
+            assert self._analyzed(ch)["health"] == case["expected"], case["label"]
 
     def test_sc_qam_still_uses_sc_qam_thresholds(self):
-        ch = {"powerLevel": "42.0", "modulation": "64QAM", "type": "ATDMA"}
-        health, detail = analyzer._assess_us_channel(ch)
-        assert health == "good"
+        # 49 dBmV is tolerated on the SC-QAM scale but a warning on the OFDMA scale.
+        ch = {"powerLevel": "49.0", "modulation": "64QAM", "type": "ATDMA"}
+        assert self._analyzed(ch, "us30")["health"] == "tolerated"
 
     def test_analyze_preserves_ofdma_profile_modulation(self):
         data = _make_data(
@@ -229,7 +232,8 @@ class TestOFDMAUpstream:
             "multiplex": "OFDMA",
         }
 
-        health, detail = analyzer._assess_us_channel(ch, "3.1")
+        channel = self._analyzed(ch)
+        health, detail = channel["health"], channel["health_detail"]
 
         assert health == expected_health
         if expected_health == "good":
