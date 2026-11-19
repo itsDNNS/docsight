@@ -12,6 +12,7 @@ import pytest
 from app.analyzer import analyze, get_thresholds
 from app.signal_health_view import build_home_snr_display_context, build_metric_ranges
 from app.config import ConfigManager
+from app.module_contributions import validate_thresholds
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
 from app.runtime import current_runtime
@@ -924,6 +925,36 @@ class TestIndexRoute:
         assert ranges["us_power"]["health"] == "crit"
         assert ranges["ds_power"]["health"] == "crit"
         assert ranges["ds_power"]["bands"][0]["kind"] == "crit"
+
+    @pytest.mark.parametrize("lane, range_keys", [
+        ("ds_channels", ("ds_power", "ds_sc_qam_power", "snr", "ds_sc_qam_snr")),
+        ("us_channels", ("us_power", "us_sc_qam_power")),
+    ])
+    def test_ranges_rate_like_the_analyzer_when_the_profile_omits_a_band(self, monkeypatch, lane, range_keys):
+        """A contributed profile may leave out any band; both paths must fill it in the same way."""
+        profile = {
+            "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-4, 13], "warning": [-6, 15]}},
+            "upstream_power": {"_default": "sc_qam", "sc_qam": {"warning": [37.1, 51.0], "critical": [35, 53]}},
+            "snr": {"_default": "256QAM", "256QAM": {"good_min": 33, "critical_min": 29}},
+        }
+        validate_thresholds(profile)
+        monkeypatch.setattr("app.analyzer._thresholds", profile)
+        analysis = analyze({
+            "channelDs": {"docsis30": [{
+                "channelID": 1, "frequency": "602 MHz", "powerLevel": "18.0",
+                "modulation": "256QAM", "mse": "-31.0", "corrErrors": 0, "nonCorrErrors": 0,
+            }], "docsis31": []},
+            "channelUs": {"docsis30": [
+                {"channelID": 3, "frequency": "37 MHz", "powerLevel": "45.0", "modulation": "64QAM", "multiplex": "ATDMA"},
+            ], "docsis31": []},
+        })
+
+        ranges = build_metric_ranges(analysis, get_thresholds())
+
+        channel = analysis[lane][0]
+        for key in range_keys:
+            health = channel.get(f"{'snr' if 'snr' in key else 'power'}_health", "good")
+            assert ranges[key]["health"] == {"warning": "warn", "critical": "crit"}.get(health, health), key
 
     def test_unreported_power_reads_as_unavailable_on_home_and_in_the_family_readings(self, client, sample_analysis):
         sample_analysis["summary"]["us_power_avg"] = None
