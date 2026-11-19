@@ -933,13 +933,20 @@ class TestIndexRoute:
         assert ranges["ds_power"]["health"] == "crit"
         assert ranges["ds_power"]["bands"][0]["kind"] == "crit"
 
-    def test_ranges_rate_and_draw_like_the_analyzer_when_the_profile_omits_a_band(self, monkeypatch):
+    @pytest.mark.parametrize("ofdm_row, ofdm_power, ofdm_labels", [
+        ({"good": [-12, 12], "warning": [-15, 15]}, "-10.0", ["-8 dBmV", "-8 - 12 dBmV", "20 dBmV"]),
+        # The fallback critical band leaves no room for this good and warning band.
+        ({"good": [-14, -10], "warning": [-16, -9]}, "-8.5", ["-8 dBmV", "-8 - -8 dBmV", "20 dBmV"]),
+    ])
+    def test_ranges_rate_and_draw_like_the_analyzer_when_the_profile_omits_a_band(
+        self, monkeypatch, ofdm_row, ofdm_power, ofdm_labels
+    ):
         """A contributed profile may leave out any band; the bars must fill it in like the analyzer."""
         profile = {
             "downstream_power": {
                 "_default": "256QAM",
                 "256QAM": {"good": [-4, 13], "warning": [-6, 15]},
-                "ofdm": {"good": [-12, 12], "warning": [-15, 15]},
+                "ofdm": ofdm_row,
             },
             "upstream_power": {"_default": "sc_qam", "sc_qam": {"warning": [37.1, 51.0], "critical": [35, 53]}},
             "snr": {
@@ -955,7 +962,7 @@ class TestIndexRoute:
             "downstream": [
                 {"channelID": 1, "frequency": "602 MHz", "powerLevel": "18.0", "modulation": "256QAM",
                  "mer": "31.0", "type": "SC-QAM", "corrErrors": 0, "nonCorrErrors": 0},
-                {"channelID": 33, "frequency": "751 MHz", "powerLevel": "-10.0", "modulation": "OFDM",
+                {"channelID": 33, "frequency": "751 MHz", "powerLevel": ofdm_power, "modulation": "OFDM",
                  "mer": "28.5", "type": "OFDM", "corrErrors": 0, "nonCorrErrors": 0},
             ],
             "upstream": [{"channelID": 3, "frequency": "37 MHz", "powerLevel": "45.0", "modulation": "64QAM",
@@ -978,8 +985,7 @@ class TestIndexRoute:
             under_marker = [b["kind"] for b in bar["bands"] if b["left"] <= bar["marker"] < b["left"] + b["width"]]
             assert under_marker == [bar["health"]], key
         assert ofdm["power_health"] == "critical" and ofdm["snr_health"] == "critical"
-        assert [ranges["ds_ofdm_power"][k] for k in ("low_label", "good_label", "high_label")] == [
-            "-8 dBmV", "-8 - 12 dBmV", "20 dBmV"]
+        assert [ranges["ds_ofdm_power"][k] for k in ("low_label", "good_label", "high_label")] == ofdm_labels
         assert [ranges["ds_ofdm_mer"][k] for k in ("low_label", "good_label")] == ["29 dB", "≥ 29 dB"]
 
     def test_unreported_power_reads_as_unavailable_on_home_and_in_the_family_readings(self, client, sample_analysis):

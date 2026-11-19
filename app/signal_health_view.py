@@ -95,16 +95,16 @@ def _power_metric_range(value, observed_min, observed_max, threshold, direction,
     if value is None:
         return {"health": "missing"}
     limits = power_limits(threshold, direction)
-    # Like the analyzer, an outer band wins where a profile's bands overlap.
+    # Like the analyzer, an outer band wins where a profile's bands overlap, so each
+    # band is drawn only inside the next outer one and may shrink to nothing.
     # Low upstream power is never critical, so its critical minimum only marks the edge.
-    crit_min, warn_min = limits["crit_min"], limits["warn_min"]
-    if direction == "ds":
-        warn_min = max(warn_min, crit_min)
-    else:
-        crit_min = min(crit_min, warn_min)
-    crit_max = limits["crit_max"]
-    warn_max = min(limits["warn_max"], crit_max)
-    good_min, good_max = max(limits["good_min"], warn_min), min(limits["good_max"], warn_max)
+    crit_min, crit_max = limits["crit_min"], limits["crit_max"]
+    if direction != "ds":
+        crit_min = min(crit_min, limits["warn_min"])
+    warn_min = min(max(limits["warn_min"], crit_min), crit_max)
+    warn_max = max(min(limits["warn_max"], crit_max), warn_min)
+    good_min = min(max(limits["good_min"], warn_min), warn_max)
+    good_max = max(min(limits["good_max"], warn_max), good_min)
     padding = max((crit_max - crit_min) * 0.06, 0.5)
     minimum = crit_min - padding
     maximum = crit_max + padding
@@ -115,7 +115,7 @@ def _power_metric_range(value, observed_min, observed_max, threshold, direction,
             _range_band("tolerated", warn_min, good_min, minimum, maximum),
             _range_band("good", good_min, good_max, minimum, maximum),
         ]
-        rated_low = (crit_min if direction == "ds" else -math.inf, warn_min, good_min)
+        rated_low = (limits["crit_min"] if direction == "ds" else -math.inf, limits["warn_min"], limits["good_min"])
     else:
         low_bands = [_range_band("good", minimum, good_max, minimum, maximum)]
         rated_low = (-math.inf, OFDMA_MIN_PLAUSIBLE_POWER_DBMV, OFDMA_MIN_PLAUSIBLE_POWER_DBMV)
@@ -127,7 +127,7 @@ def _power_metric_range(value, observed_min, observed_max, threshold, direction,
     ]
     span_start, span_width = _range_span(observed_min, observed_max, minimum, maximum)
     return {
-        "health": _metric_health(value, *rated_low, good_max, warn_max, crit_max),
+        "health": _metric_health(value, *rated_low, limits["good_max"], limits["warn_max"], crit_max),
         "marker": _range_pct(value, minimum, maximum),
         "span_start": span_start,
         "span_width": span_width,
