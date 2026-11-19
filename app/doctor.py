@@ -17,7 +17,7 @@ import shutil
 import sqlite3
 import stat
 import sys
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -82,16 +82,6 @@ class CheckResult:
     core: bool = True
     details: dict[str, Any] = field(default_factory=dict)
 
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.id,
-            "category": self.category,
-            "status": self.status,
-            "message": self.message,
-            "core": self.core,
-            "details": self.details,
-        }
-
 
 def _is_sensitive_key(key: str | None) -> bool:
     if not key:
@@ -106,18 +96,8 @@ def _is_sensitive_key(key: str | None) -> bool:
     )
 
 
-def _looks_like_url_key(key: str | None) -> bool:
-    if not key:
-        return False
-    lowered = key.lower()
-    return any(part in lowered for part in _URL_NAME_PARTS)
-
-
-def _looks_like_path_key(key: str | None) -> bool:
-    if not key:
-        return False
-    lowered = key.lower()
-    return any(part in lowered for part in _PATH_NAME_PARTS)
+def _key_has(key: str | None, parts: tuple[str, ...]) -> bool:
+    return any(part in (key or "").lower() for part in parts)
 
 
 def _scrub_text(value: str) -> str:
@@ -171,9 +151,9 @@ def redact_value(value: Any, key: str | None = None) -> Any:
         return {"configured": True}
     if _is_sensitive_key(key):
         return _MASK
-    if _looks_like_url_key(key) or re.match(r"^[a-z][a-z0-9+.-]*://", text, re.I):
+    if _key_has(key, _URL_NAME_PARTS) or re.match(r"^[a-z][a-z0-9+.-]*://", text, re.I):
         return _redact_url(text)
-    if _looks_like_path_key(key):
+    if _key_has(key, _PATH_NAME_PARTS):
         return _scrub_text(_collapse_home(text))
     return _scrub_text(text)
 
@@ -234,24 +214,22 @@ def _load_config_file(data_dir: Path) -> tuple[dict[str, Any], CheckResult]:
     )
 
 
-def _check_runtime(environ: Mapping[str, str]) -> list[CheckResult]:
+def _check_runtime(environ: Mapping[str, str]) -> CheckResult:
     docker_detected = Path("/.dockerenv").exists() or bool(environ.get("container"))
-    return [
-        CheckResult(
-            id="runtime.version",
-            category="runtime",
-            status="pass",
-            message="DOCSight runtime information collected",
-            details={
-                "app_version": _get_version(),
-                "python": platform.python_version(),
-                "platform": redact_value(platform.platform(), "platform"),
-                "deployment": "docker" if docker_detected else "native_python",
-                "uid": os.getuid() if hasattr(os, "getuid") else None,
-                "gid": os.getgid() if hasattr(os, "getgid") else None,
-            },
-        )
-    ]
+    return CheckResult(
+        id="runtime.version",
+        category="runtime",
+        status="pass",
+        message="DOCSight runtime information collected",
+        details={
+            "app_version": _get_version(),
+            "python": platform.python_version(),
+            "platform": redact_value(platform.platform(), "platform"),
+            "deployment": "docker" if docker_detected else "native_python",
+            "uid": os.getuid() if hasattr(os, "getuid") else None,
+            "gid": os.getgid() if hasattr(os, "getgid") else None,
+        },
+    )
 
 
 def _check_data_dir(data_dir: Path) -> CheckResult:
@@ -273,8 +251,6 @@ def _check_data_dir(data_dir: Path) -> CheckResult:
         )
 
     writable = os.access(data_dir, os.W_OK | os.X_OK)
-    error = "" if writable else "current user cannot write to or traverse the data directory"
-
     usage = shutil.disk_usage(data_dir)
     details = {
         "path": _safe_path(data_dir),
@@ -282,8 +258,8 @@ def _check_data_dir(data_dir: Path) -> CheckResult:
         "free_bytes": usage.free,
         "total_bytes": usage.total,
     }
-    if error:
-        details["error"] = redact_value(error, "error")
+    if not writable:
+        details["error"] = "current user cannot write to or traverse the data directory"
     return CheckResult(
         id="storage.data_dir",
         category="storage",
@@ -548,15 +524,7 @@ def _integration_check(
         enabled = str(_config_value(raw_config, environ, enabled_key)).lower() in {"true", "1", "yes", "on"}
     values = {key: _config_value(raw_config, environ, key) for key in required}
     present = {key: bool(value) for key, value in values.items()}
-    if enabled_key and not enabled and not any(present.values()):
-        return CheckResult(
-            id=check_id,
-            category="integrations",
-            status="skipped",
-            message=f"{name} is not configured",
-            core=False,
-        )
-    if not any(present.values()) and not enabled_key:
+    if not any(present.values()) and not (enabled_key and enabled):
         return CheckResult(
             id=check_id,
             category="integrations",
@@ -647,19 +615,20 @@ def build_report(data_dir: str | None = None, environ: Mapping[str, str] | None 
     env = dict(os.environ if environ is None else environ)
     root = Path(data_dir or env.get("DATA_DIR") or "/data")
     raw_config, config_check = _load_config_file(root)
-    checks: list[CheckResult] = []
-    checks.extend(_check_runtime(env))
-    checks.append(_check_data_dir(root))
-    checks.append(config_check)
-    checks.append(_check_configured_mode(raw_config, env))
-    checks.append(_check_secret_files(root, raw_config))
-    checks.append(_check_database(root))
-    checks.append(_check_backup(raw_config, env))
-    checks.extend(_check_integrations(raw_config, env))
-    checks.append(_check_admin_password(raw_config, env))
-    checks.append(_check_module_inline_code(raw_config, env))
+    checks = [
+        _check_runtime(env),
+        _check_data_dir(root),
+        config_check,
+        _check_configured_mode(raw_config, env),
+        _check_secret_files(root, raw_config),
+        _check_database(root),
+        _check_backup(raw_config, env),
+        *_check_integrations(raw_config, env),
+        _check_admin_password(raw_config, env),
+        _check_module_inline_code(raw_config, env),
+    ]
 
-    serializable_checks = [check.as_dict() for check in checks]
+    serializable_checks = [asdict(check) for check in checks]
     # Final defensive scrub in case a future check forgot to redact details.
     serializable_checks = redact_value(serializable_checks)  # type: ignore[assignment]
     return {
