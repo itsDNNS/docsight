@@ -43,6 +43,7 @@ def test_browser_lanes_share_one_path_list():
     """The browser lanes differ only in the workflow files they add to one path list."""
     full_e2e = parsed_filters(load_workflow("full-e2e.yml"))[0]
     shared = full_e2e["browser"][:-1]
+    assert BROWSER_ACTION.replace("action.yml", "**") in shared
     assert full_e2e == {"browser": shared + [".github/workflows/full-e2e.yml"]}
     assert parsed_filters(load_workflow("test.yml"))[0]["browser"] == shared + [
         ".github/workflows/full-e2e.yml", ".github/workflows/test.yml",
@@ -356,6 +357,8 @@ def test_browser_jobs_install_chromium_from_the_cache():
     }
     assert not any("playwright install" in run or "install_playwright_chromium" in run for run in runs)
 
+    # mobile-e2e and e2e-shards rely on the default checkout root.
+    assert yaml.safe_load((ROOT / BROWSER_ACTION).read_text(encoding="utf-8"))["inputs"]["root"]["default"] == "."
     python, runner_image, cache, install = _steps(BROWSER_ACTION)
     assert python["uses"].startswith("actions/setup-python@")
     assert "${{ inputs.root }}/requirements-test.txt" in python["with"]["cache-dependency-path"]
