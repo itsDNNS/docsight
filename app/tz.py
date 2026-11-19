@@ -178,7 +178,12 @@ def parse_utc(ts):
 
 
 def parse_utc_strict(ts):
-    """Parse only the canonical 'YYYY-MM-DDTHH:MM:SSZ' form; None for anything else."""
+    """Parse with strptime(UTC_FMT); None when that fails.
+
+    Unlike parse_utc, a missing 'Z' or fractional seconds are rejected. strptime
+    itself still accepts unpadded fields and lower-case 't'/'z'
+    ('2026-1-5t4:3:0z'); existing rows may rely on that.
+    """
     try:
         return datetime.strptime(ts, UTC_FMT).replace(tzinfo=timezone.utc)
     except (TypeError, ValueError):
