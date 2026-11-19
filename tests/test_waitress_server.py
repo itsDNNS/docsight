@@ -1,18 +1,25 @@
 """Waitress-specific lifecycle adapter tests."""
 
 import http.client
+import select
 import socket
 import threading
 import time
+from contextlib import contextmanager
 from types import SimpleNamespace
 
 import pytest
-from waitress import create_server
+from waitress import create_server, wasyncore
 
 from app.server_lifecycle import ServerLifecycleController
 from app.waitress_server import (
     TASK_DISPATCHER_SHUTDOWN_TIMEOUT_SECONDS,
     WaitressServerAdapter,
+)
+
+# A Waitress loop thread that dies on an exception must fail the test, not only warn.
+pytestmark = pytest.mark.filterwarnings(
+    "error::pytest.PytestUnhandledThreadExceptionWarning"
 )
 
 
@@ -115,7 +122,9 @@ def test_close_before_attach_runs_full_adapter_shutdown_once():
     ]
 
 
-def test_persistent_http_connection_does_not_pin_waitress_run():
+@contextmanager
+def _keep_alive_server(loop_timeout):
+    """Serve one request on a kept-alive connection, then hand over the server."""
     try:
         socket_probe = socket.socket()
     except PermissionError:
@@ -136,14 +145,15 @@ def test_persistent_http_connection_does_not_pin_waitress_run():
         host="127.0.0.1",
         port=0,
         threads=1,
-        asyncore_loop_timeout=0.05,
+        asyncore_loop_timeout=loop_timeout,
     )
-    port = int(server.effective_port)
     lifecycle = ServerLifecycleController()
     adapter = WaitressServerAdapter(server)
     lifecycle.attach(adapter)
     server_thread = threading.Thread(target=adapter.run, daemon=True)
-    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+    connection = http.client.HTTPConnection(
+        "127.0.0.1", int(server.effective_port), timeout=2
+    )
 
     server_thread.start()
     try:
@@ -151,7 +161,17 @@ def test_persistent_http_connection_does_not_pin_waitress_run():
         response = connection.getresponse()
         assert response.read() == b"ok"
         assert response.getheader("Connection") != "close"
+        yield server, lifecycle, server_thread
+    finally:
+        lifecycle.close()
+        connection.close()
+        server_thread.join(timeout=2)
 
+
+# A loop timeout longer than the join timeout proves that close() wakes the loop.
+@pytest.mark.parametrize("loop_timeout", [0.05, 30], ids=["busy-loop", "idle-loop"])
+def test_persistent_http_connection_does_not_pin_waitress_run(loop_timeout):
+    with _keep_alive_server(loop_timeout) as (server, lifecycle, server_thread):
         deadline = time.monotonic() + 2
         while not server.active_channels and time.monotonic() < deadline:
             time.sleep(0.01)
@@ -163,8 +183,26 @@ def test_persistent_http_connection_does_not_pin_waitress_run():
         assert not server_thread.is_alive()
         with socket.socket() as replacement_listener:
             replacement_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            replacement_listener.bind(("127.0.0.1", port))
-    finally:
+            replacement_listener.bind(("127.0.0.1", int(server.effective_port)))
+
+
+def test_close_from_another_thread_never_hands_select_a_closed_socket(monkeypatch):
+    close_requested, loop_parked, close_returned = (threading.Event() for _ in range(3))
+    real_select = select.select
+
+    def select_after_close(*args):
+        # Park the loop between building its fd lists and select() until close() is done.
+        if close_requested.is_set() and not loop_parked.is_set():
+            loop_parked.set()
+            close_returned.wait(0.5)
+        return real_select(*args)
+
+    monkeypatch.setattr(wasyncore.select, "select", select_after_close)
+    with _keep_alive_server(0.05) as (_server, lifecycle, server_thread):
+        close_requested.set()
+        assert loop_parked.wait(2)
         lifecycle.close()
-        connection.close()
+        close_returned.set()
         server_thread.join(timeout=2)
+
+        assert not server_thread.is_alive()
