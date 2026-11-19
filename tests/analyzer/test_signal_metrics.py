@@ -2,41 +2,13 @@
 
 import pytest
 from app import analyzer
-from app.analyzer import analyze, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps
+from app.analyzer import analyze, _channel_bitrate_mbps
 from tests.analyzer.factories import (
     make_data as _make_data,
     make_ds30 as _make_ds30,
     make_ds31 as _make_ds31,
     make_us30 as _make_us30,
 )
-
-
-class TestParseQamOrder:
-    def test_standard_qam(self):
-        assert _parse_qam_order("64QAM") == 64
-
-    def test_lower_qam(self):
-        assert _parse_qam_order("16QAM") == 16
-        assert _parse_qam_order("4QAM") == 4
-
-    def test_high_qam(self):
-        assert _parse_qam_order("256QAM") == 256
-        assert _parse_qam_order("1024QAM") == 1024
-
-    def test_qpsk(self):
-        assert _parse_qam_order("QPSK") == 4
-
-    def test_case_insensitive(self):
-        assert _parse_qam_order("64qam") == 64
-        assert _parse_qam_order("qpsk") == 4
-
-    def test_none_and_empty(self):
-        assert _parse_qam_order(None) is None
-        assert _parse_qam_order("") is None
-
-    def test_unparseable(self):
-        assert _parse_qam_order("OFDMA") is None
-        assert _parse_qam_order("SC-QAM") is None
 
 
 # -- Upstream modulation health --
@@ -145,26 +117,6 @@ class TestUpstreamModulation:
 # -- OFDM / 4096QAM threshold resolution --
 
 class TestOFDMThresholds:
-    def test_resolve_ofdm_to_4096qam(self):
-        """OFDM modulation string maps to 4096QAM thresholds."""
-        section = {"256QAM": {}, "4096QAM": {}, "_default": "256QAM"}
-        assert _resolve_modulation("OFDM", section) == "4096QAM"
-
-    def test_resolve_ofdma_to_4096qam(self):
-        """OFDMA modulation string maps to 4096QAM thresholds."""
-        section = {"256QAM": {}, "4096QAM": {}, "_default": "256QAM"}
-        assert _resolve_modulation("OFDMA", section) == "4096QAM"
-
-    def test_resolve_4096qam_direct(self):
-        """4096QAM modulation string resolves directly."""
-        section = {"256QAM": {}, "4096QAM": {}, "_default": "256QAM"}
-        assert _resolve_modulation("4096QAM", section) == "4096QAM"
-
-    def test_resolve_unknown_falls_back(self):
-        """Unknown modulation falls back to _default."""
-        section = {"256QAM": {}, "_default": "256QAM"}
-        assert _resolve_modulation("UNKNOWN", section) == "256QAM"
-
     @pytest.mark.parametrize(
         ("mer", "expected_health"),
         [

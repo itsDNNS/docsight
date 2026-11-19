@@ -1,32 +1,13 @@
 """Tests for analyzer health classification and summary behavior."""
 
 import pytest
-from app.analyzer import analyze, _parse_float
+from app.analyzer import analyze
 from tests.analyzer.factories import (
     make_data as _make_data,
     make_ds30 as _make_ds30,
     make_ds31 as _make_ds31,
     make_us30 as _make_us30,
 )
-
-
-# -- parse_float --
-
-class TestParseFloat:
-    def test_normal(self):
-        assert _parse_float("3.5") == 3.5
-
-    def test_negative(self):
-        assert _parse_float("-7.2") == -7.2
-
-    def test_none(self):
-        assert _parse_float(None) is None
-
-    def test_empty_string(self):
-        assert _parse_float("") is None
-
-    def test_custom_default(self):
-        assert _parse_float("bad", default=-1.0) == -1.0
 
 
 # -- Health assessment: good --

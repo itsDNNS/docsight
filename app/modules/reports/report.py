@@ -26,6 +26,7 @@ from app.analyzer import (
     resolve_us_power_thresholds,
     threshold_snapshot,
 )
+from app.docsis_utils import to_float
 
 log = logging.getLogger("docsis.report")
 
@@ -144,13 +145,6 @@ def _default_warn_thresholds(ds_snr_warn_min=None):
     }
 
 
-def _as_float(value):
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def _worst_ds_power(worst):
     """Quote the low downstream extreme only when it lies further out of range.
 
@@ -158,7 +152,7 @@ def _worst_ds_power(worst):
     at most marginal and usually harmless, so it is no complaint finding.
     """
     high, low = worst["ds_power_max"], worst.get("ds_power_min")
-    high_value, low_value = _as_float(high), _as_float(low)
+    high_value, low_value = to_float(high), to_float(low)
     if low_value is None:
         return high
     if high_value is None:

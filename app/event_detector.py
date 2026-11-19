@@ -8,7 +8,7 @@ import threading
 
 from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
-from .docsis_utils import channel_type_label as _shared_channel_type_label, qam_rank as _qam_rank
+from .docsis_utils import CHANNEL_HEALTH_RANK, SUMMARY_HEALTH_RANK, channel_type_label, qam_rank as _qam_rank
 from .types import AnalysisResult, EventDict
 from .tz import utc_now
 
@@ -65,11 +65,6 @@ def _coerce_float(value):
     if not math.isfinite(f):
         return None
     return f
-
-
-def _channel_type_label(direction: str, channel: dict, fallback: dict | None = None) -> str:
-    """Return a concise DOCSIS channel type label for event details."""
-    return _shared_channel_type_label(direction, channel, fallback)  # type: ignore[arg-type]
 
 
 class EventDetector:
@@ -201,9 +196,8 @@ class EventDetector:
 
     @staticmethod
     def _emit_health_event(events, ts, prev_health, cur_health):
-        health_order = {"good": 0, "tolerated": 1, "marginal": 2, "critical": 3}
-        cur_level = health_order.get(cur_health, 0)
-        prev_level = health_order.get(prev_health, 0)
+        cur_level = SUMMARY_HEALTH_RANK.get(cur_health, 0)
+        prev_level = SUMMARY_HEALTH_RANK.get(prev_health, 0)
 
         if cur_level > prev_level:
             severity = "critical" if cur_health == "critical" else "warning"
@@ -269,7 +263,7 @@ class EventDetector:
                 return
             worst = max(
                 health_affected,
-                key=lambda channel: {"good": 0, "tolerated": 1, "warning": 2, "critical": 3}.get(channel.get("current_health"), 0),
+                key=lambda channel: CHANNEL_HEALTH_RANK.get(channel.get("current_health"), 0),
             )
             current_health = worst.get("current_health", "warning")
             severity = "critical" if current_health == "critical" else "warning"
@@ -332,7 +326,6 @@ class EventDetector:
     @staticmethod
     def _snr_affected_channels_by_health(cur_analysis, prev_analysis):
         """Return analyzer health degradations, or ``None`` for legacy data."""
-        health_rank = {"missing": -1, "good": 0, "tolerated": 1, "warning": 2, "critical": 3}
         analyzer_families = {"sc_qam", "ofdm"}
         prev_channels = {}
         for ch in prev_analysis.get("ds_channels", []):
@@ -362,16 +355,16 @@ class EventDetector:
                 cur_health = "good"
             if not prev_health or not cur_health:
                 return None
-            if health_rank.get(cur_health, 0) <= health_rank.get(prev_health, 0):
+            if CHANNEL_HEALTH_RANK.get(cur_health, 0) <= CHANNEL_HEALTH_RANK.get(prev_health, 0):
                 continue
-            if health_rank.get(cur_health, 0) <= health_rank.get("good", 0):
+            if CHANNEL_HEALTH_RANK.get(cur_health, 0) <= CHANNEL_HEALTH_RANK["good"]:
                 continue
             delta = round(cur_snr - prev_snr, 1)
             affected.append({
                 "channel": cur_ch.get("channel_id"),
                 "frequency": cur_ch.get("frequency") or prev_ch.get("frequency") or "",
                 "docsis_version": cur_ch.get("docsis_version") or prev_ch.get("docsis_version") or "",
-                "channel_type": _channel_type_label("DS", cur_ch, prev_ch),
+                "channel_type": channel_type_label("DS", cur_ch, prev_ch),
                 "modulation": cur_ch.get("modulation") or prev_ch.get("modulation") or "",
                 "prev": prev_snr,
                 "current": cur_snr,
@@ -428,7 +421,7 @@ class EventDetector:
                 "channel": ch_id,
                 "frequency": cur_ch.get("frequency") or prev_ch.get("frequency") or "",
                 "docsis_version": cur_ch.get("docsis_version") or prev_ch.get("docsis_version") or "",
-                "channel_type": _channel_type_label("DS", cur_ch, prev_ch),
+                "channel_type": channel_type_label("DS", cur_ch, prev_ch),
                 "modulation": cur_ch.get("modulation") or prev_ch.get("modulation") or "",
                 "prev": prev_snr,
                 "current": cur_snr,
@@ -460,7 +453,7 @@ class EventDetector:
                 "channel": ch.get("channel_id"),
                 "frequency": ch.get("frequency") or "",
                 "docsis_version": ch.get("docsis_version") or "",
-                "channel_type": _channel_type_label(direction, ch),
+                "channel_type": channel_type_label(direction, ch),
                 "modulation": ch.get("modulation") or "",
             }
             return {k: v for k, v in detail.items() if v not in (None, "")}
@@ -538,7 +531,7 @@ class EventDetector:
                 entry["prev_modulation_health"] = prev_health
             if cur_health:
                 entry["current_modulation_health"] = cur_health
-            channel_type = _channel_type_label(direction, cur_ch, prev_ch)
+            channel_type = channel_type_label(direction, cur_ch, prev_ch)
             if channel_type:
                 entry["channel_type"] = channel_type
             frequency = cur_ch.get("frequency") or prev_ch.get("frequency") or ""
@@ -569,17 +562,16 @@ class EventDetector:
                     upgrades.append(entry)
 
         if downgrades:
-            health_rank = {"good": 0, "tolerated": 1, "warning": 2, "critical": 3}
             max_drop = max(d["rank_drop"] for d in downgrades)
             current_health_ranks = [
-                health_rank.get(d.get("current_modulation_health"), 0)
+                CHANNEL_HEALTH_RANK.get(d.get("current_modulation_health"), 0)
                 for d in downgrades
                 if d.get("current_modulation_health")
             ]
             max_current_health = max(current_health_ranks, default=0)
             severity = (
                 "critical"
-                if max_current_health >= health_rank["critical"] or (not current_health_ranks and max_drop >= QAM_CRITICAL_DROP)
+                if max_current_health >= CHANNEL_HEALTH_RANK["critical"] or (not current_health_ranks and max_drop >= QAM_CRITICAL_DROP)
                 else "warning"
             )
             events.append({

@@ -11,7 +11,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .channel_selector import attach_channel_selectors, channel_selector
-from .line_status import FAMILY_LABELS, SEVERITY, _family, _number, channel_callout
+from .docsis_utils import CHANNEL_HEALTH_RANK, stored_or_classified_family, to_float
+from .line_status import FAMILY_LABELS, channel_callout
 
 CELL_COUNT = 48
 
@@ -29,19 +30,19 @@ def _stamp(dt: datetime) -> str:
 
 def _health(channel: dict) -> str | None:
     health = channel.get("health")
-    return health if health in SEVERITY else None
+    return health if health in CHANNEL_HEALTH_RANK else None
 
 
 def _worse(current: str | None, health: str | None) -> str | None:
     if health is None:
         return current
-    if current is None or SEVERITY[health] > SEVERITY[current]:
+    if current is None or CHANNEL_HEALTH_RANK[health] > CHANNEL_HEALTH_RANK[current]:
         return health
     return current
 
 
 def _sort_id(channel: dict) -> tuple[int, str]:
-    value = _number(channel.get("channel_id"))
+    value = to_float(channel.get("channel_id"))
     return (int(value) if value is not None else 0, str(channel.get("channel_id")))
 
 
@@ -67,13 +68,13 @@ def _row(direction: str, channel: dict, history: list[tuple[datetime, str | None
 
     callout = channel_callout(direction, channel)
     measurement = callout["measurement"]
-    value = measurement["value"] if measurement else _number(channel.get("power"))
+    value = measurement["value"] if measurement else to_float(channel.get("power"))
     return {
         "channel_id": channel.get("channel_id"),
         "legacy_channel_id": channel.get("legacy_channel_id"),
         "selector": channel.get("selector") or channel_selector(channel),
         "selector_required": bool(channel.get("selector_required")),
-        "family": FAMILY_LABELS.get(_family(direction, channel), ""),
+        "family": FAMILY_LABELS.get(stored_or_classified_family(direction, channel), ""),
         "modulation": callout["modulation"],
         "health": current,
         "cells": cells,
@@ -108,7 +109,7 @@ def _direction(direction: str, channels: list[dict], snapshots: list[tuple[datet
             for ch in sorted(current, key=_sort_id)]
     deviating = sorted(
         (row for row in rows if row["health"] != "good" or row["deviating_cells"]),
-        key=lambda row: (-SEVERITY[row["health"]], -row["deviating_cells"]),
+        key=lambda row: (-CHANNEL_HEALTH_RANK[row["health"]], -row["deviating_cells"]),
     )
     others = [row for row in rows if row["health"] == "good" and not row["deviating_cells"]]
     combined: list[str | None] = [None] * CELL_COUNT

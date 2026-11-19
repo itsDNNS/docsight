@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Any, Literal
 
 Direction = Literal["ds", "us", "downstream", "upstream", "DS", "US"]
 DocsisChannelFamily = Literal["sc_qam", "ofdm", "ofdma", "unknown"]
@@ -35,6 +35,19 @@ _MODULATION_THRESHOLD_ALIASES = {
     "OFDM": "4096QAM",
     "OFDMA": "4096QAM",
 }
+_DIRECTION_FAMILIES = {"ds": ("sc_qam", "ofdm"), "us": ("sc_qam", "ofdma")}
+
+# Severity order of per-channel health and of the overall summary health.
+CHANNEL_HEALTH_RANK = {"good": 0, "tolerated": 1, "warning": 2, "critical": 3}
+SUMMARY_HEALTH_RANK = {"good": 0, "tolerated": 1, "marginal": 2, "critical": 3}
+
+
+def to_float(value: Any) -> float | None:
+    """Return ``value`` as float, or ``None`` when it cannot be converted."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _compact_text(*values: object) -> str:
@@ -118,11 +131,11 @@ def classify_channel_family(direction: Direction, channel: dict) -> DocsisChanne
     profile_text = _compact_text(channel.get("profile_modulation"), channel.get("profileModulation"))
 
     if direction_key == "ds":
-        if "OFDM" in type_text or "OFDMA" in type_text:
+        if "OFDM" in type_text:
             return "ofdm"
         if "SCQAM" in type_text or type_text == "QAM":
             return "sc_qam"
-        if "OFDM" in modulation_text or "OFDMA" in modulation_text:
+        if "OFDM" in modulation_text:
             return "ofdm"
 
         modulation_order = parse_qam_order(modulation_text)
@@ -150,8 +163,6 @@ def classify_channel_family(direction: Direction, channel: dict) -> DocsisChanne
         return "sc_qam"
     if "OFDMA" in modulation_text:
         return "ofdma"
-    if profile_text and is_docsis31_plus:
-        return "ofdma"
     if is_docsis31_plus:
         return "ofdma"
     if parse_qam_order(modulation_text):
@@ -159,6 +170,14 @@ def classify_channel_family(direction: Direction, channel: dict) -> DocsisChanne
     if "3.0" in docsis_version:
         return "sc_qam"
     return "unknown"
+
+
+def stored_or_classified_family(direction: Direction, channel: dict) -> DocsisChannelFamily:
+    """Trust a stored analyzer family only when it is valid for the direction."""
+    family = channel.get("channel_family")
+    if family in _DIRECTION_FAMILIES[_direction_key(direction)]:
+        return family
+    return classify_channel_family(direction, channel)
 
 
 def channel_type_label(direction: Direction, channel: dict, fallback: dict | None = None) -> str:
