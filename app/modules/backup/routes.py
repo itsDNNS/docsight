@@ -37,8 +37,6 @@ def _int_config(config_mgr, key, default):
 def api_backup_download():
     """Create a backup and stream it as download."""
     _config_manager = current_runtime().config_manager
-    if not _config_manager:
-        return jsonify({"error": "Not initialized"}), 500
     temp_dir = None
     response = None
     try:
@@ -85,8 +83,6 @@ def api_backup_download():
 def api_backup_scheduled():
     """Create a backup in the configured backup path."""
     _config_manager = current_runtime().config_manager
-    if not _config_manager:
-        return jsonify({"error": "Not initialized"}), 500
     backup_path = _config_manager.get("backup_path", "/backup")
     retention = _int_config(_config_manager, "backup_retention", 5)
     try:
@@ -103,11 +99,7 @@ def api_backup_scheduled():
 @require_auth(session_only=True)
 def api_backup_list():
     """List backups in the configured backup path."""
-    _config_manager = current_runtime().config_manager
-    if not _config_manager:
-        return jsonify([])
-    backup_path = _config_manager.get("backup_path", "/backup")
-    return jsonify(list_backups(backup_path))
+    return jsonify(list_backups(current_runtime().config_manager.get("backup_path", "/backup")))
 
 
 @bp.route("/api/backup/<filename>", methods=["DELETE"])
@@ -115,8 +107,6 @@ def api_backup_list():
 def api_backup_delete(filename):
     """Delete a backup file."""
     _config_manager = current_runtime().config_manager
-    if not _config_manager:
-        return jsonify({"error": "Not initialized"}), 500
     backup_path = _config_manager.get("backup_path", "/backup")
     safe_name = secure_filename(filename)
     if not safe_name or safe_name != filename:

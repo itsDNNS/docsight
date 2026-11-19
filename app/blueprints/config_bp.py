@@ -55,8 +55,6 @@ def run_bqm_initial_fetch(config_manager=None, storage=None):
 def api_config():
     """Save configuration."""
     _config_manager = current_runtime().config_manager
-    if not _config_manager:
-        return jsonify({"success": False, "error": "Config not initialized"}), 500
     try:
         data = request.get_json(silent=True)
         if not isinstance(data, dict) or not data:
@@ -182,12 +180,6 @@ def api_demo_start():
             "status": "invalid_request",
         }), 415
     _config_manager = current_runtime().config_manager
-    if not _config_manager:
-        return jsonify({
-            "success": False,
-            "demo_mode": False,
-            "status": "unavailable",
-        }), 500
     if _config_manager.is_demo_mode():
         return jsonify({
             "success": True,
@@ -236,7 +228,7 @@ def api_demo_migrate():
     """Switch from demo to live mode. Removes demo data, keeps user data."""
     _config_manager = current_runtime().config_manager
     _storage = current_runtime().storage
-    if not _config_manager or not _config_manager.is_demo_mode():
+    if not _config_manager.is_demo_mode():
         return jsonify({"success": False, "error": "Not in demo mode"}), 400
     if _config_manager.is_demo_mode_forced():
         return jsonify({

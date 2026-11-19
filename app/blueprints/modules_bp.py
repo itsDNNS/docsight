@@ -86,8 +86,6 @@ def api_module_enable(module_id):
         return jsonify({"success": False, "error": f"Module '{module_id}' not found"}), 404
 
     config_mgr = current_runtime().config_manager
-    if not config_mgr:
-        return jsonify({"success": False, "error": "Config not initialized"}), 500
 
     if module.type == "theme" and (module.error or not module.theme_data):
         return jsonify({"success": False, "error": "Theme data is unavailable"}), 409
@@ -133,8 +131,6 @@ def api_module_disable(module_id):
         return jsonify({"success": False, "error": f"Module '{module_id}' not found"}), 404
 
     config_mgr = current_runtime().config_manager
-    if not config_mgr:
-        return jsonify({"success": False, "error": "Config not initialized"}), 500
 
     # Block disabling the last active theme module
     if module.type == "theme":
@@ -182,8 +178,6 @@ def api_modules_batch():
         return jsonify({"success": False, "error": "Module system not initialized"}), 500
 
     config_mgr = current_runtime().config_manager
-    if not config_mgr:
-        return jsonify({"success": False, "error": "Config not initialized"}), 500
 
     data = request.get_json(silent=True) or {}
     requested = data.get("modules")
@@ -248,8 +242,6 @@ def api_themes_list():
 def api_themes_registry():
     """Fetch available themes from the remote registry."""
     config_mgr = current_runtime().config_manager
-    if not config_mgr:
-        return jsonify([])
 
     registry_url = config_mgr.get(
         "theme_registry_url",
@@ -333,8 +325,6 @@ def _scan_installed_community_ids():
 def api_modules_registry():
     """Fetch available community modules from the registry."""
     config_mgr = current_runtime().config_manager
-    if not config_mgr:
-        return jsonify([])
 
     registry_url = config_mgr.get(
         "module_registry_url",
@@ -437,11 +427,10 @@ def api_modules_install():
 
     # Persist as disabled-by-default
     config_mgr = current_runtime().config_manager
-    if config_mgr:
-        disabled_raw = config_mgr.get("disabled_modules", "")
-        disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
-        disabled_set.add(mod_id)
-        config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
+    disabled_raw = config_mgr.get("disabled_modules", "")
+    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+    disabled_set.add(mod_id)
+    config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
 
     log.info("Module '%s' installed to %s (disabled, restart required)", mod_id, target_dir)
     return jsonify({"success": True, "restart_required": True})
@@ -481,11 +470,10 @@ def api_modules_uninstall():
 
     # Remove from disabled_modules if present
     config_mgr = current_runtime().config_manager
-    if config_mgr:
-        disabled_raw = config_mgr.get("disabled_modules", "")
-        disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
-        disabled_set.discard(mod_id)
-        config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
+    disabled_raw = config_mgr.get("disabled_modules", "")
+    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+    disabled_set.discard(mod_id)
+    config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
 
     log.info("Module '%s' uninstalled (restart required)", mod_id)
     return jsonify({"success": True, "restart_required": True})

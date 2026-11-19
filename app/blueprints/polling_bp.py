@@ -32,8 +32,7 @@ def _valid_push_subscription(subscription):
 
 def _pwa_push_configured(config_mgr):
     return bool(
-        config_mgr
-        and config_mgr.get("notify_pwa_push_enabled")
+        config_mgr.get("notify_pwa_push_enabled")
         and config_mgr.get("notify_pwa_push_vapid_public_key")
         and config_mgr.get("notify_pwa_push_vapid_private_key")
     )
@@ -190,7 +189,7 @@ def api_test_mqtt():
 def api_notifications_test():
     """Send a test notification to all configured channels."""
     _config_manager = current_runtime().config_manager
-    if not _config_manager or not _config_manager.is_notify_configured():
+    if not _config_manager.is_notify_configured():
         return jsonify({"success": False, "error": "Notifications not configured"}), 400
     from app.notifier import NotificationDispatcher
     dispatcher = NotificationDispatcher(_config_manager, storage=current_runtime().storage)
@@ -206,11 +205,11 @@ def api_pwa_push_status():
     storage = current_runtime().storage
     configured = _pwa_push_configured(_config_manager)
     public_key = ""
-    if _config_manager and _config_manager.get("notify_pwa_push_enabled"):
+    if _config_manager.get("notify_pwa_push_enabled"):
         public_key = _config_manager.get("notify_pwa_push_vapid_public_key") or ""
     count = storage.count_pwa_push_subscriptions() if storage else 0
     return jsonify({
-        "enabled": bool(_config_manager and _config_manager.get("notify_pwa_push_enabled")),
+        "enabled": bool(_config_manager.get("notify_pwa_push_enabled")),
         "configured": configured,
         "public_key": public_key if configured else "",
         "subscription_count": count,

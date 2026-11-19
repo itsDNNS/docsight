@@ -29,7 +29,7 @@ SMOKEPING_TIMESPANS = {
 def api_smokeping_targets():
     """Return list of configured Smokeping targets."""
     _config_manager = current_runtime().config_manager
-    if not _config_manager or not _config_manager.is_smokeping_configured():
+    if not _config_manager.is_smokeping_configured():
         return jsonify([])
     raw = _config_manager.get("smokeping_targets", "")
     targets = [t.strip() for t in raw.split(",") if t.strip()]
@@ -41,7 +41,7 @@ def api_smokeping_targets():
 def api_smokeping_graph(target, timespan):
     """Proxy a Smokeping graph PNG."""
     _config_manager = current_runtime().config_manager
-    if not _config_manager or not _config_manager.is_smokeping_configured():
+    if not _config_manager.is_smokeping_configured():
         return jsonify({"error": "Smokeping not configured"}), 404
 
     timespan_code = SMOKEPING_TIMESPANS.get(timespan)

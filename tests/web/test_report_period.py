@@ -16,7 +16,6 @@ def _call_route(route, path, *, storage=None, state=None, generated="artifact"):
     generator_value = b"%PDF-test" if route == "report" else generated
     with app.test_request_context(path), \
          patch.object(routes.current_runtime(), "storage", storage), \
-         patch.object(routes.current_runtime(), "config_manager", None), \
          patch.object(routes.current_runtime(), "get_state", return_value=state or {}), \
          patch.object(routes, generator_name, return_value=generator_value) as generator:
         result = getattr(getattr(routes, f"api_{route}"), "__wrapped__")()
@@ -44,7 +43,6 @@ def test_exact_complaint_window_succeeds_without_live_analysis():
     with app.test_request_context(
         "/api/complaint?from=2026-05-01T00:00:00Z&to=2026-05-03T00:00:00Z"
     ), patch.object(routes.current_runtime(), "storage", storage), \
-         patch.object(routes.current_runtime(), "config_manager", None), \
          patch.object(routes.current_runtime(), "get_state", return_value={}), \
          patch.object(routes, "generate_complaint_text", return_value="historical") as generate:
         response = getattr(routes.api_complaint, "__wrapped__")()
@@ -164,7 +162,6 @@ def test_rolling_window_default_explicit_and_clamp_remain_compatible(
     generator_value = b"%PDF-test" if route == "report" else "text"
     with app.test_request_context(f"/api/{route}{query}"), \
          patch.object(routes.current_runtime(), "storage", storage), \
-         patch.object(routes.current_runtime(), "config_manager", None), \
          patch.object(routes.current_runtime(), "get_state", return_value={}), \
          patch.object(routes, "utc_now", return_value="2026-08-13T12:00:00Z"), \
          patch.object(routes, "utc_cutoff", return_value="2026-08-06T12:00:00Z") as cutoff, \
@@ -218,7 +215,6 @@ def test_automatic_bnetz_lookup_uses_normalized_exact_window():
         "/api/complaint?include_bnetz=true"
         "&from=2026-05-01T02:00:00%2B02:00&to=2026-05-03T02:00:00%2B02:00"
     ), patch.object(routes.current_runtime(), "storage", storage), \
-         patch.object(routes.current_runtime(), "config_manager", None), \
          patch.object(routes.current_runtime(), "get_state", return_value={}), \
          patch("app.modules.bnetz.storage.BnetzStorage", return_value=bnetz_storage), \
          patch.object(routes, "generate_complaint_text", return_value="text") as generate:
@@ -242,7 +238,6 @@ def test_explicit_bnetz_id_keeps_id_lookup_compatibility():
         "/api/complaint?bnetz_id=9"
         "&from=2026-05-01T00:00:00Z&to=2026-05-02T00:00:00Z"
     ), patch.object(routes.current_runtime(), "storage", storage), \
-         patch.object(routes.current_runtime(), "config_manager", None), \
          patch.object(routes.current_runtime(), "get_state", return_value={}), \
          patch("app.modules.bnetz.storage.BnetzStorage", return_value=bnetz_storage), \
          patch.object(routes, "generate_complaint_text", return_value="text") as generate:

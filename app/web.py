@@ -241,10 +241,7 @@ def get_module_loader():
 
 def _get_dismissed_notice_ids():
     """Return locally persisted maintainer notice dismissals."""
-    _config_manager = current_runtime().config_manager
-    if not _config_manager:
-        return []
-    return coerce_dismissed_notice_ids(_config_manager.get("dismissed_notice_ids", []))
+    return coerce_dismissed_notice_ids(current_runtime().config_manager.get("dismissed_notice_ids", []))
 
 
 def get_on_config_changed():
@@ -263,13 +260,12 @@ def set_last_manual_poll(value):
 
 
 def login():
-    _config_manager = current_runtime().config_manager
     _sync_auth_state()
     if not _get_admin_password():
         return redirect(url_for("password_setup" if password_setup_pending() else "index"))
     lang = get_lang()
     t = get_translations(lang)
-    theme = _config_manager.get_theme() if _config_manager else "dark"
+    theme = current_runtime().config_manager.get_theme()
     error = None
     status = 200
     csrf_token = _get_login_csrf_token()
@@ -287,14 +283,13 @@ def login():
 
 def password_setup():
     """Set the first admin password, possible only shortly after DOCSight starts."""
-    _config_manager = current_runtime().config_manager
     _sync_auth_state()
     if not password_setup_pending():
         return redirect(url_for("index"))
     # Follow the browser like the setup does, but an anonymous visitor must not change the config.
     lang = get_setup_lang(persist=False)
     t = get_translations(lang)
-    theme = _config_manager.get_theme() if _config_manager else "dark"
+    theme = current_runtime().config_manager.get_theme()
     error = None
     status = 200
     csrf_token = _get_login_csrf_token()
@@ -332,7 +327,7 @@ def inject_auth():
 
     active_theme_data, active_theme_id = (
         resolve_active_theme(_config_manager.get("active_theme", ""), _module_loader.get_theme_modules())
-        if _module_loader and _config_manager else (None, "")
+        if _module_loader else (None, "")
     )
 
     # All themes with loaded data (enabled + disabled) for settings gallery
@@ -358,16 +353,13 @@ def inject_auth():
         },
         "active_theme_data": active_theme_data,
         "active_theme_id": active_theme_id,
-        "theme_explicit": bool(_config_manager and _config_manager.has_stored_value("theme")),
+        "theme_explicit": _config_manager.has_stored_value("theme"),
         "desktop_mode": desktop_mode,
         "desktop_preview_doc_url": DESKTOP_PREVIEW_DOC_URL,
         "desktop_preview_notice_id": DESKTOP_PREVIEW_NOTICE_ID,
         "desktop_preview_notice_dismissed": desktop_mode and DESKTOP_PREVIEW_NOTICE_ID in _get_dismissed_notice_ids(),
         "notice_center": get_notice_center(_get_dismissed_notice_ids()),
-        "demo_mode_forced": bool(
-            _config_manager
-            and getattr(_config_manager, "is_demo_mode_forced", lambda: False)()
-        ),
+        "demo_mode_forced": _config_manager.is_demo_mode_forced(),
     }
 
 
@@ -465,7 +457,7 @@ def _onboarding_checklist(config_manager, demo_mode):
     The checklist disappears once every item is done or the user dismisses it,
     and it does not show in demo mode.
     """
-    if not config_manager or demo_mode or ONBOARDING_CHECKLIST_ID in _get_dismissed_notice_ids():
+    if demo_mode or ONBOARDING_CHECKLIST_ID in _get_dismissed_notice_ids():
         return None
     module_loader = current_runtime().module_loader
     enabled = {module.id for module in (module_loader.get_enabled_modules() if module_loader else [])}
@@ -495,12 +487,6 @@ def _web_link(value):
 
 def _shell_nav_context(config_manager):
     """What the shared top navigation needs to know about configured sources."""
-    if not config_manager:
-        return {
-            "bqm_configured": False, "smokeping_configured": False, "smokeping_url": "", "speedtest_configured": False,
-            "gaming_quality_enabled": False, "segment_utilization_enabled": False,
-            "is_fritzbox": False, "bnetz_enabled": True,
-        }
     return {
         "bqm_configured": bool(config_manager.is_bqm_configured() or config_manager.get("bqm_url")),
         "smokeping_configured": config_manager.is_smokeping_configured(),
@@ -533,19 +519,19 @@ def _modem_poll_status(state, now=None):
 def index():
     _config_manager = current_runtime().config_manager
     _storage = current_runtime().storage
-    demo_mode = _config_manager.is_demo_mode() if _config_manager else False
-    if _config_manager and not demo_mode and not _config_manager.is_configured():
+    demo_mode = _config_manager.is_demo_mode()
+    if not demo_mode and not _config_manager.is_configured():
         return redirect(url_for("setup"))
 
-    theme = _config_manager.get_theme() if _config_manager else "dark"
+    theme = _config_manager.get_theme()
     lang = get_lang()
     t = get_translations(lang)
 
-    isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
+    isp_name = _config_manager.get("isp_name", "")
     report_customer_name = ""
     report_customer_number = ""
     report_customer_address = ""
-    if _config_manager and not demo_mode:
+    if not demo_mode:
         report_customer_name = _config_manager.get("report_customer_name", "")
         report_customer_number = _config_manager.get("report_customer_number", "")
         report_customer_address = _config_manager.get("report_customer_address", "")
@@ -556,8 +542,8 @@ def index():
     bnetz_enabled = nav["bnetz_enabled"]
     state = current_runtime().get_state()
     speedtest_latest = state.get("speedtest_latest")
-    booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
-    booked_upload = _config_manager.get("booked_upload", 0) if _config_manager else 0
+    booked_download = _config_manager.get("booked_download", 0)
+    booked_upload = _config_manager.get("booked_upload", 0)
     conn_info = state.get("connection_info") or {}
     # Demo mode: derive booked speeds from connection info if not explicitly set
     if demo_mode:
@@ -606,7 +592,7 @@ def index():
         home_modulation_context=signal_health_view.build_home_modulation_context(analysis),
         capacity_context=signal_health_view.build_capacity_context(analysis, booked_download, booked_upload),
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
-        temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",
+        temperature_unit=_config_manager.get("temperature_unit", "celsius"),
         time_zone=get_tz_name(_config_manager),
         dashboard_notices=get_active_notices(
             dismissed_ids=_get_dismissed_notice_ids(),
@@ -640,9 +626,9 @@ def setup():
     _config_manager = current_runtime().config_manager
     if password_setup_pending():
         return redirect(url_for("password_setup"))
-    if _config_manager and (_config_manager.is_configured() or _config_manager.is_demo_mode()):
+    if _config_manager.is_configured() or _config_manager.is_demo_mode():
         return redirect(url_for("index"))
-    config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
+    config = _config_manager.get_all(mask_secrets=True)
     lang = get_setup_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
@@ -652,7 +638,7 @@ def setup():
     driver_hints = driver_registry.get_driver_hints()
     modem_catalog = driver_registry.get_setup_catalog(other_label=t.get("setup_modem_other_group", "Other"))
     iana_tz = _guess_iana_timezone()
-    theme = _config_manager.get_theme() if _config_manager else "dark"
+    theme = _config_manager.get_theme()
     return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, poll_default=DEFAULTS["poll_interval"], t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, modem_catalog=modem_catalog, driver_hints=driver_hints, timezones=_get_iana_timezones(), iana_tz=iana_tz, theme=theme)
 
 
@@ -660,8 +646,8 @@ def setup():
 def settings():
     _config_manager = current_runtime().config_manager
     _module_loader = current_runtime().module_loader
-    config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
-    theme = _config_manager.get_theme() if _config_manager else "dark"
+    config = _config_manager.get_all(mask_secrets=True)
+    theme = _config_manager.get_theme()
     lang = get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
@@ -669,7 +655,7 @@ def settings():
     driver_registry = get_driver_registry()
     modem_types = driver_registry.get_available_drivers()
     driver_hints = driver_registry.get_driver_hints()
-    demo_mode = _config_manager.is_demo_mode() if _config_manager else False
+    demo_mode = _config_manager.is_demo_mode()
     iana_tz = _guess_iana_timezone()
     # Warn if server TZ looks like a POSIX abbreviation (no DST support)
     tz_is_posix = bool(tz_name) and "/" not in tz_name and tz_name not in ("UTC",)

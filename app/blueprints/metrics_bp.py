@@ -10,8 +10,7 @@ metrics_bp = Blueprint("metrics_bp", __name__)
 
 def _metrics_token_required() -> bool:
     """Return whether /metrics should require a Bearer API token."""
-    config = current_runtime().config_manager
-    return bool(config and config.get("metrics_require_token", False))
+    return bool(current_runtime().config_manager.get("metrics_require_token", False))
 
 
 def _has_valid_bearer_token() -> bool:
