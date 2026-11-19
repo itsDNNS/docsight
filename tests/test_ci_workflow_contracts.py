@@ -129,7 +129,8 @@ def test_docker_paths_tags_manual_and_concurrency_contract():
 
     assert triggers["push"]["branches"] == ["main"]
     assert triggers["push"]["tags"] == ["v*"]
-    assert {"app/**", "requirements.txt", "Dockerfile", ".github/workflows/docker.yml"} <= set(triggers["push"]["paths"])
+    image_inputs = {"app/**", "tools/**", "requirements.txt", "Dockerfile", ".dockerignore", "entrypoint.sh"}
+    assert image_inputs | {".github/workflows/docker.yml"} <= set(triggers["push"]["paths"])
     assert triggers["workflow_dispatch"] is None
     assert workflow["concurrency"] == {
         "group": "docker-${{ github.ref }}",
