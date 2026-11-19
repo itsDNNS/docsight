@@ -60,10 +60,7 @@ class SmartCaptureEngine:
             self._evaluate_event(event)
 
     def _is_enabled(self) -> bool:
-        val = self._config.get("sc_enabled", False)
-        if isinstance(val, str):
-            return val.lower() in ("true", "1", "yes", "on")
-        return bool(val)
+        return bool(self._config.get("sc_enabled", False))
 
     def _evaluate_event(self, event: EventDict) -> None:
         matches = [(t, event) for t in self._triggers if t.matches(event)]

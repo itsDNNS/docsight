@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives import hashes, hmac
 from flask import current_app, jsonify, redirect, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from .config import parse_config_bool
 from .runtime import current_runtime
 
 log = logging.getLogger("docsis.web")
@@ -203,13 +204,9 @@ def _invalidate_admin_sessions():
     session.clear()
 
 
-def _truthy(value):
-    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
-
-
 def auth_disabled_requested(environ: Mapping[str, str]) -> bool:
     """Whether the operator deliberately runs DOCSight without an admin password."""
-    return _truthy(environ.get("AUTH_DISABLED"))
+    return parse_config_bool(environ.get("AUTH_DISABLED"))
 
 
 def desktop_mode_requested(environ: Mapping[str, str]) -> bool:

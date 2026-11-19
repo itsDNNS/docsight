@@ -6,10 +6,14 @@ import pytest
 from app.config import (
     ConfigManager,
     DEFAULTS,
+    ENV_MAP,
     PASSWORD_MASK,
     URL_KEYS,
     parse_config_bool,
 )
+from app.doctor import _check_admin_password, _check_backup, _check_configured_mode, _check_integrations
+from app.smart_capture.engine import SmartCaptureEngine
+from app.web_auth import auth_disabled_requested
 
 
 @pytest.fixture
@@ -69,6 +73,44 @@ def test_parse_config_bool_preserves_config_payload_semantics(value, expected):
     assert parse_config_bool(value) is expected
 
 
+@pytest.mark.parametrize(
+    ("value", "enabled", "tls_insecure"),
+    [("on", True, True), (" yes ", True, True), ("off", False, False), (1, True, True), (0, False, False),
+     (None, False, False), (2, True, False), (1.0, True, False), ([1], True, False)],
+)
+def test_stored_bool_readers_keep_their_meaning(tmp_data_dir, monkeypatch, value, enabled, tls_insecure):
+    stored = {"demo_mode": value, "update_check_enabled": value, "sc_enabled": value, "notify_apprise_enabled": value,
+              "notify_apprise_url": "x", "backup_enabled": value, "backup_path": tmp_data_dir,
+              "metrics_require_token": value, "speedtest_tls_insecure": value}
+    for key in stored.keys() & ENV_MAP.keys():
+        monkeypatch.delenv(ENV_MAP[key], raising=False)
+    os.makedirs(tmp_data_dir)
+    with open(os.path.join(tmp_data_dir, "config.json"), "w") as f:
+        json.dump(stored, f)
+    config = ConfigManager(tmp_data_dir)
+
+    assert config.is_demo_mode() is enabled
+    assert config.is_update_check_enabled() is enabled
+    assert config.is_backup_configured() is enabled
+    assert bool(config.get("metrics_require_token")) is enabled
+    assert SmartCaptureEngine(None, config)._is_enabled() is enabled
+    assert _check_configured_mode(stored, {}).details["demo_mode"] is enabled
+    assert _check_backup(stored, {}).details["enabled"] is enabled
+    apprise = next(check for check in _check_integrations(stored, {}) if check.id == "integration.apprise")
+    assert apprise.details["enabled"] is enabled
+    assert (_check_admin_password(stored, {}).status == "skipped") is enabled
+    assert parse_config_bool(config.get("speedtest_tls_insecure")) is tls_insecure
+
+
+@pytest.mark.parametrize(("value", "expected"), [("on", True), (" yes ", True), ("off", False), ("2", False)])
+def test_bool_env_values_follow_parse_config_bool(config, monkeypatch, value, expected):
+    monkeypatch.setenv("DEMO_MODE", value)
+
+    assert config.get("demo_mode") is expected
+    assert config.is_demo_mode_forced() is expected
+    assert auth_disabled_requested({"AUTH_DISABLED": value}) is expected
+
+
 class TestConfigSaveLoad:
     def test_save_and_load(self, tmp_data_dir):
         config = ConfigManager(tmp_data_dir)
@@ -102,13 +144,12 @@ class TestConfigSaveLoad:
         ("true", True), ("True", True), ("TRUE", True),
         ("1", True), ("yes", True), ("on", True), ("On", True),
         ("false", False), ("False", False), ("0", False), ("no", False),
-        ("off", False), ("", False),
+        ("off", False), ("", False), ("  yes  ", True),
     ])
     def test_bool_keys_cast(self, tmp_data_dir, value, expected):
-        config = ConfigManager(tmp_data_dir)
-        config.save({"demo_mode": value})
-        config2 = ConfigManager(tmp_data_dir)
-        assert config2.get("demo_mode") is expected
+        ConfigManager(tmp_data_dir).save({"demo_mode": value})
+        with open(os.path.join(tmp_data_dir, "config.json")) as f:
+            assert json.load(f)["demo_mode"] is expected
 
 
 class TestConfigSecrets:
