@@ -10,6 +10,7 @@ from app.analyzer import (
     _get_us_power_thresholds,
     modulation_target,
 )
+from app.channel_matrix import build_channel_matrix
 from app.config import ConfigManager
 from app.line_status import build_line_status
 from app.runtime import current_runtime
@@ -87,6 +88,17 @@ def test_low_snr_uses_the_minimum_target():
     assert measurement["metric"] == "snr" and measurement["target_max"] is None
     assert measurement["target_min"] == limits["good_min"]
     assert measurement["delta"] == round(31.0 - limits["good_min"], 1)
+
+
+def test_downstream_row_stored_as_ofdma_is_shown_as_ofdm_with_mer():
+    channel = _ds(5, snr=30.0, health="warning", detail="snr warning", family="ofdma", modulation="OFDM")
+    block = build_line_status(_analysis([channel], []))["directions"][0]
+    row = build_channel_matrix([("2026-10-03T12:00:00Z", [channel], [])], "2026-10-03T00:00:00Z",
+                               "2026-10-04T00:00:00Z")["directions"][0]["deviating"][0]
+
+    assert block["segments"][0]["family"] == block["callout"]["family"] == row["family"] == "OFDM"
+    assert block["callout"]["measurement"]["metric"] == "mer"
+    assert block["callout"]["measurement"]["target_min"] == _get_snr_thresholds("OFDM", channel_family="ofdm")["good_min"]
 
 
 @pytest.mark.parametrize(("channel", "value", "target"), [

@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .channel_selector import attach_channel_selectors, channel_selector
-from .docsis_utils import CHANNEL_HEALTH_RANK, stored_or_classified_family, to_float
-from .line_status import FAMILY_LABELS, channel_callout
+from .docsis_utils import CHANNEL_HEALTH_RANK, to_float
+from .line_status import channel_callout
 
 CELL_COUNT = 48
 
@@ -74,7 +74,7 @@ def _row(direction: str, channel: dict, history: list[tuple[datetime, str | None
         "legacy_channel_id": channel.get("legacy_channel_id"),
         "selector": channel.get("selector") or channel_selector(channel),
         "selector_required": bool(channel.get("selector_required")),
-        "family": FAMILY_LABELS.get(stored_or_classified_family(direction, channel), ""),
+        "family": callout["family"],
         "modulation": callout["modulation"],
         "health": current,
         "cells": cells,

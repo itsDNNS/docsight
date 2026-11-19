@@ -373,7 +373,7 @@ class EventDetector:
                 "current_health": cur_health,
                 "threshold": cur_health,
             })
-        affected.sort(key=lambda ch: ({"critical": 0, "warning": 1, "tolerated": 2}.get(ch.get("current_health"), 3), ch.get("current") is None, ch.get("current") or 0, str(ch.get("channel"))))
+        affected.sort(key=lambda ch: (-CHANNEL_HEALTH_RANK.get(ch.get("current_health"), 0), ch.get("current") is None, ch.get("current") or 0, str(ch.get("channel"))))
         return affected if found_comparable else None
 
     @staticmethod
