@@ -11,7 +11,8 @@ from app.module_loader import ManifestError, ModuleLoader, validate_manifest, va
 _VALID_THRESHOLDS = {
     "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]}},
     "upstream_power": {"_default": "sc_qam", "sc_qam": {"good": [41, 47], "warning": [37, 51], "critical": [35, 53]}},
-    "snr": {"_default": "256QAM", "256QAM": {"good_min": 33, "warning_min": 31, "critical_min": 30}},
+    # Sparse on purpose: the analyzer uses built-in limits for the missing 256QAM entry.
+    "snr": {"_default": "256QAM", "ofdm": {"good_min": 27, "warning_min": 25.5, "critical_min": 24.5}},
 }
 
 
@@ -20,7 +21,6 @@ _VALID_THRESHOLDS = {
     (("downstream_power", "_default"), 256),
     (("downstream_power", "_default"), "_default"),
     (("snr", "_default"), "_custom"),
-    (("upstream_power", "_default"), "ofdma"),
     (("downstream_power", "256QAM", "good"), None),
     (("downstream_power", "256QAM", "good"), ["-4", "13"]),
     (("downstream_power", "256QAM", "good"), [5, -5]),
@@ -94,6 +94,7 @@ class TestThresholdContributes:
 
             mod = next(m for m in loader.get_modules() if m.id == "test.mythresholds")
             assert mod.thresholds_data is not None
+            assert mod.error is None
             assert "downstream_power" in mod.thresholds_data
         finally:
             analyzer._thresholds = orig

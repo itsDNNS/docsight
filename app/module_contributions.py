@@ -388,8 +388,8 @@ def validate_thresholds(data: dict[str, object]) -> None:
             _check_threshold(data[section], schema, section)
     for section in REQUIRED_THRESHOLD_SECTIONS:
         default = data[section].get("_default")
-        if not isinstance(default, str) or default.startswith("_") or default not in data[section]:
-            raise ManifestError(f"Threshold '{section}._default' must name an entry of the section")
+        if not isinstance(default, str) or default.startswith("_"):
+            raise ManifestError(f"Threshold '{section}._default' must be an entry name without a leading '_'")
 
 
 def validate_theme(data: dict[str, object]) -> None:
