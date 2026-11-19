@@ -22,10 +22,8 @@ jobs:
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
       python: ${{ steps.filter.outputs.python }}
-      windows: ${{ steps.filter.outputs.windows }}
       browser: ${{ steps.filter.outputs.browser }}
       js: ${{ steps.filter.outputs.js }}
-      i18n: ${{ steps.filter.outputs.i18n }}
       deps: ${{ steps.filter.outputs.deps }}
       locks: ${{ steps.filter.outputs.locks }}
     steps:
@@ -58,19 +56,6 @@ jobs:
               - '!packaging/windows/*.md'
               - 'requirements.txt'
               - 'requirements-test.txt'
-              - 'pytest.ini'
-              - '.github/workflows/*.yml'
-            windows:
-              - 'app/**'
-              - 'tests/**'
-              - 'scripts/**'
-              - 'tools/**'
-              - 'packaging/windows/**'
-              - '!packaging/windows/*.md'
-              - 'requirements.txt'
-              - 'requirements-test.txt'
-              - 'packaging/windows/requirements-runtime-windows.txt'
-              - 'packaging/windows/requirements-test-windows.txt'
               - 'pytest.ini'
               - '.github/workflows/*.yml'
             browser:
@@ -112,12 +97,6 @@ jobs:
               - 'app/i18n/**'
               - 'app/modules/**/i18n/**'
               - 'tests/js/**'
-              - '.github/workflows/test.yml'
-            i18n:
-              - 'app/i18n/**'
-              - 'app/modules/**/i18n/**'
-              - 'scripts/i18n_check.py'
-              - 'tests/test_i18n_check.py'
               - '.github/workflows/test.yml'
             deps:
               - 'requirements.txt'
@@ -206,16 +185,6 @@ jobs:
           pip install --require-hashes -r requirements.txt
           pip install --require-hashes -r requirements-test.txt
 
-      - name: Validate workflow YAML syntax
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import yaml
-
-          for workflow in Path(".github/workflows").glob("*.yml"):
-              yaml.compose(workflow.read_text(encoding="utf-8"))
-          PY
-
       # YAML parsing alone accepts workflows GitHub rejects, such as contexts used
       # where they are not available; actionlint checks the workflow semantics.
       - name: Lint workflows with actionlint
@@ -266,7 +235,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.changes.result == 'success' &&
-      needs.changes.outputs.windows == 'true'
+      needs.changes.outputs.python == 'true'
     runs-on: windows-latest
     timeout-minutes: 20
 
@@ -411,31 +380,9 @@ jobs:
             exit 1
           fi
 
-  i18n:
-    needs: changes
-    if: >-
-      always() &&
-      !cancelled() &&
-      needs.changes.result == 'success' &&
-      needs.changes.outputs.i18n == 'true'
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.13"
-
-      - name: Validate translations
-        run: python scripts/i18n_check.py --validate
-
   tests-summary:
     name: tests-summary
-    needs: [changes, docs, test, test-windows, mobile-e2e, test-js, i18n, audit, locks]
+    needs: [changes, docs, test, test-windows, mobile-e2e, test-js, audit, locks]
     if: always()
     timeout-minutes: 5
     runs-on: ubuntu-latest
@@ -446,10 +393,8 @@ jobs:
           CHANGES_RESULT: ${{ needs.changes.result }}
           DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
           PYTHON_CHANGED: ${{ needs.changes.outputs.python }}
-          WINDOWS_CHANGED: ${{ needs.changes.outputs.windows }}
           BROWSER_CHANGED: ${{ needs.changes.outputs.browser }}
           JS_CHANGED: ${{ needs.changes.outputs.js }}
-          I18N_CHANGED: ${{ needs.changes.outputs.i18n }}
           DEPS_CHANGED: ${{ needs.changes.outputs.deps }}
           LOCKS_CHANGED: ${{ needs.changes.outputs.locks }}
           DOCS_RESULT: ${{ needs.docs.result }}
@@ -457,7 +402,6 @@ jobs:
           WINDOWS_RESULT: ${{ needs.test-windows.result }}
           BROWSER_RESULT: ${{ needs.mobile-e2e.result }}
           JS_RESULT: ${{ needs.test-js.result }}
-          I18N_RESULT: ${{ needs.i18n.result }}
           DEPS_RESULT: ${{ needs.audit.result }}
           LOCKS_RESULT: ${{ needs.locks.result }}
         run: |
@@ -469,10 +413,9 @@ jobs:
           routes = {
               "docs": (os.environ["DOCS_CHANGED"], os.environ["DOCS_RESULT"]),
               "python": (os.environ["PYTHON_CHANGED"], os.environ["PYTHON_RESULT"]),
-              "windows": (os.environ["WINDOWS_CHANGED"], os.environ["WINDOWS_RESULT"]),
+              "windows": (os.environ["PYTHON_CHANGED"], os.environ["WINDOWS_RESULT"]),
               "browser": (os.environ["BROWSER_CHANGED"], os.environ["BROWSER_RESULT"]),
               "js": (os.environ["JS_CHANGED"], os.environ["JS_RESULT"]),
-              "i18n": (os.environ["I18N_CHANGED"], os.environ["I18N_RESULT"]),
               "deps": (os.environ["DEPS_CHANGED"], os.environ["DEPS_RESULT"]),
               "locks": (os.environ["LOCKS_CHANGED"], os.environ["LOCKS_RESULT"]),
           }

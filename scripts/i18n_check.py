@@ -147,7 +147,7 @@ def cmd_validate():
         print(f"\nSummary: {total_missing} missing key(s), {total_extra} extra key(s) "
               f"across {len(problems)} file(s)  ({files_checked} checked).")
 
-    # Always exit 0 -- this is warning-only, does not block CI
+    # A report only: tests/test_static_contracts.py enforces complete catalogs.
     return 0
 
 
