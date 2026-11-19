@@ -52,6 +52,22 @@ def _no_network(monkeypatch):
 _version._git_tag = functools.lru_cache(maxsize=None)(_version._git_tag)
 
 
+@pytest.fixture
+def clear_version_cache():
+    _version.get_available_app_version.cache_clear()
+    yield
+    _version.get_available_app_version.cache_clear()
+
+
+@pytest.fixture
+def running_app_version(request, monkeypatch, clear_version_cache):
+    """Resolve the app version like a source checkout without a VERSION file."""
+    tag = getattr(request, "param", "v2026-07-01.1")
+    monkeypatch.setattr(_version, "_read_version_file", lambda: None)
+    monkeypatch.setattr(_version, "_git_tag", lambda *args: tag if args == ("--abbrev=0",) else None)
+    return _version.get_app_version()
+
+
 # Route tests run without an admin password; DOCSight is only open then when the operator opts out.
 OPEN_INSTANCE_ENVIRON = {"AUTH_DISABLED": "true"}
 

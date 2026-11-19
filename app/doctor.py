@@ -34,6 +34,7 @@ from .config import (
     SECRET_KEYS,
     parse_stored_bool,
 )
+from .version import get_app_version
 
 DOCTOR_VERSION = 1
 STATUS_ORDER = ("pass", "warn", "fail", "skipped")
@@ -163,17 +164,6 @@ def _safe_path(path: str | Path) -> str:
     return redact_value(str(path), "path")
 
 
-def _get_version() -> str:
-    for candidate in (Path("/app/VERSION"), Path(__file__).resolve().parents[1] / "VERSION"):
-        try:
-            version = candidate.read_text(encoding="utf-8").strip()
-        except FileNotFoundError:
-            continue
-        if version:
-            return version
-    return "dev"
-
-
 def _load_config_file(data_dir: Path) -> tuple[dict[str, Any], CheckResult]:
     config_path = data_dir / "config.json"
     if not config_path.exists():
@@ -223,7 +213,7 @@ def _check_runtime(environ: Mapping[str, str]) -> CheckResult:
         status="pass",
         message="DOCSight runtime information collected",
         details={
-            "app_version": _get_version(),
+            "app_version": get_app_version(),
             "python": platform.python_version(),
             "platform": redact_value(platform.platform(), "platform"),
             "deployment": "docker" if docker_detected else "native_python",
@@ -634,7 +624,7 @@ def build_report(data_dir: str | None = None, environ: Mapping[str, str] | None 
     serializable_checks = redact_value(serializable_checks)  # type: ignore[assignment]
     return {
         "doctor_version": DOCTOR_VERSION,
-        "app_version": _get_version(),
+        "app_version": serializable_checks[0]["details"]["app_version"],
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "data_dir": _safe_path(root),
         "checks": serializable_checks,

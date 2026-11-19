@@ -98,13 +98,13 @@ class TestCreateBackup:
             assert ".session_key" not in names
             assert ".auth_state" not in names
 
-    def test_meta_has_required_fields(self, backup_path):
+    def test_meta_has_required_fields(self, running_app_version, backup_path):
         with tarfile.open(backup_path, mode="r:gz") as tar:
             meta = json.loads(tar.extractfile(BACKUP_META_FILE).read())
             assert meta["magic"] == MAGIC
             assert meta["format_version"] == FORMAT_VERSION
             assert "timestamp" in meta
-            assert "app_version" in meta
+            assert meta["app_version"] == running_app_version
             assert "tables" in meta
 
     def test_demo_data_excluded(self, backup_path, tmp_path):

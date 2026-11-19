@@ -20,6 +20,7 @@ from app.storage.sqlite import (
     verify_database,
     write_transaction,
 )
+from app.version import get_app_version
 import tarfile
 import tempfile
 from datetime import datetime, timezone
@@ -38,19 +39,6 @@ DATA_FILES = [
 BACKUP_META_FILE = "backup_meta.json"
 FORMAT_VERSION = 1
 MAGIC = "docsight-backup"
-
-
-def _get_app_version():
-    """Read app version (best-effort)."""
-    for vpath in ("/app/VERSION", os.path.join(os.path.dirname(__file__), "..", "VERSION")):
-        try:
-            with open(vpath) as f:
-                v = f.read().strip()
-                if v:
-                    return v
-        except FileNotFoundError:
-            pass
-    return "dev"
 
 
 def _get_table_counts(db_path):
@@ -119,7 +107,7 @@ def _write_backup_archive(data_dir, archive_target, work_dir=None):
             "magic": MAGIC,
             "format_version": FORMAT_VERSION,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "app_version": _get_app_version(),
+            "app_version": get_app_version(),
             "tables": _get_table_counts(main_copy) if vacuumed.get("docsis_history.db") else {},
         }
         meta_path = os.path.join(tmp, BACKUP_META_FILE)

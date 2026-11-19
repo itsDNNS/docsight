@@ -24,8 +24,10 @@ def _git_tag(*args: str) -> str | None:
     try:
         version = subprocess.check_output(
             ["git", "describe", "--tags", *args],
+            cwd=os.path.dirname(__file__),
             stderr=subprocess.DEVNULL,
             text=True,
+            timeout=5,
         ).strip()
     except Exception:
         return None
