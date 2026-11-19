@@ -6,6 +6,7 @@ from app.channel_selector import match_channel, match_channels
 
 from ..tz import utc_cutoff
 from .error_counters import unwrap_uint32_counter_series
+from .events import decode_details
 
 
 _CHANNEL_ERROR_KEYS = ("correctable_errors", "uncorrectable_errors")
@@ -102,10 +103,7 @@ class AnalysisMethods:
                     "message": r["message"],
                 }
                 if r["details"]:
-                    try:
-                        event["details"] = json.loads(r["details"])
-                    except (json.JSONDecodeError, TypeError):
-                        pass
+                    event["details"] = decode_details(r["details"])
                 timeline.append(event)
 
         if "bnetz" in sources:
@@ -150,10 +148,7 @@ class AnalysisMethods:
                         "last_error": r["last_error"],
                     }
                     if r["details"]:
-                        try:
-                            entry["details"] = json.loads(r["details"])
-                        except (json.JSONDecodeError, TypeError):
-                            pass
+                        entry["details"] = decode_details(r["details"])
                     timeline.append(entry)
             except Exception:
                 pass  # Table may not exist on older schemas
@@ -189,20 +184,13 @@ class AnalysisMethods:
         """Return time series for a single channel over the selected window.
         An exact selector takes precedence over the legacy unique channel_id.
         direction: 'ds' or 'us'. Returns list of dicts with timestamp + channel fields."""
-        _COL_MAP = {"ds": "ds_channels_json", "us": "us_channels_json"}
-        _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
         cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
+        col = {"ds": "ds_channels_json", "us": "us_channels_json"}[direction]
         with self._read() as conn:
-            if direction == "ds":
-                rows = conn.execute(
-                    "SELECT timestamp, ds_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
-                    (cutoff,),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT timestamp, us_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
-                    (cutoff,),
-                ).fetchall()
+            rows = conn.execute(
+                f"SELECT timestamp, {col} FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
+                (cutoff,),
+            ).fetchall()
         results = []
         for ts, channels_json in rows:
             channels = json.loads(channels_json)

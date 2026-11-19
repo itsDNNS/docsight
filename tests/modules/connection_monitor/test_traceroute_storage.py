@@ -20,7 +20,7 @@ def _make_hops(count=3):
 class TestTracerouteStorage:
     def test_trace_tables_created(self, storage):
         """Traceroute tables should exist after init."""
-        with storage._connect() as conn:
+        with storage._write() as conn:
             tables = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'traceroute_%'"
             ).fetchall()
@@ -125,7 +125,7 @@ class TestTracerouteStorage:
         trace_id = storage.save_trace(tid, time.time(), "manual", _make_hops(3), "fp", True)
         assert len(storage.get_trace_hops(trace_id)) == 3
 
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute("DELETE FROM traceroute_traces WHERE id = ?", (trace_id,))
 
         assert storage.get_trace_hops(trace_id) == []

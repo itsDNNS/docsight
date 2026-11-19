@@ -51,7 +51,7 @@ class TestChannelsView:
 
         storage = SnapshotStorage(str(Path(vodafone_tg_server.data_dir) / "docsis_history.db"))
         timestamp, = storage.get_snapshot_list()
-        raw = storage.get_snapshot_raw_data(timestamp)
+        raw = storage.get_snapshot(timestamp)["raw_data"]
         for direction, version, ids in (
             ("channelDs", "docsis30", [7, 8]), ("channelDs", "docsis31", [193]),
             ("channelUs", "docsis30", [6]), ("channelUs", "docsis31", [41]),

@@ -8,21 +8,13 @@ from app.storage.sqlite import (
     bulk_write,
     open_read,
 )
+from app.tz import normalize_range_ts
 from .migrations import MIGRATIONS
 import threading
 from collections import defaultdict
 from pathlib import Path
 
 log = logging.getLogger("docsis.storage.weather")
-
-
-def _normalize_range_ts(ts, separator=" "):
-    """Accept either ISO 'T' or legacy space-separated timestamps for queries."""
-    if not ts or len(ts) < 19:
-        return ts
-    if ts[10] not in ("T", " "):
-        return ts
-    return ts[:10] + separator + ts[11:]
 
 
 class WeatherStorage(DatabaseAccess):
@@ -78,8 +70,8 @@ class WeatherStorage(DatabaseAccess):
 
     def get_weather_in_range(self, start_ts, end_ts):
         """Return weather data within a timestamp range, oldest first."""
-        start_ts = _normalize_range_ts(start_ts, " ")
-        end_ts = _normalize_range_ts(end_ts, " ")
+        start_ts = normalize_range_ts(start_ts, " ")
+        end_ts = normalize_range_ts(end_ts, " ")
         with open_read(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, temperature FROM weather_data "

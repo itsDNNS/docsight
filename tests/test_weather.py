@@ -145,14 +145,14 @@ class TestWeatherStorage:
     def test_wal_mode_enabled(self, tmp_path):
         """WeatherStorage connections use WAL journal mode."""
         storage = WeatherStorage(str(tmp_path / "test.db"))
-        with storage._connect() as conn:
+        with storage._write() as conn:
             mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
         assert mode == "wal"
 
     def test_busy_timeout_set(self, tmp_path):
         """WeatherStorage connections have busy_timeout configured."""
         storage = WeatherStorage(str(tmp_path / "test.db"))
-        with storage._connect() as conn:
+        with storage._write() as conn:
             timeout = conn.execute("PRAGMA busy_timeout").fetchone()[0]
         assert timeout == WeatherStorage.BUSY_TIMEOUT_MS
 

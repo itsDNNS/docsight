@@ -10,6 +10,7 @@ from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
 from app.modules.bqm.storage import BqmStorage
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
+from app.tz import utc_now
 from tests.conftest import mixed_error_counter_summary
 
 
@@ -119,7 +120,6 @@ class TestSnapshotStorage:
         assert latest is not None
         assert snap["raw_data"] == raw_payload
         assert latest["raw_data"] == raw_payload
-        assert storage.get_snapshot_raw_data(ts) == raw_payload
 
     def test_raw_payload_redacts_sensitive_keys(self, storage, sample_analysis):
         raw_payload = {
@@ -127,16 +127,17 @@ class TestSnapshotStorage:
             "password": "secret-value",
             "nested": {"sessionToken": "token-value"},
             "downstream": [],
-            "upstream": [],
+            "upstream": ({"apiKey": "key-value"},),
         }
 
         storage.save_snapshot(sample_analysis, raw_data=raw_payload)
         ts = storage.get_snapshot_list()[0]
-        raw = storage.get_snapshot_raw_data(ts)
+        raw = storage.get_snapshot(ts)["raw_data"]
 
         assert raw is not None
         assert raw["password"] == "[REDACTED]"
         assert raw["nested"]["sessionToken"] == "[REDACTED]"
+        assert raw["upstream"] == [{"apiKey": "[REDACTED]"}]
 
     def test_oversized_raw_payload_is_not_stored(self, storage, sample_analysis, monkeypatch):
         monkeypatch.setattr(snapshot_module, "MAX_RAW_SNAPSHOT_BYTES", 16)
@@ -550,6 +551,59 @@ class TestSnapshotStorage:
         with sqlite3.connect(storage.db_path) as conn:
             assert [conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in _EXPIRED_ROWS if table != broken] == [0, 0, 0]
         assert "Retention cleanup of" in caplog.text and "no such column" in caplog.text
+
+
+_ALL_TIME = ("2000-01-01T00:00:00Z", "2099-01-01T00:00:00Z")
+_DETAILS_ROWS = {
+    "events": "INSERT INTO events (timestamp, severity, event_type, message, details) "
+              "VALUES (?, 'info', 'x', 'm', ?)",
+    "smart_capture_executions": "INSERT INTO smart_capture_executions "
+                                "(created_at, trigger_type, action_type, status, details) "
+                                "VALUES (?, 't', 'a', 'fired', ?)",
+}
+
+
+@pytest.mark.parametrize("stored, decoded", [
+    (None, None), ("", ""), ('{"a": 1}', {"a": 1}), ("[1, 2]", [1, 2]), ("5", 5), ("not json", "not json"),
+    (b'{"a": 1}', {"a": 1}), (b"not json", "not json"), (b"\xff", "\ufffd"),
+], ids=["null", "empty", "object", "list", "scalar", "malformed", "blob_object", "blob_malformed", "blob_not_text"])
+@pytest.mark.parametrize("table, method, args, keeps_empty", [
+    pytest.param("events", "get_events", (), True, id="get_events"),
+    pytest.param("events", "get_recent_events", (), True, id="get_recent_events"),
+    pytest.param("events", "get_correlation_timeline", (*_ALL_TIME, {"events"}), False, id="timeline_events"),
+    pytest.param("smart_capture_executions", "get_execution", (1,), True, id="get_execution"),
+    pytest.param("smart_capture_executions", "get_fired_unmatched", ("a",), True, id="get_fired_unmatched"),
+    pytest.param("smart_capture_executions", "get_executions", (), True, id="get_executions"),
+    pytest.param("smart_capture_executions", "get_correlation_timeline", (*_ALL_TIME, {"capture"}), False,
+                 id="timeline_capture"),
+])
+def test_stored_details_decode_alike_in_every_reader(storage, table, method, args, keeps_empty, stored, decoded):
+    """Readers return parsed JSON details; anything else comes back as text, never as bytes.
+    The timeline leaves out empty details."""
+    with storage._write() as conn:
+        conn.execute(_DETAILS_ROWS[table], (utc_now(), stored))
+    result = getattr(storage, method)(*args)
+    row = result[0] if isinstance(result, list) else result
+    if stored or keeps_empty:
+        assert row["details"] == decoded
+    else:
+        assert "details" not in row
+
+
+@pytest.mark.parametrize("stored, loaded", [
+    (None, None), ("", None), ('{"a": 1}', {"a": 1}), ("[1]", None), ("not json", None),
+], ids=["null", "empty", "object", "list", "malformed"])
+@pytest.mark.parametrize("column, key", [("analysis_meta_json", "analysis_meta"), ("raw_json", "raw_data")])
+def test_snapshot_json_columns_load_as_objects_or_none(storage, column, key, stored, loaded):
+    ts = "2026-06-01T10:00:00Z"
+    with storage._write() as conn:
+        conn.execute(
+            f"INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, {column}) "
+            "VALUES (?, '{}', '[]', '[]', ?)",
+            (ts, stored),
+        )
+    assert storage.get_snapshot(ts)[key] == loaded
+    assert storage.get_latest_snapshot()[key] == loaded
 
 
 class TestBnetzStorage:
