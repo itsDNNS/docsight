@@ -5,6 +5,7 @@ import importlib.util
 import inspect
 import json
 import logging
+import math
 import os
 import sys
 from types import ModuleType
@@ -39,7 +40,13 @@ _PROTECTED_API_PREFIXES = (
     "/api/poll", "/api/status", "/api/history", "/api/events", "/api/trends",
     "/api/export", "/api/correlation", "/api/modules/", "/api/themes/",
 )
-REQUIRED_THRESHOLD_SECTIONS = {"downstream_power", "upstream_power", "snr"}
+# Bands each required threshold section may set: [min, max] pairs for power,
+# single minimums for SNR. Omitted bands fall back to analyzer defaults.
+REQUIRED_THRESHOLD_SECTIONS = {
+    "downstream_power": ("good", "warning", "critical"),
+    "upstream_power": ("good", "warning", "critical"),
+    "snr": ("good_min", "warning_min", "critical_min"),
+}
 REQUIRED_THEME_SECTIONS = {"dark", "light"}
 
 
@@ -333,17 +340,42 @@ def setup_module_templates(
     return resolved
 
 
+def _finite_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _valid_band(value: object, single: bool) -> bool:
+    if single:
+        return _finite_number(value)
+    return (
+        isinstance(value, (list, tuple)) and len(value) == 2
+        and all(map(_finite_number, value)) and value[0] <= value[1]
+    )
+
+
 def validate_thresholds(data: dict[str, object]) -> None:
     """Validate a threshold contribution."""
-    missing = REQUIRED_THRESHOLD_SECTIONS - set(data.keys())
+    missing = REQUIRED_THRESHOLD_SECTIONS.keys() - data.keys()
     if missing:
         raise ManifestError(f"Missing required threshold sections: {', '.join(sorted(missing))}")
-    for section in REQUIRED_THRESHOLD_SECTIONS:
+    for section, bands in REQUIRED_THRESHOLD_SECTIONS.items():
         block = data[section]
         if not isinstance(block, dict):
             raise ManifestError(f"Threshold section '{section}' must be a dict")
         if "_default" not in block:
             raise ManifestError(f"Threshold section '{section}' missing '_default' key")
+        for key, entry in block.items():
+            if key.startswith("_"):
+                continue
+            if not isinstance(entry, dict):
+                raise ManifestError(f"Threshold entry '{key}' in '{section}' must be a dict")
+            for band in bands:
+                single = band.endswith("_min")
+                if band in entry and not _valid_band(entry[band], single):
+                    shape = "a finite number" if single else "a [min, max] pair of finite numbers, min <= max"
+                    raise ManifestError(
+                        f"Threshold band '{band}' of '{key}' in '{section}' must be {shape}"
+                    )
 
 
 def validate_theme(data: dict[str, object]) -> None:

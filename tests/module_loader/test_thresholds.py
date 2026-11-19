@@ -1,15 +1,40 @@
 """Tests for threshold module contributions and wiring."""
 
+import copy
 import json
 
+import pytest
 from flask import Flask
-from app.module_loader import validate_manifest, ModuleLoader
+from app.module_loader import ManifestError, ModuleLoader, validate_manifest, validate_thresholds
 
 _VALID_THRESHOLDS = {
     "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]}},
     "upstream_power": {"_default": "sc_qam", "sc_qam": {"good": [41, 47], "warning": [37, 51], "critical": [35, 53]}},
     "snr": {"_default": "256QAM", "256QAM": {"good_min": 33, "warning_min": 31, "critical_min": 30}},
 }
+
+
+@pytest.mark.parametrize("path, value", [
+    (("downstream_power", "256QAM", "good"), None),
+    (("downstream_power", "256QAM", "good"), ["-4", "13"]),
+    (("downstream_power", "256QAM", "good"), [5, -5]),
+    (("upstream_power", "sc_qam", "warning"), [True, 51]),
+    (("upstream_power", "sc_qam", "critical"), [35]),
+    (("snr", "256QAM", "critical_min"), "29"),
+    (("snr", "256QAM", "good_min"), float("nan")),
+    (("snr", "256QAM"), 33),
+])
+def test_threshold_validation_rejects_invalid_bands(path, value):
+    data = copy.deepcopy(_VALID_THRESHOLDS)
+    *parents, leaf = path
+    target = data
+    for name in parents:
+        target = target[name]
+    target[leaf] = value
+    with pytest.raises(ManifestError) as excinfo:
+        validate_thresholds(data)
+    assert all(f"'{name}'" in str(excinfo.value) for name in path)
+
 
 class TestThresholdContributes:
     """Test threshold module loading and validation."""
