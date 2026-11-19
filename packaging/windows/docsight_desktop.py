@@ -128,13 +128,6 @@ class DesktopPaths:
 
 
 @dataclass(frozen=True)
-class PortSelection:
-    """Selected free local web port for a new owner."""
-
-    port: int
-
-
-@dataclass(frozen=True)
 class LauncherEvent:
     """Worker-to-UI event. The attempt prevents stale worker updates."""
 
@@ -144,7 +137,6 @@ class LauncherEvent:
     url: str | None = None
     recovery: RecoveryCode | None = None
     owns_server: bool = False
-    safe_exception_type: str | None = None
 
 
 @dataclass(frozen=True)
@@ -426,7 +418,7 @@ def select_port(
     env: MutableMapping[str, str] | None = None,
     *,
     max_port: int = MAX_PORT,
-) -> PortSelection:
+) -> int:
     """Select a free loopback port for the mutex-owning desktop instance."""
     runtime_env = env if env is not None else os.environ
     preferred = _preferred_port(runtime_env)
@@ -438,14 +430,10 @@ def select_port(
         if port != preferred
     )
 
-    seen: set[int] = set()
     for port in candidates:
-        if port in seen:
-            continue
-        seen.add(port)
         if _can_bind_local_port(port):
             runtime_env[WEB_PORT_ENV] = str(port)
-            return PortSelection(port=port)
+            return port
 
     raise RuntimeError("No free loopback port")
 
@@ -455,12 +443,6 @@ def get_runtime_root() -> Path:
     if getattr(sys, "frozen", False):
         return Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
     return SOURCE_ROOT
-
-
-def _ensure_repo_on_path() -> None:
-    runtime_root = str(get_runtime_root())
-    if runtime_root not in sys.path:
-        sys.path.insert(0, runtime_root)
 
 
 def _safe_exception_type(exc: BaseException) -> str:
@@ -556,7 +538,7 @@ class DesktopShutdown:
 
 
 def _start_app_thread(
-    server_lifecycle: ServerLifecycleController | None = None,
+    server_lifecycle: ServerLifecycleController,
     *,
     inject_smoke_failure: bool = False,
 ) -> AppThreadHandle:
@@ -568,13 +550,9 @@ def _start_app_thread(
         try:
             if inject_smoke_failure:
                 raise RuntimeError("injected startup failure")
-            _ensure_repo_on_path()
             from app.main import main as app_main
 
-            if server_lifecycle is None:
-                app_main()
-            else:
-                app_main(server_lifecycle=server_lifecycle)
+            app_main(server_lifecycle=server_lifecycle)
         except BaseException as exc:
             handle.failure_type = _safe_exception_type(exc)
         finally:
@@ -587,7 +565,6 @@ def _start_app_thread(
 
 
 def _wait_for_ready(
-    port: int,
     app_handle: AppThreadHandle | None,
     timeout_seconds: float = HEALTH_TIMEOUT_SECONDS,
     *,
@@ -608,7 +585,6 @@ def _wait_for_ready(
 def open_browser(
     port: int,
     env: MutableMapping[str, str] | None = None,
-    browser_open: Callable[[str], object] | None = None,
     *,
     platform: str | None = None,
     com_api: object | None = None,
@@ -618,25 +594,18 @@ def open_browser(
     if runtime_env.get("DOCSIGHT_SKIP_BROWSER") == "1":
         LOG.info("Skipping browser launch because DOCSIGHT_SKIP_BROWSER=1")
         return True
-    return open_url(
-        local_url(port),
-        browser_open=browser_open,
-        platform=platform,
-        com_api=com_api,
-    )
+    return open_url(local_url(port), platform=platform, com_api=com_api)
 
 
 def open_url(
     url: str,
-    browser_open: Callable[[str], object] | None = None,
     *,
     platform: str | None = None,
     com_api: object | None = None,
 ) -> bool:
     """Open an exact owner runtime URL, balancing Windows COM setup."""
-    if browser_open is not None or (platform or sys.platform) != "win32":
-        opener = browser_open or webbrowser.open
-        return bool(opener(url))
+    if (platform or sys.platform) != "win32":
+        return bool(webbrowser.open(url))
 
     api: Any = com_api
     if api is None:
@@ -810,19 +779,16 @@ def spawn_launcher_process(
         close_handle(parent_handle)
 
 
-def terminate_current_launcher(exit_function: Callable[[int], object] | None = None) -> None:
-    """Terminate this process so its daemon application thread cannot survive."""
-    terminator = exit_function or os._exit
-    terminator(0)
-
-
 def relaunch_launcher(
     *,
     spawn: Callable[[], object] = spawn_launcher_process,
     cleanup: Callable[[], object] | None = None,
-    terminate: Callable[[], object] = terminate_current_launcher,
+    terminate: Callable[[], object] = lambda: os._exit(0),
 ) -> None:
-    """Start a normal fresh launcher attempt, then terminate this launcher."""
+    """Start a fresh launcher attempt, then terminate this process.
+
+    Exiting the process ensures the daemon application thread cannot survive.
+    """
     spawn()
     cleanup_error: BaseException | None = None
     if cleanup is not None:
@@ -896,7 +862,7 @@ class StartupRunner:
         self.env = env if env is not None else os.environ
         self.is_relaunch = is_relaunch
         self.handoff_outcome = handoff_outcome
-        self.server_lifecycle = server_lifecycle
+        self.server_lifecycle = server_lifecycle or ServerLifecycleController()
 
     def _emit_error(
         self,
@@ -916,7 +882,6 @@ class StartupRunner:
                 kind=EventKind.ERROR,
                 url=url,
                 recovery=recovery,
-                safe_exception_type=failure_type,
             )
         )
 
@@ -975,12 +940,12 @@ class StartupRunner:
 
             if instance_decision.role is InstanceRole.FOLLOWER:
                 assert instance_decision.port is not None
-                selection = PortSelection(instance_decision.port)
+                port = instance_decision.port
                 owns_server = False
             else:
                 owns_server = True
                 try:
-                    selection = select_port(self.env)
+                    port = select_port(self.env)
                 except RuntimeError as exc:
                     self._emit_error(
                         attempt,
@@ -990,11 +955,10 @@ class StartupRunner:
                     )
                     return
                 try:
-                    _ensure_repo_on_path()
                     from app.version import get_app_version
 
                     self.desktop_instance.publish(
-                        port=selection.port,
+                        port=port,
                         application_version=get_app_version(),
                     )
                 except BaseException as exc:
@@ -1006,7 +970,7 @@ class StartupRunner:
                     )
                     return
 
-            url = local_url(selection.port)
+            url = local_url(port)
             self.controller.emit(_phase_event(attempt, StartupPhase.START, url))
             LOG.info("Phase: %s", StartupPhase.START.value)
 
@@ -1015,22 +979,11 @@ class StartupRunner:
                 LOG.info("Validated existing DOCSight desktop instance on %s", url)
             else:
                 LOG.info("Starting DOCSight on %s", url)
-                inject_smoke_failure = (
-                    smoke_enabled
-                    and self.env.get("DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE") == "1"
+                app_handle = _start_app_thread(
+                    self.server_lifecycle,
+                    inject_smoke_failure=smoke_enabled
+                    and self.env.get("DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE") == "1",
                 )
-                if inject_smoke_failure:
-                    if self.server_lifecycle is None:
-                        app_handle = _start_app_thread(inject_smoke_failure=True)
-                    else:
-                        app_handle = _start_app_thread(
-                            self.server_lifecycle,
-                            inject_smoke_failure=True,
-                        )
-                elif self.server_lifecycle is None:
-                    app_handle = _start_app_thread()
-                else:
-                    app_handle = _start_app_thread(self.server_lifecycle)
 
             self.controller.emit(_phase_event(attempt, StartupPhase.WAIT, url))
             LOG.info("Phase: %s", StartupPhase.WAIT.value)
@@ -1038,7 +991,6 @@ class StartupRunner:
                 WaitOutcome.READY
                 if not owns_server
                 else _wait_for_ready(
-                    selection.port,
                     app_handle,
                     readiness_probe=self.desktop_instance.validate_published_runtime,
                 )
@@ -1048,12 +1000,9 @@ class StartupRunner:
                     owns_server
                     and app_handle is not None
                     and app_handle.failure_type is None
-                    and (
-                        self.server_lifecycle is None
-                        or not self.server_lifecycle.close_requested
-                    )
+                    and not self.server_lifecycle.close_requested
                     and self.env.get(BIND_RETRY_ENV) != "1"
-                    and not _can_bind_local_port(selection.port)
+                    and not _can_bind_local_port(port)
                 ):
                     LOG.warning(
                         "Selected loopback port was lost before readiness; "
@@ -1108,7 +1057,7 @@ class StartupRunner:
                 )
                 return
             try:
-                browser_opened = open_browser(selection.port, self.env)
+                browser_opened = open_browser(port, self.env)
             except BaseException as exc:
                 self._emit_error(
                     attempt,
@@ -1151,24 +1100,12 @@ class StartupRunner:
             else:
                 self.controller.emit(LauncherEvent(attempt, EventKind.EXIT))
         except BaseException as exc:
-            failure_type = _safe_exception_type(exc)
-            if LOG.handlers:
-                self._emit_error(
-                    attempt,
-                    RecoveryCode.STARTUP_FAILED,
-                    url,
-                    failure_type,
-                )
-            else:
-                self.controller.emit(
-                    LauncherEvent(
-                        attempt=attempt,
-                        kind=EventKind.ERROR,
-                        url=url,
-                        recovery=RecoveryCode.STARTUP_FAILED,
-                        safe_exception_type=failure_type,
-                    )
-                )
+            self._emit_error(
+                attempt,
+                RecoveryCode.STARTUP_FAILED,
+                url,
+                _safe_exception_type(exc),
+            )
 
 
 class TkLauncher:
@@ -1198,7 +1135,7 @@ class TkLauncher:
         self._worker: threading.Thread | None = None
         self.command_dispatcher = command_dispatcher or TrayCommandDispatcher()
         self.smoke_quit_trigger = create_smoke_quit_trigger(
-            getattr(runner, "env", os.environ),
+            runner.env,
             paths.base_dir,
             self.command_dispatcher,
         )
@@ -1374,22 +1311,18 @@ class TkLauncher:
 
     def _report_callback_exception(
         self,
-        exception_type: type[BaseException],
-        _exception: BaseException,
+        _exception_type: type[BaseException],
+        exception: BaseException,
         _traceback: object,
     ) -> None:
         """Sanitize exceptions escaping Tk callbacks."""
-        name = re.sub(r"[^A-Za-z0-9_]", "_", exception_type.__name__)[:80]
-        self._recover_ui_failure_type(name or "Exception")
+        self._recover_ui_exception(exception)
 
     def _recover_ui_exception(self, exc: BaseException) -> None:
-        self._recover_ui_failure_type(_safe_exception_type(exc))
-
-    def _recover_ui_failure_type(self, failure_type: str) -> None:
         LOG.error(
             "Recovery available: %s (failure type: %s)",
             RecoveryCode.STARTUP_FAILED.value,
-            failure_type,
+            _safe_exception_type(exc),
         )
         self.controller.exit_code = 1
         self.controller.state = replace(
@@ -1531,7 +1464,6 @@ class TkLauncher:
                     kind=EventKind.ERROR,
                     recovery=RecoveryCode.RELAUNCH_FAILED,
                     url=self.controller.state.url,
-                    safe_exception_type=_safe_exception_type(exc),
                 )
             )
 
@@ -1634,9 +1566,5 @@ def run_desktop() -> int:
         return 1
 
 
-def main() -> int:
-    return run_desktop()
-
-
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_desktop())

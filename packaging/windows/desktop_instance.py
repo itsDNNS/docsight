@@ -68,16 +68,14 @@ class RuntimeStateStore:
             raw = self._retry_sharing_violation(
                 lambda: self.path.read_text(encoding="utf-8")
             )
-        except FileNotFoundError:
-            return None
-        except UnicodeError:
+        except (FileNotFoundError, UnicodeError):
             return None
         except OSError as exc:
             raise RuntimeStateError("unable to read desktop runtime state") from exc
 
         try:
             return RuntimeState.from_mapping(json.loads(raw))
-        except (UnicodeError, json.JSONDecodeError, ValueError):
+        except ValueError:
             return None
 
     def replace(self, state: RuntimeState) -> None:

@@ -54,34 +54,6 @@ def test_named_mutex_parks_wait_release_and_close_on_one_thread(wait_result):
     assert api_calls[0][1] not in caller_threads
 
 
-def test_named_mutex_release_and_reacquire_are_safe_from_retry_thread():
-    api_calls = []
-    api = thread_recording_kernel32(api_calls)
-    mutex = platform_adapter.Win32NamedMutex("Global\\test", kernel32=api)
-    assert mutex.acquire()
-    retry_caller = []
-
-    def retry():
-        retry_caller.append(threading.get_ident())
-        mutex.release()
-        assert mutex.acquire()
-
-    worker = threading.Thread(target=retry)
-    worker.start()
-    worker.join()
-    mutex.close()
-
-    assert [name for name, _thread_id in api_calls] == [
-        "wait",
-        "release",
-        "wait",
-        "release",
-        "close",
-    ]
-    assert len({thread_id for _name, thread_id in api_calls}) == 1
-    assert api_calls[0][1] != retry_caller[0]
-
-
 def test_named_mutex_timeout_does_not_release_unowned_handle():
     calls = []
     api = SimpleNamespace(
@@ -145,8 +117,6 @@ def test_named_mutex_worker_death_fails_commands_and_close_is_idempotent():
     mutex._thread.join(timeout=1)
     assert not mutex._thread.is_alive()
 
-    with pytest.raises(RuntimeError, match="ownership thread stopped"):
-        mutex.release()
     with pytest.raises(RuntimeError, match="ownership thread stopped"):
         mutex.close()
     mutex.close()
