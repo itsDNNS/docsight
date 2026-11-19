@@ -7,7 +7,6 @@ import os
 import secrets
 import tempfile
 import time
-import urllib.error
 import urllib.request
 from collections.abc import Callable, MutableMapping
 from dataclasses import dataclass
@@ -196,23 +195,13 @@ def probe_runtime_endpoint(
             if getattr(response, "status", 200) != 200:
                 return False
             raw = response.read(8192).decode("utf-8")
-    except (
-        OSError,
-        TimeoutError,
-        UnicodeError,
-        urllib.error.HTTPError,
-        urllib.error.URLError,
-    ):
-        return False
-
-    try:
         payload = json.loads(raw)
         if not isinstance(payload, dict) or payload.get("status") != "ok":
             return False
         runtime_payload = dict(payload)
         runtime_payload.pop("status")
         observed = RuntimeState.from_mapping(runtime_payload)
-    except (json.JSONDecodeError, ValueError):
+    except Exception:  # any unreadable or malformed answer is not our runtime
         return False
     return observed == state
 
