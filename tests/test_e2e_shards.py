@@ -374,12 +374,17 @@ def test_single_process_baseline_receipt_may_exceed_shard_wall_limit(tmp_path):
     assert summary.job_wall_seconds == (1800.0,)
 
 
+def test_workflow_matrix_and_contributing_loop_cover_every_shard():
+    ids = [str(shard["id"]) for shard in load_manifest(MANIFEST)["shards"]]
+    assert f"'{json.dumps(ids, separators=(',', ':'))}'" in WORKFLOW.read_text(encoding="utf-8")
+    assert f"for shard in {' '.join(ids)}; do" in (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+
 def test_workflow_runs_safe_non_retrying_shards_and_an_always_gate():
     workflow = WORKFLOW.read_text(encoding="utf-8")
 
     assert "fail-fast: false" in workflow
     assert "single_process:" in workflow
-    assert "'[\"1\",\"2\",\"3\",\"4\",\"5\",\"6\"]'" in workflow
     assert "max-parallel: 6" in workflow
     assert "E2E_JOB_STARTED_EPOCH" in workflow
     assert "python scripts/e2e_shards.py run" in workflow

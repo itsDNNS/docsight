@@ -55,7 +55,6 @@ This runs on port **8767** (`http://localhost:8767`) in demo mode. Production us
 
 ```bash
 python -m pytest tests/ -n auto --ignore=tests/e2e
-npm ci
 npm test
 ```
 
@@ -63,7 +62,7 @@ The Python suite covers analyzers, collectors, drivers, event detection, API end
 
 ### Browser E2E suite
 
-Install the browser test dependencies before running this suite:
+Install the browser test dependencies before running this suite (CI pins the same versions in `.github/actions/browser-test-env/action.yml`):
 
 ```bash
 python -m pip install pytest-playwright==0.7.2 playwright==1.64.1
@@ -77,11 +76,11 @@ python scripts/e2e_shards.py validate
 python -m pytest --collect-only -q tests/e2e
 ```
 
-Run one shard, all five shards, one shard in reverse file order, or the canonical unsharded selection:
+Run one shard, every shard (`tests/e2e/shards.json` defines them), one shard in reverse file order, or the canonical unsharded selection:
 
 ```bash
 TZ=UTC python scripts/e2e_shards.py run --shard 1 -- -q --tb=short
-for shard in 1 2 3 4 5; do TZ=UTC python scripts/e2e_shards.py run --shard "$shard" -- -q --tb=short || exit; done
+for shard in 1 2 3 4 5 6; do TZ=UTC python scripts/e2e_shards.py run --shard "$shard" -- -q --tb=short || exit; done
 TZ=UTC python scripts/e2e_shards.py run --shard 1 --reverse -- -q --tb=short
 TZ=UTC python scripts/e2e_shards.py run --all -- -q --tb=short
 ```

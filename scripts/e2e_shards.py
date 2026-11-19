@@ -105,11 +105,6 @@ def _selected_shard(manifest: dict, shard_id: int) -> dict:
         raise ManifestError(f"unknown shard {shard_id}") from exc
 
 
-def shard_files(manifest: dict, shard_id: int, reverse: bool = False) -> list[str]:
-    files = list(_selected_shard(manifest, shard_id)["files"])
-    return list(reversed(files)) if reverse else files
-
-
 def _selection(manifest: dict, args) -> dict:
     if args.all:
         selected = {
