@@ -56,14 +56,19 @@ def test_keyboard_shutdown_stops_polling_resources(monkeypatch):
 class _NoContentHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(204)
+        for header in self.server.extra_headers:
+            self.send_header(*header)
         self.end_headers()
 
     def log_message(self, *args):
         pass
 
 
-def test_debug_logging_keeps_request_targets_out_of_the_log(caplog):
+# The second case sends a header urllib3 cannot parse, which it reports with the URL.
+@pytest.mark.parametrize("extra_headers", [(), [("Cache-Control ", "no-cache")]])
+def test_debug_logging_keeps_request_targets_out_of_the_log(caplog, extra_headers):
     server = HTTPServer(("127.0.0.1", 0), _NoContentHandler)
+    server.extra_headers = extra_headers
     threading.Thread(target=server.serve_forever, daemon=True).start()
     caplog.set_level(logging.DEBUG)
     try:

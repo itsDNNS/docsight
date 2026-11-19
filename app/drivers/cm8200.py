@@ -53,7 +53,7 @@ class CM8200Driver(ModemDriver):
     def __init__(self, url: str, user: str, password: str):
         if url.startswith("http://"):
             url = "https://" + url[len("http://"):]
-            log.info("CM8200 requires HTTPS, upgraded URL to %s", url)
+            log.info("CM8200 requires HTTPS, switched to https")
         super().__init__(url, user, password)
         self._session = requests.Session()
         self._session.verify = False
@@ -181,7 +181,8 @@ class CM8200Driver(ModemDriver):
                     continue
                 raise RuntimeError("CM8200 authentication failed: connection refused after retry")
             except requests.RequestException as e:
-                raise RuntimeError(f"CM8200 authentication failed: {e}")
+                # The request URL carries the credentials, so leave it out of the message.
+                raise RuntimeError(f"CM8200 authentication failed: {type(e).__name__}") from e
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables on status page."""

@@ -6,6 +6,7 @@ from app.storage.migrations import run_migrations
 from app.storage.sqlite import bulk_write, open_read, write_transaction
 from .migrations import MIGRATIONS
 from datetime import datetime, timezone
+from app.notifier import safe_endpoint_label
 from app.tz import UTC_FMT
 
 log = logging.getLogger("docsis.storage.speedtest")
@@ -208,7 +209,7 @@ class SpeedtestStorage:
         if stored and stored != url:
             log.info(
                 "Speedtest Tracker URL changed (%s -> %s), clearing cache",
-                stored, url,
+                safe_endpoint_label(stored), safe_endpoint_label(url),
             )
             self.clear_cache()
             self.set_meta("source_url", url)

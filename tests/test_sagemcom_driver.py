@@ -164,10 +164,13 @@ class TestAuthentication:
         assert auth_key != "", "Initial login must send a non-empty auth-key"
         assert len(auth_key) == 128, "SHA-512 hex digest should be 128 chars"
 
-    def test_login_sets_logged_in(self, driver):
-        driver._session.post = _mock_post([_login_response()])
-        driver.login()
+    def test_login_sets_logged_in(self, driver, caplog):
+        driver._session.post = _mock_post([_login_response(session_id=424242)])
+        with caplog.at_level("INFO", logger="docsis.driver.sagemcom"):
+            driver.login()
         assert driver._logged_in is True
+        assert "Sagemcom login OK" in caplog.text
+        assert "424242" not in caplog.text
 
     def test_login_skipped_when_logged_in(self, driver):
         driver._logged_in = True

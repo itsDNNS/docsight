@@ -74,15 +74,15 @@ DISCORD_SEVERITY_COLORS = {
 }
 
 
-def _safe_endpoint_label(url: str) -> str:
+def safe_endpoint_label(url: str) -> str:
     """Return a log-safe endpoint label with scheme, host, and optional port only."""
 
     try:
         parsed = urlsplit(str(url or ""))
     except ValueError:
-        return "webhook endpoint"
+        return "<invalid-url>"
     if not parsed.scheme or not parsed.hostname:
-        return "webhook endpoint"
+        return "<invalid-url>"
     host = parsed.hostname
     if ":" in host and not host.startswith("["):
         host = f"[{host}]"
@@ -130,7 +130,7 @@ class WebhookChannel(NotificationChannel):
 
     def __init__(self, url, headers=None):
         self._url = url
-        self._log_label = _safe_endpoint_label(url)
+        self._log_label = safe_endpoint_label(url)
         self._headers = {"Content-Type": "application/json"}
         if headers:
             self._headers.update(headers)

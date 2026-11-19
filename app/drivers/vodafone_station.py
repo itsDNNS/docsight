@@ -454,8 +454,7 @@ class VodafoneStationDriver(ModemDriver):
         # Validate hex format before parsing
         self._validate_hex(salt_hex, "mySalt")
         self._validate_hex(iv_hex, "myIv")
-        log.debug("TG extracted: sessionId=%s..., myIv=%s, mySalt=%s",
-                   session_id[:8], iv_hex, salt_hex)
+        log.debug("TG extracted: sessionId, myIv=%s, mySalt=%s", iv_hex, salt_hex)
 
         # Step 2: Derive AES key via PBKDF2
         key = pbkdf2_sha256(
@@ -507,7 +506,7 @@ class VodafoneStationDriver(ModemDriver):
             log.info("TG login: AdminMatch (existing admin session detected)")
         elif p_status and p_status not in ("OK", "Lockout", "Fail", ""):
             log.warning("TG login: unexpected p_status=%r (full response: %s)",
-                        p_status, {k: v for k, v in resp.items() if k != "encryptData"})
+                        p_status, {k: v for k, v in resp.items() if k not in ("encryptData", "nonce")})
 
         encrypted_nonce = resp.get("encryptData", "")
         if encrypted_nonce:
@@ -515,8 +514,7 @@ class VodafoneStationDriver(ModemDriver):
             nonce_full = decrypted.decode("utf-8")
             self._tg_nonce = nonce_full[:32]
             if len(nonce_full) > 32:
-                log.debug("TG nonce decrypted: %d chars (using first 32): %s",
-                          len(nonce_full), repr(nonce_full[:64]))
+                log.debug("TG nonce decrypted: %d chars (using first 32)", len(nonce_full))
         else:
             self._tg_nonce = resp.get("nonce", session_id)
 
@@ -543,10 +541,10 @@ class VodafoneStationDriver(ModemDriver):
             log.debug("TG session init failed (non-critical): %s", e)
 
         log.info("TG auth OK")
-        log.debug("TG login: p_status=%s, keys=%s, nonce=%s..., cookies=%d, "
+        log.debug("TG login: p_status=%s, keys=%s, nonce=%s, cookies=%d, "
                   "cookie_names=%s",
                   resp.get("p_status", "?"), list(resp.keys()),
-                  self._tg_nonce[:8] if self._tg_nonce else "None",
+                  "present" if self._tg_nonce else "None",
                   len(self._session.cookies),
                   list(self._session.cookies.keys()))
 

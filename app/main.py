@@ -13,6 +13,7 @@ from .base_path import validate_base_path_configuration
 from .config import ConfigManager, parse_config_bool
 from .event_detector import EventDetector
 from .module_paths import get_modules_dir
+from .notifier import safe_endpoint_label
 from .runtime import DocsightRuntime, get_runtime
 from .server_lifecycle import ServerLifecycleController
 from .storage import SnapshotStorage
@@ -31,9 +32,11 @@ logging.basicConfig(
     level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-# urllib3 logs every request path and query at DEBUG, which would copy tokens
-# embedded in notification and modem URLs into the log.
+# urllib3 logs request URLs with path and query (every request at DEBUG, header
+# parse failures at WARNING), which would copy tokens in notification and modem
+# URLs into the log.
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("urllib3.connection").setLevel(logging.ERROR)
 log = logging.getLogger("docsis.main")
 
 COLLECTOR_LONG_RUNNING_SECONDS = 120
@@ -141,7 +144,7 @@ def polling_loop(config_mgr, storage, stop_event, runtime: DocsightRuntime):
     """Flat orchestrator: tick every second, let each collector decide when to poll."""
     config = config_mgr.get_all()
 
-    log.info("Modem: %s (user: %s)", config["modem_url"], config["modem_user"])
+    log.info("Modem: %s (user: %s)", safe_endpoint_label(config["modem_url"]), config["modem_user"])
     log.info("Poll interval: %ds", config["poll_interval"])
 
     # Connect MQTT (optional, loaded from module if available)

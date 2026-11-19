@@ -4,6 +4,7 @@ import logging
 
 from app.collectors.base import Collector, CollectorResult
 from app.config import parse_config_bool
+from app.notifier import safe_endpoint_label
 
 from .client import SpeedtestClient
 from .storage import SpeedtestStorage
@@ -42,7 +43,7 @@ class SpeedtestCollector(Collector):
             self._last_tls_insecure = tls_insecure
             # Detect server switch and clear stale cache
             self._storage.check_source_url(url)
-            log.info("Speedtest Tracker: %s", url)
+            log.info("Speedtest Tracker: %s", safe_endpoint_label(url))
 
     def collect(self) -> CollectorResult:
         self._ensure_client()

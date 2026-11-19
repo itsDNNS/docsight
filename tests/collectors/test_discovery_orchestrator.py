@@ -478,20 +478,24 @@ class TestPollingLoopOrchestrator:
         mock_runtime.update_state.assert_any_call(error="Modem login failed, see the DOCSight log")
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_orchestrator_stops_on_event(self, mock_load, mock_runtime, mock_storage):
+    def test_orchestrator_stops_on_event(self, mock_load, mock_runtime, mock_storage, caplog):
         """Orchestrator should exit when stop_event is set."""
         from app.main import polling_loop
 
         mock_load.return_value = MagicMock()
 
         config_mgr = self._make_config_mgr()
+        config_mgr.get_all.return_value["modem_url"] = "http://admin:secret-pass@fritz.box/?token=secret-token"
         stop = threading.Event()
         stop.set()  # Pre-set: should exit immediately
 
         mock_runtime.derived_storage.value.return_value = 0
 
-        polling_loop(config_mgr, mock_storage, stop, mock_runtime)
-        # If we get here without hanging, the test passes
+        with caplog.at_level("INFO", logger="docsis.main"):
+            polling_loop(config_mgr, mock_storage, stop, mock_runtime)
+        # If we get here without hanging, the loop stopped; the modem URL is logged without secrets
+        assert "Modem: http://fritz.box (user: admin)" in caplog.messages
+        assert "secret" not in caplog.text
 
     @patch("app.drivers.driver_registry.load_driver")
     def test_driver_hot_swap_on_modem_type_change(self, mock_load, mock_runtime, mock_storage):

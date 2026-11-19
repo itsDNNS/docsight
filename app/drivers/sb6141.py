@@ -30,10 +30,6 @@ from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.sb6141")
 
-# SB6141 sends malformed HTTP headers (space before colon in Cache-Control),
-# which triggers noisy urllib3 HeaderParsingError warnings on every request.
-logging.getLogger("urllib3.connection").setLevel(logging.ERROR)
-
 
 class SB6141Driver(ModemDriver):
     """Driver for Arris/Motorola SB6141 DOCSIS 3.0 cable modem.

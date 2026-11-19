@@ -266,9 +266,11 @@ class TestLogin:
     def test_login_raises_on_http_error(self, driver):
         import requests as req
 
-        with patch.object(driver._session, "get", side_effect=req.HTTPError("401")):
-            with pytest.raises(RuntimeError, match="CM8200 authentication failed"):
+        error = req.HTTPError("401 Client Error for url: https://modem/cmconnectionstatus.html?c2VjcmV0")
+        with patch.object(driver._session, "get", side_effect=error):
+            with pytest.raises(RuntimeError, match="CM8200 authentication failed") as raised:
                 driver.login()
+        assert "c2VjcmV0" not in str(raised.value)
 
     def test_login_caches_status_html(self, driver):
         """Login caches the status page for reuse."""

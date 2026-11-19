@@ -37,7 +37,7 @@ class SB6190Driver(ModemDriver):
     def __init__(self, url, user, password):
         if url.startswith("http://"):
             url = "https://" + url[len("http://"):]
-            log.info("SB6190 requires HTTPS, upgraded URL to %s", url)
+            log.info("SB6190 requires HTTPS, switched to https")
         super().__init__(url, user, password)
         self._session = requests.Session()
         self._session.verify = False

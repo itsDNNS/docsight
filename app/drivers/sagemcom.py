@@ -83,7 +83,7 @@ class SagemcomDriver(ModemDriver):
         for attempt in range(2):
             try:
                 self._do_login()
-                log.info("Sagemcom login OK (session %s)", self._session_id)
+                log.info("Sagemcom login OK")
                 self._logged_in = True
                 return
             except requests.ConnectionError:

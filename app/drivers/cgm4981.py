@@ -104,10 +104,7 @@ class CGM4981Driver(ModemDriver):
                 "CGM4981 authentication failed: session cookie not received. "
                 "Check username and password."
             )
-        log.info(
-            "CGM4981 auth OK (DUKSID=%s…)",
-            str(self._session.cookies.get(_SESSION_COOKIE, ""))[:8],
-        )
+        log.info("CGM4981 auth OK")
 
     def get_docsis_data(self) -> DocsisData:
         """Return parsed downstream and upstream channel data."""
