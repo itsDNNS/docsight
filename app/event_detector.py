@@ -470,9 +470,10 @@ class EventDetector:
         for label, _, prefix in _DIRECTIONS:
             cur_map = _channel_map(cur_analysis, prefix)
             prev_map = _channel_map(prev_analysis, prefix)
-            for key in set(cur_map) & set(prev_map):
-                if cur_map[key].get("modulation", "") != prev_map[key].get("modulation", ""):
-                    entry = change_entry(label, cur_map[key], prev_map[key])
+            for key, cur_ch in cur_map.items():
+                prev_ch = prev_map.get(key)
+                if prev_ch is not None and cur_ch.get("modulation", "") != prev_ch.get("modulation", ""):
+                    entry = change_entry(label, cur_ch, prev_ch)
                     if entry["current_rank"] < entry["prev_rank"]:
                         downgrades.append(entry)
                     else:

@@ -950,6 +950,18 @@ class TestEventDetector:
         assert "improved" in mod_events[0]["message"]
         assert mod_events[0]["details"]["direction"] == "upgrade"
 
+    def test_modulation_changes_follow_channel_order(self, detector):
+        """Changed channels are listed in snapshot order, downstream before upstream."""
+        prev = _make_analysis(ds_total=12, us_total=4)
+        cur = _make_analysis(ds_total=12, us_total=4)
+        for ch in cur["ds_channels"] + cur["us_channels"]:
+            ch["modulation"] = "16QAM"
+        detector.check(prev)
+        events = detector.check(cur)
+        changes = next(e for e in events if e["event_type"] == "modulation_change")["details"]["changes"]
+        assert [(c["direction"], c["channel"]) for c in changes] == (
+            [("DS", i) for i in range(1, 13)] + [("US", i) for i in range(1, 5)])
+
     def test_error_spike(self, detector):
         detector.check(_make_analysis(ds_uncorrectable_errors=100))
         events = detector.check(_make_analysis(ds_uncorrectable_errors=2000))
