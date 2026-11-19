@@ -30,13 +30,22 @@ except ImportError:
 
 _LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 # URL userinfo and query strings carry credentials and tokens (notification
-# URLs, modem login URLs); mask them in the final text, tracebacks included.
-_URL_SECRET_RE = re.compile(r"(?<=://)[^\s/'\"]+(?=@)|(?<=\?)[^\s'\"()<>]+")
+# URLs, modem login URLs). Userinfo ends at the last "@" of the authority;
+# "url: /path?query" is how urllib3 connection errors quote the request.
+_URL_RE = re.compile(
+    r"(?:([A-Za-z][A-Za-z0-9+.-]*://)([^\s\"<>/?#]*@)?|(?<=url: )(?=/))([^\s\"<>?]*)(\?[^\s\"<>]*)?"
+)
+
+
+def _redact_urls(text: str) -> str:
+    return _URL_RE.sub(
+        lambda m: (m[1] or "") + ("***@" if m[2] else "") + m[3] + ("?***" if m[4] else ""), text
+    )
 
 
 class _RedactingFormatter(logging.Formatter):
     def format(self, record):
-        return _URL_SECRET_RE.sub("***", super().format(record))
+        return _redact_urls(super().format(record))
 
 
 logging.basicConfig(
@@ -63,7 +72,7 @@ class _AuditJsonFormatter(logging.Formatter):
         return _json.dumps({
             "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
             "level": record.levelname,
-            "event": record.getMessage(),
+            "event": _redact_urls(record.getMessage()),
         }, ensure_ascii=False)
 
 

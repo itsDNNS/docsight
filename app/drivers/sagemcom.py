@@ -280,7 +280,7 @@ class SagemcomDriver(ModemDriver):
             for action in resp.get("reply", {}).get("actions", []):
                 act_err = action.get("error", {})
                 if act_err.get("description") != "XMO_NO_ERR":
-                    log.debug("Sagemcom action error: %s", act_err)
+                    log.debug("Sagemcom action error: %s (code=%s)", act_err.get("description"), act_err.get("code"))
             desc = error.get("description", "")
             code = error.get("code")
             msg = f"Sagemcom XMO error: {desc} (code={code})"

@@ -96,8 +96,14 @@ CREDENTIALS = base64.b64encode(b"admin:secret").decode()
      "for url: https://modem/status.html?***"),
     ("Speedtest Tracker: %s", ("http://admin:secret@tracker:8080/api",), None,
      "Speedtest Tracker: http://***@tracker:8080/api"),
-    ("MQTT configured but module not available (disabled?)", (), None,
-     "MQTT configured but module not available (disabled?)"),
+    ("Modem: %s", ("http://admin:it's-secret@modem/",), None, "Modem: http://***@modem/"),
+    ("POST %s failed", ("https://hooks.example/x?key=a(b)&next=secret",), None,
+     "POST https://hooks.example/x?*** failed"),
+    ("GET %s", ("http://host?token=prefix@secret",), None, "GET http://host?***"),
+    ("Manual poll failed", (),
+     requests.ConnectionError(f"Max retries exceeded with url: /status.html?{CREDENTIALS} (Caused by SSLError)"),
+     "with url: /status.html?*** (Caused by SSLError)"),
+    ("ready?yes (disabled?)", (), None, "ready?yes (disabled?)"),
 ])
 def test_log_formatter_masks_url_credentials_and_queries(message, args, cause, expected):
     record = logging.LogRecord("docsis.test", logging.ERROR, __file__, 1, message, args, None)

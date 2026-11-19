@@ -599,7 +599,7 @@ class VodafoneStationDriver(ModemDriver):
             timeout=10,
         )
         if r.status_code != 200:
-            log.warning("TG DOCSIS data response %d: %s", r.status_code, r.text[:200])
+            log.warning("TG DOCSIS data response %d (%d bytes)", r.status_code, len(r.text))
         r.raise_for_status()
         return r
 
