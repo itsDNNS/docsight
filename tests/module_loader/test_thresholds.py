@@ -2,6 +2,7 @@
 
 import copy
 import json
+import re
 
 import pytest
 from flask import Flask
@@ -15,6 +16,8 @@ _VALID_THRESHOLDS = {
 
 
 @pytest.mark.parametrize("path, value", [
+    ((), ["not", "an", "object"]),
+    (("downstream_power", "_default"), 256),
     (("downstream_power", "256QAM", "good"), None),
     (("downstream_power", "256QAM", "good"), ["-4", "13"]),
     (("downstream_power", "256QAM", "good"), [5, -5]),
@@ -23,17 +26,20 @@ _VALID_THRESHOLDS = {
     (("snr", "256QAM", "critical_min"), "29"),
     (("snr", "256QAM", "good_min"), float("nan")),
     (("snr", "256QAM"), 33),
+    (("errors", "spike_expiry_hours"), None),
+    (("errors", "uncorrectable_pct"), 3),
+    (("errors", "uncorrectable_pct", "warning"), "1"),
+    (("upstream_modulation", "warning_max_qam"), True),
 ])
-def test_threshold_validation_rejects_invalid_bands(path, value):
-    data = copy.deepcopy(_VALID_THRESHOLDS)
-    *parents, leaf = path
-    target = data
+def test_threshold_validation_rejects_invalid_shapes(path, value):
+    root = {"profile": copy.deepcopy(_VALID_THRESHOLDS)}
+    *parents, leaf = ("profile", *path)
+    target = root
     for name in parents:
-        target = target[name]
+        target = target.setdefault(name, {})
     target[leaf] = value
-    with pytest.raises(ManifestError) as excinfo:
-        validate_thresholds(data)
-    assert all(f"'{name}'" in str(excinfo.value) for name in path)
+    with pytest.raises(ManifestError, match=re.escape(".".join(path) or "Threshold contribution")):
+        validate_thresholds(root["profile"])
 
 
 class TestThresholdContributes:
