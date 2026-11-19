@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import threading
 from collections.abc import Callable, Mapping
 from typing import Protocol
@@ -47,12 +48,12 @@ class WaitressServerAdapter:
             self._loop_running = not self._closed
         try:
             return self._server.run()
-        except OSError:
+        except OSError as error:
             # close() still releases sockets from its own thread when the loop
             # starts during close(), does not answer, or has no trigger (several
-            # listen addresses). select() can then see a closed descriptor;
-            # after close() that is shutdown, not a crash.
-            if not self._closed:
+            # listen addresses). select() can then see a closed descriptor
+            # (ENOTSOCK on Windows); after close() that is shutdown, not a crash.
+            if not self._closed or error.errno not in (errno.EBADF, errno.ENOTSOCK):
                 raise
             return None
         finally:
