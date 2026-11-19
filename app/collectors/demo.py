@@ -24,6 +24,7 @@ from ..analyzer import (
     _signal_family_fields,
 )
 from ..event_detector import EventDetector
+from ..tz import UTC_FMT
 
 log = logging.getLogger("docsis.collector.demo")
 
@@ -318,7 +319,7 @@ class DemoCollector(AnalysisCollector):
         rows = []
         for i in range(total):
             ts = start + timedelta(minutes=i * interval_min)
-            ts_str = ts.strftime("%Y-%m-%dT%H:%M:%SZ")
+            ts_str = ts.strftime(UTC_FMT)
             while reboots and ts >= reboots[0]:
                 self._error_counters.reset()
                 reboots.pop(0)
@@ -544,7 +545,7 @@ class DemoCollector(AnalysisCollector):
         # 1. A firmware update 6 months ago
         t_sw = now - DEMO_SW_UPDATE_AGO
         events.append({
-            "timestamp": t_sw.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "timestamp": t_sw.strftime(UTC_FMT),
             "severity": "info",
             "event_type": "device_sw_update",
             "message": "Prior uptime: 112d 14h 7m, SW: v1.8.4 → v2.0.1, WAN IPv4/v6: 93.212.4.11 / 2001:db8::1 → 93.212.5.82 / 2001:db8::2, Reason: firmware upgrade",
@@ -554,7 +555,7 @@ class DemoCollector(AnalysisCollector):
         # 2. A simple reboot 3 months ago
         t_rb = now - DEMO_REBOOT_AGO
         events.append({
-            "timestamp": t_rb.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "timestamp": t_rb.strftime(UTC_FMT),
             "severity": "warning",
             "event_type": "device_reboot",
             "message": "Prior uptime: 89d 22h 0m, Reason: power cycle",
@@ -564,7 +565,7 @@ class DemoCollector(AnalysisCollector):
         # 3. An IP change (no reboot) 1 month ago
         t_ip = now - timedelta(days=30, hours=1)
         events.append({
-            "timestamp": t_ip.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "timestamp": t_ip.strftime(UTC_FMT),
             "severity": "info",
             "event_type": "device_ip_change",
             "message": "WAN IPv4: 93.212.5.82 → 93.212.8.194",
@@ -761,7 +762,7 @@ class DemoCollector(AnalysisCollector):
                 srv = random.choice(DEMO_SPEEDTEST_SERVERS)
                 results.append({
                     "id": result_id,
-                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "timestamp": ts.strftime(UTC_FMT),
                     "download_mbps": dl,
                     "upload_mbps": ul,
                     "download_human": f"{dl} Mbps",
@@ -803,7 +804,7 @@ class DemoCollector(AnalysisCollector):
         rows = []
         for d in range(DEMO_BQM_DAYS):
             date = (now - timedelta(days=d)).strftime("%Y-%m-%d")
-            ts = (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            ts = (now - timedelta(days=d)).strftime(UTC_FMT)
             png = self._generate_bqm_png(seed=d)
             rows.append((date, ts, png))
         bulk_write(
@@ -874,7 +875,7 @@ class DemoCollector(AnalysisCollector):
 
             rows.append((
                 campaign_date.strftime("%Y-%m-%d"),
-                campaign_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                campaign_date.strftime(UTC_FMT),
                 "Vodafone Kabel",                  # provider
                 "GigaZuhause 1000 Kabel Nov 2023",  # tariff
                 dl_max,               # download_max_tariff
@@ -964,7 +965,7 @@ class DemoCollector(AnalysisCollector):
             ds_own = max(0.2, 1.5 + 6 * evening * rng.random())
             us_own = max(0.1, 0.6 + 2 * evening * rng.random())
             rows.append((
-                ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ts.strftime(UTC_FMT),
                 round(min(99.5, max(2.0, ds_total)), 1),
                 round(min(99.0, max(1.0, us_total)), 1),
                 round(ds_own, 1),

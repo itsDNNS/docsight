@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from app.tz import local_to_utc
+from app.tz import local_to_utc, parse_utc
 
 NORMALIZED_TIME_RANGE_HOURS: dict[str, int] = {
     "1h": 1,
@@ -58,6 +58,5 @@ def parse_window_end(value: str | None, tz_name: str | None) -> datetime | None 
             continue
     else:
         return False
-    utc = local_to_utc(local.strftime("%Y-%m-%dT%H:%M:%S"), tz_name)
-    end = datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    end = parse_utc(local_to_utc(local.strftime("%Y-%m-%dT%H:%M:%S"), tz_name))
     return end if end < datetime.now(timezone.utc) else None

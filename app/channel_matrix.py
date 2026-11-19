@@ -7,25 +7,15 @@ the window are listed on their own; all others share one aggregated row.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from .channel_selector import attach_channel_selectors, channel_selector
 from .docsis_utils import CHANNEL_HEALTH_RANK, to_float
 from .line_status import channel_callout
+from .tz import UTC_FMT, parse_utc_strict, to_local
 
 CELL_COUNT = 48
-
-
-def _parse(ts: str) -> datetime | None:
-    try:
-        return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-    except (TypeError, ValueError):
-        return None
-
-
-def _stamp(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _health(channel: dict) -> str | None:
@@ -63,7 +53,7 @@ def _row(direction: str, channel: dict, history: list[tuple[datetime, str | None
                 break
             run_start = when
         if run_start is not None:
-            since = _stamp(run_start)
+            since = run_start.strftime(UTC_FMT)
             since_pct = round(max(0.0, (run_start - start).total_seconds() / span * 100), 2)
 
     callout = channel_callout(direction, channel)
@@ -132,12 +122,12 @@ def build_channel_matrix(snapshots: list[tuple[str, list[dict], list[dict]]],
     The current channel set is the newest snapshot; channels that only appear in
     older snapshots are not listed.
     """
-    start_dt, end_dt = _parse(start), _parse(end)
+    start_dt, end_dt = parse_utc_strict(start), parse_utc_strict(end)
     if start_dt is None or end_dt is None or end_dt <= start_dt:
         raise ValueError("start must be before end")
     span = (end_dt - start_dt).total_seconds()
     parsed = [(when, ds or [], us or []) for ts, ds, us in snapshots
-              if (when := _parse(ts)) is not None and start_dt <= when <= end_dt]
+              if (when := parse_utc_strict(ts)) is not None and start_dt <= when <= end_dt]
     parsed.sort(key=lambda item: item[0])
     directions = []
     if parsed:
@@ -158,8 +148,6 @@ def build_channel_matrix(snapshots: list[tuple[str, list[dict], list[dict]]],
 
 def localize_matrix(matrix: dict[str, Any], tz_name: str | None) -> dict[str, Any]:
     """Convert the matrix timestamps to local time for API responses."""
-    from .tz import to_local
-
     if not tz_name:
         return matrix
     matrix["start"] = to_local(matrix["start"], tz_name)

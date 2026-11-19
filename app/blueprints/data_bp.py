@@ -1,6 +1,6 @@
 """Data retrieval routes: trends, export, snapshots."""
 from app.runtime import current_runtime
-from app.tz import localize_timestamps, get_tz_name, local_to_utc
+from app.tz import UTC_FMT, epoch_to_utc, localize_timestamps, get_tz_name, local_to_utc
 import logging
 import os
 import re
@@ -111,7 +111,7 @@ def _append_connection_monitor_trends(data: list[dict], hours: int, end: datetim
             aggregated = aggregated[::step]
         for bucket, latency_ms in aggregated:
             data.append({
-                "timestamp": datetime.fromtimestamp(bucket, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "timestamp": epoch_to_utc(bucket),
                 "source": "connection_monitor",
                 "connection_monitor_latency_ms": latency_ms,
             })
@@ -127,8 +127,8 @@ def _append_speedtest_trends(data: list[dict], db_path: str, hours: int, end: da
         start = end - timedelta(hours=hours)
         storage = SpeedtestStorage(db_path)
         for row in storage.get_speedtest_in_range(
-            start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            start.strftime(UTC_FMT),
+            end.strftime(UTC_FMT),
         ):
             data.append({
                 "timestamp": row["timestamp"],
@@ -138,9 +138,6 @@ def _append_speedtest_trends(data: list[dict], db_path: str, hours: int, end: da
             })
     except Exception:
         log.debug("Unable to append Speedtest trend data", exc_info=True)
-
-
-_UTC_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 @data_bp.route("/api/trends/signal")
@@ -202,7 +199,7 @@ def api_trends():
             end = datetime.now(timezone.utc)
         else:
             start = end - timedelta(hours=hours)
-            data = _storage.get_summary_between(start.strftime(_UTC_FMT), end.strftime(_UTC_FMT))
+            data = _storage.get_summary_between(start.strftime(UTC_FMT), end.strftime(UTC_FMT))
         _append_speedtest_trends(data, _storage.db_path, hours, end)
         _append_connection_monitor_trends(data, hours, end)
         data.sort(key=lambda row: row.get("timestamp") or "")

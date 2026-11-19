@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import requests
 
 from app.config import parse_config_bool
+from app.tz import UTC_FMT
 
 log = logging.getLogger("docsis.speedtest")
 
@@ -50,7 +51,7 @@ class SpeedtestClient:
             dt = datetime.fromisoformat(ts)
             if dt.tzinfo is not None:
                 dt = dt.astimezone(timezone.utc)
-            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+            return dt.strftime(UTC_FMT)
         except (ValueError, TypeError):
             return ts
 

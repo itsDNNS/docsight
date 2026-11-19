@@ -5,6 +5,8 @@ from app.storage.sqlite import open_read, write_transaction
 import threading
 from datetime import datetime, timedelta, timezone
 
+from app.tz import UTC_FMT, parse_utc_strict, utc_cutoff, utc_now
+
 
 EVENT_DEFAULT_THRESHOLD = 80
 EVENT_DEFAULT_MIN_MINUTES = 3
@@ -16,7 +18,7 @@ def _parse_ts(ts):
         return None
     try:
         if ts.endswith("Z"):
-            return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            return parse_utc_strict(ts)
         return datetime.fromisoformat(ts)
     except (ValueError, TypeError):
         return None
@@ -53,7 +55,7 @@ class SegmentUtilizationStorage:
 
     def save(self, ds_total, us_total, ds_own, us_own):
         """Store a utilization sample with the current UTC timestamp."""
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ts = utc_now()
         self.save_at(ts, ds_total, us_total, ds_own, us_own)
 
     def save_at(self, ts, ds_total, us_total, ds_own, us_own):
@@ -123,7 +125,7 @@ class SegmentUtilizationStorage:
         # Materialize events BEFORE we lose raw peaks to averaging. Use the
         # earliest cutoff (fine) so any data that's about to be aggregated is
         # inspected first.
-        fine_cutoff = (now - timedelta(days=fine_after_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        fine_cutoff = (now - timedelta(days=fine_after_days)).strftime(UTC_FMT)
         self.materialize_events_before(fine_cutoff)
 
         tiers = [
@@ -132,7 +134,7 @@ class SegmentUtilizationStorage:
         ]
 
         for after_days, bucket_min in tiers:
-            cutoff = (now - timedelta(days=after_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            cutoff = (now - timedelta(days=after_days)).strftime(UTC_FMT)
             removed += self._downsample_range(cutoff, bucket_min)
 
         return removed
@@ -347,7 +349,7 @@ class SegmentUtilizationStorage:
 
     def cleanup(self, days=365):
         """Delete records older than the given number of days. Returns count deleted."""
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        cutoff = utc_cutoff(days=days)
         with self._lock:
             with write_transaction(self.db_path) as conn:
                 cursor = conn.execute(

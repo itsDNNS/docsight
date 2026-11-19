@@ -1,29 +1,20 @@
 """API token management mixin."""
 
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from ..tz import utc_now
+from ..tz import parse_utc_strict, utc_now
 
 
 _TOKEN_PREFIX_LENGTH = 8
 _LAST_USED_WRITE_INTERVAL = timedelta(seconds=60)
 
 
-def _parse_utc_timestamp(value):
-    if not value:
-        return None
-    try:
-        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-    except (TypeError, ValueError):
-        return None
-
-
 def _should_refresh_last_used(previous, current):
-    previous_dt = _parse_utc_timestamp(previous)
-    current_dt = _parse_utc_timestamp(current)
+    previous_dt = parse_utc_strict(previous)
+    current_dt = parse_utc_strict(current)
     if previous_dt is None or current_dt is None:
         return True
     return current_dt - previous_dt >= _LAST_USED_WRITE_INTERVAL

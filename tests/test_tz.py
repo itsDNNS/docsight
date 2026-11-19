@@ -5,10 +5,11 @@ import pytest
 from datetime import datetime, timezone
 from unittest.mock import mock_open, patch
 
+from app.time_ranges import parse_window_end
 from app.tz import (
     utc_now, utc_cutoff, to_local, to_local_display,
     local_to_utc, local_today, local_date_to_utc_range,
-    guess_iana_timezone,
+    guess_iana_timezone, epoch_to_utc, parse_utc_strict,
 )
 
 
@@ -151,6 +152,38 @@ class TestLocalToUtc:
         assert result.endswith("Z")
         datetime.strptime(result[:-1], "%Y-%m-%dT%H:%M:%S")
 
+
+@pytest.mark.parametrize("value, tz_name, expected", [
+    ("2025-03-30T02:30", "Europe/Berlin", datetime(2025, 3, 30, 1, 30, tzinfo=timezone.utc)),
+    ("2025-10-26T02:30:00", "Europe/Berlin", datetime(2025, 10, 26, 0, 30, tzinfo=timezone.utc)),
+    ("2025-06-01T12:00:59.123", "America/New_York", datetime(2025, 6, 1, 16, 0, 59, tzinfo=timezone.utc)),
+    ("2025-06-01T12:00", None, datetime(2025, 6, 1, 12, 0, tzinfo=timezone.utc)),
+    ("2999-01-01T00:00", "Europe/Berlin", None),
+    ("garbage", "Europe/Berlin", False),
+])
+def test_parse_window_end(value, tz_name, expected):
+    assert parse_window_end(value, tz_name) == expected
+
+
+@pytest.mark.parametrize("value, expected", [
+    (None, None),
+    (0, "1970-01-01T00:00:00Z"),
+    (1700000000.999, "2023-11-14T22:13:20Z"),
+    ("1700000000", "2023-11-14T22:13:20Z"),
+])
+def test_epoch_to_utc(value, expected):
+    assert epoch_to_utc(value) == expected
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("2026-01-15T14:30:00Z", datetime(2026, 1, 15, 14, 30, tzinfo=timezone.utc)),
+    ("2026-01-15T14:30:00", None),
+    ("2026-01-15T14:30:00.5Z", None),
+    ("", None),
+    (None, None),
+])
+def test_parse_utc_strict_accepts_only_the_canonical_format(value, expected):
+    assert parse_utc_strict(value) == expected
 
 
 class TestLocalToday:

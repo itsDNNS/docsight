@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
+from ..tz import UTC_FMT
 from .contract import Window
 
 
@@ -19,9 +20,7 @@ def canonical_utc_timestamp(value: Any) -> str:
         return str(value or "")
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc).replace(microsecond=0).strftime(
-        "%Y-%m-%dT%H:%M:%SZ"
-    )
+    return parsed.astimezone(timezone.utc).replace(microsecond=0).strftime(UTC_FMT)
 
 
 def report_bounds(

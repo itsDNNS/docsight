@@ -9,7 +9,7 @@ from flask import Blueprint, request, jsonify
 
 from app.analyzer import get_thresholds
 from app.time_ranges import parse_time_range_hours, parse_window_end
-from app.tz import local_to_utc, utc_now, utc_cutoff
+from app.tz import UTC_FMT, local_to_utc, parse_utc, utc_now, utc_cutoff
 from app.web_auth import require_auth
 from app.gaming_index import compute_gaming_index
 
@@ -167,10 +167,9 @@ def _channel_status_window(tz_name):
     except ValueError:
         return None, "start and end must be YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"
     end = min(end, utc_now())
-    parse = lambda ts: datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
-    if parse(end) <= parse(start):
+    if parse_utc(end) <= parse_utc(start):
         return None, "start must be before end"
-    if parse(end) - parse(start) > _MAX_STATUS_WINDOW:
+    if parse_utc(end) - parse_utc(start) > _MAX_STATUS_WINDOW:
         return None, "the window may span at most 366 days"
     return (start, end), None
 
@@ -258,8 +257,8 @@ def api_correlation():
         end_ts = utc_now()
         start_ts = utc_cutoff(hours=hours)
     else:
-        end_ts = end.strftime("%Y-%m-%dT%H:%M:%SZ")
-        start_ts = (end - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_ts = end.strftime(UTC_FMT)
+        start_ts = (end - timedelta(hours=hours)).strftime(UTC_FMT)
 
     sources_param = request.args.get("sources", "")
     if sources_param:
