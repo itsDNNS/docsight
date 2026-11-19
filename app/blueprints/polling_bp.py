@@ -14,7 +14,7 @@ from app import modem_diagnosis
 from app.i18n import get_translations
 from app.modules.mqtt.publisher import create_client
 from paho.mqtt.client import MQTT_ERR_SUCCESS
-from app.modules.speedtest.client import SpeedtestClient, public_error
+from app.modules.speedtest.client import SpeedtestClient, is_finished, public_error
 
 log = logging.getLogger("docsis.web")
 
@@ -280,14 +280,14 @@ def api_test_speedtest():
         results, error = client.get_latest_with_error(1)
         if error:
             return jsonify({"success": False, "error": error})
-        if results:
+        if results and is_finished(results[0]):
             r = results[0]
             return jsonify({
                 "success": True,
                 "results": len(results),
                 "latest": {
-                    "download": r.get("download_human") or f"{r.get('download_mbps', 0)} Mbps",
-                    "upload": r.get("upload_human") or f"{r.get('upload_mbps', 0)} Mbps",
+                    "download": r.get("download_human") or f"{r.get('download_mbps') or 0} Mbps",
+                    "upload": r.get("upload_human") or f"{r.get('upload_mbps') or 0} Mbps",
                     "ping": f"{r.get('ping_ms', 0)} ms",
                 },
             })

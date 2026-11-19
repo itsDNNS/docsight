@@ -5,8 +5,11 @@ import requests
 from unittest.mock import patch, MagicMock
 
 from app.modules.speedtest.client import SpeedtestClient
+from app.modules.speedtest.collector import SpeedtestCollector
+from app.modules.speedtest.storage import SpeedtestStorage
 from app.config import ConfigManager, PASSWORD_MASK
 from app.runtime import current_runtime
+from app.storage import SnapshotStorage
 from tests.test_smart_capture_api import configured_client
 
 
@@ -45,6 +48,25 @@ SAMPLE_RESULT_MINIMAL = {
 SAMPLE_API_RESPONSE = {
     "data": [SAMPLE_RESULT, SAMPLE_RESULT_MINIMAL],
 }
+
+# Speedtest Tracker lists a test as soon as it starts, without measurements
+UNFINISHED_STATUSES = ("waiting", "started", "checking", "running", "benchmarking")
+STARTED_RESULT = {"id": 3, "created_at": "2025-01-16T10:30:00Z", "data": {}}
+
+
+SYNC_CALLS = [("get_results", {"per_page": 500}), ("get_newer_than", {"known_ids": set()})]
+
+
+def _stt_api(stt):
+    """Fake results endpoint paging through stt["data"] (newest first) like Speedtest Tracker."""
+    def get(url, params, **kwargs):
+        size, page = params["page[size]"], params.get("page[number]", 1)
+        data = stt.get("data", [])
+        body = {"meta": {"last_page": max(1, -(-len(data) // size))}}
+        if "data" in stt:
+            body["data"] = data[(page - 1) * size:page * size] if isinstance(data, list) else data
+        return MagicMock(**{"json.return_value": body})
+    return get
 
 
 # ── Client Tests ──
@@ -133,6 +155,37 @@ class TestSpeedtestClient:
         assert r["ping_ms"] == 8.0
         assert r["jitter_ms"] is None
         assert r["packet_loss_pct"] is None
+
+    @pytest.mark.parametrize("method, kwargs", SYNC_CALLS)
+    @pytest.mark.parametrize("status, kept", [
+        *((status, False) for status in UNFINISHED_STATUSES),
+        ("completed", True), ("failed", True), (None, True),
+    ])
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_sync_skips_unfinished_results(self, mock_get, status, kept, method, kwargs):
+        item = {**STARTED_RESULT, "status": status}
+        if status is None:
+            del item["status"]  # older Speedtest Tracker versions send none
+        mock_get.side_effect = _stt_api({"data": [item, SAMPLE_RESULT]})
+
+        ids = [r["id"] for r in getattr(self._make_client(), method)(**kwargs)]
+        assert sorted(ids) == ([1, 3] if kept else [1])
+
+    @pytest.mark.parametrize("method, kwargs", SYNC_CALLS)
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_sync_pages_do_not_overlap_after_skipping(self, mock_get, method, kwargs):
+        running = {**STARTED_RESULT, "id": 501, "status": "running"}
+        mock_get.side_effect = _stt_api({"data": [running, *({**SAMPLE_RESULT, "id": i} for i in range(500, 0, -1))]})
+
+        ids = [r["id"] for r in getattr(self._make_client(), method)(**kwargs)]
+        assert sorted(ids) == list(range(1, 501))
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_newer_than_scans_past_a_lower_id(self, mock_get):
+        """Tracker sorts by creation time, which can tie, so a lower id can come first."""
+        mock_get.side_effect = _stt_api({"data": [{**SAMPLE_RESULT, "id": i} for i in (7, 4, 6)]})
+
+        assert [r["id"] for r in self._make_client().get_newer_than({5})] == [6, 7]
 
     def test_auth_headers(self):
         client = self._make_client()
@@ -269,36 +322,73 @@ class TestSpeedtestConfig:
 
 
 
+STT_CONFIG = {"speedtest_tracker_url": "http://speedtest.local:8999", "speedtest_tracker_token": "test-token"}
+
+
 @pytest.fixture
 def speedtest_client(tmp_path):
-    with configured_client(
-        tmp_path / "data",
-        **{"speedtest_tracker_url": "http://speedtest.local:8999", "speedtest_tracker_token": "test-token"},
-    ) as client:
+    with configured_client(tmp_path / "data", **STT_CONFIG) as client:
         yield client
 
 
+@pytest.fixture(params=["route", "collector"])
+def stt_sync(request, tmp_path):
+    """One of the two delta sync callers over a cache of 50 results, the fake Tracker data and the cache."""
+    storage = SnapshotStorage(str(tmp_path / "core.db"), max_days=7)
+    cache = SpeedtestStorage(storage.db_path)
+    cache.save_speedtest_results([
+        {"id": i, "timestamp": "2025-01-01T00:00:00Z", "download_mbps": 100.0, "upload_mbps": 10.0,
+         "download_human": "", "upload_human": "", "ping_ms": 5.0, "jitter_ms": 1.0, "packet_loss_pct": 0.0}
+        for i in range(1, 51)
+    ])
+    stt = {}
+    with patch("app.modules.speedtest.client.requests.Session.get", side_effect=_stt_api(stt)), \
+            configured_client(tmp_path / "data", storage, **STT_CONFIG) as client:
+        collector = SpeedtestCollector(current_runtime().config_manager, storage, MagicMock())
+        yield collector.collect if request.param == "collector" else lambda: client.get("/api/speedtest"), stt, cache
+
+
+@pytest.mark.parametrize("newer", [[], [{**SAMPLE_RESULT, "id": 52}]], ids=["newest", "out-of-order"])
+def test_running_result_is_cached_once_finished(stt_sync, newer):
+    """A test still running is neither cached as failed nor taken for a wiped server."""
+    sync, stt, cache = stt_sync
+    stt["data"] = [*newer, {**STARTED_RESULT, "id": 51, "status": "running"}, {**SAMPLE_RESULT, "id": 50}]
+    sync()
+    assert cache.get_speedtest_by_id(51) is None
+    assert cache.get_speedtest_count() == 50 + len(newer)
+
+    stt["data"][len(newer)] = {**SAMPLE_RESULT, "id": 51}
+    sync()
+    finished = cache.get_speedtest_by_id(51)
+    assert (finished["download_mbps"], finished["ping_ms"]) == (1100.0, 12.5)
+
+
+@pytest.mark.parametrize("reply", [{}, {"data": {}}, {"data": ""}], ids=["missing", "object", "string"])
+def test_reply_without_a_result_list_keeps_the_cache(stt_sync, reply):
+    sync, stt, cache = stt_sync
+    stt.update(reply)
+    sync()
+    assert cache.get_speedtest_count() == 50
+
+
 class TestSpeedtestAPI:
+    @pytest.mark.parametrize("result, download, ping", [
+        (SAMPLE_RESULT, 1100.0, 12.5), ({**STARTED_RESULT, "status": "failed"}, 0, None),
+    ])
     @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_api_speedtest(self, mock_get, speedtest_client):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+    def test_api_speedtest(self, mock_get, speedtest_client, result, download, ping):
+        mock_get.side_effect = _stt_api({"data": [result]})
 
         resp = speedtest_client.get("/api/speedtest?days=7")
         assert resp.status_code == 200
         data = resp.get_json()
         assert len(data) == 1
-        assert data[0]["download_mbps"] == 1100.0
-        assert data[0]["ping_ms"] == 12.5
+        assert (data[0]["download_mbps"], data[0]["ping_ms"]) == (download, ping)
 
+    @pytest.mark.parametrize("newest, results", [(SAMPLE_RESULT, 1), ({**STARTED_RESULT, "status": "running"}, 0)])
     @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_api_test_speedtest_success(self, mock_get, speedtest_client):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+    def test_api_test_speedtest_success(self, mock_get, speedtest_client, newest, results):
+        mock_get.side_effect = _stt_api({"data": [newest, SAMPLE_RESULT]})
 
         resp = speedtest_client.post("/api/test-speedtest", json={
             "speedtest_tracker_url": "http://speedtest.local:8999",
@@ -307,8 +397,8 @@ class TestSpeedtestAPI:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["success"] is True
-        assert data["results"] == 1
-        assert "download" in data["latest"]
+        assert data["results"] == results
+        assert ("latest" in data) is bool(results)
         assert mock_get.call_args.args[0] == "http://speedtest.local:8999/api/v1/results"
         assert mock_get.call_args.kwargs["verify"] is True
 
