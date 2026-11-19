@@ -2,14 +2,7 @@
 
 import math
 
-from .docsis_utils import OFDMA_MIN_PLAUSIBLE_POWER_DBMV, classify_channel_family, qam_rank
-
-
-def _to_float(value):
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
+from .docsis_utils import OFDMA_MIN_PLAUSIBLE_POWER_DBMV, qam_rank, stored_or_classified_family, to_float
 
 
 def _range_pct(value, minimum, maximum):
@@ -58,7 +51,7 @@ def _channel_threshold_candidates(channels, *, snr=False):
             for key in ("modulation", "type", "docsis_version")
             if channel.get(key) is not None
         ).upper()
-        if snr and _snr_channel_family(channel) == "ofdm":
+        if snr and stored_or_classified_family("ds", channel) == "ofdm":
             candidates.append("ofdm")
         for qam in ("4096QAM", "1024QAM", "256QAM", "64QAM"):
             if qam in text:
@@ -252,28 +245,28 @@ def build_metric_ranges(analysis, thresholds):
 
     ranges = {
         "ds_power": _power_metric_range(
-            _to_float(summary.get("ds_power_avg")),
-            _to_float(summary.get("ds_power_min")),
-            _to_float(summary.get("ds_power_max")),
+            to_float(summary.get("ds_power_avg")),
+            to_float(summary.get("ds_power_min")),
+            to_float(summary.get("ds_power_max")),
             ds_power_threshold,
             "dBmV",
         ),
         "us_power": _power_metric_range(
-            _to_float(summary.get("us_power_avg")),
-            _to_float(summary.get("us_power_min")),
-            _to_float(summary.get("us_power_max")),
+            to_float(summary.get("us_power_avg")),
+            to_float(summary.get("us_power_min")),
+            to_float(summary.get("us_power_max")),
             us_power_threshold,
             "dBmV",
             low_critical=False,
         ),
         "snr": _snr_metric_range(
-            _to_float(snr_display.get("value")),
-            _to_float(snr_display.get("min")),
-            _to_float(snr_display.get("max")),
+            to_float(snr_display.get("value")),
+            to_float(snr_display.get("min")),
+            to_float(snr_display.get("max")),
             snr_threshold,
         ),
         "errors": _error_metric_range(
-            _to_float(summary.get("ds_uncorr_pct")),
+            to_float(summary.get("ds_uncorr_pct")),
             thresholds.get("errors", {}),
         ),
     }
@@ -286,11 +279,11 @@ def build_metric_ranges(analysis, thresholds):
         metric = (family or {}).get(metric_name) or {}
         if metric.get("available") is False:
             return None
-        value = _to_float(metric.get("avg"))
+        value = to_float(metric.get("avg"))
         if value is None:
             return None
-        minimum = _to_float(metric.get("min"))
-        maximum = _to_float(metric.get("max"))
+        minimum = to_float(metric.get("min"))
+        maximum = to_float(metric.get("max"))
         return value, minimum if minimum is not None else value, maximum if maximum is not None else value
 
     def _add_family_range(range_key, family, metric_name, candidates, threshold_group="snr", *, rate_low=True):
@@ -321,23 +314,13 @@ def build_metric_ranges(analysis, thresholds):
     return ranges
 
 
-def _snr_channel_family(channel):
-    """Use normalized analyzer metadata, with shared classification for legacy data."""
-    family = channel.get("channel_family")
-    # Only normalized downstream values are authoritative; unknown or invalid
-    # metadata must take the same shared fallback path as legacy snapshots.
-    if family in ("sc_qam", "ofdm"):
-        return family
-    return classify_channel_family("ds", channel)
-
-
 def _snr_channel_items(analysis):
     items = []
     for channel in (analysis or {}).get("ds_channels", []):
-        snr = _to_float(channel.get("snr"))
+        snr = to_float(channel.get("snr"))
         if snr is None:
             continue
-        items.append({"channel": channel, "family": _snr_channel_family(channel), "snr": snr})
+        items.append({"channel": channel, "family": stored_or_classified_family("ds", channel), "snr": snr})
     return items
 
 
@@ -470,8 +453,8 @@ def build_capacity_context(analysis, booked_download=0, booked_upload=0):
             calculated = sum(1 for ch in channels if ch.get("theoretical_bitrate") is not None)
             total = len(channels)
         unsupported = max(0, int(coverage.get("unsupported", total - calculated) or 0))
-        capacity = _to_float(summary.get(summary_key))
-        tariff_value = _to_float(tariff)
+        capacity = to_float(summary.get(summary_key))
+        tariff_value = to_float(tariff)
         ratio = round(capacity / tariff_value, 2) if capacity is not None and tariff_value and tariff_value > 0 else None
 
         if capacity is None or calculated == 0:

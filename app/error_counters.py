@@ -79,9 +79,8 @@ class ErrorCounterGrowth:
         return self.comparable_counter_reset or self.raw_uncorrectable_counter_reset
 
 
-def _counter(value: object) -> Counter:
-    if value is None:
-        return None
+def to_counter(value: object) -> Counter:
+    """Return a counter as int, or ``None`` when it is missing or not a number."""
     try:
         return int(value)
     except (TypeError, ValueError):
@@ -96,16 +95,16 @@ def _channel_key(channel: Mapping[str, object]) -> str:
 
 
 def _coverage(channels: Sequence[Mapping[str, object]]) -> CounterCoverage:
-    correctable = sum(_counter(channel.get("correctable_errors")) is not None for channel in channels)
-    uncorrectable = sum(_counter(channel.get("uncorrectable_errors")) is not None for channel in channels)
+    correctable = sum(to_counter(channel.get("correctable_errors")) is not None for channel in channels)
+    uncorrectable = sum(to_counter(channel.get("uncorrectable_errors")) is not None for channel in channels)
     comparable = sum(
-        _counter(channel.get("correctable_errors")) is not None
-        and _counter(channel.get("uncorrectable_errors")) is not None
+        to_counter(channel.get("correctable_errors")) is not None
+        and to_counter(channel.get("uncorrectable_errors")) is not None
         for channel in channels
     )
     unsupported = sum(
-        _counter(channel.get("correctable_errors")) is None
-        and _counter(channel.get("uncorrectable_errors")) is None
+        to_counter(channel.get("correctable_errors")) is None
+        and to_counter(channel.get("uncorrectable_errors")) is None
         for channel in channels
     )
     return CounterCoverage(
@@ -120,8 +119,8 @@ def _coverage(channels: Sequence[Mapping[str, object]]) -> CounterCoverage:
 
 def aggregate_error_counters(channels: Sequence[Mapping[str, object]]) -> ErrorCounterAggregate:
     """Aggregate raw totals and the cohort with both downstream counters."""
-    corr_values = [_counter(channel.get("correctable_errors")) for channel in channels]
-    uncorr_values = [_counter(channel.get("uncorrectable_errors")) for channel in channels]
+    corr_values = [to_counter(channel.get("correctable_errors")) for channel in channels]
+    uncorr_values = [to_counter(channel.get("uncorrectable_errors")) for channel in channels]
     comparable = [
         (channel, corr, uncorr)
         for channel, corr, uncorr in zip(channels, corr_values, uncorr_values)
@@ -187,9 +186,9 @@ def calculate_error_counter_growth(
         or current.comparable_channel_keys != baseline_keys
     )
 
-    base_corr = _counter(baseline.get("ds_comparable_correctable_baseline"))
-    base_uncorr = _counter(baseline.get("ds_comparable_uncorrectable_baseline"))
-    base_raw_uncorr = _counter(baseline.get("ds_raw_uncorrectable_baseline"))
+    base_corr = to_counter(baseline.get("ds_comparable_correctable_baseline"))
+    base_uncorr = to_counter(baseline.get("ds_comparable_uncorrectable_baseline"))
+    base_raw_uncorr = to_counter(baseline.get("ds_raw_uncorrectable_baseline"))
     if base_corr is None:
         base_corr = previous.comparable_correctable
     if base_uncorr is None:

@@ -10,11 +10,7 @@ from pathlib import Path
 import pytest
 
 from app.analyzer import analyze, get_thresholds
-from app.signal_health_view import (
-    build_home_snr_display_context,
-    build_metric_ranges,
-    _snr_channel_family,
-)
+from app.signal_health_view import build_home_snr_display_context, build_metric_ranges
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -193,42 +189,6 @@ def _render_generic_speedtest_dashboard(tmp_path, analysis):
 
 
 class TestIndexRoute:
-    @pytest.mark.parametrize("family", ["sc_qam", "ofdm"])
-    @pytest.mark.parametrize("legacy_fields", [
-        {"type": "OFDM", "modulation": "4096QAM", "docsis_version": "3.1"},
-        {"type": "SC-QAM", "modulation": "256QAM", "docsis_version": "3.0"},
-        {"profile_modulation": "256QAM", "docsis_version": "3.1"},
-    ])
-    def test_snr_channel_family_metadata_is_authoritative(self, family, legacy_fields):
-        assert _snr_channel_family({**legacy_fields, "channel_family": family}) == family
-
-    @pytest.mark.parametrize(
-        ("channel", "family"),
-        [
-            ({"modulation": "256QAM", "docsis_version": "3.1"}, "sc_qam"),
-            ({"type": "256QAM", "docsis_version": "3.1"}, "ofdm"),
-            ({"type": "SC-QAM", "docsis_version": "3.1"}, "sc_qam"),
-            ({"modulation": "1024QAM", "docsis_version": "3.1"}, "ofdm"),
-            ({"modulation": "4096QAM", "docsis_version": "3.1"}, "ofdm"),
-            ({"type": "OFDM", "modulation": "1024QAM", "docsis_version": "3.1"}, "ofdm"),
-            ({"type": "OFDM", "modulation": "4096QAM", "docsis_version": "3.1"}, "ofdm"),
-            ({"profile_modulation": "256QAM", "docsis_version": "3.1"}, "ofdm"),
-            ({"channel_type": "OFDM", "modulation": "256QAM"}, "ofdm"),
-            ({}, "unknown"),
-        ],
-    )
-    def test_snr_channel_family_legacy_fallback(self, channel, family):
-        assert _snr_channel_family(channel) == family
-
-    @pytest.mark.parametrize("metadata", [None, "unknown", "invalid", "ofdma", "OFDM", [], {}])
-    @pytest.mark.parametrize(("channel", "family"), [
-        ({"profile_modulation": "256QAM", "docsis_version": "3.1"}, "ofdm"),
-        ({"modulation": "256QAM", "docsis_version": "3.0"}, "sc_qam"),
-        ({}, "unknown"),
-    ])
-    def test_snr_channel_family_invalid_metadata_falls_back(self, metadata, channel, family):
-        assert _snr_channel_family({**channel, "channel_family": metadata}) == family
-
     def test_home_snr_preserves_analyzer_ofdm_profile_family(self):
         raw = {
             "channelDs": {"docsis31": [{

@@ -5,19 +5,12 @@ from __future__ import annotations
 from collections.abc import Iterable, MutableMapping
 from typing import Any
 
+from ..error_counters import to_counter
+
 UINT32_COUNTER_SIZE = 2**32
 _UINT32_WRAP_PREVIOUS_MIN = int(UINT32_COUNTER_SIZE * 0.75)
 _UINT32_WRAP_CURRENT_MAX = int(UINT32_COUNTER_SIZE * 0.25)
 _UINT32_WRAP_AGGREGATE_DROP_MIN = _UINT32_WRAP_PREVIOUS_MIN
-
-
-def _coerce_counter(value: Any) -> int | None:
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _looks_like_uint32_wrap(
@@ -75,7 +68,7 @@ def unwrap_uint32_counter_series(
         for key, key_state in state.items():
             if key not in row:
                 continue
-            raw = _coerce_counter(row.get(key))
+            raw = to_counter(row.get(key))
             if raw is None:
                 continue
 

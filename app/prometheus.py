@@ -5,11 +5,8 @@ Pure function -- no Flask dependency, no side effects.
 
 from __future__ import annotations
 
-from .docsis_utils import parse_qam_order as _parse_qam_order
+from .docsis_utils import SUMMARY_HEALTH_RANK, parse_qam_order as _parse_qam_order
 from .types import AnalysisResult, ConnectionInfo, DeviceInfo
-
-# Health string to numeric mapping
-_HEALTH_MAP = {"good": 0, "tolerated": 1, "marginal": 2, "critical": 3}
 
 
 def _frequency_label(value):
@@ -113,7 +110,7 @@ def format_metrics(
     # --- Health status ---
     if analysis is not None:
         health_str = analysis.get("summary", {}).get("health", "good")
-        health_val = _HEALTH_MAP.get(health_str, 4)
+        health_val = SUMMARY_HEALTH_RANK.get(health_str, 4)
     else:
         health_val = 4
 

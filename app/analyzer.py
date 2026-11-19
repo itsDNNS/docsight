@@ -12,20 +12,20 @@ from collections.abc import Mapping
 from typing import Any, Literal, cast
 
 from .docsis_utils import (
-    classify_channel_family as _shared_classify_channel_family,
-)
-from .docsis_utils import (
-    modulation_threshold_key as _modulation_threshold_key,
-)
-from .docsis_utils import (
-    parse_qam_order as _parse_qam_order,
+    CHANNEL_HEALTH_RANK,
+    OFDMA_MIN_PLAUSIBLE_POWER_DBMV,
+    classify_channel_family,
+    modulation_threshold_key,
+    parse_qam_order,
+    stored_or_classified_family,
+    to_float,
 )
 from .error_counters import (
     aggregate_error_counters,
     calculate_error_counter_growth,
+    to_counter,
     uncorrectable_percentage,
 )
-from .docsis_utils import OFDMA_MIN_PLAUSIBLE_POWER_DBMV
 from .threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
 from .tz import _parse_utc, utc_now
@@ -104,17 +104,6 @@ def _t():
     return _thresholds if _thresholds else _FALLBACK_THRESHOLDS
 
 
-_MODULATION_ALIASES = {
-    "OFDM": "4096QAM",
-    "OFDMA": "4096QAM",
-}
-
-
-def _resolve_modulation(modulation, section):
-    """Resolve modulation string to a key in thresholds config."""
-    return _modulation_threshold_key(modulation, section)
-
-
 def resolve_ds_power_thresholds(
     modulation=None,
     *,
@@ -126,7 +115,7 @@ def resolve_ds_power_thresholds(
     if channel_family == "ofdm" and "ofdm" in ds:
         t = ds["ofdm"]
     else:
-        mod = _resolve_modulation(modulation, ds)
+        mod = modulation_threshold_key(modulation, ds)
         t = ds.get(mod, {})
     good = t.get("good", [-4.0, 13.0])
     warn = t.get("warning", good)
@@ -197,7 +186,7 @@ def resolve_snr_thresholds(
     if channel_family == "ofdm" and "ofdm" in snr:
         t = snr["ofdm"]
     else:
-        mod = _resolve_modulation(modulation, snr)
+        mod = modulation_threshold_key(modulation, snr)
         t = snr.get(mod, {})
     return {
         "good_min": t.get("good_min", 33.0),
@@ -233,7 +222,7 @@ def _assess_ds_modulation(modulation: str, docsis_ver: str) -> str:
     mod = (modulation or "").upper().replace("-", "").strip()
     if mod == "OFDM":
         return "good"
-    qam_order = _parse_qam_order(mod)
+    qam_order = parse_qam_order(mod)
     if qam_order is None:
         return "good"
 
@@ -255,7 +244,7 @@ def _assess_ds_modulation(modulation: str, docsis_ver: str) -> str:
 
 def _assess_us_modulation(modulation, family: str, docsis_ver: str) -> str:
     """Return upstream modulation health; OFDMA channels pass their profile QAM."""
-    qam_order = _parse_qam_order(modulation)
+    qam_order = parse_qam_order(modulation)
     if qam_order is None:
         return "good"
 
@@ -276,9 +265,6 @@ def _assess_us_modulation(modulation, family: str, docsis_ver: str) -> str:
     return "good"
 
 
-_QAM_ORDERS = (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096)
-
-
 def modulation_target(direction: str, family: str, docsis_ver: str) -> str | None:
     """Return the lowest modulation the channel scoring rates good, e.g. "1024QAM".
 
@@ -291,12 +277,12 @@ def modulation_target(direction: str, family: str, docsis_ver: str) -> str | Non
             return _assess_ds_modulation(qam, "3.0" if family == "sc_qam" else docsis_ver) == "good"
         return _assess_us_modulation(qam, family, docsis_ver) == "good"
 
-    good = [order for order in _QAM_ORDERS if rated_good(order)]
-    if not good or len(good) == len(_QAM_ORDERS):
+    good = [order for order in _BITS_PER_SYMBOL if rated_good(order)]
+    if not good or len(good) == len(_BITS_PER_SYMBOL):
         return None
     lowest = good[0]
     # The target is only meaningful when every higher order is good as well.
-    if any(order > lowest and order not in good for order in _QAM_ORDERS):
+    if any(order > lowest and order not in good for order in _BITS_PER_SYMBOL):
         return None
     return f"{lowest}QAM"
 
@@ -360,15 +346,6 @@ def _recent_spike_active(last_spike_ts: str | None) -> bool:
     except Exception:
         return False
     return (now - spike_dt).total_seconds() / 3600 < _get_spike_expiry_hours()
-
-
-def _coerce_counter(value) -> int | None:
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def apply_cumulative_error_baseline(
@@ -483,7 +460,7 @@ def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None)
     baseline = summary.get("error_baseline")
     baseline_uncorr_recent_delta = None
     if isinstance(baseline, dict):
-        baseline_uncorr_recent_delta = _coerce_counter(baseline.get("ds_uncorrectable_recent_delta"))
+        baseline_uncorr_recent_delta = to_counter(baseline.get("ds_uncorrectable_recent_delta"))
     if baseline_uncorr_recent_delta and any(_uncorr_issue(i) for i in summary.get("health_issues", [])):
         return  # Preserve new DOCSight-observed growth after the old spike window.
 
@@ -531,7 +508,7 @@ def _channel_bitrate_mbps(
     Returns None if modulation is unparseable (for example OFDM/OFDMA) or no
     symbol rate/default symbol rate is available.
     """
-    qam_order = _parse_qam_order(modulation_str)
+    qam_order = parse_qam_order(modulation_str)
     if qam_order is None or qam_order not in _BITS_PER_SYMBOL:
         return None
     rate = symbol_rate_ksym if symbol_rate_ksym is not None else default_symbol_rate
@@ -571,13 +548,6 @@ def threshold_snapshot() -> dict[str, Any]:
     }
 
 
-def _parse_float(val, default=None):
-    try:
-        return float(val)
-    except (TypeError, ValueError):
-        return default
-
-
 def _parse_channel_id(val):
     """Parse channel ID to int, handling float strings like '1.0'."""
     try:
@@ -610,15 +580,12 @@ def _metric_healths(issues, metrics=("power", "snr", "modulation")):
     return result
 
 
-_HEALTH_RANK = {"missing": -1, "good": 0, "tolerated": 1, "warning": 2, "critical": 3}
-
-
 def _worst_health(values):
     """Return the worst health value, ignoring missing/unavailable metrics."""
     ranked = [value for value in values if value and value != "missing"]
     if not ranked:
         return "missing"
-    return max(ranked, key=lambda value: _HEALTH_RANK.get(value, 0))
+    return max(ranked, key=lambda value: CHANNEL_HEALTH_RANK.get(value, 0))
 
 
 def _stats(values):
@@ -641,7 +608,7 @@ def _channel_modulation_value(channel, *, prefer_profile=False):
 
 
 def _modulation_sort_key(value):
-    return _parse_qam_order(value) or 0, value
+    return parse_qam_order(value) or 0, value
 
 
 def _distinct_modulation_healths(channels, *, prefer_profile=False):
@@ -717,17 +684,7 @@ def _family_health_driver(family, channels, *, direction, cause, family_health, 
     matching_family_health = [candidate for candidate in candidates if candidate["health"] == family_health]
     if matching_family_health:
         return matching_family_health[0]
-    return max(candidates, key=lambda candidate: _HEALTH_RANK.get(candidate["health"], 0))
-
-
-def _classify_ds_family(channel):
-    """Classify downstream channels into SC-QAM, OFDM, or unknown families."""
-    return _shared_classify_channel_family("ds", channel)
-
-
-def _classify_us_family(channel):
-    """Classify upstream channels into SC-QAM, OFDMA, or unknown families."""
-    return _shared_classify_channel_family("us", channel)
+    return max(candidates, key=lambda candidate: CHANNEL_HEALTH_RANK.get(candidate["health"], 0))
 
 
 def _family_summary(family, channels, *, direction):
@@ -800,12 +757,12 @@ def _build_signal_family_summary(ds_channels, us_channels):
     """Build family-level signal summaries for Home without changing legacy globals."""
     ds_groups = {"sc_qam": [], "ofdm": [], "unknown": []}
     for channel in ds_channels:
-        family = channel.get("channel_family") or _classify_ds_family(channel)
+        family = stored_or_classified_family("ds", channel)
         ds_groups.setdefault(family, []).append(channel)
 
     us_groups = {"sc_qam": [], "ofdma": [], "unknown": []}
     for channel in us_channels:
-        family = channel.get("channel_family") or _classify_us_family(channel)
+        family = stored_or_classified_family("us", channel)
         us_groups.setdefault(family, []).append(channel)
 
     downstream = {
@@ -876,7 +833,7 @@ def _assess_ds_channel(power, snr, modulation, family):
 
 def _keep_power_display_offset(raw_channel, channel):
     """Carry a driver's correction of the modem's displayed power to the UI."""
-    offset = _parse_float(raw_channel.get("powerDisplayOffset"))
+    offset = to_float(raw_channel.get("powerDisplayOffset"))
     if offset:
         channel["modem_power_offset_db"] = offset
 
@@ -925,7 +882,7 @@ def _read_channel(direction, ch, docsis_ver):
     profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
     if direction == "ds" and docsis_ver == "3.0":
         return modulation, profile_modulation, "sc_qam"
-    family = _shared_classify_channel_family(direction, {
+    family = classify_channel_family(direction, {
         "type": ch.get("type", ""),
         "multiplex": ch.get("multiplex", ""),
         "modulation": modulation,
@@ -961,12 +918,12 @@ def _channel_entry(ch, measured, *, docsis_ver, family, assessment, profile_modu
 
 def _build_ds_channel(ch, docsis_ver):
     modulation, profile_modulation, family = _read_channel("ds", ch, docsis_ver)
-    power = _parse_float(ch.get("powerLevel"))
+    power = to_float(ch.get("powerLevel"))
     if docsis_ver == "3.0":
-        mse = _parse_float(ch.get("mse"))
+        mse = to_float(ch.get("mse"))
         snr = abs(mse) if mse is not None else None
     else:
-        snr = _parse_float(ch.get("mer"))
+        snr = to_float(ch.get("mer"))
     measured = {
         "power": power,
         "modulation": modulation,
@@ -987,7 +944,7 @@ def _build_ds_channel(ch, docsis_ver):
 
 def _build_us_channel(ch, docsis_ver):
     modulation, profile_modulation, family = _read_channel("us", ch, docsis_ver)
-    power = _parse_float(ch.get("powerLevel"))
+    power = to_float(ch.get("powerLevel"))
     assessed_modulation = profile_modulation if family == "ofdma" and profile_modulation else modulation
     channel = _channel_entry(
         ch,

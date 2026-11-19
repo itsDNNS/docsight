@@ -8,21 +8,11 @@ always explains the rating that is shown.
 
 from __future__ import annotations
 
-from typing import Any
-
 from .analyzer import _get_ds_power_thresholds, _get_snr_thresholds, _get_us_power_thresholds, modulation_target
 from .channel_selector import channel_selector
-from .docsis_utils import classify_channel_family
+from .docsis_utils import CHANNEL_HEALTH_RANK, stored_or_classified_family, to_float
 
-SEVERITY = {"good": 0, "tolerated": 1, "warning": 2, "critical": 3}
 FAMILY_LABELS = {"sc_qam": "SC-QAM", "ofdm": "OFDM", "ofdma": "OFDMA"}
-
-
-def _number(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _channel_id(channel: dict) -> int:
@@ -32,16 +22,9 @@ def _channel_id(channel: dict) -> int:
         return 0
 
 
-def _family(direction: str, channel: dict) -> str:
-    family = channel.get("channel_family")
-    if family in FAMILY_LABELS:
-        return family
-    return classify_channel_family(direction, channel)
-
-
 def _health(channel: dict) -> str:
     health = channel.get("health")
-    return health if health in SEVERITY else "good"
+    return health if health in CHANNEL_HEALTH_RANK else "good"
 
 
 def _pct(value: float, low: float, high: float) -> float:
@@ -51,10 +34,10 @@ def _pct(value: float, low: float, high: float) -> float:
 
 
 def _power_callout(direction: str, channel: dict) -> dict | None:
-    value = _number(channel.get("power"))
+    value = to_float(channel.get("power"))
     if value is None:
         return None
-    family = _family(direction, channel)
+    family = stored_or_classified_family(direction, channel)
     if direction == "ds":
         limits = _get_ds_power_thresholds(channel.get("modulation"), channel_family=family)
     else:
@@ -85,15 +68,16 @@ def _power_callout(direction: str, channel: dict) -> dict | None:
 
 
 def _snr_callout(channel: dict) -> dict | None:
-    value = _number(channel.get("snr"))
+    value = to_float(channel.get("snr"))
     if value is None:
         return None
-    limits = _get_snr_thresholds(channel.get("modulation"), channel_family=_family("ds", channel))
+    family = stored_or_classified_family("ds", channel)
+    limits = _get_snr_thresholds(channel.get("modulation"), channel_family=family)
     good_min, warn_min = float(limits["good_min"]), float(limits["warn_min"])
     low = min(float(limits["crit_min"]), value) - 4.0
     high = max(good_min + 10.0, value + 2.0)
     return {
-        "metric": "mer" if _family("ds", channel) == "ofdm" else "snr",
+        "metric": "mer" if family == "ofdm" else "snr",
         "unit": "dB",
         "value": value,
         "delta": round(min(0.0, value - good_min), 1),
@@ -130,7 +114,7 @@ def channel_callout(direction: str, channel: dict) -> dict:
         measurement = _power_callout(direction, channel)
     elif "snr" in detail and direction == "ds":
         measurement = _snr_callout(channel)
-    family = _family(direction, channel)
+    family = stored_or_classified_family(direction, channel)
     return {
         "channel_id": _channel_id(channel),
         "direction": direction,
@@ -146,25 +130,25 @@ def channel_callout(direction: str, channel: dict) -> dict:
 def _direction(direction: str, channels: list[dict]) -> dict | None:
     if not channels:
         return None
-    ordered = sorted(channels, key=lambda ch: (_family(direction, ch) == "sc_qam", _channel_id(ch)))
+    ordered = sorted(channels, key=lambda ch: (stored_or_classified_family(direction, ch) == "sc_qam", _channel_id(ch)))
     segments = [
         {
             "channel_id": _channel_id(ch),
             "selector": channel_selector(ch),
-            "family": FAMILY_LABELS.get(_family(direction, ch), ""),
+            "family": FAMILY_LABELS.get(stored_or_classified_family(direction, ch), ""),
             "health": _health(ch),
-            "power": _number(ch.get("power")),
+            "power": to_float(ch.get("power")),
             "modulation": _modulation(ch),
         }
         for ch in ordered
     ]
-    counts = {state: sum(1 for seg in segments if seg["health"] == state) for state in SEVERITY}
+    counts = {state: sum(1 for seg in segments if seg["health"] == state) for state in CHANNEL_HEALTH_RANK}
     families: dict[str, int] = {}
     for seg in segments:
         families[seg["family"]] = families.get(seg["family"], 0) + 1
     deviating = sorted(
         (ch for ch in ordered if _health(ch) != "good"),
-        key=lambda ch: (-SEVERITY[_health(ch)], _channel_id(ch)),
+        key=lambda ch: (-CHANNEL_HEALTH_RANK[_health(ch)], _channel_id(ch)),
     )
     callouts = [channel_callout(direction, ch) for ch in deviating]
     return {
@@ -195,7 +179,7 @@ def build_line_status(analysis: dict | None) -> dict | None:
     if not directions:
         return None
     callouts = [block["callout"] for block in directions if block["callout"]]
-    primary = max(callouts, key=lambda c: SEVERITY[c["health"]], default=None)
+    primary = max(callouts, key=lambda c: CHANNEL_HEALTH_RANK[c["health"]], default=None)
     total = sum(block["total"] for block in directions)
     within = sum(block["counts"]["good"] for block in directions)
     summary = analysis.get("summary") or {}
