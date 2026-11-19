@@ -75,9 +75,6 @@ def _family_modulation_threshold_candidates(family):
 
 
 def _metric_health(value, crit_min, warn_min, good_min, good_max=math.inf, warn_max=math.inf, crit_max=math.inf):
-    # A value the modem does not report is unknown, not good.
-    if value is None:
-        return "missing"
     if value < crit_min or value > crit_max:
         return "crit"
     if value < warn_min or value > warn_max:
@@ -94,10 +91,20 @@ def _power_metric_range(value, observed_min, observed_max, threshold, direction,
     the profile minimums only scale the bar, everything below the good maximum
     is drawn as good, and only levels below P1.6min are a warning.
     """
+    # A value the modem does not report is unknown, not good.
+    if value is None:
+        return {"health": "missing"}
     limits = power_limits(threshold, direction)
-    crit_min, crit_max = limits["crit_min"], limits["crit_max"]
-    warn_min, warn_max = limits["warn_min"], limits["warn_max"]
-    good_min, good_max = limits["good_min"], limits["good_max"]
+    # Like the analyzer, an outer band wins where a profile's bands overlap.
+    # Low upstream power is never critical, so its critical minimum only marks the edge.
+    crit_min, warn_min = limits["crit_min"], limits["warn_min"]
+    if direction == "ds":
+        warn_min = max(warn_min, crit_min)
+    else:
+        crit_min = min(crit_min, warn_min)
+    crit_max = limits["crit_max"]
+    warn_max = min(limits["warn_max"], crit_max)
+    good_min, good_max = max(limits["good_min"], warn_min), min(limits["good_max"], warn_max)
     padding = max((crit_max - crit_min) * 0.06, 0.5)
     minimum = crit_min - padding
     maximum = crit_max + padding
@@ -136,8 +143,13 @@ def _power_metric_range(value, observed_min, observed_max, threshold, direction,
 
 
 def _snr_metric_range(value, observed_min, observed_max, threshold):
+    if value is None:
+        return {"health": "missing"}
     limits = snr_limits(threshold)
-    crit_min, warn_min, good_min = limits["crit_min"], limits["warn_min"], limits["good_min"]
+    # Like the analyzer, an outer band wins where a profile's bands overlap.
+    crit_min = limits["crit_min"]
+    warn_min = max(limits["warn_min"], crit_min)
+    good_min = max(limits["good_min"], warn_min)
     threshold_span = max(good_min - crit_min, 1.0)
     minimum = crit_min - max(threshold_span * 0.4, 1.0)
     maximum = max(

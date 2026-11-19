@@ -874,12 +874,19 @@ class TestIndexRoute:
         assert injected_ranges["ds_ofdm_mer"]["good_label"] == "≥ 45 dB"
         assert injected_ranges["ds_ofdm_mer"]["bands"] != metric_ranges["ds_ofdm_mer"]["bands"]
 
-    def test_unreported_power_and_snr_are_missing_not_good(self, sample_analysis):
+    @pytest.mark.parametrize("unusable_limits", [False, True])
+    def test_unreported_power_and_snr_are_missing_not_good(self, sample_analysis, unusable_limits):
         for key in ("ds_power_avg", "us_power_avg", "ds_snr_avg"):
             sample_analysis["summary"][key] = None
         for channel in sample_analysis["ds_channels"]:
             channel["snr"] = None
-        ranges = build_metric_ranges(sample_analysis, get_thresholds())
+        thresholds = get_thresholds()
+        if unusable_limits:
+            # Profile validation accepts these; without a reading nothing is rated, so nothing may fail.
+            thresholds["downstream_power"]["256QAM"]["good"] = None
+            thresholds["upstream_power"]["sc_qam"]["warning"] = ["37.1", "51"]
+            thresholds["snr"]["256QAM"]["critical_min"] = "29"
+        ranges = build_metric_ranges(sample_analysis, thresholds)
         assert ranges["ds_power"]["health"] == "missing"
         assert ranges["us_power"]["health"] == "missing"
         assert ranges["snr"]["health"] == "missing"
@@ -926,35 +933,54 @@ class TestIndexRoute:
         assert ranges["ds_power"]["health"] == "crit"
         assert ranges["ds_power"]["bands"][0]["kind"] == "crit"
 
-    @pytest.mark.parametrize("lane, range_keys", [
-        ("ds_channels", ("ds_power", "ds_sc_qam_power", "snr", "ds_sc_qam_snr")),
-        ("us_channels", ("us_power", "us_sc_qam_power")),
-    ])
-    def test_ranges_rate_like_the_analyzer_when_the_profile_omits_a_band(self, monkeypatch, lane, range_keys):
-        """A contributed profile may leave out any band; both paths must fill it in the same way."""
+    def test_ranges_rate_and_draw_like_the_analyzer_when_the_profile_omits_a_band(self, monkeypatch):
+        """A contributed profile may leave out any band; the bars must fill it in like the analyzer."""
         profile = {
-            "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-4, 13], "warning": [-6, 15]}},
+            "downstream_power": {
+                "_default": "256QAM",
+                "256QAM": {"good": [-4, 13], "warning": [-6, 15]},
+                "ofdm": {"good": [-12, 12], "warning": [-15, 15]},
+            },
             "upstream_power": {"_default": "sc_qam", "sc_qam": {"warning": [37.1, 51.0], "critical": [35, 53]}},
-            "snr": {"_default": "256QAM", "256QAM": {"good_min": 33, "critical_min": 29}},
+            "snr": {
+                "_default": "256QAM",
+                "256QAM": {"good_min": 33, "critical_min": 29},
+                "ofdm": {"good_min": 27, "warning_min": 25.5},
+            },
         }
         validate_thresholds(profile)
         monkeypatch.setattr("app.analyzer._thresholds", profile)
         analysis = analyze({
-            "channelDs": {"docsis30": [{
-                "channelID": 1, "frequency": "602 MHz", "powerLevel": "18.0",
-                "modulation": "256QAM", "mse": "-31.0", "corrErrors": 0, "nonCorrErrors": 0,
-            }], "docsis31": []},
-            "channelUs": {"docsis30": [
-                {"channelID": 3, "frequency": "37 MHz", "powerLevel": "45.0", "modulation": "64QAM", "multiplex": "ATDMA"},
-            ], "docsis31": []},
+            "docsis": "3.1",
+            "downstream": [
+                {"channelID": 1, "frequency": "602 MHz", "powerLevel": "18.0", "modulation": "256QAM",
+                 "mer": "31.0", "type": "SC-QAM", "corrErrors": 0, "nonCorrErrors": 0},
+                {"channelID": 33, "frequency": "751 MHz", "powerLevel": "-10.0", "modulation": "OFDM",
+                 "mer": "28.5", "type": "OFDM", "corrErrors": 0, "nonCorrErrors": 0},
+            ],
+            "upstream": [{"channelID": 3, "frequency": "37 MHz", "powerLevel": "45.0", "modulation": "64QAM",
+                          "type": "ATDMA", "multiplex": "ATDMA"}],
         })
+        sc_qam, ofdm = analysis["ds_channels"]
 
         ranges = build_metric_ranges(analysis, get_thresholds())
 
-        channel = analysis[lane][0]
-        for key in range_keys:
-            health = channel.get(f"{'snr' if 'snr' in key else 'power'}_health", "good")
-            assert ranges[key]["health"] == {"warning": "warn", "critical": "crit"}.get(health, health), key
+        for key, channel, metric in [
+            ("ds_sc_qam_power", sc_qam, "power"), ("ds_sc_qam_snr", sc_qam, "snr"),
+            ("ds_ofdm_power", ofdm, "power"), ("ds_ofdm_mer", ofdm, "snr"),
+            ("us_power", analysis["us_channels"][0], "power"), ("us_sc_qam_power", analysis["us_channels"][0], "power"),
+        ]:
+            health = channel.get(f"{metric}_health", "good")
+            bar = ranges[key]
+            assert bar["health"] == {"warning": "warn", "critical": "crit"}.get(health, health), key
+            edges = [edge for band in bar["bands"] for edge in (band["left"], round(band["left"] + band["width"], 3))]
+            assert edges == sorted(edges), key
+            under_marker = [b["kind"] for b in bar["bands"] if b["left"] <= bar["marker"] < b["left"] + b["width"]]
+            assert under_marker == [bar["health"]], key
+        assert ofdm["power_health"] == "critical" and ofdm["snr_health"] == "critical"
+        assert [ranges["ds_ofdm_power"][k] for k in ("low_label", "good_label", "high_label")] == [
+            "-8 dBmV", "-8 - 12 dBmV", "20 dBmV"]
+        assert [ranges["ds_ofdm_mer"][k] for k in ("low_label", "good_label")] == ["29 dB", "≥ 29 dB"]
 
     def test_unreported_power_reads_as_unavailable_on_home_and_in_the_family_readings(self, client, sample_analysis):
         sample_analysis["summary"]["us_power_avg"] = None
