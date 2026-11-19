@@ -225,8 +225,8 @@ class TestWebhookChannelSend:
                 "details": {},
             }) is False
 
-        assert caplog.records[0].args[0] == "https://hooks.example.test:8443"
-        assert "HTTPError" in caplog.text
+        assert caplog.records[0].args[1] == "https://hooks.example.test:8443"
+        assert "HTTP 500" in caplog.text
         assert path_marker not in caplog.text
         assert query_marker not in caplog.text
         assert user_marker not in caplog.text
@@ -252,7 +252,7 @@ class TestWebhookChannelSend:
                 "details": {},
             }) is False
 
-        assert caplog.records[0].args[0] == "https://ntfy.sh"
+        assert caplog.records[0].args[1] == "https://ntfy.sh"
         assert "ConnectionError" in caplog.text
         assert path_marker not in caplog.text
         assert query_marker not in caplog.text
@@ -527,27 +527,33 @@ class TestDispatcherChannelSetup:
         assert "Sent" in sent_json["body"]
         assert "snr: 30" in sent_json["body"]
 
+    @pytest.mark.parametrize("webhook_url, channel_name", [
+        (None, "AppriseChannel"),
+        ("https://hooks.example.test/REDACTED-CONFIG-KEY", "WebhookChannel"),
+        ("https://discord.com/api/webhooks/1/REDACTED-CONFIG-KEY", "DiscordWebhookChannel"),
+    ])
     @patch("app.notifier.requests.post")
-    def test_apprise_test_notification_returns_sanitized_http_error(self, mock_post):
+    def test_test_notification_returns_sanitized_http_error(self, mock_post, webhook_url, channel_name):
         resp = MagicMock(status_code=401)
         resp.raise_for_status.side_effect = requests.HTTPError(response=resp)
         mock_post.return_value = resp
         key_marker = "REDACTED-CONFIG-KEY"
-        apprise_token_marker = "REDACTED-TOKEN"
+        token_marker = "REDACTED-TOKEN"
         config = self._make_config(
-            None,
-            apprise_enabled=True,
+            webhook_url,
+            token=token_marker,
+            apprise_enabled=webhook_url is None,
             apprise_url="http://apprise:8000",
             apprise_key=key_marker,
-            apprise_token=apprise_token_marker,
+            apprise_token=token_marker,
         )
         dispatcher = NotificationDispatcher(config)
 
         result = dispatcher.test()
 
-        assert result == {"success": False, "error": "AppriseChannel: HTTP 401"}
+        assert result == {"success": False, "error": f"{channel_name}: HTTP 401"}
         assert key_marker not in result.get("error", "")
-        assert apprise_token_marker not in result.get("error", "")
+        assert token_marker not in result.get("error", "")
 
     def test_test_notification_returns_generic_error_for_unexpected_channel_exception(self, monkeypatch):
         class BrokenChannel:
