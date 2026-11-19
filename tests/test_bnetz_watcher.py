@@ -1,10 +1,15 @@
 """Tests for BNetzA file watcher collector."""
 
-import os
-import tempfile
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from app.modules.bnetz.collector import BnetzWatcherCollector, _read_marker, _append_marker
+
+
+@pytest.fixture(autouse=True)
+def _storage(request, mock_storage):
+    request.instance.storage = mock_storage
 
 
 class TestBnetzWatcherEnabled:
@@ -14,9 +19,7 @@ class TestBnetzWatcherEnabled:
         config_mgr.get.side_effect = lambda k, *a: {
             "bnetz_watch_dir": "/data/bnetz",
         }.get(k, a[0] if a else None)
-        storage = MagicMock()
-        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
-        return BnetzWatcherCollector(config_mgr=config_mgr, storage=storage), config_mgr, storage
+        return BnetzWatcherCollector(config_mgr=config_mgr, storage=self.storage), config_mgr, self.storage
 
     def test_is_enabled_true(self):
         c, *_ = self._make_collector(watch_configured=True)
@@ -42,9 +45,7 @@ class TestBnetzWatcherCollect:
         config_mgr.get.side_effect = lambda k, *a: {
             "bnetz_watch_dir": watch_dir,
         }.get(k, a[0] if a else None)
-        storage = MagicMock()
-        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
-        return BnetzWatcherCollector(config_mgr=config_mgr, storage=storage), config_mgr, storage
+        return BnetzWatcherCollector(config_mgr=config_mgr, storage=self.storage), config_mgr, self.storage
 
     def test_missing_dir_returns_failure(self):
         c, *_ = self._make_collector("/nonexistent/path/12345")
@@ -181,10 +182,8 @@ class TestBnetzWatcherCollect:
         config_mgr.get.side_effect = lambda k, *a: {
             "bnetz_watch_dir": "/data/bnetz",
         }.get(k, a[0] if a else None)
-        storage = MagicMock()
-        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
 
-        c = BnetzWatcherCollector(config_mgr=config_mgr, storage=storage)
+        c = BnetzWatcherCollector(config_mgr=config_mgr, storage=self.storage)
         status = c.get_status()
 
         assert status["name"] == "bnetz_watcher"

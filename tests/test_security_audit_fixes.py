@@ -105,15 +105,14 @@ class TestRestoreAuth:
             assert resp.status_code == 401
             mock_restore.assert_not_called()
 
-    def test_restore_without_config_manager_rejected(self):
+    def test_restore_without_config_manager_rejected(self, make_config):
         """If the config manager is not initialized, /api/restore must bail out
         before touching the filesystem — no fallback to a hardcoded data dir."""
         from app.app_factory import create_app
-        from app.config import ConfigManager
         from app.modules.backup.routes import bp as backup_bp
 
         test_app = create_app(
-            config_manager=ConfigManager(tempfile.mkdtemp()), environ=dict(OPEN_INSTANCE_ENVIRON), testing=True
+            config_manager=make_config(), environ=dict(OPEN_INSTANCE_ENVIRON), testing=True
         )
 
         with patch.object(get_runtime(test_app), "config_manager", None), \

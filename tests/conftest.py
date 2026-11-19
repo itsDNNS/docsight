@@ -7,6 +7,7 @@ import socket
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -131,6 +132,15 @@ def make_config(tmp_path):
         return manager
 
     return factory
+
+
+@pytest.fixture
+def mock_storage(tmp_path):
+    """Return a storage mock whose database lives in the test's temporary directory."""
+    storage = MagicMock()
+    storage.db_path = str(tmp_path / "test.db")
+    storage.get_device_state.return_value = {}
+    return storage
 
 
 @pytest.fixture

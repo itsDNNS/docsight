@@ -1,13 +1,18 @@
 """Tests for speedtest, backup, and BQM collectors."""
 
-import os
-import tempfile
 import time
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from app.collectors.base import CollectorResult
 from app.modules.speedtest.collector import SpeedtestCollector
 from app.modules.bqm.collector import BQMCollector
+
+
+@pytest.fixture(autouse=True)
+def _storage(request, mock_storage):
+    request.instance.storage = mock_storage
 
 
 class TestSpeedtestCollector:
@@ -19,13 +24,10 @@ class TestSpeedtestCollector:
             "speedtest_tracker_token": "tok",
         }.get(k, a[0] if a else None)
 
-        storage = MagicMock()
-        # Provide a real temp db_path so SpeedtestStorage can init
-        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
         web = MagicMock()
 
-        c = SpeedtestCollector(config_mgr=config_mgr, storage=storage, web=web, poll_interval=300)
-        return c, config_mgr, storage, web
+        c = SpeedtestCollector(config_mgr=config_mgr, storage=self.storage, web=web, poll_interval=300)
+        return c, config_mgr, self.storage, web
 
     def test_is_enabled_true(self):
         c, *_ = self._make_collector(configured=True)
@@ -227,11 +229,8 @@ class TestBQMCollector:
             "bqm_url": bqm_url,
         }.get(k, a[0] if a else None)
 
-        storage = MagicMock()
-        # Provide a real temp db_path so BqmStorage can init
-        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
-        c = BQMCollector(config_mgr=config_mgr, storage=storage, poll_interval=86400)
-        return c, config_mgr, storage
+        c = BQMCollector(config_mgr=config_mgr, storage=self.storage, poll_interval=86400)
+        return c, config_mgr, self.storage
 
     def test_is_enabled_true(self):
         c, *_ = self._make_collector(configured=True)
