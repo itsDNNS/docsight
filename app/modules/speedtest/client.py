@@ -10,6 +10,14 @@ from app.tz import UTC_FMT
 
 log = logging.getLogger("docsis.speedtest")
 
+# Speedtest Tracker lists a test as soon as it starts, without measurements yet
+_UNFINISHED_STATUSES = frozenset({"waiting", "started", "checking", "running", "benchmarking"})
+
+
+def is_finished(result):
+    """True for a finished API result or parsed result; no status (older versions) counts as finished."""
+    return result.get("status") not in _UNFINISHED_STATUSES
+
 
 def public_error(exc: BaseException) -> str:
     """A fixed description of a failed Speedtest Tracker request.
@@ -71,21 +79,25 @@ class SpeedtestClient:
         def _round2(val):
             return round(float(val), 2) if val is not None else None
 
+        def _mbps(bits):  # omitted until a test finishes, and for failed tests
+            return round(bits / 1_000_000, 2) if bits is not None else None
+
         ping_low_raw = ping_obj.get("low")
         ping_high_raw = ping_obj.get("high")
 
         return {
             "id": item.get("id"),
+            "status": item.get("status"),
             "timestamp": self._normalize_ts(raw_ts),
-            "download_mbps": round(item.get("download_bits", 0) / 1_000_000, 2),
-            "upload_mbps": round(item.get("upload_bits", 0) / 1_000_000, 2),
-            "download_human": item.get("download_bits_human", ""),
-            "upload_human": item.get("upload_bits_human", ""),
+            "download_mbps": _mbps(item.get("download_bits")),
+            "upload_mbps": _mbps(item.get("upload_bits")),
+            "download_human": item.get("download_bits_human"),
+            "upload_human": item.get("upload_bits_human"),
             "ping_ms": _round2(item.get("ping")),
             "jitter_ms": _round2(ping_obj.get("jitter")),
             "packet_loss_pct": _round2(data.get("packetLoss")),
             "server_id": server.get("id"),
-            "server_name": server.get("name", ""),
+            "server_name": server.get("name"),
             # enriched fields
             "isp": data.get("isp"),
             "server_host": server.get("host"),
@@ -122,7 +134,9 @@ class SpeedtestClient:
                 verify=self.verify_tls,
             )
             resp.raise_for_status()
-            results = resp.json().get("data", [])
+            results = resp.json()["data"]  # a reply without a list is no proof of an empty Tracker
+            if not isinstance(results, list):
+                raise TypeError("results are not a list")
             return [self._parse_result(r) for r in results], None
         except Exception as exc:
             msg = public_error(exc)
@@ -135,7 +149,7 @@ class SpeedtestClient:
         page = 1
         try:
             while len(all_results) < per_page:
-                batch = min(per_page - len(all_results), 500)
+                batch = min(per_page, 500)  # fixed, so skipped results do not shift the pages
                 resp = self.session.get(
                     self.base_url + "/api/v1/results",
                     params={
@@ -151,28 +165,30 @@ class SpeedtestClient:
                 items = body.get("data", [])
                 if not items:
                     break
-                all_results.extend(self._parse_result(r) for r in items)
+                all_results.extend(self._parse_result(r) for r in items if is_finished(r))
                 meta = body.get("meta", {})
                 if page >= meta.get("last_page", 1):
                     break
                 page += 1
-            return all_results
+            return all_results[:per_page]
         except Exception as exc:
             log.warning("Failed to fetch speedtest results: %s (%s)", public_error(exc), type(exc).__name__)
             return all_results
 
-    def get_newer_than(self, last_id, per_page=500):
-        """Fetch results with id > last_id. Sorts newest-first and stops at last_id."""
+    def get_newer_than(self, known_ids):
+        """Fetch the newest 500 finished results above the lowest known id that are not known yet, oldest first.
+
+        Rechecking the ids between the known ones picks up a test that finished after a newer one.
+        """
+        floor = min(known_ids, default=0)
         all_results = []
         page = 1
-        done = False
         try:
-            while not done:
-                batch = min(per_page - len(all_results), 500) if per_page else 500
+            while True:
                 resp = self.session.get(
                     self.base_url + "/api/v1/results",
                     params={
-                        "page[size]": batch,
+                        "page[size]": 500,
                         "page[number]": page,
                         "sort": "-created_at",
                     },
@@ -181,24 +197,20 @@ class SpeedtestClient:
                 )
                 resp.raise_for_status()
                 body = resp.json()
-                items = body.get("data", [])
-                if not items:
+                # Creation times can tie, so ids are not strictly descending: only a page
+                # entirely at or below the floor ends the scan
+                fresh = [item for item in body.get("data", []) if item.get("id", 0) > floor]
+                if not fresh:
                     break
-                for item in items:
-                    if item.get("id", 0) > last_id:
-                        all_results.append(self._parse_result(item))
-                    else:
-                        done = True
-                        break
+                all_results.extend(
+                    self._parse_result(item) for item in fresh if item.get("id") not in known_ids and is_finished(item)
+                )
                 meta = body.get("meta", {})
                 if page >= meta.get("last_page", 1):
                     break
-                if per_page and len(all_results) >= per_page:
+                if len(all_results) >= 500:
                     break
                 page += 1
-            # Return in chronological order (oldest first)
-            all_results.reverse()
-            return all_results
         except Exception as exc:
             log.warning("Failed to fetch newer speedtest results: %s (%s)", public_error(exc), type(exc).__name__)
-            return all_results
+        return all_results[:500][::-1]

@@ -10,6 +10,16 @@ from app.modules.speedtest.collector import SpeedtestCollector
 from app.modules.bqm.collector import BQMCollector
 
 
+DELTA_ROWS = [
+    {"id": 1, "timestamp": "2025-01-01T00:00:00Z", "download_mbps": 100,
+     "upload_mbps": 10, "download_human": "", "upload_human": "",
+     "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
+    {"id": 2, "timestamp": "2025-01-01T01:00:00Z", "download_mbps": 200,
+     "upload_mbps": 20, "download_human": "", "upload_human": "",
+     "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
+]
+
+
 @pytest.mark.usefixtures("class_mock_storage")
 class TestSpeedtestCollector:
     def _make_collector(self, configured=True):
@@ -63,16 +73,17 @@ class TestSpeedtestCollector:
         assert mock_cls.call_args_list[-1].kwargs["tls_insecure"] is True
         assert mock_cls.call_count == 2
 
+    @pytest.mark.parametrize("cached", [[], [DELTA_ROWS[0]]], ids=["nothing-finished", "finished-cached"])
     @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_updates_web_state(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([{"id": 1}], None)
-        mock_client.get_results.return_value = []
-        mock_cls.return_value = mock_client
+    def test_collect_shows_newest_cached_result(self, mock_cls, cached):
+        """The dashboard shows the newest finished result even when only running tests are newer."""
+        mock_cls.return_value.get_latest_with_error.return_value = ([{"id": 9, "status": "running"}], None)
+        mock_cls.return_value.get_results.return_value = cached
 
         c, _, _, web = self._make_collector()
         c.collect()
-        web.update_state.assert_called_once()
+        assert [call.kwargs["speedtest_latest"]["id"] for call in web.update_state.call_args_list] == [r["id"] for r in cached]
+        assert web.clear_speedtest_latest.called == (not cached)
 
     @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_fetch_failure_returns_error(self, mock_cls):
@@ -90,14 +101,7 @@ class TestSpeedtestCollector:
     def test_collect_delta_cache(self, mock_cls):
         mock_client = MagicMock()
         mock_client.get_latest_with_error.return_value = ([], None)
-        mock_client.get_results.return_value = [
-            {"id": 1, "timestamp": "2025-01-01T00:00:00Z", "download_mbps": 100,
-             "upload_mbps": 10, "download_human": "", "upload_human": "",
-             "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
-            {"id": 2, "timestamp": "2025-01-01T01:00:00Z", "download_mbps": 200,
-             "upload_mbps": 20, "download_human": "", "upload_human": "",
-             "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
-        ]
+        mock_client.get_results.return_value = DELTA_ROWS
         mock_cls.return_value = mock_client
 
         c, _, storage, _ = self._make_collector()
@@ -113,10 +117,8 @@ class TestSpeedtestCollector:
         mock_client.get_results.side_effect = Exception("API timeout")
         mock_cls.return_value = mock_client
 
-        c, _, storage, web = self._make_collector()
-        result = c.collect()
-        assert result.success is True
-        web.update_state.assert_called_once()
+        c, *_ = self._make_collector()
+        assert c.collect().success is True
 
     def test_name(self):
         c, *_ = self._make_collector()

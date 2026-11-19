@@ -47,13 +47,10 @@ class SpeedtestCollector(Collector):
     def collect(self) -> CollectorResult:
         self._ensure_client()
 
-        # Latest result for dashboard
         results, error = self._client.get_latest_with_error(1)
         if error:
             log.warning("Speedtest fetch failed: %s", error)
             return CollectorResult(source=self.name, success=False, error=f"Speedtest Tracker: {error}")
-        if results:
-            self._web.update_state(speedtest_latest=results[0])
 
         # Delta cache (isolated: failure here should not penalize the collector)
         try:
@@ -65,7 +62,6 @@ class SpeedtestCollector(Collector):
                     # Remote reachable but empty — server was wiped
                     log.info("Remote has no results but cache has %d, clearing", cached_count)
                     self._storage.clear_cache()
-                    self._web.clear_speedtest_latest()
                     cached_count = 0
                 elif results and results[0].get("id", 0) < last_id:
                     log.info(
@@ -78,9 +74,8 @@ class SpeedtestCollector(Collector):
             if is_backfill:
                 new_results = self._client.get_results(per_page=2000)
             else:
-                new_results = self._client.get_newer_than(last_id)
+                new_results = self._client.get_newer_than(self._storage.get_recent_ids())
             if new_results:
-                genuinely_new = [r for r in new_results if r.get("id", 0) > last_id]
                 self._storage.save_speedtest_results(new_results)
                 log.info(
                     "Cached %d new speedtest results (total: %d)",
@@ -89,9 +84,16 @@ class SpeedtestCollector(Collector):
                 )
                 # Skip on_import during initial backfill to avoid matching
                 # historical results to fresh FIRED executions
-                if genuinely_new and self.on_import and not is_backfill:
-                    self.on_import(genuinely_new)
+                if self.on_import and not is_backfill:
+                    self.on_import(new_results)
         except Exception as e:
             log.warning("Speedtest delta cache failed: %s", e)
+
+        # Dashboard: the newest finished result, which the sync above cached
+        latest = self._storage.get_speedtest_results(limit=1)
+        if latest:
+            self._web.update_state(speedtest_latest=latest[0])
+        else:
+            self._web.clear_speedtest_latest()
 
         return CollectorResult(source=self.name)

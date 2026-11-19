@@ -10,7 +10,8 @@ Local monitoring, storage, report generation, backups, and dismissal state remai
 
 ## Gaming Quality
 
-Gaming Quality is a heuristic summary of the latest Speedtest Tracker result.
+Gaming Quality is a heuristic summary of the latest finished Speedtest Tracker
+result that DOCSight has cached.
 It requires finite, non-negative latency, jitter and packet-loss measurements
 (packet loss must not exceed 100%). Missing inputs produce no score or grade.
 The overall score is the lowest of the three component scores; DOCSIS health
@@ -20,9 +21,24 @@ does not contribute. This is not a measurement of performance to game servers.
 The former `weight`, DOCSIS/SNR components, and `genres` predictions have been
 removed. MQTT score and grade retained messages are cleared when unavailable.
 
-New Speedtest results preserve missing measurements as null, including storage
-and display. Previously stored zeros cannot be distinguished from real zero
-measurements and are not rewritten.
+New Speedtest results preserve missing latency, jitter and packet-loss
+measurements as null, including storage and display. Previously stored zeros
+cannot be distinguished from real zero measurements and are not rewritten.
+
+Speedtest Tracker results that are still running are not cached. A later sync
+imports a result once it has finished, also after a newer test finished first,
+as long as its id lies within the range of the ten newest cached results. This
+assumes that Speedtest Tracker returns results in creation order, as it does
+today. When a result is fetched again, values it omits keep their stored value,
+except the time: without a measurement timestamp, the creation time replaces
+the stored one.
+
+Older versions could cache a running result as a failed test. While fewer than
+50 results are cached, the regular sync rereads the newest 2,000 results and
+corrects such rows when Speedtest Tracker returns them with measurements. A
+larger cache keeps them. Clear Cache in the Speedtest settings deletes the
+local speedtest history and clears the dashboard tile; the next successful sync
+can then import up to 2,000 finished results that Speedtest Tracker still holds.
 
 ## Missing signal measurements
 

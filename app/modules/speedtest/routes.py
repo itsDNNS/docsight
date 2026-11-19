@@ -54,8 +54,10 @@ def _enrich_speedtest(result):
             booked_dl = conn_info.get("max_downstream_kbps", 0) // 1000 if conn_info.get("max_downstream_kbps") else 0
         if not booked_ul:
             booked_ul = conn_info.get("max_upstream_kbps", 0) // 1000 if conn_info.get("max_upstream_kbps") else 0
-    dl_class = _classify_speed(result.get("download_mbps", 0), booked_dl)
-    ul_class = _classify_speed(result.get("upload_mbps", 0), booked_ul)
+    for key in ("download_mbps", "upload_mbps"):
+        result[key] = result.get(key) or 0  # a failed test fetched without the cache has none
+    dl_class = _classify_speed(result["download_mbps"], booked_dl)
+    ul_class = _classify_speed(result["upload_mbps"], booked_ul)
     # speed_health is the worse of the two
     if dl_class and ul_class:
         order = {"poor": 0, "warn": 1, "good": 2}
@@ -133,11 +135,12 @@ def api_speedtest():
                         last_id, remote_latest[0]["id"],
                     )
                     ss.clear_cache()
+                    current_runtime().clear_speedtest_latest()
                     cached_count = 0
             if cached_count < 50:
                 new_results = client.get_results(per_page=2000)
             else:
-                new_results = client.get_newer_than(last_id)
+                new_results = client.get_newer_than(ss.get_recent_ids())
             if new_results:
                 ss.save_speedtest_results(new_results)
                 log.info("Cached %d new speedtest results", len(new_results))
