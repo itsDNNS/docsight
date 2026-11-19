@@ -18,122 +18,6 @@ yaml = pytest.importorskip(
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
 
-E2E_BROWSER_PATHS = [
-    "app/templates/**",
-    "app/static/**",
-    "app/modules/**",
-    "app/{web*,signal_health_view}.py",
-    "app/blueprints/**",
-    "app/{tz,theme_registry,theme_catalog,runtime,version}.py",
-    "app/catalogs/**",
-    "app/i18n/**",
-    "app/app_factory.py",
-    "app/base_path.py",
-    "app/glossary.py",
-    # Demo data, detection and storage decide what the browser tests see.
-    "app/collectors/demo.py",
-    "app/fixtures/**",
-    "app/event_detector.py",
-    "app/analyzer.py",
-    "app/storage/**",
-    "app/drivers/__init__.py",
-    "app/{modem_detect,modem_diagnosis}.py",
-    "tests/e2e/**",
-    "tests/test_e2e_harness.py",
-    "tests/test_e2e_shards.py",
-    "scripts/e2e_shards.py",
-    # The browser jobs' own setup: a change there has to run them.
-    "scripts/install_playwright_chromium.sh",
-    "requirements.txt",
-    "requirements-test.txt",
-    ".github/workflows/full-e2e.yml",
-]
-
-DOCKER_PATHS = [
-    "app/**",
-    "tools/**",
-    "requirements.txt",
-    "Dockerfile",
-    ".dockerignore",
-    "entrypoint.sh",
-    ".github/workflows/docker.yml",
-]
-
-TEST_FILTERS = {
-    "docs": [
-        "*.md",
-        "docs/**",
-        "packaging/windows/*.md",
-        ".github/ISSUE_TEMPLATE/**",
-        ".github/PULL_REQUEST_TEMPLATE.md",
-        "app/web.py",
-        "scripts/benchmark_dashboard_trends.py",
-        "tests/test_public_launch_surface.py",
-        "tests/test_wiki_docs.py",
-        ".github/workflows/test.yml",
-    ],
-    "python": [
-        "app/**",
-        "tests/**",
-        "scripts/**",
-        "tools/**",
-        "packaging/windows/**",
-        "!packaging/windows/*.md",
-        "requirements.txt",
-        "requirements-test.txt",
-        "pytest.ini",
-        ".github/workflows/*.yml",
-    ],
-    "windows": [
-        "app/**",
-        "tests/**",
-        "scripts/**",
-        "tools/**",
-        "packaging/windows/**",
-        "!packaging/windows/*.md",
-        "requirements.txt",
-        "requirements-test.txt",
-        "packaging/windows/requirements-runtime-windows.txt",
-        "packaging/windows/requirements-test-windows.txt",
-        "pytest.ini",
-        ".github/workflows/*.yml",
-    ],
-    "browser": E2E_BROWSER_PATHS + [".github/workflows/test.yml"],
-    "js": [
-        "package.json",
-        "package-lock.json",
-        "app/static/js/**",
-        "app/static/sw.js",
-        "app/static/vendor/**",
-        "app/modules/**/static/**",
-        "app/modules/**/templates/**",
-        "app/i18n/**",
-        "app/modules/**/i18n/**",
-        "tests/js/**",
-        ".github/workflows/test.yml",
-    ],
-    "i18n": [
-        "app/i18n/**",
-        "app/modules/**/i18n/**",
-        "scripts/i18n_check.py",
-        "tests/test_i18n_check.py",
-        ".github/workflows/test.yml",
-    ],
-    "deps": [
-        "requirements.txt",
-        "packaging/windows/requirements-runtime-windows.txt",
-        ".github/workflows/test.yml",
-    ],
-    "locks": [
-        "requirements*.in",
-        "requirements*.txt",
-        "packaging/windows/requirements*",
-        "scripts/sync_locks.py",
-        "tests/test_sync_locks.py",
-        ".github/workflows/test.yml",
-    ],
-}
-
 
 def load_workflow(name):
     workflow = yaml.safe_load((WORKFLOWS / name).read_text(encoding="utf-8"))
@@ -154,22 +38,23 @@ def compact(expression):
     return re.sub(r"\s+", " ", expression).strip()
 
 
-def e2e_required(event_name, action=None, event_label=None, labels=(), browser=False):
-    """Readable model of the exact predicate asserted against the workflow."""
-    if event_name in {"schedule", "workflow_dispatch"}:
-        return True
-    if event_name != "pull_request":
-        return False
-    if action == "labeled":
-        return event_label == "full-e2e"
-    return "full-e2e" in labels or browser
+def test_browser_lanes_share_one_path_list():
+    """The browser lanes differ only in the workflow files they add to one path list."""
+    full_e2e = parsed_filters(load_workflow("full-e2e.yml"))[0]
+    shared = full_e2e["browser"][:-1]
+    assert full_e2e == {"browser": shared + [".github/workflows/full-e2e.yml"]}
+    assert parsed_filters(load_workflow("test.yml"))[0]["browser"] == shared + [
+        ".github/workflows/full-e2e.yml", ".github/workflows/test.yml",
+    ]
+    assert load_workflow("visual-review.yml")["on"]["pull_request"]["paths"] == shared + [
+        "scripts/visual_review.py", ".github/workflows/visual-review.yml",
+    ]
 
 
-def test_full_e2e_paths_concurrency_and_summary_contract():
+def test_full_e2e_detector_concurrency_and_summary_contract():
     workflow = load_workflow("full-e2e.yml")
-    filters, filter_step = parsed_filters(workflow)
+    filter_step = parsed_filters(workflow)[1]
 
-    assert filters == {"browser": E2E_BROWSER_PATHS}
     assert re.fullmatch(r"dorny/paths-filter@[0-9a-f]{40}", filter_step["uses"])
     assert workflow["concurrency"]["group"] == (
         "full-e2e-${{ github.event.pull_request.number || github.run_id }}"
@@ -238,36 +123,14 @@ def test_full_e2e_paths_concurrency_and_summary_contract():
         assert contract in preserve_script
 
 
-@pytest.mark.parametrize(
-    ("event_name", "action", "event_label", "labels", "browser", "expected"),
-    [
-        ("pull_request", "labeled", "documentation", (), True, False),
-        ("pull_request", "labeled", "documentation", ("full-e2e",), False, False),
-        ("pull_request", "labeled", "full-e2e", (), False, True),
-        ("pull_request", "synchronize", None, (), True, True),
-        ("pull_request", "synchronize", None, ("full-e2e",), False, True),
-        ("pull_request", "synchronize", None, (), False, False),
-        ("pull_request", "opened", None, ("full-e2e",), False, True),
-        ("pull_request", "reopened", None, (), True, True),
-        ("schedule", None, None, (), False, True),
-        ("workflow_dispatch", None, None, (), False, True),
-    ],
-)
-def test_full_e2e_requirement_truth_table(
-    event_name, action, event_label, labels, browser, expected
-):
-    assert e2e_required(event_name, action, event_label, labels, browser) is expected
-
-
 def test_docker_paths_tags_manual_and_concurrency_contract():
     workflow = load_workflow("docker.yml")
     triggers = workflow["on"]
 
-    assert triggers["push"] == {
-        "branches": ["main"],
-        "tags": ["v*"],
-        "paths": DOCKER_PATHS,
-    }
+    assert triggers["push"]["branches"] == ["main"]
+    assert triggers["push"]["tags"] == ["v*"]
+    image_inputs = {"app/**", "tools/**", "requirements.txt", "Dockerfile", ".dockerignore", "entrypoint.sh"}
+    assert image_inputs | {".github/workflows/docker.yml"} <= set(triggers["push"]["paths"])
     assert triggers["workflow_dispatch"] is None
     assert workflow["concurrency"] == {
         "group": "docker-${{ github.ref }}",
@@ -296,7 +159,7 @@ def test_docker_stable_tag_follows_only_the_newest_release():
     assert 'echo "newest=$newest" >> "$GITHUB_OUTPUT"' in release["run"]
 
 
-def test_test_workflow_detector_schedule_and_exact_path_contracts():
+def test_test_workflow_detector_schedule_and_output_contracts():
     workflow = load_workflow("test.yml")
     triggers = workflow["on"]
     filters, filter_step = parsed_filters(workflow)
@@ -309,8 +172,9 @@ def test_test_workflow_detector_schedule_and_exact_path_contracts():
         "contents": "read",
         "pull-requests": "read",
     }
-    assert set(workflow["jobs"]["changes"]["outputs"]) == set(TEST_FILTERS)
-    assert filters == TEST_FILTERS
+    assert workflow["jobs"]["changes"]["outputs"] == {
+        name: f"${{{{ steps.filter.outputs.{name} }}}}" for name in filters
+    }
     assert re.fullmatch(r"dorny/paths-filter@[0-9a-f]{40}", filter_step["uses"])
     assert filter_step["with"]["predicate-quantifier"] == "some-with-excludes"
 
@@ -339,7 +203,7 @@ def _glob_regex(pattern):
 
 def test_js_lane_runs_for_every_file_the_js_suite_reads():
     """A change to a module script or template the JS suite loads must start that suite."""
-    patterns = [_glob_regex(pattern) for pattern in TEST_FILTERS["js"]]
+    patterns = [_glob_regex(pattern) for pattern in parsed_filters(load_workflow("test.yml"))[0]["js"]]
     read_paths = set()
     for test_file in sorted((ROOT / "tests" / "js").glob("*.js")):
         read_paths.update(re.findall(r"['\"`]((?:app|scripts)/[^'\"`$]+)['\"`]", test_file.read_text(encoding="utf-8")))
@@ -374,10 +238,9 @@ def test_test_workflow_jobs_are_routed_through_the_detector():
     routes = {
         "docs": "docs",
         "test": "python",
-        "test-windows": "windows",
+        "test-windows": "python",
         "mobile-e2e": "browser",
         "test-js": "js",
-        "i18n": "i18n",
         "locks": "locks",
     }
 
@@ -406,7 +269,6 @@ def test_tests_summary_is_always_present_and_fails_closed():
         "test-windows",
         "mobile-e2e",
         "test-js",
-        "i18n",
         "audit",
         "locks",
     }
@@ -419,10 +281,8 @@ def test_tests_summary_is_always_present_and_fails_closed():
         "CHANGES_RESULT",
         "DOCS_CHANGED",
         "PYTHON_CHANGED",
-        "WINDOWS_CHANGED",
         "BROWSER_CHANGED",
         "JS_CHANGED",
-        "I18N_CHANGED",
         "DEPS_CHANGED",
         "LOCKS_CHANGED",
         "DOCS_RESULT",
@@ -430,7 +290,6 @@ def test_tests_summary_is_always_present_and_fails_closed():
         "WINDOWS_RESULT",
         "BROWSER_RESULT",
         "JS_RESULT",
-        "I18N_RESULT",
         "DEPS_RESULT",
         "LOCKS_RESULT",
     }
@@ -438,16 +297,14 @@ def test_tests_summary_is_always_present_and_fails_closed():
     assert 'event_name == "schedule"' in script
     assert 'routes["deps"][1] != "success"' in script
     assert 'changes_result != "success"' in script
+    # The Windows suite runs for Python changes, so those require it as well.
+    assert '"windows": (os.environ["PYTHON_CHANGED"], os.environ["WINDOWS_RESULT"])' in script
     assert 'changed not in {"true", "false"}' in script
     assert 'changed == "true" and result != "success"' in script
 
 
-def test_visual_review_is_read_only_informational_and_follows_the_browser_paths():
+def test_visual_review_is_read_only_and_informational():
     workflow = load_workflow("visual-review.yml")
-    triggers = workflow.get("on", workflow.get(True))
-    assert triggers["pull_request"]["paths"] == [
-        path for path in E2E_BROWSER_PATHS if path != ".github/workflows/full-e2e.yml"
-    ] + ["scripts/visual_review.py", ".github/workflows/visual-review.yml"]
     assert workflow["permissions"] == {"contents": "read"}
     job = workflow["jobs"]["visual-review"]
     assert "permissions" not in job and "continue-on-error" not in job

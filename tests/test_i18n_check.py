@@ -3,7 +3,10 @@
 import importlib.util
 import json
 import re
+import sys
 from pathlib import Path
+
+import pytest
 
 
 SCRIPT_PATH = Path(__file__).resolve().parent.parent / "scripts" / "i18n_check.py"
@@ -69,6 +72,23 @@ def test_generate_writes_only_core_template(tmp_path, monkeypatch):
 
     assert (core / "template.json").exists()
     assert not (module_i18n / "template.json").exists()
+
+
+@pytest.mark.parametrize(("broken", "code"), [(False, 0), (True, 1)])
+def test_validate_fails_only_on_a_catalog_that_is_not_json(tmp_path, monkeypatch, broken, code):
+    """--validate parses every core and module catalog; key drift is left to the catalog contract test."""
+    if broken:
+        module_i18n = tmp_path / "app" / "modules" / "backup" / "i18n"
+        module_i18n.mkdir(parents=True)
+        (module_i18n / "en.json").write_text("{}", encoding="utf-8")
+        (module_i18n / "fr-CA.json").write_text("{", encoding="utf-8")
+        monkeypatch.setattr(i18n_check, "ROOT", tmp_path)
+    monkeypatch.setattr(sys, "argv", ["i18n_check.py", "--validate"])
+
+    with pytest.raises(SystemExit) as exit_info:
+        i18n_check.main()
+
+    assert exit_info.value.code == code
 
 
 def _string_values(value):
