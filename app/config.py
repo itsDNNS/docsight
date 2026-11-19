@@ -49,6 +49,11 @@ def parse_config_bool(value) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def parse_stored_bool(value) -> bool:
+    """Read a stored on/off setting: text through parse_config_bool, anything else by truthiness."""
+    return parse_config_bool(value) if isinstance(value, str) else bool(value)
+
+
 def parse_config_int(value) -> int:
     """Parse a whole number supplied by config, JSON, or form input.
 
@@ -358,7 +363,7 @@ class ConfigManager:
                 if key in INT_KEYS:
                     return int(env_val)
                 if key in BOOL_KEYS:
-                    return env_val.lower() in ("true", "1", "yes", "on")
+                    return parse_config_bool(env_val)
                 return env_val
         # Check deprecated FRITZ_* env vars as fallback
         legacy_env = _LEGACY_ENV_MAP.get(key)
@@ -369,6 +374,9 @@ class ConfigManager:
 
         if key in self._file_config:
             val = self._file_config[key]
+            # Other types stay as stored: TLS readers parse them strictly, the rest by truthiness.
+            if key in BOOL_KEYS and isinstance(val, str):
+                return parse_config_bool(val)
             if key in INT_KEYS and not isinstance(val, int):
                 if val == "" or val is None:
                     return default if default is not None else 0
@@ -488,7 +496,7 @@ class ConfigManager:
             if key in self._file_config:
                 val = self._file_config[key]
                 if isinstance(val, str):
-                    self._file_config[key] = val.lower() in ("true", "1", "yes", "on")
+                    self._file_config[key] = parse_config_bool(val)
 
         with open(self.config_path, "w") as f:
             json.dump(self._file_config, f, indent=2)
@@ -510,8 +518,7 @@ class ConfigManager:
 
     def is_demo_mode_forced(self):
         """True when the environment, rather than config.json, enables demo mode."""
-        value = os.environ.get(ENV_MAP["demo_mode"], "")
-        return value.lower() in ("true", "1", "yes", "on")
+        return parse_config_bool(os.environ.get(ENV_MAP["demo_mode"]))
 
     def is_update_check_enabled(self):
         """True if release update checks against GitHub are enabled."""
@@ -530,15 +537,8 @@ class ConfigManager:
         return bool(self.get("bqm_url")) or self.is_demo_mode()
 
     def _get_bool(self, key):
-        """Get a config value and coerce it to bool.
-
-        Handles both native bool values and string representations
-        from web form submissions or environment variables.
-        """
-        val = self.get(key)
-        if isinstance(val, str):
-            return val.lower() in ("true", "1", "yes")
-        return bool(val)
+        """Get a config value as bool, also for keys of modules that are not loaded."""
+        return parse_stored_bool(self.get(key))
 
     def is_gaming_quality_enabled(self):
         """True if gaming quality index is enabled, or demo mode is active."""

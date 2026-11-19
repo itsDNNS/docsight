@@ -32,6 +32,7 @@ from .config import (
     HASH_KEYS,
     MODULE_SECRET_KEYS,
     SECRET_KEYS,
+    parse_stored_bool,
 )
 
 DOCTOR_VERSION = 1
@@ -389,7 +390,7 @@ def _config_value(raw_config: Mapping[str, Any], environ: Mapping[str, str], key
 
 
 def _check_configured_mode(raw_config: Mapping[str, Any], environ: Mapping[str, str]) -> CheckResult:
-    demo_mode = str(_config_value(raw_config, environ, "demo_mode")).lower() in {"true", "1", "yes", "on"}
+    demo_mode = parse_stored_bool(_config_value(raw_config, environ, "demo_mode"))
     modem_type = _config_value(raw_config, environ, "modem_type")
     configured = demo_mode or "modem_type" in raw_config or bool(environ.get("MODEM_TYPE"))
     env_overrides = sorted(name for name in _ALLOWED_ENV_KEYS if environ.get(name) not in (None, ""))
@@ -420,7 +421,7 @@ def _check_configured_mode(raw_config: Mapping[str, Any], environ: Mapping[str, 
 
 
 def _check_backup(raw_config: Mapping[str, Any], environ: Mapping[str, str]) -> CheckResult:
-    enabled = str(_config_value(raw_config, environ, "backup_enabled")).lower() in {"true", "1", "yes", "on"}
+    enabled = parse_stored_bool(_config_value(raw_config, environ, "backup_enabled"))
     backup_path = _config_value(raw_config, environ, "backup_path")
     if not enabled and not backup_path:
         return CheckResult(
@@ -460,7 +461,7 @@ def _check_admin_password(raw_config: Mapping[str, Any], environ: Mapping[str, s
 
     if _config_value(raw_config, environ, "admin_password"):
         return result("pass", "an admin password is set")
-    if str(_config_value(raw_config, environ, "demo_mode")).lower() in ("true", "1", "yes", "on"):
+    if parse_stored_bool(_config_value(raw_config, environ, "demo_mode")):
         return result("skipped", "demo mode needs no admin password")
     if desktop_mode_requested(environ):
         return result("pass", "the desktop app only listens on this computer")
@@ -521,7 +522,7 @@ def _integration_check(
 ) -> CheckResult:
     enabled = True
     if enabled_key:
-        enabled = str(_config_value(raw_config, environ, enabled_key)).lower() in {"true", "1", "yes", "on"}
+        enabled = parse_stored_bool(_config_value(raw_config, environ, enabled_key))
     values = {key: _config_value(raw_config, environ, key) for key in required}
     present = {key: bool(value) for key, value in values.items()}
     if not any(present.values()) and not (enabled_key and enabled):
