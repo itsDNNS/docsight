@@ -209,11 +209,6 @@ def _jinja_localtime(value):
     return _to_local(value, tz) if tz else value.rstrip("Z")
 
 
-def _jinja_localiso(value):
-    """Jinja2 filter: convert UTC timestamp to local ISO format (no Z)."""
-    return _jinja_localtime(value)
-
-
 def get_storage():
     """Get this application's snapshot storage, if configured."""
     return current_runtime().storage
@@ -409,7 +404,7 @@ def web_app_manifest():
     return response
 
 
-def _build_glossary_context(lang, t, selected_term_id=None):
+def _build_glossary_context(lang, selected_term_id=None):
     """Build static glossary view data for the app shell."""
     terms = sorted(get_glossary_terms(lang), key=lambda term: term["title"].casefold())
     categories = get_glossary_categories(lang)
@@ -598,7 +593,7 @@ def index():
             dismissed_ids=_get_dismissed_notice_ids(),
             location="dashboard",
         ),
-        **_build_glossary_context(lang, t, request.args.get("term")),
+        **_build_glossary_context(lang, request.args.get("term")),
         **nav,
     )
 
@@ -750,7 +745,7 @@ CORE_TEMPLATE_FILTERS = {
     "fmt_speed_unit": format_speed_unit,
     "fmt_uptime": format_uptime,
     "localtime": _jinja_localtime,
-    "localiso": _jinja_localiso,
+    "localiso": _jinja_localtime,
 }
 
 

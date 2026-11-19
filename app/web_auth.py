@@ -1,17 +1,18 @@
 """Web authentication policy and sessions for the current application's runtime."""
 
 import functools
+import hashlib
+import hmac
 import logging
 import os
 import secrets
 import time
 from collections.abc import Mapping
 
-from cryptography.hazmat.primitives import hashes, hmac
 from flask import current_app, jsonify, redirect, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from .config import parse_config_bool
+from .config import HASH_PREFIXES, parse_config_bool
 from .runtime import current_runtime
 
 log = logging.getLogger("docsis.web")
@@ -97,11 +98,11 @@ def _session_lifetime_days(environ: Mapping[str, str] | None = None):
         return _SESSION_LIFETIME_DEFAULT_DAYS
     return max(_SESSION_LIFETIME_MIN_DAYS, min(_SESSION_LIFETIME_MAX_DAYS, days))
 
-def _keyed_sha256_hexdigest(key: bytes, message: bytes) -> str:
+def _keyed_sha256_hexdigest(key: str | bytes, message: bytes) -> str:
     """Return the HMAC-SHA256 of message as lowercase hexadecimal."""
-    mac = hmac.HMAC(key, hashes.SHA256())
-    mac.update(message)
-    return mac.finalize().hex()
+    if isinstance(key, str):
+        key = key.encode()
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
 
 
 def _secret_values_match(left, right):
@@ -115,10 +116,10 @@ def _admin_password_matches(effective_password, candidate):
     """Safely check whether candidate represents the current admin password."""
     effective_password = str(effective_password or "")
     candidate = str(candidate or "")
-    if effective_password.startswith(("scrypt:", "pbkdf2:")):
+    if effective_password.startswith(HASH_PREFIXES):
         try:
             return check_password_hash(effective_password, candidate)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return False
     return _secret_values_match(effective_password, candidate)
 
@@ -132,9 +133,8 @@ def _auth_state_fingerprint(password_representation=None):
     """Return a keyed fingerprint of the effective admin-password state."""
     if password_representation is None:
         password_representation = _get_admin_password()
-    key = current_app.secret_key.encode() if isinstance(current_app.secret_key, str) else current_app.secret_key
     value = _AUTH_STATE_CONTEXT + str(password_representation or "").encode("utf-8")
-    return _keyed_sha256_hexdigest(key, value)
+    return _keyed_sha256_hexdigest(current_app.secret_key, value)
 
 
 def _write_auth_state():
@@ -178,9 +178,8 @@ def _admin_session_marker(password_representation=None):
         password_representation = _get_admin_password()
     if not password_representation:
         return ""
-    key = current_app.secret_key.encode() if isinstance(current_app.secret_key, str) else current_app.secret_key
     value = _AUTH_MARKER_CONTEXT + str(password_representation).encode("utf-8")
-    return _keyed_sha256_hexdigest(key, value)
+    return _keyed_sha256_hexdigest(current_app.secret_key, value)
 
 
 def _authenticated_session_is_valid():
@@ -328,18 +327,15 @@ def _authenticate_login():
         return "login_rate_limited", 200
     pw = request.form.get("password", "")
     stored = _config_manager.get("admin_password", "")
-    if stored.startswith(("scrypt:", "pbkdf2:")):
-        success = check_password_hash(stored, pw)
-    else:
-        success = _secret_values_match(pw, stored)
-        if success and not os.environ.get("ADMIN_PASSWORD"):
-            # Auto-upgrade plaintext password to hash
-            _config_manager.save({"admin_password": pw})
-            stored = _config_manager.get("admin_password", "")
-            # This is the same credential in a safer representation, so
-            # preserve the signing key while rebinding durable auth state.
-            _write_auth_state()
-            audit_log.info("Auto-upgraded plaintext password to hash for ip=%s", ip)
+    success = _admin_password_matches(stored, pw)
+    if success and not stored.startswith(HASH_PREFIXES) and not os.environ.get("ADMIN_PASSWORD"):
+        # Auto-upgrade plaintext password to hash
+        _config_manager.save({"admin_password": pw})
+        stored = _config_manager.get("admin_password", "")
+        # This is the same credential in a safer representation, so
+        # preserve the signing key while rebinding durable auth state.
+        _write_auth_state()
+        audit_log.info("Auto-upgraded plaintext password to hash for ip=%s", ip)
     if success:
         limiter.reset(ip)
         session.permanent = True
