@@ -84,26 +84,12 @@ def _windows_ui_language() -> str:
     return "de" if language_id & 0x03FF == 0x0007 else "en"
 
 
-def detect_windows_ui_language(
-    locale_name_getter: Callable[[], str] | None = None,
-) -> str:
-    """Detect the Windows UI language through an injectable native boundary."""
+def detect_windows_ui_language() -> str:
+    """Detect the Windows UI language, falling back to English on failure."""
     try:
-        return (locale_name_getter or _windows_ui_language)()
+        return _windows_ui_language()
     except BaseException:
         return "en"
-
-
-def create_tray_image() -> object:
-    """Generate a simple preview tray image without final icon assets."""
-    from PIL import Image, ImageDraw
-
-    image = Image.new("RGBA", (64, 64), (23, 105, 170, 255))
-    draw = ImageDraw.Draw(image)
-    draw.ellipse((7, 7, 57, 57), fill=(255, 255, 255, 255))
-    draw.arc((16, 16, 48, 48), 35, 325, fill=(23, 105, 170, 255), width=7)
-    draw.ellipse((27, 27, 37, 37), fill=(23, 105, 170, 255))
-    return image
 
 
 def notify_first_run_once(
@@ -129,20 +115,11 @@ class WindowsTray:
         self,
         dispatcher: TrayCommandDispatcher,
         notification_marker: Path,
-        *,
-        language_detector: Callable[[], str] = detect_windows_ui_language,
-        icon_factory: Callable[..., object] | None = None,
-        menu_factory: Callable[..., object] | None = None,
-        menu_item_factory: Callable[..., object] | None = None,
-        image_factory: Callable[[], object] = create_tray_image,
+        icon_path: Path,
     ) -> None:
         self.dispatcher = dispatcher
         self.notification_marker = notification_marker
-        self.language_detector = language_detector
-        self._icon_factory = icon_factory
-        self._menu_factory = menu_factory
-        self._menu_item_factory = menu_item_factory
-        self._image_factory = image_factory
+        self.icon_path = icon_path
         self._icon: object | None = None
 
     def request_open(self, *_args: object) -> None:
@@ -157,34 +134,20 @@ class WindowsTray:
     def start(self) -> None:
         if self._icon is not None:
             return
-        if (
-            self._icon_factory is None
-            or self._menu_factory is None
-            or self._menu_item_factory is None
-        ):
-            import pystray
+        import pystray
+        from PIL import Image
 
-            icon_factory = self._icon_factory or pystray.Icon
-            menu_factory = self._menu_factory or pystray.Menu
-            menu_item_factory = self._menu_item_factory or pystray.MenuItem
-        else:
-            icon_factory = self._icon_factory
-            menu_factory = self._menu_factory
-            menu_item_factory = self._menu_item_factory
-
-        labels = labels_for_language(self.language_detector())
-        menu = menu_factory(
-            menu_item_factory(
-                labels.open_app,
-                self.request_open,
-                default=True,
-            ),
-            menu_item_factory(labels.open_logs, self.request_open_logs),
-            menu_item_factory(labels.quit, self.request_quit),
+        labels = labels_for_language(detect_windows_ui_language())
+        menu = pystray.Menu(
+            pystray.MenuItem(labels.open_app, self.request_open, default=True),
+            pystray.MenuItem(labels.open_logs, self.request_open_logs),
+            pystray.MenuItem(labels.quit, self.request_quit),
         )
-        icon = icon_factory(
+        with Image.open(self.icon_path) as image:
+            image.load()
+        icon = pystray.Icon(
             name="DOCSight",
-            icon=self._image_factory(),
+            icon=image,
             title="DOCSight",
             menu=menu,
         )
@@ -192,7 +155,7 @@ class WindowsTray:
 
         def setup(ready_icon: object) -> None:
             try:
-                setattr(ready_icon, "visible", True)
+                ready_icon.visible = True
                 notify_first_run_once(
                     self.notification_marker,
                     lambda: ready_icon.notify(

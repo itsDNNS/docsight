@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 TRAY_PATH = ROOT / "packaging" / "windows" / "tray.py"
+ICON_PATH = ROOT / "app" / "static" / "icon.png"
 
 spec = importlib.util.spec_from_file_location("docsight_windows_tray", TRAY_PATH)
 assert spec is not None
@@ -34,21 +38,46 @@ def test_tray_labels_use_german_and_english_fallback():
     )
 
 
-def test_language_detection_is_injectable_and_failure_falls_back():
-    assert tray.detect_windows_ui_language(lambda: "de-DE") == "de-DE"
-    assert tray.detect_windows_ui_language(
-        lambda: (_ for _ in ()).throw(OSError("private detail"))
-    ) == "en"
+def test_language_detection_uses_native_value_and_failure_falls_back(monkeypatch):
+    monkeypatch.setattr(tray, "_windows_ui_language", lambda: "de-DE")
+    assert tray.detect_windows_ui_language() == "de-DE"
+    monkeypatch.setattr(
+        tray,
+        "_windows_ui_language",
+        lambda: (_ for _ in ()).throw(OSError("private detail")),
+    )
+    assert tray.detect_windows_ui_language() == "en"
+
+
+@pytest.fixture
+def pystray_stub(monkeypatch):
+    captured = {}
+
+    class Icon:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def run_detached(self, setup=None):
+            captured["setup"] = setup
+
+    monkeypatch.setitem(
+        sys.modules,
+        "pystray",
+        SimpleNamespace(
+            Icon=Icon,
+            Menu=lambda *items: items,
+            MenuItem=lambda label, action, default=False: SimpleNamespace(
+                label=label, action=action, default=default
+            ),
+        ),
+    )
+    monkeypatch.setattr(tray, "_windows_ui_language", lambda: "en")
+    return captured
 
 
 def test_tray_callbacks_only_enqueue_commands():
     dispatcher = tray.TrayCommandDispatcher()
-    adapter = tray.WindowsTray(
-        dispatcher,
-        Path("marker"),
-        language_detector=lambda: "en-US",
-        icon_factory=lambda **_kwargs: SimpleNamespace(),
-    )
+    adapter = tray.WindowsTray(dispatcher, Path("marker"), ICON_PATH)
 
     adapter.request_open()
     adapter.request_open_logs()
@@ -63,57 +92,25 @@ def test_tray_callbacks_only_enqueue_commands():
     ]
 
 
-def test_default_menu_action_dispatches_open_command(tmp_path):
-    captured = {}
-
-    class MenuItem:
-        def __init__(self, label, action, **kwargs):
-            self.label = label
-            self.action = action
-            self.default = kwargs.get("default", False)
-
-    class Menu(tuple):
-        def __new__(cls, *items):
-            return tuple.__new__(cls, items)
-
-    class Icon:
-        def __init__(self, **kwargs):
-            captured.update(kwargs)
-
-        def run_detached(self, setup=None):
-            captured["setup"] = setup
-
+def test_tray_uses_bundled_icon_and_default_action_opens_app(tmp_path, pystray_stub):
     dispatcher = tray.TrayCommandDispatcher()
-    adapter = tray.WindowsTray(
-        dispatcher,
-        tmp_path / "notice.marker",
-        language_detector=lambda: "en",
-        icon_factory=Icon,
-        menu_factory=Menu,
-        menu_item_factory=MenuItem,
-        image_factory=lambda: object(),
-    )
+    adapter = tray.WindowsTray(dispatcher, tmp_path / "notice.marker", ICON_PATH)
 
     adapter.start()
-    default_item = next(item for item in captured["menu"] if item.default)
+    default_item = next(item for item in pystray_stub["menu"] if item.default)
     default_item.action(None, default_item)
 
     commands = []
     dispatcher.drain(commands.append)
     assert default_item.label == "Open DOCSight"
     assert commands == [tray.TrayCommand.OPEN_APP]
+    image = pystray_stub["icon"]
+    assert (image.filename, image.size) == (str(ICON_PATH), (512, 512))
+    # pystray hands Windows the image as an ICO file.
+    image.save(BytesIO(), format="ICO")
 
 
-def test_async_native_tray_setup_failure_is_dispatched(tmp_path):
-    captured = {}
-
-    class Icon:
-        def __init__(self, **_kwargs):
-            pass
-
-        def run_detached(self, setup=None):
-            captured["setup"] = setup
-
+def test_async_native_tray_setup_failure_is_dispatched(tmp_path, pystray_stub):
     class FailingReadyIcon:
         @property
         def visible(self):
@@ -124,17 +121,10 @@ def test_async_native_tray_setup_failure_is_dispatched(tmp_path):
             raise OSError("private native detail")
 
     dispatcher = tray.TrayCommandDispatcher()
-    adapter = tray.WindowsTray(
-        dispatcher,
-        tmp_path / "notice.marker",
-        icon_factory=Icon,
-        menu_factory=lambda *items: items,
-        menu_item_factory=lambda *args, **kwargs: (args, kwargs),
-        image_factory=lambda: object(),
-    )
+    adapter = tray.WindowsTray(dispatcher, tmp_path / "notice.marker", ICON_PATH)
 
     adapter.start()
-    captured["setup"](FailingReadyIcon())
+    pystray_stub["setup"](FailingReadyIcon())
 
     commands = []
     dispatcher.drain(commands.append)
