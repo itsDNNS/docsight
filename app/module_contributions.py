@@ -40,6 +40,21 @@ _PROTECTED_API_PREFIXES = (
     "/api/export", "/api/correlation", "/api/modules/", "/api/themes/",
 )
 REQUIRED_THRESHOLD_SECTIONS = {"downstream_power", "upstream_power", "snr"}
+_PAIR = "a [min, max] pair of finite numbers, min <= max"
+_NUMBER = "a finite number"
+_POWER_ENTRY = dict.fromkeys(("good", "warning", "critical"), _PAIR)
+# Values the threshold readers use; "*" matches every modulation or channel
+# type entry. Every value may be omitted, the analyzer then uses its defaults.
+_THRESHOLD_SCHEMA = {
+    "downstream_power": {"*": _POWER_ENTRY},
+    "upstream_power": {"*": _POWER_ENTRY},
+    "snr": {"*": dict.fromkeys(("good_min", "warning_min", "critical_min"), _NUMBER)},
+    "errors": {
+        "spike_expiry_hours": _NUMBER,
+        "uncorrectable_pct": dict.fromkeys(("warning", "critical", "min_codewords"), _NUMBER),
+    },
+    "upstream_modulation": dict.fromkeys(("critical_max_qam", "warning_max_qam"), _NUMBER),
+}
 REQUIRED_THEME_SECTIONS = {"dark", "light"}
 
 
@@ -333,17 +348,48 @@ def setup_module_templates(
     return resolved
 
 
+def _finite_number(value: object) -> bool:
+    # Compared without float conversion, so huge integers fail instead of overflowing.
+    return (
+        isinstance(value, (int, float)) and not isinstance(value, bool)
+        and abs(value) <= sys.float_info.max
+    )
+
+
+def _check_threshold(value: object, schema: object, path: str) -> None:
+    if isinstance(schema, dict):
+        if not isinstance(value, dict):
+            raise ManifestError(f"Threshold '{path}' must be an object")
+        for key, item in value.items():
+            nested = schema.get(key, schema.get("*"))
+            if nested is not None and not key.startswith("_"):
+                _check_threshold(item, nested, f"{path}.{key}")
+        return
+    if schema == _NUMBER:
+        valid = _finite_number(value)
+    else:
+        valid = (
+            isinstance(value, (list, tuple)) and len(value) == 2
+            and all(map(_finite_number, value)) and value[0] <= value[1]
+        )
+    if not valid:
+        raise ManifestError(f"Threshold '{path}' must be {schema}")
+
+
 def validate_thresholds(data: dict[str, object]) -> None:
     """Validate a threshold contribution."""
-    missing = REQUIRED_THRESHOLD_SECTIONS - set(data.keys())
+    if not isinstance(data, dict):
+        raise ManifestError("Threshold contribution must be an object")
+    missing = REQUIRED_THRESHOLD_SECTIONS - data.keys()
     if missing:
         raise ManifestError(f"Missing required threshold sections: {', '.join(sorted(missing))}")
+    for section, schema in _THRESHOLD_SCHEMA.items():
+        if section in data:
+            _check_threshold(data[section], schema, section)
     for section in REQUIRED_THRESHOLD_SECTIONS:
-        block = data[section]
-        if not isinstance(block, dict):
-            raise ManifestError(f"Threshold section '{section}' must be a dict")
-        if "_default" not in block:
-            raise ManifestError(f"Threshold section '{section}' missing '_default' key")
+        default = data[section].get("_default")
+        if not isinstance(default, str) or default.startswith("_"):
+            raise ManifestError(f"Threshold '{section}._default' must be an entry name without a leading '_'")
 
 
 def validate_theme(data: dict[str, object]) -> None:

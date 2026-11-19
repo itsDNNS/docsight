@@ -1,6 +1,7 @@
 """Regression tests for DOCSIS error-counter support semantics."""
 
 from app.analyzer import analyze
+from app.error_counters import uncorrectable_percentage
 
 
 def test_unsupported_downstream_error_counters_remain_none_in_summary():
@@ -43,3 +44,8 @@ def test_supported_zero_downstream_error_counters_remain_zero_in_summary():
     assert result["summary"]["errors_supported"] is True
     assert result["summary"]["ds_correctable_errors"] == 0
     assert result["summary"]["ds_uncorrectable_errors"] == 0
+
+
+def test_uncorrectable_percentage_accepts_zero_minimum_without_codewords():
+    assert uncorrectable_percentage(0, 0, min_codewords=0) == 0.0
+    assert uncorrectable_percentage(90, 10, min_codewords=0) == 10.0
