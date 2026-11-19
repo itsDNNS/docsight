@@ -6,7 +6,9 @@ import re
 
 import pytest
 from flask import Flask
-from app.module_loader import ManifestError, ModuleLoader, validate_manifest, validate_thresholds
+from app.module_contributions import validate_thresholds
+from app.module_loader import ModuleLoader
+from app.module_registry import ManifestError, validate_manifest
 
 _VALID_THRESHOLDS = {
     "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]}},
@@ -50,7 +52,7 @@ class TestThresholdContributes:
     """Test threshold module loading and validation."""
 
     def test_thresholds_is_valid_contributes(self):
-        from app.module_loader import VALID_CONTRIBUTES
+        from app.manifest_contract import VALID_CONTRIBUTES
         assert "thresholds" in VALID_CONTRIBUTES
 
     def test_manifest_with_thresholds_valid(self):

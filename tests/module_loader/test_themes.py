@@ -4,7 +4,8 @@ import json
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, ModuleLoader
+from app.module_loader import ModuleLoader
+from app.module_registry import ModuleInfo, validate_manifest, ManifestError
 
 _VALID_THEME = {
     "dark": {
@@ -24,7 +25,7 @@ class TestThemeContributes:
     """Test theme module loading and validation."""
 
     def test_theme_is_valid_contributes(self):
-        from app.module_loader import VALID_CONTRIBUTES
+        from app.manifest_contract import VALID_CONTRIBUTES
         assert "theme" in VALID_CONTRIBUTES
 
     def test_manifest_with_theme_contributes_valid(self):
@@ -50,7 +51,7 @@ class TestThemeContributes:
         assert info.theme_data is None
 
     def test_validate_theme_valid(self):
-        from app.module_loader import validate_theme
+        from app.module_contributions import validate_theme
         data = {
             "dark": {"--bg": "#1f2937", "--text": "#f0f0f0", "--accent": "#a855f7"},
             "light": {"--bg": "#ffffff", "--text": "#111827", "--accent": "#9333ea"},
@@ -58,7 +59,7 @@ class TestThemeContributes:
         validate_theme(data)  # Should not raise
 
     def test_validate_theme_invalid_shapes(self):
-        from app.module_loader import validate_theme
+        from app.module_contributions import validate_theme
 
         invalid_cases = [
             ({"light": {"--bg": "#ffffff"}}, "dark"),
@@ -72,7 +73,7 @@ class TestThemeContributes:
                 validate_theme(data)
 
     def test_validate_theme_with_meta(self):
-        from app.module_loader import validate_theme
+        from app.module_contributions import validate_theme
         data = {
             "meta": {"family": "dark-first"},
             "dark": {"--bg": "#1f2937"},

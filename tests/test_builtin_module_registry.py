@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -11,16 +12,19 @@ from flask import Flask
 from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
 from app.theme_registry import BUILTIN_THEMES
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
-from app.module_loader import (
+from app.module_contributions import (
     attach_builtin_python_contributions,
+    validate_theme,
+    validate_thresholds,
+)
+from app.module_loader import ModuleLoader
+from app.module_registry import (
+    ManifestError,
     discover_builtin_modules,
     discover_builtin_threshold_modules,
     discover_builtin_theme_modules,
     discover_modules,
-    ModuleLoader,
     validate_manifest,
-    validate_theme,
-    validate_thresholds,
 )
 from app.registration import RegistrationError
 
@@ -130,12 +134,10 @@ def test_builtin_threshold_registry_entries_match_expected_schema():
 
 def test_discover_builtin_modules_uses_static_registry(monkeypatch):
     """Built-in registration must not discover core modules by directory scan."""
-    import app.module_loader as module_loader
-
     def fail_listdir(_path):
         raise AssertionError("built-in module discovery must use the static registry")
 
-    monkeypatch.setattr(module_loader.os, "listdir", fail_listdir)
+    monkeypatch.setattr(os, "listdir", fail_listdir)
 
     modules = discover_builtin_modules(str(BUILTIN_MODULES_DIR))
 
@@ -172,38 +174,37 @@ def test_builtin_python_contributions_are_static_imports():
 
 
 def test_builtin_python_contribution_missing_spec_sets_module_error(monkeypatch):
-    import app.module_loader as module_loader
-
     modules = {mod.id: mod for mod in discover_builtin_modules(str(BUILTIN_MODULES_DIR))}
     speedtest = modules["docsight.speedtest"]
-    monkeypatch.delitem(module_loader.BUILTIN_PYTHON_CONTRIBUTIONS, "docsight.speedtest")
+    monkeypatch.delitem(BUILTIN_PYTHON_CONTRIBUTIONS, "docsight.speedtest")
 
     try:
         attach_builtin_python_contributions(speedtest)
-    except module_loader.ManifestError as exc:
+    except ManifestError as exc:
         assert "missing static collector registration" in str(exc)
     else:
         raise AssertionError("missing built-in static contribution spec must fail closed")
 
 
-def test_builtin_module_duplicate_ids_fail_closed(monkeypatch):
-    duplicate_dir = BUILTIN_MODULE_DIRS[0]
-    monkeypatch.setattr(
-        "app.module_loader.BUILTIN_MODULE_DIRS", (duplicate_dir, duplicate_dir)
-    )
+@pytest.mark.parametrize(("registry", "entries", "kind"), [
+    ("BUILTIN_MODULE_DIRS", BUILTIN_MODULE_DIRS[:1] * 2, "module"),
+    ("BUILTIN_THEMES", BUILTIN_THEMES[:1] * 2, "theme"),
+    ("BUILTIN_THRESHOLD_PROFILES", BUILTIN_THRESHOLD_PROFILES[:1] * 2, "threshold profile"),
+])
+def test_builtin_duplicate_ids_fail_closed(monkeypatch, registry, entries, kind):
+    monkeypatch.setattr(f"app.module_registry.{registry}", entries)
+    loader = ModuleLoader(Flask(__name__), builtin_base_path=str(BUILTIN_MODULES_DIR))
 
-    with pytest.raises(RegistrationError, match="Duplicate built-in module id"):
-        discover_builtin_modules(str(BUILTIN_MODULES_DIR))
+    with pytest.raises(RegistrationError, match=f"Duplicate built-in {kind} id"):
+        loader.load_all()
 
 
 def test_discover_builtin_theme_modules_uses_static_registry(monkeypatch):
     """Built-in theme registration must not scan module directories."""
-    import app.module_loader as module_loader
-
     def fail_listdir(_path):
         raise AssertionError("built-in theme discovery must use the static registry")
 
-    monkeypatch.setattr(module_loader.os, "listdir", fail_listdir)
+    monkeypatch.setattr(os, "listdir", fail_listdir)
 
     modules = discover_builtin_theme_modules()
 
@@ -217,12 +218,10 @@ def test_discover_builtin_theme_modules_uses_static_registry(monkeypatch):
 
 def test_discover_builtin_threshold_modules_uses_static_registry(monkeypatch):
     """Built-in threshold profiles must not scan module directories."""
-    import app.module_loader as module_loader
-
     def fail_listdir(_path):
         raise AssertionError("built-in threshold discovery must use the static registry")
 
-    monkeypatch.setattr(module_loader.os, "listdir", fail_listdir)
+    monkeypatch.setattr(os, "listdir", fail_listdir)
 
     modules = discover_builtin_threshold_modules()
 
@@ -239,25 +238,6 @@ def test_builtin_theme_registry_preserves_optional_metadata():
     themes = {mod.id: mod for mod in discover_builtin_theme_modules()}
 
     assert themes["docsight.theme_tribu"].homepage == "https://github.com/itsDNNS/tribu"
-
-
-def test_builtin_theme_duplicate_ids_fail_closed(monkeypatch):
-    duplicate = dict(BUILTIN_THEMES[0])
-    monkeypatch.setattr("app.module_loader.BUILTIN_THEMES", (BUILTIN_THEMES[0], duplicate))
-
-    with pytest.raises(RegistrationError, match="Duplicate built-in theme id"):
-        discover_builtin_theme_modules()
-
-
-def test_builtin_threshold_duplicate_ids_fail_closed(monkeypatch):
-    duplicate = dict(BUILTIN_THRESHOLD_PROFILES[0])
-    monkeypatch.setattr(
-        "app.module_loader.BUILTIN_THRESHOLD_PROFILES",
-        (BUILTIN_THRESHOLD_PROFILES[0], duplicate),
-    )
-
-    with pytest.raises(RegistrationError, match="Duplicate built-in threshold profile id"):
-        discover_builtin_threshold_modules()
 
 
 def test_full_loader_prevents_community_theme_shadowing_builtin_theme(tmp_path):

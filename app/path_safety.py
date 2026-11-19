@@ -3,7 +3,8 @@
 import os
 import re
 
-ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
+from .manifest_contract import ID_PATTERN
+
 _SAFE_FILENAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
 
 _ALLOWED_CHILD_FILES = frozenset({"manifest.json", "theme.json"})

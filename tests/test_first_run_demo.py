@@ -279,7 +279,7 @@ def test_demo_discovery_does_not_even_enumerate_module_collectors(tmp_path):
 
 
 def test_demo_api_is_reserved_from_community_route_shadowing():
-    from app.module_loader import _PROTECTED_API_PREFIXES
+    from app.module_contributions import _PROTECTED_API_PREFIXES
 
     assert any("/api/demo/start".startswith(prefix) for prefix in _PROTECTED_API_PREFIXES)
     assert any("/api/demo/migrate".startswith(prefix) for prefix in _PROTECTED_API_PREFIXES)

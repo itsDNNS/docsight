@@ -16,7 +16,6 @@ from app.registration import (
     PlannedRule,
     RegistrationError,
     RegistrationPlan,
-    apply_plan,
     probe_blueprint,
     register_plan,
     validate_plan,
@@ -110,7 +109,7 @@ def test_probe_preserves_record_once_for_real_registration():
 
     planned = probe_blueprint(blueprint, source="module:once")
     target = Flask("registration-target")
-    apply_plan(target, RegistrationPlan(blueprints=(planned,)))
+    register_plan(target, RegistrationPlan(blueprints=(planned,)))
 
     assert calls == ["registration.probe", "registration-target"]
 
@@ -211,7 +210,7 @@ def test_factory_calls_one_top_level_registrar():
         node.func.id
         for node in ast.walk(create_app)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-        and node.func.id in {"register_plan", "apply_plan", "apply_contributions"}
+        and node.func.id in {"register_plan", "apply_contributions"}
     ]
     assert calls == ["register_plan"]
 

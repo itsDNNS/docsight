@@ -134,11 +134,10 @@ def discover_modules(
 def discover_builtin_modules(
     builtin_base_path: str,
     disabled_ids: set[str] | None = None,
-    module_dirs: tuple[str, ...] | None = None,
 ) -> list[ModuleInfo]:
     """Resolve the statically ordered built-in manifest registry."""
     modules: list[ModuleInfo] = []
-    for entry in module_dirs or BUILTIN_MODULE_DIRS:
+    for entry in BUILTIN_MODULE_DIRS:
         try:
             modules.append(_manifest(os.path.join(builtin_base_path, entry), builtin=True))
         except ManifestError as exc:
@@ -158,13 +157,10 @@ def _finalize_builtins(
     return modules
 
 
-def discover_builtin_theme_modules(
-    disabled_ids: set[str] | None = None,
-    themes=None,
-) -> list[ModuleInfo]:
+def discover_builtin_theme_modules(disabled_ids: set[str] | None = None) -> list[ModuleInfo]:
     """Resolve application-owned themes from their static registry."""
     modules: list[ModuleInfo] = []
-    for theme in BUILTIN_THEMES if themes is None else themes:
+    for theme in BUILTIN_THEMES:
         modules.append(ModuleInfo(
             id=theme["id"], name=theme["name"], description=theme["description"],
             version=theme["version"], author=theme["author"],
@@ -176,13 +172,10 @@ def discover_builtin_theme_modules(
     return _finalize_builtins(modules, disabled_ids, "theme")
 
 
-def discover_builtin_threshold_modules(
-    disabled_ids: set[str] | None = None,
-    profiles=None,
-) -> list[ModuleInfo]:
+def discover_builtin_threshold_modules(disabled_ids: set[str] | None = None) -> list[ModuleInfo]:
     """Resolve application-owned threshold profiles from their static registry."""
     modules: list[ModuleInfo] = []
-    for profile in BUILTIN_THRESHOLD_PROFILES if profiles is None else profiles:
+    for profile in BUILTIN_THRESHOLD_PROFILES:
         modules.append(ModuleInfo(
             id=cast(str, profile["id"]), name=cast(str, profile["name"]),
             description=cast(str, profile["description"]),

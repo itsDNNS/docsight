@@ -23,8 +23,6 @@ from .registration import (
     PlannedRule,
     RegistrationError,
     RegistrationPlan,
-    apply_module_i18n,
-    apply_plan,
     probe_blueprint,
 )
 
@@ -76,11 +74,6 @@ def resolve_module_i18n(i18n_dir: str) -> dict[str, dict[str, Any]]:
             raise ManifestError("Module translation catalog must be an object")
         catalogs[fname[:-5]] = data
     return catalogs
-
-
-def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
-    """Compatibility adapter that resolves then applies one i18n contribution."""
-    apply_module_i18n(module_id, resolve_module_i18n(i18n_dir))
 
 
 def _load_symbol(spec: str, module_id: str):
@@ -194,24 +187,6 @@ def resolve_module_routes(
     return RegistrationPlan(blueprints=(planned,))
 
 
-def load_module_routes(
-    app,
-    module_id: str,
-    module_path: str,
-    routes_file: str,
-    *,
-    builtin: bool = False,
-) -> None:
-    """Compatibility adapter for registering one independently tested module."""
-    try:
-        plan = resolve_module_routes(module_id, module_path, routes_file, builtin=builtin)
-        apply_plan(app, plan)
-    except RegistrationError:
-        raise
-    except (ManifestError, OSError):
-        log.warning("Module '%s': routes contribution skipped", module_id)
-
-
 def _load_module_class(module_id: str, module_path: str, spec: str, kind: str):
     """Load a contributed class from a module-owned Python file."""
     if ":" not in spec:
@@ -323,11 +298,6 @@ def plan_module_static(
     return RegistrationPlan(rules=(PlannedRule(
         route, endpoint, ("GET",), f"module-static:{module_id}", serve_static,
     ),))
-
-
-def setup_module_static(app, module_id: str, module_path: str, static_subdir: str) -> None:
-    """Compatibility adapter for mounting one independently tested module."""
-    apply_plan(app, plan_module_static(module_id, module_path, static_subdir))
 
 
 def setup_module_templates(
@@ -514,8 +484,6 @@ def resolve_module_contribution(
             thresholds_data = _read_json_contribution(
                 mod.path, contributes["thresholds"], "thresholds", validate_thresholds
             )
-        else:
-            validate_thresholds(thresholds_data)
     else:
         thresholds_data = None
     if "theme" in contributes:
@@ -524,8 +492,6 @@ def resolve_module_contribution(
             theme_data = canonical_theme_data(_read_json_contribution(
                 mod.path, contributes["theme"], "theme", validate_theme
             ))
-        else:
-            validate_theme(theme_data)
     else:
         theme_data = None
     template_dir = os.path.join(mod.path, "templates")

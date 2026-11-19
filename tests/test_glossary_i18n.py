@@ -120,11 +120,12 @@ def test_modulation_glossary_keys_present_in_source_catalog():
 
 def test_modulation_glossary_keys_fall_back_for_core_languages():
     from app.i18n import _TRANSLATIONS
-    from app.module_loader import merge_module_i18n
+    from app.module_contributions import resolve_module_i18n
+    from app.registration import apply_module_i18n
 
     original = {lang: dict(values) for lang, values in _TRANSLATIONS.items()}
     try:
-        merge_module_i18n("docsight.modulation", MOD_I18N_DIR)
+        apply_module_i18n("docsight.modulation", resolve_module_i18n(MOD_I18N_DIR))
         for lang in LANGUAGES:
             data = _TRANSLATIONS[lang]
             for key in MOD_GLOSSARY_KEYS:

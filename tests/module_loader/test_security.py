@@ -5,7 +5,8 @@ import os
 
 import pytest
 from flask import Flask
-from app.module_loader import validate_manifest, ManifestError, ModuleLoader
+from app.module_loader import ModuleLoader
+from app.module_registry import validate_manifest, ManifestError
 from tests.module_loader.test_themes import _VALID_THEME
 
 
@@ -190,7 +191,7 @@ class TestContributesPathTraversal:
 
     def test_collector_traversal_blocked(self, tmp_path):
         """Collector spec with traversal filename must be rejected."""
-        from app.module_loader import load_module_collector
+        from app.module_contributions import load_module_collector
 
         evil_file = tmp_path / "evil.py"
         evil_file.write_text("class Evil: pass")
@@ -203,8 +204,7 @@ class TestContributesPathTraversal:
 
     def test_routes_traversal_blocked(self, tmp_path):
         """Routes file with traversal must be rejected."""
-        from app.module_loader import load_module_routes
-        from flask import Flask
+        from app.module_contributions import resolve_module_routes
 
         evil_file = tmp_path / "evil_routes.py"
         evil_file.write_text("EXECUTED = True")
@@ -212,9 +212,8 @@ class TestContributesPathTraversal:
         mod_dir = tmp_path / "mymod"
         mod_dir.mkdir()
 
-        app = Flask(__name__)
         with pytest.raises(ValueError, match="Unsafe manifest reference"):
-            load_module_routes(app, "test.mod", str(mod_dir), "../evil_routes.py")
+            resolve_module_routes("test.mod", str(mod_dir), "../evil_routes.py")
 
     def test_thresholds_traversal_blocked(self, tmp_path):
         """Thresholds with traversal filename must fail to load."""
@@ -276,7 +275,7 @@ class TestContributesPathTraversal:
 
     def test_publisher_traversal_blocked(self, tmp_path):
         """Publisher spec with traversal filename must be rejected."""
-        from app.module_loader import load_module_publisher
+        from app.module_contributions import load_module_publisher
 
         mod_dir = tmp_path / "mymod"
         mod_dir.mkdir()

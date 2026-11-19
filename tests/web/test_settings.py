@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from bs4 import BeautifulSoup
 
 from app.config import ConfigManager
-from app.module_loader import register_module_config
+from app.module_config_registry import register_module_config
 from app.runtime import current_runtime
 from app import config as config_module
 from tests.test_auth import _login

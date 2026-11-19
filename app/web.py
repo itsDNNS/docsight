@@ -29,7 +29,7 @@ from .glossary import (
 )
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices, get_notice_center
-from .module_loader import module_static_url
+from .module_contributions import module_static_url
 from .response_compression import compress_response
 from .runtime import current_runtime
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name, to_local as _to_local
