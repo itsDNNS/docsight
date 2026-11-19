@@ -111,14 +111,14 @@ def _modulation(channel: dict) -> str:
     return channel.get("profile_modulation") or channel.get("modulation") or ""
 
 
-def _modulation_cause(direction: str, channel: dict) -> dict | None:
+def _modulation_cause(direction: str, channel: dict, family: str) -> dict | None:
     """Explain a rating caused by the modulation itself, with the lowest good modulation."""
     if "modulation" not in (channel.get("health_detail") or ""):
         return None
     return {
         "value": _modulation(channel),
         "health": channel.get("modulation_health") or _health(channel),
-        "target": modulation_target(direction, _family(direction, channel), channel.get("docsis_version") or "3.0"),
+        "target": modulation_target(direction, family, channel.get("docsis_version") or "3.0"),
     }
 
 
@@ -138,7 +138,7 @@ def channel_callout(direction: str, channel: dict) -> dict:
         "health": _health(channel),
         "modulation": _modulation(channel),
         "measurement": measurement,
-        "modulation_cause": _modulation_cause(direction, channel),
+        "modulation_cause": _modulation_cause(direction, channel, family),
         "link": f"#channels?mode=timeline&dir={direction}&channel={_channel_id(channel)}",
     }
 

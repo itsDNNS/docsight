@@ -149,8 +149,9 @@ class TestOFDMAUpstream:
             assert self._analyzed(ch)["health"] == case["expected"], case["label"]
 
     def test_sc_qam_still_uses_sc_qam_thresholds(self):
-        ch = {"powerLevel": "42.0", "modulation": "64QAM", "type": "ATDMA"}
-        assert self._analyzed(ch, "us30")["health"] == "good"
+        # 49 dBmV is tolerated on the SC-QAM scale but a warning on the OFDMA scale.
+        ch = {"powerLevel": "49.0", "modulation": "64QAM", "type": "ATDMA"}
+        assert self._analyzed(ch, "us30")["health"] == "tolerated"
 
     def test_analyze_preserves_ofdma_profile_modulation(self):
         data = _make_data(
