@@ -154,7 +154,10 @@ class SnapshotMethods:
         except Exception:
             log.exception("Failed to save snapshot")
             raise
-        self._cleanup()
+        try:
+            self._cleanup()
+        except Exception:  # retention is maintenance; the saved snapshot still gets analysed
+            log.exception("Retention cleanup failed")
         return snapshot_id
 
     def get_snapshot_list(self) -> list[str]:

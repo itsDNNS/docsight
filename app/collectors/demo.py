@@ -248,16 +248,15 @@ class DemoCollector(AnalysisCollector):
         return data
 
     def collect(self) -> CollectorResult:
-        self._poll_count += 1
-
         self._device_info["uptime_seconds"] = int(time.time()) % 8640000
 
-        # First poll: publish device/connection info + seed demo history
-        if self._poll_count == 1:
+        # First poll: publish device/connection info + seed demo history (retried until it succeeds)
+        if self._poll_count == 0:
             log.info("Demo mode: %s (%s)", self._device_info["model"], self._device_info["sw_version"])
             self._web.update_state(device_info=self._device_info)
             self._web.update_state(connection_info=self._connection_info)
             self._seed_demo_data()
+        self._poll_count += 1
 
         return self._process(self._generate_data(), is_demo=True)
 

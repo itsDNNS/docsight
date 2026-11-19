@@ -189,8 +189,7 @@ class TestEventStorage:
         new_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         s.save_event(old_ts, "info", "channel_change", "Old event")
         s.save_event(new_ts, "info", "channel_change", "New event")
-        deleted = s.delete_old_events(1)
-        assert deleted == 1
+        s._cleanup()
         assert len(s.get_events()) == 1
 
     def test_events_newest_first(self, storage):

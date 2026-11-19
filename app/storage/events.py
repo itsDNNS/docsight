@@ -193,17 +193,6 @@ class EventMethods:
             results.append(event)
         return results
 
-    def delete_old_events(self, days):
-        """Delete events older than given days. Returns count deleted."""
-        if days <= 0:
-            return 0
-        cutoff = utc_cutoff(days=days)
-        with self._write() as conn:
-            deleted = self._delete_expired_unprotected_rows(  # type: ignore[attr-defined]
-                conn, "events", "timestamp", cutoff
-            )
-        return deleted
-
     def get_latest_spike_timestamp(self):
         """Return timestamp of the most recent error_spike event, or None."""
         with self._read() as conn:

@@ -1,6 +1,6 @@
 """Weather storage schema migrations."""
 
-from app.storage.migrations import Migration, add_column_if_missing, schema_baseline, table_columns
+from app.storage.migrations import DEMO_FLAG, add_columns, schema_baseline
 
 
 _SCHEMA = (
@@ -9,18 +9,7 @@ _SCHEMA = (
 )
 
 
-def _demo_applied(conn):
-    columns = table_columns(conn, "weather_data")
-    return not columns or "is_demo" in columns
-
-
-def _apply_demo(conn):
-    add_column_if_missing(
-        conn, "weather_data", "is_demo", "is_demo INTEGER NOT NULL DEFAULT 0"
-    )
-
-
 MIGRATIONS = (
     schema_baseline("weather-0001-baseline", _SCHEMA),
-    Migration("weather-0002-demo-flag", _apply_demo, _demo_applied),
+    add_columns("weather-0002-demo-flag", [("weather_data", DEMO_FLAG)]),
 )

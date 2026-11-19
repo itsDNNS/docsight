@@ -22,23 +22,26 @@ class Migration:
     is_applied: Callable[[sqlite3.Connection], bool]
 
 
+# SQLite matches table and column names case-insensitively, so these probes do too.
 def table_exists(conn: sqlite3.Connection, table: str) -> bool:
     return conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? COLLATE NOCASE", (table,)
     ).fetchone() is not None
 
 
 def table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    """Return the lowercased column names of ``table``, empty if it is missing."""
     if not table_exists(conn, table):
         return set()
     quoted = table.replace('"', '""')
-    return {row[1] for row in conn.execute(f'PRAGMA table_info("{quoted}")')}
+    return {row[1].lower() for row in conn.execute(f'PRAGMA table_info("{quoted}")')}
 
 
 def add_column_if_missing(
     conn: sqlite3.Connection, table: str, column: str, declaration: str
 ) -> bool:
-    if not table_exists(conn, table) or column in table_columns(conn, table):
+    columns = table_columns(conn, table)
+    if not columns or column in columns:
         return False
     quoted = table.replace('"', '""')
     conn.execute(f'ALTER TABLE "{quoted}" ADD COLUMN {declaration}')
@@ -109,6 +112,19 @@ def schema_baseline(migration_id: str, statements: Sequence[str]) -> Migration:
     tables but are missing one of the required indexes.
     """
     return Migration(migration_id, lambda conn: execute_schema(conn, statements), lambda _conn: False)
+
+
+DEMO_FLAG = "is_demo INTEGER NOT NULL DEFAULT 0"
+
+
+def add_columns(migration_id: str, columns: Sequence[tuple[str, str]]) -> Migration:
+    """Add each (table, column declaration) to existing tables that lack the column."""
+    def apply(conn: sqlite3.Connection) -> None:
+        for table, declaration in columns:
+            add_column_if_missing(conn, table, declaration.split()[0], declaration)
+
+    # Adding only missing columns makes the step its own shape check.
+    return Migration(migration_id, apply, lambda _conn: False)
 
 
 _LEGACY_INCIDENT_COLUMNS = {
@@ -186,38 +202,6 @@ def _apply_incidents_migration(conn: sqlite3.Connection) -> None:
         add_column_if_missing(conn, "journal_entries", "icon", "icon TEXT")
 
 
-_DEMO_TABLES = (
-    "snapshots", "events", "journal_entries", "incidents", "speedtest_results",
-    "bqm_graphs", "bnetz_measurements", "weather_data",
-)
-
-
-def _demo_flags_applied(conn: sqlite3.Connection) -> bool:
-    return all(
-        not table_exists(conn, table) or "is_demo" in table_columns(conn, table)
-        for table in _DEMO_TABLES
-    )
-
-
-def _apply_demo_flags(conn: sqlite3.Connection) -> None:
-    for table in _DEMO_TABLES:
-        add_column_if_missing(
-            conn, table, "is_demo", "is_demo INTEGER NOT NULL DEFAULT 0"
-        )
-
-
-def _snapshot_columns_applied(conn: sqlite3.Connection) -> bool:
-    columns = table_columns(conn, "snapshots")
-    return not columns or {"analysis_meta_json", "raw_json"} <= columns
-
-
-def _apply_snapshot_columns(conn: sqlite3.Connection) -> None:
-    add_column_if_missing(
-        conn, "snapshots", "analysis_meta_json", "analysis_meta_json TEXT"
-    )
-    add_column_if_missing(conn, "snapshots", "raw_json", "raw_json TEXT")
-
-
 def _meta_version_applied(conn: sqlite3.Connection) -> bool:
     if not table_exists(conn, "_docsight_meta"):
         return False
@@ -272,11 +256,6 @@ def _apply_unmeasured_summary_null(conn: sqlite3.Connection) -> None:
         )
 
 
-def _segment_applied(_conn: sqlite3.Connection) -> bool:
-    # CREATE IF NOT EXISTS also repairs missing indexes on legacy databases.
-    return False
-
-
 CORE_MIGRATIONS: tuple[Migration, ...] = (
     schema_baseline("core-0001-baseline", CORE_SCHEMA),
     Migration(
@@ -284,32 +263,22 @@ CORE_MIGRATIONS: tuple[Migration, ...] = (
         _apply_incidents_migration,
         _incidents_migration_applied,
     ),
-    Migration("core-0003-demo-flags", _apply_demo_flags, _demo_flags_applied),
-    Migration(
-        "core-0004-snapshot-columns",
-        _apply_snapshot_columns,
-        _snapshot_columns_applied,
-    ),
+    add_columns("core-0003-demo-flags", [
+        (table, DEMO_FLAG)
+        for table in (
+            "snapshots", "events", "journal_entries", "incidents", "speedtest_results",
+            "bqm_graphs", "bnetz_measurements", "weather_data",
+        )
+    ]),
+    add_columns("core-0004-snapshot-columns", [
+        ("snapshots", "analysis_meta_json TEXT"), ("snapshots", "raw_json TEXT"),
+    ]),
     Migration("core-0005-meta-version", _apply_meta_version, _meta_version_applied),
     Migration("core-0006-smart-capture-error-scrub", _apply_smart_capture_error_scrub, lambda _conn: False),
     Migration("core-0007-unmeasured-summary-null", _apply_unmeasured_summary_null, lambda _conn: False),
 )
 
-def _segment_demo_flag_applied(conn: sqlite3.Connection) -> bool:
-    return not table_exists(conn, "segment_utilization") or "is_demo" in table_columns(conn, "segment_utilization")
-
-
-def _apply_segment_demo_flag(conn: sqlite3.Connection) -> None:
-    add_column_if_missing(
-        conn, "segment_utilization", "is_demo", "is_demo INTEGER NOT NULL DEFAULT 0"
-    )
-
-
 SEGMENT_MIGRATIONS: tuple[Migration, ...] = (
-    Migration(
-        "segment-0001-baseline",
-        lambda conn: execute_schema(conn, SEGMENT_SCHEMA),
-        _segment_applied,
-    ),
-    Migration("segment-0002-demo-flag", _apply_segment_demo_flag, _segment_demo_flag_applied),
+    schema_baseline("segment-0001-baseline", SEGMENT_SCHEMA),
+    add_columns("segment-0002-demo-flag", [("segment_utilization", DEMO_FLAG)]),
 )

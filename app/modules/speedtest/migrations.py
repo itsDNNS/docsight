@@ -1,6 +1,6 @@
 """Speedtest storage schema migrations."""
 
-from app.storage.migrations import Migration, add_column_if_missing, schema_baseline, table_columns
+from app.storage.migrations import DEMO_FLAG, add_columns, schema_baseline
 
 
 _ENRICHED_COLUMNS = (
@@ -26,25 +26,13 @@ _SCHEMA = (
 )
 
 
-def _columns_applied(conn):
-    columns = table_columns(conn, "speedtest_results")
-    required = {"server_id", "server_name", "is_demo", *(name for name, _ in _ENRICHED_COLUMNS)}
-    return not columns or required <= columns
-
-
-def _apply_columns(conn):
-    add_column_if_missing(conn, "speedtest_results", "server_id", "server_id INTEGER")
-    add_column_if_missing(conn, "speedtest_results", "server_name", "server_name TEXT")
-    add_column_if_missing(
-        conn, "speedtest_results", "is_demo", "is_demo INTEGER NOT NULL DEFAULT 0"
-    )
-    for name, column_type in _ENRICHED_COLUMNS:
-        add_column_if_missing(
-            conn, "speedtest_results", name, f"{name} {column_type}"
-        )
-
-
 MIGRATIONS = (
     schema_baseline("speedtest-0001-baseline", _SCHEMA),
-    Migration("speedtest-0002-columns", _apply_columns, _columns_applied),
+    add_columns("speedtest-0002-columns", [
+        ("speedtest_results", declaration)
+        for declaration in (
+            "server_id INTEGER", "server_name TEXT", DEMO_FLAG,
+            *(f"{name} {column_type}" for name, column_type in _ENRICHED_COLUMNS),
+        )
+    ]),
 )
