@@ -107,27 +107,22 @@ class TestCreateBackup:
             assert "app_version" in meta
             assert "tables" in meta
 
-    def test_demo_data_excluded(self, backup_path):
+    def test_demo_data_excluded(self, backup_path, tmp_path):
         # Extract the DB from the archive and check demo data is gone
+        db_path = tmp_path / "extracted.db"
         with tarfile.open(backup_path, mode="r:gz") as tar:
-            import tempfile
-            with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-                tmp.write(tar.extractfile("docsis_history.db").read())
-                tmp_path = tmp.name
-        try:
-            conn = sqlite3.connect(tmp_path)
-            count = conn.execute("SELECT COUNT(*) FROM snapshots WHERE is_demo = 1").fetchone()[0]
-            assert count == 0
-            # Non-demo data should still be there
-            total = conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
-            assert total == 1
-            claim_rows = conn.execute(
-                "SELECT ticket_ref, is_demo FROM de_tkg_claim_drafts ORDER BY id"
-            ).fetchall()
-            assert claim_rows == [("SYNTHETIC-REAL", 0)]
-            conn.close()
-        finally:
-            os.unlink(tmp_path)
+            db_path.write_bytes(tar.extractfile("docsis_history.db").read())
+        conn = sqlite3.connect(db_path)
+        count = conn.execute("SELECT COUNT(*) FROM snapshots WHERE is_demo = 1").fetchone()[0]
+        assert count == 0
+        # Non-demo data should still be there
+        total = conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
+        assert total == 1
+        claim_rows = conn.execute(
+            "SELECT ticket_ref, is_demo FROM de_tkg_claim_drafts ORDER BY id"
+        ).fetchall()
+        assert claim_rows == [("SYNTHETIC-REAL", 0)]
+        conn.close()
 
     def test_handles_missing_db(self, tmp_path):
         """Backup should work even without a database file."""
