@@ -159,6 +159,7 @@ def test_web_push_channel_sends_safe_payload_to_all_subscriptions(tmp_path):
 
 @pytest.mark.parametrize("error, last_error, kept", [
     (WebPushException("gone", response=MagicMock(status_code=410)), "expired:410", 0),
+    (WebPushException("rejected"), "HTTP unknown", 1),
     (requests.ConnectionError("offline"), "ConnectionError", 1),
 ])
 def test_web_push_channel_removes_only_expired_subscriptions(tmp_path, error, last_error, kept):

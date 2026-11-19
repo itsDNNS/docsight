@@ -251,7 +251,7 @@ class WebPushChannel(NotificationChannel):
                     vapid_claims={"sub": self._vapid_subject},
                 )
             except WebPushException as exc:
-                status = exc.response.status_code
+                status = getattr(exc.response, "status_code", "unknown")
                 if status in (404, 410) and endpoint:
                     self._storage.delete_pwa_push_subscription(endpoint)
                     errors.append(f"expired:{status}")
