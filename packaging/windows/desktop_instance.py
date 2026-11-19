@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import http.client
 import json
 import os
 import secrets
@@ -196,17 +195,13 @@ def probe_runtime_endpoint(
             if getattr(response, "status", 200) != 200:
                 return False
             raw = response.read(8192).decode("utf-8")
-    except (OSError, http.client.HTTPException, UnicodeError):
-        return False
-
-    try:
         payload = json.loads(raw)
         if not isinstance(payload, dict) or payload.get("status") != "ok":
             return False
         runtime_payload = dict(payload)
         runtime_payload.pop("status")
         observed = RuntimeState.from_mapping(runtime_payload)
-    except ValueError:
+    except Exception:  # any unreadable or malformed answer is not our runtime
         return False
     return observed == state
 

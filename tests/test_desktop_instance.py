@@ -852,9 +852,18 @@ def test_probe_rejects_health_lookalikes_and_identity_mismatches(payload):
     ) is False
 
 
-def test_probe_rejects_non_http_listener():
+@pytest.mark.parametrize(
+    "error",
+    [
+        http.client.BadStatusLine("SSH-2.0-OpenSSH_9.9"),
+        ValueError("invalid redirect location"),
+        OverflowError("chunk size out of range"),
+        RecursionError("JSON nested too deeply"),
+    ],
+)
+def test_probe_rejects_unreadable_answers(error):
     def urlopen(*_args, **_kwargs):
-        raise http.client.BadStatusLine("SSH-2.0-OpenSSH_9.9")
+        raise error
 
     assert runtime.probe_runtime_endpoint(
         make_state(),
