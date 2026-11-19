@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import secrets
 import stat
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from .config import ConfigManager
 
 
+log = logging.getLogger("docsis.runtime")
 DOCSIGHT_EXTENSION_KEY = "docsight"
 _GITHUB_RELEASE_URL = "https://api.github.com/repos/itsDNNS/docsight/releases/latest"
 _T = TypeVar("_T")
@@ -268,8 +270,8 @@ class UpdateChecker:
             result = tag if latest and latest != current and _version_newer(latest, current) else None
             with self._lock:
                 self._latest = result
-        except Exception:
-            pass
+        except Exception as exc:
+            log.debug("Release update check failed (%s)", type(exc).__name__)
         finally:
             with self._lock:
                 self._checked_at = self._clock()
@@ -309,7 +311,7 @@ class AuthStateStore:
         try:
             with open(self.auth_state_path, "r", encoding="ascii") as handle:
                 value = handle.read().strip()
-        except (FileNotFoundError, OSError, UnicodeError):
+        except (OSError, UnicodeError):
             return None
         if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
             return None

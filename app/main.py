@@ -365,13 +365,14 @@ def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
             if modem_config_key is not None and modem_collector:
                 new_key = _get_modem_config_key(config_mgr)
                 if new_key != modem_config_key:
-                    log.info(
-                        "Modem config changed (%s -> %s), hot-swapping driver",
-                        modem_config_key[0], new_key[0],
-                    )
                     from .collectors.modem import ModemCollector
                     from .drivers import get_driver_registry
-                    new_driver = get_driver_registry(runtime).load_for_polling(*new_key)
+                    registry = get_driver_registry(runtime)
+                    log.info(
+                        "Modem config changed (%s -> %s), hot-swapping driver",
+                        registry.log_label(modem_config_key[0]), registry.log_label(new_key[0]),
+                    )
+                    new_driver = registry.load_for_polling(*new_key)
                     new_modem = ModemCollector(
                         driver=new_driver,
                         analyzer_fn=analyzer.analyze,
@@ -392,7 +393,7 @@ def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
                     runtime.collectors = collectors
                     runtime.reset_modem_state()
                     modem_config_key = new_key
-                    log.info("Driver hot-swapped to %s", new_key[0])
+                    log.info("Driver hot-swapped to %s", registry.log_label(new_key[0]))
 
             for collector in collectors:
                 if stop_event.is_set():

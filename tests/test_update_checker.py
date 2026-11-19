@@ -1,3 +1,7 @@
+import logging
+
+import requests
+
 from app.runtime import UpdateChecker
 
 
@@ -40,3 +44,18 @@ def test_update_checker_skips_dev_versions():
     )
     assert checker.latest() is None
     assert spawned == []
+
+
+def test_update_checker_logs_a_failed_fetch_without_its_message(caplog):
+    def fetch():
+        raise requests.ConnectionError("https://api.github.com/private-detail")
+
+    spawned = []
+    checker = UpdateChecker(
+        app_version="2026-01-01.1", is_enabled=lambda: True, fetch=fetch, spawn=spawned.append
+    )
+    checker.latest()
+    with caplog.at_level(logging.DEBUG, logger="docsis.runtime"):
+        spawned.pop()()
+    assert caplog.record_tuples == [("docsis.runtime", logging.DEBUG, "Release update check failed (ConnectionError)")]
+    assert checker.snapshot()["checking"] is False

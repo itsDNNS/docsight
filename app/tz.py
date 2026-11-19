@@ -130,7 +130,7 @@ def _valid_iana_timezone(value):
         return ""
     try:
         ZoneInfo(candidate)
-    except (OSError, UnicodeError, ValueError, ZoneInfoNotFoundError):
+    except (OSError, ValueError, ZoneInfoNotFoundError):
         return ""
     return candidate
 

@@ -1,5 +1,7 @@
+import logging
+
 import pytest
-from app.drivers.registry import DriverRegistry
+from app.drivers.registry import DriverRegistry, UnavailableDriver
 from app.drivers.base import ModemDriver
 
 
@@ -41,6 +43,22 @@ class TestDriverRegistry:
     def test_unknown_type_raises(self):
         with pytest.raises(ValueError, match="Unknown modem_type"):
             self.reg.load_driver("nonexistent", "http://x", "u", "p")
+
+    @pytest.mark.parametrize("modem_type, class_path, init_kwargs, message", [
+        ("https://user:secret@modem.example/x", None, None,
+         "Modem driver unregistered modem type is unavailable (ValueError)"),
+        ("broken", "tests.no_such_module.Driver", None, "Modem driver broken is unavailable (ModuleNotFoundError)"),
+        ("broken", "tests.test_driver_registry.FakeDriver", {"force_mode": True},
+         "Modem driver broken is unavailable (TypeError)"),
+    ])
+    def test_polling_load_failure_logs_only_a_registered_type_and_the_exception(
+        self, caplog, modem_type, class_path, init_kwargs, message,
+    ):
+        if class_path:
+            self.reg.register_builtin(modem_type, class_path, "Broken", init_kwargs=init_kwargs)
+        driver = self.reg.load_for_polling(modem_type, "http://x", "u", "p")
+        assert isinstance(driver, UnavailableDriver)
+        assert caplog.record_tuples == [("docsis.drivers.registry", logging.WARNING, message)]
 
     def test_get_available_drivers_sorted(self):
         self.reg.register_builtin("bbb", "tests.test_driver_registry.FakeDriver", "BBB Modem")

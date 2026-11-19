@@ -75,7 +75,7 @@ class ProbeEngine:
                 pass
             logger.info("ICMP raw socket available - using ICMP probing")
             return "icmp"
-        except (PermissionError, OSError):
+        except OSError:
             self._fallback_reason = ICMP_UNAVAILABLE_REASON
             logger.warning("ICMP probing is unavailable - falling back to TCP")
             return "tcp"
@@ -118,7 +118,7 @@ class ProbeEngine:
                         timeout=False,
                         method="tcp",
                     )
-            except (socket.timeout, OSError):
+            except OSError:
                 pass
             finally:
                 sock.close()

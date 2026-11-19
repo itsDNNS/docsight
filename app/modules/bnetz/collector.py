@@ -128,12 +128,10 @@ class BnetzWatcherCollector(Collector):
 
 def _read_marker(path):
     """Read the set of already-imported filenames from the marker file."""
-    if not os.path.exists(path):
-        return set()
     try:
         with open(path, "r") as f:
             return {line.strip() for line in f if line.strip()}
-    except Exception:
+    except FileNotFoundError:
         return set()
 
 

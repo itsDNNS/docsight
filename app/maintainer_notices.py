@@ -153,7 +153,7 @@ def get_notice_center(
     for notice in LOCAL_NOTICES if notices is None else notices:
         try:
             center.append({**serialize_notice(notice), "read": notice["id"] in dismissed})
-        except (NoticeValidationError, AttributeError, TypeError, ValueError):
+        except (AttributeError, TypeError, ValueError):
             continue
     center.sort(key=lambda item: (item["read"], SEVERITY_ORDER[item["severity"]], item["id"]))
     return center
@@ -175,13 +175,11 @@ def get_active_notices(
 
     for notice in source:
         try:
-            validate_notice_schema(notice)
-            if notice["id"] in dismissed:
+            data = serialize_notice(notice)
+            if data["id"] in dismissed or not _matches_location(notice, location):
                 continue
-            if not _matches_location(notice, location):
-                continue
-            active.append(serialize_notice(notice))
-        except (NoticeValidationError, AttributeError, TypeError, ValueError):
+            active.append(data)
+        except (AttributeError, TypeError, ValueError):
             # Notices must never block the local dashboard/settings surfaces.
             # Invalid bundled entries are treated as inactive instead of
             # turning core pages into 500s.

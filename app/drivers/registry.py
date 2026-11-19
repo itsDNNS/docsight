@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from copy import deepcopy
 
 from .base import ModemDriver
 from ..types import DriverHints
+
+log = logging.getLogger("docsis.drivers.registry")
 
 
 class UnavailableDriver(ModemDriver):
@@ -78,8 +81,16 @@ class DriverRegistry:
     def load_for_polling(self, modem_type, url, user, password) -> ModemDriver:
         try:
             return self.load_driver(modem_type, url, user, password)
-        except Exception:
+        except Exception as exc:
+            # Community driver messages may carry credentials or paths; log the type only.
+            log.warning("Modem driver %s is unavailable (%s)", self.log_label(modem_type), type(exc).__name__)
             return UnavailableDriver(url, user, password)
+
+    def log_label(self, modem_type) -> str:
+        """Name a configured modem type in logs without echoing unregistered values."""
+        if isinstance(modem_type, str) and self.has_driver(modem_type):
+            return modem_type
+        return "unregistered modem type"
 
     def get_available_drivers(self) -> list[tuple[str, str]]:
         all_keys = self.get_all_type_keys()
