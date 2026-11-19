@@ -10,18 +10,19 @@ import pytest
 from app.collectors.base import Collector, CollectorResult
 
 
+@pytest.fixture
+def storage(tmp_path):
+    s = MagicMock()
+    s.db_path = str(tmp_path / "test.db")
+    s.get_device_state.return_value = {}
+    return s
+
+
 class TestDiscoverCollectors:
     def test_collector_registry_is_not_exported(self):
         import app.collectors as collectors
 
         assert not hasattr(collectors, "COLLECTOR_REGISTRY")
-
-    def _make_storage(self, tmp_path=None):
-        import tempfile, os
-        s = MagicMock()
-        s.db_path = os.path.join(tmp_path or tempfile.mkdtemp(), "test.db")
-        s.get_device_state.return_value = {}
-        return s
 
     def _make_config_mgr(self, poll_interval=60, bnetz_watch=False):
         mgr = MagicMock()
@@ -60,7 +61,7 @@ class TestDiscoverCollectors:
         return web
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_discover_returns_modem_plus_modules(self, mock_load):
+    def test_discover_returns_modem_plus_modules(self, mock_load, storage):
         from app.collectors import discover_collectors
 
         mock_load.return_value = MagicMock()
@@ -84,7 +85,7 @@ class TestDiscoverCollectors:
         ])
 
         collectors = discover_collectors(
-            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
+            config_mgr, storage, MagicMock(), None, web, analyzer
         )
         assert len(collectors) == 4  # modem + segment_utilization + speedtest + bqm
         names = [c.name for c in collectors]
@@ -94,7 +95,7 @@ class TestDiscoverCollectors:
         assert "bqm" in names
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_discover_includes_bnetz_watcher_module(self, mock_load):
+    def test_discover_includes_bnetz_watcher_module(self, mock_load, storage):
         from app.collectors import discover_collectors
 
         mock_load.return_value = MagicMock()
@@ -111,14 +112,14 @@ class TestDiscoverCollectors:
         ])
 
         collectors = discover_collectors(
-            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
+            config_mgr, storage, MagicMock(), None, web, analyzer
         )
         assert len(collectors) == 3  # modem + segment_utilization + bnetz_watcher
         names = [c.name for c in collectors]
         assert "bnetz_watcher" in names
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_discover_no_modules_returns_modem_only(self, mock_load):
+    def test_discover_no_modules_returns_modem_only(self, mock_load, storage):
         from app.collectors import discover_collectors
 
         mock_load.return_value = MagicMock()
@@ -129,7 +130,7 @@ class TestDiscoverCollectors:
         web = MagicMock(spec=[])
 
         collectors = discover_collectors(
-            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
+            config_mgr, storage, MagicMock(), None, web, analyzer
         )
         assert len(collectors) == 2  # modem + segment_utilization
         names = [c.name for c in collectors]
@@ -137,7 +138,7 @@ class TestDiscoverCollectors:
         assert "segment_utilization" in names
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_discover_skips_segment_when_disabled(self, mock_load):
+    def test_discover_skips_segment_when_disabled(self, mock_load, storage):
         from app.collectors import discover_collectors
 
         mock_load.return_value = MagicMock()
@@ -148,14 +149,14 @@ class TestDiscoverCollectors:
         web = MagicMock(spec=[])
 
         collectors = discover_collectors(
-            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
+            config_mgr, storage, MagicMock(), None, web, analyzer
         )
         names = [c.name for c in collectors]
         assert "modem" in names
         assert "segment_utilization" not in names
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_modem_collector_gets_poll_interval(self, mock_load):
+    def test_modem_collector_gets_poll_interval(self, mock_load, storage):
         from app.collectors import discover_collectors
 
         mock_load.return_value = MagicMock()
@@ -166,13 +167,13 @@ class TestDiscoverCollectors:
         web = MagicMock(spec=[])
 
         collectors = discover_collectors(
-            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
+            config_mgr, storage, MagicMock(), None, web, analyzer
         )
         modem = [c for c in collectors if c.name == "modem"][0]
         assert modem.poll_interval_seconds == 120
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_driver_loaded_by_modem_type(self, mock_load):
+    def test_driver_loaded_by_modem_type(self, mock_load, storage):
         from app.collectors import discover_collectors
 
         mock_load.return_value = MagicMock()
@@ -183,7 +184,7 @@ class TestDiscoverCollectors:
         web = MagicMock(spec=[])
 
         discover_collectors(
-            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
+            config_mgr, storage, MagicMock(), None, web, analyzer
         )
         mock_load.assert_called_once_with("fritzbox", "http://fritz.box", "admin", "pass")
 
@@ -194,13 +195,6 @@ def mock_runtime():
 
 
 class TestPollingLoopOrchestrator:
-    def _make_storage(self):
-        import tempfile, os
-        s = MagicMock()
-        s.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
-        s.get_device_state.return_value = {}
-        return s
-
     def _make_config_mgr(self):
         mgr = MagicMock()
         mgr.get_all.return_value = {
@@ -228,9 +222,32 @@ class TestPollingLoopOrchestrator:
         mgr.get.return_value = ""
         return mgr
 
+    @staticmethod
+    def _stop_when(stop, done, timeout=5):
+        """Tick polling_loop until done() holds; collectors run in a thread pool."""
+        deadline = time.monotonic() + timeout
+
+        def wait(_timeout=None):
+            if done():
+                stop.set()
+            elif time.monotonic() > deadline:
+                pytest.fail(f"polling_loop did not reach the expected state within {timeout}s")
+            else:
+                time.sleep(0.01)
+
+        stop.wait = wait
+
+    @staticmethod
+    def _working_driver(mock_load):
+        driver = mock_load.return_value
+        driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
+        driver.get_connection_info.return_value = {}
+        driver.get_docsis_data.return_value = {}
+        return driver
+
     @patch("app.main.discover_collectors")
     def test_long_running_collector_is_tracked_until_result(
-        self, mock_discover, mock_runtime, caplog, monkeypatch
+        self, mock_discover, mock_runtime, storage, caplog, monkeypatch
     ):
         """A collector crossing the old observation window is not resubmitted."""
         from app import main
@@ -274,7 +291,6 @@ class TestPollingLoopOrchestrator:
         collector = SlowCollector()
         mock_discover.return_value = [collector]
         config_mgr = self._make_config_mgr()
-        storage = self._make_storage()
         stop = threading.Event()
         tick = 0
         deadline = None
@@ -316,7 +332,7 @@ class TestPollingLoopOrchestrator:
     @patch("app.collectors.modem.ModemCollector")
     @patch("app.main.discover_collectors")
     def test_hot_swap_waits_for_in_flight_collector_with_same_name(
-        self, mock_discover, mock_modem_cls, mock_load, mock_runtime, monkeypatch
+        self, mock_discover, mock_modem_cls, mock_load, mock_runtime, storage, monkeypatch
     ):
         """A replacement modem waits for the prior modem future to finish."""
         from app import main
@@ -376,7 +392,6 @@ class TestPollingLoopOrchestrator:
             }.get(key, default)
 
         config_mgr.get.side_effect = get_config
-        storage = self._make_storage()
         stop = threading.Event()
         tick = 0
 
@@ -412,35 +427,15 @@ class TestPollingLoopOrchestrator:
         assert replacement_collector.success_calls == 1
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_orchestrator_calls_enabled_collectors(self, mock_load, mock_runtime):
+    def test_orchestrator_calls_enabled_collectors(self, mock_load, mock_runtime, storage):
         """Orchestrator should call collect() for enabled collectors."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        mock_driver = self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
-        storage = MagicMock()
-        import tempfile, os
-        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
-        storage.get_device_state.return_value = {}
         stop = threading.Event()
-
-        original_wait = stop.wait
-        call_count = [0]
-
-        def stop_after_one_tick(timeout=None):
-            call_count[0] += 1
-            if call_count[0] >= 2:
-                stop.set()
-                return True
-            return original_wait(0)
-
-        stop.wait = stop_after_one_tick
+        self._stop_when(stop, lambda: mock_driver.get_docsis_data.call_count)
 
         mock_runtime.derived_storage.value.return_value = 0
 
@@ -450,32 +445,15 @@ class TestPollingLoopOrchestrator:
         mock_driver.get_docsis_data.assert_called()
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_orchestrator_skips_disabled_collectors(self, mock_load, mock_runtime):
+    def test_orchestrator_skips_disabled_collectors(self, mock_load, mock_runtime, storage):
         """Speedtest/BQM collectors should be skipped when not configured."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        mock_driver = self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
-        storage = self._make_storage()
         stop = threading.Event()
-
-        call_count = [0]
-        original_wait = stop.wait
-
-        def stop_after_one_tick(timeout=None):
-            call_count[0] += 1
-            if call_count[0] >= 2:
-                stop.set()
-                return True
-            return original_wait(0)
-
-        stop.wait = stop_after_one_tick
+        self._stop_when(stop, lambda: mock_driver.get_docsis_data.call_count)
 
         mock_runtime.derived_storage.value.return_value = 0
 
@@ -487,9 +465,8 @@ class TestPollingLoopOrchestrator:
         storage.save_bqm_graph.assert_not_called()
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_orchestrator_handles_collector_exception(self, mock_load, mock_runtime):
+    def test_orchestrator_handles_collector_exception(self, mock_load, mock_runtime, storage):
         """Orchestrator should catch exceptions and continue running."""
-        import threading
         from app.main import polling_loop
 
         mock_driver = MagicMock()
@@ -497,20 +474,10 @@ class TestPollingLoopOrchestrator:
         mock_load.return_value = mock_driver
 
         config_mgr = self._make_config_mgr()
-        storage = self._make_storage()
         stop = threading.Event()
-
-        call_count = [0]
-        original_wait = stop.wait
-
-        def stop_after_one_tick(timeout=None):
-            call_count[0] += 1
-            if call_count[0] >= 2:
-                stop.set()
-                return True
-            return original_wait(0)
-
-        stop.wait = stop_after_one_tick
+        self._stop_when(stop, lambda: any(
+            "error" in c.kwargs for c in mock_runtime.update_state.call_args_list
+        ))
 
         mock_runtime.derived_storage.value.return_value = 0
 
@@ -519,15 +486,13 @@ class TestPollingLoopOrchestrator:
         mock_runtime.update_state.assert_any_call(error="Modem login failed, see the DOCSight log")
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_orchestrator_stops_on_event(self, mock_load, mock_runtime):
+    def test_orchestrator_stops_on_event(self, mock_load, mock_runtime, storage):
         """Orchestrator should exit when stop_event is set."""
-        import threading
         from app.main import polling_loop
 
         mock_load.return_value = MagicMock()
 
         config_mgr = self._make_config_mgr()
-        storage = self._make_storage()
         stop = threading.Event()
         stop.set()  # Pre-set: should exit immediately
 
@@ -537,19 +502,13 @@ class TestPollingLoopOrchestrator:
         # If we get here without hanging, the test passes
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_driver_hot_swap_on_modem_type_change(self, mock_load, mock_runtime):
+    def test_driver_hot_swap_on_modem_type_change(self, mock_load, mock_runtime, storage):
         """Polling loop should hot-swap the modem driver when modem_type changes."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
-        storage = self._make_storage()
         stop = threading.Event()
 
         call_count = [0]
@@ -590,19 +549,13 @@ class TestPollingLoopOrchestrator:
         assert mock_runtime.modem_collector.name == "modem"
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_driver_hot_swap_on_url_change(self, mock_load, mock_runtime):
+    def test_driver_hot_swap_on_url_change(self, mock_load, mock_runtime, storage):
         """Hot-swap should trigger when modem URL changes, not just type."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
-        storage = self._make_storage()
         stop = threading.Event()
 
         call_count = [0]
@@ -637,19 +590,13 @@ class TestPollingLoopOrchestrator:
         assert second_call[0][1] == "http://192.168.100.1"
 
     @patch("app.drivers.driver_registry.load_driver")
-    def test_no_hot_swap_when_config_unchanged(self, mock_load, mock_runtime):
+    def test_no_hot_swap_when_config_unchanged(self, mock_load, mock_runtime, storage):
         """No hot-swap should occur when modem config hasn't changed."""
-        import threading
         from app.main import polling_loop
 
-        mock_driver = MagicMock()
-        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
-        mock_driver.get_connection_info.return_value = {}
-        mock_driver.get_docsis_data.return_value = {}
-        mock_load.return_value = mock_driver
+        self._working_driver(mock_load)
 
         config_mgr = self._make_config_mgr()
-        storage = self._make_storage()
         stop = threading.Event()
 
         call_count = [0]
