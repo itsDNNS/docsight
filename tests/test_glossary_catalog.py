@@ -1,5 +1,6 @@
 """Tests for the canonical in-app glossary catalog."""
 
+from dataclasses import replace
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -9,7 +10,6 @@ from app.glossary import (
     get_glossary_categories,
     get_glossary_term,
     get_glossary_terms,
-    get_related_terms,
     validate_glossary_catalog,
 )
 from tests.fs_helpers import symlink_or_skip
@@ -200,11 +200,10 @@ def test_derived_explainer_terms_do_not_appear_as_top_level_glossary_entries():
     }
     assert term_ids.isdisjoint(removed_explainers)
 
-def test_related_glossary_terms_resolve_to_existing_terms():
-    for term in get_glossary_terms("en"):
-        related = get_related_terms(term, "en")
-        assert len(related) == len(term["related"])
-        assert all(item["id"] in term["related"] for item in related)
+
+def test_glossary_schema_rejects_unknown_related_terms():
+    term = replace(_media_test_term(()), related=("missing_term",))
+    assert validate_glossary_catalog((term,)) == ["media_test: unknown related term missing_term"]
 
 
 def test_categories_are_localized_and_used_by_terms():

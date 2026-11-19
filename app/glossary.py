@@ -1106,10 +1106,6 @@ def _category_ids() -> set[str]:
     return {category.id for category in _CATEGORIES}
 
 
-def _term_ids() -> set[str]:
-    return {term.id for term in _TERMS}
-
-
 def validate_glossary_catalog(
     terms: Iterable[GlossaryTerm] = _TERMS,
     *,
@@ -1266,13 +1262,3 @@ def get_glossary_term(term_id: str, lang: str = "en") -> dict[str, Any] | None:
         if term.id == term_id:
             return term.localized(lang)
     return None
-
-
-def get_related_terms(term: dict[str, Any], lang: str = "en") -> list[dict[str, Any]]:
-    """Resolve related term IDs for a localized term dict."""
-    related = []
-    for term_id in term.get("related", []):
-        resolved = get_glossary_term(term_id, lang)
-        if resolved:
-            related.append(resolved)
-    return related

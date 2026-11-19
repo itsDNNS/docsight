@@ -7,7 +7,7 @@ types so unrelated support cohorts are never combined.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Mapping, Sequence
 
 
@@ -22,16 +22,6 @@ class CounterCoverage:
     comparable_channels: int
     partial_channels: int
     unsupported_channels: int
-
-    def as_dict(self) -> dict[str, int]:
-        return {
-            "total_channels": self.total_channels,
-            "correctable_channels": self.correctable_channels,
-            "uncorrectable_channels": self.uncorrectable_channels,
-            "comparable_channels": self.comparable_channels,
-            "partial_channels": self.partial_channels,
-            "unsupported_channels": self.unsupported_channels,
-        }
 
 
 @dataclass(frozen=True)
@@ -50,9 +40,9 @@ class ErrorCounterAggregate:
 
     def coverage_dict(self) -> dict[str, object]:
         return {
-            **self.coverage.as_dict(),
+            **asdict(self.coverage),
             "families": {
-                family: coverage.as_dict()
+                family: asdict(coverage)
                 for family, coverage in sorted(self.family_coverage.items())
             },
         }
