@@ -17,6 +17,8 @@ from .docsis_utils import (
     classify_channel_family,
     modulation_threshold_key,
     parse_qam_order,
+    power_limits,
+    snr_limits,
     stored_or_classified_family,
     to_float,
 )
@@ -117,17 +119,7 @@ def resolve_ds_power_thresholds(
     else:
         mod = modulation_threshold_key(modulation, ds)
         t = ds.get(mod, {})
-    good = t.get("good", [-4.0, 13.0])
-    warn = t.get("warning", good)
-    crit = t.get("critical", [-8.0, 20.0])
-    return {
-        "good_min": good[0],
-        "good_max": good[1],
-        "warn_min": warn[0],
-        "warn_max": warn[1],
-        "crit_min": crit[0],
-        "crit_max": crit[1],
-    }
+    return power_limits(t, "ds")
 
 
 def _get_ds_power_thresholds(modulation=None, *, channel_family: str | None = None):
@@ -152,17 +144,9 @@ def resolve_us_power_thresholds(channel_type=None, *, thresholds: Mapping[str, A
     else:
         key = "sc_qam"
     t = us.get(key, us.get(default_key, {}))
-    good = t.get("good", [41.0, 47.0])
-    warn = t.get("warning", good)
-    crit = t.get("critical", [35.0, 53.0])
     rate_low = key != "ofdma"
     return {
-        "good_min": good[0],
-        "good_max": good[1],
-        "warn_min": warn[0],
-        "warn_max": warn[1],
-        "crit_min": crit[0],
-        "crit_max": crit[1],
+        **power_limits(t, "us"),
         "rate_low": rate_low,
         "plausible_min": None if rate_low else OFDMA_MIN_PLAUSIBLE_POWER_DBMV,
     }
@@ -188,11 +172,7 @@ def resolve_snr_thresholds(
     else:
         mod = modulation_threshold_key(modulation, snr)
         t = snr.get(mod, {})
-    return {
-        "good_min": t.get("good_min", 33.0),
-        "warn_min": t.get("warning_min", t.get("good_min", 33.0)),
-        "crit_min": t.get("critical_min", 29.0),
-    }
+    return snr_limits(t)
 
 
 def _get_snr_thresholds(modulation=None, *, channel_family: str | None = None):

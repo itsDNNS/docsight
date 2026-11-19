@@ -205,6 +205,31 @@ def modulation_threshold_key(modulation: object, section: dict, *, default: str 
     return _MODULATION_THRESHOLD_ALIASES.get(value, fallback)
 
 
+def power_limits(t: dict[str, Any], direction: Literal["ds", "us"]) -> dict[str, Any]:
+    """Return the power limits of one threshold row, filling in bands it leaves out."""
+    default_good, default_crit = ([-4.0, 13.0], [-8.0, 20.0]) if direction == "ds" else ([41.0, 47.0], [35.0, 53.0])
+    good = t.get("good", default_good)
+    warn = t.get("warning", good)
+    crit = t.get("critical", default_crit)
+    return {
+        "good_min": good[0],
+        "good_max": good[1],
+        "warn_min": warn[0],
+        "warn_max": warn[1],
+        "crit_min": crit[0],
+        "crit_max": crit[1],
+    }
+
+
+def snr_limits(t: dict[str, Any]) -> dict[str, Any]:
+    """Return the SNR/MER limits of one threshold row, filling in values it leaves out."""
+    return {
+        "good_min": t.get("good_min", 33.0),
+        "warn_min": t.get("warning_min", t.get("good_min", 33.0)),
+        "crit_min": t.get("critical_min", 29.0),
+    }
+
+
 def sc_qam_capacity_family(direction: Direction, channel: dict) -> Literal["sc_qam", "unsupported"]:
     """Return whether a channel can use the SC-QAM Layer-1 capacity formula."""
     return "sc_qam" if classify_channel_family(direction, channel) == "sc_qam" else "unsupported"
