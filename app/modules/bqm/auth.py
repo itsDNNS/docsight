@@ -79,8 +79,6 @@ def fetch_share_csv(share_id: str, variant: str = "y") -> str:
             return response.text
         log.warning("ThinkBroadband response is not CSV")
         return ""
-    except ThinkBroadbandBatchAbort:
-        raise
     except requests.RequestException as exc:
         log.warning("ThinkBroadband CSV request failed: %s", exc)
         return ""

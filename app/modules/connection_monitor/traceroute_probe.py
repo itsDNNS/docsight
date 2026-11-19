@@ -85,7 +85,7 @@ class TracerouteProbe:
             try:
                 host, _, _ = socket.gethostbyaddr(ip)
                 return ip, host
-            except (socket.herror, socket.gaierror, OSError):
+            except OSError:
                 return ip, None
         pool = ThreadPoolExecutor(max_workers=min(len(ips_to_resolve), 16))
         futures = {pool.submit(_lookup, ip): ip for ip in ips_to_resolve}

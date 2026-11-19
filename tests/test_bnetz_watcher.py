@@ -193,6 +193,12 @@ class TestMarkerHelpers:
         result = _read_marker(str(tmp_path / "nonexistent"))
         assert result == set()
 
+    def test_read_marker_raises_when_the_marker_cannot_be_read(self, tmp_path):
+        # Treating an unreadable marker as empty would import every file again.
+        # Opening a directory raises IsADirectoryError, or PermissionError on Windows.
+        with pytest.raises((IsADirectoryError, PermissionError)):
+            _read_marker(str(tmp_path))
+
     def test_read_marker_with_content(self, tmp_path):
         marker = tmp_path / ".imported"
         marker.write_text("file1.pdf\nfile2.csv\n")

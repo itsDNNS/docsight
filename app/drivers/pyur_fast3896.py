@@ -85,7 +85,7 @@ class PyurFast3896Driver(ModemDriver):
             if response is not None:
                 try:
                     response.close()
-                except (requests.RequestException, OSError):
+                except OSError:
                     raise RuntimeError("PYUR response close failed") from None
 
     def login(self) -> None:

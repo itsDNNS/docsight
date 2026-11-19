@@ -96,7 +96,7 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             config["modem_user"],
             config["modem_password"],
         )
-        log.info("Modem driver: %s", modem_type)
+        log.info("Modem driver: %s", driver_registry.log_label(modem_type))
 
         collectors.append(ModemCollector(
             driver=driver,

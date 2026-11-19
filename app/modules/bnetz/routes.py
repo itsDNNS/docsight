@@ -59,7 +59,7 @@ def api_bnetz_upload():
         try:
             csv_content = file_bytes.decode("utf-8-sig")
             parsed = parse_bnetz_csv(csv_content)
-        except (ValueError, UnicodeDecodeError):
+        except ValueError:
             return jsonify({"error": t.get("bnetz_csv_parse_error", "Could not read CSV.")}), 400
         measurement_id = bs.save_bnetz_measurement(parsed, pdf_bytes=None, source="upload")
     else:

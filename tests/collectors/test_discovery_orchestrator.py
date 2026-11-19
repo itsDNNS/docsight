@@ -1,5 +1,6 @@
 """Tests for collector discovery and polling orchestration."""
 
+import logging
 import sqlite3
 import threading
 import time
@@ -545,10 +546,18 @@ class TestPollingLoopOrchestrator:
         assert cleanup == stop_and_disconnect * 2 + ["MQTT disconnect failed: mqtt boom"]
         assert publisher.return_value.connect.call_count == publisher.return_value.disconnect.call_count == 3
 
+    @pytest.mark.parametrize("new_type, logged", [
+        ("tc4400", "tc4400"),
+        ("https://user:secret@modem.example/x", "unregistered modem type"),
+    ])
     @patch("app.drivers.driver_registry.load_driver")
-    def test_driver_hot_swap_on_modem_type_change(self, mock_load, mock_runtime, mock_storage):
+    def test_driver_hot_swap_on_modem_type_change(
+        self, mock_load, new_type, logged, mock_runtime, mock_storage, caplog
+    ):
         """Polling loop should hot-swap the modem driver when modem_type changes."""
         from app.main import polling_loop
+
+        caplog.set_level(logging.INFO, logger="docsis.main")
 
         self._working_driver(mock_load)
 
@@ -562,9 +571,9 @@ class TestPollingLoopOrchestrator:
             call_count[0] += 1
             if call_count[0] == 1:
                 # After first tick, change modem_type in config
-                config_mgr.get_all.return_value["modem_type"] = "tc4400"
+                config_mgr.get_all.return_value["modem_type"] = new_type
                 config_mgr.get.side_effect = lambda k, d=None: {
-                    "modem_type": "tc4400",
+                    "modem_type": new_type,
                     "modem_url": "http://fritz.box",
                     "modem_user": "admin",
                     "modem_password": "pass",
@@ -585,7 +594,11 @@ class TestPollingLoopOrchestrator:
         assert mock_load.call_count >= 2
         # Second call should use the new modem type
         second_call = mock_load.call_args_list[1]
-        assert second_call[0][0] == "tc4400"
+        assert second_call[0][0] == new_type
+        # The mocked config starts with an empty modem_type, which is not a registered driver.
+        assert f"Modem config changed (unregistered modem type -> {logged}), hot-swapping driver" in caplog.messages
+        assert f"Driver hot-swapped to {logged}" in caplog.messages
+        assert "secret" not in caplog.text
         # Web state should have been reset for the swap
         mock_runtime.reset_modem_state.assert_called()
         assert mock_runtime.modem_collector.name == "modem"
