@@ -8,6 +8,7 @@ from app import analyzer
 from app.storage import snapshot as snapshot_module
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
+from app.modules.bqm.storage import BqmStorage
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 from tests.conftest import mixed_error_counter_summary
 
@@ -16,6 +17,15 @@ from tests.conftest import mixed_error_counter_summary
 def storage(tmp_path):
     db_path = str(tmp_path / "test.db")
     return SnapshotStorage(db_path, max_days=7)
+
+
+_EXPIRED_ROWS = {
+    "events": "INSERT INTO events (timestamp, severity, event_type, message) VALUES ('2020-01-01T00:00:00Z', 'info', 'x', 'old')",
+    "bqm_graphs": "INSERT INTO bqm_graphs (date, timestamp, image_blob) VALUES ('2020-01-01', '2020-01-01T00:00:00Z', x'00')",
+    "weather_data": "INSERT INTO weather_data (timestamp, temperature) VALUES ('2020-01-01T00:00:00Z', 1.0)",
+    "smart_capture_executions": "INSERT INTO smart_capture_executions (trigger_type, action_type, created_at) "
+                                "VALUES ('t', 'a', '2020-01-01T00:00:00Z')",
+}
 
 
 @pytest.fixture
@@ -492,6 +502,54 @@ class TestSnapshotStorage:
 
         assert snapshots == ["2020-01-01T12:00:00Z"]
         assert events == ["2020-01-01T12:00:00Z"]
+
+    @pytest.mark.parametrize(("schema", "query", "kept"), [
+        pytest.param(
+            "CREATE TABLE incidents (id INTEGER PRIMARY KEY, title TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0);"
+            "CREATE TABLE journal_entries (id INTEGER PRIMARY KEY, title TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0);"
+            "INSERT INTO journal_entries VALUES (1, 'demo', 1), (2, 'user', 0);",
+            "SELECT id FROM journal_entries", [(2,)], id="pre-journal-tables",
+        ),
+        pytest.param(
+            "CREATE TABLE journal_entries (entry_key INTEGER PRIMARY KEY, is_demo INTEGER);"
+            "CREATE TABLE journal_attachments (id INTEGER PRIMARY KEY, entry_id INTEGER);"
+            "INSERT INTO journal_entries VALUES (1, 1), (2, 0);"
+            "INSERT INTO journal_attachments VALUES (2, 2);",
+            "SELECT id, entry_id FROM journal_attachments", [(2, 2)], id="unknown-journal-keeps-user-attachment",
+        ),
+        pytest.param(
+            "CREATE TABLE BQM_GRAPHS (DATE TEXT, IS_DEMO INTEGER);"
+            "INSERT INTO BQM_GRAPHS VALUES ('2999-01-01', 1), ('2999-01-02', 0);",
+            "SELECT date FROM bqm_graphs", [("2999-01-02",)], id="names-in-another-case",
+        ),
+    ])
+    def test_cleanup_and_purge_handle_preserved_table_shapes(self, tmp_path, schema, query, kept):
+        db_path = str(tmp_path / "preserved.db")
+        with sqlite3.connect(db_path) as conn:
+            conn.executescript(schema)
+        storage = SnapshotStorage(db_path, max_days=1)
+
+        storage._cleanup()
+
+        assert storage.purge_demo_data() == 1
+        with sqlite3.connect(db_path) as conn:
+            assert conn.execute(query).fetchall() == kept
+
+    @pytest.mark.parametrize("broken", _EXPIRED_ROWS)
+    def test_failed_retention_step_is_logged_and_the_other_steps_still_run(self, storage, sample_analysis, caplog, broken):
+        BqmStorage(storage.db_path)
+        with sqlite3.connect(storage.db_path) as conn:
+            for statement in _EXPIRED_ROWS.values():
+                conn.execute(statement)
+            conn.execute(f"DROP TABLE {broken}")
+            conn.execute(f"CREATE TABLE {broken} (id INTEGER PRIMARY KEY)")
+
+        snapshot_id = storage.save_snapshot(sample_analysis)
+
+        assert snapshot_id and len(storage.get_snapshot_list()) == 1
+        with sqlite3.connect(storage.db_path) as conn:
+            assert [conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in _EXPIRED_ROWS if table != broken] == [0, 0, 0]
+        assert "Retention cleanup of" in caplog.text and "no such column" in caplog.text
 
 
 class TestBnetzStorage:

@@ -1,12 +1,6 @@
 """Journal storage schema migrations."""
 
-from app.storage.migrations import (
-    Migration,
-    add_column_if_missing,
-    schema_baseline,
-    table_columns,
-    table_exists,
-)
+from app.storage.migrations import DEMO_FLAG, add_columns, schema_baseline
 
 
 _SCHEMA = (
@@ -36,19 +30,7 @@ _SCHEMA = (
 )
 
 
-def _demo_applied(conn):
-    return all(
-        not table_exists(conn, table) or "is_demo" in table_columns(conn, table)
-        for table in ("journal_entries", "incidents")
-    )
-
-
-def _apply_demo(conn):
-    for table in ("journal_entries", "incidents"):
-        add_column_if_missing(conn, table, "is_demo", "is_demo INTEGER NOT NULL DEFAULT 0")
-
-
 MIGRATIONS = (
     schema_baseline("journal-0001-baseline", _SCHEMA),
-    Migration("journal-0002-demo-flags", _apply_demo, _demo_applied),
+    add_columns("journal-0002-demo-flags", [("journal_entries", DEMO_FLAG), ("incidents", DEMO_FLAG)]),
 )
