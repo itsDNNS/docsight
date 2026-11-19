@@ -1,8 +1,10 @@
 """Tests for collector discovery and polling orchestration."""
 
+import sqlite3
 import threading
 import time
 from concurrent.futures import Future
+from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -183,7 +185,7 @@ class TestDiscoverCollectors:
 
 @pytest.fixture
 def mock_runtime():
-    return MagicMock()
+    return MagicMock(smart_capture_ticks=0)
 
 
 class TestPollingLoopOrchestrator:
@@ -306,8 +308,6 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = advance_tick
 
-        mock_runtime.derived_storage.value.return_value = 0
-
         polling_loop(config_mgr, mock_storage, stop, mock_runtime)
 
         assert collector.collect_calls == 1
@@ -411,8 +411,6 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = advance_tick
 
-        mock_runtime.derived_storage.value.return_value = 0
-
         main.polling_loop(config_mgr, mock_storage, stop, mock_runtime)
 
         assert old_collector.success_calls == 1
@@ -429,8 +427,6 @@ class TestPollingLoopOrchestrator:
         stop = threading.Event()
         self._stop_when(stop, lambda: mock_driver.get_docsis_data.call_count)
 
-        mock_runtime.derived_storage.value.return_value = 0
-
         polling_loop(config_mgr, mock_storage, stop, mock_runtime)
 
         mock_driver.login.assert_called()
@@ -446,8 +442,6 @@ class TestPollingLoopOrchestrator:
         config_mgr = self._make_config_mgr()
         stop = threading.Event()
         self._stop_when(stop, lambda: mock_driver.get_docsis_data.call_count)
-
-        mock_runtime.derived_storage.value.return_value = 0
 
         polling_loop(config_mgr, mock_storage, stop, mock_runtime)
 
@@ -471,8 +465,6 @@ class TestPollingLoopOrchestrator:
             "error" in c.kwargs for c in mock_runtime.update_state.call_args_list
         ))
 
-        mock_runtime.derived_storage.value.return_value = 0
-
         polling_loop(config_mgr, mock_storage, stop, mock_runtime)
 
         mock_runtime.update_state.assert_any_call(error="Modem login failed, see the DOCSight log")
@@ -488,10 +480,70 @@ class TestPollingLoopOrchestrator:
         stop = threading.Event()
         stop.set()  # Pre-set: should exit immediately
 
-        mock_runtime.derived_storage.value.return_value = 0
-
         polling_loop(config_mgr, mock_storage, stop, mock_runtime)
         # If we get here without hanging, the test passes
+
+    # A failed fired write skips the pending write of that sweep; both run again 60 ticks later.
+    @pytest.mark.parametrize("failing_write,first_sweep", [
+        (None, ["fired", "pending"]), ("fired", ["fired"]), ("pending", ["fired", "pending"]),
+    ])
+    @pytest.mark.parametrize("loop_error", [None, RuntimeError("loop boom")])
+    @patch("app.main.discover_collectors")
+    def test_expiry_cadence_survives_restarts_and_cleanup_always_runs(
+        self, mock_discover, loop_error, failing_write, first_sweep, mock_runtime, mock_storage, caplog
+    ):
+        from app.main import polling_loop
+
+        collector = MagicMock()
+        collector.name = "stubborn"
+        collector.is_enabled.return_value = False
+        collector.stop.side_effect = RuntimeError("stop boom")
+        # The third start fails during collector discovery, after MQTT is up.
+        mock_discover.side_effect = [[collector], [collector], RuntimeError("discovery boom")]
+        publisher = MagicMock()
+        publisher.return_value.disconnect.side_effect = RuntimeError("mqtt boom")
+        mock_runtime.get_module_loader.return_value.get_enabled_modules.return_value = [
+            MagicMock(id="docsight.mqtt", publisher_class=publisher)
+        ]
+        config_mgr = self._make_config_mgr()
+        config_mgr.is_mqtt_configured.return_value = True
+        ticks, writes = [], []
+
+        def storage_write(name):
+            def write(*_args, **_kwargs):
+                writes.append((name, len(ticks)))
+                if name == failing_write and len(ticks) == 59:
+                    raise sqlite3.OperationalError("database is locked")
+                return 0
+            return write
+
+        for name in ("fired", "pending"):
+            getattr(mock_storage, f"expire_stale_{name}").side_effect = storage_write(name)
+
+        # The second run restarts the loop on the same runtime.
+        for last_tick in (59, 120):
+            stop = threading.Event()
+
+            def tick(_timeout=None, stop=stop, last_tick=last_tick):
+                ticks.append(_timeout)
+                if len(ticks) == last_tick:
+                    stop.set()
+                    if loop_error:
+                        raise loop_error
+
+            stop.wait = tick
+            with pytest.raises(RuntimeError, match="loop boom") if loop_error else nullcontext():
+                polling_loop(config_mgr, mock_storage, stop, mock_runtime)
+        with pytest.raises(RuntimeError, match="discovery boom"):
+            polling_loop(config_mgr, mock_storage, threading.Event(), mock_runtime)
+
+        # Sweeps run in the 60th and 120th loop iteration, before that iteration's tick.
+        assert writes == [(name, 59) for name in first_sweep] + [("fired", 119), ("pending", 119)]
+        assert ("Smart Capture expiry failed: database is locked" in caplog.messages) == bool(failing_write)
+        cleanup = [m for m in caplog.messages if m.endswith("boom")]
+        stop_and_disconnect = ["stubborn: stop failed: stop boom", "MQTT disconnect failed: mqtt boom"]
+        assert cleanup == stop_and_disconnect * 2 + ["MQTT disconnect failed: mqtt boom"]
+        assert publisher.return_value.connect.call_count == publisher.return_value.disconnect.call_count == 3
 
     @patch("app.drivers.driver_registry.load_driver")
     def test_driver_hot_swap_on_modem_type_change(self, mock_load, mock_runtime, mock_storage):
@@ -525,8 +577,6 @@ class TestPollingLoopOrchestrator:
             return original_wait(0)
 
         stop.wait = change_modem_after_first_tick
-
-        mock_runtime.derived_storage.value.return_value = 0
 
         polling_loop(config_mgr, mock_storage, stop, mock_runtime)
 
@@ -572,8 +622,6 @@ class TestPollingLoopOrchestrator:
 
         stop.wait = change_url_after_first_tick
 
-        mock_runtime.derived_storage.value.return_value = 0
-
         polling_loop(config_mgr, mock_storage, stop, mock_runtime)
 
         # load_driver called twice: initial + hot-swap for URL change
@@ -602,8 +650,6 @@ class TestPollingLoopOrchestrator:
             return original_wait(0)
 
         stop.wait = stop_after_ticks
-
-        mock_runtime.derived_storage.value.return_value = 0
 
         polling_loop(config_mgr, mock_storage, stop, mock_runtime)
 

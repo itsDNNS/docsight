@@ -10,6 +10,7 @@ import sys
 from app.app_factory import create_app
 from app.config import ConfigManager
 from app.registration import canonical_manifest, manifest_fingerprint
+from app.runtime import get_runtime
 
 
 def test_manifest_is_canonical_and_redacted(tmp_path):
@@ -19,7 +20,7 @@ def test_manifest_is_canonical_and_redacted(tmp_path):
     manager.save({secret_name: secret_value})
     app = create_app(config_manager=manager, environ={}, testing=True)
 
-    manifest = canonical_manifest(app, app.extensions.get("docsight_module_loader"))
+    manifest = canonical_manifest(app, get_runtime(app).module_loader)
     encoded = json.dumps(manifest, sort_keys=True)
 
     assert manifest["version"] == 1

@@ -493,7 +493,7 @@ def test_modal_consumers_have_no_absent_api_fallbacks() -> None:
 
 
 def test_smart_capture_wires_the_speedtest_adapter_in_the_polling_loop() -> None:
-    # The wiring sits inside polling_loop(), which cannot run on its own in a test.
+    # The wiring sits inside _run_collectors(), which cannot run on its own in a test.
     main = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
     assert "register_speedtest_adapter(stt_adapter)" in main
 

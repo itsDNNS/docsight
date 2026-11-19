@@ -1,27 +1,24 @@
 """Tests for the generic module downloader."""
 
+import pytest
 
 from app.module_download import is_trusted_url, validate_registry_entry, fetch_registry
 
 
-class TestIsTrustedUrl:
-    def test_github_raw(self):
-        assert is_trusted_url("https://raw.githubusercontent.com/user/repo/main/file") is True
-
-    def test_github_api(self):
-        assert is_trusted_url("https://api.github.com/repos/user/repo/contents/dir") is True
-
-    def test_http_rejected(self):
-        assert is_trusted_url("http://raw.githubusercontent.com/user/repo/main/file") is False
-
-    def test_untrusted_host(self):
-        assert is_trusted_url("https://evil.com/malicious") is False
-
-    def test_empty_string(self):
-        assert is_trusted_url("") is False
-
-    def test_none(self):
-        assert is_trusted_url(None) is False
+@pytest.mark.parametrize("url,expected", [
+    ("https://raw.githubusercontent.com/user/repo/main/file", True),
+    ("https://api.github.com/repos/user/repo/contents/dir", True),
+    ("https://github.com/user/repo", True),
+    ("http://raw.githubusercontent.com/user/repo/main/file", False),
+    ("https://evil.com/malicious", False),
+    ("https://localhost:8080/steal", False),
+    ("file:///etc/passwd", False),
+    ("gopher://internal:25/", False),
+    ("", False),
+    (None, False),
+])
+def test_is_trusted_url(url, expected):
+    assert is_trusted_url(url) is expected
 
 
 class TestValidateRegistryEntry:

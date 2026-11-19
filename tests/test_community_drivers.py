@@ -318,7 +318,6 @@ def test_builtin_override_preflight_does_not_mutate_active_registry(tmp_path):
     assert module.driver_class is None
     assert loader.registration_plan.modules[0].driver_class is not None
     assert runtime.driver_registry is registry
-    assert application.extensions["docsight_driver_registry"] is registry
     for untouched in (registry, driver_registry):
         assert untouched.is_builtin("fritzbox")
         assert untouched.get_available_drivers() == names
