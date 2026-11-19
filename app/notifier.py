@@ -7,7 +7,6 @@ import json
 import logging
 import re
 import time
-from abc import ABC, abstractmethod
 from urllib.parse import quote, urlsplit
 
 import http_ece
@@ -95,16 +94,39 @@ def _safe_endpoint_label(url: str) -> str:
     return f"{parsed.scheme}://{host}{port_label}"
 
 
-class NotificationChannel(ABC):
-    """Base class for notification channels."""
+class NotificationChannel:
+    """Base class for notification channels; send() POSTs the JSON request built by _request()."""
 
-    @abstractmethod
+    _last_error = ""
+
+    def _request(self, payload: NotificationPayload) -> tuple[str, object, dict[str, str]]:
+        """Return the URL, JSON body and headers for one notification."""
+        raise NotImplementedError
+
     def send(self, payload: NotificationPayload) -> bool:
-        """Send a notification payload. Returns True on success."""
+        """Send a notification payload. Returns True on success.
+
+        Failures are logged with the safe label and the status or exception
+        type, never the URL or the exception text.
+        """
+        try:
+            url, body, headers = self._request(payload)
+            requests.post(url, json=body, headers=headers, timeout=10).raise_for_status()
+        except requests.HTTPError as e:
+            self._last_error = f"HTTP {e.response.status_code if e.response is not None else 'unknown'}"
+        except Exception as e:
+            self._last_error = type(e).__name__
+        else:
+            self._last_error = ""
+            return True
+        log.warning("%s POST failed (%s): %s", self._log_name, self._log_label, self._last_error)
+        return False
 
 
 class WebhookChannel(NotificationChannel):
     """HTTP POST webhook — works with ntfy, Discord, Gotify, custom endpoints."""
+
+    _log_name = "Webhook"
 
     def __init__(self, url, headers=None):
         self._url = url
@@ -113,32 +135,14 @@ class WebhookChannel(NotificationChannel):
         if headers:
             self._headers.update(headers)
 
-    def send(self, payload: NotificationPayload) -> bool:
-        try:
-            r = requests.post(
-                self._url,
-                json=payload,
-                headers=self._headers,
-                timeout=10,
-            )
-            r.raise_for_status()
-            return True
-        except requests.HTTPError as e:
-            status = e.response.status_code if e.response is not None else "unknown"
-            log.warning(
-                "Webhook POST failed (%s): HTTP %s (%s)",
-                self._log_label,
-                status,
-                type(e).__name__,
-            )
-            return False
-        except Exception as e:
-            log.warning("Webhook POST failed (%s): %s", self._log_label, type(e).__name__)
-            return False
+    def _request(self, payload):
+        return self._url, payload, self._headers
 
 
 class AppriseChannel(NotificationChannel):
     """Apprise API channel using /notify or /notify/{config_key}."""
+
+    _log_name = "Apprise"
 
     _TYPE_BY_SEVERITY = {
         "info": "info",
@@ -152,7 +156,6 @@ class AppriseChannel(NotificationChannel):
         self._tag = (tag or "").strip()
         self._token = (token or "").strip()
         self._log_label = "Apprise API"
-        self._last_error = ""
 
     @staticmethod
     def _format_body(payload: NotificationPayload) -> str:
@@ -185,36 +188,14 @@ class AppriseChannel(NotificationChannel):
             return f"{self._base_url}/notify/{quote(self._config_key, safe='')}"
         return f"{self._base_url}/notify"
 
-    def send(self, payload: NotificationPayload) -> bool:
-        try:
-            apprise_payload = self._format_payload(payload)
-            if self._tag:
-                apprise_payload["tag"] = self._tag
-            headers = {"Content-Type": "application/json"}
-            if self._token:
-                headers["Authorization"] = f"Bearer {self._token}"
-            r = requests.post(
-                self._notify_url(),
-                json=apprise_payload,
-                headers=headers,
-                timeout=10,
-            )
-            r.raise_for_status()
-            self._last_error = ""
-            return True
-        except requests.HTTPError as e:
-            status = e.response.status_code if e.response is not None else "unknown"
-            self._last_error = f"HTTP {status}"
-            log.warning(
-                "Apprise POST failed (%s): HTTP %s",
-                self._log_label,
-                status,
-            )
-            return False
-        except Exception as e:
-            self._last_error = type(e).__name__
-            log.warning("Apprise POST failed (%s): %s", self._log_label, type(e).__name__)
-            return False
+    def _request(self, payload):
+        apprise_payload = self._format_payload(payload)
+        if self._tag:
+            apprise_payload["tag"] = self._tag
+        headers = {"Content-Type": "application/json"}
+        if self._token:
+            headers["Authorization"] = f"Bearer {self._token}"
+        return self._notify_url(), apprise_payload, headers
 
 
 class WebPushChannel(NotificationChannel):
@@ -224,7 +205,6 @@ class WebPushChannel(NotificationChannel):
         self._storage = storage
         self._vapid_private_key = (vapid_private_key or "").strip()
         self._vapid_subject = (vapid_subject or "mailto:admin@example.com").strip()
-        self._last_error = ""
         self._log_label = "PWA Web Push"
 
     @staticmethod
@@ -247,15 +227,6 @@ class WebPushChannel(NotificationChannel):
             "timestamp": payload.get("timestamp", utc_now()),
             "url": cls._notification_url(event_type),
         }
-
-    @staticmethod
-    def _response_status(exc) -> int | None:
-        response = getattr(exc, "response", None)
-        status = getattr(response, "status_code", None)
-        try:
-            return int(status) if status is not None else None
-        except (TypeError, ValueError):
-            return None
 
     def send(self, payload: NotificationPayload) -> bool:
         if not self._storage or not self._vapid_private_key:
@@ -280,19 +251,14 @@ class WebPushChannel(NotificationChannel):
                     vapid_claims={"sub": self._vapid_subject},
                 )
             except WebPushException as exc:
-                status = self._response_status(exc)
+                status = getattr(exc.response, "status_code", "unknown")
                 if status in (404, 410) and endpoint:
                     self._storage.delete_pwa_push_subscription(endpoint)
                     errors.append(f"expired:{status}")
                     continue
-                errors.append(f"HTTP {status or 'unknown'}")
-                log.warning("Web Push POST failed (%s): HTTP %s", self._log_label, status or "unknown")
+                errors.append(f"HTTP {status}")
+                log.warning("Web Push POST failed (%s): HTTP %s", self._log_label, status)
             except Exception as exc:
-                status = self._response_status(exc)
-                if status in (404, 410) and endpoint:
-                    self._storage.delete_pwa_push_subscription(endpoint)
-                    errors.append(f"expired:{status}")
-                    continue
                 errors.append(type(exc).__name__)
                 log.warning("Web Push POST failed (%s): %s", self._log_label, type(exc).__name__)
 
@@ -305,6 +271,8 @@ class WebPushChannel(NotificationChannel):
 
 class DiscordWebhookChannel(NotificationChannel):
     """Discord-native webhook channel with rich embed formatting."""
+
+    _log_name = "Discord webhook"
 
     def __init__(self, url):
         self._url = url
@@ -351,27 +319,8 @@ class DiscordWebhookChannel(NotificationChannel):
 
         return embed
 
-    def send(self, payload: NotificationPayload) -> bool:
-        try:
-            discord_payload = {"embeds": [self._format_embed(payload)]}
-            r = requests.post(
-                self._url,
-                json=discord_payload,
-                headers={"Content-Type": "application/json"},
-                timeout=10,
-            )
-            r.raise_for_status()
-            return True
-        except requests.HTTPError as e:
-            # Sanitize: raise_for_status() embeds the full URL (with token)
-            log.warning(
-                "Discord webhook POST failed (%s): HTTP %s",
-                self._log_label, e.response.status_code if e.response is not None else "unknown",
-            )
-            return False
-        except Exception as e:
-            log.warning("Discord webhook POST failed (%s): %s", self._log_label, type(e).__name__)
-            return False
+    def _request(self, payload):
+        return self._url, {"embeds": [self._format_embed(payload)]}, {"Content-Type": "application/json"}
 
 
 def is_discord_webhook_url(url: str) -> bool:
@@ -434,7 +383,7 @@ class NotificationDispatcher:
                 channels.append(WebPushChannel(
                     self._storage,
                     vapid_private_key=vapid_private_key,
-                    vapid_subject=self._config_mgr.get("notify_pwa_push_vapid_subject") or "mailto:admin@example.com",
+                    vapid_subject=self._config_mgr.get("notify_pwa_push_vapid_subject"),
                 ))
         return channels
 
@@ -523,10 +472,7 @@ class NotificationDispatcher:
         for channel in channels:
             try:
                 if not channel.send(payload):
-                    detail = getattr(channel, "_last_error", "")
-                    errors.append(
-                        f"{type(channel).__name__}: {detail or 'send returned false'}",
-                    )
+                    errors.append(f"{type(channel).__name__}: {channel._last_error}")
             except Exception as e:
                 log.warning(
                     "Notification test failed for channel %s: %s",

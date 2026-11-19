@@ -6,8 +6,11 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+import requests
+
 from app.config import ConfigManager, PASSWORD_MASK
-from app.notifier import NotificationDispatcher, WebPushChannel
+from app.notifier import NotificationDispatcher, WebPushChannel, WebPushException
 from app.storage import SnapshotStorage
 
 from app.runtime import current_runtime
@@ -154,17 +157,21 @@ def test_web_push_channel_sends_safe_payload_to_all_subscriptions(tmp_path):
     assert "threshold" not in call["data"]
 
 
-def test_web_push_channel_removes_expired_subscriptions(tmp_path):
+@pytest.mark.parametrize("error, last_error, kept", [
+    (WebPushException("gone", response=MagicMock(status_code=410)), "expired:410", 0),
+    (WebPushException("rejected"), "HTTP unknown", 1),
+    (requests.ConnectionError("offline"), "ConnectionError", 1),
+])
+def test_web_push_channel_removes_only_expired_subscriptions(tmp_path, error, last_error, kept):
     storage = make_storage(tmp_path)
     storage.upsert_pwa_push_subscription(VALID_SUBSCRIPTION, user_agent="Firefox")
     channel = WebPushChannel(storage, "private-vapid-key", "mailto:admin@example.test")
-    gone = RuntimeError("expired")
-    gone.response = MagicMock(status_code=410)
 
-    with patch("app.notifier.webpush", side_effect=gone):
+    with patch("app.notifier.webpush", side_effect=error):
         assert channel.send({"severity": "warning", "event_type": "test", "message": "Test"}) is False
 
-    assert storage.list_pwa_push_subscriptions() == []
+    assert channel._last_error == last_error
+    assert len(storage.list_pwa_push_subscriptions()) == kept
 
 
 def test_settings_exposes_explicit_pwa_push_controls_without_auto_permission_prompt():
