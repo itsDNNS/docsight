@@ -305,7 +305,7 @@ def modulation_target(direction: str, channel: dict) -> str | None:
         if family == "ofdma":
             probe = {"modulation": "OFDMA", "type": "OFDMA", "profile_modulation": qam}
         else:
-            probe = {"modulation": qam, "type": ""}
+            probe = {"modulation": qam, "type": "SC-QAM"}
         return _assess_us_modulation(probe, docsis_ver) == "good"
 
     good = [order for order in _QAM_ORDERS if rated_good(order)]
