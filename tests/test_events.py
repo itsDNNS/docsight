@@ -1303,6 +1303,18 @@ class TestRestartDetection:
         assert len(restart_events) == 1
         assert restart_events[0]["details"]["affected_channels"] == 16
 
+    @pytest.mark.parametrize("extra, as_string", [([], True), ([{"correctable_errors": 0}], False)],
+                             ids=["string-ids", "channel-without-id"])
+    def test_restart_matches_channels_by_normalized_id(self, detector, extra, as_string):
+        """String and int IDs match like in every other check; channels without an ID are skipped."""
+        prev, cur = self._make_restart_pair()
+        cur["ds_channels"] = [{**ch, "channel_id": str(ch["channel_id"]) if as_string else ch["channel_id"]}
+                              for ch in cur["ds_channels"]] + extra
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert [e["details"]["affected_channels"] for e in restart_events] == [16]
+
     def test_restart_partial_channels(self, detector):
         """14/16 channels decline, 2 unchanged — still detected."""
         prev_channels = [
