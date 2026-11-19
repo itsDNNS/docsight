@@ -124,8 +124,7 @@ def _admin_password_matches(effective_password, candidate):
 
 def _get_admin_password():
     """Return the current application's effective admin-password representation."""
-    _config_manager = current_runtime().config_manager
-    return _config_manager.get("admin_password", "") if _config_manager else ""
+    return current_runtime().config_manager.get("admin_password", "")
 
 
 def _auth_state_fingerprint(password_representation=None):
@@ -164,8 +163,6 @@ def bootstrap_auth_state(app, runtime):
 
 def _sync_auth_state():
     """Observe runtime auth changes and durably invalidate existing cookies."""
-    if not current_runtime().config_manager:
-        return
     stored = current_runtime().auth_state.read_fingerprint()
     current = _auth_state_fingerprint()
     if stored is not None and _secret_values_match(stored, current):
@@ -223,8 +220,7 @@ def desktop_mode_requested(environ: Mapping[str, str]) -> bool:
 def _open_without_password():
     if current_app.config.get("DOCSIGHT_AUTH_DISABLED") or current_app.config.get("DOCSIGHT_DESKTOP_MODE"):
         return True
-    _config_manager = current_runtime().config_manager
-    return bool(_config_manager and _config_manager.is_demo_mode())
+    return current_runtime().config_manager.is_demo_mode()
 
 
 def password_setup_pending():

@@ -9,13 +9,10 @@ from .runtime import current_runtime
 
 def get_lang():
     """Get language from query param or config."""
-    _config_manager = current_runtime().config_manager
     lang = request.args.get("lang")
     if lang and lang in LANGUAGES:
         return lang
-    if _config_manager:
-        return _config_manager.get("language", "en")
-    return "en"
+    return current_runtime().config_manager.get("language", "en")
 
 
 def get_setup_lang(*, persist=True):
@@ -23,11 +20,11 @@ def get_setup_lang(*, persist=True):
     _config_manager = current_runtime().config_manager
     lang = request.args.get("lang")
     if lang in LANGUAGES:
-        if _config_manager and persist:
+        if persist:
             _config_manager.save({"language": lang})
         return lang
 
-    if _config_manager and _config_manager.has_stored_value("language"):
+    if _config_manager.has_stored_value("language"):
         return _config_manager.get("language", DEFAULTS["language"])
 
     inferred = DEFAULTS["language"]
@@ -43,6 +40,6 @@ def get_setup_lang(*, persist=True):
             inferred = base
             break
 
-    if _config_manager and persist:
+    if persist:
         _config_manager.save({"language": inferred})
     return inferred

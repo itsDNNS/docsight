@@ -16,7 +16,5 @@ def get_capabilities(config_manager, module_loader) -> dict[str, bool]:
     result = {
         name: module_id in enabled_ids for name, module_id in _MODULE_IDS.items()
     }
-    result["demo_mode"] = bool(
-        config_manager and config_manager.is_demo_mode()
-    )
+    result["demo_mode"] = bool(config_manager.is_demo_mode())
     return result

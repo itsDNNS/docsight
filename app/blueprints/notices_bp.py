@@ -16,8 +16,7 @@ notices_bp = Blueprint("notices_bp", __name__)
 
 
 def _dismissed_ids(config_mgr) -> list[str]:
-    raw = config_mgr.get("dismissed_notice_ids", []) if config_mgr else []
-    return coerce_dismissed_notice_ids(raw)
+    return coerce_dismissed_notice_ids(config_mgr.get("dismissed_notice_ids", []))
 
 
 @notices_bp.route("/api/notices")
@@ -44,9 +43,6 @@ def api_notice_dismiss(notice_id):
         return jsonify({"success": False, "error": "Invalid notice id"}), 400
 
     config_mgr = current_runtime().config_manager
-    if not config_mgr:
-        return jsonify({"success": False, "error": "Config not initialized"}), 500
-
     dismissed = _dismissed_ids(config_mgr)
     if notice_id not in dismissed:
         dismissed.append(notice_id)

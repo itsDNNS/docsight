@@ -357,7 +357,7 @@ def _calculate_claim(claim: dict):
 
 def _customer_defaults(capabilities: dict[str, bool]) -> dict[str, str]:
     config = current_runtime().config_manager
-    if not capabilities["reports"] or capabilities["demo_mode"] or not config:
+    if not capabilities["reports"] or capabilities["demo_mode"]:
         return {}
     return {
         "name": config.get("report_customer_name", "") or "",

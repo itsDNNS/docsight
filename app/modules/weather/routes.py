@@ -25,8 +25,7 @@ def _get_weather_storage():
 @require_auth
 def api_weather():
     """Return weather (temperature) history, newest first."""
-    _config_manager = current_runtime().config_manager
-    if not _config_manager or not _config_manager.is_weather_configured():
+    if not current_runtime().config_manager.is_weather_configured():
         return jsonify([])
     ws = _get_weather_storage()
     if not ws:
@@ -50,8 +49,7 @@ def api_weather_current():
 @require_auth
 def api_weather_range():
     """Return weather data within a timestamp range (for correlation)."""
-    _config_manager = current_runtime().config_manager
-    if not _config_manager or not _config_manager.is_weather_configured():
+    if not current_runtime().config_manager.is_weather_configured():
         return jsonify([])
     ws = _get_weather_storage()
     if not ws:

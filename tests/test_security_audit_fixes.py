@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.module_download import fetch_registry
-from app.runtime import get_runtime
 from tests.conftest import OPEN_INSTANCE_ENVIRON
 
 
@@ -115,7 +114,7 @@ class TestRestoreAuth:
             config_manager=make_config(), environ=dict(OPEN_INSTANCE_ENVIRON), testing=True
         )
 
-        with patch.object(get_runtime(test_app), "config_manager", None), \
+        with patch("app.modules.backup.routes.current_runtime", return_value=MagicMock(config_manager=None)), \
              patch("app.modules.backup.routes.restore_backup") as mock_restore:
             test_app.register_blueprint(backup_bp)
             with test_app.test_client() as c:

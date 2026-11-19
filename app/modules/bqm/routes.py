@@ -229,14 +229,14 @@ def api_bqm_live():
     """Fetch live BQM graph PNG from ThinkBroadband, fallback to today's cached."""
     _config_manager = current_runtime().config_manager
     bs = _get_bqm_storage()
-    bqm_url = _config_manager.get("bqm_url") if _config_manager else None
+    bqm_url = _config_manager.get("bqm_url")
     image = None
     source = "cached"
     ts = None
 
     # Only fetch live PNG if the URL is a PNG share link (not CSV/XML)
     is_png = bqm_url and bqm_url.strip().lower().endswith(".png")
-    if is_png and not (_config_manager and _config_manager.is_demo_mode()):
+    if is_png and not _config_manager.is_demo_mode():
         image = fetch_graph(bqm_url)
         if image:
             source = "live"

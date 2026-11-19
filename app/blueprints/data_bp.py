@@ -67,12 +67,7 @@ def _append_connection_monitor_trends(data: list[dict], hours: int, end: datetim
     a lightweight latency series here without coupling the card to a second
     request path.
     """
-    cfg = current_runtime().config_manager
-    data_dir = getattr(cfg, "data_dir", None)
-    if not data_dir:
-        return
-
-    db_path = os.path.join(data_dir, "connection_monitor.db")
+    db_path = os.path.join(current_runtime().config_manager.data_dir, "connection_monitor.db")
     if not os.path.exists(db_path):
         return
 
@@ -212,7 +207,6 @@ def api_trends():
 def api_export():
     """Generate a structured markdown report for LLM analysis."""
     _storage = current_runtime().storage
-    _config_manager = current_runtime().config_manager
     state = current_runtime().get_state()
     analysis = state.get("analysis")
     if not analysis:
@@ -227,7 +221,7 @@ def api_export():
     us = analysis["us_channels"]
     ts = state.get("last_update", "unknown")
 
-    isp = _config_manager.get("isp_name", "") if _config_manager else ""
+    isp = current_runtime().config_manager.get("isp_name", "")
     conn = state.get("connection_info") or {}
     ds_mbps = conn.get("max_downstream_kbps", 0) // 1000 if conn else 0
     us_mbps = conn.get("max_upstream_kbps", 0) // 1000 if conn else 0

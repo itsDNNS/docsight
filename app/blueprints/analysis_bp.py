@@ -26,8 +26,7 @@ def api_connection():
     isp_name comes from user config. The remaining fields are populated
     by the modem driver and may be absent if the modem has not been polled yet.
     """
-    _config_manager = current_runtime().config_manager
-    isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
+    isp_name = current_runtime().config_manager.get("isp_name", "")
     conn_info = current_runtime().get_state().get("connection_info") or {}
     return jsonify({
         "isp_name": isp_name or None,
@@ -80,8 +79,7 @@ def api_gaming_score():
       components   - measured values, units, and heuristic component scores
       raw          - raw measured values that fed into the calculation
     """
-    _config_manager = current_runtime().config_manager
-    enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
+    enabled = current_runtime().config_manager.is_gaming_quality_enabled()
     state = current_runtime().get_state()
     speedtest_latest = state.get("speedtest_latest")
     result = compute_gaming_index(speedtest_latest)

@@ -46,8 +46,8 @@ def _classify_speed(actual, booked):
 def _enrich_speedtest(result):
     """Add speed_health, download_class, upload_class to a speedtest result."""
     _config_manager = current_runtime().config_manager
-    booked_dl = _config_manager.get("booked_download", 0) if _config_manager else 0
-    booked_ul = _config_manager.get("booked_upload", 0) if _config_manager else 0
+    booked_dl = _config_manager.get("booked_download", 0)
+    booked_ul = _config_manager.get("booked_upload", 0)
     if not booked_dl or not booked_ul:
         conn_info = current_runtime().get_state().get("connection_info") or {}
         if not booked_dl:
@@ -94,7 +94,7 @@ def api_speedtest():
     """Return speedtest results from local cache, with delta fetch from STT."""
     _config_manager = current_runtime().config_manager
     ss = _get_speedtest_storage()
-    if not _config_manager or not _config_manager.is_speedtest_configured():
+    if not _config_manager.is_speedtest_configured():
         return jsonify([])
     count = request.args.get("count", 2000, type=int)
     count = max(1, min(count, 5000))
@@ -228,7 +228,7 @@ def api_speedtest_signal(result_id):
 def api_speedtest_run():
     """Trigger a speedtest run via the Speedtest Tracker API."""
     _config_manager = current_runtime().config_manager
-    if not _config_manager or not _config_manager.is_speedtest_configured():
+    if not _config_manager.is_speedtest_configured():
         return jsonify({"success": False, "error": "Speedtest Tracker not configured"}), 400
 
     if _config_manager.is_demo_mode():

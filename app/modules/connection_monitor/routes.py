@@ -37,9 +37,7 @@ def _no_cache_api(response):
 
 def _get_cm_storage():
     """Get ConnectionMonitorStorage. Uses DATA_DIR like collector."""
-    config_manager = current_runtime().config_manager
-    data_dir = config_manager.data_dir if config_manager else os.environ.get("DATA_DIR", "/data")
-    db_path = os.path.join(data_dir, "connection_monitor.db")
+    db_path = os.path.join(current_runtime().config_manager.data_dir, "connection_monitor.db")
     return current_runtime().derived_storage.get(
         f"connection_monitor:{db_path}", lambda: ConnectionMonitorStorage(db_path)
     )
@@ -47,8 +45,7 @@ def _get_cm_storage():
 
 def _get_probe_engine():
     """Get ProbeEngine for capability info using configured method."""
-    cfg = current_runtime().config_manager
-    method = cfg.get("connection_monitor_probe_method", "auto") if cfg else "auto"
+    method = current_runtime().config_manager.get("connection_monitor_probe_method", "auto")
     return ProbeEngine(method=method)
 
 
@@ -455,12 +452,12 @@ def api_get_summary():
     cfg = current_runtime().config_manager
     # Demo data is seeded history without a running collector, so its summary
     # window ends at the newest stored sample instead of now.
-    demo = cfg is not None and cfg.is_demo_mode() is True
-    if cfg is not None and not demo and not cfg.get("connection_monitor_enabled", False):
+    demo = cfg.is_demo_mode() is True
+    if not demo and not cfg.get("connection_monitor_enabled", False):
         return jsonify({})
 
     # Cover at least three probes so slow intervals still produce a summary.
-    interval_s = (configured_probe_interval_ms(cfg) if cfg is not None else 5000) / 1000
+    interval_s = configured_probe_interval_ms(cfg) / 1000
     window_seconds = max(60, math.ceil(3 * interval_s))
     storage = _get_cm_storage()
     targets = storage.get_targets()
@@ -485,8 +482,7 @@ def api_get_outages(target_id):
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
     end = request.args.get("end", type=float)
-    cfg = current_runtime().config_manager
-    default_threshold = int(cfg.get("connection_monitor_outage_threshold", 5)) if cfg else 5
+    default_threshold = int(current_runtime().config_manager.get("connection_monitor_outage_threshold", 5))
     threshold = request.args.get("threshold", default_threshold, type=int)
     outages = storage.get_outages(target_id, threshold=threshold, start=start, end=end)
     return jsonify(outages)

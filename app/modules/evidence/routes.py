@@ -187,16 +187,13 @@ def _get_connection_latency_rows(start_ts: str, end_ts: str) -> list[dict[str, A
 
 
 def _capabilities(config_manager) -> dict[str, Any]:
-    modem_type = ""
-    if config_manager:
-        modem_type = str(config_manager.get("modem_type", "") or "").lower()
-    docsis_supported = modem_type not in _GENERIC_MODEM_TYPES
+    modem_type = str(config_manager.get("modem_type", "") or "").lower()
     return {
-        "docsis_supported": docsis_supported,
-        "speedtest_configured": bool(config_manager.is_speedtest_configured()) if config_manager else False,
-        "bqm_configured": bool(config_manager.is_bqm_configured()) if config_manager else False,
-        "connection_monitor_configured": bool(config_manager.get("connection_monitor_enabled", False)) if config_manager else False,
-        "demo_mode": bool(config_manager.is_demo_mode()) if config_manager else False,
+        "docsis_supported": modem_type not in _GENERIC_MODEM_TYPES,
+        "speedtest_configured": bool(config_manager.is_speedtest_configured()),
+        "bqm_configured": bool(config_manager.is_bqm_configured()),
+        "connection_monitor_configured": bool(config_manager.get("connection_monitor_enabled", False)),
+        "demo_mode": bool(config_manager.is_demo_mode()),
     }
 
 

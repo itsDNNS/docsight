@@ -10,13 +10,16 @@ import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import requests
 from flask import Flask, current_app
 
 from .drivers import create_driver_registry
 from .drivers.registry import DriverRegistry
+
+if TYPE_CHECKING:
+    from .config import ConfigManager
 
 
 DOCSIGHT_EXTENSION_KEY = "docsight"
@@ -347,7 +350,7 @@ class DerivedStorageCache:
 class DocsightRuntime:
     """All mutable runtime collaborators belonging to one Flask application."""
 
-    config_manager: Any = field(repr=False)
+    config_manager: ConfigManager = field(repr=False)
     auth_state: AuthStateStore = field(repr=False)
     update_checker: UpdateChecker = field(repr=False)
     storage: Any | None = field(default=None, repr=False)
