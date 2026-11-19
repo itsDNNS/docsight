@@ -11,11 +11,14 @@ class TestThemeContext:
     """Test active theme module is available in template context."""
 
     @staticmethod
-    def _context(monkeypatch, make_config, themes, active=""):
-        """Template context for these installed themes and the saved theme choice."""
+    def _context(monkeypatch, make_config, themes, active="", enabled=None):
+        """Template context for these installed themes, the enabled ones (default: all) and the saved choice."""
         from app import web
 
-        loader = SimpleNamespace(get_enabled_modules=lambda: themes, get_theme_modules=lambda: themes)
+        loader = SimpleNamespace(
+            get_enabled_modules=lambda: themes if enabled is None else enabled,
+            get_theme_modules=lambda: themes,
+        )
         monkeypatch.setattr(current_runtime(), "module_loader", loader)
         monkeypatch.setattr(current_runtime(), "config_manager", make_config({"active_theme": active}))
         with app.test_request_context("/"):
@@ -71,13 +74,14 @@ class TestThemeContext:
 
     def test_gallery_lists_active_theme_first_then_names(self, monkeypatch, make_config):
         """The gallery needs only the active selection and alphabetical ordering."""
+        classic = self._theme("docsight.theme_classic", {"--bg": "#111"}, name="Classic")
         modules = [
             self._theme("docsight.theme_matrix", {"--bg": "#111"}, name="Matrix"),
             self._theme("docsight.theme_tokyo_night", {"--bg": "#111"}, name="Tokyo Night"),
-            self._theme("docsight.theme_classic", {"--bg": "#111"}, name="Classic"),
+            classic,
         ]
 
-        ctx = self._context(monkeypatch, make_config, modules, active="docsight.theme_classic")
+        ctx = self._context(monkeypatch, make_config, modules, active="docsight.theme_classic", enabled=[classic])
 
         assert [m.id for m in ctx["all_theme_modules"]] == [
             "docsight.theme_classic",
@@ -94,9 +98,10 @@ class TestThemeContext:
                       "--text-secondary": "#d1d5db", "--muted": muted}
             return self._theme(theme_id, tokens, dict(tokens))
 
-        modules = [theme("community.readable", "#a7acb6"), theme("community.faint", "#4b5563")]
+        readable = theme("community.readable", "#a7acb6")
+        modules = [readable, theme("community.faint", "#4b5563")]
 
-        ctx = self._context(monkeypatch, make_config, modules, active="community.readable")
+        ctx = self._context(monkeypatch, make_config, modules, active="community.readable", enabled=[readable])
 
         assert ctx["theme_contrast_warnings"] == {"community.faint": ["dark", "light"]}
         with app.test_request_context("/settings"):
