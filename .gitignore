@@ -6,24 +6,12 @@ __pycache__/
 .pytest_cache/
 .vscode/
 .idea/
-deploy.sh
 .config_key
 config.json
 
 # Docs live in the GitHub Wiki; keep local Markdown drafts out of docs/
 docs/*.md
 docs/**/*.md
-docs/superpowers/
-
-# Internal development docs (belong in workspace, not repo)
-PHASE-*.md
-*-review-*.md
-*-audit-*.md
-*-status.md
-*-tomorrow.md
-QUICK-TEST-*.md
-phase*.png
-mockup*.png
 
 # Virtual environments
 .venv/
@@ -34,30 +22,17 @@ venv/
 *.bak
 *.old
 *~
-.claude/
 .worktrees/
 
 # Windows Desktop Preview build outputs
 packaging/windows/build/
 packaging/windows/dist/
 
-# GSD planning (local only)
-.planning/
-.codex/
-CLAUDE.md
-AGENTS.md.export*
-
-# Internal task tracking (local only)
-tasks/
-
 # Generated translation helper files
 app/i18n/template.json
 
 # E2E test screenshots (generated, local only)
 tests/e2e/screenshots/
-
-.superpowers/
-.agents/
 
 # Local test run output (E2E server logs, Playwright traces)
 test-results/
