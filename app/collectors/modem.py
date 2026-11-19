@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone
 
 from .base import Collector, CollectorResult
 from ..analyzer import (
@@ -14,6 +13,7 @@ from ..analyzer import (
 )
 from ..gaming_index import compute_gaming_index
 from ..types import ConnectionInfo, DeviceInfo
+from ..tz import utc_now
 
 log = logging.getLogger("docsis.collector.modem")
 
@@ -132,8 +132,7 @@ class ModemCollector(AnalysisCollector):
             reboot_reason = self._device_info.get("reboot_reason")
 
             old_state = self._storage.get_device_state()
-            now = datetime.now(timezone.utc)
-            now_iso = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+            now_iso = utc_now()
 
             events_to_log = []
 

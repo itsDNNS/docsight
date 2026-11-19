@@ -11,7 +11,7 @@ import requests
 
 from ...config import parse_config_bool
 from ...modules.speedtest.client import public_error
-from ...tz import utc_now
+from ...tz import UTC_FMT, utc_now
 from ...types import EventDict
 from ..types import CAPTURE_ACTION_TYPE, ExecutionStatus
 
@@ -276,7 +276,7 @@ class SpeedtestAdapter:
 
     @staticmethod
     def _format_utc(dt: datetime) -> str:
-        return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return dt.astimezone(timezone.utc).strftime(UTC_FMT)
 
     @staticmethod
     def _parse_timestamp(ts: str) -> datetime | None:

@@ -10,19 +10,19 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # Canonical UTC format used throughout the application
-_UTC_FMT = "%Y-%m-%dT%H:%M:%SZ"
+UTC_FMT = "%Y-%m-%dT%H:%M:%SZ"
 _LOCAL_FMT = "%Y-%m-%dT%H:%M:%S"
 
 
 def utc_now():
     """Return current UTC time as 'YYYY-MM-DDTHH:MM:SSZ'."""
-    return datetime.now(timezone.utc).strftime(_UTC_FMT)
+    return datetime.now(timezone.utc).strftime(UTC_FMT)
 
 
 def utc_cutoff(days=0, hours=0, minutes=0):
     """Return UTC timestamp N days/hours/minutes in the past as 'YYYY-MM-DDTHH:MM:SSZ'."""
     dt = datetime.now(timezone.utc) - timedelta(days=days, hours=hours, minutes=minutes)
-    return dt.strftime(_UTC_FMT)
+    return dt.strftime(UTC_FMT)
 
 
 def to_local(utc_ts, tz_name):
@@ -35,11 +35,7 @@ def to_local(utc_ts, tz_name):
     Returns:
         Local time string like '2026-01-15T15:30:00'
     """
-    if not utc_ts or not tz_name:
-        return (utc_ts or "").rstrip("Z")
-    dt = _parse_utc(utc_ts)
-    local_dt = dt.astimezone(ZoneInfo(tz_name))
-    return local_dt.strftime(_LOCAL_FMT)
+    return to_local_display(utc_ts, tz_name, _LOCAL_FMT)
 
 
 def to_local_display(utc_ts, tz_name, fmt="%Y-%m-%d %H:%M:%S"):
@@ -55,7 +51,7 @@ def to_local_display(utc_ts, tz_name, fmt="%Y-%m-%d %H:%M:%S"):
     """
     if not utc_ts or not tz_name:
         return (utc_ts or "").rstrip("Z")
-    dt = _parse_utc(utc_ts)
+    dt = parse_utc(utc_ts)
     local_dt = dt.astimezone(ZoneInfo(tz_name))
     return local_dt.strftime(fmt)
 
@@ -75,15 +71,16 @@ def local_to_utc(local_ts, tz_name):
     """
     if not local_ts or not tz_name:
         # No timezone info: assume already UTC, just add Z
-        return (local_ts or "") + "Z" if local_ts else ""
-    ts_clean = local_ts.rstrip("Z")
-    if "." in ts_clean:
-        ts_clean = ts_clean.split(".")[0]
-    naive = datetime.strptime(ts_clean, _LOCAL_FMT)
-    tz = ZoneInfo(tz_name)
-    local_dt = naive.replace(tzinfo=tz)
-    utc_dt = local_dt.astimezone(timezone.utc)
-    return utc_dt.strftime(_UTC_FMT)
+        return local_ts + "Z" if local_ts else ""
+    local_dt = parse_utc(local_ts).replace(tzinfo=ZoneInfo(tz_name))
+    return local_dt.astimezone(timezone.utc).strftime(UTC_FMT)
+
+
+def epoch_to_utc(value):
+    """Format a Unix epoch as 'YYYY-MM-DDTHH:MM:SSZ'; None stays None."""
+    if value is None:
+        return None
+    return datetime.fromtimestamp(float(value), tz=timezone.utc).strftime(UTC_FMT)
 
 
 
@@ -150,11 +147,10 @@ def guess_iana_timezone():
 
     try:
         link = os.readlink("/etc/localtime")
-        for marker in ("/zoneinfo/",):
-            if marker in link:
-                localtime_tz = _valid_iana_timezone(link.split(marker, 1)[1])
-                if localtime_tz:
-                    return localtime_tz
+        if "/zoneinfo/" in link:
+            localtime_tz = _valid_iana_timezone(link.split("/zoneinfo/", 1)[1])
+            if localtime_tz:
+                return localtime_tz
     except (OSError, ValueError):
         pass
 
@@ -168,7 +164,7 @@ def guess_iana_timezone():
     return ""
 
 
-def _parse_utc(ts):
+def parse_utc(ts):
     """Parse a UTC timestamp string into a timezone-aware datetime.
 
     Handles: '2026-01-15T14:30:00Z', '2026-01-15T14:30:00',
@@ -179,6 +175,14 @@ def _parse_utc(ts):
         ts_clean = ts_clean.split(".")[0]
     naive = datetime.strptime(ts_clean, _LOCAL_FMT)
     return naive.replace(tzinfo=timezone.utc)
+
+
+def parse_utc_strict(ts):
+    """Parse only the canonical 'YYYY-MM-DDTHH:MM:SSZ' form; None for anything else."""
+    try:
+        return datetime.strptime(ts, UTC_FMT).replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
 
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")

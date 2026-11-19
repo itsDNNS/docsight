@@ -6,6 +6,7 @@ from app.storage.migrations import run_migrations
 from app.storage.sqlite import bulk_write, open_read, write_transaction
 from .migrations import MIGRATIONS
 from datetime import datetime, timezone
+from app.tz import UTC_FMT
 
 log = logging.getLogger("docsis.storage.speedtest")
 
@@ -45,7 +46,7 @@ class SpeedtestStorage:
                     continue
                 if parsed.tzinfo is None:
                     continue
-                normalized = parsed.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                normalized = parsed.astimezone(timezone.utc).strftime(UTC_FMT)
                 conn.execute(
                     "UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
                     (normalized, row_id),

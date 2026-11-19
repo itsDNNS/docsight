@@ -2,6 +2,8 @@
 
 from datetime import datetime, timedelta, timezone
 
+from app.tz import UTC_FMT
+
 
 def chunk_report_windows(window_from: str, window_to: str) -> list[dict[str, str | int]]:
     """Split an evidence range into report-compatible windows of at most 90 days."""
@@ -15,8 +17,8 @@ def chunk_report_windows(window_from: str, window_to: str) -> list[dict[str, str
         chunk_end = min(cursor + timedelta(days=90), end)
         chunks.append({
             "index": len(chunks) + 1,
-            "from": cursor.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "to": chunk_end.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "from": cursor.astimezone(timezone.utc).strftime(UTC_FMT),
+            "to": chunk_end.astimezone(timezone.utc).strftime(UTC_FMT),
         })
         if chunk_end == end:
             break

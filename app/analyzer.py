@@ -28,7 +28,7 @@ from .error_counters import (
 )
 from .threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
-from .tz import _parse_utc, utc_now
+from .tz import parse_utc, utc_now
 
 log = logging.getLogger("docsis.analyzer")
 
@@ -341,8 +341,8 @@ def _recent_spike_active(last_spike_ts: str | None) -> bool:
     if not last_spike_ts:
         return False
     try:
-        now = _parse_utc(utc_now())
-        spike_dt = _parse_utc(last_spike_ts)
+        now = parse_utc(utc_now())
+        spike_dt = parse_utc(last_spike_ts)
     except Exception:
         return False
     return (now - spike_dt).total_seconds() / 3600 < _get_spike_expiry_hours()
@@ -449,8 +449,8 @@ def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None)
         return
 
     expiry_hours = _get_spike_expiry_hours()
-    now = _parse_utc(utc_now())
-    spike_dt = _parse_utc(last_spike_ts)
+    now = parse_utc(utc_now())
+    spike_dt = parse_utc(last_spike_ts)
     hours_since = (now - spike_dt).total_seconds() / 3600
 
     if hours_since < expiry_hours:

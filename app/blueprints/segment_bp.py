@@ -1,7 +1,6 @@
 """Segment utilization API routes."""
 
 import logging
-from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
@@ -9,6 +8,7 @@ from app.i18n import get_translations
 from app.storage.segment_utilization import SegmentUtilizationStorage
 from app.web_auth import require_auth
 from app.runtime import current_runtime
+from app.tz import utc_cutoff, utc_now
 
 log = logging.getLogger("docsis.web.segment")
 
@@ -59,10 +59,10 @@ def api_segment_utilization():
     hours = RANGE_HOURS[range_key]
 
     if hours > 0:
-        start = (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        start = utc_cutoff(hours=hours)
     else:
         start = "2000-01-01T00:00:00Z"
-    end = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    end = utc_now()
 
     return jsonify({
         "samples": storage.get_range(start, end),
@@ -110,10 +110,10 @@ def api_segment_utilization_events():
     range_key = _normalize_range_key(request.args.get("range"), "7d")
     hours = RANGE_HOURS[range_key]
     if hours > 0:
-        start = (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        start = utc_cutoff(hours=hours)
     else:
         start = "2000-01-01T00:00:00Z"
-    end = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    end = utc_now()
 
     events = storage.get_events(start, end, threshold=threshold, min_minutes=min_minutes)
     return jsonify({

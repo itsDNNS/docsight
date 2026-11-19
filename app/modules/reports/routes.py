@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, make_response, request
 
 from app.aggregation import select_preferred_bnetz
-from app.tz import utc_cutoff, utc_now
+from app.tz import UTC_FMT, utc_cutoff, utc_now
 from app.web_auth import require_auth
 
 from .report import generate_complaint_text, generate_report
@@ -84,8 +84,8 @@ def _get_report_window():
                 "window_too_large",
             )
         return (
-            start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            start.strftime(UTC_FMT),
+            end.strftime(UTC_FMT),
         ), None
 
     days_value = request.args.get("days")

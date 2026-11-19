@@ -2,13 +2,13 @@
 
 import logging
 import time
-from datetime import datetime, timezone
 
 import requests
 
 from app import fritzbox as fb
 from app.collectors.base import Collector, CollectorResult
 from app.storage.segment_utilization import SegmentUtilizationStorage
+from app.tz import epoch_to_utc
 
 log = logging.getLogger("docsis.collector.segment_utilization")
 
@@ -81,7 +81,7 @@ class SegmentUtilizationCollector(Collector):
                 if ds_t is None and us_t is None:
                     continue
                 sample_epoch = last_sample_time - (n_samples - 1 - i) * sample_interval_s
-                ts = datetime.fromtimestamp(sample_epoch, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                ts = epoch_to_utc(sample_epoch)
                 self._storage.save_at(ts, ds_t, us_t, ds_o, us_o)
                 saved += 1
 

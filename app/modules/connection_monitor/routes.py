@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request, Response
 
-from app.tz import local_date_to_utc_range, local_today, to_local_display, _parse_utc
+from app.tz import epoch_to_utc, local_date_to_utc_range, local_today, parse_utc, to_local_display
 from app.web_auth import require_auth
 from app.runtime import current_runtime
 
@@ -56,10 +56,6 @@ def _get_traceroute_probe():
     return current_runtime().derived_storage.get(
         "connection_monitor_traceroute_probe", TracerouteProbe
     )
-
-
-def _epoch_to_iso(ts):
-    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _hop_to_dict(hop):
@@ -135,7 +131,7 @@ def _get_tz():
 def _date_to_epoch_range(date_str, tz_name):
     """Convert YYYY-MM-DD to (start_epoch, end_epoch) in the configured timezone."""
     start_utc, end_utc = local_date_to_utc_range(date_str, tz_name)
-    return (_parse_utc(start_utc).timestamp(), _parse_utc(end_utc).timestamp())
+    return (parse_utc(start_utc).timestamp(), parse_utc(end_utc).timestamp())
 
 
 @bp.route("/api/connection-monitor/pinned-days", methods=["GET"])
@@ -170,7 +166,7 @@ def api_pin_day():
         except (ValueError, TypeError):
             return jsonify({"error": "invalid timestamp"}), 400
         tz = _get_tz()
-        utc_str = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        utc_str = epoch_to_utc(ts)
         date_str = to_local_display(utc_str, tz, fmt="%Y-%m-%d")
 
     if not _DATE_RE.match(date_str):
@@ -666,7 +662,7 @@ def api_run_traceroute(target_id):
 
     return jsonify({
         "trace_id": trace_id,
-        "timestamp": _epoch_to_iso(time.time()),
+        "timestamp": epoch_to_utc(time.time()),
         "trigger_reason": "manual",
         "reached_target": result.reached_target,
         "hop_count": len(result.hops),
@@ -685,7 +681,7 @@ def api_get_traces(target_id):
     limit = max(1, min(limit, 1000))
     traces = storage.get_traces(target_id, start=start, end=end, limit=limit)
     for t in traces:
-        t["timestamp"] = _epoch_to_iso(t["timestamp"])
+        t["timestamp"] = epoch_to_utc(t["timestamp"])
     return jsonify(traces)
 
 
@@ -697,6 +693,6 @@ def api_get_trace_detail(trace_id):
     if not trace:
         return jsonify({"error": "Trace not found"}), 404
     hops = storage.get_trace_hops(trace_id)
-    trace["timestamp"] = _epoch_to_iso(trace["timestamp"])
+    trace["timestamp"] = epoch_to_utc(trace["timestamp"])
     trace["hops"] = hops
     return jsonify(trace)

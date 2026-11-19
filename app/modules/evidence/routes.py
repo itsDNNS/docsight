@@ -15,7 +15,7 @@ from flask import Blueprint, jsonify, request
 from app.aggregation import canonical_utc_timestamp
 from app.modules.journal.storage import JournalStorage
 from app.storage.sqlite import open_read
-from app.tz import get_tz_name, local_date_to_utc_range, local_to_utc, local_today
+from app.tz import UTC_FMT, epoch_to_utc, get_tz_name, local_date_to_utc_range, local_to_utc, local_today
 from app.web_auth import require_auth
 
 from .checklist import build_checklist, summarize_checklist
@@ -72,7 +72,7 @@ def _normalise_window_ts(value: str, tz_name: str) -> str:
     timestamp = timestamp if len(timestamp) > 16 else f"{timestamp}:00"
     parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
     if parsed.tzinfo is not None:
-        return parsed.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return parsed.astimezone(timezone.utc).strftime(UTC_FMT)
     return local_to_utc(timestamp, tz_name)
 
 
@@ -115,12 +115,6 @@ def _get_bqm_rows(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, An
     return filtered
 
 
-def _epoch_to_iso(value: float | int | None) -> str | None:
-    if value is None:
-        return None
-    return datetime.fromtimestamp(float(value), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
 def _utc_ts_to_epoch(value: str) -> float:
     normalized = value.replace("Z", "+00:00")
     parsed = datetime.fromisoformat(normalized)
@@ -158,7 +152,7 @@ def _get_connection_latency_rows(start_ts: str, end_ts: str) -> list[dict[str, A
             ).fetchone()
             if raw and (raw["sample_count"] or 0) > 0:
                 rows.append({
-                    "timestamp": _epoch_to_iso(raw["latest_ts"]),
+                    "timestamp": epoch_to_utc(raw["latest_ts"]),
                     "sample_count": raw["sample_count"],
                     "latency_count": raw["latency_count"],
                     "avg_latency_ms": raw["avg_latency_ms"],
@@ -179,7 +173,7 @@ def _get_connection_latency_rows(start_ts: str, end_ts: str) -> list[dict[str, A
             ).fetchone()
             if aggregated and (aggregated["sample_count"] or 0) > 0:
                 rows.append({
-                    "timestamp": _epoch_to_iso(aggregated["latest_ts"]),
+                    "timestamp": epoch_to_utc(aggregated["latest_ts"]),
                     "sample_count": aggregated["sample_count"],
                     "latency_count": aggregated["latency_count"],
                     "avg_latency_ms": aggregated["avg_latency_ms"],

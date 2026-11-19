@@ -9,7 +9,7 @@ from typing import Any, cast
 
 from ..analyzer import get_analysis_metadata
 from ..types import AnalysisResult, DocsisData
-from ..tz import _parse_utc, local_date_to_utc_range, utc_cutoff, utc_now
+from ..tz import UTC_FMT, local_date_to_utc_range, parse_utc, utc_cutoff, utc_now
 from ..version import get_available_app_version
 from .error_counters import unwrap_uint32_counter_series
 
@@ -120,9 +120,7 @@ def _unwrap_anchor_start(timestamp: str) -> str:
     canonical UTC strings, so the result remains lexicographically sortable for
     SQLite filters.
     """
-    return (_parse_utc(timestamp) - timedelta(days=_UNWRAP_ANCHOR_DAYS)).strftime(
-        "%Y-%m-%dT%H:%M:%SZ"
-    )
+    return (parse_utc(timestamp) - timedelta(days=_UNWRAP_ANCHOR_DAYS)).strftime(UTC_FMT)
 
 
 class SnapshotMethods:
@@ -187,8 +185,8 @@ class SnapshotMethods:
             after = one(after_sql.format(">="))
         if before is None or after is None:
             return before or after
-        target = _parse_utc(timestamp)
-        return before if target - _parse_utc(before) <= _parse_utc(after) - target else after
+        target = parse_utc(timestamp)
+        return before if target - parse_utc(before) <= parse_utc(after) - target else after
 
     def get_snapshot_summary_before(self, timestamp: str) -> dict | None:
         """Summary of the snapshot just before ``timestamp``, for per-snapshot changes."""
@@ -427,10 +425,10 @@ class SnapshotMethods:
 
         All timestamps are now stored as UTC with Z suffix.
         """
-        center = _parse_utc(timestamp)
-        start_ts = (center - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        end_ts = (center + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        ts_param = center.strftime("%Y-%m-%dT%H:%M:%SZ")
+        center = parse_utc(timestamp)
+        start_ts = (center - timedelta(hours=2)).strftime(UTC_FMT)
+        end_ts = (center + timedelta(hours=2)).strftime(UTC_FMT)
+        ts_param = center.strftime(UTC_FMT)
         with self._read() as conn:
             row = conn.execute(
                 """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
