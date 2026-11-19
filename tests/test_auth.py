@@ -8,9 +8,12 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
 import pytest
+from flask import session
 from werkzeug.security import generate_password_hash
 from app.web_auth import (
+    _LOGIN_CSRF_SESSION_KEY,
     _LOGIN_MAX_TRACKED_IPS,
+    _authenticate_login,
     _keyed_sha256_hexdigest,
 )
 from app.config import ConfigManager
@@ -117,9 +120,11 @@ class TestAuthEnabled:
         assert resp.status_code == 200
         assert b"DOCSight" in resp.data
 
-    def test_login_wrong_password(self, auth_client):
-        resp = auth_client.post("/login", data={"password": "wrong", "csrf_token": _login_csrf(auth_client)})
+    @pytest.mark.parametrize("password", ["wrong", ""])
+    def test_login_wrong_password(self, auth_client, password):
+        resp = auth_client.post("/login", data={"password": password, "csrf_token": _login_csrf(auth_client)})
         assert resp.status_code == 200  # stays on login page
+        assert b"Invalid password" in resp.data
 
     def test_login_correct_password(self, auth_client):
         resp = _login(auth_client)
@@ -210,6 +215,30 @@ class TestAuthEnabled:
 
         current_runtime().config_manager = ConfigManager(str(data_dir))
         assert client.get("/").status_code == 200
+
+    @pytest.mark.parametrize("stored, environment, password, expected", [
+        pytest.param("secret123", None, "wrong", ("login_failed", 200), id="plaintext-wrong"),
+        pytest.param("scrypt:abc$s$h", None, "x", ("login_failed", 200), id="malformed-scrypt"),
+        pytest.param("pbkdf2:sha999:1$s$h", None, "x", ("login_failed", 200), id="malformed-pbkdf2"),
+        pytest.param("pbkdf2:sha256:99999999999999999999$s$h", None, "x", ("login_failed", 200), id="pbkdf2-overflow"),
+        pytest.param("", None, "secret123", ("login_failed", 200), id="empty"),
+        pytest.param("", "env-password", "env-password", (None, 302), id="environment"),
+    ])
+    def test_login_leaves_stored_password_unchanged(
+        self, tmp_path, monkeypatch, stored, environment, password, expected
+    ):
+        if environment:
+            monkeypatch.setenv("ADMIN_PASSWORD", environment)
+        config_path = tmp_path / "config.json"
+        config_path.write_text(json.dumps({"admin_password": stored}), encoding="utf-8")
+        current_runtime().config_manager = ConfigManager(str(tmp_path))
+
+        form = {"password": password, "csrf_token": "t"}
+        with app.test_request_context("/login", method="POST", data=form):
+            session[_LOGIN_CSRF_SESSION_KEY] = "t"
+            assert _authenticate_login() == expected
+
+        assert json.loads(config_path.read_text(encoding="utf-8"))["admin_password"] == stored
 
     def test_cookie_fails_after_config_backed_password_changes(self, auth_client, auth_config):
         _login(auth_client)

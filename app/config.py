@@ -31,6 +31,7 @@ DEMO_HIDE_KEYS = {"bqm_url", "speedtest_tracker_url",
                   "mqtt_host", "mqtt_user",
                   "mqtt_topic_prefix", "mqtt_discovery_prefix"}
 HASH_KEYS = {"admin_password"}
+HASH_PREFIXES = ("scrypt:", "pbkdf2:")
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 MODULE_SECRET_KEYS: set[str] = set()
 MODULE_SECRET_OWNERS: dict[str, str] = {}
@@ -391,7 +392,7 @@ class ConfigManager:
                     return default if default is not None else DEFAULTS.get(key, 0)
             if key in HASH_KEYS:
                 # Return werkzeug hash as-is; legacy Fernet-encrypted values get decrypted
-                if val and (val.startswith("scrypt:") or val.startswith("pbkdf2:")):
+                if val and val.startswith(HASH_PREFIXES):
                     return val
                 return self._decrypt(val)
             if is_secret_key(key) or key in PRIVATE_KEYS:
@@ -471,7 +472,7 @@ class ConfigManager:
         # Hash password keys (admin_password) before storing
         for key in HASH_KEYS:
             if key in data and data[key]:
-                if not (data[key].startswith("scrypt:") or data[key].startswith("pbkdf2:")):
+                if not data[key].startswith(HASH_PREFIXES):
                     data[key] = generate_password_hash(data[key])
 
         # Encrypt secret and private values before storing. Private values stay
