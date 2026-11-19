@@ -333,7 +333,19 @@ def test_startup_runner_reaches_ready_and_emits_all_phases(monkeypatch, tmp_path
     )
     monkeypatch.setattr(desktop, "configure_desktop_environment", lambda env: paths)
     monkeypatch.setattr(desktop, "select_port", lambda env: 8766)
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
+    runner = desktop.StartupRunner(
+        controller,
+        paths,
+        {},
+        desktop_instance=FakeDesktopInstance(),
+    )
+    starts = []
+
+    def start_app_thread(lifecycle, *, inject_smoke_failure):
+        starts.append((lifecycle, inject_smoke_failure))
+        return handle
+
+    monkeypatch.setattr(desktop, "_start_app_thread", start_app_thread)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
@@ -341,14 +353,11 @@ def test_startup_runner_reaches_ready_and_emits_all_phases(monkeypatch, tmp_path
     )
     monkeypatch.setattr(desktop, "open_browser", lambda port, env: True)
 
-    desktop.StartupRunner(
-        controller,
-        paths,
-        {},
-        desktop_instance=FakeDesktopInstance(),
-    ).run(controller.state.attempt)
+    runner.run(controller.state.attempt)
     controller.drain_events()
 
+    assert starts == [(runner.server_lifecycle, False)]
+    assert isinstance(runner.server_lifecycle, desktop.ServerLifecycleController)
     assert [event.phase for event in emitted if event.kind is desktop.EventKind.PHASE] == [
         desktop.StartupPhase.START,
         desktop.StartupPhase.WAIT,
