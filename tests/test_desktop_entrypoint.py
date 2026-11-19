@@ -87,13 +87,13 @@ def run_runner(monkeypatch, tmp_path, *, selection=None, wait=None, browser=True
     monkeypatch.setattr(
         desktop,
         "select_port",
-        lambda env: selection or desktop.PortSelection(8765),
+        lambda env: selection or 8765,
     )
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: wait or desktop.WaitOutcome.READY,
+        lambda app_handle, **_kwargs: wait or desktop.WaitOutcome.READY,
     )
     if isinstance(browser, BaseException):
         def raise_browser(port, env):
@@ -156,7 +156,7 @@ def test_select_port_walks_when_preferred_port_has_non_docsight_service(monkeypa
 
     selection = desktop.select_port(env, max_port=8766)
 
-    assert selection == desktop.PortSelection(port=8766)
+    assert selection == 8766
     assert env["WEB_PORT"] == "8766"
 
 
@@ -167,7 +167,7 @@ def test_select_port_uses_default_when_web_port_is_invalid(monkeypatch):
 
     selection = desktop.select_port(env, max_port=8765)
 
-    assert selection == desktop.PortSelection(port=8765)
+    assert selection == 8765
     assert env["WEB_PORT"] == "8765"
 
 
@@ -192,7 +192,7 @@ def test_select_port_reconsiders_full_range_after_inherited_preference(
 
     monkeypatch.setattr(desktop, "_can_bind_local_port", can_bind)
 
-    assert desktop.select_port(env) == desktop.PortSelection(8766)
+    assert desktop.select_port(env) == 8766
     assert attempted == [8770, 8765, 8766]
     assert env["WEB_PORT"] == "8766"
 
@@ -332,12 +332,12 @@ def test_startup_runner_reaches_ready_and_emits_all_phases(monkeypatch, tmp_path
         stopped=threading.Event(),
     )
     monkeypatch.setattr(desktop, "configure_desktop_environment", lambda env: paths)
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8766))
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8766)
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.READY,
+        lambda app_handle, **_kwargs: desktop.WaitOutcome.READY,
     )
     monkeypatch.setattr(desktop, "open_browser", lambda port, env: True)
 
@@ -402,12 +402,12 @@ def test_startup_runner_reports_app_thread_system_exit(monkeypatch, tmp_path):
     )
     handle.failure_type = "SystemExit"
     monkeypatch.setattr(desktop, "configure_desktop_environment", lambda env: paths)
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
+        lambda app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
     )
     desktop.StartupRunner(
         controller,
@@ -436,16 +436,16 @@ def test_bind_loss_uses_one_fresh_process_retry_and_cleans_runtime(
         stopped=stopped,
     )
     calls = []
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
     monkeypatch.setattr(
         desktop,
         "_start_app_thread",
-        lambda: calls.append("start_app") or handle,
+        lambda *_args, **_kwargs: calls.append("start_app") or handle,
     )
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
+        lambda app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
     )
     monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: False)
 
@@ -486,12 +486,12 @@ def test_close_requested_app_failure_does_not_retry_bind_or_relaunch(
         stopped=stopped,
     )
     calls = []
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda _lifecycle: handle)
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
+        lambda app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
     )
     monkeypatch.setattr(
         desktop,
@@ -531,12 +531,12 @@ def test_bind_loss_retry_is_bounded_across_fresh_launcher_process(
         thread=SimpleNamespace(join=lambda: None),
         stopped=stopped,
     )
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
+        lambda app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
     )
     monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: False)
     monkeypatch.setattr(
@@ -611,8 +611,8 @@ def test_browser_failure_retains_mutex_until_main_thread_cleanup(
         thread=SimpleNamespace(join=lambda: None),
         stopped=threading.Event(),
     )
-    monkeypatch.setattr(desktop, "select_port", lambda _env: desktop.PortSelection(8765))
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(desktop, "select_port", lambda _env: 8765)
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
@@ -662,7 +662,9 @@ def test_existing_instance_runs_wait_and_browser_phases_without_app_thread(
     monkeypatch.setattr(
         desktop,
         "_start_app_thread",
-        lambda: pytest.fail("existing instance must not start an app thread"),
+        lambda *_args, **_kwargs: pytest.fail(
+            "existing instance must not start an app thread"
+        ),
     )
     monkeypatch.setattr(desktop, "open_browser", lambda port, env: True)
 
@@ -717,39 +719,44 @@ def test_instance_coordination_errors_map_to_safe_recovery(
 def test_app_thread_wrapper_captures_baseexception_type_without_message(monkeypatch):
     from app import main as app_main_module
 
-    monkeypatch.setattr(desktop, "_ensure_repo_on_path", lambda: None)
-    monkeypatch.setattr(
-        app_main_module,
-        "main",
-        lambda: (_ for _ in ()).throw(SystemExit("credential=do-not-retain")),
-    )
+    lifecycle = desktop.ServerLifecycleController()
+    calls = []
 
-    handle = desktop._start_app_thread()
+    def fail_main(**kwargs):
+        calls.append(kwargs)
+        raise SystemExit("credential=do-not-retain")
+
+    monkeypatch.setattr(app_main_module, "main", fail_main)
+
+    handle = desktop._start_app_thread(lifecycle)
     assert handle.thread is not None
     handle.thread.join(timeout=2)
 
     assert handle.stopped.is_set()
     assert handle.failure_type == "SystemExit"
     assert "credential" not in handle.failure_type
+    assert calls == [{"server_lifecycle": lifecycle}]
 
 
 def test_open_browser_can_be_skipped_for_ci_smoke(monkeypatch):
     calls = []
+    monkeypatch.setattr(desktop.webbrowser, "open", calls.append)
 
-    result = desktop.open_browser(
-        8765,
-        {"DOCSIGHT_SKIP_BROWSER": "1"},
-        lambda url: calls.append(url),
-    )
+    result = desktop.open_browser(8765, {"DOCSIGHT_SKIP_BROWSER": "1"})
 
     assert result is True
     assert calls == []
 
 
-def test_open_browser_returns_false_and_uses_loopback_url():
+def test_open_browser_returns_false_and_uses_loopback_url(monkeypatch):
     calls = []
+    monkeypatch.setattr(
+        desktop.webbrowser,
+        "open",
+        lambda url: calls.append(url) or False,
+    )
 
-    result = desktop.open_browser(8766, {}, lambda url: calls.append(url) or False)
+    result = desktop.open_browser(8766, {}, platform="linux")
 
     assert result is False
     assert calls == ["http://127.0.0.1:8766/"]
@@ -807,23 +814,6 @@ def test_default_windows_browser_handles_changed_com_mode_without_uninitialize(
         com_api=com_api,
     ) is True
     assert calls == [("open", "http://127.0.0.1:8765/")]
-
-
-def test_custom_windows_browser_callback_does_not_require_com():
-    calls = []
-    com_api = SimpleNamespace(
-        CoInitializeEx=lambda *_args: pytest.fail("custom callback must skip COM"),
-        CoUninitialize=lambda: pytest.fail("custom callback must skip COM"),
-    )
-
-    assert desktop.open_browser(
-        8765,
-        {},
-        lambda url: calls.append(url) or True,
-        platform="win32",
-        com_api=com_api,
-    ) is True
-    assert calls == ["http://127.0.0.1:8765/"]
 
 
 def test_copy_local_url_uses_clipboard_contract():
@@ -1370,11 +1360,13 @@ def test_generic_startup_failure_is_recorded_by_private_launcher_log(
     paths = make_paths(tmp_path)
     desktop.configure_logging(paths.log_file, paths.runtime_log_file)
     monkeypatch.setattr(desktop, "configure_desktop_environment", lambda env: paths)
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
     monkeypatch.setattr(
         desktop,
         "_start_app_thread",
-        lambda: (_ for _ in ()).throw(RuntimeError("password=secret")),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            RuntimeError("password=secret")
+        ),
     )
 
     desktop.StartupRunner(
@@ -1404,9 +1396,9 @@ def test_smoke_failure_injection_requires_browser_skip_boundary(monkeypatch, tmp
     )
     injected = []
     monkeypatch.setattr(desktop, "configure_desktop_environment", lambda env: paths)
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
 
-    def start_app_thread(*, inject_smoke_failure=False):
+    def start_app_thread(_lifecycle, *, inject_smoke_failure):
         injected.append(inject_smoke_failure)
         if not inject_smoke_failure:
             return handle
@@ -1422,7 +1414,7 @@ def test_smoke_failure_injection_requires_browser_skip_boundary(monkeypatch, tmp
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: (
+        lambda app_handle, **_kwargs: (
             desktop.WaitOutcome.APP_FAILED
             if app_handle.stopped.is_set()
             else desktop.WaitOutcome.READY
@@ -1467,9 +1459,9 @@ def test_relaunch_handle_makes_smoke_failure_injection_one_shot(monkeypatch, tmp
     )
     injected = []
     monkeypatch.setattr(desktop, "configure_desktop_environment", lambda env: paths)
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
 
-    def start_app_thread(*, inject_smoke_failure=False):
+    def start_app_thread(_lifecycle, *, inject_smoke_failure):
         injected.append(inject_smoke_failure)
         return handle
 
@@ -1477,7 +1469,7 @@ def test_relaunch_handle_makes_smoke_failure_injection_one_shot(monkeypatch, tmp
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.READY,
+        lambda app_handle, **_kwargs: desktop.WaitOutcome.READY,
     )
     monkeypatch.setattr(desktop, "open_browser", lambda port, env: True)
 
@@ -1507,12 +1499,12 @@ def test_browser_smoke_injection_reaches_recovery_without_browser(
         thread=SimpleNamespace(join=lambda: None),
         stopped=threading.Event(),
     )
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.READY,
+        lambda app_handle, **_kwargs: desktop.WaitOutcome.READY,
     )
     monkeypatch.setattr(
         desktop,
@@ -1582,12 +1574,12 @@ def test_relaunch_does_not_repeat_new_smoke_injections(
         stopped=threading.Event(),
     )
     browser_calls = []
-    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
-    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(desktop, "select_port", lambda env: 8765)
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda *_args, **_kwargs: handle)
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.READY,
+        lambda app_handle, **_kwargs: desktop.WaitOutcome.READY,
     )
     monkeypatch.setattr(
         desktop,
@@ -1770,7 +1762,7 @@ def test_tk_launcher_installs_callback_exception_boundary(monkeypatch, tmp_path)
         SimpleNamespace(),
         SimpleNamespace(),
         make_controller(),
-        SimpleNamespace(),
+        SimpleNamespace(env={}),
         make_paths(tmp_path),
         FakeDesktopInstance(),
     )
@@ -1821,7 +1813,7 @@ def test_pre_ui_failure_returns_error_and_uses_fallback(monkeypatch):
     assert calls == [None]
 
 
-def test_close_destroys_window_and_terminates_process(monkeypatch):
+def test_close_destroys_window_and_terminates_process():
     requested = []
     view = desktop.TkLauncher.__new__(desktop.TkLauncher)
     view.command_dispatcher = SimpleNamespace(

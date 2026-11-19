@@ -28,9 +28,6 @@ class MutexHandle(Protocol):
     def acquire(self, timeout_milliseconds: int = 0) -> bool:
         """Acquire ownership, including an abandoned mutex, within the timeout."""
 
-    def release(self) -> None:
-        """Release owned mutex state."""
-
     def close(self) -> None:
         """Release ownership and close the underlying handle."""
 
@@ -272,16 +269,6 @@ class Win32NamedMutex:
         )
         return bool(command.result)
 
-    def release(self) -> None:
-        with self._call_lock:
-            if self._closed:
-                return
-            command = _MutexCommand("release")
-            self._commands.put(command)
-            self._wait_for_command(command)
-        if command.error is not None:
-            raise command.error
-
     def close(self) -> None:
         wait_error: Exception | None = None
         with self._call_lock:
@@ -359,13 +346,6 @@ class Win32NamedMutex:
                             raise OSError(
                                 "unable to wait for desktop ownership mutex"
                             )
-                elif command.operation == "release":
-                    if owned:
-                        if not self._kernel32.ReleaseMutex(handle):
-                            raise OSError(
-                                "unable to release desktop ownership mutex"
-                            )
-                        owned = False
                 elif command.operation == "close":
                     release_error: Exception | None = None
                     if owned:
