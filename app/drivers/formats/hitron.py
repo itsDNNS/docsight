@@ -119,13 +119,13 @@ def parse_coda56_us_ofdma(rows: list[dict[str, Any]]) -> ParseResult[list[RawCha
             continue
         try:
             power, issue = _ofdma_power(row, "hitron_coda56_json", index)
-            if issue:
-                diagnostics.append(issue)
             channels.append({
                 "channelID": int(row["uschindex"]), "type": "OFDMA",
                 "frequency": hz_to_mhz(row.get("frequency", "0")),
                 "powerLevel": power, "modulation": "OFDMA", "multiplex": "",
             })
+            if issue:
+                diagnostics.append(issue)
         except (ValueError, KeyError, TypeError):
             diagnostics.append(_invalid("hitron_coda56_json", "upstream", index))
     return ParseResult(channels, tuple(diagnostics))
@@ -201,14 +201,14 @@ def parse_coda4680_us_ofdma(rows: list[dict[str, Any]]) -> ParseResult[list[RawC
             continue
         try:
             power, issue = _ofdma_power(row, "hitron_coda4680_json", index)
-            if issue:
-                diagnostics.append(issue)
             channels.append({
                 "channelID": int(row["uschindex"]), "type": "OFDMA",
                 # This API does not expose OFDMA center frequency.
                 "frequency": "", "powerLevel": power,
                 "modulation": "OFDMA", "multiplex": "OFDMA",
             })
+            if issue:
+                diagnostics.append(issue)
         except (KeyError, TypeError, ValueError):
             diagnostics.append(_invalid("hitron_coda4680_json", "upstream", index))
     return ParseResult(channels, tuple(diagnostics))

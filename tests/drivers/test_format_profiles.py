@@ -282,6 +282,14 @@ def test_locked_active_and_docsis31_status_rules_are_profile_specific():
     assert success["channelUs"]["docsis31"][0]["type"] == "OFDMA"
 
 
+@pytest.mark.parametrize("parse", [
+    lambda: parse_hitron_coda56_json({"upstream_ofdma": [{"state": "OPERATE"}]}),
+    lambda: parse_hitron_coda4680_json({"upstream_ofdma": {"OFDMAs_List": [{"state": "OPERATE"}]}}),
+])
+def test_hitron_ofdma_row_dropped_as_invalid_reports_only_the_invalid_row(parse):
+    assert [issue.code for issue in parse().diagnostics] == ["invalid_row"]
+
+
 def test_result_and_diagnostics_are_immutable_contract_objects():
     result = parse_ch7465_xml("<root>", "<root/>")
     with pytest.raises(AttributeError):

@@ -104,6 +104,13 @@ US_OFDMA = {
     ],
 }
 
+PAYLOADS = {
+    "/1/Device/CM/DsInfo": DS_INFO,
+    "/1/Device/CM/UsInfo": US_INFO,
+    "/1/Device/CM/DsOfdm": DS_OFDM,
+    "/1/Device/CM/UsOfdm": US_OFDMA,
+}
+
 VERSION = {
     "errCode": "000",
     "errMsg": "",
@@ -252,13 +259,7 @@ class TestDeviceInfo:
 
 class TestDocsisData:
     def test_parses_coda_4680_channel_payloads(self, driver):
-        payloads = {
-            "/1/Device/CM/DsInfo": DS_INFO,
-            "/1/Device/CM/UsInfo": US_INFO,
-            "/1/Device/CM/DsOfdm": DS_OFDM,
-            "/1/Device/CM/UsOfdm": US_OFDMA,
-        }
-        with patch.object(driver, "_fetch_payload", side_effect=lambda path: payloads[path]):
+        with patch.object(driver, "_fetch_payload", side_effect=PAYLOADS.__getitem__):
             data = driver.get_docsis_data()
 
         assert {(d, lane): len(data[d][lane]) for d in ("channelDs", "channelUs") for lane in ("docsis30", "docsis31")} == {
@@ -318,22 +319,6 @@ class TestDocsisData:
 
         assert len(channels) == 1
         assert channels[0]["powerLevel"] == pytest.approx(40.0)
-
-    def test_us_ofdma_leaves_power_unsupported_without_1_6_mhz_report_power(self, driver):
-        rows = [
-            {
-                "uschindex": "2",
-                "state": "OPERATE",
-                "channelBw": "39.2000",
-                "repPower": "53.8917",
-                "fftVal": "2K",
-            }
-        ]
-
-        channels = driver._parse_us_ofdma(rows)
-
-        assert len(channels) == 1
-        assert channels[0]["powerLevel"] is None
 
     def test_ds_ofdm_unlocked_rows_are_ignored(self, driver):
         rows = [

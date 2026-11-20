@@ -80,12 +80,12 @@ class HitronDriver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from all four endpoints."""
-        return parse_hitron_coda56_json({
+        return unwrap_hitron(parse_hitron_coda56_json({
             "downstream": self._fetch_json("/data/dsinfo.asp"),
             "upstream": self._fetch_json("/data/usinfo.asp"),
             "downstream_ofdm": self._fetch_json("/data/dsofdminfo.asp"),
             "upstream_ofdma": self._fetch_json("/data/usofdminfo.asp"),
-        }).value
+        }), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Return static device info (model not available via API)."""

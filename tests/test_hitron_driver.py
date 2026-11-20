@@ -1,10 +1,13 @@
 """Tests for Hitron CODA modem driver."""
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from app.drivers.hitron import HitronDriver, _DS_MODULATION
+from app.drivers.hitron_coda_4680 import HitronCoda4680Driver
+from tests.test_hitron_coda_4680_driver import PAYLOADS as CODA_4680_PAYLOADS, US_OFDMA
 
 
 # -- Real data from HAR capture (Hitron CODA-56) --
@@ -163,18 +166,6 @@ class TestUpstreamOFDMA:
         assert ch["frequency"] == "42 MHz"
         assert ch["powerLevel"] == pytest.approx(37.75)
 
-    def test_missing_1_6_mhz_report_power_stays_unsupported(self, driver, caplog):
-        operating = [dict(US_OFDMA_DATA[0])]
-        del operating[0]["repPower1_6"]
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = operating
-
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_us_ofdma()
-
-        assert channels[0]["powerLevel"] is None
-        assert "missing repPower1_6" in caplog.text
-
     @pytest.mark.parametrize("value", [None, "", "N/A", "nan", "inf", "-inf", []])
     def test_invalid_1_6_mhz_report_power_stays_unsupported(self, driver, value):
         operating = [dict(US_OFDMA_DATA[0], repPower1_6=value)]
@@ -218,6 +209,35 @@ class TestGetDocsisData:
         assert len(data["channelDs"]["docsis31"]) == 2
         assert len(data["channelUs"]["docsis30"]) == 2
         assert len(data["channelUs"]["docsis31"]) == 1
+
+
+def _rows_without_1_6_mhz_report_power(row):
+    """Two operating OFDMA rows that both lack the 1.6 MHz report power."""
+    row = {key: value for key, value in row.items() if key != "repPower1_6"}
+    return [dict(row, uschindex=str(index)) for index in (0, 1)]
+
+
+@pytest.mark.parametrize("driver_cls, fetch, payloads, logger, model", [
+    (HitronDriver, "_fetch_json", {
+        "/data/dsinfo.asp": DS_SCQAM_DATA, "/data/usinfo.asp": US_SCQAM_DATA,
+        "/data/dsofdminfo.asp": DS_OFDM_DATA,
+        "/data/usofdminfo.asp": _rows_without_1_6_mhz_report_power(US_OFDMA_DATA[0]),
+    }, "docsis.driver.hitron", "CODA-56"),
+    (HitronCoda4680Driver, "_fetch_payload", dict(CODA_4680_PAYLOADS, **{
+        "/1/Device/CM/UsOfdm": {"OFDMAs_List": _rows_without_1_6_mhz_report_power(US_OFDMA["OFDMAs_List"][0])},
+    }), "docsis.driver.hitron_coda_4680", "CODA-4680"),
+])
+def test_poll_warns_once_per_poll_when_ofdma_rows_lack_1_6_mhz_report_power(
+    driver_cls, fetch, payloads, logger, model, caplog,
+):
+    driver = driver_cls("http://192.168.100.1", "", "")
+    warning = (logger, logging.WARNING, f"Hitron {model} OFDMA row missing repPower1_6; leaving power unsupported")
+    with patch.object(driver, fetch, side_effect=payloads.__getitem__):
+        for _ in range(2):
+            caplog.clear()
+            data = driver.get_docsis_data()
+            assert [ch["powerLevel"] for ch in data["channelUs"]["docsis31"]] == [None, None]
+            assert caplog.record_tuples == [warning]
 
 
 class TestDeviceInfo:
