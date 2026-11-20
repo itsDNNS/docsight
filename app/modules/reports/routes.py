@@ -118,12 +118,22 @@ def _get_comparison_data(storage):
     return compare_periods(storage, from_a, to_a, from_b, to_b)
 
 
+def _report_request_context():
+    """Configuration and customer details for the report, complaint and incident report routes."""
+    config_manager = current_runtime().config_manager
+    return {
+        "config": {key: config_manager.get(key, "") for key in ("isp_name", "modem_type")},
+        "customer_name": request.args.get("name", ""),
+        "customer_number": request.args.get("number", ""),
+        "customer_address": request.args.get("address", ""),
+    }
+
+
 @bp.route("/api/report")
 @require_auth
 def api_report():
     """Generate a PDF incident report."""
     _storage = current_runtime().storage
-    _config_manager = current_runtime().config_manager
     window, error = _get_report_window()
     if error:
         return error
@@ -133,31 +143,18 @@ def api_report():
     if _storage:
         snapshots = _storage.get_range_data(start_ts, end_ts)
 
-    config = {}
-    if _config_manager:
-        config = {
-            "isp_name": _config_manager.get("isp_name", ""),
-            "modem_type": _config_manager.get("modem_type", ""),
-        }
-
     conn_info = (current_runtime().get_state().get("connection_info") or {})
     lang = request.args.get("lang", get_lang())
     comparison_data = _get_comparison_data(_storage)
-    customer_name = request.args.get("name", "")
-    customer_number = request.args.get("number", "")
-    customer_address = request.args.get("address", "")
 
     pdf_bytes = generate_report(
         snapshots,
-        config=config,
         connection_info=conn_info,
         lang=lang,
         comparison_data=comparison_data,
-        customer_name=customer_name,
-        customer_number=customer_number,
-        customer_address=customer_address,
         report_start=start_ts,
         report_end=end_ts,
+        **_report_request_context(),
     )
 
     response = make_response(pdf_bytes)
@@ -172,7 +169,6 @@ def api_report():
 def api_complaint():
     """Generate ISP complaint letter as text."""
     _storage = current_runtime().storage
-    _config_manager = current_runtime().config_manager
     window, error = _get_report_window()
     if error:
         return error
@@ -182,18 +178,7 @@ def api_complaint():
     if _storage:
         snapshots = _storage.get_range_data(start_ts, end_ts)
 
-    config = {}
-    if _config_manager:
-        config = {
-            "isp_name": _config_manager.get("isp_name", ""),
-            "modem_type": _config_manager.get("modem_type", ""),
-        }
-
     lang = request.args.get("lang", get_lang())
-    customer_name = request.args.get("name", "")
-    customer_number = request.args.get("number", "")
-    customer_address = request.args.get("address", "")
-
     include_bnetz = request.args.get("include_bnetz", "false") == "true"
     bnetz_id = request.args.get("bnetz_id", None, type=int)
 
@@ -211,16 +196,12 @@ def api_complaint():
 
     text = generate_complaint_text(
         snapshots,
-        config,
-        None,
-        lang,
-        customer_name,
-        customer_number,
-        customer_address,
+        lang=lang,
         bnetz_data=bnetz_data,
         comparison_data=comparison_data,
         report_start=start_ts,
         report_end=end_ts,
+        **_report_request_context(),
     )
     return jsonify({
         "text": text,

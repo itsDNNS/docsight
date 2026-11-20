@@ -449,7 +449,9 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values(route_ap
             report_routes, "generate_complaint_text", return_value="letter"
         ) as generate_complaint:
             getattr(report_routes.api_complaint, "__wrapped__")()
-    assert generate_complaint.call_args.args[4:7] == ("", "", "")
+    assert generate_complaint.call_args.kwargs["customer_name"] == ""
+    assert generate_complaint.call_args.kwargs["customer_number"] == ""
+    assert generate_complaint.call_args.kwargs["customer_address"] == ""
 
     incident_storage = Mock()
     incident_storage.get_incident.return_value = {
