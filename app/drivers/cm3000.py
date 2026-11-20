@@ -26,11 +26,8 @@ import requests
 from .base import ModemDriver
 from .formats.javascript import (
     extract_cm3000_tag_value_list,
-    normalize_cm3000_modulation,
     parse_cm3000_javascript,
-    split_cm3000_channels,
 )
-from .formats.primitives import hz_to_mhz, parse_number
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.cm3000")
@@ -72,9 +69,13 @@ class CM3000Driver(ModemDriver):
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
-        self._session = requests.Session()
-        self._session.auth = (user, password)
+        self._session = self._new_session()
         self._status_html = None
+
+    def _new_session(self) -> requests.Session:
+        session = requests.Session()
+        session.auth = (self._user, self._password)
+        return session
 
     def login(self) -> None:
         """Establish session and verify DocsisStatus.htm is actually readable.
@@ -82,39 +83,26 @@ class CM3000Driver(ModemDriver):
         Retries once with a fresh session if the modem drops a stale
         TCP connection (common after container restarts).
         """
-        for attempt in range(2):
+        self._status_html = None
+        self._login_with_reconnect("CM3000", self._login_attempt, log)
+
+    def _login_attempt(self) -> None:
+        r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
+        r.raise_for_status()
+        try:
             try:
+                self._ensure_status_page(r.text)
+            except RuntimeError:
+                if not (self._looks_like_login_page(r.text) and self._login_via_form()):
+                    raise
                 r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
                 r.raise_for_status()
-                try:
-                    self._ensure_status_page(r.text)
-                except RuntimeError:
-                    if not self._looks_like_login_page(r.text):
-                        self._log_status_page_diagnostics(r.text, "login")
-                        raise
-                    if not self._login_via_form():
-                        self._log_status_page_diagnostics(r.text, "login")
-                        raise
-                    r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
-                    r.raise_for_status()
-                    self._ensure_status_page(r.text)
-                self._status_html = r.text
-                log.info("CM3000 auth OK")
-                return
-            except requests.ConnectionError:
-                if attempt == 0:
-                    log.warning("CM3000 connection lost, retrying with fresh session")
-                    self._session.close()
-                    self._session = requests.Session()
-                    self._session.auth = (self._user, self._password)
-                    self._status_html = None
-                    continue
-                raise RuntimeError("CM3000 authentication failed: connection refused after retry")
-            except requests.RequestException as e:
-                raise RuntimeError(f"CM3000 authentication failed: {e}")
-            except RuntimeError as e:
-                self._log_status_page_diagnostics(r.text, "login")
-                raise e
+                self._ensure_status_page(r.text)
+        except RuntimeError:
+            self._log_status_page_diagnostics(r.text, "login")
+            raise
+        self._status_html = r.text
+        log.info("CM3000 auth OK")
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from JavaScript on status page.
@@ -329,24 +317,6 @@ class CM3000Driver(ModemDriver):
             diag["has_sys_info"],
             diag["has_channel_data"],
         )
-
-    # Compatibility parser seams; each delegates to the pure profile.
-
-    @staticmethod
-    def _split_channels(raw: str, fields_per_channel: int) -> list[list[str]]:
-        return split_cm3000_channels(raw, fields_per_channel)
-
-    @staticmethod
-    def _hz_to_mhz(freq_str: str) -> str:
-        return hz_to_mhz(freq_str)
-
-    @staticmethod
-    def _parse_number(value: str) -> float:
-        return parse_number(value)
-
-    @staticmethod
-    def _normalize_modulation(mod: str) -> str:
-        return normalize_cm3000_modulation(mod)
 
     @staticmethod
     def _parse_uptime(uptime_str: str) -> int | None:

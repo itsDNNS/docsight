@@ -107,10 +107,6 @@ def _ofdma_power(row: dict[str, Any], profile: str, index: int) -> tuple[float |
     return parse_optional_finite_float(row.get("repPower1_6")), None
 
 
-def parse_hitron_ofdma_power(row: dict[str, Any]) -> float | None:
-    return parse_optional_finite_float(row.get("repPower1_6")) if "repPower1_6" in row else None
-
-
 def parse_coda56_us_ofdma(rows: list[dict[str, Any]]) -> ParseResult[list[RawChannel]]:
     channels: list[RawChannel] = []
     diagnostics: list[ParseDiagnostic] = []

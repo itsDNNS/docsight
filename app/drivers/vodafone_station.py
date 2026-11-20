@@ -22,11 +22,7 @@ import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 
 from .base import ModemDriver
-from .formats.primitives import normalize_modulation
 from .formats.vodafone import (
-    parse_tg_frequency,
-    parse_tg_power,
-    parse_vodafone_number,
     parse_vodafone_station_cga_json,
     parse_vodafone_station_tg_embedded_json,
 )
@@ -679,19 +675,3 @@ class VodafoneStationDriver(ModemDriver):
             raise RuntimeError(
                 f"TG: {name} is not a valid hex string: {value!r}"
             )
-
-    @staticmethod
-    def _parse_number(value) -> float:
-        return parse_vodafone_number(value)
-
-    @staticmethod
-    def _parse_tg_power(value) -> float:
-        return parse_tg_power(value)
-
-    @staticmethod
-    def _parse_tg_frequency(value) -> float:
-        return parse_tg_frequency(value)
-
-    @staticmethod
-    def _normalize_modulation(modulation: str) -> str:
-        return normalize_modulation(modulation)

@@ -17,7 +17,6 @@ import re
 import weakref
 from enum import Enum
 from .base import ModemDriver
-from .formats.primitives import normalize_modulation
 from .formats.xml_payloads import parse_ch7465_xml
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
@@ -271,7 +270,3 @@ class CH7465Driver(ModemDriver):
         xml = self._get_data(Query.LOGIN_FAIL_COUNT)
         root = ET.fromstring(xml)
         return int(root.find('FailCount').text)
-
-    @staticmethod
-    def _normalize_modulation(modulation: str) -> str:
-        return normalize_modulation(modulation)

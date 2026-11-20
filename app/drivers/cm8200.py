@@ -55,11 +55,16 @@ class CM8200Driver(ModemDriver):
             url = "https://" + url[len("http://"):]
             log.info("CM8200 requires HTTPS, upgraded URL to %s", url)
         super().__init__(url, user, password)
-        self._session = requests.Session()
-        self._session.verify = False
-        self._session.mount("https://", make_legacy_tls_adapter(sec_level=0))
+        self._session = self._new_session()
         self._status_html = None
         self._cookie_header = None
+
+    @staticmethod
+    def _new_session() -> requests.Session:
+        session = requests.Session()
+        session.verify = False
+        session.mount("https://", make_legacy_tls_adapter(sec_level=0))
+        return session
 
     def login(self) -> None:
         """Authenticate with the CM8200A, reusing IP-based sessions.
@@ -131,60 +136,60 @@ class CM8200Driver(ModemDriver):
 
     def _credential_auth(self) -> None:
         """Full credential-based authentication flow."""
+        self._login_with_reconnect("CM8200", self._credential_attempt, log)
+
+    def _credential_attempt(self) -> None:
         creds = base64.b64encode(f"{self._user}:{self._password}".encode()).decode()
-        for attempt in range(2):
-            try:
-                r1 = self._session.get(
-                    f"{self._url}/cmconnectionstatus.html?{creds}",
-                    timeout=30,
+        failure = None
+        try:
+            r1 = self._session.get(
+                f"{self._url}/cmconnectionstatus.html?{creds}",
+                timeout=30,
+            )
+            r1.raise_for_status()
+            token = r1.text.strip()
+
+            # The auth endpoint returns a short alphanumeric token.
+            # If we got HTML instead, the modem rejected credentials
+            # or is in brute-force lockout.
+            if len(token) > 64 or not token.isalnum():
+                raise RuntimeError(
+                    "CM8200 auth failed: expected session token but received "
+                    f"{len(token)} bytes (wrong credentials or brute-force "
+                    "lockout, wait 5 minutes)"
                 )
-                r1.raise_for_status()
-                token = r1.text.strip()
 
-                # The auth endpoint returns a short alphanumeric token.
-                # If we got HTML instead, the modem rejected credentials
-                # or is in brute-force lockout.
-                if len(token) > 64 or not token.isalnum():
-                    raise RuntimeError(
-                        "CM8200 auth failed: expected session token but received "
-                        f"{len(token)} bytes (wrong credentials or brute-force "
-                        "lockout, wait 5 minutes)"
-                    )
+            # Replicate the browser JS cookie workaround
+            self._cookie_header = f"HttpOnly: true, Secure: true; credential={token}"
 
-                # Replicate the browser JS cookie workaround
-                self._cookie_header = f"HttpOnly: true, Secure: true; credential={token}"
+            r = self._session.get(
+                f"{self._url}/cmconnectionstatus.html",
+                headers={"Cookie": self._cookie_header},
+                timeout=30,
+            )
+            r.raise_for_status()
+        except requests.RequestException as e:
+            # The request URL carries the credentials, so the original error is dropped. A same-type
+            # copy with only the error type and HTTP status keeps the connection test classification.
+            status = getattr(e.response, "status_code", None)
+            failure = type(e)(f"{type(e).__name__} (HTTP {status})" if status else type(e).__name__,
+                              response=requests.Response())
+            failure.response.status_code = status
+        # Raised outside the except block so the original error is not attached as context.
+        if isinstance(failure, requests.ConnectionError):
+            raise failure  # the shared login loop reconnects once
+        if failure is not None:
+            raise RuntimeError(f"CM8200 authentication failed: {failure}") from failure
 
-                r = self._session.get(
-                    f"{self._url}/cmconnectionstatus.html",
-                    headers={"Cookie": self._cookie_header},
-                    timeout=30,
-                )
-                r.raise_for_status()
+        if len(r.text) < 5000 or "downstream bonded" not in r.text.lower():
+            raise RuntimeError(
+                "CM8200 auth succeeded but status page not returned "
+                f"({len(r.text)} bytes). Modem may be in brute-force "
+                "lockout (wait 5 minutes)."
+            )
 
-                if len(r.text) < 5000 or "downstream bonded" not in r.text.lower():
-                    raise RuntimeError(
-                        "CM8200 auth succeeded but status page not returned "
-                        f"({len(r.text)} bytes). Modem may be in brute-force "
-                        "lockout (wait 5 minutes)."
-                    )
-
-                self._status_html = r.text
-                log.info("CM8200 auth OK")
-                return
-            except requests.ConnectionError:
-                if attempt == 0:
-                    log.warning("CM8200 connection lost, retrying with fresh session")
-                    self._session.close()
-                    self._session = requests.Session()
-                    self._session.verify = False
-                    self._session.mount("https://", make_legacy_tls_adapter(sec_level=0))
-                    continue
-                raise RuntimeError("CM8200 authentication failed: connection refused after retry")
-            except requests.RequestException as e:
-                # The request URL carries the credentials, so leave it out of the message.
-                status = getattr(e.response, "status_code", None)
-                detail = f"{type(e).__name__} (HTTP {status})" if status else type(e).__name__
-                raise RuntimeError(f"CM8200 authentication failed: {detail}") from e
+        self._status_html = r.text
+        log.info("CM8200 auth OK")
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables on status page."""

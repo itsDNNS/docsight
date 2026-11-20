@@ -14,8 +14,8 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_rows import parse_sb6183_downstream, parse_sb6183_html, parse_sb6183_upstream
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from .formats.html_rows import parse_sb6183_html
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
 
 log = logging.getLogger("docsis.driver.sb6183")
 
@@ -94,12 +94,6 @@ class SB6183Driver(ModemDriver):
     def get_connection_info(self) -> ConnectionInfo:
         """Standalone modem, no connection info."""
         return {}
-
-    def _parse_downstream(self, table) -> list[RawChannel]:
-        return parse_sb6183_downstream(table).value
-
-    def _parse_upstream(self, table) -> list[RawChannel]:
-        return parse_sb6183_upstream(table).value
 
     @staticmethod
     def _is_status_page(html: str) -> bool:

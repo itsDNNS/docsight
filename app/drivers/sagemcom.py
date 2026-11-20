@@ -22,12 +22,7 @@ import time
 import requests
 
 from .base import ModemDriver
-from .formats.sagemcom import (
-    _sagemcom_frequency,
-    _sagemcom_is_ofdm,
-    _sagemcom_modulation,
-    parse_sagemcom_xmo_json,
-)
+from .formats.sagemcom import parse_sagemcom_xmo_json
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 
 log = logging.getLogger("docsis.driver.sagemcom")
@@ -290,21 +285,3 @@ class SagemcomDriver(ModemDriver):
     def _json_encode(obj) -> str:
         import json
         return json.dumps(obj, separators=(",", ":"))
-
-    # Compatibility parser seams.
-
-    @staticmethod
-    def _hz_to_mhz(freq_hz) -> str:
-        return _sagemcom_frequency(freq_hz)
-
-    @staticmethod
-    def _is_ofdm_downstream(modulation: str, bandwidth: int) -> bool:
-        return _sagemcom_is_ofdm(modulation, bandwidth)
-
-    @staticmethod
-    def _normalize_modulation(modulation: str) -> str:
-        return _sagemcom_modulation(modulation)
-
-    @staticmethod
-    def _normalize_us_modulation(modulation: str) -> str:
-        return modulation.strip().upper() if modulation else ""

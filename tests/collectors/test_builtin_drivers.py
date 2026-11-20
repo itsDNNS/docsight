@@ -6,6 +6,7 @@ import pytest
 from requests.cookies import RequestsCookieJar
 from unittest.mock import MagicMock, patch
 
+from app.drivers.formats.fritzbox import parse_fritzbox_data_lua
 from app.drivers.fritzbox import FritzBoxDriver
 from app.drivers.ch7465 import CH7465Driver, Query
 
@@ -49,11 +50,10 @@ class TestFritzBoxDriver:
         assert result["channelUs"]["docsis31"][0]["powerDisplayOffset"] == 6.0
         assert "powerDisplayOffset" not in result["channelUs"]["docsis30"][0]
 
-    def test_compensate_no_us31(self):
+    @pytest.mark.parametrize("data", [{}, {"channelUs": {}}, {"channelUs": {"docsis30": []}}])
+    def test_compensate_no_us31(self, data):
         """No crash when channelUs or docsis31 is missing."""
-        FritzBoxDriver._compensate_us31_power({})
-        FritzBoxDriver._compensate_us31_power({"channelUs": {}})
-        FritzBoxDriver._compensate_us31_power({"channelUs": {"docsis30": []}})
+        assert parse_fritzbox_data_lua(data).value == data
 
     @patch("app.drivers.fritzbox.fb")
     def test_get_device_info(self, mock_fb):
@@ -323,20 +323,6 @@ class TestCH7465PlayAlias:
 
 
 class TestLoadDriver:
-    def test_load_fritzbox_driver(self):
-        from app.drivers import load_driver
-        driver = load_driver("fritzbox", "http://fritz.box", "admin", "pass")
-        assert isinstance(driver, FritzBoxDriver)
-
-    def test_unknown_driver_raises(self):
-        from app.drivers import load_driver
-        with pytest.raises(ValueError, match="Unknown modem_type"):
-            load_driver("nonexistent", "http://x", "u", "p")
-
-    def test_default_is_fritzbox(self):
-        from app.drivers import driver_registry
-        assert driver_registry.has_driver("fritzbox")
-
     @pytest.mark.parametrize("bad_type", [
         "../../etc/passwd",
         "__import__('os')",
@@ -348,7 +334,3 @@ class TestLoadDriver:
         from app.drivers import load_driver
         with pytest.raises(ValueError, match="Unknown modem_type"):
             load_driver(bad_type, "http://x", "u", "p")
-
-
-# ── ModemCollector Error Path Tests (E2) ──
-

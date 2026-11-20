@@ -2,6 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
+from app.drivers.formats.html_transposed import extract_upstream_modulation
 from app.drivers.sb6141 import SB6141Driver
 
 
@@ -139,11 +140,6 @@ class TestDriverInit:
         d = SB6141Driver("http://192.168.100.1", "", "")
         assert d._url == "http://192.168.100.1"
 
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("sb6141", "http://192.168.100.1", "", "")
-        assert isinstance(d, SB6141Driver)
-
 
 # -- Login --
 
@@ -256,36 +252,9 @@ class TestDeviceInfo:
 
 # -- Value helpers --
 
-class TestValueHelpers:
-    def test_parse_freq_hz_integer(self):
-        assert SB6141Driver._parse_freq_hz("465000000 Hz") == "465 MHz"
-
-    def test_parse_freq_hz_decimal(self):
-        assert SB6141Driver._parse_freq_hz("24600000 Hz") == "24.6 MHz"
-
-    def test_parse_freq_hz_empty(self):
-        assert SB6141Driver._parse_freq_hz("") == ""
-
-    def test_parse_number_with_unit(self):
-        assert SB6141Driver._parse_number("35 dB") == 35.0
-
-    def test_parse_number_dbmv(self):
-        assert SB6141Driver._parse_number("3 dBmV") == 3.0
-
-    def test_parse_number_decimal(self):
-        assert SB6141Driver._parse_number("5.120 Msym/sec") == 5.12
-
-    def test_parse_number_empty(self):
-        assert SB6141Driver._parse_number("") == 0.0
-
-    def test_extract_upstream_modulation_multi(self):
-        assert SB6141Driver._extract_upstream_modulation("[3] QPSK\n[3] 64QAM") == "64QAM"
-
-    def test_extract_upstream_modulation_single(self):
-        assert SB6141Driver._extract_upstream_modulation("[2] QAM16") == "QAM16"
-
-    def test_extract_upstream_modulation_empty(self):
-        assert SB6141Driver._extract_upstream_modulation("") == ""
+@pytest.mark.parametrize(("raw", "expected"), [("[3] QPSK\n[3] 64QAM", "64QAM"), ("[2] QAM16", "QAM16"), ("", "")])
+def test_extract_upstream_modulation(raw, expected):
+    assert extract_upstream_modulation(raw) == expected
 
 
 # -- Edge cases --

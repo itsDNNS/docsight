@@ -233,15 +233,6 @@ def app(make_app):
 
 
 @pytest.fixture
-def make_client(make_app):
-    """Return a factory producing a client for a new application."""
-    def factory(**kwargs):
-        return make_app(**kwargs).test_client()
-
-    return factory
-
-
-@pytest.fixture
 def auth_config(tmp_path):
     """Config with admin_password set."""
     mgr = ConfigManager(str(tmp_path / "data"))

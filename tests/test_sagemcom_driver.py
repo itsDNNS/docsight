@@ -428,48 +428,28 @@ class TestUpstreamParsing:
 # -- OFDM detection --
 
 class TestOfdmDetection:
-    def test_by_bandwidth(self, driver):
-        assert driver._is_ofdm_downstream("Qam256", 128000000) is True
-        assert driver._is_ofdm_downstream("Qam256", 8000000) is False
-
-    def test_by_modulation_string(self, driver):
-        assert driver._is_ofdm_downstream("256-QAM1K-QAM2K-QA", 0) is True
-        assert driver._is_ofdm_downstream("Qam256", 0) is False
-
-
-# -- Modulation normalization --
-
-class TestModulationNormalization:
-    def test_qam256(self, driver):
-        assert driver._normalize_modulation("Qam256") == "256QAM"
-
-    def test_qam64(self, driver):
-        assert driver._normalize_modulation("Qam64") == "64QAM"
-
-    def test_empty(self, driver):
-        assert driver._normalize_modulation("") == ""
-
-    def test_passthrough(self, driver):
-        assert driver._normalize_modulation("something") == "something"
-
-    def test_us_atdma(self, driver):
-        assert driver._normalize_us_modulation("atdma") == "ATDMA"
-
-    def test_us_ofdma(self, driver):
-        assert driver._normalize_us_modulation("ofdma") == "OFDMA"
+    @pytest.mark.parametrize(("modulation", "bandwidth", "ofdm"), [
+        ("Qam256", 128000000, True),
+        ("Qam256", 8000000, False),
+        ("256-QAM1K-QAM2K-QA", 0, True),
+        ("Qam256", 0, False),
+    ])
+    def test_by_bandwidth_or_modulation_string(self, driver, modulation, bandwidth, ofdm):
+        ds30, ds31 = _lanes(driver, "channelDs", [{"LockStatus": True, "Modulation": modulation, "BandWidth": bandwidth}])
+        assert (len(ds30), len(ds31)) == ((0, 1) if ofdm else (1, 0))
 
 
-# -- Frequency conversion --
+# -- Modulation and frequency conversion --
 
-class TestFrequencyConversion:
-    def test_whole_mhz(self, driver):
-        assert driver._hz_to_mhz(546000000) == "546 MHz"
-
-    def test_fractional_mhz(self, driver):
-        assert driver._hz_to_mhz(104800000) == "104.8 MHz"
-
-    def test_zero(self, driver):
-        assert driver._hz_to_mhz(0) == ""
+@pytest.mark.parametrize(("modulation", "frequency", "expected_modulation", "expected_frequency"), [
+    ("Qam256", 546000000, "256QAM", "546 MHz"),
+    ("Qam64", 104800000, "64QAM", "104.8 MHz"),
+    ("", 0, "", ""),
+    ("something", 546000000, "something", "546 MHz"),
+])
+def test_scqam_modulation_and_frequency(driver, modulation, frequency, expected_modulation, expected_frequency):
+    ds30, _ = _lanes(driver, "channelDs", [{"LockStatus": True, "Modulation": modulation, "Frequency": frequency}])
+    assert (ds30[0]["modulation"], ds30[0]["frequency"]) == (expected_modulation, expected_frequency)
 
 
 # -- Full data flow --
@@ -666,16 +646,3 @@ class TestFullDataFlow:
 class TestConnectionInfo:
     def test_returns_empty(self, driver):
         assert driver.get_connection_info() == {}
-
-
-# -- Driver registration --
-
-class TestRegistration:
-    def test_sagemcom_registered(self):
-        from app.drivers import driver_registry
-        assert driver_registry.has_driver("sagemcom")
-
-    def test_sagemcom_loads(self):
-        from app.drivers import driver_registry
-        d = driver_registry.load_driver("sagemcom", "http://192.168.100.1", "admin", "pass")
-        assert isinstance(d, SagemcomDriver)

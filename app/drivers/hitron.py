@@ -20,17 +20,9 @@ import time
 import requests
 
 from .base import ModemDriver
-from .formats.hitron import (
-    parse_coda56_ds_ofdm,
-    parse_coda56_ds_scqam,
-    parse_coda56_us_ofdma,
-    parse_coda56_us_scqam,
-    parse_hitron_coda56_json,
-    parse_hitron_ofdma_power,
-)
-from .formats.primitives import hz_to_mhz
+from .formats.hitron import parse_hitron_coda56_json
 from .format_compat import unwrap_hitron
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .utils import make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.hitron")
@@ -114,26 +106,6 @@ class HitronDriver(ModemDriver):
             log.warning("Hitron fetch %s failed: %s", path, e)
             return []
 
-    def _fetch_ds_scqam(self) -> list[RawChannel]:
-        return parse_coda56_ds_scqam(self._fetch_json("/data/dsinfo.asp")).value
-
-    def _fetch_us_scqam(self) -> list[RawChannel]:
-        return parse_coda56_us_scqam(self._fetch_json("/data/usinfo.asp")).value
-
-    def _fetch_ds_ofdm(self) -> list[RawChannel]:
-        return parse_coda56_ds_ofdm(self._fetch_json("/data/dsofdminfo.asp")).value
-
-    def _fetch_us_ofdma(self) -> list[RawChannel]:
-        return unwrap_hitron(parse_coda56_us_ofdma(self._fetch_json("/data/usofdminfo.asp")), log)
-
-    @staticmethod
-    def _ofdma_power_1_6(row: dict[str, str]) -> float | None:
-        return parse_hitron_ofdma_power(row)
-
     @staticmethod
     def _cache_bust() -> str:
         return str(int(time.time() * 1000))
-
-    @staticmethod
-    def _hz_to_mhz(hz_str: str) -> str:
-        return hz_to_mhz(hz_str)

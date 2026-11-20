@@ -18,13 +18,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_transposed import (
-    extract_transposed_rows,
-    extract_upstream_modulation,
-    get_row_values,
-    parse_sb6141_transposed_html,
-)
-from .formats.primitives import hz_to_mhz, parse_number
+from .formats.html_transposed import parse_sb6141_transposed_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.sb6141")
@@ -101,23 +95,3 @@ class SB6141Driver(ModemDriver):
     def get_connection_info(self) -> ConnectionInfo:
         """Standalone modem, no connection info."""
         return {}
-
-    @staticmethod
-    def _extract_transposed_rows(table) -> list[tuple[str, list[str]]]:
-        return extract_transposed_rows(table)
-
-    @staticmethod
-    def _get_row_values(rows: list[tuple[str, list[str]]], keyword: str) -> list[str]:
-        return get_row_values(rows, keyword)
-
-    @staticmethod
-    def _extract_upstream_modulation(raw: str) -> str:
-        return extract_upstream_modulation(raw)
-
-    @staticmethod
-    def _parse_freq_hz(freq_str: str) -> str:
-        return hz_to_mhz(freq_str)
-
-    @staticmethod
-    def _parse_number(val_str: str) -> float:
-        return parse_number(val_str)

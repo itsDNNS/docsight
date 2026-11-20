@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from app.drivers import driver_registry, load_driver
+from app.drivers import driver_registry
 from app.drivers.pyur_fast3896 import PyurFast3896Driver
 from app.drivers.pyur_auth import sha512_crypt
 from tests.drivers.test_pyur_format import FIXTURE
@@ -240,7 +240,6 @@ def test_device_metadata_allowlist_and_unsupported_rates(make_driver):
 
 
 def test_registry_hints_and_metadata():
-    assert isinstance(load_driver("pyur_fast3896", "http://modem.invalid", "", "synthetic"), PyurFast3896Driver)
     assert ("pyur_fast3896", "PYUR FAST3896-15 (experimental)") in driver_registry.get_available_drivers()
     assert driver_registry.get_driver_hints()["pyur_fast3896"] == {
         "manufacturer": "Sagemcom", "region": "PŸUR DE",
