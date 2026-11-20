@@ -43,8 +43,13 @@ class CM3500Driver(ModemDriver):
             url = "https://" + url[len("http://"):]
             log.info("CM3500 requires HTTPS, upgraded URL to %s", url)
         super().__init__(url, user, password)
-        self._session = requests.Session()
-        self._session.verify = False
+        self._session = self._new_session()
+
+    @staticmethod
+    def _new_session() -> requests.Session:
+        session = requests.Session()
+        session.verify = False
+        return session
 
     def login(self) -> None:
         """Authenticate via form POST to /cgi-bin/login_cgi.
@@ -52,26 +57,16 @@ class CM3500Driver(ModemDriver):
         Retries once with a fresh connection if the modem drops a stale
         TCP connection (common after container restarts).
         """
-        for attempt in range(2):
-            try:
-                r = self._session.post(
-                    f"{self._url}/cgi-bin/login_cgi",
-                    data={"username": self._user, "password": self._password},
-                    timeout=30,
-                )
-                r.raise_for_status()
-                log.info("CM3500 auth OK")
-                return
-            except requests.ConnectionError:
-                if attempt == 0:
-                    log.warning("CM3500 connection lost, retrying with fresh session")
-                    self._session.close()
-                    self._session = requests.Session()
-                    self._session.verify = False
-                    continue
-                raise RuntimeError("CM3500 authentication failed: connection refused after retry")
-            except requests.RequestException as e:
-                raise RuntimeError(f"CM3500 authentication failed: {e}")
+        self._login_with_reconnect("CM3500", self._login_attempt, log)
+
+    def _login_attempt(self) -> None:
+        r = self._session.post(
+            f"{self._url}/cgi-bin/login_cgi",
+            data={"username": self._user, "password": self._password},
+            timeout=30,
+        )
+        r.raise_for_status()
+        log.info("CM3500 auth OK")
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables on status page.

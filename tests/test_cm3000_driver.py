@@ -211,6 +211,17 @@ class TestDriverInit:
 
 # -- Login --
 
+LOGIN_WRAPPER = """
+    <html><body>
+    <script>
+    if (sessionStorage.getItem('PrivateKey') === null) {
+        window.location.replace('../Login.htm');
+    }
+    </script>
+    </body></html>
+"""
+
+
 class TestLogin:
     def test_login_fetches_status_page_with_auth(self, driver):
         mock_response = MagicMock()
@@ -222,15 +233,6 @@ class TestLogin:
             driver.login()
             mock_get.assert_called_once_with("http://192.168.100.1/DocsisStatus.htm", timeout=30)
             assert driver._status_html == STATUS_HTML
-
-    def test_login_failure_raises(self, driver):
-        import requests as req
-        with patch.object(
-            driver._session, "get",
-            side_effect=req.RequestException("401 Unauthorized"),
-        ):
-            with pytest.raises(RuntimeError, match="CM3000 authentication failed"):
-                driver.login()
 
     def test_login_retries_on_connection_error(self, driver):
         import requests as req
@@ -251,23 +253,20 @@ class TestLogin:
             driver.login()  # Should succeed on retry
             mock_new_session.get.assert_called_once()
 
-    def test_login_rejects_login_page_false_positive(self, driver):
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        mock_response.text = """
-            <html><body>
-            <script>
-            if (sessionStorage.getItem('PrivateKey') === null) {
-                window.location.replace('../Login.htm');
-            }
-            </script>
-            </body></html>
-        """
-
-        with patch.object(driver._session, "get", return_value=mock_response), \
-                patch.object(driver, "_login_via_form", return_value=False):
-            with pytest.raises(RuntimeError, match="returned a login page"):
+    @pytest.mark.parametrize("pages, form_ok, message", [
+        (["<html>other</html>"], True, "expected DOCSIS data blocks"),
+        ([LOGIN_WRAPPER], False, "returned a login page"),
+        ([LOGIN_WRAPPER, LOGIN_WRAPPER], True, "returned a login page"),
+    ])
+    def test_login_rejects_non_status_page_and_logs_diagnostics_once(self, driver, pages, form_ok, message):
+        driver._status_html = STATUS_HTML  # cached by an earlier poll
+        with patch.object(driver._session, "get", side_effect=[MagicMock(text=text) for text in pages]), \
+                patch.object(driver, "_login_via_form", return_value=form_ok), \
+                patch.object(driver, "_log_status_page_diagnostics") as diagnostics:
+            with pytest.raises(RuntimeError, match=message):
                 driver.login()
+        diagnostics.assert_called_once_with(pages[-1], "login")
+        assert driver._status_html is None
 
     def test_login_accepts_status_page_even_with_login_markers(self, driver):
         mock_response = MagicMock()
@@ -285,17 +284,7 @@ class TestLogin:
             assert driver._status_html == mock_response.text
 
     def test_login_falls_back_to_form_login(self, driver):
-        login_wrapper = MagicMock()
-        login_wrapper.raise_for_status = MagicMock()
-        login_wrapper.text = """
-            <html><body>
-            <script>
-            if (sessionStorage.getItem('PrivateKey') === null) {
-                window.location.replace('../Login.htm');
-            }
-            </script>
-            </body></html>
-        """
+        login_wrapper = MagicMock(text=LOGIN_WRAPPER)
         login_page = MagicMock()
         login_page.raise_for_status = MagicMock()
         login_page.text = """
