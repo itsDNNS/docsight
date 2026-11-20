@@ -4,55 +4,17 @@ from __future__ import annotations
 
 from collections import Counter
 
+from app.drivers.formats import FORMAT_PROFILE_MODULES
 from tests.drivers.driver_format_cases import CASES, CASE_BY_ID
 
 
-EXPECTED_FAMILIES = {
-    "pyur_api_v1",
-    "arris_html",
-    "cgm4981_columnar_html",
+FAMILIES_WITHOUT_DOCSIS_31_CHANNELS = {
     "ch7465_xml",
-    "cm1000_html_table",
     "cm1000_javascript",
-    "cm3000_javascript",
-    "cm3500_html",
-    "f3896lg_rest_json",
-    "fritzbox_data_lua",
     "generic_no_docsis",
-    "hitron_coda4680_json",
-    "hitron_coda56_json",
-    "sagemcom_xmo_json",
     "sb6141_transposed_html",
     "sb6183_html",
     "sb6190_html",
-    "sb8200_cbn_xml",
-    "sercom_dm1000_json",
-    "surfboard_hnap",
-    "tc4400_html",
-    "ultrahub7_json",
-    "vodafone_station_cga_json",
-    "vodafone_station_tg_embedded_json",
-}
-
-FAMILIES_WITH_DOCSIS_31_CHANNELS = {
-    "pyur_api_v1",
-    "arris_html",
-    "cgm4981_columnar_html",
-    "cm1000_html_table",
-    "cm3000_javascript",
-    "cm3500_html",
-    "f3896lg_rest_json",
-    "fritzbox_data_lua",
-    "hitron_coda4680_json",
-    "hitron_coda56_json",
-    "sagemcom_xmo_json",
-    "sb8200_cbn_xml",
-    "sercom_dm1000_json",
-    "surfboard_hnap",
-    "tc4400_html",
-    "ultrahub7_json",
-    "vodafone_station_cga_json",
-    "vodafone_station_tg_embedded_json",
 }
 
 
@@ -67,10 +29,7 @@ def _has_ofdm_or_ofdma(output) -> bool:
 
 
 def test_case_registry_is_complete_and_has_three_boundary_cases_per_family():
-    counts = Counter(case.family for case in CASES)
-    assert set(counts) == EXPECTED_FAMILIES
-    assert counts == {family: 3 for family in EXPECTED_FAMILIES}
-    assert len(CASE_BY_ID) == len(CASES) == 72
+    assert Counter(case.family for case in CASES) == {family: 3 for family in FORMAT_PROFILE_MODULES}
     assert list(CASE_BY_ID) == sorted(CASE_BY_ID)
 
 
@@ -89,7 +48,7 @@ def test_supported_docsis31_families_have_ofdm_or_ofdma_in_success_output():
         for case in CASES
         if ".success" in case.case_id and _has_ofdm_or_ofdma(case.expected)
     }
-    assert covered == FAMILIES_WITH_DOCSIS_31_CHANNELS
+    assert covered == set(FORMAT_PROFILE_MODULES) - FAMILIES_WITHOUT_DOCSIS_31_CHANNELS
 
 
 def test_fritzbox_boundary_preserves_order_duplicates_and_missing_channel_ids():
