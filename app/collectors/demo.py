@@ -336,7 +336,7 @@ class DemoCollector(AnalysisCollector):
             bad_period = _demo_bad_period(ts)
 
             analysis = self._generate_historical_analysis(
-                i, diurnal, seasonal, bad_period, hour, day_of_year,
+                diurnal, seasonal, bad_period, hour, day_of_year,
                 burst=bad_period and not was_bad,
                 congested=_demo_congested_evening(ts) and not bad_period,
             )
@@ -362,7 +362,7 @@ class DemoCollector(AnalysisCollector):
         log.info("Demo: seeded %d historical snapshots (%d days)", len(rows), days)
         return detected
 
-    def _generate_historical_analysis(self, index, diurnal, seasonal, bad_period, hour=12, day_of_year=1, burst=False,
+    def _generate_historical_analysis(self, diurnal, seasonal, bad_period, hour=12, day_of_year=1, burst=False,
                                       congested=False):
         """Generate a single analyzed snapshot for historical seeding."""
         base = _load_base_data()

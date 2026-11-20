@@ -63,38 +63,29 @@ class SmartCaptureEngine:
         return bool(self._config.get("sc_enabled", False))
 
     def _evaluate_event(self, event: EventDict) -> None:
-        matches = [(t, event) for t in self._triggers if t.matches(event)]
-        if not matches:
-            return
-
-        # Filter by per-trigger config key (sc_trigger_* must be True)
+        # Match, then per-trigger config key (sc_trigger_* must be True), then sub-filter
         matches = [
-            (t, ev) for t, ev in matches
-            if t.config_key is None or self._config.get(t.config_key, False)
-        ]
-        if not matches:
-            return
-
-        # Apply sub-filter if set
-        matches = [
-            (t, ev) for t, ev in matches
-            if t.sub_filter is None or t.sub_filter(self._config, ev)
+            (t, event) for t in self._triggers
+            if t.matches(event)
+            and (t.config_key is None or self._config.get(t.config_key, False))
+            and (t.sub_filter is None or t.sub_filter(self._config, event))
         ]
         if not matches:
             return
 
         results = self._guardrails.check_batch(matches)
 
-        for trigger, ev, allowed, reason in results:
+        for _, ev, allowed, reason in results:
+            execution_id = self._storage.save_execution(
+                trigger_type=ev["event_type"],
+                action_type=CAPTURE_ACTION_TYPE,
+                status=ExecutionStatus.PENDING if allowed else ExecutionStatus.SUPPRESSED,
+                trigger_event_id=ev.get("_id"),
+                trigger_timestamp=ev.get("timestamp"),
+                suppression_reason=reason,
+                details=ev.get("details"),
+            )
             if allowed:
-                execution_id = self._storage.save_execution(
-                    trigger_type=ev["event_type"],
-                    action_type=CAPTURE_ACTION_TYPE,
-                    status=ExecutionStatus.PENDING,
-                    trigger_event_id=ev.get("_id"),
-                    trigger_timestamp=ev.get("timestamp"),
-                    details=ev.get("details"),
-                )
                 log.info("Smart Capture: pending execution #%d for %s -> %s",
                          execution_id, ev["event_type"], CAPTURE_ACTION_TYPE)
 
@@ -105,14 +96,5 @@ class SmartCaptureEngine:
                         log.error("Smart Capture: speedtest adapter error for #%d: %s",
                                   execution_id, e)
             else:
-                self._storage.save_execution(
-                    trigger_type=ev["event_type"],
-                    action_type=CAPTURE_ACTION_TYPE,
-                    status=ExecutionStatus.SUPPRESSED,
-                    trigger_event_id=ev.get("_id"),
-                    trigger_timestamp=ev.get("timestamp"),
-                    suppression_reason=reason,
-                    details=ev.get("details"),
-                )
                 log.info("Smart Capture: suppressed %s -> %s (%s)",
                          ev["event_type"], CAPTURE_ACTION_TYPE, reason)

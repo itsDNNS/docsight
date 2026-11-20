@@ -8,7 +8,6 @@ def test_demo_historical_analysis_populates_signal_family_trend_keys():
     collector._error_counters = _DemoErrorCounters(_load_base_data())
 
     analysis = collector._generate_historical_analysis(
-        index=1,
         diurnal=0.0,
         seasonal=0.0,
         bad_period=False,
