@@ -295,37 +295,6 @@ class TestDeviceInfo:
         assert driver.get_connection_info() == {}
 
 
-# -- Value helpers --
-
-class TestValueHelpers:
-    def test_normalize_mhz_integer(self):
-        assert SB6190Driver._normalize_mhz("807.00 MHz") == "807 MHz"
-
-    def test_normalize_mhz_decimal(self):
-        assert SB6190Driver._normalize_mhz("17.60 MHz") == "17.6 MHz"
-
-    def test_normalize_mhz_already_integer(self):
-        assert SB6190Driver._normalize_mhz("100 MHz") == "100 MHz"
-
-    def test_normalize_mhz_invalid(self):
-        assert SB6190Driver._normalize_mhz("unknown") == "unknown"
-
-    def test_parse_number_dbmv(self):
-        assert SB6190Driver._parse_number("10.50 dBmV") == 10.50
-
-    def test_parse_number_db(self):
-        assert SB6190Driver._parse_number("40.95 dB") == 40.95
-
-    def test_parse_number_integer(self):
-        assert SB6190Driver._parse_number("33") == 33.0
-
-    def test_parse_number_empty(self):
-        assert SB6190Driver._parse_number("") == 0.0
-
-    def test_parse_number_invalid(self):
-        assert SB6190Driver._parse_number("Locked") == 0.0
-
-
 # -- Edge cases --
 
 class TestEdgeCases:

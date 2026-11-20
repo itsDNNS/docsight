@@ -17,9 +17,8 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_rows import parse_sb6190_downstream, parse_sb6190_html, parse_sb6190_upstream
-from .formats.primitives import normalize_mhz, parse_number
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from .formats.html_rows import parse_sb6190_html
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.sb6190")
 
@@ -109,24 +108,6 @@ class SB6190Driver(ModemDriver):
 
     def get_connection_info(self) -> ConnectionInfo:
         return {}
-
-    # -- Parsers --
-
-    def _parse_downstream(self, table) -> list[RawChannel]:
-        return parse_sb6190_downstream(table).value
-
-    def _parse_upstream(self, table) -> list[RawChannel]:
-        return parse_sb6190_upstream(table).value
-
-    # -- Value helpers --
-
-    @staticmethod
-    def _normalize_mhz(freq_str: str) -> str:
-        return normalize_mhz(freq_str)
-
-    @staticmethod
-    def _parse_number(val_str: str) -> float:
-        return parse_number(val_str)
 
     @staticmethod
     def _is_authenticated_status_page(html: str) -> bool:

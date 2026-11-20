@@ -17,13 +17,9 @@ import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 
 from .base import ModemDriver
-from .formats.vodafone import (
-    parse_ultrahub7_downstream,
-    parse_ultrahub7_json,
-    parse_ultrahub7_upstream,
-)
+from .formats.vodafone import parse_ultrahub7_json
 from .utils import pbkdf2_sha256
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.ultrahub7")
 
@@ -280,9 +276,3 @@ class UltraHub7Driver(ModemDriver):
         # Ultra Hub 7 doesn't expose connection info via DOCSIS API
         # Return empty dict (will use Fritz!Box fallback in analyzer)
         return {}
-
-    def _parse_downstream_channels(self, channels: list[dict[str, str]]) -> list[RawChannel]:
-        return parse_ultrahub7_downstream(channels).value
-
-    def _parse_upstream_channels(self, channels: list[dict[str, str]]) -> list[RawChannel]:
-        return parse_ultrahub7_upstream(channels).value

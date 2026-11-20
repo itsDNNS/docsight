@@ -22,17 +22,8 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_rows import (
-    find_cm3500_sections,
-    format_cm3500_frequency,
-    parse_cm3500_ds_ofdm,
-    parse_cm3500_ds_qam,
-    parse_cm3500_html,
-    parse_cm3500_us_ofdm,
-    parse_cm3500_us_qam,
-)
-from .formats.primitives import parse_number
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from .formats.html_rows import parse_cm3500_html
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.cm3500")
 
@@ -197,32 +188,3 @@ class CM3500Driver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"CM3500 status page retrieval failed: {e}")
         return BeautifulSoup(r.text, "html.parser")
-
-    def _find_table_sections(self, soup) -> dict[str, object]:
-        return find_cm3500_sections(soup)
-
-    # -- Downstream parsers --
-
-    def _parse_ds_qam(self, table) -> list[RawChannel]:
-        return parse_cm3500_ds_qam(table).value
-
-    def _parse_ds_ofdm(self, table) -> list[RawChannel]:
-        return parse_cm3500_ds_ofdm(table).value
-
-    # -- Upstream parsers --
-
-    def _parse_us_qam(self, table) -> list[RawChannel]:
-        return parse_cm3500_us_qam(table).value
-
-    def _parse_us_ofdm(self, table) -> list[RawChannel]:
-        return parse_cm3500_us_ofdm(table).value
-
-    # -- Value parsers --
-
-    @staticmethod
-    def _parse_number(value: str) -> float:
-        return parse_number(value)
-
-    @staticmethod
-    def _format_freq(freq_str: str) -> str:
-        return format_cm3500_frequency(freq_str)

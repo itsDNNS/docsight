@@ -20,10 +20,7 @@ import requests
 
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
-from .formats.sercom import (
-    _profile_modulation,
-    parse_sercom_dm1000_json,
-)
+from .formats.sercom import parse_sercom_dm1000_json
 from .format_compat import unwrap_sercom
 
 log = logging.getLogger("docsis.driver.sercom_dm1000")
@@ -380,7 +377,3 @@ class SercomDM1000Driver(ModemDriver):
                     if value is not None and str(value).strip():
                         return str(value).strip()
         return ""
-
-    @staticmethod
-    def _profile_modulation_from_bits(value: Any) -> str | None:
-        return _profile_modulation(value)

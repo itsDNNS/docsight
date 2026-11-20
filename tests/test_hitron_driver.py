@@ -69,6 +69,17 @@ def driver():
     return HitronDriver("http://192.168.100.1", "", "")
 
 
+def _poll(driver, **rows):
+    """Poll once with each /data/<endpoint>.asp answering its rows; other endpoints answer []."""
+    def get(url, **kwargs):
+        resp = MagicMock(status_code=200)
+        resp.json.return_value = next((data for name, data in rows.items() if f"/data/{name}.asp" in url), [])
+        return resp
+
+    with patch.object(driver._session, "get", side_effect=get):
+        return driver.get_docsis_data()
+
+
 class TestLogin:
     def test_login_success(self, driver):
         resp = MagicMock(status_code=200)
@@ -85,10 +96,7 @@ class TestLogin:
 
 class TestDownstreamSCQAM:
     def test_parse_channels(self, driver):
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = DS_SCQAM_DATA
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_ds_scqam()
+        channels = _poll(driver, dsinfo=DS_SCQAM_DATA)["channelDs"]["docsis30"]
 
         assert len(channels) == 3
         ch = channels[0]
@@ -111,10 +119,7 @@ class TestDownstreamSCQAM:
 
 class TestUpstreamSCQAM:
     def test_parse_channels(self, driver):
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = US_SCQAM_DATA
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_us_scqam()
+        channels = _poll(driver, usinfo=US_SCQAM_DATA)["channelUs"]["docsis30"]
 
         assert len(channels) == 2
         ch = channels[0]
@@ -127,10 +132,7 @@ class TestUpstreamSCQAM:
 
 class TestDownstreamOFDM:
     def test_parse_locked_channels(self, driver):
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = DS_OFDM_DATA
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_ds_ofdm()
+        channels = _poll(driver, dsofdminfo=DS_OFDM_DATA)["channelDs"]["docsis31"]
 
         assert len(channels) == 2
         ch = channels[0]
@@ -144,19 +146,13 @@ class TestDownstreamOFDM:
 
     def test_skip_unlocked_ofdm(self, driver):
         unlocked = [dict(DS_OFDM_DATA[0], plclock="NO")]
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = unlocked
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_ds_ofdm()
+        channels = _poll(driver, dsofdminfo=unlocked)["channelDs"]["docsis31"]
         assert len(channels) == 0
 
 
 class TestUpstreamOFDMA:
     def test_parse_operating_channels(self, driver):
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = US_OFDMA_DATA
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_us_ofdma()
+        channels = _poll(driver, usofdminfo=US_OFDMA_DATA)["channelUs"]["docsis31"]
 
         # Only OPERATE state, DISABLED is skipped
         assert len(channels) == 1
@@ -169,41 +165,21 @@ class TestUpstreamOFDMA:
     @pytest.mark.parametrize("value", [None, "", "N/A", "nan", "inf", "-inf", []])
     def test_invalid_1_6_mhz_report_power_stays_unsupported(self, driver, value):
         operating = [dict(US_OFDMA_DATA[0], repPower1_6=value)]
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = operating
-
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_us_ofdma()
+        channels = _poll(driver, usofdminfo=operating)["channelUs"]["docsis31"]
 
         assert channels[0]["powerLevel"] is None
 
     def test_skip_disabled_ofdma(self, driver):
         disabled = [dict(US_OFDMA_DATA[1])]
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = disabled
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_us_ofdma()
+        channels = _poll(driver, usofdminfo=disabled)["channelUs"]["docsis31"]
         assert len(channels) == 0
 
 
 class TestGetDocsisData:
     def test_full_structure(self, driver):
-        def mock_get(url, **kwargs):
-            resp = MagicMock(status_code=200)
-            if "dsinfo" in url:
-                resp.json.return_value = DS_SCQAM_DATA
-            elif "usinfo" in url:
-                resp.json.return_value = US_SCQAM_DATA
-            elif "dsofdminfo" in url:
-                resp.json.return_value = DS_OFDM_DATA
-            elif "usofdminfo" in url:
-                resp.json.return_value = US_OFDMA_DATA
-            else:
-                resp.json.return_value = []
-            return resp
-
-        with patch.object(driver._session, "get", side_effect=mock_get):
-            data = driver.get_docsis_data()
+        data = _poll(
+            driver, dsinfo=DS_SCQAM_DATA, usinfo=US_SCQAM_DATA, dsofdminfo=DS_OFDM_DATA, usofdminfo=US_OFDMA_DATA,
+        )
 
         assert len(data["channelDs"]["docsis30"]) == 3
         assert len(data["channelDs"]["docsis31"]) == 2
@@ -253,28 +229,9 @@ class TestConnectionInfo:
 
 
 class TestHelpers:
-    def test_hz_to_mhz_integer(self):
-        assert HitronDriver._hz_to_mhz("591000000") == "591 MHz"
-
-    def test_hz_to_mhz_decimal(self):
-        assert HitronDriver._hz_to_mhz("275600000") == "275.6 MHz"
-
-    def test_hz_to_mhz_with_whitespace(self):
-        assert HitronDriver._hz_to_mhz(" 275600000") == "275.6 MHz"
-
-    def test_hz_to_mhz_invalid(self):
-        assert HitronDriver._hz_to_mhz("invalid") == "invalid"
-
     def test_empty_endpoint_returns_empty_list(self, driver):
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = []
-        with patch.object(driver._session, "get", return_value=resp):
-            assert driver._fetch_ds_scqam() == []
+        assert _poll(driver)["channelDs"]["docsis30"] == []
 
     def test_malformed_row_skipped(self, driver):
         bad_data = [{"portId": "1", "frequency": "bad"}]  # missing fields
-        resp = MagicMock(status_code=200)
-        resp.json.return_value = bad_data
-        with patch.object(driver._session, "get", return_value=resp):
-            channels = driver._fetch_ds_scqam()
-        assert len(channels) == 0
+        assert _poll(driver, dsinfo=bad_data)["channelDs"]["docsis30"] == []

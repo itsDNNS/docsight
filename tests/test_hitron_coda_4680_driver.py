@@ -315,7 +315,9 @@ class TestDocsisData:
             }
         ]
 
-        channels = driver._parse_us_ofdma(rows)
+        payloads = {**PAYLOADS, "/1/Device/CM/UsOfdm": {"OFDMAs_List": rows}}
+        with patch.object(driver, "_fetch_payload", side_effect=payloads.__getitem__):
+            channels = driver.get_docsis_data()["channelUs"]["docsis31"]
 
         assert len(channels) == 1
         assert channels[0]["powerLevel"] == pytest.approx(40.0)
@@ -326,7 +328,9 @@ class TestDocsisData:
             dict(DS_OFDM["OFDMs_List"][0], receive=1, plclock="YES"),
         ]
 
-        channels = driver._parse_ds_ofdm(rows)
+        payloads = {**PAYLOADS, "/1/Device/CM/DsOfdm": {"OFDMs_List": rows}}
+        with patch.object(driver, "_fetch_payload", side_effect=payloads.__getitem__):
+            channels = driver.get_docsis_data()["channelDs"]["docsis31"]
 
         assert [channel["channelID"] for channel in channels] == [1]
 

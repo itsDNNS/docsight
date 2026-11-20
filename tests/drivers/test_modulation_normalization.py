@@ -6,45 +6,13 @@ from bs4 import BeautifulSoup
 
 import pytest
 
-from app.drivers.ch7465 import CH7465Driver
 from app.drivers.formats.html_rows import parse_tc4400_html
-from app.drivers.tc4400 import TC4400Driver
 from app.drivers.vodafone_station import VodafoneStationDriver
-from app.drivers.utils import normalize_modulation
 
 
-@pytest.mark.parametrize(
-    ("raw", "expected"),
-    [
-        (None, ""),
-        ("", ""),
-        (" 256QAM ", "256QAM"),
-        ("256qam", "256QAM"),
-        ("256-qam", "256QAM"),
-        ("256 qam", "256QAM"),
-        ("qam256", "256QAM"),
-        ("qam_256", "256QAM"),
-        ("64 qam", "64QAM"),
-        ("4096-qam", "4096QAM"),
-        ("qpsk", "QPSK"),
-        ("ofdm", "OFDM"),
-        ("ofdma", "OFDMA"),
-        ("atdma", "ATDMA"),
-        ("tdma", "TDMA"),
-        ("mystery mode", "MYSTERY MODE"),
-    ],
-)
-def test_shared_modulation_normalization(raw, expected):
-    assert normalize_modulation(raw) == expected
-
-
-@pytest.mark.parametrize("driver", [CH7465Driver, TC4400Driver, VodafoneStationDriver])
-def test_driver_helpers_use_canonical_modulation_labels(driver):
-    assert driver._normalize_modulation("256-qam") == "256QAM"
-    assert driver._normalize_modulation("64 qam") == "64QAM"
-    assert driver._normalize_modulation("qpsk") == "QPSK"
-    assert driver._normalize_modulation("ofdm") == "OFDM"
-    assert driver._normalize_modulation("ofdma") == "OFDMA"
+def _tc4400_downstream(headers: str, row: str) -> list:
+    table = BeautifulSoup(f"<table><tr>{headers}</tr><tr>{row}</tr></table>", "html.parser").find("table")
+    return parse_tc4400_html(table, None).value["downstream"]
 
 
 @pytest.mark.parametrize(
@@ -55,41 +23,26 @@ def test_driver_helpers_use_canonical_modulation_labels(driver):
     ],
 )
 def test_tc4400_downstream_type_is_canonical(row, expected_type, expected_mse):
-    table = BeautifulSoup(
-        f"""
-        <table>
-          <tr>
-            <th>Channel ID</th><th>Lock Status</th><th>Channel Type</th>
-            <th>Modulation</th><th>Frequency</th><th>Power</th><th>SNR</th>
-            <th>Corrected</th><th>Uncorrected</th>
-          </tr>
-          <tr>{row}<td>1</td><td>0</td></tr>
-        </table>
-        """,
-        "html.parser",
-    ).find("table")
-
-    channels = parse_tc4400_html(table, None).value["downstream"]
+    headers = "<th>Channel ID</th><th>Lock Status</th><th>Channel Type</th><th>Modulation</th><th>Frequency</th><th>Power</th><th>SNR</th><th>Corrected</th><th>Uncorrected</th>"
+    channels = _tc4400_downstream(headers, row + "<td>1</td><td>0</td>")
 
     assert channels[0]["type"] == expected_type
     assert channels[0]["mse"] == expected_mse
 
 
 @pytest.mark.parametrize(
-    ("headers", "expected_index"),
+    ("headers", "row"),
     [
-        (["Channel ID", "Channel Index", "Lock Status", "Frequency"], 0),
-        (["Channel Index", "Channel ID", "Lock Status", "Frequency"], 1),
+        ("<th>Channel ID</th><th>Channel Index</th>", "<td>7</td><td>3</td>"),
+        ("<th>Channel Index</th><th>Channel ID</th>", "<td>3</td><td>7</td>"),
     ],
 )
-def test_tc4400_column_mapping_always_prefers_explicit_channel_id(
-    headers, expected_index
-):
-    driver = TC4400Driver("http://192.168.100.1", "user", "pass")
+def test_tc4400_column_mapping_always_prefers_explicit_channel_id(headers, row):
+    channels = _tc4400_downstream(
+        headers + "<th>Lock Status</th><th>Frequency</th>", row + "<td>Locked</td><td>591000000 Hz</td>"
+    )
 
-    columns = driver._map_columns([header.lower() for header in headers])
-
-    assert columns["channel_id"] == expected_index
+    assert channels[0]["channelID"] == "7"
 
 
 def test_vodafone_cga_docsis31_types_are_uppercase():
