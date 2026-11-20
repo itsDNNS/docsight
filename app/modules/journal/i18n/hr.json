@@ -30,6 +30,7 @@
   "import_no_date": "nema datuma",
   "import_file_unsupported": "Podržane su samo datoteke .xlsx i .csv",
   "import_file_too_large": "Datoteka je prevelika (najviše 5 MB)",
+  "import_csv_unreadable": "Ovu datoteku nije moguće pročitati. Otvorite je u izvornom programu, spremite kao CSV (UTF-8) i ponovno je uvezite.",
   "delete_all": "Izbriši sve",
   "delete_all_confirm": "Izbrisati sve unose ({n})? To se ne može poništiti.",
   "delete_all_type_confirm": "Za potvrdu upišite DELETE:",

@@ -357,6 +357,8 @@ def api_journal_import_preview():
 
     try:
         result = parse_file(file_bytes, f.filename)
+    except UnicodeDecodeError:
+        return jsonify({"error": get_translations(get_lang())["docsight.journal.import_csv_unreadable"]}), 400
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception:

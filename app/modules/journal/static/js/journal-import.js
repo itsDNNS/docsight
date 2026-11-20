@@ -115,6 +115,7 @@ function updateImportValidationSummary() {
 function handleImportFile(input) {
     if (!input.files || input.files.length === 0) return;
     var file = input.files[0];
+    input.value = ''; // the same file can be chosen again after an error
     var lower = file.name.toLowerCase();
     if (!lower.endsWith('.xlsx') && !lower.endsWith('.csv')) {
         setImportValidationState(T.import_validation_unsupported || 'Unsupported file type. Use CSV or Excel files.', 'error');
@@ -132,7 +133,7 @@ function handleImportFile(input) {
     var formData = new FormData();
     formData.append('file', file);
 
-    fetch(docsightUrl('/api/journal/import/preview'), {method: 'POST', body: formData})
+    fetch(docsightUrl('/api/journal/import/preview?lang=' + encodeURIComponent(document.documentElement.lang)), {method: 'POST', body: formData})
         .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
         .then(function(res) {
             document.getElementById('import-loading').hidden = true;

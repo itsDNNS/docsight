@@ -30,6 +30,7 @@
   "import_no_date": "fără dată",
   "import_file_unsupported": "Sunt acceptate doar fișiere .xlsx și .csv",
   "import_file_too_large": "Fișier prea mare (max. 5 MB)",
+  "import_csv_unreadable": "Acest fișier nu a putut fi citit. Deschideți-l în programul original, salvați-l ca CSV (UTF-8) și importați-l din nou.",
   "delete_all": "Șterge tot",
   "delete_all_confirm": "Ștergeți toate cele {n} intrări? Acțiunea nu poate fi anulată.",
   "delete_all_type_confirm": "Tastați DELETE pentru confirmare:",
