@@ -35,7 +35,7 @@ from bs4 import BeautifulSoup
 from .base import ModemDriver
 from .formats.html_rows import parse_arris_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
-from .utils import make_legacy_tls_adapter
+from .utils import make_legacy_tls_adapter, request_error_summary
 
 log = logging.getLogger("docsis.driver.cm8200")
 
@@ -171,10 +171,8 @@ class CM8200Driver(ModemDriver):
         except requests.RequestException as e:
             # The request URL carries the credentials, so the original error is dropped. A same-type
             # copy with only the error type and HTTP status keeps the connection test classification.
-            status = getattr(e.response, "status_code", None)
-            failure = type(e)(f"{type(e).__name__} (HTTP {status})" if status else type(e).__name__,
-                              response=requests.Response())
-            failure.response.status_code = status
+            failure = type(e)(request_error_summary(e), response=requests.Response())
+            failure.response.status_code = getattr(e.response, "status_code", None)
         # Raised outside the except block so the original error is not attached as context.
         if isinstance(failure, requests.ConnectionError):
             raise failure  # the shared login loop reconnects once
@@ -207,7 +205,8 @@ class CM8200Driver(ModemDriver):
                 "model": model,
                 "sw_version": "",
             }
-        except Exception:
+        except Exception as e:
+            log.warning("CM8200 device info unavailable: %s", e)
             return {"manufacturer": "Arris", "model": "CM8200A", "sw_version": ""}
 
     def get_connection_info(self) -> ConnectionInfo:

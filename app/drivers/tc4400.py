@@ -20,6 +20,7 @@ from bs4 import BeautifulSoup
 from .base import ModemDriver
 from .formats.html_rows import parse_tc4400_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.tc4400")
 
@@ -85,7 +86,7 @@ class TC4400Driver(ModemDriver):
             )
             r.raise_for_status()
         except requests.RequestException as e:
-            log.warning("TC4400 device info failed: %s", e)
+            log.warning("TC4400 device info failed: %s", request_error_summary(e))
             return {
                 "manufacturer": "Technicolor",
                 "model": "TC4400",

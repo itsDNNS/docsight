@@ -26,7 +26,7 @@ from .formats.vodafone import (
     parse_vodafone_station_cga_json,
     parse_vodafone_station_tg_embedded_json,
 )
-from .utils import pbkdf2_sha256
+from .utils import pbkdf2_sha256, request_error_summary
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.vodafone_station")
@@ -40,6 +40,10 @@ def _aes_ccm_encrypt_hex(key: bytes, nonce: bytes, plaintext: bytes, aad: bytes)
 def _aes_ccm_decrypt_hex(key: bytes, nonce: bytes, encrypted_hex: str, aad: bytes) -> bytes:
     """Decrypt AES-CCM ciphertext+tag stored as hex."""
     return AESCCM(key, tag_length=16).decrypt(nonce, bytes.fromhex(encrypted_hex), aad)
+
+
+class _RetryFailed(RuntimeError):
+    """A stale-session retry ran out; raised by ``_retry_after_relogin``."""
 
 
 class VodafoneStationDriver(ModemDriver):
@@ -271,24 +275,15 @@ class VodafoneStationDriver(ModemDriver):
         - OFDMA US:  channelidup, CentralFrequency, power, FFT, ChannelType
         """
         try:
-            r = self._cga_request("GET", "/api/v1/sta_docsis_status")
-            raw = r.json()
-        except requests.RequestException as e:
-            # Stale session: re-login and retry once
-            if hasattr(e, 'response') and e.response is not None and e.response.status_code in (400, 401, 403):
-                log.warning("CGA DOCSIS request failed (%s), re-authenticating and retrying", e.response.status_code)
-                self._invalidate_cga_session()
-                try:
-                    self._login_cga()
-                    r = self._cga_request("GET", "/api/v1/sta_docsis_status")
-                    raw = r.json()
-                except Exception as retry_err:
-                    self._invalidate_cga_session()
-                    raise RuntimeError(f"CGA DOCSIS data retrieval failed after retry: {retry_err}")
-            else:
-                self._invalidate_cga_session()
-                raise RuntimeError(f"CGA DOCSIS data retrieval failed: {e}")
-
+            raw = self._retry_after_relogin(
+                "CGA DOCSIS data",
+                lambda: self._cga_request("GET", "/api/v1/sta_docsis_status").json(),
+                self._login_cga,
+                self._invalidate_cga_session,
+            )
+        except _RetryFailed:
+            self._invalidate_cga_session()
+            raise
         data = raw.get("data", raw)
         parsed = parse_vodafone_station_cga_json(data)
         if parsed.value is None:
@@ -305,7 +300,8 @@ class VodafoneStationDriver(ModemDriver):
                 "model": info.get("modelName", info.get("model", "Vodafone Station")),
                 "sw_version": info.get("softwareVersion", info.get("swVersion", "")),
             }
-        except Exception:
+        except Exception as e:
+            log.warning("CGA device info unavailable: %s", request_error_summary(e))
             return {
                 "manufacturer": "CommScope/Technicolor",
                 "model": "Vodafone Station (CGA6444VF/CGA4322DE)",
@@ -372,26 +368,13 @@ class VodafoneStationDriver(ModemDriver):
         }
 
         try:
-            text, text2 = fetch_status_pages()
-        except requests.RequestException as e:
-            status_code = getattr(getattr(e, "response", None), "status_code", None)
-            if status_code in (400, 401, 403):
-                log.warning(
-                    "TG device info request failed (%s), re-authenticating and retrying",
-                    status_code,
-                )
-                self._invalidate_tg_session()
-                try:
-                    self._login_tg()
-                    text, text2 = fetch_status_pages()
-                except Exception as retry_err:
-                    log.warning("TG device info retrieval failed after retry: %s", retry_err)
-                    self._invalidate_tg_session()
-                    return fallback
-            else:
-                log.warning("TG device info retrieval failed: %s", e)
-                self._invalidate_tg_session()
-                return fallback
+            text, text2 = self._retry_after_relogin(
+                "TG device info", fetch_status_pages, self._login_tg, self._invalidate_tg_session,
+            )
+        except _RetryFailed as e:
+            log.warning("%s", e)
+            self._invalidate_tg_session()
+            return fallback
 
         return {**fallback, **parse_status(text, text2)}
     
@@ -554,22 +537,12 @@ class VodafoneStationDriver(ModemDriver):
             self._login_tg()
 
         try:
-            r = self._tg_docsis_request()
-        except requests.RequestException as e:
-            # Stale session: re-login and retry once
-            if hasattr(e, 'response') and e.response is not None and e.response.status_code in (400, 401, 403):
-                log.warning("TG DOCSIS request failed (%s), re-authenticating and retrying", e.response.status_code)
-                self._invalidate_tg_session()
-                try:
-                    self._login_tg()
-                    r = self._tg_docsis_request()
-                except Exception as retry_err:
-                    self._invalidate_tg_session()
-                    raise RuntimeError(f"TG DOCSIS data retrieval failed after retry: {retry_err}")
-            else:
-                self._invalidate_tg_session()
-                raise RuntimeError(f"TG DOCSIS data retrieval failed: {e}")
-
+            r = self._retry_after_relogin(
+                "TG DOCSIS data", self._tg_docsis_request, self._login_tg, self._invalidate_tg_session,
+            )
+        except _RetryFailed:
+            self._invalidate_tg_session()
+            raise
         parsed = parse_vodafone_station_tg_embedded_json(r.text)
         if parsed.value is None:
             self._invalidate_tg_session()
@@ -638,6 +611,26 @@ class VodafoneStationDriver(ModemDriver):
             self._session.headers.pop(key, None)
 
     # ── Helpers ───────────────────────────────────────────────
+
+    @staticmethod
+    def _retry_after_relogin(label: str, request, login, invalidate):
+        """Return ``request()``; on HTTP 400/401/403 (stale session) log in again and retry once.
+
+        Any other request error, or a failed retry, raises ``_RetryFailed``; the caller invalidates the session.
+        """
+        try:
+            return request()
+        except requests.RequestException as e:
+            status = getattr(e.response, "status_code", None)
+            if status not in (400, 401, 403):
+                raise _RetryFailed(f"{label} retrieval failed: {request_error_summary(e)}")
+            log.warning("%s request failed (%s), re-authenticating and retrying", label, status)
+            invalidate()
+            try:
+                login()
+                return request()
+            except Exception as retry_err:
+                raise _RetryFailed(f"{label} retrieval failed after retry: {request_error_summary(retry_err)}")
 
     @staticmethod
     def _extract_js_var(html: str, var_name: str) -> str | None:

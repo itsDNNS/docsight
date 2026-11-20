@@ -30,6 +30,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from .base import ModemDriver
 from .formats.xml_payloads import parse_sb8200_cbn_xml
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
+from .utils import error_text
 
 log = logging.getLogger("docsis.driver.sb8200_cbn")
 
@@ -219,7 +220,7 @@ class SB8200CBNDriver(ModemDriver):
         try:
             root = self._xml(self._get_data(Query.SYSTEM_INFO))
         except _UNREADABLE as e:
-            log.warning("Failed to get device info: %s", e)
+            log.warning("Failed to get device info: %s", error_text(e))
             return dict(_FALLBACK_DEVICE)
         if root is None:
             log.warning("Modem returned unreadable system info")
@@ -247,7 +248,7 @@ class SB8200CBNDriver(ModemDriver):
         try:
             root = self._xml(self._get_data(Query.SYSTEM_INFO))
         except _UNREADABLE as e:
-            log.warning("Failed to get connection info: %s", e)
+            log.warning("Failed to get connection info: %s", error_text(e))
             return {}
         mode = _node_text(root.find("cm_docsis_mode")) if root is not None else ""
         return {"connection_type": mode} if mode else {}

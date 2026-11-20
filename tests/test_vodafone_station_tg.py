@@ -13,6 +13,8 @@ from app.drivers.vodafone_station import (
 )
 from app.drivers.utils import pbkdf2_sha256
 
+DOCSIS_HTML = Path(__file__).parent / "fixtures/vodafone_tg/status_docsis_data.html"
+
 
 @pytest.mark.parametrize("channel_type,version", [("SC-QAM", "docsis30"), ("OFDM", "docsis31")])
 @pytest.mark.parametrize("snr,expected", [
@@ -37,7 +39,7 @@ def test_tg_downstream_accepts_numeric_and_string_snr(channel_type, version, snr
 
 
 def test_tg_driver_preserves_all_lanes_with_mixed_snr_types():
-    html = (Path(__file__).parent / "fixtures/vodafone_tg/status_docsis_data.html").read_text()
+    html = DOCSIS_HTML.read_text()
     driver = VodafoneStationDriver("http://dummy", "admin", "dummy")
     driver._variant = driver.VARIANT_TG
     driver._tg_nonce = "test-session"
@@ -283,21 +285,6 @@ def test_malformed_input():
     result = mock_router_responses(driver, "malformed_input")
     assert result["uptime_seconds"] == 0
 
-def test_http_failure_returns_fallback():
-    """A non-auth network error (e.g. 5xx, timeout) falls back to the
-    hardcoded manufacturer/model dict instead of crashing the collector."""
-    with patch.object(driver._session, "get") as mock_get:
-        err = requests.HTTPError(response=MagicMock(status_code=500))
-        mock_get.side_effect = err
-
-        result = driver._get_device_info_tg()
-
-        assert result == {
-            "manufacturer": "CommScope/ARRIS",
-            "model": "Vodafone Station (TG6442VF/TG3442DE)",
-        }
-
-
 def test_auth_error_triggers_reauth_and_retry():
     """On a 401/403 the session is invalidated, re-login is attempted,
     and the pair of status requests is retried once."""
@@ -348,7 +335,7 @@ def test_auth_error_triggers_reauth_and_retry():
 def test_docsis_fetch_logs_in_again_after_device_info_dropped_session():
     """A failed device info fetch drops the TG session; the DOCSIS fetch in
     the same poll must log in again instead of failing (#1123)."""
-    html = (Path(__file__).parent / "fixtures/vodafone_tg/status_docsis_data.html").read_text()
+    html = DOCSIS_HTML.read_text()
     tg = VodafoneStationDriver("http://dummy", "admin", "dummy")
     tg._variant = tg.VARIANT_TG
     tg._tg_nonce = "test-session"
@@ -374,3 +361,22 @@ def test_docsis_fetch_logs_in_again_after_device_info_dropped_session():
 
     login.assert_called_once()
     assert [ch["channelID"] for ch in data["channelDs"]["docsis30"]] == [7, 8]
+
+
+@pytest.mark.parametrize("status", [401, 500])
+def test_tg_docsis_fetch_logs_in_again_only_after_an_auth_error(status):
+    tg = VodafoneStationDriver("http://dummy", "admin", "dummy")
+    tg._variant, tg._tg_nonce = tg.VARIANT_TG, "stale-session"
+    outcomes = [requests.HTTPError(response=MagicMock(status_code=status)),
+                MagicMock(status_code=200, text=DOCSIS_HTML.read_text())]
+
+    with patch.object(tg, "_tg_docsis_request", side_effect=outcomes) as request, \
+         patch.object(tg, "_invalidate_tg_session") as invalidate, \
+         patch.object(tg, "_login_tg") as login:
+        if status == 500:
+            with pytest.raises(RuntimeError, match="^TG DOCSIS data retrieval failed: "):
+                tg.get_docsis_data()
+        else:
+            assert [ch["channelID"] for ch in tg.get_docsis_data()["channelDs"]["docsis30"]] == [7, 8]
+
+    assert (request.call_count, login.call_count, invalidate.call_count) == ((2, 1, 1) if status == 401 else (1, 0, 1))

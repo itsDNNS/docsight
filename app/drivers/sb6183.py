@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from .base import ModemDriver
 from .formats.html_rows import parse_sb6183_html
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.sb6183")
 
@@ -59,7 +60,8 @@ class SB6183Driver(ModemDriver):
         try:
             r = self._session.get(f"{self._url}/RgSwInfo.asp", timeout=15)
             r.raise_for_status()
-        except requests.RequestException:
+        except requests.RequestException as e:
+            log.warning("SB6183 device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Arris", "model": "SB6183", "sw_version": ""}
 
         soup = BeautifulSoup(r.text, "html.parser")

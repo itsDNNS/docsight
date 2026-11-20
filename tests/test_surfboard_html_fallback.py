@@ -6,7 +6,7 @@ import pytest
 import requests
 from unittest.mock import patch, MagicMock
 
-from app.drivers.surfboard import SurfboardDriver
+from app.drivers.surfboard import SurfboardDriver, TransientHtmlChannelPageError
 
 
 STATUS_HTML = """
@@ -85,33 +85,27 @@ class TestHtmlFallbackActivation:
         url = mock_get.call_args[0][0]
         assert "/cmconnectionstatus.html?login_" in url
 
-    def test_html_fallback_failure_raises_both_errors(self, driver):
-        """When both HNAP (ConnectionError) and HTML fail, both errors are reported."""
-        def fail_hnap():
-            raise requests.ConnectionError("HNAP refused")
-
-        def fail_html():
-            raise RuntimeError("SURFboard HTML login failed: timeout")
-
-        with patch.object(driver, "_do_login", side_effect=fail_hnap), \
-             patch.object(driver, "_html_login", side_effect=fail_html), \
+    @pytest.mark.parametrize("hnap_error", [
+        requests.ConnectionError("HNAP refused"),
+        requests.exceptions.SSLError("TLS handshake failure"),
+    ])
+    @pytest.mark.parametrize("html_error,expected,match", [
+        (RuntimeError("SURFboard HTML login failed: timeout"), RuntimeError,
+         "(HNAP refused|TLS error).*HTML fallback also failed.*timeout"),
+        (TransientHtmlChannelPageError("non-channel response after retry"), TransientHtmlChannelPageError,
+         "^non-channel response after retry$"),
+    ])
+    def test_html_fallback_failure_reports_both_errors_or_passes_transient_error(
+        self, driver, hnap_error, html_error, expected, match,
+    ):
+        """A failed HTML fallback reports both errors; a transient one propagates unchanged for skip handling."""
+        with patch.object(driver, "_do_login", side_effect=hnap_error), \
+             patch.object(driver, "_html_login", side_effect=html_error), \
              patch("app.drivers.surfboard.time"), \
-             pytest.raises(RuntimeError, match="HNAP refused.*HTML fallback also failed.*timeout"):
+             pytest.raises(expected, match=match):
             driver.login()
 
-    def test_html_fallback_failure_ssl_raises_both_errors(self, driver):
-        """When both HNAP (SSLError) and HTML fail, both errors are reported."""
-        def fail_hnap():
-            raise requests.exceptions.SSLError("TLS handshake failure")
-
-        def fail_html():
-            raise RuntimeError("SURFboard HTML login failed: no channel data")
-
-        with patch.object(driver, "_do_login", side_effect=fail_hnap), \
-             patch.object(driver, "_html_login", side_effect=fail_html), \
-             patch("app.drivers.surfboard.time"), \
-             pytest.raises(RuntimeError, match="TLS error.*HTML fallback also failed.*no channel data"):
-            driver.login()
+        assert driver._html_mode is False
 
 
 # -- HTML login --
@@ -229,7 +223,6 @@ class TestHtmlLogin:
         first_body = "<html><body>Login</body></html>"
         response_body = f"<html><body>{sensitive_marker}: access denied</body></html>"
 
-        from app.drivers.surfboard import TransientHtmlChannelPageError
         with patch.object(driver, "_fresh_session"), \
              patch.object(
                  driver,
@@ -248,7 +241,6 @@ class TestHtmlLogin:
 
     def test_html_login_rejects_response_without_downstream(self, driver):
         """HTML login rejects responses that don't contain 'downstream' after retry."""
-        from app.drivers.surfboard import TransientHtmlChannelPageError
         with patch.object(driver, "_fresh_session"), \
              patch.object(driver, "_html_login_attempt", return_value="x" * 600):
             with pytest.raises(TransientHtmlChannelPageError, match="non-channel response after retry"):
@@ -300,7 +292,6 @@ class TestHtmlLogin:
 
     def test_html_login_two_step_empty_token_fails(self, driver):
         """Two-step flow with empty token response still fails validation after retry."""
-        from app.drivers.surfboard import TransientHtmlChannelPageError
         with patch.object(driver, "_fresh_session"), \
              patch.object(driver, "_html_login_attempt", return_value=""):
             with pytest.raises(TransientHtmlChannelPageError, match="non-channel response after retry"):

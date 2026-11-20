@@ -24,6 +24,7 @@ from bs4 import BeautifulSoup
 from .base import ModemDriver
 from .formats.html_rows import parse_cm3500_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.cm3500")
 
@@ -108,7 +109,8 @@ class CM3500Driver(ModemDriver):
                 )
 
             return result
-        except Exception:
+        except Exception as e:
+            log.warning("CM3500 device info unavailable: %s", e)
             return {"manufacturer": "Arris", "model": "CM3500B", "sw_version": ""}
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -120,7 +122,7 @@ class CM3500Driver(ModemDriver):
             )
             r.raise_for_status()
         except requests.RequestException as e:
-            log.warning("CM3500 config params unavailable: %s", e)
+            log.warning("CM3500 config params unavailable: %s", request_error_summary(e))
             return {}
 
         return self._parse_service_flows(r.text)
@@ -181,5 +183,5 @@ class CM3500Driver(ModemDriver):
             )
             r.raise_for_status()
         except requests.RequestException as e:
-            raise RuntimeError(f"CM3500 status page retrieval failed: {e}")
+            raise RuntimeError(f"CM3500 status page retrieval failed: {request_error_summary(e)}")
         return BeautifulSoup(r.text, "html.parser")

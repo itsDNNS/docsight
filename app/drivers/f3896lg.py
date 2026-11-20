@@ -36,6 +36,7 @@ from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
 from .formats.sagemcom import parse_f3896lg_rest_json
 from .format_compat import unwrap_f3896lg
+from .utils import error_text
 
 log = logging.getLogger("docsis.driver.f3896lg")
 
@@ -102,7 +103,7 @@ class F3896LGDriver(ModemDriver):
             if cm.get("upTime") is not None:
                 info["uptime_seconds"] = int(cm["upTime"])
         except (requests.RequestException, RuntimeError, ValueError, TypeError) as e:
-            log.warning("F3896LG device info fetch failed: %s", e)
+            log.warning("F3896LG device info fetch failed: %s", error_text(e))
         return info
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -135,5 +136,5 @@ class F3896LGDriver(ModemDriver):
             if "max_upstream_kbps" in max_rates:
                 out["max_upstream_kbps"] = max_rates["max_upstream_kbps"] // 1000
         except (requests.RequestException, RuntimeError, ValueError, TypeError) as e:
-            log.warning("F3896LG connection info fetch failed: %s", e)
+            log.warning("F3896LG connection info fetch failed: %s", error_text(e))
         return out

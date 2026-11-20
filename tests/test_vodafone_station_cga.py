@@ -130,7 +130,7 @@ def test_cga_docsis_read_timeout_is_surfaced_without_another_retry(auth_status):
 
     with patch.object(driver._session, "request", side_effect=outcomes) as request, \
          patch.object(driver, "_login_cga") as login:
-        with pytest.raises(RuntimeError, match="CGA DOCSIS data retrieval failed.*read timed out"):
+        with pytest.raises(RuntimeError, match="^CGA DOCSIS data retrieval failed.*: ReadTimeout$"):
             driver.get_docsis_data()
 
     assert request.call_count == (2 if auth_status else 1)

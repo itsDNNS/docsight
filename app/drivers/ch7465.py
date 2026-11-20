@@ -19,6 +19,7 @@ from enum import Enum
 from .base import ModemDriver
 from .formats.xml_payloads import _text as _node_text, parse_ch7465_xml
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import error_text, request_error_summary
 
 log = logging.getLogger("docsis.driver.ch7465")
 
@@ -176,7 +177,8 @@ class CH7465Driver(ModemDriver):
                         pass
 
             return result
-        except Exception:
+        except Exception as e:
+            log.warning("CH7465 device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Compal", "model": "CH7465", "sw_version": ""}
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -209,7 +211,7 @@ class CH7465Driver(ModemDriver):
                 "connection_type": mode,
             }
         except Exception as e:
-            log.warning("Failed to get connection info: %s", e)
+            log.warning("Failed to get connection info: %s", error_text(e))
             return {}
 
 
