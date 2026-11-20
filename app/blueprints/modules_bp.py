@@ -90,8 +90,7 @@ def api_module_enable(module_id):
     if module.type == "theme" and (module.error or not module.theme_data):
         return jsonify({"success": False, "error": "Theme data is unavailable"}), 409
 
-    disabled_raw = config_mgr.get("disabled_modules", "")
-    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+    disabled_set = config_mgr.get_disabled_modules()
 
     # Mutual exclusion: if enabling a threshold profile, disable the currently active one
     if "thresholds" in module.contributes:
@@ -108,10 +107,8 @@ def api_module_enable(module_id):
                 log.info("Auto-disabled theme module '%s' (mutual exclusion)", m.id)
 
     disabled_set.discard(module_id)
-    updates = {"disabled_modules": ",".join(sorted(disabled_set))}
-    if module.type == "theme":
-        updates["active_theme"] = module_id
-    config_mgr.save(updates)
+    updates = {"active_theme": module_id} if module.type == "theme" else {}
+    config_mgr.save_disabled_modules(disabled_set, **updates)
 
     restart_required = module.type != "theme"
     log.info("Module '%s' enabled (restart required: %s)", module_id, restart_required)
@@ -131,14 +128,13 @@ def api_module_disable(module_id):
         return jsonify({"success": False, "error": f"Module '{module_id}' not found"}), 404
 
     config_mgr = current_runtime().config_manager
+    disabled_set = config_mgr.get_disabled_modules()
 
     # Block disabling the last active theme module
     if module.type == "theme":
-        disabled_raw = config_mgr.get("disabled_modules", "")
-        disabled_set_check = {s.strip() for s in disabled_raw.split(",") if s.strip()}
         active_themes = [
             m for m in loader.get_theme_modules()
-            if m.id not in disabled_set_check and m.id != module_id
+            if m.id not in disabled_set and m.id != module_id
         ]
         if not active_themes:
             return jsonify({
@@ -148,8 +144,6 @@ def api_module_disable(module_id):
 
     # Block disabling the last active threshold profile
     if "thresholds" in module.contributes:
-        disabled_raw = config_mgr.get("disabled_modules", "")
-        disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
         active_thresholds = [
             m for m in loader.get_threshold_modules()
             if m.id not in disabled_set and m.id != module_id
@@ -160,10 +154,8 @@ def api_module_disable(module_id):
                 "error": "Cannot disable the only active threshold profile. Enable a different one first.",
             }), 409
 
-    disabled_raw = config_mgr.get("disabled_modules", "")
-    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
     disabled_set.add(module_id)
-    config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
+    config_mgr.save_disabled_modules(disabled_set)
 
     log.info("Module '%s' disabled (restart required)", module_id)
     return jsonify({"success": True, "restart_required": True})
@@ -179,8 +171,8 @@ def api_modules_batch():
 
     config_mgr = current_runtime().config_manager
 
-    data = request.get_json(silent=True) or {}
-    requested = data.get("modules")
+    data = request.get_json(silent=True)
+    requested = data.get("modules") if isinstance(data, dict) else None
     if not isinstance(requested, list):
         return jsonify({"success": False, "error": "Missing modules list"}), 400
 
@@ -199,8 +191,7 @@ def api_modules_batch():
             return jsonify({"success": False, "error": "Theme modules must be changed through theme settings"}), 400
         desired[module_id] = enabled
 
-    disabled_raw = config_mgr.get("disabled_modules", "")
-    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+    disabled_set = config_mgr.get_disabled_modules()
     for module_id, enabled in desired.items():
         if enabled:
             disabled_set.discard(module_id)
@@ -216,7 +207,7 @@ def api_modules_batch():
                 "error": "Exactly one threshold profile must be active.",
             }), 409
 
-    config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
+    config_mgr.save_disabled_modules(disabled_set)
     log.info("Applied %d module state changes (restart required)", len(desired))
     return jsonify({"success": True, "restart_required": bool(desired)})
 
@@ -335,8 +326,7 @@ def api_modules_registry():
 
     # Determine install status via disk detection
     installed_ids = _scan_installed_community_ids()
-    disabled_raw = config_mgr.get("disabled_modules", "")
-    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+    disabled_set = config_mgr.get_disabled_modules()
 
     for mod in modules:
         mod_id = mod.get("id", "")
@@ -427,10 +417,7 @@ def api_modules_install():
 
     # Persist as disabled-by-default
     config_mgr = current_runtime().config_manager
-    disabled_raw = config_mgr.get("disabled_modules", "")
-    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
-    disabled_set.add(mod_id)
-    config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
+    config_mgr.save_disabled_modules(config_mgr.get_disabled_modules() | {mod_id})
 
     log.info("Module '%s' installed to %s (disabled, restart required)", mod_id, target_dir)
     return jsonify({"success": True, "restart_required": True})
@@ -470,10 +457,7 @@ def api_modules_uninstall():
 
     # Remove from disabled_modules if present
     config_mgr = current_runtime().config_manager
-    disabled_raw = config_mgr.get("disabled_modules", "")
-    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
-    disabled_set.discard(mod_id)
-    config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
+    config_mgr.save_disabled_modules(config_mgr.get_disabled_modules() - {mod_id})
 
     log.info("Module '%s' uninstalled (restart required)", mod_id)
     return jsonify({"success": True, "restart_required": True})

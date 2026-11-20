@@ -21,13 +21,9 @@ log = logging.getLogger("docsis.web")
 polling_bp = Blueprint("polling_bp", __name__)
 
 
-def _valid_push_subscription(subscription):
-    if not isinstance(subscription, dict):
-        return False
-    if not str(subscription.get("endpoint") or "").strip():
-        return False
-    keys = subscription.get("keys") or {}
-    return isinstance(keys, dict) and bool(keys.get("p256dh")) and bool(keys.get("auth"))
+def _object(value):
+    """A JSON object from the request, or an empty one for any other value."""
+    return value if isinstance(value, dict) else {}
 
 
 def _pwa_push_configured(config_mgr):
@@ -223,13 +219,10 @@ def api_pwa_push_subscribe():
     storage = current_runtime().storage
     if not storage:
         return jsonify({"success": False, "error": "Storage unavailable"}), 503
-    data = request.get_json(silent=True) or {}
-    subscription = data.get("subscription") or data
-    if not _valid_push_subscription(subscription):
-        return jsonify({"success": False, "error": "Invalid Web Push subscription"}), 400
+    data = _object(request.get_json(silent=True))
     try:
         record = storage.upsert_pwa_push_subscription(
-            subscription,
+            data.get("subscription") or data,
             user_agent=request.headers.get("User-Agent", "")[:500],
         )
     except ValueError:
@@ -244,8 +237,8 @@ def api_pwa_push_unsubscribe():
     storage = current_runtime().storage
     if not storage:
         return jsonify({"success": False, "error": "Storage unavailable"}), 503
-    data = request.get_json(silent=True) or {}
-    endpoint = data.get("endpoint") or (data.get("subscription") or {}).get("endpoint")
+    data = _object(request.get_json(silent=True))
+    endpoint = data.get("endpoint") or _object(data.get("subscription")).get("endpoint")
     if not endpoint:
         return jsonify({"success": False, "error": "Subscription endpoint is required"}), 400
     storage.delete_pwa_push_subscription(endpoint)

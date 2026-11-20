@@ -41,26 +41,6 @@ def _write_module(root: Path, directory: str, manifest: dict) -> None:
     (module_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
 
-@pytest.fixture(autouse=True)
-def restore_config_registry():
-    defaults = dict(config_module.DEFAULTS)
-    bool_keys = set(config_module.BOOL_KEYS)
-    int_keys = set(config_module.INT_KEYS)
-    private_keys = set(config_module.PRIVATE_KEYS)
-    module_secret_keys = set(config_module.MODULE_SECRET_KEYS)
-    module_secret_owners = dict(config_module.MODULE_SECRET_OWNERS)
-    yield
-    config_module.DEFAULTS.clear()
-    config_module.DEFAULTS.update(defaults)
-    config_module.BOOL_KEYS.clear()
-    config_module.BOOL_KEYS.update(bool_keys)
-    config_module.INT_KEYS.clear()
-    config_module.INT_KEYS.update(int_keys)
-    config_module.PRIVATE_KEYS.clear()
-    config_module.PRIVATE_KEYS.update(private_keys)
-    config_module.set_module_secret_registry(module_secret_keys, module_secret_owners)
-
-
 def test_module_secret_encrypts_masks_decrypts_and_preserves_mask(tmp_path):
     key = "community_weather_token"
     config_module.DEFAULTS[key] = ""
