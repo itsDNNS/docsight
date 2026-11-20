@@ -113,7 +113,7 @@ def get_tz_name(config_manager=None):
     feature modules that only need timezone conversion semantics.
     """
     if config_manager:
-        tz = config_manager.get("timezone")
+        tz = _valid_iana_timezone(config_manager.get("timezone"))
         if tz:
             return tz
     return guess_iana_timezone()

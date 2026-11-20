@@ -11,6 +11,7 @@ from app.modules.connection_monitor.probe import ProbeEngine
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 from app.modules.connection_monitor.traceroute_probe import TracerouteProbe
 from app.modules.connection_monitor.traceroute_trigger import TracerouteTrigger
+from app.tz import get_tz_name
 
 logger = logging.getLogger(__name__)
 
@@ -116,12 +117,13 @@ class ConnectionMonitorCollector(Collector):
 
             # Periodic aggregation + retention cleanup
             if now - self._last_cleanup >= _CLEANUP_INTERVAL_S:
-                self._cm_storage.aggregate()
+                tz_name = get_tz_name(self._config_mgr)
+                self._cm_storage.aggregate(tz_name)
                 retention = int(
                     self._config_mgr.get("connection_monitor_retention_days", 0)
                 )
-                self._cm_storage.cleanup(retention)
-                self._cm_storage.cleanup_traces(retention)
+                self._cm_storage.cleanup(retention, tz_name)
+                self._cm_storage.cleanup_traces(retention, tz_name)
                 self._last_cleanup = now
 
             return CollectorResult(source=self.name, data={"probed": len(due)})

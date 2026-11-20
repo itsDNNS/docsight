@@ -3,13 +3,26 @@
 import logging
 import math
 import os
+from datetime import date, timedelta
 
 from app.storage.migrations import run_migrations
 from app.storage.sqlite import DatabaseAccess, bulk_write
+from app.tz import local_to_utc, parse_utc
 from .migrations import MIGRATIONS
 import time
 
 logger = logging.getLogger(__name__)
+
+
+def pinned_day_range(day, tz_name):
+    """UTC epoch range [start, stop) of a pinned local day, or None if it cannot be converted or was skipped."""
+    try:
+        start = date.fromisoformat(day)
+        bounds = [parse_utc(local_to_utc(f"{d}T00:00:00", tz_name)).timestamp()
+                  for d in (start, start + timedelta(days=1))]
+    except (ValueError, TypeError, OverflowError):
+        return None
+    return bounds if bounds[0] < bounds[1] else None
 
 
 class ConnectionMonitorStorage(DatabaseAccess):
@@ -45,6 +58,26 @@ class ConnectionMonitorStorage(DatabaseAccess):
                 "SELECT * FROM connection_monitor_pinned_days ORDER BY date DESC"
             ).fetchall()
             return [dict(r) for r in rows]
+
+    @staticmethod
+    def _not_pinned(conn, tz_name):
+        """SQL condition sparing pinned days, read on the caller's write connection to see every committed pin."""
+        ranges = []
+        for (day,) in conn.execute("SELECT date FROM connection_monitor_pinned_days"):
+            bounds = pinned_day_range(day, tz_name)
+            if bounds is None:
+                logger.warning("Connection Monitor: ignoring pinned day %r that cannot be converted", day)
+            else:
+                ranges.append(bounds)
+        if not ranges:
+            return ""
+        # Temporary to this connection, which closes with the transaction.
+        conn.execute("CREATE TEMP TABLE pinned_ranges (start REAL PRIMARY KEY, stop REAL)")
+        for pinned_range in ranges:
+            conn.execute("INSERT INTO pinned_ranges VALUES (?, ?)", pinned_range)
+        # Ranges never overlap, so only the last one starting at or before a row can contain it.
+        return (" AND timestamp >= IFNULL((SELECT stop FROM pinned_ranges WHERE start <= timestamp"
+                " ORDER BY start DESC LIMIT 1), timestamp)")
 
     def is_day_pinned(self, date: str) -> bool:
         with self._read() as conn:
@@ -325,7 +358,7 @@ class ConnectionMonitorStorage(DatabaseAccess):
             return [dict(r) for r in rows]
 
     def aggregate_raw_to_buckets(
-        self, target_id: int, cutoff: float, bucket_seconds: int = 60
+        self, target_id: int, cutoff: float, tz_name: str, bucket_seconds: int = 60
     ) -> int:
         """Aggregate raw samples older than cutoff into fixed-size buckets.
 
@@ -385,9 +418,8 @@ class ConnectionMonitorStorage(DatabaseAccess):
                 created += 1
 
             conn.execute(
-                """DELETE FROM connection_samples WHERE target_id = ? AND timestamp < ?
-                   AND date(timestamp, 'unixepoch', 'localtime')
-                       NOT IN (SELECT date FROM connection_monitor_pinned_days)""",
+                "DELETE FROM connection_samples WHERE target_id = ? AND timestamp < ?"
+                + self._not_pinned(conn, tz_name),
                 (target_id, cutoff),
             )
 
@@ -487,7 +519,7 @@ class ConnectionMonitorStorage(DatabaseAccess):
     _TIER_60S_MAX_AGE = 30 * 86400      # 30 days
     _TIER_300S_MAX_AGE = 90 * 86400     # 90 days
 
-    def aggregate(self):
+    def aggregate(self, tz_name):
         """Run the full aggregation cascade for all targets.
 
         1. Raw samples older than 7d -> 60s buckets
@@ -500,7 +532,7 @@ class ConnectionMonitorStorage(DatabaseAccess):
             tid = t["id"]
             # Step 1: raw -> 60s
             self.aggregate_raw_to_buckets(
-                tid, cutoff=now - self._TIER_RAW_MAX_AGE, bucket_seconds=60
+                tid, cutoff=now - self._TIER_RAW_MAX_AGE, tz_name=tz_name, bucket_seconds=60
             )
             # Step 2: 60s -> 300s
             self.reaggregate_buckets(
@@ -568,20 +600,14 @@ class ConnectionMonitorStorage(DatabaseAccess):
             ).fetchall()
             return [dict(r) for r in rows]
 
-    def cleanup_traces(self, retention_days):
+    def cleanup_traces(self, retention_days, tz_name):
         if not retention_days:
             return
         cutoff = time.time() - (retention_days * 86400)
-        pinned = self.get_pinned_days()
         with self._write() as conn:
-            if pinned:
-                placeholders = ",".join("?" * len(pinned))
-                conn.execute(
-                    f"DELETE FROM traceroute_traces WHERE timestamp < ? AND date(timestamp, 'unixepoch') NOT IN ({placeholders})",
-                    [cutoff] + [p["date"] for p in pinned],
-                )
-            else:
-                conn.execute("DELETE FROM traceroute_traces WHERE timestamp < ?", (cutoff,))
+            conn.execute(
+                "DELETE FROM traceroute_traces WHERE timestamp < ?" + self._not_pinned(conn, tz_name), (cutoff,)
+            )
 
     def purge_demo_traces(self):
         with self._write() as conn:
@@ -589,15 +615,13 @@ class ConnectionMonitorStorage(DatabaseAccess):
 
     # --- Retention ---
 
-    def cleanup(self, retention_days: int) -> int:
+    def cleanup(self, retention_days: int, tz_name: str) -> int:
         if retention_days <= 0:
             return 0
         cutoff = time.time() - (retention_days * 86400)
         with self._write() as conn:
             cur = conn.execute(
-                """DELETE FROM connection_samples WHERE timestamp < ?
-                   AND date(timestamp, 'unixepoch', 'localtime')
-                       NOT IN (SELECT date FROM connection_monitor_pinned_days)""",
+                "DELETE FROM connection_samples WHERE timestamp < ?" + self._not_pinned(conn, tz_name),
                 (cutoff,),
             )
             deleted = cur.rowcount

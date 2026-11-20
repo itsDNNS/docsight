@@ -13,13 +13,13 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request, Response
 
-from app.tz import epoch_to_utc, local_date_to_utc_range, local_today, parse_utc, to_local_display
+from app.tz import epoch_to_utc, local_today, to_local_display
 from app.web_auth import require_auth
 from app.runtime import current_runtime
 
 from .collector import configured_probe_interval_ms
 from .probe import ProbeEngine
-from .storage import ConnectionMonitorStorage
+from .storage import ConnectionMonitorStorage, pinned_day_range
 from .traceroute_probe import TracerouteProbe
 
 logger = logging.getLogger(__name__)
@@ -125,22 +125,16 @@ def _get_tz():
     return get_tz_name(current_runtime().config_manager)
 
 
-def _date_to_epoch_range(date_str, tz_name):
-    """Convert YYYY-MM-DD to (start_epoch, end_epoch) in the configured timezone."""
-    start_utc, end_utc = local_date_to_utc_range(date_str, tz_name)
-    return (parse_utc(start_utc).timestamp(), parse_utc(end_utc).timestamp())
-
-
 @bp.route("/api/connection-monitor/pinned-days", methods=["GET"])
 @require_auth
 def api_get_pinned_days():
     storage = _get_cm_storage()
     tz = _get_tz()
-    days = storage.get_pinned_days()
-    for day in days:
-        start, end = _date_to_epoch_range(day["date"], tz)
-        day["utc_start"] = start
-        day["utc_end"] = end
+    days = []
+    for day in storage.get_pinned_days():
+        bounds = pinned_day_range(day["date"], tz)
+        if bounds:  # an unusable legacy row is left out
+            days.append({**day, "utc_start": bounds[0], "utc_end": bounds[1] - 1})
     return jsonify(days)
 
 
@@ -149,11 +143,11 @@ def api_get_pinned_days():
 def api_pin_day():
     storage = _get_cm_storage()
     data = request.get_json()
-    if not data:
+    if not isinstance(data, dict) or not data:
         return jsonify({"error": "date required"}), 400
 
     date_str = data.get("date")
-    if not date_str:
+    if date_str in (None, ""):
         # Derive date from timestamp using server timezone
         ts = data.get("timestamp")
         if ts is None:
@@ -164,13 +158,11 @@ def api_pin_day():
             return jsonify({"error": "invalid timestamp"}), 400
         tz = _get_tz()
         utc_str = epoch_to_utc(ts)
-        date_str = to_local_display(utc_str, tz, fmt="%Y-%m-%d")
+        date_str = to_local_display(utc_str, tz or "UTC", fmt="%Y-%m-%d")
 
-    if not _DATE_RE.match(date_str):
+    if isinstance(date_str, str) and not _DATE_RE.match(date_str):
         return jsonify({"error": "invalid date format, expected YYYY-MM-DD"}), 400
-    try:
-        datetime.strptime(date_str, "%Y-%m-%d")
-    except ValueError:
+    if pinned_day_range(date_str, _get_tz()) is None or date_str < "1970-01-01":  # None also for non-strings
         return jsonify({"error": "invalid date"}), 400
     today = local_today(_get_tz())
     if date_str > today:
