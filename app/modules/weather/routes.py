@@ -5,7 +5,7 @@ import logging
 from flask import Blueprint, request, jsonify
 
 from app.web_auth import require_auth
-from app.runtime import current_runtime
+from app.runtime import core_derived_storage, current_runtime
 from .storage import WeatherStorage
 
 log = logging.getLogger("docsis.web.weather")
@@ -13,12 +13,7 @@ log = logging.getLogger("docsis.web.weather")
 bp = Blueprint("weather_module", __name__)
 
 def _get_weather_storage():
-    core_storage = current_runtime().storage
-    if not core_storage:
-        return None
-    return current_runtime().derived_storage.get(
-        f"weather:{core_storage.db_path}", lambda: WeatherStorage(core_storage.db_path)
-    )
+    return core_derived_storage(WeatherStorage)
 
 
 @bp.route("/api/weather")

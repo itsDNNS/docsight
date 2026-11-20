@@ -65,14 +65,8 @@ class AnalysisMethods:
                 })
 
         if "speedtest" in sources:
-            speedtest_rows = []
-            try:
-                from app.modules.speedtest.storage import SpeedtestStorage
-                _ss = SpeedtestStorage(self.db_path)
-                speedtest_rows = _ss.get_speedtest_in_range(start_ts, end_ts)
-            except (ImportError, Exception):
-                pass
-            for st in speedtest_rows:
+            from app.modules.speedtest.storage import SpeedtestStorage
+            for st in SpeedtestStorage(self.db_path).get_speedtest_in_range(start_ts, end_ts):
                 download_mbps = st.get("download_mbps")
                 timeline.append({
                     "timestamp": st["timestamp"],
@@ -107,14 +101,8 @@ class AnalysisMethods:
                 timeline.append(event)
 
         if "bnetz" in sources:
-            bnetz_rows = []
-            try:
-                from app.modules.bnetz.storage import BnetzStorage
-                _bs = BnetzStorage(self.db_path)
-                bnetz_rows = _bs.get_bnetz_in_range(start_ts, end_ts)
-            except (ImportError, Exception):
-                pass
-            for m in bnetz_rows:
+            from app.modules.bnetz.storage import BnetzStorage
+            for m in BnetzStorage(self.db_path).get_bnetz_in_range(start_ts, end_ts):
                 timeline.append({
                     "timestamp": m["timestamp"],
                     "source": "bnetz",
@@ -128,30 +116,27 @@ class AnalysisMethods:
 
         # Smart Capture executions
         if "capture" in sources:
-            try:
-                with self._read() as conn:
-                    rows = conn.execute(
-                        "SELECT * FROM smart_capture_executions "
-                        "WHERE created_at >= ? AND created_at <= ? "
-                        "ORDER BY created_at",
-                        (start_ts, end_ts),
-                    ).fetchall()
-                for r in rows:
-                    entry = {
-                        "timestamp": r["created_at"],
-                        "source": "capture",
-                        "status": r["status"],
-                        "trigger_type": r["trigger_type"],
-                        "action_type": r["action_type"],
-                        "linked_result_id": r["linked_result_id"],
-                        "suppression_reason": r["suppression_reason"],
-                        "last_error": r["last_error"],
-                    }
-                    if r["details"]:
-                        entry["details"] = decode_details(r["details"])
-                    timeline.append(entry)
-            except Exception:
-                pass  # Table may not exist on older schemas
+            with self._read() as conn:
+                rows = conn.execute(
+                    "SELECT * FROM smart_capture_executions "
+                    "WHERE created_at >= ? AND created_at <= ? "
+                    "ORDER BY created_at",
+                    (start_ts, end_ts),
+                ).fetchall()
+            for r in rows:
+                entry = {
+                    "timestamp": r["created_at"],
+                    "source": "capture",
+                    "status": r["status"],
+                    "trigger_type": r["trigger_type"],
+                    "action_type": r["action_type"],
+                    "linked_result_id": r["linked_result_id"],
+                    "suppression_reason": r["suppression_reason"],
+                    "last_error": r["last_error"],
+                }
+                if r["details"]:
+                    entry["details"] = decode_details(r["details"])
+                timeline.append(entry)
 
             # Filter smart_capture_triggered from events to avoid double-counting
             timeline = [e for e in timeline
@@ -159,21 +144,17 @@ class AnalysisMethods:
                                 and e.get("event_type") == "smart_capture_triggered")]
 
         # Segment utilization
-        if sources is None or "segment" in sources:
-            try:
-                from app.storage.segment_utilization import SegmentUtilizationStorage
-                seg_storage = SegmentUtilizationStorage(self.db_path)
-                for row in seg_storage.get_range(start_ts, end_ts):
-                    timeline.append({
-                        "timestamp": row["timestamp"],
-                        "source": "segment",
-                        "ds_total": row["ds_total"],
-                        "us_total": row["us_total"],
-                        "ds_own": row["ds_own"],
-                        "us_own": row["us_own"],
-                    })
-            except Exception:
-                pass  # Module not loaded or table doesn't exist
+        if "segment" in sources:
+            from app.storage.segment_utilization import SegmentUtilizationStorage
+            for row in SegmentUtilizationStorage(self.db_path).get_range(start_ts, end_ts):
+                timeline.append({
+                    "timestamp": row["timestamp"],
+                    "source": "segment",
+                    "ds_total": row["ds_total"],
+                    "us_total": row["us_total"],
+                    "ds_own": row["ds_own"],
+                    "us_own": row["us_own"],
+                })
 
         timeline.sort(key=lambda x: x["timestamp"])
         return timeline

@@ -349,7 +349,8 @@ class TestComplaintRoutes:
 
         with app.test_request_context("/api/incidents/7/timeline"):
             with patch.object(routes, "_get_journal_storage", return_value=storage), \
-                 patch.object(routes.current_runtime(), "storage", core):
+                 patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes, "BnetzStorage", **{"return_value.get_bnetz_in_range.return_value": []}):
                 response = getattr(routes.api_incident_timeline, "__wrapped__")(7)
 
         assert response.status_code == 200

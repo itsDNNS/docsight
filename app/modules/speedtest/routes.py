@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify
 
 from app.config import parse_config_bool
 from app.web_auth import require_auth
-from app.runtime import current_runtime
+from app.runtime import core_derived_storage, current_runtime
 from app.i18n import get_translations
 from app.storage.sqlite import open_read
 
@@ -23,12 +23,7 @@ _TRIGGER_COOLDOWN = 60  # seconds
 
 
 def _get_speedtest_storage():
-    core_storage = current_runtime().storage
-    if not core_storage:
-        return None
-    return current_runtime().derived_storage.get(
-        f"speedtest:{core_storage.db_path}", lambda: SpeedtestStorage(core_storage.db_path)
-    )
+    return core_derived_storage(SpeedtestStorage)
 
 
 def _classify_speed(actual, booked):
@@ -81,7 +76,8 @@ def _annotate_smart_capture(results, db_path):
             sc_ids = {r[0] for r in rows}
         for r in results:
             r["smart_capture"] = r.get("id") in sc_ids
-    except Exception:
+    except Exception as exc:
+        log.warning("Smart Capture annotation failed (%s)", type(exc).__name__)
         for r in results:
             r["smart_capture"] = False
 

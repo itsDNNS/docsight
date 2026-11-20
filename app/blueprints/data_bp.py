@@ -1,5 +1,5 @@
 """Data retrieval routes: trends, export, snapshots."""
-from app.runtime import current_runtime
+from app.runtime import core_derived_storage, current_runtime
 from app.tz import UTC_FMT, epoch_to_utc, localize_timestamps, get_tz_name, local_to_utc
 import logging
 import os
@@ -10,6 +10,8 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 
 from app.docsis_utils import OFDMA_MIN_PLAUSIBLE_POWER_DBMV
+from app.modules.journal.storage import JournalStorage
+from app.modules.speedtest.storage import SpeedtestStorage
 from app.time_ranges import parse_time_range_hours, parse_window_end
 from app.web_auth import require_auth
 
@@ -114,14 +116,11 @@ def _append_connection_monitor_trends(data: list[dict], hours: int, end: datetim
         log.debug("Unable to append Connection Monitor trend data", exc_info=True)
 
 
-def _append_speedtest_trends(data: list[dict], db_path: str, hours: int, end: datetime) -> None:
+def _append_speedtest_trends(data: list[dict], hours: int, end: datetime) -> None:
     """Add Speedtest download/upload rows for dashboard sparklines."""
     try:
-        from app.modules.speedtest.storage import SpeedtestStorage
-
         start = end - timedelta(hours=hours)
-        storage = SpeedtestStorage(db_path)
-        for row in storage.get_speedtest_in_range(
+        for row in core_derived_storage(SpeedtestStorage).get_speedtest_in_range(
             start.strftime(UTC_FMT),
             end.strftime(UTC_FMT),
         ):
@@ -195,7 +194,7 @@ def api_trends():
         else:
             start = end - timedelta(hours=hours)
             data = _storage.get_summary_between(start.strftime(UTC_FMT), end.strftime(UTC_FMT))
-        _append_speedtest_trends(data, _storage.db_path, hours, end)
+        _append_speedtest_trends(data, hours, end)
         _append_connection_monitor_trends(data, hours, end)
         data.sort(key=lambda row: row.get("timestamp") or "")
     localize_timestamps(data, tz_name)
@@ -307,13 +306,7 @@ def api_export():
                     f"| {ev['timestamp']} | {ev['severity']} | {ev['event_type']} | {message} |"
                 )
 
-        speedtests = []
-        try:
-            from app.modules.speedtest.storage import SpeedtestStorage
-            _ss = SpeedtestStorage(_storage.db_path)
-            speedtests = _ss.get_recent_speedtests(limit=speedtest_limit)
-        except (ImportError, Exception):
-            pass
+        speedtests = core_derived_storage(SpeedtestStorage).get_recent_speedtests(limit=speedtest_limit)
         if speedtests:
             lines += [
                 "",
@@ -329,12 +322,7 @@ def api_export():
                 )
 
         if mode == "full":
-            try:
-                from app.modules.journal.storage import JournalStorage
-                _js = JournalStorage(_storage.db_path)
-                entries = _js.get_active_entries()
-            except (ImportError, Exception):
-                entries = []
+            entries = core_derived_storage(JournalStorage).get_active_entries()
             if entries:
                 lines += ["", "## Incident Journal"]
                 for inc in entries:

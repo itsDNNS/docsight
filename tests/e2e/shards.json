@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 841,
+  "expected_total": 842,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -54,7 +54,7 @@
     },
     {
       "id": 4,
-      "collected_cases": 115,
+      "collected_cases": 116,
       "files": [
         "test_case_status_track.py",
         "test_case_steps.py",

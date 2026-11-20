@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from flask import Blueprint, request, jsonify, make_response
 
 from app.web_auth import confirmed_delete_all, require_auth, _get_client_ip
-from app.runtime import current_runtime
+from app.runtime import core_derived_storage, current_runtime
 from app.tz import local_today, utc_now
 
 from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort, fetch_share_csv, is_csv_url
@@ -25,12 +25,7 @@ _TBB_SHARE_PATH = "/broadband/monitoring/quality/share/"
 _TBB_HOSTS = {"thinkbroadband.com", "www.thinkbroadband.com"}
 
 def _get_bqm_storage():
-    core_storage = current_runtime().storage
-    if not core_storage:
-        return None
-    return current_runtime().derived_storage.get(
-        f"bqm:{core_storage.db_path}", lambda: BqmStorage(core_storage.db_path)
-    )
+    return core_derived_storage(BqmStorage)
 
 
 def _rows_to_columns(rows):
