@@ -44,6 +44,28 @@ def _no_network(monkeypatch):
         pytest.fail(f"Test tried to reach the network: {attempts}", pytrace=False)
 
 
+@pytest.fixture(autouse=True)
+def _restore_module_registries():
+    """Loading modules extends the process-wide config schema and translations; undo it after each test."""
+    from app import config
+    from app.i18n import _TRANSLATIONS
+
+    sets = [config.BOOL_KEYS, config.INT_KEYS, config.SECRET_KEYS, config.PRIVATE_KEYS]
+    saved_sets = [set(keys) for keys in sets]
+    defaults = dict(config.DEFAULTS)
+    module_secrets = (set(config.MODULE_SECRET_KEYS), dict(config.MODULE_SECRET_OWNERS))
+    translations = {lang: dict(values) for lang, values in _TRANSLATIONS.items()}
+    yield
+    for keys, saved in zip(sets, saved_sets):
+        keys.clear()
+        keys.update(saved)
+    config.DEFAULTS.clear()
+    config.DEFAULTS.update(defaults)
+    config.set_module_secret_registry(*module_secrets)
+    _TRANSLATIONS.clear()
+    _TRANSLATIONS.update(translations)
+
+
 # Every create_app() asks git for the display version, and an untagged or shallow
 # checkout answers "no tag" each time. The suite builds hundreds of apps, so that
 # was hundreds of git processes per worker, which cost seconds on Windows runners.

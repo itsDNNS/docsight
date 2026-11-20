@@ -33,32 +33,36 @@ def _normalize_range_key(raw, default):
     return default
 
 
+def _window(range_key):
+    """The (start, end) UTC timestamps of a range key."""
+    hours = RANGE_HOURS[range_key]
+    return (utc_cutoff(hours=hours) if hours > 0 else "2000-01-01T00:00:00Z"), utc_now()
+
+
+def _gated_storage():
+    """(storage, None) for the segment views, or (None, error response) while they are unavailable."""
+    config = current_runtime().config_manager
+    t = get_translations(_get_lang())
+    if not config:
+        return None, (jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503)
+    if config.get("modem_type") != "fritzbox":
+        return None, (jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400)
+    if not config.is_segment_utilization_enabled():
+        return None, (jsonify({"error": t.get("seg_disabled", "Segment utilization is disabled in Settings.")}), 400)
+    storage = _get_storage()
+    if not storage:
+        return None, (jsonify({"error": "Storage unavailable"}), 503)
+    return storage, None
+
+
 @segment_bp.route("/api/fritzbox/segment-utilization")
 @require_auth
 def api_segment_utilization():
     """Return stored segment utilization data for the tab view."""
-    config = current_runtime().config_manager
-    t = get_translations(_get_lang())
-    if not config:
-        return jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503
-    if config.get("modem_type") != "fritzbox":
-        return jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400
-    if not config.is_segment_utilization_enabled():
-        return jsonify({"error": t.get("seg_disabled", "Segment utilization is disabled in Settings.")}), 400
-
-    storage = _get_storage()
-    if not storage:
-        return jsonify({"error": "Storage unavailable"}), 503
-
-    range_key = _normalize_range_key(request.args.get("range"), "24h")
-    hours = RANGE_HOURS[range_key]
-
-    if hours > 0:
-        start = utc_cutoff(hours=hours)
-    else:
-        start = "2000-01-01T00:00:00Z"
-    end = utc_now()
-
+    storage, error = _gated_storage()
+    if error:
+        return error
+    start, end = _window(_normalize_range_key(request.args.get("range"), "24h"))
     return jsonify({
         "samples": storage.get_range(start, end),
         "latest": storage.get_latest(1),
@@ -86,30 +90,13 @@ def _clamp_int(value, default, lo, hi):
 @require_auth
 def api_segment_utilization_events():
     """Return detected segment saturation events for the requested range."""
-    config = current_runtime().config_manager
-    t = get_translations(_get_lang())
-    if not config:
-        return jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503
-    if config.get("modem_type") != "fritzbox":
-        return jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400
-    if not config.is_segment_utilization_enabled():
-        return jsonify({"error": t.get("seg_disabled", "Segment utilization is disabled in Settings.")}), 400
-
-    storage = _get_storage()
-    if not storage:
-        return jsonify({"error": "Storage unavailable"}), 503
-
+    storage, error = _gated_storage()
+    if error:
+        return error
     threshold = _clamp_int(request.args.get("threshold"), default=80, lo=1, hi=100)
     min_minutes = _clamp_int(request.args.get("min_minutes"), default=3, lo=1, hi=1440)
-
     range_key = _normalize_range_key(request.args.get("range"), "7d")
-    hours = RANGE_HOURS[range_key]
-    if hours > 0:
-        start = utc_cutoff(hours=hours)
-    else:
-        start = "2000-01-01T00:00:00Z"
-    end = utc_now()
-
+    start, end = _window(range_key)
     events = storage.get_events(start, end, threshold=threshold, min_minutes=min_minutes)
     return jsonify({
         "events": events,
