@@ -1,5 +1,6 @@
 """Tests for ThinkBroadband BQM graph fetching, storage, and API."""
 
+import io
 import sqlite3
 from datetime import date
 from types import SimpleNamespace
@@ -14,7 +15,7 @@ from app.module_registry import ModuleInfo
 from app.storage import SnapshotStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
-from tests.test_bqm_csv_parser import PARSED_ROWS
+from tests.test_bqm_csv_parser import PARSED_ROWS, VALID_CSV
 from tests.test_smart_capture_api import configured_client
 
 pytestmark = pytest.mark.usefixtures("route_app")
@@ -434,6 +435,16 @@ class TestBQMAPI:
         assert data["days"] == 2
         assert data["points"] == 3
         assert data["data"]["latency_avg"][-1] == 31.56
+
+    @pytest.mark.parametrize("prefix", [b"", b"\xef\xbb\xbf"], ids=["plain", "utf8-bom"])
+    def test_import_csv_upload(self, bqm_client, prefix):
+        client, _ = bqm_client
+        with patch.object(BqmStorage, "store_csv_data") as store:
+            resp = client.post("/api/bqm/import-csv", data={"file": (io.BytesIO(prefix + VALID_CSV.encode()), "bqm.csv")},
+                               content_type="multipart/form-data")
+        assert (resp.status_code, resp.get_json()) == (
+            200, {"parsed_rows": 2, "days": 1, "date_range": {"start": "2026-03-15", "end": "2026-03-15"}})
+        store.assert_called_once_with(PARSED_ROWS)
 
     def test_bqm_csv_data_range_cap(self, bqm_client):
         client, _ = bqm_client

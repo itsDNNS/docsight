@@ -229,6 +229,20 @@ test('PDF buttons pass raw hostile and numeric incident values through click lis
     assert.equal(context.injected, undefined);
 });
 
+test('the case BNetzA list leaves out a direction that was not measured', () => {
+    const {context, nodes, htmlWrites} = journalHarness();
+    const bnetzDiv = nodes.get('incident-timeline-bnetz');
+    bnetzDiv.allowChartHTML = true;
+    context.formatDateDE = value => value;
+    const row = {date: '2026-05-02', download_max_tariff: 1000, download_measured_avg: 400.4, upload_max_tariff: 50, upload_measured_avg: 45.2};
+    context.renderIncidentTimeline({
+        incident: {id: 1, name: 'Slow line', status: 'open'},
+        bnetz: [{...row, download_measured_avg: null}, {...row, upload_measured_avg: null}],
+    });
+    const html = String(htmlWrites.find(write => write.node === bnetzDiv).value);
+    assert.deepEqual(html.match(/<span>[\u2191\u2193][^<]*<\/span>/g), ['<span>\u2191 45.2 / 50 Mbps</span>', '<span>\u2193 400.4 / 1000 Mbps</span>']);
+});
+
 for (const outcome of ['success', 'http-error', 'network-error']) {
     test(`PDF download restores static SVG and text safely after ${outcome}`, async () => {
         const {context, document, nodes, created, htmlWrites} = journalHarness();

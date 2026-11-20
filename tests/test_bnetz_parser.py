@@ -105,6 +105,15 @@ class TestBnetzParser:
         assert result["verdict_download"] == "deviation"
         assert result["verdict_upload"] == "deviation"
 
+    def test_direction_without_measurements_has_no_average(self, caplog):
+        pages = [_MOCK_PAGE1, _MOCK_PAGE2, _MOCK_PAGE3_DL, _MOCK_PAGE4_DL]
+        with patch("pypdf.PdfReader", return_value=_make_mock_reader(pages)), caplog.at_level("INFO"):
+            result = parse_bnetz_pdf(b"fake pdf bytes")
+
+        assert result["measurements_upload"] == []
+        assert result["upload_measured_avg"] is None
+        assert "UL avg=n/a" in caplog.text
+
     def test_invalid_pdf_not_bnetz(self):
         mock_reader = _make_mock_reader(["This is just a random PDF document."])
         with patch("pypdf.PdfReader", return_value=mock_reader):

@@ -58,16 +58,26 @@ class TestCsvParser:
         assert result["measurement_count"] == 2
         assert result["measurements_download"][0]["mbps"] == 235.5
 
-    def test_download_only(self):
+    @pytest.mark.parametrize("columns, measured, missing, upload_max", [
+        ("Download (Mbit/s);Download SOLL maximal (Mbit/s);Upload SOLL maximal (Mbit/s)", "download", "upload", 50.0),
+        ("Upload (Mbit/s);Download SOLL maximal (Mbit/s);Upload SOLL maximal (Mbit/s)", "upload", "download", 50.0),
+        ("Download (Mbit/s);Download SOLL maximal (Mbit/s);Upload SOLL maximal  (Mbit/s)", "download", "upload", 50.0),
+        ("Download (Mbit/s);Result ID;Upload SOLL maximal (Mbit/s)", "download", "upload", 50.0),
+        ("Download (Mbit/s);Download SOLL maximal (Mbit/s);Upload (SOLL) maximal (Mbit/s)", "download", "upload", None),
+    ])
+    def test_single_direction_leaves_the_other_unmeasured(self, columns, measured, missing, upload_max, caplog):
         csv = (
-            "Datum;Uhrzeit;Download (Mbit/s)\n"
-            "15.03.2026;14:00;235,50\n"
-            "16.03.2026;15:00;242,10\n"
+            f"Datum;Uhrzeit;{columns}\n"
+            "15.03.2026;14:00;235,50;1000;50\n"
+            "16.03.2026;15:00;242,10;1000;50\n"
         )
-        result = parse_bnetz_csv(csv)
-        assert len(result["measurements_download"]) == 2
-        assert len(result["measurements_upload"]) == 0
-        assert result["upload_measured_avg"] is None
+        with caplog.at_level("INFO"):
+            result = parse_bnetz_csv(csv)
+        assert f"{missing[0].upper()}L avg=n/a" in caplog.text
+        assert len(result[f"measurements_{measured}"]) == 2
+        assert result[f"measurements_{missing}"] == []
+        assert result[f"{missing}_measured_avg"] is None
+        assert result["upload_max"] == upload_max
 
     def test_german_locale_numbers(self):
         csv = (
@@ -91,8 +101,11 @@ class TestCsvParser:
         with pytest.raises(ValueError, match="No valid measurement rows"):
             parse_bnetz_csv(csv)
 
-    def test_no_speed_columns(self):
-        csv = "Name;Datum;Uhrzeit\nTest;15.03.2026;14:00\n"
+    @pytest.mark.parametrize("csv", [
+        "Name;Datum;Uhrzeit\nTest;15.03.2026;14:00\n",
+        "Datum;Download SOLL maximal (Mbit/s);Upload SOLL maximal (Mbit/s)\n15.03.2026;1000;50\n",
+    ])
+    def test_no_speed_columns(self, csv):
         with pytest.raises(ValueError, match="must contain at least"):
             parse_bnetz_csv(csv)
 

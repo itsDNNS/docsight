@@ -105,6 +105,7 @@
     {% set ds = analysis.ds_channels %}
     {% set us = analysis.us_channels %}
     {% set has_docsis = ds|length > 0 or us|length > 0 %}
+    {% set show_bnetz_source = bnetz_enabled and bnetz_latest and (bnetz_latest.download_measured_avg is not none or bnetz_latest.upload_measured_avg is not none) %}
 
     {# ── Speedtest health (independent of DOCSIS data) ── #}
     {% if speedtest_configured and speedtest_latest %}
@@ -762,7 +763,6 @@
     </div>
 
     {% set show_cm_source = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-    {% set show_bnetz_source = bnetz_enabled and bnetz_latest and bnetz_latest.download_measured_avg is not none %}
     {% if (speedtest_configured and speedtest_latest) or show_cm_source or show_bnetz_source %}
     <nav class="home-sources" aria-label="{{ t.get('home_sources_label', 'Other measurement sources') }}">
         {% if speedtest_configured and speedtest_latest %}
@@ -784,7 +784,7 @@
         {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
         <a class="home-source" id="bnetz-source" href="#bnetz">
             <i data-lucide="file-check"></i><span>BNetzA</span>
-            <strong class="num">{{ bnetz_dl_pct }} %</strong>
+            <strong class="num">{{ '–' if bnetz_latest.download_measured_avg is none else bnetz_dl_pct ~ ' %' }}</strong>
             <span class="home-source-state {{ 'cs-text-critical' if bnetz_has_deviation else 'cs-text-good' }}">{{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}</span>
             <i data-lucide="arrow-right" class="home-source-arrow"></i>
         </a>
@@ -844,7 +844,7 @@
     </div>
     {% endif %}
 
-    {% if bnetz_enabled and bnetz_latest and bnetz_latest.download_measured_avg is not none %}
+    {% if show_bnetz_source %}
     {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
     {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
     {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
@@ -854,10 +854,14 @@
                 <span class="metric-label">{{ t.bnetz_title }}</span>
                 <div class="metric-icon {{ 'amber' if bnetz_has_deviation else 'green' }}"><i data-lucide="file-check"></i></div>
             </div>
-            <div class="metric-value {{ 'val-crit' if bnetz_has_deviation else 'val-good' }}">{{ (bnetz_latest.download_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.download_max_tariff or 0)|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
+            {% if bnetz_latest.download_measured_avg is not none %}
+            <div class="metric-value {{ 'val-crit' if bnetz_has_deviation else 'val-good' }}">{{ bnetz_latest.download_measured_avg|round(0)|int }} / {{ (bnetz_latest.download_max_tariff or 0)|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
+            {% endif %}
+            {% if bnetz_latest.upload_measured_avg is not none %}
             <div class="metric-sub">
-                <span class="range">{{ (bnetz_latest.upload_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.upload_max_tariff or 0)|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
+                <span class="range">{{ bnetz_latest.upload_measured_avg|round(0)|int }} / {{ (bnetz_latest.upload_max_tariff or 0)|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
             </div>
+            {% endif %}
             <div class="metric-sub">
                 <span class="badge badge-{{ 'crit' if bnetz_has_deviation else 'good' }}">{{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}</span>
                 <span class="range">{{ bnetz_latest.date }} &middot; {{ bnetz_latest.provider }}</span>
