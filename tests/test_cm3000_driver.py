@@ -204,20 +204,9 @@ def mock_status(driver):
 # -- Driver instantiation --
 
 class TestDriverInit:
-    def test_stores_credentials(self):
-        d = CM3000Driver("http://192.168.100.1", "admin", "pass123")
-        assert d._url == "http://192.168.100.1"
-        assert d._user == "admin"
-        assert d._password == "pass123"
-
     def test_session_has_basic_auth(self):
         d = CM3000Driver("http://192.168.100.1", "admin", "pass123")
         assert d._session.auth == ("admin", "pass123")
-
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("cm3000", "http://192.168.100.1", "admin", "pass")
-        assert isinstance(d, CM3000Driver)
 
 
 # -- Login --

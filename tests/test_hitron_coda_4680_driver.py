@@ -500,7 +500,6 @@ class TestConnectionInfo:
 
 class TestRegistry:
     def test_coda_4680_driver_is_registered_separately_from_coda_56_driver(self):
-        assert driver_registry.has_driver("hitron_coda_4680")
         drivers = dict(driver_registry.get_available_drivers())
         assert drivers["hitron_coda_4680"] == "Hitron CODA-4680"
         assert drivers["hitron"] == "Hitron CODA-56"

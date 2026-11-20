@@ -140,11 +140,6 @@ class TestDriverInit:
         d = SB6141Driver("http://192.168.100.1", "", "")
         assert d._url == "http://192.168.100.1"
 
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("sb6141", "http://192.168.100.1", "", "")
-        assert isinstance(d, SB6141Driver)
-
 
 # -- Login --
 

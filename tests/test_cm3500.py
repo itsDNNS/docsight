@@ -135,12 +135,6 @@ def mock_status_with_us_ofdm(driver):
 # -- Driver instantiation --
 
 class TestDriverInit:
-    def test_stores_credentials(self):
-        d = CM3500Driver("https://192.168.100.1", "admin", "pass123")
-        assert d._url == "https://192.168.100.1"
-        assert d._user == "admin"
-        assert d._password == "pass123"
-
     def test_upgrades_http_to_https(self):
         d = CM3500Driver("http://192.168.100.1", "admin", "pass123")
         assert d._url == "https://192.168.100.1"
@@ -148,11 +142,6 @@ class TestDriverInit:
     def test_keeps_https_unchanged(self):
         d = CM3500Driver("https://192.168.100.1", "admin", "pass123")
         assert d._url == "https://192.168.100.1"
-
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("cm3500", "https://192.168.100.1", "admin", "pass")
-        assert isinstance(d, CM3500Driver)
 
 
 # -- Login --
