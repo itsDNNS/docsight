@@ -49,13 +49,11 @@ def default_module_loader_factory(
     module_paths = list(search_paths or ())
 
     def build(app: Flask):
-        disabled_raw = config_manager.get("disabled_modules", "")
-        disabled_ids = {item.strip() for item in disabled_raw.split(",") if item.strip()}
         loader = ModuleLoader(
             app,
             builtin_base_path=builtin_path,
             search_paths=module_paths,
-            disabled_ids=disabled_ids,
+            disabled_ids=config_manager.get_disabled_modules(),
         )
         loader.load_all()
         return loader

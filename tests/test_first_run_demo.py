@@ -145,32 +145,37 @@ def test_demo_start_requires_browser_session_when_auth_is_enabled(tmp_path, monk
     assert manager.is_demo_mode() is False
 
 
-@pytest.mark.parametrize(
-    ("next_choice", "next_path"),
-    (("connect", "/setup?connect=1"), ("exit", "/setup")),
-)
-def test_demo_exit_uses_existing_purge_path_and_returns_next_path(
-    tmp_path, monkeypatch, next_choice, next_path
-):
-    monkeypatch.delenv("DEMO_MODE", raising=False)
-    manager = ConfigManager(str(tmp_path / "data"))
+_INVALID_NEXT = {"success": False, "error": "Invalid next path"}
+_EXIT = {"success": True, "purged": 1, "next": "/setup"}
+
+
+@pytest.mark.parametrize(("body", "status", "payload"), [
+    ({"next": "connect"}, 200, {"success": True, "purged": 1, "next": "/setup?connect=1"}),
+    ({"next": "exit"}, 200, _EXIT),
+    (None, 200, _EXIT),
+    ([], 200, _EXIT),
+    ({"next": "elsewhere"}, 400, _INVALID_NEXT),
+    ({"next": []}, 400, _INVALID_NEXT),
+    ({"next": {}}, 400, _INVALID_NEXT),
+    (["connect"], 400, _INVALID_NEXT),
+    ("exit", 400, _INVALID_NEXT),
+    (5, 400, _INVALID_NEXT),
+], ids=["connect", "exit", "no-body", "falsy-body", "unknown-next", "array-next", "object-next",
+        "array-body", "text-body", "number-body"])
+def test_demo_exit_uses_existing_purge_path_and_returns_next_path(fresh_demo_client, body, status, payload):
+    client, manager, storage, callbacks, _data_dir = fresh_demo_client
     manager.save({"demo_mode": True})
-    storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    callbacks = []
-    current_runtime().config_manager = manager
-    current_runtime().on_config_changed = lambda: callbacks.append("changed")
-    current_runtime().storage = storage
-    app.config["TESTING"] = True
+    storage.save_events([{"timestamp": "2026-01-01T00:00:00Z", "severity": "info",
+                          "event_type": "demo", "message": "Demo event"}], is_demo=True)
 
-    with app.test_client() as client:
-        response = client.post("/api/demo/migrate", json={"next": next_choice})
+    response = client.post("/api/demo/migrate", json=body)
 
-    assert response.status_code == 200
-    payload = response.get_json()
-    assert payload["success"] is True
-    assert payload["next"] == next_path
-    assert manager.is_demo_mode() is False
-    assert callbacks == ["changed"]
+    refused = status == 400
+    assert (response.status_code, response.get_json()) == (status, payload)
+    # A refused exit keeps demo mode and the demo data.
+    assert (manager.is_demo_mode(), storage.get_event_count(), callbacks) == (
+        refused, int(refused), [] if refused else ["changed"]
+    )
 
 
 def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeypatch):

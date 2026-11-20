@@ -34,32 +34,12 @@ class TestModuleIntegration:
 
     def setup_method(self):
         """Snapshot global state so we can restore it after each test."""
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        self._orig_defaults = dict(cfg.DEFAULTS)
-        self._orig_bool_keys = set(cfg.BOOL_KEYS)
-        self._orig_int_keys = set(cfg.INT_KEYS)
-        self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
         # Clean up any leftover dynamic module imports
         self._orig_sys_modules = set(sys.modules.keys())
         self._runtime = current_runtime()
 
     def teardown_method(self):
         """Restore global state to avoid polluting other tests."""
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        cfg.DEFAULTS.clear()
-        cfg.DEFAULTS.update(self._orig_defaults)
-        cfg.BOOL_KEYS.clear()
-        cfg.BOOL_KEYS.update(self._orig_bool_keys)
-        cfg.INT_KEYS.clear()
-        cfg.INT_KEYS.update(self._orig_int_keys)
-
-        _TRANSLATIONS.clear()
-        _TRANSLATIONS.update(self._orig_translations)
-
         # Remove dynamically imported module entries
         for key in list(sys.modules.keys()):
             if key not in self._orig_sys_modules:
@@ -149,30 +129,10 @@ class TestModuleUIIntegration:
 
     def setup_method(self):
         """Snapshot global state so we can restore it after each test."""
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        self._orig_defaults = dict(cfg.DEFAULTS)
-        self._orig_bool_keys = set(cfg.BOOL_KEYS)
-        self._orig_int_keys = set(cfg.INT_KEYS)
-        self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
         self._orig_sys_modules = set(sys.modules.keys())
 
     def teardown_method(self):
         """Restore global state to avoid polluting other tests."""
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        cfg.DEFAULTS.clear()
-        cfg.DEFAULTS.update(self._orig_defaults)
-        cfg.BOOL_KEYS.clear()
-        cfg.BOOL_KEYS.update(self._orig_bool_keys)
-        cfg.INT_KEYS.clear()
-        cfg.INT_KEYS.update(self._orig_int_keys)
-
-        _TRANSLATIONS.clear()
-        _TRANSLATIONS.update(self._orig_translations)
-
         for key in list(sys.modules.keys()):
             if key not in self._orig_sys_modules:
                 del sys.modules[key]
@@ -217,29 +177,10 @@ class TestModuleManagementAPI:
     """Test the full enable/disable flow through the API."""
 
     def setup_method(self):
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        self._orig_defaults = dict(cfg.DEFAULTS)
-        self._orig_bool_keys = set(cfg.BOOL_KEYS)
-        self._orig_int_keys = set(cfg.INT_KEYS)
-        self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
         self._orig_sys_modules = set(sys.modules.keys())
         self._runtime = current_runtime()
 
     def teardown_method(self):
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        cfg.DEFAULTS.clear()
-        cfg.DEFAULTS.update(self._orig_defaults)
-        cfg.BOOL_KEYS.clear()
-        cfg.BOOL_KEYS.update(self._orig_bool_keys)
-        cfg.INT_KEYS.clear()
-        cfg.INT_KEYS.update(self._orig_int_keys)
-        _TRANSLATIONS.clear()
-        _TRANSLATIONS.update(self._orig_translations)
-
         for key in list(sys.modules.keys()):
             if key not in self._orig_sys_modules:
                 del sys.modules[key]

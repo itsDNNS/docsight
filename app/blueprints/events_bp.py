@@ -100,11 +100,7 @@ def api_events_list():
     except ValueError:
         return jsonify({"error": "Invalid acknowledged filter"}), 400
 
-    events = _storage.get_events(
-        limit=limit, offset=offset, severity=filters["severity"],
-        event_type=filters["event_type"], acknowledged=filters["acknowledged"],
-        exclude_operational=filters["exclude_operational"], event_prefix=filters["event_prefix"]
-    )
+    events = _storage.get_events(limit=limit, offset=offset, **filters)
     unack = _storage.get_event_count(
         acknowledged=0,
         exclude_operational=filters["exclude_operational"],
@@ -126,15 +122,7 @@ def api_events_export_csv():
         filters = _event_filters_from_request()
     except ValueError:
         return jsonify({"error": "Invalid acknowledged filter"}), 400
-    events = _storage.get_events(
-        limit=_EVENTS_EXPORT_LIMIT + 1,
-        offset=0,
-        severity=filters["severity"],
-        event_type=filters["event_type"],
-        acknowledged=filters["acknowledged"],
-        exclude_operational=filters["exclude_operational"],
-        event_prefix=filters["event_prefix"],
-    )
+    events = _storage.get_events(limit=_EVENTS_EXPORT_LIMIT + 1, offset=0, **filters)
     truncated = len(events) > _EVENTS_EXPORT_LIMIT
     return _events_csv_response(events[:_EVENTS_EXPORT_LIMIT], truncated=truncated)
 
@@ -192,32 +180,28 @@ def api_event_acknowledge(event_id):
     return jsonify({"success": True})
 
 
-@events_bp.route("/api/events/acknowledge", methods=["POST"])
-@require_auth(token_writes=True)
-def api_events_acknowledge():
-    """Acknowledge a list of events, e.g. the selection or everything visible in the log."""
+def _set_acknowledged(acknowledged: bool):
     _storage = current_runtime().storage
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     ids = _event_ids_from_request()
     if ids is None:
         return jsonify({"error": f"ids must be a list of 1 to {_ACKNOWLEDGE_LIMIT} event ids"}), 400
-    count = _storage.acknowledge_events(ids)
-    return jsonify({"success": True, "count": count})
+    return jsonify({"success": True, "count": _storage.set_events_acknowledged(ids, acknowledged)})
+
+
+@events_bp.route("/api/events/acknowledge", methods=["POST"])
+@require_auth(token_writes=True)
+def api_events_acknowledge():
+    """Acknowledge a list of events, e.g. the selection or everything visible in the log."""
+    return _set_acknowledged(True)
 
 
 @events_bp.route("/api/events/unacknowledge", methods=["POST"])
 @require_auth(token_writes=True)
 def api_events_unacknowledge():
     """Undo an acknowledgement right after it, e.g. from the toast's Undo."""
-    _storage = current_runtime().storage
-    if not _storage:
-        return jsonify({"error": "Storage not initialized"}), 500
-    ids = _event_ids_from_request()
-    if ids is None:
-        return jsonify({"error": f"ids must be a list of 1 to {_ACKNOWLEDGE_LIMIT} event ids"}), 400
-    count = _storage.unacknowledge_events(ids)
-    return jsonify({"success": True, "count": count})
+    return _set_acknowledged(False)
 
 
 @events_bp.route("/api/events/acknowledge-all", methods=["POST"])

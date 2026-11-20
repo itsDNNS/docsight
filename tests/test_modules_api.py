@@ -201,6 +201,13 @@ class TestBatchModuleSettings:
         assert "test.thresholds_vfkd" in disabled
         assert "test.thresholds_forum" not in disabled
 
+    @pytest.mark.parametrize("payload", [{}, {"modules": "all"}, [{"id": "test.integration", "enabled": False}]])
+    def test_batch_needs_a_modules_list(self, payload):
+        with self.app.test_client() as c:
+            resp = c.post("/api/modules/batch", json=payload)
+
+        assert (resp.status_code, resp.get_json()) == (400, {"success": False, "error": "Missing modules list"})
+
     def test_batch_rejects_no_active_threshold_profile(self):
         with self.app.test_client() as c:
             resp = c.post("/api/modules/batch", json={"modules": [

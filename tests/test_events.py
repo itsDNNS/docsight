@@ -164,15 +164,17 @@ class TestEventStorage:
         assert storage.get_event_count(severities=("warning", "critical"), since="2026-10-03T12:00:00Z") == 2
         assert storage.get_event_count(since="2026-10-04T00:00:00Z") == 2
 
-    def test_acknowledge_events_only_counts_newly_acknowledged(self, storage):
+    def test_set_events_acknowledged_only_counts_changed_events(self, storage):
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         first = storage.save_event(ts, "warning", "power_change", "Msg 1")
         second = storage.save_event(ts, "warning", "power_change", "Msg 2")
         third = storage.save_event(ts, "warning", "power_change", "Msg 3")
         storage.acknowledge_event(first)
-        assert storage.acknowledge_events([first, second, 9999]) == 1
-        assert storage.acknowledge_events([]) == 0
+        assert storage.set_events_acknowledged([first, second, 9999], True) == 1
+        assert storage.set_events_acknowledged([], True) == 0
         assert [e["id"] for e in storage.get_events(acknowledged=False)] == [third]
+        assert storage.set_events_acknowledged([first, third], False) == 1
+        assert [e["id"] for e in storage.get_events(acknowledged=True)] == [second]
 
     def test_acknowledge_all(self, storage):
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -1115,6 +1117,14 @@ def client(tmp_path, api_storage):
         yield client
 
 
+ACK_ROUTES = {"/api/events/acknowledge": True, "/api/events/unacknowledge": False}
+
+
+def _drop_events_table(runtime):
+    with sqlite3.connect(runtime.storage.db_path) as conn:
+        conn.execute("DROP TABLE events")
+
+
 class TestEventsAPI:
     def test_get_events_empty(self, client):
         resp = client.get("/api/events")
@@ -1185,34 +1195,52 @@ class TestEventsAPI:
         assert resp.get_json() == {"count": 2, "window_hours": 24}
         assert client.get("/api/events/count").get_json()["count"] == 5
 
-    def test_acknowledge_listed_events(self, client, api_storage):
+    @pytest.mark.parametrize(("path", "limit", "offset"), [("/api/events", 5, 2), ("/api/events/export.csv", 10001, 0)])
+    def test_event_list_and_export_pass_every_filter(self, client, api_storage, monkeypatch, path, limit, offset):
+        calls = []
+        monkeypatch.setattr(api_storage, "get_events", lambda **kwargs: calls.append(kwargs) or [])
+        resp = client.get(f"{path}?limit=5&offset=2&severity=warning&event_type=power_change"
+                          "&event_prefix=power_&acknowledged=1&exclude_operational=true")
+        assert resp.status_code == 200
+        assert calls == [{"limit": limit, "offset": offset, "severity": "warning", "event_type": "power_change",
+                          "event_prefix": "power_", "acknowledged": 1, "exclude_operational": True}]
+
+    @pytest.mark.parametrize(("path", "acknowledged"), ACK_ROUTES.items())
+    def test_listed_events_change_once(self, client, api_storage, path, acknowledged):
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         ids = [api_storage.save_event(ts, "warning", "power_change", f"Msg {i}") for i in range(3)]
-        resp = client.post("/api/events/acknowledge", json={"ids": [ids[0], ids[2], ids[2]]})
-        assert resp.status_code == 200
-        assert resp.get_json() == {"success": True, "count": 2}
-        assert [e["id"] for e in api_storage.get_events(acknowledged=False)] == [ids[1]]
+        if not acknowledged:
+            for event_id in ids:
+                api_storage.acknowledge_event(event_id)
 
-    @pytest.mark.parametrize("path", ["/api/events/acknowledge", "/api/events/unacknowledge"])
+        resp = client.post(path, json={"ids": [ids[0], ids[2], ids[2]]})
+        assert (resp.status_code, resp.get_json(), resp.content_type) == (
+            200, {"success": True, "count": 2}, "application/json"
+        )
+        assert sorted(e["id"] for e in api_storage.get_events(acknowledged=acknowledged)) == [ids[0], ids[2]]
+        # Repeating it changes nothing.
+        assert client.post(path, json={"ids": [ids[0]]}).get_json() == {"success": True, "count": 0}
+
+    @pytest.mark.parametrize("path", ACK_ROUTES)
     @pytest.mark.parametrize("payload", [
         None, {}, {"ids": []}, {"ids": "1"}, {"ids": [0]}, {"ids": [-1]}, {"ids": [True]},
         {"ids": ["1"]}, {"ids": [1.5]}, {"ids": list(range(1, 1002))}, [1, 2],
     ])
     def test_acknowledge_listed_events_rejects_invalid_ids(self, client, payload, path):
         resp = client.post(path, json=payload)
-        assert resp.status_code == 400
+        assert (resp.status_code, resp.get_json(), resp.content_type) == (
+            400, {"error": "ids must be a list of 1 to 1000 event ids"}, "application/json"
+        )
 
-    def test_undo_restores_only_the_listed_acknowledgements(self, client, api_storage):
-        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        ids = [api_storage.save_event(ts, "warning", "power_change", f"Msg {i}") for i in range(3)]
-        api_storage.acknowledge_events(ids)
-
-        resp = client.post("/api/events/unacknowledge", json={"ids": [ids[0], ids[1], ids[1]]})
-        assert resp.status_code == 200
-        assert resp.get_json() == {"success": True, "count": 2}
-        assert sorted(e["id"] for e in api_storage.get_events(acknowledged=False)) == [ids[0], ids[1]]
-        # Undoing again changes nothing.
-        assert client.post("/api/events/unacknowledge", json={"ids": [ids[0]]}).get_json()["count"] == 0
+    @pytest.mark.parametrize("path", ACK_ROUTES)
+    @pytest.mark.parametrize(("break_storage", "status", "body"), [
+        (lambda runtime: setattr(runtime, "storage", None), 500, {"error": "Storage not initialized"}),
+        (_drop_events_table, 503, {"error": "Reading stored data failed. See the DOCSight log for details."}),
+    ], ids=["no-storage", "storage-error"])
+    def test_listed_events_storage_failure(self, client, path, break_storage, status, body):
+        break_storage(current_runtime())
+        resp = client.post(path, json={"ids": [1]})
+        assert (resp.status_code, resp.get_json(), resp.content_type) == (status, body, "application/json")
 
     def test_events_count_empty(self, client):
         resp = client.get("/api/events/count")

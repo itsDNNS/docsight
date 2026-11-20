@@ -32,6 +32,7 @@ from .config import (
     HASH_KEYS,
     MODULE_SECRET_KEYS,
     SECRET_KEYS,
+    parse_disabled_modules,
     parse_stored_bool,
 )
 from .version import get_app_version
@@ -466,8 +467,7 @@ def _check_module_inline_code(raw_config: Mapping[str, Any], environ: Mapping[st
     from .module_paths import DEFAULT_MODULES_DIR
 
     root = Path(environ.get("MODULES_DIR") or DEFAULT_MODULES_DIR)
-    disabled_value = _config_value(raw_config, environ, "disabled_modules")
-    disabled = {item.strip() for item in str(disabled_value or "").split(",") if item.strip()}
+    disabled = parse_disabled_modules(_config_value(raw_config, environ, "disabled_modules"))
     if not root.is_dir():
         return CheckResult(
             id="modules.inline_scripts",
