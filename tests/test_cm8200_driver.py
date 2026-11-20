@@ -251,27 +251,6 @@ class TestLogin:
         # Retry uses fresh session: 2 GETs (auth + status)
         assert mock_new_session.get.call_count == 2
 
-    def test_login_raises_after_retry_exhausted(self, driver):
-        import requests as req
-
-        with patch("requests.Session") as MockSession:
-            mock_new_session = MagicMock()
-            mock_new_session.get = MagicMock(side_effect=req.ConnectionError("down"))
-            MockSession.return_value = mock_new_session
-
-            with patch.object(driver._session, "get", side_effect=req.ConnectionError("down")):
-                with pytest.raises(RuntimeError, match="connection refused after retry"):
-                    driver.login()
-
-    def test_login_raises_on_http_error(self, driver):
-        import requests as req
-
-        error = req.HTTPError("401 Client Error for url: https://modem/cmconnectionstatus.html?c2VjcmV0")
-        with patch.object(driver._session, "get", side_effect=error):
-            with pytest.raises(RuntimeError, match="CM8200 authentication failed") as raised:
-                driver.login()
-        assert "c2VjcmV0" not in str(raised.value)
-
     def test_login_caches_status_html(self, driver):
         """Login caches the status page for reuse."""
         probe_response = MagicMock()

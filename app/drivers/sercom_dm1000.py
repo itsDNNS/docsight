@@ -22,10 +22,10 @@ from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
 from .formats.sercom import parse_sercom_dm1000_json
 from .format_compat import unwrap_sercom
+from .utils import fetch_failed, is_auth_error
 
 log = logging.getLogger("docsis.driver.sercom_dm1000")
 
-_AUTH_STATUSES = {401, 403}
 _HTML_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 _BROWSER_ACCEPT_LANGUAGE = "en-GB,en-US;q=0.9,en;q=0.8"
 _BROWSER_USER_AGENT = (
@@ -235,53 +235,33 @@ class SercomDM1000Driver(ModemDriver):
                 timeout=30,
             )
             resp.raise_for_status()
-        except requests.HTTPError as exc:
-            if allow_reauth and self._is_auth_error(exc):
+        except requests.RequestException as exc:
+            if allow_reauth and is_auth_error(exc):
                 log.info("Sercom DM1000 session expired while fetching %s; retrying after login", todo)
                 return self._retry_after_reauth(todo, raise_on_error=raise_on_error)
-            if raise_on_error:
-                raise RuntimeError(f"Sercom DM1000 fetch {todo} failed: {exc}") from exc
-            log.warning("Sercom DM1000 fetch %s failed: %s", todo, exc)
-            return {}
-        except requests.RequestException as exc:
-            if raise_on_error:
-                raise RuntimeError(f"Sercom DM1000 fetch {todo} failed: {exc}") from exc
-            log.warning("Sercom DM1000 fetch %s failed: %s", todo, exc)
-            return {}
+            return fetch_failed(log, raise_on_error, f"Sercom DM1000 fetch {todo} failed: {exc}", exc)
 
         if marker := self._login_redirect_marker(resp):
             message = f"Sercom DM1000 fetch {todo} redirected to login ({marker})"
             if allow_reauth:
                 log.info("%s; retrying after login", message)
                 return self._retry_after_reauth(todo, raise_on_error=raise_on_error)
-            if raise_on_error:
-                raise RuntimeError(message)
-            log.warning(message)
-            return {}
+            return fetch_failed(log, raise_on_error, message)
 
         if self._looks_like_html(resp):
             message = f"Sercom DM1000 fetch {todo} returned an HTML login page"
             if allow_reauth:
                 log.info("%s; retrying after login", message)
                 return self._retry_after_reauth(todo, raise_on_error=raise_on_error)
-            if raise_on_error:
-                raise RuntimeError(message)
-            log.warning(message)
-            return {}
+            return fetch_failed(log, raise_on_error, message)
 
         try:
             payload = resp.json()
         except ValueError as exc:
-            if raise_on_error:
-                raise RuntimeError(f"Sercom DM1000 fetch {todo} returned invalid JSON payload") from exc
-            log.warning("Sercom DM1000 fetch %s returned invalid JSON payload", todo)
-            return {}
+            return fetch_failed(log, raise_on_error, f"Sercom DM1000 fetch {todo} returned invalid JSON payload", exc)
 
         if not isinstance(payload, dict):
-            if raise_on_error:
-                raise RuntimeError(f"Sercom DM1000 fetch {todo} returned non-object JSON payload")
-            log.warning("Sercom DM1000 fetch %s returned non-object JSON payload", todo)
-            return {}
+            return fetch_failed(log, raise_on_error, f"Sercom DM1000 fetch {todo} returned non-object JSON payload")
 
         if not self._ensure_ok(payload, todo, raise_on_error=raise_on_error):
             return {}
@@ -291,16 +271,9 @@ class SercomDM1000Driver(ModemDriver):
         try:
             self.login()
         except RuntimeError as exc:
-            if raise_on_error:
-                raise RuntimeError(f"Sercom DM1000 re-login before fetching {todo} failed: {exc}") from exc
-            log.warning("Sercom DM1000 re-login before fetching %s failed: %s", todo, exc)
-            return {}
+            message = f"Sercom DM1000 re-login before fetching {todo} failed: {exc}"
+            return fetch_failed(log, raise_on_error, message, exc)
         return self._fetch_payload(todo, raise_on_error=raise_on_error, allow_reauth=False)
-
-    @staticmethod
-    def _is_auth_error(exc: requests.HTTPError) -> bool:
-        response = getattr(exc, "response", None)
-        return getattr(response, "status_code", None) in _AUTH_STATUSES
 
     @staticmethod
     def _looks_like_html(resp: requests.Response) -> bool:
@@ -312,7 +285,7 @@ class SercomDM1000Driver(ModemDriver):
     def _login_redirect_marker(resp: requests.Response) -> str:
         location = str(resp.headers.get("Location", "") or "")
         if "login.html" in location.lower():
-            return f"Location: {location}"
+            return f"Location: {location.partition('?')[0].partition('#')[0]}"  # a query may carry a session token
 
         text = str(getattr(resp, "text", "") or "")
         if SercomDM1000Driver._contains_login_location_header_line(text):
@@ -351,9 +324,7 @@ class SercomDM1000Driver(ModemDriver):
         if code is None or str(code) == "000":
             return True
         message = str(payload.get("errMsg") or f"errCode {code}")
-        if raise_on_error:
-            raise RuntimeError(f"Sercom DM1000 {context} failed: {message}")
-        log.warning("Sercom DM1000 %s failed: %s", context, message)
+        fetch_failed(log, raise_on_error, f"Sercom DM1000 {context} failed: {message}")
         return False
 
     @staticmethod

@@ -69,9 +69,13 @@ class CM3000Driver(ModemDriver):
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
-        self._session = requests.Session()
-        self._session.auth = (user, password)
+        self._session = self._new_session()
         self._status_html = None
+
+    def _new_session(self) -> requests.Session:
+        session = requests.Session()
+        session.auth = (self._user, self._password)
+        return session
 
     def login(self) -> None:
         """Establish session and verify DocsisStatus.htm is actually readable.
@@ -79,39 +83,26 @@ class CM3000Driver(ModemDriver):
         Retries once with a fresh session if the modem drops a stale
         TCP connection (common after container restarts).
         """
-        for attempt in range(2):
+        self._status_html = None
+        self._login_with_reconnect("CM3000", self._login_attempt, log)
+
+    def _login_attempt(self) -> None:
+        r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
+        r.raise_for_status()
+        try:
             try:
+                self._ensure_status_page(r.text)
+            except RuntimeError:
+                if not (self._looks_like_login_page(r.text) and self._login_via_form()):
+                    raise
                 r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
                 r.raise_for_status()
-                try:
-                    self._ensure_status_page(r.text)
-                except RuntimeError:
-                    if not self._looks_like_login_page(r.text):
-                        self._log_status_page_diagnostics(r.text, "login")
-                        raise
-                    if not self._login_via_form():
-                        self._log_status_page_diagnostics(r.text, "login")
-                        raise
-                    r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
-                    r.raise_for_status()
-                    self._ensure_status_page(r.text)
-                self._status_html = r.text
-                log.info("CM3000 auth OK")
-                return
-            except requests.ConnectionError:
-                if attempt == 0:
-                    log.warning("CM3000 connection lost, retrying with fresh session")
-                    self._session.close()
-                    self._session = requests.Session()
-                    self._session.auth = (self._user, self._password)
-                    self._status_html = None
-                    continue
-                raise RuntimeError("CM3000 authentication failed: connection refused after retry")
-            except requests.RequestException as e:
-                raise RuntimeError(f"CM3000 authentication failed: {e}")
-            except RuntimeError as e:
-                self._log_status_page_diagnostics(r.text, "login")
-                raise e
+                self._ensure_status_page(r.text)
+        except RuntimeError:
+            self._log_status_page_diagnostics(r.text, "login")
+            raise
+        self._status_html = r.text
+        log.info("CM3000 auth OK")
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from JavaScript on status page.

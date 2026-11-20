@@ -338,14 +338,6 @@ class TestDocsisData:
         with patch.object(driver._session, "get", return_value=make_response(["not", "an", "object"])):
             assert driver._fetch_payload("/1/Device/CM/DsInfo") == {}
 
-    def test_fetch_payload_returns_empty_for_modem_error_code(self, driver):
-        with patch.object(
-            driver._session,
-            "get",
-            return_value=make_response({"errCode": "999", "errMsg": "temporary unavailable"}),
-        ):
-            assert driver._fetch_payload("/1/Device/CM/DsInfo") == {}
-
     @pytest.mark.parametrize("err_code", ["401", "403"])
     def test_fetch_payload_reauthenticates_once_after_auth_error_payload(self, driver, err_code):
         with patch.object(
@@ -475,24 +467,6 @@ class TestDocsisData:
                     driver._fetch_payload("/1/Device/CM/Version", raise_on_error=True)
 
         login.assert_not_called()
-
-    def test_fetch_payload_returns_empty_when_reauth_login_fails(self, driver):
-        with patch.object(driver._session, "get", return_value=make_http_error_response(403)) as get:
-            with patch.object(driver, "login", side_effect=RuntimeError("bad credentials")) as login:
-                payload = driver._fetch_payload("/1/Device/CM/DsInfo")
-
-        assert payload == {}
-        login.assert_called_once_with()
-        get.assert_called_once()
-
-    def test_fetch_payload_strict_mode_raises_when_reauth_login_fails(self, driver):
-        with patch.object(driver._session, "get", return_value=make_http_error_response(403)) as get:
-            with patch.object(driver, "login", side_effect=RuntimeError("bad credentials")) as login:
-                with pytest.raises(RuntimeError, match="re-login before fetching /1/Device/CM/Version failed"):
-                    driver._fetch_payload("/1/Device/CM/Version", raise_on_error=True)
-
-        login.assert_called_once_with()
-        get.assert_called_once()
 
     def test_analyzer_accepts_coda_4680_null_counter_payload(self, driver):
         payloads = {

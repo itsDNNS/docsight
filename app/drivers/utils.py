@@ -9,6 +9,7 @@ import hashlib
 import logging
 import ssl
 
+import requests
 from requests.adapters import HTTPAdapter
 
 from .formats.primitives import (
@@ -20,7 +21,9 @@ from .formats.primitives import (
 )
 
 __all__ = [
+    "fetch_failed",
     "hz_to_mhz",
+    "is_auth_error",
     "make_legacy_tls_adapter",
     "normalize_mhz",
     "normalize_modulation",
@@ -42,6 +45,21 @@ def pbkdf2_sha256(key_material: bytes, salt: bytes, *, length: int = 16, iterati
         iterations: PBKDF2 iteration count.
     """
     return hashlib.pbkdf2_hmac("sha256", key_material, salt, iterations, dklen=length)
+
+
+def is_auth_error(exc: Exception) -> bool:
+    """Whether a request failed with an HTTP 401 or 403 error."""
+    return isinstance(exc, requests.HTTPError) and getattr(exc.response, "status_code", None) in {401, 403}
+
+
+def fetch_failed(logger: logging.Logger, raise_on_error: bool, message: str, exc: Exception | None = None) -> dict:
+    """Raise ``message`` as ``RuntimeError`` in strict mode, else log it and return an empty payload."""
+    if raise_on_error and exc is not None:
+        raise RuntimeError(message) from exc
+    if raise_on_error:
+        raise RuntimeError(message)
+    logger.warning("%s", message)
+    return {}
 
 
 # ---------------------------------------------------------------------------

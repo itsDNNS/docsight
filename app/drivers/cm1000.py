@@ -113,41 +113,30 @@ class CM1000Driver(ModemDriver):
         page, the driver performs the Genie token/form login and retries.
         """
         self._status_html = None
-        for attempt in range(2):
-            try:
-                direct = self._session.get(self._url + _STATUS_PATH, timeout=30)
-                if direct.status_code == 200 and self._is_status_page(direct.text):
-                    self._status_html = direct.text
-                    log.info("CM1000 auth OK via direct status access")
-                    return
+        self._login_with_reconnect("CM1000", self._login_attempt, log)
 
-                # A 401/403 or a 200 login wrapper is expected on form-login
-                # firmware. Other HTTP errors should still be surfaced.
-                if direct.status_code not in (200, 401, 403):
-                    direct.raise_for_status()
+    def _login_attempt(self) -> None:
+        direct = self._session.get(self._url + _STATUS_PATH, timeout=30)
+        if direct.status_code == 200 and self._is_status_page(direct.text):
+            self._status_html = direct.text
+            log.info("CM1000 auth OK via direct status access")
+            return
 
-                # Do not send a stale/preemptive Basic Authorization header to
-                # the form-login firmware. The authenticated cookie established
-                # below is sufficient for the status-page request.
-                self._session.auth = None
-                self._login_via_form()
-                status = self._session.get(self._url + _STATUS_PATH, timeout=30)
-                status.raise_for_status()
-                self._ensure_status_page(status.text)
-                self._status_html = status.text
-                log.info("CM1000 auth OK via Genie form login")
-                return
-            except requests.ConnectionError as exc:
-                if attempt == 0:
-                    log.warning("CM1000 connection lost, retrying with fresh session")
-                    self._session.close()
-                    self._session = self._new_session()
-                    continue
-                raise RuntimeError(
-                    "CM1000 authentication failed: connection refused after retry"
-                ) from exc
-            except requests.RequestException as exc:
-                raise RuntimeError(f"CM1000 authentication failed: {exc}") from exc
+        # A 401/403 or a 200 login wrapper is expected on form-login
+        # firmware. Other HTTP errors should still be surfaced.
+        if direct.status_code not in (200, 401, 403):
+            direct.raise_for_status()
+
+        # Do not send a stale/preemptive Basic Authorization header to
+        # the form-login firmware. The authenticated cookie established
+        # below is sufficient for the status-page request.
+        self._session.auth = None
+        self._login_via_form()
+        status = self._session.get(self._url + _STATUS_PATH, timeout=30)
+        status.raise_for_status()
+        self._ensure_status_page(status.text)
+        self._status_html = status.text
+        log.info("CM1000 auth OK via Genie form login")
 
     def get_docsis_data(self) -> DocsisData:
         html = self._fetch_status_page()

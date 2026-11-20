@@ -23,7 +23,7 @@ from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
 from .formats.hitron import parse_hitron_coda4680_json
 from .format_compat import unwrap_hitron
-from .utils import make_legacy_tls_adapter
+from .utils import fetch_failed, is_auth_error, make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.hitron_coda_4680")
 
@@ -128,19 +128,11 @@ class HitronCoda4680Driver(ModemDriver):
             )
             resp.raise_for_status()
             payload = self._json_body(resp)
-        except requests.HTTPError as exc:
-            if allow_reauth and self._is_auth_error(exc):
+        except requests.RequestException as exc:
+            if allow_reauth and is_auth_error(exc):
                 log.info("Hitron CODA-4680 session expired while fetching %s; retrying after login", path)
                 return self._retry_after_reauth(path, raise_on_error=raise_on_error)
-            if raise_on_error:
-                raise RuntimeError(f"Hitron CODA-4680 fetch {path} failed: {exc}") from exc
-            log.warning("Hitron CODA-4680 fetch %s failed: %s", path, exc)
-            return {}
-        except requests.RequestException as exc:
-            if raise_on_error:
-                raise RuntimeError(f"Hitron CODA-4680 fetch {path} failed: {exc}") from exc
-            log.warning("Hitron CODA-4680 fetch %s failed: %s", path, exc)
-            return {}
+            return fetch_failed(log, raise_on_error, f"Hitron CODA-4680 fetch {path} failed: {exc}", exc)
 
         # Without a valid session the modem answers 200 with its HTML login page.
         if payload is None and "jquery.hitronext.js" in resp.text:
@@ -166,16 +158,9 @@ class HitronCoda4680Driver(ModemDriver):
         try:
             self.login()
         except RuntimeError as exc:
-            if raise_on_error:
-                raise RuntimeError(f"Hitron CODA-4680 re-login before fetching {path} failed: {exc}") from exc
-            log.warning("Hitron CODA-4680 re-login before fetching %s failed: %s", path, exc)
-            return {}
+            message = f"Hitron CODA-4680 re-login before fetching {path} failed: {exc}"
+            return fetch_failed(log, raise_on_error, message, exc)
         return self._fetch_payload(path, raise_on_error=raise_on_error, allow_reauth=False)
-
-    @staticmethod
-    def _is_auth_error(exc: requests.HTTPError) -> bool:
-        response = getattr(exc, "response", None)
-        return getattr(response, "status_code", None) in {401, 403}
 
     @staticmethod
     def _is_auth_payload(payload: Any) -> bool:
@@ -194,9 +179,7 @@ class HitronCoda4680Driver(ModemDriver):
         if code == "000":
             return True
         message = str(payload.get("errMsg") or f"errCode {code}")
-        if raise_on_error:
-            raise RuntimeError(f"Hitron CODA-4680 {context} failed: {message}")
-        log.warning("Hitron CODA-4680 %s failed: %s", context, message)
+        fetch_failed(log, raise_on_error, f"Hitron CODA-4680 {context} failed: {message}")
         return False
 
     @staticmethod

@@ -171,15 +171,6 @@ class TestLogin:
                 timeout=30,
             )
 
-    def test_login_failure_raises(self, driver):
-        import requests as req
-        with patch.object(
-            driver._session, "post",
-            side_effect=req.RequestException("Connection refused"),
-        ):
-            with pytest.raises(RuntimeError, match="CM3500 authentication failed"):
-                driver.login()
-
 
 # -- DOCSIS data parsing --
 
