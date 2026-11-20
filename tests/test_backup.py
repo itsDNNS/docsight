@@ -475,7 +475,7 @@ class TestRestoreRouteErrors:
     def test_restore_hides_exception_text(self, data_dir, monkeypatch, error, status, message):
         from app.modules.backup import routes
 
-        def fail(_data, _data_dir):
+        def fail(_data, _data_dir, _restored):
             raise error
 
         monkeypatch.setattr(routes, "restore_backup", fail)

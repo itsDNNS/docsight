@@ -115,9 +115,14 @@ def test_two_apps_isolate_runtime_auth_storage_and_requests(tmp_path, order, mon
     # Module storages follow the core database when it changes, and come back to the
     # same instances when it changes back.
     from app.blueprints.segment_bp import _get_storage as _get_segment_storage
+    from app.modules.evidence.routes import _get_journal_storage as _get_evidence_journal_storage
+    from app.modules.journal.routes import _get_journal_storage
     from app.modules.weather.routes import _get_weather_storage
 
-    providers = (_get_bnetz_storage, _get_bqm_storage, _get_speedtest_storage, _get_weather_storage, _get_segment_storage)
+    providers = (
+        _get_bnetz_storage, _get_bqm_storage, _get_speedtest_storage, _get_weather_storage, _get_segment_storage,
+        _get_journal_storage, _get_evidence_journal_storage,
+    )
     original = runtime_a.storage
     other = SnapshotStorage(str(tmp_path / "other.db"))
     with app_a.app_context():

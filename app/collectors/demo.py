@@ -283,6 +283,8 @@ class DemoCollector(AnalysisCollector):
         if seed.isdigit():
             random.seed(int(seed))
         self._ensure_demo_module_tables()
+        from app.modules.journal.storage import JournalStorage
+        journal = JournalStorage(self._storage.db_path)  # fails before the history is rebuilt
         # Purge any existing demo data first (handles container rebuilds with persisted volume)
         self._storage.purge_demo_data()
         # Keep all demo data — don't let cleanup purge the seeded history
@@ -290,10 +292,10 @@ class DemoCollector(AnalysisCollector):
         now = _demo_reference_time()
         detected_events = self._seed_history(now)
         self._seed_events(now, detected_events)
-        self._seed_journal_entries(now)
+        self._seed_journal_entries(now, journal)
         self._seed_speedtest_results(now)
         self._seed_bqm_graphs(now)
-        self._seed_incident_containers(now)
+        self._seed_incident_containers(now, journal)
         self._seed_bnetz_measurements(now)
         self._seed_weather_data(now)
         self._seed_connection_monitor_data(now)
@@ -574,7 +576,7 @@ class DemoCollector(AnalysisCollector):
         self._storage.save_events(events, is_demo=True)
         log.info("Demo: seeded %d events", len(events))
 
-    def _seed_journal_entries(self, now):
+    def _seed_journal_entries(self, now, _js):
         """Seed journal entries spread over the 9-month demo period."""
         entries = [
             (
@@ -663,24 +665,12 @@ class DemoCollector(AnalysisCollector):
                 "No impact on speeds observed.",
             ),
         ]
-        try:
-            from app.modules.journal.storage import JournalStorage
-            _js = JournalStorage(self._storage.db_path)
-        except (ImportError, Exception):
-            log.debug("Demo: journal module not available, skipping journal seeding")
-            return
         for date, title, description in entries:
             _js.save_entry(date, title, description, is_demo=True)
         log.info("Demo: seeded %d journal entries", len(entries))
 
-    def _seed_incident_containers(self, now):
+    def _seed_incident_containers(self, now, _js):
         """Seed demo incident containers and assign entries by date range."""
-        try:
-            from app.modules.journal.storage import JournalStorage
-            _js = JournalStorage(self._storage.db_path)
-        except (ImportError, Exception):
-            log.debug("Demo: journal module not available, skipping incident seeding")
-            return
         inc1_id = _js.save_incident(
             name="Seasonal Signal Drift",
             description="Temperature-related upstream power drift observed over summer months. "

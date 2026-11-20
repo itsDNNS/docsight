@@ -9,8 +9,7 @@ from typing import Any
 
 import requests
 
-from ...config import parse_config_bool
-from ...modules.speedtest.client import public_error
+from ...modules.speedtest.client import SpeedtestClient, public_error
 from ...tz import UTC_FMT, utc_now
 from ...types import EventDict
 from ..types import CAPTURE_ACTION_TYPE, ExecutionStatus
@@ -28,18 +27,13 @@ class SpeedtestAdapter:
         self.action_type = CAPTURE_ACTION_TYPE
         self._storage = storage
         self._config = config_mgr
-        url = config_mgr.get("speedtest_tracker_url", "").rstrip("/")
-        token = config_mgr.get("speedtest_tracker_token", "")
-        tls_insecure = parse_config_bool(config_mgr.get("speedtest_tls_insecure", False))
-        self._run_url = f"{url}/api/v1/speedtests/run"
-        self._results_url = f"{url}/api/v1/results"
-        self._verify_tls = not tls_insecure
+        self._client = SpeedtestClient(
+            config_mgr.get("speedtest_tracker_url", ""),
+            config_mgr.get("speedtest_tracker_token", ""),
+            config_mgr.get("speedtest_tls_insecure", False),
+        )
+        self._run_url = f"{self._client.base_url}/api/v1/speedtests/run"
         self._execute_lock = threading.Lock()
-        self._session = requests.Session()
-        self._session.headers.update({
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
-        })
 
     def execute(self, execution_id: int, event: EventDict) -> tuple[bool, str | None]:
         """POST to STT run endpoint after speedtest-specific safety preflight."""
@@ -66,7 +60,7 @@ class SpeedtestAdapter:
             return False, suppression_reason
 
         try:
-            resp = self._session.post(self._run_url, timeout=15, verify=self._verify_tls)
+            resp = self._client.session.post(self._run_url, timeout=15, verify=self._client.verify_tls)
             if resp.status_code in _ACCEPTED_STATUS_CODES:
                 self._mark_fired(execution_id, event)
                 log.info("Smart Capture: triggered STT run (execution #%d)", execution_id)
@@ -178,23 +172,13 @@ class SpeedtestAdapter:
         return max(timestamps) if timestamps else None
 
     def _fetch_latest_remote_result_timestamp(self) -> datetime | None:
-        try:
-            resp = self._session.get(
-                self._results_url,
-                params={"per_page": 1},
-                timeout=5,
-                verify=self._verify_tls,
-            )
-            if resp.status_code != 200:
-                return None
-            payload = resp.json()
-            data = payload.get("data", []) if isinstance(payload, dict) else []
-            if not data:
-                return None
-            first = data[0] if isinstance(data[0], dict) else {}
-            return self._parse_timestamp(str(first.get("timestamp", "")))
-        except Exception:
-            return None
+        latest = self._client.get_latest(1)
+        # Tracker times without an offset are taken as UTC, as the result import does.
+        ts = latest[0]["timestamp"] if latest else None
+        parsed = self._parse_timestamp(ts) if isinstance(ts, str) else None
+        if latest and parsed is None:
+            log.debug("Smart Capture: latest STT result has no readable time")
+        return parsed
 
     @staticmethod
     def _interval_reason(previous_ts: datetime | None, reference_ts: datetime,

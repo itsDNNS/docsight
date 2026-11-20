@@ -184,7 +184,10 @@ function loadCorrelationData() {
     var segmentUrl = docsightUrl('/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd));
 
     Promise.all([
-        fetch(docsightUrl('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture' + (endParam ? '&end=' + encodeURIComponent(endParam) : ''))).then(function(r) { return r.json(); }),
+        fetch(docsightUrl('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture' + (endParam ? '&end=' + encodeURIComponent(endParam) : ''))).then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        }),
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         fetch(segmentUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         _corrFetchReachability(startEpoch, endEpoch, 300).catch(function() {

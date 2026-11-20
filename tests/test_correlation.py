@@ -224,6 +224,17 @@ class TestCorrelationTimeline:
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
         assert storage.get_correlation_timeline(start, end) == []
 
+    @pytest.mark.parametrize("source, target", [
+        ("speedtest", "app.modules.speedtest.storage.SpeedtestStorage.get_speedtest_in_range"),
+        ("bnetz", "app.modules.bnetz.storage.BnetzStorage.get_bnetz_in_range"),
+        ("capture", "app.storage.SnapshotStorage._read"),
+        ("segment", "app.storage.segment_utilization.SegmentUtilizationStorage.get_range"),
+    ])
+    def test_storage_failure_fails_instead_of_dropping_the_source(self, storage, source, target):
+        with patch(target, side_effect=sqlite3.OperationalError("database is locked")), \
+                pytest.raises(sqlite3.OperationalError):
+            storage.get_correlation_timeline("2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", sources={source})
+
 
 class TestCorrelationAPI:
     def test_correlation_endpoint_no_auth(self, client_with_storage):

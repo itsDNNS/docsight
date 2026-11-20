@@ -1,9 +1,11 @@
 """Journal and incident management routes."""
 
 from app.i18n import get_translations
-from app.runtime import current_runtime
+from app.runtime import core_derived_storage, current_runtime
 from app.tz import valid_date, localize_timestamps, get_tz_name
 from app.web_locale import get_lang
+from app.modules.bnetz.storage import BnetzStorage
+from app.modules.speedtest.storage import SpeedtestStorage
 import csv
 import json
 import logging
@@ -37,10 +39,7 @@ ICON_KEYWORD_CATEGORIES = (
 
 def _get_journal_storage():
     """Get JournalStorage for journal-specific queries."""
-    core = current_runtime().storage
-    if not core:
-        return None
-    return JournalStorage(core.db_path)
+    return core_derived_storage(JournalStorage)
 
 
 # ── Journal Entries API ──
@@ -635,15 +634,9 @@ def api_incident_timeline(incident_id):
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
         _, end_ts = local_date_to_utc_range(end_date, tz)
         _core = current_runtime().storage
-        if _core:
-            # The case view plots signal, speedtests and events; other sources would only add payload.
-            timeline = _core.get_correlation_timeline(start_ts, end_ts, sources={"modem", "speedtest", "events"})
-        try:
-            from app.modules.bnetz.storage import BnetzStorage
-            _bs = BnetzStorage(_core.db_path)
-            bnetz = _bs.get_bnetz_in_range(start_ts, end_ts)
-        except (ImportError, Exception):
-            bnetz = []
+        # The case view plots signal, speedtests and events; other sources would only add payload.
+        timeline = _core.get_correlation_timeline(start_ts, end_ts, sources={"modem", "speedtest", "events"})
+        bnetz = core_derived_storage(BnetzStorage).get_bnetz_in_range(start_ts, end_ts)
 
     localize_timestamps(timeline, get_tz_name(current_runtime().config_manager))
     localize_timestamps(entries, get_tz_name(current_runtime().config_manager))
@@ -689,20 +682,9 @@ def api_incident_report(incident_id):
         start_ts, _ = local_date_to_utc_range(incident["start_date"], _tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
         _, end_ts = local_date_to_utc_range(end_date, _tz)
-        _core = current_runtime().storage
-        snapshots = _core.get_range_data(start_ts, end_ts) if _core else []
-        try:
-            from app.modules.speedtest.storage import SpeedtestStorage
-            _ss = SpeedtestStorage(_core.db_path)
-            speedtests = _ss.get_speedtest_in_range(start_ts, end_ts)
-        except (ImportError, Exception):
-            speedtests = []
-        try:
-            from app.modules.bnetz.storage import BnetzStorage
-            _bs = BnetzStorage(_core.db_path)
-            bnetz = _bs.get_bnetz_in_range(start_ts, end_ts)
-        except (ImportError, Exception):
-            bnetz = []
+        snapshots = current_runtime().storage.get_range_data(start_ts, end_ts)
+        speedtests = core_derived_storage(SpeedtestStorage).get_speedtest_in_range(start_ts, end_ts)
+        bnetz = core_derived_storage(BnetzStorage).get_bnetz_in_range(start_ts, end_ts)
 
     config = {}
     if _config_manager:

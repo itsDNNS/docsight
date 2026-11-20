@@ -57,8 +57,8 @@ class TestExportEndpoint:
             "summary": {"health": "critical"},
         }
         current_runtime().storage = storage
-        with patch("app.modules.speedtest.storage.SpeedtestStorage") as speedtests, patch(
-            "app.modules.journal.storage.JournalStorage"
+        with patch("app.blueprints.data_bp.SpeedtestStorage") as speedtests, patch(
+            "app.blueprints.data_bp.JournalStorage"
         ) as journal:
             speedtests.return_value.get_recent_speedtests.return_value = [{
                 "timestamp": "2026-09-07T10:00:00Z",
@@ -86,8 +86,8 @@ class TestExportEndpoint:
         storage = Mock(db_path=str(tmp_path / "unused.db"))
         storage.get_recent_events.return_value = []
         current_runtime().storage = storage
-        with patch("app.modules.speedtest.storage.SpeedtestStorage") as speedtests, patch(
-            "app.modules.journal.storage.JournalStorage"
+        with patch("app.blueprints.data_bp.SpeedtestStorage") as speedtests, patch(
+            "app.blueprints.data_bp.JournalStorage"
         ) as journal:
             speedtests.return_value.get_recent_speedtests.return_value = []
             journal.return_value.get_active_entries.return_value = []
@@ -210,8 +210,8 @@ class TestExportEndpoint:
         storage.get_recent_events.return_value = []
         current_runtime().storage = storage
         headings = []
-        with patch("app.modules.speedtest.storage.SpeedtestStorage") as speedtests, patch(
-            "app.modules.journal.storage.JournalStorage"
+        with patch("app.blueprints.data_bp.SpeedtestStorage") as speedtests, patch(
+            "app.blueprints.data_bp.JournalStorage"
         ) as journal:
             speedtests.return_value.get_recent_speedtests.return_value = []
             journal.return_value.get_active_entries.return_value = []

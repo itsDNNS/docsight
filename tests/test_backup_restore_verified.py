@@ -10,6 +10,7 @@ import tarfile
 import tempfile
 from contextlib import closing
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -278,7 +279,7 @@ def test_settings_save_waits_for_restore_and_reload(make_app, builtin_module_loa
     real_reload = config.reload
     waited = []
 
-    def restore_while_saving(_data, _data_dir):
+    def restore_while_saving(_data, _data_dir, _restored):
         save.start()
         save.join(0.2)
         return {"restored_files": [], "meta": {}}
@@ -297,3 +298,58 @@ def test_settings_save_waits_for_restore_and_reload(make_app, builtin_module_loa
     assert response.status_code == 200
     assert waited == [True]
     assert config.get("language") == "de"
+
+
+@pytest.mark.parametrize(("files", "failure"), [
+    (("docsis_history.db",), None),
+    (("docsis_history.db",), "reload"),
+    (("docsis_history.db", "connection_monitor.db"), "second-copy"),
+    (("docsis_history.db",), "after-copy"),
+    (("config.json",), None),
+], ids=["database", "database-reload-fails", "database-then-copy-fails", "copy-fails-after-copying", "config-only"])
+def test_restore_rebuilds_only_the_storages_of_replaced_databases(
+    make_app, builtin_module_loader_factory, tmp_path, monkeypatch, files, failure,
+):
+    from app.config import ConfigManager
+    from app.modules.backup import backup
+    from app.modules.journal.routes import _get_journal_storage
+    from app.runtime import get_runtime
+    from app.storage import SnapshotStorage
+
+    config = ConfigManager(str(tmp_path / "data"))
+    storage = SnapshotStorage(str(tmp_path / "data" / "docsis_history.db"))
+    app = make_app(config_manager=config, storage=storage, module_loader_factory=builtin_module_loader_factory(config))
+    client = app.test_client()
+    assert client.get("/api/journal").status_code == 200
+    with app.app_context():
+        journal = _get_journal_storage()
+    get_runtime(app).derived_storage.set_value("speedtest_last_trigger", 123.0)
+    core_only = tmp_path / "core-only.db"
+    SnapshotStorage(str(core_only))  # a backup from an instance that never opened the journal
+    contents = {"docsis_history.db": core_only.read_bytes(), "connection_monitor.db": core_only.read_bytes(),
+                "config.json": b"{}"}
+    real_copy, copies = backup.replace_contents, []
+
+    def copy(source, target):  # copies the first database, then fails as told
+        copies.append(target)
+        if len(copies) == 1:
+            real_copy(source, target)
+        if failure == "after-copy" or len(copies) == 2:
+            raise TimeoutError("copy step timed out")
+
+    if failure == "reload":
+        monkeypatch.setattr(config, "reload", Mock(side_effect=RuntimeError("reload failed")))
+    elif failure:
+        monkeypatch.setattr(backup, "replace_contents", copy)
+
+    response = client.post(
+        "/api/restore",
+        data={"file": (_archive({name: contents[name] for name in files}), "backup.tar.gz")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == (500 if failure else 200)
+    assert client.get("/api/journal").status_code == 200
+    with app.app_context():
+        assert (_get_journal_storage() is journal) == ("docsis_history.db" not in files)
+    assert get_runtime(app).derived_storage.value("speedtest_last_trigger", 0.0) == 123.0

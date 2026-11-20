@@ -236,12 +236,13 @@ def _keep_live_api_tokens(live_db, staged_db):
             conn.execute("INSERT INTO api_tokens VALUES (?, ?, ?, ?, ?, ?, ?)", row)
 
 
-def restore_backup(archive_bytes, data_dir):
+def restore_backup(archive_bytes, data_dir, restored_files=None):
     """Restore a backup archive to data_dir.
 
     Args:
         archive_bytes: bytes or BytesIO of the archive.
         data_dir: target directory (e.g. /data).
+        restored_files: optional list that receives each file name before it is copied in.
 
     Returns:
         dict with restore results.
@@ -259,7 +260,7 @@ def restore_backup(archive_bytes, data_dir):
         )
 
     os.makedirs(data_dir, exist_ok=True)
-    restored_files = []
+    restored_files = [] if restored_files is None else restored_files
     database_names = {"docsis_history.db", "connection_monitor.db"}
     staged = {}
 
@@ -322,6 +323,7 @@ def restore_backup(archive_bytes, data_dir):
                     os.path.join(data_dir, "docsis_history.db"), staged["docsis_history.db"]
                 )
             for name, staged_path in staged.items():
+                restored_files.append(name)  # before the copy, which can fail after replacing the file
                 destination = os.path.join(data_dir, name)
                 if name in database_names:
                     # Copied in place, so open connections stay consistent.
@@ -329,7 +331,6 @@ def restore_backup(archive_bytes, data_dir):
                 else:
                     os.replace(staged_path, destination)
                     staged[name] = None
-                restored_files.append(name)
     finally:
         for staged_path in staged.values():
             if staged_path is None:

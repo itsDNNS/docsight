@@ -2,6 +2,7 @@
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 
 
@@ -62,15 +63,19 @@ def test_failed_load_offers_a_retry_that_restores_the_view(demo_page):
     expect(page.locator("#charts-grid")).to_be_visible()
 
 
-def test_correlation_without_data_uses_the_shared_state(demo_page):
+@pytest.mark.parametrize(("reply", "title", "action", "links"), [
+    ({"json": []}, "No data in this period", re.compile(r"^Show \w+$"), 1),
+    ({"status": 503, "json": {"error": "Reading stored data failed."}}, "Could not load the data", "Try again", 0),
+], ids=["empty", "storage-error"])
+def test_correlation_without_data_uses_the_shared_state(demo_page, reply, title, action, links):
     page = demo_page
-    page.route(re.compile(r".*/api/correlation\?.*"), lambda route: route.fulfill(json=[]))
+    page.route(re.compile(r".*/api/correlation\?.*"), lambda route: route.fulfill(**reply))
     page.route(re.compile(r".*/api/connection-monitor/.*"), lambda route: route.fulfill(json=[]))
     _open(page, "correlation")
 
     empty = page.locator("#correlation-no-data")
-    _expect_state(empty, "No data in this period", re.compile(r"^Show \w+$"))
-    expect(empty.locator(".view-empty-link")).to_have_attribute("href", "#glossary?term=correlation_analysis")
+    _expect_state(empty, title, action)
+    expect(empty.locator('.view-empty-link[href="#glossary?term=correlation_analysis"]')).to_have_count(links)
 
 
 def test_channel_status_failure_offers_a_retry(demo_page):

@@ -65,3 +65,20 @@ test('the case chart SNR line skips a missing value and plots a measured 0 at it
     assert.deepEqual(snrPath.filter(c => c[0] === 'moveTo' || c[0] === 'lineTo'), [['moveTo', sc.xScale(T0), sc.ySnr(36)],
         ['lineTo', sc.xScale(T0 + 12 * HOUR), sc.ySnr(36)], ['lineTo', sc.xScale(T0 + 18 * HOUR), sc.ySnr(0)]]);
 });
+
+test('a failed case PDF shows the server message, else the generic error', async () => {
+    for (const [reply, message] of [
+        [{ok: false, json: async () => ({error: 'Reading stored data failed.'})}, 'Reading stored data failed.'],
+        [{ok: false, json: async () => { throw new SyntaxError('not JSON'); }}, 'Error generating report'],
+    ]) {
+        const context = load(), toasts = [];
+        Object.assign(context, {
+            URLSearchParams, docsightUrl: url => url, fetch: async () => reply,
+            showToast: (text, kind) => toasts.push([text, kind]),
+        });
+        context.document = {querySelector: () => null, getElementById: () => null};
+        await context.downloadIncidentPdf(7, 'Outage');
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(toasts, [[message, 'error']]);
+    }
+});

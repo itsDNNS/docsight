@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.runtime import current_runtime
+from app.runtime import core_derived_storage, current_runtime
 import logging
 import os
 import sqlite3
@@ -28,10 +28,7 @@ _INCIDENT_ID_ERROR = "incident_id must be a positive integer"
 
 
 def _get_journal_storage():
-    core = current_runtime().storage
-    if not core:
-        return None
-    return JournalStorage(core.db_path)
+    return core_derived_storage(JournalStorage)
 
 
 def _get_tz_name() -> str:
