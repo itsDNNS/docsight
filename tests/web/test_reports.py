@@ -114,7 +114,7 @@ class TestReportHelpers:
         assert _format_optional_count(1234) == "1,234"
 
     def test_diagnostic_notes_trust_analyzer_metric_health(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = {
             "analysis_meta": _add_builtin_analysis_meta({})["analysis_meta"],
@@ -142,13 +142,13 @@ class TestReportHelpers:
             ],
         }
 
-        notes = _build_diagnostic_notes(analysis)
+        notes = _aggregate_report_period([analysis])[0]["diagnostic_notes"]
 
         assert [note["type"] for note in notes] == ["us_power_high"]
         assert notes[0]["channel_type"] == "OFDMA"
 
     def test_ofdm_good_analyzer_metric_health_produces_no_diagnostic_note(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = _add_builtin_analysis_meta(_analyze_downstream_channel(
             docsis="3.1",
@@ -163,10 +163,10 @@ class TestReportHelpers:
         assert channel["power_health"] == "good"
         assert channel["snr_health"] == "good"
 
-        assert _build_diagnostic_notes(analysis) == []
+        assert _aggregate_report_period([analysis])[0]["diagnostic_notes"] == []
 
     def test_ofdm_legacy_metric_health_fallback_uses_ofdm_thresholds(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = _add_builtin_analysis_meta(_analyze_downstream_channel(
             docsis="3.1",
@@ -178,10 +178,10 @@ class TestReportHelpers:
         assert "power_health" not in analysis["ds_channels"][0]
         assert "snr_health" not in analysis["ds_channels"][0]
 
-        assert _build_diagnostic_notes(analysis) == []
+        assert _aggregate_report_period([analysis])[0]["diagnostic_notes"] == []
 
     def test_bad_ofdm_values_produce_notes_with_ofdm_limits(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = _add_builtin_analysis_meta(_analyze_downstream_channel(
             docsis="3.1",
@@ -191,14 +191,14 @@ class TestReportHelpers:
             channel_type="OFDM",
         ))
 
-        notes = _build_diagnostic_notes(analysis)
+        notes = _aggregate_report_period([analysis])[0]["diagnostic_notes"]
 
         assert [note["type"] for note in notes] == ["ds_power_low", "snr_low"]
         assert notes[0]["spec_min"] == -15.0
         assert notes[1]["spec_min"] == 24.5
 
     def test_sc_qam_diagnostic_thresholds_remain_unchanged(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = _add_builtin_analysis_meta(_analyze_downstream_channel(
             docsis="3.0",
@@ -208,7 +208,7 @@ class TestReportHelpers:
             channel_type="SC-QAM",
         ))
 
-        notes = _build_diagnostic_notes(analysis)
+        notes = _aggregate_report_period([analysis])[0]["diagnostic_notes"]
 
         assert [note["type"] for note in notes] == ["ds_power_low", "snr_low"]
         assert notes[0]["spec_min"] == -8.0
