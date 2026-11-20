@@ -598,70 +598,57 @@ function _setRunBtnState(btn, loading) {
     if (window.lucide) lucide.createIcons({nodes: [btn]});
 }
 
-function runSpeedtest() {
+async function runSpeedtest() {
     var btn = document.getElementById('speedtest-run-btn');
     if (!btn || btn.disabled) return;
-    _setRunBtnState(btn, true);
-
-    // Fetch the current latest ID from the server (not stale cache)
-    fetch(docsightUrl('/api/speedtest?count=1'))
-        .then(function(r) { return r.json(); })
-        .then(function(latest) {
-            var lastId = (latest && latest.length > 0) ? latest[0].id : 0;
-            return fetch(docsightUrl('/api/speedtest/run'), {method: 'POST'})
-                .then(function(r) {
-                    return r.json()
-                        .catch(function() { return {error: 'Unexpected response'}; })
-                        .then(function(d) { return {ok: r.ok, data: d}; });
+    // One deadline for the whole run, counted from the click. Only the first outcome counts, and after
+    // every wait the run stops once it has ended, so a late reply cannot start a test or a message.
+    var done = false;
+    var deadline = setTimeout(function() {
+        finish(T.speedtest_timeout || 'Speedtest is taking longer than expected. Refresh to check.', 'warning');
+    }, 150000);
+    function finish(message, type) {
+        if (done) return;
+        done = true;
+        clearTimeout(deadline);
+        showToast(message, type);  // first, so a failing button refresh cannot hide it
+        _setRunBtnState(btn, false);
+    }
+    try {
+        _setRunBtnState(btn, true);
+        // Fetch the current latest ID from the server (not stale cache)
+        var reply = await fetch(docsightUrl('/api/speedtest?count=1'));
+        var latest = await reply.json();
+        if (done) return;
+        if (!reply.ok) throw new Error('Speedtest results unavailable');
+        var lastId = latest.length > 0 ? latest[0].id : 0;
+        reply = await fetch(docsightUrl('/api/speedtest/run'), {method: 'POST'});
+        var res = await reply.json().catch(function() { return {error: 'Unexpected response'}; });
+        if (done) return;
+        if (!reply.ok) return finish(res.error || 'Failed', 'error');
+        // The queued test; older Speedtest Tracker versions do not name it, then a newer first row counts
+        var queuedId = res.result_id;
+        // Poll for the new result: wait 30s, then 5s after each answer, until the deadline
+        for (var wait = 30000; ; wait = 5000) {
+            await new Promise(function(resolve) { setTimeout(resolve, wait); });
+            if (done) return;
+            var r = await fetch(docsightUrl('/api/speedtest?count=10'))
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    return (queuedId ? data : data.slice(0, 1)).find(function(row) {
+                        return queuedId ? row.id === queuedId : row.id > lastId;
+                    });
                 })
-                .then(function(res) {
-                    if (!res.ok) {
-                        _setRunBtnState(btn, false);
-                        showToast((res.data.error || 'Failed'), 'error');
-                        return;
-                    }
-                    // Poll for the new result: wait 30s, then check every 5s
-                    var attempts = 0;
-                    var maxAttempts = 18; // 30s initial + 18*5s = ~2 minutes total
-                    setTimeout(function() {
-                        var pollInterval = setInterval(function() {
-                            attempts++;
-                            fetch(docsightUrl('/api/speedtest?count=1'))
-                                .then(function(r) { return r.json(); })
-                                .then(function(data) {
-                                    if (data && data.length > 0 && data[0].id > lastId) {
-                                        clearInterval(pollInterval);
-                                        _setRunBtnState(btn, false);
-                                        var r = data[0];
-                                        showToast(
-                                            (T.speedtest_complete || 'Speedtest complete') + ': ' +
-                                            r.download_mbps + ' / ' + r.upload_mbps + ' Mbps, ' +
-                                            r.ping_ms + ' ms',
-                                            'success'
-                                        );
-                                        loadSpeedtestHistory();
-                                    } else if (attempts >= maxAttempts) {
-                                        clearInterval(pollInterval);
-                                        _setRunBtnState(btn, false);
-                                        showToast(T.speedtest_timeout || 'Speedtest is taking longer than expected. Refresh to check.', 'warning');
-                                    }
-                                })
-                                .catch(function() {
-                                    // Transient poll error - don't stop, just skip this attempt
-                                    if (attempts >= maxAttempts) {
-                                        clearInterval(pollInterval);
-                                        _setRunBtnState(btn, false);
-                                        showToast(T.speedtest_timeout || 'Speedtest is taking longer than expected. Refresh to check.', 'warning');
-                                    }
-                                });
-                        }, 5000);
-                    }, 30000);
-                });
-        })
-        .catch(function() {
-            _setRunBtnState(btn, false);
-            showToast(T.network_error || 'Network error', 'error');
-        });
+                .catch(function() {});  // a failed poll only skips this attempt
+            if (done) return;
+            if (r) break;
+        }
+        finish((T.speedtest_complete || 'Speedtest complete') + ': ' +
+            r.download_mbps + ' / ' + r.upload_mbps + ' Mbps, ' + r.ping_ms + ' ms', 'success');
+        loadSpeedtestHistory();
+    } catch (e) {
+        finish(T.network_error || 'Network error', 'error');
+    }
 }
 
 (function() {

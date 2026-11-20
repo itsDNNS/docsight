@@ -25,6 +25,7 @@ class TestSpeedtestCollector:
     def _make_collector(self, configured=True):
         config_mgr = MagicMock()
         config_mgr.is_speedtest_configured.return_value = configured
+        config_mgr.is_demo_mode.return_value = False
         config_mgr.get.side_effect = lambda k, *a: {
             "speedtest_tracker_url": "http://speed:8999",
             "speedtest_tracker_token": "tok",
@@ -43,24 +44,21 @@ class TestSpeedtestCollector:
         c, *_ = self._make_collector(configured=False)
         assert c.is_enabled() is False
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_initializes_client(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([{"id": 1, "download_mbps": 100}], None)
-        mock_client.get_results.return_value = []
-        mock_cls.return_value = mock_client
+    @pytest.fixture
+    def client_cls(self):
+        """The patched client class; its client finds no newer result and reads DELTA_ROWS in full."""
+        with patch("app.modules.speedtest.collector.SpeedtestClient") as cls:
+            cls.return_value.base_url = "http://speed:8999"
+            cls.return_value.get_latest_with_error.return_value = ([], None)
+            cls.return_value.get_results_with_error.return_value = (DELTA_ROWS, None)
+            yield cls
 
+    def test_collect_initializes_client(self, client_cls):
         c, *_ = self._make_collector()
         c.collect()
-        mock_cls.assert_called_once_with("http://speed:8999", "tok", tls_insecure=False)
+        client_cls.assert_called_once_with("http://speed:8999", "tok", tls_insecure=False)
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_reinitializes_client_when_tls_setting_changes(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([{"id": 1, "download_mbps": 100}], None)
-        mock_client.get_results.return_value = []
-        mock_cls.return_value = mock_client
-
+    def test_collect_reinitializes_client_when_tls_setting_changes(self, client_cls):
         c, config_mgr, *_ = self._make_collector()
         c.collect()
         config_mgr.get.side_effect = lambda k, *a: {
@@ -70,26 +68,22 @@ class TestSpeedtestCollector:
         }.get(k, a[0] if a else None)
         c.collect()
 
-        assert mock_cls.call_args_list[-1].kwargs["tls_insecure"] is True
-        assert mock_cls.call_count == 2
+        assert client_cls.call_args_list[-1].kwargs["tls_insecure"] is True
+        assert client_cls.call_count == 2
 
     @pytest.mark.parametrize("cached", [[], [DELTA_ROWS[0]]], ids=["nothing-finished", "finished-cached"])
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_shows_newest_cached_result(self, mock_cls, cached):
+    def test_collect_shows_newest_cached_result(self, client_cls, cached):
         """The dashboard shows the newest finished result even when only running tests are newer."""
-        mock_cls.return_value.get_latest_with_error.return_value = ([{"id": 9, "status": "running"}], None)
-        mock_cls.return_value.get_results.return_value = cached
+        client_cls.return_value.get_latest_with_error.return_value = ([{"id": 9, "status": "running"}], None)
+        client_cls.return_value.get_results_with_error.return_value = (cached, None)
 
         c, _, _, web = self._make_collector()
         c.collect()
         assert [call.kwargs["speedtest_latest"]["id"] for call in web.update_state.call_args_list] == [r["id"] for r in cached]
         assert web.clear_speedtest_latest.called == (not cached)
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_fetch_failure_returns_error(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([], "ConnectionError: refused")
-        mock_cls.return_value = mock_client
+    def test_collect_fetch_failure_returns_error(self, client_cls):
+        client_cls.return_value.get_latest_with_error.return_value = ([], "ConnectionError: refused")
 
         c, _, _, web = self._make_collector()
         result = c.collect()
@@ -97,25 +91,15 @@ class TestSpeedtestCollector:
         assert "ConnectionError" in result.error
         web.update_state.assert_not_called()
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_delta_cache(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([], None)
-        mock_client.get_results.return_value = DELTA_ROWS
-        mock_cls.return_value = mock_client
-
-        c, _, storage, _ = self._make_collector()
+    def test_collect_delta_cache(self, client_cls):
+        c, *_ = self._make_collector()
         c.collect()
         # Verify results were saved to the module's internal storage
         assert c._storage.get_speedtest_count() == 2
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_delta_cache_failure_does_not_crash(self, mock_cls):
+    def test_collect_delta_cache_failure_does_not_crash(self, client_cls):
         """Delta cache failure should not prevent a successful collect result."""
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([{"id": 1}], None)
-        mock_client.get_results.side_effect = Exception("API timeout")
-        mock_cls.return_value = mock_client
+        client_cls.return_value.get_results_with_error.side_effect = Exception("API timeout")
 
         c, *_ = self._make_collector()
         assert c.collect().success is True

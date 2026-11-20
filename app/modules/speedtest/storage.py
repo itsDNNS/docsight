@@ -3,7 +3,7 @@
 import logging
 
 from app.storage.migrations import run_migrations
-from app.storage.sqlite import bulk_write, open_read, write_transaction
+from app.storage.sqlite import open_read, write_transaction
 from .migrations import MIGRATIONS
 from datetime import datetime, timezone
 from app.tz import UTC_FMT
@@ -21,7 +21,8 @@ _COLUMNS = (
 )
 # A new result without these (a failed test) is stored as before; a known id keeps what a result omits
 _INSERT_DEFAULTS = {
-    "download_mbps": "0", "upload_mbps": "0", "download_human": "''", "upload_human": "''", "server_name": "''",
+    "timestamp": "''", "download_mbps": "0", "upload_mbps": "0", "download_human": "''", "upload_human": "''",
+    "server_name": "''",
 }
 _UPSERT = (
     f"INSERT INTO speedtest_results ({', '.join(_COLUMNS)}) VALUES ("
@@ -80,14 +81,20 @@ class SpeedtestStorage:
                 log.info("Normalized %d existing timestamps to UTC", updated)
 
     def save_speedtest_results(self, results):
-        """Bulk upsert speedtest results; a known id keeps the values a result omits."""
+        """Bulk upsert speedtest results and return those not cached before; a known id keeps the values a result omits."""
         if not results:
-            return
-        try:
-            bulk_write(self.db_path, _UPSERT, [tuple(r.get(column) for column in _COLUMNS) for r in results])
-            log.debug("Saved %d speedtest results", len(results))
-        except Exception as e:
-            log.error("Failed to save speedtest results: %s", e)
+            return []
+        ids = list(dict.fromkeys(r.get("id") for r in results))
+        with write_transaction(self.db_path) as conn:  # one transaction, so concurrent syncs report a result once
+            known = {row[0] for row in conn.execute(
+                f"SELECT id FROM speedtest_results WHERE id IN ({', '.join('?' * len(ids))})", ids
+            )}
+            for r in results:
+                conn.execute(_UPSERT, tuple(r.get(column) for column in _COLUMNS))
+            new_ids = [i for i in ids if i not in known]
+            return [dict(row) for row in conn.execute(  # as stored, so a sparse duplicate cannot hide values
+                f"SELECT {', '.join(_COLUMNS)} FROM speedtest_results WHERE id IN ({', '.join('?' * len(new_ids))})", new_ids
+            )]
 
     def get_speedtest_results(self, limit=2000):
         """Return cached speedtest results, newest first."""
@@ -125,10 +132,16 @@ class SpeedtestStorage:
         return row[0] or 0 if row else 0
 
     def get_recent_ids(self, limit=10):
-        """Ids of the newest cached results, for a delta sync to recheck the ids between them."""
+        """The lowest of the newest cached ids, above which a delta sync rechecks, and those with measurements.
+
+        Rows without them, a failed test or one cached while running by an older version, are fetched again.
+        """
         with open_read(self.db_path) as conn:
-            rows = conn.execute("SELECT id FROM speedtest_results ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
-        return {row[0] for row in rows}
+            rows = conn.execute(
+                "SELECT id, download_mbps > 0 OR ping_ms IS NOT NULL FROM speedtest_results ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return min((row[0] for row in rows), default=0), {row[0] for row in rows if row[1]}
 
     def get_recent_speedtests(self, limit=10):
         """Return the N most recent speedtest results."""

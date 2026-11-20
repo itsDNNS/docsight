@@ -100,65 +100,25 @@ def api_speedtest():
         return jsonify([])
     count = request.args.get("count", 2000, type=int)
     count = max(1, min(count, 5000))
-    # Demo mode: return seeded data without external API call
-    if _config_manager.is_demo_mode() and ss:
-        results = ss.get_speedtest_results(limit=count)
-        enriched = [_enrich_speedtest(r) for r in results]
-        _annotate_smart_capture(enriched, ss.db_path)
-        return jsonify(enriched)
-    # Delta fetch: get new results from STT API and cache them
-    if ss:
-        try:
-            stt_url = _config_manager.get("speedtest_tracker_url")
-            tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
-            client = SpeedtestClient(
-                stt_url,
-                _config_manager.get("speedtest_tracker_token"),
-                tls_insecure=tls_insecure,
-            )
-            # Detect server switch and clear stale cache
-            ss.check_source_url(stt_url)
-            cached_count = ss.get_speedtest_count()
-            last_id = ss.get_latest_speedtest_id()
-            # ID-reset detection: compare remote max ID with cache max ID
-            if cached_count > 0 and last_id > 0:
-                remote_latest, fetch_err = client.get_latest_with_error(1)
-                if fetch_err is None and not remote_latest:
-                    # Remote is reachable but empty — server was wiped
-                    log.info("Remote has no results but cache has %d, clearing", cached_count)
-                    ss.clear_cache()
-                    current_runtime().clear_speedtest_latest()
-                    cached_count = 0
-                elif remote_latest and remote_latest[0].get("id", 0) < last_id:
-                    log.info(
-                        "Speedtest ID reset detected (cache max=%d, remote max=%d), rebuilding",
-                        last_id, remote_latest[0]["id"],
-                    )
-                    ss.clear_cache()
-                    current_runtime().clear_speedtest_latest()
-                    cached_count = 0
-            if cached_count < 50:
-                new_results = client.get_results(per_page=2000)
-            else:
-                new_results = client.get_newer_than(ss.get_recent_ids())
-            if new_results:
-                ss.save_speedtest_results(new_results)
-                log.info("Cached %d new speedtest results", len(new_results))
-        except Exception as e:
-            log.warning("Speedtest delta fetch failed: %s", e)
-        results = ss.get_speedtest_results(limit=count)
-        enriched = [_enrich_speedtest(r) for r in results]
-        _annotate_smart_capture(enriched, ss.db_path)
-        return jsonify(enriched)
-    # Fallback: no storage, fetch directly
-    tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
-    client = SpeedtestClient(
-        _config_manager.get("speedtest_tracker_url"),
-        _config_manager.get("speedtest_tracker_token"),
-        tls_insecure=tls_insecure,
-    )
-    results = client.get_results(per_page=count)
-    return jsonify([_enrich_speedtest(r) for r in results])
+    demo = _config_manager.is_demo_mode()  # demo mode shows the seeded results without Speedtest Tracker
+    if not ss:  # fetch directly without the local cache
+        if demo:
+            return jsonify([])
+        client = SpeedtestClient(
+            _config_manager.get("speedtest_tracker_url"),
+            _config_manager.get("speedtest_tracker_token"),
+            tls_insecure=parse_config_bool(_config_manager.get("speedtest_tls_insecure", False)),
+        )
+        return jsonify([_enrich_speedtest(r) for r in client.get_results(per_page=count)])
+    # Sync through the collector that polling publishes once Smart Capture listens to it; while
+    # another sync runs, or in demo mode, the page shows the cache at once
+    collector = next((c for c in current_runtime().collectors if c.name == "speedtest"), None)
+    if collector:
+        collector.collect()
+    results = ss.get_speedtest_results(limit=count)
+    enriched = [_enrich_speedtest(r) for r in results]
+    _annotate_smart_capture(enriched, ss.db_path)
+    return jsonify(enriched)
 
 
 @bp.route("/api/speedtest/<int:result_id>")
@@ -259,7 +219,11 @@ def api_speedtest_run():
         if resp.status_code == 201:
             runtime.derived_storage.set_value("speedtest_last_trigger", now)
             log.info("Speedtest manually triggered via UI")
-            return jsonify({"success": True})
+            try:  # the queued result, so the page can wait for exactly this test
+                result_id = resp.json()["data"]["id"]
+            except (ValueError, TypeError, KeyError):
+                result_id = None
+            return jsonify({"success": True, "result_id": result_id if type(result_id) is int else None})
         else:
             error = f"Speedtest Tracker returned {resp.status_code}"
             log.warning("Manual speedtest trigger failed: %s", error)
