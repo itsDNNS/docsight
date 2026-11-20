@@ -11,25 +11,16 @@ from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split
 from .primitives import normalize_modulation, parse_number
 
 
-def _ultra_value(value: Any) -> float:
-    if not value:
-        return 0.0
-    try:
-        return float(str(value).strip().split()[0])
-    except (IndexError, ValueError):
-        return 0.0
-
-
 def parse_ultrahub7_downstream(rows: list[dict[str, Any]]) -> ParseResult[list[RawChannel]]:
     channels: list[RawChannel] = []
     diagnostics: list[ParseDiagnostic] = []
     for index, row in enumerate(rows):
         try:
             channel_id = int(row.get("ChannelID", "0"))
-            frequency = _ultra_value(row.get("Frequency", "0"))
+            frequency = parse_number(str(row.get("Frequency") or ""))
             modulation = str(row.get("Modulation", "") or "").upper().replace("-", "")
-            power = _ultra_value(row.get("PowerLevel", "0"))
-            snr = _ultra_value(row.get("SNRLevel", ""))
+            power = parse_number(str(row.get("PowerLevel") or ""))
+            snr = parse_number(str(row.get("SNRLevel") or ""))
             channels.append({
                 "channelID": str(channel_id), "type": modulation,
                 "frequency": f"{int(frequency)} MHz", "powerLevel": power,
@@ -50,12 +41,12 @@ def parse_ultrahub7_upstream(rows: list[dict[str, Any]]) -> ParseResult[list[Raw
     for index, row in enumerate(rows):
         try:
             channel_id = int(row.get("ChannelID", "0"))
-            frequency = _ultra_value(row.get("Frequency", "0"))
+            frequency = parse_number(str(row.get("Frequency") or ""))
             modulation = str(row.get("Modulation", "") or "").upper().replace("-", "")
             channels.append({
                 "channelID": str(channel_id), "type": modulation,
                 "frequency": f"{int(frequency)} MHz",
-                "powerLevel": _ultra_value(row.get("PowerLevel", "0")),
+                "powerLevel": parse_number(str(row.get("PowerLevel") or "")),
                 "multiplex": "",
             })
         except (ValueError, TypeError):
@@ -77,9 +68,12 @@ def parse_ultrahub7_json(
     }, downstream.diagnostics + upstream.diagnostics)
 
 
-def _cga_frequency(value: Any) -> float:
-    number = parse_number(value) if isinstance(value, str) else float(value or 0)
+def _mhz_if_hz(number: float) -> float:
     return number / 1_000_000 if number > 1_000_000 else number
+
+
+def _cga_frequency(value: Any) -> float:
+    return _mhz_if_hz(parse_vodafone_number(value))
 
 
 def parse_vodafone_number(value: Any) -> float:
@@ -173,19 +167,16 @@ def parse_tg_power(value: Any) -> float:
 
 def parse_tg_frequency(value: Any) -> float:
     if isinstance(value, (int, float)):
-        number = float(value)
-        return number / 1_000_000 if number > 1_000_000 else number
+        return _mhz_if_hz(float(value))
     if not value or not isinstance(value, str):
         return 0.0
     if "~" in value:
         try:
             start, end = value.split("~", 1)
-            number = (float(start.strip()) + float(end.strip())) / 2
-            return number / 1_000_000 if number > 1_000_000 else number
+            return _mhz_if_hz((float(start.strip()) + float(end.strip())) / 2)
         except (ValueError, IndexError):
             return 0.0
-    number = parse_number(value)
-    return number / 1_000_000 if number > 1_000_000 else number
+    return _mhz_if_hz(parse_number(value))
 
 
 def parse_vodafone_station_tg_embedded_json(html: str) -> ParseResult[DocsisDataFritz | None]:

@@ -267,6 +267,13 @@ def test_hitron_ofdma_row_dropped_as_invalid_reports_only_the_invalid_row(parse)
     assert [issue.code for issue in parse().diagnostics] == ["invalid_row"]
 
 
+@pytest.mark.parametrize(("power", "expected"), [(0, "0.0"), (-0.0, "0.0"), ("-0.0 dBmV", "-0.0")])
+def test_ultrahub7_numeric_zero_power_is_unsigned(power, expected):
+    row = {"ChannelID": "7", "PowerLevel": power}
+    value = parse_ultrahub7_json({"downstream": [row], "upstream": [row]}).value
+    assert [repr(channel["powerLevel"]) for channel in value["downstream"] + value["upstream"]] == [expected] * 2
+
+
 def test_result_and_diagnostics_are_immutable_contract_objects():
     result = parse_ch7465_xml("<root>", "<root/>")
     with pytest.raises(AttributeError):

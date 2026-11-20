@@ -8,7 +8,13 @@ from typing import Literal
 
 from ...types import DocsisDataFritz, RawChannel
 from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_result, docsis_split
-from .primitives import hz_to_mhz, normalize_modulation, parse_number
+from .primitives import (
+    ANNEX_B_DOWNSTREAM_SYMBOL_RATES,
+    hz_to_mhz,
+    normalize_modulation,
+    parse_first_number,
+    parse_number,
+)
 
 
 _FUNCTION_START = re.compile(r"function\s+(?P<name>\w+)\s*\(\)\s*\{")
@@ -20,7 +26,6 @@ _STRING_LITERAL = re.compile(
 _CM3000_SINGLE = re.compile(r"'([^'\\]*(?:\\.[^'\\]*)*)'", re.DOTALL)
 _CM3000_DOUBLE = re.compile(r'"([^"\\]*(?:\\.[^"\\]*)*)"', re.DOTALL)
 _BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
-_NUMBER = re.compile(r"[-+]?\d+(?:\.\d+)?")
 _CM1000_FIELDS = 7
 _CM3000_FIELDS = MappingProxyType({
     "InitDsTableTagValue": 9,
@@ -28,7 +33,6 @@ _CM3000_FIELDS = MappingProxyType({
     "InitDsOfdmTableTagValue": 11,
     "InitUsOfdmaTableTagValue": 6,
 })
-_ANNEX_B_DOWNSTREAM_SYMBOL_RATES = MappingProxyType({"64QAM": 5057, "256QAM": 5361})
 
 
 def extract_function_body(source: str, function_name: str) -> str | None:
@@ -121,13 +125,6 @@ def extract_cm1000_tag_value_list(html: str, function_name: str) -> str | None:
     return payload if split_cm1000_rows(payload) is not None else None
 
 
-def _optional_number(value: str) -> float | None:
-    if not value:
-        return None
-    match = _NUMBER.search(value.replace(",", ""))
-    return float(match.group(0)) if match else None
-
-
 def _parse_cm1000_tag_values(
     raw: str,
     direction: Literal["downstream", "upstream"],
@@ -142,26 +139,26 @@ def _parse_cm1000_tag_values(
     for row in rows:
         if row[1].strip().lower() != "locked":
             continue
-        channel_id = _optional_number(row[3])
+        channel_id = parse_first_number(row[3])
         if channel_id is None:
             continue
         modulation = normalize_modulation(row[2])
         if direction == "downstream":
-            snr = _optional_number(row[6])
+            snr = parse_first_number(row[6])
             channel: RawChannel = {
                 "channelID": int(channel_id), "frequency": hz_to_mhz(row[4]),
-                "powerLevel": _optional_number(row[5]), "mer": snr,
+                "powerLevel": parse_first_number(row[5]), "mer": snr,
                 "mse": -snr if snr is not None else None, "modulation": modulation,
                 "corrErrors": None, "nonCorrErrors": None,
             }
-            symbol_rate = _ANNEX_B_DOWNSTREAM_SYMBOL_RATES.get(modulation)
+            symbol_rate = ANNEX_B_DOWNSTREAM_SYMBOL_RATES.get(modulation)
         else:
             channel = {
                 "channelID": int(channel_id), "frequency": hz_to_mhz(row[5]),
-                "powerLevel": _optional_number(row[6]), "modulation": modulation,
+                "powerLevel": parse_first_number(row[6]), "modulation": modulation,
                 "multiplex": modulation,
             }
-            number = _optional_number(row[4])
+            number = parse_first_number(row[4])
             symbol_rate = int(number) if number is not None else None
         if symbol_rate is not None:
             channel["symbolRate"] = symbol_rate
@@ -221,10 +218,6 @@ def split_cm3000_channels(raw: str, fields_per_channel: int) -> list[list[str]]:
     ]
 
 
-def normalize_cm3000_modulation(value: str) -> str:
-    return value.strip() if value else ""
-
-
 def _parse_cm3000_lane(html: str, function_name: str) -> ParseResult[list[RawChannel]]:
     raw = extract_cm3000_tag_value_list(html, function_name)
     if not raw:
@@ -240,13 +233,13 @@ def _parse_cm3000_lane(html: str, function_name: str) -> ParseResult[list[RawCha
                 result.append({
                     "channelID": int(channel[3]), "frequency": hz_to_mhz(channel[4]),
                     "powerLevel": float(channel[5]), "mer": float(channel[6]),
-                    "mse": -float(channel[6]), "modulation": normalize_cm3000_modulation(channel[2]),
+                    "mse": -float(channel[6]), "modulation": channel[2].strip(),
                     "corrErrors": int(channel[7]), "nonCorrErrors": int(channel[8]),
                 })
             elif function_name == "InitUsTableTagValue":
                 result.append({
                     "channelID": int(channel[3]), "frequency": hz_to_mhz(channel[5]),
-                    "powerLevel": parse_number(channel[6]), "modulation": normalize_cm3000_modulation(channel[2]),
+                    "powerLevel": parse_number(channel[6]), "modulation": channel[2].strip(),
                     "multiplex": channel[2].upper() if channel[2] else "",
                 })
             elif function_name == "InitDsOfdmTableTagValue":
