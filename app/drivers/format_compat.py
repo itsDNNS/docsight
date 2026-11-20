@@ -20,9 +20,9 @@ def unwrap_f3896lg(result: ParseResult, rows: list[dict[str, Any]], direction: s
     return result.value
 
 
-def unwrap_hitron(result: ParseResult, logger):
+def unwrap_hitron(result: ParseResult, logger, model: str = "CODA-56"):
     if any(issue.code == "missing_field" and issue.field == "repPower1_6" for issue in result.diagnostics):
-        logger.warning("Hitron CODA-56 OFDMA row missing repPower1_6; leaving power unsupported")
+        logger.warning("Hitron %s OFDMA row missing repPower1_6; leaving power unsupported", model)
     return result.value
 
 

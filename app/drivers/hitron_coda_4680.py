@@ -29,6 +29,7 @@ from .formats.hitron import (
     parse_hitron_coda4680_json,
     parse_hitron_ofdma_power,
 )
+from .format_compat import unwrap_hitron
 from .utils import make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.hitron_coda_4680")
@@ -88,12 +89,12 @@ class HitronCoda4680Driver(ModemDriver):
         ds_ofdm = self._fetch_payload("/1/Device/CM/DsOfdm")
         us_ofdma = self._fetch_payload("/1/Device/CM/UsOfdm")
 
-        return parse_hitron_coda4680_json({
+        return unwrap_hitron(parse_hitron_coda4680_json({
             "downstream": ds_info,
             "upstream": us_info,
             "downstream_ofdm": ds_ofdm,
             "upstream_ofdma": us_ofdma,
-        }).value
+        }), log, "CODA-4680")
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve model and firmware from the version endpoint."""
