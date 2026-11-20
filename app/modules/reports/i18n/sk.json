@@ -108,7 +108,7 @@
   "complaint_req3": "Písomná dokumentácia zistení a nápravných opatrení",
   "complaint_escalation": "Súhrn monitorovania je súčasťou tejto správy. Vyhradzujem si právo postúpiť túto záležitosť Bundesnetzagentur (Federálna sieťová agentúra), ak sa problém nevyrieši v primeranom časovom rámci.",
   "complaint_closing_label": "S pozdravom",
-  "complaint_closing": "S pozdravom\n[Vaše meno]\n[číslo zákazníka]\n[Adresa]",
+  "complaint_closing": "S pozdravom\n[Vaše meno]\n[Číslo zákazníka]\n[Adresa]",
   "complaint_short_subject": "Predmet: Problémy s kvalitou signálu DOCSIS",
   "complaint_short_greeting": "Vážená technická podpora,",
   "complaint_short_body": "Mám pretrvávajúce problémy s kvalitou signálu pri káblovom internetovom pripojení. Podrobnosti nájdete v priložených monitorovacích údajoch.",

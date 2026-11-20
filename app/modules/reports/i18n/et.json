@@ -108,7 +108,7 @@
   "complaint_req3": "Leidude ja parandusmeetmete kirjalik dokumentatsioon",
   "complaint_escalation": "Seire kokkuvõte sisaldub selles aruandes. Jätan endale õiguse eskaleerida see asi Bundesnetzagenturile (föderaalne võrguagentuur), kui probleemi ei lahendata mõistliku aja jooksul.",
   "complaint_closing_label": "Lugupidamisega",
-  "complaint_closing": "Lugupidamisega\n[Sinu nimi]\n[Kliendinumber]\n[aadress]",
+  "complaint_closing": "Lugupidamisega\n[Ees- ja perekonnanimi]\n[Kliendinumber]\n[Aadress]",
   "complaint_short_subject": "Teema: DOCSIS signaalikvaliteedi probleemid",
   "complaint_short_greeting": "Lugupeetud tehniline tugi!",
   "complaint_short_body": "Mul on kaabel-Interneti-ühendusega püsivaid probleeme signaali kvaliteediga. Täpsemalt vaadake lisatud seireandmeid.",

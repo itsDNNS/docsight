@@ -108,7 +108,7 @@
   "complaint_req3": "Documentație scrisă a constatărilor și acțiunilor corective",
   "complaint_escalation": "Rezumatul monitorizării este inclus în acest raport. Îmi rezerv dreptul de a transmite această problemă către Bundesnetzagentur (Agenția Federală de Rețea) dacă problema nu este rezolvată într-un interval de timp rezonabil.",
   "complaint_closing_label": "Cu stimă,",
-  "complaint_closing": "Cu stimă,\n[Numele tău]\n[Număr client]\n[Adresa]",
+  "complaint_closing": "Cu stimă,\n[Nume și prenume]\n[Număr client]\n[Adresa]",
   "complaint_short_subject": "Subiect: DOCSIS Probleme de calitate a semnalului",
   "complaint_short_greeting": "Stimate suport tehnic,",
   "complaint_short_body": "Întâmpin probleme persistente de calitate a semnalului cu conexiunea mea la internet prin cablu. Vă rugăm să consultați datele de monitorizare atașate pentru detalii.",
