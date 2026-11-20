@@ -68,7 +68,7 @@ class SpeedtestClient:
         data = item.get("data") or {}
         ping_obj = data.get("ping") or {}
         server = data.get("server") or {}
-        raw_ts = data.get("timestamp") or item.get("created_at", "")
+        raw_ts = data.get("timestamp") or item.get("created_at")  # None keeps a stored time
         dl = data.get("download") or {}
         ul = data.get("upload") or {}
         dl_lat = dl.get("latency") or {}
@@ -119,6 +119,21 @@ class SpeedtestClient:
             "result_url": result_obj.get("url"),
         }
 
+    def _get_page(self, size, page=1, timeout=30):
+        """One page of results, newest first. A reply without a list of results is no proof of an empty Tracker."""
+        resp = self.session.get(
+            self.base_url + "/api/v1/results",
+            params={"page[size]": size, "page[number]": page, "sort": "-created_at"},
+            timeout=timeout,
+            verify=self.verify_tls,
+        )
+        resp.raise_for_status()
+        body = resp.json()
+        items = body.get("data")
+        if not isinstance(items, list) or not all(isinstance(r, dict) and type(r.get("id")) is int for r in items):
+            raise TypeError("results are not a list of results with ids")
+        return body
+
     def get_latest(self, count=1):
         """Fetch the latest N speed test results."""
         results, _ = self.get_latest_with_error(count)
@@ -127,17 +142,7 @@ class SpeedtestClient:
     def get_latest_with_error(self, count=1):
         """Fetch the latest N results, returning (results, error_string|None)."""
         try:
-            resp = self.session.get(
-                self.base_url + "/api/v1/results",
-                params={"page[size]": count, "sort": "-created_at"},
-                timeout=15,
-                verify=self.verify_tls,
-            )
-            resp.raise_for_status()
-            results = resp.json()["data"]  # a reply without a list is no proof of an empty Tracker
-            if not isinstance(results, list):
-                raise TypeError("results are not a list")
-            return [self._parse_result(r) for r in results], None
+            return [self._parse_result(r) for r in self._get_page(count, timeout=15)["data"]], None
         except Exception as exc:
             msg = public_error(exc)
             log.warning("Failed to fetch speedtest results: %s (%s)", msg, type(exc).__name__)
@@ -145,61 +150,40 @@ class SpeedtestClient:
 
     def get_results(self, start_date=None, end_date=None, per_page=100):
         """Fetch speed test results, newest first. Paginates to collect up to per_page results."""
+        return self.get_results_with_error(per_page)[0]
+
+    def get_results_with_error(self, per_page=100):
+        """Fetch up to per_page finished results, newest first, returning (results, error_string|None)."""
         all_results = []
         page = 1
         try:
             while len(all_results) < per_page:
-                batch = min(per_page, 500)  # fixed, so skipped results do not shift the pages
-                resp = self.session.get(
-                    self.base_url + "/api/v1/results",
-                    params={
-                        "page[size]": batch,
-                        "page[number]": page,
-                        "sort": "-created_at",
-                    },
-                    timeout=30,
-                    verify=self.verify_tls,
-                )
-                resp.raise_for_status()
-                body = resp.json()
-                items = body.get("data", [])
-                if not items:
-                    break
-                all_results.extend(self._parse_result(r) for r in items if is_finished(r))
-                meta = body.get("meta", {})
-                if page >= meta.get("last_page", 1):
+                body = self._get_page(min(per_page, 500), page)  # a fixed size, so skipped results do not shift pages
+                all_results.extend(self._parse_result(r) for r in body["data"] if is_finished(r))
+                if not body["data"] or page >= body.get("meta", {}).get("last_page", 1):
+                    if body.get("links", {}).get("next"):  # then the read is not complete
+                        raise TypeError("the last page links to more results")
                     break
                 page += 1
-            return all_results[:per_page]
         except Exception as exc:
-            log.warning("Failed to fetch speedtest results: %s (%s)", public_error(exc), type(exc).__name__)
-            return all_results
+            error = public_error(exc)
+            log.warning("Failed to fetch speedtest results: %s (%s)", error, type(exc).__name__)
+            return all_results[:per_page], error
+        return all_results[:per_page], None
 
-    def get_newer_than(self, known_ids):
-        """Fetch the newest 500 finished results above the lowest known id that are not known yet, oldest first.
+    def get_newer_than(self, floor, known_ids):
+        """Fetch the newest 500 finished results above floor that are not known yet, oldest first.
 
-        Rechecking the ids between the known ones picks up a test that finished after a newer one.
+        Rechecking the ids above the floor picks up a test that finished after a newer one.
         """
-        floor = min(known_ids, default=0)
         all_results = []
         page = 1
         try:
             while True:
-                resp = self.session.get(
-                    self.base_url + "/api/v1/results",
-                    params={
-                        "page[size]": 500,
-                        "page[number]": page,
-                        "sort": "-created_at",
-                    },
-                    timeout=30,
-                    verify=self.verify_tls,
-                )
-                resp.raise_for_status()
-                body = resp.json()
+                body = self._get_page(500, page)
                 # Creation times can tie, so ids are not strictly descending: only a page
                 # entirely at or below the floor ends the scan
-                fresh = [item for item in body.get("data", []) if item.get("id", 0) > floor]
+                fresh = [item for item in body["data"] if item["id"] > floor]
                 if not fresh:
                     break
                 all_results.extend(

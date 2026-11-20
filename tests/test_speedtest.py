@@ -1,5 +1,7 @@
 """Tests for Speedtest Tracker client and API endpoint."""
 
+import threading
+
 import pytest
 import requests
 from unittest.mock import patch, MagicMock
@@ -10,6 +12,7 @@ from app.modules.speedtest.storage import SpeedtestStorage
 from app.config import ConfigManager, PASSWORD_MASK
 from app.runtime import current_runtime
 from app.storage import SnapshotStorage
+from app.storage.sqlite import write_transaction
 from tests.test_smart_capture_api import configured_client
 
 
@@ -54,7 +57,12 @@ UNFINISHED_STATUSES = ("waiting", "started", "checking", "running", "benchmarkin
 STARTED_RESULT = {"id": 3, "created_at": "2025-01-16T10:30:00Z", "data": {}}
 
 
-SYNC_CALLS = [("get_results", {"per_page": 500}), ("get_newer_than", {"known_ids": set()})]
+SYNC_CALLS = [("get_results", {"per_page": 500}), ("get_newer_than", {"floor": 0, "known_ids": set()})]
+# Replies that do not list results prove nothing about the Tracker's contents
+REPLIES_WITHOUT_RESULTS = pytest.mark.parametrize(
+    "reply", [{}, {"data": {}}, {"data": ""}, {"data": [{"status": "completed"}]}, {"data": [{"id": True}]}],
+    ids=["missing", "object", "string", "without-id", "boolean-id"],
+)
 
 
 def _stt_api(stt):
@@ -131,6 +139,22 @@ class TestSpeedtestClient:
         assert params["page[size]"] == 100
         assert params["page[number]"] == 1
 
+    @REPLIES_WITHOUT_RESULTS
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_full_read_reports_a_reply_without_results(self, mock_get, reply):
+        """A full read that would mark the cache as reread must not take such a reply for an empty page."""
+        mock_get.side_effect = _stt_api(reply)
+        assert self._make_client().get_results_with_error(per_page=500) == ([], "Unexpected error, see the DOCSight log")
+
+    @pytest.mark.parametrize("page", [
+        {"data": [SAMPLE_RESULT]}, {"data": [SAMPLE_RESULT], "meta": {"last_page": 1}}, {"data": [], "meta": {"last_page": 2}},
+    ], ids=["no-last-page", "last-page", "empty"])
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_full_read_ending_on_a_page_that_links_to_more_is_incomplete(self, mock_get, page):
+        mock_get.return_value.json.return_value = {**page, "links": {"next": "?page[number]=2"}}
+        results, error = self._make_client().get_results_with_error(per_page=500)
+        assert ([r["id"] for r in results], error) == ([1] if page["data"] else [], "Unexpected error, see the DOCSight log")
+
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_get_results_connection_error(self, mock_get):
         mock_get.side_effect = Exception("Timeout")
@@ -172,20 +196,24 @@ class TestSpeedtestClient:
         assert sorted(ids) == ([1, 3] if kept else [1])
 
     @pytest.mark.parametrize("method, kwargs", SYNC_CALLS)
+    @pytest.mark.parametrize("newest, broken", [(500, []), (501, [{"id": 1000, "data": "unparsable"}])],
+                             ids=["complete", "parse-error"])
     @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_sync_pages_do_not_overlap_after_skipping(self, mock_get, method, kwargs):
-        running = {**STARTED_RESULT, "id": 501, "status": "running"}
-        mock_get.side_effect = _stt_api({"data": [running, *({**SAMPLE_RESULT, "id": i} for i in range(500, 0, -1))]})
+    def test_sync_returns_500_distinct_results(self, mock_get, newest, broken, method, kwargs):
+        """Pages do not overlap after skipping a running result, and a parse error keeps the cap."""
+        running = {**STARTED_RESULT, "id": newest + 1, "status": "running"}
+        items = [running, *({**SAMPLE_RESULT, "id": i} for i in range(newest, 0, -1)), *broken]
+        mock_get.side_effect = _stt_api({"data": items})
 
         ids = [r["id"] for r in getattr(self._make_client(), method)(**kwargs)]
-        assert sorted(ids) == list(range(1, 501))
+        assert sorted(ids) == list(range(newest - 499, newest + 1))
 
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_newer_than_scans_past_a_lower_id(self, mock_get):
         """Tracker sorts by creation time, which can tie, so a lower id can come first."""
         mock_get.side_effect = _stt_api({"data": [{**SAMPLE_RESULT, "id": i} for i in (7, 4, 6)]})
 
-        assert [r["id"] for r in self._make_client().get_newer_than({5})] == [6, 7]
+        assert [r["id"] for r in self._make_client().get_newer_than(5, {5})] == [6, 7]
 
     def test_auth_headers(self):
         client = self._make_client()
@@ -333,7 +361,7 @@ def speedtest_client(tmp_path):
 
 @pytest.fixture(params=["route", "collector"])
 def stt_sync(request, tmp_path):
-    """One of the two delta sync callers over a cache of 50 results, the fake Tracker data and the cache."""
+    """One of the two sync callers over a cache of 50 results, the fake Tracker data, the cache and on_import."""
     storage = SnapshotStorage(str(tmp_path / "core.db"), max_days=7)
     cache = SpeedtestStorage(storage.db_path)
     cache.save_speedtest_results([
@@ -344,14 +372,18 @@ def stt_sync(request, tmp_path):
     stt = {}
     with patch("app.modules.speedtest.client.requests.Session.get", side_effect=_stt_api(stt)), \
             configured_client(tmp_path / "data", storage, **STT_CONFIG) as client:
-        collector = SpeedtestCollector(current_runtime().config_manager, storage, MagicMock())
-        yield collector.collect if request.param == "collector" else lambda: client.get("/api/speedtest"), stt, cache
+        collector = SpeedtestCollector(current_runtime().config_manager, storage, current_runtime())
+        collector.on_import = MagicMock()  # Smart Capture
+        current_runtime().collectors = [collector]
+        page = client.application.test_client  # a new client per request, so requests can overlap
+        sync = collector.collect if request.param == "collector" else lambda: page().get("/api/speedtest")
+        yield sync, stt, cache, collector.on_import
 
 
 @pytest.mark.parametrize("newer", [[], [{**SAMPLE_RESULT, "id": 52}]], ids=["newest", "out-of-order"])
 def test_running_result_is_cached_once_finished(stt_sync, newer):
     """A test still running is neither cached as failed nor taken for a wiped server."""
-    sync, stt, cache = stt_sync
+    sync, stt, cache, _ = stt_sync
     stt["data"] = [*newer, {**STARTED_RESULT, "id": 51, "status": "running"}, {**SAMPLE_RESULT, "id": 50}]
     sync()
     assert cache.get_speedtest_by_id(51) is None
@@ -363,12 +395,143 @@ def test_running_result_is_cached_once_finished(stt_sync, newer):
     assert (finished["download_mbps"], finished["ping_ms"]) == (1100.0, 12.5)
 
 
-@pytest.mark.parametrize("reply", [{}, {"data": {}}, {"data": ""}], ids=["missing", "object", "string"])
+@REPLIES_WITHOUT_RESULTS
 def test_reply_without_a_result_list_keeps_the_cache(stt_sync, reply):
-    sync, stt, cache = stt_sync
+    sync, stt, cache, _ = stt_sync
     stt.update(reply)
     sync()
     assert cache.get_speedtest_count() == 50
+
+
+def _fail_writes(cache, when):
+    """Make the writes `when` describes fail, like a full disk."""
+    with write_transaction(cache.db_path) as conn:
+        conn.execute(f"CREATE TRIGGER fail BEFORE {when} BEGIN SELECT RAISE(ABORT, 'full'); END")
+
+
+def _reported_ids(on_import):
+    return [[r["id"] for r in call.args[0]] for call in on_import.call_args_list]
+
+
+def _cache_as_running(cache, result_id):
+    """Cache a row the way older versions cached a running test: 0 Mbps and no ping."""
+    cache.save_speedtest_results([SpeedtestClient("http://stt", "t")._parse_result({**STARTED_RESULT, "id": result_id})])
+
+
+@pytest.mark.parametrize("empty", [False, True], ids=["filled-cache", "first-fill"])
+def test_a_new_result_is_reported_once(stt_sync, empty):
+    """Smart Capture links each newly cached result once, whichever caller caches it; a first fill is history."""
+    sync, stt, cache, on_import = stt_sync
+    if empty:
+        cache.clear_cache()
+    stt["data"] = [{**SAMPLE_RESULT, "id": 50}]
+    sync()
+    stt["data"].insert(0, {**SAMPLE_RESULT, "id": 51})
+    _fail_writes(cache, "INSERT ON speedtest_results")
+    sync()  # the save fails, so the next sync fetches the result again
+    with write_transaction(cache.db_path) as conn:
+        conn.execute("DROP TRIGGER fail")
+    sync()
+    sync()
+    assert _reported_ids(on_import) == [[51]]
+
+
+def test_a_sync_during_a_scheduled_one(stt_sync):
+    """While a scheduled sync runs, another one is skipped and the page shows the cache at once.
+
+    So an older Tracker answer is never taken for a reset after the other sync cached a newer result.
+    """
+    sync, stt, cache, on_import = stt_sync
+    stt["data"] = [{**SAMPLE_RESULT, "id": 50}]
+    fake, probed, resume = requests.Session.get.side_effect, threading.Event(), threading.Event()
+
+    def first_request_waits(*args, **kwargs):
+        reply = fake(*args, **kwargs)
+        if not probed.is_set():
+            probed.set()
+            resume.wait(5)
+        return reply
+
+    requests.Session.get.side_effect = first_request_waits
+    scheduled = threading.Thread(target=current_runtime().collectors[0].collect)
+    scheduled.start()
+    probed.wait(5)
+    stt["data"].insert(0, {**SAMPLE_RESULT, "id": 51})
+    reply = sync()
+    resume.set()
+    scheduled.join(5)
+    assert reply is None or len(reply.get_json()) == 50
+    assert cache.get_speedtest_count() == 51
+    assert _reported_ids(on_import) == [[51]]
+
+
+@pytest.mark.parametrize("still_running, newer", [(False, 0), (True, 0), (True, 5)],
+                         ids=["finished", "still-running", "still-running-below-measured-rows"])
+def test_a_row_cached_while_running_is_corrected(stt_sync, still_running, newer):
+    """Older versions cached a running test like a failed one, also one that is still running after the update."""
+    sync, stt, cache, _ = stt_sync
+    if newer:  # only the newer results have measurements
+        with write_transaction(cache.db_path) as conn:
+            conn.execute("UPDATE speedtest_results SET download_mbps = 0, upload_mbps = 0, ping_ms = NULL")
+    _cache_as_running(cache, 51)
+    finished = {**SAMPLE_RESULT, "id": 51}
+    stt["data"] = [*({**SAMPLE_RESULT, "id": i} for i in range(51 + newer, 51, -1)),
+                   {**finished, "status": "running"} if still_running else finished]
+    sync()
+    stt["data"][-1] = finished
+    sync()
+    row = cache.get_speedtest_by_id(51)
+    assert (row["download_mbps"], row["ping_ms"]) == (1100.0, 12.5)
+
+
+@pytest.mark.parametrize("broken, failing, reread_again", [
+    ([], None, False),
+    ([{"id": 1000, "data": "unparsable"}], None, True),
+    ([], "INSERT ON speedtest_meta WHEN NEW.key = 'running_rows_reread'", True),
+], ids=["complete", "parse-error", "marker-write-fails"])
+def test_a_filled_cache_is_reread_until_once_complete(stt_sync, broken, failing, reread_again):
+    """A complete reread runs once; after an error or a lost marker the next sync rereads again."""
+    sync, stt, cache, on_import = stt_sync
+    stt["data"] = [*({**SAMPLE_RESULT, "id": i} for i in range(51, 0, -1)), *broken]
+    if failing:
+        _fail_writes(cache, failing)
+    sync()
+    _cache_as_running(cache, 0)  # below the range a delta sync rechecks
+    stt["data"].insert(51, {**SAMPLE_RESULT, "id": 0})
+    sync()
+    assert (cache.get_speedtest_by_id(0)["ping_ms"] is not None) == reread_again
+    assert _reported_ids(on_import) == [[51]]
+
+
+def test_the_dashboard_follows_the_cache(stt_sync):
+    """The dashboard shows the newest cached result, also after a new Tracker URL cleared the cache."""
+    sync, stt, cache, _ = stt_sync
+    stt["data"] = [{**SAMPLE_RESULT, "id": 50}]
+    sync()
+    assert current_runtime().get_state()["speedtest_latest"]["id"] == 50
+
+    current_runtime().config_manager.save({"speedtest_tracker_url": "http://other.local:8999"})
+    stt["data"] = {}  # the new server does not answer with results yet
+    sync()
+    assert cache.get_speedtest_count() == 0
+    assert current_runtime().get_state()["speedtest_latest"] is None
+
+
+@pytest.mark.parametrize("stt_sync", ["route"], indirect=True)
+@pytest.mark.parametrize("setup", [
+    lambda cache: current_runtime().collectors.clear(),
+    lambda cache: _fail_writes(cache, "INSERT ON speedtest_meta"),
+    lambda cache: current_runtime().config_manager.save({"demo_mode": True, "speedtest_tracker_url": None}),
+], ids=["before-polling-starts", "url-check-fails", "demo-mode-before-polling-restarts"])
+def test_the_speedtest_page_falls_back_to_the_cache(stt_sync, setup):
+    """The page shows the cache when it cannot sync, and does not import what Smart Capture would miss before polling."""
+    sync, stt, cache, _ = stt_sync
+    stt["data"] = [{**SAMPLE_RESULT, "id": 51}]
+    setup(cache)
+    resp = sync()
+    assert resp.status_code == 200
+    assert len(resp.get_json()) == 50
+    assert cache.get_speedtest_by_id(51) is None
 
 
 class TestSpeedtestAPI:
@@ -567,8 +730,10 @@ class TestSpeedtestAPI:
         assert data["ds_correctable_errors"] == 0
         assert data["ds_uncorrectable_errors"] == 0
 
-    def test_api_speedtest_not_configured(self, tmp_path):
-        with configured_client(tmp_path / "data2") as client:
+    @pytest.mark.parametrize("config", [{}, {"demo_mode": True, "speedtest_tracker_url": None}],
+                             ids=["not-configured", "demo-mode-without-storage"])
+    def test_api_speedtest_without_a_tracker_to_ask(self, tmp_path, config):
+        with configured_client(tmp_path / "data2", **config) as client:
             resp = client.get("/api/speedtest?days=7")
             assert resp.status_code == 200
             assert resp.get_json() == []
@@ -580,17 +745,21 @@ class TestSpeedtestRun:
     def _reset_rate_limit(self):
         current_runtime().derived_storage.set_value("speedtest_last_trigger", 0.0)
 
+    @pytest.mark.parametrize("reply, result_id", [
+        ({"data": {"id": 102}, "message": "Speedtest added to the queue."}, 102), ({}, None), ({"data": {"id": True}}, None),
+    ], ids=["queued-test", "without-result", "boolean-id"])
     @patch("app.modules.speedtest.routes.requests.post")
-    def test_run_success(self, mock_post, speedtest_client):
+    def test_run_success(self, mock_post, speedtest_client, reply, result_id):
+        """The queued test's id lets the page wait for exactly that result."""
         self._reset_rate_limit()
         mock_resp = MagicMock()
         mock_resp.status_code = 201
+        mock_resp.json.return_value = reply
         mock_post.return_value = mock_resp
 
         resp = speedtest_client.post("/api/speedtest/run")
         assert resp.status_code == 200
-        data = resp.get_json()
-        assert data["success"] is True
+        assert resp.get_json() == {"success": True, "result_id": result_id}
         mock_post.assert_called_once()
         assert mock_post.call_args.kwargs["verify"] is True
 

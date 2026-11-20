@@ -116,10 +116,17 @@ def test_save_upserts_every_field(tmp_path):
     sparse = SpeedtestClient("http://stt", "token")._parse_result(
         {"id": 42, "status": "failed", "created_at": corrected["timestamp"]}
     )
-    storage.save_speedtest_results([sparse, {**sparse, "id": 43}])
+    assert storage.save_speedtest_results([sparse, {**sparse, "id": 43}]) == [storage.get_speedtest_by_id(43)]
     assert storage.get_speedtest_by_id(42) == row
     failed = storage.get_speedtest_by_id(43)
     assert (failed["download_mbps"], failed["upload_mbps"], failed["ping_ms"]) == (0, 0, None)
+
+    # A result listed twice, measured and then without measurements or any time, keeps its values and is
+    # reported once as stored; a new result without a time is stored with an empty one
+    no_time = SpeedtestClient("http://stt", "token")._parse_result({"id": 44, "status": "failed"})
+    new = storage.save_speedtest_results([{**base_result, "id": 44}, no_time, {**no_time, "id": 45}])
+    assert new == [storage.get_speedtest_by_id(44), storage.get_speedtest_by_id(45)]
+    assert (new[0]["download_mbps"], new[0]["timestamp"], new[1]["timestamp"]) == (500.0, base_result["timestamp"], "")
 
 
 # ---------------------------------------------------------------------------
