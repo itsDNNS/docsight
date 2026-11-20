@@ -42,19 +42,8 @@ def _normalize_summary_errors(summary):
     return summary
 
 
-def _load_analysis_meta(raw: str | None) -> dict | None:
-    """Load optional snapshot provenance metadata."""
-    if not raw:
-        return None
-    try:
-        value = json.loads(raw)
-    except (json.JSONDecodeError, TypeError):
-        return None
-    return value if isinstance(value, dict) else None
-
-
-def _load_raw_data(raw: str | None) -> dict | None:
-    """Load optional raw snapshot evidence payload."""
+def _load_json_object(raw: str | None) -> dict | None:
+    """Load an optional JSON object column (provenance metadata or raw evidence payload)."""
     if not raw:
         return None
     try:
@@ -75,9 +64,7 @@ def _redact_raw_value(value: Any) -> Any:
             else:
                 cleaned[key_text] = _redact_raw_value(child)
         return cleaned
-    if isinstance(value, list):
-        return [_redact_raw_value(child) for child in value]
-    if isinstance(value, tuple):
+    if isinstance(value, (list, tuple)):
         return [_redact_raw_value(child) for child in value]
     return value
 
@@ -202,28 +189,18 @@ class SnapshotMethods:
 
     def get_latest_snapshot(self) -> AnalysisResult | None:
         """Load the latest stored snapshot, or None when no baseline exists."""
-        with self._read() as conn:
-            row = conn.execute(
-                "SELECT id, timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
-            ).fetchone()
-        if not row:
-            return None
-        return cast(AnalysisResult, {
-            "snapshot_id": row[0],
-            "timestamp": row[1],
-            "summary": _normalize_summary_errors(json.loads(row[2])),
-            "ds_channels": json.loads(row[3]),
-            "us_channels": json.loads(row[4]),
-            "analysis_meta": _load_analysis_meta(row[5]),
-            "raw_data": _load_raw_data(row[6]),
-        })
+        return self._load_snapshot("ORDER BY timestamp DESC, rowid DESC LIMIT 1")
 
     def get_snapshot(self, timestamp: str) -> AnalysisResult | None:
         """Load a single snapshot by timestamp. Returns analysis dict or None."""
+        return self._load_snapshot("WHERE timestamp = ?", (timestamp,))
+
+    def _load_snapshot(self, clause: str, params: tuple = ()) -> AnalysisResult | None:
         with self._read() as conn:
             row = conn.execute(
-                "SELECT id, timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots WHERE timestamp = ?",
-                (timestamp,),
+                "SELECT id, timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json "
+                f"FROM snapshots {clause}",
+                params,
             ).fetchone()
         if not row:
             return None
@@ -233,18 +210,9 @@ class SnapshotMethods:
             "summary": _normalize_summary_errors(json.loads(row[2])),
             "ds_channels": json.loads(row[3]),
             "us_channels": json.loads(row[4]),
-            "analysis_meta": _load_analysis_meta(row[5]),
-            "raw_data": _load_raw_data(row[6]),
+            "analysis_meta": _load_json_object(row[5]),
+            "raw_data": _load_json_object(row[6]),
         })
-
-    def get_snapshot_raw_data(self, timestamp: str) -> dict | None:
-        """Return the raw driver payload stored with a snapshot, if available."""
-        with self._read() as conn:
-            row = conn.execute(
-                "SELECT raw_json FROM snapshots WHERE timestamp = ?",
-                (timestamp,),
-            ).fetchone()
-        return _load_raw_data(row[0]) if row else None
 
     def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:
         """Get all snapshots between two ISO timestamps (inclusive)."""
@@ -303,7 +271,7 @@ class SnapshotMethods:
             if with_channels:
                 entry["ds_channels"] = json.loads(row[2])
                 entry["us_channels"] = json.loads(row[3])
-                entry["analysis_meta"] = _load_analysis_meta(row[4])
+                entry["analysis_meta"] = _load_json_object(row[4])
             visible_entries.append(entry)
         unwrap_uint32_counter_series(
             (entry["summary"] for entry in [*anchor_entries, *visible_entries]),
@@ -325,20 +293,7 @@ class SnapshotMethods:
                 "WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
                 (anchor_start, end_utc),
             ).fetchall()
-        results = []
-        for row in rows:
-            entry = {"timestamp": row[0]}
-            entry.update(_normalize_summary_errors(json.loads(row[1])))
-            results.append(entry)
-        unwrap_uint32_counter_series(
-            results,
-            _SUMMARY_ERROR_KEYS,
-            allow_aggregate_wrap=True,
-        )
-        return [
-            entry for entry in results
-            if _timestamp_in_range(entry["timestamp"], start_utc, end_utc)
-        ]
+        return self._summary_rows_to_entries(rows, start_utc, end_utc)
 
     def _summary_rows_to_entries(
         self,

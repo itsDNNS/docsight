@@ -9,6 +9,18 @@ from ..tz import utc_cutoff
 from .sqlite import bulk_write
 
 
+def decode_details(raw):
+    """Parsed ``details`` JSON, or the stored text when it is empty or not JSON. Bytes are read as UTF-8 text."""
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", "replace")
+    if not raw:
+        return raw
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return raw
+
+
 class EventMethods:
 
     def save_event(self, timestamp: str, severity: str, event_type: str, message: str, details: dict | None = None) -> int:
@@ -90,16 +102,7 @@ class EventMethods:
         params.extend([limit, offset])
         with self._read() as conn:
             rows = conn.execute(query, params).fetchall()
-        results = []
-        for r in rows:
-            event = dict(r)
-            if event["details"]:
-                try:
-                    event["details"] = json.loads(event["details"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            results.append(event)
-        return results
+        return [{**r, "details": decode_details(r["details"])} for r in rows]
 
     def get_event_count(self, acknowledged=None, exclude_operational: bool = False, event_prefix: str | None = None, severity: str | None = None, severities: tuple[str, ...] | None = None, since: str | None = None):
         """Return event count, optionally filtered by status, type, severity or a UTC lower time bound."""
@@ -182,16 +185,7 @@ class EventMethods:
                 "FROM events WHERE timestamp >= ? ORDER BY timestamp DESC",
                 (cutoff,),
             ).fetchall()
-        results = []
-        for r in rows:
-            event = dict(r)
-            if event["details"]:
-                try:
-                    event["details"] = json.loads(event["details"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            results.append(event)
-        return results
+        return [{**r, "details": decode_details(r["details"])} for r in rows]
 
     def get_latest_spike_timestamp(self):
         """Return timestamp of the most recent error_spike event, or None."""

@@ -102,6 +102,10 @@ class TestGetChannelHistory:
         assert len(result) == 1
         assert result[0]["power"] == 42.0
 
+    def test_invalid_direction_raises(self, storage):
+        with pytest.raises(KeyError):
+            storage.get_channel_history(1, "bad", days=7)
+
     def test_nonexistent_channel(self, storage):
         storage.save_snapshot(_make_analysis())
         result = storage.get_channel_history(99, "ds", days=7)

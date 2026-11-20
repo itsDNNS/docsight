@@ -217,7 +217,3 @@ class DatabaseAccess:
 
     def _write(self):
         return write_transaction(self.db_path)
-
-    def _connect(self):
-        """Compatibility context for internal test setup writes."""
-        return write_transaction(self.db_path)
