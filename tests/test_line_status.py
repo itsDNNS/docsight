@@ -222,13 +222,12 @@ def _dashboard_analysis(ds, us, health="good"):
 
 
 @pytest.fixture
-def client(tmp_path):
+def client(tmp_path, route_app):
     config = ConfigManager(str(tmp_path / "data"))
     config.save({"modem_password": "test", "modem_type": "fritzbox"})
     current_runtime().config_manager = config
     current_runtime().storage = SnapshotStorage(str(tmp_path / "test.db"), max_days=7)
-    app.config["TESTING"] = True
-    with app.test_client() as test_client:
+    with route_app.test_client() as test_client:
         yield test_client
 
 

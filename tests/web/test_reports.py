@@ -305,7 +305,7 @@ class TestReportHelpers:
 
 
 class TestComplaintRoutes:
-    def test_api_report_passes_customer_details_to_pdf_generator(self):
+    def test_api_report_passes_customer_details_to_pdf_generator(self, app):
         from app.modules.reports import routes
 
         storage = Mock()
@@ -337,7 +337,7 @@ class TestComplaintRoutes:
         assert generate_report.call_args.kwargs["customer_number"] == "KD-123456"
         assert generate_report.call_args.kwargs["customer_address"] == "Musterstraße 1\n12345 Musterstadt"
 
-    def test_api_incident_timeline_loads_only_the_sources_the_case_view_plots(self):
+    def test_api_incident_timeline_loads_only_the_sources_the_case_view_plots(self, app):
         from app.modules.journal import routes
 
         storage = Mock()
@@ -356,7 +356,7 @@ class TestComplaintRoutes:
         assert response.status_code == 200
         assert core.get_correlation_timeline.call_args.kwargs["sources"] == {"modem", "speedtest", "events"}
 
-    def test_api_incident_report_passes_customer_details_to_pdf_generator(self):
+    def test_api_incident_report_passes_customer_details_to_pdf_generator(self, app):
         from app.modules.journal import routes
 
         storage = Mock()
@@ -394,7 +394,7 @@ class TestComplaintRoutes:
         assert generate_incident_report.call_args.kwargs["customer_number"] == "KD-123456"
         assert generate_incident_report.call_args.kwargs["customer_address"] == "Musterstraße 1\n12345 Musterstadt"
 
-    def test_get_comparison_data_helper(self):
+    def test_get_comparison_data_helper(self, app):
         from app.modules.reports.routes import _get_comparison_data
 
         comparison_data = {

@@ -6,7 +6,6 @@ import os
 import socket
 import sqlite3
 from datetime import datetime, timezone
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -94,44 +93,24 @@ def running_app_version(request, monkeypatch, clear_version_cache):
 OPEN_INSTANCE_ENVIRON = {"AUTH_DISABLED": "true"}
 
 
-FACTORY_CONTEXT_MODULES = {
-    "tests.test_auth", "tests.test_bqm", "tests.test_channel_timeline",
-    "tests.test_comparison_module", "tests.test_correlation", "tests.test_demo_mode",
-    "tests.test_device_info_display", "tests.test_events", "tests.test_evidence_api",
-    "tests.test_first_run_demo", "tests.test_first_run_ux", "tests.test_line_status", "tests.test_metrics_endpoint", "tests.test_onboarding_checklist",
-    "tests.test_module_install_api", "tests.test_pwa_web_push",
-    "tests.test_module_integration",
-    "tests.test_report_customer_defaults", "tests.test_security_audit_fixes",
-    "tests.test_security_hardening", "tests.test_smart_capture_api", "tests.test_speedtest",
-    "tests.test_trends_api", "tests.test_update_checks", "tests.test_weather",
-    "tests.test_web_theme", "tests.modules.connection_monitor.test_routes",
-    "tests.modules.connection_monitor.test_traceroute_routes",
-    "tests.modules.test_fritzbox_cable_routes",
-}
-
-
-def _uses_factory_context(module):
-    relative = Path(module.__file__).resolve().relative_to(Path(__file__).resolve().parent)
-    canonical = "tests." + ".".join(relative.with_suffix("").parts)
-    return canonical in FACTORY_CONTEXT_MODULES
-
-
-@pytest.fixture(autouse=True, scope="module")
-def _factory_context_for_direct_route_tests(request, tmp_path_factory):
-    """Give direct route-unit modules an isolated factory app and context."""
-    if not _uses_factory_context(request.module):
-        yield
-        return
-    manager = ConfigManager(str(tmp_path_factory.mktemp("factory-context")))
+@pytest.fixture(scope="module")
+def _module_route_app(tmp_path_factory):
+    manager = ConfigManager(str(tmp_path_factory.mktemp("route-app")))
     application = create_app(
         config_manager=manager,
         module_loader_factory=default_module_loader_factory(manager, search_paths=[]),
         environ=dict(OPEN_INSTANCE_ENVIRON),
         testing=True,
     )
-    request.module.app = application
     with application.app_context():
-        yield
+        yield application
+
+
+@pytest.fixture
+def route_app(_module_route_app):
+    """Return the module's shared factory app, inside its app context, with a clean runtime."""
+    reset_runtime(get_runtime(_module_route_app))
+    return _module_route_app
 
 
 def reset_runtime(runtime):
@@ -144,15 +123,6 @@ def reset_runtime(runtime):
     runtime.state = RuntimeState()
     runtime.login_rate_limiter = LoginRateLimiter()
     runtime.derived_storage = DerivedStorageCache()
-
-
-@pytest.fixture(autouse=True)
-def _reset_direct_route_runtime(request):
-    if not _uses_factory_context(request.module):
-        yield
-        return
-    reset_runtime(get_runtime(request.module.app))
-    yield
 
 
 @pytest.fixture

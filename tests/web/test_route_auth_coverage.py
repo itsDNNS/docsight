@@ -49,7 +49,7 @@ _SAMPLE_VALUES = {
 
 
 @pytest.fixture
-def auth_client(tmp_path):
+def auth_client(tmp_path, app):
     """Unauthenticated client with admin auth enabled."""
 
     config = ConfigManager(str(tmp_path / "data"))
@@ -60,7 +60,6 @@ def auth_client(tmp_path):
     })
     current_runtime().config_manager = config
     current_runtime().storage = SnapshotStorage(str(tmp_path / "auth-routes.db"), max_days=7)
-    app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
 
@@ -86,7 +85,7 @@ def _sample_value_for_rule(rule, argument: str):
     return "sample"
 
 
-def _path_for_rule(rule) -> str:
+def _path_for_rule(app, rule) -> str:
     values = {argument: _sample_value_for_rule(rule, argument) for argument in rule.arguments}
     with app.test_request_context():
         return url_for(rule.endpoint, **values)
@@ -103,12 +102,12 @@ def _assert_auth_boundary(rule, response) -> None:
         assert response.get_json().get("error") == "Authentication required"
 
 
-def test_routes_require_authentication_unless_explicitly_public(auth_client):
+def test_routes_require_authentication_unless_explicitly_public(auth_client, app):
     """All protected route methods should enforce auth when admin_password is set."""
 
     checked = []
     for rule in sorted(app.url_map.iter_rules(), key=lambda item: item.rule):
-        path = _path_for_rule(rule)
+        path = _path_for_rule(app, rule)
         for method in sorted(rule.methods - _IGNORED_METHODS):
             if _is_public_route_method(rule, method):
                 continue
@@ -120,7 +119,7 @@ def test_routes_require_authentication_unless_explicitly_public(auth_client):
     assert checked, "auth coverage should exercise protected route methods"
 
 
-def test_public_route_allowlist_matches_current_route_surface():
+def test_public_route_allowlist_matches_current_route_surface(app):
     """Keep the intentional public surface explicit and easy to review."""
 
     public_rules = sorted(

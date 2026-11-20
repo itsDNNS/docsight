@@ -47,11 +47,10 @@ def config_mgr(tmp_path):
 
 
 @pytest.fixture
-def client(config_mgr):
+def client(config_mgr, route_app):
     current_runtime().config_manager = config_mgr
     current_runtime().storage = None
-    app.config["TESTING"] = True
-    with app.test_client() as test_client:
+    with route_app.test_client() as test_client:
         yield test_client
 
 
@@ -98,7 +97,7 @@ def _manifest(**updates):
 
 
 @pytest.fixture
-def reports_settings_module(monkeypatch):
+def reports_settings_module(monkeypatch, route_app):
     """Expose the checked-in Reports settings contribution to web templates."""
     raw = json.loads((REPORTS_DIR / "manifest.json").read_text(encoding="utf-8"))
     info = validate_manifest(raw, str(REPORTS_DIR), builtin=True)
@@ -116,18 +115,18 @@ def reports_settings_module(monkeypatch):
     )
 
     old_module_loader = current_runtime().module_loader
-    old_jinja_loader = app.jinja_loader
+    old_jinja_loader = route_app.jinja_loader
     current_runtime().module_loader = loader
-    app.jinja_loader = ChoiceLoader(
+    route_app.jinja_loader = ChoiceLoader(
         [old_jinja_loader, FileSystemLoader(str(REPORTS_DIR / "templates"))]
     )
-    app.jinja_env.cache.clear()
+    route_app.jinja_env.cache.clear()
     try:
         yield info
     finally:
         current_runtime().module_loader = old_module_loader
-        app.jinja_loader = old_jinja_loader
-        app.jinja_env.cache.clear()
+        route_app.jinja_loader = old_jinja_loader
+        route_app.jinja_env.cache.clear()
 
 
 def test_private_keys_encrypt_display_and_clear(tmp_path, monkeypatch):
@@ -420,7 +419,7 @@ def test_reports_i18n_catalogs_are_valid_and_include_settings_copy():
             )
 
 
-def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
+def test_direct_report_routes_do_not_fall_back_to_saved_customer_values(route_app):
     from app.modules.journal import routes as journal_routes
     from app.modules.reports import routes as report_routes
 
@@ -435,7 +434,7 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     report_storage = Mock()
     report_storage.get_range_data.return_value = []
 
-    with app.test_request_context("/api/report"):
+    with route_app.test_request_context("/api/report"):
         with patch.object(report_routes.current_runtime(), "storage", report_storage), patch.object(report_routes.current_runtime(), "config_manager", config_manager
         ), patch.object(report_routes.current_runtime(), "get_state", return_value={"analysis": analysis, "connection_info": {}}
         ), patch.object(report_routes, "generate_report", return_value=b"%PDF") as generate_report:
@@ -444,7 +443,7 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     assert generate_report.call_args.kwargs["customer_number"] == ""
     assert generate_report.call_args.kwargs["customer_address"] == ""
 
-    with app.test_request_context("/api/complaint"):
+    with route_app.test_request_context("/api/complaint"):
         with patch.object(report_routes.current_runtime(), "storage", report_storage), patch.object(report_routes.current_runtime(), "config_manager", config_manager
         ), patch.object(report_routes.current_runtime(), "get_state", return_value={"analysis": analysis}), patch.object(
             report_routes, "generate_complaint_text", return_value="letter"
@@ -461,7 +460,7 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
         "end_date": None,
     }
     incident_storage.get_entries.return_value = []
-    with app.test_request_context("/api/incidents/7/report"):
+    with route_app.test_request_context("/api/incidents/7/report"):
         with patch.object(journal_routes, "_get_journal_storage", return_value=incident_storage), patch.object(journal_routes.current_runtime(), "config_manager", config_manager
         ), patch.object(journal_routes.current_runtime(), "get_state", return_value={"connection_info": {}}), patch(
             "app.modules.reports.report.generate_incident_report", return_value=b"%PDF"

@@ -97,7 +97,7 @@ class TestSpeedtestDetailAPI:
         resp = client.get("/api/speedtest/9999")
         assert resp.status_code == 404
 
-    def test_speedtest_detail_includes_quality_fields(self, tmp_path):
+    def test_speedtest_detail_includes_quality_fields(self, tmp_path, app):
         """Issue #113: speedtest responses should include classification fields."""
         self._reset_speedtest_module()
         mgr = ConfigManager(str(tmp_path / "data_sq"))
@@ -114,7 +114,6 @@ class TestSpeedtestDetailAPI:
             "server_id": 1, "server_name": "Frankfurt",
         }])
         current_runtime().storage = storage
-        app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.get("/api/speedtest/1")
             assert resp.status_code == 200
@@ -125,7 +124,7 @@ class TestSpeedtestDetailAPI:
             # 45/50 = 0.9 >= 0.8 -> good
             assert data["upload_class"] == "good"
 
-    def test_speedtest_quality_warn_and_poor(self, tmp_path):
+    def test_speedtest_quality_warn_and_poor(self, tmp_path, app):
         self._reset_speedtest_module()
         mgr = ConfigManager(str(tmp_path / "data_sq2"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox", "booked_download": 1000, "booked_upload": 100})
@@ -141,7 +140,6 @@ class TestSpeedtestDetailAPI:
             "server_id": 1, "server_name": "Frankfurt",
         }])
         current_runtime().storage = storage
-        app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.get("/api/speedtest/10")
             data = resp.get_json()

@@ -1,7 +1,5 @@
 import pytest
 
-from app.app_factory import create_app, default_module_loader_factory
-from tests.conftest import OPEN_INSTANCE_ENVIRON, reset_runtime
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -16,25 +14,14 @@ def config_mgr(tmp_path):
     return mgr
 
 
-@pytest.fixture(scope="module")
-def app(tmp_path_factory):
-    manager = ConfigManager(str(tmp_path_factory.mktemp("web-factory-app")))
-    application = create_app(
-        config_manager=manager,
-        storage=None,
-        module_loader_factory=default_module_loader_factory(manager, search_paths=[]),
-        environ=dict(OPEN_INSTANCE_ENVIRON),
-        testing=True,
-    )
-    return application
+@pytest.fixture
+def app(route_app):
+    return route_app
 
 
 @pytest.fixture(autouse=True)
-def _app_context(app, request, config_mgr):
-    request.module.app = app
-    runtime = get_runtime(app)
-    reset_runtime(runtime)
-    runtime.config_manager = config_mgr
+def _app_context(app, config_mgr):
+    get_runtime(app).config_manager = config_mgr
     with app.app_context():
         yield
 

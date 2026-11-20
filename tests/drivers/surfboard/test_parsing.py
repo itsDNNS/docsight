@@ -3,7 +3,6 @@
 import pytest
 from unittest.mock import patch
 from app.drivers.formats.surfboard import parse_surfboard_downstream
-from app.drivers.surfboard import SurfboardDriver
 from ._data import HNAP_LOGIN_PHASE1, HNAP_LOGIN_PHASE2
 
 class TestDownstreamSCQAM:

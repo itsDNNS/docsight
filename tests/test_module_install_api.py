@@ -15,6 +15,8 @@ from app.theme_registry import download_theme
 from tests.fs_helpers import symlink_or_skip
 from tests.test_smart_capture_api import client, storage  # noqa: F401 (shared fixtures)
 
+pytestmark = pytest.mark.usefixtures("route_app")
+
 
 def test_download_cleanup_is_confined_to_module_root(tmp_path):
     modules_dir = tmp_path / "modules"

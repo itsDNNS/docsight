@@ -42,7 +42,7 @@ def _analysis(
 
 
 @pytest.fixture
-def client(tmp_path):
+def client(tmp_path, route_app):
     db_path = str(tmp_path / "api.db")
     storage = SnapshotStorage(db_path, max_days=120)
     data_dir = str(tmp_path / "data")
@@ -50,8 +50,7 @@ def client(tmp_path):
     manager.save({"modem_password": "test", "modem_type": "fritzbox"})
     current_runtime().config_manager = manager
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as flask_client:
+    with route_app.test_client() as flask_client:
         yield flask_client, storage
 
 

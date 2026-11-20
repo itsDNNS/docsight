@@ -402,7 +402,7 @@ class TestSafeManifestRef:
 
 
 @pytest.fixture
-def client():
+def client(route_app):
     """Flask test client with minimal config for auth testing."""
     from app.config import ConfigManager
     import tempfile
@@ -414,6 +414,5 @@ def client():
         current_runtime().storage = None
         current_runtime().modem_collector = None
         current_runtime().collectors = []
-        app.config["TESTING"] = True
-        with app.test_client() as c:
+        with route_app.test_client() as c:
             yield c

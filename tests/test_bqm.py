@@ -17,6 +17,8 @@ from app.runtime import current_runtime
 from tests.test_bqm_csv_parser import PARSED_ROWS
 from tests.test_smart_capture_api import configured_client
 
+pytestmark = pytest.mark.usefixtures("route_app")
+
 
 # ── Fetcher Tests ──
 

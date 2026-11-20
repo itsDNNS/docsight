@@ -6,14 +6,12 @@ import sys
 import pytest
 from unittest.mock import patch, MagicMock
 from flask import Flask
-from app.runtime import current_runtime
 
 
 @pytest.fixture
-def app_client():
+def app_client(route_app):
     """Create a test client with comparison module blueprint."""
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
@@ -387,7 +385,6 @@ class TestModuleDiscovery:
                     sys.modules[key] = self._orig_sys_modules[key]
                 else:
                     del sys.modules[key]
-        current_runtime().module_loader = None
 
     def test_comparison_module_discovered(self):
         from app.module_registry import discover_modules

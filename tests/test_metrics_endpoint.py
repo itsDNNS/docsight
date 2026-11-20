@@ -22,33 +22,30 @@ def protected_metrics_config(tmp_path):
 
 
 @pytest.fixture
-def metrics_client(noauth_config):
+def metrics_client(noauth_config, route_app):
     """Flask test client with no authentication configured."""
     current_runtime().config_manager = noauth_config
     current_runtime().storage = None
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
 @pytest.fixture
-def auth_client(auth_config):
+def auth_client(auth_config, route_app):
     """Flask test client with authentication configured."""
     current_runtime().config_manager = auth_config
     current_runtime().storage = None
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
 @pytest.fixture
-def protected_metrics_client(protected_metrics_config, tmp_path):
+def protected_metrics_client(protected_metrics_config, tmp_path, route_app):
     """Flask test client with token-protected metrics enabled."""
     storage = SnapshotStorage(str(tmp_path / "metrics-tokens.db"), max_days=7)
     current_runtime().config_manager = protected_metrics_config
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         client._docsight_storage = storage
         yield client
 

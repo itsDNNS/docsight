@@ -304,7 +304,7 @@ class TestWeatherConfig:
 
 class TestWeatherAPI:
     @pytest.fixture
-    def weather_client(self, tmp_path):
+    def weather_client(self, tmp_path, route_app):
         # Reset module-local storage
 
         data_dir = str(tmp_path / "data_w")
@@ -316,8 +316,7 @@ class TestWeatherAPI:
         storage = SnapshotStorage(str(tmp_path / "weather.db"))
         current_runtime().storage = storage
 
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with route_app.test_client() as client:
             yield client, WeatherStorage(str(tmp_path / "weather.db"))
 
         # Cleanup module-local storage
@@ -372,13 +371,12 @@ class TestWeatherAPI:
         resp = client.get("/api/weather/range")
         assert resp.status_code == 400
 
-    def test_api_weather_not_configured(self, tmp_path):
+    def test_api_weather_not_configured(self, tmp_path, route_app):
         mgr = ConfigManager(str(tmp_path / "data_nc"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr
         current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with route_app.test_client() as client:
             resp = client.get("/api/weather")
             assert resp.status_code == 200
             assert resp.get_json() == []

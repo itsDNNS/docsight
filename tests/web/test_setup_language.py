@@ -22,11 +22,10 @@ def _stored_config(manager):
 
 
 @pytest.fixture
-def fresh_manager(tmp_path):
+def fresh_manager(tmp_path, app):
     manager = ConfigManager(str(tmp_path / "data"))
     current_runtime().config_manager = manager
     current_runtime().storage = None
-    app.config["TESTING"] = True
     return manager
 
 
@@ -42,7 +41,7 @@ def fresh_manager(tmp_path):
     ],
 )
 def test_fresh_setup_negotiates_and_persists_supported_language(
-    fresh_manager, accept_language, expected
+    fresh_manager, accept_language, expected, app
 ):
     with app.test_client() as client:
         response = client.get(
@@ -55,7 +54,7 @@ def test_fresh_setup_negotiates_and_persists_supported_language(
     assert _stored_config(fresh_manager)["language"] == expected
 
 
-def test_fresh_setup_without_accept_language_persists_product_default(fresh_manager):
+def test_fresh_setup_without_accept_language_persists_product_default(fresh_manager, app):
     with app.test_client() as client:
         response = client.get("/setup")
 
@@ -65,7 +64,7 @@ def test_fresh_setup_without_accept_language_persists_product_default(fresh_mana
 
 
 def test_first_inference_survives_new_manager_client_and_changed_header(
-    fresh_manager
+    fresh_manager, app
 ):
     with app.test_client() as first_client:
         first_response = first_client.get(
@@ -84,7 +83,7 @@ def test_first_inference_survives_new_manager_client_and_changed_header(
     assert _stored_config(reloaded)["language"] == "de"
 
 
-def test_valid_explicit_setup_language_overrides_and_persists(fresh_manager):
+def test_valid_explicit_setup_language_overrides_and_persists(fresh_manager, app):
     fresh_manager.save({"language": "de"})
 
     with app.test_client() as client:
@@ -98,7 +97,7 @@ def test_valid_explicit_setup_language_overrides_and_persists(fresh_manager):
     assert _stored_config(fresh_manager)["language"] == "fr"
 
 
-def test_existing_stored_preference_wins_over_browser_header(fresh_manager):
+def test_existing_stored_preference_wins_over_browser_header(fresh_manager, app):
     fresh_manager.save({"language": "pl"})
 
     with app.test_client() as client:
@@ -110,7 +109,7 @@ def test_existing_stored_preference_wins_over_browser_header(fresh_manager):
     assert _stored_config(fresh_manager)["language"] == "pl"
 
 
-def test_invalid_query_is_ignored_and_never_persisted(fresh_manager):
+def test_invalid_query_is_ignored_and_never_persisted(fresh_manager, app):
     with app.test_client() as client:
         response = client.get(
             "/setup?lang=not-a-locale",
@@ -121,7 +120,7 @@ def test_invalid_query_is_ignored_and_never_persisted(fresh_manager):
     assert _stored_config(fresh_manager)["language"] == "de"
 
 
-def test_setup_renders_every_registered_locale_option(fresh_manager):
+def test_setup_renders_every_registered_locale_option(fresh_manager, app):
     with app.test_client() as client:
         response = client.get("/setup", headers={"Accept-Language": "en-US"})
 
@@ -133,7 +132,7 @@ def test_setup_renders_every_registered_locale_option(fresh_manager):
     assert rendered_options == set(LANGUAGES)
 
 
-def test_non_setup_language_query_remains_transient(fresh_manager):
+def test_non_setup_language_query_remains_transient(fresh_manager, app):
     fresh_manager.save({"modem_type": "fritzbox"})
 
     with app.test_client() as client:

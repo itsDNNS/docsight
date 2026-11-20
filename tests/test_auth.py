@@ -58,29 +58,26 @@ def storage(tmp_path):
 
 
 @pytest.fixture
-def auth_client(auth_config):
+def auth_client(auth_config, route_app):
     current_runtime().config_manager = auth_config
     current_runtime().storage = None
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
 @pytest.fixture
-def auth_client_with_storage(auth_config, storage):
+def auth_client_with_storage(auth_config, storage, route_app):
     current_runtime().config_manager = auth_config
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
 @pytest.fixture
-def noauth_client(noauth_config):
+def noauth_client(noauth_config, route_app):
     current_runtime().config_manager = noauth_config
     current_runtime().storage = None
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
@@ -151,10 +148,10 @@ class TestAuthEnabled:
         assert "Expires=" in resp.headers["Set-Cookie"]
         assert "SameSite=Lax" in resp.headers["Set-Cookie"]
 
-    def test_authenticated_session_is_permanent_and_contains_only_marker(self, auth_client, auth_config):
+    def test_authenticated_session_is_permanent_and_contains_only_marker(self, auth_client, auth_config, route_app):
         _login(auth_client)
-        cookie = auth_client.get_cookie(app.config["SESSION_COOKIE_NAME"])
-        payload = app.session_interface.get_signing_serializer(app).loads(cookie.value)
+        cookie = auth_client.get_cookie(route_app.config["SESSION_COOKIE_NAME"])
+        payload = route_app.session_interface.get_signing_serializer(route_app).loads(cookie.value)
 
         assert payload["_permanent"] is True
         assert payload["authenticated"] is True
@@ -185,16 +182,16 @@ class TestAuthEnabled:
         assert resp.status_code == 302
         assert "/login" in resp.headers["Location"]
 
-    def test_cookie_survives_reinitialization_with_same_data_dir(self, auth_client, auth_config):
+    def test_cookie_survives_reinitialization_with_same_data_dir(self, auth_client, auth_config, route_app):
         _login(auth_client)
-        original_key = app.secret_key
+        original_key = route_app.secret_key
 
         current_runtime().config_manager = ConfigManager(auth_config.data_dir)
 
-        assert app.secret_key == original_key
+        assert route_app.secret_key == original_key
         assert auth_client.get("/").status_code == 200
 
-    def test_plaintext_password_upgrade_binds_to_saved_hash(self, tmp_path):
+    def test_plaintext_password_upgrade_binds_to_saved_hash(self, tmp_path, route_app):
         data_dir = tmp_path / "legacy-password"
         data_dir.mkdir()
         (data_dir / "config.json").write_text(
@@ -204,8 +201,7 @@ class TestAuthEnabled:
         manager = ConfigManager(str(data_dir))
         current_runtime().config_manager = manager
         current_runtime().storage = None
-        app.config["TESTING"] = True
-        client = app.test_client()
+        client = route_app.test_client()
 
         response = _login(client, "legacy-password")
 
@@ -225,7 +221,7 @@ class TestAuthEnabled:
         pytest.param("", "env-password", "env-password", (None, 302), id="environment"),
     ])
     def test_login_leaves_stored_password_unchanged(
-        self, tmp_path, monkeypatch, stored, environment, password, expected
+        self, tmp_path, monkeypatch, stored, environment, password, expected, route_app
     ):
         if environment:
             monkeypatch.setenv("ADMIN_PASSWORD", environment)
@@ -234,7 +230,7 @@ class TestAuthEnabled:
         current_runtime().config_manager = ConfigManager(str(tmp_path))
 
         form = {"password": password, "csrf_token": "t"}
-        with app.test_request_context("/login", method="POST", data=form):
+        with route_app.test_request_context("/login", method="POST", data=form):
             session[_LOGIN_CSRF_SESSION_KEY] = "t"
             assert _authenticate_login() == expected
 
@@ -249,14 +245,13 @@ class TestAuthEnabled:
         assert resp.status_code == 302
         assert "/login" in resp.headers["Location"]
 
-    def test_cookie_fails_after_environment_password_changes(self, tmp_path, monkeypatch):
+    def test_cookie_fails_after_environment_password_changes(self, tmp_path, monkeypatch, route_app):
         monkeypatch.setenv("ADMIN_PASSWORD", "environment-password")
         manager = ConfigManager(str(tmp_path / "env-auth"))
         manager.save({"modem_type": "generic"})
         current_runtime().config_manager = manager
         current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with route_app.test_client() as client:
             _login(client, "environment-password")
             assert client.get("/").status_code == 200
 
@@ -310,12 +305,11 @@ class TestAuthEnabled:
         assert current.get("/").status_code == 302
         assert other.get("/").status_code == 302
 
-    def test_password_removal_invalidates_sessions_before_password_is_reenabled(self, auth_config):
+    def test_password_removal_invalidates_sessions_before_password_is_reenabled(self, auth_config, route_app):
         current_runtime().config_manager = auth_config
         current_runtime().storage = None
-        app.config["TESTING"] = True
-        current = app.test_client()
-        other = app.test_client()
+        current = route_app.test_client()
+        other = route_app.test_client()
         _login(current)
         _login(other)
 
@@ -338,20 +332,19 @@ class TestAuthEnabled:
         ],
         ids=["saved-mask", "omitted-password", "same-password"],
     )
-    def test_unchanged_password_saves_do_not_invalidate_sessions(self, auth_config, saved_data):
+    def test_unchanged_password_saves_do_not_invalidate_sessions(self, auth_config, saved_data, route_app):
         current_runtime().config_manager = auth_config
         current_runtime().storage = None
-        app.config["TESTING"] = True
-        current = app.test_client()
-        other = app.test_client()
+        current = route_app.test_client()
+        other = route_app.test_client()
         _login(current)
         _login(other)
-        original_key = app.secret_key
+        original_key = route_app.secret_key
 
         response = current.post("/api/config", json=saved_data)
 
         assert response.status_code == 200
-        assert app.secret_key == original_key
+        assert route_app.secret_key == original_key
         assert current.get("/").status_code == 200
         assert other.get("/").status_code == 200
 
@@ -388,6 +381,7 @@ class TestAuthEnabled:
         resp = auth_client.post("/login", data={"password": "secret123", "csrf_token": "ü"})
         assert resp.status_code == 400
 
+    @pytest.mark.usefixtures("route_app")
     def test_login_attempt_tracking_is_bounded(self):
         limiter = current_runtime().login_rate_limiter
         for idx in range(_LOGIN_MAX_TRACKED_IPS + 25):
