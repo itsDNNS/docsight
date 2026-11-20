@@ -26,7 +26,6 @@ COPY --from=builder /build/out/docsight-traceroute-helper /usr/local/bin/docsigh
 
 # Keep elevated privileges scoped to the dedicated ICMP helper.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gosu \
     libjpeg62-turbo \
     && chown root:root /usr/local/bin/docsight-icmp-helper \
     && chmod 4755 /usr/local/bin/docsight-icmp-helper \
