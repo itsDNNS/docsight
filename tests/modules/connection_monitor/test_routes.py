@@ -190,7 +190,7 @@ class TestSamplesResolution:
         c, storage = client
         tid = storage.create_target("Test", "1.1.1.1")
         now = time.time()
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -220,7 +220,7 @@ class TestSamplesResolution:
         storage.save_samples([
             {"target_id": tid, "timestamp": now - 3600, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -248,7 +248,7 @@ class TestSamplesResolution:
         tid = storage.create_target("Test", "1.1.1.1")
         now = time.time()
         end = now - 14 * 86400
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -301,7 +301,7 @@ class TestSamplesResolution:
         storage.save_samples([
             {"target_id": tid, "timestamp": now - 3600, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -339,7 +339,7 @@ class TestSamplesResolution:
         storage.save_samples([
             {"target_id": tid, "timestamp": now - 60, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -370,7 +370,7 @@ class TestSamplesResolution:
         storage.save_samples([
             {"target_id": tid, "timestamp": raw_ts, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -690,7 +690,7 @@ class TestExportAPI:
         c, storage = client
         tid = storage.create_target("Test", "1.1.1.1")
         now = time.time()
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,

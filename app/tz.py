@@ -177,6 +177,15 @@ def parse_utc(ts):
     return naive.replace(tzinfo=timezone.utc)
 
 
+def normalize_range_ts(ts, separator):
+    """Accept either ISO 'T' or legacy space-separated timestamps for queries."""
+    if not ts or len(ts) < 19:
+        return ts
+    if ts[10] not in ("T", " "):
+        return ts
+    return ts[:10] + separator + ts[11:]
+
+
 def parse_utc_strict(ts):
     """Parse with strptime(UTC_FMT); None when that fails.
 

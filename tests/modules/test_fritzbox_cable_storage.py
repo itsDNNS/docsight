@@ -1,13 +1,25 @@
 """Tests for fritzbox_cable segment utilization storage."""
 
+import threading
+
 import pytest
 from app.storage.segment_utilization import SegmentUtilizationStorage
+from app.storage import sqlite as sqlite_module
+from app.storage.sqlite import database_write_lock
 
 
 @pytest.fixture
 def storage(tmp_path):
     db_path = str(tmp_path / "test.db")
     return SegmentUtilizationStorage(db_path)
+
+
+@pytest.fixture
+def saturated(storage):
+    """Storage holding one three-minute downstream run above the default threshold."""
+    for i, v in enumerate([85.0, 90.0, 82.0]):
+        storage.save_at(f"2020-01-01T14:0{i}:00Z", v, 10.0, 1.0, 0.2)
+    return storage
 
 
 class TestSave:
@@ -362,43 +374,36 @@ class TestMaterializedEvents:
         assert ev["peak_total"] == pytest.approx(90.0)
         assert ev["duration_minutes"] == 3
 
-    def test_materialize_idempotent(self, storage):
+    def test_materialize_idempotent(self, saturated):
         """Running materialize twice must not create duplicate event rows."""
-        for i, v in enumerate([85.0, 90.0, 82.0]):
-            storage.save_at(f"2020-01-01T14:0{i}:00Z", v, 10.0, 1.0, 0.2)
-
-        first = storage.materialize_events_before("2020-01-02T00:00:00Z")
-        second = storage.materialize_events_before("2020-01-02T00:00:00Z")
+        first = saturated.materialize_events_before("2020-01-02T00:00:00Z")
+        second = saturated.materialize_events_before("2020-01-02T00:00:00Z")
         assert first == 1
         assert second == 0
-        events = storage.get_events(
+        events = saturated.get_events(
             "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z",
             threshold=80, min_minutes=3,
         )
         assert len(events) == 1
 
-    def test_materialize_skips_events_still_in_progress(self, storage):
+    def test_materialize_skips_events_still_in_progress(self, saturated):
         """Events whose end is at or past the cutoff may still be extending;
         they should not be stored yet to avoid locking in a truncated run."""
         # Run ends at 14:02, cutoff is 14:02 — end is NOT strictly before cutoff.
-        for i, v in enumerate([85.0, 90.0, 82.0]):
-            storage.save_at(f"2020-01-01T14:0{i}:00Z", v, 10.0, 1.0, 0.2)
-        inserted = storage.materialize_events_before("2020-01-01T14:02:00Z")
+        inserted = saturated.materialize_events_before("2020-01-01T14:02:00Z")
         assert inserted == 0
 
         # With a later cutoff the event is fully historical and gets stored.
-        inserted = storage.materialize_events_before("2020-01-01T14:05:00Z")
+        inserted = saturated.materialize_events_before("2020-01-01T14:05:00Z")
         assert inserted == 1
 
-    def test_get_events_dedupes_materialized_with_raw(self, storage):
+    def test_get_events_dedupes_materialized_with_raw(self, saturated):
         """If both raw and materialized detection see the same event, it
         must appear only once in the merged output."""
-        for i, v in enumerate([85.0, 90.0, 82.0]):
-            storage.save_at(f"2020-01-01T14:0{i}:00Z", v, 10.0, 1.0, 0.2)
-        storage.materialize_events_before("2020-01-02T00:00:00Z")
+        saturated.materialize_events_before("2020-01-02T00:00:00Z")
         # Raw data is still present (we did not downsample), so on-demand
         # detection would also produce the event. The merged result dedupes.
-        events = storage.get_events(
+        events = saturated.get_events(
             "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z",
             threshold=80, min_minutes=3,
         )
@@ -433,3 +438,31 @@ class TestCleanup:
         deleted = storage.cleanup(days=365)
         assert deleted >= 1
         assert len(storage.get_latest(10)) == 1
+
+
+@pytest.mark.parametrize("write, expected", [
+    (lambda s: s.save_at("2020-01-01T14:05:00Z", 1.0, 1.0, 0.1, 0.1), None),
+    (lambda s: s.materialize_events_before("2020-01-02T00:00:00Z"), 1),
+    (lambda s: s.downsample(), 2),
+    (lambda s: s.cleanup(days=1), 3),
+], ids=["save_at", "materialize_events_before", "downsample", "cleanup"])
+def test_writes_wait_for_the_database_write_lock(saturated, monkeypatch, write, expected):
+    """Writes from any instance wait for the per-database write lock and finish once it is free."""
+    other = SegmentUtilizationStorage(saturated.db_path)
+    lock = database_write_lock(saturated.db_path)
+    waiting = threading.Event()
+
+    def spy(_path):
+        waiting.set()
+        return lock
+
+    monkeypatch.setattr(sqlite_module, "database_write_lock", spy)
+    result = {}
+    writer = threading.Thread(target=lambda: result.update(value=write(other)))
+    with lock:
+        writer.start()
+        assert waiting.wait(5)
+        writer.join(0.1)
+        assert writer.is_alive()
+    writer.join(5)
+    assert result == {"value": expected}

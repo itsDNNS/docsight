@@ -258,7 +258,7 @@ class TestRetention:
         old_ts = now - 200 * 86400  # 200 days ago
 
         # Insert an aggregated bucket
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -345,7 +345,7 @@ class TestOutages:
 class TestAggregation:
     def test_aggregated_table_exists(self, storage):
         """The aggregated table should be created on init."""
-        with storage._connect() as conn:
+        with storage._write() as conn:
             row = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='connection_samples_aggregated'"
             ).fetchone()
@@ -469,7 +469,7 @@ class TestAggregation:
         base = (1700000000 // 300) * 300  # 1699999800.0
         # Insert 5 x 60s buckets (covering one 300s window)
         for i in range(5):
-            with storage._connect() as conn:
+            with storage._write() as conn:
                 conn.execute(
                     """INSERT INTO connection_samples_aggregated
                        (target_id, bucket_start, bucket_seconds,
@@ -501,7 +501,7 @@ class TestAggregation:
         tid = storage.create_target("Test", "1.1.1.1")
         # Align base to a 300s boundary so all 3 x 60s buckets land in one window
         base = (1700000000 // 300) * 300  # 1699999800.0
-        with storage._connect() as conn:
+        with storage._write() as conn:
             for i in range(3):
                 conn.execute(
                     """INSERT INTO connection_samples_aggregated
