@@ -2,8 +2,50 @@
 
 import sqlite3
 import time
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+import pytest
 
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
+
+
+@pytest.fixture
+def foreign_system_tz(monkeypatch):
+    """Give the process a system zone unlike every configured zone below, where TZ can change at runtime."""
+    if not hasattr(time, "tzset"):
+        yield
+        return
+    monkeypatch.setenv("TZ", "Pacific/Kiritimati")
+    time.tzset()
+    yield
+    monkeypatch.undo()
+    time.tzset()
+
+
+# Each retention job that spares pinned days, with the rows it prunes.
+_RETENTION_JOBS = pytest.mark.parametrize(("prune", "rows"), [
+    (lambda storage, tid, zone: storage.cleanup(7, zone), lambda storage, tid: storage.get_samples(tid)),
+    (lambda storage, tid, zone: storage.aggregate_raw_to_buckets(tid, cutoff=time.time(), tz_name=zone),
+     lambda storage, tid: storage.get_samples(tid)),
+    (lambda storage, tid, zone: storage.cleanup_traces(7, zone), lambda storage, tid: storage.get_traces(tid)),
+], ids=["cleanup", "aggregate", "traces"])
+
+
+def _store(storage, stamps):
+    """Store one trace and one sample per timestamp on a new target; return its id."""
+    tid = storage.create_target("Test", "1.1.1.1")
+    for ts in stamps:
+        storage.save_trace(tid, ts, "scheduled", [], "fp", True)
+    storage.save_samples([
+        {"target_id": tid, "timestamp": ts, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"}
+        for ts in stamps
+    ])
+    return tid
+
+
+def _kept(storage, rows, tid):
+    return sorted(r["timestamp"] for r in rows(storage, tid))
 
 
 class TestTargetCRUD:
@@ -172,27 +214,73 @@ class TestPinnedDays:
         storage.pin_day("2026-03-10")
         assert storage.is_day_pinned("2026-03-10") is True
 
-    def test_cleanup_skips_pinned_days(self, storage):
-        """Pinned day samples should survive cleanup."""
-        tid = storage.create_target("Test", "1.1.1.1")
-        now = time.time()
-        # Sample from 10 days ago
-        from datetime import datetime
-        old_ts = now - (10 * 86400)
-        old_date = datetime.fromtimestamp(old_ts).strftime("%Y-%m-%d")
-        storage.pin_day(old_date)
-        storage.save_samples([
-            {"target_id": tid, "timestamp": old_ts, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
-        ])
-        deleted = storage.cleanup(retention_days=7)
-        assert deleted == 0
-        assert len(storage.get_samples(tid)) == 1
+    @pytest.mark.parametrize(("zone", "day"), [
+        ("UTC", "2026-07-10"),
+        ("UTC", "1969-12-31"),  # stored before pin dates were limited to 1970 onwards
+        ("Europe/Berlin", "2026-07-10"),
+        ("Europe/Berlin", "2026-03-29"),  # DST starts
+        ("Europe/Berlin", "2026-10-25"),  # DST ends
+        ("Asia/Tokyo", "2026-07-10"),
+        ("America/New_York", "2026-07-10"),
+        ("America/New_York", "2026-03-08"),  # DST starts
+        ("America/New_York", "2026-11-01"),  # DST ends
+        ("Pacific/Honolulu", "2026-07-10"),
+    ])
+    @_RETENTION_JOBS
+    def test_retention_keeps_exactly_the_pinned_local_day(self, storage, foreign_system_tz, zone, day, prune, rows):
+        """Rows are kept for the pinned day in the configured zone, not the UTC or system day."""
+        midnight = datetime.fromisoformat(day).replace(tzinfo=ZoneInfo(zone))
+        # Local wall clock: 23:30 the day before; 00:30, 23:30 and 23:59:59.9997 on the pinned day; 00:30 the day after
+        offsets = (timedelta(minutes=-30), timedelta(minutes=30), timedelta(hours=23.5),
+                   timedelta(days=1, microseconds=-300), timedelta(hours=24.5))
+        stamps = [(midnight + offset).timestamp() for offset in offsets]
+        storage.pin_day(day)
+        tid = _store(storage, stamps)
+
+        prune(storage, tid, zone)
+
+        assert _kept(storage, rows, tid) == stamps[1:4]
+
+    @_RETENTION_JOBS
+    def test_retention_honours_a_pin_committed_just_before_its_write(self, storage, monkeypatch, prune, rows):
+        ts = datetime(2026, 7, 10, 12, tzinfo=timezone.utc).timestamp()
+        tid = _store(storage, [ts])
+        write = storage._write
+
+        def pin_then_write():
+            monkeypatch.setattr(storage, "_write", write)
+            storage.pin_day("2026-07-10")
+            return write()
+
+        monkeypatch.setattr(storage, "_write", pin_then_write)
+        prune(storage, tid, "UTC")
+
+        assert _kept(storage, rows, tid) == [ts]
+
+    @pytest.mark.parametrize(("extra_pins", "warnings"), [
+        (["0001-01-01", "not-a-date", b"2026-07-11"], 3),
+        ([str(date(2020, 1, 1) + timedelta(days=i)) for i in range(1500)], 0),
+    ], ids=["unconvertible", "1500-pins"])
+    @_RETENTION_JOBS
+    def test_retention_copes_with_unconvertible_and_many_pins(self, storage, caplog, prune, rows, extra_pins, warnings):
+        """A stored pin that cannot be converted is skipped and logged; many pins still fit in one query."""
+        with storage._write() as conn:
+            conn.executemany(
+                "INSERT INTO connection_monitor_pinned_days (date, created_at) VALUES (?, 0)",
+                [(d,) for d in ["2026-07-10", *extra_pins]],
+            )
+        pinned, unpinned = (datetime(2026, 7, d, 12, tzinfo=timezone.utc).timestamp() for d in (10, 11))
+        tid = _store(storage, [pinned, unpinned])
+
+        prune(storage, tid, "Europe/Berlin")
+
+        assert _kept(storage, rows, tid) == [pinned]
+        assert len([r for r in caplog.records if "cannot be converted" in r.getMessage()]) == warnings
 
     def test_cleanup_deletes_unpinned(self, storage):
         """After unpinning, cleanup should delete old samples."""
         tid = storage.create_target("Test", "1.1.1.1")
         now = time.time()
-        from datetime import datetime
         old_ts = now - (10 * 86400)
         old_date = datetime.fromtimestamp(old_ts).strftime("%Y-%m-%d")
         storage.pin_day(old_date)
@@ -201,22 +289,20 @@ class TestPinnedDays:
         ])
         # Unpin and cleanup
         storage.unpin_day(old_date)
-        deleted = storage.cleanup(retention_days=7)
+        deleted = storage.cleanup(retention_days=7, tz_name="UTC")
         assert deleted == 1
         assert len(storage.get_samples(tid)) == 0
 
     def test_aggregation_skips_pinned_days(self, storage):
         """Raw samples for pinned days should survive aggregation."""
         tid = storage.create_target("Test", "1.1.1.1")
-        from datetime import datetime
         base = 1700000000.0
-        base_date = datetime.fromtimestamp(base + 5).strftime("%Y-%m-%d")
-        storage.pin_day(base_date)
+        storage.pin_day("2023-11-14")
         storage.save_samples([
             {"target_id": tid, "timestamp": base + 5, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
             {"target_id": tid, "timestamp": base + 10, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
         ])
-        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, bucket_seconds=60)
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, tz_name="UTC", bucket_seconds=60)
         # Raw samples should still exist (pinned)
         raw = storage.get_samples(tid)
         assert len(raw) == 2
@@ -235,7 +321,7 @@ class TestRetention:
             {"target_id": tid, "timestamp": old_ts, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
             {"target_id": tid, "timestamp": new_ts, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
         ])
-        deleted = storage.cleanup(retention_days=7)
+        deleted = storage.cleanup(retention_days=7, tz_name="UTC")
         assert deleted == 1
         result = storage.get_samples(tid)
         assert len(result) == 1
@@ -247,7 +333,7 @@ class TestRetention:
         storage.save_samples([
             {"target_id": tid, "timestamp": old_ts, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        deleted = storage.cleanup(retention_days=0)
+        deleted = storage.cleanup(retention_days=0, tz_name="UTC")
         assert deleted == 0
         assert len(storage.get_samples(tid)) == 1
 
@@ -268,7 +354,7 @@ class TestRetention:
                 (tid, old_ts),
             )
 
-        deleted = storage.cleanup(retention_days=180)
+        deleted = storage.cleanup(retention_days=180, tz_name="UTC")
         assert deleted == 1  # exactly one aggregated row
 
         agg = storage.get_aggregated_samples(tid, bucket_seconds=3600)
@@ -362,7 +448,7 @@ class TestAggregation:
             {"target_id": tid, "timestamp": base + 20, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
         ]
         storage.save_samples(samples)
-        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, bucket_seconds=60)
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, tz_name="UTC", bucket_seconds=60)
         raw = storage.get_samples(tid)
         assert len(raw) == 0
         agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
@@ -384,7 +470,7 @@ class TestAggregation:
             {"target_id": tid, "timestamp": base + 10, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
         ]
         storage.save_samples(samples)
-        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, bucket_seconds=60)
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, tz_name="UTC", bucket_seconds=60)
         agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
         assert len(agg) == 1
         bucket = agg[0]
@@ -404,7 +490,7 @@ class TestAggregation:
             {"target_id": tid, "timestamp": base + 65, "latency_ms": 50.0, "timeout": False, "probe_method": "tcp"},
         ]
         storage.save_samples(samples)
-        created = storage.aggregate_raw_to_buckets(tid, cutoff=base + 200, bucket_seconds=60)
+        created = storage.aggregate_raw_to_buckets(tid, cutoff=base + 200, tz_name="UTC", bucket_seconds=60)
         assert created == 2
         agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
         assert len(agg) == 2
@@ -420,7 +506,7 @@ class TestAggregation:
             {"target_id": tid, "timestamp": base + 100, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
         ]
         storage.save_samples(samples)
-        storage.aggregate_raw_to_buckets(tid, cutoff=base + 50, bucket_seconds=60)
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 50, tz_name="UTC", bucket_seconds=60)
         raw = storage.get_samples(tid)
         assert len(raw) == 1
         assert raw[0]["latency_ms"] == 20.0
@@ -434,7 +520,7 @@ class TestAggregation:
         storage.save_samples([
             {"target_id": tid, "timestamp": base + 5, "latency_ms": 42.0, "timeout": False, "probe_method": "tcp"},
         ])
-        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, bucket_seconds=60)
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, tz_name="UTC", bucket_seconds=60)
         agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
         assert len(agg) == 1
         bucket = agg[0]
@@ -452,7 +538,7 @@ class TestAggregation:
         storage.save_samples([
             {"target_id": tid, "timestamp": base + 5, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        created = storage.aggregate_raw_to_buckets(tid, cutoff=base, bucket_seconds=60)
+        created = storage.aggregate_raw_to_buckets(tid, cutoff=base, tz_name="UTC", bucket_seconds=60)
         assert created == 0
         assert len(storage.get_samples(tid)) == 1
         assert len(storage.get_aggregated_samples(tid, bucket_seconds=60)) == 0
@@ -564,7 +650,7 @@ class TestAggregation:
         })
         storage.save_samples(samples)
 
-        storage.aggregate()
+        storage.aggregate("UTC")
 
         # Recent raw sample preserved
         raw = storage.get_samples(tid)
