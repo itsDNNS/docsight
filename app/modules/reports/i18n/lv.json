@@ -108,7 +108,7 @@
   "complaint_req3": "Rakstiska dokumentācija par konstatējumiem un korektīvajām darbībām",
   "complaint_escalation": "Monitoringa kopsavilkums ir iekļauts šajā ziņojumā. Es paturu tiesības vērsties pie šīs lietas Bundesnetzagentur (Federālā tīkla aģentūra), ja problēma netiek atrisināta saprātīgā termiņā.",
   "complaint_closing_label": "Ar cieņu",
-  "complaint_closing": "Ar cieņu\n[Tavs vārds]\n[Klienta numurs]\n[Adrese]",
+  "complaint_closing": "Ar cieņu\n[Vārds, uzvārds]\n[Klienta numurs]\n[Adrese]",
   "complaint_short_subject": "Temats: DOCSIS signāla kvalitātes problēmas",
   "complaint_short_greeting": "Cien. tehniskais atbalsts!",
   "complaint_short_body": "Man ir pastāvīgas signāla kvalitātes problēmas ar interneta kabeļa savienojumu. Sīkāku informāciju skatiet pievienotajos monitoringa datos.",

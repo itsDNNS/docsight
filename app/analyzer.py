@@ -532,7 +532,7 @@ def _parse_channel_id(val):
     """Parse channel ID to int, handling float strings like '1.0'."""
     try:
         return int(float(val))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return 0
 
 

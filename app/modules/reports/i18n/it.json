@@ -108,7 +108,7 @@
   "complaint_req3": "Documentazione scritta dei rilievi e delle azioni correttive",
   "complaint_escalation": "La sintesi del monitoraggio è inclusa nel presente rapporto. Mi riservo il diritto di inoltrare la questione alla Bundesnetzagentur (Agenzia federale per la rete) se il problema non viene risolto entro un periodo di tempo ragionevole.",
   "complaint_closing_label": "Cordiali saluti,",
-  "complaint_closing": "Cordiali saluti,\n[Il tuo nome]\n[Numero cliente]\n[Indirizzo]",
+  "complaint_closing": "Cordiali saluti,\n[Nome e cognome]\n[Numero cliente]\n[Indirizzo]",
   "complaint_short_subject": "Oggetto: DOCSIS Problemi di qualità del segnale",
   "complaint_short_greeting": "Gentile supporto tecnico,",
   "complaint_short_body": "Riscontro persistenti problemi di qualità del segnale con la mia connessione Internet via cavo. Per i dettagli consultare i dati di monitoraggio allegati.",

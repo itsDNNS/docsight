@@ -108,7 +108,7 @@
   "complaint_req3": "Pisna dokumentacija ugotovitev in korektivnih ukrepov",
   "complaint_escalation": "Povzetek spremljanja je vključen v to poročilo. Pridržujem si pravico, da to zadevo posredujem Bundesnetzagentur (Zvezna agencija za omrežja), če težava ne bo rešena v razumnem roku.",
   "complaint_closing_label": "Lep pozdrav,",
-  "complaint_closing": "Lep pozdrav,\n[Vaše ime]\n[številka stranke]\n[naslov]",
+  "complaint_closing": "Lep pozdrav,\n[Vaše ime]\n[Številka stranke]\n[Naslov]",
   "complaint_short_subject": "Zadeva: DOCSIS Težave s kakovostjo signala",
   "complaint_short_greeting": "Spoštovana tehnična podpora,",
   "complaint_short_body": "S kabelsko internetno povezavo imam stalne težave s kakovostjo signala. Za podrobnosti si oglejte priložene podatke o spremljanju.",

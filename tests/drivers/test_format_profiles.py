@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from bs4 import BeautifulSoup
 import pytest
 
@@ -267,11 +269,123 @@ def test_hitron_ofdma_row_dropped_as_invalid_reports_only_the_invalid_row(parse)
     assert [issue.code for issue in parse().diagnostics] == ["invalid_row"]
 
 
-@pytest.mark.parametrize(("power", "expected"), [(0, "0.0"), (-0.0, "0.0"), ("-0.0 dBmV", "-0.0")])
-def test_ultrahub7_numeric_zero_power_is_unsigned(power, expected):
-    row = {"ChannelID": "7", "PowerLevel": power}
-    value = parse_ultrahub7_json({"downstream": [row], "upstream": [row]}).value
-    assert [repr(channel["powerLevel"]) for channel in value["downstream"] + value["upstream"]] == [expected] * 2
+def _lanes(value: dict) -> list[dict]:
+    if "downstream" in value:
+        return value["downstream"] + value["upstream"]
+    return [channel for side in ("channelDs", "channelUs") for lane in value[side].values() for channel in lane]
+
+
+_ABSENT = object()
+
+
+def _present(**fields):
+    return {key: value for key, value in fields.items() if value is not _ABSENT}
+
+
+def _rows(reading, ids, frequencies):
+    return list(zip(ids, frequencies or (reading,) * len(ids)))
+
+
+def _cga(reading, ids=("7",), frequencies=None):
+    lanes = {
+        "downstream": lambda cid, freq: _present(channelid=cid, CentralFrequency=freq, power=reading, SNR=reading),
+        "ofdm_downstream": lambda cid, freq: _present(
+            channelid_ofdm=cid, CentralFrequency_ofdm=freq, power_ofdm=reading, SNR_ofdm=reading,
+        ),
+        "upstream": lambda cid, freq: _present(channelidup=cid, CentralFrequency=freq, power=reading),
+        "ofdma_upstream": lambda cid, freq: _present(channelidup=cid, CentralFrequency=freq, power=reading),
+    }
+    rows = _rows(reading, ids, frequencies)
+    return parse_vodafone_station_cga_json({lane: [row(*r) for r in rows] for lane, row in lanes.items()})
+
+
+def _tg(reading, ids=(7,), frequencies=None):
+    rows = json.dumps([
+        _present(ChannelID=cid, Frequency=freq, PowerLevel=reading, SNRLevel=reading)
+        for cid, freq in _rows(reading, ids, frequencies)
+    ])
+    return parse_vodafone_station_tg_embedded_json(f"<script>json_dsData={rows};json_usData={rows};</script>")
+
+
+def _ultrahub7(reading, ids=("7",), frequencies=None):
+    rows = [
+        _present(ChannelID=cid, Frequency=freq, PowerLevel=reading, SNRLevel=reading)
+        for cid, freq in _rows(reading, ids, frequencies)
+    ]
+    return parse_ultrahub7_json({"downstream": rows, "upstream": rows})
+
+
+# Each profile keeps its established form of a missing frequency so channel history continues.
+@pytest.mark.parametrize(("parse", "missing_frequency", "lanes"), [
+    (_ultrahub7, "0 MHz", 2), (_cga, "", 4), (_tg, "", 2),
+])
+@pytest.mark.parametrize(("reading", "power", "frequency"), [
+    *[(reading, power, reading) for reading, power in (
+        (0, "0.0"), (-0.0, "0.0"), ("-0.0 dBmV", "-0.0"),
+        (_ABSENT, "None"), (None, "None"), ("", "None"), (" ", "None"), ("N/A", "None"), (False, "None"),
+    )],
+    # A non-finite frequency drops the row (see below), so these readings go with a missing frequency.
+    *[(reading, "None", _ABSENT) for reading in ("NaN", "Infinity", "1e400")],
+])
+def test_vodafone_keeps_zero_power_and_reports_unreadable_readings_as_none(
+    parse, missing_frequency, lanes, reading, power, frequency,
+):
+    channels = _lanes(parse(reading, frequencies=(frequency,)).value)
+    assert [
+        (channel["frequency"], repr(channel["powerLevel"]), channel.get("mer"), channel.get("mse"))
+        for channel in channels
+    ] == [(missing_frequency, power, None, None)] * lanes
+
+
+@pytest.mark.parametrize(("parse", "ids", "frequencies", "kept", "lanes"), [
+    (_cga, (7, 193.0), None, [7, 193], 4),
+    (_cga, (None, "7"), None, [0, 7], 4),
+    *[(_cga, (bad, "7"), None, [7], 4) for bad in (True, False, [7], {"bad": 7}, "Infinity")],
+    (_ultrahub7, (float("inf"), "7"), None, ["7"], 2),
+    (_tg, ("Infinity", 7), None, [7], 2),
+    # A non-empty list or object as frequency is malformed on the CGA variant; elsewhere it reads as missing.
+    (_cga, ("7",), ([591],), [], 4), (_cga, ("7",), ({"MHz": 591},), [], 4), (_cga, ("7",), ([],), [7], 4),
+    (_tg, (7,), ([591],), [7], 2), (_ultrahub7, ("7",), ([591],), ["7"], 2),
+    # A non-finite frequency is invalid, so it cannot shadow a row with the same ID and a missing frequency.
+    *[(parse, (cid, cid), (bad, _ABSENT), [kept], lanes)
+      for parse, cid, kept, lanes in ((_cga, "7", 7, 4), (_tg, 7, 7, 2), (_ultrahub7, "7", "7", 2))
+      for bad in ("NaN", "Infinity", "1e400")],
+])
+def test_vodafone_drops_only_rows_with_invalid_ids_or_malformed_frequency(parse, ids, frequencies, kept, lanes):
+    result = parse("1.5", ids, frequencies)
+    assert [channel["channelID"] for channel in _lanes(result.value)] == kept * lanes
+    assert [issue.code for issue in result.diagnostics] == ["invalid_channel"] * (len(ids) - len(kept)) * lanes
+
+
+@pytest.mark.parametrize(("chid", "freq", "power", "mer", "expected"), [
+    ("7", "602000000", None, None, [(None, None)] * 2),
+    ("7", "591 MHz", "N/A", None, [(None, None)] * 2),
+    ("7", "591 MHz", "nan", None, [(None, None)] * 2),
+    ("7", "591 MHz", "1.5", "N/A", [(1.5, None)] * 2),
+    ("7", "591 MHz", "1.5", "Infinity", [(1.5, None)] * 2),
+    ("7", None, None, None, []),
+    ("7", "Unlocked", "N/A", None, []),
+    ("7", "591MHz", None, None, [(None, None)] * 2),
+    ("7", "+591 MHz", None, None, [(None, None)] * 2),
+    ("7", "591 MHz Unlocked", "N/A", None, []),
+    ("7", "1" + "0" * 400 + " MHz", None, None, []),
+    pytest.param("7", "9" * 1_000_001 + " MHz", None, None, [], id="frequency-beyond-decimal-range"),
+    pytest.param("7", "9" * 1_000_001 + " MHz", "1.5", None, [(1.5, None)] * 2, id="same-frequency-with-power"),
+    ("0", "591 MHz", "N/A", None, []),
+    ("0", None, "N/A", None, []),
+])
+def test_ch7465_unreadable_readings_are_none_and_only_plausible_rows_are_kept(chid, freq, power, mer, expected):
+    def row(id_tag, power_tag):
+        fields = ((id_tag, chid), ("freq", freq), (power_tag, power), ("RxMER", mer))
+        return "".join(f"<{tag}>{text}</{tag}>" for tag, text in fields if text is not None)
+
+    result = parse_ch7465_xml(
+        f"<root><downstream>{row('chid', 'pow')}</downstream></root>",
+        f"<root><upstream>{row('usid', 'power')}</upstream></root>",
+    )
+    channels = result.value["downstream"] + result.value["upstream"]
+    assert [(channel["powerLevel"], channel.get("mer")) for channel in channels] == expected
+    assert [issue.code for issue in result.diagnostics] == ([] if expected else ["invalid_channel"] * 2)
 
 
 def test_result_and_diagnostics_are_immutable_contract_objects():
