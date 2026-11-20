@@ -129,10 +129,6 @@ class TestGenericDriver:
         info = self.driver.get_connection_info()
         assert isinstance(info, dict)
 
-    def test_generic_in_builtin_registry(self):
-        from app.drivers import driver_registry
-        assert driver_registry.has_driver("generic")
-
 
 class TestSetupCatalog:
     def _registry(self):

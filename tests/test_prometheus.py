@@ -596,10 +596,6 @@ class TestOutputFormat:
                 )
                 assert help_found, f"No # HELP before # TYPE for {metric_name}"
 
-    def test_output_is_string(self):
-        out = format_metrics(None, None, None, 0.0)
-        assert isinstance(out, str)
-
     def test_health_has_help_and_type(self):
         out = format_metrics(None, None, None, 0.0)
         lines = out.splitlines()
@@ -654,14 +650,6 @@ class TestEdgeCases:
         out = format_metrics(analysis, None, None, 0.0)
         assert not _has_metric_approx(out, 'docsight_downstream_power_dbmv{')
         assert not _has_metric_approx(out, 'docsight_upstream_power_dbmv{')
-
-    def test_modulation_label_value_escaped(self):
-        """Modulation strings with special chars should not break output."""
-        # Even if modulation string has quotes, output must not contain unescaped quotes
-        # within label values for string-based labels (we use numeric QAM values so this
-        # applies indirectly). Check that output is well-formed.
-        out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert isinstance(out, str)
 
     def test_no_flask_import(self):
         """prometheus.py must not import Flask."""

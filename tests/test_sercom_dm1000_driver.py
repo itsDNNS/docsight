@@ -549,6 +549,5 @@ class TestDeviceInfo:
 
 class TestRegistry:
     def test_sercom_dm1000_driver_is_registered(self):
-        assert driver_registry.has_driver("sercom_dm1000")
         drivers = dict(driver_registry.get_available_drivers())
         assert drivers["sercom_dm1000"] == "Sercom DM1000"

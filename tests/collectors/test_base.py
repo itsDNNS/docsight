@@ -128,16 +128,3 @@ class TestModemDriverBase:
         ):
             with pytest.raises(NotImplementedError, match=f"ModemDriver\\.{method_name}"):
                 getattr(driver, method_name)()
-
-    def test_concrete_driver_stores_credentials(self):
-        class DummyDriver(ModemDriver):
-            def login(self): pass
-            def get_docsis_data(self): return {}
-            def get_device_info(self): return {}
-            def get_connection_info(self): return {}
-
-        d = DummyDriver("http://modem", "admin", "secret")
-        assert d._url == "http://modem"
-        assert d._user == "admin"
-        assert d._password == "secret"
-

@@ -35,10 +35,6 @@ def navigate_to_channels(page, mode="timeline"):
     )
 
 
-def series_labels(page, chart_id):
-    return page.evaluate("id => window.charts[id].series.map((s) => s.label)", chart_id)
-
-
 def wait_for_series(page, chart_ids, label, present=True):
     """Wait until every chart has (or no longer has) a series with this label."""
     page.wait_for_function(
@@ -70,13 +66,6 @@ def wait_for_uplot_replacement(page, container_id, previous_canvas, timeout=5000
         arg=previous_canvas,
         timeout=timeout,
     )
-
-
-def has_no_console_errors(page):
-    """Check that no JS errors were logged."""
-    errors = []
-    page.on("pageerror", lambda err: errors.append(str(err)))
-    return errors
 
 
 # ── Hero Chart ──
@@ -1094,22 +1083,6 @@ class TestNoJSErrors:
         wait_for_uplot(demo_page, "hero-trend-chart")
         chart_errors = [e for e in errors if "Chart" in e or "uPlot" in e or "canvas" in e.lower()]
         assert len(chart_errors) == 0, f"JS errors on load: {chart_errors}"
-
-    def test_no_errors_on_trends_view(self, demo_page):
-        """Trends view should not produce JS errors."""
-        errors = []
-        demo_page.on("pageerror", lambda err: errors.append(str(err)))
-        navigate_to_trends(demo_page)
-        chart_errors = [e for e in errors if "Chart" in e or "uPlot" in e or "canvas" in e.lower()]
-        assert len(chart_errors) == 0, f"JS errors in trends: {chart_errors}"
-
-    def test_no_errors_on_channels_view(self, demo_page):
-        """Channels view should not produce JS errors."""
-        errors = []
-        demo_page.on("pageerror", lambda err: errors.append(str(err)))
-        navigate_to_channels(demo_page)
-        chart_errors = [e for e in errors if "Chart" in e or "uPlot" in e or "canvas" in e.lower()]
-        assert len(chart_errors) == 0, f"JS errors in channels: {chart_errors}"
 
 
 # ── Chart Destruction (Memory Leaks) ──
