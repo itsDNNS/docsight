@@ -127,6 +127,14 @@ def _mock_post(responses):
     return mock_post
 
 
+def _lanes(driver, key, channels):
+    """Poll once with one direction's channels and return its DOCSIS 3.0 and 3.1 lanes."""
+    ds, us = (channels, []) if key == "channelDs" else ([], channels)
+    with patch.object(driver, "_api_call", return_value=_docsis_response(ds, us)):
+        lanes = driver.get_docsis_data()[key]
+    return lanes["docsis30"], lanes["docsis31"]
+
+
 # -- Authentication tests --
 
 class TestAuthentication:
@@ -277,7 +285,7 @@ class TestDownstreamParsing:
             "UncorrectableCodewords": 2,
             "SymbolRate": 6952,
         }]
-        ds30, ds31 = driver._parse_downstream(channels)
+        ds30, ds31 = _lanes(driver, "channelDs", channels)
 
         assert len(ds30) == 1
         assert len(ds31) == 0
@@ -306,7 +314,7 @@ class TestDownstreamParsing:
             "UncorrectableCodewords": 0,
             "SymbolRate": 0,
         }]
-        ds30, ds31 = driver._parse_downstream(channels)
+        ds30, ds31 = _lanes(driver, "channelDs", channels)
 
         assert len(ds30) == 0
         assert len(ds31) == 1
@@ -326,7 +334,7 @@ class TestDownstreamParsing:
             "UnerroredCodewords": 0, "CorrectableCodewords": 0,
             "UncorrectableCodewords": 0, "SymbolRate": 0,
         }]
-        ds30, ds31 = driver._parse_downstream(channels)
+        ds30, ds31 = _lanes(driver, "channelDs", channels)
         assert len(ds30) == 0
         assert len(ds31) == 0
 
@@ -343,12 +351,12 @@ class TestDownstreamParsing:
              "UnerroredCodewords": 0, "CorrectableCodewords": 0,
              "UncorrectableCodewords": 0, "SymbolRate": 0},
         ]
-        ds30, ds31 = driver._parse_downstream(channels)
+        ds30, ds31 = _lanes(driver, "channelDs", channels)
         assert len(ds30) == 1
         assert len(ds31) == 1
 
     def test_empty_channels(self, driver):
-        ds30, ds31 = driver._parse_downstream([])
+        ds30, ds31 = _lanes(driver, "channelDs", [])
         assert ds30 == []
         assert ds31 == []
 
@@ -369,7 +377,7 @@ class TestUpstreamParsing:
             "Modulation31": "",
             "Frequency31": "",
         }]
-        us30, us31 = driver._parse_upstream(channels)
+        us30, us31 = _lanes(driver, "channelUs", channels)
 
         assert len(us30) == 1
         assert len(us31) == 0
@@ -393,7 +401,7 @@ class TestUpstreamParsing:
             "Modulation31": "qam1024(profile5)",
             "Frequency31": "108.500Mhz - 203.250Mhz",
         }]
-        us30, us31 = driver._parse_upstream(channels)
+        us30, us31 = _lanes(driver, "channelUs", channels)
 
         assert len(us30) == 0
         assert len(us31) == 1
@@ -412,7 +420,7 @@ class TestUpstreamParsing:
              "Frequency": 104800000.0, "SymbolRate": 0, "PowerLevel": 88.0,
              "Modulation": "ofdma", "ProfileID31": "3", "Modulation31": "", "Frequency31": ""},
         ]
-        us30, us31 = driver._parse_upstream(channels)
+        us30, us31 = _lanes(driver, "channelUs", channels)
         assert len(us30) == 1
         assert len(us31) == 1
 
@@ -490,6 +498,14 @@ class TestFullDataFlow:
 
         assert len(result["channelDs"]["docsis30"]) == 1
         assert len(result["channelUs"]["docsis30"]) == 1
+
+    def test_invalid_upstream_payload_raises_without_relogin(self, driver):
+        with (
+            patch.object(driver, "login") as login,
+            pytest.raises(ValueError, match="invalid Sagemcom upstream payload"),
+        ):
+            _lanes(driver, "channelUs", [{"LockStatus": True, "Modulation": None}])
+        login.assert_not_called()
 
     def test_get_device_info(self, driver):
         driver._session.post = _mock_post([

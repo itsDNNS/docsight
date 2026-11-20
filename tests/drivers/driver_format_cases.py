@@ -133,6 +133,17 @@ def _flat(downstream=None, upstream=None) -> dict[str, Any]:
     return {"docsis": "3.1", "downstream": downstream or [], "upstream": upstream or []}
 
 
+def _poll(driver: Any, transport: str, **mock: Any) -> Any:
+    """Run the public driver poll with one transport attribute patched."""
+    with patch.object(driver, transport, **mock):
+        return driver.get_docsis_data()
+
+
+def _page(driver_cls: type, html: str) -> Any:
+    driver = driver_cls("http://modem.invalid", "user", "password")
+    return _poll(driver, "_session", **{"get.return_value": _Response(text=html)})
+
+
 def _fritz(raw: dict[str, Any]) -> Any:
     driver = FritzBoxDriver("http://modem.invalid", "user", "password")
     response = _Response(payload={"data": raw})
@@ -141,10 +152,8 @@ def _fritz(raw: dict[str, Any]) -> Any:
 
 
 def _tc(ds_html: str, us_html: str) -> Any:
-    driver = TC4400Driver("http://modem.invalid", "user", "password")
-    ds = BeautifulSoup(ds_html, "html.parser").find("table")
-    us = BeautifulSoup(us_html, "html.parser").find("table")
-    return _flat(driver._parse_downstream(ds), driver._parse_upstream(us))
+    # The status page carries a leading info table before the two channel tables.
+    return _page(TC4400Driver, "<table></table>" + ds_html + us_html)
 
 
 def _ultrahub(ds: list[dict[str, Any]], us: list[dict[str, Any]]) -> Any:
@@ -171,8 +180,7 @@ def _ch7465(ds_xml: str, us_xml: str) -> Any:
     def get_data(query: Query) -> str:
         return ds_xml if query is Query.DOWNSTREAM_TABLE else us_xml
 
-    with patch.object(driver, "_get_data", side_effect=get_data):
-        return driver.get_docsis_data()
+    return _poll(driver, "_get_data", side_effect=get_data)
 
 
 def _sb8200_cbn(ds: str, us: str, ofdm: str, ofdma: str, signal: str) -> Any:
@@ -207,28 +215,27 @@ def _cm3000_html(ds: str, us: str, ds_ofdm: str, us_ofdma: str) -> str:
 
 def _cm3000(html: str) -> Any:
     driver = CM3000Driver("http://modem.invalid", "admin", "password")
-    with patch.object(driver, "_fetch_status_page", return_value=html):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_status_page", return_value=html)
 
 
 def _cm1000(html: str) -> Any:
     driver = CM1000Driver("http://modem.invalid", "admin", "password")
-    with patch.object(driver, "_fetch_status_page", return_value=html):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_status_page", return_value=html)
 
 
 def _cm3500(html: str) -> Any:
     driver = CM3500Driver("http://modem.invalid", "admin", "password")
-    soup = BeautifulSoup(html, "html.parser")
-    with patch.object(driver, "_fetch_status_page", return_value=soup):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_status_page", return_value=BeautifulSoup(html, "html.parser"))
 
 
 def _surfboard(ds: str, us: str) -> Any:
     driver = SurfboardDriver("https://modem.invalid", "admin", "password")
-    ds30, ds31 = driver._parse_downstream(ds)
-    us30, us31 = driver._parse_upstream(us)
-    return _split(ds30, ds31, us30, us31)
+    driver._action_ns = "Customer"  # Skip the namespace probe.
+    reply = {"GetMultipleHNAPsResponse": {
+        "GetCustomerStatusDownstreamChannelInfoResponse": {"CustomerConnDownstreamChannel": ds},
+        "GetCustomerStatusUpstreamChannelInfoResponse": {"CustomerConnUpstreamChannel": us},
+    }}
+    return _poll(driver, "_hnap_post", return_value=reply)
 
 
 def _first_data_table(html: str, marker: str) -> Any:
@@ -246,23 +253,6 @@ def _first_data_table(html: str, marker: str) -> Any:
     return None
 
 
-def _sb6141(signal_html: str) -> Any:
-    driver = SB6141Driver("http://modem.invalid", "", "")
-    soup = BeautifulSoup(signal_html, "html.parser")
-    tables = soup.find_all("table")
-    ds = us = cw = None
-    for table in tables:
-        th = table.find("th")
-        heading = th.get_text(" ", strip=True).lower() if th else ""
-        if "downstream" in heading:
-            ds = table
-        elif "upstream" in heading:
-            us = table
-        elif "signal status" in heading or "codeword" in heading:
-            cw = table
-    return _split(driver._parse_downstream(ds, cw), [], driver._parse_upstream(us), [])
-
-
 def _row_html_driver(driver_cls: type, html: str) -> Any:
     driver = driver_cls("http://modem.invalid", "admin", "password")
     soup = BeautifulSoup(html, "html.parser")
@@ -273,34 +263,32 @@ def _row_html_driver(driver_cls: type, html: str) -> Any:
 
 def _hitron(payloads: dict[str, list[dict[str, Any]]]) -> Any:
     driver = HitronDriver("http://modem.invalid", "", "")
-    with patch.object(driver, "_fetch_json", side_effect=lambda path: payloads[path]):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_json", side_effect=lambda path: payloads[path])
 
 
 def _hitron_4680(payloads: dict[str, dict[str, Any]]) -> Any:
     driver = HitronCoda4680Driver("http://modem.invalid", "admin", "password")
-    with patch.object(driver, "_fetch_payload", side_effect=lambda path: payloads[path]):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_payload", side_effect=lambda path: payloads[path])
 
 
 def _sagemcom(ds: list[dict[str, Any]], us: list[dict[str, Any]]) -> Any:
     driver = SagemcomDriver("http://modem.invalid", "admin", "password")
-    ds30, ds31 = driver._parse_downstream(ds)
-    us30, us31 = driver._parse_upstream(us)
-    return _split(ds30, ds31, us30, us31)
+    reply = {"reply": {"actions": [{"callbacks": [
+        {"xpath": "Device/Docsis/CableModem/Downstreams", "parameters": {"value": ds}},
+        {"xpath": "Device/Docsis/CableModem/Upstreams", "parameters": {"value": us}},
+    ]}]}}
+    return _poll(driver, "_api_call", return_value=reply)
 
 
 def _f3896(ds: list[dict[str, Any]], us: list[dict[str, Any]]) -> Any:
     driver = F3896LGDriver("http://modem.invalid", "", "")
-    ds30, ds31 = driver._parse_downstream(ds)
-    us30, us31 = driver._parse_upstream(us)
-    return _split(ds30, ds31, us30, us31)
+    rows = {"downstream": ds, "upstream": us}
+    return _poll(driver, "_get_channels", side_effect=lambda _path, section: rows[section])
 
 
 def _pyur(payload: Any) -> Any:
     driver = PyurFast3896Driver("http://modem.invalid", "", "synthetic")
-    with patch.object(driver, "_get", return_value=payload):
-        return driver.get_docsis_data()
+    return _poll(driver, "_get", return_value=payload)
 
 
 def _sercom(
@@ -310,12 +298,8 @@ def _sercom(
     us_ofdma: list[dict[str, Any]],
 ) -> Any:
     driver = SercomDM1000Driver("http://modem.invalid", "technician", "password")
-    return _split(
-        driver._parse_ds_scqam(ds),
-        driver._parse_ds_ofdm(ds_ofdm),
-        driver._parse_us_scqam(us),
-        driver._parse_us_ofdma(us_ofdma),
-    )
+    nodes = {"RF_DS_param": ds, "RF_DS_31_param": ds_ofdm, "RF_US_param": us, "RF_US_31_param": us_ofdma}
+    return _poll(driver, "_fetch_payload", side_effect=lambda todo: {"nodes": nodes[todo]})
 
 
 def _cgm(ds: dict[str, list[str]], us: dict[str, list[str]], errors: dict[str, list[str]]) -> Any:
@@ -554,9 +538,9 @@ def _cases() -> list[DriverFormatCase]:
         [{"channelID": 7, "frequency": "591 MHz", "powerLevel": 0.0, "mer": 40.0, "mse": -40.0, "modulation": "256QAM", "corrErrors": 3, "nonCorrErrors": 1}], [],
         [{"channelID": 3, "frequency": "29.2 MHz", "powerLevel": 43.5, "modulation": "64QAM", "multiplex": "SC-QAM"}], [],
     )
-    add("sb6141_transposed_html.success", "sb6141", "sb6141_transposed_html", "captured-subset", lambda: _sb6141(SB6141_SUCCESS), sb6141_expected)
-    add("sb6141_transposed_html.empty_document", "sb6141", "sb6141_transposed_html", "minimal-empty", lambda: _sb6141("<html></html>"), EMPTY_SPLIT)
-    add("sb6141_transposed_html.malformed_channel_id", "sb6141", "sb6141_transposed_html", "minimal-synthetic-malformed", lambda: _sb6141(SB6141_SUCCESS.replace("<td>7</td>", "<td>bad</td>", 1).replace("<td>3</td>", "<td>bad</td>", 1)), EMPTY_SPLIT)
+    add("sb6141_transposed_html.success", "sb6141", "sb6141_transposed_html", "captured-subset", lambda: _page(SB6141Driver, SB6141_SUCCESS), sb6141_expected)
+    add("sb6141_transposed_html.empty_document", "sb6141", "sb6141_transposed_html", "minimal-empty", lambda: _page(SB6141Driver, "<html></html>"), EMPTY_SPLIT)
+    add("sb6141_transposed_html.malformed_channel_id", "sb6141", "sb6141_transposed_html", "minimal-synthetic-malformed", lambda: _page(SB6141Driver, SB6141_SUCCESS.replace("<td>7</td>", "<td>bad</td>", 1).replace("<td>3</td>", "<td>bad</td>", 1)), EMPTY_SPLIT)
 
     from tests.test_sb6183_driver import SAMPLE_STATUS_HTML as SB6183_HTML
     from tests.test_sb6190_driver import SAMPLE_STATUS_HTML as SB6190_HTML

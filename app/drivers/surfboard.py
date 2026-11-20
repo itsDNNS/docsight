@@ -37,8 +37,7 @@ from .base import ModemDriver
 from .formats.primitives import hz_to_mhz
 from .formats.surfboard import (
     normalize_surfboard_modulation,
-    parse_surfboard_downstream,
-    parse_surfboard_upstream,
+    parse_surfboard_hnap,
 )
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
@@ -643,13 +642,7 @@ class SurfboardDriver(ModemDriver):
         elif (ds_raw or us_raw) and not self._action_ns:
             self._action_ns = "Customer"
 
-        ds30, ds31 = self._parse_downstream(ds_raw)
-        us30, us31 = self._parse_upstream(us_raw)
-
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        return parse_surfboard_hnap(ds_raw, us_raw).value
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device model and firmware from HNAP."""
@@ -823,12 +816,6 @@ class SurfboardDriver(ModemDriver):
         raise last_err
 
     # Compatibility parser seams.
-
-    def _parse_downstream(self, raw: str) -> tuple[list, list]:
-        return parse_surfboard_downstream(raw).value
-
-    def _parse_upstream(self, raw: str) -> tuple[list, list]:
-        return parse_surfboard_upstream(raw).value
 
     @staticmethod
     def _hz_to_mhz(freq_hz: int) -> str:

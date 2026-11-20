@@ -26,10 +26,9 @@ from .formats.sagemcom import (
     _sagemcom_frequency,
     _sagemcom_is_ofdm,
     _sagemcom_modulation,
-    parse_sagemcom_xmo_downstream,
-    parse_sagemcom_xmo_upstream,
+    parse_sagemcom_xmo_json,
 )
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
 
 log = logging.getLogger("docsis.driver.sagemcom")
 
@@ -189,13 +188,11 @@ class SagemcomDriver(ModemDriver):
                 elif "Upstreams" in xpath:
                     us_raw = values
 
-        ds30, ds31 = self._parse_downstream(ds_raw)
-        us30, us31 = self._parse_upstream(us_raw)
-
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        data = parse_sagemcom_xmo_json({"downstream": ds_raw, "upstream": us_raw}).value
+        if data is None:
+            # Not a RuntimeError: get_docsis_data would treat that as an expired session.
+            raise ValueError("invalid Sagemcom upstream payload")
+        return data
 
     def get_device_info(self) -> DeviceInfo:
         try:
@@ -295,12 +292,6 @@ class SagemcomDriver(ModemDriver):
         return json.dumps(obj, separators=(",", ":"))
 
     # Compatibility parser seams.
-
-    def _parse_downstream(self, channels: list[dict[str, object]]) -> tuple[list[RawChannel], list[RawChannel]]:
-        return parse_sagemcom_xmo_downstream(channels).value
-
-    def _parse_upstream(self, channels: list[dict[str, object]]) -> tuple[list[RawChannel], list[RawChannel]]:
-        return parse_sagemcom_xmo_upstream(channels).value
 
     @staticmethod
     def _hz_to_mhz(freq_hz) -> str:

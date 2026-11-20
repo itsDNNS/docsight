@@ -32,9 +32,9 @@ import logging
 
 import requests
 
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
-from .formats.sagemcom import parse_f3896lg_downstream, parse_f3896lg_upstream
+from .formats.sagemcom import parse_f3896lg_rest_json
 from .format_compat import unwrap_f3896lg
 
 log = logging.getLogger("docsis.driver.f3896lg")
@@ -84,15 +84,11 @@ class F3896LGDriver(ModemDriver):
             raise RuntimeError("F3896LG REST API returned unexpected registration payload")
 
     def get_docsis_data(self) -> DocsisData:
-        ds = self._get_channels("cablemodem/downstream", "downstream")
-        us = self._get_channels("cablemodem/upstream", "upstream")
-
-        ds30, ds31 = self._parse_downstream(ds)
-        us30, us31 = self._parse_upstream(us)
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
+        payload = {
+            "downstream": self._get_channels("cablemodem/downstream", "downstream"),
+            "upstream": self._get_channels("cablemodem/upstream", "upstream"),
         }
+        return unwrap_f3896lg(parse_f3896lg_rest_json(payload), payload, log)
 
     def get_device_info(self) -> DeviceInfo:
         info: DeviceInfo = {
@@ -141,11 +137,3 @@ class F3896LGDriver(ModemDriver):
         except (requests.RequestException, RuntimeError, ValueError, TypeError) as e:
             log.warning("F3896LG connection info fetch failed: %s", e)
         return out
-
-    # Compatibility parser seams.
-
-    def _parse_downstream(self, channels: list[dict]) -> tuple[list[RawChannel], list[RawChannel]]:
-        return unwrap_f3896lg(parse_f3896lg_downstream(channels), channels, "downstream", log)
-
-    def _parse_upstream(self, channels: list[dict]) -> tuple[list[RawChannel], list[RawChannel]]:
-        return unwrap_f3896lg(parse_f3896lg_upstream(channels), channels, "upstream", log)

@@ -7,6 +7,7 @@ import pytest
 
 from app.analyzer import ANALYZER_SCHEMA_VERSION, analyze, apply_cumulative_error_baseline
 from app.drivers.cm3000 import CM3000Driver
+from app.drivers.formats.javascript import extract_cm3000_tag_value_list
 from app.event_detector import EventDetector
 
 
@@ -608,18 +609,18 @@ class TestRegexPatterns:
     def test_skips_commented_out_tagValueList(self):
         """The extractor must match the live assignment, not the /* */ comment."""
         data = _build_status_html()
-        extracted = CM3000Driver._extract_tag_value_list(data, "InitDsTableTagValue")
+        extracted = extract_cm3000_tag_value_list(data, "InitDsTableTagValue")
         assert extracted is not None
         assert extracted.startswith("32|")
         assert not extracted.startswith("8|")
 
     def test_all_patterns_match(self):
         html = _build_status_html()
-        assert CM3000Driver._extract_tag_value_list(html, "InitDsTableTagValue") == TAG_DS_QAM
-        assert CM3000Driver._extract_tag_value_list(html, "InitUsTableTagValue") == TAG_US_ATDMA
-        assert CM3000Driver._extract_tag_value_list(html, "InitDsOfdmTableTagValue") == TAG_DS_OFDM
-        assert CM3000Driver._extract_tag_value_list(html, "InitUsOfdmaTableTagValue") == TAG_US_OFDMA
-        assert CM3000Driver._extract_tag_value_list(html, "InitTagValue") == TAG_SYS_INFO
+        assert extract_cm3000_tag_value_list(html, "InitDsTableTagValue") == TAG_DS_QAM
+        assert extract_cm3000_tag_value_list(html, "InitUsTableTagValue") == TAG_US_ATDMA
+        assert extract_cm3000_tag_value_list(html, "InitDsOfdmTableTagValue") == TAG_DS_OFDM
+        assert extract_cm3000_tag_value_list(html, "InitUsOfdmaTableTagValue") == TAG_US_OFDMA
+        assert extract_cm3000_tag_value_list(html, "InitTagValue") == TAG_SYS_INFO
 
     def test_extracts_double_quoted_concatenated_assignment(self):
         html = """
@@ -638,7 +639,7 @@ class TestRegexPatterns:
         </script>
         """
         assert (
-            CM3000Driver._extract_tag_value_list(html, "InitDsTableTagValue")
+            extract_cm3000_tag_value_list(html, "InitDsTableTagValue")
             == "2|1|Locked|QAM256|1|381000000 Hz|0.4|43.2|34797|40892|2|Locked|QAM256|2|387000000 Hz|0.3|43.2|37561|42672|"
         )
 

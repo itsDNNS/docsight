@@ -150,6 +150,14 @@ def driver():
     return SercomDM1000Driver("http://192.168.100.1", "technician", "secret")
 
 
+CAPTURED = {"RF_DS_param": DS_INFO, "RF_DS_31_param": DS_OFDM, "RF_US_param": US_INFO, "RF_US_31_param": US_OFDMA}
+
+
+def _poll(driver, payloads=CAPTURED):
+    with patch.object(driver, "_fetch_payload", side_effect=lambda todo: payloads.get(todo, {})):
+        return driver.get_docsis_data()
+
+
 class TestLogin:
     def test_removed_diagnostics_env_flag_does_not_enable_temporary_logging(self, monkeypatch, caplog):
         # Keep the removed env name split so the repo no longer reintroduces the
@@ -419,14 +427,7 @@ class TestFetchPayload:
 
 class TestDocsisData:
     def test_parses_sercom_dm1000_channel_payloads(self, driver):
-        payloads = {
-            "RF_DS_param": DS_INFO,
-            "RF_DS_31_param": DS_OFDM,
-            "RF_US_param": US_INFO,
-            "RF_US_31_param": US_OFDMA,
-        }
-        with patch.object(driver, "_fetch_payload", side_effect=lambda todo: payloads[todo]):
-            data = driver.get_docsis_data()
+        data = _poll(driver)
 
         assert len(data["channelDs"]["docsis30"]) == 2
         assert len(data["channelDs"]["docsis31"]) == 1
@@ -473,7 +474,7 @@ class TestDocsisData:
     def test_us_ofdma_without_rep_power_1_6_keeps_power_unsupported(self, driver, caplog):
         rows = [dict(row) for row in US_OFDMA["nodes"] if row["name"] != "rep power1_6"]
 
-        channels = driver._parse_us_ofdma(rows)
+        channels = _poll(driver, {"RF_US_31_param": {"nodes": rows}})["channelUs"]["docsis31"]
 
         assert len(channels) == 1
         assert channels[0]["powerLevel"] is None
@@ -491,7 +492,7 @@ class TestDocsisData:
     def test_ds_ofdm_requires_plc_mdc1_and_numeric_mer(self, driver, plc, mdc1, av_data, av_plc, expected_count):
         row = dict(DS_OFDM["nodes"][0], PLC=plc, MDC1=mdc1, AV_Data=av_data, AV_PLC=av_plc)
 
-        channels = driver._parse_ds_ofdm([row])
+        channels = _poll(driver, {"RF_DS_31_param": {"nodes": [row]}})["channelDs"]["docsis31"]
 
         assert len(channels) == expected_count
         if channels:
@@ -506,7 +507,7 @@ class TestDocsisData:
             "upstream": "---",
         }
 
-        assert driver._parse_us_scqam([inactive]) == []
+        assert _poll(driver, {"RF_US_param": {"nodes": [inactive]}})["channelUs"]["docsis30"] == []
 
     def test_us_ofdma_skips_disabled_and_zero_frequency_columns(self, driver):
         zero_frequency = [
@@ -514,8 +515,8 @@ class TestDocsisData:
             for row in US_OFDMA["nodes"]
         ]
 
-        assert driver._parse_us_ofdma(zero_frequency) == []
-        assert len(driver._parse_us_ofdma(US_OFDMA["nodes"])) == 1
+        assert _poll(driver, {"RF_US_31_param": {"nodes": zero_frequency}})["channelUs"]["docsis31"] == []
+        assert len(_poll(driver)["channelUs"]["docsis31"]) == 1
 
     @pytest.mark.parametrize(
         ("bits", "expected"),
@@ -525,14 +526,7 @@ class TestDocsisData:
         assert driver._profile_modulation_from_bits(bits) == expected
 
     def test_analyzer_accepts_sercom_dm1000_payload(self, driver):
-        payloads = {
-            "RF_DS_param": DS_INFO,
-            "RF_DS_31_param": DS_OFDM,
-            "RF_US_param": US_INFO,
-            "RF_US_31_param": US_OFDMA,
-        }
-        with patch.object(driver, "_fetch_payload", side_effect=lambda todo: payloads[todo]):
-            analysis = analyze(driver.get_docsis_data())
+        analysis = analyze(_poll(driver))
 
         assert len(analysis["ds_channels"]) == 3
         assert len(analysis["us_channels"]) == 2
