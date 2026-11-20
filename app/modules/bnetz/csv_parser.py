@@ -80,15 +80,13 @@ def parse_bnetz_csv(csv_content):
         rows = list(reader)
         header = rows[0]
 
-    # Normalize header names (lowercase, strip whitespace)
-    header_lower = [h.strip().lower() for h in header]
+    # Normalize header names (lowercase, single spaces)
+    header_lower = [" ".join(h.split()).lower() for h in header]
 
     # Find relevant column indices
     date_col = _find_col(header_lower, ["datum", "date", "messdatum", "messzeitpunkt"])
     time_col = _find_col(header_lower, ["uhrzeit", "time"],
                          exclude={date_col} if date_col is not None else None)
-    dl_col = _find_col(header_lower, ["download", "download (mbit/s)", "dl", "download_mbps"])
-    ul_col = _find_col(header_lower, ["upload", "upload (mbit/s)", "ul", "upload_mbps"])
 
     # Desktop App / Sidecar: tariff and provider columns
     dl_max_col = _find_col(header_lower, ["download soll maximal (mbit/s)"])
@@ -97,6 +95,10 @@ def parse_bnetz_csv(csv_content):
     ul_max_col = _find_col(header_lower, ["upload soll maximal (mbit/s)"])
     ul_norm_col = _find_col(header_lower, ["upload soll normalerweise (mbit/s)"])
     ul_min_col = _find_col(header_lower, ["upload soll minimal (mbit/s)"])
+    # A missing measurement column must not fall back to a tariff (SOLL) column.
+    tariff_cols = {i for i, h in enumerate(header_lower) if "soll" in re.findall(r"[a-z0-9]+", h)}
+    dl_col = _find_col(header_lower, ["download", "download (mbit/s)", "dl", "download_mbps"], exclude=tariff_cols)
+    ul_col = _find_col(header_lower, ["upload", "upload (mbit/s)", "ul", "upload_mbps"], exclude=tariff_cols)
     provider_col = _find_col(header_lower, ["anbieter", "provider"])
     tariff_col = _find_col(header_lower, ["tarif", "tariff"])
 
@@ -193,9 +195,9 @@ def parse_bnetz_csv(csv_content):
     }
 
     log.info(
-        "Parsed BNetzA CSV: %d DL + %d UL measurements, DL avg=%.1f, UL avg=%.1f",
+        "Parsed BNetzA CSV: %d DL + %d UL measurements, DL avg=%s, UL avg=%s",
         len(dl_measurements), len(ul_measurements),
-        dl_avg or 0, ul_avg or 0,
+        *("n/a" if avg is None else avg for avg in (dl_avg, ul_avg)),
     )
 
     return result
@@ -214,11 +216,11 @@ def _find_col(header, candidates, exclude=None):
                 continue
             if candidate == h:
                 return i
-    # Second pass: substring match
+    # Second pass: substring match; two-letter aliases ("dl", "ul") only as whole words
     for candidate in candidates:
         for i, h in enumerate(header):
             if exclude and i in exclude:
                 continue
-            if candidate in h:
+            if candidate in (re.findall(r"[a-z0-9]+", h) if len(candidate) <= 2 else h):
                 return i
     return None

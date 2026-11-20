@@ -589,28 +589,40 @@ def test_empty_complaint_is_neutral_without_bnetz_data():
     assert "attached monitoring data" not in complaint
 
 
-def test_empty_complaint_is_neutral_and_keeps_bnetz_evidence():
-    from app.modules.reports.report import generate_complaint_text
+@pytest.mark.parametrize("missing", [None, "download", "upload"])
+def test_empty_complaint_keeps_bnetz_evidence_for_measured_directions_only(missing):
+    from app.modules.reports.report import generate_complaint_text, generate_incident_report
 
-    complaint = generate_complaint_text(
-        [],
-        report_start="2026-05-01T00:00:00Z",
-        report_end="2026-05-03T00:00:00Z",
-        bnetz_data={
-            "date": "2026-05-02",
-            "provider": "Example ISP",
-            "tariff": "1000/50",
-            "download_max_tariff": 1000,
-            "download_measured_avg": 400,
-            "upload_max_tariff": 50,
-            "upload_measured_avg": 45,
-            "verdict_download": "deviation",
-            "verdict_upload": "ok",
-        },
+    row = {
+        "date": "2026-05-02",
+        "provider": "Example ISP",
+        "tariff": "1000/50",
+        "download_max_tariff": 1000,
+        "download_measured_avg": 400,
+        "upload_max_tariff": 50,
+        "upload_measured_avg": 45,
+        "verdict_download": "deviation",
+        "verdict_upload": "ok",
+    }
+    if missing:
+        row[f"{missing}_measured_avg"] = None
+    letter = generate_complaint_text(
+        [], report_start="2026-05-01T00:00:00Z", report_end="2026-05-03T00:00:00Z", bnetz_data=row,
     )
+    pdf = " ".join(_pdf_text(generate_incident_report({"name": "Slow line"}, [], [], [], [row])).split())
 
-    assert "No stored DOCSIS measurements are available" in complaint
-    assert "Official Broadband Measurement (Bundesnetzagentur)" in complaint
-    assert "2026-05-02" in complaint
-    assert "persistent signal quality issues" not in complaint
-    assert "Signal Quality Issues" not in complaint
+    assert "No stored DOCSIS measurements are available" in letter
+    assert "Official Broadband Measurement (Bundesnetzagentur)" in letter
+    assert "2026-05-02" in letter
+    assert "persistent signal quality issues" not in letter
+    assert "Signal Quality Issues" not in letter
+    for direction, (pdf_line, letter_line) in {
+        "download": ("Download: 400 / 1000 Mbit/s (40%)", "average download: 400 Mbit/s (40% of contracted maximum)"),
+        "upload": ("Upload: 45 / 50 Mbit/s (90%)", "average upload: 45 Mbit/s (90% of contracted maximum)"),
+    }.items():
+        if direction == missing:
+            assert f"{direction.capitalize()}: " not in pdf
+            assert f"average {direction}" not in letter + pdf
+        else:
+            assert pdf_line in pdf
+            assert letter_line in letter and letter_line in pdf

@@ -19,6 +19,13 @@ function _bnetzNumber(cell) {
     return cell;
 }
 
+/* A direction without measurements shows '-', never 0 Mbit/s. */
+function _bnetzMeasured(avg, max) {
+    if (avg == null) return '-';
+    var pct = max ? Math.round(avg / max * 100) : 0;
+    return Math.round(avg) + ' Mbit/s' + (pct ? ' (' + pct + '%)' : '');
+}
+
 /* Cells only shown on mobile once the row is expanded. */
 function _bnetzSecondary(cell) {
     cell.classList.add('bnetz-secondary-cell');
@@ -151,8 +158,6 @@ function loadBnetzData() {
             var hasDeviation = m.verdict_download === 'deviation' || m.verdict_upload === 'deviation';
             var verdictText = hasDeviation ? T.bnetz_verdict_deviation : T.bnetz_verdict_ok;
             var verdictClass = hasDeviation ? 'val-crit' : 'val-good';
-            var dlPct = m.download_max_tariff ? Math.round(m.download_measured_avg / m.download_max_tariff * 100) : 0;
-            var ulPct = m.upload_max_tariff ? Math.round(m.upload_measured_avg / m.upload_max_tariff * 100) : 0;
             var hasMeasurements = m.measurements && (
                 (m.measurements.download && m.measurements.download.length > 0) ||
                 (m.measurements.upload && m.measurements.upload.length > 0));
@@ -178,9 +183,9 @@ function loadBnetzData() {
             tr.appendChild(dateCell);
             tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_provider || 'Provider', m.provider || '-')));
             tr.appendChild(_bnetzNumber(_bnetzSecondary(_bnetzCell(T.bnetz_download_target || 'Download target', m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-'))));
-            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_download_actual || 'Download measured', Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : ''))));
+            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_download_actual || 'Download measured', _bnetzMeasured(m.download_measured_avg, m.download_max_tariff))));
             tr.appendChild(_bnetzNumber(_bnetzSecondary(_bnetzCell(T.bnetz_upload_target || 'Upload target', m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-'))));
-            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_upload_actual || 'Upload measured', Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : ''))));
+            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_upload_actual || 'Upload measured', _bnetzMeasured(m.upload_measured_avg, m.upload_max_tariff))));
 
             var verdictCell = _bnetzCell(T.bnetz_verdict || 'Verdict', '');
             verdictCell.className = 'bnetz-verdict ' + verdictClass;

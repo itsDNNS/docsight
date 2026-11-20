@@ -256,8 +256,8 @@ function renderIncidentTimeline(data) {
             var verdictClass = hasDeviation ? 'val-crit' : 'val-good';
             bHtml += '<div class="incident-timeline-bnetz-item">';
             bHtml += '<span>' + escapeHtml(formatDateDE(m.date)) + '</span>';
-            bHtml += '<span>\u2193 ' + (m.download_measured_avg || 0).toFixed(1) + ' / ' + (m.download_max_tariff || 0).toFixed(0) + ' Mbps</span>';
-            bHtml += '<span>\u2191 ' + (m.upload_measured_avg || 0).toFixed(1) + ' / ' + (m.upload_max_tariff || 0).toFixed(0) + ' Mbps</span>';
+            if (m.download_measured_avg != null) bHtml += '<span>\u2193 ' + m.download_measured_avg.toFixed(1) + ' / ' + (m.download_max_tariff || 0).toFixed(0) + ' Mbps</span>';
+            if (m.upload_measured_avg != null) bHtml += '<span>\u2191 ' + m.upload_measured_avg.toFixed(1) + ' / ' + (m.upload_max_tariff || 0).toFixed(0) + ' Mbps</span>';
             bHtml += '<span class="incident-timeline-bnetz-verdict ' + verdictClass + '">' + verdictText + '</span>';
             bHtml += '</div>';
         });
