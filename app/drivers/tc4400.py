@@ -22,11 +22,10 @@ from .formats.html_rows import (
     _cell as format_cell,
     _tc_columns,
     _tc_header_row,
-    parse_tc4400_downstream,
-    parse_tc4400_upstream,
+    parse_tc4400_html,
 )
 from .formats.primitives import normalize_modulation, parse_mhz_value, parse_number
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.tc4400")
 
@@ -81,14 +80,7 @@ class TC4400Driver(ModemDriver):
                 f"TC4400: Expected at least 3 tables, found {len(tables)}"
             )
 
-        downstream = self._parse_downstream(tables[1])
-        upstream = self._parse_upstream(tables[2])
-
-        return {
-            "docsis": "3.1",
-            "downstream": downstream,
-            "upstream": upstream,
-        }
+        return parse_tc4400_html(tables[1], tables[2]).value
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from /cmswinfo.html."""
@@ -122,12 +114,6 @@ class TC4400Driver(ModemDriver):
         return {}
 
     # ── Parsers ────────────────────────────────────────────────
-
-    def _parse_downstream(self, table) -> list[RawChannel]:
-        return parse_tc4400_downstream(table).value
-
-    def _parse_upstream(self, table) -> list[RawChannel]:
-        return parse_tc4400_upstream(table).value
 
     @staticmethod
     def _find_header_row(rows):

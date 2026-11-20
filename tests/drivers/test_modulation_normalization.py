@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import pytest
 
 from app.drivers.ch7465 import CH7465Driver
+from app.drivers.formats.html_rows import parse_tc4400_html
 from app.drivers.tc4400 import TC4400Driver
 from app.drivers.vodafone_station import VodafoneStationDriver
 from app.drivers.utils import normalize_modulation
@@ -46,56 +47,32 @@ def test_driver_helpers_use_canonical_modulation_labels(driver):
     assert driver._normalize_modulation("ofdma") == "OFDMA"
 
 
-def test_tc4400_downstream_ofdm_type_is_uppercase():
+@pytest.mark.parametrize(
+    ("row", "expected_type", "expected_mse"),
+    [
+        ("<td>193</td><td>Locked</td><td>OFDM</td><td></td><td>957000000 Hz</td><td>0.1 dBmV</td><td>43.0 dB</td>", "OFDM", None),
+        ("<td>1</td><td>Locked</td><td>SC-QAM</td><td>256-qam</td><td>602000000 Hz</td><td>2.0 dBmV</td><td>39.5 dB</td>", "256QAM", -39.5),
+    ],
+)
+def test_tc4400_downstream_type_is_canonical(row, expected_type, expected_mse):
     table = BeautifulSoup(
-        """
+        f"""
         <table>
           <tr>
             <th>Channel ID</th><th>Lock Status</th><th>Channel Type</th>
             <th>Modulation</th><th>Frequency</th><th>Power</th><th>SNR</th>
             <th>Corrected</th><th>Uncorrected</th>
           </tr>
-          <tr>
-            <td>193</td><td>Locked</td><td>OFDM</td><td></td>
-            <td>957000000 Hz</td><td>0.1 dBmV</td><td>43.0 dB</td>
-            <td>7</td><td>0</td>
-          </tr>
+          <tr>{row}<td>1</td><td>0</td></tr>
         </table>
         """,
         "html.parser",
     ).find("table")
 
-    driver = TC4400Driver("http://192.168.100.1", "user", "pass")
-    channels = driver._parse_downstream(table)
+    channels = parse_tc4400_html(table, None).value["downstream"]
 
-    assert channels[0]["type"] == "OFDM"
-    assert channels[0]["mse"] is None
-
-
-def test_tc4400_downstream_sc_qam_type_is_canonical():
-    table = BeautifulSoup(
-        """
-        <table>
-          <tr>
-            <th>Channel ID</th><th>Lock Status</th><th>Channel Type</th>
-            <th>Modulation</th><th>Frequency</th><th>Power</th><th>SNR</th>
-            <th>Corrected</th><th>Uncorrected</th>
-          </tr>
-          <tr>
-            <td>1</td><td>Locked</td><td>SC-QAM</td><td>256-qam</td>
-            <td>602000000 Hz</td><td>2.0 dBmV</td><td>39.5 dB</td>
-            <td>1</td><td>0</td>
-          </tr>
-        </table>
-        """,
-        "html.parser",
-    ).find("table")
-
-    driver = TC4400Driver("http://192.168.100.1", "user", "pass")
-    channels = driver._parse_downstream(table)
-
-    assert channels[0]["type"] == "256QAM"
-    assert channels[0]["mse"] == -39.5
+    assert channels[0]["type"] == expected_type
+    assert channels[0]["mse"] == expected_mse
 
 
 @pytest.mark.parametrize(

@@ -18,14 +18,11 @@ from typing import Any
 
 import requests
 
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
 from .formats.sercom import (
     _profile_modulation,
-    parse_sercom_ds_ofdm,
-    parse_sercom_ds_scqam,
-    parse_sercom_us_ofdma,
-    parse_sercom_us_scqam,
+    parse_sercom_dm1000_json,
 )
 from .format_compat import unwrap_sercom
 
@@ -196,21 +193,12 @@ class SercomDM1000Driver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from the captured Sercom endpoints."""
-        ds_info = self._fetch_payload("RF_DS_param")
-        ds_ofdm = self._fetch_payload("RF_DS_31_param")
-        us_info = self._fetch_payload("RF_US_param")
-        us_ofdma = self._fetch_payload("RF_US_31_param")
-
-        return {
-            "channelDs": {
-                "docsis30": self._parse_ds_scqam(self._nodes(ds_info)),
-                "docsis31": self._parse_ds_ofdm(self._nodes(ds_ofdm)),
-            },
-            "channelUs": {
-                "docsis30": self._parse_us_scqam(self._nodes(us_info)),
-                "docsis31": self._parse_us_ofdma(self._nodes(us_ofdma)),
-            },
-        }
+        return unwrap_sercom(parse_sercom_dm1000_json({
+            "downstream": self._nodes(self._fetch_payload("RF_DS_param")),
+            "downstream_ofdm": self._nodes(self._fetch_payload("RF_DS_31_param")),
+            "upstream": self._nodes(self._fetch_payload("RF_US_param")),
+            "upstream_ofdma": self._nodes(self._fetch_payload("RF_US_31_param")),
+        }), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Return model metadata, using safe static fallback when Pd_info is absent."""
@@ -392,18 +380,6 @@ class SercomDM1000Driver(ModemDriver):
                     if value is not None and str(value).strip():
                         return str(value).strip()
         return ""
-
-    def _parse_ds_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_sercom_ds_scqam(rows).value
-
-    def _parse_ds_ofdm(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_sercom_ds_ofdm(rows).value
-
-    def _parse_us_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_sercom_us_scqam(rows).value
-
-    def _parse_us_ofdma(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return unwrap_sercom(parse_sercom_us_ofdma(rows), log)
 
     @staticmethod
     def _profile_modulation_from_bits(value: Any) -> str | None:

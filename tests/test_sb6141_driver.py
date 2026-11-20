@@ -119,10 +119,16 @@ def driver():
     return SB6141Driver("http://192.168.100.1", "", "")
 
 
-@pytest.fixture
-def mock_signal(driver):
+@pytest.fixture(params=[
+    SAMPLE_SIGNAL_HTML,
+    # Headings split across inline elements must still identify their tables.
+    SAMPLE_SIGNAL_HTML.replace(">Downstream <", ">Down<span>stream</span> <"),
+    SAMPLE_SIGNAL_HTML.replace(">Upstream <", ">Up<span>stream</span> <"),
+    SAMPLE_SIGNAL_HTML.replace(">Signal Status (Codewords)<", ">Code<span>words</span><"),
+], ids=["captured", "split-downstream", "split-upstream", "split-codewords"])
+def mock_signal(driver, request):
     """Patch session.get to return sample signal HTML."""
-    with serve_html(driver, SAMPLE_SIGNAL_HTML):
+    with serve_html(driver, request.param):
         yield driver
 
 

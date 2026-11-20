@@ -123,7 +123,7 @@ def parse_sb6141_transposed_html(html: str) -> ParseResult[DocsisDataFritz]:
     downstream = upstream = codewords = None
     for table in soup.find_all("table"):
         heading = table.find("th")
-        text = heading.get_text(" ", strip=True).lower() if heading else ""
+        text = heading.get_text(strip=True).lower() if heading else ""
         if "downstream" in text and "signal" not in text:
             downstream = table
         elif "upstream" in text:

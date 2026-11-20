@@ -22,11 +22,10 @@ from .formats.html_transposed import (
     extract_transposed_rows,
     extract_upstream_modulation,
     get_row_values,
-    parse_sb6141_downstream,
-    parse_sb6141_upstream,
+    parse_sb6141_transposed_html,
 )
 from .formats.primitives import hz_to_mhz, parse_number
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.sb6141")
 
@@ -66,34 +65,7 @@ class SB6141Driver(ModemDriver):
             r.raise_for_status()
         except requests.RequestException as e:
             raise RuntimeError(f"SB6141 DOCSIS data retrieval failed: {e}")
-
-        soup = BeautifulSoup(r.text, "html.parser")
-        tables = soup.find_all("table", recursive=True)
-
-        # Find the three main tables by their header text
-        ds_table = None
-        us_table = None
-        cw_table = None
-
-        for table in tables:
-            th = table.find("th")
-            if not th:
-                continue
-            text = th.get_text(strip=True).lower()
-            if "downstream" in text and "signal" not in text:
-                ds_table = table
-            elif "upstream" in text:
-                us_table = table
-            elif "signal status" in text or "codeword" in text:
-                cw_table = table
-
-        ds_channels = self._parse_downstream(ds_table, cw_table)
-        us_channels = self._parse_upstream(us_table)
-
-        return {
-            "channelDs": {"docsis30": ds_channels, "docsis31": []},
-            "channelUs": {"docsis30": us_channels, "docsis31": []},
-        }
+        return parse_sb6141_transposed_html(r.text).value
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from /cmHelpData.htm."""
@@ -129,12 +101,6 @@ class SB6141Driver(ModemDriver):
     def get_connection_info(self) -> ConnectionInfo:
         """Standalone modem, no connection info."""
         return {}
-
-    def _parse_downstream(self, ds_table, cw_table) -> list[RawChannel]:
-        return parse_sb6141_downstream(ds_table, cw_table).value
-
-    def _parse_upstream(self, us_table) -> list[RawChannel]:
-        return parse_sb6141_upstream(us_table).value
 
     @staticmethod
     def _extract_transposed_rows(table) -> list[tuple[str, list[str]]]:
