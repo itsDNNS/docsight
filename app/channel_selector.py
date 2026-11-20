@@ -62,7 +62,7 @@ def normalize_frequency(value) -> str:
             elif unit == "khz":
                 frequency /= Decimal(1_000)
             return "n:" + _canonical_decimal(frequency)
-        except (InvalidOperation, ValueError):
+        except (ArithmeticError, ValueError):  # InvalidOperation, or Overflow for huge digit strings
             pass
     return "t:" + " ".join(text.lower().split())
 

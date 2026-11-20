@@ -5,7 +5,9 @@ import pytest
 from datetime import datetime, timedelta, timezone
 
 from app.analyzer import analyze
+from app.channel_selector import channel_selector
 from app.drivers.formats.vodafone import parse_ultrahub7_json
+from app.drivers.formats.xml_payloads import parse_ch7465_xml
 from app.storage import SnapshotStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
@@ -442,6 +444,23 @@ class TestGetCurrentChannels:
         assert result[1]["selector_required"] is True
 
 
+@pytest.mark.parametrize(("channel_id", "frequency", "selector"), [
+    (1, 634, "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, 634.0, "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    ("1.0", "634 MHz", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, "634000 kHz", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, "634000000 Hz", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, " 634.000 mhz ", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (0, ".5 MHz", "c1_sqbxPgkX73_e_lcyo5dH5hnn"),
+    (2, "-0", "c1_I-419bKitN1kGQsx_Eh8R1sV"),
+    (3, "1e3", "c1_1cbvGmR5R4Enz9fogfIDcL1U"),
+    (None, "OFDM  Block", "c1_0bddRNXlSIgTkfFSouZGepoT"),
+    (None, None, "c1_h67kIgLtJnGSIut1qzRIn8s_"),
+])
+def test_selector_identity_is_stable_for_stored_spellings(channel_id, frequency, selector):
+    assert channel_selector({"channel_id": channel_id, "frequency": frequency}) == selector
+
+
 # ── API Tests ──
 
 class TestChannelsEndpoint:
@@ -453,6 +472,23 @@ class TestChannelsEndpoint:
         data = json.loads(resp.data)
         assert len(data["ds_channels"]) == 2
         assert len(data["us_channels"]) == 1
+
+    def test_overflowing_frequency_does_not_hide_other_channels(self, client):
+        c, s = client
+        rows = "".join(
+            f"<downstream><chid>{chid}</chid><freq>{freq}</freq><pow>3.0</pow></downstream>"
+            for chid, freq in ((1, "602000000"), (2, "9" * 1_000_001))
+        )
+        s.save_snapshot(analyze(parse_ch7465_xml(f"<root>{rows}</root>", "<root/>").value))
+
+        channels = json.loads(c.get("/api/channels").data)["ds_channels"]
+        history = c.get(
+            "/api/channel-history",
+            query_string={"selector": channels[0]["selector"], "direction": "ds", "range": "1d"},
+        )
+
+        assert [channel["channel_id"] for channel in channels] == [1, 2]
+        assert json.loads(history.data)[0]["power"] == 3.0
 
     def test_empty(self, client):
         c, s = client

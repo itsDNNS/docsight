@@ -2,6 +2,7 @@
 
 from typing import cast
 from unittest.mock import patch
+import pytest
 from app.analyzer import analyze, _metric_healths
 from app.types import AnalysisResult
 from tests.analyzer.factories import (
@@ -525,3 +526,11 @@ def test_a_driver_correction_of_the_displayed_power_reaches_the_channel():
     assert by_id[2]["power"] == 48.2
     assert by_id[2]["modem_power_offset_db"] == 6.0
     assert "modem_power_offset_db" not in by_id[3]
+
+
+@pytest.mark.parametrize("oversized_id", ["9" * 400, 10 ** 400], ids=["digit-string", "int"])
+def test_an_oversized_channel_id_falls_back_to_zero_and_keeps_the_neighbour(oversized_id):
+    result = analyze(_make_data(ds30=[_make_ds30(oversized_id), _make_ds30(2, power=4.0)]))
+    by_id = {ch["channel_id"]: ch for ch in result["ds_channels"]}
+    assert sorted(by_id) == [0, 2]
+    assert by_id[2]["power"] == 4.0
