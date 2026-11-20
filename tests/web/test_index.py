@@ -1391,25 +1391,32 @@ class TestIndexRoute:
         assert 'class="hero-modulation-card hero-modulation-warn"' not in modulation_context
         assert 'class="hero-modulation-card hero-modulation-crit"' not in modulation_context
 
-    def test_index_with_incomplete_bnetz(self, tmp_path, sample_analysis, app):
-        """Dashboard hides BNetzA card when entry has NULL fields (#148)."""
+    _BNETZ_CARD = '<span class="metric-label">Broadband Measurement (BNetzA)</span>'
+    _NO_AVERAGES = {"download_measured_avg": None, "upload_measured_avg": None}
+
+    @pytest.mark.parametrize("analysis, changes, shown, hidden", [
+        ("sample_analysis", _NO_AVERAGES, [], ['id="bnetz-source"']),
+        ("sample_analysis", {"download_measured_avg": None}, ['id="bnetz-source"', '<strong class="num">–</strong>'], []),
+        ("sample_analysis", {"download_max": None}, ['<strong class="num">0 %</strong>'], []),
+        ("no_docsis_analysis", _NO_AVERAGES, [], [_BNETZ_CARD]),
+        ("no_docsis_analysis", {"upload_measured_avg": None}, [_BNETZ_CARD, "748 / 1000"], ["0 / 50 Mbit/s"]),
+        ("no_docsis_analysis", {"download_measured_avg": None}, [_BNETZ_CARD, "8 / 50 Mbit/s (16%)"], ["0 / 1000"]),
+    ])
+    def test_bnetz_dashboard_shows_only_measured_directions(
+        self, request, tmp_path, sample_bnetz_parsed, app, analysis, changes, shown, hidden,
+    ):
         mgr = ConfigManager(str(tmp_path / "data_bnetz"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr
         storage = SnapshotStorage(str(tmp_path / "data_bnetz" / "docsight.db"))
         current_runtime().storage = storage
-        # Save a BNetzA measurement with all numeric fields as None
-        bs = BnetzStorage(storage.db_path)
-        bs.save_bnetz_measurement({
-            "date": "2025-06-01",
-            "measurements_download": [],
-            "measurements_upload": [],
-        })
-        current_runtime().update_state(analysis=sample_analysis)
+        BnetzStorage(storage.db_path).save_bnetz_measurement(
+            {**sample_bnetz_parsed, **changes})
+        current_runtime().update_state(analysis=request.getfixturevalue(analysis))
         with app.test_client() as c:
-            resp = c.get("/")
-        assert resp.status_code == 200
-        assert b"bnetz_has_deviation" not in resp.data  # card should not render
+            html = c.get("/").get_data(as_text=True)
+        assert [text for text in shown if text not in html] == []
+        assert [text for text in hidden if text in html] == []
 
     def test_no_docsis_shows_placeholder(self, client, no_docsis_analysis):
         """Generic router with empty channels shows no-DOCSIS placeholder."""

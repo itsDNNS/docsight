@@ -223,11 +223,10 @@ def parse_bnetz_pdf(pdf_bytes):
     result["campaign_end"] = _convert_date(m.group(1)) if m else None
 
     log.info(
-        "Parsed BNetzA PDF: %s, %s, DL avg=%.1f, UL avg=%.1f, verdict=%s/%s",
+        "Parsed BNetzA PDF: %s, %s, DL avg=%s, UL avg=%s, verdict=%s/%s",
         result.get("provider", "?"),
         result.get("date", "?"),
-        result.get("download_measured_avg") or 0,
-        result.get("upload_measured_avg") or 0,
+        *("n/a" if result[key] is None else result[key] for key in ("download_measured_avg", "upload_measured_avg")),
         result["verdict_download"],
         result["verdict_upload"],
     )

@@ -787,6 +787,25 @@ def generate_report(
     return buf.getvalue()
 
 
+_BNETZ_COMPLAINT_KEYS = {"download": "complaint_bnetz_dl", "upload": "complaint_bnetz_ul"}
+
+
+def _bnetz_ratio(m, direction):
+    """Rounded contract maximum, measured average and percentage, or None when not measured."""
+    avg = m.get(f"{direction}_measured_avg")
+    if avg is None:
+        return None
+    max_ = round(m.get(f"{direction}_max_tariff") or 0)
+    avg = round(avg)
+    return {"max": max_, "avg": avg, "pct": round(avg / max_ * 100) if max_ else 0}
+
+
+def _bnetz_complaint_lines(s, m):
+    """Complaint lines for the measured directions only."""
+    return [f"- {s.get(key, '').format(**ratio)}" for direction, key in _BNETZ_COMPLAINT_KEYS.items()
+            if (ratio := _bnetz_ratio(m, direction))]
+
+
 def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_list,
                               config=None, connection_info=None, lang="en",
                               customer_name="", customer_number="", customer_address="",
@@ -965,15 +984,10 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
             pdf.cell(0, 6, f"{m.get('date', '')} - {m.get('tariff', '')} ({m.get('provider', '')})", new_x="LMARGIN", new_y="NEXT")
             pdf.set_font("dejavu", "", 9)
 
-            dl_max = round(m.get("download_max_tariff") or 0)
-            dl_avg = round(m.get("download_measured_avg") or 0)
-            dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
-            ul_max = round(m.get("upload_max_tariff") or 0)
-            ul_avg = round(m.get("upload_measured_avg") or 0)
-            ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
-
-            pdf.cell(0, 5, f"  Download: {dl_avg} / {dl_max} Mbit/s ({dl_pct}%)", new_x="LMARGIN", new_y="NEXT")
-            pdf.cell(0, 5, f"  Upload: {ul_avg} / {ul_max} Mbit/s ({ul_pct}%)", new_x="LMARGIN", new_y="NEXT")
+            for direction in _BNETZ_COMPLAINT_KEYS:
+                if ratio := _bnetz_ratio(m, direction):
+                    pdf.cell(0, 5, f"  {direction.capitalize()}: {ratio['avg']} / {ratio['max']} Mbit/s ({ratio['pct']}%)",
+                             new_x="LMARGIN", new_y="NEXT")
 
             verdict_dl = m.get("verdict_download", "-")
             verdict_ul = m.get("verdict_upload", "-")
@@ -1075,19 +1089,11 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
     if bnetz_list:
         bnetz_data = select_preferred_bnetz(bnetz_list)
 
-        dl_max = round(bnetz_data.get("download_max_tariff") or 0)
-        dl_avg = round(bnetz_data.get("download_measured_avg") or 0)
-        dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
-        ul_max = round(bnetz_data.get("upload_max_tariff") or 0)
-        ul_avg = round(bnetz_data.get("upload_measured_avg") or 0)
-        ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
-
         complaint += (
             f"\n{s.get('complaint_bnetz_header', '')}\n\n"
             f"{s.get('complaint_bnetz_body', '').format(date=bnetz_data.get('date', ''))}\n"
-            f"- {s.get('complaint_bnetz_dl', '').format(max=dl_max, avg=dl_avg, pct=dl_pct)}\n"
-            f"- {s.get('complaint_bnetz_ul', '').format(max=ul_max, avg=ul_avg, pct=ul_pct)}\n"
-            f"- {s.get('complaint_bnetz_verdict', '').format(verdict_dl=bnetz_data.get('verdict_download', '-'), verdict_ul=bnetz_data.get('verdict_upload', '-'))}\n\n"
+            + "".join(f"{line}\n" for line in _bnetz_complaint_lines(s, bnetz_data))
+            + f"- {s.get('complaint_bnetz_verdict', '').format(verdict_dl=bnetz_data.get('verdict_download', '-'), verdict_ul=bnetz_data.get('verdict_upload', '-'))}\n\n"
         )
         has_dev = bnetz_data.get("verdict_download") == "deviation" or bnetz_data.get("verdict_upload") == "deviation"
         if has_dev:
@@ -1144,20 +1150,13 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
             bnetz_data.get("verdict_download") == "deviation"
             or bnetz_data.get("verdict_upload") == "deviation"
         )
-        dl_max = round(bnetz_data.get("download_max_tariff") or 0)
-        dl_avg = round(bnetz_data.get("download_measured_avg") or 0)
-        dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
-        ul_max = round(bnetz_data.get("upload_max_tariff") or 0)
-        ul_avg = round(bnetz_data.get("upload_measured_avg") or 0)
-        ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
         bnetz_lines = [
             s.get("complaint_bnetz_header", ""),
             "",
             s.get("complaint_bnetz_body", "").format(date=bnetz_data.get("date", "")),
             "",
             f"- {s.get('complaint_bnetz_tariff', '').format(tariff=bnetz_data.get('tariff', '-'), provider=bnetz_data.get('provider', '-'))}",
-            f"- {s.get('complaint_bnetz_dl', '').format(max=dl_max, avg=dl_avg, pct=dl_pct)}",
-            f"- {s.get('complaint_bnetz_ul', '').format(max=ul_max, avg=ul_avg, pct=ul_pct)}",
+            *_bnetz_complaint_lines(s, bnetz_data),
             f"- {s.get('complaint_bnetz_verdict', '').format(verdict_dl=bnetz_data.get('verdict_download', '-'), verdict_ul=bnetz_data.get('verdict_upload', '-'))}",
         ]
         if has_deviation:
