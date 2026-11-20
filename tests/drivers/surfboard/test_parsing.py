@@ -2,6 +2,7 @@
 
 import pytest
 from unittest.mock import patch
+from app.drivers.formats.surfboard import normalize_surfboard_modulation
 from app.drivers.surfboard import SurfboardDriver
 from ._data import HNAP_LOGIN_PHASE1, HNAP_LOGIN_PHASE2
 
@@ -156,25 +157,9 @@ class TestDataFetchRetry:
         assert len(calls) == 2
         assert "channelDs" in data
 
-# -- Value helpers --
-
-class TestValueHelpers:
-    def test_hz_to_mhz_integer(self):
-        assert SurfboardDriver._hz_to_mhz(705000000) == "705 MHz"
-
-    def test_hz_to_mhz_decimal(self):
-        assert SurfboardDriver._hz_to_mhz(29200000) == "29.2 MHz"
-
-    def test_hz_to_mhz_zero(self):
-        assert SurfboardDriver._hz_to_mhz(0) == "0 MHz"
-
-    def test_hz_to_mhz_fractional(self):
-        assert SurfboardDriver._hz_to_mhz(36200000) == "36.2 MHz"
-
-    def test_normalize_modulation(self):
-        assert SurfboardDriver._normalize_modulation("256QAM") == "256QAM"
-        assert SurfboardDriver._normalize_modulation(" OFDM PLC ") == "OFDM PLC"
-        assert SurfboardDriver._normalize_modulation("") == ""
+@pytest.mark.parametrize(("raw", "expected"), [("256QAM", "256QAM"), (" OFDM PLC ", "OFDM PLC"), ("", "")])
+def test_normalize_modulation_trims_only(raw, expected):
+    assert normalize_surfboard_modulation(raw) == expected
 
 
 # -- Empty / edge cases --

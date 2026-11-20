@@ -19,16 +19,9 @@ from typing import Any
 
 import requests
 
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
-from .formats.hitron import (
-    parse_coda4680_ds_ofdm,
-    parse_coda4680_ds_scqam,
-    parse_coda4680_us_ofdma,
-    parse_coda4680_us_scqam,
-    parse_hitron_coda4680_json,
-    parse_hitron_ofdma_power,
-)
+from .formats.hitron import parse_hitron_coda4680_json
 from .format_compat import unwrap_hitron
 from .utils import make_legacy_tls_adapter
 
@@ -213,22 +206,6 @@ class HitronCoda4680Driver(ModemDriver):
             "model": str(payload.get("ModelReport") or payload.get("modelName") or "CODA-4680"),
             "sw_version": str(payload.get("SoftwareVersion") or ""),
         }
-
-    def _parse_ds_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_coda4680_ds_scqam(rows).value
-
-    def _parse_us_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_coda4680_us_scqam(rows).value
-
-    def _parse_ds_ofdm(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_coda4680_ds_ofdm(rows).value
-
-    def _parse_us_ofdma(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_coda4680_us_ofdma(rows).value
-
-    @staticmethod
-    def _ofdma_power_1_6(row: dict[str, Any]) -> float | None:
-        return parse_hitron_ofdma_power(row)
 
     @staticmethod
     def _parse_rate_kbps(value: Any) -> int:

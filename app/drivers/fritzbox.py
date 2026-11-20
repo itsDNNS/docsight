@@ -30,10 +30,6 @@ class FritzBoxDriver(ModemDriver):
     def get_docsis_data(self) -> DocsisData:
         return parse_fritzbox_data_lua(fb.get_docsis_data(self._url, self._sid)).value
 
-    @staticmethod
-    def _compensate_us31_power(data: DocsisData) -> None:
-        data.update(parse_fritzbox_data_lua(data).value)
-
     def get_device_info(self) -> DeviceInfo:
         info = fb.get_device_info(self._url, self._sid)
         info.setdefault("manufacturer", "AVM")

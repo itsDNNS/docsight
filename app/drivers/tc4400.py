@@ -18,13 +18,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_rows import (
-    _cell as format_cell,
-    _tc_columns,
-    _tc_header_row,
-    parse_tc4400_html,
-)
-from .formats.primitives import normalize_modulation, parse_mhz_value, parse_number
+from .formats.html_rows import parse_tc4400_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.tc4400")
@@ -115,17 +109,6 @@ class TC4400Driver(ModemDriver):
 
     # ── Parsers ────────────────────────────────────────────────
 
-    @staticmethod
-    def _find_header_row(rows):
-        return _tc_header_row(rows)
-
-    def _map_columns(self, headers: list[str]) -> dict[str, int | None]:
-        return _tc_columns(headers)
-
-    @staticmethod
-    def _cell(cells: list[str], index: int | None, default: str = "") -> str:
-        return format_cell(cells, index, default)
-
     def _parse_info_table(self, soup) -> dict[str, str]:
         """Parse key-value info table from /cmswinfo.html."""
         info = {}
@@ -138,16 +121,3 @@ class TC4400Driver(ModemDriver):
                     if key:
                         info[key] = val
         return info
-
-    # ── Value Parsers ──────────────────────────────────────────
-
-    def _parse_frequency(self, freq_str: str) -> float:
-        return parse_mhz_value(freq_str)
-
-    @staticmethod
-    def _parse_number(value: str) -> float:
-        return parse_number(value)
-
-    @staticmethod
-    def _normalize_modulation(modulation: str) -> str:
-        return normalize_modulation(modulation)

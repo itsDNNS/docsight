@@ -7,7 +7,7 @@ import pytest
 
 from app.analyzer import ANALYZER_SCHEMA_VERSION, analyze, apply_cumulative_error_baseline
 from app.drivers.cm3000 import CM3000Driver
-from app.drivers.formats.javascript import extract_cm3000_tag_value_list
+from app.drivers.formats.javascript import extract_cm3000_tag_value_list, split_cm3000_channels
 from app.event_detector import EventDetector
 
 
@@ -539,27 +539,6 @@ class TestDeviceInfo:
 # -- Value parsers --
 
 class TestValueParsers:
-    def test_hz_to_mhz_integer(self):
-        assert CM3000Driver._hz_to_mhz("495000000 Hz") == "495 MHz"
-
-    def test_hz_to_mhz_decimal(self):
-        assert CM3000Driver._hz_to_mhz("22800000 Hz") == "22.8 MHz"
-
-    def test_hz_to_mhz_zero(self):
-        assert CM3000Driver._hz_to_mhz("0") == "0 MHz"
-
-    def test_parse_number_with_unit(self):
-        assert CM3000Driver._parse_number("43.3 dBmV") == 43.3
-
-    def test_parse_number_negative(self):
-        assert CM3000Driver._parse_number("-0.32 dBmV") == -0.32
-
-    def test_parse_number_plain(self):
-        assert CM3000Driver._parse_number("41.8 dB") == 41.8
-
-    def test_parse_number_empty(self):
-        assert CM3000Driver._parse_number("") == 0.0
-
     def test_parse_uptime(self):
         assert CM3000Driver._parse_uptime("23 days 09:26:24") == (
             23 * 86400 + 9 * 3600 + 26 * 60 + 24
@@ -571,18 +550,12 @@ class TestValueParsers:
     def test_parse_uptime_invalid(self):
         assert CM3000Driver._parse_uptime("invalid") is None
 
-    def test_split_channels(self):
-        raw = "2|a|b|c|d|e|f"
-        channels = CM3000Driver._split_channels(raw, 3)
-        assert len(channels) == 2
-        assert channels[0] == ["a", "b", "c"]
-        assert channels[1] == ["d", "e", "f"]
-
-    def test_split_channels_trailing_pipe(self):
-        raw = "1|a|b|c|"
-        channels = CM3000Driver._split_channels(raw, 3)
-        assert len(channels) == 1
-        assert channels[0] == ["a", "b", "c"]
+    @pytest.mark.parametrize(("raw", "expected"), [
+        ("2|a|b|c|d|e|f", [["a", "b", "c"], ["d", "e", "f"]]),
+        ("1|a|b|c|", [["a", "b", "c"]]),
+    ])
+    def test_split_channels(self, raw, expected):
+        assert split_cm3000_channels(raw, 3) == expected
 
     def test_fetch_status_page_rejects_missing_docsis_blocks(self, driver):
         mock_response = MagicMock()

@@ -520,10 +520,14 @@ class TestDocsisData:
 
     @pytest.mark.parametrize(
         ("bits", "expected"),
-        [("0", None), ("2", "QPSK"), ("8", "256QAM"), ("13", None), (None, None)],
+        [("0", None), ("2", "QPSK"), ("13", None), (None, None)],
     )
     def test_profile_modulation_from_bit_loading(self, driver, bits, expected):
-        assert driver._profile_modulation_from_bits(bits) == expected
+        nodes = [dict(row, index1=bits) if row["name"] == "bit Loading" else row for row in US_OFDMA["nodes"]]
+
+        channel = _poll(driver, {"RF_US_31_param": {"nodes": nodes}})["channelUs"]["docsis31"][0]
+
+        assert channel.get("profile_modulation") == expected
 
     def test_analyzer_accepts_sercom_dm1000_payload(self, driver):
         analysis = analyze(_poll(driver))

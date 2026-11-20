@@ -26,11 +26,8 @@ import requests
 from .base import ModemDriver
 from .formats.javascript import (
     extract_cm3000_tag_value_list,
-    normalize_cm3000_modulation,
     parse_cm3000_javascript,
-    split_cm3000_channels,
 )
-from .formats.primitives import hz_to_mhz, parse_number
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.cm3000")
@@ -329,24 +326,6 @@ class CM3000Driver(ModemDriver):
             diag["has_sys_info"],
             diag["has_channel_data"],
         )
-
-    # Compatibility parser seams; each delegates to the pure profile.
-
-    @staticmethod
-    def _split_channels(raw: str, fields_per_channel: int) -> list[list[str]]:
-        return split_cm3000_channels(raw, fields_per_channel)
-
-    @staticmethod
-    def _hz_to_mhz(freq_str: str) -> str:
-        return hz_to_mhz(freq_str)
-
-    @staticmethod
-    def _parse_number(value: str) -> float:
-        return parse_number(value)
-
-    @staticmethod
-    def _normalize_modulation(mod: str) -> str:
-        return normalize_cm3000_modulation(mod)
 
     @staticmethod
     def _parse_uptime(uptime_str: str) -> int | None:

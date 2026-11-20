@@ -41,6 +41,7 @@ from app.drivers.formats.vodafone import (
 from app.drivers.formats.xml_payloads import parse_ch7465_xml
 from tests.drivers.driver_format_cases import (
     ARRIS_SUCCESS,
+    CGM4981_SUCCESS,
     CM1000_TABLE_SUCCESS,
     CM3000_SUCCESS,
     CM3500_SUCCESS,
@@ -69,37 +70,13 @@ def _tc_success():
     return parse_tc4400_html(downstream, upstream)
 
 
-def _columnar_success() -> str:
-    def rows(values):
-        return "".join(
-            f'<tr><th>{label}</th>{"".join(f"<td><div class=\"netWidth\">{value}</div></td>" for value in items)}</tr>'
-            for label, items in values.items()
-        )
-
-    downstream = {
-        "Channel ID": ["7", "193"], "Lock Status": ["Locked", "Locked"],
-        "Frequency": ["591 MHz", "690000000"], "SNR": ["40", "41.8"],
-        "Power Level": ["0", ""], "Modulation": ["256 QAM", "OFDM"],
-    }
-    upstream = {
-        "Channel ID": ["3", "41"], "Lock Status": ["Locked", "Locked"],
-        "Frequency": ["29 MHz", "42 MHz"], "Power Level": ["43.5", "37.75"],
-        "Modulation": ["QAM", "OFDMA"], "Channel Type": ["ATDMA", "OFDMA"],
-    }
-    errors = {
-        "Channel ID": ["7", "193"], "Correctable Codewords": ["3", "9"],
-        "Uncorrectable Codewords": ["0", "1"],
-    }
-    return f">Downstream<{rows(downstream)}>Upstream<{rows(upstream)}CM Error Codewords{rows(errors)}"
-
-
 SUCCESS_PROFILES = {
     "pyur_api_v1": lambda: parse_pyur_api_v1([{
         "Downstreams": [{"ChannelID": "21", "Modulation": "OFDM", "Frequency": "171 MHz"}],
         "Upstreams": [{"ChannelID": "1", "Modulation": "QAM"}],
     }]),
     "arris_html": lambda: parse_arris_html(ARRIS_SUCCESS),
-    "cgm4981_columnar_html": lambda: parse_cgm4981_columnar_html(_columnar_success()),
+    "cgm4981_columnar_html": lambda: parse_cgm4981_columnar_html(CGM4981_SUCCESS.replace(" dBmV", "").replace(" dB", "")),
     "ch7465_xml": lambda: parse_ch7465_xml(
         "<root><downstream><chid>7</chid><freq>591 MHz</freq><pow>0</pow><mod>256qam</mod></downstream></root>",
         "<root><upstream><usid>3</usid><freq>29 MHz</freq><power>43.5</power><mod>64qam</mod></upstream></root>",

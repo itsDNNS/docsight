@@ -34,11 +34,7 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from .base import ModemDriver
-from .formats.primitives import hz_to_mhz
-from .formats.surfboard import (
-    normalize_surfboard_modulation,
-    parse_surfboard_hnap,
-)
+from .formats.surfboard import parse_surfboard_hnap
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.surfboard")
@@ -814,13 +810,3 @@ class SurfboardDriver(ModemDriver):
 
         assert last_err is not None
         raise last_err
-
-    # Compatibility parser seams.
-
-    @staticmethod
-    def _hz_to_mhz(freq_hz: int) -> str:
-        return hz_to_mhz(freq_hz)
-
-    @staticmethod
-    def _normalize_modulation(mod: str) -> str:
-        return normalize_surfboard_modulation(mod)

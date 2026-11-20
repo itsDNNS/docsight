@@ -6,6 +6,7 @@ import pytest
 from requests.cookies import RequestsCookieJar
 from unittest.mock import MagicMock, patch
 
+from app.drivers.formats.fritzbox import parse_fritzbox_data_lua
 from app.drivers.fritzbox import FritzBoxDriver
 from app.drivers.ch7465 import CH7465Driver, Query
 
@@ -49,11 +50,10 @@ class TestFritzBoxDriver:
         assert result["channelUs"]["docsis31"][0]["powerDisplayOffset"] == 6.0
         assert "powerDisplayOffset" not in result["channelUs"]["docsis30"][0]
 
-    def test_compensate_no_us31(self):
+    @pytest.mark.parametrize("data", [{}, {"channelUs": {}}, {"channelUs": {"docsis30": []}}])
+    def test_compensate_no_us31(self, data):
         """No crash when channelUs or docsis31 is missing."""
-        FritzBoxDriver._compensate_us31_power({})
-        FritzBoxDriver._compensate_us31_power({"channelUs": {}})
-        FritzBoxDriver._compensate_us31_power({"channelUs": {"docsis30": []}})
+        assert parse_fritzbox_data_lua(data).value == data
 
     @patch("app.drivers.fritzbox.fb")
     def test_get_device_info(self, mock_fb):

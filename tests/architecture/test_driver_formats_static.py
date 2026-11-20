@@ -30,9 +30,7 @@ DELEGATION_PREFIXES = (
     "_get_row_values", "_is_ofdm_downstream",
 )
 
-# Device metadata, login and request helpers that are not DOCSIS channel parsers,
-# plus two value helpers that are not a plain return: _normalize_us_modulation
-# computes the label itself and _compensate_us31_power updates the payload in place.
+# Device metadata, login and request helpers that are not DOCSIS channel parsers.
 OWN_LOGIC = {
     "CM3000Driver": {"_parse_uptime", "_extract_login_form"},
     "CM3500Driver": {"_parse_service_flows"},
@@ -40,8 +38,7 @@ OWN_LOGIC = {
     "SurfboardDriver": {"_normalize_url"},
     "TC4400Driver": {"_parse_info_table"},
     "VodafoneStationDriver": {"_extract_js_var"},
-    "SagemcomDriver": {"_build_request", "_normalize_us_modulation"},
-    "FritzBoxDriver": {"_compensate_us31_power"},
+    "SagemcomDriver": {"_build_request"},
 }
 
 

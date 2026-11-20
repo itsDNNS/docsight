@@ -43,8 +43,6 @@ from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .formats.html_columnar import (
     _float,
     _modulation,
-    build_cgm4981_downstream,
-    build_cgm4981_upstream,
     parse_cgm4981_columnar_html,
 )
 
@@ -196,14 +194,3 @@ class CGM4981Driver(ModemDriver):
             return self._status_html
 
         raise RuntimeError("CGM4981 failed to fetch status page after 2 attempts")
-
-    @staticmethod
-    def _build_ds_channels(
-        ds_rows: dict[str, list[str]],
-        err_rows: dict[str, list[str]],
-    ) -> list[dict]:
-        return build_cgm4981_downstream(ds_rows, err_rows).value
-
-    @staticmethod
-    def _build_us_channels(us_rows: dict[str, list[str]]) -> list[dict]:
-        return build_cgm4981_upstream(us_rows).value
