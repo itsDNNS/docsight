@@ -348,6 +348,26 @@ def test_complaint_text_falls_back_to_english_for_unknown_language():
     assert "Worst downstream power:" in text
 
 
+@pytest.mark.parametrize("lang", sorted(REPORT_STRINGS))
+def test_complaint_text_closes_with_localized_placeholders(lang):
+    strings = REPORT_STRINGS[lang]
+    placeholders = strings["complaint_closing"].splitlines()[1:]
+    assert all(p.startswith("[") and p[1].isupper() for p in placeholders)
+    text = generate_complaint_text(MOCK_SNAPSHOTS, lang=lang)
+    assert text.endswith("\n".join([strings["complaint_closing_label"], *placeholders]))
+
+
+def test_complaint_text_trims_customer_details_in_closing():
+    text = generate_complaint_text(
+        MOCK_SNAPSHOTS,
+        lang="de",
+        customer_name=" Max Mustermann ",
+        customer_number=" KD-123456 ",
+        customer_address=" Musterstraße 1\n12345 Musterstadt\n",
+    )
+    assert text.endswith("Mit freundlichen Grüßen\nMax Mustermann\nKD-123456\nMusterstraße 1\n12345 Musterstadt")
+
+
 def test_generate_report_accepts_comparison_evidence():
     comparison_data = {
         "period_a": {

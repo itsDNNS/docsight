@@ -108,7 +108,7 @@
   "complaint_req3": "Pisemna dokumentacja ustaleń i działań naprawczych",
   "complaint_escalation": "Podsumowanie monitoringu znajduje się w tym raporcie. Zastrzegam sobie prawo do przekazania tej sprawy do Bundesnetzagentur (Federalnej Agencji Sieci), jeśli problem nie zostanie rozwiązany w rozsądnym terminie.",
   "complaint_closing_label": "Z poważaniem,",
-  "complaint_closing": "Z poważaniem,\n[Twoje imię]\n[Numer klienta]\n[Adres]",
+  "complaint_closing": "Z poważaniem,\n[Imię i nazwisko]\n[Numer klienta]\n[Adres]",
   "complaint_short_subject": "Temat: Problemy z jakością sygnału DOCSIS",
   "complaint_short_greeting": "Drogie wsparcie techniczne,",
   "complaint_short_body": "Mam ciągłe problemy z jakością sygnału w przypadku mojego kablowego połączenia internetowego. Szczegółowe informacje można znaleźć w załączonych danych monitorowania.",

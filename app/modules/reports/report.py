@@ -1135,19 +1135,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
     )
     diag_notes = period_aggregate["diagnostic_notes"]
 
-    # Build closing with actual customer data
-    closing_lines = []
-    closing_lines.append(s.get("complaint_closing_label", "Sincerely,"))
-    closing_lines.append(customer_name if customer_name else "[Your Name]")
-    if customer_number:
-        closing_lines.append(customer_number)
-    else:
-        closing_lines.append("[Customer Number]")
-    if customer_address:
-        closing_lines.append(customer_address)
-    else:
-        closing_lines.append("[Address]")
-    closing = "\n".join(closing_lines)
+    closing = _format_customer_closing(s, customer_name, customer_number, customer_address)
 
     # Build BNetzA section if data provided
     bnetz_section = ""
