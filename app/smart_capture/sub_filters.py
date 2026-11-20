@@ -32,11 +32,6 @@ def modulation_sub_filter(config, event):
     return bool(qualifying)
 
 
-def snr_sub_filter(config, event):
-    """No sub-settings for v1 — always passes."""
-    return True
-
-
 def error_spike_sub_filter(config, event):
     """Filter error_spike by minimum delta."""
     min_delta = int(config.get("sc_trigger_error_spike_min_delta", 0))

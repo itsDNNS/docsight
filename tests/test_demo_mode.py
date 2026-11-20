@@ -598,7 +598,6 @@ class TestDemoCollectorOFDMA:
         collector = _demo_collector(storage)
 
         analysis = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=True,
@@ -617,7 +616,6 @@ class TestDemoCollectorOFDMA:
         collector = _demo_collector(storage)
 
         analysis = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=False,
@@ -634,7 +632,6 @@ class TestDemoCollectorOFDMA:
         collector = _demo_collector(storage)
 
         early = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=False,
@@ -642,7 +639,6 @@ class TestDemoCollectorOFDMA:
             day_of_year=11,
         )
         midday = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=False,
@@ -650,7 +646,6 @@ class TestDemoCollectorOFDMA:
             day_of_year=11,
         )
         evening = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=False,

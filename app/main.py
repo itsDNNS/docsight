@@ -224,7 +224,7 @@ def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
     # Smart Capture (always instantiated — _is_enabled() gates at runtime)
     from .smart_capture import SmartCaptureEngine, Trigger
     from .smart_capture.sub_filters import (
-        modulation_sub_filter, snr_sub_filter, error_spike_sub_filter,
+        modulation_sub_filter, error_spike_sub_filter,
         health_sub_filter, packet_loss_sub_filter,
     )
     smart_capture = SmartCaptureEngine(storage, config_mgr)
@@ -237,7 +237,6 @@ def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
     smart_capture.register_trigger(Trigger(
         event_type="snr_change",
         config_key="sc_trigger_snr", min_severity="warning",
-        sub_filter=snr_sub_filter,
     ))
     smart_capture.register_trigger(Trigger(
         event_type="error_spike",
