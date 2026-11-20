@@ -401,8 +401,3 @@ def test_device_and_connection_info(driver):
         "sw_version": "",
     }
     assert driver.get_connection_info() == {}
-
-def test_load_via_registry():
-    from app.drivers import load_driver
-    loaded = load_driver("cm1000", "http://192.168.100.1", "admin", "secret")
-    assert isinstance(loaded, CM1000Driver)

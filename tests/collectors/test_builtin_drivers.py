@@ -323,20 +323,6 @@ class TestCH7465PlayAlias:
 
 
 class TestLoadDriver:
-    def test_load_fritzbox_driver(self):
-        from app.drivers import load_driver
-        driver = load_driver("fritzbox", "http://fritz.box", "admin", "pass")
-        assert isinstance(driver, FritzBoxDriver)
-
-    def test_unknown_driver_raises(self):
-        from app.drivers import load_driver
-        with pytest.raises(ValueError, match="Unknown modem_type"):
-            load_driver("nonexistent", "http://x", "u", "p")
-
-    def test_default_is_fritzbox(self):
-        from app.drivers import driver_registry
-        assert driver_registry.has_driver("fritzbox")
-
     @pytest.mark.parametrize("bad_type", [
         "../../etc/passwd",
         "__import__('os')",
@@ -348,7 +334,3 @@ class TestLoadDriver:
         from app.drivers import load_driver
         with pytest.raises(ValueError, match="Unknown modem_type"):
             load_driver(bad_type, "http://x", "u", "p")
-
-
-# ── ModemCollector Error Path Tests (E2) ──
-

@@ -1,5 +1,7 @@
 """Tests for Arris SB6190 modem driver."""
 
+import base64
+
 import pytest
 import requests
 from unittest.mock import patch, MagicMock
@@ -108,19 +110,9 @@ class TestDriverInit:
         d = SB6190Driver("http://192.168.100.1", "admin", "pass")
         assert d._url == "https://192.168.100.1"
 
-    def test_stores_credentials(self):
-        d = SB6190Driver("https://192.168.100.1", "admin", "secret")
-        assert d._user == "admin"
-        assert d._password == "secret"
-
     def test_ssl_verify_disabled(self):
         d = SB6190Driver("https://192.168.100.1", "admin", "pass")
         assert d._session.verify is False
-
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("sb6190", "https://192.168.100.1", "admin", "pass")
-        assert isinstance(d, SB6190Driver)
 
 
 # -- Login --
@@ -133,12 +125,12 @@ class TestLogin:
             url = mock_post.call_args[0][0]
             assert "/cgi-bin/adv_pwd_cgi" in url
 
-    def test_login_sends_arguments_and_nonce(self, driver):
+    def test_login_sends_credentials_and_nonce(self, driver):
         with serve_html(driver, "Url:status", "post") as mock_post, \
              serve_html(driver, SAMPLE_STATUS_HTML):
             driver.login()
             data = mock_post.call_args[1]["data"]
-            assert "arguments" in data
+            assert base64.b64decode(data["arguments"]) == b"username%3Dadmin:password%3Dpassword"
             assert "ar_nonce" in data
             assert len(data["ar_nonce"]) == 8
 

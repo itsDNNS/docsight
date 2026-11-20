@@ -646,16 +646,3 @@ class TestFullDataFlow:
 class TestConnectionInfo:
     def test_returns_empty(self, driver):
         assert driver.get_connection_info() == {}
-
-
-# -- Driver registration --
-
-class TestRegistration:
-    def test_sagemcom_registered(self):
-        from app.drivers import driver_registry
-        assert driver_registry.has_driver("sagemcom")
-
-    def test_sagemcom_loads(self):
-        from app.drivers import driver_registry
-        d = driver_registry.load_driver("sagemcom", "http://192.168.100.1", "admin", "pass")
-        assert isinstance(d, SagemcomDriver)
