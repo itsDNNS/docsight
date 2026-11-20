@@ -19,6 +19,7 @@ from bs4 import BeautifulSoup
 from .base import ModemDriver
 from .formats.html_rows import parse_sb6190_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.sb6190")
 
@@ -86,7 +87,8 @@ class SB6190Driver(ModemDriver):
         try:
             r = self._session.get(f"{self._url}/cgi-bin/swinfo", timeout=30)
             r.raise_for_status()
-        except requests.RequestException:
+        except requests.RequestException as e:
+            log.warning("SB6190 device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Arris", "model": "SB6190", "sw_version": ""}
 
         soup = BeautifulSoup(r.text, "html.parser")

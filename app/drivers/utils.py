@@ -52,6 +52,17 @@ def is_auth_error(exc: Exception) -> bool:
     return isinstance(exc, requests.HTTPError) and getattr(exc.response, "status_code", None) in {401, 403}
 
 
+def request_error_summary(exc: Exception) -> str:
+    """Error type and HTTP status only; request error texts can carry URLs, credentials and page fragments."""
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    return f"{type(exc).__name__} (HTTP {status})" if status else type(exc).__name__
+
+
+def error_text(exc: Exception) -> str:
+    """``request_error_summary`` for request errors; any other error keeps its own message."""
+    return request_error_summary(exc) if isinstance(exc, requests.RequestException) else str(exc)
+
+
 def fetch_failed(logger: logging.Logger, raise_on_error: bool, message: str, exc: Exception | None = None) -> dict:
     """Raise ``message`` as ``RuntimeError`` in strict mode, else log it and return an empty payload."""
     if raise_on_error and exc is not None:

@@ -29,6 +29,7 @@ from .formats.javascript import (
     parse_cm3000_javascript,
 )
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.cm3000")
 
@@ -145,7 +146,8 @@ class CM3000Driver(ModemDriver):
                     result["uptime_seconds"] = uptime
 
             return result
-        except Exception:
+        except Exception as e:
+            log.warning("CM3000 device info unavailable: %s", e)
             return {"manufacturer": "Netgear", "model": "CM3000", "sw_version": ""}
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -171,7 +173,7 @@ class CM3000Driver(ModemDriver):
             )
             r.raise_for_status()
         except requests.RequestException as e:
-            raise RuntimeError(f"CM3000 status page retrieval failed: {e}")
+            raise RuntimeError(f"CM3000 status page retrieval failed: {request_error_summary(e)}")
         try:
             self._ensure_status_page(r.text)
         except RuntimeError:

@@ -20,6 +20,7 @@ from bs4 import BeautifulSoup
 from .base import ModemDriver
 from .formats.html_transposed import parse_sb6141_transposed_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.sb6141")
 
@@ -69,7 +70,8 @@ class SB6141Driver(ModemDriver):
                 timeout=15,
             )
             r.raise_for_status()
-        except requests.RequestException:
+        except requests.RequestException as e:
+            log.warning("SB6141 device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Arris", "model": "SB6141", "sw_version": ""}
 
         text = BeautifulSoup(r.text, "html.parser").get_text()

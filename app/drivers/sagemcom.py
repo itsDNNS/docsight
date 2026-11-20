@@ -24,6 +24,7 @@ import requests
 from .base import ModemDriver
 from .formats.sagemcom import parse_sagemcom_xmo_json
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.sagemcom")
 
@@ -216,7 +217,8 @@ class SagemcomDriver(ModemDriver):
                 "model": model,
                 "sw_version": sw_version,
             }
-        except Exception:
+        except Exception as e:
+            log.warning("Sagemcom device info unavailable: %s", request_error_summary(e))
             self._logged_in = False
             return {"manufacturer": "Sagemcom", "model": "", "sw_version": ""}
 
