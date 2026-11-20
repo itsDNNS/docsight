@@ -11,10 +11,6 @@ _DOWNSTREAM_FIELDS = 9
 _UPSTREAM_FIELDS = 7
 
 
-def normalize_surfboard_modulation(value: str) -> str:
-    return value.strip() if value else ""
-
-
 def parse_surfboard_downstream(raw: str) -> ParseResult[tuple[list[RawChannel], list[RawChannel]]]:
     docsis30: list[RawChannel] = []
     docsis31: list[RawChannel] = []
@@ -28,7 +24,7 @@ def parse_surfboard_downstream(raw: str) -> ParseResult[tuple[list[RawChannel], 
         if len(fields) < _DOWNSTREAM_FIELDS or fields[1].strip() != "Locked":
             continue
         try:
-            modulation = normalize_surfboard_modulation(fields[2])
+            modulation = fields[2].strip()
             channel_id = int(fields[3])
             frequency = hz_to_mhz(int(fields[4]))
             power = float(fields[5].strip())
@@ -64,7 +60,7 @@ def parse_surfboard_upstream(raw: str) -> ParseResult[tuple[list[RawChannel], li
         if len(fields) < _UPSTREAM_FIELDS or fields[1].strip() != "Locked":
             continue
         try:
-            channel_type = normalize_surfboard_modulation(fields[2])
+            channel_type = fields[2].strip()
             channel_id = int(fields[3])
             frequency = hz_to_mhz(int(fields[5]))
             power = float(fields[6].strip())

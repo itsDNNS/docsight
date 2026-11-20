@@ -17,7 +17,7 @@ import re
 import weakref
 from enum import Enum
 from .base import ModemDriver
-from .formats.xml_payloads import parse_ch7465_xml
+from .formats.xml_payloads import _text as _node_text, parse_ch7465_xml
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.ch7465")
@@ -35,13 +35,6 @@ class Action(Enum):
     """Action function codes usable with `_set_data()`"""
     LOGIN = 15
     LOGOUT = 16
-
-def _node_text(node: ET.Element | None, default: str = "") -> str:
-    """Helper function: Extract the text from one XML element (with fallback to `default` if the node does not exist)."""
-    if node is not None and node.text is not None:
-        return node.text
-    else:
-        return default
 
 class CH7465Driver(ModemDriver):
     """Driver for Compal CH7465 cable modems.

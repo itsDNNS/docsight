@@ -2,7 +2,14 @@
 
 import pytest
 
-from app.drivers.formats.primitives import hz_to_mhz, normalize_mhz, normalize_modulation, parse_number
+from app.drivers.formats.primitives import (
+    hz_to_mhz,
+    normalize_mhz,
+    normalize_modulation,
+    parse_first_number,
+    parse_mhz_value,
+    parse_number,
+)
 
 
 @pytest.mark.parametrize(
@@ -30,6 +37,14 @@ def test_parse_number(raw, expected):
 
 @pytest.mark.parametrize(
     ("raw", "expected"),
+    [("1,234.5 dB", 1234.5), ("-3.2 dBmV", -3.2), ("Ch 5", 5.0), ("", None), ("----", None)],
+)
+def test_parse_first_number(raw, expected):
+    assert parse_first_number(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
     [
         ("495000000 Hz", "495 MHz"),
         ("22800000 Hz", "22.8 MHz"),
@@ -43,6 +58,11 @@ def test_parse_number(raw, expected):
         (705000000, "705 MHz"),
         (29200000, "29.2 MHz"),
         (36200000, "36.2 MHz"),
+        (591500000.0, "591.5 MHz"),
+        ("591000 kHz", "591 MHz"),
+        ("1200 MHz", "1200 MHz"),
+        ("5120", "5.1 MHz"),
+        ("42", "42 MHz"),
         ("0", "0 MHz"),
         ("0 Hz", "0 MHz"),
         (0, "0 MHz"),
@@ -58,10 +78,28 @@ def test_hz_to_mhz(raw, expected):
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
+        ("591000000 Hz", 591.0),
+        ("591000 kHz", 591.0),
+        ("807.5 MHz", 807.5),
+        ("591000000", 591.0),
+        ("5120", 5.12),
+        ("42", 42.0),
+        ("", 0.0),
+        ("n/a", 0.0),
+    ],
+)
+def test_parse_mhz_value(raw, expected):
+    assert parse_mhz_value(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
         ("807.00 MHz", "807 MHz"),
         ("17.60 MHz", "17.6 MHz"),
         ("100 MHz", "100 MHz"),
         ("unknown", "unknown"),
+        ("", ""),
     ],
 )
 def test_normalize_mhz(raw, expected):

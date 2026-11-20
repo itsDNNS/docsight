@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch
-from app.drivers.formats.surfboard import normalize_surfboard_modulation
+from app.drivers.formats.surfboard import parse_surfboard_downstream
 from app.drivers.surfboard import SurfboardDriver
 from ._data import HNAP_LOGIN_PHASE1, HNAP_LOGIN_PHASE2
 
@@ -157,9 +157,10 @@ class TestDataFetchRetry:
         assert len(calls) == 2
         assert "channelDs" in data
 
-@pytest.mark.parametrize(("raw", "expected"), [("256QAM", "256QAM"), (" OFDM PLC ", "OFDM PLC"), ("", "")])
-def test_normalize_modulation_trims_only(raw, expected):
-    assert normalize_surfboard_modulation(raw) == expected
+@pytest.mark.parametrize(("raw", "expected"), [("256QAM", "256QAM"), (" qam256 ", "qam256"), ("", "")])
+def test_downstream_modulation_is_trimmed_only(raw, expected):
+    channels, _ = parse_surfboard_downstream(f"1^Locked^{raw}^5^705000000^0.0^40.9^31^0").value
+    assert channels[0]["modulation"] == expected
 
 
 # -- Empty / edge cases --
