@@ -123,6 +123,27 @@ class TestCH7465Driver:
         assert not [message for message in caplog.messages if "secret" in message]
 
     @patch("app.drivers.ch7465.requests.Session")
+    def test_device_and_connection_info_from_xml(self, mock_session_cls):
+        """Absent model and title fall back to CH7465; text values are kept as sent."""
+        d = CH7465Driver("http://192.168.0.1", "", "pass")
+        d._get_data = MagicMock(side_effect={
+            Query.GLOBAL_SETTINGS: "<root><model_name>Connect Box</model_name><SwVersion> 6.15 </SwVersion></root>",
+            Query.SYSTEM_INFO: "<root><cm_system_uptime>2day(s)3h:4m:5s</cm_system_uptime></root>",
+            Query.CONNECTION_STATUS: "<root><cm_docsis_mode>DOCSIS 3.0</cm_docsis_mode>"
+            "<serviceflow><direction>1</direction><pMaxTrafficRate>500000000</pMaxTrafficRate></serviceflow>"
+            "<serviceflow><direction>2</direction><pMaxTrafficRate>50000000</pMaxTrafficRate></serviceflow>"
+            "<serviceflow><direction>1</direction><pMaxTrafficRate></pMaxTrafficRate></serviceflow></root>",
+        }.__getitem__)
+
+        assert d.get_device_info() == {
+            "manufacturer": "Compal", "model": "Connect Box (CH7465)", "sw_version": " 6.15 ",
+            "uptime_seconds": 2 * 86400 + 3 * 3600 + 4 * 60 + 5,
+        }
+        assert d.get_connection_info() == {
+            "max_downstream_kbps": 500000, "max_upstream_kbps": 50000, "connection_type": "DOCSIS 3.0",
+        }
+
+    @patch("app.drivers.ch7465.requests.Session")
     def test_detect_play_firmware(self, mock_session_cls):
         """Play firmware detected via ConfigVenderModel containing 'PLAY'."""
         d = CH7465Driver("http://192.168.0.1", "", "pass")
@@ -238,9 +259,9 @@ class TestCH7465PlayAlias:
     @patch("app.drivers.ch7465.requests.Session")
     def test_ch7465_play_registry_alias_forces_play_mode(self, mock_session_cls):
         """Configured ch7465_play modems keep the Play/UPC protocol path."""
-        from app.drivers import load_driver
+        from app.drivers import get_driver_registry
 
-        d = load_driver("ch7465_play", "http://192.168.0.1", "", "mypassword")
+        d = get_driver_registry().load_driver("ch7465_play", "http://192.168.0.1", "", "mypassword")
 
         assert isinstance(d, CH7465Driver)
         assert d._is_play is True
@@ -331,6 +352,6 @@ class TestLoadDriver:
         "../drivers/fritzbox",
     ])
     def test_malicious_modem_type_rejected(self, bad_type):
-        from app.drivers import load_driver
+        from app.drivers import get_driver_registry
         with pytest.raises(ValueError, match="Unknown modem_type"):
-            load_driver(bad_type, "http://x", "u", "p")
+            get_driver_registry().load_driver(bad_type, "http://x", "u", "p")

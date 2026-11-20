@@ -373,20 +373,12 @@ class TestModuleDiscovery:
     """Integration: comparison module loads correctly via module loader."""
 
     def setup_method(self):
-        from app.i18n import _TRANSLATIONS
-
-        self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
         self._orig_sys_modules = {
             k: v for k, v in sys.modules.items()
             if k.startswith("app.modules.")
         }
 
     def teardown_method(self):
-        from app.i18n import _TRANSLATIONS
-
-
-        _TRANSLATIONS.clear()
-        _TRANSLATIONS.update(self._orig_translations)
         # Restore original module objects (load_all re-imports them as new objects,
         # which breaks unittest.mock.patch targets for later tests)
         for key in list(sys.modules.keys()):

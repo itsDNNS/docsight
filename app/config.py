@@ -50,6 +50,12 @@ def parse_config_bool(value) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def parse_disabled_modules(value) -> set[str]:
+    """The module ids in a disabled_modules value: comma-separated text, or a list."""
+    items = value if isinstance(value, list) else str(value or "").split(",")
+    return {module_id for item in items if (module_id := str(item).strip())}
+
+
 def parse_stored_bool(value) -> bool:
     """Read a stored on/off setting: text through parse_config_bool, anything else by truthiness."""
     return parse_config_bool(value) if isinstance(value, str) else bool(value)
@@ -353,6 +359,13 @@ class ConfigManager:
             return ""
         return DEFAULTS["disabled_modules"]
 
+    def get_disabled_modules(self) -> set[str]:
+        return parse_disabled_modules(self.get("disabled_modules"))
+
+    def save_disabled_modules(self, module_ids, **updates):
+        """Save the disabled module ids, together with any other updates."""
+        self.save({"disabled_modules": ",".join(sorted(module_ids)), **updates})
+
     def get(self, key, default=None):
         """Get config value: env var > legacy env var > config.json > default.
         Secret keys from config.json are decrypted transparently."""
@@ -439,6 +452,9 @@ class ConfigManager:
                     parse_config_int(data[key])
                 except (ValueError, TypeError, OverflowError):
                     return f"{key} must be a whole number"
+        modules = data.get("disabled_modules")
+        if isinstance(modules, list) and any("," in str(item) for item in modules):
+            return "disabled_modules entries must not contain a comma"
         return None
 
     def save(self, data):

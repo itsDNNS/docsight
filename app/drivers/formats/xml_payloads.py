@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from types import MappingProxyType
 
 from ...types import DocsisDataFritz, RawChannel
 from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split
-from .primitives import hz_to_mhz, normalize_modulation, parse_optional_finite_float
+from .primitives import (
+    ANNEX_B_DOWNSTREAM_SYMBOL_RATES,
+    hz_to_mhz,
+    normalize_modulation,
+    parse_optional_finite_float,
+)
 
 _XML_FAMILY = "xml_payloads"
 _SB8200_PROFILE = "sb8200_cbn_xml"
-
-# The SB8200 is an Annex B (6 MHz) device and its downstream table omits the
-# symbol rate. Without these the analyzer falls back to the EuroDOCSIS 8 MHz
-# default and every downstream capacity estimate reads ~30% high.
-_SB8200_ANNEX_B_DS_SYMBOL_RATES = MappingProxyType({"64QAM": 5057, "256QAM": 5361})
 
 
 def _text(node: ET.Element | None, default: str = "") -> str:
@@ -246,7 +245,7 @@ def _sb8200_downstream_scqam(
         modulation = normalize_modulation(_text(entry.find("mod")))
         if modulation:
             channel["modulation"] = modulation
-            symbol_rate = _SB8200_ANNEX_B_DS_SYMBOL_RATES.get(modulation)
+            symbol_rate = ANNEX_B_DOWNSTREAM_SYMBOL_RATES.get(modulation)
             if symbol_rate is not None:
                 channel["symbolRate"] = symbol_rate
         corrected, uncorrected = counters.get(channel_id, (None, None))

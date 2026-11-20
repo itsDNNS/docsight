@@ -12,17 +12,17 @@ from bs4 import BeautifulSoup, Tag
 from ...types import DocsisDataFritz, RawChannel
 from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_result, docsis_split
 from .primitives import (
+    ANNEX_B_DOWNSTREAM_SYMBOL_RATES,
     hz_to_mhz,
     normalize_mhz,
     normalize_modulation,
+    parse_first_number,
     parse_mhz_value,
     parse_number,
 )
 
 
-_NUMBER_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
 _HEADER_RE = re.compile(r"[^a-z0-9]+")
-_ANNEX_B_DOWNSTREAM_SYMBOL_RATES = MappingProxyType({"64QAM": 5057, "256QAM": 5361})
 _CM1000_ALIASES = MappingProxyType({
     "channel": frozenset({"channel", "channelnumber", "channelno"}),
     "lock": frozenset({"lockstatus", "status"}),
@@ -509,41 +509,9 @@ def cm1000_looks_like_header(values: list[str]) -> bool:
     return "channel" in values and any(value in known for value in values[1:])
 
 
-def cm1000_get(row: dict[str, str], field: str, default: str = "") -> str:
-    return _cm1000_get(row, field, default)
-
-
-def _cm1000_float(value: str) -> float | None:
-    if not value:
-        return None
-    match = _NUMBER_RE.search(value.replace(",", ""))
-    return float(match.group(0)) if match else None
-
-
 def _cm1000_int(value: str) -> int | None:
-    number = _cm1000_float(value)
+    number = parse_first_number(value)
     return int(number) if number is not None else None
-
-
-def parse_cm1000_float(value: str) -> float | None:
-    return _cm1000_float(value)
-
-
-def parse_cm1000_int(value: str) -> int | None:
-    return _cm1000_int(value)
-
-
-def cm1000_is_locked(row: dict[str, str]) -> bool:
-    status = _cm1000_get(row, "lock") or row.get("1", "")
-    return status.strip().lower() == "locked"
-
-
-def cm1000_channel_id(row: dict[str, str]) -> int | None:
-    return _cm1000_int(
-        _cm1000_get(row, "channel_id")
-        or _cm1000_get(row, "channel")
-        or row.get("0", "")
-    )
 
 
 def cm1000_table_rows(soup: BeautifulSoup, table_id: str) -> list[dict[str, str]]:
@@ -596,14 +564,6 @@ def _cm1000_positional(row: dict[str, str], direction: str) -> dict[str, str]:
     return mapped
 
 
-def map_cm1000_downstream_positional(row: dict[str, str]) -> dict[str, str]:
-    return _cm1000_positional(row, "downstream")
-
-
-def map_cm1000_upstream_positional(row: dict[str, str]) -> dict[str, str]:
-    return _cm1000_positional(row, "upstream")
-
-
 def _parse_cm1000_table(
     soup: BeautifulSoup, table_id: str, *, direction: str, docsis31: bool,
 ) -> ParseResult[list[RawChannel]]:
@@ -620,10 +580,10 @@ def _parse_cm1000_table(
         if channel_id is None:
             continue
         frequency = hz_to_mhz(_cm1000_get(row, "frequency"))
-        power = _cm1000_float(_cm1000_get(row, "power"))
+        power = parse_first_number(_cm1000_get(row, "power"))
         modulation = normalize_modulation(_cm1000_get(row, "modulation"))
         if direction == "downstream":
-            snr = _cm1000_float(_cm1000_get(row, "snr"))
+            snr = parse_first_number(_cm1000_get(row, "snr"))
             if docsis31:
                 channel: RawChannel = {
                     "channelID": channel_id, "type": "OFDM", "frequency": frequency,
@@ -639,7 +599,7 @@ def _parse_cm1000_table(
                     "corrErrors": _cm1000_int(_cm1000_get(row, "corr")),
                     "nonCorrErrors": _cm1000_int(_cm1000_get(row, "uncorr")),
                 }
-                symbol_rate = _ANNEX_B_DOWNSTREAM_SYMBOL_RATES.get(modulation)
+                symbol_rate = ANNEX_B_DOWNSTREAM_SYMBOL_RATES.get(modulation)
                 if symbol_rate is not None:
                     channel["symbolRate"] = symbol_rate
         elif docsis31:

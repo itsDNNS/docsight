@@ -12,28 +12,6 @@ import ssl
 import requests
 from requests.adapters import HTTPAdapter
 
-from .formats.primitives import (
-    hz_to_mhz,
-    normalize_mhz,
-    normalize_modulation,
-    parse_number,
-    parse_optional_finite_float,
-)
-
-__all__ = [
-    "fetch_failed",
-    "hz_to_mhz",
-    "is_auth_error",
-    "make_legacy_tls_adapter",
-    "normalize_mhz",
-    "normalize_modulation",
-    "parse_number",
-    "parse_optional_finite_float",
-    "pbkdf2_sha256",
-]
-
-log = logging.getLogger("docsis.drivers.utils")
-
 
 def pbkdf2_sha256(key_material: bytes, salt: bytes, *, length: int = 16, iterations: int = 1000) -> bytes:
     """Derive PBKDF2-HMAC-SHA256 bytes.

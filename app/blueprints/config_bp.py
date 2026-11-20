@@ -238,12 +238,13 @@ def api_demo_migrate():
         }), 409
     if not _storage:
         return jsonify({"success": False, "error": "Storage not initialized"}), 500
-    next_choice = (request.get_json(silent=True) or {}).get("next", "exit")
+    data = request.get_json(silent=True) or {}
+    next_choice = data.get("next", "exit") if isinstance(data, dict) else None
     next_paths = {
         "connect": "/setup?connect=1",
         "exit": "/setup",
     }
-    if next_choice not in next_paths:
+    if not isinstance(next_choice, str) or next_choice not in next_paths:
         return jsonify({"success": False, "error": "Invalid next path"}), 400
     try:
         purged = _storage.purge_demo_data()

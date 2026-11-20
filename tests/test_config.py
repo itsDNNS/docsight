@@ -5,11 +5,13 @@ import os
 import pytest
 from app.config import (
     ConfigManager,
+    ConfigValueError,
     DEFAULTS,
     ENV_MAP,
     PASSWORD_MASK,
     URL_KEYS,
     parse_config_bool,
+    parse_disabled_modules,
 )
 from app.doctor import _check_admin_password, _check_backup, _check_configured_mode, _check_integrations
 from app.smart_capture.engine import SmartCaptureEngine
@@ -100,6 +102,24 @@ def test_stored_bool_readers_keep_their_meaning(tmp_data_dir, monkeypatch, value
     assert apprise.details["enabled"] is enabled
     assert (_check_admin_password(stored, {}).status == "skipped") is enabled
     assert parse_config_bool(config.get("speedtest_tls_insecure")) is tls_insecure
+
+
+@pytest.mark.parametrize(("value", "error", "expected"), [
+    ("a.one,b.two", None, {"a.one", "b.two"}),
+    (" a.one , ,b.two ,", None, {"a.one", "b.two"}),
+    ("", None, set()),
+    ("   ", None, set()),
+    (None, None, set()),
+    # Settings saved through the API or edited by hand can hold a list.
+    (["a.one", " b.two ", ""], None, {"a.one", "b.two"}),
+    # A list entry with a comma would turn into two ids once saved as text, so saving refuses it.
+    (["a.one,b.two"], "disabled_modules entries must not contain a comma", {"a.one,b.two"}),
+    # JSON text is read as comma-separated text, as it always was.
+    ('["a.one", "b.two"]', None, {'["a.one"', '"b.two"]'}),
+], ids=["comma", "whitespace", "empty", "blank", "none", "list", "list-entry-with-comma", "json-text"])
+def test_disabled_modules_values(config, value, error, expected):
+    assert config.validation_error({"disabled_modules": value}) == error
+    assert parse_disabled_modules(value) == expected
 
 
 @pytest.mark.parametrize(("value", "expected"), [("on", True), (" yes ", True), ("off", False), ("2", False)])
@@ -383,8 +403,13 @@ class TestConfigState:
         assert config.get("disabled_modules") == ""
 
     def test_explicit_disabled_modules_override_is_preserved(self, config):
-        config.save({"disabled_modules": "docsight.smokeping,test.integration"})
+        assert config.get_disabled_modules() == {"docsight.smokeping"}
+        config.save_disabled_modules({"test.integration", "docsight.smokeping"}, active_theme="test.theme")
         assert config.get("disabled_modules") == "docsight.smokeping,test.integration"
+        assert config.get("active_theme") == "test.theme"
+        with pytest.raises(ConfigValueError, match="^disabled_modules entries must not contain a comma$"):
+            config.save({"disabled_modules": ["docsight.smokeping,test.integration"]})
+        assert config.get_disabled_modules() == {"docsight.smokeping", "test.integration"}
 
     def test_bqm_requires_url(self, config):
         assert config.is_bqm_configured() is False

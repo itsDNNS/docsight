@@ -102,11 +102,14 @@ class SB6190Driver(ModemDriver):
                     info["sw_version"] = value
                 elif "hardware version" in label:
                     info["hw_version"] = value
-        return {
+        result: DeviceInfo = {
             "manufacturer": "Arris",
             "model": "SB6190",
             "sw_version": info.get("sw_version", ""),
         }
+        if info.get("hw_version"):
+            result["hw_version"] = info["hw_version"]
+        return result
 
     def get_connection_info(self) -> ConnectionInfo:
         return {}

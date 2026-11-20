@@ -89,22 +89,16 @@ def test_pwa_push_status_endpoint_exposes_public_key_without_private_key(tmp_pat
     assert "private-vapid-key" not in json.dumps(data)
 
 
-def test_pwa_push_subscribe_and_unsubscribe_api_validates_subscription(tmp_path):
+@pytest.fixture
+def push_api(tmp_path):
     storage = make_storage(tmp_path)
-    cfg = make_config(tmp_path)
     current_runtime().storage = storage
-    current_runtime().config_manager = cfg
-    client = app.test_client()
+    current_runtime().config_manager = make_config(tmp_path)
+    return app.test_client(), storage
 
-    bad = client.post("/api/notifications/pwa/subscribe", json={"endpoint": "missing keys"})
-    assert bad.status_code == 400
 
-    insecure_subscription = {**VALID_SUBSCRIPTION, "endpoint": "http://push.example.test/send/abc123"}
-    insecure = client.post("/api/notifications/pwa/subscribe", json={"subscription": insecure_subscription})
-    assert insecure.status_code == 400
-    assert insecure.get_json()["error"] == "Invalid Web Push subscription"
-    assert "HTTPS" not in json.dumps(insecure.get_json())
-
+def test_pwa_push_subscribe_and_unsubscribe_api(push_api):
+    client, storage = push_api
     subscribed = client.post("/api/notifications/pwa/subscribe", json={"subscription": VALID_SUBSCRIPTION})
     assert subscribed.status_code == 200
     assert subscribed.get_json()["success"] is True
@@ -116,6 +110,33 @@ def test_pwa_push_subscribe_and_unsubscribe_api_validates_subscription(tmp_path)
     )
     assert unsubscribed.status_code == 200
     assert unsubscribed.get_json()["success"] is True
+    assert storage.count_pwa_push_subscriptions() == 0
+
+
+_SUBSCRIBE, _INVALID = "subscribe", "Invalid Web Push subscription"
+_UNSUBSCRIBE, _NO_ENDPOINT = "unsubscribe", "Subscription endpoint is required"
+
+
+@pytest.mark.parametrize(("route", "payload", "error"), [
+    (_SUBSCRIBE, {"endpoint": "missing keys"}, _INVALID),
+    (_SUBSCRIBE, {"subscription": "text"}, _INVALID),
+    (_SUBSCRIBE, [VALID_SUBSCRIPTION], _INVALID),
+    (_SUBSCRIBE, {"subscription": {**VALID_SUBSCRIPTION, "endpoint": " "}}, _INVALID),
+    (_SUBSCRIBE, {"subscription": {**VALID_SUBSCRIPTION, "endpoint": "http://push.example.test/send/abc123"}}, _INVALID),
+    (_SUBSCRIBE, {"subscription": {**VALID_SUBSCRIPTION, "endpoint": "https://"}}, _INVALID),
+    (_SUBSCRIBE, {"subscription": {**VALID_SUBSCRIPTION, "keys": "text"}}, _INVALID),
+    (_SUBSCRIBE, {"subscription": {**VALID_SUBSCRIPTION, "keys": {"p256dh": "public-client-key"}}}, _INVALID),
+    (_UNSUBSCRIBE, {}, _NO_ENDPOINT),
+    (_UNSUBSCRIBE, {"subscription": "text"}, _NO_ENDPOINT),
+    (_UNSUBSCRIBE, [VALID_SUBSCRIPTION], _NO_ENDPOINT),
+], ids=["no-keys", "not-an-object", "array-body", "blank-endpoint", "http-endpoint", "no-host", "keys-not-an-object",
+        "no-auth-key", "unsubscribe-no-endpoint", "unsubscribe-not-an-object", "unsubscribe-array-body"])
+def test_pwa_push_routes_reject_an_invalid_subscription(push_api, route, payload, error):
+    client, storage = push_api
+    resp = client.post(f"/api/notifications/pwa/{route}", json=payload)
+    assert (resp.status_code, resp.get_json(), resp.content_type) == (
+        400, {"success": False, "error": error}, "application/json"
+    )
     assert storage.count_pwa_push_subscriptions() == 0
 
 
