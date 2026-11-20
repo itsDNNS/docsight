@@ -33,18 +33,22 @@ def test_parse_number(raw, expected):
     [
         ("495000000 Hz", "495 MHz"),
         ("22800000 Hz", "22.8 MHz"),
+        ("706500000 Hz", "706.5 MHz"),
         ("465000000 Hz", "465 MHz"),
         ("24600000 Hz", "24.6 MHz"),
         ("591000000", "591 MHz"),
         ("275600000", "275.6 MHz"),
         (" 275600000", "275.6 MHz"),
+        ("  795000000 Hz  ", "795 MHz"),
         (705000000, "705 MHz"),
         (29200000, "29.2 MHz"),
         (36200000, "36.2 MHz"),
         ("0", "0 MHz"),
+        ("0 Hz", "0 MHz"),
         (0, "0 MHz"),
         ("", ""),
         ("invalid", "invalid"),
+        ("not a number", "not a number"),
     ],
 )
 def test_hz_to_mhz(raw, expected):

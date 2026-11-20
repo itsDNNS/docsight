@@ -208,9 +208,10 @@ def test_tg_login_posts_decryptable_aes_ccm_payload_from_cryptography():
     )
 
     key = pbkdf2_sha256(driver._password.encode("utf-8"), bytes.fromhex("0011223344556677"))
+    iv = bytes.fromhex("0102030405060708")
     encrypted_nonce = _aes_ccm_encrypt_hex(
         key,
-        bytes.fromhex("0102030405060708"),
+        iv,
         b"0123456789abcdef0123456789abcdef-extra",
         b"nonce",
     )
@@ -229,11 +230,9 @@ def test_tg_login_posts_decryptable_aes_ccm_payload_from_cryptography():
     assert login_payload["AuthData"] == "loginPassword"
     assert "EncryptData" in login_payload
 
-    assert driver._tg_key is not None
-    assert driver._tg_iv is not None
     decrypted = _aes_ccm_decrypt_hex(
-        driver._tg_key,
-        driver._tg_iv,
+        key,
+        iv,
         login_payload["EncryptData"],
         b"loginPassword",
     )

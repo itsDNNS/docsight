@@ -51,14 +51,6 @@ _HNAP_LOGIN_URI = '"http://purenetworks.com/HNAP1/Login"'
 _HNAP_MULTI_URI = '"http://purenetworks.com/HNAP1/GetMultipleHNAPs"'
 _HNAP_PRELOGIN_KEY = "withoutloginkey"
 
-# Fields per downstream channel (split by "^"):
-# num ^ lock ^ modulation ^ channelID ^ frequency ^ power ^ snr ^ corrErrors ^ uncorrErrors ^
-_DS_FIELDS = 9
-
-# Fields per upstream channel (split by "^"):
-# num ^ lock ^ type ^ channelID ^ width ^ frequency ^ power ^
-_US_FIELDS = 7
-
 _HAS_LEGACY_TLS = hasattr(ssl, "OP_LEGACY_SERVER_CONNECT")
 
 
@@ -264,7 +256,7 @@ class SurfboardDriver(ModemDriver):
 
     def _html_get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS data via HTML table scraping (fallback mode)."""
-        from .arris_html import parse_arris_channel_tables
+        from .formats.html_rows import parse_arris_html
 
         if self._html_status_cache:
             html = self._html_status_cache
@@ -274,7 +266,7 @@ class SurfboardDriver(ModemDriver):
             html = self._html_status_cache or ""
             self._html_status_cache = None
 
-        return parse_arris_channel_tables(html)
+        return parse_arris_html(html).value
 
     def login(self) -> None:
         """Two-phase HNAP login with HMAC.

@@ -268,13 +268,18 @@ class TestUpstream:
 # -- Device info --
 
 class TestDeviceInfo:
-    def test_parses_swinfo_page(self, driver):
-        with serve_html(driver, SAMPLE_SWINFO_HTML):
+    @pytest.mark.parametrize(
+        ("html", "hardware"),
+        [
+            (SAMPLE_SWINFO_HTML, {"hw_version": "3"}),
+            (SAMPLE_SWINFO_HTML.replace("<tr><td><strong>Hardware Version</strong></td><td>3</td></tr>", ""), {}),
+        ],
+    )
+    def test_parses_swinfo_page(self, driver, html, hardware):
+        with serve_html(driver, html):
             info = driver.get_device_info()
 
-        assert info["manufacturer"] == "Arris"
-        assert info["model"] == "SB6190"
-        assert info["sw_version"] == "9.1.103AA72"
+        assert info == {"manufacturer": "Arris", "model": "SB6190", "sw_version": "9.1.103AA72", **hardware}
 
     def test_fallback_on_connection_error(self, driver):
         with patch.object(driver._session, "get", side_effect=requests.ConnectionError()):

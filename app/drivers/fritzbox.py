@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import logging
-
 from .base import ModemDriver
 from .formats.fritzbox import parse_fritzbox_data_lua
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .. import fritzbox as fb
 
-log = logging.getLogger("docsis.driver.fritzbox")
 
 class FritzBoxDriver(ModemDriver):
     """Driver for AVM FritzBox cable modems.

@@ -27,16 +27,6 @@ from .utils import make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.hitron")
 
-_DS_MODULATION = {
-    0: "16QAM",
-    1: "64QAM",
-    2: "256QAM",
-    3: "1024QAM",
-    4: "32QAM",
-    5: "128QAM",
-    6: "QPSK",
-}
-
 
 class HitronDriver(ModemDriver):
     """Driver for Hitron CODA DOCSIS 3.1 cable modems.
@@ -52,7 +42,6 @@ class HitronDriver(ModemDriver):
         self._session = requests.Session()
         self._session.verify = False
         self._session.mount("https://", make_legacy_tls_adapter(sec_level=1))
-        self._session.timeout = 30
 
     def login(self) -> None:
         """No authentication required — verify connectivity."""

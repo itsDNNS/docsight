@@ -1,7 +1,7 @@
 """Tests for the CGM4981 driver helpers and channel parsing."""
 
 
-from app.drivers.cgm4981 import _float, _modulation
+from app.drivers.formats.html_columnar import _float, _modulation
 
 
 class TestFloat:

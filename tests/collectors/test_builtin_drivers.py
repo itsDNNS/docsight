@@ -238,9 +238,9 @@ class TestCH7465PlayAlias:
     @patch("app.drivers.ch7465.requests.Session")
     def test_ch7465_play_registry_alias_forces_play_mode(self, mock_session_cls):
         """Configured ch7465_play modems keep the Play/UPC protocol path."""
-        from app.drivers import load_driver
+        from app.drivers import get_driver_registry
 
-        d = load_driver("ch7465_play", "http://192.168.0.1", "", "mypassword")
+        d = get_driver_registry().load_driver("ch7465_play", "http://192.168.0.1", "", "mypassword")
 
         assert isinstance(d, CH7465Driver)
         assert d._is_play is True
@@ -331,6 +331,6 @@ class TestLoadDriver:
         "../drivers/fritzbox",
     ])
     def test_malicious_modem_type_rejected(self, bad_type):
-        from app.drivers import load_driver
+        from app.drivers import get_driver_registry
         with pytest.raises(ValueError, match="Unknown modem_type"):
-            load_driver(bad_type, "http://x", "u", "p")
+            get_driver_registry().load_driver(bad_type, "http://x", "u", "p")
