@@ -83,8 +83,3 @@ def get_driver_registry(runtime=None):
             runtime = current_runtime()
     registry = getattr(runtime, "driver_registry", None)
     return registry if isinstance(registry, DriverRegistry) else driver_registry
-
-
-def load_driver(modem_type, url, user, password):
-    """Backward-compatible wrapper around driver_registry.load_driver()."""
-    return get_driver_registry().load_driver(modem_type, url, user, password)

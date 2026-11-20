@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.drivers.hitron import HitronDriver, _DS_MODULATION
+from app.drivers.hitron import HitronDriver
 from app.drivers.hitron_coda_4680 import HitronCoda4680Driver
 from tests.test_hitron_coda_4680_driver import PAYLOADS as CODA_4680_PAYLOADS, US_OFDMA
 
@@ -109,12 +109,13 @@ class TestDownstreamSCQAM:
         assert ch["corrErrors"] == 3
         assert ch["nonCorrErrors"] == 30
 
-    def test_modulation_mapping(self):
-        assert _DS_MODULATION[0] == "16QAM"
-        assert _DS_MODULATION[1] == "64QAM"
-        assert _DS_MODULATION[2] == "256QAM"
-        assert _DS_MODULATION[3] == "1024QAM"
-        assert _DS_MODULATION[6] == "QPSK"
+    @pytest.mark.parametrize(
+        ("code", "modulation"),
+        [("0", "16QAM"), ("1", "64QAM"), ("3", "1024QAM"), ("6", "QPSK")],
+    )
+    def test_modulation_mapping(self, driver, code, modulation):
+        row = {**DS_SCQAM_DATA[0], "modulation": code}
+        assert _poll(driver, dsinfo=[row])["channelDs"]["docsis30"][0]["modulation"] == modulation
 
 
 class TestUpstreamSCQAM:

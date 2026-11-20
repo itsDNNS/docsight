@@ -33,61 +33,8 @@ _STATUS_PATH = "/DocsisStatus.asp"
 _LOGIN_PATH = "/GenieLogin.asp"
 _LOGIN_ACTION = "/goform/GenieLogin"
 _TABLE_IDS = ("dsTable", "usTable", "d31dsTable", "d31usTable")
-_NUMBER_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
-_HEADER_RE = re.compile(r"[^a-z0-9]+")
-_FUNCTION_START_RE = re.compile(r"function\s+(?P<name>\w+)\s*\(\)\s*\{")
-_TAG_VALUE_ASSIGNMENT_RE = re.compile(
-    r"\bvar\s+tagValueList\s*=\s*(?P<value>.*?);", re.DOTALL
-)
-_STRING_LITERAL_RE = re.compile(
-    r"'(?P<single>(?:\\.|[^'\\])*)'|\"(?P<double>(?:\\.|[^\"\\])*)\"",
-    re.DOTALL,
-)
 _DS_TAG_VALUE_FUNCTION = "InitDsTableTagValue"
 _US_TAG_VALUE_FUNCTION = "InitUsTableTagValue"
-_TAG_VALUE_FIELDS_PER_ROW = 7
-
-# CM1000 downstream SC-QAM channels use the North American 6 MHz
-# ITU-T J.83 Annex B profiles. The modem status page does not expose symbol
-# rate, so provide the standardized kSym/s value for DOCSight capacity math.
-_ANNEX_B_DOWNSTREAM_SYMBOL_RATES = {
-    "64QAM": 5057,
-    "256QAM": 5361,
-}
-
-_ALIASES = {
-    "channel": {"channel", "channelnumber", "channelno"},
-    "lock": {"lockstatus", "status"},
-    "modulation": {
-        "modulation",
-        "channeltype",
-        "uschanneltype",
-        "profile",
-        "profiles",
-        "profileid",
-        "profileids",
-        "profilemodulation",
-    },
-    "channel_id": {"channelid", "id"},
-    "frequency": {"frequency", "frequencyhz"},
-    "power": {"power", "powerlevel", "powerdbmv"},
-    "snr": {"snr", "mer", "snrmer"},
-    "symbol_rate": {"symbolrate", "symbolrateksymsec"},
-    "corr": {
-        "correctables",
-        "correctable",
-        "correctablecodewords",
-        "corrected",
-        "correctedcodewords",
-    },
-    "uncorr": {
-        "uncorrectables",
-        "uncorrectable",
-        "uncorrectablecodewords",
-        "uncorrected",
-        "uncorrectedcodewords",
-    },
-}
 
 
 class CM1000Driver(ModemDriver):

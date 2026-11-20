@@ -40,15 +40,9 @@ import requests
 
 from .base import ModemDriver
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
-from .formats.html_columnar import (
-    _float,
-    _modulation,
-    parse_cgm4981_columnar_html,
-)
+from .formats.html_columnar import parse_cgm4981_columnar_html
 
 log = logging.getLogger("docsis.driver.cgm4981")
-
-__all__ = ["CGM4981Driver", "_float", "_modulation"]
 
 # ---------------------------------------------------------------------------
 # Constants

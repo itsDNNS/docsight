@@ -509,10 +509,6 @@ def cm1000_looks_like_header(values: list[str]) -> bool:
     return "channel" in values and any(value in known for value in values[1:])
 
 
-def cm1000_get(row: dict[str, str], field: str, default: str = "") -> str:
-    return _cm1000_get(row, field, default)
-
-
 def _cm1000_float(value: str) -> float | None:
     if not value:
         return None
@@ -523,27 +519,6 @@ def _cm1000_float(value: str) -> float | None:
 def _cm1000_int(value: str) -> int | None:
     number = _cm1000_float(value)
     return int(number) if number is not None else None
-
-
-def parse_cm1000_float(value: str) -> float | None:
-    return _cm1000_float(value)
-
-
-def parse_cm1000_int(value: str) -> int | None:
-    return _cm1000_int(value)
-
-
-def cm1000_is_locked(row: dict[str, str]) -> bool:
-    status = _cm1000_get(row, "lock") or row.get("1", "")
-    return status.strip().lower() == "locked"
-
-
-def cm1000_channel_id(row: dict[str, str]) -> int | None:
-    return _cm1000_int(
-        _cm1000_get(row, "channel_id")
-        or _cm1000_get(row, "channel")
-        or row.get("0", "")
-    )
 
 
 def cm1000_table_rows(soup: BeautifulSoup, table_id: str) -> list[dict[str, str]]:
@@ -594,14 +569,6 @@ def _cm1000_positional(row: dict[str, str], direction: str) -> dict[str, str]:
     else:
         mapped.update({"frequency": values[4], "power": values[5]})
     return mapped
-
-
-def map_cm1000_downstream_positional(row: dict[str, str]) -> dict[str, str]:
-    return _cm1000_positional(row, "downstream")
-
-
-def map_cm1000_upstream_positional(row: dict[str, str]) -> dict[str, str]:
-    return _cm1000_positional(row, "upstream")
 
 
 def _parse_cm1000_table(

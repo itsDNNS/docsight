@@ -63,8 +63,6 @@ class VodafoneStationDriver(ModemDriver):
 
         # TG-specific state
         self._tg_nonce = None
-        self._tg_key = None
-        self._tg_iv = None
 
     # ── Public API ────────────────────────────────────────────
 
@@ -119,7 +117,6 @@ class VodafoneStationDriver(ModemDriver):
             log.error("TG login attempt also failed: %s", e)
             self._session.cookies.clear()
             self._tg_nonce = None
-            self._tg_key = None
             raise RuntimeError(
                 "Vodafone Station authentication failed. "
                 "Could not detect hardware variant (tried CGA and TG flows). "
@@ -428,8 +425,6 @@ class VodafoneStationDriver(ModemDriver):
         self._logout_tg()
         self._session.cookies.clear()
         self._tg_nonce = None
-        self._tg_key = None
-        self._tg_iv = None
 
         # Step 1: Get login page and extract JS variables
         r = self._session.get(f"{self._url}/", timeout=10)
@@ -512,9 +507,6 @@ class VodafoneStationDriver(ModemDriver):
                 log.debug("TG nonce decrypted: %d chars (using first 32)", len(nonce_full))
         else:
             self._tg_nonce = resp.get("nonce", session_id)
-
-        self._tg_key = key
-        self._tg_iv = iv_bytes
 
         # Step 6: Set session-level headers (matches arris-tg3442de-exporter)
         self._session.headers.update({
@@ -641,8 +633,6 @@ class VodafoneStationDriver(ModemDriver):
         """Clear TG session state and session-level headers."""
         self._logout_tg()
         self._tg_nonce = None
-        self._tg_key = None
-        self._tg_iv = None
         self._session.cookies.clear()
         for key in ("X-Requested-With", "csrfNonce", "Origin", "Referer", "User-Agent"):
             self._session.headers.pop(key, None)

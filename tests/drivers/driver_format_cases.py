@@ -18,7 +18,6 @@ from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 
-from app.drivers.arris_html import parse_arris_channel_tables
 from app.drivers.cgm4981 import CGM4981Driver
 from app.drivers.pyur_fast3896 import PyurFast3896Driver
 from app.drivers.ch7465 import CH7465Driver, Query
@@ -28,6 +27,7 @@ from app.drivers.cm3500 import CM3500Driver
 from app.drivers.f3896lg import F3896LGDriver
 from app.drivers.fritzbox import FritzBoxDriver
 from app.drivers.formats.html_rows import (
+    parse_arris_html,
     parse_sb6183_downstream,
     parse_sb6183_upstream,
     parse_sb6190_downstream,
@@ -543,10 +543,10 @@ def _cases() -> list[DriverFormatCase]:
         [{"channelID": 3, "frequency": "29.2 MHz", "powerLevel": 43.5, "modulation": "SC-QAM Upstream", "multiplex": "SC-QAM"}],
         [{"channelID": 41, "frequency": "36.2 MHz", "powerLevel": 36.5, "modulation": "OFDM Upstream", "type": "OFDMA", "multiplex": ""}],
     )
-    add("arris_html.success_scqam_ofdm_ofdma", "surfboard,cm8200", "arris_html", "captured-subset", lambda: parse_arris_channel_tables(ARRIS_SUCCESS), arris_expected)
-    add("arris_html.empty_document", "surfboard,cm8200", "arris_html", "minimal-empty", lambda: parse_arris_channel_tables("<html></html>"), EMPTY_SPLIT)
+    add("arris_html.success_scqam_ofdm_ofdma", "surfboard,cm8200", "arris_html", "captured-subset", lambda: parse_arris_html(ARRIS_SUCCESS).value, arris_expected)
+    add("arris_html.empty_document", "surfboard,cm8200", "arris_html", "minimal-empty", lambda: parse_arris_html("<html></html>").value, EMPTY_SPLIT)
     arris_bad = ARRIS_SUCCESS.replace("<td>7</td><td>Locked</td>", "<td>bad</td><td>Locked</td>").replace("<td>3</td><td>Locked</td>", "<td>bad</td><td>Locked</td>")
-    add("arris_html.malformed_channel_ids", "surfboard,cm8200", "arris_html", "minimal-synthetic-malformed", lambda: parse_arris_channel_tables(arris_bad), _split(ds31=arris_expected["channelDs"]["docsis31"], us31=arris_expected["channelUs"]["docsis31"]))
+    add("arris_html.malformed_channel_ids", "surfboard,cm8200", "arris_html", "minimal-synthetic-malformed", lambda: parse_arris_html(arris_bad).value, _split(ds31=arris_expected["channelDs"]["docsis31"], us31=arris_expected["channelUs"]["docsis31"]))
 
     sb6141_expected = _split(
         [{"channelID": 7, "frequency": "591 MHz", "powerLevel": 0.0, "mer": 40.0, "mse": -40.0, "modulation": "256QAM", "corrErrors": 3, "nonCorrErrors": 1}], [],
