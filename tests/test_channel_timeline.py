@@ -4,6 +4,8 @@ import json
 import pytest
 from datetime import datetime, timedelta, timezone
 
+from app.analyzer import analyze
+from app.drivers.formats.vodafone import parse_ultrahub7_json
 from app.storage import SnapshotStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
@@ -328,6 +330,19 @@ class TestGetChannelHistory:
 
         assert [row["power"] for row in first] == [4.8, 5.1]
         assert [row["power"] for row in second] == [-1.7, -2.0]
+
+    def test_ultrahub7_channel_without_power_continues_pre_upgrade_history(self, storage):
+        row = {"ChannelID": "7", "Modulation": "256QAM"}
+        current = analyze(parse_ultrahub7_json({"downstream": [row], "upstream": []}).value)
+        # Earlier releases stored this row with power 0.0 under the frequency "0 MHz".
+        stored = {**current["ds_channels"][0], "frequency": "0 MHz", "power": 0.0}
+        _insert_snapshot(storage, _make_analysis(ds_channels=[stored]), _utc_ts(timedelta(minutes=2)))
+        _insert_snapshot(storage, current, _utc_ts(timedelta(minutes=1)))
+        selector = storage.get_current_channels()["ds_channels"][0]["selector"]
+
+        history = storage.get_channel_history(None, "ds", days=7, selector=selector)
+
+        assert [entry["power"] for entry in history] == [0.0, None]
 
     def test_selector_supports_duplicate_invalid_ids(self, storage):
         analysis = _duplicate_id_analysis()
