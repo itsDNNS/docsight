@@ -68,14 +68,14 @@ def test_pwa_push_subscription_storage_upserts_lists_and_deletes(tmp_path):
     assert storage.list_pwa_push_subscriptions() == []
 
 
-def test_pwa_push_status_endpoint_exposes_public_key_without_private_key(tmp_path):
+def test_pwa_push_status_endpoint_exposes_public_key_without_private_key(tmp_path, route_app):
     storage = make_storage(tmp_path)
     storage.upsert_pwa_push_subscription(VALID_SUBSCRIPTION, user_agent="Firefox")
     cfg = make_config(tmp_path)
     current_runtime().storage = storage
     current_runtime().config_manager = cfg
 
-    resp = app.test_client().get("/api/notifications/pwa/status")
+    resp = route_app.test_client().get("/api/notifications/pwa/status")
 
     assert resp.status_code == 200
     data = resp.get_json()
@@ -90,11 +90,11 @@ def test_pwa_push_status_endpoint_exposes_public_key_without_private_key(tmp_pat
 
 
 @pytest.fixture
-def push_api(tmp_path):
+def push_api(tmp_path, route_app):
     storage = make_storage(tmp_path)
     current_runtime().storage = storage
     current_runtime().config_manager = make_config(tmp_path)
-    return app.test_client(), storage
+    return route_app.test_client(), storage
 
 
 def test_pwa_push_subscribe_and_unsubscribe_api(push_api):

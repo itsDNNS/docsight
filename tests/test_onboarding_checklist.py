@@ -8,6 +8,8 @@ from app.config import ConfigManager
 from app.runtime import current_runtime
 from app.web import ONBOARDING_CHECKLIST_ID, _onboarding_checklist
 
+pytestmark = pytest.mark.usefixtures("route_app")
+
 ALL_MODULES = ("docsight.speedtest", "docsight.connection_monitor", "docsight.backup")
 
 

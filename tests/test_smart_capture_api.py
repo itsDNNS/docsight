@@ -11,6 +11,8 @@ from app.storage import SnapshotStorage
 from app.smart_capture.types import ExecutionStatus
 from app.runtime import current_runtime
 
+pytestmark = pytest.mark.usefixtures("route_app")
+
 
 def configured_client(data_dir, storage=None, **config):
     """Point the current test app at a fresh configured modem and return its client."""

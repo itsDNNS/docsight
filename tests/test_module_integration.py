@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 
+import pytest
 from flask import Flask, current_app
 
 from app.app_factory import create_app
@@ -11,6 +12,8 @@ from app.config import ConfigManager
 from app.module_loader import ModuleLoader
 from app.runtime import current_runtime, get_runtime
 from tests.conftest import OPEN_INSTANCE_ENVIRON
+
+pytestmark = pytest.mark.usefixtures("route_app")
 
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")

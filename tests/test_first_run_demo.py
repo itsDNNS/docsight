@@ -14,7 +14,7 @@ from app.runtime import current_runtime
 
 
 @pytest.fixture
-def fresh_demo_client(tmp_path, monkeypatch):
+def fresh_demo_client(tmp_path, monkeypatch, route_app):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     data_dir = tmp_path / "data"
     manager = ConfigManager(str(data_dir))
@@ -23,8 +23,7 @@ def fresh_demo_client(tmp_path, monkeypatch):
     current_runtime().config_manager = manager
     current_runtime().on_config_changed = lambda: callbacks.append("changed")
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client, manager, storage, callbacks, data_dir
 
 
@@ -72,7 +71,7 @@ def test_demo_start_is_idempotent_while_active(fresh_demo_client):
     assert callbacks == ["changed"]
 
 
-def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypatch):
+def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypatch, route_app):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     data_dir = tmp_path / "data"
     manager = ConfigManager(str(data_dir))
@@ -86,9 +85,8 @@ def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypat
     current_runtime().config_manager = manager
     current_runtime().on_config_changed = on_config_changed
     current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    app.config["TESTING"] = True
 
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post("/api/demo/start", json={})
 
     assert response.status_code == 500
@@ -104,7 +102,7 @@ def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypat
     }
 
 
-def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch):
+def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch, route_app):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     manager = ConfigManager(str(tmp_path / "data"))
     manager.save({"modem_type": "generic", "modem_url": "http://192.168.100.1"})
@@ -112,9 +110,8 @@ def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch):
     current_runtime().config_manager = manager
     current_runtime().on_config_changed = lambda: callbacks.append("changed")
     current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    app.config["TESTING"] = True
 
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post("/api/demo/start", json={})
 
     assert response.status_code == 409
@@ -126,15 +123,14 @@ def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch):
     assert callbacks == []
 
 
-def test_demo_start_requires_browser_session_when_auth_is_enabled(tmp_path, monkeypatch):
+def test_demo_start_requires_browser_session_when_auth_is_enabled(tmp_path, monkeypatch, route_app):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     manager = ConfigManager(str(tmp_path / "data"))
     manager.save({"admin_password": "secret"})
     current_runtime().config_manager = manager
     current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    app.config["TESTING"] = True
 
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post(
             "/api/demo/start",
             json={},
@@ -178,7 +174,7 @@ def test_demo_exit_uses_existing_purge_path_and_returns_next_path(fresh_demo_cli
     )
 
 
-def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeypatch):
+def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeypatch, route_app):
     from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 
     monkeypatch.delenv("DEMO_MODE", raising=False)
@@ -187,7 +183,6 @@ def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeyp
     manager.save({"demo_mode": True})
     current_runtime().config_manager = manager
     current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    app.config["TESTING"] = True
 
     connection_storage = ConnectionMonitorStorage(
         str(tmp_path / "connection_monitor.db")
@@ -203,7 +198,7 @@ def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeyp
          "timeout": False, "probe_method": "tcp"},
     ])
 
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post("/api/demo/migrate", json={"next": "exit"})
 
     assert response.status_code == 200
@@ -213,7 +208,7 @@ def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeyp
     assert connection_storage.get_samples(demo_id) == []
 
 
-def test_environment_forced_demo_cannot_be_disabled(tmp_path, monkeypatch):
+def test_environment_forced_demo_cannot_be_disabled(tmp_path, monkeypatch, route_app):
     monkeypatch.setenv("DEMO_MODE", "1")
     manager = ConfigManager(str(tmp_path / "data"))
     storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
@@ -222,10 +217,9 @@ def test_environment_forced_demo_cannot_be_disabled(tmp_path, monkeypatch):
     current_runtime().config_manager = manager
     current_runtime().on_config_changed = lambda: callbacks.append("changed")
     current_runtime().storage = storage
-    app.config["TESTING"] = True
 
     assert manager.is_demo_mode_forced() is True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post("/api/demo/migrate", json={"next": "exit"})
 
     assert response.status_code == 409

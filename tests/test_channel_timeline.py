@@ -58,7 +58,7 @@ def storage(tmp_path):
 
 
 @pytest.fixture
-def client(tmp_path):
+def client(tmp_path, route_app):
     db_path = str(tmp_path / "api.db")
     s = SnapshotStorage(db_path, max_days=30)
     data_dir = str(tmp_path / "data")
@@ -66,8 +66,7 @@ def client(tmp_path):
     mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
     current_runtime().config_manager = mgr
     current_runtime().storage = s
-    app.config["TESTING"] = True
-    with app.test_client() as c:
+    with route_app.test_client() as c:
         yield c, s
 
 
@@ -478,14 +477,13 @@ class TestChannelHistoryEndpoint:
         assert len(data) == 1
         assert data[0]["power"] == 42.0
 
-    def test_no_storage(self, tmp_path):
+    def test_no_storage(self, tmp_path, route_app):
         data_dir = str(tmp_path / "data2")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr
         current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as c:
+        with route_app.test_client() as c:
             resp = c.get("/api/channel-history?channel_id=1&direction=ds")
             assert resp.status_code == 200
             assert json.loads(resp.data) == []

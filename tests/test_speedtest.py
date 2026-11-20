@@ -15,6 +15,8 @@ from app.storage import SnapshotStorage
 from app.storage.sqlite import write_transaction
 from tests.test_smart_capture_api import configured_client
 
+pytestmark = pytest.mark.usefixtures("route_app")
+
 
 # ── Sample API responses ──
 

@@ -61,11 +61,10 @@ def config_mgr(tmp_path):
 
 
 @pytest.fixture
-def client_with_storage(config_mgr, storage, speedtest_storage):
+def client_with_storage(config_mgr, storage, speedtest_storage, route_app):
     current_runtime().config_manager = config_mgr
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 

@@ -19,12 +19,11 @@ PREFIX_ENV = {"SCRIPT_NAME": "/docsight"}
 
 
 @pytest.fixture
-def client(tmp_path):
+def client(tmp_path, app):
     """Create a configured client without relying on tests/web/conftest.py."""
     current_runtime().config_manager = _configured_manager(tmp_path)
     current_runtime().module_loader = single_module_loader(bqm_module(menu={"order": 1}))
     current_runtime().storage = None
-    app.config["TESTING"] = True
     with app.test_client() as test_client:
         yield test_client
 
@@ -126,12 +125,11 @@ def test_dashboard_and_settings_render_prefix_aware_navigation_and_assets(
     assert 'src="/docsight/static/js/settings.js?v=' in settings_html
 
 
-def test_login_and_setup_render_prefix_aware_assets_forms_and_navigation(tmp_path):
+def test_login_and_setup_render_prefix_aware_assets_forms_and_navigation(tmp_path, app):
     credential = "prefix-" + "credential"
     auth_manager = _configured_manager(tmp_path, password=credential)
     current_runtime().config_manager = auth_manager
     current_runtime().storage = None
-    app.config["TESTING"] = True
     with app.test_client() as client:
         login = client.get("/login", environ_overrides=PREFIX_ENV)
 
@@ -167,7 +165,7 @@ def test_login_and_setup_render_prefix_aware_assets_forms_and_navigation(tmp_pat
     assert isinstance(setup_payload["driverHints"], dict)
 
 
-def test_setup_bootstrap_tojson_keeps_hostile_translation_inert(tmp_path, monkeypatch):
+def test_setup_bootstrap_tojson_keeps_hostile_translation_inert(tmp_path, monkeypatch, app):
     marker = '</script><script id="bootstrap-injection">alert(1)</script>'
     translations = dict(web.get_translations("en"))
     translations["setup_failed"] = marker
@@ -175,7 +173,6 @@ def test_setup_bootstrap_tojson_keeps_hostile_translation_inert(tmp_path, monkey
 
     current_runtime().config_manager = ConfigManager(str(tmp_path / "setup-safety"))
     current_runtime().storage = None
-    app.config["TESTING"] = True
     with app.test_client() as client:
         response = client.get("/setup")
 
@@ -190,12 +187,11 @@ def test_setup_bootstrap_tojson_keeps_hostile_translation_inert(tmp_path, monkey
     assert json.loads(bootstrap.get_text())["translations"]["setup_failed"] == marker
 
 
-def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path):
+def test_auth_setup_glossary_and_backup_redirects_preserve_script_name(tmp_path, app):
     credential = "prefix-" + "credential"
     auth_manager = _configured_manager(tmp_path, password=credential)
     current_runtime().config_manager = auth_manager
     current_runtime().storage = None
-    app.config["TESTING"] = True
     with app.test_client() as client:
         auth_redirect = client.get("/settings", environ_overrides=PREFIX_ENV)
         restore_response = client.post(

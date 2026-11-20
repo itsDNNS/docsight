@@ -56,11 +56,10 @@ def sample_analysis(sample_analysis):
 
 
 @pytest.fixture
-def client(config_mgr, storage):
+def client(config_mgr, storage, route_app):
     current_runtime().config_manager = config_mgr
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
@@ -213,6 +212,7 @@ class TestDemoMarking:
             ).fetchone()
         assert row[0] == 1
 
+    @pytest.mark.usefixtures("route_app")
     def test_demo_collector_live_poll_rows_are_demo_and_purgeable(self, storage, sample_analysis):
         web = MagicMock()
         current_runtime().reset_modem_state()

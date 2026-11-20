@@ -3,10 +3,12 @@
 from types import SimpleNamespace
 
 import pytest
+from flask import current_app
 from app.module_registry import ModuleInfo
 from app.runtime import current_runtime
 
 
+@pytest.mark.usefixtures("route_app")
 class TestThemeContext:
     """Test active theme module is available in template context."""
 
@@ -21,7 +23,7 @@ class TestThemeContext:
         )
         monkeypatch.setattr(current_runtime(), "module_loader", loader)
         monkeypatch.setattr(current_runtime(), "config_manager", make_config({"active_theme": active}))
-        with app.test_request_context("/"):
+        with current_app.test_request_context("/"):
             return web.inject_auth()
 
     @staticmethod
@@ -89,7 +91,7 @@ class TestThemeContext:
             "docsight.theme_tokyo_night",
         ]
 
-    def test_gallery_marks_themes_with_low_text_contrast(self, monkeypatch, make_config):
+    def test_gallery_marks_themes_with_low_text_contrast(self, monkeypatch, make_config, route_app):
         """Community themes below AA get a visible hint; readable themes do not."""
         from app.i18n import get_translations
 
@@ -104,8 +106,8 @@ class TestThemeContext:
         ctx = self._context(monkeypatch, make_config, modules, active="community.readable", enabled=[readable])
 
         assert ctx["theme_contrast_warnings"] == {"community.faint": ["dark", "light"]}
-        with app.test_request_context("/settings"):
-            html = app.jinja_env.get_template("settings/appearance.html").render(
+        with route_app.test_request_context("/settings"):
+            html = route_app.jinja_env.get_template("settings/appearance.html").render(
                 **ctx, t=get_translations("en"), theme="dark", config={},
             )
         faint_card = html.split('data-theme-id="community.faint"', 1)[1].split('class="theme-actions"', 1)[0]

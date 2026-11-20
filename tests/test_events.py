@@ -24,13 +24,12 @@ def storage(tmp_path):
 
 
 @pytest.fixture
-def events_client(tmp_path, storage):
+def events_client(tmp_path, storage, route_app):
     config_mgr = ConfigManager(str(tmp_path / "config"))
     config_mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
     current_runtime().config_manager = config_mgr
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
@@ -350,13 +349,12 @@ class TestEventExportApi:
         assert resp.status_code == 400
         assert resp.get_json() == {"error": "Invalid acknowledged filter"}
 
-    def test_events_export_csv_respects_auth_boundary(self, tmp_path, storage):
+    def test_events_export_csv_respects_auth_boundary(self, tmp_path, storage, route_app):
         config_mgr = ConfigManager(str(tmp_path / "auth-config"))
         config_mgr.save({"modem_password": "test", "modem_type": "fritzbox", "admin_password": "admin-secret"})
         current_runtime().config_manager = config_mgr
         current_runtime().storage = storage
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with route_app.test_client() as client:
             resp = client.get("/api/events/export.csv")
 
         assert resp.status_code == 401
@@ -1106,14 +1104,13 @@ def api_storage(tmp_path):
 
 
 @pytest.fixture
-def client(tmp_path, api_storage):
+def client(tmp_path, api_storage, route_app):
     data_dir = str(tmp_path / "data")
     mgr = ConfigManager(data_dir)
     mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
     current_runtime().config_manager = mgr
     current_runtime().storage = api_storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
