@@ -7,7 +7,7 @@ from io import BytesIO
 from flask import Blueprint, request, jsonify, send_file
 
 from app.web_auth import require_auth, _get_client_ip
-from app.runtime import current_runtime
+from app.runtime import core_derived_storage
 from app.storage import MAX_ATTACHMENT_SIZE
 from app.i18n import get_translations
 from .csv_parser import parse_bnetz_csv
@@ -20,12 +20,7 @@ log = logging.getLogger("docsis.web.bnetz")
 bp = Blueprint("bnetz_module", __name__)
 
 def _get_bnetz_storage():
-    core_storage = current_runtime().storage
-    if not core_storage:
-        return None
-    return current_runtime().derived_storage.get(
-        f"bnetz:{core_storage.db_path}", lambda: BnetzStorage(core_storage.db_path)
-    )
+    return core_derived_storage(BnetzStorage)
 
 
 @bp.route("/api/bnetz/upload", methods=["POST"])

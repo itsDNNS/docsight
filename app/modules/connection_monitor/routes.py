@@ -39,7 +39,7 @@ def _get_cm_storage():
     """Get ConnectionMonitorStorage. Uses DATA_DIR like collector."""
     db_path = os.path.join(current_runtime().config_manager.data_dir, "connection_monitor.db")
     return current_runtime().derived_storage.get(
-        f"connection_monitor:{db_path}", lambda: ConnectionMonitorStorage(db_path)
+        (ConnectionMonitorStorage, db_path), lambda: ConnectionMonitorStorage(db_path)
     )
 
 

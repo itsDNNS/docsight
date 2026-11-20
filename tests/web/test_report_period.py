@@ -216,7 +216,7 @@ def test_automatic_bnetz_lookup_uses_normalized_exact_window():
         "&from=2026-05-01T02:00:00%2B02:00&to=2026-05-03T02:00:00%2B02:00"
     ), patch.object(routes.current_runtime(), "storage", storage), \
          patch.object(routes.current_runtime(), "get_state", return_value={}), \
-         patch("app.modules.bnetz.storage.BnetzStorage", return_value=bnetz_storage), \
+         patch.object(routes, "BnetzStorage", return_value=bnetz_storage), \
          patch.object(routes, "generate_complaint_text", return_value="text") as generate:
         response = getattr(routes.api_complaint, "__wrapped__")()
 
@@ -239,7 +239,7 @@ def test_explicit_bnetz_id_keeps_id_lookup_compatibility():
         "&from=2026-05-01T00:00:00Z&to=2026-05-02T00:00:00Z"
     ), patch.object(routes.current_runtime(), "storage", storage), \
          patch.object(routes.current_runtime(), "get_state", return_value={}), \
-         patch("app.modules.bnetz.storage.BnetzStorage", return_value=bnetz_storage), \
+         patch.object(routes, "BnetzStorage", return_value=bnetz_storage), \
          patch.object(routes, "generate_complaint_text", return_value="text") as generate:
         response = getattr(routes.api_complaint, "__wrapped__")()
 

@@ -162,8 +162,15 @@ def api_restore():
         # No settings save may slip in between the restored config.json and the
         # reload of its encryption key.
         with _config_manager.locked():
-            result = restore_backup(data, _config_manager.data_dir)
-            _config_manager.reload()
+            restored = []
+            try:
+                result = restore_backup(data, _config_manager.data_dir, restored)
+                _config_manager.reload()
+            finally:
+                # Cached storages migrated the replaced databases (a running request may still use one).
+                current_runtime().derived_storage.drop_storages({
+                    os.path.join(_config_manager.data_dir, name) for name in restored
+                })
         audit_log.info(
             "Backup restored: ip=%s files=%s",
             _get_client_ip(), result["restored_files"],

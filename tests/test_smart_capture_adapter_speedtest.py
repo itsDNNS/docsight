@@ -1,6 +1,8 @@
 """Tests for the Smart Capture STT adapter."""
 
+import logging
 import sqlite3
+from datetime import datetime, timezone
 
 import pytest
 import requests
@@ -73,6 +75,9 @@ class _Response:
 
     def json(self):
         return self._payload
+
+    def raise_for_status(self):
+        pass
 
 
 class TestSpeedtestAdapterExecute:
@@ -162,8 +167,8 @@ class TestSpeedtestAdapterPreflight:
         _insert_speedtest_result(storage, timestamp="2026-03-15T11:30:00Z")
         execution_id = _pending_execution(storage, trigger_timestamp="2026-03-15T12:00:00Z")
         adapter = SpeedtestAdapter(storage, _make_config())
-        adapter._session = MagicMock()
-        adapter._session.get.side_effect = requests.RequestException("offline")
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.side_effect = requests.RequestException("offline")
 
         ok, reason = adapter.execute(execution_id, _event())
 
@@ -173,7 +178,35 @@ class TestSpeedtestAdapterPreflight:
         assert "recent_speedtest_result" in reason
         assert row["status"] == "suppressed"
         assert "recent_speedtest_result" in row["suppression_reason"]
-        adapter._session.post.assert_not_called()
+        adapter._client.session.post.assert_not_called()
+
+    @pytest.mark.parametrize("fields, expected", [
+        ({}, datetime(2026, 3, 15, 11, 30, tzinfo=timezone.utc)),
+        ({"created_at": 20260315}, None),
+        ({"data": {"timestamp": 20260315}}, None),
+        ({"created_at": "not a time"}, None),
+    ])
+    def test_remote_lookup_reads_the_newest_tracker_result(self, storage, caplog, fields, expected):
+        adapter = SpeedtestAdapter(storage, _make_config())
+        # A Tracker result carries created_at ("Y-m-d H:i:s") and no top-level timestamp.
+        item = {"id": 10, "status": "completed", "created_at": "2026-03-15 11:30:00", "data": {}, **fields}
+        result = _Response(200, {"data": [item]})
+        adapter._client.session = MagicMock(get=MagicMock(return_value=result))
+        with caplog.at_level(logging.DEBUG, logger="docsis.smart_capture.adapters.speedtest"):
+            assert adapter._fetch_latest_remote_result_timestamp() == expected
+        assert adapter._client.session.get.call_args.kwargs["params"] == {
+            "page[size]": 1, "page[number]": 1, "sort": "-created_at",
+        }
+        assert ("latest STT result has no readable time" in caplog.text) == (expected is None)
+
+    def test_failed_remote_lookup_is_logged_without_its_details(self, storage, caplog):
+        adapter = SpeedtestAdapter(storage, _make_config())
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.side_effect = requests.ConnectionError("http://stt:8999/api/v1/results")
+        assert adapter._fetch_latest_remote_result_timestamp() is None
+        assert [r.getMessage() for r in caplog.records] == [
+            "Failed to fetch speedtest results: Cannot reach Speedtest Tracker (ConnectionError)"
+        ]
 
     def test_recent_smart_capture_fire_suppresses_after_adapter_restart(self, storage):
         storage.save_execution(
@@ -184,8 +217,8 @@ class TestSpeedtestAdapterPreflight:
         )
         execution_id = _pending_execution(storage, trigger_timestamp="2026-03-15T12:00:00Z")
         adapter = SpeedtestAdapter(storage, _make_config())
-        adapter._session = MagicMock()
-        adapter._session.get.return_value = _Response(200, {"data": []})
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.return_value = _Response(200, {"data": []})
 
         ok, reason = adapter.execute(execution_id, _event())
 
@@ -194,7 +227,7 @@ class TestSpeedtestAdapterPreflight:
         assert reason is not None
         assert "speedtest_min_interval" in reason
         assert row["status"] == "suppressed"
-        adapter._session.post.assert_not_called()
+        adapter._client.session.post.assert_not_called()
 
     def test_daily_speedtest_smart_capture_budget_is_persistent(self, storage):
         for fired_at in ("2026-03-15T01:00:00Z", "2026-03-15T06:00:00Z"):
@@ -209,8 +242,8 @@ class TestSpeedtestAdapterPreflight:
             storage,
             _make_config(sc_speedtest_max_actions_per_day=2, sc_speedtest_min_interval=0),
         )
-        adapter._session = MagicMock()
-        adapter._session.get.return_value = _Response(200, {"data": []})
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.return_value = _Response(200, {"data": []})
 
         ok, reason = adapter.execute(execution_id, _event())
 
@@ -219,14 +252,14 @@ class TestSpeedtestAdapterPreflight:
         assert reason is not None
         assert "speedtest_daily_cap" in reason
         assert row["status"] == "suppressed"
-        adapter._session.post.assert_not_called()
+        adapter._client.session.post.assert_not_called()
 
     def test_read_timeout_is_recorded_as_fired_pending_result_link(self, storage):
         execution_id = _pending_execution(storage)
         adapter = SpeedtestAdapter(storage, _make_config(sc_speedtest_min_interval=0))
-        adapter._session = MagicMock()
-        adapter._session.get.return_value = _Response(200, {"data": []})
-        adapter._session.post.side_effect = requests.exceptions.ReadTimeout("slow run")
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.return_value = _Response(200, {"data": []})
+        adapter._client.session.post.side_effect = requests.exceptions.ReadTimeout("slow run")
 
         ok, reason = adapter.execute(execution_id, _event())
 
@@ -406,7 +439,7 @@ class TestEndToEnd:
             "details": {"direction": "downgrade"}, "_id": 1,
         }
 
-        with patch.object(adapter, '_session') as mock_sess:
+        with patch.object(adapter._client, 'session') as mock_sess:
             mock_sess.post.return_value = MagicMock(status_code=201)
             engine.evaluate([event])
 
@@ -444,7 +477,7 @@ class TestEventEmission:
             status=ExecutionStatus.PENDING,
         )
 
-        with patch.object(adapter, '_session') as mock_sess:
+        with patch.object(adapter._client, 'session') as mock_sess:
             mock_sess.post.return_value = MagicMock(status_code=201)
             adapter.execute(eid, {
                 "event_type": "modulation_change", "severity": "warning",

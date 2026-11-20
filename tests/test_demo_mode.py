@@ -529,11 +529,11 @@ class TestDemoReproducibility:
         monkeypatch.setattr(demo, "DEMO_HISTORY_DAYS", 3)
         storage = SnapshotStorage(str(tmp_path / f"{name}.db"), max_days=0)
         collector = _demo_collector(storage)
-        monkeypatch.setattr(collector, "_seed_journal_entries", lambda now: None)
+        monkeypatch.setattr(collector, "_seed_journal_entries", lambda *_: None)
         for method in ("_seed_speedtest_results", "_seed_bqm_graphs", "_seed_incident_containers",
                        "_seed_bnetz_measurements", "_seed_weather_data", "_seed_connection_monitor_data",
                        "_seed_segment_utilization"):
-            monkeypatch.setattr(collector, method, lambda now: None)
+            monkeypatch.setattr(collector, method, lambda *_: None)
         collector._seed_demo_data()
         with sqlite3.connect(storage.db_path) as conn:
             return (conn.execute("SELECT timestamp, summary_json FROM snapshots ORDER BY timestamp").fetchall(),
@@ -725,6 +725,13 @@ class TestDemoSeedContract:
             collector.collect()
 
         assert seed.call_count == 2
+
+    def test_journal_storage_failure_fails_the_seed_before_the_history(self, storage):
+        collector = _demo_collector(storage)
+        with patch.object(JournalStorage, "_ensure_table", side_effect=sqlite3.OperationalError("database is locked")), \
+             patch.object(collector, "_seed_history") as history, pytest.raises(sqlite3.OperationalError):
+            collector._seed_demo_data()
+        history.assert_not_called()
 
 
 # ── Migration Endpoint Tests ──

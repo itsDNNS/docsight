@@ -80,7 +80,7 @@ window.downloadIncidentPdf = function(incidentId, incidentName) {
     if (btn) { btn.disabled = true; btn.textContent = '\u23F3'; }
     fetch(docsightUrl('/api/incidents/' + incidentId + '/report?' + params.toString()))
         .then(function(r) {
-            if (!r.ok) throw new Error('Failed');
+            if (!r.ok) return r.json().catch(function() { return {}; }).then(function(d) { throw {server: d.error}; });
             return r.blob();
         })
         .then(function(blob) {
@@ -90,8 +90,8 @@ window.downloadIncidentPdf = function(incidentId, incidentName) {
             a.click();
             URL.revokeObjectURL(a.href);
         })
-        .catch(function() {
-            showToast(T.network_error || 'Error generating report', 'error');
+        .catch(function(e) {
+            showToast(e.server || T.network_error || 'Error generating report', 'error');
         })
         .finally(function() {
             if (btn) { btn.disabled = false; renderIncidentPdfButton(btn); }
