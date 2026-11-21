@@ -12,7 +12,13 @@ def get_lang():
     lang = request.args.get("lang")
     if lang and lang in LANGUAGES:
         return lang
-    return current_runtime().config_manager.get("language", "en")
+    return _stored_lang(current_runtime().config_manager)
+
+
+def _stored_lang(config_manager):
+    """The stored language, or the default when it is not text."""
+    lang = config_manager.get("language", DEFAULTS["language"])
+    return lang if isinstance(lang, str) and lang else DEFAULTS["language"]
 
 
 def get_setup_lang(*, persist=True):
@@ -25,7 +31,7 @@ def get_setup_lang(*, persist=True):
         return lang
 
     if _config_manager.has_stored_value("language"):
-        return _config_manager.get("language", DEFAULTS["language"])
+        return _stored_lang(_config_manager)
 
     inferred = DEFAULTS["language"]
     for requested, quality in request.accept_languages:

@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify
 
 from app.config import parse_config_bool
 from app.web_auth import require_auth
+from app.web_locale import get_lang
 from app.runtime import core_derived_storage, current_runtime
 from app.i18n import get_translations
 from app.storage.sqlite import open_read
@@ -82,10 +83,6 @@ def _annotate_smart_capture(results, db_path):
             r["smart_capture"] = False
 
 
-def _get_lang():
-    return request.cookies.get("lang", "en")
-
-
 @bp.route("/api/speedtest")
 @require_auth
 def api_speedtest():
@@ -145,8 +142,7 @@ def api_speedtest_signal(result_id):
         return jsonify({"error": "Core storage not initialized"}), 500
     snap = core_storage.get_closest_snapshot(result["timestamp"])
     if not snap:
-        lang = _get_lang()
-        t = get_translations(lang)
+        t = get_translations(get_lang())
         return jsonify({
             "found": False,
             "message": t.get("signal_no_snapshot", "No signal snapshot found within 2 hours of this speedtest."),
