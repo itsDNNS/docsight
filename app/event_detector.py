@@ -11,7 +11,7 @@ from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
 from .channel_selector import channel_selector
 from .docsis_utils import CHANNEL_HEALTH_RANK, SUMMARY_HEALTH_RANK, channel_type_label, qam_rank as _qam_rank
-from .error_counters import to_counter
+from .error_counters import aggregate_error_counters, to_counter
 from .types import AnalysisResult, EventDict
 from .tz import utc_now
 
@@ -150,6 +150,13 @@ class EventDetector:
             return
         if snapshot_id is None:
             snapshot_id = analysis.get("snapshot_id")
+        # Older releases stored totals with other counter rules; recount them from the stored channels.
+        counters = aggregate_error_counters(analysis.get("ds_channels", []))
+        analysis = {**analysis, "summary": {
+            **analysis.get("summary", {}),
+            "ds_correctable_errors": counters.raw_correctable,
+            "ds_uncorrectable_errors": counters.raw_uncorrectable,
+        }}
         with self._lock:
             self._prev = analysis
             self._prev_snapshot_id = snapshot_id

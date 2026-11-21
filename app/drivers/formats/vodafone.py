@@ -38,7 +38,7 @@ def parse_ultrahub7_downstream(rows: list[dict[str, Any]]) -> ParseResult[list[R
             channels.append({
                 "channelID": str(channel_id), "type": modulation,
                 "frequency": f"{int(frequency)} MHz", "powerLevel": power,
-                "mer": snr if snr > 0 else None, "mse": None, "latency": 0,
+                "mer": snr if snr > 0 else None, "mse": None,
                 "corrErrors": None, "nonCorrErrors": None,
             })
         except (ValueError, TypeError, OverflowError):
@@ -119,7 +119,6 @@ def _parse_cga_lane(rows: Any, lane: str) -> ParseResult[list[RawChannel] | None
                     "type": modulation, "frequency": f"{int(frequency)} MHz" if frequency else "",
                     "powerLevel": _reading(row.get("power")),
                     "mse": -snr if snr else None, "mer": snr if snr else None,
-                    "latency": 0, "corrError": 0, "nonCorrError": 0,
                 })
             elif lane == "ds31":
                 snr = abs(_reading(row.get("SNR_ofdm")) or 0)
@@ -129,7 +128,6 @@ def _parse_cga_lane(rows: Any, lane: str) -> ParseResult[list[RawChannel] | None
                     "type": "OFDM", "frequency": f"{int(frequency)} MHz" if frequency else "",
                     "powerLevel": _reading(row.get("power_ofdm")),
                     "mse": -snr if snr else None, "mer": snr if snr else None,
-                    "latency": 0, "corrError": 0, "nonCorrError": 0,
                 })
             else:
                 frequency = _frequency_mhz(row.get("CentralFrequency", "0"))
@@ -226,7 +224,6 @@ def parse_vodafone_station_tg_embedded_json(html: str) -> ParseResult[DocsisData
                 "frequency": f"{frequency:.3f} MHz" if frequency else "",
                 "powerLevel": parse_tg_power(row.get("PowerLevel")),
                 "mse": -snr if snr else None, "mer": snr if snr else None,
-                "latency": 0, "corrError": 0, "nonCorrError": 0,
             }
             (ds31 if ofdm else ds30).append(channel)
         except (ValueError, TypeError, AttributeError, OverflowError):
