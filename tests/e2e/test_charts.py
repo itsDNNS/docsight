@@ -259,6 +259,10 @@ class TestChartZoom:
         expect(demo_page.locator("#chart-zoom-overlay")).to_be_visible()
         demo_page.keyboard.press("Escape")
         expect(demo_page.locator("#chart-zoom-overlay")).to_be_hidden()
+        # Closing before the zoomed chart is drawn leaves no chart behind.
+        demo_page.evaluate("openChartZoom('chart-ds-power'); closeChartZoom()")
+        demo_page.wait_for_timeout(200)
+        assert demo_page.evaluate("[window.zoomChart, 'chart-zoom-canvas' in window.charts]") == [None, False]
 
     def test_zoom_modal_closes_on_button(self, demo_page):
         """Close button should close the zoom modal."""
