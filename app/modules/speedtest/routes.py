@@ -6,14 +6,13 @@ import time
 import requests
 from flask import Blueprint, request, jsonify
 
-from app.config import parse_config_bool
 from app.web_auth import require_auth
 from app.web_locale import get_lang
 from app.runtime import core_derived_storage, current_runtime
 from app.i18n import get_translations
 from app.storage.sqlite import open_read
 
-from .client import SpeedtestClient, public_error
+from .client import RUN_ACCEPTED, SpeedtestClient, public_error
 from .storage import SpeedtestStorage
 
 log = logging.getLogger("docsis.web.speedtest")
@@ -97,12 +96,8 @@ def api_speedtest():
     if not ss:  # fetch directly without the local cache
         if demo:
             return jsonify([])
-        client = SpeedtestClient(
-            _config_manager.get("speedtest_tracker_url"),
-            _config_manager.get("speedtest_tracker_token"),
-            tls_insecure=parse_config_bool(_config_manager.get("speedtest_tls_insecure", False)),
-        )
-        return jsonify([_enrich_speedtest(r) for r in client.get_results(per_page=count)])
+        results, _ = SpeedtestClient.from_config(_config_manager).get_results_with_error(count)
+        return jsonify([_enrich_speedtest(r) for r in results])
     # Sync through the collector that polling publishes once Smart Capture listens to it; while
     # another sync runs, or in demo mode, the page shows the cache at once
     collector = next((c for c in current_runtime().collectors if c.name == "speedtest"), None)
@@ -196,19 +191,9 @@ def api_speedtest_run():
         remaining = int(_TRIGGER_COOLDOWN - (now - last_trigger_ts))
         return jsonify({"success": False, "error": f"Rate limited, retry in {remaining}s"}), 429
 
-    url = _config_manager.get("speedtest_tracker_url", "").rstrip("/")
-    token = _config_manager.get("speedtest_tracker_token", "")
-    tls_insecure = parse_config_bool(
-        _config_manager.get("speedtest_tls_insecure", False)
-    )
     try:
-        resp = requests.post(
-            f"{url}/api/v1/speedtests/run",
-            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
-            timeout=90,
-            verify=not tls_insecure,
-        )
-        if resp.status_code == 201:
+        resp = SpeedtestClient.from_config(_config_manager).run(timeout=90)
+        if resp.status_code in RUN_ACCEPTED:
             runtime.derived_storage.set_value("speedtest_last_trigger", now)
             log.info("Speedtest manually triggered via UI")
             try:  # the queued result, so the page can wait for exactly this test

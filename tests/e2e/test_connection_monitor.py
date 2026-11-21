@@ -252,3 +252,205 @@ def test_connection_monitor_traceroute_result_and_triggers_follow_the_language(d
     expect(page.locator("#cm-traceroute-tbody td:last-child")).to_have_text(["Manuell", "Paketverlust", "Ausfall"])
     page.locator("#cm-traceroute-btn").click()
     expect(page.locator("#cm-traceroute-result")).to_have_text(f"{status} \u2014 5 Hops, Fingerabdruck: 0123456789ab")
+
+
+def _fail(route):
+    route.fulfill(status=500, body="down")
+
+
+def _handled(page, matches, action):
+    """Run action and return once the page has handled the answer to the request it sends or releases."""
+    with page.expect_event("requestfinished", matches):
+        action()
+    page.evaluate("() => new Promise(resolve => setTimeout(resolve))")
+
+
+def _answer_late(page, route, **reply):
+    """Answer a held request and return once the page has handled the answer."""
+    _handled(page, lambda request: request is route.request, lambda: route.fulfill(**reply))
+
+
+@pytest.mark.parametrize("api", ["samples", "stats", "outages"])
+def test_connection_monitor_failed_load_replaces_the_previous_range_with_a_retry(demo_page, api):
+    """A failed load after a range change must not leave the previous range on screen as if it were current."""
+    page = demo_page
+    _open_cm(page)
+    pattern = re.compile(rf".*/api/connection-monitor/{api}\b.*")
+    page.route(pattern, _fail)
+    page.locator('#cm-range-tabs [data-cm-range="86400"]').click()
+
+    empty = page.locator("#cm-no-data")
+    expect(empty.locator(".view-empty-title")).to_have_text("Could not load the data")
+    for stale in ("#cm-charts-section", "#cm-target-chips", "#cm-outage-panel"):
+        expect(page.locator(stale)).to_be_hidden()
+    page.unroute(pattern)
+    empty.locator(".view-empty-action").click()
+    expect(empty).to_be_hidden()
+    expect(page.locator("#cm-target-chips .cm-target-chip").first).to_be_visible()
+
+
+def test_connection_monitor_trace_requests_report_failures(demo_page):
+    """Trace history, trace details and a manual run say that their request failed."""
+    page = demo_page
+    page.route("**/api/connection-monitor/traces/*", _fail)
+    page.reload()
+    _open_cm(page)
+    expect(page.locator("#cm-traceroute-tbody tr")).to_have_text(["Network error"])
+
+    page.unroute("**/api/connection-monitor/traces/*")
+    page.locator("#cm-traceroute-target-select .cm-chip-btn", has_text="Cloudflare DNS").click()
+    toggle = page.locator("#cm-traceroute-tbody .cm-trace-toggle").first
+    page.route("**/api/connection-monitor/trace/*", _fail)
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    expect(page.locator("#cm-traceroute-tbody .trace-detail-row")).to_have_text("Network error")
+
+    page.route("**/api/connection-monitor/traceroute/*", _fail)
+    page.locator("#cm-traceroute-btn").click()
+    expect(page.locator("#cm-traceroute-result")).to_have_text("Network error")
+    expect(page.locator("#cm-traceroute-btn")).to_be_enabled()
+
+
+def test_connection_monitor_settings_report_failed_target_requests(page, live_server):
+    """A failed target load is not shown as an empty list, and a failed removal keeps the row with a message."""
+    page.route("**/api/connection-monitor/targets", _fail)
+    page.goto(f"{live_server}/settings#mod-docsight_connection_monitor", wait_until="networkidle")
+    error = page.locator("#cm-targets-error")
+    expect(error).to_contain_text("Network error")
+    rows = page.locator("#cm-targets-list [data-target-id]")
+    expect(rows).to_have_count(0)
+
+    page.unroute("**/api/connection-monitor/targets")
+    error.get_by_role("button", name="Try again").click()
+    expect(error).to_be_hidden()
+    expect(rows.first).to_be_visible()
+    count = rows.count()
+
+    page.route("**/api/connection-monitor/targets/*", _fail)
+    rows.first.get_by_role("button", name="Remove").click()
+    expect(error).to_contain_text("Network error")
+    expect(rows).to_have_count(count)
+
+
+def test_connection_monitor_trace_history_keeps_the_last_chosen_target(demo_page):
+    """A late history answer for an earlier target must not replace the target chosen after it."""
+    page = demo_page
+    _open_cm(page)
+    held = []
+    page.route("**/api/connection-monitor/traces/*", lambda route: route.fallback() if held else held.append(route))
+    chips = page.locator("#cm-traceroute-target-select .cm-chip-btn")
+    chips.filter(has_text="Cloudflare DNS").click()
+    chips.filter(has_text="Google DNS").click()
+    rows = page.locator("#cm-traceroute-tbody .cm-trace-row")
+    expect(rows.first).to_be_visible()
+    count = rows.count()
+
+    _answer_late(page, held[0], json=[])
+    expect(rows).to_have_count(count)
+
+
+def test_connection_monitor_keeps_the_target_error_until_targets_load(demo_page):
+    """A range change after a failed target load tries the targets again instead of claiming there are none."""
+    page = demo_page
+    page.route("**/api/connection-monitor/targets", _fail)
+    page.reload()
+    page.evaluate("switchView('connection-monitor')")
+    title = page.locator("#cm-no-data .view-empty-title")
+    expect(title).to_have_text("Could not load the data")
+
+    with page.expect_response("**/api/connection-monitor/targets", timeout=5000):
+        page.locator('#cm-range-tabs [data-cm-range="86400"]').click()
+    expect(title).to_have_text("Could not load the data")
+
+
+def test_connection_monitor_settings_list_shows_only_the_latest_load(page, live_server):
+    """Adding a target reloads the list, and a late answer of an older list load cannot replace a newer one."""
+    held = []
+
+    def targets(route):
+        if route.request.method == "POST":
+            route.fulfill(status=201, json={"id": 999})
+        elif held:
+            _fail(route)
+        else:
+            held.append(route)
+
+    page.route("**/api/connection-monitor/targets", targets)
+    page.goto(f"{live_server}/settings#mod-docsight_connection_monitor")
+    page.locator("#cm-add-target-btn").click()
+    retry = page.locator("#cm-targets-error").get_by_role("button", name="Try again")
+    expect(retry).to_be_visible()
+
+    _answer_late(page, held[0], json=[{"id": 1, "label": "Old", "host": "old.example"}])
+    expect(retry).to_be_visible()
+    expect(page.locator("#cm-targets-list [data-target-id]")).to_have_count(0)
+
+
+def test_connection_monitor_manual_run_reports_http_errors_and_keeps_them_visible(demo_page):
+    """A JSON error answer is a failed run, server refusals keep their text, and an older result timer hides nothing."""
+    page = demo_page
+    page.clock.install()
+    page.reload()
+    _open_cm(page)
+    runs = [
+        {"json": {"reached_target": True, "hop_count": 3, "route_fingerprint": "0123456789ab"}},
+        {"status": 503, "json": {"message": "busy"}},
+        {"status": 404, "json": {"error": "Target not found"}},
+    ]
+    page.route("**/api/connection-monitor/traceroute/*", lambda route: route.fulfill(**runs.pop(0)))
+    history = []
+    page.on("request", lambda request: history.append(request) if "/traces/" in request.url else None)
+    result = page.locator("#cm-traceroute-result")
+    button = page.locator("#cm-traceroute-btn")
+
+    with page.expect_request("**/api/connection-monitor/traces/*"):
+        button.click()
+    expect(result).to_contain_text("Target reached")
+    loads = len(history)
+    page.clock.run_for(5000)
+    button.click()
+    expect(result).to_have_text("Network error")
+    page.clock.run_for(5000)
+    expect(result).to_be_visible()
+    assert len(history) == loads
+
+    button.click()
+    expect(result).to_have_text("Target not found")
+
+
+def test_connection_monitor_late_target_answer_keeps_the_chosen_trace_target(demo_page):
+    """An older target list answer must not rebuild the traceroute targets after a newer one."""
+    page = demo_page
+    held = []
+    page.route("**/api/connection-monitor/targets", lambda route: route.fallback() if held else held.append(route))
+    page.reload()
+    page.evaluate("switchView('connection-monitor')")
+    page.locator('#cm-range-tabs [data-cm-range="86400"]').click()
+    chosen = page.locator("#cm-traceroute-target-select .cm-chip-btn", has_text="Cloudflare DNS")
+    chosen.click()
+
+    _answer_late(page, held[0], json=[{"id": 99, "enabled": True, "label": "Late", "host": "late.example"}])
+    expect(chosen).to_have_class(re.compile(r"\bactive\b"))
+
+
+def test_connection_monitor_settings_keep_the_list_retry_only_while_the_list_is_stale(page, live_server):
+    """A failed add keeps "Try again" while the list may be stale; a list load that succeeds removes it."""
+    gets = []
+
+    def targets(route):
+        if route.request.method == "GET":
+            gets.append(route)
+        if route.request.method == "POST" or len(gets) == 1:
+            _fail(route)
+
+    page.route("**/api/connection-monitor/targets", targets)
+    page.goto(f"{live_server}/settings#mod-docsight_connection_monitor")
+    error = page.locator("#cm-targets-error")
+    retry = error.get_by_role("button", name="Try again")
+    retry.click()
+
+    _handled(page, lambda request: request.method == "POST", page.locator("#cm-add-target-btn").click)
+    expect(retry).to_be_visible()
+    _answer_late(page, gets[1], json=[])
+    expect(retry).to_have_count(0)
+    expect(error).to_have_text("Network error")

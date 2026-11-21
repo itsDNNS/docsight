@@ -446,9 +446,9 @@ def _parse_tc_table(table: Tag | None, direction: str) -> ParseResult[list[RawCh
                     "frequency": f"{int(frequency)} MHz" if frequency else "",
                     "powerLevel": power,
                     "mse": None if final_type == "OFDM" or snr is None else -snr,
-                    "mer": snr, "latency": 0,
-                    "corrError": num(_cell(cells, columns["corrected"]), "corrected", int),
-                    "nonCorrError": num(_cell(cells, columns["uncorrected"]), "uncorrected", int),
+                    "mer": snr,
+                    "corrErrors": num(_cell(cells, columns["corrected"]), "corrected", int),
+                    "nonCorrErrors": num(_cell(cells, columns["uncorrected"]), "uncorrected", int),
                 })
             else:
                 result.append({

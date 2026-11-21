@@ -63,7 +63,7 @@ def _upload(field, content, name, **form):
     ("/api/poll", _patch_poll, {}, 500, {"success": False, "error": "Modem reading failed, see the DOCSight log"}),
     ("/api/backup/scheduled", _patch("app.modules.backup.routes.create_backup_to_file"), {},
      500, {"error": f"Backup failed. {SEE_LOG}"}),
-    ("/api/speedtest/run", _patch("app.modules.speedtest.routes.requests.post"), {},
+    ("/api/speedtest/run", _patch("app.modules.speedtest.client.requests.Session.post"), {},
      500, {"success": False, "error": f"Speedtest start failed. {SEE_LOG}"}),
     ("/api/bqm/import", _patch("app.modules.bqm.storage.BqmStorage.import_bqm_graph"),
      _upload("files[]", b"\x89PNG graph", "graph.png", dates="2026-01-01"), 200, None),

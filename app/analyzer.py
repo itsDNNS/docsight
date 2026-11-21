@@ -356,7 +356,9 @@ def apply_cumulative_error_baseline(
     current_counters = aggregate_error_counters(analysis.get("ds_channels", []))
     previous_counters = aggregate_error_counters(previous_analysis.get("ds_channels", []))
     previous_baseline = previous_summary.get("error_baseline")
-    if not isinstance(previous_baseline, dict):
+    # Older releases stored totals with other counter rules; a baseline built from them is not reused.
+    stale_total = previous_summary.get("ds_uncorrectable_errors") != previous_counters.raw_uncorrectable
+    if not isinstance(previous_baseline, dict) or stale_total:
         previous_baseline = None
 
     previous_meta = previous_analysis.get("analysis_meta")
@@ -908,8 +910,8 @@ def _build_ds_channel(ch, docsis_ver):
         "power": power,
         "modulation": modulation,
         "snr": snr,
-        "correctable_errors": ch.get("corrErrors"),
-        "uncorrectable_errors": ch.get("nonCorrErrors"),
+        "correctable_errors": to_counter(ch.get("corrErrors")),
+        "uncorrectable_errors": to_counter(ch.get("nonCorrErrors")),
     }
     return _channel_entry(
         ch,
