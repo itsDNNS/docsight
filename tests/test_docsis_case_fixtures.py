@@ -108,6 +108,7 @@ def test_docsis_fixture_checklist_golden_contracts(fixture_path: Path):
         bqm_rows=checklist_input.get("bqm_rows", []),
         connection_latency_rows=checklist_input.get("connection_latency_rows", []),
         capabilities=checklist_input.get("capabilities", {}),
+        snapshot_aggregate=checklist_input.get("snapshot_aggregate", {}),
     )
     by_key = {item["key"]: item for item in checklist}
 
