@@ -121,11 +121,11 @@ function journalHarness() {
         // Keep hostile values intact to test the rendering boundary even when
         // upstream URL validation would reject them in the application.
         docsightUrl: value => '/docsight' + value,
-        escapeHtml: value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
         fetch: () => assert.fail('Unexpected fetch'),
         showToast: () => assert.fail('Unexpected toast')
     });
     context.window = context;
+    vm.runInContext(fs.readFileSync('app/static/js/utils.js', 'utf8'), context, {filename: 'utils'});
     vm.runInContext(fs.readFileSync('app/static/js/trusted-html.js', 'utf8'), context, {filename: 'trusted-html'});
     vm.runInContext(source, context, {filename: 'journal'});
     for (const id of ['header', 'entries', 'chart-card', 'signals', 'bnetz']) {
@@ -228,6 +228,27 @@ test('PDF buttons pass raw hostile and numeric incident values through click lis
     assert.equal(downloads.length, 2);
     assert.equal(context.injected, undefined);
 });
+
+const mark = text => '<mark class="search-highlight">' + text + '</mark>';
+for (const [text, query, expected] of [
+    [`Don't work for 39 hours`, '39', `Don&#39;t work for ${mark('39')} hours`],
+    ['Q&A amplifier', 'amp', `Q&amp;A ${mark('amp')}lifier`],
+    ['say "hi"', 'quot', 'say &quot;hi&quot;'],
+    ['Literal &amp; text', '&amp;', `Literal ${mark('&amp;amp;')} text`],
+    ['AT&T outage', 't&t', `A${mark('T&amp;T')} outage`],
+    ['<img src=x onerror=alert(1)> & <b>', '<b>', `&lt;img src=x onerror=alert(1)&gt; &amp; ${mark('&lt;b&gt;')}`],
+    ['axb (a+b)* a.b', 'a.b', `axb (a+b)* ${mark('a.b')}`],
+    ['axb (a+b)* a.b', '(A+B)*', `axb ${mark('(a+b)*')} a.b`],
+    ['İstanbul link', 'stan', `İ${mark('stan')}bul link`],
+    ['No match here', '', 'No match here'],
+]) {
+    test(`search highlight of ${JSON.stringify(query)} in ${JSON.stringify(text)} matches the text, not its escaping`, () => {
+        const {context} = journalHarness();
+        const html = context.highlightText(text, query);
+        assert.equal(html, expected);
+        assert.equal(html.replace(/<\/?mark[^>]*>/g, ''), context.escapeHtml(text));
+    });
+}
 
 test('the case BNetzA list leaves out a direction that was not measured', () => {
     const {context, nodes, htmlWrites} = journalHarness();

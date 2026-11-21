@@ -4,7 +4,8 @@ import sys
 import os
 
 import pytest
-from unittest.mock import MagicMock, patch
+from datetime import date, timedelta
+from unittest.mock import DEFAULT, MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -13,6 +14,17 @@ from app.modules.weather.collector import WeatherCollector
 from app.modules.weather.storage import WeatherStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
+from app.storage.sqlite import DEFAULT_SQLITE_BUSY_TIMEOUT_MS
+
+HISTORY = [
+    {"timestamp": "2025-12-01 00:00:00Z", "temperature": -2.0},
+    {"timestamp": "2025-12-01 01:00:00Z", "temperature": -1.5},
+]
+CURRENT = [{"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0}]
+
+
+def archive_down(client, *_):
+    return patch.object(client, "get_historical", side_effect=Exception("archive down"))
 
 
 # ── OpenMeteoClient Tests ──
@@ -154,7 +166,7 @@ class TestWeatherStorage:
         storage = WeatherStorage(str(tmp_path / "test.db"))
         with storage._write() as conn:
             timeout = conn.execute("PRAGMA busy_timeout").fetchone()[0]
-        assert timeout == WeatherStorage.BUSY_TIMEOUT_MS
+        assert timeout == DEFAULT_SQLITE_BUSY_TIMEOUT_MS
 
     def test_concurrent_write_no_lock_error(self, tmp_path, caplog):
         """Two WeatherStorage instances writing to the same DB should not raise lock errors."""
@@ -216,9 +228,7 @@ class TestWeatherCollector:
     def test_collect_success(self, mock_client_cls, tmp_path):
         collector, storage, web = self._make_collector(tmp_path)
         mock_client = MagicMock()
-        mock_client.get_current.return_value = [
-            {"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0},
-        ]
+        mock_client.get_current.return_value = CURRENT
         mock_client_cls.return_value = mock_client
 
         result = collector.collect()
@@ -226,37 +236,80 @@ class TestWeatherCollector:
         assert storage.get_weather_count() == 1
         web.update_state.assert_called_once()
 
+    @pytest.mark.parametrize("target, published", [("get_current", False), ("save_weather_data", True)],
+                             ids=["forecast-error", "current-write-error"])
     @patch("app.modules.weather.collector.OpenMeteoClient")
-    def test_collect_failure(self, mock_client_cls, tmp_path):
+    def test_collect_failure(self, mock_client_cls, tmp_path, target, published):
         collector, storage, web = self._make_collector(tmp_path)
-        mock_client = MagicMock()
-        mock_client.get_current.side_effect = Exception("API error")
-        mock_client_cls.return_value = mock_client
+        client = mock_client_cls.return_value
+        client.get_current.return_value = CURRENT
 
-        # Mark backfill done so it doesn't interfere
-        collector._backfilled = True
-        result = collector.collect()
+        with patch.object(client if target == "get_current" else storage, target, side_effect=Exception("API error")):
+            result = collector.collect()
         assert not result.success
         assert "API error" in result.error
+        # The fresh reading is published before the write, so a failed write does not leave it stale.
+        assert web.update_state.call_count == published
+
+    @pytest.mark.parametrize("first_current, emptied", [
+        (CURRENT, False), (Exception("forecast down"), False), (CURRENT, True),
+    ], ids=["complete", "current-failed", "retention-emptied"])
+    @patch("app.modules.weather.collector.OpenMeteoClient")
+    def test_backfill_runs_only_while_pending(self, mock_client_cls, tmp_path, first_current, emptied):
+        collector, storage, _ = self._make_collector(tmp_path)
+        client = mock_client_cls.return_value
+        client.get_historical.return_value = HISTORY
+        client.get_current.side_effect = [first_current, CURRENT]
+
+        assert collector.collect().success is (first_current is CURRENT)
+        client.get_historical.assert_called_once()  # also when the forecast request failed
+        if emptied:  # retention cleanup removed every row
+            with storage._write() as conn:
+                conn.execute("DELETE FROM weather_data")
+        else:  # restart: the pending mark must be cleared
+            collector, storage, _ = self._make_collector(tmp_path)
+        assert collector.collect().success
+        assert client.get_historical.call_count == 1 + emptied
+        assert storage.get_weather_count() == len(HISTORY) + len(CURRENT)
+
+    @pytest.mark.parametrize("restart", [False, True], ids=["same-process", "restart"])
+    @pytest.mark.parametrize("failing, first_ok", [
+        (archive_down, True),
+        # Only the history write fails; the current write goes through.
+        (lambda _, storage: patch.object(storage, "save_weather_data", wraps=storage.save_weather_data,
+                                         side_effect=[Exception("disk I/O error"), DEFAULT]), True),
+        # The pending check fails before anything is written, which fails the poll.
+        (lambda *_: patch.object(WeatherStorage, "backfill_pending", side_effect=Exception("database is locked")),
+         False),
+    ], ids=["archive-error", "history-write-error", "marker-error"])
+    @patch("app.modules.weather.collector.OpenMeteoClient")
+    def test_failed_backfill_retried_on_next_poll(self, mock_client_cls, tmp_path, failing, first_ok, restart):
+        collector, storage, web = self._make_collector(tmp_path)
+        client = mock_client_cls.return_value
+        client.get_historical.return_value = HISTORY
+        client.get_current.return_value = CURRENT
+
+        with failing(client, storage):
+            assert collector.collect().success is first_ok
+        assert web.update_state.call_count == first_ok
+        assert storage.get_weather_count() == (len(CURRENT) if first_ok else 0)
+
+        if restart:
+            collector, storage, _ = self._make_collector(tmp_path)
+        assert collector.collect().success
+        start, end = client.get_historical.call_args.args
+        assert date.fromisoformat(end) - date.fromisoformat(start) == timedelta(days=90)
+        assert storage.get_weather_count() == len(HISTORY) + len(CURRENT)
 
     @patch("app.modules.weather.collector.OpenMeteoClient")
-    def test_backfill_on_first_run(self, mock_client_cls, tmp_path):
-        collector, storage, web = self._make_collector(tmp_path)
-        mock_client = MagicMock()
-        mock_client.get_current.return_value = [
-            {"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0},
-        ]
-        mock_client.get_historical.return_value = [
-            {"timestamp": "2025-12-01 00:00:00Z", "temperature": -2.0},
-            {"timestamp": "2025-12-01 01:00:00Z", "temperature": -1.5},
-        ]
-        mock_client_cls.return_value = mock_client
+    def test_archive_value_wins_on_overlap(self, mock_client_cls, tmp_path):
+        collector, storage, _ = self._make_collector(tmp_path)
+        client = mock_client_cls.return_value
+        client.get_historical.return_value = [{**CURRENT[0], "temperature": -1.0}]
+        client.get_current.return_value = CURRENT
 
-        result = collector.collect()
-        assert result.success
-        # Backfill + current = 3 records
-        assert storage.get_weather_count() == 3
-        assert collector._backfilled is True
+        assert collector.collect().success
+        assert storage.get_weather_data() == [{"timestamp": CURRENT[0]["timestamp"], "temperature": -1.0}]
 
     @patch("app.modules.weather.collector.OpenMeteoClient")
     def test_no_backfill_when_data_exists(self, mock_client_cls, tmp_path):
@@ -264,9 +317,7 @@ class TestWeatherCollector:
         # Pre-populate some data
         storage.save_weather_data([{"timestamp": "2026-02-26 10:00:00Z", "temperature": 4.0}])
         mock_client = MagicMock()
-        mock_client.get_current.return_value = [
-            {"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0},
-        ]
+        mock_client.get_current.return_value = CURRENT
         mock_client_cls.return_value = mock_client
 
         result = collector.collect()
@@ -352,6 +403,16 @@ class TestWeatherAPI:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["temperature"] == 7.5
+
+    @patch("app.modules.weather.collector.OpenMeteoClient")
+    def test_api_weather_current_during_archive_outage(self, mock_client_cls, weather_client):
+        client, _ = weather_client
+        runtime = current_runtime()
+        runtime.state.reset_modem()
+        mock_client_cls.return_value.get_current.return_value = CURRENT
+        with archive_down(mock_client_cls.return_value):
+            assert WeatherCollector(runtime.config_manager, runtime.storage, runtime).collect().success
+        assert client.get("/api/weather/current").get_json() == CURRENT[-1]
 
     def test_api_weather_range(self, weather_client):
         client, storage = weather_client

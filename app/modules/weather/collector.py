@@ -27,7 +27,6 @@ class WeatherCollector(Collector):
         self._web = web
         self._client = None
         self._last_coords = None
-        self._backfilled = False
 
     def is_enabled(self) -> bool:
         return self._config_mgr.is_weather_configured()
@@ -46,19 +45,19 @@ class WeatherCollector(Collector):
         self._ensure_client()
 
         try:
-            # Backfill historical data on first run
-            if not self._backfilled and self._weather_storage.get_weather_count() == 0:
+            # Backfill history while the table awaits it; a failed backfill stays
+            # pending and is retried on the next poll.
+            if self._weather_storage.backfill_pending():
                 self._backfill()
-                self._backfilled = True
 
             # Fetch recent data (last 24h + current)
             records = self._client.get_current()
             if records:
-                self._weather_storage.save_weather_data(records)
                 self._web.update_state(weather_latest={
                     "timestamp": records[-1]["timestamp"],
                     "temperature": records[-1]["temperature"],
                 })
+                self._weather_storage.save_weather_data(records)
                 log.debug("Weather: saved %d hourly records", len(records))
 
             return CollectorResult(source=self.name, data=records[-1] if records else None)
@@ -78,5 +77,6 @@ class WeatherCollector(Collector):
                 self._weather_storage.save_weather_data(records)
                 log.info("Weather backfill: saved %d records (%s to %s)",
                          len(records), start_date, end_date)
+            self._weather_storage.finish_backfill()
         except Exception as e:
             log.warning("Weather backfill failed: %s", e)

@@ -30,6 +30,7 @@
   "import_no_date": "kuupäev puudub",
   "import_file_unsupported": "Toetatud on ainult .xlsx- ja .csv-failid",
   "import_file_too_large": "Fail on liiga suur (kuni 5 MB)",
+  "import_csv_unreadable": "Seda faili ei õnnestunud lugeda. Ava see algses programmis, salvesta CSV (UTF-8) vormingus ja impordi uuesti.",
   "delete_all": "Kustuta kõik",
   "delete_all_confirm": "Kas kustutada kõik {n} kirjet? Seda ei saa tagasi võtta.",
   "delete_all_type_confirm": "Kinnitamiseks sisesta DELETE:",

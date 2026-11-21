@@ -30,6 +30,7 @@
   "import_no_date": "geen datum",
   "import_file_unsupported": "Alleen .xlsx- en .csv-bestanden worden ondersteund",
   "import_file_too_large": "Bestand te groot (max. 5 MB)",
+  "import_csv_unreadable": "Dit bestand kan niet worden gelezen. Open het in het oorspronkelijke programma, sla het op als CSV (UTF-8) en importeer het opnieuw.",
   "delete_all": "Alles verwijderen",
   "delete_all_confirm": "Alle {n} notities verwijderen? Dit kan niet ongedaan worden gemaakt.",
   "delete_all_type_confirm": "Typ DELETE om te bevestigen:",
