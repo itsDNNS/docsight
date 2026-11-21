@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 
 from app.config import ConfigManager
-from app.i18n import LANGUAGES
 from app.runtime import current_runtime
 
 
@@ -16,30 +15,6 @@ INDEX_TEMPLATE = ROOT / "app" / "templates" / "index.html"
 SETTINGS_TEMPLATE = ROOT / "app" / "templates" / "settings.html"
 DEMO_BANNER_SCRIPT = ROOT / "app" / "static" / "js" / "demo-banner.js"
 SETUP_SCRIPT = ROOT / "app" / "static" / "js" / "setup.js"
-
-FIRST_RUN_KEYS = {
-    "setup_value_title",
-    "setup_value_desc",
-    "setup_connect_desc",
-    "setup_demo_secondary",
-    "setup_demo_trust",
-    "setup_connect_modem",
-    "setup_restore_action",
-    "setup_demo_starting",
-    "setup_demo_waiting",
-    "setup_demo_failed",
-    "setup_demo_timeout",
-    "setup_try_again",
-    "setup_try_demo",
-    "setup_desktop_preview_note",
-    "demo_banner_title",
-    "demo_banner_desc",
-    "demo_connect_own_modem",
-    "demo_exit",
-    "demo_action_failed",
-    "demo_forced_notice",
-}
-
 
 def test_setup_template_has_value_led_hierarchy_and_recovery_actions():
     template = SETUP_TEMPLATE.read_text(encoding="utf-8")
@@ -143,31 +118,6 @@ def test_setup_poll_interval_is_labelled_and_defaulted_in_seconds(tmp_path, rout
     assert 'for="poll_interval">Interval (seconds)</label>' in html
     assert '<span id="review-poll"></span> s<br>' in html
     assert "Minutes" not in html
-
-
-def test_first_run_keys_are_complete_nonempty_and_placeholder_compatible():
-    locale_paths = sorted(I18N_DIR.glob("*.json"))
-    assert {path.stem for path in locale_paths} == set(LANGUAGES)
-    english = json.loads((I18N_DIR / "en.json").read_text(encoding="utf-8"))
-    placeholder = re.compile(r"\{[^{}]+\}")
-    problems = {}
-
-    for path in locale_paths:
-        data = json.loads(path.read_text(encoding="utf-8-sig"))
-        locale_problems = []
-        for key in FIRST_RUN_KEYS:
-            value = data.get(key)
-            if not isinstance(value, str) or not value.strip():
-                locale_problems.append(f"{key}: missing")
-                continue
-            if set(placeholder.findall(value)) != set(
-                placeholder.findall(english[key])
-            ):
-                locale_problems.append(f"{key}: placeholder mismatch")
-        if locale_problems:
-            problems[path.name] = locale_problems
-
-    assert problems == {}
 
 
 def test_german_start_copy_matches_product_copy():

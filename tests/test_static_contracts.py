@@ -12,6 +12,8 @@ from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
+from app.i18n import LANGUAGES
+
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
 STATIC = APP / "static"
@@ -51,6 +53,8 @@ LOCALIZED_MODULES = {
     "backup", "bnetz", "bqm", "comparison", "connection_monitor", "de_tkg_compensation", "evidence",
     "journal", "modulation", "mqtt", "reports", "smokeping", "speedtest", "weather",
 }
+# Catalog keys that hold a list or object of texts; every other key holds text.
+I18N_CONTAINER_KEYS = {"_meta", "isp_options", "month_names", "issue_labels"}
 I18N_PROTECTED_LITERALS = {"Apprise", "DOCSight", "DOCSIS", "DSL", "SC-QAM", "dBmV", "Smokeping"}
 I18N_EMPTY_TAG_RE = re.compile(r"<([A-Za-z][^>]*)>\s*</\1>")
 I18N_LEADING_SENTINEL_RE = re.compile(r"^\s*@")
@@ -693,7 +697,8 @@ def test_every_event_health_state_has_a_dot_color() -> None:
 
 
 def test_european_language_pack_metadata() -> None:
-    """Core locales have names and flags for the language selector."""
+    """Core locales are registered and have names and flags for the language selector."""
+    assert set(LANGUAGES) == EUROPEAN_LANGUAGE_PACK
     offenders = []
     for code in sorted(EUROPEAN_LANGUAGE_PACK):
         path = APP_I18N_DIR / f"{code}.json"
@@ -708,10 +713,12 @@ def test_european_language_pack_metadata() -> None:
 
 
 def test_european_language_pack_preserves_catalog_contracts() -> None:
-    """Every catalog keeps key, list, and placeholder contracts intact."""
+    """Every catalog keeps key, list, type, and placeholder contracts intact and has no empty values."""
     offenders = []
 
     def walk(path_label: str, source: Any, target: Any) -> None:
+        if not (target.strip() if isinstance(target, str) else target):
+            offenders.append(f"{path_label}: empty value")
         if isinstance(source, dict) and isinstance(target, dict):
             missing = sorted(set(source) - set(target))
             extra = sorted(set(target) - set(source))
@@ -725,6 +732,9 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
                 offenders.append(f"{path_label}: list length {len(target)} != {len(source)}")
             for idx, (source_item, target_item) in enumerate(zip(source, target)):
                 walk(f"{path_label}[{idx}]", source_item, target_item)
+            # Extra ISP options have no English counterpart and must be plain text.
+            for idx, extra_item in enumerate(target[len(source):], len(source)):
+                walk(f"{path_label}[{idx}]", "", extra_item)
         elif isinstance(source, str) and isinstance(target, str):
             if "ZXQ" in target or "@@@" in target:
                 offenders.append(f"{path_label}: leaked translation sentinel")
@@ -739,6 +749,8 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
             target_placeholders = Counter(I18N_PLACEHOLDER_RE.findall(target))
             if source_placeholders != target_placeholders:
                 offenders.append(f"{path_label}: placeholder mismatch")
+        else:
+            offenders.append(f"{path_label}: unexpected {type(target).__name__} value, en.json has {type(source).__name__}")
 
     i18n_dirs = [APP_I18N_DIR] + [MODULES / name / "i18n" for name in sorted(LOCALIZED_MODULES)]
     module_i18n_dirs = sorted(MODULES.glob("*/i18n"))
@@ -756,6 +768,10 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
         if not source_path.exists():
             continue
         source = read_json(source_path)
+        for key, value in source.items():
+            entries = (list(value.values()) if isinstance(value, dict) else value) if key in I18N_CONTAINER_KEYS else [value]
+            if not isinstance(entries, list) or not all(isinstance(entry, str) for entry in entries):
+                offenders.append(f"{source_path.relative_to(ROOT)}.{key}: text expected")
         for code in sorted(EUROPEAN_LANGUAGE_PACK):
             path = i18n_dir / f"{code}.json"
             data = read_json(path)
