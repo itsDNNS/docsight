@@ -2,8 +2,7 @@
    Opens a case as a timeline: header with the PDF report, the channel status
    track, a chart of signal, speed tests and journal entries over the case window,
    and the table of everything that happened. Loaded with the journal tab; the
-   case steps and cards live in main.js. */
-var _timelineChartInstance = null;
+   case steps and cards live in journal-cases.js. */
 
 window.openIncidentTimeline = function(incidentId) {
     // Hide journal UI elements
@@ -51,11 +50,6 @@ window.closeIncidentTimeline = function() {
     if (caseCards) caseCards.hidden = !caseCards.childNodes.length;
     var caseSteps = document.getElementById('incident-timeline-steps');
     if (caseSteps) caseSteps.hidden = true;
-
-    // Destroy chart to free memory
-    if (_timelineChartInstance) {
-        _timelineChartInstance = null;
-    }
 
     // Re-show journal
     loadJournal();

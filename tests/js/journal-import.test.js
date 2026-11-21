@@ -8,7 +8,10 @@ const vm = require('node:vm');
 function load() {
     const context = {document: {getElementById: () => null, querySelectorAll: () => []}, T: {}};
     context.window = context;
-    vm.runInNewContext(fs.readFileSync('app/modules/journal/static/js/journal-import.js', 'utf8'), context);
+    // The dialog sends its requests through the journal's request helper in journal-entry.js.
+    for (const file of ['journal-entry.js', 'journal-import.js']) {
+        vm.runInNewContext(fs.readFileSync('app/modules/journal/static/js/' + file, 'utf8'), context);
+    }
     return context;
 }
 

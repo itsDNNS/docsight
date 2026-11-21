@@ -194,7 +194,7 @@ function renderIncidentSummary(incidentId) {
     html += '<span class="incident-summary-count">' + (inc.entry_count || 0) + ' ' + (T.incident_entry_count || 'Entries') + '</span>';
     html += '<span class="incident-summary-evidence">' + (T.incident_linked_evidence || 'Linked evidence') + '</span>';
     var incidentArgs = ' data-action-args="[' + inc.id + ']"';
-    html += '<button type="button" class="incident-summary-edit" data-action="openIncidentModal"' + incidentArgs + ' title="' + escapeHtmlAttribute(T.incident_edit || 'Edit') + '">&#9998;</button>';
+    html += '<button type="button" class="incident-summary-edit" data-action="openIncidentModal"' + incidentArgs + ' title="' + escapeHtml(T.incident_edit || 'Edit') + '">&#9998;</button>';
     html += '<button type="button" class="incident-summary-timeline-btn" data-action="openIncidentTimeline"' + incidentArgs + '>' + escapeHtml(T.incident_view_timeline || 'View Timeline') + '</button>';
     html += '<button type="button" class="incident-summary-report-btn" data-action="openIncidentTimeline"' + incidentArgs + '>' + escapeHtml(T.incident_build_report || 'Build report') + '</button>';
     html += '</div>';
@@ -302,45 +302,6 @@ function renderCaseSteps(inc) {
         .catch(function() {});
 }
 
-function renderContainerIconPicker(selectedLabel) {
-    var picker = document.getElementById('incident-container-icon-picker');
-    var hiddenInput = document.getElementById('incident-container-icon-value');
-    picker.replaceChildren();
-    function markSelected(selectedButton) {
-        picker.querySelectorAll('.icon-pick').forEach(function(b) {
-            b.classList.remove('active');
-            b.setAttribute('aria-pressed', 'false');
-        });
-        selectedButton.classList.add('active');
-        selectedButton.setAttribute('aria-pressed', 'true');
-    }
-    var noneBtn = document.createElement('button');
-    noneBtn.type = 'button';
-    noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
-    noneBtn.title = T.icon_auto || 'Auto';
-    noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
-    noneBtn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + (T.icon_auto || 'Auto') + '</span>');
-    noneBtn.onclick = function() {
-        hiddenInput.value = '';
-        markSelected(noneBtn);
-    };
-    picker.appendChild(noneBtn);
-    INCIDENT_ICONS.forEach(function(entry) {
-        var btn = document.createElement('button');
-        var label = T['icon_' + entry.label] || entry.label;
-        btn.type = 'button';
-        btn.className = 'icon-pick' + (selectedLabel === entry.label ? ' active' : '');
-        btn.title = label;
-        btn.setAttribute('aria-pressed', selectedLabel === entry.label ? 'true' : 'false');
-        btn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + entry.icon + '</span><span class="icon-pick-label">' + label + '</span>');
-        btn.onclick = function() {
-            hiddenInput.value = entry.label;
-            markSelected(btn);
-        };
-        picker.appendChild(btn);
-    });
-}
-
 function openIncidentModal(incidentId) {
     var modal = document.getElementById('incident-container-modal');
     var titleEl = document.getElementById('incident-container-modal-title');
@@ -371,7 +332,7 @@ function openIncidentModal(incidentId) {
                 endEl.value = inc.end_date || '';
                 descEl.value = inc.description || '';
                 iconVal.value = inc.icon || '';
-                renderContainerIconPicker(inc.icon || '');
+                renderIconPicker('incident-container', inc.icon || '');
                 if (inc.entry_count !== undefined) {
                     countEl.textContent = inc.entry_count;
                     countSection.hidden = false;
@@ -392,7 +353,7 @@ function openIncidentModal(incidentId) {
         endEl.value = '';
         descEl.value = '';
         iconVal.value = '';
-        renderContainerIconPicker('');
+        renderIconPicker('incident-container', '');
         deleteBtn.hidden = true;
         countSection.hidden = true;
         if (emptyEvidenceSection) emptyEvidenceSection.hidden = false;
@@ -426,23 +387,15 @@ function saveIncident() {
         return;
     }
 
-    var payload = JSON.stringify({name: nameVal, description: descVal, status: statusVal, start_date: startVal, end_date: endVal, icon: iconVal});
-    var url = docsightUrl(incidentId ? '/api/incidents/' + incidentId : '/api/incidents');
-    var method = incidentId ? 'PUT' : 'POST';
-
-    fetch(url, {method: method, headers: {'Content-Type': 'application/json'}, body: payload})
-        .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
-        .then(function(res) {
-            if (res.status >= 400) {
-                showToast(res.data.error || 'Error', 'error');
-                return;
-            }
+    journalSend(incidentId ? '/api/incidents/' + incidentId : '/api/incidents', incidentId ? 'PUT' : 'POST',
+        {name: nameVal, description: descVal, status: statusVal, start_date: startVal, end_date: endVal, icon: iconVal}, 'Error')
+        .then(function() {
             closeIncidentModal();
             loadIncidents();
             if (_timelineActive && _timelineIncidentId) openIncidentTimeline(_timelineIncidentId);
             else loadJournal();
         })
-        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+        .catch(function(e) { showToast(journalErrorText(e), 'error'); });
 }
 
 function deleteIncident() {
