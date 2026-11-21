@@ -106,23 +106,27 @@ def split_cm1000_rows(raw: str) -> list[list[str]] | None:
     return [values[index:index + _CM1000_FIELDS] for index in range(0, len(values), _CM1000_FIELDS)]
 
 
-def extract_cm1000_tag_value_list(html: str, function_name: str) -> str | None:
+def extract_cm1000_tag_value_list(html: str, function_name: str) -> ParseResult[str | None]:
     body = extract_function_body(html, function_name)
     if body is None:
-        return None
+        return ParseResult(None)
     assignment = _CM1000_ASSIGNMENT.search(strip_javascript_comments(body))
     if assignment is None:
-        return None
+        return ParseResult(None)
     literals: list[str] = []
     for match in _STRING_LITERAL.finditer(assignment.group("value")):
         value = match.group("single")
         if value is None:
             value = match.group("double")
         literals.append(value.replace(r"\'", "'").replace(r'\"', '"').replace(r"\\", "\\"))
-    if not literals:
-        return None
     payload = "".join(literals)
-    return payload if split_cm1000_rows(payload) is not None else None
+    if not payload:
+        return ParseResult(None)
+    if split_cm1000_rows(payload) is None:
+        return ParseResult(None, (diagnostic(
+            "cm1000_javascript", "invalid_framing", family="javascript", field=function_name,
+        ),))
+    return ParseResult(payload)
 
 
 def _parse_cm1000_tag_values(
@@ -136,11 +140,15 @@ def _parse_cm1000_tag_values(
             direction=direction,
         ),))
     result: list[RawChannel] = []
-    for row in rows:
+    diagnostics: list[ParseDiagnostic] = []
+    for index, row in enumerate(rows):
         if row[1].strip().lower() != "locked":
             continue
         channel_id = parse_first_number(row[3])
         if channel_id is None:
+            diagnostics.append(diagnostic(
+                "cm1000_javascript", "invalid_channel", family="javascript", direction=direction, index=index,
+            ))
             continue
         modulation = normalize_modulation(row[2])
         if direction == "downstream":
@@ -163,7 +171,7 @@ def _parse_cm1000_tag_values(
         if symbol_rate is not None:
             channel["symbolRate"] = symbol_rate
         result.append(channel)
-    return ParseResult(result)
+    return ParseResult(result, tuple(diagnostics))
 
 
 def parse_cm1000_downstream_tag_values(raw: str) -> ParseResult[list[RawChannel]]:
@@ -177,8 +185,8 @@ def parse_cm1000_upstream_tag_values(raw: str) -> ParseResult[list[RawChannel]]:
 def parse_cm1000_javascript(html: str) -> ParseResult[DocsisDataFritz]:
     downstream_raw = extract_cm1000_tag_value_list(html, "InitDsTableTagValue")
     upstream_raw = extract_cm1000_tag_value_list(html, "InitUsTableTagValue")
-    downstream = parse_cm1000_downstream_tag_values(downstream_raw) if downstream_raw is not None else ParseResult([])
-    upstream = parse_cm1000_upstream_tag_values(upstream_raw) if upstream_raw is not None else ParseResult([])
+    downstream = parse_cm1000_downstream_tag_values(downstream_raw.value) if downstream_raw.value is not None else ParseResult([], downstream_raw.diagnostics)
+    upstream = parse_cm1000_upstream_tag_values(upstream_raw.value) if upstream_raw.value is not None else ParseResult([], upstream_raw.diagnostics)
     return ParseResult(
         docsis_split(downstream.value, [], upstream.value, []),
         downstream.diagnostics + upstream.diagnostics,

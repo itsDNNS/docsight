@@ -509,12 +509,17 @@ def cm1000_looks_like_header(values: list[str]) -> bool:
     return "channel" in values and any(value in known for value in values[1:])
 
 
+def _cm1000_locked(values) -> bool:
+    return any(value.strip().lower() == "locked" for value in values)
+
+
 def _cm1000_int(value: str) -> int | None:
     number = parse_first_number(value)
     return int(number) if number is not None else None
 
 
-def cm1000_table_rows(soup: BeautifulSoup, table_id: str) -> list[dict[str, str]]:
+def cm1000_table_rows(soup: BeautifulSoup, table_id: str) -> list[dict[str, str] | None]:
+    """Rows keyed by header or position; None marks a locked row too short to map."""
     table = soup.find("table", id=table_id)
     if table is None:
         return []
@@ -531,6 +536,8 @@ def cm1000_table_rows(soup: BeautifulSoup, table_id: str) -> list[dict[str, str]
             continue
         if headers:
             if len(values) < len(headers):
+                if _cm1000_locked(values):
+                    result.append(None)
                 continue
             result.append(dict(zip(headers, values)))
         else:
@@ -568,16 +575,20 @@ def _parse_cm1000_table(
     soup: BeautifulSoup, table_id: str, *, direction: str, docsis31: bool,
 ) -> ParseResult[list[RawChannel]]:
     result: list[RawChannel] = []
-    for row in cm1000_table_rows(soup, table_id):
-        status = _cm1000_get(row, "lock") or row.get("1", "")
-        if status.strip().lower() != "locked":
-            continue
-        if not any(key.isalpha() for key in row):
+    diagnostics: list[ParseDiagnostic] = []
+    for index, row in enumerate(cm1000_table_rows(soup, table_id)):
+        locked = row is not None and (_cm1000_get(row, "lock") or row.get("1", "")).strip().lower() == "locked"
+        if locked and not any(key.isalpha() for key in row):
             row = _cm1000_positional(row, direction)
         channel_id = _cm1000_int(
             _cm1000_get(row, "channel_id") or _cm1000_get(row, "channel") or row.get("0", "")
-        )
+        ) if locked else None
         if channel_id is None:
+            # A locked row the layout cannot map is malformed; other rows are simply not locked.
+            if locked or row is None or _cm1000_locked(row.values()):
+                diagnostics.append(diagnostic(
+                    "cm1000_html_table", "invalid_row", family="html_rows", direction=direction, row=index,
+                ))
             continue
         frequency = hz_to_mhz(_cm1000_get(row, "frequency"))
         power = parse_first_number(_cm1000_get(row, "power"))
@@ -616,7 +627,7 @@ def _parse_cm1000_table(
             if symbol_rate is not None:
                 channel["symbolRate"] = symbol_rate
         result.append(channel)
-    return ParseResult(result)
+    return ParseResult(result, tuple(diagnostics))
 
 
 def parse_cm1000_downstream_table(soup: BeautifulSoup, table_id: str, *, docsis31: bool) -> ParseResult[list[RawChannel]]:

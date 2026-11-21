@@ -3,6 +3,7 @@
 from hashlib import sha512
 from http.cookies import CookieError, SimpleCookie
 import json
+import logging
 import re
 import secrets
 from urllib.parse import urlsplit
@@ -11,8 +12,11 @@ import requests
 
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.pyur import parse_pyur_api_v1, parse_pyur_device_info
 from .pyur_auth import sha512_crypt
+
+log = logging.getLogger("docsis.driver.pyur_fast3896")
 
 
 class PyurFast3896Driver(ModemDriver):
@@ -131,14 +135,14 @@ class PyurFast3896Driver(ModemDriver):
     def get_docsis_data(self) -> DocsisData:
         payload = self._get("docsis-info/connection")
         try:
-            return parse_pyur_api_v1(payload).value
+            return unwrap(parse_pyur_api_v1(payload), log)
         except ValueError:
             raise RuntimeError("PYUR invalid connection payload") from None
 
     def get_device_info(self) -> DeviceInfo:
         payload = self._get("device")
         try:
-            return parse_pyur_device_info(payload).value
+            return unwrap(parse_pyur_device_info(payload), log)
         except ValueError:
             raise RuntimeError("PYUR invalid device payload") from None
 

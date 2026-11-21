@@ -173,7 +173,7 @@ class TestDownstream:
         assert ds31[0]["corrErrors"] == 12
         assert ds31[0]["nonCorrErrors"] == 3
         assert caplog.messages == [
-            "Invalid F3896LG OFDM rxMer 'invalid'; using no MER",
+            "f3896lg_rest_json parser reported invalid_field (direction=downstream, field=rxMer, rows=1)",
         ]
 
     def test_invalid_ofdm_power_retains_channel(self, driver, caplog):
@@ -194,7 +194,7 @@ class TestDownstream:
         assert ds31[0]["powerLevel"] is None
         assert ds31[0]["mer"] == 39.0
         assert caplog.messages == [
-            "Invalid F3896LG OFDM power 'invalid'; using no power",
+            "f3896lg_rest_json parser reported invalid_field (direction=downstream, field=power, rows=1)",
         ]
 
     def test_unknown_channel_type_is_skipped(self, driver, caplog):
@@ -206,7 +206,7 @@ class TestDownstream:
         assert ds30 == []
         assert ds31 == []
         assert caplog.messages == [
-            "Skipping unknown downstream channel type 'mystery'",
+            "f3896lg_rest_json parser reported unknown_channel_type (direction=downstream, field=channelType, rows=1)",
         ]
 
 
@@ -242,7 +242,7 @@ class TestUpstream:
         assert us30 == []
         assert us31 == []
         assert caplog.messages == [
-            "Skipping unknown upstream channel type 'mystery'",
+            "f3896lg_rest_json parser reported unknown_channel_type (direction=upstream, field=channelType, rows=1)",
         ]
 
     def test_invalid_ofdma_power_retains_channel(self, driver, caplog):
@@ -262,7 +262,7 @@ class TestUpstream:
         assert us31[0]["powerLevel"] is None
         assert us31[0]["profile_modulation"] == "256QAM"
         assert caplog.messages == [
-            "Invalid F3896LG OFDMA power 'invalid'; using no power",
+            "f3896lg_rest_json parser reported invalid_field (direction=upstream, field=power, rows=1)",
         ]
 
 

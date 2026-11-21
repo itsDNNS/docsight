@@ -35,7 +35,7 @@ import requests
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
 from .formats.sagemcom import parse_f3896lg_rest_json
-from .format_compat import unwrap_f3896lg
+from .format_compat import unwrap
 from .utils import error_text
 
 log = logging.getLogger("docsis.driver.f3896lg")
@@ -89,7 +89,7 @@ class F3896LGDriver(ModemDriver):
             "downstream": self._get_channels("cablemodem/downstream", "downstream"),
             "upstream": self._get_channels("cablemodem/upstream", "upstream"),
         }
-        return unwrap_f3896lg(parse_f3896lg_rest_json(payload), payload, log)
+        return unwrap(parse_f3896lg_rest_json(payload), log)
 
     def get_device_info(self) -> DeviceInfo:
         info: DeviceInfo = {

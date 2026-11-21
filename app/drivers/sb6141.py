@@ -18,6 +18,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.html_transposed import parse_sb6141_transposed_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .utils import request_error_summary
@@ -60,7 +61,7 @@ class SB6141Driver(ModemDriver):
             r.raise_for_status()
         except requests.RequestException as e:
             raise RuntimeError(f"SB6141 DOCSIS data retrieval failed: {e}")
-        return parse_sb6141_transposed_html(r.text).value
+        return unwrap(parse_sb6141_transposed_html(r.text), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from /cmHelpData.htm."""
