@@ -42,14 +42,25 @@ def _get_journal_storage():
     return core_derived_storage(JournalStorage)
 
 
-def _text(data, key):
-    return (data.get(key) or "").strip()
+def _is_payload(data):
+    return isinstance(data, dict) and bool(data)
+
+
+def _not_text(data, *keys):
+    """Return the error for the first of these fields that holds something other than text."""
+    return next((f"{key} must be text" for key in keys if not isinstance(data.get(key) or "", str)), None)
+
+
+def _text(data, key, default=""):
+    return (data.get(key) or default).strip()
 
 
 def _entry_fields(data):
-    """Return the cleaned fields of an entry payload, or the error that rejects it."""
-    if not data:
+    """Return the cleaned fields of an entry payload and None, or None and the reason to reject it."""
+    if not _is_payload(data):
         return None, "No data"
+    if error := _not_text(data, "date", "title", "description"):
+        return None, error
     date, title, description = _text(data, "date"), _text(data, "title"), _text(data, "description")
     if not valid_date(date):
         return None, "Invalid date format (YYYY-MM-DD)"
@@ -59,6 +70,8 @@ def _entry_fields(data):
         return None, "Title too long (max 200 characters)"
     if len(description) > 10000:
         return None, "Description too long (max 10000 characters)"
+    if error := _not_text(data, "icon"):
+        return None, error
     icon = _text(data, "icon") or None
     incident_id = data.get("incident_id")
     try:
@@ -69,26 +82,36 @@ def _entry_fields(data):
 
 
 def _incident_fields(data):
-    """Return the cleaned fields of a case payload, or the error that rejects it."""
-    if not data:
+    """Return the cleaned fields of a case payload and None, or None and the reason to reject it."""
+    if not _is_payload(data):
         return None, "No data"
+    if error := _not_text(data, "name"):
+        return None, error
     name = _text(data, "name")
     if not name:
         return None, "Name is required"
     if len(name) > 200:
         return None, "Name too long (max 200 characters)"
+    if error := _not_text(data, "description"):
+        return None, error
     description = _text(data, "description")
     if len(description) > 5000:
         return None, "Description too long (max 5000 characters)"
-    status = (data.get("status") or "open").strip()
+    if error := _not_text(data, "status"):
+        return None, error
+    status = _text(data, "status", "open")
     if status not in _VALID_INCIDENT_STATUSES:
         return None, "Invalid status (open, resolved, escalated)"
+    if error := _not_text(data, "start_date", "end_date"):
+        return None, error
     start_date = _text(data, "start_date") or None
     end_date = _text(data, "end_date") or None
     if start_date and not valid_date(start_date):
         return None, "Invalid start_date format (YYYY-MM-DD)"
     if end_date and not valid_date(end_date):
         return None, "Invalid end_date format (YYYY-MM-DD)"
+    if error := _not_text(data, "icon"):
+        return None, error
     icon = _text(data, "icon") or None
     return {"name": name, "description": description, "status": status,
             "start_date": start_date, "end_date": end_date, "icon": icon}, None
@@ -396,7 +419,7 @@ def api_journal_import_confirm():
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
-    if not data or "rows" not in data:
+    if not _is_payload(data) or "rows" not in data:
         return jsonify({"error": "No rows provided"}), 400
 
     rows = data["rows"]
@@ -406,9 +429,9 @@ def api_journal_import_confirm():
     imported = 0
     duplicates = 0
     for row in rows:
-        date = (row.get("date") or "").strip()
-        title = (row.get("title") or "").strip()
-        description = (row.get("description") or "").strip()
+        if not _is_payload(row) or _not_text(row, "date", "title", "description"):
+            continue
+        date, title, description = _text(row, "date"), _text(row, "title"), _text(row, "description")
 
         if not valid_date(date):
             continue
@@ -441,7 +464,7 @@ def api_journal_batch_delete():
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
-    if not data:
+    if not _is_payload(data):
         return jsonify({"error": "No data"}), 400
 
     if data.get("all"):
@@ -469,7 +492,7 @@ def api_journal_unassign():
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
-    if not data:
+    if not _is_payload(data):
         return jsonify({"error": "No data"}), 400
     entry_ids = data.get("entry_ids", [])
     if not entry_ids or not isinstance(entry_ids, list):
@@ -683,7 +706,7 @@ def api_incident_assign(incident_id):
     if not incident:
         return jsonify({"error": "Incident not found"}), 404
     data = request.get_json()
-    if not data:
+    if not _is_payload(data):
         return jsonify({"error": "No data"}), 400
     entry_ids = data.get("entry_ids", [])
     if not entry_ids or not isinstance(entry_ids, list):

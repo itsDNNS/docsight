@@ -98,6 +98,11 @@ def _check(resp, stored, expected, success):
 @pytest.mark.parametrize("method", ["POST", "PUT"])
 @pytest.mark.parametrize("payload, expected", [
     ({}, "No data"),
+    ([_ENTRY], "No data"),
+    ("Call", "No data"),
+    ({"date": "2026-10-03", "title": 5}, "title must be text"),
+    ({**_ENTRY, "icon": ["phone"]}, "icon must be text"),
+    ({"date": "bad", "title": "Call", "icon": ["phone"]}, _DATE_ERROR),
     ({"title": ""}, _DATE_ERROR),
     ({"date": "2026-02-30", "title": "Call"}, _DATE_ERROR),
     ({"date": "03.10.2026", "title": "Call"}, _DATE_ERROR),
@@ -122,6 +127,11 @@ def test_entry_payloads_are_checked_alike_on_create_and_update(client, method, p
 @pytest.mark.parametrize("method", ["POST", "PUT"])
 @pytest.mark.parametrize("payload, expected", [
     ({}, "No data"),
+    ([_CASE], "No data"),
+    ({"name": 5}, "name must be text"),
+    ({**_CASE, "status": 1}, "status must be text"),
+    ({"name": "", "status": 5}, "Name is required"),
+    ({**_CASE, "end_date": 20261003}, "end_date must be text"),
     ({"name": " ", "status": "closed"}, "Name is required"),
     ({"name": "x" * 201}, "Name too long (max 200 characters)"),
     ({**_CASE, "description": "d" * 5001}, "Description too long (max 5000 characters)"),
@@ -169,6 +179,23 @@ def test_id_lists_keep_only_numbers(client, method, url, key, result):
     ids = [client.post("/api/journal", json={**_ENTRY, "incident_id": case}).get_json()["id"] for _ in range(3)]
     resp = client.open(url.format(case=case), method=method, json={key: [ids[0], float(ids[1]), str(ids[2]), None]})
     assert resp.get_json() == {result: 2}
+
+
+@pytest.mark.parametrize("method, url, error", [
+    ("DELETE", "/api/journal/batch", "No data"),
+    ("POST", "/api/journal/unassign", "No data"),
+    ("POST", "/api/incidents/{case}/assign", "No data"),
+    ("POST", "/api/journal/import/confirm", "No rows provided"),
+])
+@pytest.mark.parametrize("payload", [[1], "rows"])
+def test_write_routes_reject_payloads_that_are_no_object(client, method, url, error, payload):
+    resp = client.open(url.format(case=_case(client)), method=method, json=payload)
+    assert (resp.status_code, resp.get_json()) == (400, {"error": error})
+
+
+def test_the_import_skips_rows_that_are_no_object_or_hold_other_values_than_text(client):
+    rows = [1, [], {**_ENTRY, "title": 5}, {**_ENTRY, "description": ["x"]}, _ENTRY]
+    assert client.post("/api/journal/import/confirm", json={"rows": rows}).get_json() == {"imported": 1, "duplicates": 0}
 
 
 @pytest.mark.parametrize("view, query", [("timeline", "get_correlation_timeline"), ("report", "get_range_data")])
