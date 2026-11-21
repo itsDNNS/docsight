@@ -4,7 +4,6 @@
 from app.modules.modulation.engine import (
     DISCLAIMER,
     compute_capacity_history,
-    compute_distribution,
     compute_distribution_v2,
     compute_intraday,
 )
@@ -595,78 +594,3 @@ class TestComputeIntraday:
             {"time": "14:00", "modulation": "128QAM"},
             {"time": "18:00", "modulation": "512QAM"},
         ]
-
-
-# ── Legacy compute_distribution (v1 compat) ──
-
-class TestComputeDistribution:
-    def test_empty_snapshots(self):
-        result = compute_distribution([], "us", "UTC")
-        assert result["sample_count"] == 0
-        assert result["days"] == []
-        assert result["aggregate"]["health_index"] is None
-        assert result["aggregate"]["distribution"] == {}
-
-    def test_single_day_single_snapshot(self):
-        snaps = [
-            _make_snapshot(
-                "2026-03-01T10:00:00Z",
-                us_channels=_make_channels(["64QAM", "64QAM", "4QAM", "64QAM"]),
-            )
-        ]
-        result = compute_distribution(snaps, "us", "UTC")
-        assert len(result["days"]) == 1
-        day = result["days"][0]
-        assert day["date"] == "2026-03-01"
-
-    def test_multi_day_grouping(self):
-        snaps = [
-            _make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["64QAM"])),
-            _make_snapshot("2026-03-01T14:00:00Z", us_channels=_make_channels(["64QAM"])),
-            _make_snapshot("2026-03-02T10:00:00Z", us_channels=_make_channels(["4QAM"])),
-        ]
-        result = compute_distribution(snaps, "us", "UTC")
-        assert len(result["days"]) == 2
-        assert result["days"][0]["date"] == "2026-03-01"
-        assert result["days"][1]["date"] == "2026-03-02"
-
-    def test_downstream_channels(self):
-        snaps = [
-            _make_snapshot(
-                "2026-03-01T10:00:00Z",
-                ds_channels=_make_channels(["256QAM", "256QAM"]),
-                us_channels=_make_channels(["4QAM"]),
-            )
-        ]
-        result = compute_distribution(snaps, "ds", "UTC")
-        assert "256QAM" in result["aggregate"]["distribution"]
-        assert "4QAM" not in result["aggregate"]["distribution"]
-
-    def test_direction_field_in_result(self):
-        result = compute_distribution([], "ds", "UTC")
-        assert result["direction"] == "ds"
-
-    def test_low_qam_threshold_in_result(self):
-        result = compute_distribution([], "us", "UTC", low_qam_threshold=32)
-        assert result["low_qam_threshold"] == 32
-
-    def test_date_range_correct(self):
-        snaps = [
-            _make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["64QAM"])),
-            _make_snapshot("2026-03-05T10:00:00Z", us_channels=_make_channels(["64QAM"])),
-        ]
-        result = compute_distribution(snaps, "us", "UTC")
-        assert result["date_range"]["start"] == "2026-03-01"
-        assert result["date_range"]["end"] == "2026-03-05"
-
-    def test_legacy_distribution_preserves_actual_poll_count(self):
-        snaps = [
-            _make_snapshot(f"2026-03-01T{i:02d}:00:00Z", us_channels=_make_channels(["64QAM"]))
-            for i in range(24)
-        ] * 5
-        result = compute_distribution(snaps, "us", "UTC")
-        assert result["sample_count"] == 120
-        assert "sample_density" not in result
-
-
-# ── compute_trend ──
