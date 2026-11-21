@@ -2,6 +2,7 @@
 
 import logging
 import random
+import time
 from datetime import timedelta
 
 from app.collectors.base import Collector, CollectorResult
@@ -95,7 +96,10 @@ class BQMCollector(Collector):
         return now, today, target_date
 
     def should_poll(self) -> bool:
-        """True if configured time + spread offset has passed and target date is missing."""
+        """True if configured time + spread offset has passed, target date is missing and no retry backoff runs."""
+        with self._lock:
+            if time.time() - self._last_poll < self._penalty_seconds_unlocked():
+                return False
         pending = self._pending_day()
         if not pending:
             return False

@@ -356,6 +356,21 @@ class TestBQMCollector:
         with _clock("03:00"):
             assert c.should_poll() is False
 
+    @pytest.mark.parametrize("failures", [1, 3])
+    @patch("app.modules.bqm.collector.random")
+    def test_should_poll_waits_for_backoff_after_failure(self, mock_random, failures):
+        """A failed fetch past the scheduled time is retried only after the backoff penalty."""
+        mock_random.randint.return_value = 0
+        c, *_ = self._make_collector(collect_time="02:00")
+        for _ in range(failures):
+            c.record_failure()
+        penalty = c._penalty_seconds_unlocked()
+        with _clock("03:00"):
+            c._last_poll -= penalty - 1
+            assert c.should_poll() is False
+            c._last_poll -= 1
+            assert c.should_poll() is True
+
     @patch("app.modules.bqm.collector.random")
     def test_spread_offset_within_range(self, mock_random):
         """Spread offset should be between 0 and 120 minutes."""
