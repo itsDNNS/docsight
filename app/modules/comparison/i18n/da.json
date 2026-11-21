@@ -33,7 +33,6 @@
   "snapshots": "Snapshots",
   "no_data_period": "Ingen data i den valgte periode",
   "select_periods": "Vælg to perioder for at sammenligne signalkvaliteten.",
-  "hours_since_start": "Timer siden start",
   "empty_title": "Sammenlign to perioder",
   "empty_action": "Sammenlign",
   "empty_no_data_text": "Vælg perioder, hvor DOCSight allerede indsamlede data.",

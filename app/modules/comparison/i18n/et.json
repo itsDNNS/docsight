@@ -33,7 +33,6 @@
   "snapshots": "Hetktõmmised",
   "no_data_period": "Valitud perioodil andmeid pole",
   "select_periods": "Signaali kvaliteedi võrdlemiseks vali kaks perioodi.",
-  "hours_since_start": "Tunnid algusest",
   "empty_title": "Võrdle kahte perioodi",
   "empty_action": "Võrdle",
   "empty_no_data_text": "Vali perioodid, mil DOCSight juba andmeid kogus.",

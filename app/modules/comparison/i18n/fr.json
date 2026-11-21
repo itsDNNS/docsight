@@ -33,7 +33,6 @@
   "snapshots": "Instantanés",
   "no_data_period": "Aucune donnée sur la période choisie",
   "select_periods": "Choisissez deux périodes pour comparer la qualité du signal.",
-  "hours_since_start": "Heures depuis le début",
   "empty_title": "Comparer deux périodes",
   "empty_action": "Comparer",
   "empty_no_data_text": "Choisissez des périodes pendant lesquelles DOCSight collectait déjà des données.",
