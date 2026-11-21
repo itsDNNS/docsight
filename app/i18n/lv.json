@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Tiek palaista vietējā demonstrācija…",
   "setup_demo_waiting": "Tiek sagatavots ar datiem aizpildītais panelis…",
   "setup_demo_failed": "Demonstrāciju neizdevās palaist.",
-  "setup_demo_timeout": "Demonstrācijas sagatavošana aizņem ilgāku laiku nekā paredzēts. Mēģiniet vēlreiz vai pievienojiet modemu.",
   "setup_try_again": "Mēģināt vēlreiz",
   "setup_try_demo": "Tā vietā izmēģināt demonstrāciju",
   "setup_desktop_preview_note": "Piemērots DOCSight izmēģināšanai un neregulāriem mērījumiem. Nepārtrauktai 24/7 uzraudzībai joprojām ieteicams Docker.",

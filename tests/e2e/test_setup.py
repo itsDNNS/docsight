@@ -241,12 +241,8 @@ class TestSetupRecovery:
         expect(retry).to_be_visible()
         expect(demo).to_be_visible()
 
-        demo.click()
-        expect(page.locator(".first-run-card")).to_be_visible()
-        expect(page.locator("#setup-form")).to_be_hidden()
-        expect(page.locator("#start-demo-btn")).to_contain_text(
-            "Preparing the populated dashboard"
-        )
+        with page.expect_request(setup_server + "/"):
+            demo.click()
 
     def test_final_save_failure_offers_retry_and_demo_fallback(self, page, setup_server):
         page.route(
@@ -287,12 +283,12 @@ class TestOneClickDemo:
         expect(page.locator("#start-demo-btn")).to_be_visible()
         page.locator("#start-demo-btn").click()
 
-        page.wait_for_url(first_run_server + "/", timeout=60_000)
+        page.wait_for_url(first_run_server + "/", timeout=10_000)
         banner = page.locator(".demo-banner")
         expect(banner).to_be_visible()
         expect(banner.get_by_role("button", name="Connect own modem")).to_be_visible()
         expect(banner.get_by_role("button", name="Exit demo")).to_be_visible()
-        expect(page.locator(".hero-card").first).to_be_visible()
+        expect(page.locator(".hero-card").first).to_be_visible(timeout=60_000)
         expect(page.locator(".hero-meta-item .badge", has_text="DEMO")).to_be_visible()
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "demo_dashboard_desktop.png"))
 
@@ -324,7 +320,10 @@ class TestOneClickDemo:
     ):
         page.goto(first_run_server)
         page.locator("#start-demo-btn").click()
-        page.wait_for_url(first_run_server + "/", timeout=60_000)
+        page.wait_for_url(first_run_server + "/", timeout=10_000)
+        expect(page.locator(".hero-card").first).to_be_visible(timeout=60_000)
+        # A dashboard refresh swaps in a new banner (without listeners); its actions still work.
+        page.evaluate("const b = document.getElementById('demo-banner'); b.replaceWith(b.cloneNode(true))")
 
         page.get_by_role("button", name=action_name).click()
         confirm_modal = page.locator("#docsight-confirm-modal")
@@ -343,7 +342,7 @@ class TestOneClickDemo:
         expect(page.locator(visible_selector)).to_be_visible()
         expect(page.locator(".demo-banner")).to_have_count(0)
 
-    def test_retry_after_acceptance_does_not_repeat_start_mutation(
+    def test_demo_start_opens_the_dashboard_at_once_and_fills_it_when_the_data_arrives(
         self, page, first_run_server
     ):
         start_requests = []
@@ -353,6 +352,7 @@ class TestOneClickDemo:
             if request.url.endswith("/api/demo/start")
             else None,
         )
+        # The start no longer waits for the seeded data.
         page.route(
             "**/health",
             lambda route: route.fulfill(
@@ -363,17 +363,9 @@ class TestOneClickDemo:
         )
         page.goto(first_run_server + "/setup")
         page.locator("#start-demo-btn").click()
-        expect(page.locator("#start-demo-btn")).to_contain_text(
-            "Preparing the populated dashboard"
-        )
-
-        page.evaluate("demoWaitDeadline = Date.now() - 1; waitForDemoData(false)")
-        retry = page.locator("#demo-start-result").get_by_role(
-            "button", name="Try again"
-        )
-        expect(retry).to_be_visible()
-        retry.click()
-        page.wait_for_timeout(750)
+        page.wait_for_url(first_run_server + "/", timeout=10_000)
+        expect(page.locator(".hero-card").first).to_be_visible(timeout=60_000)
+        page.goto("about:blank")  # leave before the server stops under the Home refresh's requests
 
         assert len(start_requests) == 1
 

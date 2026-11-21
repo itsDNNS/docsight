@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Pokretanje lokalnog demoa…",
   "setup_demo_waiting": "Priprema nadzorne ploče s podacima…",
   "setup_demo_failed": "Demo se nije mogao pokrenuti.",
-  "setup_demo_timeout": "Priprema demoa traje dulje od očekivanog. Pokušajte ponovno ili povežite modem.",
   "setup_try_again": "Pokušaj ponovno",
   "setup_try_demo": "Umjesto toga isprobaj demo",
   "setup_desktop_preview_note": "Prikladno za isprobavanje DOCSighta i povremena mjerenja. Docker se i dalje preporučuje za neprekidno 24/7 praćenje.",

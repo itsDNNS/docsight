@@ -286,10 +286,10 @@ class JournalStorage(DatabaseAccess):
         return self.assign_entries_to_incident(entry_ids, None)
 
     def assign_entries_by_date_range(self, incident_id, start_date, end_date):
-        """Assign all journal entries in a date range to an incident. Returns count."""
+        """Assign the demo journal entries in a date range to a demo incident. Returns count."""
         with self._write() as conn:
             rowcount = conn.execute(
-                "UPDATE journal_entries SET incident_id = ? WHERE date >= ? AND date <= ?",
+                "UPDATE journal_entries SET incident_id = ? WHERE date >= ? AND date <= ? AND is_demo = 1",
                 (incident_id, start_date, end_date),
             ).rowcount
         return rowcount

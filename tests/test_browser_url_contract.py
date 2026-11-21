@@ -61,6 +61,7 @@ global.window = {
     location: {assign: function(value) { assignments.push(value); }}
 };
 global.document = {
+    addEventListener: function() {},
     getElementById: function(id) {
         if (id === 'demo-banner') return banner;
         if (id === 'demo-banner-result') return result;

@@ -45,6 +45,17 @@ def test_demo_start_activates_fresh_instance_with_stable_contract(fresh_demo_cli
     }
 
 
+def test_demo_start_fails_when_the_environment_keeps_the_demo_off(fresh_demo_client, monkeypatch):
+    client, manager, _storage, callbacks, _data_dir = fresh_demo_client
+    monkeypatch.setenv("DEMO_MODE", "false")
+
+    response = client.post("/api/demo/start", json={})
+
+    assert response.status_code == 409
+    assert response.get_json() == {"success": False, "demo_mode": False, "status": "disabled"}
+    assert manager.is_demo_mode() is False and callbacks == []
+
+
 def test_demo_start_rejects_non_json_mutation(fresh_demo_client):
     client, manager, _storage, callbacks, _data_dir = fresh_demo_client
 

@@ -27,6 +27,11 @@ function browser(lang = 'en') {
     return context;
 }
 
+function shown(b, mode) {
+    if (mode === 'zoom') b.openChartZoom('chart');
+    return mode === 'zoom' ? b.zoomChart : b.charts.chart;
+}
+
 for (const count of [1, 30, 31, 100]) {
     for (const type of ['line', 'bar']) {
         for (const mode of ['normal', 'zoom']) {
@@ -38,8 +43,7 @@ for (const count of [1, 30, 31, 100]) {
                     label: String(showPoints), data, showPoints,
                 }));
                 b.renderChart('chart', data.map(String), datasets, type, null, {tempData: data});
-                if (mode === 'zoom') b.openChartZoom('chart');
-                const chart = mode === 'zoom' ? b.zoomChart : b.charts.chart;
+                const chart = shown(b, mode);
                 assert.deepEqual(Array.from(chart.options.series.slice(1), s => s.points.show),
                     type === 'bar' ? [false, false, false] : [count === 1, false, true, false]);
                 assert.equal(chart.data[1], data);
@@ -59,8 +63,7 @@ for (const mode of ['normal', 'zoom']) {
             {label: 'Target', data},
             {label: '_max_0', data, show: false, hideInLegend: true},
         ], 'line', null, {});
-        if (mode === 'zoom') b.openChartZoom('chart');
-        const chart = mode === 'zoom' ? b.zoomChart : b.charts.chart;
+        const chart = shown(b, mode);
         assert.deepEqual(Array.from(chart.options.series.slice(1), s => s.class),
             [undefined, 'docsight-legend-hidden']);
     });
@@ -81,10 +84,21 @@ test('compact axis labels keep close ticks distinct', () => {
     assert.equal(b.fmtK(638000), '638k');
 });
 
-test('large error counts get step-aware compact y labels', () => {
-    const b = browser();
-    const data = [35080, 35090, 35120];
-    b.renderChart('chart', data.map(String), [{label: 'errors', data}], 'line', null, {});
-    const axis = b.charts.chart.options.axes[1];
-    assert.deepEqual(Array.from(axis.values(null, [35080, 35100, 35120])), ['35.08k', '35.10k', '35.12k']);
-});
+for (const mode of ['normal', 'zoom']) {
+    test(`${mode}: large error counts get step-aware compact y labels and the caller's gap bands`, () => {
+        const b = browser();
+        const data = [35080, 35090, null, null, null, 35120];
+        const times = [0, 60, 120, 180, 240, 300];
+        b.renderChart('chart', data.map(String), [{label: 'errors', data}], 'bar', null,
+            {times, gaps: b.docsightNullRunGaps(times, data)});
+        const chart = shown(b, mode);
+        const rects = [];
+        const ctx = {save() {}, restore() {}, beginPath() {}, clip() {}, moveTo() {}, lineTo() {}, stroke() {},
+            fillRect() {}, fillText() {}, measureText: () => ({width: 10}), rect: (...r) => rects.push(r)};
+        chart.options.plugins.forEach(p => (p.hooks.drawAxes || []).forEach(draw =>
+            draw({ctx, bbox: {left: 0, top: 0, width: 300, height: 100}, valToPos: v => v})));
+        const values = chart.options.axes[1].values;
+        assert.deepEqual({labels: values && Array.from(values(null, [35080, 35100, 35120])), gapBands: rects},
+            {labels: ['35.08k', '35.10k', '35.12k'], gapBands: [[60, 0, 240, 100]]});
+    });
+}

@@ -6,8 +6,6 @@ var SETUP_INDEX_URL = docsightUrl(setupBootstrap.indexUrl);
 var SETUP_LOGIN_URL = docsightUrl(setupBootstrap.loginUrl);
 let currentStep = 1;
 var SETUP_T = setupBootstrap.translations;
-var demoStartAccepted = false;
-var demoWaitDeadline = 0;
 
 function nextStep(step) {
     if (step > currentStep && !validateStep(currentStep)) return;
@@ -552,31 +550,6 @@ function _showDemoFailure(message, retryFn) {
     result.appendChild(retry);
 }
 
-async function waitForDemoData(resetDeadline) {
-    if (resetDeadline || !demoWaitDeadline) {
-        demoWaitDeadline = Date.now() + 45000;
-    }
-    _showDemoStatus(SETUP_T.setup_demo_waiting);
-    try {
-        var response = await fetch(docsightUrl('/health'), {cache: 'no-store'});
-        var health = await response.json();
-        if (response.ok && health.docsis_health !== 'waiting') {
-            window.location.assign(SETUP_INDEX_URL);
-            return;
-        }
-    } catch(err) {
-        // Keep polling until the actionable timeout state is reached.
-    }
-    if (Date.now() >= demoWaitDeadline) {
-        _showDemoFailure(
-            SETUP_T.setup_demo_timeout,
-            function() { waitForDemoData(true); }
-        );
-        return;
-    }
-    window.setTimeout(function() { waitForDemoData(false); }, 500);
-}
-
 async function startDemo() {
     document.getElementById('setup-start').hidden = false;
     document.getElementById('setup-start').classList.add('active');
@@ -585,13 +558,6 @@ async function startDemo() {
     document.getElementById('restore-section').hidden = true;
 
     var button = document.getElementById('start-demo-btn');
-    if (demoStartAccepted) {
-        button.disabled = true;
-        _setButtonLoading(button, 'loader-2', SETUP_T.setup_demo_waiting);
-        waitForDemoData(true);
-        return;
-    }
-
     button.disabled = true;
     _setButtonLoading(button, 'loader-2', SETUP_T.setup_demo_starting);
     _showDemoStatus(SETUP_T.setup_demo_starting);
@@ -610,9 +576,9 @@ async function startDemo() {
             _showDemoFailure(SETUP_T.setup_demo_failed, startDemo);
             return;
         }
-        demoStartAccepted = true;
+        // The dashboard shows its loading state until the demo data is in and fills itself.
         _setButtonLoading(button, 'loader-2', SETUP_T.setup_demo_waiting);
-        waitForDemoData(true);
+        window.location.assign(SETUP_INDEX_URL);
     } catch(err) {
         _showDemoFailure(
             SETUP_T.setup_demo_failed + ' ' + SETUP_T.network_error + ': ' + err.message,
