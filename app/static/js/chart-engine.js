@@ -25,6 +25,82 @@ function fmtTempAxis(celsius) {
     if (TEMPERATURE_UNIT === 'fahrenheit') return Math.round(celsius * 9 / 5 + 32) + '°';
     return celsius.toFixed(0) + '°';
 }
+
+/* ── Temperature overlay ── */
+/* Chart points take the nearest reading up to 90 minutes away; from 30 days on, the daily average. */
+var TEMP_MATCH_MS = 90 * 60 * 1000;
+var TEMP_DAILY_FROM_HOURS = 30 * 24;
+
+function _hasTempData(tempData) {
+    return !!(tempData && tempData.some(function(v) { return v !== null; }));
+}
+
+function _alignWeatherToTimestamps(timestamps, weatherData, range) {
+    if (!weatherData || !weatherData.length) return null;
+    var weather = weatherData.map(function(row) {
+        // Older Safari cannot parse the API's "YYYY-MM-DD HH:MM:SSZ"; the ISO "T" form works everywhere.
+        var ms = row && row.timestamp ? docsightTimestampDate(String(row.timestamp).replace(' ', 'T')).getTime() : NaN;
+        var temp = row ? row.temperature : null;
+        if (!isFinite(ms) || temp == null || !isFinite(Number(temp))) return null;
+        return { ts: ms, temp: Number(temp), day: row.timestamp.substring(0, 10) };
+    }).filter(function(row) { return row !== null; });
+    if (!weather.length) return null;
+
+    if (docsightRangeHours(range) >= TEMP_DAILY_FROM_HOURS) {
+        var dailyTemps = {};
+        weather.forEach(function(row) {
+            if (!dailyTemps[row.day]) dailyTemps[row.day] = [];
+            dailyTemps[row.day].push(row.temp);
+        });
+        var dailyAvg = {};
+        Object.keys(dailyTemps).forEach(function(day) {
+            var vals = dailyTemps[day];
+            var sum = 0;
+            vals.forEach(function(v) { sum += v; });
+            dailyAvg[day] = Math.round(sum / vals.length * 10) / 10;
+        });
+        return (timestamps || []).map(function(ts) {
+            var day = ts ? String(ts).substring(0, 10) : '';
+            return dailyAvg[day] !== undefined ? dailyAvg[day] : null;
+        });
+    }
+
+    return (timestamps || []).map(function(ts) {
+        if (!ts) return null;
+        var target = docsightTimestampDate(ts).getTime();
+        if (!isFinite(target)) return null;
+        var best = null;
+        var bestDist = Infinity;
+        weather.forEach(function(row) {
+            var dist = Math.abs(row.ts - target);
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = row.temp;
+            }
+        });
+        return bestDist <= TEMP_MATCH_MS ? best : null;
+    });
+}
+
+function _updateTempToggleButton(btnId, tempData) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    var hasWeather = _hasTempData(tempData);
+    btn.hidden = !hasWeather;
+    btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
+    btn.setAttribute('aria-pressed', (_tempOverlayVisible && hasWeather) ? 'true' : 'false');
+    btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
+}
+
+/* Shows or hides a chart card; a hidden card's chart is destroyed. */
+function _setChartCardVisible(cardId, chartId, visible) {
+    var card = document.getElementById(cardId);
+    if (card) card.style.display = visible ? '' : 'none';
+    if (!visible && charts[chartId]) {
+        charts[chartId].destroy();
+        delete charts[chartId];
+    }
+}
 /* Compact k/M number. With `step` (the distance between axis ticks) every label
    gets as many decimals as the step needs, so close ticks stay distinct
    ("35.08k", "35.10k" instead of "35.1k" twice). Steps that would need more than

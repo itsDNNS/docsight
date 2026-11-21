@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 function engine() {
-    const element = () => ({tagName: 'DIV', style: {}, offsetWidth: 600, offsetHeight: 300, closest: () => null});
+    const element = () => ({tagName: 'DIV', style: {}, offsetWidth: 600, offsetHeight: 300, closest: () => null, addEventListener() {}});
     const elements = new Map();
     function Chart(options, data) { Object.assign(this, {options, data, destroy() {}}); }
     Chart.paths = {bars: () => () => {}, stepped: () => () => {}};
@@ -60,6 +60,36 @@ test('interval size follows the range and buckets follow wall-clock days', () =>
         row('2026-10-07T00:10:00', 12),
     ], '30d');
     assert.deepEqual(Array.from(days, b => b.timestamp), ['2026-10-06T00:00:00', '2026-10-07T00:00:00']);
+});
+
+test('temperatures take the nearest reading within 90 minutes, from 30 days on the daily average', () => {
+    const e = engine();
+    // Like older Safari: only the ISO form with "T" parses.
+    e.docsightParseTime = value => new Date(/^\d{4}-\d\d-\d\dT[\d:]+Z$/.test(value) ? value : NaN);
+    const weather = [
+        {timestamp: '2026-10-06 12:00:00Z', temperature: 9},
+        {timestamp: '2026-10-07 08:00:00Z', temperature: 10},
+        {timestamp: '2026-10-07 09:00:00Z', temperature: 12},
+        {timestamp: '2026-10-07 10:00:00Z', temperature: null},
+    ];
+    const stamps = ['2026-10-07T08:20:00Z', '2026-10-07T10:20:00Z', '2026-10-07T11:00:00Z', '2026-10-08T00:00:00Z', ''];
+    for (const [range, expected] of [['1h', [10, 12, null, null, null]], ['7d', [10, 12, null, null, null]],
+                                     ['30d', [11, 11, 11, null, null]], ['90d', [11, 11, 11, null, null]]]) {
+        assert.deepEqual(Array.from(e._alignWeatherToTimestamps(stamps, weather, range)), expected, range);
+    }
+    assert.equal(e._alignWeatherToTimestamps(stamps, [], '1d'), null);
+});
+
+test('trend weather reaches 90 minutes past the window while points take the nearest reading', () => {
+    const e = engine();
+    Object.assign(e.document, {querySelectorAll: () => []});
+    e.DOCSightWindowShift = {create: () => ({param: () => '2026-10-08T12:20'}), fromParam: value => Date.parse(value + 'Z')};
+    vm.runInContext(fs.readFileSync('app/static/js/trends.js', 'utf8'), e);
+    for (const [range, start, end] of [['1h', '2026-10-08T09:50:00Z', '2026-10-08T13:50:00Z'],
+                                       ['7d', '2026-10-01T10:50:00Z', '2026-10-08T13:50:00Z'],
+                                       ['30d', '2026-09-08T12:20:00Z', '2026-10-08T12:20:00Z']]) {
+        assert.deepEqual({...e._getWeatherRange(range)}, {start, end}, range);
+    }
 });
 
 test('power and SNR bands cover their target ranges without gaps', () => {
