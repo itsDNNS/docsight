@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Helyi demó indítása…",
   "setup_demo_waiting": "Az adatokkal feltöltött irányítópult előkészítése…",
   "setup_demo_failed": "A demót nem sikerült elindítani.",
-  "setup_demo_timeout": "A demó előkészítése a vártnál tovább tart. Próbálja újra, vagy csatlakoztassa a modemét.",
   "setup_try_again": "Próbálja újra",
   "setup_try_demo": "Próbálja ki inkább a demót",
   "setup_desktop_preview_note": "Alkalmas a DOCSight kipróbálására és alkalmi mérésekre. A folyamatos 24/7 megfigyeléshez továbbra is a Docker ajánlott.",

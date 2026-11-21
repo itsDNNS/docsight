@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Se pornește demonstrația locală…",
   "setup_demo_waiting": "Se pregătește panoul cu date…",
   "setup_demo_failed": "Demonstrația nu a putut fi pornită.",
-  "setup_demo_timeout": "Pregătirea demonstrației durează mai mult decât era de așteptat. Încercați din nou sau conectați modemul.",
   "setup_try_again": "Încercați din nou",
   "setup_try_demo": "Încercați în schimb demonstrația",
   "setup_desktop_preview_note": "Potrivit pentru a încerca DOCSight și pentru măsurători ocazionale. Docker rămâne recomandat pentru monitorizare continuă 24/7.",

@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "A iniciar a demonstração local…",
   "setup_demo_waiting": "A preparar o painel preenchido…",
   "setup_demo_failed": "Não foi possível iniciar a demonstração.",
-  "setup_demo_timeout": "A demonstração está a demorar mais do que o esperado. Tente novamente ou ligue o seu modem.",
   "setup_try_again": "Tentar novamente",
   "setup_try_demo": "Experimentar a demonstração em alternativa",
   "setup_desktop_preview_note": "Adequado para experimentar o DOCSight e para medições ocasionais. O Docker continua recomendado para monitorização contínua 24/7.",

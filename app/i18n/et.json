@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Kohaliku demo käivitamine…",
   "setup_demo_waiting": "Andmetega töölaua ettevalmistamine…",
   "setup_demo_failed": "Demot ei saanud käivitada.",
-  "setup_demo_timeout": "Demo ettevalmistamine võtab oodatust kauem. Proovi uuesti või ühenda oma modem.",
   "setup_try_again": "Proovi uuesti",
   "setup_try_demo": "Proovi selle asemel demot",
   "setup_desktop_preview_note": "Sobib DOCSighti proovimiseks ja üksikuteks mõõtmisteks. Pidevaks 24/7 jälgimiseks on endiselt soovitatav Docker.",

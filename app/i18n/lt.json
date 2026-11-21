@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Paleidžiama vietinė demonstracija…",
   "setup_demo_waiting": "Ruošiamas duomenimis užpildytas skydelis…",
   "setup_demo_failed": "Nepavyko paleisti demonstracijos.",
-  "setup_demo_timeout": "Demonstracija ruošiama ilgiau nei tikėtasi. Bandykite dar kartą arba prijunkite modemą.",
   "setup_try_again": "Bandyti dar kartą",
   "setup_try_demo": "Vietoje to išbandyti demonstraciją",
   "setup_desktop_preview_note": "Tinka DOCSight išbandyti ir pavieniams matavimams. Nuolatiniam 24/7 stebėjimui vis dar rekomenduojamas Docker.",

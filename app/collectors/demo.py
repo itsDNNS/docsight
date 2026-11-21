@@ -10,6 +10,7 @@ import random
 
 from app.storage.sqlite import bulk_write
 import struct
+import threading
 import time
 import zlib
 from datetime import datetime, timedelta, timezone
@@ -130,6 +131,9 @@ class _DemoErrorCounters:
             self._values[key] = [0, 0]
 
 
+_SEED_LOCK = threading.Lock()
+
+
 @functools.lru_cache(maxsize=1)
 def _load_base_data():
     """Load channel definitions from demo_channels.json (once)."""
@@ -153,6 +157,7 @@ class DemoCollector(AnalysisCollector):
         self._error_counters = _DemoErrorCounters(_load_base_data())
         super().__init__(analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier, smart_capture)
         self._poll_count = 0
+        self.seeding = False
         self._device_info = {
             "manufacturer": "DOCSight",
             "model": "Demo Router",
@@ -251,14 +256,20 @@ class DemoCollector(AnalysisCollector):
         self._device_info["uptime_seconds"] = int(time.time()) % 8640000
 
         # First poll: publish device/connection info + seed demo history (retried until it succeeds)
-        if self._poll_count == 0:
+        first = self._poll_count == 0
+        if first:
             log.info("Demo mode: %s (%s)", self._device_info["model"], self._device_info["sw_version"])
             self._web.update_state(device_info=self._device_info)
             self._web.update_state(connection_info=self._connection_info)
-            self._seed_demo_data()
-        self._poll_count += 1
-
-        return self._process(self._generate_data(), is_demo=True)
+            self.seeding = True
+        try:
+            if first:
+                with _SEED_LOCK:  # a restarted demo seeds after an older seed, never beside it
+                    self._seed_demo_data()
+            self._poll_count += 1
+            return self._process(self._generate_data(), is_demo=True)
+        finally:
+            self.seeding = False  # an exit purges only once the first poll is stored
 
     def _ensure_demo_module_tables(self):
         """Create local module tables before direct demo inserts on a fresh instance."""

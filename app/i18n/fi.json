@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Paikallista demoa käynnistetään…",
   "setup_demo_waiting": "Täytettyä koontinäyttöä valmistellaan…",
   "setup_demo_failed": "Demoa ei voitu käynnistää.",
-  "setup_demo_timeout": "Demon valmistelu kestää odotettua pidempään. Yritä uudelleen tai yhdistä modeemisi.",
   "setup_try_again": "Yritä uudelleen",
   "setup_try_demo": "Kokeile sen sijaan demoa",
   "setup_desktop_preview_note": "Sopii DOCSightin kokeilemiseen ja satunnaisiin mittauksiin. Docker on edelleen suositus jatkuvaan 24/7-valvontaan.",
