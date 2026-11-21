@@ -4,7 +4,6 @@ import logging
 import os
 import shutil
 import tempfile
-from datetime import datetime
 
 from flask import Blueprint, request, jsonify, send_file
 
@@ -14,8 +13,8 @@ from app.runtime import current_runtime
 from werkzeug.utils import secure_filename
 
 from .backup import (
-    _write_backup_archive, browse_directory, cleanup_old_backups, create_backup_to_file,
-    list_backups, restore_backup, validate_backup,
+    _write_backup_archive, backup_filename, browse_directory, cleanup_old_backups,
+    create_backup_to_file, list_backups, positive_int, restore_backup, validate_backup,
 )
 
 audit_log = logging.getLogger("docsis.audit")
@@ -23,13 +22,17 @@ log = logging.getLogger("docsis.web")
 
 bp = Blueprint("backup_bp", __name__)
 
-def _int_config(config_mgr, key, default):
-    """Read an integer-like config value safely."""
-    try:
-        value = int(config_mgr.get(key, default))
-    except (TypeError, ValueError):
-        return default
-    return value if value > 0 else default
+def _read_upload():
+    """Return (archive bytes, None), or (None, error response) for a missing or too large upload."""
+    if "file" not in request.files:
+        return None, (jsonify({"error": "No file provided"}), 400)
+    f = request.files["file"]
+    if not f.filename:
+        return None, (jsonify({"error": "No file selected"}), 400)
+    data = f.read()
+    if len(data) > 500 * 1024 * 1024:  # 500 MB limit
+        return None, (jsonify({"error": "File too large"}), 400)
+    return data, None
 
 
 @bp.route("/api/backup", methods=["POST"])
@@ -40,8 +43,7 @@ def api_backup_download():
     temp_dir = None
     response = None
     try:
-        ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        filename = f"docsight_backup_{ts}.tar.gz"
+        filename = backup_filename()
         temp_dir = tempfile.mkdtemp(
             prefix=".docsight-backup-download-",
             dir=_config_manager.data_dir,
@@ -69,11 +71,13 @@ def api_backup_download():
         temp_dir = None
         audit_log.info("Backup downloaded: ip=%s", _get_client_ip())
         return response
-    except Exception:
+    except BaseException as exc:
         if response is not None:
             response.close()
         if temp_dir is not None:
             shutil.rmtree(temp_dir, ignore_errors=True)
+        if not isinstance(exc, Exception):
+            raise
         log.exception("Backup creation failed")
         return jsonify({"error": "Backup failed. See the DOCSight log for details."}), 500
 
@@ -84,7 +88,7 @@ def api_backup_scheduled():
     """Create a backup in the configured backup path."""
     _config_manager = current_runtime().config_manager
     backup_path = _config_manager.get("backup_path", "/backup")
-    retention = _int_config(_config_manager, "backup_retention", 5)
+    retention = positive_int(_config_manager, "backup_retention", 5)
     try:
         filename = create_backup_to_file(_config_manager.data_dir, backup_path)
         cleanup_old_backups(backup_path, keep=retention)
@@ -127,14 +131,9 @@ def api_backup_delete(filename):
 @require_auth(session_only=True)
 def api_restore_validate():
     """Validate a backup archive and return metadata."""
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-    f = request.files["file"]
-    if not f.filename:
-        return jsonify({"error": "No file selected"}), 400
-    data = f.read()
-    if len(data) > 500 * 1024 * 1024:  # 500 MB limit
-        return jsonify({"error": "File too large"}), 400
+    data, error = _read_upload()
+    if error:
+        return error
     try:
         meta = validate_backup(data)
         return jsonify({"valid": True, "meta": meta})
@@ -150,14 +149,9 @@ def api_restore():
     _config_manager = current_runtime().config_manager
     if _config_manager is None:
         return jsonify({"error": "Not initialized"}), 500
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-    f = request.files["file"]
-    if not f.filename:
-        return jsonify({"error": "No file selected"}), 400
-    data = f.read()
-    if len(data) > 500 * 1024 * 1024:
-        return jsonify({"error": "File too large"}), 400
+    data, error = _read_upload()
+    if error:
+        return error
     try:
         # No settings save may slip in between the restored config.json and the
         # reload of its encryption key.

@@ -11,6 +11,44 @@ from .migrations import table_columns, table_exists
 log = logging.getLogger("docsis.storage")
 
 
+def purge_demo_rows(conn):
+    """Delete all rows with is_demo=1 from all demo-seeded tables and return their count.
+
+    Order matters: delete attachments for demo journal entries first,
+    unassign entries from demo incidents, then delete from each table.
+    """
+    # Journal tables are missing without the journal module, and a preserved
+    # older schema may lack a column; an unknown inner column would bind to the outer table.
+    journal_columns = table_columns(conn, "journal_entries")
+    # 1. Delete attachments belonging to demo journal entries
+    if {"id", "is_demo"} <= journal_columns and "entry_id" in table_columns(conn, "journal_attachments"):
+        conn.execute(
+            "DELETE FROM journal_attachments WHERE entry_id IN "
+            "(SELECT journal_entries.id FROM journal_entries WHERE is_demo = 1)"
+        )
+    # 2. Unassign entries from demo incidents (so they become orphan-free)
+    if "incident_id" in journal_columns and {"id", "is_demo"} <= table_columns(conn, "incidents"):
+        conn.execute(
+            "UPDATE journal_entries SET incident_id = NULL WHERE incident_id IN "
+            "(SELECT incidents.id FROM incidents WHERE is_demo = 1)"
+        )
+    # 3. Delete from each demo-seeded table
+    tables = ["journal_entries", "incidents", "events", "snapshots",
+               "speedtest_results", "bqm_graphs", "bnetz_measurements",
+               "weather_data", "de_tkg_claim_drafts", "segment_utilization"]
+    total = 0
+    for tbl in tables:
+        if "is_demo" not in table_columns(conn, tbl):
+            continue  # Module table not created
+        deleted = conn.execute(
+            f"DELETE FROM {tbl} WHERE is_demo = 1"
+        ).rowcount
+        if deleted:
+            log.debug("Purged %d demo rows from %s", deleted, tbl)
+            total += deleted
+    return total
+
+
 class CleanupMethods:
 
     # ── Timezone ──
@@ -145,42 +183,9 @@ class CleanupMethods:
         ).rowcount
 
     def purge_demo_data(self):
-        """Delete all rows with is_demo=1 from all demo-seeded tables.
-
-        Order matters: delete attachments for demo journal entries first,
-        unassign entries from demo incidents, then delete from each table.
-        """
+        """Delete all demo rows from this database."""
         with self._write() as conn:
-            # Journal tables are missing without the journal module, and a preserved
-            # older schema may lack a column; an unknown inner column would bind to the outer table.
-            journal_columns = table_columns(conn, "journal_entries")
-            # 1. Delete attachments belonging to demo journal entries
-            if {"id", "is_demo"} <= journal_columns and "entry_id" in table_columns(conn, "journal_attachments"):
-                conn.execute(
-                    "DELETE FROM journal_attachments WHERE entry_id IN "
-                    "(SELECT journal_entries.id FROM journal_entries WHERE is_demo = 1)"
-                )
-            # 2. Unassign entries from demo incidents (so they become orphan-free)
-            if "incident_id" in journal_columns and {"id", "is_demo"} <= table_columns(conn, "incidents"):
-                conn.execute(
-                    "UPDATE journal_entries SET incident_id = NULL WHERE incident_id IN "
-                    "(SELECT incidents.id FROM incidents WHERE is_demo = 1)"
-                )
-            # 3. Delete from each demo-seeded table
-            tables = ["journal_entries", "incidents", "events", "snapshots",
-                       "speedtest_results", "bqm_graphs", "bnetz_measurements",
-                       "weather_data", "de_tkg_claim_drafts", "segment_utilization"]
-            total = 0
-            for tbl in tables:
-                if "is_demo" not in table_columns(conn, tbl):
-                    continue  # Module table not created
-                deleted = conn.execute(
-                    f"DELETE FROM {tbl} WHERE is_demo = 1"
-                ).rowcount
-                if deleted:
-                    log.info("Purged %d demo rows from %s", deleted, tbl)
-                    total += deleted
-        return total
+            return purge_demo_rows(conn)
 
     def _cleanup(self):
         """Delete snapshots, BQM graphs, and events older than max_days. 0 = keep all."""
