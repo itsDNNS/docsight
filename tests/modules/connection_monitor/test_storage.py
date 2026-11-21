@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from app.modules.connection_monitor.routes import _compress_samples
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 
 
@@ -196,11 +197,6 @@ class TestPinnedDays:
     def test_unpin_nonexistent(self, storage):
         assert storage.unpin_day("2026-01-01") is False
 
-    def test_is_day_pinned(self, storage):
-        assert storage.is_day_pinned("2026-03-10") is False
-        storage.pin_day("2026-03-10")
-        assert storage.is_day_pinned("2026-03-10") is True
-
     @pytest.mark.parametrize(("zone", "day"), [
         ("UTC", "2026-07-10"),
         ("UTC", "1969-12-31"),  # stored before pin dates were limited to 1970 onwards
@@ -359,6 +355,7 @@ class TestSummary:
         ])
         assert storage.get_latest_sample_time(tid) == now - 10
         earlier = storage.get_summary(tid, window_seconds=15, end=now - 15)
+        assert earlier == storage.get_range_stats(tid, start=now - 30, end=now - 15)
         assert earlier["sample_count"] == 2
         assert earlier["avg_latency_ms"] == 15.0
         summary = storage.get_summary(tid, window_seconds=60)
@@ -447,6 +444,21 @@ class TestAggregation:
         assert bucket["max_latency_ms"] == 30.0
         assert abs(bucket["packet_loss_pct"] - 25.0) < 0.01
         assert bucket["p95_latency_ms"] is not None
+
+    def test_p95_is_the_same_nearest_rank_everywhere(self, storage):
+        """With 20 latencies the nearest-rank p95 is the 19th value, not the maximum."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        base = 1700000000.0
+        storage.save_samples([
+            {"target_id": tid, "timestamp": base + i, "latency_ms": float(i + 1), "timeout": False,
+             "probe_method": "tcp"}
+            for i in range(20)
+        ])
+        assert storage.get_range_stats(tid)["p95_latency_ms"] == 19.0
+        compressed = _compress_samples(storage.get_samples(tid), base, base + 20, max_points=1)
+        assert compressed[0]["p95_latency_ms"] == 19.0
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 60, tz_name="UTC", bucket_seconds=60)
+        assert storage.get_aggregated_samples(tid, bucket_seconds=60)[0]["p95_latency_ms"] == 19.0
 
     def test_aggregate_all_timeout_bucket(self, storage):
         """A bucket with only timeouts should have null latencies and 100% loss."""

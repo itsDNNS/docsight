@@ -15,6 +15,12 @@ ICMP_UNAVAILABLE_REASON = "ICMP probing is unavailable"
 ICMP_HELPER_PATH = os.environ.get(
     "DOCSIGHT_ICMP_HELPER", "/usr/local/bin/docsight-icmp-helper"
 )
+# family -> (protocol, echo request type, echo reply type, ICMP header offset).
+# IPv4 raw sockets deliver the 20-byte IP header, IPv6 raw sockets do not.
+_RAW_ICMP = {
+    socket.AF_INET: (socket.IPPROTO_ICMP, 8, 0, 20),
+    socket.AF_INET6: (socket.IPPROTO_ICMPV6, 128, 129, 0),
+}
 
 
 @dataclass
@@ -24,6 +30,11 @@ class ProbeResult:
     latency_ms: float | None  # None on timeout
     timeout: bool
     method: str  # "icmp" or "tcp"
+
+
+def timeout_result(method: str) -> ProbeResult:
+    """A probe that got no answer."""
+    return ProbeResult(latency_ms=None, timeout=True, method=method)
 
 
 def _resolve_all(
@@ -101,7 +112,7 @@ class ProbeEngine:
         """Measure TCP handshake latency, iterating over resolved addresses."""
         addresses = _resolve_all(host, port, socket.SOCK_STREAM)
         if not addresses:
-            return ProbeResult(latency_ms=None, timeout=True, method="tcp")
+            return timeout_result("tcp")
         for family, sockaddr in addresses:
             try:
                 sock = socket.socket(family, socket.SOCK_STREAM)
@@ -122,7 +133,7 @@ class ProbeEngine:
                 pass
             finally:
                 sock.close()
-        return ProbeResult(latency_ms=None, timeout=True, method="tcp")
+        return timeout_result("tcp")
 
     def _icmp_probe(self, host: str) -> ProbeResult:
         """Send ICMP/ICMPv6 echo request and measure round-trip time.
@@ -138,103 +149,44 @@ class ProbeEngine:
 
         addresses = _resolve_all(host, None, socket.SOCK_RAW)
         if not addresses:
-            return ProbeResult(latency_ms=None, timeout=True, method="icmp")
+            return timeout_result("icmp")
 
         for family, sockaddr in addresses:
-            if family == socket.AF_INET6:
-                result = self._icmp_raw_v6(sockaddr)
-            else:
-                result = self._icmp_raw_v4(sockaddr)
+            result = self._icmp_raw(family, sockaddr)
             if not result.timeout:
                 return result
-        return ProbeResult(latency_ms=None, timeout=True, method="icmp")
+        return timeout_result("icmp")
 
-    def _icmp_raw_v4(self, sockaddr: tuple) -> ProbeResult:
-        """Raw-socket ICMPv4 echo. Requires CAP_NET_RAW or root."""
+    def _icmp_raw(self, family: int, sockaddr: tuple) -> ProbeResult:
+        """Raw-socket ICMP/ICMPv6 echo. Requires CAP_NET_RAW or root."""
+        proto, request, reply, offset = _RAW_ICMP[family]
         try:
-            sock = socket.socket(
-                socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP
-            )
+            sock = socket.socket(family, socket.SOCK_RAW, proto)
+            with sock:
+                sock.settimeout(PROBE_TIMEOUT_S)
+                self._seq = (self._seq + 1) & 0xFFFF
+                ident = os.getpid() & 0xFFFF
+                packet = self._build_icmp_packet(seq=self._seq, ident=ident, type_=request)
+                start = time.monotonic()
+                sock.sendto(packet, (sockaddr[0], 0) if family == socket.AF_INET else sockaddr)
+                while (remaining := PROBE_TIMEOUT_S - (time.monotonic() - start)) > 0:
+                    sock.settimeout(remaining)
+                    data, _ = sock.recvfrom(1024)
+                    if len(data) < offset + 8:
+                        continue
+                    icmp_type, _, _, pkt_id, pkt_seq = struct.unpack(
+                        "!BBHHH", data[offset:offset + 8]
+                    )
+                    if icmp_type == reply and pkt_id == ident and pkt_seq == self._seq:
+                        elapsed = (time.monotonic() - start) * 1000
+                        return ProbeResult(
+                            latency_ms=round(elapsed, 2),
+                            timeout=False,
+                            method="icmp",
+                        )
         except OSError:
-            return ProbeResult(latency_ms=None, timeout=True, method="icmp")
-        sock.settimeout(PROBE_TIMEOUT_S)
-        try:
-            self._seq = (self._seq + 1) & 0xFFFF
-            ident = os.getpid() & 0xFFFF
-            packet = self._build_icmp_packet(
-                seq=self._seq, ident=ident, type_=8
-            )
-            start = time.monotonic()
-            sock.sendto(packet, (sockaddr[0], 0))
-            while True:
-                remaining = PROBE_TIMEOUT_S - (time.monotonic() - start)
-                if remaining <= 0:
-                    return ProbeResult(
-                        latency_ms=None, timeout=True, method="icmp"
-                    )
-                sock.settimeout(remaining)
-                data, _ = sock.recvfrom(1024)
-                # Skip IP header (20 bytes), check ICMP type=0 (echo reply)
-                icmp_header = data[20:28]
-                icmp_type, _, _, pkt_id, pkt_seq = struct.unpack(
-                    "!BBHHH", icmp_header
-                )
-                if icmp_type == 0 and pkt_id == ident and pkt_seq == self._seq:
-                    elapsed = (time.monotonic() - start) * 1000
-                    return ProbeResult(
-                        latency_ms=round(elapsed, 2),
-                        timeout=False,
-                        method="icmp",
-                    )
-        except (socket.timeout, OSError):
-            return ProbeResult(latency_ms=None, timeout=True, method="icmp")
-        finally:
-            sock.close()
-
-    def _icmp_raw_v6(self, sockaddr: tuple) -> ProbeResult:
-        """Raw-socket ICMPv6 echo. The kernel computes the ICMPv6 checksum."""
-        try:
-            sock = socket.socket(
-                socket.AF_INET6, socket.SOCK_RAW, socket.IPPROTO_ICMPV6
-            )
-        except OSError:
-            return ProbeResult(latency_ms=None, timeout=True, method="icmp")
-        sock.settimeout(PROBE_TIMEOUT_S)
-        try:
-            self._seq = (self._seq + 1) & 0xFFFF
-            ident = os.getpid() & 0xFFFF
-            # ICMPv6 echo request: type=128, code=0. Kernel fills checksum.
-            packet = self._build_icmp_packet(
-                seq=self._seq, ident=ident, type_=128
-            )
-            start = time.monotonic()
-            sock.sendto(packet, sockaddr)
-            while True:
-                remaining = PROBE_TIMEOUT_S - (time.monotonic() - start)
-                if remaining <= 0:
-                    return ProbeResult(
-                        latency_ms=None, timeout=True, method="icmp"
-                    )
-                sock.settimeout(remaining)
-                data, _ = sock.recvfrom(1024)
-                # IPv6 raw sockets deliver only the ICMPv6 payload, no IP header
-                if len(data) < 8:
-                    continue
-                icmp_type, _, _, pkt_id, pkt_seq = struct.unpack(
-                    "!BBHHH", data[:8]
-                )
-                # echo reply type=129
-                if icmp_type == 129 and pkt_id == ident and pkt_seq == self._seq:
-                    elapsed = (time.monotonic() - start) * 1000
-                    return ProbeResult(
-                        latency_ms=round(elapsed, 2),
-                        timeout=False,
-                        method="icmp",
-                    )
-        except (socket.timeout, OSError):
-            return ProbeResult(latency_ms=None, timeout=True, method="icmp")
-        finally:
-            sock.close()
+            pass
+        return timeout_result("icmp")
 
     def _helper_check(self) -> bool:
         """Return whether the configured helper is usable."""
@@ -280,7 +232,7 @@ class ProbeEngine:
                 logger.debug("ICMP helper returned invalid latency")
                 return None
         if proc.returncode == 1:
-            return ProbeResult(latency_ms=None, timeout=True, method="icmp")
+            return timeout_result("icmp")
 
         logger.debug("ICMP helper probe failed")
         return None

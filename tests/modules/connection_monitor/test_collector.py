@@ -1,5 +1,6 @@
 """Tests for Connection Monitor collector."""
 
+import logging
 import time
 from unittest.mock import MagicMock, patch
 import pytest
@@ -403,3 +404,17 @@ class TestTargetDeletedDuringCycle:
         assert cm.get_summary(kept, window_seconds=60)["sample_count"] == 1
         warnings = core.get_events(event_type="cm_packet_loss_warning")
         assert [e["details"]["target_label"] for e in warnings] == ["Kept"]
+
+
+def test_failing_probe_is_logged_and_stored_as_timeout(offline_collector, caplog):
+    collector, _core = offline_collector
+    cm = collector.get_storage()
+    tid = cm.create_target("Broken", "192.0.2.12")
+    collector._probe.probe.side_effect = RuntimeError("boom")
+
+    with caplog.at_level(logging.WARNING, logger="app.modules.connection_monitor.collector"):
+        assert collector.collect().success is True
+
+    sample = cm.get_samples(tid)[0]
+    assert (sample["latency_ms"], sample["timeout"], sample["probe_method"]) == (None, 1, "error")
+    assert f"Probe of target {tid} failed: boom" in caplog.text

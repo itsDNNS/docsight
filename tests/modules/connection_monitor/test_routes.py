@@ -504,7 +504,7 @@ class TestPinnedDaysAPI:
             json={"date": day, "timestamp": time.time() - 86400},
         )
         assert resp.status_code == 400
-        assert "error" in resp.get_json()
+        assert resp.get_json() == {"error": "invalid date"}
 
     def test_pin_day_future_date(self, client):
         c, _ = client
@@ -641,6 +641,7 @@ class TestSummaryAPI:
         assert slow["window_seconds"] == 180
         assert slow["sample_count"] == 1
         assert slow["avg_latency_ms"] == 12.0
+        assert (slow["latency_count"], slow["p95_latency_ms"]) == (1, 12.0)
 
     def test_demo_summary_uses_the_newest_seeded_samples(self, client):
         c, storage = client
