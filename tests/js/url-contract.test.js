@@ -6,15 +6,16 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(
-    path.join(__dirname, '../../app/static/js/url-contract.js'),
+const sources = ['url-safety.js', 'url-contract.js'].map((name) => fs.readFileSync(
+    path.join(__dirname, '../../app/static/js', name),
     'utf8'
-);
+));
 
 function loadUrlContract(bootstrapText, hasElement = true) {
     const window = {};
-    vm.runInNewContext(source, {
+    const context = vm.createContext({
         window,
+        self: window,
         document: {
             getElementById(id) {
                 if (!hasElement || id !== 'docsight-url-bootstrap') return null;
@@ -28,6 +29,7 @@ function loadUrlContract(bootstrapText, hasElement = true) {
         encodeURIComponent,
         parseInt
     });
+    for (const source of sources) vm.runInContext(source, context);
     return window.docsightUrl;
 }
 

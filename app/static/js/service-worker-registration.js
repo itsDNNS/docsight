@@ -23,7 +23,7 @@ if ('serviceWorker' in navigator) {
             })
             .catch(function(err) { console.warn('SW cleanup failed:', err); });
     } else {
-        navigator.serviceWorker.register(docsightScriptURL(docsightUrl('/sw.js')), { scope: docsightUrl('/') })
+        navigator.serviceWorker.register(docsightScriptURL(docsightUrl('/sw.js')), { scope: docsightUrl('/'), updateViaCache: 'none' })
             .catch(function(err) { console.warn('SW registration failed:', err); });
     }
 }
