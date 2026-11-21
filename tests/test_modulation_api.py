@@ -478,6 +478,27 @@ class TestTrendEndpoint:
 
 
 
+@pytest.mark.parametrize("endpoint", ["distribution", "trend", "intraday"])
+def test_mixed_historical_and_current_channel_ids(client_with_storage, endpoint):
+    client, storage = client_with_storage
+    day = _ts_days_ago(1)[:10]
+    # Older releases stored string IDs or only a frequency; current snapshots store integers.
+    _store_snapshot(storage, f"{day}T10:00:00Z", us_channels=[
+        {"channel_id": "1", "modulation": "64QAM", "docsis_version": "3.1"},
+        {"modulation": "16QAM", "docsis_version": "3.1", "frequency": "37 MHz"},
+    ])
+    _store_snapshot(storage, f"{day}T11:00:00Z", us_channels=[
+        {"channel_id": 1, "modulation": "64QAM", "docsis_version": "3.1"},
+    ])
+    resp = client.get(f"/api/modulation/{endpoint}?date={day}")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    if endpoint == "distribution":
+        assert data["protocol_groups"][0]["channel_ids"] == [1, "1", "37 MHz"]
+    if endpoint == "intraday":
+        assert [ch["channel_id"] for ch in data["protocol_groups"][0]["channels"]] == [None, 1, "1"]
+
+
 # ── JSON response format ──
 
 class TestResponseFormat:

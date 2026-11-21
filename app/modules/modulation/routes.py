@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
 
-from app.tz import to_local, utc_now, utc_cutoff
+from app.tz import get_tz_name, local_today, utc_now, utc_cutoff
 from app.web_auth import require_auth
 
 from .engine import (
@@ -22,11 +22,19 @@ bp = Blueprint("modulation_bp", __name__)
 
 
 def _get_tz():
-    """Get the configured timezone name."""
-    cm = current_runtime().config_manager
-    if cm:
-        return cm.get("timezone", "")
-    return ""
+    """Get the configured timezone name, falling back to the system zone."""
+    return get_tz_name(current_runtime().config_manager)
+
+
+def _direction():
+    direction = request.args.get("direction", "us")
+    return direction if direction in ("us", "ds") else "us"
+
+
+def _range_snapshots(storage):
+    """Return the snapshots of the last ?days= days (1-30, default 7)."""
+    days = max(1, min(request.args.get("days", 7, type=int), 30))
+    return storage.get_range_data(utc_cutoff(days=days), utc_now())
 
 
 @bp.route("/api/modulation/distribution")
@@ -37,19 +45,9 @@ def api_modulation_distribution():
     if not storage:
         return jsonify({"error": "No storage available"}), 503
 
-    days = request.args.get("days", 7, type=int)
-    days = max(1, min(days, 30))
-    direction = request.args.get("direction", "us")
-    if direction not in ("us", "ds"):
-        direction = "us"
-
-    end_ts = utc_now()
-    start_ts = utc_cutoff(days=days)
-
-    snapshots = storage.get_range_data(start_ts, end_ts)
+    snapshots = _range_snapshots(storage)
     tz_name = _get_tz()
-
-    result = compute_distribution_v2(snapshots, direction, tz_name)
+    result = compute_distribution_v2(snapshots, _direction(), tz_name)
     result["capacity_history"] = compute_capacity_history(
         snapshots,
         tz_name,
@@ -65,17 +63,8 @@ def api_modulation_intraday():
     if not storage:
         return jsonify({"error": "No storage available"}), 503
 
-    direction = request.args.get("direction", "us")
-    if direction not in ("us", "ds"):
-        direction = "us"
-
     tz_name = _get_tz()
-
-    # Date parameter: defaults to today in local timezone
-    date_str = request.args.get("date", "")
-    if not date_str:
-        now_local = to_local(utc_now(), tz_name) if tz_name else utc_now().rstrip("Z")
-        date_str = now_local[:10]
+    date_str = request.args.get("date", "") or local_today(tz_name)
 
     # Fetch data covering the requested date (± 1 day for timezone edge cases)
     try:
@@ -87,7 +76,7 @@ def api_modulation_intraday():
 
     snapshots = storage.get_range_data(start_ts, end_ts)
 
-    result = compute_intraday(snapshots, direction, tz_name, date_str)
+    result = compute_intraday(snapshots, _direction(), tz_name, date_str)
     result["capacity_history"] = compute_capacity_history(
         snapshots,
         tz_name,
@@ -105,17 +94,4 @@ def api_modulation_trend():
     if not storage:
         return jsonify({"error": "No storage available"}), 503
 
-    days = request.args.get("days", 7, type=int)
-    days = max(1, min(days, 30))
-    direction = request.args.get("direction", "us")
-    if direction not in ("us", "ds"):
-        direction = "us"
-
-    end_ts = utc_now()
-    start_ts = utc_cutoff(days=days)
-
-    snapshots = storage.get_range_data(start_ts, end_ts)
-    tz_name = _get_tz()
-
-    result = compute_trend(snapshots, direction, tz_name)
-    return jsonify(result)
+    return jsonify(compute_trend(_range_snapshots(storage), _direction(), _get_tz()))
