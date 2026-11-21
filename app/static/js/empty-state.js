@@ -15,10 +15,6 @@
 })(typeof window !== 'undefined' ? window : null, function () {
     'use strict';
 
-    function text(key, fallback) {
-        return (typeof T !== 'undefined' && T && T[key]) || fallback;
-    }
-
     function url(path) {
         return typeof docsightUrl === 'function' ? docsightUrl(path) : path;
     }
@@ -78,7 +74,7 @@
             actions.appendChild(control);
         }
         if (options.glossary) {
-            var link = element('a', 'view-empty-link', text('empty_glossary_link', 'What does this view show?'));
+            var link = element('a', 'view-empty-link', T.empty_glossary_link);
             link.href = '#glossary?term=' + encodeURIComponent(options.glossary);
             actions.appendChild(link);
         }
@@ -104,10 +100,10 @@
         if (wider) {
             show(el, {
                 icon: 'clock',
-                title: options.title || text('empty_range_title', 'No data in this period'),
-                text: options.text || text('empty_range_text', 'There are no measurements for the selected period. A longer period may contain older data.'),
+                title: options.title || T.empty_range_title,
+                text: options.text || T.empty_range_text,
                 action: {
-                    label: text('empty_action_range', 'Show {range}').replace('{range}', wider.label),
+                    label: T.empty_action_range.replace('{range}', wider.label),
                     onClick: function () { wider.el.click(); }
                 },
                 glossary: options.glossary
@@ -117,9 +113,9 @@
         var none = options.none || {};
         show(el, {
             icon: none.icon || 'plug',
-            title: none.title || text('empty_none_title', 'No measurements yet'),
-            text: none.text || text('empty_none_text', 'Measurements start with the first successful modem poll. If this stays empty, check the modem connection.'),
-            action: none.action || {label: text('empty_action_connection', 'Check modem connection'), href: url('/settings#connection')},
+            title: none.title || T.empty_none_title,
+            text: none.text || T.empty_none_text,
+            action: none.action || {label: T.empty_action_connection, href: url('/settings#connection')},
             glossary: options.glossary
         });
     }
@@ -128,9 +124,9 @@
         var options = opts || {};
         show(el, {
             icon: 'triangle-alert',
-            title: text('empty_error_title', 'Could not load the data'),
-            text: options.text || text('empty_error_text', 'The request failed. This is usually temporary.'),
-            action: options.retry ? {label: text('empty_action_retry', 'Try again'), onClick: options.retry} : null,
+            title: T.empty_error_title,
+            text: options.text || T.empty_error_text,
+            action: options.retry ? {label: T.empty_action_retry, onClick: options.retry} : null,
             glossary: options.glossary
         });
     }

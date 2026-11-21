@@ -145,7 +145,7 @@ docker-compose.dev.yml - Development Docker setup
 
 ## Internationalization (i18n)
 
-Translations live in JSON files. The core interface has a 24-language European language pack in `app/i18n/`. Every built-in module with UI strings ships the same 24 languages in `app/modules/<module>/i18n/`: an `en.json` source catalog plus one `<lang>.json` per language. At runtime, missing keys fall back to English, but that fallback is not a maintenance option for built-in catalogs: `tests/test_static_contracts.py` requires every key, placeholder, and protected term, and a non-empty value for every key, in every core and built-in module language file. Community modules may ship only `en.json` and rely on the English fallback.
+Translations live in JSON files. The core interface has a 24-language European language pack in `app/i18n/`. Every built-in module with UI strings ships the same 24 languages in `app/modules/<module>/i18n/`: an `en.json` source catalog plus one `<lang>.json` per language. Core catalogs are not merged with English per key and lookups of core keys carry no English text of their own, so every core language file must be complete: `tests/test_static_contracts.py` requires every key, placeholder, and protected term, and a non-empty value for every key, in every core and built-in module language file, and fails on a lookup of a key that no catalog defines. Module catalogs fall back to their `en.json` per key, so community modules may ship only `en.json`.
 
 Each core locale file has a `_meta` field with `language_name` and `flag`; module locale files have no `_meta`. When adding or changing core UI strings, update **all existing core language files**. When adding or changing strings of a built-in module, update its `en.json` source catalog **and all of its language files**. Run `python scripts/i18n_check.py --validate` to list missing or extra keys in core and module catalogs, and run the Python test suite, which enforces the complete catalogs. Remove a key together with the last code that reads it: the suite also fails on catalog keys whose name appears nowhere in the application code (in the files of a translation helper that adds a prefix, such as `_fcT`, quoted words count with that prefix). Keys that code builds at runtime from a prefix (`'event_type_' + type`) and whose names appear nowhere else are listed with their builder in `I18N_RUNTIME_KEY_FAMILIES` in `tests/test_static_contracts.py`; the suite checks that each listed prefix still appears in the application code.
 
@@ -160,7 +160,7 @@ DOCSight is used internationally and translations from native speakers are welco
 5. Run `python scripts/i18n_check.py --validate` to make sure no keys are missing or extra compared to `en.json`.
 6. Open a PR. Mention in the description whether you are able to keep the translation updated when new strings are added in the future.
 
-We prefer new languages to be contributed by people who actually use the tool in that language, so the translation sounds natural and stays maintained over time. Partial translations are fine - missing keys fall back to English automatically.
+We prefer new languages to be contributed by people who actually use the tool in that language, so the translation sounds natural and stays maintained over time. Core languages have no per-key English fallback, so every key needs a translation before the language can be merged.
 
 ## Pull Request Guidelines
 

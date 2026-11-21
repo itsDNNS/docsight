@@ -159,11 +159,11 @@
         var opts = typeof options === 'string' ? {message: options} : (options || {});
         var dialog = createConfirmModal();
         if (confirmState) resolveConfirm(false);
-        document.getElementById('docsight-confirm-title').textContent = opts.title || (window.T && T.confirm_title) || 'Confirm action';
+        document.getElementById('docsight-confirm-title').textContent = opts.title || T.confirm_title;
         document.getElementById('docsight-confirm-message').textContent = opts.message || '';
-        document.getElementById('docsight-confirm-cancel').textContent = opts.cancelText || (window.T && T.cancel) || 'Cancel';
+        document.getElementById('docsight-confirm-cancel').textContent = opts.cancelText || T.cancel;
         var ok = document.getElementById('docsight-confirm-ok');
-        ok.textContent = opts.confirmText || (window.T && T.confirm) || 'Confirm';
+        ok.textContent = opts.confirmText || T.confirm;
         ok.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
         var typedWrap = document.getElementById('docsight-confirm-typed-wrap');
         var typedLabel = document.getElementById('docsight-confirm-typed-label');

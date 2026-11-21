@@ -19,7 +19,7 @@ const emptyState = {
     hide(el) { if (el) Object.assign(el, {hidden: true, empty: null}); },
 };
 
-function browser(lang = 'en', translations = {}) {
+function browser(lang = 'en', translations = require('./english-catalog')()) {
     const ids = new Map(), charts = [], requests = [];
     function element(attrs = {}) {
         const classes = new Set(), listeners = {};
@@ -194,7 +194,7 @@ for (const version of ['3.0', '3.1']) {
 
 for (const lang of ['en', 'de']) {
     test(`capacity range, units, localization, coverage and caveats: ${lang}`, async () => {
-        const T = Object.fromEntries(Object.entries(catalog).map(([key, value]) => ['docsight.modulation.' + key, value]));
+        const T = require('./english-catalog')();
         T['docsight.modulation.capacity_selected_days'] = 'Period {days}';
         T['docsight.modulation.capacity_partial_caveat'] = 'Excluded: {families}';
         T['docsight.modulation.capacity_coverage_detail'] = 'Coverage {calculated}/{total} = {pct}%';

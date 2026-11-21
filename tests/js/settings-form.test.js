@@ -64,7 +64,7 @@ function fixture(bootstrap = false) {
     const document = {getElementById: id => nodes.get(id) || null, querySelectorAll: () => [], querySelector: () => null,
         documentElement: {getAttribute: () => 'dark'}, activeElement: null,
         addEventListener: (name, fn) => listeners.set(name, fn)};
-    const context = vm.createContext({document, T: {}, currentLang: 'en', currentTz: 'UTC', serverOffsetMin: 0,
+    const context = vm.createContext({document, T: require('./english-catalog')(), currentLang: 'en', currentTz: 'UTC', serverOffsetMin: 0,
         MODULE_SECRET_FIELDS: [], SAVED_MODULE_SECRET_FIELDS: [],
         setTimeout: fn => timers.push(fn), clearTimeout() {}, docsightUrl: path => '/prefix' + path,
         docsightConfirm: () => Promise.resolve(true),

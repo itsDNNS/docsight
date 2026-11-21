@@ -10,18 +10,18 @@
         <div class="line-status-summary">
             <div class="line-status-eyebrow">
                 <span class="ls-shape ls-shape-{{ ls_state }}" aria-hidden="true"></span>
-                <span id="line-status-title">{{ t.get('line_status_title', 'Line status') }}</span>
+                <span id="line-status-title">{{ t.line_status_title }}</span>
             </div>
             <div class="line-status-word">
                 <span>{{ ls_word[ls_state] }}</span>
-                <span class="line-status-scale" role="img" aria-label="{{ t.get('line_status_step', 'Level {step} of 4').replace('{step}', ls_step|string) }}">
+                <span class="line-status-scale" role="img" aria-label="{{ t.line_status_step.replace('{step}', ls_step|string) }}">
                     {% for step in range(1, 5) %}<i class="{{ 'on' if step <= ls_step else '' }}"></i>{% endfor %}
                 </span>
             </div>
         </div>
         <div class="line-status-count">
             <strong class="num">{{ ls.within }}</strong><span class="num">/ {{ ls.total }}</span>
-            <small>{{ t.get('line_status_within', 'channels within target') }}</small>
+            <small>{{ t.line_status_within }}</small>
         </div>
     </div>
 
@@ -30,7 +30,7 @@
     <div class="line-status-row" data-direction="{{ d.key }}">
         <span class="line-status-dir" title="{{ ls_direction[d.key] }}">{{ ls_short[d.key] }}</span>
         <div class="line-status-strip" role="group"
-             aria-label="{{ ls_direction[d.key] }}: {{ d.counts.good }} {{ t.health_good }}, {{ d.counts.tolerated }} {{ t.health_tolerated }}, {{ d.counts.warning }} {{ t.health_marginal }}, {{ d.counts.critical }} {{ t.health_critical }}{% if d.missing_family %}. {{ t.get('line_status_no_ofdma', 'No DOCSIS 3.1/4.0 upstream channel (OFDMA) found · may depend on your plan or equipment') }}{% endif %}">
+             aria-label="{{ ls_direction[d.key] }}: {{ d.counts.good }} {{ t.health_good }}, {{ d.counts.tolerated }} {{ t.health_tolerated }}, {{ d.counts.warning }} {{ t.health_marginal }}, {{ d.counts.critical }} {{ t.health_critical }}{% if d.missing_family %}. {{ t.line_status_no_ofdma }}{% endif %}">
             {% for seg in d.segments %}
             {% set seg_label = ls_short[d.key] ~ ' ' ~ seg.channel_id ~ ' · ' ~ seg.family ~ ((' · ' ~ seg.modulation) if seg.modulation and seg.modulation != seg.family else '') ~ ((' · ' ~ '%.1f'|format(seg.power) ~ ' dBmV') if seg.power is not none else '') ~ ' · ' ~ ls_word[seg.health] %}
             <button type="button" class="ls-seg ls-{{ seg.health }}{{ ' ls-focus' if c and seg.channel_id == c.channel_id else '' }}"
@@ -39,7 +39,7 @@
                     title="{{ seg_label }}" aria-label="{{ seg_label }}"></button>
             {% endfor %}
             {% if d.missing_family %}
-            <span class="ls-seg ls-missing" title="{{ t.get('line_status_no_ofdma', 'No DOCSIS 3.1/4.0 upstream channel (OFDMA) found · may depend on your plan or equipment') }}"></span>
+            <span class="ls-seg ls-missing" title="{{ t.line_status_no_ofdma }}"></span>
             {% endif %}
         </div>
     </div>
@@ -50,13 +50,13 @@
         {% endfor %}
         <span class="ls-families">{% for family, count in d.families|dictsort %}{{ count }} {{ family }}{{ ' · ' if not loop.last else '' }}{% endfor %}</span>
         {% if d.missing_family %}
-        <span class="ls-missing-note"><span class="ls-shape ls-shape-missing" aria-hidden="true"></span>{{ t.get('line_status_no_ofdma', 'No DOCSIS 3.1/4.0 upstream channel (OFDMA) found · may depend on your plan or equipment') }}</span>
+        <span class="ls-missing-note"><span class="ls-shape ls-shape-missing" aria-hidden="true"></span>{{ t.line_status_no_ofdma }}</span>
         {% endif %}
     </div>
     {% if c %}
     <div class="line-status-callout ls-{{ c.health }}" style="--ls-anchor: {{ ((d.segments|map(attribute='channel_id')|list).index(c.channel_id) + 0.5) / (d.total + (1 if d.missing_family else 0)) * 100 }}%">
         <div class="ls-callout-what">
-            <span class="ls-callout-label">{{ ls_direction[d.key] }} · {{ t.get('line_status_channel', 'Channel') }} {{ c.channel_id }} · {{ c.family }}{% if c.modulation and c.modulation != c.family %} · {{ c.modulation }}{% endif %}</span>
+            <span class="ls-callout-label">{{ ls_direction[d.key] }} · {{ t.line_status_channel }} {{ c.channel_id }} · {{ c.family }}{% if c.modulation and c.modulation != c.family %} · {{ c.modulation }}{% endif %}</span>
             {% if c.measurement %}
             <span class="ls-callout-value num">{{ '%.1f'|format(c.measurement.value) }} <small>{{ c.measurement.unit }}</small></span>
             {% else %}
@@ -73,13 +73,13 @@
             </div>
             <div class="ls-callout-delta">
                 <span class="ls-shape ls-shape-{{ c.health }}" aria-hidden="true"></span>
-                {% if m.delta < 0 %}{{ t.get('line_status_below_target', '{delta} dB below target').replace('{delta}', '%.1f'|format(-m.delta)) }}
-                {% elif m.delta > 0 %}{{ t.get('line_status_above_target', '{delta} dB above target').replace('{delta}', '%.1f'|format(m.delta)) }}
+                {% if m.delta < 0 %}{{ t.line_status_below_target.replace('{delta}', '%.1f'|format(-m.delta)) }}
+                {% elif m.delta > 0 %}{{ t.line_status_above_target.replace('{delta}', '%.1f'|format(m.delta)) }}
                 {% else %}{{ ls_word[c.health] }}{% endif %}
             </div>
             <div class="ls-callout-target">
-                {% if m.target_max is not none %}{{ t.get('line_status_target', 'Target') }} {{ '%.1f'|format(m.target_min) }}–{{ '%.1f'|format(m.target_max) }} {{ m.unit }}
-                {% else %}{{ t.get('line_status_target', 'Target') }} ≥ {{ '%.1f'|format(m.target_min) }} {{ m.unit }}{% endif %}
+                {% if m.target_max is not none %}{{ t.line_status_target }} {{ '%.1f'|format(m.target_min) }}–{{ '%.1f'|format(m.target_max) }} {{ m.unit }}
+                {% else %}{{ t.line_status_target }} ≥ {{ '%.1f'|format(m.target_min) }} {{ m.unit }}{% endif %}
             </div>
         </div>
         {% endif %}
@@ -88,15 +88,15 @@
         <div class="ls-callout-modulation ls-{{ mc.health }}">
             <div class="ls-callout-delta">
                 <span class="ls-shape ls-shape-{{ mc.health }}" aria-hidden="true"></span>
-                {{ t.get('line_status_modulation_below', 'Modulation below target') }}
+                {{ t.line_status_modulation_below }}
             </div>
-            {% if mc.target %}<div class="ls-callout-target">{{ t.get('line_status_target', 'Target') }} ≥ {{ mc.target }}</div>{% endif %}
+            {% if mc.target %}<div class="ls-callout-target">{{ t.line_status_target }} ≥ {{ mc.target }}</div>{% endif %}
         </div>
         {% endif %}
     </div>
     {% if d.more %}
     <div class="line-status-more">
-        +{{ d.more|length }} {{ t.get('line_status_more', 'more') }}:
+        +{{ d.more|length }} {{ t.line_status_more }}:
         {% for other in d.more %}{{ ls_short[d.key] }} {{ other.channel_id }} ({{ ls_word[other.health] }}){{ ', ' if not loop.last else '' }}{% endfor %}
     </div>
     {% endif %}
@@ -104,7 +104,7 @@
     {% endfor %}
 
     {% if ls.deviating == 0 %}
-    <p class="line-status-ok">{{ t.get('line_status_no_deviation', 'No deviation · all channels within target') }}</p>
+    <p class="line-status-ok">{{ t.line_status_no_deviation }}</p>
     {% endif %}
 
     <div class="line-status-actions">
@@ -112,7 +112,7 @@
         {% set first = ls.primary %}
         <a class="btn btn-primary" href="{{ first.link }}">
             <i data-lucide="arrow-right"></i>
-            {{ t.get('line_status_view_channel', 'View {direction} channel {channel}').replace('{direction}', ls_direction[first.direction]).replace('{channel}', first.channel_id|string) }}
+            {{ t.line_status_view_channel.replace('{direction}', ls_direction[first.direction]).replace('{channel}', first.channel_id|string) }}
         </a>
         {% else %}
         <a class="btn btn-secondary" href="#trends">
@@ -120,7 +120,7 @@
         </a>
         {% endif %}
         <a class="btn btn-secondary" href="#channels?mode=status">
-            <i data-lucide="layers"></i> {{ t.get('line_status_all_channels', 'All channels') }}
+            <i data-lucide="layers"></i> {{ t.line_status_all_channels }}
         </a>
     </div>
 </section>

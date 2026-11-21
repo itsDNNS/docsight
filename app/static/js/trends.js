@@ -139,7 +139,7 @@ function loadTrends(range) {
     var title = document.getElementById('trend-title');
     var noData = document.getElementById('trend-no-data');
     var grid = document.getElementById('charts-grid');
-    if (title) title.textContent = T.signal_trends || 'Signal Trends';
+    if (title) title.textContent = T.signal_trends;
     _lastTrendRange = range;
     // Quick steps or range clicks overlap; only the latest request may draw.
     var seq = ++_trendLoadSeq;

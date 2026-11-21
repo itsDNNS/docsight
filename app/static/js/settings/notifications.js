@@ -9,10 +9,6 @@ function expandNotificationChannelCard(controlEl) {
     }
 }
 
-function _notificationLabel(key, fallback) {
-    return T[key] || fallback;
-}
-
 function _setNotificationChannelBadge(channel, enabled, label) {
     var badge = document.querySelector('[data-channel-badge="' + channel + '"]');
     if (!badge) return;
@@ -28,7 +24,7 @@ function updateNotificationChannelSummaries() {
     _setNotificationChannelBadge(
         'webhook',
         webhookConfigured,
-        webhookConfigured ? _notificationLabel('enabled', 'Enabled') : _notificationLabel('not_configured', 'Not configured')
+        webhookConfigured ? T.enabled : T.not_configured
     );
 
     var apprise = document.getElementById('notify_apprise_enabled');
@@ -36,7 +32,7 @@ function updateNotificationChannelSummaries() {
     _setNotificationChannelBadge(
         'apprise',
         appriseEnabled,
-        appriseEnabled ? _notificationLabel('enabled', 'Enabled') : _notificationLabel('disabled', 'Disabled')
+        appriseEnabled ? T.enabled : T.disabled
     );
 
     var pwa = document.getElementById('notify_pwa_push_enabled');
@@ -44,7 +40,7 @@ function updateNotificationChannelSummaries() {
     _setNotificationChannelBadge(
         'pwa',
         pwaEnabled,
-        pwaEnabled ? _notificationLabel('enabled', 'Enabled') : _notificationLabel('disabled', 'Disabled')
+        pwaEnabled ? T.enabled : T.disabled
     );
 }
 
@@ -74,7 +70,7 @@ function _getCurrentPwaSubscription() {
 function refreshPwaPushStatus() {
     if (!document.getElementById('pwa-push-status')) return Promise.resolve(null);
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-        _setPwaPushStatus(T.notify_pwa_push_unsupported || 'Web Push is not supported in this browser.', false);
+        _setPwaPushStatus(T.notify_pwa_push_unsupported, false);
         return Promise.resolve(null);
     }
     return Promise.all([
@@ -87,18 +83,18 @@ function refreshPwaPushStatus() {
             _pwaPushStatus = status;
             var permission = Notification.permission;
             if (!status.configured) {
-                _setPwaPushStatus(T.notify_pwa_push_not_configured || 'Web Push is not configured yet.', false);
+                _setPwaPushStatus(T.notify_pwa_push_not_configured, false);
             } else if (permission === 'granted' && currentSubscription) {
-                _setPwaPushStatus((T.notify_pwa_push_ready || 'This browser is subscribed.') + ' ' + (status.subscription_count || 0) + ' ' + (T.notify_pwa_push_devices || 'device(s)'), true);
+                _setPwaPushStatus(T.notify_pwa_push_ready + ' ' + (status.subscription_count || 0) + ' ' + T.notify_pwa_push_devices, true);
             } else if (permission === 'granted') {
-                _setPwaPushStatus(T.notify_pwa_push_not_subscribed || 'This browser is not subscribed yet.', false);
+                _setPwaPushStatus(T.notify_pwa_push_not_subscribed, false);
             } else {
-                _setPwaPushStatus(T.notify_pwa_push_permission_needed || 'Browser permission is needed for this device.', false);
+                _setPwaPushStatus(T.notify_pwa_push_permission_needed, false);
             }
             return status;
         })
         .catch(function() {
-            _setPwaPushStatus(T.network_error || 'Network error', false);
+            _setPwaPushStatus(T.network_error, false);
             return null;
         });
 }
@@ -109,7 +105,7 @@ function subscribePwaPush() {
         return navigator.serviceWorker.ready
             .then(function(registration) { return Notification.requestPermission().then(function(permission) { return {registration: registration, permission: permission}; }); })
             .then(function(ctx) {
-                if (ctx.permission !== 'granted') throw new Error(T.notify_pwa_push_permission_denied || 'Notification permission was denied.');
+                if (ctx.permission !== 'granted') throw new Error(T.notify_pwa_push_permission_denied);
                 return ctx.registration.pushManager.getSubscription().then(function(existing) {
                     if (existing) return existing;
                     return ctx.registration.pushManager.subscribe({
@@ -127,12 +123,12 @@ function subscribePwaPush() {
             })
             .then(function(r) { return r.json(); })
             .then(function(res) {
-                if (!res.success) throw new Error(res.error || T.unknown_error || 'Unknown error');
-                showToast(T.notify_pwa_push_subscribed || 'This browser is subscribed.', true);
+                if (!res.success) throw new Error(res.error || T.unknown_error);
+                showToast(T.notify_pwa_push_subscribed, true);
                 refreshPwaPushStatus();
             })
             .catch(function(err) {
-                showToast(err.message || (T.notify_pwa_push_subscribe_failed || 'Subscription failed'), false);
+                showToast(err.message || T.notify_pwa_push_subscribe_failed, false);
             });
     });
 }
@@ -154,12 +150,12 @@ function unsubscribePwaPush() {
         })
         .then(function(r) { return r ? r.json() : {success: true}; })
         .then(function(res) {
-            if (!res.success) throw new Error(res.error || T.unknown_error || 'Unknown error');
-            showToast(T.notify_pwa_push_unsubscribed || 'This browser is unsubscribed.', true);
+            if (!res.success) throw new Error(res.error || T.unknown_error);
+            showToast(T.notify_pwa_push_unsubscribed, true);
             refreshPwaPushStatus();
         })
         .catch(function(err) {
-            showToast(err.message || (T.notify_pwa_push_unsubscribe_failed || 'Unsubscribe failed'), false);
+            showToast(err.message || T.notify_pwa_push_unsubscribe_failed, false);
         });
 }
 

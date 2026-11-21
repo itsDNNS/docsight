@@ -61,7 +61,7 @@ function loadFritzCableData() {
 /* Segment data is polled separately from the modem, so "nothing collected
    yet" points at the extension switch instead of the modem connection. */
 function _fritzCableShowEmpty(msg) {
-    var noData = _fcT('no_data', 'No segment utilization data collected yet.');
+    var noData = _fcT('no_data');
     DOCSightEmptyState.showRange(msg, {
         tabs: 'fritz-cable-range-tabs',
         text: noData,
@@ -69,7 +69,7 @@ function _fritzCableShowEmpty(msg) {
         none: {
             icon: 'gauge',
             text: noData,
-            action: {label: _fcT('empty_action', 'Open extension settings'), href: docsightUrl('/settings#extensions')}
+            action: {label: _fcT('empty_action'), href: docsightUrl('/settings#extensions')}
         }
     });
 }
@@ -87,7 +87,7 @@ function _fritzCableLoadEvents() {
     while (list.firstChild) list.removeChild(list.firstChild);
     list.style.display = 'none';
     if (meta) meta.textContent = '';
-    status.textContent = _fcT('events_loading', 'Loading saturation events...');
+    status.textContent = _fcT('events_loading');
     status.className = 'fritz-cable-events-status is-loading';
     status.style.display = 'block';
 
@@ -101,7 +101,7 @@ function _fritzCableLoadEvents() {
         .then(function(r) { return r.json().then(function(body) { return { ok: r.ok, body: body }; }); })
         .then(function(resp) {
             if (!resp.ok || resp.body.error) {
-                status.textContent = (resp.body && resp.body.error) || _fcT('events_error', 'Could not load saturation events.');
+                status.textContent = (resp.body && resp.body.error) || _fcT('events_error');
                 status.className = 'fritz-cable-events-status is-error';
                 return;
             }
@@ -109,12 +109,12 @@ function _fritzCableLoadEvents() {
             var threshold = resp.body.threshold != null ? resp.body.threshold : _FRITZ_EVENT_THRESHOLD;
             var minMinutes = resp.body.min_minutes != null ? resp.body.min_minutes : _FRITZ_EVENT_MIN_MINUTES;
             if (meta) {
-                meta.textContent = _fcT('events_meta', 'Threshold {th}% for {min}+ min')
+                meta.textContent = _fcT('events_meta')
                     .replace('{th}', threshold)
                     .replace('{min}', minMinutes);
             }
             if (events.length === 0) {
-                status.textContent = _fcT('events_empty', 'No saturation events detected in this range.');
+                status.textContent = _fcT('events_empty');
                 status.className = 'fritz-cable-events-status is-empty';
                 return;
             }
@@ -123,7 +123,7 @@ function _fritzCableLoadEvents() {
             events.forEach(function(ev) { list.appendChild(_fritzCableRenderEvent(ev)); });
         })
         .catch(function() {
-            status.textContent = _fcT('events_error', 'Could not load saturation events.');
+            status.textContent = _fcT('events_error');
             status.className = 'fritz-cable-events-status is-error';
         });
 }
@@ -138,11 +138,11 @@ function _fritzCableFormatTs(ts, compact) {
 function _fritzCableFormatDuration(minutes) {
     if (minutes == null) return '';
     var m = Math.max(0, minutes | 0);
-    if (m < 60) return m + ' ' + _fcT('events_min_short', 'min');
+    if (m < 60) return m + ' ' + _fcT('events_min_short');
     var h = Math.floor(m / 60);
     var rem = m % 60;
-    if (rem === 0) return h + ' ' + _fcT('events_h_short', 'h');
-    return h + ' ' + _fcT('events_h_short', 'h') + ' ' + rem + ' ' + _fcT('events_min_short', 'min');
+    if (rem === 0) return h + ' ' + _fcT('events_h_short');
+    return h + ' ' + _fcT('events_h_short') + ' ' + rem + ' ' + _fcT('events_min_short');
 }
 
 function _fritzCablePct(v) {
@@ -150,10 +150,10 @@ function _fritzCablePct(v) {
     return (+v).toFixed(1) + '%';
 }
 
-function _fcMakeStat(labelKey, labelFallback, valueText) {
+function _fcMakeStat(labelKey, valueText) {
     var span = document.createElement('span');
     var em = document.createElement('em');
-    em.textContent = _fcT(labelKey, labelFallback) + ':';
+    em.textContent = _fcT(labelKey) + ':';
     span.appendChild(em);
     span.appendChild(document.createTextNode(' ' + valueText));
     return span;
@@ -164,7 +164,7 @@ function _fritzCableRenderEvent(ev) {
     li.className = 'fritz-cable-event';
 
     var directionKey = ev.direction === 'upstream' ? 'events_direction_us' : 'events_direction_ds';
-    var directionLabel = _fcT(directionKey, ev.direction === 'upstream' ? 'Upstream' : 'Downstream');
+    var directionLabel = _fcT(directionKey);
     var directionCls = ev.direction === 'upstream' ? 'is-upstream' : 'is-downstream';
 
     var sameDay = false;
@@ -205,12 +205,12 @@ function _fritzCableRenderEvent(ev) {
     }
     var stats = document.createElement('div');
     stats.className = 'fritz-cable-event-stats';
-    stats.appendChild(_fcMakeStat('events_peak_total', 'Peak total', _fritzCablePct(ev.peak_total)));
-    stats.appendChild(_fcMakeStat('events_peak_own', 'Peak own', _fritzCablePct(ev.peak_own)));
-    stats.appendChild(_fcMakeStat('events_peak_neighbor', 'Peak neighbor load', _fritzCablePct(neighbor)));
+    stats.appendChild(_fcMakeStat('events_peak_total', _fritzCablePct(ev.peak_total)));
+    stats.appendChild(_fcMakeStat('events_peak_own', _fritzCablePct(ev.peak_own)));
+    stats.appendChild(_fcMakeStat('events_peak_neighbor', _fritzCablePct(neighbor)));
     var confKey = 'events_confidence_' + (ev.confidence || 'high');
     var confVal = _fcT(confKey, ev.confidence || 'high');
-    stats.appendChild(_fcMakeStat('events_confidence', 'Confidence', confVal));
+    stats.appendChild(_fcMakeStat('events_confidence', confVal));
     li.appendChild(stats);
 
     var actions = document.createElement('div');
@@ -220,7 +220,7 @@ function _fritzCableRenderEvent(ev) {
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'fritz-cable-event-link';
-        btn.textContent = _fcT('events_correlate', 'Open in correlation');
+        btn.textContent = _fcT('events_correlate');
         btn.addEventListener('click', function() {
             _fritzCableOpenInCorrelation(hours);
         });
@@ -228,7 +228,7 @@ function _fritzCableRenderEvent(ev) {
     } else {
         var note = document.createElement('span');
         note.className = 'fritz-cable-event-note';
-        note.textContent = _fcT('events_correlate_out_of_range', 'Correlation view supports up to 7 days.');
+        note.textContent = _fcT('events_correlate_out_of_range');
         actions.appendChild(note);
     }
     li.appendChild(actions);
@@ -288,17 +288,17 @@ function _fritzCableUpdateKPIs(data) {
 
     if (dsEl) dsEl.textContent = latest ? (latest.ds_total != null ? latest.ds_total.toFixed(1) + '%' : '-') : '-';
     if (usEl) usEl.textContent = latest ? (latest.us_total != null ? latest.us_total.toFixed(1) + '%' : '-') : '-';
-    if (statusEl) statusEl.textContent = stats.count > 0 ? _fcT('status_polling', 'Collecting') : _fcT('status_disabled', 'Disabled');
+    if (statusEl) statusEl.textContent = stats.count > 0 ? _fcT('status_polling') : _fcT('status_disabled');
 
     if (dsStats && stats.count > 0) {
-        dsStats.textContent = _fcT('min', 'Min') + ' ' + (stats.ds_total_min != null ? stats.ds_total_min.toFixed(1) : '-') + '% · '
-            + _fcT('avg', 'Avg') + ' ' + (stats.ds_total_avg != null ? stats.ds_total_avg.toFixed(1) : '-') + '% · '
-            + _fcT('max', 'Max') + ' ' + (stats.ds_total_max != null ? stats.ds_total_max.toFixed(1) : '-') + '%';
+        dsStats.textContent = _fcT('min') + ' ' + (stats.ds_total_min != null ? stats.ds_total_min.toFixed(1) : '-') + '% · '
+            + _fcT('avg') + ' ' + (stats.ds_total_avg != null ? stats.ds_total_avg.toFixed(1) : '-') + '% · '
+            + _fcT('max') + ' ' + (stats.ds_total_max != null ? stats.ds_total_max.toFixed(1) : '-') + '%';
     }
     if (usStats && stats.count > 0) {
-        usStats.textContent = _fcT('min', 'Min') + ' ' + (stats.us_total_min != null ? stats.us_total_min.toFixed(1) : '-') + '% · '
-            + _fcT('avg', 'Avg') + ' ' + (stats.us_total_avg != null ? stats.us_total_avg.toFixed(1) : '-') + '% · '
-            + _fcT('max', 'Max') + ' ' + (stats.us_total_max != null ? stats.us_total_max.toFixed(1) : '-') + '%';
+        usStats.textContent = _fcT('min') + ' ' + (stats.us_total_min != null ? stats.us_total_min.toFixed(1) : '-') + '% · '
+            + _fcT('avg') + ' ' + (stats.us_total_avg != null ? stats.us_total_avg.toFixed(1) : '-') + '% · '
+            + _fcT('max') + ' ' + (stats.us_total_max != null ? stats.us_total_max.toFixed(1) : '-') + '%';
     }
     if (countEl) countEl.textContent = stats.count + ' samples';
 }
@@ -312,12 +312,12 @@ function _fritzCableRenderChart(containerId, samples, totalKey, ownKey) {
 
     var datasets = [
         {
-            label: _fcT('total', 'Total'),
+            label: _fcT('total'),
             data: samples.map(function(s) { return s[totalKey]; }),
             color: 'rgba(168,85,247,0.9)', fill: 'rgba(168,85,247,0.15)'
         },
         {
-            label: _fcT('own', 'Own Share'),
+            label: _fcT('own'),
             data: samples.map(function(s) { return s[ownKey]; }),
             color: '#6366f1',
             dashed: true

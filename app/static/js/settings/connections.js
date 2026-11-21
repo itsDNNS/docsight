@@ -116,7 +116,7 @@ function clearSpeedtestCache(btn) {
         title: T['docsight.speedtest.clear_cache'] || 'Clear Cache',
         message: message,
         confirmText: T['docsight.speedtest.clear_cache'] || 'Clear Cache',
-        cancelText: T.cancel || 'Cancel',
+        cancelText: T.cancel,
         danger: true
     }).then(function(confirmed) {
         if (!confirmed) return null;
@@ -129,7 +129,7 @@ function clearSpeedtestCache(btn) {
             btn.disabled = false;
             if (res.success) {
                 var count = res.cleared || 0;
-                btn.textContent = '\u2713 ' + count + ' ' + (T.cleared || 'cleared');
+                btn.textContent = '\u2713 ' + count + ' ' + T.cleared;
                 setTimeout(function() {
                     btn.textContent = '';
                     var icon = document.createElement('i');
@@ -146,10 +146,10 @@ function clearSpeedtestCache(btn) {
 function testNotifications() {
     runConnectionTest({
         id: 'notify-test', url: '/api/notifications/test', body: {},
-        testingText: T.notify_test_sending || 'Sending test notification...',
-        success: function() { return T.notify_test_sent || 'Test notification sent'; },
-        failure: function(res) { return res.error || T.unknown_error || 'Unknown error'; },
-        networkText: T.network_error || 'Network error'
+        testingText: T.notify_test_sending,
+        success: function() { return T.notify_test_sent; },
+        failure: function(res) { return res.error || T.unknown_error; },
+        networkText: T.network_error
     });
 }
 

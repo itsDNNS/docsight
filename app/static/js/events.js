@@ -12,22 +12,10 @@ var _eventsHaveMore = false;
 // Journal notes and case names for the timeline; null while not loaded or without the journal module.
 var _eventNotes = null;
 var _eventCaseNames = {};
-var _eventTypeLabels = {
-    health_change: T.event_type_health_change || 'Health Change',
-    power_change: T.event_type_power_change || 'Power Change',
-    snr_change: T.event_type_snr_change || 'SNR Change',
-    channel_change: T.event_type_channel_change || 'Channel Change',
-    modulation_change: T.event_type_modulation_change || 'Modulation Change',
-    device_sw_update: T.event_type_device_sw_update || 'Software Update',
-    device_reboot: T.event_type_device_reboot || 'Device Reboot',
-    device_ip_change: T.event_type_device_ip_change || 'IP Change',
-    error_spike: T.event_type_error_spike || 'Error Spike',
-    smart_capture_triggered: T.event_type_smart_capture_triggered || 'Smart Capture'
-};
 var _sevLabels = {
-    info: T.event_severity_info || 'Info',
-    warning: T.event_severity_warning || 'Warning',
-    critical: T.event_severity_critical || 'Critical'
+    info: T.event_severity_info,
+    warning: T.event_severity_warning,
+    critical: T.event_severity_critical
 };
 
 var _currentSeverityFilter = '';
@@ -35,10 +23,7 @@ var _deviceOnlyFilter = false;
 var _hideOperational = true;
 
 function _eventTypeLabel(eventType) {
-    var explicit = _eventTypeLabels[eventType];
-    if (explicit) return explicit;
-    var i18nKey = 'event_type_' + eventType;
-    return T[i18nKey] || eventType;
+    return T['event_type_' + eventType] || eventType;
 }
 
 function _eventSeverityMeta(ev) {
@@ -84,7 +69,7 @@ function _healthDot(h) {
     /* The analyzer stores "critical"; "poor" is the older name for the same level. */
     var level = h === 'poor' ? 'critical' : h;
     var classes = {good: 'good', tolerated: 'tolerated', marginal: 'marginal', critical: 'poor'};
-    var labels = {good: T.health_good || 'Good', tolerated: T.health_tolerated || 'Tolerated', marginal: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'};
+    var labels = {good: T.health_good, tolerated: T.health_tolerated, marginal: T.health_marginal, critical: T.health_critical};
     return '<span class="health-dot ' + (classes[level] || 'unknown') + '"></span>' + escapeHtml(labels[level] || h);
 }
 
@@ -112,7 +97,7 @@ function _cmTargetName(d) {
     var label = String(d.target_label || '').trim();
     var host = String(d.target_host || '').trim();
     if (label && host && label !== host) return label + ' (' + host + ')';
-    return label || host || _fillTemplate(T.event_target_id || 'Target ID {id}', {id: d.target_id != null ? d.target_id : '?'});
+    return label || host || _fillTemplate(T.event_target_id, {id: d.target_id != null ? d.target_id : '?'});
 }
 
 /* Rendered next to the event type, so the message names only the direction
@@ -128,7 +113,7 @@ function formatEventMessage(ev) {
                 _healthDot(d.current);
 
         case 'power_change': {
-            var dir = d.direction === 'downstream' ? (T.event_ds || 'DS') : (T.event_us || 'US');
+            var dir = d.direction === 'downstream' ? T.event_ds : T.event_us;
             var delta = d.current - d.prev;
             var sign = delta >= 0 ? '+' : '';
             return '<span class="ev-label">' + escapeHtml(dir) + '</span>' +
@@ -140,18 +125,18 @@ function formatEventMessage(ev) {
 
         case 'snr_change': {
             var thr = d.threshold === 'critical' ? 'ev-down' : 'ev-warn';
-            var html = '<span class="ev-label">' + escapeHtml(T.event_ds || 'DS') + '</span>' +
+            var html = '<span class="ev-label">' + escapeHtml(T.event_ds) + '</span>' +
                 '<span class="ev-val">' + _fmtNum(d.prev) + '</span>' +
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val ' + thr + '">' + _fmtNum(d.current) + '</span> dB ' +
-                '<span class="ev-muted">(' + escapeHtml({warning: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'}[d.threshold] || d.threshold) + ')</span>';
+                '<span class="ev-muted">(' + escapeHtml({warning: T.health_marginal, critical: T.health_critical}[d.threshold] || d.threshold) + ')</span>';
             var affectedRaw = Array.isArray(d.affected_channels) ? d.affected_channels : [];
             var affected = affectedRaw.filter(function(c) { return c && typeof c === 'object'; });
             var shown = affected.slice(0, 6);
             shown.forEach(function(c) {
                 var delta = typeof c.delta === 'number' ? c.delta : (c.current - c.prev);
                 var sign = delta >= 0 ? '+' : '';
-                var channelLabel = escapeHtml((T.event_ds || 'DS') + ' ' + (T.event_channel_short || 'Ch') + ' ' + c.channel);
+                var channelLabel = escapeHtml(T.event_ds + ' ' + T.event_channel_short + ' ' + c.channel);
                 var meta = _eventChannelMeta(c);
                 // The summary already shows these values; the line only names the channel.
                 if (c.prev === d.prev && c.current === d.current) {
@@ -167,13 +152,13 @@ function formatEventMessage(ev) {
                     '</span>';
             });
             if (affected.length > shown.length) {
-                html += '<span class="ev-sub ev-muted">+' + escapeHtml((T.channel_status_more || '{count} more channels').replace('{count}', affected.length - shown.length)) + '</span>';
+                html += '<span class="ev-sub ev-muted">+' + escapeHtml(T.channel_status_more.replace('{count}', affected.length - shown.length)) + '</span>';
             }
             return html;
         }
 
         case 'channel_change': {
-            var chDir = d.direction === 'downstream' ? (T.event_ds || 'DS') : (T.event_us || 'US');
+            var chDir = d.direction === 'downstream' ? T.event_ds : T.event_us;
             var chDelta = d.current - d.prev;
             var chCls = chDelta < 0 ? 'ev-down' : 'ev-up';
             var chSign = chDelta >= 0 ? '+' : '';
@@ -187,8 +172,8 @@ function formatEventMessage(ev) {
         case 'modulation_change': {
             var changes = d.changes || [];
             var isDown = d.direction === 'downgrade';
-            var summary = isDown ? (T.event_modulation_lower || 'Channels with lower modulation: {count}')
-                                 : (T.event_modulation_higher || 'Channels with higher modulation: {count}');
+            var summary = isDown ? T.event_modulation_lower
+                                 : T.event_modulation_higher;
             var html = '<span>' + escapeHtml(summary.replace('{count}', changes.length)) + '</span>';
             changes.forEach(function(c) {
                 var arrow = isDown ? '\u25BC' : '\u25B2';
@@ -196,12 +181,12 @@ function formatEventMessage(ev) {
                 var ranks = Math.abs(c.rank_drop || 0);
                 var channelMeta = _eventChannelMeta(c);
                 html += '<span class="ev-sub">' +
-                    escapeHtml(c.direction) + ' ' + escapeHtml(T.event_channel_short || 'Ch') + ' ' + escapeHtml(String(c.channel)) +
+                    escapeHtml(c.direction) + ' ' + escapeHtml(T.event_channel_short) + ' ' + escapeHtml(String(c.channel)) +
                     (channelMeta.length ? ' · ' + channelMeta.join(' · ') : '') + ': ' +
                     '<span class="ev-val">' + escapeHtml(c.prev) + '</span>' +
                     '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                     '<span class="ev-val">' + escapeHtml(c.current) + '</span> ' +
-                    '<span class="' + cls + '">' + arrow + ' ' + escapeHtml((T.event_qam_levels || '{count} QAM level(s)').replace('{count}', ranks)) + '</span>' +
+                    '<span class="' + cls + '">' + arrow + ' ' + escapeHtml(T.event_qam_levels.replace('{count}', ranks)) + '</span>' +
                     '</span>';
             });
             return html;
@@ -209,21 +194,21 @@ function formatEventMessage(ev) {
 
         case 'error_spike': {
             var spikeDelta = d.delta || (d.current - d.prev);
-            return '<span class="ev-val ev-warn">+' + _fmtNum(spikeDelta) + '</span> ' + (T.event_uncorrectable_errors || 'uncorrectable errors') + ' ' +
+            return '<span class="ev-val ev-warn">+' + _fmtNum(spikeDelta) + '</span> ' + T.event_uncorrectable_errors + ' ' +
                 '<span class="ev-muted">(' + _fmtNum(d.prev) + ' \u2192 ' + _fmtNum(d.current) + ')</span>';
         }
 
         case 'monitoring_started':
-            return escapeHtml(T.event_monitoring_started_msg || 'Monitoring started') + ' ' + _healthDot(d.health || 'unknown');
+            return escapeHtml(T.event_monitoring_started_msg) + ' ' + _healthDot(d.health || 'unknown');
 
         case 'smart_capture_triggered':
-            return escapeHtml((T.event_sc_speedtest || 'Speedtest triggered by {event}')
+            return escapeHtml(T.event_sc_speedtest
                 .replace('{event}', _eventTypeLabel(d.trigger_type || 'unknown')));
 
         case 'modem_restart_detected': {
-            var restart = escapeHtml(T.event_modem_restart_msg || 'Modem restart or counter reset detected');
+            var restart = escapeHtml(T.event_modem_restart_msg);
             if (Array.isArray(d.affected_channels) && d.total_channels) {
-                restart += ' <span class="ev-muted">(' + escapeHtml((T.event_channels_of || '{count} of {total} channels')
+                restart += ' <span class="ev-muted">(' + escapeHtml(T.event_channels_of
                     .replace('{count}', d.affected_channels.length).replace('{total}', d.total_channels)) + ')</span>';
             }
             return restart;
@@ -233,14 +218,14 @@ function formatEventMessage(ev) {
         case 'device_reboot': {
             var parts = [];
             if (ev.event_type === 'device_sw_update') {
-                parts.push(escapeHtml((T.event_firmware || 'Firmware') + ' ') + '<span class="ev-val">' + escapeHtml(d.old_sw || '?') + '</span>' +
+                parts.push(escapeHtml(T.event_firmware + ' ') + '<span class="ev-val">' + escapeHtml(d.old_sw || '?') + '</span>' +
                     '<i data-lucide="arrow-right" class="ev-arrow-icon"></i><span class="ev-val">' + escapeHtml(d.new_sw || '?') + '</span>');
             }
             if (typeof d.prior_uptime === 'number') {
-                parts.push(escapeHtml((T.event_prior_uptime || 'Prior uptime') + ' ' + _fmtUptime(d.prior_uptime)));
+                parts.push(escapeHtml(T.event_prior_uptime + ' ' + _fmtUptime(d.prior_uptime)));
             }
-            if (d.ip_changed) parts.push(escapeHtml(T.event_ip_changed || 'WAN IP changed'));
-            if (d.reboot_reason) parts.push(escapeHtml((T.event_reboot_reason || 'Reason') + ': ' + d.reboot_reason));
+            if (d.ip_changed) parts.push(escapeHtml(T.event_ip_changed));
+            if (d.reboot_reason) parts.push(escapeHtml(T.event_reboot_reason + ': ' + d.reboot_reason));
             return parts.length ? parts.join(' · ') : escapeHtml(_eventTypeLabel(ev.event_type));
         }
 
@@ -252,15 +237,15 @@ function formatEventMessage(ev) {
         }
 
         case 'cm_target_unreachable':
-            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_timeouts || '{count} consecutive timeouts',
+            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_timeouts,
                 {count: _fmtNumText(d.consecutive_timeouts)}));
 
         case 'cm_target_recovered':
-            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_recovered || 'reachable again after {count} timeouts',
+            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_recovered,
                 {count: _fmtNumText(d.was_down_for)}));
 
         case 'cm_packet_loss_warning':
-            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_packet_loss || '{loss} packet loss over {window}',
+            return escapeHtml(_cmTargetName(d) + ': ' + _fillTemplate(T.event_cm_packet_loss,
                 {loss: _fmtNumText(d.packet_loss_pct) + ' %', window: _fmtNumText(d.window_seconds) + ' s'}));
 
         default:
@@ -328,8 +313,8 @@ function filterEventsByDevice() {
 }
 
 /* ── Timeline: one row per event, grouped by day, repeated events collapsed ── */
-function _eventFmt(key, fallback, count) {
-    return String(T[key] || fallback).replace('{count}', String(count));
+function _eventFmt(key, count) {
+    return String(T[key]).replace('{count}', String(count));
 }
 
 function _eventLocale() {
@@ -361,8 +346,8 @@ function _eventDayParts(day) {
     }
     var today = _eventTodayKey();
     var yesterday = new Date(Date.parse(today + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
-    var name = day === today ? (T.event_today || 'Today')
-        : day === yesterday ? (T.event_yesterday || 'Yesterday')
+    var name = day === today ? T.event_today
+        : day === yesterday ? T.event_yesterday
         : format({weekday: 'short'});
     return {name: name, date: format({day: '2-digit', month: '2-digit', year: 'numeric'})};
 }
@@ -383,16 +368,16 @@ function _eventSelectable(events) {
 function _eventSelectBox(ids, label) {
     if (!ids.length) return '<span class="ev-select" aria-hidden="true"></span>';
     return '<label class="ev-select"><input type="checkbox" data-ids="' + ids.join(',') + '" aria-label="' +
-        escapeHtml((T.event_select || 'Select') + ': ' + label) + '"></label>';
+        escapeHtml(T.event_select + ': ' + label) + '"></label>';
 }
 
 function _eventAckButton(ids, label) {
     if (!ids.length) {
-        var done = escapeHtml(T.event_acknowledged || 'Acknowledged');
+        var done = escapeHtml(T.event_acknowledged);
         return '<span class="ev-ack-done" title="' + done + '"><i data-lucide="check-check" aria-hidden="true"></i>' +
             '<span class="sr-only">' + done + '</span></span>';
     }
-    var text = T.event_acknowledge || 'Acknowledge';
+    var text = T.event_acknowledge;
     return '<button type="button" class="ev-ack" data-ack="' + ids.join(',') + '" title="' + escapeHtml(text) +
         '" aria-label="' + escapeHtml(text + ': ' + label) + '"><i data-lucide="check" aria-hidden="true"></i></button>';
 }
@@ -425,7 +410,7 @@ function _eventRowHtml(ev, inRun) {
 
 /* A journal note at its day: no checkbox and no acknowledge, it opens the entry. */
 function _eventNoteHtml(note) {
-    var label = T.event_journal_note || 'Journal note';
+    var label = T.event_journal_note;
     var caseName = note.incident_id ? _eventCaseNames[note.incident_id] : '';
     return '<li class="ev-row ev-note" data-key="n' + note.id + '">' +
         '<span class="ev-select" aria-hidden="true"></span>' +
@@ -515,7 +500,7 @@ function _eventGroupHtml(group) {
     var newest = formatDocsightTime(group.newest.timestamp, 'time');
     var oldest = formatDocsightTime(group.oldest.timestamp, 'time');
     var span = oldest + '–' + newest;
-    var run = _eventFmt('event_run_count', '{count} in a row', group.events.length);
+    var run = _eventFmt('event_run_count', group.events.length);
     var label = type + ', ' + run + ', ' + span;
     var open = !!_eventsExpanded[group.key];
     var listId = 'event-group-' + group.key;
@@ -614,17 +599,17 @@ function _syncEventSelection() {
     var caseBtn = document.getElementById('btn-add-to-case');
     if (caseBtn) {
         caseBtn.hidden = !picked;
-        caseBtn.textContent = _eventFmt('event_add_to_case', 'Add to case… ({count})', picked);
+        caseBtn.textContent = _eventFmt('event_add_to_case', picked);
     }
     var selectedBtn = document.getElementById('btn-ack-selected');
     var visibleBtn = document.getElementById('btn-ack-visible');
     var summary = document.getElementById('events-summary');
     if (selectedBtn) {
         selectedBtn.hidden = !selected;
-        selectedBtn.textContent = _eventFmt('event_acknowledge_selected', 'Acknowledge selected ({count})', selected);
+        selectedBtn.textContent = _eventFmt('event_acknowledge_selected', selected);
     }
     if (visibleBtn) visibleBtn.hidden = !DOCSightEventLogData.unacknowledgedIds(_eventsLoaded).length;
-    if (summary) summary.textContent = _eventsLoaded.length ? _eventFmt('event_count_shown', '{count} events shown', _eventsLoaded.length) : '';
+    if (summary) summary.textContent = _eventsLoaded.length ? _eventFmt('event_count_shown', _eventsLoaded.length) : '';
 }
 
 /* Every selected event, acknowledged or not, newest first. */
@@ -643,12 +628,11 @@ function openAddToCase() {
     DOCSightCasePicker.open({
         startDate: first,
         endDate: last,
-        summary: _eventFmt(count === 1 ? 'event_add_to_case_one' : 'event_add_to_case_many',
-            count === 1 ? '1 event from {range}' : '{count} events from {range}', count).replace('{range}', range),
+        summary: _eventFmt(count === 1 ? 'event_add_to_case_one' : 'event_add_to_case_many', count).replace('{range}', range),
         name: _eventTypeLabel(events[0].event_type) + ' · ' + formatDocsightTime(first, 'date'),
         added: count === 1
-            ? (T.event_added_to_case_one || '1 event added to “{case}”')
-            : _eventFmt('event_added_to_case_many', '{count} events added to “{case}”', count),
+            ? T.event_added_to_case_one
+            : _eventFmt('event_added_to_case_many', count),
         onAdded: function() {
             events.forEach(function(ev) { delete _eventsSelected[ev.id]; });
             _syncEventSelection();
@@ -692,13 +676,13 @@ function acknowledgeEvents(ids, focusKey) {
         // Acknowledging applies at once; the toast offers to take it back instead of asking first.
         if (typeof showToast === 'function') {
             showToast(ids.length === 1
-                ? (T.event_ack_done_one || 'Event acknowledged')
-                : _eventFmt('event_ack_done_many', '{count} events acknowledged', ids.length), 'info', {
-                action: {label: T.undo || 'Undo', onClick: function() { undoEventAcknowledgements(ids, focusKey); }}
+                ? T.event_ack_done_one
+                : _eventFmt('event_ack_done_many', ids.length), 'info', {
+                action: {label: T.undo, onClick: function() { undoEventAcknowledgements(ids, focusKey); }}
             });
         }
     }).catch(function() {
-        if (typeof showToast === 'function') showToast(T.network_error || 'Error', 'error');
+        if (typeof showToast === 'function') showToast(T.network_error, 'error');
     });
 }
 
@@ -709,7 +693,7 @@ function undoEventAcknowledgements(ids, focusKey) {
         _focusEventRow(focusKey);
         refreshEventBadge();
     }).catch(function() {
-        if (typeof showToast === 'function') showToast(T.network_error || 'Error', 'error');
+        if (typeof showToast === 'function') showToast(T.network_error, 'error');
     });
 }
 
@@ -832,18 +816,18 @@ function _showEventsEmpty(empty) {
     if (_currentSeverityFilter || _deviceOnlyFilter) {
         DOCSightEmptyState.show(empty, {
             icon: 'sliders-horizontal',
-            title: T.event_empty_filtered_title || 'No events match these filters',
+            title: T.event_empty_filtered_title,
             text: T.event_empty_filtered_text,
-            action: {label: T.event_empty_reset || 'Show all events', onClick: resetEventFilters},
+            action: {label: T.event_empty_reset, onClick: resetEventFilters},
             glossary: 'event_log'
         });
         return;
     }
     DOCSightEmptyState.show(empty, {
         icon: 'bell',
-        title: T.event_empty_title || 'No events yet',
+        title: T.event_empty_title,
         text: T.event_no_events,
-        action: {label: T.event_empty_action || 'Set up notifications', href: docsightUrl('/settings#notifications')},
+        action: {label: T.event_empty_action, href: docsightUrl('/settings#notifications')},
         glossary: 'event_log'
     });
 }
@@ -917,7 +901,7 @@ function loadHomeEvents() {
             if (!events.length) {
                 var empty = document.createElement('li');
                 empty.className = 'home-events-empty';
-                empty.textContent = current.dataset.empty || T.event_no_events || 'No events yet.';
+                empty.textContent = current.dataset.empty || T.event_no_events;
                 current.appendChild(empty);
                 return;
             }

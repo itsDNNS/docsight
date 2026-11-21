@@ -68,14 +68,14 @@ function exportForLLM() {
     var loadId = ++exportLoadId;
     exportRawText = '';
     textarea.value = T.export_no_data;
-    setStatusLine('export-status', T.export_loading || 'Loading export preview...', 'progress');
+    setStatusLine('export-status', T.export_loading, 'progress');
     updateExportSize();
     window.DOCSightModal.open('export-modal');
     fetch(docsightUrl('/api/export?mode=' + encodeURIComponent(mode)))
         .then(function(r) {
             return r.json().then(function(data) {
                 if (!r.ok || data.error) {
-                    throw new Error(data.error || (T.export_error || 'Error loading export data.'));
+                    throw new Error(data.error || T.export_error);
                 }
                 return data;
             });
@@ -84,11 +84,11 @@ function exportForLLM() {
             if (loadId !== exportLoadId || !isExportModalOpen()) return;
             exportRawText = data.text || '';
             refreshExportPreview();
-            setStatusLine('export-status', T.export_ready || 'Review the export before copying or downloading.', 'success');
+            setStatusLine('export-status', T.export_ready, 'success');
         })
         .catch(function(e) {
             if (loadId !== exportLoadId || !isExportModalOpen()) return;
-            var message = e && e.message ? e.message : (T.export_error || 'Error loading export data.');
+            var message = e && e.message ? e.message : T.export_error;
             textarea.value = message;
             updateExportSize();
             setStatusLine('export-status', message, 'error');
@@ -137,7 +137,7 @@ function updateExportSize() {
     if (!indicator || !textarea) return;
     var chars = textarea.value.length;
     var approxTokens = Math.max(1, Math.ceil(chars / 4));
-    indicator.textContent = chars.toLocaleString() + ' ' + (T.export_size_characters || 'characters') + ' · ~' + approxTokens.toLocaleString() + ' ' + (T.export_size_tokens || 'tokens');
+    indicator.textContent = chars.toLocaleString() + ' ' + T.export_size_characters + ' · ~' + approxTokens.toLocaleString() + ' ' + T.export_size_tokens;
 }
 function openBqmSetupModal() {
     window.DOCSightModal.open('bqm-setup-modal');
@@ -384,7 +384,7 @@ function copyComplaint() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textarea.value).then(function() {
             var orig = btn.innerHTML;
-            btn.innerHTML = docsightHTML('&#10003; ' + (T.copied || 'Copied!'));
+            btn.innerHTML = docsightHTML('&#10003; ' + T.copied);
             setStatusLine('report-builder-status', T.report_builder_copied || 'Letter text copied. Attach the PDF package when you contact your ISP.', 'success');
             setTimeout(function() { btn.innerHTML = docsightHTML(orig); }, 2000);
         });
@@ -402,9 +402,9 @@ function copyExport() {
     var text = textarea.value;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
-            btn.textContent = T.copied || 'Copied!';
-            setStatusLine('export-status', T.export_copied || 'Export copied. Review the destination before pasting sensitive diagnostics.', 'success');
-            setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 2000);
+            btn.textContent = T.copied;
+            setStatusLine('export-status', T.export_copied, 'success');
+            setTimeout(function() { btn.textContent = T.export_copy; }, 2000);
         }).catch(function() {
             fallbackCopy(textarea, btn, T);
         });
@@ -417,13 +417,13 @@ function fallbackCopy(textarea, btn, T) {
         textarea.select();
         textarea.setSelectionRange(0, textarea.value.length);
         document.execCommand('copy');
-        btn.textContent = T.copied || 'Copied!';
-        setStatusLine('export-status', T.export_copied || 'Export copied. Review the destination before pasting sensitive diagnostics.', 'success');
-        setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 2000);
+        btn.textContent = T.copied;
+        setStatusLine('export-status', T.export_copied, 'success');
+        setTimeout(function() { btn.textContent = T.export_copy; }, 2000);
     } catch(e) {
-        btn.textContent = T.copy_fallback || 'Select All + Ctrl+C';
-        setStatusLine('export-status', T.export_copy_error || 'Could not copy automatically. Select the text and copy it manually.', 'error');
-        setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 3000);
+        btn.textContent = T.copy_fallback;
+        setStatusLine('export-status', T.export_copy_error, 'error');
+        setTimeout(function() { btn.textContent = T.export_copy; }, 3000);
     }
 }
 function downloadExportMarkdown() {
@@ -436,7 +436,7 @@ function downloadExportMarkdown() {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    setStatusLine('export-status', T.export_download_ready || 'Download ready. Review the file before sharing it.', 'success');
+    setStatusLine('export-status', T.export_download_ready, 'success');
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
 function openSpeedtestSetupModal() {
@@ -455,8 +455,8 @@ function setStatusLine(statusId, message, type) {
 function copySetupSnippet(sourceId, statusId) {
     var source = document.getElementById(sourceId);
     var text = source ? source.textContent.trim() : '';
-    var copied = (T.setup_copied || 'Copied. Paste it into your setup notes or terminal when ready.');
-    var copyError = (T.setup_copy_error || 'Could not copy automatically. Select the snippet and copy it manually.');
+    var copied = T.setup_copied;
+    var copyError = T.setup_copy_error;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
             setStatusLine(statusId, copied, 'success');
@@ -473,5 +473,5 @@ function validateSetupGuidance(statusId, integration) {
         bqm: T.bqm_setup_validation_path || 'BQM can be validated in BQM settings after the share URL is saved. DOCSight checks the saved share URL before importing graphs.',
         smokeping: T.smokeping_setup_validation_path || 'SmokePing validation depends on the saved base URL and target in SmokePing settings. Save those values first, then refresh this view to confirm live data.'
     };
-    setStatusLine(statusId, messages[integration] || (T.setup_guidance_ready || 'Open Settings, save the integration details, then use the settings test or refresh this view to confirm live data.'), 'progress');
+    setStatusLine(statusId, messages[integration] || T.setup_guidance_ready, 'progress');
 }

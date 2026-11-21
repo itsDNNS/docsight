@@ -7,26 +7,26 @@
                     <i data-lucide="gauge"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t['docsight.speedtest.speedtest_tracker'] or 'Speedtest Tracker' }}</div>
-                    <div class="card-subtitle">{{ t.optional }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Speedtest-Tracker-Setup" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-title">{{ t['docsight.speedtest.speedtest_tracker'] }}</div>
+                    <div class="card-subtitle">{{ t.optional }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Speedtest-Tracker-Setup" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
         <div class="form-grid cols-2">
             <div class="form-field form-grid-full">
-                <label class="form-label" for="speedtest_tracker_url">{{ t['docsight.speedtest.speedtest_url'] or 'Speedtest Tracker URL' }}</label>
+                <label class="form-label" for="speedtest_tracker_url">{{ t['docsight.speedtest.speedtest_url'] }}</label>
                 <input class="form-input" type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
-                <span class="form-hint">{{ t['docsight.speedtest.speedtest_url_hint'] or 'Base URL of your Speedtest Tracker instance' }}</span>
+                <span class="form-hint">{{ t['docsight.speedtest.speedtest_url_hint'] }}</span>
             </div>
             <div class="form-field form-grid-full">
-                <label class="form-label" for="speedtest_tracker_token">{{ t['docsight.speedtest.speedtest_token'] or 'API Token' }}</label>
+                <label class="form-label" for="speedtest_tracker_token">{{ t['docsight.speedtest.speedtest_token'] }}</label>
                 <input class="form-input" type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}"{% if config.speedtest_tracker_token %} data-saved-secret="true"{% endif %}>
-                <span class="form-hint">{{ t['docsight.speedtest.speedtest_token_hint'] or 'Bearer token from Speedtest Tracker settings' }}</span>
+                <span class="form-hint">{{ t['docsight.speedtest.speedtest_token_hint'] }}</span>
             </div>
             <div class="toggle-row form-grid-full">
                 <div class="toggle-info">
-                    <span class="toggle-title" id="speedtest_tls_insecure-title">{{ t['docsight.speedtest.speedtest_tls_insecure'] or 'Insecure TLS' }}</span>
-                    <span class="toggle-desc">{{ t['docsight.speedtest.speedtest_tls_insecure_hint'] or 'Skip TLS certificate verification for self-signed HTTPS certificates' }}</span>
+                    <span class="toggle-title" id="speedtest_tls_insecure-title">{{ t['docsight.speedtest.speedtest_tls_insecure'] }}</span>
+                    <span class="toggle-desc">{{ t['docsight.speedtest.speedtest_tls_insecure_hint'] }}</span>
                 </div>
                 <input type="hidden" name="speedtest_tls_insecure" value="false">
                 <label class="toggle" for="speedtest_tls_insecure">
@@ -37,11 +37,11 @@
             <div class="form-field form-grid-full settings-test-row">
                 <button type="button" class="btn btn-secondary" data-action="testSpeedtest">
                     <i data-lucide="plug-zap"></i>
-                    {{ t.test_connection or 'Test Connection' }}
+                    {{ t.test_connection }}
                 </button>
-                <button type="button" id="speedtest_clear_cache" class="btn btn-secondary" data-action="clearSpeedtestCache" data-action-pass="element" title="{{ t['docsight.speedtest.clear_cache_hint'] or 'Delete cached results and re-sync from Speedtest Tracker' }}">
+                <button type="button" id="speedtest_clear_cache" class="btn btn-secondary" data-action="clearSpeedtestCache" data-action-pass="element" title="{{ t['docsight.speedtest.clear_cache_hint'] }}">
                     <i data-lucide="trash-2"></i>
-                    {{ t['docsight.speedtest.clear_cache'] or 'Clear Cache' }}
+                    {{ t['docsight.speedtest.clear_cache'] }}
                 </button>
                 <div class="test-result" id="speedtest-test"></div>
             </div>

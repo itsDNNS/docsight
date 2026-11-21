@@ -43,11 +43,11 @@
         head.className = 'ls-detail-head';
         var title = document.createElement('span');
         title.className = 'ls-detail-title';
-        title.textContent = (T.line_status_last_day || 'Last 24 hours') + ' · ' + seg.getAttribute('aria-label');
+        title.textContent = T.line_status_last_day + ' · ' + seg.getAttribute('aria-label');
         var dismiss = document.createElement('button');
         dismiss.type = 'button';
         dismiss.className = 'ls-detail-close';
-        dismiss.setAttribute('aria-label', T.close || 'Close');
+        dismiss.setAttribute('aria-label', T.close);
         dismiss.textContent = '×';
         dismiss.addEventListener('click', function() { close(panel, true); });
         var stepper = document.createElement('span');
@@ -55,8 +55,8 @@
         var list = segments(strip(seg));
         var index = list.indexOf(seg);
         // Segments are narrow on phones; stepping is easier than hitting the neighbour.
-        [[-1, '\u2039', T.line_status_previous_channel || 'Previous channel'],
-         [1, '\u203a', T.line_status_next_channel || 'Next channel']].forEach(function(step) {
+        [[-1, '\u2039', T.line_status_previous_channel],
+         [1, '\u203a', T.line_status_next_channel]].forEach(function(step) {
             var target = list[index + step[0]];
             var button = document.createElement('button');
             button.type = 'button';

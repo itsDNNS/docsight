@@ -9,7 +9,7 @@
             <button class="modal-close" data-action="closeEntryModal" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div class="modal-body">
-            <p class="incident-modal-intro">{{ t.get('entry_modal_intro', 'Capture what happened and link the evidence DOCSight can turn into an ISP-ready timeline.') }}</p>
+            <p class="incident-modal-intro">{{ t.entry_modal_intro }}</p>
             <input type="hidden" id="entry-id">
             <div class="incident-form-group">
                 <label class="form-label" for="entry-date">{{ t.incident_date }}</label>
@@ -21,13 +21,13 @@
             </div>
             <div class="incident-form-group">
                 <label class="form-label">{{ t.icon }}</label>
-                <p class="incident-field-hint">{{ t.get('entry_icon_hint', 'Choose a visible category such as outage, packet loss, speed degradation, maintenance, or contact with your ISP.') }}</p>
+                <p class="incident-field-hint">{{ t.entry_icon_hint }}</p>
                 <input type="hidden" id="entry-icon-value">
                 <div class="icon-picker" id="entry-icon-picker"></div>
             </div>
             <div class="incident-form-group">
                 <label class="form-label" for="entry-desc">{{ t.incident_description }}</label>
-                <p class="incident-field-hint">{{ t.get('entry_description_hint', 'Add concrete symptoms, times, support references, modem states, or what changed for the connection.') }}</p>
+                <p class="incident-field-hint">{{ t.entry_description_hint }}</p>
                 <textarea id="entry-desc" class="form-input" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
             </div>
             <div class="incident-form-group">
@@ -38,7 +38,7 @@
             </div>
             <div class="incident-form-group" id="entry-attachments-section">
                 <label class="form-label">{{ t.attachments }}</label>
-                <p class="incident-field-hint">{{ t.get('entry_evidence_hint', 'Evidence can include modem screenshots, BQM images, Speedtest results, SmokePing charts, or support letters.') }}</p>
+                <p class="incident-field-hint">{{ t.entry_evidence_hint }}</p>
                 <div class="attachment-list" id="entry-attachment-list"></div>
                 <button class="btn-upload" id="entry-upload-btn" data-click-target="#entry-file-input">
                     &#128206; {{ t.upload_file }}
@@ -54,7 +54,7 @@
                 <button class="btn btn-danger" id="entry-delete-btn" data-action="deleteEntry" hidden>{{ t.delete_incident }}</button>
             </div>
             <button class="btn btn-secondary" data-action="closeEntryModal">{{ t.cancel }}</button>
-            <button class="btn btn-primary" id="entry-save-btn" data-action="saveEntry">{{ t.get('entry_create_action', 'Create entry') }}</button>
+            <button class="btn btn-primary" id="entry-save-btn" data-action="saveEntry">{{ t.entry_create_action }}</button>
         </div>
     </div>
 </dialog>
@@ -67,7 +67,7 @@
             <button class="modal-close" data-action="closeIncidentModal" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div class="modal-body">
-            <p class="incident-modal-intro">{{ t.get('incident_modal_intro', 'Group related entries and evidence so DOCSight can build one clear incident timeline and report path.') }}</p>
+            <p class="incident-modal-intro">{{ t.incident_modal_intro }}</p>
             <input type="hidden" id="incident-container-id">
             <div class="incident-form-group">
                 <label class="form-label" for="incident-container-name">{{ t.incident_name }}</label>
@@ -93,7 +93,7 @@
             </div>
             <div class="incident-form-group">
                 <label class="form-label">{{ t.icon }}</label>
-                <p class="incident-field-hint">{{ t.get('incident_icon_hint', 'Pick the category users will recognize later in filters, timelines, and exports.') }}</p>
+                <p class="incident-field-hint">{{ t.incident_icon_hint }}</p>
                 <input type="hidden" id="incident-container-icon-value">
                 <div class="icon-picker" id="incident-container-icon-picker"></div>
             </div>
@@ -102,16 +102,16 @@
                 <textarea id="incident-container-desc" class="form-input" maxlength="5000" placeholder="{{ t.incident_description }}"></textarea>
             </div>
             <div class="incident-form-group" id="incident-container-entry-count-section" hidden>
-                <label class="form-label">{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
+                <label class="form-label">{{ t.incident_linked_evidence }}</label>
                 <div class="incident-evidence-summary">
                     <span id="incident-container-entry-count"></span>
-                    <span>{{ t.get('incident_linked_entries_hint', 'journal entries linked to this incident') }}</span>
+                    <span>{{ t.incident_linked_entries_hint }}</span>
                 </div>
-                <button type="button" class="btn btn-sm btn-primary" id="incident-container-report-btn" data-action="openIncidentReportFromModal">{{ t.get('incident_build_report', 'Build report') }}</button>
+                <button type="button" class="btn btn-sm btn-primary" id="incident-container-report-btn" data-action="openIncidentReportFromModal">{{ t.incident_build_report }}</button>
             </div>
             <div class="incident-form-group" id="incident-container-empty-evidence-section">
-                <label class="form-label">{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
-                <p class="incident-field-hint">{{ t.get('incident_empty_evidence_hint', 'Assign journal entries, screenshots, modem snapshots, BQM images, Speedtest results, or SmokePing charts as the incident develops.') }}</p>
+                <label class="form-label">{{ t.incident_linked_evidence }}</label>
+                <p class="incident-field-hint">{{ t.incident_empty_evidence_hint }}</p>
             </div>
         </div>
         <div class="modal-footer">
@@ -119,7 +119,7 @@
                 <button class="btn btn-danger" id="incident-container-delete-btn" data-action="deleteIncident" hidden>{{ t.delete_incident }}</button>
             </div>
             <button class="btn btn-secondary" data-action="closeIncidentModal">{{ t.cancel }}</button>
-            <button class="btn btn-primary" id="incident-container-save-btn" data-action="saveIncident">{{ t.get('incident_create_action', 'Create incident') }}</button>
+            <button class="btn btn-primary" id="incident-container-save-btn" data-action="saveIncident">{{ t.incident_create_action }}</button>
         </div>
     </div>
 </dialog>
@@ -141,7 +141,7 @@
                 </svg>
                 <p>{{ t.import_upload_hint }}</p>
                 <p class="import-file-types">{{ t.import_file_types }}</p>
-                <button type="button" class="btn btn-secondary import-browse-btn">{{ t.get('import_browse_file', 'Browse CSV or Excel file') }}</button>
+                <button type="button" class="btn btn-secondary import-browse-btn">{{ t.import_browse_file }}</button>
                 <input type="file" id="import-file-input" hidden accept=".xlsx,.csv">
             </div>
             <div id="import-validation-state" class="import-validation-state" role="status" aria-live="polite"></div>

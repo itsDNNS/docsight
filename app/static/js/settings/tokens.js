@@ -36,7 +36,7 @@ function loadApiTokens() {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'btn btn-secondary btn-sm';
-            btn.textContent = T.api_token_revoke || 'Revoke';
+            btn.textContent = T.api_token_revoke;
             btn.setAttribute('data-token-id', tk.id);
             btn.setAttribute('data-token-name', tk.name);
             btn.addEventListener('click', function() {
@@ -60,30 +60,30 @@ function createApiToken() {
         body: JSON.stringify({name: name})
     }).then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
     .then(function(res) {
-        if (!res.ok) { showToast(res.data.error || (T.error_prefix || 'Error'), false); return; }
+        if (!res.ok) { showToast(res.data.error || T.error_prefix, false); return; }
         inp.value = '';
         var banner = document.getElementById('api-token-created-banner');
         document.getElementById('api-token-plaintext').textContent = res.data.token;
         banner.hidden = false;
         loadApiTokens();
         if (typeof lucide !== 'undefined') lucide.createIcons();
-    }).catch(function() { showToast(T.error_prefix || 'Error', false); });
+    }).catch(function() { showToast(T.error_prefix, false); });
 }
 
 function copyToken() {
     var text = document.getElementById('api-token-plaintext').textContent;
     navigator.clipboard.writeText(text).then(function() {
-        showToast(T.api_token_copied || 'Token copied!', true);
+        showToast(T.api_token_copied, true);
     });
 }
 
 function revokeToken(id, name) {
-    var msg = (T.api_token_revoke_confirm || 'Revoke token "{name}"?').replace('{name}', name);
+    var msg = T.api_token_revoke_confirm.replace('{name}', name);
     docsightConfirm({
-        title: T.api_token_revoke || 'Revoke token',
+        title: T.api_token_revoke,
         message: msg,
-        confirmText: T.revoke || 'Revoke',
-        cancelText: T.cancel || 'Cancel',
+        confirmText: T.revoke,
+        cancelText: T.cancel,
         danger: true
     }).then(function(confirmed) {
         if (!confirmed) return null;
@@ -93,13 +93,13 @@ function revokeToken(id, name) {
     .then(function(data) {
         if (!data) return;
         if (data.success) {
-            showToast(T.api_token_revoked || 'Token revoked', true);
+            showToast(T.api_token_revoked, true);
             document.getElementById('api-token-created-banner').hidden = true;
             loadApiTokens();
         } else {
-            showToast(data.error || (T.error_prefix || 'Error'), false);
+            showToast(data.error || T.error_prefix, false);
         }
-    }).catch(function() { showToast(T.error_prefix || 'Error', false); });
+    }).catch(function() { showToast(T.error_prefix, false); });
 }
 return {loadApiTokens, createApiToken, copyToken};
 };

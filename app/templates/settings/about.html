@@ -5,20 +5,20 @@
                 <i data-lucide="info"></i>
             </div>
             <div>
-                <div class="card-title">{{ t.get('about_project', 'About Project') }}</div>
-                <div class="card-subtitle">{{ t.get('about_project_subtitle', 'Version, project notices, and privacy model') }}</div>
+                <div class="card-title">{{ t.about_project }}</div>
+                <div class="card-subtitle">{{ t.about_project_subtitle }}</div>
             </div>
         </div>
     </div>
 
     <div class="about-meta-grid">
         <div class="about-meta-item">
-            <span class="about-meta-label">{{ t.get('project_version', 'Version') }}</span>
+            <span class="about-meta-label">{{ t.project_version }}</span>
             <strong>{{ app_version }}</strong>
         </div>
         <div class="about-meta-item">
-            <span class="about-meta-label">{{ t.get('notice_delivery', 'Notice delivery') }}</span>
-            <strong>{{ t.get('notice_delivery_local', 'Bundled with this release') }}</strong>
+            <span class="about-meta-label">{{ t.notice_delivery }}</span>
+            <strong>{{ t.notice_delivery_local }}</strong>
         </div>
     </div>
 </div>
@@ -30,8 +30,8 @@
                 <i data-lucide="megaphone"></i>
             </div>
             <div>
-                <div class="card-title">{{ t.get('maintainer_notices', 'Maintainer notices') }}</div>
-                <div class="card-subtitle">{{ t.get('maintainer_notices_subtitle', 'Bundled project updates from the DOCSight maintainer') }}</div>
+                <div class="card-title">{{ t.maintainer_notices }}</div>
+                <div class="card-subtitle">{{ t.maintainer_notices_subtitle }}</div>
             </div>
         </div>
     </div>
@@ -51,7 +51,7 @@
                 <a class="notice-link" href="{{ notice.link_url }}" target="_blank" rel="noopener noreferrer">{{ notice.link_label }}</a>
                 {% endif %}
             </div>
-            <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [notice.id]|tojson }}' aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+            <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [notice.id]|tojson }}' aria-label="{{ t.notice_dismiss }}">
                 <i data-lucide="x"></i>
             </button>
         </article>
@@ -60,7 +60,7 @@
     {% else %}
     <div class="empty-state compact">
         <i data-lucide="check-circle"></i>
-        <p>{{ t.get('no_active_notices', 'No active maintainer notices.') }}</p>
+        <p>{{ t.no_active_notices }}</p>
     </div>
     {% endif %}
 </div>
@@ -72,8 +72,8 @@
                 <i data-lucide="lock"></i>
             </div>
             <div>
-                <div class="card-title">{{ t.get('notice_privacy_title', 'Privacy model') }}</div>
-                <div class="card-subtitle">{{ t.get('notice_privacy_body', 'Maintainer notices are bundled with DOCSight and evaluated locally. DOCSight does not fetch a remote notices feed, render remote HTML, or send telemetry when showing or dismissing notices.') }}</div>
+                <div class="card-title">{{ t.notice_privacy_title }}</div>
+                <div class="card-subtitle">{{ t.notice_privacy_body }}</div>
             </div>
         </div>
     </div>
@@ -87,15 +87,15 @@
                 <i data-lucide="refresh-cw"></i>
             </div>
             <div>
-                <div class="card-title">{{ t.get('release_update_checks', 'Release update checks') }}</div>
-                <div class="card-subtitle">{{ t.get('release_update_checks_desc', 'Control outbound checks for new DOCSight releases') }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#general" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                <div class="card-title">{{ t.release_update_checks }}</div>
+                <div class="card-subtitle">{{ t.release_update_checks_desc }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#general" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
             </div>
         </div>
     </div>
     <div class="toggle-row">
         <div class="toggle-info">
-            <span class="toggle-title" id="update_check_enabled-title">{{ t.get('release_update_checks_toggle', 'Check GitHub releases') }}</span>
-            <span class="toggle-desc">{{ t.get('release_update_checks_hint', 'When enabled, DOCSight checks the public GitHub releases API for newer versions. This is disabled by default and does not upload modem data, logs, credentials, analytics, or an installation ID.') }}</span>
+            <span class="toggle-title" id="update_check_enabled-title">{{ t.release_update_checks_toggle }}</span>
+            <span class="toggle-desc">{{ t.release_update_checks_hint }}</span>
         </div>
         <input type="hidden" name="update_check_enabled" value="false">
         <label class="toggle">

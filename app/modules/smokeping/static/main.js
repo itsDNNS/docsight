@@ -8,15 +8,15 @@ var SMOKEPING_SPANS = {
     '3d': '10d', '7d': '10d', '30d': '1y', '90d': '1y'
 };
 var SMOKEPING_SPAN_LABELS = {
-    '3h': ['smokeping_span_3h', 'last 3 hours'],
-    '30h': ['smokeping_span_30h', 'last 30 hours'],
-    '10d': ['smokeping_span_10d', 'last 10 days'],
-    '1y': ['smokeping_span_1y', 'last year']
+    '3h': 'smokeping_span_3h',
+    '30h': 'smokeping_span_30h',
+    '10d': 'smokeping_span_10d',
+    '1y': 'smokeping_span_1y'
 };
 var _smokepingRange = '1d';
 
-function _smokepingText(key, fallback) {
-    return T[key] || T['docsight.smokeping.' + key] || fallback;
+function _smokepingText(key) {
+    return T[key] || T['docsight.smokeping.' + key];
 }
 
 (function() {
@@ -44,11 +44,11 @@ function _smokepingFrame(target, span, sourceLink) {
     var label = SMOKEPING_SPAN_LABELS[span];
     var windowEl = document.createElement('span');
     windowEl.className = 'graph-frame-window';
-    windowEl.textContent = _smokepingText(label[0], label[1]);
+    windowEl.textContent = _smokepingText(label);
     head.appendChild(windowEl);
     var note = document.createElement('span');
     note.className = 'graph-frame-note';
-    note.textContent = _smokepingText('smokeping_closest_to', 'closest to {range}').replace('{range}', _smokepingRange);
+    note.textContent = _smokepingText('smokeping_closest_to').replace('{range}', _smokepingRange);
     head.appendChild(note);
     frame.appendChild(head);
 
@@ -62,7 +62,7 @@ function _smokepingFrame(target, span, sourceLink) {
     img.onerror = function() {
         var fallback = document.createElement('p');
         fallback.className = 'graph-frame-message';
-        fallback.textContent = _smokepingText('smokeping_no_data', 'Could not load graph.');
+        fallback.textContent = _smokepingText('smokeping_no_data');
         body.replaceChildren(fallback);
     };
     paper.appendChild(img);
@@ -72,7 +72,7 @@ function _smokepingFrame(target, span, sourceLink) {
     var foot = document.createElement('div');
     foot.className = 'graph-frame-foot';
     var source = document.createElement('span');
-    source.textContent = _smokepingText('smokeping_frame_source', 'SmokePing draws 3 h, 30 h, 10 d or 1 y');
+    source.textContent = _smokepingText('smokeping_frame_source');
     foot.appendChild(source);
     if (sourceLink) {
         // The address comes from the server-rendered link; only the target is added here.
@@ -102,10 +102,10 @@ function loadSmokepingGraphs() {
             if (!targets || targets.length === 0) {
                 DOCSightEmptyState.show(noData, {
                     icon: 'radar',
-                    title: T.smokeping_empty_title || 'No SmokePing targets configured',
+                    title: T.smokeping_empty_title,
                     text: T.smokeping_empty_text,
                     action: {
-                        label: T.smokeping_empty_action || 'Open SmokePing settings',
+                        label: T.smokeping_empty_action,
                         href: docsightUrl('/settings#mod-docsight_smokeping')
                     },
                     glossary: 'smokeping'

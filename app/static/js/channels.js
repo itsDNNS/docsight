@@ -302,12 +302,12 @@ var _channelStatusRequestSeq = 0;
 
 function _channelStatusWord(health) {
     var words = {
-        good: T.health_good || 'Good',
-        tolerated: T.health_tolerated || 'Tolerated',
-        warning: T.health_marginal || 'Marginal',
-        critical: T.health_critical || 'Critical'
+        good: T.health_good,
+        tolerated: T.health_tolerated,
+        warning: T.health_marginal,
+        critical: T.health_critical
     };
-    return words[health] || (T.channel_status_no_data || 'No data');
+    return words[health] || T.channel_status_no_data;
 }
 
 function _channelStatusNumber(value) {
@@ -336,7 +336,7 @@ function _channelStatusShape(health) {
 }
 
 function _channelStatusTarget(m) {
-    var target = T.line_status_target || 'Target';
+    var target = T.line_status_target;
     if (m.target_max === null || m.target_max === undefined) {
         return target + ' ≥ ' + _channelStatusNumber(m.target_min) + ' ' + m.unit;
     }
@@ -345,7 +345,7 @@ function _channelStatusTarget(m) {
 
 function _channelStatusDelta(row) {
     var m = row.measurement;
-    if (row.health === 'good') return T.channel_status_within_now || 'within target now';
+    if (row.health === 'good') return T.channel_status_within_now;
     if (!m || !m.delta) return row.modulation || _channelStatusWord(row.health);
     var key = m.delta < 0 ? 'line_status_below_target' : 'line_status_above_target';
     var fallback = m.delta < 0 ? '{delta} dB below target' : '{delta} dB above target';
@@ -365,7 +365,7 @@ function _channelStatusCells(cells, ctx, since) {
         bracket.style.left = since.pct + '%';
         bracket.style.width = (100 - since.pct) + '%';
         bracket.appendChild(_channelStatusEl('span', 'cs-since-label',
-            (T.channel_status_since || 'since {time}').replace('{time}', since.time)));
+            T.channel_status_since.replace('{time}', since.time)));
         wrap.appendChild(bracket);
     }
     return wrap;
@@ -373,18 +373,18 @@ function _channelStatusCells(cells, ctx, since) {
 
 /* Past windows (closed cases) show the state at their end, not the current one. */
 function _channelStatusAtEnd(current, ctx) {
-    if (!ctx.endsNow) current.appendChild(_channelStatusEl('small', 'cs-at-end', T.channel_status_at_end || 'At the end of the period'));
+    if (!ctx.endsNow) current.appendChild(_channelStatusEl('small', 'cs-at-end', T.channel_status_at_end));
 }
 
 function _channelStatusRow(direction, row, ctx) {
     var short = direction === 'ds' ? 'DS' : 'US';
-    var name = short + ' · ' + (T.line_status_channel || 'Channel') + ' ' + row.channel_id;
+    var name = short + ' · ' + T.line_status_channel + ' ' + row.channel_id;
     var button = _channelStatusEl('button', 'cs-row cs-row-' + row.health);
     button.type = 'button';
     button.dataset.direction = direction;
     button.dataset.channelId = row.channel_id;
     // The visible text stays part of the name; the action and the state are added for screen readers.
-    var action = (T.channel_status_open || 'Open charts for {channel}').split('{channel}');
+    var action = T.channel_status_open.split('{channel}');
     if (action[0]) button.appendChild(_channelStatusEl('span', 'sr-only', action[0]));
 
     var label = _channelStatusEl('span', 'cs-label', name);
@@ -425,8 +425,8 @@ function _channelStatusAggregate(block, ctx) {
     var steady = cells.every(function(cell) { return cell === null || cell === 'good'; });
     var count = block.others.length;
     var title = block.deviating.length
-        ? (T.channel_status_more || '{count} more channels').replace('{count}', count)
-        : (T.channel_status_all || 'All {count} channels').replace('{count}', count);
+        ? T.channel_status_more.replace('{count}', count)
+        : T.channel_status_all.replace('{count}', count);
     var listId = ctx.idPrefix + '-others-' + block.key;
 
     var button = _channelStatusEl('button', 'cs-row cs-aggregate');
@@ -435,8 +435,8 @@ function _channelStatusAggregate(block, ctx) {
     button.setAttribute('aria-controls', listId);
     var label = _channelStatusEl('span', 'cs-label', title);
     label.appendChild(_channelStatusEl('small', null, steady
-        ? (T.channel_status_steady || 'Within target throughout')
-        : (T.channel_status_worst || 'Worst state per interval')));
+        ? T.channel_status_steady
+        : T.channel_status_worst));
     button.appendChild(label);
     button.appendChild(_channelStatusCells(cells, ctx, null));
     var current = _channelStatusEl('span', 'cs-current');
@@ -467,7 +467,7 @@ function _channelStatusAxis(ctx, cellCount) {
     [0, 0.25, 0.5, 0.75].forEach(function(frac) {
         ticks.appendChild(_channelStatusEl('span', null, ctx.label(Math.round(frac * cellCount))));
     });
-    ticks.appendChild(_channelStatusEl('span', null, ctx.endsNow ? (T.channel_status_now || 'now') : ctx.label(cellCount)));
+    ticks.appendChild(_channelStatusEl('span', null, ctx.endsNow ? T.channel_status_now : ctx.label(cellCount)));
     axis.appendChild(ticks);
     axis.appendChild(_channelStatusEl('span'));
     return axis;
@@ -499,8 +499,8 @@ function renderStatusTrack(body, data, options) {
         var section = _channelStatusEl('section', 'cs-direction');
         section.dataset.direction = block.key;
         var heading = _channelStatusEl('h4', 'cs-direction-title',
-            (block.key === 'ds' ? (T.downstream || 'Downstream') : (T.upstream || 'Upstream'))
-            + ' · ' + block.total + ' ' + (T.channels || 'Channels'));
+            (block.key === 'ds' ? T.downstream : T.upstream)
+            + ' · ' + block.total + ' ' + T.channels);
         section.appendChild(heading);
         var rows = _channelStatusEl('div', 'cs-rows');
         block.deviating.forEach(function(row) { rows.appendChild(_channelStatusRow(block.key, row, ctx)); });
@@ -515,7 +515,7 @@ function renderStatusTrack(body, data, options) {
 }
 
 function _channelStatusCellText(data) {
-    return (T.channel_status_cell || 'One cell = {duration}').replace('{duration}', _channelStatusDuration(data.cell_minutes));
+    return T.channel_status_cell.replace('{duration}', _channelStatusDuration(data.cell_minutes));
 }
 
 function renderChannelStatus(data, range, failed) {
@@ -531,7 +531,7 @@ function renderChannelStatus(data, range, failed) {
     } else {
         DOCSightEmptyState.showRange(empty, {
             tabs: 'channel-status-time-tabs',
-            text: T.channel_status_empty || 'No channel snapshots in this time range yet.',
+            text: T.channel_status_empty,
             glossary: 'channel_timeline'
         });
     }
@@ -628,7 +628,7 @@ function loadStatusTrack(container, query, options) {
             });
             meta.textContent = shown
                 ? _channelStatusCellText(data)
-                : (T.channel_status_empty || 'No channel snapshots in this time range yet.');
+                : T.channel_status_empty;
             meta.classList.toggle('cs-window-empty', !shown);
             return shown;
         });
@@ -668,7 +668,7 @@ function loadChannelDayTrack(container, direction, selector) {
         var row = block && block.deviating.concat(block.others).filter(function(r) { return r.selector === selector; })[0];
         if (!row) {
             container.appendChild(_channelStatusEl('p', 'cs-window cs-window-empty',
-                T.channel_status_empty || 'No channel snapshots in this time range yet.'));
+                T.channel_status_empty));
             return false;
         }
         var ctx = _statusTrackContext(data, {
@@ -698,12 +698,12 @@ function loadChannelList(callback) {
     fetch(docsightUrl('/api/channels'))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            sel.innerHTML = docsightHTML('<option value="">' + (T.select_channel || 'Select Channel') + '</option>');
+            sel.innerHTML = docsightHTML('<option value="">' + T.select_channel + '</option>');
             var ds = data.ds_channels || [];
             var us = data.us_channels || [];
             if (ds.length) {
                 var grp = document.createElement('optgroup');
-                grp.label = T.downstream_channels || 'Downstream Channels';
+                grp.label = T.downstream_channels;
                 ds.forEach(function(ch) {
                     var ref = _channelReference(ch);
                     var opt = document.createElement('option');
@@ -721,7 +721,7 @@ function loadChannelList(callback) {
             }
             if (us.length) {
                 var grp2 = document.createElement('optgroup');
-                grp2.label = T.upstream_channels || 'Upstream Channels';
+                grp2.label = T.upstream_channels;
                 us.forEach(function(ch) {
                     var ref = _channelReference(ch);
                     var opt = document.createElement('option');
@@ -772,11 +772,11 @@ function _powerOffsetHint(ch) {
     var hint = document.createElement('span');
     hint.className = 'glossary-hint power-offset-hint';
     hint.setAttribute('data-glossary-term-id', 'power_level');
-    hint.setAttribute('data-glossary-term-label', T.glossary_page_title || 'Glossary');
+    hint.setAttribute('data-glossary-term-label', T.glossary_page_title);
     hint.textContent = (offset > 0 ? '+' : '') + offset + ' dB';
     var popover = document.createElement('div');
     popover.className = 'glossary-popover';
-    popover.textContent = (T.power_offset_note || 'The modem shows {shown} dBmV here. It displays this channel {offset} dB lower than the reference the thresholds use, so DOCSight adds {offset} dB.')
+    popover.textContent = T.power_offset_note
         .replace('{shown}', (ch.power - offset).toFixed(1)).split('{offset}').join(String(offset));
     hint.appendChild(popover);
     if (typeof window.initGlossaryHints === 'function') setTimeout(window.initGlossaryHints, 0);
@@ -874,7 +874,7 @@ function _updateChannelInfoBar(ref) {
     }
     bar.appendChild(_makeInfoItem('DOCSIS ' + (ch.docsis_version || '3.0')));
     bar.appendChild(_makeInfoSep());
-    if (ch.power != null) bar.appendChild(_makeInfoItemWithLabel(T.th_power || 'Power', ch.power, 'dBmV'));
+    if (ch.power != null) bar.appendChild(_makeInfoItemWithLabel(T.th_power, ch.power, 'dBmV'));
     if (ch.power != null && ch.modem_power_offset_db) bar.appendChild(_powerOffsetHint(ch));
     if (ch.snr != null) bar.appendChild(_makeInfoItemWithLabel('SNR', ch.snr, 'dB'));
     bar.appendChild(_makeInfoSep());
@@ -906,24 +906,24 @@ function _renderChannelTimelineCharts() {
         tempByTimestamp = {};
         data.forEach(function(d, idx) { tempByTimestamp[d.timestamp] = _lastChannelWeather[idx]; });
     }
-    var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0', showPoints: false}];
+    var powerDatasets = [{label: T.power_dbmv, data: data.map(function(d){ return d.power; }), color: '#00e5f0', showPoints: false}];
     var powerThresholds = direction === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
     var powerCard = document.querySelector('#channel-charts .chart-card:first-child');
     var powerLabel = powerCard ? powerCard.querySelector('.chart-label') : null;
     if (direction === 'ds') {
-        powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77', showPoints: false});
+        powerDatasets.push({label: T.snr_db, data: data.map(function(d){ return d.snr; }), color: '#66ff77', showPoints: false});
         powerThresholds = null; /* DS combines Power + SNR, thresholds don't apply */
-        if (powerLabel) powerLabel.textContent = (T.power_dbmv || 'Power') + ' & ' + (T.snr_db || 'SNR');
+        if (powerLabel) powerLabel.textContent = T.power_dbmv + ' & ' + T.snr_db;
         var showErrors = _hasChannelDocsisErrorSeries(data);
         _setChartCardVisible('channel-errors-card', 'chart-ch-errors', showErrors);
         if (showErrors) {
             renderChart('chart-ch-errors', xLabels, [
-                {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
-                {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
+                {label: T.correctable, data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
+                {label: T.uncorrectable, data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
             ], 'bar');
         }
     } else {
-        if (powerLabel) powerLabel.textContent = T.power_dbmv || 'Power (dBmV)';
+        if (powerLabel) powerLabel.textContent = T.power_dbmv;
         _setChartCardVisible('channel-errors-card', 'chart-ch-errors', false);
     }
     // Clicking a point opens the snapshot taken at that time.
@@ -961,13 +961,13 @@ function _renderChannelTimelineCharts() {
         var tickValues = [];
         for (var qi = 0; qi < qamSteps.length; qi++) tickValues.push(qi);
         renderChart('chart-ch-modulation', modLabels, [
-            {label: T.modulation || 'Modulation', data: modValues, color: '#ffab40', stepped: true, showPoints: false}
+            {label: T.modulation, data: modValues, color: '#ffab40', stepped: true, showPoints: false}
         ], null, null, {
             tempData: tempOpts ? mods.map(function(d) { return tempByTimestamp[d.timestamp]; }) : null,
             yTickCallback: function(value) { return qamLabel[qamSteps[value]] || ''; },
             tooltipLabelCallback: function(ctx) {
                 if (ctx.dataset.yAxisID === 'y-temp') return ctx.dataset.label + ': ' + fmtTemp(ctx.raw);
-                return (T.modulation || 'Modulation') + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw);
+                return T.modulation + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw);
             },
             yMin: -0.5,
             yMax: qamSteps.length - 0.5,
@@ -1039,7 +1039,7 @@ function loadChannelTimeline() {
                 _updateChannelTempToggle();
                 DOCSightEmptyState.showRange(noDataEl, {
                     tabs: 'channel-time-tabs',
-                    text: T.no_channel_data || 'No data available for this channel.',
+                    text: T.no_channel_data,
                     glossary: 'channel_timeline'
                 });
                 return;
@@ -1090,8 +1090,8 @@ function getCompareDirection() {
 
 function getComparePresetLabel(dir) {
     return dir === 'ds'
-        ? (T.all_downstream || 'All Downstream')
-        : (T.all_upstream || 'All Upstream');
+        ? T.all_downstream
+        : T.all_upstream;
 }
 
 function buildCompareChannelEntry(ch, index, dir) {
@@ -1130,16 +1130,16 @@ function _showCompareEmpty(kind, retry) {
     } else if (kind === 'range') {
         DOCSightEmptyState.showRange(el, {
             tabs: 'compare-time-tabs',
-            text: T.compare_no_data_range || 'No data for the selected channels in this time range.',
+            text: T.compare_no_data_range,
             glossary: 'channel_timeline'
         });
     } else {
         DOCSightEmptyState.show(el, {
             icon: 'layers',
-            title: T.no_channels_selected || 'Select channels to compare',
-            text: T.compare_empty_text || 'Add channels above to see their signal side by side.',
+            title: T.no_channels_selected,
+            text: T.compare_empty_text,
             action: {
-                label: T.compare_empty_action || 'Choose channels',
+                label: T.compare_empty_action,
                 onClick: function() { document.getElementById('compare-channel-select').focus(); }
             },
             glossary: 'channel_timeline'
@@ -1163,7 +1163,7 @@ function populateCompareChannelList(data) {
     var dir = getCompareDirection();
     var sel = document.getElementById('compare-channel-select');
     updateCompareActionLabels();
-    sel.innerHTML = docsightHTML('<option value="">' + (T.select_channel || 'Select Channel') + '</option>');
+    sel.innerHTML = docsightHTML('<option value="">' + T.select_channel + '</option>');
     var channels = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
     channels.forEach(function(ch) {
         var ref = _channelReference(ch);
@@ -1225,7 +1225,7 @@ function addCompareChannel() {
     var opt = sel.options[sel.selectedIndex];
     if (!opt || !opt.value) return;
     if (_compareChannels.length >= 6) {
-        showToast(T.max_channels_reached || 'Maximum 6 channels in manual selection', 'error');
+        showToast(T.max_channels_reached, 'error');
         return;
     }
     _comparePreset = null;
@@ -1323,7 +1323,7 @@ function renderCompareChips() {
         clear.type = 'button';
         clear.className = 'compare-chip-remove';
         clear.setAttribute('data-action', 'clearCompareChannels');
-        clear.setAttribute('aria-label', T.compare_clear_channels || 'Clear selection');
+        clear.setAttribute('aria-label', T.compare_clear_channels);
         clear.textContent = '\u00d7';
         presetChip.appendChild(clear);
         container.appendChild(presetChip);
@@ -1337,7 +1337,7 @@ function renderCompareChips() {
         var remove = document.createElement('button');
         remove.type = 'button';
         remove.className = 'compare-chip-remove';
-        remove.setAttribute('aria-label', (T.compare_remove_channel || 'Remove {0}').replace('{0}', ch.label));
+        remove.setAttribute('aria-label', T.compare_remove_channel.replace('{0}', ch.label));
         remove.textContent = '\u00d7';
         remove.onclick = function() { removeCompareChannel(ch.key); };
         chip.appendChild(remove);
@@ -1404,13 +1404,13 @@ function _renderCompareCharts() {
             var errorDatasets = [];
             _compareChannels.forEach(function(ch) {
                 errorDatasets.push({
-                    label: 'CH ' + ch.id + ' ' + (T.uncorrectable || 'Uncorr.'),
+                    label: 'CH ' + ch.id + ' ' + T.uncorrectable,
                     data: timestamps.map(function(ts) { var d = lookups[ch.key][ts]; return d && d.uncorrectable_errors != null ? d.uncorrectable_errors : null; }),
                     color: ch.color,
                     showPoints: false
                 });
                 errorDatasets.push({
-                    label: 'CH ' + ch.id + ' ' + (T.correctable || 'Corr.'),
+                    label: 'CH ' + ch.id + ' ' + T.correctable,
                     data: timestamps.map(function(ts) { var d = lookups[ch.key][ts]; return d && d.correctable_errors != null ? d.correctable_errors : null; }),
                     color: ch.color,
                     dashed: true,

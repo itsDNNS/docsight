@@ -7,15 +7,15 @@
                     <i data-lucide="file-check"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t['docsight.bnetz.bnetz_watcher_title'] or 'BNetzA File Watcher' }}</div>
-                    <div class="card-subtitle">{{ t['docsight.bnetz.bnetz_watcher_desc'] or 'Automatic import of measurement files' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#bnetza-file-watcher" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-title">{{ t['docsight.bnetz.bnetz_watcher_title'] }}</div>
+                    <div class="card-subtitle">{{ t['docsight.bnetz.bnetz_watcher_desc'] }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#bnetza-file-watcher" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
         <div class="toggle-row">
             <div class="toggle-info">
                 <span class="toggle-title" id="bnetz_watch_enabled-title">{{ t.enabled }}</span>
-                <span class="toggle-desc">{{ t['docsight.bnetz.bnetz_watcher_hint'] or 'Automatically imports BNetzA measurement PDFs and CSVs from a watched directory' }}</span>
+                <span class="toggle-desc">{{ t['docsight.bnetz.bnetz_watcher_hint'] }}</span>
             </div>
             <input type="hidden" name="bnetz_watch_enabled" value="false">
             <label class="toggle">
@@ -25,11 +25,11 @@
         </div>
         <div class="form-grid settings-gap">
             <div class="form-field">
-                <label class="form-label" for="bnetz_watch_dir">{{ t['docsight.bnetz.bnetz_watch_dir_label'] or 'Watch directory' }}</label>
+                <label class="form-label" for="bnetz_watch_dir">{{ t['docsight.bnetz.bnetz_watch_dir_label'] }}</label>
                 <input class="form-input" type="text" id="bnetz_watch_dir" name="bnetz_watch_dir" value="{{ config.bnetz_watch_dir }}" placeholder="/data/bnetz">
-                <span class="form-hint">{{ t['docsight.bnetz.bnetz_watch_dir_hint'] or 'Path where measurement files are placed (e.g., by a sidecar container)' }}</span>
+                <span class="form-hint">{{ t['docsight.bnetz.bnetz_watch_dir_hint'] }}</span>
             </div>
         </div>
-        <span class="form-hint settings-note settings-note-aside">{{ t['docsight.bnetz.bnetz_docker_hint'] or 'See the wiki for a Docker Compose example with the official BNetzA Desktop App sidecar' }}</span>
+        <span class="form-hint settings-note settings-note-aside">{{ t['docsight.bnetz.bnetz_docker_hint'] }}</span>
     </div>
 </div>

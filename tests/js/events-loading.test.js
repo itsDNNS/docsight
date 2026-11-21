@@ -41,7 +41,7 @@ function browser() {
         hide(el) { el.hidden = true; el.empty = null; },
     };
     const context = {
-        DOCSightEmptyState: emptyState, T: {}, URLSearchParams, setInterval() {},
+        DOCSightEmptyState: emptyState, T: require('./english-catalog')(), URLSearchParams, setInterval() {},
         location: {hash: '#events'}, history: {replaceState(_state, _title, url) { context.location.hash = url; }}, currentView: 'events', escapeHtml: String, formatDocsightTime: String, docsightUrl: url => url,
         document: {
             getElementById(id) {

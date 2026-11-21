@@ -26,7 +26,7 @@ function correlationTabs() {
 function setup() {
     const tabs = correlationTabs();
     const c = vm.createContext({
-        T: {},
+        T: require('./english-catalog')(),
         document: {
             querySelectorAll(selector) { return selector === '#correlation-tabs .segmented-option' ? tabs : []; },
             getElementById(id) { return id === 'correlation-tabs' ? {querySelectorAll: () => tabs} : null; },

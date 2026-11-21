@@ -38,7 +38,7 @@ window.openIncidentTimeline = function(incidentId) {
             renderIncidentTimeline(data);
         })
         .catch(function() {
-            header.innerHTML = docsightHTML('<div class="incident-timeline-empty">' + (T.network_error || 'Error') + '</div>');
+            header.innerHTML = docsightHTML('<div class="incident-timeline-empty">' + T.network_error + '</div>');
         });
 };
 
@@ -57,7 +57,7 @@ window.closeIncidentTimeline = function() {
 
 function renderIncidentPdfButton(btn) {
     btn.innerHTML = docsightHTML('<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>');
-    btn.appendChild(document.createTextNode(' ' + (T.incident_download_pdf || 'Download PDF Report')));
+    btn.appendChild(document.createTextNode(' ' + T.incident_download_pdf));
 }
 
 window.downloadIncidentPdf = function(incidentId, incidentName) {
@@ -85,7 +85,7 @@ window.downloadIncidentPdf = function(incidentId, incidentName) {
             URL.revokeObjectURL(a.href);
         })
         .catch(function(e) {
-            showToast(e.server || T.network_error || 'Error generating report', 'error');
+            showToast(e.server || T.network_error, 'error');
         })
         .finally(function() {
             if (btn) { btn.disabled = false; renderIncidentPdfButton(btn); }
@@ -138,9 +138,9 @@ function renderIncidentTimeline(data) {
             dateRange += ' \u2013 ' + formatDateDE(inc.end_date);
             var d1 = new Date(inc.start_date), d2 = new Date(inc.end_date);
             var diffDays = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
-            durationText = diffDays + ' ' + (T.incident_duration_days || 'days');
+            durationText = diffDays + ' ' + T.incident_duration_days;
         } else {
-            dateRange += ' \u2013 ' + (T.incident_duration_ongoing || 'ongoing');
+            dateRange += ' \u2013 ' + T.incident_duration_ongoing;
         }
     }
 
@@ -163,7 +163,7 @@ function renderIncidentTimeline(data) {
     }
     hHtml += '<span class="incident-timeline-meta-item">';
     hHtml += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-    hHtml += entries.length + ' ' + (T.incident_entry_count || 'Entries');
+    hHtml += entries.length + ' ' + T.incident_entry_count;
     hHtml += '</span>';
     hHtml += '</div>';
     if (inc.description) {
@@ -188,7 +188,7 @@ function renderIncidentTimeline(data) {
         entriesDiv.hidden = false;
         var eHtml = '<div class="incident-timeline-section-title">';
         eHtml += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
-        eHtml += (T.incident_journal_entries || 'Journal Entries');
+        eHtml += T.incident_journal_entries;
         eHtml += '</div>';
         eHtml += '<div class="incident-timeline-entries-grid">';
         entries.forEach(function(entry) {
@@ -218,7 +218,7 @@ function renderIncidentTimeline(data) {
     var chartCard = document.getElementById('incident-timeline-chart-card');
     if (timeline.length === 0) {
         chartCard.querySelector('.incident-timeline-chart-wrap').innerHTML = docsightHTML(
-            '<div class="incident-timeline-empty">' + (T.timeline_no_data || 'No signal data for this period') + '</div>');
+            '<div class="incident-timeline-empty">' + T.timeline_no_data + '</div>');
     } else {
         chartCard.querySelector('.incident-timeline-chart-wrap').innerHTML = docsightHTML(
             '<canvas id="incident-timeline-canvas"></canvas>');
@@ -242,11 +242,11 @@ function renderIncidentTimeline(data) {
         bnetzDiv.hidden = false;
         var bHtml = '<div class="incident-timeline-section-title">';
         bHtml += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>';
-        bHtml += (T.incident_bnetz_measurements || 'BNetzA Measurements');
+        bHtml += T.incident_bnetz_measurements;
         bHtml += '</div>';
         bnetz.forEach(function(m) {
             var hasDeviation = m.verdict_download === 'deviation' || m.verdict_upload === 'deviation';
-            var verdictText = hasDeviation ? (T.bnetz_verdict_deviation || 'Deviation') : (T.bnetz_verdict_ok || 'OK');
+            var verdictText = hasDeviation ? T.bnetz_verdict_deviation : T.bnetz_verdict_ok;
             var verdictClass = hasDeviation ? 'val-crit' : 'val-good';
             bHtml += '<div class="incident-timeline-bnetz-item">';
             bHtml += '<span>' + escapeHtml(formatDateDE(m.date)) + '</span>';
@@ -322,7 +322,7 @@ function _renderTimelineChart(data) {
         ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#888';
         ctx.font = '13px system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(T.timeline_no_data || 'No signal data', W / 2, H / 2);
+        ctx.fillText(T.timeline_no_data, W / 2, H / 2);
         return;
     }
 
@@ -467,7 +467,7 @@ function _renderTimelineChart(data) {
         ctx.closePath();
         ctx.fill();
         ctx.fillStyle = textColor;
-        ctx.fillText(T.timeline_source_event || 'Event', lx + 12, legendY);
+        ctx.fillText(T.timeline_source_event, lx + 12, legendY);
     }
 }
 
@@ -475,20 +475,20 @@ function _renderTimelineTable(data) {
     var div = document.getElementById('incident-timeline-signals');
 
     var healthLabels = {
-        good: T.health_good || 'Good',
-        tolerated: T.health_tolerated || 'Tolerated',
-        marginal: T.health_marginal || 'Marginal',
-        critical: T.health_critical || 'Critical'
+        good: T.health_good,
+        tolerated: T.health_tolerated,
+        marginal: T.health_marginal,
+        critical: T.health_critical
     };
 
     var tHtml = '<div class="incident-timeline-section-title">';
     tHtml += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-    tHtml += (T.correlation_timeline || 'Unified Timeline');
+    tHtml += T.correlation_timeline;
     tHtml += '</div>';
     tHtml += '<table class="data-table data-table-compact data-table-list" id="incident-timeline-table"><thead><tr>';
-    tHtml += '<th>' + (T.timestamp || 'Timestamp') + '</th>';
-    tHtml += '<th>' + (T.source || 'Source') + '</th>';
-    tHtml += '<th>' + (T.event_details || 'Details') + '</th>';
+    tHtml += '<th>' + T.timestamp + '</th>';
+    tHtml += '<th>' + T.source + '</th>';
+    tHtml += '<th>' + T.event_details + '</th>';
     tHtml += '</tr></thead><tbody>';
 
     // Show newest first, limit to 200
@@ -514,20 +514,20 @@ function _renderTimelineTable(data) {
         var details = '';
 
         if (e.source === 'modem') {
-            srcBadge = '<span class="timeline-source-badge timeline-source-badge-modem">' + (T.timeline_source_modem || 'Modem') + '</span>';
+            srcBadge = '<span class="timeline-source-badge timeline-source-badge-modem">' + T.timeline_source_modem + '</span>';
             var hLabel = healthLabels[e.health] || e.health;
             details = '<span class="st-health-badge health-' + (e.health || 'unknown') + '">' + hLabel + '</span>';
             details += ' SNR ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : '-');
-            details += ' | ' + (T.event_power || 'Power') + ' ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '-');
+            details += ' | ' + T.event_power + ' ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '-');
             if (e.ds_uncorrectable_errors != null) {
-                details += ' | ' + (T.correlation_tt_errors || 'Errors') + ' ' + e.ds_uncorrectable_errors;
+                details += ' | ' + T.correlation_tt_errors + ' ' + e.ds_uncorrectable_errors;
             }
         } else if (e.source === 'speedtest') {
-            srcBadge = '<span class="timeline-source-badge timeline-source-badge-speedtest">' + (T.timeline_source_speedtest || 'Speedtest') + '</span>';
+            srcBadge = '<span class="timeline-source-badge timeline-source-badge-speedtest">' + T.timeline_source_speedtest + '</span>';
             details = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');
             if (e.ping_ms) details += ' | Ping ' + e.ping_ms + ' ms';
         } else if (e.source === 'event') {
-            srcBadge = '<span class="timeline-source-badge timeline-source-badge-event">' + (T.timeline_source_event || 'Event') + '</span>';
+            srcBadge = '<span class="timeline-source-badge timeline-source-badge-event">' + T.timeline_source_event + '</span>';
             details = typeof formatEventMessage === 'function' ? formatEventMessage(e) : escapeHtml(e.message || '');
         }
 

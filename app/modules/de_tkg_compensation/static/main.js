@@ -4,8 +4,8 @@
 
     var state = { initialized: false, step: 1, claimId: null, calculation: null, localToday: '' };
 
-    function t(key, fallback) {
-        return (window.T && window.T['docsight.de_tkg_compensation.' + key]) || fallback;
+    function t(key) {
+        return window.T['docsight.de_tkg_compensation.' + key];
     }
 
     function status(message, kind) {
@@ -20,7 +20,7 @@
         calculation.replaceChildren();
         var empty = document.createElement('p');
         empty.className = 'tkg-muted';
-        empty.textContent = t('calculation_empty', 'Confirm and calculate the facts first.');
+        empty.textContent = t('calculation_empty');
         calculation.append(empty);
         document.getElementById('tkg-report-links').replaceChildren();
     }
@@ -29,13 +29,13 @@
         state.calculation = null;
         renderEmptyDerivedState();
         document.getElementById('tkg-letter').value = '';
-        status(t('status_stale', 'Facts changed. Recalculate and regenerate the letter.'), 'info');
+        status(t('status_stale'), 'info');
     }
 
     function invalidateLetter() {
         if (document.getElementById('tkg-letter').value) {
             document.getElementById('tkg-letter').value = '';
-            status(t('status_letter_stale', 'Letter details changed. Generate the letter again.'), 'info');
+            status(t('status_letter_stale'), 'info');
         }
     }
 
@@ -45,7 +45,7 @@
         return fetch(window.docsightUrl(path), init).then(function(response) {
             return response.json().catch(function() { return {}; }).then(function(payload) {
                 if (!response.ok) {
-                    var error = new Error(payload.error || t('status_error', 'The request could not be completed.'));
+                    var error = new Error(payload.error || t('status_error'));
                     error.code = payload.code;
                     throw error;
                 }
@@ -67,8 +67,8 @@
         var nextButton = document.getElementById('tkg-next');
         nextButton.hidden = state.step === 4;
         nextButton.textContent = state.step === 1
-            ? t('next_first', 'Continue to details')
-            : t('next', 'Next');
+            ? t('next_first')
+            : t('next');
         var active = document.querySelector('#tkg-compensation-root [data-tkg-step="' + state.step + '"]');
         if (active) active.focus({preventScroll: true});
     }
@@ -122,7 +122,7 @@
             complete.dataset.tkgFact = '';
             complete.dataset.kind = 'complete';
             complete.checked = Boolean(previous[day] && previous[day].complete);
-            completeLabel.append(complete, document.createTextNode(' ' + t('day_complete', 'Complete outage')));
+            completeLabel.append(complete, document.createTextNode(' ' + t('day_complete')));
             var replacementLabel = document.createElement('label');
             var replacement = document.createElement('input');
             replacement.type = 'checkbox';
@@ -137,7 +137,7 @@
                 if (!complete.checked) replacement.checked = false;
                 invalidateDerivedState();
             });
-            replacementLabel.append(replacement, document.createTextNode(' ' + t('day_replacement', 'Provider replacement solution actually made available')));
+            replacementLabel.append(replacement, document.createTextNode(' ' + t('day_replacement')));
             row.append(dayLabel, completeLabel, replacementLabel);
             container.append(row);
         });
@@ -212,9 +212,9 @@
         var summary = document.createElement('div');
         summary.className = 'tkg-summary';
         [
-            [t('total_outage', 'Complete-outage total'), result.total_cents],
-            [t('total_appointments', 'Missed-appointment total'), result.missed_appointments_total_cents],
-            [t('grand_total', 'Prospective total'), result.grand_total_cents]
+            [t('total_outage'), result.total_cents],
+            [t('total_appointments'), result.missed_appointments_total_cents],
+            [t('grand_total'), result.grand_total_cents]
         ].forEach(function(item) {
             var card = document.createElement('div');
             var label = document.createElement('div'); label.className = 'tkg-muted'; label.textContent = item[0];
@@ -227,8 +227,8 @@
             var head = document.createElement('thead');
             var headingRow = document.createElement('tr');
             [
-                t('column_date', 'Date'), t('column_day', 'Day'), t('column_basis', 'Basis'),
-                t('column_amount', 'Amount'), t('column_rule', 'Rule')
+                t('column_date'), t('column_day'), t('column_basis'),
+                t('column_amount'), t('column_rule')
             ].forEach(function(labelText, index) {
                 var heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = labelText;
                 if (index === 1 || index === 3) heading.className = 'dt-num';
@@ -238,7 +238,7 @@
             var body = document.createElement('tbody');
             result.days.forEach(function(day) {
                 var row = document.createElement('tr');
-                var basis = t(day.basis === 'percent' ? 'basis_percent' : 'basis_flat', day.basis) +
+                var basis = t(day.basis === 'percent' ? 'basis_percent' : 'basis_flat') +
                     ' · max(' + euros(day.flat_cents) + '; ' + day.percentage + '% = ' + euros(day.percentage_cents) + ')';
                 [day.date, String(day.day_index), basis, euros(day.amount_cents), day.rule_ref].forEach(function(value, index) {
                     var cell = document.createElement('td'); cell.textContent = value;
@@ -250,27 +250,27 @@
             table.append(head, body); labelDataTable(table); container.append(table);
         }
         if (result.exclusions.length) {
-            var excludedHeading = document.createElement('h4'); excludedHeading.textContent = t('excluded_days', 'Excluded confirmed days'); container.append(excludedHeading);
+            var excludedHeading = document.createElement('h4'); excludedHeading.textContent = t('excluded_days'); container.append(excludedHeading);
             var excludedList = document.createElement('ul');
             result.exclusions.forEach(function(exclusion) {
                 var item = document.createElement('li');
                 item.textContent = exclusion.date + ' · ' + (
                     exclusion.reason === 'statutory_waiting_period'
-                        ? t('waiting_period', 'The report-receipt date is day 0; no TKG §58(3) entitlement is calculated before the third calendar day after receipt.')
-                        : t('replacement_help', exclusion.explanation)
+                        ? t('waiting_period')
+                        : t('replacement_help')
                 );
                 excludedList.append(item);
             });
             container.append(excludedList);
         }
         var metadata = document.createElement('p');
-        metadata.textContent = t('rule_version', 'Rules version') + ': ' + result.rules_version + ' · ' + t('effective_date', 'Effective date') + ': ' + result.effective_date;
+        metadata.textContent = t('rule_version') + ': ' + result.rules_version + ' · ' + t('effective_date') + ': ' + result.effective_date;
         container.append(metadata);
         if (result.rounding_note) {
-            var rounding = document.createElement('p'); rounding.className = 'tkg-callout'; rounding.textContent = t('rounding_note', result.rounding_note); container.append(rounding);
+            var rounding = document.createElement('p'); rounding.className = 'tkg-callout'; rounding.textContent = t('rounding_note'); container.append(rounding);
         }
         if (result.missed_appointments.length) {
-            var appointmentsHeading = document.createElement('h4'); appointmentsHeading.textContent = t('missed_appointments', 'Missed service/installation appointments'); container.append(appointmentsHeading);
+            var appointmentsHeading = document.createElement('h4'); appointmentsHeading.textContent = t('missed_appointments'); container.append(appointmentsHeading);
             var appointmentsList = document.createElement('ul');
             result.missed_appointments.forEach(function(appointment, index) {
                 var item = document.createElement('li');
@@ -280,18 +280,18 @@
             container.append(appointmentsList);
         }
         var credit = document.createElement('p');
-        credit.textContent = t('credit_separate', 'A prior credit is shown separately and is never deducted automatically.');
+        credit.textContent = t('credit_separate');
         if (result.prior_credit.amount_cents != null) {
             var creditLabels = {
-                goodwill: t('credit_goodwill', 'Goodwill'),
-                reduction: t('credit_reduction', 'Fee reduction'),
-                compensation: t('credit_compensation', 'Compensation'),
-                unclear: t('credit_unclear', 'Unclear')
+                goodwill: t('credit_goodwill'),
+                reduction: t('credit_reduction'),
+                compensation: t('credit_compensation'),
+                unclear: t('credit_unclear')
             };
             credit.textContent += ' ' + euros(result.prior_credit.amount_cents) + ' · ' + (creditLabels[result.prior_credit.classification] || creditLabels.unclear);
         }
         container.append(credit);
-        var sourceHeading = document.createElement('h4'); sourceHeading.textContent = t('sources', 'Rules and sources'); container.append(sourceHeading);
+        var sourceHeading = document.createElement('h4'); sourceHeading.textContent = t('sources'); container.append(sourceHeading);
         var sourceList = document.createElement('ul');
         result.sources.forEach(function(source) {
             var item = document.createElement('li');
@@ -306,16 +306,16 @@
         var container = document.getElementById('tkg-report-links');
         container.replaceChildren();
         if (result && result.report_chunks && result.report_chunks.length) {
-            var heading = document.createElement('h4'); heading.textContent = t('report_attachments', 'Evidence report attachments'); container.append(heading);
+            var heading = document.createElement('h4'); heading.textContent = t('report_attachments'); container.append(heading);
             result.report_chunks.forEach(function(chunk) {
-                var link = document.createElement('a'); link.href = window.docsightUrl(chunk.url); link.textContent = t('report_attachments', 'Evidence report attachments') + ' ' + chunk.index; container.append(link);
+                var link = document.createElement('a'); link.href = window.docsightUrl(chunk.url); link.textContent = t('report_attachments') + ' ' + chunk.index; container.append(link);
             });
             if (result.report_chunks.length > 1) {
-                var note = document.createElement('p'); note.className = 'tkg-callout'; note.textContent = t('report_chunk_note', 'The 90-day split is a technical PDF limit, not a limit on the claim period.'); container.append(note);
+                var note = document.createElement('p'); note.className = 'tkg-callout'; note.textContent = t('report_chunk_note'); container.append(note);
             }
         }
         if (result && result.evidence_checklist_url) {
-            var checklist = document.createElement('a'); checklist.href = window.docsightUrl(result.evidence_checklist_url); checklist.textContent = t('evidence_checklist', 'Evidence checklist'); container.append(checklist);
+            var checklist = document.createElement('a'); checklist.href = window.docsightUrl(result.evidence_checklist_url); checklist.textContent = t('evidence_checklist'); container.append(checklist);
         }
         if (result && result.journal_export_url) {
             var journal = document.createElement('a'); journal.href = window.docsightUrl(result.journal_export_url); journal.textContent = (window.T && window.T.export_journal) || 'Incident journal export'; container.append(journal);
@@ -323,21 +323,21 @@
     }
 
     function calculate() {
-        if (!factsValid()) { status(t('validation_facts', 'Enter the fee and either confirm the outage facts or at least one missed appointment.'), 'error'); return; }
+        if (!factsValid()) { status(t('validation_facts'), 'error'); return; }
         var payload = claimPayload();
         var path = state.claimId ? '/api/de-tkg/claims/' + state.claimId : '/api/de-tkg/claims';
         var method = state.claimId ? 'PUT' : 'POST';
-        status(t('status_loading', 'Loading…'));
+        status(t('status_loading'));
         api(path, {method: method, body: JSON.stringify(payload)}).then(function(claim) {
             state.claimId = claim.id;
             return api('/api/de-tkg/claims/' + claim.id + '/calculate', {method: 'POST', body: '{}'});
         }).then(function(result) {
-            renderCalculation(result); status(t('status_calculated', 'Calculation updated.')); showStep(3);
+            renderCalculation(result); status(t('status_calculated')); showStep(3);
         }).catch(function(error) { status(error.message, 'error'); });
     }
 
     function generateLetter() {
-        if (!state.claimId || !state.calculation) { status(t('calculation_empty', 'Confirm and calculate the facts first.'), 'error'); return; }
+        if (!state.claimId || !state.calculation) { status(t('calculation_empty'), 'error'); return; }
         var customer = {
             name: document.getElementById('tkg-customer-name').value,
             customer_number: document.getElementById('tkg-customer-number').value,
@@ -345,18 +345,18 @@
         };
         api('/api/de-tkg/claims/' + state.claimId + '/letter', {method: 'POST', body: JSON.stringify({customer: customer})}).then(function(result) {
             document.getElementById('tkg-letter').value = result.letter_text;
-            status(t('status_letter', 'German letter generated. Review and edit it.'));
+            status(t('status_letter'));
         }).catch(function(error) { status(error.message, 'error'); });
     }
 
     function saveEditedLetter() {
-        if (!state.claimId) return Promise.reject(new Error(t('calculation_empty', 'Confirm and calculate the facts first.')));
+        if (!state.claimId) return Promise.reject(new Error(t('calculation_empty')));
         return api('/api/de-tkg/claims/' + state.claimId, {method: 'PUT', body: JSON.stringify({letter_text: document.getElementById('tkg-letter').value})});
     }
 
     function copyLetter() {
         var text = document.getElementById('tkg-letter').value;
-        if (!text) { status(t('letter_placeholder', 'Generate the letter after reviewing the calculation.'), 'error'); return; }
+        if (!text) { status(t('letter_placeholder'), 'error'); return; }
         function fallbackCopy() {
             var active = document.activeElement;
             var textarea = document.createElement('textarea');
@@ -372,12 +372,12 @@
             try { copied = document.execCommand('copy'); } catch (_error) { copied = false; }
             textarea.remove();
             if (active && typeof active.focus === 'function') active.focus();
-            if (copied) status(t('status_copied', 'Letter copied.'));
-            else status(t('status_copy_failed', 'The letter could not be copied. Select the text and copy it manually.'), 'error');
+            if (copied) status(t('status_copied'));
+            else status(t('status_copy_failed'), 'error');
         }
         if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
             navigator.clipboard.writeText(text).then(function() {
-                status(t('status_copied', 'Letter copied.'));
+                status(t('status_copied'));
             }).catch(fallbackCopy);
         } else {
             fallbackCopy();
@@ -385,7 +385,7 @@
     }
 
     function downloadLetter() {
-        if (!document.getElementById('tkg-letter').value) { status(t('letter_placeholder', 'Generate the letter after reviewing the calculation.'), 'error'); return; }
+        if (!document.getElementById('tkg-letter').value) { status(t('letter_placeholder'), 'error'); return; }
         saveEditedLetter().then(function() {
             var link = document.createElement('a');
             link.href = window.docsightUrl('/api/de-tkg/claims/' + state.claimId + '/letter?download=1');
@@ -400,10 +400,10 @@
         if (state.step === 1) {
             var from = document.getElementById('tkg-window-from').value;
             var to = document.getElementById('tkg-window-to').value;
-            if (Boolean(from) !== Boolean(to)) { status(t('validation_window', 'Enter both window bounds or leave both blank for an appointment-only claim.'), 'error'); return; }
+            if (Boolean(from) !== Boolean(to)) { status(t('validation_window'), 'error'); return; }
             renderDays();
         } else if (state.step === 2 && !state.calculation) {
-            status(t('calculation_empty', 'Confirm and calculate the facts first.'), 'error'); return;
+            status(t('calculation_empty'), 'error'); return;
         }
         showStep(state.step + 1);
     }

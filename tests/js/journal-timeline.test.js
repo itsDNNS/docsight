@@ -6,7 +6,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 function load() {
-    const context = {T: {}, document: {}, docsightParseTime: value => new Date(value)};
+    const context = {T: require('./english-catalog')(), document: {}, docsightParseTime: value => new Date(value)};
     context.window = context;
     vm.runInNewContext(fs.readFileSync('app/modules/journal/static/js/journal-timeline.js', 'utf8'), context);
     return context;
@@ -69,7 +69,7 @@ test('the case chart SNR line skips a missing value and plots a measured 0 at it
 test('a failed case PDF shows the server message, else the generic error', async () => {
     for (const [reply, message] of [
         [{ok: false, json: async () => ({error: 'Reading stored data failed.'})}, 'Reading stored data failed.'],
-        [{ok: false, json: async () => { throw new SyntaxError('not JSON'); }}, 'Error generating report'],
+        [{ok: false, json: async () => { throw new SyntaxError('not JSON'); }}, 'Network error'],
     ]) {
         const context = load(), toasts = [];
         Object.assign(context, {

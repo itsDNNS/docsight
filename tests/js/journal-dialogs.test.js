@@ -60,8 +60,8 @@ function journal(fetchAnswers) {
     };
     const context = vm.createContext({
         document, FormData,
-        T: {icon_auto: 'Auto', delete_all_confirm: 'Delete {n}?', network_error: 'Network error', delete_failed: 'Delete failed', error_prefix: 'Failed', import_selected: 'Import selected',
-            delete_all_success: 'entries deleted', import_success: 'imported', entries_assigned: 'assigned', entries_unassigned: 'unassigned'},
+        T: Object.assign(require('./english-catalog')(), {icon_auto: 'Auto', delete_all_confirm: 'Delete {n}?', network_error: 'Network error', delete_failed: 'Delete failed', error_prefix: 'Failed', import_selected: 'Import selected',
+            delete_all_success: 'entries deleted', import_success: 'imported', entries_assigned: 'assigned', entries_unassigned: 'unassigned'}),
         docsightUrl: path => '/base' + path,
         fetch(url, options) {
             const {method, headers, body} = options || {};
@@ -219,7 +219,7 @@ for (const [dialog, open, prefix, updatesHeader] of [
         const labels = ['', ...context.INCIDENT_ICONS.map(icon => icon.label)];
         assert.equal(buttons.length, labels.length);
         buttons.forEach((button, index) => {
-            const title = index ? labels[index] : 'Auto';
+            const title = index ? context.T['icon_' + labels[index]] : 'Auto';
             const icon = index ? context.INCIDENT_ICONS[index - 1].icon : context.AUTO_ICON;
             assert.equal(button.type, 'button');
             assert.equal(button.title, title);

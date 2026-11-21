@@ -12,13 +12,12 @@
     window.leaveDemo = async function(nextChoice, button) {
         if (leaving || button.disabled || !document.getElementById('demo-banner-result')) return;
 
-        var message = (window.T && window.T.demo_migrate_confirm) ||
-            'This will remove the demo data. Your own entries will be kept. Continue?';
+        var message = window.T.demo_migrate_confirm;
         var confirmed = await window.docsightConfirm({
-            title: (window.T && window.T.demo_migrate_title) || 'Demo Mode Active',
+            title: window.T.demo_migrate_title,
             message: message,
-            confirmText: (window.T && window.T.demo_migrate_button) || 'Leave Demo Mode',
-            cancelText: (window.T && window.T.cancel) || 'Cancel',
+            confirmText: window.T.demo_migrate_button,
+            cancelText: window.T.cancel,
             danger: true
         });
         if (!confirmed || leaving) return;
@@ -42,7 +41,7 @@
             window.location.assign(docsightUrl(expectedNext));
         } catch (error) {
             leaving = false;
-            setBanner(false, (window.T && window.T.demo_action_failed) || 'The demo could not be closed. Please try again.');
+            setBanner(false, window.T.demo_action_failed);
         }
     };
 

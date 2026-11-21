@@ -34,7 +34,7 @@
             </div>
             <div class="journal-more-wrapper" id="journal-more-actions" hidden>
                 <button class="btn-new-entry btn-secondary-action btn-more-actions" id="journal-more-toggle"
-                        aria-label="{{ t.get('more_actions', 'More actions') }}" title="{{ t.get('more_actions', 'More actions') }}"
+                        aria-label="{{ t.more_actions }}" title="{{ t.more_actions }}"
                         aria-haspopup="true" aria-expanded="false" aria-controls="journal-more-dropdown">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
@@ -46,7 +46,7 @@
             </div>
         </div>
     </div>
-    <section class="case-cards" id="case-cards" aria-label="{{ t.get('case_cards_label', 'Cases') }}" hidden></section>
+    <section class="case-cards" id="case-cards" aria-label="{{ t.case_cards_label }}" hidden></section>
     <div class="incident-filter-bar" id="incident-filter-bar" hidden></div>
     <div class="incident-summary" id="incident-summary" hidden></div>
     <div class="journal-bulk-bar" id="journal-bulk-bar" hidden>
@@ -117,7 +117,7 @@
             <span data-i18n="incident_back_journal">{{ t.incident_back_journal }}</span>
         </button>
         <div id="incident-timeline-header" class="incident-timeline-card"></div>
-        <section id="incident-timeline-steps" class="incident-timeline-card case-steps-card" aria-label="{{ t.get('case_steps_label', 'Case steps') }}" hidden></section>
+        <section id="incident-timeline-steps" class="incident-timeline-card case-steps-card" aria-label="{{ t.case_steps_label }}" hidden></section>
         <div id="incident-timeline-entries" class="incident-timeline-card"></div>
         <div id="incident-timeline-chart-card" class="incident-timeline-card">
             <div class="incident-timeline-section-title">
@@ -132,7 +132,7 @@
         <div id="incident-timeline-status" class="incident-timeline-card" hidden>
             <div class="incident-timeline-section-title">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
-                <span>{{ t.get('incident_channel_status', 'Channel status during this case') }}</span>
+                <span>{{ t.incident_channel_status }}</span>
             </div>
             <div id="incident-status-track" class="status-track"></div>
         </div>

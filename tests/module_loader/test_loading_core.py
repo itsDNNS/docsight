@@ -230,6 +230,19 @@ class TestMergeModuleI18n:
             assert get_translations("en").get("test.english_only.title") == "English module title"
             assert get_translations("de").get("test.english_only.title") == "English module title"
 
+    def test_language_only_a_module_ships_uses_the_english_catalog(self):
+        with tempfile.TemporaryDirectory() as d:
+            i18n_dir = os.path.join(d, "i18n")
+            os.makedirs(i18n_dir)
+            for lang, text in (("en", "Hello"), ("ja", "Konnichiwa")):
+                with open(os.path.join(i18n_dir, f"{lang}.json"), "w") as f:
+                    json.dump({"greeting": text}, f)
+
+            apply_module_i18n("test.japanese", resolve_module_i18n(i18n_dir))
+
+            from app.i18n import get_translations
+            assert get_translations("ja") is get_translations("en")
+
     def test_missing_i18n_dir_skipped(self):
         """Non-existent i18n directory is silently skipped."""
         apply_module_i18n("test.missing", resolve_module_i18n("/nonexistent/i18n"))

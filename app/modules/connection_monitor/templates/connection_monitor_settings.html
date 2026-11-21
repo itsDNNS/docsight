@@ -7,15 +7,15 @@
                     <i data-lucide="activity"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t['docsight.connection_monitor.connection_monitor'] or 'Connection Monitor' }}</div>
-                    <div class="card-subtitle">{{ t['docsight.connection_monitor.connection_monitor_desc'] or 'Always-on latency monitoring for cable troubleshooting' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Connection-Monitor" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-title">{{ t['docsight.connection_monitor.connection_monitor'] }}</div>
+                    <div class="card-subtitle">{{ t['docsight.connection_monitor.connection_monitor_desc'] }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Connection-Monitor" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title" id="connection_monitor_enabled-title">{{ t['docsight.connection_monitor.cm_enable'] or 'Enable Connection Monitor' }}</span>
-                <span class="toggle-desc">{{ t['docsight.connection_monitor.cm_enable_hint'] or 'Continuously probes configured targets and tracks latency, packet loss, and outages.' }}</span>
+                <span class="toggle-title" id="connection_monitor_enabled-title">{{ t['docsight.connection_monitor.cm_enable'] }}</span>
+                <span class="toggle-desc">{{ t['docsight.connection_monitor.cm_enable_hint'] }}</span>
             </div>
             <input type="hidden" name="connection_monitor_enabled" value="false">
             <label class="toggle">
@@ -25,46 +25,46 @@
         </div>
         <div class="form-grid cols-2 settings-gap">
             <div class="form-field">
-                <label class="form-label" for="connection_monitor_poll_interval_ms">{{ t['docsight.connection_monitor.cm_poll_interval'] or 'Probe interval (ms)' }}</label>
+                <label class="form-label" for="connection_monitor_poll_interval_ms">{{ t['docsight.connection_monitor.cm_poll_interval'] }}</label>
                 <input class="form-input" type="number" id="connection_monitor_poll_interval_ms" name="connection_monitor_poll_interval_ms" value="{{ config.connection_monitor_poll_interval_ms or 5000 }}" min="1000" max="300000" step="1000">
-                <span class="form-hint">{{ t['docsight.connection_monitor.cm_poll_interval_hint'] or 'Time between probes per target. Default: 5000ms (5s). Minimum: 1000ms.' }}</span>
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_poll_interval_hint'] }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="connection_monitor_probe_method">{{ t['docsight.connection_monitor.cm_probe_method'] or 'Probe method' }}</label>
+                <label class="form-label" for="connection_monitor_probe_method">{{ t['docsight.connection_monitor.cm_probe_method'] }}</label>
                 <select class="form-input form-select" id="connection_monitor_probe_method" name="connection_monitor_probe_method">
-                    <option value="auto" {% if config.connection_monitor_probe_method == 'auto' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_auto'] or 'Auto (ICMP preferred)' }}</option>
-                    <option value="icmp" {% if config.connection_monitor_probe_method == 'icmp' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_icmp'] or 'ICMP only' }}</option>
-                    <option value="tcp" {% if config.connection_monitor_probe_method == 'tcp' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_tcp'] or 'TCP only' }}</option>
+                    <option value="auto" {% if config.connection_monitor_probe_method == 'auto' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_auto'] }}</option>
+                    <option value="icmp" {% if config.connection_monitor_probe_method == 'icmp' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_icmp'] }}</option>
+                    <option value="tcp" {% if config.connection_monitor_probe_method == 'tcp' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_tcp'] }}</option>
                 </select>
-                <span class="form-hint">{{ t['docsight.connection_monitor.cm_probe_method_hint'] or 'Auto tries ICMP first, falls back to TCP if not available. TCP works everywhere.' }}</span>
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_probe_method_hint'] }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="connection_monitor_tcp_port">{{ t['docsight.connection_monitor.cm_tcp_port'] or 'TCP port' }}</label>
+                <label class="form-label" for="connection_monitor_tcp_port">{{ t['docsight.connection_monitor.cm_tcp_port'] }}</label>
                 <input class="form-input" type="number" id="connection_monitor_tcp_port" name="connection_monitor_tcp_port" value="{{ config.connection_monitor_tcp_port or 443 }}" min="1" max="65535">
-                <span class="form-hint">{{ t['docsight.connection_monitor.cm_tcp_port_hint'] or 'Port used for TCP probes. Default: 443.' }}</span>
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_tcp_port_hint'] }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="connection_monitor_outage_threshold">{{ t['docsight.connection_monitor.cm_outage_threshold'] or 'Outage threshold' }}</label>
+                <label class="form-label" for="connection_monitor_outage_threshold">{{ t['docsight.connection_monitor.cm_outage_threshold'] }}</label>
                 <input class="form-input" type="number" id="connection_monitor_outage_threshold" name="connection_monitor_outage_threshold" value="{{ config.connection_monitor_outage_threshold or 5 }}" min="1">
-                <span class="form-hint">{{ t['docsight.connection_monitor.cm_outage_threshold_hint'] or 'Consecutive timeouts before an outage event is triggered.' }}</span>
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_outage_threshold_hint'] }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="connection_monitor_loss_warning_pct">{{ t['docsight.connection_monitor.cm_loss_warning'] or 'Loss warning (%)' }}</label>
+                <label class="form-label" for="connection_monitor_loss_warning_pct">{{ t['docsight.connection_monitor.cm_loss_warning'] }}</label>
                 <input class="form-input" type="number" id="connection_monitor_loss_warning_pct" name="connection_monitor_loss_warning_pct" value="{{ config.connection_monitor_loss_warning_pct if config.connection_monitor_loss_warning_pct is not none else 2.0 }}" min="0" step="0.1">
-                <span class="form-hint">{{ t['docsight.connection_monitor.cm_loss_warning_hint'] or 'Packet loss percentage that triggers a warning event.' }}</span>
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_loss_warning_hint'] }}</span>
             </div>
         </div>
 
         <!-- Target Management -->
         <div class="settings-subsection">
             <div class="cm-targets-head">
-                <div class="section-label">{{ t['docsight.connection_monitor.cm_targets'] or 'Targets' }}</div>
+                <div class="section-label">{{ t['docsight.connection_monitor.cm_targets'] }}</div>
                 <button type="button" class="btn btn-secondary btn-sm" id="cm-add-target-btn">
                     <i data-lucide="plus"></i>
-                    {{ t['docsight.connection_monitor.cm_add_target'] or 'Add target' }}
+                    {{ t['docsight.connection_monitor.cm_add_target'] }}
                 </button>
             </div>
-            <span class="form-hint settings-note-tight">{{ t['docsight.connection_monitor.cm_targets_hint'] or 'IP addresses or hostnames to monitor.' }}</span>
+            <span class="form-hint settings-note-tight">{{ t['docsight.connection_monitor.cm_targets_hint'] }}</span>
             <div id="cm-targets-list"></div>
             <p class="field-error" id="cm-targets-error" role="alert"></p>
         </div>
@@ -72,8 +72,8 @@
 </div>
 
 <script type="application/json" id="docsight-connection-monitor-settings-bootstrap">{{ {
-    'label': t['docsight.connection_monitor.cm_target_label'] or 'Label',
-    'host': t['docsight.connection_monitor.cm_target_host'] or 'Host',
-    'remove': t['docsight.connection_monitor.cm_remove'] or 'Remove'
+    'label': t['docsight.connection_monitor.cm_target_label'],
+    'host': t['docsight.connection_monitor.cm_target_host'],
+    'remove': t['docsight.connection_monitor.cm_remove']
 }|tojson }}</script>
 <script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-settings.js', v=version) }}"></script>

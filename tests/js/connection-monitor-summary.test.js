@@ -55,7 +55,7 @@ function home(kind) {
     let requests = 0;
     const context = {
         Element, document,
-        T: JSON.parse(fs.readFileSync('app/i18n/en.json', 'utf8')),
+        T: require('./english-catalog')(),
         location: {set href(url) { navigations.push(url); }},
         switchView: view => views.push(view),
         docsightUrl: url => url,

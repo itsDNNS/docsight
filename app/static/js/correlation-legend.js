@@ -58,29 +58,29 @@
         var list = [];
         function add(metric, color, label) { list.push({ metric: metric, color: color, label: label }); }
         if (st.modem.length > 0) {
-            if (st.hasPowerData) add('dsPower', c.dsPower, '&#183;&#183; ' + (T.chart_ds_power || 'DS Power (dBmV)'));
-            if (st.hasTxData) add('txPower', c.txPower, '&#9476; ' + (T.chart_us_power || 'US Power (dBmV)'));
-            add('snr', c.snr, '&#9644; ' + (T.chart_snr || 'SNR (dB)'));
-            add('signalState', c.health.good, '&#9646; ' + (T.correlation_lane_state || 'Signal state'));
-            if (st.hasErrorData) add('errors', 'rgba(239,68,68,0.8)', '&#9612; ' + (T.correlation_errors || 'Errors'));
+            if (st.hasPowerData) add('dsPower', c.dsPower, '&#183;&#183; ' + T.chart_ds_power);
+            if (st.hasTxData) add('txPower', c.txPower, '&#9476; ' + T.chart_us_power);
+            add('snr', c.snr, '&#9644; ' + T.chart_snr);
+            add('signalState', c.health.good, '&#9646; ' + T.correlation_lane_state);
+            if (st.hasErrorData) add('errors', 'rgba(239,68,68,0.8)', '&#9612; ' + T.correlation_errors);
         }
         if (st.speedtest.length > 0) {
-            add('download', c.download, '&#9474;&#9679; ' + (T.correlation_download || 'Download (Mbps)'));
-            add('upload', c.upload, '&#9474;&#9679; ' + (T.correlation_upload || 'Upload (Mbps)'));
+            add('download', c.download, '&#9474;&#9679; ' + T.correlation_download);
+            add('upload', c.upload, '&#9474;&#9679; ' + T.correlation_upload);
         }
         if (st.events.length > 0) {
-            add('events', c.warn, '&#9650; ' + (T.correlation_events || 'Events'));
+            add('events', c.warn, '&#9650; ' + T.correlation_events);
             list[list.length - 1].events = filter.summary(st.events);
         }
         if (st.weather.length > 0) {
-            add('temperature', c.temperature, '- - ' + (T.temperature || 'Temperature') + ' (' + (fahrenheit ? '°F' : '°C') + ')');
+            add('temperature', c.temperature, '- - ' + T.temperature + ' (' + (fahrenheit ? '°F' : '°C') + ')');
         }
         if (st.segment.length > 0) {
-            add('segmentDs', c.segmentDs, '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)'));
-            add('segmentUs', c.segmentUs, '&#9644; ' + (T.seg_correlation_us || 'Segment US (%)'));
+            add('segmentDs', c.segmentDs, '&#9644; ' + T.seg_correlation_ds);
+            add('segmentUs', c.segmentUs, '&#9644; ' + T.seg_correlation_us);
         }
         if (st.reachabilityBuckets.length > 0) {
-            add('reachability', c.accent, '&#9646; ' + (T.correlation_reachability || 'Reachability'));
+            add('reachability', c.accent, '&#9646; ' + T.correlation_reachability);
         }
         return list;
     }
@@ -122,7 +122,7 @@
 
     function popoverHtml(events, filter, color, T) {
         var colorAttr = ' data-color="' + escapeHtml(color) + '"';
-        var html = '<div class="corr-event-filter-title">' + (T.event_filter_title || 'Event Types') + '</div>';
+        var html = '<div class="corr-event-filter-title">' + T.event_filter_title + '</div>';
         Object.keys(events.types).sort().forEach(function (type) {
             var bySeverity = filter.severity(type);
             html += '<div class="corr-event-filter-group">' +
@@ -189,8 +189,8 @@
     /* Renders the legend into el. options: {visible, filter, T, eventColor, onToggle(), onFilterChange()}. */
     function render(el, list, options) {
         var T = options.T;
-        var hint = T.correlation_toggle_hint || 'Click to toggle';
-        var filterLabel = escapeHtml(T.correlation_event_filter || 'Event Filter');
+        var hint = T.correlation_toggle_hint;
+        var filterLabel = escapeHtml(T.correlation_event_filter);
         // The legend is rebuilt on every redraw; keyboard focus stays on the same control.
         var focused = el.contains(document.activeElement) ? document.activeElement : null;
         var focusSelector = focused && focused.classList.contains('corr-event-filter-btn') ? '.corr-event-filter-btn'

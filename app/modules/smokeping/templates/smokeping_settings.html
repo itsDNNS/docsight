@@ -8,20 +8,20 @@
                 </div>
                 <div>
                     <div class="card-title">Smokeping</div>
-                    <div class="card-subtitle">{{ t['docsight.smokeping.smokeping_optional'] or 'optional' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Smokeping#setup" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-subtitle">{{ t['docsight.smokeping.smokeping_optional'] }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Smokeping#setup" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
         <div class="form-grid">
             <div class="form-field">
-                <label class="form-label" for="smokeping_url">{{ t['docsight.smokeping.smokeping_url_label'] or 'Smokeping URL' }}</label>
+                <label class="form-label" for="smokeping_url">{{ t['docsight.smokeping.smokeping_url_label'] }}</label>
                 <input class="form-input" type="url" id="smokeping_url" name="smokeping_url" value="{{ config.smokeping_url }}" placeholder="https://smokeping.example.com/smokeping">
-                <span class="form-hint">{{ t['docsight.smokeping.smokeping_url_hint'] or 'Base URL of your Smokeping instance (without /cache/)' }}</span>
+                <span class="form-hint">{{ t['docsight.smokeping.smokeping_url_hint'] }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="smokeping_targets">{{ t['docsight.smokeping.smokeping_targets_label'] or 'Targets' }}</label>
+                <label class="form-label" for="smokeping_targets">{{ t['docsight.smokeping.smokeping_targets_label'] }}</label>
                 <input class="form-input" type="text" id="smokeping_targets" name="smokeping_targets" value="{{ config.smokeping_targets }}" placeholder="InternetSites.Google, InternetSites.Cloudflare">
-                <span class="form-hint">{{ t['docsight.smokeping.smokeping_targets_hint'] or 'Comma-separated list of targets' }}</span>
+                <span class="form-hint">{{ t['docsight.smokeping.smokeping_targets_hint'] }}</span>
             </div>
         </div>
     </div>

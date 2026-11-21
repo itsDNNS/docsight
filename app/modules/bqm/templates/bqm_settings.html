@@ -8,21 +8,21 @@
                 </div>
                 <div>
                     <div class="card-title">ThinkBroadband BQM</div>
-                    <div class="card-subtitle">{{ t['docsight.bqm.bqm_optional'] or 'optional' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-BQM#recommended-setup-csv-yesterday" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-subtitle">{{ t['docsight.bqm.bqm_optional'] }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-BQM#recommended-setup-csv-yesterday" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
         <div class="form-grid">
             <div class="form-field">
-                <label class="form-label" for="bqm_url">{{ t['docsight.bqm.bqm_share_url'] or 'Share URL' }}</label>
+                <label class="form-label" for="bqm_url">{{ t['docsight.bqm.bqm_share_url'] }}</label>
                 <input class="form-input" type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...csv">
-                <span class="form-hint">{{ t['docsight.bqm.bqm_url_hint'] or 'Paste the ThinkBroadband CSV Yesterday share link for daily collection. CSV Live is for live spot checks only. DOCSight fetches once immediately after setup, then daily at the configured time. PNG links are supported only for legacy image mode.' }}</span>
-                <span class="form-hint">{{ t['docsight.bqm.bqm_bulk_import_hint'] or 'For history, use the CSV bulk import to load up to 12 months of history before relying on daily collection.' }}</span>
+                <span class="form-hint">{{ t['docsight.bqm.bqm_url_hint'] }}</span>
+                <span class="form-hint">{{ t['docsight.bqm.bqm_bulk_import_hint'] }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="bqm_collect_time">{{ t['docsight.bqm.bqm_collect_time'] or 'Daily collection time' }}</label>
+                <label class="form-label" for="bqm_collect_time">{{ t['docsight.bqm.bqm_collect_time'] }}</label>
                 <input class="form-input" type="time" id="bqm_collect_time" name="bqm_collect_time" value="{{ config.bqm_collect_time }}">
-                <span class="form-hint">{{ t['docsight.bqm.bqm_collect_time_hint'] or 'Time of day to fetch CSV Yesterday data (configured timezone). Missed days are not backfilled automatically; import historical CSV files when a longer gap exists.' }}</span>
+                <span class="form-hint">{{ t['docsight.bqm.bqm_collect_time_hint'] }}</span>
             </div>
         </div>
     </div>

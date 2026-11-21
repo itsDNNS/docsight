@@ -8,15 +8,15 @@
                     <i data-lucide="hard-drive-download"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t['docsight.backup.backup_title'] or 'Backup & Restore' }}</div>
-                    <div class="card-subtitle">{{ t['docsight.backup.backup_desc'] or 'Download or schedule automatic backups of your DOCSight data' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-title">{{ t['docsight.backup.backup_title'] }}</div>
+                    <div class="card-subtitle">{{ t['docsight.backup.backup_desc'] }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
         <div class="btn-row">
             <button type="button" class="btn btn-primary" data-action="downloadBackup" id="backup-download-btn">
                 <i data-lucide="download"></i>
-                {{ t['docsight.backup.backup_download'] or 'Download Backup' }}
+                {{ t['docsight.backup.backup_download'] }}
             </button>
         </div>
         <div class="test-result" id="backup-download-result"></div>
@@ -30,8 +30,8 @@
                     <i data-lucide="clock"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t['docsight.backup.backup_auto_label'] or 'Automatic Backups' }}</div>
-                    <div class="card-subtitle">{{ t['docsight.backup.backup_auto_hint'] or 'Periodically save backups to a server directory' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore#scheduled-automatic-backups" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-title">{{ t['docsight.backup.backup_auto_label'] }}</div>
+                    <div class="card-subtitle">{{ t['docsight.backup.backup_auto_hint'] }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore#scheduled-automatic-backups" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
@@ -53,40 +53,40 @@
 
         <div id="backup-auto-settings" class="backup-auto-settings{% if not config.backup_enabled %} is-off{% endif %}"{% if not config.backup_enabled %} inert{% endif %}>
             <div class="form-field settings-gap">
-                <label class="form-label" for="backup_path">{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
+                <label class="form-label" for="backup_path">{{ t['docsight.backup.backup_path'] }}</label>
                 <div class="input-with-action">
                     <input class="form-input backup-path-input" type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly>
                     <button type="button" class="btn btn-secondary btn-sm" data-action="openBrowseModal" data-action-pass="element">
                         <i data-lucide="folder-open"></i>
-                        {{ t['docsight.backup.backup_browse'] or 'Browse' }}
+                        {{ t['docsight.backup.backup_browse'] }}
                     </button>
                 </div>
-                <span class="form-hint">{{ t['docsight.backup.backup_path_hint'] or 'Server directory where backups are stored' }}</span>
+                <span class="form-hint">{{ t['docsight.backup.backup_path_hint'] }}</span>
             </div>
             <div class="form-grid cols-2 settings-gap">
                 <div class="form-field">
-                    <label class="form-label" for="backup_interval_hours">{{ t['docsight.backup.backup_interval'] or 'Interval' }}</label>
+                    <label class="form-label" for="backup_interval_hours">{{ t['docsight.backup.backup_interval'] }}</label>
                     <select class="form-input form-select" id="backup_interval_hours" name="backup_interval_hours">
-                        <option value="24" {% if config.backup_interval_hours == 24 or not config.backup_interval_hours %}selected{% endif %}>{{ t['docsight.backup.backup_daily'] or 'Daily' }}</option>
-                        <option value="168" {% if config.backup_interval_hours == 168 %}selected{% endif %}>{{ t['docsight.backup.backup_weekly'] or 'Weekly' }}</option>
+                        <option value="24" {% if config.backup_interval_hours == 24 or not config.backup_interval_hours %}selected{% endif %}>{{ t['docsight.backup.backup_daily'] }}</option>
+                        <option value="168" {% if config.backup_interval_hours == 168 %}selected{% endif %}>{{ t['docsight.backup.backup_weekly'] }}</option>
                     </select>
                 </div>
                 <div class="form-field">
-                    <label class="form-label" for="backup_retention">{{ t['docsight.backup.backup_retention'] or 'Keep backups' }}</label>
+                    <label class="form-label" for="backup_retention">{{ t['docsight.backup.backup_retention'] }}</label>
                     <input class="form-input" type="number" id="backup_retention" name="backup_retention" value="{{ config.backup_retention or 5 }}" min="1" max="100">
-                    <span class="form-hint">{{ t['docsight.backup.backup_retention_hint'] or 'Number of backup files to keep' }}</span>
+                    <span class="form-hint">{{ t['docsight.backup.backup_retention_hint'] }}</span>
                 </div>
             </div>
             <div class="settings-actions">
                 <button type="button" class="btn btn-secondary" data-action="backupNow">
                     <i data-lucide="save"></i>
-                    {{ t['docsight.backup.backup_now'] or 'Backup Now' }}
+                    {{ t['docsight.backup.backup_now'] }}
                 </button>
             </div>
             <div class="test-result" id="backup-now-result"></div>
 
             <div class="settings-subsection">
-                <div class="section-label">{{ t['docsight.backup.backup_existing'] or 'Existing Backups' }}</div>
+                <div class="section-label">{{ t['docsight.backup.backup_existing'] }}</div>
                 <div id="backup-list" class="backup-list"></div>
             </div>
         </div>
@@ -97,11 +97,11 @@
 <dialog id="browse-modal" class="modal-overlay" aria-labelledby="browse-modal-title" aria-describedby="browse-status">
     <div class="modal">
         <div class="modal-header">
-            <h2 id="browse-modal-title">{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h2>
-            <button type="button" class="modal-close" data-action="closeBrowseModal" aria-label="{{ t.close or 'Close' }}">&times;</button>
+            <h2 id="browse-modal-title">{{ t['docsight.backup.backup_select_dir'] }}</h2>
+            <button type="button" class="modal-close" data-action="closeBrowseModal" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div class="browse-modal-summary">
-            <span>{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</span>
+            <span>{{ t['docsight.backup.backup_path'] }}</span>
             <code id="browse-selected-path">{{ config.backup_path or '/backup' }}</code>
         </div>
         <div id="browse-status" class="browse-modal-status" role="status" aria-live="polite"></div>
@@ -109,7 +109,7 @@
         <div id="browse-dirs" class="modal-body browse-modal-body" tabindex="0"></div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-action="closeBrowseModal">{{ t.cancel }}</button>
-            <button type="button" class="btn btn-primary" data-action="selectBrowsePath">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
+            <button type="button" class="btn btn-primary" data-action="selectBrowsePath">{{ t['docsight.backup.backup_select'] }}</button>
         </div>
     </div>
 </dialog>

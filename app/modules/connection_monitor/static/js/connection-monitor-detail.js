@@ -121,7 +121,7 @@
     }
 
     function failureText() {
-        return T.network_error || 'Network error';
+        return T.network_error;
     }
 
     function showRequestError() {
@@ -534,7 +534,7 @@
         tbody.textContent = '';
 
         if (grouped.length === 0) {
-            appendMessageRow(tbody, 4, T['docsight.connection_monitor.cm_outage_none'] || 'No outages in this range');
+            appendMessageRow(tbody, 4, T['docsight.connection_monitor.cm_outage_none']);
             return;
         }
 
@@ -551,7 +551,7 @@
             if (g.ongoing) {
                 var span = document.createElement('span');
                 span.className = 'cm-outage-ongoing';
-                span.textContent = T['docsight.connection_monitor.cm_outage_ongoing'] || 'Ongoing';
+                span.textContent = T['docsight.connection_monitor.cm_outage_ongoing'];
                 tdEnd.appendChild(span);
             } else if (g.end) {
                 tdEnd.textContent = formatDocsightTime(g.end, 'datetime', true);
@@ -607,7 +607,7 @@
             '1hr': el.dataset.label1hr || '1-hour averages'
         };
         if (pinnedDayView) {
-            el.textContent = (T['docsight.connection_monitor.cm_pinned_day_status'] || 'Pinned: {date} (full resolution)').replace('{date}', pinnedDayView.date);
+            el.textContent = T['docsight.connection_monitor.cm_pinned_day_status'].replace('{date}', pinnedDayView.date);
             el.style.display = 'block';
             return;
         }
@@ -827,8 +827,8 @@
                     hopTable.className = 'data-table data-table-compact';
                     var thead = document.createElement('thead');
                     var headRow = document.createElement('tr');
-                    [[cmT('hop', 'Hop'), true], [cmT('ip_address', 'IP address')], [cmT('hostname', 'Hostname')],
-                     [cmT('latency', 'Latency'), true], [cmT('probes_responded', 'Probes'), true]].forEach(function(column) {
+                    [[cmT('hop'), true], [cmT('ip_address')], [cmT('hostname')],
+                     [cmT('latency'), true], [cmT('probes_responded'), true]].forEach(function(column) {
                         var th = document.createElement('th');
                         if (column[1]) th.className = 'dt-num';
                         th.textContent = column[0];

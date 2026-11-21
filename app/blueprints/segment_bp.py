@@ -42,9 +42,9 @@ def _gated_storage():
     config = current_runtime().config_manager
     t = get_translations(get_lang())
     if config.get("modem_type") != "fritzbox":
-        return None, (jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400)
+        return None, (jsonify({"error": t["seg_unsupported_driver"]}), 400)
     if not config.is_segment_utilization_enabled():
-        return None, (jsonify({"error": t.get("seg_disabled", "Segment utilization is disabled in Settings.")}), 400)
+        return None, (jsonify({"error": t["seg_disabled"]}), 400)
     storage = _get_storage()
     if not storage:
         return None, (jsonify({"error": "Storage unavailable"}), 503)

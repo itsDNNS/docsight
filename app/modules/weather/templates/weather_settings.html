@@ -7,15 +7,15 @@
                     <i data-lucide="thermometer"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t['docsight.weather.weather_title'] or 'Weather' }}</div>
-                    <div class="card-subtitle">{{ t['docsight.weather.weather_optional'] or 'optional — correlate signal quality with outdoor temperature' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Weather#setup" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-title">{{ t['docsight.weather.weather_title'] }}</div>
+                    <div class="card-subtitle">{{ t['docsight.weather.weather_optional'] }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Weather#setup" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title" id="weather_enabled-title">{{ t['docsight.weather.weather_enable'] or 'Enable weather data collection' }}</span>
-                <span class="toggle-desc">{{ t['docsight.weather.weather_enable_hint'] or 'Fetches hourly outdoor temperature from Open-Meteo (free, no API key). Historical data is backfilled automatically.' }}</span>
+                <span class="toggle-title" id="weather_enabled-title">{{ t['docsight.weather.weather_enable'] }}</span>
+                <span class="toggle-desc">{{ t['docsight.weather.weather_enable_hint'] }}</span>
             </div>
             <input type="hidden" name="weather_enabled" value="false">
             <label class="toggle">
@@ -25,12 +25,12 @@
         </div>
         <div class="form-grid cols-2 settings-gap">
             <div class="form-field">
-                <label class="form-label" for="weather_latitude">{{ t['docsight.weather.weather_latitude'] or 'Latitude' }}</label>
+                <label class="form-label" for="weather_latitude">{{ t['docsight.weather.weather_latitude'] }}</label>
                 <input class="form-input" type="text" id="weather_latitude" name="weather_latitude" value="{{ config.weather_latitude }}" placeholder="52.52">
-                <span class="form-hint">{{ t['docsight.weather.weather_coord_hint'] or 'Your location coordinates (e.g. 52.52 / 13.41 for Berlin). Find yours at latlong.net' }}</span>
+                <span class="form-hint">{{ t['docsight.weather.weather_coord_hint'] }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="weather_longitude">{{ t['docsight.weather.weather_longitude'] or 'Longitude' }}</label>
+                <label class="form-label" for="weather_longitude">{{ t['docsight.weather.weather_longitude'] }}</label>
                 <input class="form-input" type="text" id="weather_longitude" name="weather_longitude" value="{{ config.weather_longitude }}" placeholder="13.41">
             </div>
         </div>

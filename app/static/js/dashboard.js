@@ -406,13 +406,13 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                 .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
                 .then(function(res) {
                     if (res.data.success) {
-                        showToast(T.refresh_success || 'Data updated', 'success');
+                        showToast(T.refresh_success, 'success');
                         refreshData();
                     } else {
                         showToast(res.data.error || 'Error', 'error');
                     }
                 })
-                .catch(function() { showToast(T.network_error || 'Error', 'error'); })
+                .catch(function() { showToast(T.network_error, 'error'); })
                 .finally(function() {
                     refreshBtn.classList.remove('spinning');
                     setTimeout(function() {

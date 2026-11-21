@@ -108,13 +108,11 @@ function qamColorForContext(mod, pg) {
 function lowQamLegendHintForContext(pg) {
     if (isUsDocsis31Upstream(pg)) {
         return T['docsight.modulation.low_qam_legend_hint_d31_us'] ||
-            T['low_qam_legend_hint_d31_us'] ||
-            'US DOCSIS 3.1: 64QAM and below count as Low-QAM; 128QAM is borderline.';
+            T.low_qam_legend_hint_d31_us;
     }
     if (isUsDocsis30Upstream(pg)) {
         return T['docsight.modulation.low_qam_legend_hint_d30_us'] ||
-            T['low_qam_legend_hint_d30_us'] ||
-            'US DOCSIS 3.0 upstream: 64QAM is the healthy maximum; 32QAM is reduced.';
+            T.low_qam_legend_hint_d30_us;
     }
     return '';
 }
@@ -211,7 +209,7 @@ function updateModulation() {
 function _showModulationEmpty(el) {
     DOCSightEmptyState.showRange(el, {
         tabs: 'modulation-range-tabs',
-        text: T['docsight.modulation.no_data'] || 'No modulation data available for the selected period.',
+        text: T['docsight.modulation.no_data'],
         glossary: 'modulation_performance'
     });
 }
@@ -273,8 +271,7 @@ function updateOverviewKPIs(data) {
     }
     var lqHint = document.getElementById('mod-kpi-lowqam-hint');
     if (lqHint) {
-        lqHint.textContent = T['docsight.modulation.low_qam_denominator_hint'] ||
-            'Unknown samples stay in the total';
+        lqHint.textContent = T['docsight.modulation.low_qam_denominator_hint'];
     }
 
     var samples = document.getElementById('mod-kpi-samples');
@@ -293,12 +290,12 @@ function formatCapacityMbps(value) {
 
 function rangeLabelForCapacity(data) {
     if (data && data.date) {
-        return (T['docsight.modulation.capacity_selected_day'] || 'Selected day') + ': ' + data.date;
+        return T['docsight.modulation.capacity_selected_day'] + ': ' + data.date;
     }
     if (_modDays === 1) {
-        return T['docsight.modulation.capacity_today_period'] || 'Today';
+        return T['docsight.modulation.capacity_today_period'];
     }
-    var template = T['docsight.modulation.capacity_selected_days'] || 'Selected period: {days}d';
+    var template = T['docsight.modulation.capacity_selected_days'];
     return template.replace('{days}', String(_modDays));
 }
 
@@ -323,8 +320,7 @@ function capacityCoverageText(summary) {
     var calculated = summary ? (summary.calculated_channel_samples || 0) : 0;
     var total = summary ? (summary.total_channel_samples || 0) : 0;
     var pct = Number(summary && summary.coverage_pct || 0).toFixed(1);
-    var template = T['docsight.modulation.capacity_coverage_detail'] ||
-        '{calculated} of {total} channel samples calculated ({pct}%)';
+    var template = T['docsight.modulation.capacity_coverage_detail'];
     return template
         .replace('{calculated}', String(calculated))
         .replace('{total}', String(total))
@@ -335,12 +331,10 @@ function capacityPartialCaveatText(summary) {
     if (!summary || !(summary.unsupported_channel_samples > 0)) return '';
     var families = unsupportedCapacityFamilies(summary);
     if (families.length > 0) {
-        var template = T['docsight.modulation.capacity_partial_caveat'] ||
-            'Partial estimate: {families} channels are not included in this SC-QAM capacity sum.';
+        var template = T['docsight.modulation.capacity_partial_caveat'];
         return template.replace('{families}', families.join('/'));
     }
-    return T['docsight.modulation.capacity_partial_caveat_generic'] ||
-        'Partial estimate: unsupported DOCSIS channels are not included in this SC-QAM capacity sum.';
+    return T['docsight.modulation.capacity_partial_caveat_generic'];
 }
 
 function capacityStatusText(summary) {
@@ -352,7 +346,7 @@ function capacityStatusText(summary) {
     }[summary.status] || summary.status || '\u2014';
     var text = T[key] || fallback;
     if (summary.unsupported_channel_samples > 0) {
-        text = (T['docsight.modulation.capacity_partial_coverage'] || 'Partial estimate') + ' · ' + text;
+        text = T['docsight.modulation.capacity_partial_coverage'] + ' · ' + text;
     }
     return text;
 }
@@ -398,7 +392,7 @@ function updateCapacityHistory(data, rangeLabel) {
     panel.hidden = false;
     var label = document.getElementById('mod-capacity-range-label');
     if (label) {
-        label.textContent = rangeLabel || (T['docsight.modulation.capacity_selected_period'] || 'Selected period');
+        label.textContent = rangeLabel || T['docsight.modulation.capacity_selected_period'];
     }
     updateCapacityCard('downstream', history.downstream);
     updateCapacityCard('upstream', history.upstream);
@@ -421,20 +415,20 @@ function renderProtocolGroups(data) {
         // Header
         var header = _el('div', 'mod-protocol-group-header');
         var dirLabel = _modDirection === 'us'
-            ? (T['docsight.modulation.upstream'] || 'Upstream')
-            : (T['docsight.modulation.downstream'] || 'Downstream');
+            ? T['docsight.modulation.upstream']
+            : T['docsight.modulation.downstream'];
         var titleText = dirLabel + ' DOCSIS ' + pg.docsis_version + ' (max ' + pg.max_qam + ')';
         header.appendChild(_el('h3', null, titleText));
 
         var chLabel = pg.channel_count === 1
-            ? (T['docsight.modulation.channel_label'] || 'Channel')
-            : (T['docsight.modulation.channels_label'] || 'Channels');
+            ? T['docsight.modulation.channel_label']
+            : T['docsight.modulation.channels_label'];
         var chBadge = _el('span', 'mod-protocol-badge', pg.channel_count + ' ' + chLabel);
         header.appendChild(chBadge);
 
         if (pg.degraded_channel_count > 0) {
             var degBadge = _el('span', 'mod-protocol-badge degraded',
-                pg.degraded_channel_count + ' ' + (T['docsight.modulation.degraded_channels'] || 'degraded'));
+                pg.degraded_channel_count + ' ' + T['docsight.modulation.degraded_channels']);
             header.appendChild(degBadge);
         }
         section.appendChild(header);
@@ -442,18 +436,18 @@ function renderProtocolGroups(data) {
         // Mini KPIs
         var kpiRow = _el('div', 'mod-group-kpi-row');
         kpiRow.appendChild(_buildMiniKPI(
-            T['docsight.modulation.health_index'] || 'Health Index',
+            T['docsight.modulation.health_index'],
             pg.health_index !== null ? pg.health_index.toFixed(1) : '\u2014',
             healthClass(pg.health_index)));
         kpiRow.appendChild(_buildMiniKPI(
-            T['docsight.modulation.low_qam_pct'] || 'Low-QAM %',
+            T['docsight.modulation.low_qam_pct'],
             pg.low_qam_pct.toFixed(1) + '%',
             lowQamClass(pg.low_qam_pct)));
         kpiRow.appendChild(_buildMiniKPI(
-            T['docsight.modulation.dominant_modulation'] || 'Dominant',
+            T['docsight.modulation.dominant_modulation'],
             pg.dominant_modulation || '\u2014', ''));
         kpiRow.appendChild(_buildMiniKPI(
-            T['docsight.modulation.degraded_channels'] || 'Degraded',
+            T['docsight.modulation.degraded_channels'],
             pg.degraded_channel_count + '/' + pg.channel_count,
             pg.degraded_channel_count > 0 ? 'critical' : 'good'));
         section.appendChild(kpiRow);
@@ -466,7 +460,7 @@ function renderProtocolGroups(data) {
         var barHeader = _el('div', 'chart-card-header');
         var barContent = _el('div', 'chart-header-content');
         barContent.appendChild(_el('div', 'chart-label',
-            T['docsight.modulation.distribution_chart'] || 'Modulation Distribution'));
+            T['docsight.modulation.distribution_chart']));
         barHeader.appendChild(barContent);
         barCard.appendChild(barHeader);
         var barWrap = _el('div', 'modulation-chart-wrap');
@@ -486,7 +480,7 @@ function renderProtocolGroups(data) {
         var trendHeader = _el('div', 'chart-card-header');
         var trendContent = _el('div', 'chart-header-content');
         trendContent.appendChild(_el('div', 'chart-label',
-            T['docsight.modulation.trend_chart'] || 'Health Trend'));
+            T['docsight.modulation.trend_chart']));
         trendHeader.appendChild(trendContent);
         trendCard.appendChild(trendHeader);
         var trendWrap = _el('div', 'modulation-chart-wrap');
@@ -625,7 +619,7 @@ function attachModulationDayClick(chart, container, days) {
     container.classList.add('modulation-clickable-chart');
     container.setAttribute(
         'title',
-        T['docsight.modulation.click_day_hint'] || 'Click a day bar to view per-channel details'
+        T['docsight.modulation.click_day_hint']
     );
     container.addEventListener('click', function(evt) {
         var rect = chart.over.getBoundingClientRect();
@@ -700,7 +694,7 @@ function renderGroupTrendChart(pg, idx) {
         series: [
             { label: 'X', value: function(u, v) { return labels[v] || ''; } },
             {
-                label: T['docsight.modulation.health_index'] || 'Health Index',
+                label: T['docsight.modulation.health_index'],
                 stroke: '#22c55e',
                 fill: 'rgba(34,197,94,0.1)',
                 width: 2,
@@ -708,7 +702,7 @@ function renderGroupTrendChart(pg, idx) {
                 points: { show: false }
             },
             {
-                label: T['docsight.modulation.low_qam_pct'] || 'Low-QAM %',
+                label: T['docsight.modulation.low_qam_pct'],
                 stroke: '#ef4444',
                 fill: 'rgba(239,68,68,0.1)',
                 width: 2,
@@ -772,7 +766,7 @@ function renderIntraday(data) {
     destroyIntradayCharts();
     var titleEl = document.getElementById('mod-intraday-title');
     if (titleEl) {
-        titleEl.textContent = (T['docsight.modulation.intraday_title'] || 'Channel Detail') +
+        titleEl.textContent = T['docsight.modulation.intraday_title'] +
             ' \u2014 ' + data.date;
     }
 
@@ -792,8 +786,8 @@ function renderIntraday(data) {
         var section = _el('div', 'mod-protocol-group');
 
         var dirLabel = _modDirection === 'us'
-            ? (T['docsight.modulation.upstream'] || 'Upstream')
-            : (T['docsight.modulation.downstream'] || 'Downstream');
+            ? T['docsight.modulation.upstream']
+            : T['docsight.modulation.downstream'];
         var header = _el('div', 'mod-protocol-group-header');
         header.appendChild(_el('h3', null,
             dirLabel + ' DOCSIS ' + pg.docsis_version + ' (max ' + pg.max_qam + ')'));
@@ -815,7 +809,7 @@ function renderIntraday(data) {
                 card.appendChild(buildIntradayEventList(ch.degraded_events));
             } else {
                 card.appendChild(_el('div', 'mod-channel-summary-text',
-                    T['docsight.modulation.no_degradation'] || 'No degradation observed'));
+                    T['docsight.modulation.no_degradation']));
             }
 
             if (ch.timeline && ch.timeline.length > 1) {
@@ -843,18 +837,18 @@ function buildIntradayInsights(ch) {
     wrap.appendChild(_el(
         'span',
         'mod-channel-insight warning',
-        ch.degraded_events.length + ' ' + (T['docsight.modulation.degraded_windows'] || 'degraded windows')
+        ch.degraded_events.length + ' ' + T['docsight.modulation.degraded_windows']
     ));
     wrap.appendChild(_el(
         'span',
         'mod-channel-insight',
-        (T['docsight.modulation.affected_samples'] || 'Affected') + ' ' + (ch.degraded_sample_pct || 0) + '%'
+        T['docsight.modulation.affected_samples'] + ' ' + (ch.degraded_sample_pct || 0) + '%'
     ));
     if (ch.worst_modulation) {
         wrap.appendChild(_el(
             'span',
             'mod-channel-insight critical',
-            (T['docsight.modulation.worst_modulation'] || 'Worst') + ' ' + ch.worst_modulation
+            T['docsight.modulation.worst_modulation'] + ' ' + ch.worst_modulation
         ));
     }
     return wrap;
@@ -880,11 +874,11 @@ function buildIntradayEventList(events) {
 
         function syncToggleLabel() {
             if (expanded) {
-                toggle.textContent = T['docsight.modulation.show_fewer_windows'] || 'Show fewer';
+                toggle.textContent = T['docsight.modulation.show_fewer_windows'];
                 toggle.classList.add('open');
             } else {
                 toggle.textContent = '+' + hiddenRows.length + ' ' +
-                    (T['docsight.modulation.more_windows'] || 'more windows');
+                    T['docsight.modulation.more_windows'];
                 toggle.classList.remove('open');
             }
         }
@@ -916,7 +910,7 @@ function buildIntradayEvent(evt) {
     var impact = _el('div', 'mod-event-impact');
     impact.appendChild(_el('strong', 'mod-event-share', evt.pct + '%'));
     impact.appendChild(_el('span', 'mod-event-share-label',
-        T['docsight.modulation.of_samples'] || 'of samples'));
+        T['docsight.modulation.of_samples']));
     row.appendChild(impact);
     return row;
 }
@@ -926,7 +920,7 @@ function formatIntradayEventDuration(evt) {
         if (evt.count && evt.count > 1) {
             return evt.count + ' ' + sampleUnit(evt.count);
         }
-        return T['docsight.modulation.brief_dip'] || 'brief dip';
+        return T['docsight.modulation.brief_dip'];
     }
 
     var minutes = evt.duration_minutes || 0;
@@ -947,8 +941,8 @@ function formatIntradayEventDuration(evt) {
 
 function sampleUnit(count) {
     return count === 1
-        ? (T['docsight.modulation.sample_singular'] || 'sample')
-        : (T['docsight.modulation.sample_plural'] || 'samples');
+        ? T['docsight.modulation.sample_singular']
+        : T['docsight.modulation.sample_plural'];
 }
 
 function renderChannelTimeline(canvasId, timeline) {
