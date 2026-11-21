@@ -33,7 +33,6 @@
   "snapshots": "Migawki",
   "no_data_period": "Brak danych w wybranym okresie",
   "select_periods": "Wybierz dwa okresy, aby porównać jakość sygnału.",
-  "hours_since_start": "Godziny od początku",
   "empty_title": "Porównaj dwa okresy",
   "empty_action": "Porównaj",
   "empty_no_data_text": "Wybierz okresy, w których DOCSight już zbierał dane.",

@@ -33,7 +33,6 @@
   "snapshots": "Snapshots",
   "no_data_period": "Níl aon sonraí sa tréimhse roghnaithe",
   "select_periods": "Roghnaigh dhá thréimhse chun cáilíocht an chomhartha a chur i gcomparáid.",
-  "hours_since_start": "Uaireanta ón tús",
   "empty_title": "Cuir dhá thréimhse i gcomparáid",
   "empty_action": "Déan comparáid",
   "empty_no_data_text": "Roghnaigh tréimhsí ina raibh DOCSight ag bailiú sonraí cheana.",

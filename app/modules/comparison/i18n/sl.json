@@ -33,7 +33,6 @@
   "snapshots": "Posnetki",
   "no_data_period": "V izbranem obdobju ni podatkov",
   "select_periods": "Izberite dve obdobji za primerjavo kakovosti signala.",
-  "hours_since_start": "Ure od začetka",
   "empty_title": "Primerjajte dve obdobji",
   "empty_action": "Primerjaj",
   "empty_no_data_text": "Izberite obdobja, v katerih je DOCSight že zbiral podatke.",

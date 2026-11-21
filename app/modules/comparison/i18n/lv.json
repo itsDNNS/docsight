@@ -33,7 +33,6 @@
   "snapshots": "Momentuzņēmumi",
   "no_data_period": "Izvēlētajā periodā nav datu",
   "select_periods": "Izvēlieties divus periodus, lai salīdzinātu signāla kvalitāti.",
-  "hours_since_start": "Stundas kopš sākuma",
   "empty_title": "Salīdziniet divus periodus",
   "empty_action": "Salīdzināt",
   "empty_no_data_text": "Izvēlieties periodus, kad DOCSight jau vāca datus.",

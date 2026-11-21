@@ -33,7 +33,6 @@
   "snapshots": "Tilannevedokset",
   "no_data_period": "Valitulla jaksolla ei ole tietoja",
   "select_periods": "Valitse kaksi jaksoa signaalin laadun vertailuun.",
-  "hours_since_start": "Tunteja alusta",
   "empty_title": "Vertaa kahta jaksoa",
   "empty_action": "Vertaa",
   "empty_no_data_text": "Valitse jaksoja, joilta DOCSight jo keräsi tietoja.",
