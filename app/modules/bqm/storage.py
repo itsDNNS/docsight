@@ -30,31 +30,27 @@ class BqmStorage:
         """Bulk insert CSV-derived BQM rows, ignoring duplicates by timestamp."""
         if not rows:
             return
-        try:
-            bulk_write(
-                self.db_path,
-                    "INSERT OR IGNORE INTO bqm_data "
-                    "(timestamp, date, sent_polls, lost_polls, latency_min_ms, "
-                    "latency_avg_ms, latency_max_ms, score) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    [
-                        (
-                            row["timestamp"],
-                            row["date"],
-                            row["sent_polls"],
-                            row["lost_polls"],
-                            row["latency_min_ms"],
-                            row["latency_avg_ms"],
-                            row["latency_max_ms"],
-                            row["score"],
-                        )
-                        for row in rows
-                    ],
+        bulk_write(
+            self.db_path,
+            "INSERT OR IGNORE INTO bqm_data "
+            "(timestamp, date, sent_polls, lost_polls, latency_min_ms, "
+            "latency_avg_ms, latency_max_ms, score) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    row["timestamp"],
+                    row["date"],
+                    row["sent_polls"],
+                    row["lost_polls"],
+                    row["latency_min_ms"],
+                    row["latency_avg_ms"],
+                    row["latency_max_ms"],
+                    row["score"],
                 )
-            log.debug("Stored %d BQM CSV rows", len(rows))
-        except Exception as e:
-            log.error("Failed to store BQM CSV rows: %s", e)
-            raise
+                for row in rows
+            ],
+        )
+        log.debug("Stored %d BQM CSV rows", len(rows))
 
     def _rows_for_query(self, query, params):
         with open_read(self.db_path) as conn:
@@ -87,28 +83,15 @@ class BqmStorage:
             ).fetchall()
         return [r[0] for r in rows]
 
-    def has_csv_data(self, target_date):
-        """Return True if CSV data exists for the given date."""
-        with open_read(self.db_path) as conn:
-            row = conn.execute(
-                "SELECT 1 FROM bqm_data WHERE date = ? LIMIT 1",
-                (target_date,),
-            ).fetchone()
-        return row is not None
-
     def save_bqm_graph(self, image_data, graph_date=None):
         """Save BQM graph. Skips if already exists (UNIQUE date)."""
         target_date = graph_date or local_today(self.tz_name)
-        ts = utc_now()
-        try:
-            with write_transaction(self.db_path) as conn:
-                conn.execute(
-                    "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
-                    (target_date, ts, image_data),
-                )
-            log.debug("BQM graph saved for %s", target_date)
-        except Exception as e:
-            log.error("Failed to save BQM graph: %s", e)
+        with write_transaction(self.db_path) as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
+                (target_date, utc_now(), image_data),
+            )
+        log.debug("BQM graph saved for %s", target_date)
 
     def import_bqm_graph(self, date, image_data, overwrite=False):
         """Import a BQM graph for a specific date.
@@ -168,15 +151,6 @@ class BqmStorage:
                 "SELECT image_blob FROM bqm_graphs WHERE date = ?", (date,)
             ).fetchone()
         return bytes(row[0]) if row else None
-
-    def set_meta(self, key, value):
-        """Persist a module metadata key."""
-        with write_transaction(self.db_path) as conn:
-            conn.execute(
-                "INSERT INTO bqm_meta (key, value) VALUES (?, ?) "
-                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                (key, str(value)),
-            )
 
     def get_collection_metadata(self):
         """Return persisted BQM collection metadata."""
