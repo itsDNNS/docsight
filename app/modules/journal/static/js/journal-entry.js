@@ -1,7 +1,27 @@
 /* ── Journal entry dialog ──
    Create, edit and delete an entry, pick its icon and case, and attach
    evidence files. Loaded with the journal dialogs; the list it refreshes
-   lives in main.js. */
+   lives in main.js. Also holds the request helper the journal's dialogs and
+   bulk actions share, since this script runs before the others that use it. */
+
+/* Sends a journal request, an object as JSON or FormData as it is, and
+   resolves the answer's data. An error answer rejects with its own message,
+   or with fallback when it has none. */
+function journalSend(path, method, body, fallback) {
+    var options = body instanceof FormData ? {method: method, body: body}
+        : {method: method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)};
+    return fetch(docsightUrl(path), options).then(function(r) {
+        return r.json().then(function(data) {
+            if (r.status >= 400) throw {journalError: data.error || fallback};
+            return data;
+        });
+    });
+}
+
+/* What a failed journal request shows: the error answer's text, else the network error. */
+function journalErrorText(e) {
+    return e.journalError || T.network_error || 'Error';
+}
 
 /* The fields an entry is saved with: trimmed text, the case id as a number or null. */
 function journalEntryPayload(fields) {
@@ -72,7 +92,7 @@ function openEntryModal(entryId, incidentId) {
                 descEl.value = entry.description || '';
                 _entryDescOnOpen = descEl.value;
                 iconVal.value = entry.icon || '';
-                renderIconPicker(entry.icon || '');
+                renderIconPicker('entry', entry.icon || '', updateModalIcon);
                 updateModalIcon();
                 populateIncidentSelect(entry.incident_id);
                 renderAttachments(entry.attachments || [], attachList, entryId);
@@ -90,7 +110,7 @@ function openEntryModal(entryId, incidentId) {
         descEl.value = '';
         _entryDescOnOpen = '';
         iconVal.value = '';
-        renderIconPicker('');
+        renderIconPicker('entry', '', updateModalIcon);
         updateModalIcon();
         populateIncidentSelect(incidentId || (_activeIncidentFilter > 0 ? _activeIncidentFilter : null));
         deleteBtn.hidden = true;
@@ -129,7 +149,7 @@ function dismissEntryModal() {
     });
 }
 
-function renderAttachments(attachments, container, incidentId) {
+function renderAttachments(attachments, container, entryId) {
     container.textContent = '';
     attachments.forEach(function(att) {
         var item = document.createElement('div');
@@ -170,7 +190,7 @@ function renderAttachments(attachments, container, incidentId) {
         deleteBtn.title = T.delete || 'Delete';
         deleteBtn.textContent = '\uD83D\uDDD1';
         deleteBtn.addEventListener('click', function() {
-            deleteAttachment(att.id, incidentId);
+            deleteAttachment(att.id, entryId);
         });
         actions.appendChild(deleteBtn);
         info.appendChild(actions);
@@ -196,24 +216,15 @@ function saveEntry() {
         return;
     }
 
-    var payload = JSON.stringify(entry);
-    var url = docsightUrl(entryId ? '/api/journal/' + entryId : '/api/journal');
-    var method = entryId ? 'PUT' : 'POST';
-
-    fetch(url, {method: method, headers: {'Content-Type': 'application/json'}, body: payload})
-        .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
-        .then(function(res) {
-            if (res.status >= 400) {
-                showToast(res.data.error || 'Error', 'error');
-                return;
-            }
+    journalSend(entryId ? '/api/journal/' + entryId : '/api/journal', entryId ? 'PUT' : 'POST', entry, 'Error')
+        .then(function(saved) {
             // A note added from a case lands in that case's timeline.
             if (_timelineActive && _timelineIncidentId) openIncidentTimeline(_timelineIncidentId);
             else loadJournal();
             loadIncidents();
-            if (!entryId && res.data.id) {
+            if (!entryId && saved.id) {
                 // New entry: switch modal to edit mode in-place (keep it open)
-                idEl.value = res.data.id;
+                idEl.value = saved.id;
                 document.getElementById('entry-modal-title').textContent = T.edit_entry || 'Edit Entry';
                 document.getElementById('entry-delete-btn').hidden = false;
                 document.getElementById('entry-attachments-section').hidden = false;
@@ -228,7 +239,7 @@ function saveEntry() {
                 closeEntryModal();
             }
         })
-        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+        .catch(function(e) { showToast(journalErrorText(e), 'error'); });
 }
 
 /* A single entry disappears at once and is deleted when its Undo toast runs out,
@@ -268,8 +279,8 @@ function deleteEntry() {
 }
 
 function handleEntryFileUpload(input) {
-    var incidentId = document.getElementById('entry-id').value;
-    if (!incidentId) {
+    var entryId = document.getElementById('entry-id').value;
+    if (!entryId) {
         showToast(T.entry_save_before_upload || 'Create the entry first, then attach evidence files.', 'info');
         input.value = '';
         return;
@@ -281,7 +292,7 @@ function handleEntryFileUpload(input) {
     uploadBtn.disabled = true;
     var uploads = [];
     for (var i = 0; i < input.files.length; i++) {
-        uploads.push(uploadOneFile(incidentId, input.files[i]));
+        uploads.push(uploadOneFile(entryId, input.files[i]));
     }
     Promise.all(uploads)
         .then(function(results) {
@@ -292,12 +303,7 @@ function handleEntryFileUpload(input) {
             spinner.hidden = true;
             uploadBtn.disabled = false;
             input.value = '';
-            // Reload attachments
-            fetch(docsightUrl('/api/journal/' + incidentId))
-                .then(function(r) { return r.json(); })
-                .then(function(inc) {
-                    renderAttachments(inc.attachments || [], document.getElementById('entry-attachment-list'), incidentId);
-                });
+            reloadAttachments(entryId);
         })
         .catch(function() {
             spinner.hidden = true;
@@ -306,25 +312,27 @@ function handleEntryFileUpload(input) {
         });
 }
 
-function uploadOneFile(incidentId, file) {
+function uploadOneFile(entryId, file) {
     var formData = new FormData();
     formData.append('file', file);
-    return fetch(docsightUrl('/api/journal/' + incidentId + '/attachments'), {method: 'POST', body: formData})
+    return fetch(docsightUrl('/api/journal/' + entryId + '/attachments'), {method: 'POST', body: formData})
         .then(function(r) { return r.json().then(function(d) { return r.status >= 400 ? {error: d.error} : d; }); })
         .catch(function() { return {error: T.network_error || 'Upload failed'}; });
 }
 
-function deleteAttachment(attachmentId, incidentId) {
+function deleteAttachment(attachmentId, entryId) {
     fetch(docsightUrl('/api/attachments/' + attachmentId), {method: 'DELETE'})
         .then(function(r) { return r.json(); })
-        .then(function() {
-            fetch(docsightUrl('/api/journal/' + incidentId))
-                .then(function(r) { return r.json(); })
-                .then(function(inc) {
-                    renderAttachments(inc.attachments || [], document.getElementById('entry-attachment-list'), incidentId);
-                });
-        })
+        .then(function() { reloadAttachments(entryId); })
         .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+}
+
+function reloadAttachments(entryId) {
+    fetch(docsightUrl('/api/journal/' + entryId))
+        .then(function(r) { return r.json(); })
+        .then(function(entry) {
+            renderAttachments(entry.attachments || [], document.getElementById('entry-attachment-list'), entryId);
+        });
 }
 
 (function() {
