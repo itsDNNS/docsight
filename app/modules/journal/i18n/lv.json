@@ -30,6 +30,7 @@
   "import_no_date": "nav datuma",
   "import_file_unsupported": "Tiek atbalstīti tikai .xlsx un .csv faili",
   "import_file_too_large": "Fails ir pārāk liels (maks. 5 MB)",
+  "import_csv_unreadable": "Šo failu nevarēja nolasīt. Atveriet to sākotnējā programmā, saglabājiet kā CSV (UTF-8) un importējiet vēlreiz.",
   "delete_all": "Dzēst visu",
   "delete_all_confirm": "Dzēst visus ierakstus ({n})? To nevar atsaukt.",
   "delete_all_type_confirm": "Lai apstiprinātu, ierakstiet DELETE:",

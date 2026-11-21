@@ -30,6 +30,7 @@
   "import_no_date": "nėra datos",
   "import_file_unsupported": "Palaikomi tik .xlsx ir .csv failai",
   "import_file_too_large": "Failas per didelis (daugiausia 5 MB)",
+  "import_csv_unreadable": "Šio failo nepavyko perskaityti. Atidarykite jį pradinėje programoje, išsaugokite kaip CSV (UTF-8) ir importuokite dar kartą.",
   "delete_all": "Ištrinti viską",
   "delete_all_confirm": "Ištrinti visus įrašus ({n})? To nebus galima atšaukti.",
   "delete_all_type_confirm": "Įveskite DELETE, kad patvirtintumėte:",
