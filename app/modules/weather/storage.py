@@ -2,19 +2,12 @@
 
 import logging
 from app.storage.migrations import run_migrations
-from app.storage.sqlite import (
-    DEFAULT_SQLITE_BUSY_TIMEOUT_MS,
-    DatabaseAccess,
-    bulk_write,
-    open_read,
-)
+from app.storage.sqlite import DatabaseAccess, bulk_write, open_read
 from app.tz import normalize_range_ts
 from .migrations import MIGRATIONS
-import threading
-from collections import defaultdict
-from pathlib import Path
 
 log = logging.getLogger("docsis.storage.weather")
+BACKFILL_KEY = "weather_backfill_pending"
 
 
 class WeatherStorage(DatabaseAccess):
@@ -23,19 +16,9 @@ class WeatherStorage(DatabaseAccess):
     Creates the weather_data table if it doesn't exist.
     """
 
-    BUSY_TIMEOUT_MS = DEFAULT_SQLITE_BUSY_TIMEOUT_MS
-    _locks = defaultdict(threading.RLock)
-
     def __init__(self, db_path):
         self.db_path = db_path
-        lock_key = str(Path(db_path).expanduser().resolve(strict=False))
-        self._lock = self._locks[lock_key]
-        self._ensure_table()
-
-    def _ensure_table(self):
-        """Create the weather_data table if it doesn't exist."""
-        with self._lock:
-            run_migrations(self.db_path, MIGRATIONS)
+        run_migrations(self.db_path, MIGRATIONS)
 
     def save_weather_data(self, records, is_demo=False):
         """Bulk insert weather records, ignoring duplicates by timestamp.
@@ -46,17 +29,25 @@ class WeatherStorage(DatabaseAccess):
         """
         if not records:
             return
-        try:
-            with self._lock:
-                bulk_write(
-                    self.db_path,
-                    "INSERT OR IGNORE INTO weather_data "
-                    "(timestamp, temperature, is_demo) VALUES (?, ?, ?)",
-                    [(r["timestamp"], r["temperature"], int(is_demo)) for r in records],
-                )
-            log.debug("Saved %d weather records", len(records))
-        except Exception as e:
-            log.error("Failed to save weather data: %s", e)
+        bulk_write(
+            self.db_path,
+            "INSERT OR IGNORE INTO weather_data "
+            "(timestamp, temperature, is_demo) VALUES (?, ?, ?)",
+            [(r["timestamp"], r["temperature"], int(is_demo)) for r in records],
+        )
+        log.debug("Saved %d weather records", len(records))
+
+    def backfill_pending(self):
+        """True while the history backfill is outstanding; an empty table is marked as awaiting it."""
+        with self._write() as conn:
+            if conn.execute("SELECT 1 FROM weather_data LIMIT 1").fetchone() is None:
+                conn.execute("INSERT OR IGNORE INTO _docsight_meta (key, value) VALUES (?, '1')", (BACKFILL_KEY,))
+            row = conn.execute("SELECT 1 FROM _docsight_meta WHERE key = ?", (BACKFILL_KEY,)).fetchone()
+        return row is not None
+
+    def finish_backfill(self):
+        with self._write() as conn:
+            conn.execute("DELETE FROM _docsight_meta WHERE key = ?", (BACKFILL_KEY,))
 
     def get_weather_data(self, limit=2000):
         """Return weather data, newest first."""
