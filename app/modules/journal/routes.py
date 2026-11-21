@@ -16,11 +16,11 @@ from io import BytesIO
 
 from flask import Blueprint, request, jsonify, send_file, make_response
 
-from app.tz import local_date_to_utc_range
+from app.tz import local_date_to_utc_range, local_today
 from app.web_auth import confirmed_delete_all, require_auth, _get_client_ip
 from app.storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_ENTRY
 
-from .import_parser import parse_file
+from .import_parser import MAX_FILE_SIZE, check_file_type, parse_file
 from .storage import JournalStorage
 
 from werkzeug.utils import secure_filename
@@ -40,6 +40,69 @@ ICON_KEYWORD_CATEGORIES = (
 def _get_journal_storage():
     """Get JournalStorage for journal-specific queries."""
     return core_derived_storage(JournalStorage)
+
+
+def _text(data, key):
+    return (data.get(key) or "").strip()
+
+
+def _entry_fields(data):
+    """Return the cleaned fields of an entry payload, or the error that rejects it."""
+    if not data:
+        return None, "No data"
+    date, title, description = _text(data, "date"), _text(data, "title"), _text(data, "description")
+    if not valid_date(date):
+        return None, "Invalid date format (YYYY-MM-DD)"
+    if not title:
+        return None, "Title is required"
+    if len(title) > 200:
+        return None, "Title too long (max 200 characters)"
+    if len(description) > 10000:
+        return None, "Description too long (max 10000 characters)"
+    icon = _text(data, "icon") or None
+    incident_id = data.get("incident_id")
+    try:
+        incident_id = int(incident_id) if incident_id else None
+    except (ValueError, TypeError):
+        incident_id = None
+    return {"date": date, "title": title, "description": description, "icon": icon, "incident_id": incident_id}, None
+
+
+def _incident_fields(data):
+    """Return the cleaned fields of a case payload, or the error that rejects it."""
+    if not data:
+        return None, "No data"
+    name = _text(data, "name")
+    if not name:
+        return None, "Name is required"
+    if len(name) > 200:
+        return None, "Name too long (max 200 characters)"
+    description = _text(data, "description")
+    if len(description) > 5000:
+        return None, "Description too long (max 5000 characters)"
+    status = (data.get("status") or "open").strip()
+    if status not in _VALID_INCIDENT_STATUSES:
+        return None, "Invalid status (open, resolved, escalated)"
+    start_date = _text(data, "start_date") or None
+    end_date = _text(data, "end_date") or None
+    if start_date and not valid_date(start_date):
+        return None, "Invalid start_date format (YYYY-MM-DD)"
+    if end_date and not valid_date(end_date):
+        return None, "Invalid end_date format (YYYY-MM-DD)"
+    icon = _text(data, "icon") or None
+    return {"name": name, "description": description, "status": status,
+            "start_date": start_date, "end_date": end_date, "icon": icon}, None
+
+
+def _incident_window(incident, tz):
+    """UTC range from a case's first day to its last one, today while it is still running."""
+    start_ts, _ = local_date_to_utc_range(incident["start_date"], tz)
+    _, end_ts = local_date_to_utc_range(incident.get("end_date") or local_today(tz), tz)
+    return start_ts, end_ts
+
+
+def _int_ids(values):
+    return [int(i) for i in values if isinstance(i, (int, float))]
 
 
 # ── Journal Entries API ──
@@ -76,13 +139,7 @@ def api_journal_list():
     limit = request.args.get("limit", 100, type=int)
     offset = request.args.get("offset", 0, type=int)
     search = request.args.get("search", "", type=str).strip() or None
-    incident_id_param = request.args.get("incident_id", None, type=str)
-    incident_id = None
-    if incident_id_param is not None and incident_id_param != "":
-        try:
-            incident_id = int(incident_id_param)
-        except (ValueError, TypeError):
-            pass
+    incident_id = request.args.get("incident_id", type=int)
     entries = _storage.get_entries(limit=limit, offset=offset, search=search, incident_id=incident_id)
     localize_timestamps(entries, get_tz_name(current_runtime().config_manager))
     return jsonify(entries)
@@ -102,13 +159,7 @@ def api_journal_export():
 
     date_from = request.args.get("from", None, type=str)
     date_to = request.args.get("to", None, type=str)
-    incident_id_param = request.args.get("incident_id", None, type=str)
-    incident_id = None
-    if incident_id_param is not None and incident_id_param != "":
-        try:
-            incident_id = int(incident_id_param)
-        except (ValueError, TypeError):
-            pass
+    incident_id = request.args.get("incident_id", type=int)
 
     entries = _storage.get_entries_for_export(date_from=date_from, date_to=date_to, incident_id=incident_id)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -182,29 +233,11 @@ def api_journal_create():
     _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data"}), 400
-    date = (data.get("date") or "").strip()
-    title = (data.get("title") or "").strip()
-    description = (data.get("description") or "").strip()
-    if not valid_date(date):
-        return jsonify({"error": "Invalid date format (YYYY-MM-DD)"}), 400
-    if not title:
-        return jsonify({"error": "Title is required"}), 400
-    if len(title) > 200:
-        return jsonify({"error": "Title too long (max 200 characters)"}), 400
-    if len(description) > 10000:
-        return jsonify({"error": "Description too long (max 10000 characters)"}), 400
-    icon = (data.get("icon") or "").strip() or None
-    inc_id = data.get("incident_id")
-    if inc_id is not None:
-        try:
-            inc_id = int(inc_id) if inc_id else None
-        except (ValueError, TypeError):
-            inc_id = None
-    entry_id = _storage.save_entry(date, title, description, icon=icon, incident_id=inc_id)
-    audit_log.info("Journal entry created: ip=%s id=%d title=%s", _get_client_ip(), entry_id, title[:50])
+    fields, error = _entry_fields(request.get_json())
+    if error:
+        return jsonify({"error": error}), 400
+    entry_id = _storage.save_entry(**fields)
+    audit_log.info("Journal entry created: ip=%s id=%d title=%s", _get_client_ip(), entry_id, fields["title"][:50])
     return jsonify({"id": entry_id}), 201
 
 
@@ -228,28 +261,10 @@ def api_journal_update(entry_id):
     _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data"}), 400
-    date = (data.get("date") or "").strip()
-    title = (data.get("title") or "").strip()
-    description = (data.get("description") or "").strip()
-    if not valid_date(date):
-        return jsonify({"error": "Invalid date format (YYYY-MM-DD)"}), 400
-    if not title:
-        return jsonify({"error": "Title is required"}), 400
-    if len(title) > 200:
-        return jsonify({"error": "Title too long (max 200 characters)"}), 400
-    if len(description) > 10000:
-        return jsonify({"error": "Description too long (max 10000 characters)"}), 400
-    icon = (data.get("icon") or "").strip() or None
-    inc_id = data.get("incident_id")
-    if inc_id is not None:
-        try:
-            inc_id = int(inc_id) if inc_id else None
-        except (ValueError, TypeError):
-            inc_id = None
-    if not _storage.update_entry(entry_id, date, title, description, icon=icon, incident_id=inc_id):
+    fields, error = _entry_fields(request.get_json())
+    if error:
+        return jsonify({"error": error}), 400
+    if not _storage.update_entry(entry_id, **fields):
         return jsonify({"error": "Not found"}), 404
     audit_log.info("Journal entry updated: ip=%s id=%d", _get_client_ip(), entry_id)
     return jsonify({"success": True})
@@ -347,16 +362,10 @@ def api_journal_import_preview():
     if not f.filename:
         return jsonify({"error": "No file selected"}), 400
 
-    lower = f.filename.lower()
-    if not (lower.endswith(".xlsx") or lower.endswith(".csv")):
-        return jsonify({"error": "Only .xlsx and .csv files are supported"}), 400
-
-    file_bytes = f.read()
-    if len(file_bytes) > 5 * 1024 * 1024:
-        return jsonify({"error": "File too large (max 5 MB)"}), 400
-
     try:
-        result = parse_file(file_bytes, f.filename)
+        check_file_type(f.filename)
+        # One byte over the limit is enough for the parser to reject an oversized file.
+        result = parse_file(f.read(MAX_FILE_SIZE + 1), f.filename)
     except UnicodeDecodeError:
         return jsonify({"error": get_translations(get_lang())["docsight.journal.import_csv_unreadable"]}), 400
     except ValueError as e:
@@ -441,7 +450,7 @@ def api_journal_batch_delete():
     ids = data.get("ids")
     if not ids or not isinstance(ids, list):
         return jsonify({"error": "Provide 'ids' list or 'all: true'"}), 400
-    ids = [int(i) for i in ids if isinstance(i, (int, float))]
+    ids = _int_ids(ids)
     if not ids:
         return jsonify({"error": "No valid IDs"}), 400
 
@@ -465,7 +474,7 @@ def api_journal_unassign():
     entry_ids = data.get("entry_ids", [])
     if not entry_ids or not isinstance(entry_ids, list):
         return jsonify({"error": "Provide entry_ids list"}), 400
-    entry_ids = [int(i) for i in entry_ids if isinstance(i, (int, float))]
+    entry_ids = _int_ids(entry_ids)
     count = _storage.unassign_entries(entry_ids)
     return jsonify({"updated": count})
 
@@ -494,29 +503,11 @@ def api_incidents_create():
     _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data"}), 400
-    name = (data.get("name") or "").strip()
-    if not name:
-        return jsonify({"error": "Name is required"}), 400
-    if len(name) > 200:
-        return jsonify({"error": "Name too long (max 200 characters)"}), 400
-    description = (data.get("description") or "").strip()
-    if len(description) > 5000:
-        return jsonify({"error": "Description too long (max 5000 characters)"}), 400
-    status = (data.get("status") or "open").strip()
-    if status not in _VALID_INCIDENT_STATUSES:
-        return jsonify({"error": "Invalid status (open, resolved, escalated)"}), 400
-    start_date = (data.get("start_date") or "").strip() or None
-    end_date = (data.get("end_date") or "").strip() or None
-    if start_date and not valid_date(start_date):
-        return jsonify({"error": "Invalid start_date format (YYYY-MM-DD)"}), 400
-    if end_date and not valid_date(end_date):
-        return jsonify({"error": "Invalid end_date format (YYYY-MM-DD)"}), 400
-    icon = (data.get("icon") or "").strip() or None
-    incident_id = _storage.save_incident(name, description, status, start_date, end_date, icon)
-    audit_log.info("Incident created: ip=%s id=%d name=%s", _get_client_ip(), incident_id, name[:50])
+    fields, error = _incident_fields(request.get_json())
+    if error:
+        return jsonify({"error": error}), 400
+    incident_id = _storage.save_incident(**fields)
+    audit_log.info("Incident created: ip=%s id=%d name=%s", _get_client_ip(), incident_id, fields["name"][:50])
     return jsonify({"id": incident_id}), 201
 
 
@@ -540,28 +531,10 @@ def api_incident_update(incident_id):
     _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data"}), 400
-    name = (data.get("name") or "").strip()
-    if not name:
-        return jsonify({"error": "Name is required"}), 400
-    if len(name) > 200:
-        return jsonify({"error": "Name too long (max 200 characters)"}), 400
-    description = (data.get("description") or "").strip()
-    if len(description) > 5000:
-        return jsonify({"error": "Description too long (max 5000 characters)"}), 400
-    status = (data.get("status") or "open").strip()
-    if status not in _VALID_INCIDENT_STATUSES:
-        return jsonify({"error": "Invalid status (open, resolved, escalated)"}), 400
-    start_date = (data.get("start_date") or "").strip() or None
-    end_date = (data.get("end_date") or "").strip() or None
-    if start_date and not valid_date(start_date):
-        return jsonify({"error": "Invalid start_date format (YYYY-MM-DD)"}), 400
-    if end_date and not valid_date(end_date):
-        return jsonify({"error": "Invalid end_date format (YYYY-MM-DD)"}), 400
-    icon = (data.get("icon") or "").strip() or None
-    if not _storage.update_incident(incident_id, name, description, status, start_date, end_date, icon):
+    fields, error = _incident_fields(request.get_json())
+    if error:
+        return jsonify({"error": error}), 400
+    if not _storage.update_incident(incident_id, **fields):
         return jsonify({"error": "Not found"}), 404
     audit_log.info("Incident updated: ip=%s id=%d", _get_client_ip(), incident_id)
     return jsonify({"success": True})
@@ -630,20 +603,16 @@ def api_incident_timeline(incident_id):
 
     timeline = []
     bnetz = []
+    tz = get_tz_name(current_runtime().config_manager)
     if incident.get("start_date"):
-        tz = get_tz_name(current_runtime().config_manager)
-        start_ts, _ = local_date_to_utc_range(incident["start_date"], tz)
-        end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
-        _, end_ts = local_date_to_utc_range(end_date, tz)
+        start_ts, end_ts = _incident_window(incident, tz)
         _core = current_runtime().storage
         # The case view plots signal, speedtests and events; other sources would only add payload.
         timeline = _core.get_correlation_timeline(start_ts, end_ts, sources={"modem", "speedtest", "events"})
         bnetz = core_derived_storage(BnetzStorage).get_bnetz_in_range(start_ts, end_ts)
 
-    localize_timestamps(timeline, get_tz_name(current_runtime().config_manager))
-    localize_timestamps(entries, get_tz_name(current_runtime().config_manager))
-    localize_timestamps(incident, get_tz_name(current_runtime().config_manager))
-    localize_timestamps(bnetz, get_tz_name(current_runtime().config_manager))
+    for data in (timeline, entries, incident, bnetz):
+        localize_timestamps(data, tz)
     return jsonify({
         "incident": incident,
         "entries": entries,
@@ -672,7 +641,7 @@ def api_incident_report(incident_id):
 
     # For entries with attachments, load full attachment metadata
     for entry in entries:
-        full = _storage.get_entry(entry["id"])
+        full = entry["attachment_count"] and _storage.get_entry(entry["id"])
         if full:
             entry["attachments"] = full.get("attachments", [])
 
@@ -680,10 +649,7 @@ def api_incident_report(incident_id):
     speedtests = []
     bnetz = []
     if incident.get("start_date"):
-        _tz = get_tz_name(current_runtime().config_manager)
-        start_ts, _ = local_date_to_utc_range(incident["start_date"], _tz)
-        end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
-        _, end_ts = local_date_to_utc_range(end_date, _tz)
+        start_ts, end_ts = _incident_window(incident, get_tz_name(current_runtime().config_manager))
         snapshots = current_runtime().storage.get_range_data(start_ts, end_ts)
         speedtests = core_derived_storage(SpeedtestStorage).get_speedtest_in_range(start_ts, end_ts)
         bnetz = core_derived_storage(BnetzStorage).get_bnetz_in_range(start_ts, end_ts)
@@ -722,7 +688,7 @@ def api_incident_assign(incident_id):
     entry_ids = data.get("entry_ids", [])
     if not entry_ids or not isinstance(entry_ids, list):
         return jsonify({"error": "Provide entry_ids list"}), 400
-    entry_ids = [int(i) for i in entry_ids if isinstance(i, (int, float))]
+    entry_ids = _int_ids(entry_ids)
     count = _storage.assign_entries_to_incident(entry_ids, incident_id)
     audit_log.info("Entries assigned: ip=%s incident=%d count=%d", _get_client_ip(), incident_id, count)
     return jsonify({"updated": count})

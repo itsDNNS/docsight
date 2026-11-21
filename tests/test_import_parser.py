@@ -267,6 +267,17 @@ class TestNormalizeDate:
         """Invalid month in DD.MM.YYYY should return None."""
         assert _normalize_date("15.13.2024", None) is None
 
+    @pytest.mark.parametrize("raw, year, expected", [
+        (" 2024-02-29 ", None, "2024-02-29"),
+        ("\uff12\uff10\uff12\uff14-02-29", None, "2024-02-29"),
+        ("29.02.", 2024, "2024-02-29"),
+        ("29.02.", 2023, None),
+        ("30.02. - 02.03.", 2024, None),
+    ])
+    def test_every_format_checks_the_calendar_date(self, raw, year, expected):
+        """Each format yields a real calendar date in ASCII digits or None."""
+        assert _normalize_date(raw, year) == expected
+
 
 # ── CSV Parsing (_parse_csv) ──
 
@@ -644,7 +655,7 @@ class TestIntegrationEdgeCases:
 
     def test_unsupported_format(self):
         """Unsupported file extensions should raise ValueError."""
-        with pytest.raises(ValueError, match="Unsupported file format"):
+        with pytest.raises(ValueError, match="Only .xlsx and .csv files are supported"):
             parse_file(b"data", "file.json")
 
     def test_empty_file(self):

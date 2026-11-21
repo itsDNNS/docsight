@@ -10,19 +10,6 @@ import pytest
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 
 
-@pytest.fixture
-def foreign_system_tz(monkeypatch):
-    """Give the process a system zone unlike every configured zone below, where TZ can change at runtime."""
-    if not hasattr(time, "tzset"):
-        yield
-        return
-    monkeypatch.setenv("TZ", "Pacific/Kiritimati")
-    time.tzset()
-    yield
-    monkeypatch.undo()
-    time.tzset()
-
-
 # Each retention job that spares pinned days, with the rows it prunes.
 _RETENTION_JOBS = pytest.mark.parametrize(("prune", "rows"), [
     (lambda storage, tid, zone: storage.cleanup(7, zone), lambda storage, tid: storage.get_samples(tid)),
