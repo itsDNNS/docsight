@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 import math
 import threading
+from collections import Counter
 
 from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
+from .channel_selector import channel_selector
 from .docsis_utils import CHANNEL_HEALTH_RANK, SUMMARY_HEALTH_RANK, channel_type_label, qam_rank as _qam_rank
 from .error_counters import to_counter
 from .types import AnalysisResult, EventDict
@@ -85,6 +87,19 @@ def _channel_map(analysis, prefix):
         if key is not None:
             mapped[key] = ch
     return mapped
+
+
+def _same_coverage(cur_analysis, prev_analysis, prefix, key, convert):
+    """Whether both snapshots report ``key`` on the same channel rows, counted per channel selector.
+
+    Summary totals and averages are only comparable over the same rows, so a poll whose coverage
+    changed raises no power or error delta.
+    """
+    prev, cur = (
+        Counter(channel_selector(ch) for ch in analysis.get(f"{prefix}_channels", []) if convert(ch.get(key)) is not None)
+        for analysis in (prev_analysis, cur_analysis)
+    )
+    return prev == cur
 
 
 def _ds_snr_pairs(cur_analysis, prev_analysis):
@@ -190,13 +205,13 @@ class EventDetector:
         prev_s = prev.get("summary", {})
 
         self._check_health(events, ts, cur_s, prev_s, _rated_values(analysis), _rated_values(prev))
-        self._check_power(events, ts, cur_s, prev_s)
+        self._check_power(events, ts, analysis, prev)
         self._check_snr(events, ts, analysis, prev)
         self._check_channels(events, ts, analysis, prev)
         self._check_modulation(events, ts, analysis, prev)
         # Restart detection (before errors — restart causes negative delta)
         self._check_restart(events, ts, analysis, prev)
-        self._check_errors(events, ts, cur_s, prev_s)
+        self._check_errors(events, ts, analysis, prev)
 
         self._annotate_event_details(events, snapshot_id, prev_snapshot_id)
         return events
@@ -264,8 +279,12 @@ class EventDetector:
             "details": {"prev": prev_health, "current": cur_health},
         })
 
-    def _check_power(self, events, ts, cur, prev):
+    def _check_power(self, events, ts, cur_analysis, prev_analysis):
+        cur = cur_analysis.get("summary", {})
+        prev = prev_analysis.get("summary", {})
         for label, direction, prefix in _DIRECTIONS:
+            if not _same_coverage(cur_analysis, prev_analysis, prefix, "power", _coerce_float):
+                continue
             power_cur = _coerce_float(cur.get(f"{prefix}_power_avg"))
             power_prev = _coerce_float(prev.get(f"{prefix}_power_avg"))
             if power_cur is not None and power_prev is not None and abs(power_cur - power_prev) > POWER_SHIFT_THRESHOLD:
@@ -527,8 +546,12 @@ class EventDetector:
                 "details": {"changes": upgrades, "direction": "upgrade"},
             })
 
-    def _check_errors(self, events, ts, cur, prev):
+    def _check_errors(self, events, ts, cur_analysis, prev_analysis):
+        cur = cur_analysis.get("summary", {})
+        prev = prev_analysis.get("summary", {})
         if cur.get("errors_supported") is False or prev.get("errors_supported") is False:
+            return
+        if not _same_coverage(cur_analysis, prev_analysis, "ds", "uncorrectable_errors", to_counter):
             return
         uncorr_cur = cur.get("ds_uncorrectable_errors", 0)
         uncorr_prev = prev.get("ds_uncorrectable_errors", 0)
