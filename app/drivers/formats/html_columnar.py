@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from ...docsis_utils import parse_qam_order
+from ...docsis_utils import parse_qam_order, to_float
 from ...types import DocsisDataFritz, RawChannel
 from .contract import ParseDiagnostic, ParseResult, diagnostic, number_reader
 
@@ -22,23 +22,17 @@ def _text(html: str) -> str:
 
 def _float(raw: str) -> float | None:
     match = _NUMBER.search(raw.strip())
-    return float(match.group()) if match else None
+    return to_float(match.group()) if match else None
 
 
 def _frequency(raw: str) -> str:
     raw = raw.strip()
-    if re.search(r"[Mm][Hh][Zz]", raw):
-        number = _NUMBER.search(raw)
-        if number:
-            mhz = float(number.group())
-            return f"{int(mhz) if mhz == int(mhz) else mhz} MHz"
-    match = _NUMBER.search(raw)
-    if match:
-        value = float(match.group())
-        if value > 1_000_000:
-            value /= 1_000_000
-        return f"{int(value) if value == int(value) else value} MHz"
-    return raw
+    value = _float(raw)
+    if value is None:
+        return "" if _NUMBER.search(raw) else raw
+    if value > 1_000_000 and not re.search(r"[Mm][Hh][Zz]", raw):
+        value /= 1_000_000
+    return f"{int(value) if value == int(value) else value} MHz"
 
 
 def _modulation(raw: str) -> str:

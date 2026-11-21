@@ -76,6 +76,7 @@ def unwrap_uint32_counter_series(
                 continue
             raw = to_counter(row.get(key))
             if raw is None:
+                row[key] = None
                 continue
 
             previous_raw = key_state["previous_raw"]

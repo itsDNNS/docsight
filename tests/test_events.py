@@ -1595,6 +1595,42 @@ class TestRestartDetection:
 
         assert [e for e in events if e["event_type"] == "error_spike"] == []
 
+    @pytest.mark.parametrize(("stored", "stored_total", "polled", "spikes", "raw_growth"), [
+        # Older releases stored a zero total without errors_supported, also when no channel had counters.
+        ((None,), 0, (1500,), [], (None, None)),
+        ((0,), 0, (1500,), [1500], (1500, 1500)),
+        # Older releases summed negative or fractional readings into the stored totals.
+        ((1500, -1500), 0, (1500, -1500), [], (0, 0)),
+        ((1500, 1500.5), 3000, (3001, 1500.5), [1501], (1501, 1501)),
+        # Integer text and a measured zero are still counted.
+        (("1500", 0), 1500, (3001, 0), [1501], (1501, 1501)),
+    ])
+    def test_first_poll_after_upgrade_reads_the_stored_snapshot_with_the_current_counter_conversion(
+        self, storage, stored, stored_total, polled, spikes, raw_growth
+    ):
+        """An older release stored its totals and cumulative baseline with the counters it accepted then."""
+        def poll(counters):
+            return analyze({"channelDs": {"docsis30": [
+                {"channelID": channel_id, "frequency": f"{535 + 8 * channel_id} MHz", "powerLevel": "3", "mse": "-38",
+                 "modulation": "256QAM", **({} if counter is None else {"corrErrors": counter, "nonCorrErrors": counter})}
+                for channel_id, counter in enumerate(counters, 7)]}, "channelUs": {"docsis30": []}})
+        legacy = poll(stored)
+        for channel, counter in zip(legacy["ds_channels"], stored):
+            channel.update(correctable_errors=counter, uncorrectable_errors=counter)
+        legacy["summary"].pop("errors_supported")
+        legacy["summary"].update(ds_uncorrectable_errors=stored_total,
+                                 error_baseline={"ds_raw_uncorrectable_baseline": stored_total})
+        storage.save_snapshot(legacy)
+        previous = storage.get_latest_snapshot()
+        current = poll(polled)
+
+        apply_cumulative_error_baseline(current, previous)
+        events = EventDetector(baseline=previous).check(current)
+
+        assert [e["details"]["delta"] for e in events if e["event_type"] == "error_spike"] == spikes
+        baseline = current["summary"]["error_baseline"]
+        assert (baseline["ds_raw_uncorrectable_recent_delta"], baseline["ds_raw_uncorrectable_delta"]) == raw_growth
+
     def test_restart_with_some_channel_change(self, detector):
         """12/16 overlap and declining — detected despite channel churn."""
         prev_channels = [

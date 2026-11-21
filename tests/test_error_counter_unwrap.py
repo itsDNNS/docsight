@@ -9,6 +9,7 @@ def test_unwrap_uint32_counter_series_preserves_null_gap_for_wrap_detection():
     rows = [
         {"errors": 4_294_495_351},
         {"errors": None},
+        {"errors": "bad"},
         {"errors": 692_254},
     ]
 
@@ -16,6 +17,7 @@ def test_unwrap_uint32_counter_series_preserves_null_gap_for_wrap_detection():
 
     assert [row["errors"] for row in rows] == [
         4_294_495_351,
+        None,
         None,
         4_295_659_550,
     ]
