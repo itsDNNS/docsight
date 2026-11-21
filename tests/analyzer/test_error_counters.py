@@ -192,3 +192,13 @@ def test_schema_2_predecessor_establishes_safe_schema_3_baseline():
     assert baseline["ds_comparable_correctable_delta"] == 0
     assert baseline["ds_comparable_uncorrectable_delta"] == 0
     assert current["summary"]["ds_uncorr_pct"] == 0.0
+
+
+@pytest.mark.parametrize("reading", [float("inf"), float("nan"), "inf", "bad"])
+def test_non_finite_or_unreadable_readings_are_unavailable(reading):
+    channel = _channel(1, "3.0", reading, reading, family="sc_qam") | {"powerLevel": reading, "mse": reading}
+    result = analyze(_data(channel))
+
+    assert (result["ds_channels"][0]["power"], result["ds_channels"][0]["snr"]) == (None, None)
+    assert result["summary"]["ds_correctable_errors"] is None
+    assert result["summary"]["error_counter_coverage"]["unsupported_channels"] == 1

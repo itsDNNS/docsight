@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+import math
+from typing import Any, Generic, TypeVar
 
 from ...types import DocsisDataFritz, RawChannel
-
 T = TypeVar("T")
+# A cell holds one number, optionally followed by the unit the captured pages use.
+_UNITS = ([], ["dB"], ["dBmV"])
+# Counters must fit the SQLite INTEGER range the history stores them in.
+_COUNTER_MAX = 2**63 - 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,3 +92,32 @@ def diagnostic(
         index=index,
         field=field,
     )
+
+
+def number_reader(diagnostics: list[ParseDiagnostic], profile: str, **where: Any) -> Callable[..., Any]:
+    """Read one row's numeric cells or JSON values; a finite JSON number keeps its type.
+
+    Text must be one number, optionally with a dB or dBmV unit. An ``int`` field (a counter) must be a
+    non-negative integer up to ``_COUNTER_MAX``. A missing or empty value is reported as unavailable;
+    anything else that does not qualify as invalid.
+    """
+    def read(value: object, field: str, kind: type = float) -> Any:
+        text = "" if value is None else str(value).strip()
+        token, *unit = text.split() or [""]
+        try:
+            if type(value) in (int, float):
+                number = value
+            else:
+                number = (int if kind is int else float)(token) if unit in _UNITS else None
+            if number is not None and not (math.isfinite(number) and (
+                kind is not int or (number == int(number) and 0 <= number <= _COUNTER_MAX)
+            )):
+                number = None
+        except (ValueError, OverflowError):
+            number = None
+        if number is None:
+            diagnostics.append(diagnostic(
+                profile, "invalid_field" if text else "unavailable_field", field=field, **where,
+            ))
+        return number
+    return read

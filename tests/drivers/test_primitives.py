@@ -2,6 +2,7 @@
 
 import pytest
 
+from app.drivers.formats.contract import number_reader
 from app.drivers.formats.primitives import (
     hz_to_mhz,
     normalize_mhz,
@@ -27,8 +28,10 @@ from app.drivers.formats.primitives import (
         ("10.50 dBmV", 10.50),
         ("40.95 dB", 40.95),
         ("33", 33.0),
-        ("", 0.0),
-        ("Locked", 0.0),
+        ("0", 0.0),
+        ("-0.0 dBmV", 0.0),
+        # Empty, unreadable and non-finite cells are unavailable, never a 0 reading.
+        *[(raw, None) for raw in (None, "", "   ", "Locked", "inf", "-Infinity dBmV", "nan dB", "1e400")],
     ],
 )
 def test_parse_number(raw, expected):
@@ -69,6 +72,7 @@ def test_parse_first_number(raw, expected):
         ("", ""),
         ("invalid", "invalid"),
         ("not a number", "not a number"),
+        *[(raw, str(raw)) for raw in ("inf", "nan Hz", "1e400", float("inf"), float("nan"))],
     ],
 )
 def test_hz_to_mhz(raw, expected):
@@ -86,6 +90,8 @@ def test_hz_to_mhz(raw, expected):
         ("42", 42.0),
         ("", 0.0),
         ("n/a", 0.0),
+        ("inf", 0.0),
+        ("nan MHz", 0.0),
     ],
 )
 def test_parse_mhz_value(raw, expected):
@@ -100,6 +106,7 @@ def test_parse_mhz_value(raw, expected):
         ("100 MHz", "100 MHz"),
         ("unknown", "unknown"),
         ("", ""),
+        ("inf MHz", "inf MHz"),
     ],
 )
 def test_normalize_mhz(raw, expected):
@@ -129,3 +136,23 @@ def test_normalize_mhz(raw, expected):
 )
 def test_normalize_modulation(raw, expected):
     assert normalize_modulation(raw) == expected
+
+
+@pytest.mark.parametrize(("value", "kind", "expected", "code"), [
+    ("9007199254740993", int, 9007199254740993, None),
+    (str(2**63 - 1), int, 2**63 - 1, None),
+    ("0", int, 0, None),
+    ("-0.5 dBmV", float, -0.5, None),
+    ("38.98 dB", float, 38.98, None),
+    (7, float, 7, None),
+    (10.0, int, 10.0, None),
+    *[(value, int, None, "invalid_field") for value in (
+        "0.5", "1e3", "inf", "n/a", "-1", "12 codewords", "0 garbage", str(2**63), "9" * 401 + " garbage", 10**400, 0.5, -1,
+    )],
+    *[(value, float, None, "invalid_field") for value in ("0 garbage", "1.5 dBmV extra", 10**400, float("nan"), True)],
+    *[(value, kind, None, "unavailable_field") for value, kind in ((None, float), ("", int), ("  ", float))],
+])
+def test_number_reader_keeps_exact_values_and_reports_the_rest(value, kind, expected, code):
+    diagnostics = []
+    assert repr(number_reader(diagnostics, "profile", family="family")(value, "field", kind)) == repr(expected)
+    assert [issue.code for issue in diagnostics] == ([code] if code else [])
