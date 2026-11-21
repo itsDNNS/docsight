@@ -26,6 +26,7 @@ from app.analyzer import (
     threshold_snapshot,
 )
 from app.docsis_utils import to_float
+from app.i18n import get_translations
 
 log = logging.getLogger("docsis.report")
 
@@ -247,6 +248,8 @@ def _get_report_strings(lang="en"):
     strings = dict(REPORT_STRINGS["en"])
     if lang != "en":
         strings.update(REPORT_STRINGS.get(lang, {}))
+    core = get_translations(lang)
+    strings.update({key: core[key] for key in ("bnetz_verdict_ok", "bnetz_verdict_deviation")})
     return strings
 
 
@@ -743,6 +746,14 @@ def _bnetz_ratio(m, direction):
     return {"max": max_, "avg": avg, "pct": round(avg / max_ * 100) if max_ else 0}
 
 
+def _bnetz_verdict_line(s, m):
+    """Localized download and upload verdicts of a BNetzA measurement."""
+    labels = {"ok": s["bnetz_verdict_ok"], "deviation": s["bnetz_verdict_deviation"]}
+    dl, ul = (labels.get(m.get(f"verdict_{direction}"), s["comparison_health_unknown"])
+              for direction in _BNETZ_COMPLAINT_KEYS)
+    return s["complaint_bnetz_verdict"].format(verdict_dl=dl, verdict_ul=ul)
+
+
 def _bnetz_complaint_section(s, m, with_tariff):
     """BNetzA complaint section with the measured directions only; the text letter also names the tariff."""
     lines = [s["complaint_bnetz_header"], "", s["complaint_bnetz_body"].format(date=m.get("date", ""))]
@@ -750,7 +761,7 @@ def _bnetz_complaint_section(s, m, with_tariff):
         lines += ["", f"- {s['complaint_bnetz_tariff'].format(tariff=m.get('tariff', '-'), provider=m.get('provider', '-'))}"]
     lines += [f"- {s[key].format(**ratio)}" for direction, key in _BNETZ_COMPLAINT_KEYS.items()
               if (ratio := _bnetz_ratio(m, direction))]
-    lines.append(f"- {s['complaint_bnetz_verdict'].format(verdict_dl=m.get('verdict_download', '-'), verdict_ul=m.get('verdict_upload', '-'))}")
+    lines.append(f"- {_bnetz_verdict_line(s, m)}")
     if "deviation" in (m.get("verdict_download"), m.get("verdict_upload")):
         lines += ["", s["complaint_bnetz_legal"]]
     return "\n".join(lines) + "\n\n"
@@ -890,12 +901,10 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
                     pdf.cell(0, 5, f"  {direction.capitalize()}: {ratio['avg']} / {ratio['max']} Mbit/s ({ratio['pct']}%)",
                              new_x="LMARGIN", new_y="NEXT")
 
-            verdict_dl = m.get("verdict_download", "-")
-            verdict_ul = m.get("verdict_upload", "-")
-            pdf.cell(0, 5, f"  Verdict: DL {verdict_dl} / UL {verdict_ul}", new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, f"  {_bnetz_verdict_line(s, m)}", new_x="LMARGIN", new_y="NEXT")
             pdf.ln(2)
 
-            if verdict_dl == "deviation" or verdict_ul == "deviation":
+            if "deviation" in (m.get("verdict_download"), m.get("verdict_upload")):
                 has_deviation = True
 
         if has_deviation:

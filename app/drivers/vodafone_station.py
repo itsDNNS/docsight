@@ -22,6 +22,7 @@ import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.vodafone import (
     parse_vodafone_station_cga_json,
     parse_vodafone_station_tg_embedded_json,
@@ -285,10 +286,10 @@ class VodafoneStationDriver(ModemDriver):
             self._invalidate_cga_session()
             raise
         data = raw.get("data", raw)
-        parsed = parse_vodafone_station_cga_json(data)
-        if parsed.value is None:
+        parsed = unwrap(parse_vodafone_station_cga_json(data), log)
+        if parsed is None:
             raise TypeError("invalid CGA channel payload")
-        return parsed.value
+        return parsed
 
     def _get_device_info_cga(self) -> DeviceInfo:
         """CGA: Retrieve device info from API."""
@@ -543,11 +544,11 @@ class VodafoneStationDriver(ModemDriver):
         except _RetryFailed:
             self._invalidate_tg_session()
             raise
-        parsed = parse_vodafone_station_tg_embedded_json(r.text)
-        if parsed.value is None:
+        parsed = unwrap(parse_vodafone_station_tg_embedded_json(r.text), log)
+        if parsed is None:
             self._invalidate_tg_session()
             raise RuntimeError("TG: invalid embedded DOCSIS payload")
-        return parsed.value
+        return parsed
 
     def _tg_docsis_request(self) -> requests.Response:
         """Make a single TG DOCSIS data request.

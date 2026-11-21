@@ -17,6 +17,7 @@ import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.vodafone import parse_ultrahub7_json
 from .utils import pbkdf2_sha256
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
@@ -249,10 +250,10 @@ class UltraHub7Driver(ModemDriver):
             us_response.raise_for_status()
             us_data = us_response.json()
 
-            return parse_ultrahub7_json({
+            return unwrap(parse_ultrahub7_json({
                 "downstream": ds_data.get("channels", []),
                 "upstream": us_data.get("channels", []),
-            }).value
+            }), log)
 
         except requests.RequestException as e:
             log.error("Failed to fetch DOCSIS data: %s", e)

@@ -17,6 +17,8 @@ from bs4 import BeautifulSoup
 
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
+from .format_compat import unwrap
+from .formats.contract import ParseResult, docsis_result
 from .formats.html_rows import (
     parse_cm1000_downstream_table,
     parse_cm1000_upstream_table,
@@ -89,28 +91,21 @@ class CM1000Driver(ModemDriver):
         html = self._fetch_status_page()
         soup = BeautifulSoup(html, "html.parser")
 
-        ds_tag_values = extract_cm1000_tag_value_list(html, _DS_TAG_VALUE_FUNCTION)
-        if ds_tag_values is not None:
-            ds30 = parse_cm1000_downstream_tag_values(ds_tag_values).value
-        else:
-            ds30 = parse_cm1000_downstream_table(soup, "dsTable", docsis31=False).value
-
-        us_tag_values = extract_cm1000_tag_value_list(html, _US_TAG_VALUE_FUNCTION)
-        if us_tag_values is not None:
-            us30 = parse_cm1000_upstream_tag_values(us_tag_values).value
-        else:
-            us30 = parse_cm1000_upstream_table(soup, "usTable", docsis31=False).value
-
-        ds31 = parse_cm1000_downstream_table(soup, "d31dsTable", docsis31=True).value
-        us31 = parse_cm1000_upstream_table(soup, "d31usTable", docsis31=True).value
-
-        if not any((ds30, us30, ds31, us31)):
+        ds_tags = extract_cm1000_tag_value_list(html, _DS_TAG_VALUE_FUNCTION)
+        us_tags = extract_cm1000_tag_value_list(html, _US_TAG_VALUE_FUNCTION)
+        lanes = docsis_result(
+            parse_cm1000_downstream_tag_values(ds_tags.value) if ds_tags.value is not None
+            else parse_cm1000_downstream_table(soup, "dsTable", docsis31=False),
+            parse_cm1000_downstream_table(soup, "d31dsTable", docsis31=True),
+            parse_cm1000_upstream_tag_values(us_tags.value) if us_tags.value is not None
+            else parse_cm1000_upstream_table(soup, "usTable", docsis31=False),
+            parse_cm1000_upstream_table(soup, "d31usTable", docsis31=True),
+        )
+        # One unwrap per poll, so the same problem in several tables shares one log line.
+        data = unwrap(ParseResult(lanes.value, ds_tags.diagnostics + us_tags.diagnostics + lanes.diagnostics), log)
+        if not any(channels for lane in data.values() for channels in lane.values()):
             log.warning("CM1000 parsed 0 locked channels from DocsisStatus.asp")
-
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        return data
 
     def get_device_info(self) -> DeviceInfo:
         return {"manufacturer": "Netgear", "model": "CM1000", "sw_version": ""}
@@ -176,7 +171,7 @@ class CM1000Driver(ModemDriver):
         if any(soup.find("table", id=table_id) is not None for table_id in _TABLE_IDS):
             return True
         return any(
-            extract_cm1000_tag_value_list(html, function_name) is not None
+            extract_cm1000_tag_value_list(html, function_name).value is not None
             for function_name in (_DS_TAG_VALUE_FUNCTION, _US_TAG_VALUE_FUNCTION)
         )
 

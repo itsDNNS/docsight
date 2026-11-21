@@ -2,9 +2,12 @@
 
 import base64
 import logging
+import signal
+import subprocess
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -40,19 +43,66 @@ def test_web_thread_exit_raises_after_stopping_polling_in_server_mode(monkeypatc
     assert calls == ["stop_polling"]
 
 
-def test_keyboard_shutdown_stops_polling_resources(monkeypatch):
+def _interrupted():
+    raise KeyboardInterrupt
+
+
+# SIGTERMs recorded at any earlier point, e.g. during startup, and repeated.
+@pytest.mark.parametrize("sigterms, is_alive", [(0, _interrupted), (2, lambda: True)],
+                         ids=["ctrl_c", "sigterm_twice_before_wait"])
+def test_shutdown_signal_stops_polling_resources(monkeypatch, caplog, sigterms, is_alive):
     calls = []
     monkeypatch.delenv("DOCSIGHT_DESKTOP_MODE", raising=False)
-
-    def interrupted():
-        raise KeyboardInterrupt
+    monkeypatch.setattr(main, "_shutdown_requested", False)
+    caplog.set_level(logging.INFO, logger="docsis.main")
+    for _ in range(sigterms):
+        main._request_shutdown(signal.SIGTERM, None)
 
     main._wait_for_web_thread(
-        SimpleNamespace(is_alive=interrupted),
+        SimpleNamespace(is_alive=is_alive),
         lambda: calls.append("stop_polling"),
     )
 
     assert calls == ["stop_polling"]
+    assert "Shutting down" in caplog.messages
+
+
+# SIGTERM after an early and a steady-state log marker. The marker does not hold
+# the child in startup; the unit test above covers a flag set before the wait loop.
+@pytest.mark.linux_only
+@pytest.mark.parametrize("marker", ["DOCSight starting", "Polling loop started"],
+                         ids=["early", "steady"])
+def test_sigterm_after_startup_log_marker_exits_cleanly(tmp_path, marker):
+    (tmp_path / "config.json").write_text('{"modem_type": "fritzbox"}')
+    # Port 9 (discard) is assumed closed, so the modem poll fails at once.
+    env = {"DATA_DIR": str(tmp_path), "MODULES_DIR": str(tmp_path / "modules"),
+           "WEB_HOST": "127.0.0.1", "WEB_PORT": "0", "MODEM_URL": "http://127.0.0.1:9"}
+    proc = subprocess.Popen([sys.executable, "-m", "app.main"], cwd=Path(main.__file__).parents[1],
+                            env=env, stderr=subprocess.PIPE, text=True)
+    output = []
+    reached = threading.Event()
+
+    def read_log():
+        for line in proc.stderr:
+            output.append(line)
+            if marker in line:
+                reached.set()
+        reached.set()
+
+    reader = threading.Thread(target=read_log, daemon=True)
+    reader.start()
+    try:
+        assert reached.wait(timeout=30)
+        proc.send_signal(signal.SIGTERM)
+        returncode = proc.wait(timeout=5)
+    finally:
+        proc.kill()
+        proc.wait()
+    reader.join(timeout=5)
+    log_text = "".join(output)
+
+    assert returncode == 0, log_text
+    assert "Shutting down" in log_text and "Polling loop stopped" in log_text, log_text
 
 
 class _NoContentHandler(BaseHTTPRequestHandler):

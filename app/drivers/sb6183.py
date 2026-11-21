@@ -14,6 +14,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.html_rows import parse_sb6183_html
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .utils import request_error_summary
@@ -53,7 +54,7 @@ class SB6183Driver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"SB6183 DOCSIS data retrieval failed: {e}")
 
-        return parse_sb6183_html(r.text).value
+        return unwrap(parse_sb6183_html(r.text), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from ``/RgSwInfo.asp``."""

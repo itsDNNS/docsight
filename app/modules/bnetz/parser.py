@@ -33,11 +33,29 @@ _RE_MEASUREMENT = re.compile(
     r"(\d+)\s+(\d{2}\.\d{2}\.\d{4})\s+(\d{2}:\d{2})\s+([\d.,]+)\s*Mbit/s"
 )
 
-# Verdict: "wurde ... festgestellt" or "wurde keine ... festgestellt"
-_RE_VERDICT = re.compile(
-    r"Abweichung.*?im\s+(Down|Up)load\s+wurde\s+(festgestellt|nicht festgestellt)",
-    re.DOTALL,
+# Verdict headings: "Ergebnis der Messkampagne im Download/Upload" (page 3) anywhere on a line, or the overall
+# "Ergebnis" (page 2) at the start of a line. A section runs to the next heading.
+_RE_RESULT_HEADING = re.compile(
+    r"Ergebnis\s+der\s+Messkampagne\s+im\s+(Download|Upload)"
+    r"|^[^\S\n]*Ergebnis\b(?!\s+der\s+Messkampagne)",
+    re.MULTILINE,
 )
+# Sentence end; abbreviations such as "i.S.v. § 57" or "Nr. 1" are not followed by a capital letter
+_RE_SENTENCE_END = re.compile(r"[.:]\s+(?=[A-ZÄÖÜ])")
+# Clause boundaries in a sentence naming both directions; a comma only after a complete finding
+_RE_CLAUSE_BREAK = re.compile(r"\b(?:und|aber|jedoch|sondern)\b|;|(?<=festgestellt),")
+# "No deviation" only where the negation belongs to the finding: "keine (erhebliche, ...) Abweichung (... festgestellt)"
+# or "Abweichung ... nicht festgestellt". Bridging words never cross a comma, a parenthesis, a conjunction,
+# "Ergebnis" or another finding word, except the comma in the published "erhebliche, kontinuierliche oder regelmäßig
+# wiederkehrende Abweichung".
+_WORD = r"(?:(?!(?:und|aber|jedoch|sondern)\b|Abweichung|festgestellt|Ergebnis)[^\s,;()]+\s+)"
+_PUBLISHED_ADJECTIVES = r"[\"„“]?erhebliche,\s+(?=kontinuierliche\s+oder\s+regelmäßig\s+wiederkehrende\s+Abweichung)"
+_RE_NO_DEVIATION = re.compile(
+    rf"\bkeine\s+(?:{_PUBLISHED_ADJECTIVES}|{_WORD}){{0,8}}Abweichung\b(?:\s+{_WORD}{{0,25}}festgestellt)?"
+    rf"|Abweichung\s+{_WORD}{{0,8}}nicht\s+festgestellt",
+    re.IGNORECASE,
+)
+
 
 # Campaign dates
 _RE_CAMPAIGN_START = re.compile(
@@ -60,6 +78,43 @@ def _convert_date(date_str):
     if len(parts) == 3:
         return f"{parts[2]}-{parts[1]}-{parts[0]}"
     return date_str
+
+
+def _finding(clause):
+    """Return "ok" if only explicit no-deviation findings mention a finding, "deviation" for any other one."""
+    rest = _RE_NO_DEVIATION.sub(" ", clause)
+    if "Abweichung" in rest or "festgestellt" in rest:
+        return "deviation"
+    return "ok" if rest != clause else None
+
+
+def _parse_verdicts(page_texts):
+    """Return (download, upload) verdicts.
+
+    A verdict statement is a sentence in a result section mentioning "Abweichung" and "festgestellt".
+    A direction is a deviation if any statement says so, ok if one says ok.
+    The overall summary only fills a direction without statements of its own.
+    """
+    found = {"Download": set(), "Upload": set(), None: set()}
+    for page_text in page_texts:
+        parts = _RE_RESULT_HEADING.split(re.sub(r"-\s*\n\s*", "", page_text))  # undo hyphenation first
+        for heading_direction, section in zip(parts[1::2], parts[2::2]):
+            for sentence in _RE_SENTENCE_END.split(section):
+                if "Abweichung" not in sentence or "festgestellt" not in sentence:
+                    continue
+                # A sentence naming both directions is read clause by clause; a clause without its own
+                # finding only inherits a deviation, never "ok", and a deviation naming no direction applies to both
+                both = len(set(re.findall("Download|Upload", sentence))) > 1
+                clauses = _RE_CLAUSE_BREAK.split(sentence) if both else [sentence]
+                marks = [_finding(clause) for clause in clauses]
+                for clause, mark in zip(clauses, marks):
+                    if mark := mark or ("deviation" if "deviation" in marks else None):
+                        named = set(re.findall("Download|Upload", clause))
+                        for direction in named or ({"Download", "Upload"} if both and mark == "deviation"
+                                                   else {heading_direction}):
+                            found[direction].add(mark)
+    return tuple("deviation" if "deviation" in v else "ok" if v else "unknown"
+                 for v in (found["Download"] or found[None], found["Upload"] or found[None]))
 
 
 def parse_bnetz_pdf(pdf_bytes):
@@ -170,50 +225,7 @@ def parse_bnetz_pdf(pdf_bytes):
         result["upload_measured_avg"] = None
 
     # ── Verdict ──
-    # Look for verdict on page 2 (overall) and page 3 (per-direction details)
-    result["verdict_download"] = "unknown"
-    result["verdict_upload"] = "unknown"
-
-    # Check page 3 for per-direction verdicts
-    for page_text in page_texts:
-        if "Ergebnis der Messkampagne im Download" in page_text:
-            if "im Download wurde festgestellt" in page_text:
-                result["verdict_download"] = "deviation"
-            elif "im Download wurde nicht festgestellt" in page_text or \
-                 "im Download nicht festgestellt" in page_text:
-                result["verdict_download"] = "ok"
-            # Also try: "Abweichung ... im Download wurde ..."
-            if "Abweichung" in page_text:
-                dl_part = page_text.split("im Download")[-1].split("im Upload")[0] if "im Upload" in page_text else page_text
-                if "wurde festgestellt" in dl_part:
-                    pass  # already handled above
-
-        if "Ergebnis der Messkampagne im Upload" in page_text:
-            # Find the upload section
-            upload_section = page_text.split("Ergebnis der Messkampagne im Upload")[-1] if "Ergebnis der Messkampagne im Upload" in page_text else ""
-            if "im Upload wurde festgestellt" in upload_section or \
-               "im Upload wurde festgestellt" in page_text:
-                result["verdict_upload"] = "deviation"
-            elif "im Upload wurde nicht festgestellt" in upload_section or \
-                 "im Upload nicht festgestellt" in page_text:
-                result["verdict_upload"] = "ok"
-
-    # Fallback: check overall verdict on page 2
-    if result["verdict_download"] == "unknown" or result["verdict_upload"] == "unknown":
-        for page_text in page_texts:
-            if "Ergebnis" in page_text and "Abweichung" in page_text:
-                # Overall verdict (page 2 has a single statement)
-                if "wurde eine" in page_text.lower() and "abweichung" in page_text.lower() and "festgestellt" in page_text.lower():
-                    if "keine" not in page_text.lower().split("abweichung")[0].split("wurde")[-1]:
-                        if result["verdict_download"] == "unknown":
-                            result["verdict_download"] = "deviation"
-                        if result["verdict_upload"] == "unknown":
-                            result["verdict_upload"] = "deviation"
-                    else:
-                        if result["verdict_download"] == "unknown":
-                            result["verdict_download"] = "ok"
-                        if result["verdict_upload"] == "unknown":
-                            result["verdict_upload"] = "ok"
+    result["verdict_download"], result["verdict_upload"] = _parse_verdicts(page_texts)
 
     # ── Campaign dates ──
     m = _RE_CAMPAIGN_START.search(full_text)

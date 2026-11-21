@@ -17,6 +17,7 @@ import re
 import weakref
 from enum import Enum
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.xml_payloads import _text as _node_text, parse_ch7465_xml
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .utils import error_text, request_error_summary
@@ -139,13 +140,13 @@ class CH7465Driver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Query DOCSIS channel data."""
-        parsed = parse_ch7465_xml(
+        parsed = unwrap(parse_ch7465_xml(
             self._get_data(Query.DOWNSTREAM_TABLE),
             self._get_data(Query.UPSTREAM_TABLE),
-        )
-        if parsed.value is None:
+        ), log)
+        if parsed is None:
             raise ValueError("invalid CH7465 channel XML")
-        return parsed.value
+        return parsed
 
     def get_device_info(self) -> DeviceInfo:
         """Try to get CH7465 model info."""
