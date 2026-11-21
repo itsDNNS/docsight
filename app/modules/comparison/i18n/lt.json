@@ -33,7 +33,6 @@
   "snapshots": "Momentinės kopijos",
   "no_data_period": "Pasirinktu laikotarpiu duomenų nėra",
   "select_periods": "Pasirinkite du laikotarpius signalo kokybei palyginti.",
-  "hours_since_start": "Valandos nuo pradžios",
   "empty_title": "Palyginkite du laikotarpius",
   "empty_action": "Palyginti",
   "empty_no_data_text": "Pasirinkite laikotarpius, kai DOCSight jau rinko duomenis.",

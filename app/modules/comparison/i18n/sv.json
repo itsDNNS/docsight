@@ -33,7 +33,6 @@
   "snapshots": "Ögonblicksbilder",
   "no_data_period": "Inga data under den valda perioden",
   "select_periods": "Välj två perioder för att jämföra signalkvaliteten.",
-  "hours_since_start": "Timmar sedan start",
   "empty_title": "Jämför två perioder",
   "empty_action": "Jämför",
   "empty_no_data_text": "Välj perioder då DOCSight redan samlade in data.",

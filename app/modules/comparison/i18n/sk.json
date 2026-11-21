@@ -33,7 +33,6 @@
   "snapshots": "Snímky",
   "no_data_period": "Vo zvolenom období nie sú údaje",
   "select_periods": "Vyberte dve obdobia na porovnanie kvality signálu.",
-  "hours_since_start": "Hodiny od začiatku",
   "empty_title": "Porovnať dve obdobia",
   "empty_action": "Porovnať",
   "empty_no_data_text": "Vyberte obdobia, v ktorých DOCSight už zbieral údaje.",
