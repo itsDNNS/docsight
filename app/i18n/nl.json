@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Nieuwe niet-corrigeerbare",
   "snapshot_not_reported": "niet gemeld door het modem",
   "snapshot_first": "eerste momentopname",
+  "snapshot_not_comparable": "niet vergelijkbaar met de vorige momentopname",
   "snapshot_since_previous": "sinds de vorige momentopname",
   "snapshot_why": "Waarom {health}",
   "snapshot_no_issue_detail": "Geen afzonderlijke oorzaak vastgelegd",

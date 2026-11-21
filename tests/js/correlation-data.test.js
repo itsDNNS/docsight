@@ -130,6 +130,19 @@ test('uncorrectable errors become growth per interval, restarting after a counte
     assert.deepEqual(deltas.map(d => d.delta), [0, 4, null, 0, 6]);
 });
 
+test('a counter that is missing for one poll counts no new errors when it returns', () => {
+    const readings = require('./counter-coverage-gap.js');
+    assert.deepEqual(data.errorDeltas(readings).map(d => d.delta), [0, null, null, 10, null, null, 10]);
+    // A window that starts at a poll without the counter has no delta for the next reading either.
+    assert.deepEqual(data.errorDeltas(readings.slice(4)).map(d => d.delta), [null, null, 10]);
+    // A stored poll without the counter or a channel count still separates totals over different channels.
+    assert.deepEqual(data.errorDeltas([
+        {ds_uncorrectable_errors: 5000, ds_uncorrectable_channels: 2},
+        {ds_uncorrectable_errors: null, ds_uncorrectable_channels: null},
+        {ds_uncorrectable_errors: 70000, ds_uncorrectable_channels: null},
+    ]).map(d => d.delta), [0, null, null]);
+});
+
 test('axis maxima round up to 1, 2 or 5 times a power of ten', () => {
     assert.equal(data.niceCeil(0.3), 0.5);
     assert.equal(data.niceCeil(7), 10);

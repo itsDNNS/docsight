@@ -16,6 +16,7 @@ function engine() {
             documentElement: {getAttribute: () => 'dark'},
         },
         uPlot: Chart, T: {}, setTimeout: fn => fn(),
+        DOCSightCorrelationData: require('../../app/static/js/correlation-data.js'),
         ResizeObserver: class { observe() {} disconnect() {} },
     };
     context.window = context;
@@ -125,6 +126,43 @@ test('before/after periods count errors per slot from their own start', () => {
     ];
     const start = Date.parse('2026-03-08T00:00:00Z');
     assert.deepEqual(Array.from(e.docsightErrorSlots(rows, start, 4, 60)), [20, null, 15, null]);
+});
+
+test('a counter that is missing for one poll counts no new errors when it returns', () => {
+    const e = engine();
+    const readings = require('./counter-coverage-gap.js');
+    // The whole series; windows that end before the next comparable reading or at a poll
+    // without the counter still reach their last poll; one that starts at such a poll.
+    for (const [from, to, expected] of [[0, 7, [0, null, null, 10, null, null, 10]], [0, 3, [0, null, null]],
+                                        [0, 5, [0, null, null, 10, null]], [4, 7, [null, null, 10]]]) {
+        const window = readings.slice(from, to);
+        assert.deepEqual(Array.from(e.docsightErrorBuckets(window, '1d'), b => b.errors), expected);
+        const start = Date.parse(window[0].timestamp.slice(0, 13) + ':00:00Z');
+        assert.deepEqual(Array.from(e.docsightErrorSlots(window, start, expected.length, 60, 'ds_uncorrectable_errors')), expected);
+    }
+});
+
+test('the hour repeated when clocks go back shares its intervals', () => {
+    const e = engine();
+    const buckets = e.docsightErrorBuckets([
+        row('2026-10-25T02:45:00', 100),
+        row('2026-10-25T02:05:00', 110),
+        row('2026-10-25T02:20:00', 115),
+        row('2026-10-25T03:05:00', 120),
+    ], '6h');
+    assert.deepEqual(Array.from(buckets, b => [b.timestamp.slice(11, 16), b.errors]),
+        [['02:00', 10], ['02:15', 5], ['02:30', null], ['02:45', 0], ['03:00', 5]]);
+});
+
+test('stored polls without the counter or a channel count separate totals but add no interval', () => {
+    const e = engine();
+    const poll = (hour, errors, channels) => Object.assign({timestamp: `2026-10-07T${hour}:05:00`, ds_uncorrectable_channels: channels},
+        errors === undefined ? {} : {ds_uncorrectable_errors: errors});
+    // Older releases stored no channel count, and some summaries no counter at all.
+    const legacy = [poll('08', 100, null), poll('09', 110, null), poll('14', null, null)];
+    assert.deepEqual(Array.from(e.docsightErrorBuckets(legacy, '1d'), b => b.errors), [0, 10]);
+    const omitted = [poll('08', 5000, 2), poll('09', undefined, null), poll('10', 70000, 2), poll('11', 70010, 2)];
+    assert.deepEqual(Array.from(e.docsightErrorBuckets(omitted, '1d'), b => b.errors), [0, null, null, 10]);
 });
 
 test('the interval follows the compared span like the range presets', () => {

@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Uudet korjaamattomat",
   "snapshot_not_reported": "modeemi ei ilmoita",
   "snapshot_first": "ensimmäinen tilannekuva",
+  "snapshot_not_comparable": "ei vertailukelpoinen edelliseen tilannekuvaan",
   "snapshot_since_previous": "edellisestä tilannekuvasta",
   "snapshot_why": "Miksi {health}",
   "snapshot_no_issue_detail": "Yksittäistä syytä ei kirjattu",

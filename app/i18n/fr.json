@@ -1303,6 +1303,7 @@
   "snapshot_new_uncorrectable": "Nouvelles non corrigibles",
   "snapshot_not_reported": "non signalé par le modem",
   "snapshot_first": "premier instantané",
+  "snapshot_not_comparable": "non comparable à l'instantané précédent",
   "snapshot_since_previous": "depuis l'instantané précédent",
   "snapshot_why": "Pourquoi {health}",
   "snapshot_no_issue_detail": "Aucune cause unique enregistrée",

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 
 from app.docsis_utils import OFDMA_MIN_PLAUSIBLE_POWER_DBMV
+from app.error_counters import uncorrectable_channels
 from app.modules.journal.storage import JournalStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.time_ranges import parse_time_range_hours, parse_window_end
@@ -428,7 +429,8 @@ def api_snapshot_at():
 
     ``time`` is wall-clock time in the configured zone, as the charts show it;
     ``step`` -1 or 1 moves to the previous or next snapshot. The previous
-    snapshot's uncorrectable counter lets the panel show new errors.
+    snapshot's uncorrectable counter lets the panel show new errors, when both
+    totals add up the same number of channels.
     """
     storage = current_runtime().storage
     if not storage:
@@ -448,9 +450,11 @@ def api_snapshot_at():
         return jsonify({"error": "Snapshot not found"}), 404
     snapshot.pop("raw_data", None)
     previous = storage.get_snapshot_summary_before(timestamp)
+    snapshot["summary"]["ds_uncorrectable_channels"] = uncorrectable_channels(snapshot["summary"])
     payload = {
         "snapshot": snapshot,
         "previous_uncorrectable": previous.get("ds_uncorrectable_errors") if previous else None,
+        "previous_uncorrectable_channels": uncorrectable_channels(previous) if previous else None,
         "has_previous": previous is not None,
         "has_next": storage.get_snapshot_timestamp_near(timestamp, 1) is not None,
     }

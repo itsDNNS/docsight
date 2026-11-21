@@ -444,8 +444,17 @@ class TestGetCurrentChannels:
         assert result[1]["selector_required"] is True
 
 
+class _KhzText(str):
+    """A string whose repr matches "634" but whose text carries kHz."""
+
+    def __str__(self):
+        return "634 kHz"
+
+
 @pytest.mark.parametrize(("channel_id", "frequency", "selector"), [
     (1, 634, "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, "634", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, _KhzText("634"), "c1_YkRV55b0rfD9CnwPjWg8KCDD"),
     (1, 634.0, "c1_HWKChz_FRBRnQXJ0DtYswczw"),
     ("1.0", "634 MHz", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
     (1, "634000 kHz", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
@@ -456,6 +465,8 @@ class TestGetCurrentChannels:
     (3, "1e3", "c1_1cbvGmR5R4Enz9fogfIDcL1U"),
     (None, "OFDM  Block", "c1_0bddRNXlSIgTkfFSouZGepoT"),
     (None, None, "c1_h67kIgLtJnGSIut1qzRIn8s_"),
+    (True, 634, "c1_UU37T75sbuvX8AV6wWcYISKf"),
+    ([1], 634, "c1_MYpRZHchUHCWZCezPYkI3-Kk"),
 ])
 def test_selector_identity_is_stable_for_stored_spellings(channel_id, frequency, selector):
     assert channel_selector({"channel_id": channel_id, "frequency": frequency}) == selector

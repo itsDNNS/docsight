@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Új javíthatatlan",
   "snapshot_not_reported": "a modem nem jelenti",
   "snapshot_first": "első pillanatkép",
+  "snapshot_not_comparable": "nem összevethető az előző pillanatképpel",
   "snapshot_since_previous": "az előző pillanatkép óta",
   "snapshot_why": "Miért {health}",
   "snapshot_no_issue_detail": "Nincs rögzített egyedi ok",

@@ -1927,6 +1927,8 @@
 <script defer src="{{ url_for('static', filename='js/hero-chart.js') }}?v={{ version|urlencode }}"></script>
 <script defer src="{{ url_for('static', filename='js/sparklines.js') }}?v={{ version|urlencode }}"></script>
 
+{# The error bars of chart-engine.js count errors with the correlation rules. #}
+<script defer src="{{ url_for('static', filename='js/correlation-data.js', v=version) }}"></script>
 <script defer src="{{ url_for('static', filename='js/chart-engine.js', v=version) }}"></script>
 <script type="application/json" id="docsight-dashboard-bootstrap">{{ {
     'translations': t,
@@ -1959,7 +1961,6 @@
 <script defer src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
 <script defer src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
 <script defer src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
-<script defer src="{{ url_for('static', filename='js/correlation-data.js', v=version) }}"></script>
 <script defer src="{{ url_for('static', filename='js/correlation-chart.js', v=version) }}"></script>
 <script defer src="{{ url_for('static', filename='js/correlation-legend.js', v=version) }}"></script>
 <script defer src="{{ url_for('static', filename='js/correlation.js', v=version) }}"></script>

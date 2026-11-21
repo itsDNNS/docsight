@@ -104,9 +104,11 @@ function _getEntryIcon(entry) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 }
 
-function renderIconPicker(selectedLabel) {
-    var picker = document.getElementById('entry-icon-picker');
-    var hiddenInput = document.getElementById('entry-icon-value');
+/* The icon picker of the entry dialog (prefix "entry") and the case dialog
+   ("incident-container"); onPick runs after each pick. */
+function renderIconPicker(prefix, selectedLabel, onPick) {
+    var picker = document.getElementById(prefix + '-icon-picker');
+    var hiddenInput = document.getElementById(prefix + '-icon-value');
     picker.replaceChildren();
     function markSelected(selectedButton) {
         picker.querySelectorAll('.icon-pick').forEach(function(b) {
@@ -120,13 +122,13 @@ function renderIconPicker(selectedLabel) {
     var noneBtn = document.createElement('button');
     noneBtn.type = 'button';
     noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
-    noneBtn.title = T.icon_auto;
+    noneBtn.title = T.icon_auto || 'Auto';
     noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
-    noneBtn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + T.icon_auto + '</span>');
+    noneBtn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + (T.icon_auto || 'Auto') + '</span>');
     noneBtn.onclick = function() {
         hiddenInput.value = '';
         markSelected(noneBtn);
-        updateModalIcon();
+        if (onPick) onPick();
     };
     picker.appendChild(noneBtn);
 
@@ -141,7 +143,7 @@ function renderIconPicker(selectedLabel) {
         btn.onclick = function() {
             hiddenInput.value = entry.label;
             markSelected(btn);
-            updateModalIcon();
+            if (onPick) onPick();
         };
         picker.appendChild(btn);
     });
@@ -240,10 +242,6 @@ function _showJournalEmpty(empty, searchQuery) {
     }
 }
 
-function escapeHtmlAttribute(value) {
-    return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 function highlightText(text, query) {
     if (!query || !text) return escapeHtml(text);
     return text.split(new RegExp('(' + _escapeRegExp(query) + ')', 'i')).map(function(part, i) {
@@ -299,12 +297,12 @@ function renderJournalTable(data, searchQuery) {
         var descHtml = q ? highlightText(desc, q) : escapeHtml(desc);
         var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
         tr.innerHTML = docsightHTML(
-            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtmlAttribute(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
+            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtml(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
             '<td class="journal-icon-cell dt-lead" aria-hidden="true">' + iconHtml + '</td>' +
-            '<td class="journal-date-cell" data-label="' + escapeHtmlAttribute(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
+            '<td class="journal-date-cell" data-label="' + escapeHtml(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
             '<td class="journal-title-cell dt-primary">' + titleHtml + '</td>' +
-            '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtmlAttribute(T.incident_description || 'Description') + '">' + descHtml + '</td>' +
-            '<td class="journal-clip" data-label="' + escapeHtmlAttribute(T.attachments || 'Attachments') + '">' + clipCell + '</td>');
+            '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtml(T.incident_description || 'Description') + '">' + descHtml + '</td>' +
+            '<td class="journal-clip" data-label="' + escapeHtml(T.attachments || 'Attachments') + '">' + clipCell + '</td>');
         tbody.appendChild(tr);
     });
     // Update sort indicators in header
@@ -352,24 +350,14 @@ function deleteAllEntries() {
         requireText: 'DELETE',
         requireLabel: T.delete_all_type_confirm || 'Type DELETE to confirm'
     }).then(function(confirmed) {
-        if (!confirmed) return null;
-        return fetch(docsightUrl('/api/journal/batch'), {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({all: true, confirm: 'DELETE_ALL'})
-        });
+        if (!confirmed) return;
+        return journalSend('/api/journal/batch', 'DELETE', {all: true, confirm: 'DELETE_ALL'}, T.delete_failed)
+            .then(function(data) {
+                showToast(data.deleted + ' ' + T.delete_all_success, 'ok');
+                loadJournal();
+            });
     })
-        .then(function(r) { return r ? r.json().then(function(d) { return {status: r.status, data: d}; }) : null; })
-        .then(function(res) {
-            if (!res) return;
-            if (res.status >= 400) {
-                showToast(res.data.error || T.delete_failed, 'error');
-                return;
-            }
-            showToast(res.data.deleted + ' ' + T.delete_all_success, 'ok');
-            loadJournal();
-        })
-        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+        .catch(function(e) { showToast(journalErrorText(e), 'error'); });
 }
 
 /* ── Incident Containers ── */
@@ -398,7 +386,7 @@ function toggleBulkMode() {
         var headRow = document.getElementById('journal-thead-row');
         var th = document.createElement('th');
         th.className = 'journal-check-col';
-        th.innerHTML = docsightHTML('<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtmlAttribute(T.bulk_select_all || 'Select All') + '">');
+        th.innerHTML = docsightHTML('<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtml(T.bulk_select_all || 'Select All') + '">');
         headRow.insertBefore(th, headRow.firstChild);
         // Re-render table with checkboxes
         if (_journalAllData) renderJournalTable(_journalAllData, _journalSearchQuery);
@@ -488,43 +476,29 @@ function populateBulkIncidentSelect() {
 }
 
 function bulkAssign() {
-    var sel = document.getElementById('journal-bulk-incident-select');
-    var incidentId = sel.value;
+    var incidentId = document.getElementById('journal-bulk-incident-select').value;
     if (!incidentId) {
         showToast(T.bulk_select_incident || 'Select an incident first', 'warning');
         return;
     }
-    if (_selectedEntryIds.length === 0) return;
-    fetch(docsightUrl('/api/incidents/' + incidentId + '/assign'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({entry_ids: _selectedEntryIds})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        showToast((data.updated || 0) + ' ' + (T.entries_assigned || 'entries assigned'), 'success');
-        exitBulkMode();
-        loadIncidents();
-        loadJournal();
-    })
-    .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+    bulkUpdate('/api/incidents/' + incidentId + '/assign', T.entries_assigned || 'entries assigned');
 }
 
 function bulkUnassign() {
+    bulkUpdate('/api/journal/unassign', T.entries_unassigned || 'entries unassigned');
+}
+
+/* Assigns or unassigns the selected entries; doneText follows the updated count. */
+function bulkUpdate(path, doneText) {
     if (_selectedEntryIds.length === 0) return;
-    fetch(docsightUrl('/api/journal/unassign'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({entry_ids: _selectedEntryIds})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        showToast((data.updated || 0) + ' ' + (T.entries_unassigned || 'entries unassigned'), 'success');
-        exitBulkMode();
-        loadIncidents();
-        loadJournal();
-    })
-    .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+    journalSend(path, 'POST', {entry_ids: _selectedEntryIds}, T.error_prefix)
+        .then(function(data) {
+            showToast((data.updated || 0) + ' ' + doneText, 'success');
+            exitBulkMode();
+            loadIncidents();
+            loadJournal();
+        })
+        .catch(function(e) { showToast(journalErrorText(e), 'error'); });
 }
 
 /* ── Export Dropdown ── */

@@ -112,6 +112,8 @@ class TestReportHelpers:
         assert _format_optional_count(None) == "N/A"
         assert _format_optional_count(0) == "0"
         assert _format_optional_count(1234) == "1,234"
+        # Older snapshots can hold a driver's counters as text.
+        assert [_format_optional_count(value) for value in ("1234", "bad", "inf")] == ["1,234", "N/A", "N/A"]
 
     def test_diagnostic_notes_trust_analyzer_metric_health(self):
         from app.modules.reports.report import _aggregate_report_period

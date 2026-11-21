@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import functools
 import hashlib
 import json
 import re
@@ -69,14 +70,28 @@ def normalize_frequency(value) -> str:
 
 def channel_selector(channel: dict) -> str:
     """Build an opaque, stable selector from modem ID and channel frequency."""
-    identity = [
-        normalize_channel_id(channel.get("channel_id")),
-        normalize_frequency(channel.get("frequency")),
-    ]
+    channel_id, frequency = channel.get("channel_id"), channel.get("frequency")
+    # Histories and event checks see the same few channels thousands of times. Plain short values
+    # are hashed once; bools, other types and oversized strings from unusual modems are not kept.
+    if _cacheable(channel_id) and _cacheable(frequency):
+        return _cached_selector(channel_id, frequency)
+    return _selector(channel_id, frequency)
+
+
+def _cacheable(value) -> bool:
+    kind = type(value)
+    return value is None or kind is int or kind is float or kind is str and len(value) <= 64
+
+
+def _selector(channel_id, frequency) -> str:
+    identity = [normalize_channel_id(channel_id), normalize_frequency(frequency)]
     payload = json.dumps(identity, ensure_ascii=False, separators=(",", ":"))
     digest = hashlib.sha256(payload.encode("utf-8")).digest()[:18]
     encoded = base64.urlsafe_b64encode(digest).decode("ascii")
     return "c1_" + encoded.rstrip("=")
+
+
+_cached_selector = functools.lru_cache(maxsize=1024, typed=True)(_selector)
 
 
 def attach_channel_selectors(channels: list[dict]) -> list[dict]:

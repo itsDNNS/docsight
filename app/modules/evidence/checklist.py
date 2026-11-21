@@ -23,15 +23,19 @@ _STALE_HOURS = {
 }
 
 
+def parse_utc_iso(value: str) -> datetime:
+    """Parse an ISO timestamp with ``Z`` or an offset to UTC; naive input counts as UTC."""
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _parse_ts(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        normalized = value.replace("Z", "+00:00")
-        parsed = datetime.fromisoformat(normalized)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-        return parsed.astimezone(timezone.utc)
+        return parse_utc_iso(value)
     except (TypeError, ValueError):
         return None
 
@@ -198,7 +202,7 @@ def build_checklist(
     bqm_rows: list[dict[str, Any]] | None,
     connection_latency_rows: list[dict[str, Any]] | None = None,
     capabilities: dict[str, Any] | None = None,
-    snapshot_aggregate: Mapping[str, Any] | None = None,
+    snapshot_aggregate: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     """Build the stateless evidence checklist for an incident or selected window."""
     capabilities = capabilities or {}
@@ -210,29 +214,18 @@ def build_checklist(
     connection_monitor_configured = bool(capabilities.get("connection_monitor_configured", False))
     window_end = window.get("to")
 
-    signal_rows = _source_rows(timeline, "modem")
     speedtest_rows = _source_rows(timeline, "speedtest")
-    event_rows = _source_rows(timeline, "event", "events")
+    event_rows = _source_rows(timeline, "event")
     bnetz_rows = _source_rows(timeline, "bnetz")
 
-    if snapshot_aggregate is None:
-        signal_count = len(signal_rows)
-        signal_status, signal_last = _evidence_status(
-            signal_rows,
-            applicable=docsis_supported,
-            window_end=window_end,
-            stale_key="signal",
-        )
-    else:
-        signal_count = int(snapshot_aggregate.get("snapshot_count") or 0)
-        signal_last = snapshot_aggregate.get("last_observed_at")
-        signal_status, signal_last = _evidence_status_values(
-            signal_count,
-            signal_last,
-            applicable=docsis_supported,
-            window_end=window_end,
-            stale_key="signal",
-        )
+    signal_count = int(snapshot_aggregate.get("snapshot_count") or 0)
+    signal_status, signal_last = _evidence_status_values(
+        signal_count,
+        snapshot_aggregate.get("last_observed_at"),
+        applicable=docsis_supported,
+        window_end=window_end,
+        stale_key="signal",
+    )
     speed_status, speed_last = _evidence_status(
         speedtest_rows,
         configured=speedtest_configured,

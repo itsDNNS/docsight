@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Nauji neištaisomi",
   "snapshot_not_reported": "modemas nepraneša",
   "snapshot_first": "pirmoji būsena",
+  "snapshot_not_comparable": "nepalyginama su ankstesne būsena",
   "snapshot_since_previous": "nuo ankstesnės būsenos",
   "snapshot_why": "Kodėl {health}",
   "snapshot_no_issue_detail": "Atskira priežastis neužfiksuota",

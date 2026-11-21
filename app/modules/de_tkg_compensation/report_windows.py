@@ -5,10 +5,15 @@ from datetime import datetime, timedelta, timezone
 from app.tz import UTC_FMT
 
 
+def parse_timestamp(value: str) -> datetime:
+    """Parse an ISO timestamp with Z read as UTC, never as the date-time separator."""
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
 def chunk_report_windows(window_from: str, window_to: str) -> list[dict[str, str | int]]:
     """Split an evidence range into report-compatible windows of at most 90 days."""
-    start = datetime.fromisoformat(window_from.replace("Z", "+00:00"))
-    end = datetime.fromisoformat(window_to.replace("Z", "+00:00"))
+    start = parse_timestamp(window_from)
+    end = parse_timestamp(window_to)
     if start.tzinfo is None or end.tzinfo is None or end < start:
         raise ValueError("invalid report window")
     chunks = []

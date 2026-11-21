@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Nové neopravitelné",
   "snapshot_not_reported": "modem neuvádí",
   "snapshot_first": "první snímek",
+  "snapshot_not_comparable": "nelze porovnat s předchozím snímkem",
   "snapshot_since_previous": "od předchozího snímku",
   "snapshot_why": "Proč {health}",
   "snapshot_no_issue_detail": "Žádná jednotlivá příčina nezaznamenána",
