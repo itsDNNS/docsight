@@ -26,6 +26,7 @@ from app.analyzer import (
     threshold_snapshot,
 )
 from app.docsis_utils import to_float
+from app.error_counters import to_counter
 from app.i18n import get_translations
 
 log = logging.getLogger("docsis.report")
@@ -338,8 +339,8 @@ class IncidentReport(FPDF):
 
 
 def _format_optional_count(value):
-    """Format a counter value while preserving unsupported/null as N/A."""
-    return f"{value:,}" if value is not None else "N/A"
+    """Format a counter value while preserving unsupported/null/unreadable as N/A."""
+    return f"{count:,}" if (count := to_counter(value)) is not None else "N/A"
 
 
 def _format_optional_decimal(value):

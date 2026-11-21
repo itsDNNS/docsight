@@ -91,7 +91,7 @@ def _tr(*cells) -> str:
 # The Arris profile rejects this row by its channel ID; the SB profiles keep it without the corrected count.
 SB_ROW = _tr(MARK, "Locked", "QAM256", 7, "591000000 Hz", 1, 1, MARK, 1)
 SB_CHANNEL = {"channelID": 7, "frequency": "591 MHz", "powerLevel": 1.0, "mer": 1.0, "mse": -1.0, "modulation": "QAM256", "corrErrors": None, "nonCorrErrors": 1}
-TC_CHANNEL = {"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 1.0, "mse": -1.0, "mer": 1.0, "latency": 0, "corrError": None, "nonCorrError": 1}
+TC_CHANNEL = {"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 1.0, "mse": -1.0, "mer": 1.0, "corrErrors": None, "nonCorrErrors": 1}
 TC_HEADER = "<tr><th>Channel ID</th><th>Lock Status</th><th>Channel Type</th><th>Modulation</th><th>Frequency</th><th>Power</th><th>SNR</th><th>Corrected</th><th>Uncorrected</th></tr>"
 CM1000_HEADER = "<tr><th>Channel</th><th>Lock Status</th><th>Modulation</th><th>Channel ID</th><th>Frequency</th></tr>"
 CM1000_BAD_ID_ROW = f"<tr><td>1</td><td>Locked</td><td>256QAM</td><td>{MARK}</td><td>591000000</td></tr>"
@@ -183,9 +183,17 @@ MEASUREMENT_CELLS = {
     "sb6190_html": lambda c: _page(SB6190Driver, _bonded(1, _tr(1, "Locked", "QAM256", 7, c, c, c, c, c))),
     "tc4400_html": lambda c: _tc(f"<table>{TC_HEADER}{_tr(7, 'Locked', 'SC-QAM', '256QAM', c, c, c, c, c)}</table>", "<table></table>"),
 }
-MEASUREMENTS = ("powerLevel", "corrErrors", "nonCorrErrors", "corrError", "nonCorrError", "mer", "mse")
+MEASUREMENTS = ("powerLevel", "corrErrors", "nonCorrErrors", "mer", "mse")
 # CGM4981 reads power and SNR by pattern, so only its codeword cells are checked for unreadable text.
 CELL_KEYS = {"cgm4981_columnar_html": ("corrErrors", "nonCorrErrors")}
+
+
+def test_cgm4981_oversized_numbers_are_unavailable():
+    huge = "9" * 400
+    rows = {"Channel ID": ["7"], "Lock Status": ["Locked"], "Frequency": [huge], "Power Level": [huge], "SNR": [huge]}
+    output = _cgm(_cgm_html(rows, rows, {}))
+    ds, us = _first_downstream(output), output["channelUs"]["docsis30"][0]
+    assert [ds["frequency"], ds["powerLevel"], ds["mer"], ds["mse"], us["frequency"], us["powerLevel"]] == ["", None, None, None, "", None]
 
 
 def _sagemcom_row(reading=None) -> dict:

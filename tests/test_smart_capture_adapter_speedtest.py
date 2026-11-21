@@ -13,6 +13,7 @@ from app.smart_capture.adapters.speedtest import SpeedtestAdapter
 from app.smart_capture.types import ExecutionStatus
 from app.storage import SnapshotStorage
 from app.types import EventDict
+from tests.test_speedtest import TRACKER_SETTING_CHANGES
 
 
 @pytest.fixture
@@ -161,6 +162,19 @@ class TestSpeedtestAdapterExecute:
         assert (success, error) == (False, expected)
         row = storage.get_execution(eid)
         assert (row["status"], row["attempt_count"], row["last_error"]) == ("expired", 1, expected)
+
+@TRACKER_SETTING_CHANGES
+def test_execute_uses_the_changed_tracker_settings(storage, changed):
+    adapter = SpeedtestAdapter(storage, _make_config())
+    adapter._config = config = _make_config(sc_speedtest_min_interval=0, **changed)
+    with patch("app.modules.speedtest.client.requests.Session.post", autospec=True, return_value=_Response()) as post:
+        assert adapter.execute(_pending_execution(storage), _event()) == (True, None)
+
+    session, url = post.call_args.args
+    assert (url, session.headers["Authorization"], post.call_args.kwargs["verify"]) == (
+        config.get("speedtest_tracker_url") + "/api/v1/speedtests/run",
+        "Bearer " + config.get("speedtest_tracker_token"), config.get("speedtest_tls_insecure") is not True)
+
 
 class TestSpeedtestAdapterPreflight:
     def test_recent_tracker_result_suppresses_before_post(self, storage):

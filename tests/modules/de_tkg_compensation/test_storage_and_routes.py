@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import datetime, timezone
 
@@ -477,8 +478,29 @@ def test_appointment_only_claim_calculates_and_generates_outage_free_letter(
     assert "Störungsmeldung" not in text
 
 
-def test_absurd_missed_appointment_count_is_rejected_before_persistence(
-    make_app, make_config, builtin_module_loader_factory, core_storage
+_INVALID_COUNT = {
+    "code": "technical_missed_appointments_invalid",
+    "error": "Missed appointment count must be a non-negative integer",
+}
+_COUNT_LIMIT = {
+    "code": "technical_missed_appointments_limit",
+    "error": "Missed appointment count exceeds the technical maximum of 100",
+}
+
+
+@pytest.mark.parametrize(
+    ("count", "expected"),
+    [
+        (-1, _INVALID_COUNT),
+        (True, _INVALID_COUNT),
+        ("1", _INVALID_COUNT),
+        (1.0, _INVALID_COUNT),
+        (101, _COUNT_LIMIT),
+        (1_000_000_000, _COUNT_LIMIT),
+    ],
+)
+def test_invalid_missed_appointment_count_is_rejected_on_save_and_calculation(
+    count, expected, make_app, make_config, builtin_module_loader_factory, core_storage
 ):
     config = make_config()
     client = make_app(
@@ -486,15 +508,27 @@ def test_absurd_missed_appointment_count_is_rejected_before_persistence(
         storage=core_storage,
         module_loader_factory=builtin_module_loader_factory(config),
     ).test_client()
+    eligibility = {"complete_outage": True, "missed_appointments": count}
 
     response = client.post(
-        "/api/de-tkg/claims",
-        json=_claim_payload(eligibility={"missed_appointments": 1_000_000_000}),
+        "/api/de-tkg/claims", json=_claim_payload(eligibility=eligibility)
     )
 
     assert response.status_code == 400
-    assert response.get_json()["code"] == "technical_missed_appointments_limit"
+    assert response.get_json() == expected
     assert client.get("/api/de-tkg/claims").get_json() == []
+
+    claim = client.post("/api/de-tkg/claims", json=_claim_payload()).get_json()
+    with sqlite3.connect(core_storage.db_path) as conn:
+        conn.execute(
+            "UPDATE de_tkg_claim_drafts SET eligibility_json = ? WHERE id = ?",
+            (json.dumps(eligibility), claim["id"]),
+        )
+
+    calculated = client.post(f"/api/de-tkg/claims/{claim['id']}/calculate")
+
+    assert calculated.status_code == 422
+    assert calculated.get_json() == expected
 
 
 @pytest.mark.parametrize(
@@ -669,6 +703,28 @@ def test_unknown_stored_rules_version_blocks_calculation_and_stale_letter(
     assert calculated.get_json()["code"] == "technical_rules_version_unsupported"
     assert letter.status_code == 409
     assert letter.get_json()["code"] == "technical_rules_version_unsupported"
+
+
+@pytest.mark.parametrize("action", ["calculate", "letter"])
+def test_stored_window_with_z_and_offset_still_calculates(
+    action, make_app, make_config, builtin_module_loader_factory, core_storage
+):
+    config = make_config()
+    client = make_app(
+        config_manager=config,
+        storage=core_storage,
+        module_loader_factory=builtin_module_loader_factory(config),
+    ).test_client()
+    claim = client.post("/api/de-tkg/claims", json=_claim_payload()).get_json()
+    with sqlite3.connect(core_storage.db_path) as conn:
+        conn.execute(
+            "UPDATE de_tkg_claim_drafts SET window_from = ?, window_to = ? WHERE id = ?",
+            ("2026-01-01Z+00:00", "2026-05-01Z+00:00", claim["id"]),
+        )
+
+    response = client.post(f"/api/de-tkg/claims/{claim['id']}/{action}", json={})
+
+    assert response.status_code == 200
 
 
 def test_upgrade_migrates_old_rules_version_and_clears_derived_letter(core_storage):

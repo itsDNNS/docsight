@@ -4,7 +4,6 @@ import logging
 import threading
 
 from app.collectors.base import Collector, CollectorResult
-from app.config import parse_config_bool
 
 from .client import SpeedtestClient
 from .storage import SpeedtestStorage
@@ -58,25 +57,17 @@ class SpeedtestCollector(Collector):
         self._storage = SpeedtestStorage(storage.db_path)
         self._web = web
         self._client = None
-        self._last_url = None
-        self._last_tls_insecure = None
         self.on_import = None  # Optional callback for Smart Capture
 
     def is_enabled(self) -> bool:
         return self._config_mgr.is_speedtest_configured()
 
     def _ensure_client(self):
-        """Re-initialize client if the configured URL changed."""
-        url = self._config_mgr.get("speedtest_tracker_url")
-        tls_insecure = parse_config_bool(
-            self._config_mgr.get("speedtest_tls_insecure", False)
-        )
-        if url != self._last_url or tls_insecure != self._last_tls_insecure:
-            token = self._config_mgr.get("speedtest_tracker_token")
-            self._client = SpeedtestClient(url, token, tls_insecure=tls_insecure)
-            self._last_url = url
-            self._last_tls_insecure = tls_insecure
-            log.info("Speedtest Tracker: %s", url)
+        """Re-initialize the client when a Speedtest Tracker setting changed."""
+        client = SpeedtestClient.from_config(self._config_mgr, self._client)
+        if client is not self._client:
+            self._client = client
+            log.info("Speedtest Tracker: %s", client.base_url)
 
     def collect(self) -> CollectorResult | None:
         """Sync unless another sync runs or demo mode is on; None means skipped."""

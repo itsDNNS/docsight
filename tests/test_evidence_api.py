@@ -1,6 +1,8 @@
 import builtins
 from unittest.mock import Mock, patch
 
+import pytest
+
 from app import web_auth
 from app.runtime import current_runtime
 
@@ -112,7 +114,7 @@ class TestEvidenceChecklistApi:
             "start_date": "2026-06-10",
             "end_date": "2026-06-10",
         }
-        journal.get_entries.return_value = [{"id": 1, "date": "2026-06-10", "title": "Called support"}]
+        journal.get_entries_for_export.return_value = [{"id": 1, "date": "2026-06-10", "title": "Called support"}]
         config = Mock()
         config.get.side_effect = lambda key, default=None: {"modem_type": "fritzbox"}.get(key, default)
         config.is_speedtest_configured.return_value = True
@@ -277,31 +279,30 @@ class TestEvidenceChecklistApi:
         from app.modules.journal.storage import JournalStorage
         from app.modules.evidence import routes
 
-        db_path = str(tmp_path / "docsight.db")
-        journal = JournalStorage(db_path)
+        journal = JournalStorage(str(tmp_path / "docsight.db"))
         journal.save_entry("2026-06-10", "Previous local day", "outside")
         journal.save_entry("2026-06-11", "Selected local day", "inside")
 
-        with patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"):
+        with patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"), \
+             patch.object(routes, "_get_journal_storage", return_value=journal):
             rows = routes._get_journal_entries_for_window(
-                db_path,
                 "2026-06-10T23:30:00Z",
                 "2026-06-11T00:30:00Z",
             )
 
         assert [row["title"] for row in rows] == ["Selected local day"]
+        assert "attachment_count" not in rows[0]
 
     def test_journal_window_falls_back_to_utc_when_configured_timezone_is_invalid(self, tmp_path):
         from app.modules.journal.storage import JournalStorage
         from app.modules.evidence import routes
 
-        db_path = str(tmp_path / "docsight.db")
-        journal = JournalStorage(db_path)
+        journal = JournalStorage(str(tmp_path / "docsight.db"))
         journal.save_entry("2026-06-10", "UTC day", "inside")
 
-        with patch.object(routes, "_get_tz_name", return_value="Invalid/Timezone"):
+        with patch.object(routes, "_get_tz_name", return_value="Invalid/Timezone"), \
+             patch.object(routes, "_get_journal_storage", return_value=journal):
             rows = routes._get_journal_entries_for_window(
-                db_path,
                 "2026-06-10T22:30:00Z",
                 "2026-06-10T23:00:00Z",
             )
@@ -329,26 +330,27 @@ class TestEvidenceChecklistApi:
 
         assert [row["timestamp"] for row in rows] == ["2026-06-10T22:30:00Z"]
 
-    def test_bqm_rows_skip_malformed_timestamps_without_marking_source_unavailable(self, tmp_path):
+    @pytest.mark.parametrize(("start_ts", "end_ts", "kept"), [
+        ("2026-06-10T22:00:00Z", "2026-06-10T23:00:00Z", ["2026-06-10T22:30:00Z"]),
+        # Imported CSV timestamps are stored verbatim; every "Z" in them reads as UTC.
+        ("2026-06-09T23:00:00Z", "2026-06-10T01:00:00Z", ["2026-06-10Z"]),
+    ])
+    def test_bqm_rows_skip_malformed_timestamps_without_marking_source_unavailable(self, tmp_path, start_ts, end_ts, kept):
         from app.modules.bqm.storage import BqmStorage
         from app.modules.evidence import routes
 
         def fake_rows(self, start_date, end_date):
             return [
-                {"timestamp": "not-a-timestamp", "sent_polls": 10},
-                {"timestamp": "2026-06-10T22:30:00Z", "sent_polls": 10},
-                {"timestamp": "2026-06-10T23:30:00Z", "sent_polls": 10},
+                {"timestamp": timestamp, "sent_polls": 10}
+                for timestamp in ("not-a-timestamp", "2026-06-10T22:30:00Z", "2026-06-10T23:30:00Z",
+                                  "2026-06-10Z", "2026-06-10Z00:30:00Z")
             ]
 
         with patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"), \
              patch.object(BqmStorage, "get_data_for_range", fake_rows):
-            rows = routes._get_bqm_rows(
-                str(tmp_path / "docsight.db"),
-                "2026-06-10T22:00:00Z",
-                "2026-06-10T23:00:00Z",
-            )
+            rows = routes._get_bqm_rows(str(tmp_path / "docsight.db"), start_ts, end_ts)
 
-        assert rows == [{"timestamp": "2026-06-10T22:30:00Z", "sent_polls": 10}]
+        assert [row["timestamp"] for row in rows] == kept
 
     def test_bqm_rows_return_unavailable_sentinel_on_storage_error(self, tmp_path):
         from app.modules.evidence import routes

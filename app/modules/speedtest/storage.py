@@ -5,8 +5,6 @@ import logging
 from app.storage.migrations import run_migrations
 from app.storage.sqlite import open_read, write_transaction
 from .migrations import MIGRATIONS
-from datetime import datetime, timezone
-from app.tz import UTC_FMT
 
 log = logging.getLogger("docsis.storage.speedtest")
 
@@ -41,44 +39,7 @@ class SpeedtestStorage:
 
     def __init__(self, db_path):
         self.db_path = db_path
-        self._ensure_table()
-
-    def _ensure_table(self):
-        """Create and migrate the speedtest tables."""
-        run_migrations(self.db_path, MIGRATIONS)
-        self._migrate_timestamps()
-
-    def _migrate_timestamps(self):
-        """Normalize offset-bearing timestamps once, preserving existing behavior."""
-        with write_transaction(self.db_path) as conn:
-            migrated = conn.execute(
-                "SELECT value FROM speedtest_meta WHERE key = 'ts_migrated'"
-            ).fetchone()
-            if migrated:
-                return
-            rows = conn.execute(
-                "SELECT id, timestamp FROM speedtest_results "
-                "WHERE timestamp GLOB '*[+-][0-9][0-9]:[0-9][0-9]'"
-            ).fetchall()
-            updated = 0
-            for row_id, timestamp in rows:
-                try:
-                    parsed = datetime.fromisoformat(timestamp)
-                except (ValueError, TypeError):
-                    continue
-                if parsed.tzinfo is None:
-                    continue
-                normalized = parsed.astimezone(timezone.utc).strftime(UTC_FMT)
-                conn.execute(
-                    "UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
-                    (normalized, row_id),
-                )
-                updated += 1
-            conn.execute(
-                "INSERT OR REPLACE INTO speedtest_meta (key, value) VALUES ('ts_migrated', '1')"
-            )
-            if updated:
-                log.info("Normalized %d existing timestamps to UTC", updated)
+        run_migrations(db_path, MIGRATIONS)
 
     def save_speedtest_results(self, results):
         """Bulk upsert speedtest results and return those not cached before; a known id keeps the values a result omits."""

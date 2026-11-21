@@ -1162,30 +1162,23 @@ class DemoCollector(AnalysisCollector):
             return struct.pack(">I", len(data)) + c + crc
 
         # Generate pixel data: quality bar chart with green/yellow/red bands
-        raw = b""
+        wave = [0.8 + 0.2 * math.sin(x * 0.02 + seed) for x in range(width)]
+        background = bytes((30, 30, 40))
+        raw = bytearray()
         for y in range(height):
-            row = b"\x00"  # PNG filter: None
+            raw.append(0)  # PNG filter: None
+            # Green, yellow and red bars with a slight vertical gradient
+            fade = 0.7 + 0.3 * (height - y) / height
+            green, yellow, red = (bytes(int(c * fade) for c in rgb)
+                                  for rgb in ((46, 160, 67), (200, 170, 40), (200, 50, 50)))
             for x in range(width):
                 # Simulate quality: mostly green, some yellow/red sections
-                quality = 0.8 + 0.2 * math.sin(x * 0.02 + seed) + rng.uniform(-0.05, 0.05)
-                quality = max(0, min(1, quality))
-
+                quality = max(0, min(1, wave[x] + rng.uniform(-0.05, 0.05)))
                 # Quality bar: bottom portion filled, top portion background
-                bar_height = int(quality * height * 0.8)
-                if y > height - bar_height:
-                    if quality > 0.7:
-                        r, g, b = 46, 160, 67  # green
-                    elif quality > 0.4:
-                        r, g, b = 200, 170, 40  # yellow
-                    else:
-                        r, g, b = 200, 50, 50  # red
-                    # Slight vertical gradient
-                    fade = 0.7 + 0.3 * (height - y) / height
-                    r, g, b = int(r * fade), int(g * fade), int(b * fade)
+                if y > height - int(quality * height * 0.8):
+                    raw += green if quality > 0.7 else yellow if quality > 0.4 else red
                 else:
-                    r, g, b = 30, 30, 40  # dark background
-                row += bytes([r, g, b])
-            raw += row
+                    raw += background
 
         sig = b"\x89PNG\r\n\x1a\n"
         ihdr = _png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
