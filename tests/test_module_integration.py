@@ -32,6 +32,17 @@ def _fixture_loader_factory(*, disabled_ids=None):
     return build
 
 
+def _fixture_app(data_dir, disabled_ids=None):
+    manager = ConfigManager(str(data_dir))
+    app = create_app(
+        config_manager=manager,
+        module_loader_factory=_fixture_loader_factory(disabled_ids=disabled_ids),
+        environ=dict(OPEN_INSTANCE_ENVIRON),
+        testing=True,
+    )
+    return app, manager
+
+
 class TestModuleIntegration:
     """End-to-end test with a real module fixture."""
 
@@ -54,13 +65,7 @@ class TestModuleIntegration:
 
     def test_full_load_cycle(self, tmp_path):
         """Discover -> validate -> load config + i18n + routes -> serve requests."""
-        manager = ConfigManager(str(tmp_path / "full-load"))
-        app = create_app(
-            config_manager=manager,
-            module_loader_factory=_fixture_loader_factory(),
-            environ=dict(OPEN_INSTANCE_ENVIRON),
-            testing=True,
-        )
+        app, _manager = _fixture_app(tmp_path / "full-load")
         loader = get_runtime(app).module_loader
         modules = loader.get_modules()
 
@@ -95,16 +100,7 @@ class TestModuleIntegration:
 
     def test_disable_skips_loading(self, tmp_path):
         """Disabled modules are discovered but their contributions are not loaded."""
-        manager = ConfigManager(str(tmp_path / "disabled-load"))
-        manager.save({"disabled_modules": "test.integration"})
-        app = create_app(
-            config_manager=manager,
-            module_loader_factory=_fixture_loader_factory(
-                disabled_ids={"test.integration"}
-            ),
-            environ={},
-            testing=True,
-        )
+        app, _manager = _fixture_app(tmp_path / "disabled-load", {"test.integration"})
         modules = get_runtime(app).module_loader.get_modules()
 
         mod = next(m for m in modules if m.id == "test.integration")
@@ -125,6 +121,19 @@ class TestModuleIntegration:
 
         en = get_translations("en")
         assert "test.integration.name" not in en
+
+    def test_later_app_with_the_module_disabled_exposes_none_of_its_config(self, tmp_path):
+        """Module config registered by an earlier app in the process does not carry over."""
+        from app import config as cfg
+
+        _fixture_app(tmp_path / "enabled")
+        _app, manager = _fixture_app(tmp_path / "disabled", {"test.integration"})
+
+        module_keys = {"test_integration_enabled", "test_integration_interval"}
+        assert not module_keys & (manager.get_all().keys() | cfg.BOOL_KEYS | cfg.INT_KEYS)
+        from app.i18n import get_translations
+
+        assert "test.integration.name" not in get_translations("en")
 
 
 class TestModuleUIIntegration:
