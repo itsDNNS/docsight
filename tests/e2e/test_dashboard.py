@@ -616,6 +616,13 @@ class TestHomeOverview:
         expect(demo_page.locator("#channel-families")).to_have_attribute("open", "")
         expect(demo_page.locator("#channel-families #metric-us-ofdma-card")).to_have_count(1)
 
+    @pytest.mark.parametrize("status", [429, 503])
+    def test_refused_refresh_shows_the_server_error(self, demo_page, status):
+        demo_page.route("**/api/poll", lambda route: route.fulfill(status=status, json={"success": False, "error": "Poll refused"}))
+        demo_page.locator(".hero-refresh-button").click()
+        expect(demo_page.locator("#toast .toast-text")).to_have_text("Poll refused")
+        expect(demo_page.locator("#toast")).to_have_class(re.compile(r"\btoast-error\b"))
+
     def test_recent_events_stay_on_one_line_each(self, demo_page):
         heights = demo_page.evaluate(
             "() => [...document.querySelectorAll('#home-events-list .home-event-text')].map(el => el.getBoundingClientRect().height)"
