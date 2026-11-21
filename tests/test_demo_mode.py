@@ -2,7 +2,10 @@
 
 import json
 import sqlite3
+import threading
+import time
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -362,6 +365,17 @@ class TestPurgeDemoData:
         assert row is not None
         assert row[0] is None  # incident_id unassigned
         assert row[1] == 0  # still user-created
+
+    def test_demo_cases_take_only_demo_entries(self, storage):
+        """A user's entry in a demo case's date range keeps its own case."""
+        _js = JournalStorage(storage.db_path)
+        own_case = _js.save_incident(name="My case")
+        now = datetime(2026, 11, 1, tzinfo=timezone.utc)
+        entry_id = _js.save_entry((now - timedelta(days=10)).strftime("%Y-%m-%d"), "Mine", "desc", incident_id=own_case)
+
+        _demo_collector(storage)._seed_incident_containers(now, _js)
+
+        assert _js.get_entry(entry_id)["incident_id"] == own_case
 
 
 # ── Double Seed Idempotency ──
@@ -726,6 +740,43 @@ class TestDemoSeedContract:
 
         assert seed.call_count == 2
 
+    def test_seeding_covers_the_first_poll_and_ends_when_the_seed_fails(self, storage):
+        collector = _demo_collector(storage)
+        seeding = []
+        failure = sqlite3.OperationalError("database is locked")
+        with patch.object(collector, "_seed_demo_data", side_effect=[failure, None]), \
+             patch.object(collector, "_process", side_effect=lambda *_a, **_k: seeding.append(collector.seeding)):
+            with pytest.raises(sqlite3.OperationalError):
+                collector.collect()
+            assert collector.seeding is False  # a failed seed does not lock the exit
+            collector.collect()
+            collector.collect()
+
+        assert seeding == [True, False] and collector.seeding is False
+
+    def test_a_restarted_demo_seeds_after_the_older_seed(self, storage):
+        steps, old_started = [], threading.Event()
+
+        def seed(name):
+            steps.append(f"{name} start")
+            old_started.set()
+            time.sleep(0.2)
+            steps.append(f"{name} end")
+
+        polls = []
+        for name in ("old", "new"):
+            collector = _demo_collector(storage)
+            collector._seed_demo_data = lambda name=name: seed(name)
+            collector._process = MagicMock()
+            polls.append(threading.Thread(target=collector.collect))
+        polls[0].start()
+        assert old_started.wait(5)
+        polls[1].start()
+        for thread in polls:
+            thread.join(5)
+
+        assert steps == ["old start", "old end", "new start", "new end"]
+
     def test_journal_storage_failure_fails_the_seed_before_the_history(self, storage):
         collector = _demo_collector(storage)
         with patch.object(JournalStorage, "_ensure_table", side_effect=sqlite3.OperationalError("database is locked")), \
@@ -754,6 +805,20 @@ class TestMigrateEndpoint:
         # Demo rows gone, user rows kept
         assert _count_rows(storage, "journal_entries", is_demo=1) == 0
         assert _count_rows(storage, "journal_entries", is_demo=0) == 1
+
+    def test_exit_waits_until_the_demo_has_stored_its_first_poll(self, client, storage, config_mgr):
+        _seed_demo_rows(storage)
+        current_runtime().modem_collector = SimpleNamespace(seeding=True)
+
+        resp = client.post("/api/demo/migrate", json={})
+
+        assert resp.status_code == 409 and resp.get_json()["error"] == "demo_loading"
+        assert config_mgr.get("demo_mode") is True
+        assert _count_rows(storage, "journal_entries", is_demo=1) == 1
+
+        current_runtime().modem_collector.seeding = False
+        assert client.post("/api/demo/migrate", json={}).status_code == 200
+        assert current_runtime().modem_collector is None  # a manual poll finds no demo to run
 
     def test_migrate_rejects_non_demo(self, client, config_mgr):
         config_mgr.save({"demo_mode": False})

@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Taispeántas áitiúil á thosú…",
   "setup_demo_waiting": "An deais lán sonraí á hullmhú…",
   "setup_demo_failed": "Níorbh fhéidir an taispeántas a thosú.",
-  "setup_demo_timeout": "Tá an taispeántas ag tógáil níos faide ná mar a bhíothas ag súil leis. Bain triail eile as nó ceangail do mhóideim.",
   "setup_try_again": "Bain triail eile as",
   "setup_try_demo": "Bain triail as an taispeántas ina ionad",
   "setup_desktop_preview_note": "Oiriúnach chun DOCSight a thriail agus do thomhais ócáideacha. Moltar Docker fós le haghaidh monatóireacht leanúnach 24/7.",

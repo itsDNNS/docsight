@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Startar lokal demo…",
   "setup_demo_waiting": "Förbereder instrumentpanelen med data…",
   "setup_demo_failed": "Det gick inte att starta demon.",
-  "setup_demo_timeout": "Demon tar längre tid än väntat. Försök läsa in den igen eller anslut modemet.",
   "setup_try_again": "Försök igen",
   "setup_try_demo": "Prova demon i stället",
   "setup_desktop_preview_note": "Lämplig för att prova DOCSight och för enstaka mätningar. Docker rekommenderas fortfarande för kontinuerlig övervakning 24/7.",

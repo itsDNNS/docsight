@@ -1,10 +1,16 @@
 (function() {
     'use strict';
 
+    // A dashboard refresh can replace the banner at any time, so it is looked up on use.
+    function setBanner(disabled, message) {
+        document.getElementById('demo-banner').querySelectorAll('button').forEach(function(item) { item.disabled = disabled; });
+        document.getElementById('demo-banner-result').textContent = message;
+    }
+
+    var leaving = false;
+
     window.leaveDemo = async function(nextChoice, button) {
-        var banner = document.getElementById('demo-banner');
-        var result = document.getElementById('demo-banner-result');
-        if (!banner || !result || button.disabled) return;
+        if (leaving || button.disabled || !document.getElementById('demo-banner-result')) return;
 
         var message = (window.T && window.T.demo_migrate_confirm) ||
             'This will remove the demo data. Your own entries will be kept. Continue?';
@@ -15,11 +21,9 @@
             cancelText: (window.T && window.T.cancel) || 'Cancel',
             danger: true
         });
-        if (!confirmed) return;
-
-        var buttons = banner.querySelectorAll('button');
-        buttons.forEach(function(item) { item.disabled = true; });
-        result.textContent = '';
+        if (!confirmed || leaving) return;
+        leaving = true;  // a refreshed banner must not start a second exit
+        setBanner(true, '');
 
         try {
             var response = await fetch(docsightUrl('/api/demo/migrate'), {
@@ -37,14 +41,16 @@
             if (!expectedNext || payload.next !== expectedNext) throw new Error('Invalid redirect');
             window.location.assign(docsightUrl(expectedNext));
         } catch (error) {
-            buttons.forEach(function(item) { item.disabled = false; });
-            result.textContent = (window.T && window.T.demo_action_failed) || 'The demo could not be closed. Please try again.';
+            leaving = false;
+            setBanner(false, (window.T && window.T.demo_action_failed) || 'The demo could not be closed. Please try again.');
         }
     };
 
-    /* The banner also appears on the settings page, so it binds its own buttons. */
-    [['demo-connect-modem', 'connect'], ['demo-exit', 'exit']].forEach(function(pair) {
-        var button = document.getElementById(pair[0]);
-        if (button) button.addEventListener('click', function() { window.leaveDemo(pair[1], button); });
+    /* The banner also appears on the settings page, and a dashboard refresh replaces it,
+       so its buttons are handled from the document. */
+    var choices = {'demo-connect-modem': 'connect', 'demo-exit': 'exit'};
+    document.addEventListener('click', function(event) {
+        var button = event.target.closest && event.target.closest('#demo-connect-modem, #demo-exit');
+        if (button) window.leaveDemo(choices[button.id], button);
     });
 })();
