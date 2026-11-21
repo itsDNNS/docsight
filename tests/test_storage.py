@@ -641,6 +641,12 @@ class TestBnetzStorage:
         assert latest is not None
         assert latest["provider"] == "Vodafone"
 
+    def test_unmeasured_direction_stays_missing(self, bnetz_storage, sample_bnetz_parsed):
+        bnetz_storage.save_bnetz_measurement({**sample_bnetz_parsed, "upload_measured_avg": None})
+        rows = [bnetz_storage.get_bnetz_measurements()[0], bnetz_storage.get_latest_bnetz(),
+                *bnetz_storage.get_bnetz_in_range("2000-01-01T00:00:00", "2099-12-31T23:59:59")]
+        assert [row["upload_measured_avg"] for row in rows] == [None] * 3
+
     def test_get_latest_empty(self, bnetz_storage):
         assert bnetz_storage.get_latest_bnetz() is None
 

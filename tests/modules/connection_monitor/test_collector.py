@@ -122,6 +122,7 @@ class TestCleanupCycle:
             "connection_monitor_probe_method": "tcp",
             "connection_monitor_tcp_port": 443,
             "connection_monitor_retention_days": "7",
+            "timezone": "Europe/Berlin",
             "connection_monitor_outage_threshold": 5,
             "connection_monitor_loss_warning_pct": 2.0,
         }.get(key, default)
@@ -146,15 +147,15 @@ class TestCleanupCycle:
             collector._last_cleanup = 0.0
 
             call_order = []
-            collector._cm_storage.aggregate.side_effect = lambda: call_order.append("aggregate")
+            collector._cm_storage.aggregate.side_effect = lambda *a: call_order.append("aggregate")
             collector._cm_storage.cleanup.side_effect = lambda *a, **kw: call_order.append("cleanup")
 
             collector.collect()
 
             mock_agg = collector._cm_storage.aggregate
             mock_clean = collector._cm_storage.cleanup
-            mock_agg.assert_called_once()
-            mock_clean.assert_called_once_with(7)
+            mock_agg.assert_called_once_with("Europe/Berlin")
+            mock_clean.assert_called_once_with(7, "Europe/Berlin")
             # Verify order: aggregate was called before cleanup
             assert call_order == ["aggregate", "cleanup"]
 

@@ -556,6 +556,21 @@ def test_bnetz_table_aligns_actions_and_names_each_verdict_on_desktop(demo_page)
     assert geometry["unnamedActions"] == 0
 
 
+def test_bnetz_table_shows_an_unmeasured_direction_as_missing(demo_page):
+    row = {"date": "2026-05-02", "provider": "Example ISP", "download_max_tariff": 1000, "download_measured_avg": 400.4,
+           "upload_max_tariff": 50, "upload_measured_avg": 45.2, "verdict_download": "ok", "verdict_upload": "ok"}
+    demo_page.route("**/api/bnetz/measurements", lambda route: route.fulfill(
+        json=[row, {**row, "download_measured_avg": None}, {**row, "upload_measured_avg": None}]))
+    demo_page.goto(demo_page.url.split("#", 1)[0].split("?", 1)[0] + "?lang=en#bnetz", wait_until="networkidle")
+    rows = demo_page.locator("#bnetz-tbody tr[data-bnetz-idx]")
+    expect(rows).to_have_count(3)
+
+    measured = rows.evaluate_all(
+        "rows => rows.map((row) => [...row.querySelectorAll('td.dt-num:not(.bnetz-secondary-cell)')].map((td) => td.textContent))"
+    )
+    assert measured == [["400 Mbit/s (40%)", "45 Mbit/s (90%)"], ["-", "45 Mbit/s (90%)"], ["400 Mbit/s (40%)", "-"]]
+
+
 def test_top_bar_fits_narrow_desktops_in_every_language(page, live_server):
     """At 1024px, the smallest desktop layout, every language keeps the top bar on screen."""
     languages = sorted(path.stem for path in (Path(__file__).parents[2] / "app" / "i18n").glob("*.json"))

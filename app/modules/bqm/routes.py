@@ -369,7 +369,7 @@ def api_bqm_import_csv():
     raw = f.read()
     if len(raw) > _MAX_CSV_SIZE:
         return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
-    content = raw.decode("utf-8", errors="replace")
+    content = raw.decode("utf-8-sig", errors="replace")
     del raw
     if not content.strip():
         return jsonify({"error": "Empty file"}), 400

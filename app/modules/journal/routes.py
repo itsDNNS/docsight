@@ -657,9 +657,9 @@ def api_incident_timeline(incident_id):
 def api_incident_report(incident_id):
     """Generate PDF complaint report for a specific incident."""
     from app.modules.reports.report import generate_incident_report
+    from app.modules.reports.routes import _report_request_context
 
     _storage = _get_journal_storage()
-    _config_manager = current_runtime().config_manager
 
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
@@ -688,26 +688,14 @@ def api_incident_report(incident_id):
         speedtests = core_derived_storage(SpeedtestStorage).get_speedtest_in_range(start_ts, end_ts)
         bnetz = core_derived_storage(BnetzStorage).get_bnetz_in_range(start_ts, end_ts)
 
-    config = {}
-    if _config_manager:
-        config = {
-            "isp_name": _config_manager.get("isp_name", ""),
-            "modem_type": _config_manager.get("modem_type", ""),
-        }
-
     conn_info = current_runtime().get_state().get("connection_info") or {}
-    lang = get_lang()
-    customer_name = request.args.get("name", "")
-    customer_number = request.args.get("number", "")
-    customer_address = request.args.get("address", "")
 
     pdf_bytes = generate_incident_report(
         incident, entries, snapshots, speedtests, bnetz,
-        config, conn_info, lang,
-        customer_name=customer_name,
-        customer_number=customer_number,
-        customer_address=customer_address,
+        connection_info=conn_info,
+        lang=get_lang(),
         attachment_loader=_storage.get_attachment,
+        **_report_request_context(),
     )
 
     response = make_response(pdf_bytes)

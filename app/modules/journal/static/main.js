@@ -58,14 +58,17 @@ function loadIconKeywords() {
     return _iconKeywordsLoading;
 }
 
+function _escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Longer keywords also match inside words (compounds, inflected forms); short
 // ones must start a word so they do not hit unrelated longer words.
 var _iconWordStartCache = {};
 function _iconKeywordMatches(text, keyword) {
     if (keyword.length >= 5) return text.indexOf(keyword) !== -1;
     if (!_iconWordStartCache[keyword]) {
-        var escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        _iconWordStartCache[keyword] = new RegExp('(?:^|[^\\p{L}\\p{N}])' + escaped, 'u');
+        _iconWordStartCache[keyword] = new RegExp('(?:^|[^\\p{L}\\p{N}])' + _escapeRegExp(keyword), 'u');
     }
     return _iconWordStartCache[keyword].test(text);
 }
@@ -243,20 +246,9 @@ function escapeHtmlAttribute(value) {
 
 function highlightText(text, query) {
     if (!query || !text) return escapeHtml(text);
-    var escaped = escapeHtml(text);
-    var lowerEscaped = escaped.toLowerCase();
-    var lowerQuery = query.toLowerCase();
-    var result = '';
-    var lastIdx = 0;
-    var idx = lowerEscaped.indexOf(lowerQuery);
-    while (idx !== -1) {
-        result += escaped.substring(lastIdx, idx);
-        result += '<mark class="search-highlight">' + escaped.substring(idx, idx + lowerQuery.length) + '</mark>';
-        lastIdx = idx + lowerQuery.length;
-        idx = lowerEscaped.indexOf(lowerQuery, lastIdx);
-    }
-    result += escaped.substring(lastIdx);
-    return result;
+    return text.split(new RegExp('(' + _escapeRegExp(query) + ')', 'i')).map(function(part, i) {
+        return i % 2 ? '<mark class="search-highlight">' + escapeHtml(part) + '</mark>' : escapeHtml(part);
+    }).join('');
 }
 
 function renderJournalTable(data, searchQuery) {
