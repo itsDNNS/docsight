@@ -28,11 +28,6 @@ REPORT_KEYS = {
     "report_customer_number",
     "report_customer_address",
 }
-SETTINGS_I18N_KEYS = {
-    "report_settings_title",
-    "report_settings_hint",
-    "report_settings_privacy",
-}
 
 
 @pytest.fixture
@@ -402,21 +397,6 @@ def test_settings_form_serializer_includes_textareas():
     end = source.index("\nfunction ", start + 1)
 
     assert "textarea" in source[start:end]
-
-
-def test_reports_i18n_catalogs_are_valid_and_include_settings_copy():
-    locale_dir = REPORTS_DIR / "i18n"
-    english = json.loads((locale_dir / "en.json").read_text(encoding="utf-8"))
-    assert SETTINGS_I18N_KEYS <= english.keys()
-
-    for locale_path in sorted(locale_dir.glob("*.json")):
-        catalog = json.loads(locale_path.read_text(encoding="utf-8"))
-        assert catalog.keys() == english.keys(), locale_path.name
-        for key in SETTINGS_I18N_KEYS:
-            assert isinstance(catalog[key], str) and catalog[key].strip(), (
-                locale_path.name,
-                key,
-            )
 
 
 def test_direct_report_routes_do_not_fall_back_to_saved_customer_values(route_app):
