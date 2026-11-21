@@ -93,9 +93,6 @@
         return true;
     }
 
-    function escapeAttr(value) {
-        return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
     /* Colors computed at runtime reach CSS as --corr-color through the CSSOM,
        never as inline style attributes in built HTML. */
     function applyColors(root) {
@@ -124,36 +121,20 @@
     }
 
     function popoverHtml(events, filter, color, T) {
-        var typeLabel = {
-            health_change: T.event_type_health_change || 'Health Change',
-            power_change: T.event_type_power_change || 'Power Change',
-            snr_change: T.event_type_snr_change || 'SNR Change',
-            channel_change: T.event_type_channel_change || 'Channel Change',
-            modulation_change: T.event_type_modulation_change || 'Modulation Change',
-            error_spike: T.event_type_error_spike || 'Error Spike',
-            monitoring_started: T.event_type_monitoring_started || 'Monitoring Started',
-            monitoring_stopped: T.event_type_monitoring_stopped || 'Monitoring Stopped'
-        };
-        var severityLabel = {
-            info: T.event_severity_info || 'Info',
-            warning: T.event_severity_warning || 'Warning',
-            critical: T.event_severity_critical || 'Critical'
-        };
-        var colorAttr = ' data-color="' + escapeAttr(color) + '"';
+        var colorAttr = ' data-color="' + escapeHtml(color) + '"';
         var html = '<div class="corr-event-filter-title">' + (T.event_filter_title || 'Event Types') + '</div>';
         Object.keys(events.types).sort().forEach(function (type) {
-            var label = typeLabel[type] || type.replace(/_/g, ' ').replace(/\b\w/g, function (ch) { return ch.toUpperCase(); });
             var bySeverity = filter.severity(type);
             html += '<div class="corr-event-filter-group">' +
                 '<label class="corr-event-filter-type">' +
-                '<input type="checkbox" data-event-type="' + escapeAttr(type) + '"' + (filter.types[type] ? ' checked' : '') + colorAttr + '> ' +
-                '<span class="corr-event-filter-name">' + escapeHtml(label) + '</span> <span class="corr-event-filter-count">(' + events.types[type] + ')</span></label>' +
+                '<input type="checkbox" data-event-type="' + escapeHtml(type) + '"' + (filter.types[type] ? ' checked' : '') + colorAttr + '> ' +
+                '<span class="corr-event-filter-name">' + escapeHtml(T['event_type_' + type] || type) + '</span> <span class="corr-event-filter-count">(' + events.types[type] + ')</span></label>' +
                 '<div class="corr-event-filter-severities">';
             CorrelationData.SEVERITIES.forEach(function (sev) {
                 var count = (events.severities[type] && events.severities[type][sev]) || 0;
                 html += '<label class="corr-event-filter-severity">' +
-                    '<input type="checkbox" data-event-type="' + escapeAttr(type) + '" data-event-severity="' + escapeAttr(sev) + '"' + (bySeverity[sev] !== false ? ' checked' : '') + colorAttr + '> ' +
-                    escapeHtml(severityLabel[sev] || sev) + ' <span class="corr-event-filter-count">(' + count + ')</span></label>';
+                    '<input type="checkbox" data-event-type="' + escapeHtml(type) + '" data-event-severity="' + escapeHtml(sev) + '"' + (bySeverity[sev] !== false ? ' checked' : '') + colorAttr + '> ' +
+                    escapeHtml(T['event_severity_' + sev] || sev) + ' <span class="corr-event-filter-count">(' + count + ')</span></label>';
             });
             html += '</div></div>';
         });
@@ -209,7 +190,7 @@
     function render(el, list, options) {
         var T = options.T;
         var hint = T.correlation_toggle_hint || 'Click to toggle';
-        var filterLabel = escapeAttr(T.correlation_event_filter || 'Event Filter');
+        var filterLabel = escapeHtml(T.correlation_event_filter || 'Event Filter');
         // The legend is rebuilt on every redraw; keyboard focus stays on the same control.
         var focused = el.contains(document.activeElement) ? document.activeElement : null;
         var focusSelector = focused && focused.classList.contains('corr-event-filter-btn') ? '.corr-event-filter-btn'
@@ -228,7 +209,7 @@
                 gear = '<button type="button" class="corr-event-filter-btn" popovertarget="corr-event-popover" aria-label="' + filterLabel +
                     '" title="' + filterLabel + '"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></button>';
             }
-            return '<span ' + attrs + ' class="' + cls + '" title="' + hint + '" data-color="' + escapeAttr(item.color) + '">' + item.label + extra + '</span>' + gear;
+            return '<span ' + attrs + ' class="' + cls + '" title="' + hint + '" data-color="' + escapeHtml(item.color) + '">' + item.label + extra + '</span>' + gear;
         }).join(''));
         applyColors(el);
         if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [el]});
@@ -257,7 +238,7 @@
         eventFilter: eventFilter,
         items: items,
         toggle: toggle,
-        escapeAttr: escapeAttr,
+        popoverHtml: popoverHtml,
         applyColors: applyColors,
         closePopover: closePopover,
         render: render
