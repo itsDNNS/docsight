@@ -261,16 +261,9 @@ function _fritzCablePickCorrelationHours(eventStartIso, eventEndIso, nowMs) {
  * switchView synchronously calls loadCorrelationData(), which reads the
  * active pill via getPillValue(). If we switched first and activated the
  * pill afterwards, two fetches would race and stale data could win. */
-/* Correlation pills carry range values such as "6h" or "2d". */
-function _fritzCablePillHours(value) {
-    var match = /^(\d+)(h|d)$/.exec(String(value || ''));
-    if (!match) return null;
-    return parseInt(match[1], 10) * (match[2] === 'd' ? 24 : 1);
-}
-
 function _fritzCableOpenInCorrelation(hours) {
     if (hours == null) return;
-    syncSegments('correlation-tabs', function(tab) { return _fritzCablePillHours(tab.getAttribute('data-value')) === hours; });
+    syncSegments('correlation-tabs', function(tab) { return docsightRangeHours(tab.getAttribute('data-value')) === hours; });
     if (typeof window.switchView === 'function') {
         window.switchView('correlation');
     } else {
@@ -344,7 +337,7 @@ function _fritzCableRenderChart(containerId, samples, totalKey, ownKey) {
 
 window.loadFritzCableData = loadFritzCableData;
 
-/* Auto-load if the view is already active (script loads after deferred routing) */
+/* Load now if the view was opened before this script ran. */
 if (typeof currentView !== 'undefined' && currentView === 'segment-utilization') {
     setTimeout(loadFritzCableData, 0);
 }

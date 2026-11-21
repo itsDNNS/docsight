@@ -791,9 +791,6 @@
         {% endif %}
     </nav>
     {% endif %}
-    {% if not fragment and modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-    <script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-summary.js', v=version) }}"></script>
-    {% endif %}
 
     {# ── Module Cards (mixed with core, sorted by order) ── #}
     {% for mod in modules|sort(attribute='menu.order') if mod.template_paths.get('card') and mod.id != 'docsight.connection_monitor' %}
@@ -1237,7 +1234,7 @@
                 <button class="segmented-option" data-value="30d" aria-pressed="false">30d</button>
                 <button class="segmented-option" data-value="90d" aria-pressed="false">90d</button>
             </div>
-            <button id="compare-temp-toggle-btn" class="btn btn-secondary btn-sm temp-toggle" data-action="toggleCompareTempOverlay" hidden aria-pressed="false" title="{{ t.temp_overlay_show }}" aria-label="{{ t.temperature }}">
+            <button id="compare-temp-toggle-btn" class="btn btn-secondary btn-sm temp-toggle" data-action="toggleChannelTempOverlay" hidden aria-pressed="false" title="{{ t.temp_overlay_show }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
@@ -1948,6 +1945,9 @@
 <script defer src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
 <script defer src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
+{% endif %}
+{% if connection_monitor_installed %}
+<script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-summary.js', v=version) }}"></script>
 {% endif %}
 <script defer src="{{ url_for('static', filename='js/window-shift.js', v=version) }}"></script>
 <script defer src="{{ url_for('static', filename='js/trends.js', v=version) }}"></script>
