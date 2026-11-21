@@ -5,8 +5,8 @@
     var form = S.form({state: S.state, showsSaveFooter: function() { return navigation.showsSaveFooter(); },
         revealField: function(field) { navigation.revealField(field); }});
     var tokens = S.tokens({showToast: form.showToast});
-    var connections = S.connections({getFormData: form.getFormData});
-    var backups = S.backups({showToast: form.showToast});
+    var connections = S.connections({getFormData: form.getFormData, showTestResult: form.showTestResult});
+    var backups = S.backups({showToast: form.showToast, showTestResult: form.showTestResult});
     var themes = S.themes({showToast: form.showToast, guardUnsaved: form.guardUnsaved, saveInstantly: form.saveInstantly});
     var smartCapture = S.smart_capture({showToast: form.showToast});
     var registry = S.module_registry({showToast: form.showToast});
@@ -19,7 +19,8 @@
         if (id === 'extensions') registry.refreshModuleRegistry();
     }});
     var search = S.search({switchSection: function(id) { navigation.switchSection(id); }});
-    var notifications = S.notifications({showToast: form.showToast, syncCard: navigation.syncCard});
+    var notifications = S.notifications({showToast: form.showToast, showTestResult: form.showTestResult,
+        forEachCooldownRow: form.forEachCooldownRow, syncCard: navigation.syncCard});
     function expose(owner, names) {
         names.split(' ').forEach(function(name) { window[name] = owner[name]; });
     }

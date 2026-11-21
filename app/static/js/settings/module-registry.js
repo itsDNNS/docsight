@@ -91,11 +91,11 @@ function _renderRegistryCards(gallery, modules) {
         if (status === 'not_installed') {
             btn.className = 'btn btn-sm btn-install';
             btn.textContent = T.extensions_install || 'Install';
-            btn.addEventListener('click', function(e) { installModule(e, mod.id, mod.download_url); });
+            btn.addEventListener('click', function(e) { _runModuleAction(e, mod.id, 'install', mod.download_url); });
         } else {
             btn.className = 'btn btn-sm btn-uninstall';
             btn.textContent = T.extensions_uninstall || 'Uninstall';
-            btn.addEventListener('click', function(e) { uninstallModule(e, mod.id); });
+            btn.addEventListener('click', function(e) { _runModuleAction(e, mod.id, 'uninstall'); });
         }
         action.appendChild(btn);
 
@@ -163,15 +163,6 @@ function _runModuleAction(e, id, action, downloadUrl) {
         btn.className = 'btn btn-sm ' + idleClass;
         btn.textContent = idleText;
     });
-}
-
-/* Thin public entry points retained for existing card click handlers. */
-function installModule(e, id, downloadUrl) {
-    _runModuleAction(e, id, 'install', downloadUrl);
-}
-
-function uninstallModule(e, id) {
-    _runModuleAction(e, id, 'uninstall');
 }
 return {refreshModuleRegistry};
 };

@@ -10,13 +10,34 @@ function showToast(msg, ok) {
     toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
 }
 
+/* The loading/ok/fail line under a test or backup button. */
+function showTestResult(el, state, text) {
+    el.className = 'test-result test-' + state;
+    el.style.display = 'flex';
+    el.textContent = '';
+    var mark = document.createElement('span');
+    mark.textContent = {loading: '\u23F3', ok: '\u2713', fail: '\u2717'}[state];
+    if (state === 'ok') mark.className = 'check-icon';
+    el.appendChild(mark);
+    el.appendChild(document.createTextNode(' ' + text));
+}
+
+/* Calls fn(key, toggle, input, eventKey) for each notification cooldown row;
+   key is "event:severity" for rows with a severity. */
+function forEachCooldownRow(fn) {
+    document.querySelectorAll('.notify-event-row').forEach(function(row) {
+        var eventKey = row.getAttribute('data-event');
+        var severity = row.getAttribute('data-severity');
+        fn(severity ? eventKey + ':' + severity : eventKey,
+            row.querySelector('.notify-toggle'), row.querySelector('.notify-cooldown-input'), eventKey);
+    });
+}
+
 /* ── Form Data ── */
 var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
 var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token', 'notify_webhook_token', 'notify_apprise_key', 'notify_apprise_token', 'notify_pwa_push_vapid_private_key']
-    .concat(typeof MODULE_SECRET_FIELDS !== 'undefined' ? MODULE_SECRET_FIELDS : []);
-var SAVED_SECRET_FIELDS = typeof SAVED_MODULE_SECRET_FIELDS !== 'undefined'
-    ? SAVED_MODULE_SECRET_FIELDS
-    : [];
+    .concat(MODULE_SECRET_FIELDS);
+var SAVED_SECRET_FIELDS = SAVED_MODULE_SECRET_FIELDS;
 
 function _isConfigSecretField(inp) {
     return !!(
@@ -58,12 +79,7 @@ function getFormData() {
     }
     data.theme = document.documentElement.getAttribute('data-theme') || 'dark';
     var cooldowns = {};
-    document.querySelectorAll('.notify-event-row').forEach(function(row) {
-        var eventKey = row.getAttribute('data-event');
-        var severity = row.getAttribute('data-severity') || '';
-        var key = severity ? eventKey + ':' + severity : eventKey;
-        var toggle = row.querySelector('.notify-toggle');
-        var inp = row.querySelector('.notify-cooldown-input');
+    forEachCooldownRow(function(key, toggle, inp) {
         if (!toggle.checked) {
             cooldowns[key] = 0;
         } else if (inp.value.trim() !== '') {
@@ -99,7 +115,6 @@ function _shouldTreatSavedSecretEventAsUserEdit(e) {
 
 /* ── Timezone Hint ── */
 function initTimezoneHint() {
-    if (typeof serverOffsetMin === 'undefined') return;
     var browserOffsetMin = -new Date().getTimezoneOffset();
     var diffMin = browserOffsetMin - serverOffsetMin;
     if (diffMin === 0) return;
@@ -211,6 +226,13 @@ function syncSaveFooter() {
 
 /* Puts every manually saved field back to its last saved value. */
 function discard() {
+    restoreSaved(true);
+    // Change handlers may rewrite dependent fields (the modem URL follows the driver); put those back too.
+    restoreSaved(false);
+    syncSaveFooter();
+}
+
+function restoreSaved(notify) {
     var saved = new Map(baseline.map(function(record) { return [record.key, record]; }));
     changedRecords(capture(), true).forEach(function(record) {
         var el = fieldsByKey.get(record.key), before = saved.get(record.key);
@@ -226,11 +248,11 @@ function discard() {
         else if (el.tagName === 'SELECT' && el.multiple) {
             Array.from(el.options).forEach(function(opt) { opt.selected = before.value.indexOf(opt.value) !== -1; });
         } else el.value = before.value;
+        if (!notify) return;
         // Fields that show or hide others follow the restored value.
         el.dispatchEvent(new Event('input', {bubbles: true}));
         el.dispatchEvent(new Event('change', {bubbles: true}));
     });
-    syncSaveFooter();
 }
 
 function acknowledgeSecrets(sent, data) {
@@ -454,5 +476,5 @@ function init() {
     initTimezoneHint();
     syncSaveFooter();
 }
-return {init, getFormData, showToast, syncSaveFooter, save, saveInstantly, guardUnsaved};
+return {init, getFormData, showToast, showTestResult, forEachCooldownRow, syncSaveFooter, save, saveInstantly, guardUnsaved};
 };

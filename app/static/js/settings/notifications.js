@@ -1,5 +1,5 @@
 'use strict';
-DOCSightSettings.notifications = function({showToast, syncCard}) {
+DOCSightSettings.notifications = function({showToast, showTestResult, forEachCooldownRow, syncCard}) {
 function expandNotificationChannelCard(controlEl) {
     if (!controlEl || !controlEl.checked) return;
     var card = controlEl.closest('.notification-channel-card');
@@ -10,7 +10,7 @@ function expandNotificationChannelCard(controlEl) {
 }
 
 function _notificationLabel(key, fallback) {
-    return (typeof T !== 'undefined' && T[key]) ? T[key] : fallback;
+    return T[key] || fallback;
 }
 
 function _setNotificationChannelBadge(channel, enabled, label) {
@@ -52,11 +52,7 @@ function updateNotificationChannelSummaries() {
 var _pwaPushStatus = null;
 
 function _setPwaPushStatus(message, ok) {
-    var el = document.getElementById('pwa-push-status');
-    if (!el) return;
-    el.className = 'test-result ' + (ok ? 'test-ok' : 'test-fail');
-    el.style.display = 'flex';
-    el.textContent = message;
+    showTestResult(document.getElementById('pwa-push-status'), ok ? 'ok' : 'fail', message);
 }
 
 function _urlBase64ToUint8Array(base64String) {
@@ -168,34 +164,20 @@ function unsubscribePwaPush() {
 }
 
 function initNotificationCooldownControls() {
-    try {
-        var saved = typeof savedCooldowns !== 'undefined' ? savedCooldowns : {};
-        document.querySelectorAll('.notify-event-row').forEach(function(row) {
-            var eventKey = row.getAttribute('data-event');
-            var severity = row.getAttribute('data-severity') || '';
-            var key = severity ? eventKey + ':' + severity : eventKey;
-            var toggle = row.querySelector('.notify-toggle');
-            var inp = row.querySelector('.notify-cooldown-input');
-            if (!toggle || !inp) return;
-            var savedValue = saved[key];
-            if (savedValue === undefined && severity) {
-                savedValue = saved[eventKey];
-            }
-            if (savedValue !== undefined) {
-                if (savedValue === 0) {
-                    toggle.checked = false;
-                    inp.disabled = true;
-                    inp.style.opacity = '0.4';
-                } else {
-                    inp.value = savedValue;
-                }
-            }
-            toggle.addEventListener('change', function() {
-                inp.disabled = !toggle.checked;
-                inp.style.opacity = toggle.checked ? '1' : '0.4';
-            });
+    forEachCooldownRow(function(key, toggle, inp, eventKey) {
+        var savedValue = savedCooldowns[key] !== undefined ? savedCooldowns[key] : savedCooldowns[eventKey];
+        if (savedValue === 0) {
+            toggle.checked = false;
+            inp.disabled = true;
+            inp.style.opacity = '0.4';
+        } else if (savedValue !== undefined) {
+            inp.value = savedValue;
+        }
+        toggle.addEventListener('change', function() {
+            inp.disabled = !toggle.checked;
+            inp.style.opacity = toggle.checked ? '1' : '0.4';
         });
-    } catch(e) {}
+    });
 }
 
 function init() {
