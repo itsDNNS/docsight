@@ -3,7 +3,7 @@
  * All targets overlaid in one chart with threshold zones and packet loss markers.
  * Uses renderChart() from chart-engine.js with custom loss markers plugin.
  */
-/* global renderChart, charts, bandPlugin, chartXRange */
+/* global renderChart, charts, bandPlugin, zoomPlugin */
 var CMCharts = (function() {
     'use strict';
 
@@ -55,59 +55,6 @@ var CMCharts = (function() {
         var full = withHeadroom(peak);
         if (includeSpikes) return full;
         return Math.min(withHeadroom(percentile(lineValues, TYPICAL_LATENCY_PERCENTILE)), full);
-    }
-
-    /**
-     * uPlot plugin: drag-to-zoom on X-axis, double-click to reset.
-     * Requires zoomable:true in renderChart opts (disables fixed x-scale range).
-     * The x-axis is time, so a reset returns to the full data range.
-     */
-    function zoomPlugin() {
-        function showResetBtn(u) {
-            if (u._resetBtn) { u._resetBtn.style.display = ''; return; }
-            var btn = document.createElement('button');
-            btn.textContent = '\u2715 ' + (T.chart_reset_zoom || 'Reset Zoom');
-            btn.type = 'button';
-            btn.className = 'chart-zoom-reset';
-            btn.onclick = function() {
-                u._zoomRange = null;
-                u.setScale('x', chartXRange(u));
-                btn.style.display = 'none';
-            };
-            u.root.style.position = 'relative';
-            u.root.appendChild(btn);
-            u._resetBtn = btn;
-        }
-        function hideResetBtn(u) {
-            if (u._resetBtn) u._resetBtn.style.display = 'none';
-        }
-        return {
-            hooks: {
-                init: [function(u) {
-                    u.over.style.cursor = 'crosshair';
-                    // Hint: show drag-to-zoom tooltip on first hover
-                    u.over.title = T.chart_zoom_hint || 'Drag to zoom, double-click to reset';
-                }],
-                ready: [function(u) {
-                    u.over.addEventListener('dblclick', function() {
-                        u._zoomRange = null;
-                        u.setScale('x', chartXRange(u));
-                        hideResetBtn(u);
-                    });
-                }],
-                setSelect: [function(u) {
-                    var min = u.posToVal(u.select.left, 'x');
-                    var max = u.posToVal(u.select.left + u.select.width, 'x');
-                    // A drag of a few pixels is a click, not a zoom.
-                    if (u.select.width > 4) {
-                        u._zoomRange = { min: min, max: max };
-                        u.setScale('x', u._zoomRange);
-                        showResetBtn(u);
-                    }
-                    u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
-                }]
-            }
-        };
     }
 
     /**
