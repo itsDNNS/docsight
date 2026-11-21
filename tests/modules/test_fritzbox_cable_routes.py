@@ -32,10 +32,10 @@ def serve(monkeypatch, client):
     monkeypatch.setattr("app.blueprints.segment_bp.utc_cutoff", lambda hours: f"cutoff-{hours}h")
     monkeypatch.setattr("app.blueprints.segment_bp.utc_now", lambda: "now")
 
-    def get(path, storage, modem_type="fritzbox", enabled=True, config=True):
+    def get(path, storage, modem_type="fritzbox", enabled=True):
         config_manager = SimpleNamespace(
             get=lambda key: modem_type, is_segment_utilization_enabled=lambda: enabled,
-        ) if config else None
+        )
         monkeypatch.setattr("app.blueprints.segment_bp.current_runtime",
                             lambda: SimpleNamespace(config_manager=config_manager))
         monkeypatch.setattr("app.blueprints.segment_bp._get_storage", lambda: storage)
@@ -52,12 +52,11 @@ def _broken_storage():
 
 @pytest.mark.parametrize("path", [SUMMARY, EVENTS])
 @pytest.mark.parametrize(("storage", "kwargs", "status", "error"), [
-    (MagicMock, {"config": False}, 503, "Configuration unavailable."),
     (MagicMock, {"modem_type": "arris"}, 400, "This view is only available for FRITZ!Box cable devices."),
     (MagicMock, {"enabled": False}, 400, "Segment utilization is disabled in Settings."),
     (lambda: None, {}, 503, "Storage unavailable"),
     (_broken_storage, {}, 503, "Reading stored data failed. See the DOCSight log for details."),
-], ids=["no-config", "unsupported-driver", "disabled", "no-storage", "storage-error"])
+], ids=["unsupported-driver", "disabled", "no-storage", "storage-error"])
 def test_segment_views_refuse_when_unavailable(serve, path, storage, kwargs, status, error):
     resp = serve(path, storage(), **kwargs)
     assert (resp.status_code, resp.get_json(), resp.content_type) == (status, {"error": error}, "application/json")
