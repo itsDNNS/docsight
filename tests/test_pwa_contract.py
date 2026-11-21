@@ -59,7 +59,6 @@ const clients = {
   matchAll: async function() { return clientObjects; },
   openWindow: async function(target) { operations.openedWindows.push(target); return target; }
 };
-const origin = new URL(input.scope).origin;
 const context = {
   URL: URL,
   Headers: Headers,
@@ -68,6 +67,11 @@ const context = {
   Object: Object,
   encodeURIComponent: encodeURIComponent,
   parseInt: parseInt,
+  // The worker is served at <scope>sw.js, so its imports below the scope map to app/.
+  importScripts: function(url) {
+    const file = require('path').join(process.argv[1], '../..', url.slice(input.scope.length));
+    vm.runInContext(fs.readFileSync(file, 'utf8'), context);
+  },
   clients: clients,
   caches: {
     open: async function(name) {
@@ -89,7 +93,7 @@ const context = {
   }
 };
 context.self = {
-  location: {origin: origin},
+  location: new URL('sw.js', input.scope),
   registration: {
     scope: input.scope,
     showNotification: async function(title, options) {
@@ -154,7 +158,11 @@ async function probeFetch(probe) {
   for (const probe of (input.fetches || [])) fetches.push(await probeFetch(probe));
 
   for (const payload of (input.pushPayloads || [])) {
-    const push = await waitedEvent({data: {json: function() { return payload; }, text: function() { return ''; }}});
+    // A string stands for a push message that is not JSON.
+    const push = await waitedEvent({data: {
+      json: function() { if (typeof payload === 'string') throw new SyntaxError('not JSON'); return payload; },
+      text: function() { return typeof payload === 'string' ? payload : ''; }
+    }});
     listeners.push(push.event);
     await push.wait();
   }
@@ -557,6 +565,18 @@ def test_root_push_urls_remain_root_relative():
     assert options["data"]["url"] == "/?source=pwa#events"
 
 
+def test_push_message_that_is_not_json_becomes_the_notification_body():
+    result = _run_service_worker("https://example.test/", pushPayloads=["Modem offline", ""])
+
+    notifications = result["operations"]["notifications"]
+    assert [item["title"] for item in notifications] == ["DOCSight notification"] * 2
+    assert [item["options"]["body"] for item in notifications] == [
+        "Modem offline",
+        "Open DOCSight for the latest signal status.",
+    ]
+    assert [item["options"]["data"]["url"] for item in notifications] == ["/?source=pwa#events"] * 2
+
+
 def test_notification_click_does_not_focus_an_out_of_mount_client():
     fallback = "/docsight/?source=pwa#events"
     result = _run_service_worker(
@@ -592,4 +612,4 @@ def test_index_template_exposes_honest_offline_state_and_scoped_pwa_lifecycle():
     assert "navigator.onLine && window.__DOCSIGHT_OFFLINE_SHELL__ !== true" in dashboard
     assert "registration.scope === docsightServiceWorkerScope" in registration
     assert "key.indexOf(docsightCacheNamespace) === 0" in registration
-    assert "register(docsightScriptURL(docsightUrl('/sw.js')), { scope: docsightUrl('/') })" in registration
+    assert "register(docsightScriptURL(docsightUrl('/sw.js')), { scope: docsightUrl('/'), updateViaCache: 'none' })" in registration
