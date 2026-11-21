@@ -17,6 +17,9 @@ def storage(tmp_path):
     return s
 
 
+_SNAPSHOT = {"summary_json": '{"health":"good"}', "ds_channels_json": "[]", "us_channels_json": "[]"}
+
+
 class TestUtcMigration:
     def test_fresh_db_no_error(self, storage):
         """Migration on empty DB should succeed without errors."""
@@ -44,53 +47,41 @@ class TestUtcMigration:
         storage.migrate_to_utc("Europe/Berlin")
         assert os.path.exists(storage.db_path + ".pre_utc_migration")
 
-    def test_snapshot_timestamps_converted(self, storage):
-        """Local snapshot timestamps should get Z-suffix after migration."""
-        # Insert pre-migration local timestamp
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) "
-                "VALUES (?, ?, ?, ?)",
-                ("2026-06-15T14:00:00", '{"health":"good"}', "[]", "[]"),
-            )
-
-        storage.migrate_to_utc("Europe/Berlin")
-
-        with sqlite3.connect(storage.db_path) as conn:
-            row = conn.execute("SELECT timestamp FROM snapshots").fetchone()
+    @pytest.mark.parametrize("table,row,tz,expected", [
         # 14:00 CEST (UTC+2) → 12:00 UTC
-        assert row[0] == "2026-06-15T12:00:00Z"
-
-    def test_event_timestamps_converted(self, storage):
-        """Event timestamps should be converted to UTC."""
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO events (timestamp, severity, event_type, message) "
-                "VALUES (?, ?, ?, ?)",
-                ("2026-01-15T13:00:00", "info", "test", "test event"),
-            )
-
-        storage.migrate_to_utc("Europe/Berlin")
-
-        with sqlite3.connect(storage.db_path) as conn:
-            row = conn.execute("SELECT timestamp FROM events").fetchone()
+        ("snapshots", {**_SNAPSHOT, "timestamp": "2026-06-15T14:00:00"}, "Europe/Berlin", "2026-06-15T12:00:00Z"),
         # 13:00 CET (UTC+1) → 12:00 UTC
-        assert row[0] == "2026-01-15T12:00:00Z"
+        ("events", {"timestamp": "2026-01-15T13:00:00", "severity": "info", "event_type": "test", "message": "test event"},
+         "Europe/Berlin", "2026-01-15T12:00:00Z"),
+        ("snapshots", {**_SNAPSHOT, "timestamp": "2026-01-15T12:00:00"}, "UTC", "2026-01-15T12:00:00Z"),
+        # Docker without TZ
+        ("snapshots", {**_SNAPSHOT, "timestamp": "2026-01-15T12:00:00"}, "", "2026-01-15T12:00:00Z"),
+    ], ids=["snapshot-local", "event-local", "utc", "empty-tz-as-utc"])
+    def test_timestamp_converted(self, storage, table, row, tz, expected):
+        """Local timestamps are converted to UTC with a Z suffix; UTC or an empty timezone only append Z."""
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(f"INSERT INTO {table} ({', '.join(row)}) VALUES ({', '.join('?' * len(row))})", tuple(row.values()))
 
-    def test_null_values_skipped(self, storage):
-        """NULL timestamp values should not be touched."""
+        storage.migrate_to_utc(tz)
+
+        with sqlite3.connect(storage.db_path) as conn:
+            assert conn.execute(f"SELECT timestamp FROM {table}").fetchone()[0] == expected
+
+    @pytest.mark.parametrize("last_used_at", [None, ""], ids=["null", "empty"])
+    def test_missing_values_skipped(self, storage, last_used_at):
+        """NULL and empty timestamp values should not be touched."""
         with sqlite3.connect(storage.db_path) as conn:
             conn.execute(
                 "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at, last_used_at) "
                 "VALUES (?, ?, ?, ?, ?)",
-                ("test", "hash", "dsk_", "2026-01-15T13:00:00", None),
+                ("test", "hash", "dsk_", "2026-01-15T13:00:00", last_used_at),
             )
 
         storage.migrate_to_utc("Europe/Berlin")
 
         with sqlite3.connect(storage.db_path) as conn:
             row = conn.execute("SELECT last_used_at FROM api_tokens").fetchone()
-        assert row[0] is None
+        assert row[0] == last_used_at
 
     def test_already_utc_skipped(self, storage):
         """Timestamps with Z-suffix should not be double-converted."""
@@ -125,51 +116,6 @@ class TestUtcMigration:
             row = conn.execute("SELECT created_at, updated_at FROM journal_entries").fetchone()
         assert row[0] == "2026-06-15T12:00:00Z"
         assert row[1] == "2026-06-15T14:00:00Z"
-
-    def test_empty_values_skipped(self, storage):
-        """Empty string timestamps should not be touched."""
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at, last_used_at) "
-                "VALUES (?, ?, ?, ?, ?)",
-                ("test", "hash", "dsk_", "2026-01-15T13:00:00", ""),
-            )
-
-        storage.migrate_to_utc("Europe/Berlin")
-
-        with sqlite3.connect(storage.db_path) as conn:
-            row = conn.execute("SELECT last_used_at FROM api_tokens").fetchone()
-        assert row[0] == ""
-
-    def test_utc_timezone(self, storage):
-        """With UTC timezone, values should just get Z-suffix."""
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) "
-                "VALUES (?, ?, ?, ?)",
-                ("2026-01-15T12:00:00", '{"health":"good"}', "[]", "[]"),
-            )
-
-        storage.migrate_to_utc("UTC")
-
-        with sqlite3.connect(storage.db_path) as conn:
-            row = conn.execute("SELECT timestamp FROM snapshots").fetchone()
-        assert row[0] == "2026-01-15T12:00:00Z"
-
-    def test_empty_tz_treats_as_utc(self, storage):
-        """Empty timezone string (Docker without TZ) should just append Z."""
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) "
-                "VALUES (?, ?, ?, ?)",
-                ("2026-01-15T12:00:00", '{"health":"good"}', "[]", "[]"),
-            )
-
-        storage.migrate_to_utc("")
-
-        with sqlite3.connect(storage.db_path) as conn:
-            row = conn.execute("SELECT timestamp FROM snapshots").fetchone()
-        assert row[0] == "2026-01-15T12:00:00Z"
 
     def test_incidents_converted(self, storage):
         """Incident created_at/updated_at should be converted, start_date/end_date untouched."""

@@ -362,33 +362,15 @@ class TestParseCsv:
 # ── Column Mapping Detection (_detect_mapping) ──
 
 class TestDetectMapping:
-    def test_german_headers(self):
-        """German header keywords should be recognized."""
-        headers = ["Datum", "Ereignis", "Beschreibung"]
-        mapping = _detect_mapping(headers, [], None)
-        assert mapping["date"] == 0
-        assert mapping["title"] == 1
-        assert mapping["description"] == 2
-
-    def test_english_headers(self):
-        """English header keywords should be recognized."""
-        headers = ["Date", "Title", "Description"]
-        mapping = _detect_mapping(headers, [], None)
-        assert mapping["date"] == 0
-        assert mapping["title"] == 1
-        assert mapping["description"] == 2
-
-    def test_alternative_german_headers(self):
-        """Alternative German keywords: Tag, Betreff, Notiz."""
-        headers = ["Tag", "Betreff", "Notiz"]
-        mapping = _detect_mapping(headers, [], None)
-        assert mapping["date"] == 0
-        assert mapping["title"] == 1
-        assert mapping["description"] == 2
-
-    def test_alternative_english_headers(self):
-        """Alternative English keywords: When, Subject, Notes."""
-        headers = ["When", "Subject", "Notes"]
+    @pytest.mark.parametrize("headers", [
+        ["Datum", "Ereignis", "Beschreibung"],
+        ["Date", "Title", "Description"],
+        ["Tag", "Betreff", "Notiz"],
+        ["When", "Subject", "Notes"],
+        ["DATUM", "TITEL", "BESCHREIBUNG"],
+    ], ids=["german", "english", "alternative-german", "alternative-english", "case-insensitive"])
+    def test_header_keywords(self, headers):
+        """German and English header keywords and their alternatives are recognized in any case."""
         mapping = _detect_mapping(headers, [], None)
         assert mapping["date"] == 0
         assert mapping["title"] == 1
@@ -426,14 +408,6 @@ class TestDetectMapping:
         # title and description should be inferred from data
         assert "title" in mapping
         assert "description" in mapping
-
-    def test_case_insensitive_headers(self):
-        """Header matching should be case-insensitive."""
-        headers = ["DATUM", "TITEL", "BESCHREIBUNG"]
-        mapping = _detect_mapping(headers, [], None)
-        assert mapping["date"] == 0
-        assert mapping["title"] == 1
-        assert mapping["description"] == 2
 
 
 # ── Helper Functions ──

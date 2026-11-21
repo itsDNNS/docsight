@@ -885,69 +885,28 @@ class TestEventDetector:
             },
         ]
 
-    def test_modulation_downgrade_warning(self, detector):
-        """256QAM → 64QAM = 2-level drop = warning"""
-        ds1 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        ds2 = [{"channel_id": 1, "modulation": "64QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
-        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
+    @pytest.mark.parametrize("side,before,after,severity,word,rank_drop", [
+        ("ds", "256QAM", "64QAM", "warning", "dropped", 2),
+        ("ds", "256QAM", "16QAM", "critical", "dropped", 4),
+        ("ds", "64QAM", "256QAM", "info", "improved", -2),
+        # Vodafone Station / CH7465 / TC4400 format - Issue #85
+        ("us", "qam_64", "qam_16", "warning", "dropped", 2),
+        ("ds", "qam_64", "qam_256", "info", "improved", -2),
+    ], ids=["two-level-drop-warning", "four-level-drop-critical", "upgrade-info",
+            "qam-underscore-drop", "qam-underscore-upgrade"])
+    def test_modulation_change_severity(self, detector, side, before, after, severity, word, rank_drop):
+        """Downgrades warn or turn critical with the rank drop, upgrades are info; qam_N ranks like NQAM."""
+        prev, cur = _make_analysis(**{f"{side}_total": 1}), _make_analysis(**{f"{side}_total": 1})
+        prev[f"{side}_channels"][0]["modulation"] = before
+        cur[f"{side}_channels"][0]["modulation"] = after
+        detector.check(prev)
+        events = detector.check(cur)
         mod_events = [e for e in events if e["event_type"] == "modulation_change"]
         assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "warning"
-        assert "dropped" in mod_events[0]["message"]
-        assert mod_events[0]["details"]["direction"] == "downgrade"
-
-    def test_modulation_downgrade_critical(self, detector):
-        """256QAM → 16QAM = 4-level drop = critical"""
-        ds1 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        ds2 = [{"channel_id": 1, "modulation": "16QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
-        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
-        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
-        assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "critical"
-        assert "dropped" in mod_events[0]["message"]
-
-    def test_modulation_upgrade_info(self, detector):
-        """64QAM → 256QAM = upgrade = info"""
-        ds1 = [{"channel_id": 1, "modulation": "64QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        ds2 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
-        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
-        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
-        assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "info"
-        assert "improved" in mod_events[0]["message"]
-        assert mod_events[0]["details"]["direction"] == "upgrade"
-
-    def test_modulation_downgrade_qam_underscore_format(self, detector):
-        """qam_64 → qam_16 = downgrade (Vodafone Station / CH7465 / TC4400 format) - Issue #85"""
-        us1 = [{"channel_id": 1, "modulation": "qam_64", "power": 42.0,
-                "multiplex": "ATDMA", "docsis_version": "3.0",
-                "health": "good", "health_detail": "", "frequency": "37 MHz"}]
-        us2 = [{"channel_id": 1, "modulation": "qam_16", "power": 42.0,
-                "multiplex": "ATDMA", "docsis_version": "3.0",
-                "health": "good", "health_detail": "", "frequency": "37 MHz"}]
-        detector.check(_make_analysis(us_total=1, us_channels=us1))
-        events = detector.check(_make_analysis(us_total=1, us_channels=us2))
-        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
-        assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "warning"
-        assert "dropped" in mod_events[0]["message"]
-        assert mod_events[0]["details"]["direction"] == "downgrade"
-        assert mod_events[0]["details"]["changes"][0]["rank_drop"] == 2
+        assert mod_events[0]["severity"] == severity
+        assert word in mod_events[0]["message"]
+        assert mod_events[0]["details"]["direction"] == ("downgrade" if rank_drop > 0 else "upgrade")
+        assert mod_events[0]["details"]["changes"][0]["rank_drop"] == rank_drop
 
     def test_modulation_change_includes_channel_docsis_metadata(self, detector):
         """DOCSIS channel events carry enough metadata for useful Event Log labels."""
@@ -968,22 +927,6 @@ class TestEventDetector:
         assert change["docsis_version"] == "3.0"
         assert change["channel_type"] == "SC-QAM"
         assert change["frequency"] == "37 MHz"
-
-    def test_modulation_upgrade_qam_underscore_format(self, detector):
-        """qam_64 → qam_256 = upgrade (Vodafone Station format)"""
-        ds1 = [{"channel_id": 1, "modulation": "qam_64", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        ds2 = [{"channel_id": 1, "modulation": "qam_256", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
-        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
-        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
-        assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "info"
-        assert "improved" in mod_events[0]["message"]
-        assert mod_events[0]["details"]["direction"] == "upgrade"
 
     def test_modulation_changes_follow_channel_order(self, detector):
         """Changed channels are listed in current snapshot order, downstream before upstream."""
