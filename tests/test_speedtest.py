@@ -1,6 +1,7 @@
 """Tests for Speedtest Tracker client and API endpoint."""
 
 import threading
+from types import SimpleNamespace
 
 import pytest
 import requests
@@ -10,6 +11,7 @@ from app.modules.speedtest.client import SpeedtestClient
 from app.modules.speedtest.collector import SpeedtestCollector
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.config import ConfigManager, PASSWORD_MASK
+from app.i18n import get_translations
 from app.runtime import current_runtime
 from app.storage import SnapshotStorage
 from app.storage.sqlite import write_transaction
@@ -670,7 +672,9 @@ class TestSpeedtestAPI:
         data = resp.get_json()
         assert data == {"success": False, "error": "Cannot reach Speedtest Tracker"}
 
-    def test_signal_api_treats_legacy_unsupported_zero_error_counters_as_unavailable(self, speedtest_client, monkeypatch):
+    @pytest.mark.parametrize("errors_supported, counters", [(False, None), (True, 0)],
+                             ids=["legacy-unsupported-zero-is-unavailable", "supported-zero-is-preserved"])
+    def test_signal_api_error_counters(self, speedtest_client, monkeypatch, errors_supported, counters):
         import app.modules.speedtest.routes as speedtest_routes
 
         class SpeedtestStorage:
@@ -682,7 +686,7 @@ class TestSpeedtestAPI:
                 return {
                     "timestamp": timestamp,
                     "summary": {
-                        "errors_supported": False,
+                        "errors_supported": errors_supported,
                         "health": "good",
                         "ds_correctable_errors": 0,
                         "ds_uncorrectable_errors": 0,
@@ -698,39 +702,8 @@ class TestSpeedtestAPI:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["found"] is True
-        assert data["ds_correctable_errors"] is None
-        assert data["ds_uncorrectable_errors"] is None
-
-    def test_signal_api_preserves_supported_zero_error_counters(self, speedtest_client, monkeypatch):
-        import app.modules.speedtest.routes as speedtest_routes
-
-        class SpeedtestStorage:
-            def get_speedtest_by_id(self, result_id):
-                return {"id": result_id, "timestamp": "2025-01-15T10:30:00Z"}
-
-        class CoreStorage:
-            def get_closest_snapshot(self, timestamp):
-                return {
-                    "timestamp": timestamp,
-                    "summary": {
-                        "errors_supported": True,
-                        "health": "good",
-                        "ds_correctable_errors": 0,
-                        "ds_uncorrectable_errors": 0,
-                    },
-                    "us_channels": [],
-                }
-
-        monkeypatch.setattr(speedtest_routes, "_get_speedtest_storage", lambda: SpeedtestStorage())
-        monkeypatch.setattr(speedtest_routes.current_runtime(), "storage", CoreStorage())
-
-        resp = speedtest_client.get("/api/speedtest/1/signal")
-
-        assert resp.status_code == 200
-        data = resp.get_json()
-        assert data["found"] is True
-        assert data["ds_correctable_errors"] == 0
-        assert data["ds_uncorrectable_errors"] == 0
+        assert data["ds_correctable_errors"] == counters
+        assert data["ds_uncorrectable_errors"] == counters
 
     @pytest.mark.parametrize("config", [{}, {"demo_mode": True, "speedtest_tracker_url": None}],
                              ids=["not-configured", "demo-mode-without-storage"])
@@ -739,6 +712,23 @@ class TestSpeedtestAPI:
             resp = client.get("/api/speedtest?days=7")
             assert resp.status_code == 200
             assert resp.get_json() == []
+
+
+@pytest.mark.parametrize("config, query, lang", [
+    ({"language": "de"}, "", "de"), ({}, "?lang=de", "de"), ({"language": "de-DE"}, "", "de-DE"),
+    ({"language": []}, "", "en"), ({"language": {}}, "", "en"),
+], ids=["configured", "query", "stored-region", "stored-list", "stored-object"])
+@pytest.mark.parametrize("path, field, key", [
+    ("/api/speedtest/1/signal", "message", "signal_no_snapshot"),
+    ("/api/fritzbox/segment-utilization", "error", "seg_disabled"),
+    ("/api/fritzbox/segment-utilization/events", "error", "seg_disabled"),
+])
+def test_api_messages_use_the_selected_language(tmp_path, monkeypatch, config, query, lang, path, field, key):
+    monkeypatch.setattr("app.modules.speedtest.routes._get_speedtest_storage",
+                        lambda: SimpleNamespace(get_speedtest_by_id=lambda result_id: {"timestamp": "2025-01-15T10:30:00Z"}))
+    snapshots = SimpleNamespace(get_closest_snapshot=lambda timestamp: None)
+    with configured_client(tmp_path / "data", snapshots, segment_utilization_enabled=False, **config) as client:
+        assert client.get(path + query).get_json()[field] == get_translations(lang)[key]
 
 
 class TestSpeedtestRun:
