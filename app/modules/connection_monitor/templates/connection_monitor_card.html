@@ -1,6 +1,6 @@
 {# ═══ Module Card: Connection Monitor ═══ #}
 <div class="metrics-grid">
-    <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" data-action="switchView" data-action-args='["connection-monitor"]'>
+    <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" data-action="openConnectionMonitorCard">
         <div class="metric-header">
             <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
             <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>
@@ -39,7 +39,3 @@
         </div>
     </div>
 </div>
-
-{% if not fragment %}
-<script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-card.js', v=version) }}"></script>
-{% endif %}

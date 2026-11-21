@@ -791,9 +791,6 @@
         {% endif %}
     </nav>
     {% endif %}
-    {% if not fragment and modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-    <script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-summary.js', v=version) }}"></script>
-    {% endif %}
 
     {# ── Module Cards (mixed with core, sorted by order) ── #}
     {% for mod in modules|sort(attribute='menu.order') if mod.template_paths.get('card') and mod.id != 'docsight.connection_monitor' %}
@@ -1948,6 +1945,9 @@
 <script defer src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
 <script defer src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
+{% endif %}
+{% if connection_monitor_installed %}
+<script defer src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-summary.js', v=version) }}"></script>
 {% endif %}
 <script defer src="{{ url_for('static', filename='js/window-shift.js', v=version) }}"></script>
 <script defer src="{{ url_for('static', filename='js/trends.js', v=version) }}"></script>
