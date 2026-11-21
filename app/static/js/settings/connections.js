@@ -1,5 +1,5 @@
 'use strict';
-DOCSightSettings.connections = function({getFormData}) {
+DOCSightSettings.connections = function({getFormData, showTestResult}) {
 /* ── Connection Test Status Indicators ── */
 function setConnectionTestStatus(boxId, labelId, state, text) {
     var box = document.getElementById(boxId);
@@ -43,17 +43,6 @@ function onIspChange() {
 }
 
 /* ── Connection Tests ── */
-function showTestResult(el, state, text) {
-    el.className = 'test-result test-' + state;
-    el.style.display = 'flex';
-    el.textContent = '';
-    var mark = document.createElement('span');
-    mark.textContent = {loading: '\u23F3', ok: '\u2713', fail: '\u2717'}[state];
-    if (state === 'ok') mark.className = 'check-icon';
-    el.appendChild(mark);
-    el.appendChild(document.createTextNode(' ' + text));
-}
-
 function errorText(res) {
     return T.error_prefix + ': ' + (res.error || T.unknown_error);
 }
@@ -165,58 +154,33 @@ function testNotifications() {
 }
 
 /* ── Username Field Toggle + Modem Defaults (data-driven) ── */
-var _previousDriverDefault = '';
-
-function toggleUsernameField() {
+function toggleUsernameField(event) {
     var modemType = document.getElementById('modem_type');
     if (!modemType) return;
 
     var usernameField = document.getElementById('modem_user');
     var urlField = document.getElementById('modem_url');
-    var passwordField = document.getElementById('modem_password');
-    var hints = (typeof DRIVER_HINTS !== 'undefined' && DRIVER_HINTS[modemType.value]) || {};
+    var state = DOCSightBrowserContracts.selectSetupDriverState(
+        DRIVER_HINTS, modemType.value, urlField.value, usernameField.value, T.not_required
+    );
+    // Loading the page keeps a saved URL; only a driver change replaces a known default.
+    if (event || !urlField.value) urlField.value = state.url;
 
-    // Fields to hide when credentials not required (e.g. generic driver)
-    var credFields = [urlField, usernameField, passwordField].map(function(f) {
-        return f ? f.closest('.form-field') : null;
+    // Drivers without credentials (e.g. generic) hide the login fields and the test.
+    [urlField, usernameField, document.getElementById('modem_password')].forEach(function(f) {
+        f.closest('.form-field').style.display = state.credentialsVisible ? '' : 'none';
     });
-    var testBtn = document.querySelector('[data-action="testModem"]');
-    var testBtnParent = testBtn ? testBtn.parentElement : null;
-    var testResult = document.getElementById('modem-test');
-
-    // URL default: apply only if field is empty or shows the previous driver's default
-    if (hints.default_url && urlField && (!urlField.value || urlField.value === _previousDriverDefault)) {
-        urlField.value = hints.default_url;
-    }
-    _previousDriverDefault = hints.default_url || '';
-
-    if (hints.credentials_required === false) {
-        credFields.forEach(function(el) { if (el) el.style.display = 'none'; });
-        if (testBtnParent) testBtnParent.hidden = true;
-        if (testResult) testResult.style.display = 'none';
+    document.querySelector('[data-action="testModem"]').parentElement.hidden = !state.credentialsVisible;
+    if (!state.credentialsVisible) {
+        document.getElementById('modem-test').style.display = 'none';
         return;
     }
-    credFields.forEach(function(el) { if (el) el.style.display = ''; });
-    if (testBtnParent) testBtnParent.hidden = false;
 
-    // Username handling
-    if (hints.username_required === false) {
-        usernameField.disabled = true;
-        usernameField.value = '';
-        usernameField.placeholder = T.not_required || 'Not required for this modem';
-        usernameField.style.opacity = '0.5';
-        usernameField.style.cursor = 'not-allowed';
-    } else {
-        usernameField.disabled = false;
-        usernameField.style.opacity = '1';
-        usernameField.style.cursor = 'text';
-        if (hints.default_user) {
-            if (!usernameField.value) usernameField.value = hints.default_user;
-            usernameField.placeholder = hints.default_user;
-        } else {
-            usernameField.placeholder = 'admin';
-        }
-    }
+    usernameField.value = state.username;
+    usernameField.placeholder = state.usernamePlaceholder;
+    usernameField.disabled = !state.usernameEnabled;
+    usernameField.style.opacity = state.usernameEnabled ? '1' : '0.5';
+    usernameField.style.cursor = state.usernameEnabled ? 'text' : 'not-allowed';
 }
 
 function init() {

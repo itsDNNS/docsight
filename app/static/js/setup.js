@@ -604,22 +604,9 @@ function backToStart() {
 }
 
 /* ── Restore Flow ── */
-var T_setup = {
-    validating: SETUP_T.restore_validating,
-    restoring: SETUP_T.restore_restoring,
-    success: SETUP_T.restore_success,
-    version: SETUP_T.restore_version,
-    date: SETUP_T.restore_date,
-    tables: SETUP_T.restore_tables,
-    network_error: SETUP_T.network_error
-};
-
 function _showResultLoading(resultDiv, text) {
-    resultDiv.className = 'test-result';
+    resultDiv.className = 'test-result loading';
     resultDiv.style.display = 'block';
-    resultDiv.style.background = 'var(--amethyst-muted)';
-    resultDiv.style.border = '1px solid rgba(124,58,237,0.2)';
-    resultDiv.style.color = 'var(--text-secondary)';
     // Build DOM nodes instead of innerHTML
     while (resultDiv.firstChild) resultDiv.removeChild(resultDiv.firstChild);
     var icon = document.createElement('i');
@@ -633,9 +620,6 @@ function _showResultLoading(resultDiv, text) {
 
 function _showResultError(resultDiv, msg) {
     resultDiv.className = 'test-result error';
-    resultDiv.style.background = '';
-    resultDiv.style.border = '';
-    resultDiv.style.color = '';
     resultDiv.textContent = '✗ ' + msg;
 }
 
@@ -647,13 +631,13 @@ function _buildMetaInfo(container, meta) {
     }) : '?';
 
     var b1 = document.createElement('strong');
-    b1.textContent = T_setup.version + ':';
+    b1.textContent = SETUP_T.restore_version + ':';
     container.appendChild(b1);
     container.appendChild(document.createTextNode(' ' + (meta.app_version || '?')));
     container.appendChild(document.createElement('br'));
 
     var b2 = document.createElement('strong');
-    b2.textContent = T_setup.date + ':';
+    b2.textContent = SETUP_T.restore_date + ':';
     container.appendChild(b2);
     container.appendChild(document.createTextNode(' ' + date));
 
@@ -662,7 +646,7 @@ function _buildMetaInfo(container, meta) {
         var tables = tkeys.map(function(k) { return k + ': ' + meta.tables[k]; }).join(', ');
         container.appendChild(document.createElement('br'));
         var b3 = document.createElement('strong');
-        b3.textContent = T_setup.tables + ':';
+        b3.textContent = SETUP_T.restore_tables + ':';
         container.appendChild(b3);
         container.appendChild(document.createTextNode(' ' + tables));
     }
@@ -677,7 +661,7 @@ async function validateRestoreFile() {
 
     if (!fileInput.files.length) return;
 
-    _showResultLoading(resultDiv, T_setup.validating);
+    _showResultLoading(resultDiv, SETUP_T.restore_validating);
 
     var formData = new FormData();
     formData.append('file', fileInput.files[0]);
@@ -694,7 +678,7 @@ async function validateRestoreFile() {
             _showResultError(resultDiv, res.error || SETUP_T.invalid_backup);
         }
     } catch(err) {
-        _showResultError(resultDiv, T_setup.network_error + ': ' + err.message);
+        _showResultError(resultDiv, SETUP_T.network_error + ': ' + err.message);
     }
 }
 
@@ -706,7 +690,7 @@ async function doRestore() {
     if (!fileInput.files.length) return;
 
     btn.disabled = true;
-    _showResultLoading(resultDiv, T_setup.restoring);
+    _showResultLoading(resultDiv, SETUP_T.restore_restoring);
 
     var formData = new FormData();
     formData.append('file', fileInput.files[0]);
@@ -717,10 +701,7 @@ async function doRestore() {
 
         if (res.success) {
             resultDiv.className = 'test-result success';
-            resultDiv.style.background = '';
-            resultDiv.style.border = '';
-            resultDiv.style.color = '';
-            resultDiv.textContent = '✓ ' + T_setup.success;
+            resultDiv.textContent = '✓ ' + SETUP_T.restore_success;
             if (res.configured) {
                 setTimeout(function() { window.location.href = SETUP_INDEX_URL; }, 2000);
             } else {
@@ -735,7 +716,7 @@ async function doRestore() {
             btn.disabled = false;
         }
     } catch(err) {
-        _showResultError(resultDiv, T_setup.network_error + ': ' + err.message);
+        _showResultError(resultDiv, SETUP_T.network_error + ': ' + err.message);
         btn.disabled = false;
     }
 }

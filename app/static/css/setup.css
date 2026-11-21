@@ -393,6 +393,11 @@
   color: var(--crit);
   border: 1px solid color-mix(in srgb, var(--crit) 20%, transparent);
 }
+.test-result.loading {
+  background: var(--amethyst-muted);
+  color: var(--text-secondary);
+  border: 1px solid rgba(124,58,237,0.2);
+}
 
 /* ── Spin (loading icon) ── */
 @keyframes spin {
