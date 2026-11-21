@@ -199,6 +199,19 @@ test('config validation messages and missing-message fallbacks render as text an
     assert.equal(f.error.style.display, 'none');
 });
 
+test('the saved placeholder alone does not make a secret field saved', () => {
+    for (const placeholder of ['Saved', 'Gespeichert']) {
+        const f = fixture();
+        f.context.T.saved_ph = placeholder;
+        f.fresh.placeholder = placeholder;
+        f.fresh.setAttribute('placeholder', placeholder);
+        f.context.document.activeElement = f.url;
+        f.fresh.value = 'new-secret';
+        f.fresh.dispatch('input');
+        assert.equal(f.dirty(), true, placeholder);
+    }
+});
+
 test('instant controls save only themselves, without a footer or success toast', async () => {
     const f = fixture();
     f.edit(f.secret, 'autofill', false);
