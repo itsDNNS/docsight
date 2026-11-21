@@ -29,8 +29,9 @@ function setup() {
     element('bqm-calendar-grid'); element('bqm-month-label');
     element('bqm-view-toggle'); element('bqm-range-label');
     const requests = [];
+    // The browser clock is a day ahead of the configured time zone's date from todayStr().
     class FixedDate extends Date {
-        constructor(...args) { super(...(args.length ? args : ['2026-01-02T12:00:00'])); }
+        constructor(...args) { super(...(args.length ? args : ['2026-01-03T12:00:00'])); }
     }
     const c = vm.createContext({DOCSightEmptyState: emptyState, document: {getElementById: id => elements[id], createElement: () => element('cell'), createTextNode: text => ({nodeType: 3, textContent: String(text)})},
         Date: FixedDate,
@@ -98,9 +99,9 @@ for (const [name, date] of [['today', '2026-01-02'], ['yesterday', '2026-01-01']
         elements['bqm-' + name + '-btn'].click();
         await new Promise(resolve => setImmediate(resolve));
 
+        assert.deepEqual(requests, ['/api/bqm/data/' + date]);
         assert.equal(c._bqmLiveTimer, null);
         assert.equal(elements['bqm-view-toggle'].hidden, false);
-        assert.deepEqual(requests, ['/api/bqm/data/' + date]);
         assert.equal(c.bqmDate, date);
         assert.equal(c._bqmRangeStart, date);
         assert.equal(c._bqmRangeEnd, date);
