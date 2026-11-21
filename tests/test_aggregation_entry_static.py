@@ -100,7 +100,6 @@ def test_documented_aggregation_api_and_entry_point_are_pinned():
         "aggregate_snapshot_period",
         "canonical_utc_timestamp",
         "derive_diagnostic_notes",
-        "derive_historical",
         "report_bounds",
         "select_preferred_bnetz",
         "source_coverage",
