@@ -5,6 +5,7 @@ from app.modules.evidence.checklist import build_checklist
 
 
 WINDOW = {"from": "2026-06-10T18:00:00Z", "to": "2026-06-10T23:00:00Z", "label": "Bad evening"}
+SNAPSHOTS = {"snapshot_count": 1, "last_observed_at": "2026-06-10T22:50:00Z"}
 
 
 def _by_key(items):
@@ -15,7 +16,6 @@ def test_build_checklist_marks_available_sources_present():
     items = _by_key(build_checklist(
         WINDOW,
         timeline=[
-            {"timestamp": "2026-06-10T22:50:00Z", "source": "modem", "health": "critical"},
             {"timestamp": "2026-06-10T22:20:00Z", "source": "speedtest", "download_mbps": 120},
             {"timestamp": "2026-06-10T18:30:00Z", "source": "event", "severity": "critical"},
             {"timestamp": "2026-06-10T19:00:00Z", "source": "bnetz", "verdict_download": "not_ok"},
@@ -23,6 +23,7 @@ def test_build_checklist_marks_available_sources_present():
         journal_entries=[{"id": 1, "date": "2026-06-10", "title": "Outage note"}],
         bqm_rows=[{"timestamp": "2026-06-10T22:10:00Z", "latency_avg_ms": 34}],
         capabilities={"docsis_supported": True, "speedtest_configured": True, "bqm_configured": True, "demo_mode": False},
+        snapshot_aggregate=SNAPSHOTS,
     ))
 
     assert items["signal"]["status"] == "present"
@@ -52,6 +53,7 @@ def test_build_checklist_treats_connection_monitor_latency_as_evidence():
             "connection_monitor_configured": True,
             "demo_mode": False,
         },
+        snapshot_aggregate={},
     ))
 
     latency = items["latency"]
@@ -80,6 +82,7 @@ def test_build_checklist_reports_bqm_and_connection_monitor_latency_sources_inde
             "connection_monitor_configured": True,
             "demo_mode": False,
         },
+        snapshot_aggregate={},
     ))
 
     latency = items["latency"]
@@ -106,6 +109,7 @@ def test_build_checklist_reports_configured_bqm_unavailable_without_marking_opti
             "connection_monitor_configured": False,
             "demo_mode": False,
         },
+        snapshot_aggregate={},
     ))
 
     latency = items["latency"]
@@ -123,6 +127,7 @@ def test_build_checklist_distinguishes_missing_optional_and_not_applicable():
         journal_entries=[],
         bqm_rows=[],
         capabilities={"docsis_supported": False, "speedtest_configured": False, "bqm_configured": False, "demo_mode": False},
+        snapshot_aggregate={},
     ))
 
     assert items["signal"]["status"] == "not_applicable"
@@ -136,13 +141,11 @@ def test_build_checklist_distinguishes_missing_optional_and_not_applicable():
 def test_build_checklist_flags_stale_sources_when_latest_sample_is_old():
     items = _by_key(build_checklist(
         WINDOW,
-        timeline=[
-            {"timestamp": "2026-06-10T18:05:00Z", "source": "modem"},
-            {"timestamp": "2026-06-10T18:10:00Z", "source": "speedtest"},
-        ],
+        timeline=[{"timestamp": "2026-06-10T18:10:00Z", "source": "speedtest"}],
         journal_entries=[],
         bqm_rows=[{"timestamp": "2026-06-10T18:15:00Z"}],
         capabilities={"docsis_supported": True, "speedtest_configured": True, "bqm_configured": True, "demo_mode": False},
+        snapshot_aggregate={"snapshot_count": 1, "last_observed_at": "2026-06-10T18:05:00Z"},
     ))
 
     assert items["signal"]["status"] == "stale"
@@ -153,36 +156,14 @@ def test_build_checklist_flags_stale_sources_when_latest_sample_is_old():
 def test_build_checklist_marks_demo_mode_on_payload():
     payload = build_checklist(
         WINDOW,
-        timeline=[{"timestamp": "2026-06-10T22:55:00Z", "source": "modem"}],
-        journal_entries=[],
-        bqm_rows=[],
-        capabilities={"docsis_supported": True, "speedtest_configured": True, "bqm_configured": False, "demo_mode": True},
-    )
-
-    assert all(item["demo"] is True for item in payload)
-
-
-def test_snapshot_aggregate_preserves_the_existing_signal_item_json():
-    legacy = build_checklist(
-        WINDOW,
-        timeline=[{"timestamp": "2026-06-10T22:55:00Z", "source": "modem"}],
-        journal_entries=[],
-        bqm_rows=[],
-        capabilities={"docsis_supported": True, "speedtest_configured": False, "bqm_configured": False},
-    )
-    aggregated = build_checklist(
-        WINDOW,
         timeline=[],
         journal_entries=[],
         bqm_rows=[],
-        capabilities={"docsis_supported": True, "speedtest_configured": False, "bqm_configured": False},
-        snapshot_aggregate={
-            "snapshot_count": 1,
-            "last_observed_at": "2026-06-10T22:55:00Z",
-        },
+        capabilities={"docsis_supported": True, "speedtest_configured": True, "bqm_configured": False, "demo_mode": True},
+        snapshot_aggregate=SNAPSHOTS,
     )
 
-    assert aggregated == legacy
+    assert all(item["demo"] is True for item in payload)
 
 
 def test_every_checklist_action_has_a_catalog_label():
@@ -194,10 +175,11 @@ def test_every_checklist_action_has_a_catalog_label():
     ):
         for item in build_checklist(
             WINDOW,
-            timeline=[{"timestamp": "2026-06-10T22:50:00Z", "source": "modem", "health": "critical"}],
+            timeline=[],
             journal_entries=[{"id": 1, "date": "2026-06-10", "title": "Outage note"}],
             bqm_rows=[{"timestamp": "2026-06-10T22:10:00Z", "latency_avg_ms": 34}],
             capabilities=capabilities,
+            snapshot_aggregate=SNAPSHOTS,
         ):
             action = item.get("action") or {}
             label_keys.add("action." + (action.get("action") or action.get("view") or "review"))

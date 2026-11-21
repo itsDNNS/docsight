@@ -38,6 +38,9 @@ def test_list_and_export_selection(journal, incident_id, expected):
     entries = journal.get_entries(incident_id=incident_id)
     assert [entry["id"] for entry in entries] == expected
     assert journal.get_entries_for_export(incident_id=incident_id) == entries
+    assert journal.get_entries_for_export(incident_id=incident_id, attachment_count=False) == [
+        {key: value for key, value in entry.items() if key != "attachment_count"} for entry in entries
+    ]
     for entry in entries:
         assert set(entry) == {
             "id", "date", "title", "description", "icon", "incident_id",

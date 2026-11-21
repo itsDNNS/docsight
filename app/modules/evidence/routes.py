@@ -18,7 +18,7 @@ from app.storage.sqlite import open_read
 from app.tz import UTC_FMT, epoch_to_utc, get_tz_name, local_date_to_utc_range, local_to_utc, local_today
 from app.web_auth import require_auth
 
-from .checklist import build_checklist, summarize_checklist
+from .checklist import build_checklist, parse_utc_iso, summarize_checklist
 
 bp = Blueprint("evidence_module", __name__)
 log = logging.getLogger("docsight.evidence")
@@ -36,12 +36,6 @@ def _get_tz_name() -> str:
     return get_tz_name(current_runtime().config_manager)
 
 
-def _utc_datetime(value: str) -> datetime:
-    normalized = canonical_utc_timestamp(value).replace("Z", "+00:00")
-    parsed = datetime.fromisoformat(normalized)
-    return parsed.astimezone(timezone.utc)
-
-
 def _zoneinfo_or_utc(tz_name: str) -> ZoneInfo | timezone:
     """Return configured timezone, falling back to UTC for invalid config."""
     if not tz_name:
@@ -56,8 +50,8 @@ def _zoneinfo_or_utc(tz_name: str) -> ZoneInfo | timezone:
 def _local_date_bounds_for_window(start_ts: str, end_ts: str, tz_name: str) -> tuple[str, str]:
     """Return configured-local date bounds for a normalized UTC window."""
     tz = _zoneinfo_or_utc(tz_name)
-    start_date = _utc_datetime(start_ts).astimezone(tz).strftime("%Y-%m-%d")
-    end_date = _utc_datetime(end_ts).astimezone(tz).strftime("%Y-%m-%d")
+    start_date = parse_utc_iso(start_ts).astimezone(tz).strftime("%Y-%m-%d")
+    end_date = parse_utc_iso(end_ts).astimezone(tz).strftime("%Y-%m-%d")
     return start_date, end_date
 
 
@@ -73,15 +67,9 @@ def _normalise_window_ts(value: str, tz_name: str) -> str:
     return local_to_utc(timestamp, tz_name)
 
 
-def _get_journal_entries_for_window(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, Any]]:
+def _get_journal_entries_for_window(start_ts: str, end_ts: str) -> list[dict[str, Any]]:
     start_date, end_date = _local_date_bounds_for_window(start_ts, end_ts, _get_tz_name())
-    with open_read(db_path) as conn:
-        rows = conn.execute(
-            "SELECT id, date, title, description, icon, incident_id, created_at, updated_at "
-            "FROM journal_entries WHERE date >= ? AND date <= ? ORDER BY date DESC, id DESC",
-            (start_date, end_date),
-        ).fetchall()
-    return [dict(row) for row in rows]
+    return _get_journal_storage().get_entries_for_export(date_from=start_date, date_to=end_date, attachment_count=False)
 
 
 def _get_bqm_rows(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, Any]] | None:
@@ -90,8 +78,8 @@ def _get_bqm_rows(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, An
         from app.modules.bqm.storage import BqmStorage
         tz_name = _get_tz_name()
         start_date, end_date = _local_date_bounds_for_window(start_ts, end_ts, tz_name)
-        start_epoch = _utc_ts_to_epoch(start_ts)
-        end_epoch = _utc_ts_to_epoch(end_ts)
+        start_epoch = parse_utc_iso(start_ts).timestamp()
+        end_epoch = parse_utc_iso(end_ts).timestamp()
         bqm = BqmStorage(db_path, tz_name)
         rows = bqm.get_data_for_range(start_date, end_date)
     except (ImportError, sqlite3.Error, OSError, ValueError, KeyError, TypeError):
@@ -104,20 +92,12 @@ def _get_bqm_rows(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, An
             timestamp = row.get("timestamp")
             if not timestamp:
                 continue
-            row_epoch = _utc_ts_to_epoch(str(timestamp))
+            row_epoch = parse_utc_iso(str(timestamp)).timestamp()
         except (AttributeError, TypeError, ValueError):
             continue
         if start_epoch <= row_epoch <= end_epoch:
             filtered.append(row)
     return filtered
-
-
-def _utc_ts_to_epoch(value: str) -> float:
-    normalized = value.replace("Z", "+00:00")
-    parsed = datetime.fromisoformat(normalized)
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc).timestamp()
 
 
 def _get_connection_monitor_db_path() -> str:
@@ -130,8 +110,8 @@ def _get_connection_latency_rows(start_ts: str, end_ts: str) -> list[dict[str, A
     db_path = _get_connection_monitor_db_path()
     if not os.path.exists(db_path):
         return []
-    start_epoch = _utc_ts_to_epoch(start_ts)
-    end_epoch = _utc_ts_to_epoch(end_ts)
+    start_epoch = parse_utc_iso(start_ts).timestamp()
+    end_epoch = parse_utc_iso(end_ts).timestamp()
     rows: list[dict[str, Any]] = []
     try:
         with open_read(db_path) as conn:
@@ -261,7 +241,6 @@ def api_evidence_checklist():
     if not core:
         return jsonify({"error": "storage not available"}), 503
 
-    journal_entries: list[dict[str, Any]] = []
     if incident_id:
         journal = _get_journal_storage()
         if not journal:
@@ -273,13 +252,13 @@ def api_evidence_checklist():
             window = _window_from_incident(incident)
         except ValueError:
             return jsonify({"error": "incident has no usable date range"}), 400
-        journal_entries = journal.get_entries(limit=9999, incident_id=incident_id)
+        journal_entries = journal.get_entries_for_export(incident_id=incident_id, attachment_count=False)
     else:
         try:
             window = _window_from_args(start_ts, end_ts)
         except ValueError:
             return jsonify({"error": "from/to must be valid ISO timestamps"}), 400
-        journal_entries = _get_journal_entries_for_window(core.db_path, window["from"], window["to"])
+        journal_entries = _get_journal_entries_for_window(window["from"], window["to"])
 
     # The checklist only needs how many snapshots the window holds and the latest one;
     # counting in SQL avoids loading and aggregating months of channel data.
