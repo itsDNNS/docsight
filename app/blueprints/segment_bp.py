@@ -7,15 +7,13 @@ from flask import Blueprint, jsonify, request
 from app.i18n import get_translations
 from app.storage.segment_utilization import SegmentUtilizationStorage
 from app.web_auth import require_auth
+from app.web_locale import get_lang
 from app.runtime import core_derived_storage, current_runtime
 from app.tz import utc_cutoff, utc_now
 
 log = logging.getLogger("docsis.web.segment")
 
 segment_bp = Blueprint("segment_bp", __name__)
-
-def _get_lang():
-    return request.cookies.get("lang", "en")
 
 
 def _get_storage():
@@ -42,9 +40,7 @@ def _window(range_key):
 def _gated_storage():
     """(storage, None) for the segment views, or (None, error response) while they are unavailable."""
     config = current_runtime().config_manager
-    t = get_translations(_get_lang())
-    if not config:
-        return None, (jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503)
+    t = get_translations(get_lang())
     if config.get("modem_type") != "fritzbox":
         return None, (jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400)
     if not config.is_segment_utilization_enabled():
@@ -111,13 +107,13 @@ def api_segment_utilization_events():
 def api_segment_utilization_range():
     """Return segment data for a time range (used by correlation graph).
 
-    Returns an empty list — rather than an error — when configuration is
-    unavailable, the driver is unsupported, or the feature is disabled.
+    Returns an empty list — rather than an error — when the driver is
+    unsupported or the feature is disabled.
     This matches ``/api/weather/range`` so the correlation view degrades
     gracefully when optional data sources are absent.
     """
     config = current_runtime().config_manager
-    if not config or config.get("modem_type") != "fritzbox" or not config.is_segment_utilization_enabled():
+    if config.get("modem_type") != "fritzbox" or not config.is_segment_utilization_enabled():
         return jsonify([])
     storage = _get_storage()
     if not storage:
