@@ -324,9 +324,7 @@ if (bqmTodayBtn) bqmTodayBtn.addEventListener('click', function() {
     selectBqmQuickDate(today);
 });
 if (bqmYesterdayBtn) bqmYesterdayBtn.addEventListener('click', function() {
-    var d = new Date();
-    d.setDate(d.getDate() - 1);
-    var yd = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+    var yd = offsetDate(todayStr(), -1);
     if (!_bqmCsvDates.has(yd)) {
         selectBqmQuickDate(yd);
         return;
