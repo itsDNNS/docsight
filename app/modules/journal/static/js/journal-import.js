@@ -133,22 +133,15 @@ function handleImportFile(input) {
     var formData = new FormData();
     formData.append('file', file);
 
-    fetch(docsightUrl('/api/journal/import/preview?lang=' + encodeURIComponent(document.documentElement.lang)), {method: 'POST', body: formData})
-        .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
-        .then(function(res) {
+    journalSend('/api/journal/import/preview?lang=' + encodeURIComponent(document.documentElement.lang), 'POST', formData, T.error_prefix)
+        .then(function(data) {
             document.getElementById('import-loading').hidden = true;
-            if (res.status >= 400) {
-                setImportValidationState(res.data.error || T.error_prefix, 'error');
-                document.getElementById('import-upload-zone').hidden = false;
-                return;
-            }
-            _importPreviewData = res.data;
-            renderImportPreview(res.data);
+            renderImportPreview(data);
         })
-        .catch(function() {
+        .catch(function(e) {
             document.getElementById('import-loading').hidden = true;
             document.getElementById('import-upload-zone').hidden = false;
-            setImportValidationState(T.network_error || 'Error', 'error');
+            setImportValidationState(journalErrorText(e), 'error');
         });
 }
 
@@ -158,7 +151,6 @@ function renderImportPreview(data) {
     tbody.replaceChildren();
 
     var dupeCount = data.duplicates || 0;
-    var validCount = data.total - data.skipped;
     var info = data.total + ' ' + T.import_entries_found;
     if (data.skipped > 0) info += ', ' + data.skipped + ' ' + T.import_skipped;
     if (dupeCount > 0) info += ', ' + dupeCount + ' ' + T.import_duplicates;
@@ -239,30 +231,19 @@ function confirmImport() {
     btn.disabled = true;
     btn.textContent = T.import_importing;
 
-    fetch(docsightUrl('/api/journal/import/confirm'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({rows: selectedRows})
-    })
-        .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
-        .then(function(res) {
+    journalSend('/api/journal/import/confirm', 'POST', {rows: selectedRows}, T.error_prefix)
+        .finally(function() {
             btn.disabled = false;
             btn.textContent = T.import_selected;
-            if (res.status >= 400) {
-                showToast(res.data.error || T.error_prefix, 'error');
-                return;
-            }
-            var msg = res.data.imported + ' ' + T.import_success;
-            if (res.data.duplicates > 0) msg += ', ' + res.data.duplicates + ' ' + T.import_duplicates_skipped;
+        })
+        .then(function(data) {
+            var msg = data.imported + ' ' + T.import_success;
+            if (data.duplicates > 0) msg += ', ' + data.duplicates + ' ' + T.import_duplicates_skipped;
             showToast(msg, 'ok');
             closeImportModal();
             loadJournal();
         })
-        .catch(function() {
-            btn.disabled = false;
-            btn.textContent = T.import_selected;
-            showToast(T.network_error || 'Error', 'error');
-        });
+        .catch(function(e) { showToast(journalErrorText(e), 'error'); });
 }
 
 (function() {
