@@ -1,8 +1,11 @@
 """Shared components are defined once, in components.css."""
 
+import functools
 import re
 import subprocess
 from pathlib import Path
+
+import pytest
 
 from app.theme_catalog import DEPRECATED_ALIASES
 
@@ -53,70 +56,27 @@ TOAST_RULE = re.compile(r"(?m)^\s*\.toast(?:-(?:success|error|info))?(?![\w-])[^
 SAVE_BAR_RULE = re.compile(r"(?m)^\s*(?:\[data-theme=\"light\"\]\s+)?\.save-bar(?:-[a-z]+)?(?![\w-])[^{,]*[{,]")
 
 
-def _stylesheets():
-    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    return [path for path in tracked.split() if path.endswith(".css") and "/vendor/" not in path]
+@functools.cache
+def _app_files():
+    return subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
 
 
-def test_buttons_are_defined_only_in_the_component_stylesheet():
+def _tracked(*suffixes):
+    return [path for path in _app_files() if path.endswith(suffixes) and "/vendor/" not in path]
+
+
+@pytest.mark.parametrize("rule", [
+    BUTTON_RULE, FORM_RULE, CARD_RULE, SAVE_BAR_RULE, TOAST_RULE, BADGE_RULE, SEGMENTED_RULE, DATA_TABLE_RULE, DIALOG_RULE,
+], ids=["buttons", "form-fields-and-toggle", "cards", "save-bar", "toast", "badges", "segmented-control", "data-table", "dialog"])
+def test_component_is_defined_only_in_the_component_stylesheet(rule):
     offenders = [
         f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in BUTTON_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
+        for path in _tracked(".css") if path != OWNER
+        for match in rule.finditer((ROOT / path).read_text(encoding="utf-8"))
     ]
     assert offenders == []
-    assert BUTTON_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
+    assert rule.search((ROOT / OWNER).read_text(encoding="utf-8"))
 
-
-def test_form_fields_and_the_toggle_are_defined_only_in_the_component_stylesheet():
-    offenders = [
-        f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in FORM_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
-    assert FORM_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
-
-
-def test_cards_are_defined_only_in_the_component_stylesheet():
-    offenders = [
-        f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in CARD_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
-    assert CARD_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
-
-
-
-def test_the_save_bar_is_defined_only_in_the_component_stylesheet():
-    offenders = [
-        f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in SAVE_BAR_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
-    assert SAVE_BAR_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
-
-
-def test_the_toast_is_defined_only_in_the_component_stylesheet():
-    offenders = [
-        f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in TOAST_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
-    assert TOAST_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
-
-
-def test_badges_are_defined_only_in_the_component_stylesheet():
-    offenders = [
-        f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in BADGE_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
-    assert BADGE_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
 
 # One-sided edges and inset side shadows; status shows through icon, badge, text color or tint.
 SIDE_EDGE = re.compile(r"(?:border-(?:left|inline-start)(?:-color)?|box-shadow)\s*:\s*([^;}]*)")
@@ -137,26 +97,15 @@ def _is_side_stripe(prop, value):
 def test_no_stylesheet_marks_status_with_a_colored_side_stripe():
     offenders = [
         f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets()
+        for path in _tracked(".css")
         for match in SIDE_EDGE.finditer((ROOT / path).read_text(encoding="utf-8"))
         if _is_side_stripe(match.group(0), match.group(1))
     ]
     assert offenders == []
 
 
-def test_the_segmented_control_is_defined_only_in_the_component_stylesheet():
-    offenders = [
-        f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in SEGMENTED_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
-    assert SEGMENTED_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
-
-
 def test_the_retired_pill_tab_classes_are_gone():
-    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    sources = [path for path in tracked.split() if path.endswith((".css", ".js", ".html")) and "/vendor/" not in path]
+    sources = _tracked(".css", ".js", ".html")
     # Class usage only; `trend-tabs` survives as an element id.
     retired = re.compile(r"\.(?:trend-tabs?|pill-tab)(?![\w-])|class=\"[^\"]*\b(?:trend-tabs?|pill-tab)(?![\w-])|'(?:trend-tab|pill-tab)'")
     offenders = [path for path in sources if retired.search((ROOT / path).read_text(encoding="utf-8"))]
@@ -165,34 +114,18 @@ def test_the_retired_pill_tab_classes_are_gone():
 
 def test_segmented_groups_carry_no_layout_classes():
     # Layout classes on the group itself override its display and gap; wrap the group instead.
-    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    templates = [path for path in tracked.split() if path.endswith(".html")]
     groups = [
         (path, match.group(1))
-        for path in templates
+        for path in _app_files() if path.endswith(".html")
         for match in re.finditer(r'class="([^"]*\bsegmented\b(?!-)[^"]*)"', (ROOT / path).read_text(encoding="utf-8"))
     ]
     assert groups
     assert [(path, classes) for path, classes in groups if classes not in ("segmented", "segmented segmented-fill")] == []
 
 
-
-def test_the_data_table_is_defined_only_in_the_component_stylesheet():
-    offenders = [
-        f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in DATA_TABLE_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
-    assert DATA_TABLE_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
-
-
 def _tables():
     """Yield (path, classes, name) for every table in templates and scripts."""
-    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    for path in tracked.split():
-        if not path.endswith((".html", ".js")) or "/vendor/" in path:
-            continue
+    for path in _tracked(".html", ".js"):
         lines = (ROOT / path).read_text(encoding="utf-8").splitlines()
         for index, line in enumerate(lines):
             for tag in re.findall(r"<table\b[^>]*>", line):
@@ -216,8 +149,7 @@ def test_tables_use_the_data_table_component():
 
 def test_every_css_variable_in_use_is_defined():
     """A var() of an undefined name ignores the theme: its fallback, or nothing, applies instead."""
-    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    sources = [path for path in tracked.split() if path.endswith((".css", ".js", ".html", ".json")) and "/vendor/" not in path]
+    sources = _tracked(".css", ".js", ".html", ".json")
     defined, used = set(), {}
     for path in sources:
         text = (ROOT / path).read_text(encoding="utf-8")
@@ -229,22 +161,9 @@ def test_every_css_variable_in_use_is_defined():
     assert {name: sorted(paths) for name, paths in used.items() if name not in defined} == {}
 
 
-def test_the_dialog_is_defined_only_in_the_component_stylesheet():
-    offenders = [
-        f"{path}: {match.group(0).strip()}"
-        for path in _stylesheets() if path != OWNER
-        for match in DIALOG_RULE.finditer((ROOT / path).read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
-    assert DIALOG_RULE.search((ROOT / OWNER).read_text(encoding="utf-8"))
-
-
 def test_dialogs_use_the_dialog_component():
-    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
     dialogs = []
-    for path in tracked.split():
-        if not path.endswith((".html", ".js")) or "/vendor/" in path:
-            continue
+    for path in _tracked(".html", ".js"):
         text = (ROOT / path).read_text(encoding="utf-8")
         # Real dialog elements carry attributes; a bare "<dialog>" is prose in a comment.
         dialogs += [(path, tag) for tag in re.findall(r"<dialog\s[^>]+>", text)]
@@ -268,8 +187,7 @@ UNUSED_TOKENS_ALLOWED = {"--radius-xl", "--safe-left", "--safe-right"}
 
 
 def test_every_base_token_is_used():
-    tracked = subprocess.run(["git", "ls-files", "app"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    sources = [path for path in tracked.split() if path.endswith((".css", ".js", ".html")) and "/vendor/" not in path]
+    sources = _tracked(".css", ".js", ".html")
     used = set()
     for path in sources:
         text = (ROOT / path).read_text(encoding="utf-8")
