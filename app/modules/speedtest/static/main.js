@@ -234,6 +234,28 @@ function renderSpeedtestRows() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+/* One label and value of a detail row; the value is a link, a health badge or plain text. */
+function _speedtestDetailItem(item) {
+    var div = document.createElement('div');
+    div.className = 'st-sig-item';
+    var lbl = document.createElement('span');
+    lbl.className = 'st-sig-label';
+    lbl.textContent = item.label;
+    div.appendChild(lbl);
+    var val = document.createElement(item.href ? 'a' : 'span');
+    if (item.href) {
+        val.href = item.href;
+        val.target = '_blank';
+        val.rel = 'noopener';
+        val.className = 'st-sig-value st-ookla-link';
+    } else {
+        val.className = item.badge ? 'st-health-badge ' + item.badge : 'st-sig-value';
+    }
+    val.textContent = item.value;
+    div.appendChild(val);
+    return div;
+}
+
 function _renderSignalDetail(data, container) {
     container.textContent = '';
     if (!data.found) {
@@ -262,25 +284,7 @@ function _renderSignalDetail(data, container) {
         {label: (T.signal_ds_channels || 'DS') + ' / ' + (T.signal_us_channels || 'US'), value: (data.ds_total || 0) + ' / ' + (data.us_total || 0)}
     ];
     items.forEach(function(item) {
-        if (item.value == null) return;
-        var div = document.createElement('div');
-        div.className = 'st-sig-item';
-        var lbl = document.createElement('span');
-        lbl.className = 'st-sig-label';
-        lbl.textContent = item.label;
-        div.appendChild(lbl);
-        if (item.badge) {
-            var badge = document.createElement('span');
-            badge.className = 'st-health-badge ' + item.badge;
-            badge.textContent = item.value;
-            div.appendChild(badge);
-        } else {
-            var val = document.createElement('span');
-            val.className = 'st-sig-value';
-            val.textContent = item.value;
-            div.appendChild(val);
-        }
-        container.appendChild(div);
+        if (item.value != null) container.appendChild(_speedtestDetailItem(item));
     });
     if (data.us_channels && data.us_channels.length > 0) {
         var modsDiv = document.createElement('div');
@@ -337,33 +341,7 @@ function _renderEnrichedDetail(data, container) {
         var grid = document.createElement('div');
         grid.className = 'st-enriched-grid';
         items.forEach(function(item) {
-            if (item.value == null) return;
-            var div = document.createElement('div');
-            div.className = 'st-sig-item';
-            var lbl = document.createElement('span');
-            lbl.className = 'st-sig-label';
-            lbl.textContent = item.label;
-            div.appendChild(lbl);
-            if (item.href) {
-                var link = document.createElement('a');
-                link.href = item.href;
-                link.target = '_blank';
-                link.rel = 'noopener';
-                link.className = 'st-sig-value st-ookla-link';
-                link.textContent = item.value;
-                div.appendChild(link);
-            } else if (item.badge) {
-                var badge = document.createElement('span');
-                badge.className = 'st-health-badge ' + item.badge;
-                badge.textContent = item.value;
-                div.appendChild(badge);
-            } else {
-                var val = document.createElement('span');
-                val.className = 'st-sig-value';
-                val.textContent = item.value;
-                div.appendChild(val);
-            }
-            grid.appendChild(div);
+            if (item.value != null) grid.appendChild(_speedtestDetailItem(item));
         });
         if (grid.children.length > 0) {
             group.appendChild(grid);
@@ -467,7 +445,7 @@ function toggleSpeedtestSignal(btn) {
     if (_signalCache[id]) {
         _renderSignalDetail(_signalCache[id], container);
     } else {
-        fetch(docsightUrl('/api/speedtest/' + id + '/signal'))
+        fetch(docsightUrl('/api/speedtest/' + id + '/signal?lang=' + encodeURIComponent(document.documentElement.lang)))
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 _signalCache[id] = data;

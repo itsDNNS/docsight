@@ -18,6 +18,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.html_rows import parse_tc4400_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .utils import request_error_summary
@@ -75,7 +76,7 @@ class TC4400Driver(ModemDriver):
                 f"TC4400: Expected at least 3 tables, found {len(tables)}"
             )
 
-        return parse_tc4400_html(tables[1], tables[2]).value
+        return unwrap(parse_tc4400_html(tables[1], tables[2]), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from /cmswinfo.html."""

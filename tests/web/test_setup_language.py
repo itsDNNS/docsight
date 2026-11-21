@@ -141,3 +141,18 @@ def test_non_setup_language_query_remains_transient(fresh_manager, app):
     assert response.status_code == 200
     assert _html_lang(response) == "de"
     assert fresh_manager.has_stored_value("language") is False
+
+
+@pytest.mark.parametrize(("stored", "expected", "glossary"), [
+    ("de-DE", "de-DE", "Kanalbindung"), ([], "en", "Channel bonding"), ({}, "en", "Channel bonding"),
+], ids=["region", "list", "object"])
+@pytest.mark.parametrize(("path", "config"), [("/", {"modem_type": "fritzbox"}), ("/setup", {})], ids=["dashboard", "setup"])
+def test_stored_language_keeps_regional_tags_and_ignores_non_text(fresh_manager, app, stored, expected, glossary, path, config):
+    fresh_manager.save({"language": stored, **config})
+
+    with app.test_client() as client:
+        response = client.get(path)
+
+    assert (response.status_code, _html_lang(response)) == (200, expected)
+    if path == "/":
+        assert glossary in response.get_data(as_text=True)

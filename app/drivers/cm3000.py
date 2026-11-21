@@ -24,6 +24,7 @@ from urllib.parse import urljoin
 import requests
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.javascript import (
     extract_cm3000_tag_value_list,
     parse_cm3000_javascript,
@@ -112,7 +113,7 @@ class CM3000Driver(ModemDriver):
         QAM channels as DOCSIS 3.0 and OFDM/OFDMA channels as 3.1.
         """
         html = self._fetch_status_page()
-        data = parse_cm3000_javascript(html).value
+        data = unwrap(parse_cm3000_javascript(html), log)
         if not any(channels for lanes in data.values() for channels in lanes.values()):
             log.warning(
                 "CM3000 parsed 0 channels "

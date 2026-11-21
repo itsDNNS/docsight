@@ -22,6 +22,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.html_rows import parse_cm3500_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .utils import request_error_summary
@@ -75,7 +76,7 @@ class CM3500Driver(ModemDriver):
         Returns pre-split format so the analyzer correctly labels
         QAM channels as DOCSIS 3.0 and OFDM/OFDMA channels as 3.1.
         """
-        return parse_cm3500_html(self._fetch_status_page()).value
+        return unwrap(parse_cm3500_html(self._fetch_status_page()), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from status page."""

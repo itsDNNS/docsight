@@ -34,7 +34,7 @@ function loadFritzCableData() {
     DOCSightEmptyState.hide(msg);
     content.hidden = true;
 
-    fetch(docsightUrl('/api/fritzbox/segment-utilization?range=' + encodeURIComponent(_fritzCableRange)))
+    fetch(docsightUrl('/api/fritzbox/segment-utilization?range=' + encodeURIComponent(_fritzCableRange) + '&lang=' + encodeURIComponent(document.documentElement.lang)))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (skel) skel.hidden = true;
@@ -94,7 +94,8 @@ function _fritzCableLoadEvents() {
     var url = docsightUrl('/api/fritzbox/segment-utilization/events')
         + '?range=' + encodeURIComponent(_fritzCableRange)
         + '&threshold=' + _FRITZ_EVENT_THRESHOLD
-        + '&min_minutes=' + _FRITZ_EVENT_MIN_MINUTES;
+        + '&min_minutes=' + _FRITZ_EVENT_MIN_MINUTES
+        + '&lang=' + encodeURIComponent(document.documentElement.lang);
 
     fetch(url)
         .then(function(r) { return r.json().then(function(body) { return { ok: r.ok, body: body }; }); })

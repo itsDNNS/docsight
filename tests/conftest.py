@@ -43,9 +43,18 @@ def _no_network(monkeypatch):
         pytest.fail(f"Test tried to reach the network: {attempts}", pytrace=False)
 
 
+@pytest.fixture(autouse=True, scope="module")
+def _core_module_registries():
+    """Start each test module, and its module-scoped apps, from the core config schema and catalogs."""
+    from app import config, i18n
+
+    config.reset_module_config_schema()
+    i18n.reset_module_translations()
+
+
 @pytest.fixture(autouse=True)
 def _restore_module_registries():
-    """Loading modules extends the process-wide config schema and translations; undo it after each test."""
+    """Restore the config schema and translations after a test that builds its own app or registers modules directly."""
     from app import config
     from app.i18n import _TRANSLATIONS
 
