@@ -30,6 +30,7 @@
   "import_no_date": "nincs dátum",
   "import_file_unsupported": "Csak .xlsx és .csv fájlok támogatottak",
   "import_file_too_large": "A fájl túl nagy (legfeljebb 5 MB)",
+  "import_csv_unreadable": "Ez a fájl nem olvasható. Nyissa meg az eredeti programban, mentse CSV (UTF-8) formátumban, majd importálja újra.",
   "delete_all": "Összes törlése",
   "delete_all_confirm": "Törli mind a(z) {n} bejegyzést? Ez nem vonható vissza.",
   "delete_all_type_confirm": "A megerősítéshez írja be: DELETE",

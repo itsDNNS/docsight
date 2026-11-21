@@ -4,9 +4,26 @@ import json as _json
 import logging
 import os
 import re
+import signal
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+
+# Set by the SIGTERM handler. Startup finishes first; the wait loop then shuts down.
+# A plain flag takes no lock, so a repeated signal cannot deadlock the handler.
+_shutdown_requested = False
+
+
+def _request_shutdown(*_):
+    global _shutdown_requested
+    _shutdown_requested = True
+
+
+if __name__ == "__main__":
+    # Container stops send SIGTERM. Registered before the app imports so a stop
+    # during startup is not lost, and only when run as a script because the
+    # desktop launcher imports main() and runs it outside the main thread.
+    signal.signal(signal.SIGTERM, _request_shutdown)
 
 from . import analyzer, modem_diagnosis
 from .app_factory import create_app, default_module_loader_factory
@@ -114,6 +131,8 @@ def _wait_for_web_thread(
     """Keep the process alive until the web server stops, then stop pollers."""
     try:
         while web_thread.is_alive():
+            if _shutdown_requested:  # take the Ctrl+C path
+                raise KeyboardInterrupt
             time.sleep(0.25)
         if server_lifecycle is not None and server_lifecycle.close_requested:
             log.info("Web server stopped after shutdown request")

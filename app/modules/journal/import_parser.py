@@ -151,19 +151,14 @@ def _parse_xlsx(file_bytes):
 
 def _parse_csv(file_bytes):
     """Parse CSV file. Returns (rows, header_index)."""
-    # Try to detect encoding
-    text = None
-    for encoding in ("utf-8", "utf-8-sig", "latin-1", "cp1252"):
-        try:
-            text = file_bytes.decode(encoding)
-            break
-        except (UnicodeDecodeError, ValueError):
-            continue
+    # UTF-8, else Windows-1252, which matches printable Latin-1 text.
+    # Bytes neither codec defines raise UnicodeDecodeError instead of becoming control characters.
+    try:
+        text = file_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        text = file_bytes.decode("cp1252")
 
-    if text is None:
-        raise ValueError("Could not decode CSV file")
-
-    # Detect delimiter
+    # Detect delimiter on the decoded text; a BOM is removed only for parsing below
     sample = text[:2000]
     semicolons = sample.count(";")
     commas = sample.count(",")
@@ -174,7 +169,7 @@ def _parse_csv(file_bytes):
     elif tabs > semicolons and tabs > commas:
         delimiter = "\t"
 
-    reader = csv.reader(io.StringIO(text), delimiter=delimiter)
+    reader = csv.reader(io.StringIO(text.removeprefix("\ufeff")), delimiter=delimiter)
     rows = []
     for row in reader:
         rows.append([c.strip() for c in row])
@@ -207,6 +202,9 @@ def _detect_mapping(headers, rows, headers_idx):
     date_keywords = {"datum", "date", "tag", "day", "zeit", "time", "when"}
     title_keywords = {"titel", "title", "ereignis", "event", "betreff", "subject", "was", "what"}
     desc_keywords = {"beschreibung", "description", "details", "notiz", "note", "notes", "text", "inhalt", "content"}
+    # Weaker description headers, used only when neither a header above nor the data finds one
+    note_keywords = {"anmerkung", "bemerkung", "kommentar", "comment", "comments"}
+    note_col = None
 
     for i, h in enumerate(headers):
         hl = h.lower().strip()
@@ -216,6 +214,8 @@ def _detect_mapping(headers, rows, headers_idx):
             mapping["title"] = i
         elif hl in desc_keywords:
             mapping["description"] = i
+        elif hl in note_keywords and note_col is None:
+            note_col = i
 
     # If not all found by keyword, try data analysis
     if "date" not in mapping or "title" not in mapping:
@@ -227,6 +227,8 @@ def _detect_mapping(headers, rows, headers_idx):
         if "description" not in mapping and "description" in data_mapping:
             mapping["description"] = data_mapping["description"]
 
+    if note_col is not None and note_col not in mapping.values():
+        mapping.setdefault("description", note_col)
     return mapping
 
 

@@ -20,6 +20,9 @@ from app.modules.journal.import_parser import (
 
 # ── Helper ──
 
+_GERMAN_TEXT = "Störung über 5 € „Maß“ später"
+
+
 def _make_csv_bytes(text, encoding="utf-8"):
     """Encode CSV text to bytes for parser input."""
     return text.encode(encoding)
@@ -293,34 +296,36 @@ class TestParseCsv:
         assert rows[0] == ["Date", "Title", "Description"]
         assert rows[1] == ["2024-01-15", "Event A", "Details A"]
 
-    def test_utf8_encoding(self):
-        """UTF-8 encoded CSV with German characters should parse correctly."""
-        csv_text = "Datum;Ereignis;Beschreibung\n15.01.2024;Störung;Netzwerk-Ausfall\n"
-        rows, _ = _parse_csv(_make_csv_bytes(csv_text, "utf-8"))
-        assert rows[1][1] == "Störung"
-        assert rows[1][2] == "Netzwerk-Ausfall"
+    @pytest.mark.parametrize("bom,encoding,text", [
+        (b"\xef\xbb\xbf", "utf-8", _GERMAN_TEXT),
+        (b"", "utf-8", _GERMAN_TEXT),
+        (b"", "cp1252", _GERMAN_TEXT),
+        (b"", "latin-1", "Störung über 5 ¥ «Maß» später"),
+    ], ids=["utf-8-bom", "utf-8", "cp1252", "latin-1"])
+    def test_encodings_keep_headers_and_text(self, bom, encoding, text):
+        """UTF-8 with or without BOM, Windows-1252 and printable Latin-1 keep headers, mapping and text."""
+        csv_text = f"Beschreibung;Datum;Titel\n{text};15.01.2024;Grüße\n"
+        result = parse_file(bom + _make_csv_bytes(csv_text, encoding), "journal.csv")
+        assert result["sample_headers"] == ["Beschreibung", "Datum", "Titel"]
+        assert result["mapping"] == {"description": 0, "date": 1, "title": 2}
+        assert (result["rows"][0]["description"], result["rows"][0]["title"]) == (text, "Grüße")
 
-    def test_latin1_encoding(self):
-        """Latin-1 encoded CSV with German characters should parse correctly."""
-        csv_text = "Datum;Ereignis;Beschreibung\n15.01.2024;Störung;Netzwerk-Ausfall\n"
-        rows, _ = _parse_csv(_make_csv_bytes(csv_text, "latin-1"))
-        assert rows[1][1] == "Störung"
-        assert rows[1][2] == "Netzwerk-Ausfall"
-
-    def test_utf8_bom_encoding(self):
-        """UTF-8 with BOM should parse correctly."""
-        csv_text = "Datum;Titel;Beschreibung\n15.01.2024;Event A;Details\n"
-        bom = b"\xef\xbb\xbf"
-        raw = bom + csv_text.encode("utf-8")
-        rows, _ = _parse_csv(raw)
-        # BOM should be stripped (utf-8-sig handles this)
-        assert "Datum" in rows[0][0]
-
-    def test_cp1252_encoding(self):
-        """CP1252 (Windows) encoded CSV should parse correctly."""
-        csv_text = "Datum;Ereignis\n15.01.2024;Störung\n"
-        rows, _ = _parse_csv(_make_csv_bytes(csv_text, "cp1252"))
-        assert rows[1][1] == "Störung"
+    @pytest.mark.parametrize("bom,csv_text,expected", [
+        (b"", "Datum;Titel;Anmerkung\n15.01.2024;Ausfall;Router neu gestartet\n", [("2024-01-15", "Ausfall", "Router neu gestartet")]),
+        (b"\xef\xbb\xbf", "Datum;Titel;Anmerkung\n15.01.2024;Ausfall;Router neu gestartet\n16.01.2024;Anruf;Ticket offen\n",
+         [("2024-01-15", "Ausfall", "Router neu gestartet"), ("2024-01-16", "Anruf", "Ticket offen")]),
+        (b"\xef\xbb\xbf", "Date,Title,Description,Comment\n2024-01-15,Outage,Router restarted,\n2024-01-16,Call,Ticket opened,Internal\n",
+         [("2024-01-15", "Outage", "Router restarted"), ("2024-01-16", "Call", "Ticket opened")]),
+        (b"", "Datum;Titel;Beschreibung;Kommentar\n15.01.2024;Ausfall;Router neu gestartet;\n16.01.2024;Anruf;Ticket offen;Intern\n",
+         [("2024-01-15", "Ausfall", "Router neu gestartet"), ("2024-01-16", "Anruf", "Ticket offen")]),
+        # The delimiter sample still starts with the BOM: four commas tie four semicolons, the fifth comma falls outside
+        (b"\xef\xbb\xbf", "Datum;Titel;Beschreibung\n15.01.2024;Ausfall;,,,," + "x" * 1951 + ",y\n16.01.2024;Anruf;ok\n",
+         [("2024-01-15", "Ausfall", ",,,," + "x" * 1951 + ",y"), ("2024-01-16", "Anruf", "ok")]),
+    ], ids=["note-header", "note-header-bom", "description-beats-comment", "beschreibung-beats-kommentar", "bom-delimiter-sample"])
+    def test_description_headers_and_delimiter(self, bom, csv_text, expected):
+        """Note headers map the description only when no description header does; a BOM keeps the delimiter sample."""
+        result = parse_file(bom + _make_csv_bytes(csv_text), "journal.csv")
+        assert [(row["date"], row["title"], row["description"]) for row in result["rows"]] == expected
 
     def test_empty_csv_returns_empty_rows(self):
         """Empty CSV should return empty row list."""
@@ -509,6 +514,22 @@ class TestXlsxImportContract:
 
 # ── Full Integration Tests ──
 
+    @pytest.mark.parametrize("filename,make_bytes", [
+        ("journal.csv", lambda rows: _make_csv_bytes("".join(";".join(row) + "\n" for row in rows))),
+        ("journal.xlsx", _make_xlsx_bytes),
+    ], ids=["csv", "xlsx"])
+    def test_note_header_does_not_replace_the_inferred_description(self, filename, make_bytes):
+        """A note header fills the description only when the data-based detection finds none."""
+        result = parse_file(make_bytes([
+            ["Date", "Incident", "Resolution", "Comment"],
+            ["2024-01-15", "Outage", "Router restarted", "Internal note for the support team"],
+            ["2024-01-16", "Call", "Ticket opened", "Internal note for the billing team"],
+        ]), filename)
+        assert [(row["title"], row["description"]) for row in result["rows"]] == [
+            ("Outage", "Router restarted"), ("Call", "Ticket opened"),
+        ]
+
+
 class TestIntegrationSpreadsheetFormat:
     """Simulate a real-world spreadsheet layout:
     Column A: month headers, Column B: dates, Column C: events, Column D: details.
@@ -670,3 +691,23 @@ class TestIntegrationEdgeCases:
 def test_unreadable_excel_file_gets_a_fixed_message():
     with pytest.raises(ValueError, match="^Could not read the Excel file$"):
         parse_file(b"not a zip archive", "journal.xlsx")
+
+
+@pytest.mark.parametrize("byte", [b"\x81", b"\x8d", b"\x8f", b"\x90", b"\x9d"], ids=bytes.hex)
+def test_preview_rejects_bytes_undefined_in_cp1252_with_localized_hint(
+    byte, make_config, make_app, builtin_module_loader_factory, mock_storage,
+):
+    """Bytes that are neither UTF-8 nor Windows-1252 fail loudly instead of becoming control characters."""
+    manager = make_config()
+    client = make_app(
+        config_manager=manager, storage=mock_storage, module_loader_factory=builtin_module_loader_factory(manager),
+    ).test_client()
+    raw = _make_csv_bytes("Datum;Titel\n15.01.2024;5 €", "cp1252") + byte
+    responses = [
+        client.post(f"/api/journal/import/preview?lang={lang}", data={"file": (io.BytesIO(raw), "journal.csv")})
+        for lang in ("en", "de")
+    ]
+    assert [response.status_code for response in responses] == [400, 400]
+    english, german = (response.get_json()["error"] for response in responses)
+    assert "save it as CSV (UTF-8)" in english
+    assert "speichere sie als CSV (UTF-8)" in german

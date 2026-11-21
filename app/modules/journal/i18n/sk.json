@@ -30,6 +30,7 @@
   "import_no_date": "bez dátumu",
   "import_file_unsupported": "Podporované sú len súbory .xlsx a .csv",
   "import_file_too_large": "Súbor je príliš veľký (max. 5 MB)",
+  "import_csv_unreadable": "Tento súbor sa nepodarilo prečítať. Otvorte ho v pôvodnom programe, uložte ako CSV (UTF-8) a importujte znova.",
   "delete_all": "Odstrániť všetko",
   "delete_all_confirm": "Odstrániť všetky záznamy ({n})? Túto akciu nemožno vrátiť.",
   "delete_all_type_confirm": "Na potvrdenie zadajte DELETE:",

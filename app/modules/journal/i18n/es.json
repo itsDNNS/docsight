@@ -30,6 +30,7 @@
   "import_no_date": "sin fecha",
   "import_file_unsupported": "Solo se admiten archivos .xlsx y .csv",
   "import_file_too_large": "Archivo demasiado grande (máx. 5 MB)",
+  "import_csv_unreadable": "No se pudo leer este archivo. Ábrelo en su programa original, guárdalo como CSV (UTF-8) e impórtalo de nuevo.",
   "delete_all": "Eliminar todo",
   "delete_all_confirm": "¿Eliminar las {n} entradas? No se puede deshacer.",
   "delete_all_type_confirm": "Escribe DELETE para confirmar:",
