@@ -70,18 +70,7 @@ class CompensationBreakdown:
     source_review_note: str
 
     def to_dict(self) -> dict:
-        return {
-            "days": [item.to_dict() for item in self.days],
-            "exclusions": [item.to_dict() for item in self.exclusions],
-            "total_cents": self.total_cents,
-            "rules_version": self.rules_version,
-            "jurisdiction": self.jurisdiction,
-            "effective_date": self.effective_date,
-            "review_date": self.review_date,
-            "sources": [asdict(source) for source in self.sources],
-            "rounding_note": self.rounding_note,
-            "source_review_note": self.source_review_note,
-        }
+        return asdict(self)
 
 
 class RuleValidationError(ValueError):
@@ -292,9 +281,7 @@ def compute_outage_compensation(
     )
 
 
-def compute_missed_appointment(
-    *, monthly_fee_cents: int | None, ruleset: RuleSet
-) -> DailyEntitlement:
+def compute_missed_appointment(*, monthly_fee_cents: int | None) -> DailyEntitlement:
     """Calculate one missed appointment under TKG § 58(4)."""
     fee = _validate_monthly_fee(monthly_fee_cents)
     percentage_cents, rounded = _percentage_amount(fee, 20)
