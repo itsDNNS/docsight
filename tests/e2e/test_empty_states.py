@@ -41,26 +41,31 @@ def test_empty_range_offers_the_longest_range_then_the_modem_connection(demo_pag
     expect(empty.locator(".view-empty-action")).to_have_attribute("href", re.compile(r"/settings#connection$"))
 
 
-def test_failed_load_offers_a_retry_that_restores_the_view(demo_page):
+@pytest.mark.parametrize(("api", "view", "empty_id", "content"), [
+    (r".*/api/trends\?.*", "trends", "#trend-no-data", "#charts-grid"),
+    (r".*/api/evidence/checklist\?.*", "evidence", "#evidence-placeholder", "#evidence-results"),
+    (r".*/api/connection-monitor/targets$", "connection-monitor?range=7d", "#cm-no-data", "#cm-charts-section"),
+], ids=["trends", "evidence", "connection-monitor"])
+def test_failed_load_offers_a_retry_that_restores_the_view(demo_page, api, view, empty_id, content):
     page = demo_page
     calls = {"count": 0}
 
-    def trends(route):
+    def reply(route):
         calls["count"] += 1
         if calls["count"] == 1:
             route.fulfill(status=500, body="down")
         else:
             route.fallback()
 
-    page.route(re.compile(r".*/api/trends\?.*"), trends)
-    _open(page, "trends")
+    page.route(re.compile(api), reply)
+    _open(page, view)
 
-    empty = page.locator("#trend-no-data")
+    empty = page.locator(empty_id)
     _expect_state(empty, "Could not load the data", "Try again")
     expect(empty.locator(".view-empty-link")).to_have_count(0)
     empty.locator(".view-empty-action").click()
     expect(empty).to_be_hidden()
-    expect(page.locator("#charts-grid")).to_be_visible()
+    expect(page.locator(content)).to_be_visible()
 
 
 @pytest.mark.parametrize(("reply", "title", "action", "links"), [
@@ -257,27 +262,6 @@ def test_comparison_without_data_lets_the_user_choose_other_periods(demo_page):
     empty.locator(".view-empty-action").click()
     # Choosing other periods opens the custom times at the first field.
     expect(page.locator("#comparison-from-a")).to_be_focused()
-
-
-def test_evidence_failure_offers_a_retry(demo_page):
-    page = demo_page
-    calls = {"count": 0}
-
-    def evidence(route):
-        calls["count"] += 1
-        if calls["count"] == 1:
-            route.fulfill(status=500, body="down")
-        else:
-            route.fallback()
-
-    page.route(re.compile(r".*/api/evidence/checklist\?.*"), evidence)
-    _open(page, "evidence")
-
-    empty = page.locator("#evidence-placeholder")
-    _expect_state(empty, "Could not load the data", "Try again")
-    empty.locator(".view-empty-action").click()
-    expect(page.locator("#evidence-results")).to_be_visible()
-    expect(empty).to_be_hidden()
 
 
 def test_every_navigation_view_shows_data_or_an_explained_empty_state(demo_page):

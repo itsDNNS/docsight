@@ -24,6 +24,7 @@ _JSON_FIELDS = {
     "prior_credit_json": "prior_credit",
 }
 _LETTER_FACT_DB_FIELDS = set(_DB_FIELDS) - {"status", "letter_text"}
+CLAIM_FIELDS = frozenset(_JSON_FIELDS.get(f, f) for f in _DB_FIELDS) - {"rules_version"}
 
 
 class ClaimStorage:
