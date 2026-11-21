@@ -87,13 +87,6 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
         if (mc) mc.setAttribute('content', next === 'dark' ? '#06080f' : '#f8f6f3');
     });
 
-    /* ── State ── */
-    /* currentView is global — defined in chart-engine.js */
-    /* charts registry is global — defined in chart-engine.js */
-    /* _trendRange → trends.js */
-    /* BQM state variables → BQM module */
-    /* todayStr, pad, formatDateDE → chart-engine.js */
-
     /* ── Top navigation: destinations switch views in place ── */
     var topnav = document.getElementById('topnav');
     DOCSightNav.onView = function(view) { switchView(view); };
@@ -220,8 +213,6 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
     }
     window.switchView = switchView;
 
-    /* Trend Tabs → trends.js */
-
     /* ── Hash-based view routing ── */
     function viewFromHash() {
         var h = location.hash.replace('#', '');
@@ -235,10 +226,6 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
         var targetId = v === 'live' ? 'view-dashboard' : 'view-' + v;
         if (v !== currentView || !document.getElementById(targetId)) switchView(v, true);
     });
-
-    /* BNetzA Breitbandmessung → integrations.js */
-
-    /* BQM Calendar, Live → BQM module */
 
     /* ── Auto Refresh with Countdown ── */
     var countdownTimer = null;
@@ -422,7 +409,7 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
                         showToast(T.refresh_success || 'Data updated', 'success');
                         refreshData();
                     } else {
-                        showToast(res.data.error || 'Error', res.status === 429 ? 'error' : 'error');
+                        showToast(res.data.error || 'Error', 'error');
                     }
                 })
                 .catch(function() { showToast(T.network_error || 'Error', 'error'); })
@@ -517,22 +504,10 @@ document.querySelectorAll('time[data-docsight-time]').forEach(function(el) {
     })();
     window.showToast = showToast;
 
-    /* Trend Charts, expand buttons, zoom shortcuts → trends.js */
-
-    /* BQM keyboard shortcuts → BQM module */
-
-    /* BQM Graph + Import → BQM module */
-
-    /* Smokeping Graphs → integrations.js */
-
     /* ── Init ── */
     // Store initial hash for deferred routing (after external scripts load)
     var _initHash = viewFromHash();
     window._pendingView = (_initHash && _initHash !== 'live') ? _initHash : null;
-
-
-    /* ── Incident Journal, Incidents, Timeline, Import, Bulk, Search → Journal module ── */
-
 
     document.addEventListener('DOMContentLoaded', function() {
         DOCSightNav.sync(currentView || 'live');

@@ -1,6 +1,6 @@
 """BNetz storage schema migrations."""
 
-from app.storage.migrations import DEMO_FLAG, add_columns, schema_baseline
+from app.storage.migrations import DEMO_FLAG, Migration, add_columns, schema_baseline, table_columns
 
 
 _SCHEMA = (
@@ -20,9 +20,20 @@ _SCHEMA = (
 )
 
 
+def _demo_speeds_under_mbps(conn):
+    # Older demo campaigns stored each speed as "value"; the parsers and the table use "mbps".
+    if "measurements_json" not in table_columns(conn, "bnetz_measurements"):
+        return
+    conn.execute(
+        "UPDATE bnetz_measurements SET measurements_json = replace(measurements_json, '\"value\": ', '\"mbps\": ') "
+        "WHERE is_demo = 1"
+    )
+
+
 MIGRATIONS = (
     schema_baseline("bnetz-0001-baseline", _SCHEMA),
     add_columns("bnetz-0002-columns", [
         ("bnetz_measurements", "source TEXT DEFAULT 'upload'"), ("bnetz_measurements", DEMO_FLAG),
     ]),
+    Migration("bnetz-0003-demo-speeds-mbps", _demo_speeds_under_mbps, lambda _conn: False),
 )

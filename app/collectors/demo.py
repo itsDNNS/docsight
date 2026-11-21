@@ -854,11 +854,11 @@ class DemoCollector(AnalysisCollector):
                 ul_values.append(ul)
                 measurements_dl.append({
                     "date": m_date.strftime("%Y-%m-%d"),
-                    "value": dl,
+                    "mbps": dl,
                 })
                 measurements_ul.append({
                     "date": m_date.strftime("%Y-%m-%d"),
-                    "value": ul,
+                    "mbps": ul,
                 })
 
             dl_avg = round(sum(dl_values) / len(dl_values), 2)

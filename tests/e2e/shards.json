@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expected_total": 857,
+  "expected_total": 859,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
@@ -84,7 +84,7 @@
     },
     {
       "id": 6,
-      "collected_cases": 145,
+      "collected_cases": 147,
       "files": [
         "test_community_drivers.py",
         "test_comparison.py",

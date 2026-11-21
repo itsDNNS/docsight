@@ -346,6 +346,7 @@ def test_report_modal_shows_generation_success_and_error_states(demo_page):
     expect(modal.locator("#report-step1")).to_be_visible()
     expect(modal.locator("#report-step2")).not_to_be_visible()
     expect(modal.locator("#report-builder-status")).to_have_text("")
+    expect(modal.locator("#report-builder-status")).not_to_have_class(re.compile(r"\bis-"))
     expect(modal.locator("#report-complaint-text")).to_have_value("")
     expect(modal.get_by_role("button", name="Build evidence package")).to_be_visible()
     expect(modal.get_by_role("button", name="Copy letter text")).not_to_be_visible()
@@ -364,6 +365,7 @@ def test_report_modal_shows_generation_success_and_error_states(demo_page):
     modal.get_by_role("button", name="Build evidence package").click()
 
     expect(modal.locator("#report-builder-status")).to_contain_text("No report data is available for this period")
+    expect(modal.locator("#report-builder-status")).to_have_class(re.compile(r"\bis-error\b"))
     expect(modal.locator("#report-step1")).to_be_visible()
 
 
@@ -433,6 +435,7 @@ def test_integration_setup_modals_are_guided_and_actionable(demo_page):
         expect(modal.get_by_role("button", name=copy_label)).to_be_visible()
         modal.get_by_role("button", name=validate_label).click()
         expect(modal.locator(".setup-validation-status")).to_contain_text(status_text)
+        expect(modal.locator(".setup-validation-status")).to_have_class(re.compile(r"\bis-progress\b"))
         demo_page.keyboard.press("Escape")
         expect(modal).not_to_be_visible()
 
@@ -699,6 +702,7 @@ def test_ai_export_redaction_copy_and_download_states(demo_page):
 
     modal.get_by_role("button", name="Copy export").click()
     expect(modal.locator("#export-status")).to_contain_text("Export copied")
+    expect(modal.locator("#export-status")).to_have_class(re.compile(r"\bis-success\b"))
     copied = demo_page.evaluate("window.__copiedExportText")
     assert "203.0.113.45" not in copied
     assert "2001:db8::42" not in copied

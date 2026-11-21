@@ -74,7 +74,7 @@ function _bnetzMeasurementSection(label, measurements, minimum, normal) {
 
     var body = document.createElement('tbody');
     measurements.forEach(function(measurement, index) {
-        var speed = measurement.mbps || measurement.speed || measurement.value || 0;
+        var speed = measurement.mbps || 0;
         var row = document.createElement('tr');
         var numberCell = document.createElement('td');
         numberCell.className = 'dt-num bnetz-detail-nr';
