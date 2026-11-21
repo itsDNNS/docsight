@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.fritzbox import parse_fritzbox_data_lua
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .. import fritzbox as fb
+
+log = logging.getLogger("docsis.driver.fritzbox")
 
 
 class FritzBoxDriver(ModemDriver):
@@ -25,7 +30,7 @@ class FritzBoxDriver(ModemDriver):
         self._sid = fb.login(self._url, self._user, self._password)
 
     def get_docsis_data(self) -> DocsisData:
-        return parse_fritzbox_data_lua(fb.get_docsis_data(self._url, self._sid)).value
+        return unwrap(parse_fritzbox_data_lua(fb.get_docsis_data(self._url, self._sid)), log)
 
     def get_device_info(self) -> DeviceInfo:
         info = fb.get_device_info(self._url, self._sid)

@@ -34,6 +34,7 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.surfboard import parse_surfboard_hnap
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .utils import request_error_summary
@@ -267,7 +268,7 @@ class SurfboardDriver(ModemDriver):
             html = self._html_status_cache or ""
             self._html_status_cache = None
 
-        return parse_arris_html(html).value
+        return unwrap(parse_arris_html(html), log)
 
     def login(self) -> None:
         """Two-phase HNAP login with HMAC.
@@ -582,7 +583,7 @@ class SurfboardDriver(ModemDriver):
         elif (ds_raw or us_raw) and not self._action_ns:
             self._action_ns = "Customer"
 
-        return parse_surfboard_hnap(ds_raw, us_raw).value
+        return unwrap(parse_surfboard_hnap(ds_raw, us_raw), log)
 
     def _request_channel_strings(self) -> tuple[str, str]:
         """Request the raw downstream and upstream channel strings in the current namespace."""
