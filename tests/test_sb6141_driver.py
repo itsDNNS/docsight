@@ -267,7 +267,7 @@ class TestEdgeCases:
             assert data["channelUs"]["docsis30"] == []
 
     def test_no_codewords_table(self, driver):
-        """If codewords table is missing, errors default to 0."""
+        """If the codewords table is missing, the error counters are unavailable, not 0."""
         html = """<html><body>
         <table><tr><th>Downstream</th><th colspan=2>Bonding Channel Value</th></tr>
         <tr><td>Channel ID</td><td>1</td><td>2</td></tr>
@@ -281,8 +281,8 @@ class TestEdgeCases:
         with serve_html(driver, html):
             data = driver.get_docsis_data()
             assert len(data["channelDs"]["docsis30"]) == 2
-            assert data["channelDs"]["docsis30"][0]["corrErrors"] == 0
-            assert data["channelDs"]["docsis30"][0]["nonCorrErrors"] == 0
+            assert data["channelDs"]["docsis30"][0]["corrErrors"] is None
+            assert data["channelDs"]["docsis30"][0]["nonCorrErrors"] is None
 
 
 # -- Analyzer integration --

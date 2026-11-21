@@ -39,6 +39,12 @@ def _looks_like_uint32_wrap(
     return drop_mod >= _UINT32_WRAP_AGGREGATE_DROP_MIN
 
 
+def _wrap_offset(offset: int, raw: int, previous_unwrapped: int) -> int:
+    """Add the fewest whole uint32 periods (at least one) that lift ``raw`` above the previous value."""
+    periods = max(1, (previous_unwrapped - raw - offset) // UINT32_COUNTER_SIZE + 1)
+    return offset + periods * UINT32_COUNTER_SIZE
+
+
 def unwrap_uint32_counter_series(
     rows: Iterable[MutableMapping[str, Any]],
     keys: Iterable[str],
@@ -80,9 +86,7 @@ def unwrap_uint32_counter_series(
                     raw,
                     allow_aggregate_wrap=allow_aggregate_wrap,
                 ):
-                    key_state["offset"] += UINT32_COUNTER_SIZE
-                    while raw + key_state["offset"] <= previous_unwrapped:
-                        key_state["offset"] += UINT32_COUNTER_SIZE
+                    key_state["offset"] = _wrap_offset(key_state["offset"], raw, previous_unwrapped)
                 elif raw < previous_raw:
                     key_state["offset"] = 0
 

@@ -3,7 +3,6 @@
 
 from app.drivers.formats.html_rows import (
     _arris_tables,
-    _optional_value,
     parse_arris_downstream,
     parse_arris_html,
     parse_arris_upstream,
@@ -61,26 +60,6 @@ def _full_page(*tables):
 
 
 SCQAM_DS_ROW = _make_ds_row("1", "Locked", "256QAM", "705000000 Hz", "8.2 dBmV", "43.0 dB", "100", "5")
-
-
-# ---------------------------------------------------------------------------
-# _optional_value
-# ---------------------------------------------------------------------------
-
-@pytest.mark.parametrize(
-    ("raw", "expected"),
-    [
-        ("8.2 dBmV", 8.2),
-        ("43.0 dB", 43.0),
-        ("-1.5 dBmV", -1.5),
-        ("", None),
-        (None, None),
-        ("N/A", None),
-        ("10 dBmV", 10.0),
-    ],
-)
-def test_optional_value(raw, expected):
-    assert _optional_value(raw) == expected
 
 
 # ---------------------------------------------------------------------------

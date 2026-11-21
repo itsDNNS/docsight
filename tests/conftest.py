@@ -5,6 +5,7 @@ import json
 import os
 import socket
 import sqlite3
+import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
@@ -149,6 +150,19 @@ def make_config(tmp_path):
         return manager
 
     return factory
+
+
+@pytest.fixture
+def foreign_system_tz(monkeypatch):
+    """Give the process a system zone (UTC+14) unlike the configured zones of a test, where TZ can change at runtime."""
+    if not hasattr(time, "tzset"):
+        yield
+        return
+    monkeypatch.setenv("TZ", "Pacific/Kiritimati")
+    time.tzset()
+    yield
+    monkeypatch.undo()
+    time.tzset()
 
 
 @pytest.fixture

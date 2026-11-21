@@ -96,6 +96,37 @@ test('Speedtest signal detail leaves out power and SNR no channel reported', () 
     assert.deepEqual(text, ['Health: Good', 'DS / US: 0 / 0', 'Snapshot: 2026-11-18T10:00:00Z']);
 });
 
+test('Speedtest detail items render as plain values, health badges and links', () => {
+    const {context} = browser();
+    context.document.createElement = tag => ({...element(), tag, children: [], appendChild(child) { this.children.push(child); }});
+    run(context, 'app/modules/speedtest/static/main.js');
+    const container = context.document.createElement('div');
+    context._renderEnrichedDetail({isp: 'Cable ISP', is_vpn: true, result_url: 'https://www.speedtest.net/result/1'}, container);
+    const items = [];
+    const walk = node => node.className === 'st-sig-item'
+        ? items.push(node.children.map(c => [c.tag, c.className, c.textContent, c.href, c.target, c.rel].join('|')))
+        : (node.children || []).forEach(walk);
+    walk(container);
+    assert.deepEqual(items, [
+        ['span|st-sig-label|ISP|||', 'span|st-sig-value|Cable ISP|||'],
+        ['span|st-sig-label|VPN|||', 'span|st-health-badge health-tolerated|Yes|||'],
+        ['span|st-sig-label||||', 'a|st-sig-value st-ookla-link|\u2197 View on Speedtest.net|https://www.speedtest.net/result/1|_blank|noopener'],
+    ]);
+});
+
+test('Speedtest signal detail requests the page language', () => {
+    const {context} = browser();
+    const urls = [];
+    context.document.documentElement.lang = 'de';
+    context.document.createElement = () => ({...element(), appendChild() {}});
+    context.docsightUrl = url => url;
+    context.fetch = url => { urls.push(url); return new Promise(() => {}); };
+    run(context, 'app/modules/speedtest/static/main.js');
+    const row = {nextElementSibling: null, children: [], after() {}};
+    context.toggleSpeedtestSignal({...element(), getAttribute: () => '7', closest: () => row});
+    assert.equal(urls[0], '/api/speedtest/7/signal?lang=de');
+});
+
 test('Speedtest rows name their expand toggle and show the server name', () => {
     const {context, elements} = browser(['speedtest-tbody']);
     const rows = [];

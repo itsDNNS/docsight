@@ -2,13 +2,13 @@
 /* Calendar navigation, live refresh, graph display, and image import */
 /* Note: innerHTML usage is safe here — all data is from trusted server responses or internal state */
 
-/* Defensive fallback if bqm-chart.js fails to load */
+/* bqm-chart.js is a separate request; if it fails, PNG graphs still load. */
 if (typeof BQMChart === 'undefined') {
     var BQMChart = { render: function() {}, destroy: function() {} };
 }
 
 /* ── BQM State ── */
-var bqmDate = typeof todayStr === 'function' ? todayStr() : null;
+var bqmDate = null;
 var _bqmAvailableDates = new Set();
 var _bqmCsvDates = new Set();
 var _bqmPngDates = new Set();
@@ -37,28 +37,20 @@ function fetchBqmDates(cb) {
 }
 
 function updateBqmQuickButtons() {
-    var hasCsv = _bqmCsvDates.size > 0;
-    var today = typeof todayStr === 'function' ? todayStr() : null;
+    var today = todayStr();
     var selected = null;
-    if (today) {
-        var relativeDate = function(daysAgo) {
-            var d = new Date(today + 'T12:00:00');
-            d.setDate(d.getDate() - daysAgo);
-            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-        };
-        if (_bqmRangeStart && _bqmRangeEnd && _bqmRangeStart !== _bqmRangeEnd) {
-            if (_bqmRangeEnd === today) {
-                if (_bqmRangeStart === relativeDate(6)) selected = '7d';
-                else if (_bqmRangeStart === relativeDate(29)) selected = '30d';
-            }
-        } else {
-            var date = _bqmRangeStart || bqmDate;
-            if (date === today) selected = 'today';
-            else if (date === relativeDate(1)) selected = 'yesterday';
+    if (_bqmRangeStart && _bqmRangeEnd && _bqmRangeStart !== _bqmRangeEnd) {
+        if (_bqmRangeEnd === today) {
+            if (_bqmRangeStart === offsetDate(today, -6)) selected = '7d';
+            else if (_bqmRangeStart === offsetDate(today, -29)) selected = '30d';
         }
+    } else {
+        var date = _bqmRangeStart || bqmDate;
+        if (date === today) selected = 'today';
+        else if (date === offsetDate(today, -1)) selected = 'yesterday';
     }
     var quickRange = document.getElementById('bqm-quick-range');
-    if (quickRange) quickRange.hidden = !hasCsv;
+    quickRange.hidden = _bqmCsvDates.size === 0;
     syncSegments(quickRange, function(btn) { return btn.id === 'bqm-' + selected + '-btn'; });
 }
 
@@ -73,7 +65,6 @@ function renderBqmCalendar(year, month) {
     updateBqmQuickButtons();
     var grid = document.getElementById('bqm-calendar-grid');
     var label = document.getElementById('bqm-month-label');
-    if (!grid || !label) return;
     var monthNames = T.month_names || ['January','February','March','April','May','June','July','August','September','October','November','December'];
     label.textContent = monthNames[month] + ' ' + year;
     grid.replaceChildren();
@@ -152,32 +143,25 @@ function setBqmViewMode(mode) {
     var imageWrap = document.getElementById('bqm-image-wrap');
     var toggleUplot = document.getElementById('bqm-toggle-uplot');
     var togglePng = document.getElementById('bqm-toggle-png');
-    if (chart) chart.hidden = mode !== 'chart';
-    if (imageWrap) imageWrap.hidden = mode === 'chart';
+    chart.hidden = mode !== 'chart';
+    imageWrap.hidden = mode === 'chart';
     syncSegments('bqm-view-toggle', function(option) {
         return option === toggleUplot ? mode === 'chart' : mode === 'png';
     });
 }
 
 function updateBqmViewToggle(date) {
-    var toggle = document.getElementById('bqm-view-toggle');
-    if (!toggle) return;
-    var hasBoth = _bqmCsvDates.has(date) && _bqmPngDates.has(date);
-    toggle.hidden = !hasBoth;
+    document.getElementById('bqm-view-toggle').hidden = !(_bqmCsvDates.has(date) && _bqmPngDates.has(date));
 }
 
 function showBqmCard() {
-    var card = document.getElementById('bqm-card');
-    var noData = document.getElementById('bqm-no-data');
-    if (card) card.hidden = false;
-    DOCSightEmptyState.hide(noData);
+    document.getElementById('bqm-card').hidden = false;
+    DOCSightEmptyState.hide(document.getElementById('bqm-no-data'));
 }
 
 function showBqmNoData(msg) {
-    var card = document.getElementById('bqm-card');
-    var noData = document.getElementById('bqm-no-data');
-    if (card) card.hidden = true;
-    DOCSightEmptyState.show(noData, {
+    document.getElementById('bqm-card').hidden = true;
+    DOCSightEmptyState.show(document.getElementById('bqm-no-data'), {
         icon: 'bar-chart-3',
         title: msg || T.bqm_no_data || 'No BQM graph for this date.',
         text: T.bqm_empty_text,
@@ -188,14 +172,12 @@ function showBqmNoData(msg) {
 
 function toggleBqmCsvImport() {
     var section = document.getElementById('bqm-csv-import-section');
-    if (section) section.hidden = !section.hidden;
+    section.hidden = !section.hidden;
 }
 
 function openBqmCsvImport() {
-    var section = document.getElementById('bqm-csv-import-section');
-    if (section) section.hidden = false;
-    var input = document.getElementById('bqm-csv-file');
-    if (input) input.focus();
+    document.getElementById('bqm-csv-import-section').hidden = false;
+    document.getElementById('bqm-csv-file').focus();
 }
 
 function loadBqmChart(date) {
@@ -224,8 +206,7 @@ function loadBqmRangeChart(start, end) {
     }
     setBqmViewMode('chart');
     hideBqmLiveBadge();
-    var toggle = document.getElementById('bqm-view-toggle');
-    if (toggle) toggle.hidden = true;
+    document.getElementById('bqm-view-toggle').hidden = true;
     fetch(docsightUrl('/api/bqm/data/range?start=' + encodeURIComponent(start) + '&end=' + encodeURIComponent(end)))
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -243,8 +224,7 @@ function loadBqmRangeChart(start, end) {
 
 /* The frame says which day or days the graph covers. */
 function setBqmWindow(text) {
-    var el = document.getElementById('bqm-window');
-    if (el) el.textContent = text || '';
+    document.getElementById('bqm-window').textContent = text || '';
 }
 
 function selectBqmDate(date) {
@@ -290,9 +270,7 @@ function initBqmCalendar() {
 function setBqmQuickRange(days, endDate) {
     endDate = endDate || todayStr();
     var end = new Date(endDate + 'T12:00:00');
-    var start = new Date(end);
-    start.setDate(start.getDate() - (days - 1));
-    _bqmRangeStart = start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate());
+    _bqmRangeStart = offsetDate(endDate, 1 - days);
     _bqmRangeEnd = endDate;
     bqmDate = _bqmRangeEnd;
     _bqmCalYear = end.getFullYear();
@@ -343,11 +321,9 @@ if (bqmMonthNext) bqmMonthNext.addEventListener('click', function() { bqmMonthNa
 /* ── BQM Live Refresh ── */
 function loadBqmLive() {
     var img = document.getElementById('bqm-image');
-    if (!img) return;
     setBqmViewMode('png');
     BQMChart.destroy('bqm-chart-container');
-    var toggle = document.getElementById('bqm-view-toggle');
-    if (toggle) toggle.hidden = true;
+    document.getElementById('bqm-view-toggle').hidden = true;
     fetch(docsightUrl('/api/bqm/live')).then(function(r) {
         if (!r.ok) throw new Error('Live fetch failed');
         var source = r.headers.get('X-BQM-Source') || 'cached';
@@ -378,11 +354,9 @@ function showBqmLiveBadge(source, timestamp) {
     var badge = document.getElementById('bqm-live-badge');
     var updated = document.getElementById('bqm-last-updated');
     var isLive = source === 'live';
-    if (badge) {
-        badge.textContent = isLive ? (T.bqm_live || 'Live') : (T.bqm_cached_png || 'Cached PNG');
-        badge.hidden = false;
-    }
-    if (updated && timestamp) {
+    badge.textContent = isLive ? (T.bqm_live || 'Live') : (T.bqm_cached_png || 'Cached PNG');
+    badge.hidden = false;
+    if (timestamp) {
         var label = isLive ? (T.bqm_last_updated || 'Last updated') : (T.bqm_cached_png_loaded || 'Cached PNG loaded');
         updated.textContent = label + ': ' + formatDocsightTime(timestamp, 'time', true);
         updated.hidden = false;
@@ -390,10 +364,8 @@ function showBqmLiveBadge(source, timestamp) {
 }
 
 function hideBqmLiveBadge() {
-    var badge = document.getElementById('bqm-live-badge');
-    var updated = document.getElementById('bqm-last-updated');
-    if (badge) badge.hidden = true;
-    if (updated) updated.hidden = true;
+    document.getElementById('bqm-live-badge').hidden = true;
+    document.getElementById('bqm-last-updated').hidden = true;
 }
 
 function startBqmLiveRefresh() {
@@ -419,7 +391,6 @@ function stopBqmLiveRefresh() {
 
 function updateBqmRangeLabel() {
     var label = document.getElementById('bqm-range-label');
-    if (!label) return;
     if (_bqmRangeStart && _bqmRangeEnd) {
         var count = Array.from(_bqmAvailableDates).filter(function(d) {
             return d >= _bqmRangeStart && d <= _bqmRangeEnd;
@@ -449,7 +420,6 @@ if (bqmTogglePng) bqmTogglePng.addEventListener('click', function() {
 /* ── BQM Graph ── */
 function loadBqmGraph(date) {
     var img = document.getElementById('bqm-image');
-    if (!img) return;
     setBqmViewMode('png');
     BQMChart.destroy('bqm-chart-container');
     img.onload = function() {
@@ -487,11 +457,12 @@ function detectDateFromFilename(filename) {
 
 function importBqmCsv() {
     var input = document.getElementById('bqm-csv-file');
-    if (!input || !input.files.length) return;
+    if (!input.files.length) return;
     var btn = document.getElementById('bqm-csv-import-btn');
     var status = document.getElementById('bqm-csv-import-status');
-    if (btn) btn.disabled = true;
-    if (status) { status.textContent = T.bqm_csv_importing || 'Importing…'; status.className = 'bqm-csv-status'; }
+    btn.disabled = true;
+    status.textContent = T.bqm_csv_importing || 'Importing…';
+    status.className = 'bqm-csv-status';
 
     var formData = new FormData();
     formData.append('file', input.files[0]);
@@ -506,23 +477,23 @@ function importBqmCsv() {
         })
         .then(function(data) {
             if (data.error) {
-                if (status) { status.textContent = data.error; status.className = 'bqm-csv-status error'; }
+                status.textContent = data.error;
+                status.className = 'bqm-csv-status error';
             } else {
-                if (status) {
-                    status.textContent = (T.bqm_csv_import_result || '{0} rows imported ({1} days, {2} to {3})')
-                        .replace('{0}', data.parsed_rows).replace('{1}', data.days)
-                        .replace('{2}', data.date_range.start).replace('{3}', data.date_range.end);
-                    status.className = 'bqm-csv-status ok';
-                }
+                status.textContent = (T.bqm_csv_import_result || '{0} rows imported ({1} days, {2} to {3})')
+                    .replace('{0}', data.parsed_rows).replace('{1}', data.days)
+                    .replace('{2}', data.date_range.start).replace('{3}', data.date_range.end);
+                status.className = 'bqm-csv-status ok';
                 fetchBqmDates(function() { renderBqmCalendar(_bqmCalYear, _bqmCalMonth); });
             }
         })
         .catch(function(err) {
-            if (status) { status.textContent = (T.error_prefix || 'Error') + ': ' + err.message; status.className = 'bqm-csv-status error'; }
+            status.textContent = (T.error_prefix || 'Error') + ': ' + err.message;
+            status.className = 'bqm-csv-status error';
         })
         .finally(function() {
-            if (btn) btn.disabled = false;
-            if (input) input.value = '';
+            btn.disabled = false;
+            input.value = '';
         });
 }
 
@@ -557,18 +528,8 @@ function closeBqmImportModal() {
 
 function setBqmImportValidationState(message, tone) {
     var el = document.getElementById('bqm-import-validation-state');
-    if (!el) return;
     el.textContent = message || '';
     el.className = 'import-validation-state' + (tone ? ' is-' + tone : '');
-}
-
-function updateBqmImportValidationState(datesDetected, datesMissing) {
-    var parts = [];
-    parts.push((T.bqm_import_validation_ready || '{0} ready').replace('{0}', datesDetected));
-    if (datesMissing) {
-        parts.push((T.bqm_import_validation_dates || '{0} needs a date').replace('{0}', datesMissing));
-    }
-    setBqmImportValidationState(parts.join(', '), datesMissing ? 'warning' : 'success');
 }
 
 function offsetDate(isoDate, days) {
@@ -603,14 +564,9 @@ function handleBqmImportFiles(fileList) {
     }
     if (rejected > 0) setBqmImportValidationState(T.bqm_import_validation_unsupported || 'Unsupported file type. Only PNG and JPEG images are supported.', 'error');
     if (_bqmImportFiles.length > 0) {
-        // Apply current offset to newly added files
-        var days = parseInt(document.getElementById('bqm-import-offset').value) || 0;
-        if (days !== 0) {
-            _bqmImportFiles.forEach(function(entry) {
-                if (entry.originalDate) entry.date = offsetDate(entry.originalDate, days);
-            });
-        }
-        renderBqmImportPreview();
+        // A set offset also applies to the new files; without one, dates edited by hand stay.
+        if (parseInt(document.getElementById('bqm-import-offset').value)) applyBqmImportOffset();
+        else renderBqmImportPreview();
     }
 }
 
@@ -705,7 +661,7 @@ function renderBqmImportPreview() {
     statusEl.textContent = (T.bqm_import_validation_ready || '{0} ready').replace('{0}', datesDetected)
         + (datesMissing > 0 ? ', ' + (T.bqm_import_validation_dates || '{0} needs a date').replace('{0}', datesMissing) : '');
     statusEl.hidden = false;
-    updateBqmImportValidationState(datesDetected, datesMissing);
+    setBqmImportValidationState(statusEl.textContent, datesMissing ? 'warning' : 'success');
 
     document.getElementById('bqm-import-dropzone').hidden = true;
     document.getElementById('bqm-import-options').hidden = false;
@@ -868,76 +824,51 @@ function deleteBqmImages() {
             showToast(T.bqm_no_data_range || 'No BQM data in this range', 'info');
             return;
         }
-        var msg = (T.bqm_delete_range || 'Delete {0} images from {1} to {2}?')
-            .replace('{0}', rangeDates.length)
-            .replace('{1}', _bqmRangeStart)
-            .replace('{2}', _bqmRangeEnd);
-        docsightConfirm({
-            title: T.delete || 'Delete',
-            message: msg,
-            confirmText: T.delete || 'Delete',
-            cancelText: T.cancel || 'Cancel',
-            danger: true
-        }).then(function(confirmed) {
-            if (!confirmed) return null;
-            return fetch(docsightUrl('/api/bqm/images'), {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ start: _bqmRangeStart, end: _bqmRangeEnd })
-            });
-        })
-        .then(function(r) { return r ? r.json() : null; })
-        .then(function(data) {
-            if (!data) return;
-            var successMsg = (T.bqm_delete_success || '{0} images deleted').replace('{0}', data.deleted);
-            showToast(successMsg, 'success');
-            _bqmRangeStart = null;
-            _bqmRangeEnd = null;
-            fetchBqmDates(function() { renderBqmCalendar(_bqmCalYear, _bqmCalMonth); });
-        })
-        .catch(function(err) { showToast((T.bqm_delete_failed || 'Delete failed: {0}').replace('{0}', err.message), 'error'); });
+        _deleteBqmImages({
+            message: (T.bqm_delete_range || 'Delete {0} images from {1} to {2}?')
+                .replace('{0}', rangeDates.length)
+                .replace('{1}', _bqmRangeStart)
+                .replace('{2}', _bqmRangeEnd)
+        }, { start: _bqmRangeStart, end: _bqmRangeEnd });
     } else {
-        // Delete all
-        var msg = (T.bqm_delete_all || 'Delete all {0} BQM images?').replace('{0}', totalCount);
-        docsightConfirm({
-            title: T.delete || 'Delete',
-            message: msg,
-            confirmText: T.delete || 'Delete',
-            cancelText: T.cancel || 'Cancel',
-            danger: true,
+        _deleteBqmImages({
+            message: (T.bqm_delete_all || 'Delete all {0} BQM images?').replace('{0}', totalCount),
             requireText: 'DELETE',
             requireLabel: T.bqm_delete_confirm || 'Type DELETE to confirm'
-        }).then(function(confirmed) {
-            if (!confirmed) return null;
-            return fetch(docsightUrl('/api/bqm/images'), {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ all: true, confirm: 'DELETE_ALL' })
-            });
-        })
-        .then(function(r) { return r ? r.json() : null; })
-        .then(function(data) {
-            if (!data) return;
-            var successMsg = (T.bqm_delete_success || '{0} images deleted').replace('{0}', data.deleted);
-            showToast(successMsg, 'success');
-            _bqmRangeStart = null;
-            _bqmRangeEnd = null;
-            fetchBqmDates(function() { renderBqmCalendar(_bqmCalYear, _bqmCalMonth); });
-        })
-        .catch(function(err) { showToast((T.bqm_delete_failed || 'Delete failed: {0}').replace('{0}', err.message), 'error'); });
+        }, { all: true, confirm: 'DELETE_ALL' });
     }
+}
+
+function _deleteBqmImages(dialog, body) {
+    docsightConfirm(Object.assign({
+        title: T.delete || 'Delete',
+        confirmText: T.delete || 'Delete',
+        cancelText: T.cancel || 'Cancel',
+        danger: true
+    }, dialog)).then(function(confirmed) {
+        if (!confirmed) return null;
+        return fetch(docsightUrl('/api/bqm/images'), {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+    })
+    .then(function(r) { return r ? r.json() : null; })
+    .then(function(data) {
+        if (!data) return;
+        var successMsg = (T.bqm_delete_success || '{0} images deleted').replace('{0}', data.deleted);
+        showToast(successMsg, 'success');
+        _bqmRangeStart = null;
+        _bqmRangeEnd = null;
+        fetchBqmDates(function() { renderBqmCalendar(_bqmCalYear, _bqmCalMonth); });
+    })
+    .catch(function(err) { showToast((T.bqm_delete_failed || 'Delete failed: {0}').replace('{0}', err.message), 'error'); });
 }
 
 /* ── BQM View Init (called from switchView) ── */
 window.initBqmView = function() {
     if (!document.getElementById('view-bqm')) return;
     if (!bqmDate) bqmDate = todayStr();
-    // Cross-view date linking (Phase 4)
-    if (window._selectedDateRange) {
-        _bqmRangeStart = window._selectedDateRange.start;
-        _bqmRangeEnd = window._selectedDateRange.end;
-        updateBqmRangeLabel();
-    }
     if (!_bqmDatesLoaded) {
         initBqmCalendar();
     } else {

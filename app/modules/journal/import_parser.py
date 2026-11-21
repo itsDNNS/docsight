@@ -25,25 +25,29 @@ DATE_ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
+def check_file_type(filename):
+    """Reject files other than .xlsx and .csv, before their content is read."""
+    if not filename.lower().endswith((".xlsx", ".csv")):
+        raise ValueError("Only .xlsx and .csv files are supported")
+
+
 def parse_file(file_bytes, filename):
     """Parse uploaded file and return structured preview data.
 
     Returns dict with: columns, sample_headers, mapping, rows, total, skipped
     """
+    check_file_type(filename)
     if len(file_bytes) > MAX_FILE_SIZE:
         raise ValueError("File too large (max 5 MB)")
 
-    lower = filename.lower()
-    if lower.endswith(".xlsx"):
+    if filename.lower().endswith(".xlsx"):
         try:
             raw_rows, headers_idx = _parse_xlsx(file_bytes)
         except Exception as exc:
             # openpyxl errors may carry internal details; the client gets a fixed message.
             raise ValueError("Could not read the Excel file") from exc
-    elif lower.endswith(".csv"):
-        raw_rows, headers_idx = _parse_csv(file_bytes)
     else:
-        raise ValueError("Unsupported file format. Use .xlsx or .csv")
+        raw_rows, headers_idx = _parse_csv(file_bytes)
 
     if not raw_rows:
         raise ValueError("File is empty")
@@ -367,48 +371,20 @@ def _normalize_date(raw, year_from_context):
 
     raw = raw.strip()
 
-    # 1. ISO format
-    m = DATE_ISO.match(raw)
-    if m:
-        try:
-            datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
-            return raw
-        except ValueError:
-            return None
-
-    # 4. Date range DD.MM. - DD.MM. -> take start date
-    m = DATE_DD_MM_RANGE.match(raw)
-    if m:
-        day, month = int(m.group(1)), int(m.group(2))
+    if m := DATE_ISO.match(raw):
+        year, month, day = map(int, m.groups())
+    elif m := DATE_DD_MM_YYYY.match(raw):
+        day, month, year = map(int, m.groups())
+    elif m := DATE_DD_MM_RANGE.match(raw) or DATE_DD_MM.match(raw):
+        day, month = map(int, m.groups())
         year = year_from_context or datetime.now().year
-        try:
-            datetime(year, month, day)
-            return f"{year:04d}-{month:02d}-{day:02d}"
-        except ValueError:
-            return None
-
-    # 2. DD.MM.YYYY
-    m = DATE_DD_MM_YYYY.match(raw)
-    if m:
-        day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        try:
-            datetime(year, month, day)
-            return f"{year:04d}-{month:02d}-{day:02d}"
-        except ValueError:
-            return None
-
-    # 3. DD.MM. (with or without trailing dot/space)
-    m = DATE_DD_MM.match(raw)
-    if m:
-        day, month = int(m.group(1)), int(m.group(2))
-        year = year_from_context or datetime.now().year
-        try:
-            datetime(year, month, day)
-            return f"{year:04d}-{month:02d}-{day:02d}"
-        except ValueError:
-            return None
-
-    return None
+    else:
+        return None
+    try:
+        datetime(year, month, day)
+    except ValueError:
+        return None
+    return f"{year:04d}-{month:02d}-{day:02d}"
 
 
 def _col_letter(idx):

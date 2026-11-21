@@ -72,3 +72,15 @@ test('every offered event range opens correlation with exactly one active tab', 
         assert.equal(c.opened.active.length, 1, `${ageHours}h old event`);
     }
 });
+
+test('summary and events requests send the page language', () => {
+    const c = setup();
+    const urls = [];
+    Object.assign(c.document, {documentElement: {lang: 'de'}, getElementById: () => ({style: {}})});
+    c.docsightUrl = url => url;
+    c.DOCSightEmptyState = {hide() {}};
+    c.fetch = url => { urls.push(url); return new Promise(() => {}); };
+    c.loadFritzCableData();
+    c._fritzCableLoadEvents();
+    assert.deepEqual(urls.map(url => /[?&]lang=de(&|$)/.test(url)), [true, true]);
+});

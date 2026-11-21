@@ -9,15 +9,20 @@ from typing import Any
 
 from ...types import DocsisDataFritz, RawChannel
 from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split
-from .primitives import normalize_modulation, parse_number, parse_optional_finite_float
+from .primitives import normalize_modulation, parse_number
 
 
 def _reading(value: Any) -> float | None:
     """Leading finite number of a reading; missing or unreadable is None, numeric zero is 0.0."""
-    if isinstance(value, bool):
-        return None
-    parts = ("0" if value == 0 else str(value or "")).split()
-    return parse_optional_finite_float(parts[0]) if parts else None
+    return None if isinstance(value, bool) else parse_number("0" if value == 0 else str(value or ""))
+
+
+def _number_or_zero(value: str) -> float:
+    """Leading number of an ID or frequency; missing or unreadable text keeps the 0 its channel history uses."""
+    try:
+        return float(value.split()[0])
+    except (IndexError, ValueError):
+        return 0.0
 
 
 def parse_ultrahub7_downstream(rows: list[dict[str, Any]]) -> ParseResult[list[RawChannel]]:
@@ -26,7 +31,7 @@ def parse_ultrahub7_downstream(rows: list[dict[str, Any]]) -> ParseResult[list[R
     for index, row in enumerate(rows):
         try:
             channel_id = int(row.get("ChannelID", "0"))
-            frequency = parse_number(str(row.get("Frequency") or ""))
+            frequency = _number_or_zero(str(row.get("Frequency") or ""))
             modulation = str(row.get("Modulation", "") or "").upper().replace("-", "")
             power = _reading(row.get("PowerLevel"))
             snr = _reading(row.get("SNRLevel")) or 0
@@ -50,7 +55,7 @@ def parse_ultrahub7_upstream(rows: list[dict[str, Any]]) -> ParseResult[list[Raw
     for index, row in enumerate(rows):
         try:
             channel_id = int(row.get("ChannelID", "0"))
-            frequency = parse_number(str(row.get("Frequency") or ""))
+            frequency = _number_or_zero(str(row.get("Frequency") or ""))
             modulation = str(row.get("Modulation", "") or "").upper().replace("-", "")
             channels.append({
                 "channelID": str(channel_id), "type": modulation,
@@ -79,7 +84,7 @@ def parse_ultrahub7_json(
 
 def _frequency_mhz(value: Any) -> float:
     """Hz or MHz reading as MHz; missing or unreadable is 0, a malformed or non-finite value raises."""
-    number = parse_number(value) if isinstance(value, str) else float(value or 0)
+    number = _number_or_zero(value) if isinstance(value, str) else float(value or 0)
     if not math.isfinite(number):
         raise ValueError("non-finite frequency")
     return number / 1_000_000 if number > 1_000_000 else number
@@ -89,7 +94,7 @@ def _cga_channel_id(value: Any) -> int:
     # null reads like a missing ID (channel 0); other non-numeric types are invalid
     if isinstance(value, bool) or not isinstance(value, (int, float, str, type(None))):
         raise TypeError("unsupported channel ID")
-    return int(parse_number(str(value)))
+    return int(_number_or_zero(str(value)))
 
 
 def _parse_cga_lane(rows: Any, lane: str) -> ParseResult[list[RawChannel] | None]:
