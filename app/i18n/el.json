@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Νέα μη διορθώσιμα",
   "snapshot_not_reported": "δεν αναφέρεται από το μόντεμ",
   "snapshot_first": "πρώτο στιγμιότυπο",
+  "snapshot_not_comparable": "δεν συγκρίνεται με το προηγούμενο στιγμιότυπο",
   "snapshot_since_previous": "από το προηγούμενο στιγμιότυπο",
   "snapshot_why": "Γιατί {health}",
   "snapshot_no_issue_detail": "Δεν καταγράφηκε μεμονωμένη αιτία",

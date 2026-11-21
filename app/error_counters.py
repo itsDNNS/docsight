@@ -80,6 +80,16 @@ def to_counter(value: object) -> Counter:
     return number if number >= 0 else None
 
 
+def uncorrectable_channels(summary: Mapping[str, object]) -> object:
+    """Number of channels behind a stored summary's uncorrectable total, or ``None`` when not recorded.
+
+    Totals over a different number of channels are not comparable, so views compare
+    this between snapshots before they show new errors.
+    """
+    coverage = summary.get("error_counter_coverage")
+    return coverage.get("uncorrectable_channels") if isinstance(coverage, Mapping) else None
+
+
 def _channel_key(channel: Mapping[str, object]) -> str:
     """Build a stable identity used to reject cross-cohort counter deltas."""
     return "|".join(str(channel.get(key) or "") for key in (

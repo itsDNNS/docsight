@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Noi necorectabile",
   "snapshot_not_reported": "nu este raportat de modem",
   "snapshot_first": "primul instantaneu",
+  "snapshot_not_comparable": "nu se poate compara cu instantaneul anterior",
   "snapshot_since_previous": "de la instantaneul anterior",
   "snapshot_why": "De ce {health}",
   "snapshot_no_issue_detail": "Nicio cauză anume înregistrată",

@@ -86,10 +86,12 @@
         }).slice(0, WEAKEST_COUNT);
     }
 
-    function newErrors(summary, previous) {
+    function newErrors(summary, previous, previousChannels) {
         var current = summary.ds_uncorrectable_errors;
         if (current === null || current === undefined) return null;
         if (previous === null || previous === undefined) return null;
+        // A total over a different number of channels is not comparable: a counter that appeared or went away is no new errors.
+        if (summary.ds_uncorrectable_channels !== previousChannels) return null;
         // A counter that dropped was reset by a modem restart; its new value is new errors.
         return current >= previous ? current - previous : current;
     }
@@ -122,11 +124,13 @@
             summary.ds_snr_min != null ? text('snapshot_min', 'min {value}', {value: num(summary.ds_snr_min)}) : ''));
         kpis.appendChild(kpi(text('snapshot_us_power', 'US power'), num(summary.us_power_avg) + ' dBmV',
             summary.us_power_min != null ? num(summary.us_power_min) + ' – ' + num(summary.us_power_max) : ''));
-        var fresh = newErrors(summary, payload.previous_uncorrectable);
+        var fresh = newErrors(summary, payload.previous_uncorrectable, payload.previous_uncorrectable_channels);
         kpis.appendChild(kpi(text('snapshot_new_uncorrectable', 'New uncorrectable'),
             fresh === null ? '–' : '+' + fresh.toLocaleString(),
             fresh === null
-                ? (summary.ds_uncorrectable_errors == null ? text('snapshot_not_reported', 'not reported by the modem') : text('snapshot_first', 'first snapshot'))
+                ? (summary.ds_uncorrectable_errors == null ? text('snapshot_not_reported', 'not reported by the modem')
+                    : payload.has_previous ? text('snapshot_not_comparable', 'not comparable with the snapshot before')
+                    : text('snapshot_first', 'first snapshot'))
                 : text('snapshot_since_previous', 'since the snapshot before'),
             fresh ? 'warn' : ''));
         body.appendChild(kpis);
@@ -189,7 +193,7 @@
     function asText(payload) {
         var snapshot = payload.snapshot;
         var summary = snapshot.summary || {};
-        var fresh = newErrors(summary, payload.previous_uncorrectable);
+        var fresh = newErrors(summary, payload.previous_uncorrectable, payload.previous_uncorrectable_channels);
         var lines = [
             text('snapshot_title', 'Snapshot · {time}', {time: formatDocsightTime(snapshot.timestamp, 'datetime')}) + ' (' + healthLabel(summary.health) + ')',
             text('snapshot_ds_power', 'DS power') + ': ' + num(summary.ds_power_avg) + ' dBmV (' + num(summary.ds_power_min) + ' – ' + num(summary.ds_power_max) + ')',

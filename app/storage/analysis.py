@@ -4,6 +4,7 @@ import json
 
 from app.channel_selector import match_channel, match_channels
 
+from ..error_counters import uncorrectable_channels
 from ..tz import utc_cutoff
 from .error_counters import unwrap_uint32_counter_series
 from .events import decode_details
@@ -62,6 +63,7 @@ class AnalysisMethods:
                     "us_power_avg": s.get("us_power_avg"),
                     "ds_correctable_errors": corr_errors,
                     "ds_uncorrectable_errors": uncorr_errors,
+                    "ds_uncorrectable_channels": uncorrectable_channels(s),
                 })
 
         if "speedtest" in sources:

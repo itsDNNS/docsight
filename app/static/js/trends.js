@@ -5,6 +5,7 @@
 
 var _trendRange = '1d';
 var _lastTrendData = null;
+var _lastTrendRows = null;
 var _lastTrendWeather = null;
 var _lastTrendRange = '1d';
 var _trendLoadSeq = 0;
@@ -162,7 +163,8 @@ function _renderTrendCharts() {
     _setTrendErrorsVisible(showErrors);
     if (showErrors) {
         // New uncorrectable errors per interval; the cumulative counter hides when they happened.
-        var buckets = docsightErrorBuckets(data, range);
+        // All rows, since a poll without any reading still changes the channels behind the counter.
+        var buckets = docsightErrorBuckets(_lastTrendRows, range);
         _setTrendErrorsTitle(docsightErrorBucketMinutes(range));
         var bucketMinutes = docsightErrorBucketMinutes(range);
         var bucketTimes = docsightTimesFromStamps(buckets.map(function(b) { return b.timestamp; }));
@@ -203,7 +205,8 @@ function loadTrends(range) {
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
     ]).then(function(results) {
             if (seq !== _trendLoadSeq) return;
-            var data = (results[0] || []).filter(_isDocsisTrendRow);
+            _lastTrendRows = results[0] || [];
+            var data = _lastTrendRows.filter(_isDocsisTrendRow);
             var weatherData = results[1];
             if (!data || data.length === 0) {
                 DOCSightEmptyState.showRange(noData, {tabs: 'trend-tabs', glossary: 'signal_trends'});

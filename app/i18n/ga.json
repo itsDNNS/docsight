@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Nua nach féidir a cheartú",
   "snapshot_not_reported": "ní thuairiscíonn an móideim é",
   "snapshot_first": "an chéad léargas",
+  "snapshot_not_comparable": "ní féidir é a chur i gcomparáid leis an léargas roimhe",
   "snapshot_since_previous": "ón léargas roimhe",
   "snapshot_why": "Cén fáth {health}",
   "snapshot_no_issue_detail": "Níor taifeadadh cúis aonair",
