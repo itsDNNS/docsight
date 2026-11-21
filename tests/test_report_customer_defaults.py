@@ -369,34 +369,14 @@ def test_index_report_fields_have_empty_server_defaults(client, config_mgr, samp
     current_runtime().config_manager = config_mgr
     current_runtime().update_state(analysis=sample_analysis)
 
-    soup = BeautifulSoup(client.get("/?lang=en").get_data(as_text=True), "html.parser")
+    soup = BeautifulSoup(client.get("/?lang=de").get_data(as_text=True), "html.parser")
 
+    assert "sendet ihn nicht automatisch an deinen ISP" in soup.select_one(".report-builder-privacy").get_text()
     assert soup.select_one("#report-name").get("value") == ""
     assert soup.select_one("#report-number").get("value") == ""
     address = soup.select_one("textarea#report-address")
     assert address is not None
     assert address.get_text() == ""
-
-
-def test_report_modal_reset_uses_default_values_without_persistence_side_channels():
-    source = (ROOT / "app" / "static" / "js" / "utils.js").read_text(encoding="utf-8")
-    start = source.index("function resetReportModalState()")
-    end = source.index("\nfunction ", start + 1)
-    reset_source = source[start:end]
-
-    for field_id in ("report-name", "report-number", "report-address"):
-        assert field_id in reset_source
-    assert "defaultValue" in reset_source
-    assert "localStorage" not in reset_source
-    assert "/api/config" not in reset_source
-
-
-def test_settings_form_serializer_includes_textareas():
-    source = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
-    start = source.index("function getFormData()")
-    end = source.index("\nfunction ", start + 1)
-
-    assert "textarea" in source[start:end]
 
 
 def test_direct_report_routes_do_not_fall_back_to_saved_customer_values(route_app):

@@ -2,6 +2,8 @@
 
 import os
 import re
+from urllib.parse import urlsplit
+
 import pytest
 from playwright.sync_api import expect
 
@@ -75,6 +77,7 @@ class TestSetupStartHierarchy:
         expect(restore).to_be_visible()
         expect(connect).to_have_class(re.compile(r"\bbtn-primary\b"))
         expect(demo).not_to_have_class(re.compile(r"\bbtn-primary\b"))
+        expect(demo).to_have_class(re.compile(r"\bbtn-ghost\b"))
         assert abs(connect.bounding_box()["width"] - card.bounding_box()["width"]) < 60
         assert connect.bounding_box()["y"] < demo.bounding_box()["y"] < restore.bounding_box()["y"]
 
@@ -82,6 +85,7 @@ class TestSetupStartHierarchy:
         setup_page.locator("#connect-modem-btn").click()
         stepper = setup_page.locator(".setup-stepper")
         expect(stepper).to_be_visible()
+        expect(setup_page.locator(".step-content[data-step='1'] h2.card-title")).to_be_focused()
 
     def test_click_restore_shows_restore_section(self, setup_page):
         setup_page.locator("#restore-action").click()
@@ -239,6 +243,7 @@ class TestSetupRecovery:
         retry = result.get_by_role("button", name="Try again")
         demo = result.get_by_role("button", name="Try the demo instead")
         expect(retry).to_be_visible()
+        expect(retry).to_be_focused()
         expect(demo).to_be_visible()
 
         with page.expect_request(setup_server + "/"):
@@ -341,6 +346,26 @@ class TestOneClickDemo:
         page.wait_for_url(first_run_server + target_suffix, timeout=30_000)
         expect(page.locator(visible_selector)).to_be_visible()
         expect(page.locator(".demo-banner")).to_have_count(0)
+
+    @pytest.mark.parametrize("status", [401, 403])
+    def test_banner_exit_with_expired_session_goes_to_login(self, page, path_prefix_servers, status):
+        mount_path = path_prefix_servers["mount_path"]
+        page.goto(f"{path_prefix_servers['app_url']}/login")
+        page.fill('input[name="password"]', path_prefix_servers["password"])
+        with page.expect_navigation():
+            page.click('button[type="submit"]')
+        page.wait_for_load_state("networkidle")
+        page.route("**/api/demo/migrate", lambda route: route.fulfill(status=status, json={}))
+        # This server enforces demo mode, which disables the banner actions.
+        exit_button = page.locator("#demo-exit")
+        exit_button.evaluate("button => { button.disabled = false; }")
+        page.evaluate("T.demo_migrate_confirm = 'Question from the catalog'")
+        exit_button.click()
+        expect(page.locator("#docsight-confirm-message")).to_have_text("Question from the catalog")
+        with page.expect_request(
+            lambda request: request.is_navigation_request() and urlsplit(request.url).path == f"{mount_path}/login"
+        ):
+            page.locator("#docsight-confirm-ok").click()
 
     def test_demo_start_opens_the_dashboard_at_once_and_fills_it_when_the_data_arrives(
         self, page, first_run_server
