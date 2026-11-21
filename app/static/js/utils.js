@@ -28,6 +28,15 @@ function labelDataTable(table) {
     });
 }
 
+/* GET or send a request and read its JSON answer. Failed requests and non-2xx
+   answers reject alike, so callers show one error state for both. */
+function docsightJson(path, options) {
+    return fetch(docsightUrl(path), options).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    });
+}
+
 /* ── Export for AI Analysis ── */
 var exportRawText = '';
 var exportLoadId = 0;
