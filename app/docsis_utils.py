@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Literal
 
@@ -43,11 +44,12 @@ SUMMARY_HEALTH_RANK = {"good": 0, "tolerated": 1, "marginal": 2, "critical": 3}
 
 
 def to_float(value: Any) -> float | None:
-    """Return ``value`` as float, or ``None`` when it cannot be converted."""
+    """Return ``value`` as a finite float, or ``None`` when it cannot be converted or is not finite."""
     try:
-        return float(value)
-    except (TypeError, ValueError):
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
         return None
+    return number if math.isfinite(number) else None
 
 
 def _compact_text(*values: object) -> str:

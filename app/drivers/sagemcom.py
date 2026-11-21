@@ -188,7 +188,7 @@ class SagemcomDriver(ModemDriver):
         data = unwrap(parse_sagemcom_xmo_json({"downstream": ds_raw, "upstream": us_raw}), log)
         if data is None:
             # Not a RuntimeError: get_docsis_data would treat that as an expired session.
-            raise ValueError("invalid Sagemcom upstream payload")
+            raise ValueError("invalid Sagemcom channel payload")
         return data
 
     def get_device_info(self) -> DeviceInfo:

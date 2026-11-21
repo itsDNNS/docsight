@@ -401,7 +401,7 @@ def _cases() -> list[DriverFormatCase]:
     add("fritzbox_data_lua.success_duplicates_missing_id", "fritzbox", "fritzbox_data_lua", "captured-shape", lambda: _fritz(json.loads(json.dumps(FRITZ_SUCCESS))), fritz_expected)
     add("fritzbox_data_lua.empty", "fritzbox", "fritzbox_data_lua", "minimal-empty", lambda: _fritz(json.loads(json.dumps(EMPTY_SPLIT))), EMPTY_SPLIT)
     fritz_bad = _split(us31=[{"channelID": 5, "powerLevel": "not-a-number"}])
-    add("fritzbox_data_lua.malformed_power", "fritzbox", "fritzbox_data_lua", "minimal-synthetic-malformed", lambda: _fritz(json.loads(json.dumps(fritz_bad))), fritz_bad)
+    add("fritzbox_data_lua.malformed_power", "fritzbox", "fritzbox_data_lua", "minimal-synthetic-malformed", lambda: _fritz(json.loads(json.dumps(fritz_bad))), _split(us31=[{"channelID": 5, "powerLevel": None}]))
 
     pyur = json.loads((Path(__file__).resolve().parents[1] / "fixtures/pyur_fast3896/connection.json").read_text())[0]
     pyur_sample = [{
@@ -523,7 +523,7 @@ def _cases() -> list[DriverFormatCase]:
     )
     add("cm3500_html.success_all_lanes", "cm3500", "cm3500_html", "captured-subset", lambda: _cm3500(CM3500_SUCCESS), cm3500_expected)
     add("cm3500_html.empty_document", "cm3500", "cm3500_html", "minimal-empty", lambda: _cm3500("<html></html>"), EMPTY_SPLIT)
-    add("cm3500_html.malformed_numeric", "cm3500", "cm3500_html", "minimal-synthetic-malformed", lambda: _cm3500("<h4>Downstream QAM</h4><table><tr><td>a</td><td>b</td><td>c</td><td>d</td><td>e</td><td>f</td><td>g</td><td>h</td><td>i</td></tr><tr><td>x</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>QAM</td><td>0</td><td>bad</td><td>bad</td></tr></table>"), _split(ds30=[{"channelID": 0, "frequency": "bad", "powerLevel": 0.0, "mse": -0.0, "mer": 0.0, "modulation": "QAM", "corrErrors": 0, "nonCorrErrors": 0}]))
+    add("cm3500_html.malformed_numeric", "cm3500", "cm3500_html", "minimal-synthetic-malformed", lambda: _cm3500("<h4>Downstream QAM</h4><table><tr><td>a</td><td>b</td><td>c</td><td>d</td><td>e</td><td>f</td><td>g</td><td>h</td><td>i</td></tr><tr><td>x</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>QAM</td><td>0</td><td>bad</td><td>bad</td></tr></table>"), EMPTY_SPLIT)
 
     surf_ds = "1^Locked^256QAM^43^705000000^0.0^40.9^31^0^|+|2^Locked^OFDM PLC^193^957000000^0.1^43.0^9^1^"
     surf_us = "1^Locked^SC-QAM^3^6400000^29200000^46.5^|+|2^Locked^OFDMA^41^44400000^36200000^43.8^"
