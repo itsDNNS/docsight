@@ -70,10 +70,10 @@ class ErrorCounterGrowth:
 
 
 def to_counter(value: object) -> Counter:
-    """Return a counter as int, or ``None`` when it is missing or not a number."""
+    """Return a counter as int, or ``None`` when it is missing, not a number or not finite."""
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
 
 

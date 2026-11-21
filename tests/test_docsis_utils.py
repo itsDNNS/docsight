@@ -106,7 +106,10 @@ def test_modulation_threshold_key(modulation, section, key):
     assert modulation_threshold_key(modulation, section) == key
 
 
-@pytest.mark.parametrize(("value", "number"), [("3.5", 3.5), ("-7.2", -7.2), (None, None), ("", None), ("bad", None)])
+@pytest.mark.parametrize(("value", "number"), [
+    ("3.5", 3.5), ("-7.2", -7.2), ("0", 0.0), (None, None), ("", None), ("bad", None),
+    *[(value, None) for value in ("inf", "-Infinity", "nan", float("inf"), float("nan"), 10**400)],
+])
 def test_to_float(value, number):
     assert to_float(value) == number
 

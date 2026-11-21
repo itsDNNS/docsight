@@ -418,12 +418,35 @@ class TestEventDetector:
         assert "good" in events[0]["message"]
         assert "critical" in events[0]["message"]
 
-    def test_health_recovery_detected(self, detector):
-        detector.check(_make_analysis(health="critical"))
-        events = detector.check(_make_analysis(health="good"))
-        assert len(events) == 1
-        assert events[0]["event_type"] == "health_change"
-        assert events[0]["severity"] == "info"
+    @pytest.mark.parametrize("hysteresis", [0, 2])
+    @pytest.mark.parametrize(("missing_before", "missing_after", "recovered"), [(0, 0, True), (1, 0, True), (0, 1, False)])
+    def test_health_recovery_needs_the_readings_that_rated_the_previous_state(
+        self, hysteresis, missing_before, missing_after, recovered,
+    ):
+        def analysis(health, missing):
+            result = _make_analysis(health=health, ds_total=2)
+            for channel in result["ds_channels"][:missing]:
+                channel.update(power=None, snr=None)
+            return result
+
+        detector = EventDetector(hysteresis=hysteresis)
+        detector.check(analysis("critical", missing_before))
+        events = [event for _ in range(max(hysteresis, 1)) for event in detector.check(analysis("good", missing_after))]
+        expected = [("Health recovered from critical to good", "info")] if recovered else []
+        assert [(event["message"], event["severity"]) for event in events if event["event_type"] == "health_change"] == expected
+
+    @pytest.mark.parametrize("hysteresis", [0, 2])
+    def test_restart_detection_compares_stored_text_counters_with_new_integers(self, hysteresis):
+        def analysis(counter, total):
+            result = _make_analysis(ds_uncorrectable_errors=total)
+            for channel in result["ds_channels"]:
+                channel.update(correctable_errors=counter, uncorrectable_errors=counter)
+            return result
+
+        detector = EventDetector(hysteresis=hysteresis)
+        detector.check(analysis("100", 3300))
+        events = detector.check(analysis(0, 0))
+        assert "modem_restart_detected" in [event["event_type"] for event in events]
 
     def test_health_marginal_warning(self, detector):
         detector.check(_make_analysis(health="good"))

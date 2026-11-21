@@ -656,6 +656,8 @@
 
     var trSelectedTargetId = null;
 
+    function cmT(key, fallback) { return T['docsight.connection_monitor.traceroute.' + key] || fallback; }
+
     function initTracerouteTargetSelect() {
         var container = document.getElementById('cm-traceroute-target-select');
         if (!container || targets.length === 0) return;
@@ -750,7 +752,7 @@
             tdReached.appendChild(reachedSpan);
 
             var tdTrigger = document.createElement('td');
-            tdTrigger.textContent = trace.trigger_reason || '\u2014';
+            tdTrigger.textContent = trace.trigger_reason ? cmT('trigger_' + trace.trigger_reason, trace.trigger_reason) : '\u2014';
 
             tr.appendChild(tdTarget);
             tr.appendChild(tdTime);
@@ -800,7 +802,6 @@
                     hopTable.className = 'data-table data-table-compact';
                     var thead = document.createElement('thead');
                     var headRow = document.createElement('tr');
-                    var cmT = function(key, fallback) { return T['docsight.connection_monitor.traceroute.' + key] || fallback; };
                     [[cmT('hop', 'Hop'), true], [cmT('ip_address', 'IP address')], [cmT('hostname', 'Hostname')],
                      [cmT('latency', 'Latency'), true], [cmT('probes_responded', 'Probes'), true]].forEach(function(column) {
                         var th = document.createElement('th');
@@ -872,20 +873,19 @@
 
         resultDiv.style.display = 'block';
         var reached = data.reached_target;
-        var statusText = reached ? 'Target reached' : 'Target not reached';
 
         var box = document.createElement('div');
         box.className = 'cm-traceroute-alert ' + (reached ? 'ok' : 'error');
 
         var statusSpan = document.createElement('span');
-        statusSpan.textContent = statusText;
+        statusSpan.textContent = cmT(reached ? 'reached' : 'not_reached');
         box.appendChild(statusSpan);
 
-        var infoText = document.createTextNode(' \u2014 ' + data.hop_count + ' hops');
+        var infoText = document.createTextNode(' \u2014 ' + data.hop_count + ' ' + cmT('hops'));
         box.appendChild(infoText);
 
         if (data.route_fingerprint) {
-            var fpText = document.createTextNode(', fingerprint: ');
+            var fpText = document.createTextNode(', ' + cmT('fingerprint') + ': ');
             box.appendChild(fpText);
             var fpCode = document.createElement('code');
             fpCode.className = 'cm-fingerprint';

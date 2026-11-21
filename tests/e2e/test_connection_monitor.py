@@ -42,9 +42,9 @@ def test_connection_monitor_pin_day_action_does_not_shift_range_navigation(demo_
     expect(page.locator("#view-connection-monitor #cm-range-tabs #cm-pin-day-btn")).to_have_count(0)
 
 
-def _open_cm(page, width=1440, range_="7d"):
+def _open_cm(page, width=1440, range_="7d", query=""):
     page.set_viewport_size({"width": width, "height": 900 if width > 500 else 844})
-    page.goto(page.url.split("#", 1)[0] + f"#connection-monitor?range={range_}", wait_until="networkidle")
+    page.goto(page.url.split("#", 1)[0] + f"{query}#connection-monitor?range={range_}", wait_until="networkidle")
     expect(page.locator("#cm-target-chips .cm-target-chip").first).to_be_visible()
 
 
@@ -239,3 +239,16 @@ def test_connection_monitor_reset_zoom_follows_the_theme(demo_page):
     assert colors[0] == colors[1]
     reset.click()
     expect(reset).to_be_hidden()
+
+
+@pytest.mark.parametrize("reached,status", [(True, "Ziel erreicht"), (False, "Ziel nicht erreicht")])
+def test_connection_monitor_traceroute_result_and_triggers_follow_the_language(demo_page, reached, status):
+    """The traceroute banner and the trigger column use the page language instead of English or raw values."""
+    page = demo_page
+    page.route(re.compile(r".*/api/connection-monitor/traceroute/\d+$"), lambda route: route.fulfill(
+        json={"reached_target": reached, "hop_count": 5, "route_fingerprint": "0123456789abcdef"}))
+    _open_cm(page, query="?lang=de")
+    page.locator("#cm-traceroute-target-select").get_by_role("button", name="Cloudflare DNS").click()
+    expect(page.locator("#cm-traceroute-tbody td:last-child")).to_have_text(["Manuell", "Paketverlust", "Ausfall"])
+    page.locator("#cm-traceroute-btn").click()
+    expect(page.locator("#cm-traceroute-result")).to_have_text(f"{status} \u2014 5 Hops, Fingerabdruck: 0123456789ab")
