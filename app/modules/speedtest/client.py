@@ -12,6 +12,8 @@ log = logging.getLogger("docsis.speedtest")
 
 # Speedtest Tracker lists a test as soon as it starts, without measurements yet
 _UNFINISHED_STATUSES = frozenset({"waiting", "started", "checking", "running", "benchmarking"})
+CONFIG_KEYS = ("speedtest_tracker_url", "speedtest_tracker_token", "speedtest_tls_insecure")
+RUN_ACCEPTED = frozenset({200, 201, 202, 204})  # replies to a run request that mean the Tracker took it
 
 
 def is_finished(result):
@@ -40,7 +42,6 @@ class SpeedtestClient:
     def __init__(self, url, token, tls_insecure: bool | str = False):
         tls_insecure = parse_config_bool(tls_insecure)
         self.base_url = url.rstrip("/")
-        self.token = token
         self.verify_tls = not tls_insecure
         self.session = requests.Session()
         self.session.headers.update({
@@ -49,6 +50,20 @@ class SpeedtestClient:
         })
         if tls_insecure:
             log.warning("Speedtest Tracker TLS certificate verification disabled")
+
+    @classmethod
+    def from_config(cls, config_mgr, current=None):
+        """A client for the configured Speedtest Tracker: current, while it was built from the same settings."""
+        with config_mgr.locked():  # URL, token and TLS policy from the same saved state
+            settings = [config_mgr.get(key, "") for key in CONFIG_KEYS]
+        if current is None or current.settings != settings:
+            current = cls(*settings)
+            current.settings = settings
+        return current
+
+    def run(self, timeout):
+        """Ask the Tracker to start a speed test; a status in RUN_ACCEPTED means it queued one."""
+        return self.session.post(self.base_url + "/api/v1/speedtests/run", timeout=timeout, verify=self.verify_tls)
 
     @staticmethod
     def _normalize_ts(ts):
@@ -134,11 +149,6 @@ class SpeedtestClient:
             raise TypeError("results are not a list of results with ids")
         return body
 
-    def get_latest(self, count=1):
-        """Fetch the latest N speed test results."""
-        results, _ = self.get_latest_with_error(count)
-        return results
-
     def get_latest_with_error(self, count=1):
         """Fetch the latest N results, returning (results, error_string|None)."""
         try:
@@ -148,53 +158,37 @@ class SpeedtestClient:
             log.warning("Failed to fetch speedtest results: %s (%s)", msg, type(exc).__name__)
             return [], msg
 
-    def get_results(self, start_date=None, end_date=None, per_page=100):
-        """Fetch speed test results, newest first. Paginates to collect up to per_page results."""
-        return self.get_results_with_error(per_page)[0]
+    def _collect(self, limit, floor=float("-inf"), known_ids=()):
+        """Up to limit finished results above floor and not in known_ids, newest first, returning (results, error|None).
 
-    def get_results_with_error(self, per_page=100):
-        """Fetch up to per_page finished results, newest first, returning (results, error_string|None)."""
-        all_results = []
-        page = 1
+        Creation times can tie, so ids are not strictly descending: only a page
+        entirely at or below the floor ends the scan.
+        """
+        results, error, page = [], None, 1
         try:
-            while len(all_results) < per_page:
-                body = self._get_page(min(per_page, 500), page)  # a fixed size, so skipped results do not shift pages
-                all_results.extend(self._parse_result(r) for r in body["data"] if is_finished(r))
+            while len(results) < limit:
+                body = self._get_page(min(limit, 500), page)  # a fixed size, so skipped results do not shift pages
+                fresh = [item for item in body["data"] if item["id"] > floor]
+                results.extend(self._parse_result(r) for r in fresh if r["id"] not in known_ids and is_finished(r))
                 if not body["data"] or page >= body.get("meta", {}).get("last_page", 1):
                     if body.get("links", {}).get("next"):  # then the read is not complete
                         raise TypeError("the last page links to more results")
+                    break
+                if not fresh:
                     break
                 page += 1
         except Exception as exc:
             error = public_error(exc)
             log.warning("Failed to fetch speedtest results: %s (%s)", error, type(exc).__name__)
-            return all_results[:per_page], error
-        return all_results[:per_page], None
+        return results[:limit], error
+
+    def get_results_with_error(self, per_page=100):
+        """Fetch up to per_page finished results, newest first, returning (results, error_string|None)."""
+        return self._collect(per_page)
 
     def get_newer_than(self, floor, known_ids):
         """Fetch the newest 500 finished results above floor that are not known yet, oldest first.
 
         Rechecking the ids above the floor picks up a test that finished after a newer one.
         """
-        all_results = []
-        page = 1
-        try:
-            while True:
-                body = self._get_page(500, page)
-                # Creation times can tie, so ids are not strictly descending: only a page
-                # entirely at or below the floor ends the scan
-                fresh = [item for item in body["data"] if item["id"] > floor]
-                if not fresh:
-                    break
-                all_results.extend(
-                    self._parse_result(item) for item in fresh if item.get("id") not in known_ids and is_finished(item)
-                )
-                meta = body.get("meta", {})
-                if page >= meta.get("last_page", 1):
-                    break
-                if len(all_results) >= 500:
-                    break
-                page += 1
-        except Exception as exc:
-            log.warning("Failed to fetch newer speedtest results: %s (%s)", public_error(exc), type(exc).__name__)
-        return all_results[:500][::-1]
+        return self._collect(500, floor, known_ids)[0][::-1]
