@@ -589,21 +589,24 @@ def test_empty_complaint_is_neutral_without_bnetz_data():
     assert "attached monitoring data" not in complaint
 
 
+_BNETZ_ROW = {
+    "date": "2026-05-02",
+    "provider": "Example ISP",
+    "tariff": "1000/50",
+    "download_max_tariff": 1000,
+    "download_measured_avg": 400,
+    "upload_max_tariff": 50,
+    "upload_measured_avg": 45,
+    "verdict_download": "deviation",
+    "verdict_upload": "ok",
+}
+
+
 @pytest.mark.parametrize("missing", [None, "download", "upload"])
 def test_empty_complaint_keeps_bnetz_evidence_for_measured_directions_only(missing):
     from app.modules.reports.report import generate_complaint_text, generate_incident_report
 
-    row = {
-        "date": "2026-05-02",
-        "provider": "Example ISP",
-        "tariff": "1000/50",
-        "download_max_tariff": 1000,
-        "download_measured_avg": 400,
-        "upload_max_tariff": 50,
-        "upload_measured_avg": 45,
-        "verdict_download": "deviation",
-        "verdict_upload": "ok",
-    }
+    row = dict(_BNETZ_ROW)
     if missing:
         row[f"{missing}_measured_avg"] = None
     letter = generate_complaint_text(
@@ -626,3 +629,16 @@ def test_empty_complaint_keeps_bnetz_evidence_for_measured_directions_only(missi
         else:
             assert pdf_line in pdf
             assert letter_line in letter and letter_line in pdf
+
+
+def test_german_letters_and_incident_report_show_localized_bnetz_verdicts():
+    from app.modules.reports.report import generate_complaint_text, generate_incident_report
+
+    row = {**_BNETZ_ROW, "verdict_upload": "unknown"}
+    letter = generate_complaint_text([], lang="de", bnetz_data=row)
+    pdf = " ".join(_pdf_text(generate_incident_report({"name": "Slow line"}, [], [], [], [row], lang="de")).split())
+
+    line = "Bewertung: Download Abweichung festgestellt / Upload Unbekannt"
+    assert line in letter
+    assert pdf.count(line) == 2  # BNetzA section and complaint letter
+    assert "Verdict" not in pdf
