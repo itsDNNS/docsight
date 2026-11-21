@@ -1219,203 +1219,30 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
 
 /* ── Chart Zoom Modal ── */
 var zoomChart = null;
+var zoomTimer = null;
 
 function openChartZoom(canvasId) {
     var src = charts[canvasId];
     if (!src || !src._docsightParams) return;
     var params = src._docsightParams;
-    var srcEl = document.getElementById(canvasId);
-    var card = srcEl ? srcEl.closest('.chart-card') : null;
+    var card = document.getElementById(canvasId).closest('.chart-card');
     var label = card ? card.querySelector('.chart-label') : null;
     document.getElementById('chart-zoom-title').textContent = label ? label.textContent : '';
-    var overlay = document.getElementById('chart-zoom-overlay');
-    window.DOCSightModal.open(overlay);
+    window.DOCSightModal.open('chart-zoom-overlay');
 
-    setTimeout(function() {
-        if (zoomChart) { zoomChart.destroy(); zoomChart = null; }
-        var zoomContainer = document.getElementById('chart-zoom-canvas');
-        if (!zoomContainer) return;
-        zoomContainer.textContent = '';
-        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-        var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-        var textColor = isDark ? '#888' : '#666';
-        var isBar = params.type === 'bar';
-        var zoomTime = params.opts && params.opts.times && params.opts.times.length === params.labels.length
-            ? docsightTimeSeries(params.labels, params.datasets, params.opts.times, params.opts.tempData || null) : null;
-        if (zoomTime) {
-            params = Object.assign({}, params, {
-                labels: zoomTime.labels,
-                datasets: params.datasets.map(function(ds, k) { return Object.assign({}, ds, {data: zoomTime.data[k]}); }),
-                opts: params.opts.tempData ? Object.assign({}, params.opts, {tempData: zoomTime.temp}) : params.opts
-            });
-        }
-        var n = params.labels.length;
-        var zoomYAxisSize = params.opts && params.opts.zoomYAxisSize ? params.opts.zoomYAxisSize : DEFAULT_ZOOM_Y_AXIS_SIZE;
-        var w = zoomContainer.offsetWidth || 800;
-        var h = zoomContainer.offsetHeight || 500;
-        if (h < 300) h = 300;
-
-        /* Build data */
-        var xData = zoomTime ? zoomTime.times.slice() : [];
-        if (!zoomTime) for (var xi = 0; xi < n; xi++) xData.push(xi);
-        var zoomXEdgePadding = calculateXEdgePadding(params.labels, xData, w, zoomYAxisSize, params.opts && params.opts.zoomXEdgePadding);
-        var uData = [xData];
-        params.datasets.forEach(function(ds) { uData.push(ds.data); });
-
-        var zoomTempData = params.opts && params.opts.tempData && _tempOverlayVisible ? params.opts.tempData : null;
-        var zoomHasTemp = zoomTempData && zoomTempData.some(function(v) { return v !== null; }) && !isBar;
-        if (zoomHasTemp) uData.push(zoomTempData);
-
-        /* Series */
-        var barPaths = isBar ? uPlot.paths.bars({size: [0.7, 50], gap: 1}) : null;
-        var uSeries = [{ label: 'X', value: function(u, v) { return params.labels[v] || ''; } }];
-        params.datasets.forEach(function(ds) {
-            var zoomShowPoints = ds.showPoints;
-            if (zoomShowPoints === undefined) zoomShowPoints = n === 1;
-            var s = {
-                label: ds.label,
-                stroke: ds.color || 'rgba(168,85,247,0.9)',
-                width: ds.lineWidth !== undefined ? ds.lineWidth : (isBar ? 0 : 2),
-                fill: isBar ? barFill(ds.color) : (ds.fill || undefined),
-                points: { show: zoomShowPoints, size: isBar ? 0 : (ds.pointSize || (n > 30 ? 4 : 8)) },
-                spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false
-            };
-            if (ds.hideInLegend) s.class = 'docsight-legend-hidden';
-            if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;
-            if (isBar) { s.paths = barPaths; s.points = { show: false }; }
-            if (ds.stepped) { s.paths = uPlot.paths.stepped({ align: -1 }); s.width = 2; }
-            if (ds.dashed) { s.dash = [5, 5]; }
-            uSeries.push(s);
-        });
-
-        if (zoomHasTemp) {
-            var ts = {
-                label: T.temperature || 'Temperature',
-                stroke: 'rgba(249,115,22,0.7)',
-                width: 1.5,
-                dash: [5, 3],
-                scale: 'temp',
-                points: { show: false, size: 4 },
-                spanGaps: true
-            };
-            ts._docsightAxisID = 'y-temp';
-            uSeries.push(ts);
-        }
-
-        /* Tooltip callback */
-        var zoomTooltipCb = null;
-        if (params.opts && params.opts.tooltipLabelCallback) {
-            zoomTooltipCb = params.opts.tooltipLabelCallback;
-        } else if (zoomHasTemp) {
-            zoomTooltipCb = function(ctx) {
-                var val = ctx.parsed.y;
-                if (val == null) return '';
-                if (ctx.dataset.yAxisID === 'y-temp') return ctx.dataset.label + ': ' + fmtTemp(val);
-                return ctx.dataset.label + ': ' + val;
-            };
-        }
-
-        /* Scales */
-        var yRange = [null, null];
-        if (params.zones) {
-            var zoneMeta = params.zones.find(function(z) { return z.yMin !== undefined; });
-            if (zoneMeta) { yRange = [zoneMeta.yMin, zoneMeta.yMax]; }
-        }
-        if (params.opts && params.opts.yMin !== undefined) yRange[0] = params.opts.yMin;
-        if (params.opts && params.opts.yMax !== undefined) yRange[1] = params.opts.yMax;
-
-        var scales = {
-            x: { time: false, range: function() { return [xData[0] - zoomXEdgePadding, xData[xData.length - 1] + zoomXEdgePadding]; } },
-            y: {}
-        };
-        if (yRange[0] !== null && yRange[1] !== null) {
-            scales.y.range = function(u, dmin, dmax) {
-                var lo = yRange[0] !== null ? yRange[0] : dmin;
-                var hi = yRange[1] !== null ? yRange[1] : dmax;
-                if (dmin < lo) lo = dmin;
-                if (dmax > hi) hi = dmax;
-                return [lo, hi];
-            };
-        }
-        if (zoomHasTemp) { scales.temp = {}; }
-
-        /* Axes */
-        var zLabelWidth = estimateLongestLabelWidth(params.labels, 60);
-
-        var zoomMaxTicks = calculateMaxXTicks(params.labels, w, zoomYAxisSize, 10);
-        var zoomXSplits = zoomTime
-            ? buildTimeSplits(xData, params.labels, [xData[0] - zoomXEdgePadding, xData[xData.length - 1] + zoomXEdgePadding], Math.max(w - zoomYAxisSize - 24, 1), zLabelWidth)
-            : buildEvenIndexTicks(n, zoomMaxTicks);
-        var axes = [
-            {
-                scale: 'x',
-                space: zLabelWidth,
-                splits: function() { return zoomXSplits; },
-                values: function(u, vals) {
-                    if (!zoomTime) return vals.map(function(v) { return params.labels[v] || ''; });
-                    return vals.map(function(v) { var i = xData.indexOf(v); return i === -1 ? '' : (params.labels[i] || ''); });
-                },
-                stroke: textColor,
-                grid: { stroke: gridColor, width: 1 },
-                ticks: { stroke: gridColor, width: 1 },
-                font: '12px system-ui',
-                gap: 4
-            },
-            {
-                scale: 'y',
-                stroke: textColor,
-                grid: { stroke: gridColor, width: 1 },
-                ticks: { stroke: gridColor, width: 1 },
-                font: '12px system-ui',
-                size: docsightAxisSize(zoomYAxisSize),
-                gap: 4
-            }
-        ];
-        if (params.opts && params.opts.yTickCallback) {
-            var cb = params.opts.yTickCallback;
-            axes[1].values = function(u, vals) { return vals.map(function(v) { return cb(v) || ''; }); };
-        }
-        if (params.opts && params.opts.yAfterBuildTicks) {
-            var ft = [];
-            params.opts.yAfterBuildTicks({ ticks: ft });
-            if (ft.length > 0) {
-                axes[1].splits = function() { return ft.map(function(t) { return t.value; }); };
-            }
-        }
-        if (zoomHasTemp) {
-            axes.push({
-                scale: 'temp', side: 1,
-                stroke: 'rgba(249,115,22,0.6)',
-                grid: { show: false },
-                ticks: { stroke: 'rgba(249,115,22,0.3)', width: 1 },
-                font: '12px system-ui',
-                size: 45,
-                gap: 4,
-                values: function(u, vals) { return vals.map(function(v) { return fmtTempAxis(v); }); }
-            });
-        }
-
-        /* Plugins */
-        var plugins = [tooltipPlugin(params.labels, zoomTooltipCb), touchScrubPlugin()];
-        if (zoomTime) plugins.push(gapBandsPlugin(zoomTime.gaps));
-        if (params.zones) plugins.push(zonesPlugin(params.zones));
-
-        var uOpts = {
-            width: w,
-            height: h,
-            scales: scales,
-            axes: axes,
-            series: uSeries,
-            cursor: { show: true, x: true, y: false, points: { show: false } },
-            legend: { show: params.datasets.length > 1 || zoomHasTemp, live: false },
-            plugins: plugins
-        };
-
-        zoomChart = new uPlot(uOpts, uData, zoomContainer);
+    // The same chart, drawn larger and without the point click of the inline chart.
+    zoomTimer = setTimeout(function() {
+        var height = Math.max(document.getElementById('chart-zoom-canvas').offsetHeight || 500, 300);
+        renderChart('chart-zoom-canvas', params.labels, params.datasets, params.type, params.zones, Object.assign({}, params.opts, {
+            yAxisSize: (params.opts && params.opts.zoomYAxisSize) || DEFAULT_ZOOM_Y_AXIS_SIZE,
+            maxXTicks: 10, minHeight: height, maxHeight: height, onPointClick: null
+        }));
+        zoomChart = charts['chart-zoom-canvas'];
     }, 50);
 }
 
 function closeChartZoom() {
+    clearTimeout(zoomTimer);
     window.DOCSightModal.close('chart-zoom-overlay');
-    if (zoomChart) { zoomChart.destroy(); zoomChart = null; }
+    if (zoomChart) { zoomChart.destroy(); delete charts['chart-zoom-canvas']; zoomChart = null; }
 }
