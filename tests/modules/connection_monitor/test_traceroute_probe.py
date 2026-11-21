@@ -219,8 +219,12 @@ class TestReverseDNS:
         assert result.hops[1].hop_host == "router.isp.net"
         assert result.hops[2].hop_host == "dns.google"
 
-    def test_reverse_dns_timeout(self):
-        """DNS lookup times out, hop_host is None."""
+    @pytest.mark.parametrize("error", [
+        OSError("timeout"), UnicodeError("label too long"), TypeError("embedded null character"),
+        RuntimeError("unexpected"),
+    ])
+    def test_reverse_dns_failure_leaves_host_empty(self, error):
+        """A failed or impossible lookup leaves hop_host None."""
         stdout = (
             "1\t192.168.1.1\t1.23\t3\n"
             "2\t10.0.0.1\t5.67\t3\n"
@@ -233,7 +237,7 @@ class TestReverseDNS:
         )
         probe = TracerouteProbe()
         with patch(f"{MODULE}.subprocess.run", return_value=completed), \
-             patch(f"{MODULE}.socket.gethostbyaddr", side_effect=OSError("timeout")):
+             patch(f"{MODULE}.socket.gethostbyaddr", side_effect=error):
             result = probe.run("8.8.8.8")
 
         assert result.hops[0].hop_host is None

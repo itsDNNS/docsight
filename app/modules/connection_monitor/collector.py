@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from app.collectors.base import Collector, CollectorResult
 from app.modules.connection_monitor.event_rules import ConnectionEventRules
-from app.modules.connection_monitor.probe import ProbeEngine
+from app.modules.connection_monitor.probe import ProbeEngine, timeout_result
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 from app.modules.connection_monitor.traceroute_probe import TracerouteProbe
 from app.modules.connection_monitor.traceroute_trigger import TracerouteTrigger
@@ -86,7 +86,7 @@ class ConnectionMonitorCollector(Collector):
     def collect(self) -> CollectorResult:
         try:
             self._ensure_default_targets()
-            interval_ms = self._configured_interval_ms()
+            interval_ms = configured_probe_interval_ms(self._config_mgr)
             all_targets = self._cm_storage.get_targets()
             self._sync_target_intervals(all_targets, interval_ms)
             targets = [t for t in all_targets if t["enabled"]]
@@ -148,8 +148,9 @@ class ConnectionMonitorCollector(Collector):
                 target = futures[future]
                 try:
                     result = future.result()
-                except Exception:
-                    result = type("R", (), {"latency_ms": None, "timeout": True, "method": "error"})()
+                except Exception as exc:
+                    logger.warning("Probe of target %s failed: %s", target["id"], exc)
+                    result = timeout_result("error")
 
                 self._last_probe[target["id"]] = now
                 samples.append({
@@ -198,13 +199,10 @@ class ConnectionMonitorCollector(Collector):
         for event in all_events:
             self._traceroute_trigger.on_event(event)
 
-        if all_events and hasattr(self._core_storage, "save_events_with_ids"):
+        if all_events:
             self._core_storage.save_events_with_ids(all_events)
             if self._smart_capture:
                 self._smart_capture.evaluate(all_events)
-
-    def _configured_interval_ms(self) -> int:
-        return configured_probe_interval_ms(self._config_mgr)
 
     def _sync_target_intervals(self, targets: list[dict], interval_ms: int):
         """Keep stored per-target intervals equal to the configured interval.
@@ -230,10 +228,6 @@ class ConnectionMonitorCollector(Collector):
     def get_storage(self) -> ConnectionMonitorStorage:
         """Expose storage for routes."""
         return self._cm_storage
-
-    def get_probe(self) -> ProbeEngine:
-        """Expose probe engine for capability endpoint."""
-        return self._probe
 
     def stop(self):
         """Shutdown background resources."""
