@@ -18,7 +18,7 @@ from .contract import (
     ThresholdContext,
     Window,
 )
-from .provenance import aggregate_provenance, derive_historical
+from .provenance import aggregate_provenance, derive_diagnostic_notes
 from .window import canonical_utc_timestamp
 
 _AVERAGE_FIELDS = {
@@ -287,7 +287,6 @@ def aggregate_snapshot_period(
             "health": health,
         })
 
-    historical = derive_historical(ordered, thresholds=thresholds)
     metric_coverage.update({
         "health_critical_count": _full_coverage(total),
         "health_marginal_count": _full_coverage(total),
@@ -327,5 +326,5 @@ def aggregate_snapshot_period(
             "us": _bad_channels(ordered, "us"),
         },
         "samples": samples,
-        "diagnostic_notes": historical["diagnostic_notes"],
+        "diagnostic_notes": derive_diagnostic_notes(ordered, thresholds=thresholds),
     }

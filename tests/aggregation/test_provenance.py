@@ -2,11 +2,13 @@ import hashlib
 import json
 import random
 
+import pytest
+
 from app.aggregation import (
     ThresholdContext,
     Window,
     aggregate_snapshot_period,
-    derive_historical,
+    derive_diagnostic_notes,
 )
 
 
@@ -53,19 +55,35 @@ def _snapshot(*, analyzer_meta=False):
 
 
 def test_legacy_fallback_uses_only_the_injected_threshold_context():
-    permissive = derive_historical([_snapshot()], thresholds=_context((-20, 20)))
-    restrictive = derive_historical([_snapshot()], thresholds=_context((-5, 5)))
+    permissive = derive_diagnostic_notes([_snapshot()], thresholds=_context((-20, 20)))
+    restrictive = derive_diagnostic_notes([_snapshot()], thresholds=_context((-5, 5)))
 
-    assert permissive["diagnostic_notes"] == []
-    assert restrictive["diagnostic_notes"][0]["type"] == "ds_power_high"
+    assert permissive == []
+    assert restrictive[0]["type"] == "ds_power_high"
 
 
 def test_analyzer_era_snapshot_does_not_fall_back_to_active_thresholds():
-    first = derive_historical([_snapshot(analyzer_meta=True)], thresholds=_context((-20, 20)))
-    second = derive_historical([_snapshot(analyzer_meta=True)], thresholds=_context((-5, 5)))
+    first = derive_diagnostic_notes([_snapshot(analyzer_meta=True)], thresholds=_context((-20, 20)))
+    second = derive_diagnostic_notes([_snapshot(analyzer_meta=True)], thresholds=_context((-5, 5)))
 
     assert first == second
-    assert "deviation_pct" not in first["diagnostic_notes"][0]
+    assert "deviation_pct" not in first[0]
+
+
+@pytest.mark.parametrize(("power", "expected"), [
+    (34.9, [("us_power_low", "spec_min", 35.0)]),
+    (53.1, [("us_power_high", "spec_max", 53.0)]),
+    (35.0, []),
+    (53.0, []),
+])
+def test_legacy_upstream_power_falls_back_to_default_critical_bounds(power, expected):
+    snapshot = {**_snapshot(), "ds_channels": [], "us_channels": [{"channel_id": 1, "power": power}]}
+
+    notes = derive_diagnostic_notes([snapshot], thresholds=_context((-20, 20)))
+
+    assert [
+        (note["type"], key, note[key]) for note in notes for key in ("spec_min", "spec_max") if key in note
+    ] == expected
 
 
 def test_aggregate_provenance_is_counted_sanitized_and_permutation_stable():
