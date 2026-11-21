@@ -60,9 +60,11 @@ def _assert_url_helper_precedes_application_scripts(html: str, prefix: str) -> N
         if script.get("id") == "docsight-url-bootstrap"
     )
 
-    assert bootstrap_index < helper_index
+    safety_src = scripts[helper_index - 1].get("src") or ""
+    assert safety_src.startswith(f"{prefix}/static/js/url-safety.js")
+    assert bootstrap_index < helper_index - 1
     for index, script in enumerate(scripts):
-        if index == bootstrap_index or index == helper_index:
+        if index in (bootstrap_index, helper_index - 1, helper_index):
             continue
         src = script.get("src")
         is_application_script = src is None or src.startswith(

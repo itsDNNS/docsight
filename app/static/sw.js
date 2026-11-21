@@ -1,4 +1,16 @@
-var CACHE_VERSION = 'v111';
+var CACHE_VERSION = 'v112';
+/* The worker has its own Trusted Types context, so the shared URL checks are imported
+   through a worker-side 'docsight' policy with the same-origin rule of trusted-html.js. */
+function sameOriginScriptURL(url) {
+  var parsed = new URL(url, self.location.href);
+  if (parsed.origin !== self.location.origin) throw new TypeError('Scripts must come from DOCSight: ' + url);
+  return parsed.href;
+}
+var SCRIPT_POLICY = self.trustedTypes
+  ? self.trustedTypes.createPolicy('docsight', { createScriptURL: sameOriginScriptURL })
+  : { createScriptURL: sameOriginScriptURL };
+importScripts(SCRIPT_POLICY.createScriptURL('static/js/url-safety.js'));
+var URL_SAFETY = self.DOCSightUrlSafety;
 var REGISTRATION_SCOPE = new URL(self.registration.scope);
 
 if (REGISTRATION_SCOPE.origin !== self.location.origin || REGISTRATION_SCOPE.pathname.slice(-1) !== '/') {
@@ -236,63 +248,9 @@ self.addEventListener('fetch', function(event) {
   }
 });
 
-function hasControlCharacter(value) {
-  for (var i = 0; i < value.length; i += 1) {
-    var code = value.charCodeAt(i);
-    if (code < 32 || code === 127) return true;
-  }
-  return false;
-}
-
-function hasValidPercentEscapes(value) {
-  for (var i = 0; i < value.length; i += 1) {
-    if (value.charAt(i) !== '%') continue;
-    if (i + 2 >= value.length || !/^[0-9A-Fa-f]{2}$/.test(value.slice(i + 1, i + 3))) return false;
-    i += 2;
-  }
-  return true;
-}
-
-function hasDotSegment(pathname) {
-  var segments = pathname.split('/');
-  for (var i = 0; i < segments.length; i += 1) {
-    if (segments[i] === '.' || segments[i] === '..') return true;
-  }
-  return false;
-}
-
-function hasSafeEncodedPath(pathname) {
-  var candidate = pathname;
-  for (var depth = 0; depth < 16; depth += 1) {
-    if (hasDotSegment(candidate)) return false;
-    var next = '';
-    var decodedPercent = false;
-    for (var i = 0; i < candidate.length; i += 1) {
-      if (candidate.charAt(i) !== '%') {
-        next += candidate.charAt(i);
-        continue;
-      }
-      if (i + 2 >= candidate.length || !/^[0-9A-Fa-f]{2}$/.test(candidate.slice(i + 1, i + 3))) return false;
-      var encoded = candidate.slice(i + 1, i + 3);
-      var byte = parseInt(encoded, 16);
-      if (byte === 0x2e || byte === 0x2f || byte === 0x5c || byte < 0x20 || byte === 0x7f) return false;
-      if (byte === 0x25) {
-        next += '%';
-        decodedPercent = true;
-      } else {
-        next += '%' + encoded;
-      }
-      i += 2;
-    }
-    if (!decodedPercent) return true;
-    candidate = next;
-  }
-  return false;
-}
-
 function validatedNotificationTarget(targetUrl) {
   if (typeof targetUrl !== 'string' || !targetUrl || targetUrl.length > 4096) return null;
-  if (hasControlCharacter(targetUrl) || targetUrl.indexOf('\\') !== -1 || !hasValidPercentEscapes(targetUrl)) return null;
+  if (URL_SAFETY.hasControlCharacter(targetUrl) || targetUrl.indexOf('\\') !== -1 || !URL_SAFETY.hasValidPercentEscapes(targetUrl)) return null;
   if (targetUrl.indexOf('//') === 0) return null;
 
   var isAbsolute = targetUrl.charAt(0) !== '/';
@@ -313,13 +271,7 @@ function validatedNotificationTarget(targetUrl) {
     return null;
   }
 
-  var queryIndex = rawInternal.indexOf('?');
-  var fragmentIndex = rawInternal.indexOf('#');
-  var boundary = rawInternal.length;
-  if (queryIndex !== -1 && queryIndex < boundary) boundary = queryIndex;
-  if (fragmentIndex !== -1 && fragmentIndex < boundary) boundary = fragmentIndex;
-  var rawPathname = rawInternal.slice(0, boundary);
-  if (!rawPathname || rawPathname.charAt(0) !== '/' || !hasSafeEncodedPath(rawPathname)) return null;
+  if (!URL_SAFETY.hasSafeEncodedPath(URL_SAFETY.pathnameOf(rawInternal))) return null;
 
   try {
     parsed = new URL(rawInternal, self.location.origin);
@@ -353,11 +305,7 @@ self.addEventListener('push', function(event) {
   try {
     if (event.data) payload = Object.assign({}, fallback, event.data.json());
   } catch (error) {
-    try {
-      payload = Object.assign({}, fallback, { body: event.data ? event.data.text() : fallback.body });
-    } catch (ignore) {
-      payload = fallback;
-    }
+    payload = Object.assign({}, fallback, { body: event.data.text() });
   }
   event.waitUntil(self.registration.showNotification(payload.title || fallback.title, {
     body: payload.body || fallback.body,
