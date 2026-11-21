@@ -33,7 +33,6 @@
   "snapshots": "Pillanatképek",
   "no_data_period": "Nincs adat a választott időszakban",
   "select_periods": "Válasszon két időszakot a jelminőség összehasonlításához.",
-  "hours_since_start": "Órák a kezdet óta",
   "empty_title": "Két időszak összehasonlítása",
   "empty_action": "Összehasonlítás",
   "empty_no_data_text": "Válasszon olyan időszakokat, amikor a DOCSight már gyűjtött adatokat.",

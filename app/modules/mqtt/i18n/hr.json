@@ -1,7 +1,5 @@
 {
-  "advanced_mqtt": "Napredno: MQTT / Home Assistant",
   "mqtt_broker": "MQTT broker",
-  "mqtt_desc": "Za povezivanje s Home Assistantom putem MQTT Auto-Discoveryja. Bez MQTT-a radi samo web sučelje.",
   "mqtt_optional_ha": "neobavezno – za Home Assistant",
   "mqtt_tls_insecure": "Nesiguran TLS",
   "mqtt_tls_insecure_hint": "Preskoči provjeru TLS certifikata",

@@ -160,7 +160,7 @@ class TestSettingsRoute:
     def test_settings_connection_includes_segment_toggle_for_fritzbox(self, client):
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200
-        assert b"Collect segment utilization" in resp.data
+        assert b'id="segment_utilization_enabled-title">Segment Utilization</span>' in resp.data
         assert b'name="segment_utilization_enabled"' in resp.data
 
     def test_settings_modules_shows_segment_disabled_status(self, client, config_mgr):

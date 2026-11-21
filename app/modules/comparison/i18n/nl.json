@@ -33,7 +33,6 @@
   "snapshots": "Snapshots",
   "no_data_period": "Geen gegevens in de gekozen periode",
   "select_periods": "Kies twee periodes om de signaalkwaliteit te vergelijken.",
-  "hours_since_start": "Uren sinds begin",
   "empty_title": "Twee periodes vergelijken",
   "empty_action": "Vergelijken",
   "empty_no_data_text": "Kies periodes waarin DOCSight al gegevens verzamelde.",

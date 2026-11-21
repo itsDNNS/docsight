@@ -28,8 +28,6 @@ CORE_GLOSSARY_KEYS = [
     "glossary_errors",
     "glossary_scqam",
     "glossary_ofdm",
-    "glossary_modulation",
-    "glossary_docsis",
     "docsis_basics_label",
     "glossary_docsis_basics",
     "glossary_gaming_index",

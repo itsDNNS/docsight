@@ -1,7 +1,5 @@
 {
-  "advanced_mqtt": "Avanzado: MQTT / Home Assistant",
   "mqtt_broker": "Broker MQTT",
-  "mqtt_desc": "Para integrar con Home Assistant mediante MQTT Auto-Discovery. Sin MQTT solo funciona la interfaz web.",
   "mqtt_optional_ha": "opcional: para Home Assistant",
   "mqtt_tls_insecure": "TLS no seguro",
   "mqtt_tls_insecure_hint": "Omitir la verificación del certificado TLS",

@@ -1,7 +1,5 @@
 {
-  "advanced_mqtt": "Papildu: MQTT / Home Assistant",
   "mqtt_broker": "MQTT brokeris",
-  "mqtt_desc": "Integrācijai ar Home Assistant, izmantojot MQTT Auto-Discovery. Bez MQTT darbojas tikai tīmekļa saskarne.",
   "mqtt_optional_ha": "neobligāti – Home Assistant",
   "mqtt_tls_insecure": "Nedrošs TLS",
   "mqtt_tls_insecure_hint": "Izlaist TLS sertifikāta pārbaudi",
