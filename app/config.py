@@ -261,6 +261,18 @@ BOOL_KEYS = {"demo_mode", "update_check_enabled", "gaming_quality_enabled", "seg
              "speedtest_tls_insecure", "sc_enabled", "sc_trigger_modulation", "sc_trigger_snr",
              "sc_trigger_error_spike", "sc_trigger_health", "sc_trigger_packet_loss"}
 
+_MODULE_EXTENSIBLE_SCHEMA = (DEFAULTS, SECRET_KEYS, PRIVATE_KEYS, INT_KEYS, BOOL_KEYS)
+_CORE_SCHEMA = tuple(registry.copy() for registry in _MODULE_EXTENSIBLE_SCHEMA)
+
+
+def reset_module_config_schema() -> None:
+    """Drop config schema registered by modules, so a new app starts from the core schema."""
+    for registry, core in zip(_MODULE_EXTENSIBLE_SCHEMA, _CORE_SCHEMA):
+        registry.clear()
+        registry.update(core)
+    set_module_secret_registry(set(), {})
+
+
 URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url", "notify_apprise_url"}
 _ALLOWED_URL_SCHEMES = {"http", "https"}
 
