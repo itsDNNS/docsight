@@ -33,6 +33,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.html_rows import parse_arris_html
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .utils import make_legacy_tls_adapter, request_error_summary
@@ -192,7 +193,7 @@ class CM8200Driver(ModemDriver):
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables on status page."""
         soup = self._fetch_status_page()
-        return parse_arris_html(str(soup)).value
+        return unwrap(parse_arris_html(str(soup)), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from status page."""

@@ -22,6 +22,7 @@ import time
 import requests
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.sagemcom import parse_sagemcom_xmo_json
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .utils import request_error_summary
@@ -184,7 +185,7 @@ class SagemcomDriver(ModemDriver):
                 elif "Upstreams" in xpath:
                     us_raw = values
 
-        data = parse_sagemcom_xmo_json({"downstream": ds_raw, "upstream": us_raw}).value
+        data = unwrap(parse_sagemcom_xmo_json({"downstream": ds_raw, "upstream": us_raw}), log)
         if data is None:
             # Not a RuntimeError: get_docsis_data would treat that as an expired session.
             raise ValueError("invalid Sagemcom upstream payload")
@@ -274,10 +275,10 @@ class SagemcomDriver(ModemDriver):
             for action in resp.get("reply", {}).get("actions", []):
                 act_err = action.get("error", {})
                 if act_err.get("description") != "XMO_NO_ERR":
-                    log.debug("Sagemcom action error: %s (code=%s)", act_err.get("description"), act_err.get("code"))
+                    log.debug("Sagemcom action error (code=%s)", act_err.get("code"))
             desc = error.get("description", "")
             code = error.get("code")
-            msg = f"Sagemcom XMO error: {desc} (code={code})"
+            msg = f"Sagemcom XMO error (code={code})"
             if code == 16777219 or "SESSION" in desc:  # XMO_INVALID_SESSION_ERR
                 raise XMOSessionError(msg)
             raise RuntimeError(msg)

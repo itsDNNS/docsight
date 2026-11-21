@@ -39,6 +39,7 @@ import re
 import requests
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .utils import request_error_summary
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .formats.html_columnar import parse_cgm4981_columnar_html
@@ -101,7 +102,7 @@ class CGM4981Driver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Return parsed downstream and upstream channel data."""
-        return parse_cgm4981_columnar_html(self._fetch_status_page()).value
+        return unwrap(parse_cgm4981_columnar_html(self._fetch_status_page()), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Return model, firmware version, and uptime from the status page."""

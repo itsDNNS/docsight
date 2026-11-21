@@ -25,7 +25,9 @@ def parse_fritzbox_data_lua(payload: dict[str, Any] | None) -> ParseResult[Docsi
             channel["powerDisplayOffset"] = _UPSTREAM_31_POWER_OFFSET
         except (TypeError, ValueError):
             diagnostics.append(diagnostic(
-                "fritzbox_data_lua", "invalid_field", family="fritzbox",
+                "fritzbox_data_lua",
+                "unavailable_field" if channel.get("powerLevel") is None else "invalid_field",
+                family="fritzbox",
                 direction="upstream", index=index, field="powerLevel",
             ))
     return ParseResult(value, tuple(diagnostics))

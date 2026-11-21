@@ -28,6 +28,7 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.xml_payloads import parse_sb8200_cbn_xml
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .utils import error_text
@@ -200,16 +201,16 @@ class SB8200CBNDriver(ModemDriver):
         self._begin_call()
         downstream_xml = self._get_data(Query.DOWNSTREAM_TABLE)
         upstream_xml = self._get_data(Query.UPSTREAM_TABLE)
-        parsed = parse_sb8200_cbn_xml(
+        parsed = unwrap(parse_sb8200_cbn_xml(
             downstream_xml=downstream_xml,
             upstream_xml=upstream_xml,
             downstream_ofdm_xml=self._get_optional_data(Query.DOWNSTREAM_OFDM_TABLE),
             upstream_ofdma_xml=self._get_optional_data(Query.UPSTREAM_OFDMA_TABLE),
             signal_xml=self._get_optional_data(Query.SIGNAL_TABLE),
-        )
-        if parsed.value is None:
+        ), log)
+        if parsed is None:
             raise ValueError("invalid SB8200 channel XML")
-        return parsed.value
+        return parsed
 
     def get_device_info(self) -> DeviceInfo:
         """Read model, firmware, and uptime metadata.

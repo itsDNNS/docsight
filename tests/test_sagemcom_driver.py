@@ -1,6 +1,7 @@
 """Tests for the Sagemcom F@st 3896 driver."""
 
 import hashlib
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -588,19 +589,21 @@ class TestFullDataFlow:
         assert len(result["channelDs"]["docsis30"]) == 1
         assert call_count[0] == 3  # error + re-login + successful fetch
 
-    def test_xmo_error_raises_runtime_error(self, driver):
-        """Any non-success XMO error in _raw_post must raise RuntimeError."""
+    def test_xmo_error_raises_runtime_error_without_response_text(self, driver, caplog):
+        """Any non-success XMO error in _raw_post must raise RuntimeError; only codes are logged."""
         xmo_error_response = {
             "reply": {
                 "uid": 0, "id": 1,
                 "error": {"code": 16777242, "description": "XMO_UNKNOWN_PATH_ERR"},
-                "actions": [],
+                "actions": [{"error": {"code": 2, "description": "XMO_UNKNOWN_PATH_ERR"}}],
                 "events": [],
             }
         }
         driver._session.post = _mock_post([xmo_error_response])
-        with pytest.raises(RuntimeError, match="XMO_UNKNOWN_PATH_ERR"):
+        with caplog.at_level(logging.DEBUG), pytest.raises(RuntimeError, match=r"\(code=16777242\)") as error:
             driver._raw_post({"request": {}})
+        assert "Sagemcom action error (code=2)" in caplog.messages
+        assert "XMO_UNKNOWN_PATH_ERR" not in caplog.text + str(error.value)
 
     @patch("app.drivers.sagemcom.time")
     def test_login_recovers_from_session_error(self, mock_time, driver):
