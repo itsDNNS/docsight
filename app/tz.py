@@ -84,11 +84,14 @@ def epoch_to_utc(value):
 
 
 
+def local_now(tz_name):
+    """Return the current time in the user's timezone (UTC when none is known)."""
+    return datetime.now(ZoneInfo(tz_name) if tz_name else timezone.utc)
+
+
 def local_today(tz_name):
     """Return today's date (YYYY-MM-DD) in the user's timezone."""
-    if not tz_name:
-        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    return datetime.now(ZoneInfo(tz_name)).strftime("%Y-%m-%d")
+    return local_now(tz_name).strftime("%Y-%m-%d")
 
 
 def local_date_to_utc_range(date_str, tz_name):

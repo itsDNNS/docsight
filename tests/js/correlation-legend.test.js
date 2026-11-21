@@ -62,3 +62,13 @@ test('a legend click never hides the last visible series', () => {
     assert.equal(legend.toggle(visible, 'snr'), true);
     assert.deepEqual(visible, {snr: false, events: true});
 });
+
+test('the event filter names types and severities with their catalog labels', () => {
+    global.escapeHtml = String;
+    const filter = legend.eventFilter();
+    const html = legend.popoverHtml(filter.summary([event('cm_target_unreachable', 'warning'), event('new_type', 'info')]),
+        filter, 'w', {event_type_cm_target_unreachable: 'Ziel nicht erreichbar', event_severity_warning: 'Warnung'});
+    const names = [...html.matchAll(/corr-event-filter-name">([^<]*)</g)].map(match => match[1]);
+    assert.deepEqual(names, ['Ziel nicht erreichbar', 'new_type']);
+    assert.match(html, /> Warnung <span/);
+});

@@ -4,7 +4,6 @@ from app.runtime import current_runtime
 from app.tz import localize_timestamps, get_tz_name
 import logging
 import os
-from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, request, jsonify
@@ -20,27 +19,12 @@ from app.config import (
     POLL_MIN,
     parse_config_int,
 )
+from app.modules.bqm.auth import is_share_url
 
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web")
 
 config_bp = Blueprint("config_bp", __name__)
-
-
-def _should_run_bqm_initial_fetch(url):
-    """Return True only for ThinkBroadband share URLs safe for immediate setup fetch."""
-    try:
-        parsed = urlparse((url or "").strip())
-    except Exception:
-        return False
-    host = (parsed.hostname or "").lower()
-    path = parsed.path or ""
-    return (
-        parsed.scheme == "https"
-        and host in {"thinkbroadband.com", "www.thinkbroadband.com"}
-        and path.startswith("/broadband/monitoring/quality/share/")
-        and path.endswith(".csv")
-    )
 
 
 def run_bqm_initial_fetch(config_manager=None, storage=None):
@@ -103,7 +87,7 @@ def api_config():
         should_fetch_bqm = (
             bool(requested_bqm_url)
             and requested_bqm_url != previous_bqm_url
-            and _should_run_bqm_initial_fetch(requested_bqm_url)
+            and is_share_url(requested_bqm_url, csv_only=True)
         )
         effective_admin_password = _config_manager.get("admin_password", "")
         admin_password_changed = (

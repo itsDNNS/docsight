@@ -1,7 +1,10 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 const chart = require('../../app/static/js/correlation-chart.js');
 
 const HOUR = 3600000;
@@ -154,4 +157,44 @@ test('signal lines skip a missing value and plot a measured 0 at its position', 
     assert.ok(st.snrMin < 0 && st.txMin < 0);
     assert.deepEqual(path(colors.snr), [['moveTo', x(1), st.ySnr(38)], ['lineTo', x(3), st.ySnr(0)], ['lineTo', x(5), st.ySnr(38)]]);
     assert.deepEqual(path(colors.txPower), [['moveTo', x(1), st.yTx(42)], ['lineTo', x(3), st.yTx(0)], ['lineTo', x(5), st.yTx(42)]]);
+});
+
+test('a table row highlights its time on the overlay and leaving the row clears it', () => {
+    const overlay = {ctx: recorder(), getContext() { return this.ctx; }};
+    const page = {T: {}, docsightParseTime: parseTime, ResizeObserver: class { observe() {} },
+        document: {getElementById: id => (id === 'correlation-overlay' ? overlay : null), addEventListener() {}},
+        DOCSightCorrelationData: require('../../app/static/js/correlation-data.js'), DOCSightCorrelationChart: chart,
+        DOCSightCorrelationLegend: require('../../app/static/js/correlation-legend.js'), DOCSightWindowShift: {create: () => ({})}};
+    page.window = page;
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../app/static/js/correlation.js'), 'utf8'), page);
+    const drawn = () => overlay.ctx.calls.splice(0).map(call => call.join(' '));
+
+    page._corrHighlightFromTable(at(1), 'modem');
+    page._corrClearChartHighlight();
+    assert.deepEqual(drawn(), [], 'nothing is drawn before the chart');
+
+    const {st} = build([modem(1), {source: 'speedtest', timestamp: at(3), download_mbps: 900, upload_mbps: 40},
+        {source: 'event', timestamp: at(5), event_type: 'health_change'}], {scales: {dpr: 2}});
+    page._corrChartState = st;
+    const cleared = [`setTransform 2 0 0 2 0 0`, `clearRect 0 0 ${st.W} ${st.H}`];
+    const line = (x, color, width, dash) => [`set strokeStyle ${color}`, `set lineWidth ${width}`, `setLineDash ${dash}`,
+        'beginPath', `moveTo ${x} ${st.pad.top}`, `lineTo ${x} ${st.pad.top + st.plotH}`, 'stroke', 'setLineDash '];
+    const dot = (x, y, color) => ['beginPath', `arc ${x} ${y} 6 0 ${Math.PI * 2}`, `set fillStyle ${color}`, 'fill',
+        'set strokeStyle #fff', 'set lineWidth 2', 'stroke'];
+    const crosshair = h => [...cleared, ...line(st.xScale(T0 + h * HOUR), 'rgba(255,255,255,0.3)', 1, '4,4')];
+
+    page._corrHighlightFromTable(at(1), 'modem');
+    assert.deepEqual(drawn(), [...crosshair(1), ...dot(st.xScale(T0 + HOUR), st.ySnr(38), colors.snr),
+        ...dot(st.xScale(T0 + HOUR), st.yTx(42), colors.txPower)]);
+    const mark = st.speedMarks[0];
+    page._corrHighlightFromTable(at(3), 'speedtest');
+    assert.deepEqual(drawn(), [...crosshair(3), ...dot(mark.downloadX, mark.downloadY, colors.download),
+        ...dot(mark.uploadX, mark.uploadY, colors.upload)]);
+    page._corrHighlightFromTable(at(5), 'event');
+    assert.deepEqual(drawn(), crosshair(5), 'hidden events get no marker');
+    page._corrVisible.events = true;
+    page._corrHighlightFromTable(at(5), 'event');
+    assert.deepEqual(drawn(), [...crosshair(5), ...line(st.xScale(T0 + 5 * HOUR), colors.event, 2, '3,3')]);
+    page._corrClearChartHighlight();
+    assert.deepEqual(drawn(), cleared);
 });

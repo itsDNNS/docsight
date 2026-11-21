@@ -91,6 +91,19 @@ def _make_analysis(health="good", ds_power_avg=2.5, us_power_avg=42.0,
     }
 
 
+_OFDM = {"type": "OFDM", "modulation": "OFDM", "frequency": ""}
+
+
+def _row(channel_id, power, uncorrectable=0, **fields):
+    """A driver channel row whose frequency follows from its ID unless given."""
+    return {"channelID": channel_id, "frequency": f"{114 + 8 * channel_id} MHz", "powerLevel": power,
+            "modulation": "256QAM", "mer": "38", "corrErrors": 0, "nonCorrErrors": uncorrectable, **fields}
+
+
+def _poll(*downstream, us=()):
+    return {"docsis": "3.1", "downstream": list(downstream), "upstream": list(us)}
+
+
 # ── Storage Tests ──
 
 class TestEventStorage:
@@ -1027,6 +1040,39 @@ class TestEventDetector:
         assert event["details"]["comparable_uncorrectable_recent_delta"] == 0
         assert current["summary"]["ds_uncorr_pct"] == 0.0
         assert "uncorr_errors_critical" not in current["summary"]["health_issues"]
+
+    @pytest.mark.parametrize(("polls", "expected"), [
+        # A channel loses its counter for one poll while another reports a measured zero.
+        ([_poll(_row(1, 3.0, 1500), _row(2, 3.0, 0)), _poll(_row(1, 3.0, None), _row(2, 3.0, 0)),
+          _poll(_row(1, 3.0, 1500), _row(2, 3.0, 0))], []),
+        ([_poll(_row(1, 0.0), _row(2, 10.0)), _poll(_row(1, 0.0), _row(2, None))], []),
+        # A channel unlocks for one poll and comes back.
+        ([_poll(_row(1, 0.0, 1500), _row(2, 10.0)), _poll(_row(2, 10.0)), _poll(_row(1, 0.0, 1500), _row(2, 10.0))], []),
+        ([_poll(_row(1, 3.0)), _poll(_row(1, 3.0), _row(2, 10.0, 5000))], []),
+        # A second OFDM row with the same ID and no frequency appears next to a flat one.
+        ([_poll(_row(0, 3.0, **_OFDM)), _poll(_row(0, 3.0, **_OFDM), _row(0, 13.0, 5000, **_OFDM))], []),
+        # SC-QAM and ATDMA rows with ID 0 are replaced by OFDM and OFDMA rows whose missing ID became 0.
+        ([_poll(_row(0, 3.0), us=[_row(0, 42.0, multiplex="ATDMA")]),
+          _poll(_row(0, 13.0, 5000, **_OFDM), us=[_row(0, 47.0, type="OFDMA", frequency="")])], []),
+        # A poll reports a channel's frequency as 0 MHz or leaves it out.
+        ([_poll(_row(1, 3.0), us=[_row(1, 42.0)]), _poll(_row(1, 8.0, 2000, frequency="0 MHz"), us=[_row(1, 47.0, frequency="0 MHz")])], []),
+        ([_poll(_row(1, 3.0)), _poll(_row(1, 8.0, 2000, frequency=""))], []),
+        # Most channels reset while one rises and another drops out: the reset, no spike.
+        ([_poll(*[_row(i, 3.0, 20) for i in range(1, 5)], _row(5, 3.0), _row(6, 3.0, 9000)),
+          _poll(*[_row(i, 3.0) for i in range(1, 5)], _row(5, 3.0, 2000))],
+         [("modem_restart_detected", "Detected modem restart or counter reset pattern")]),
+        # Unchanged coverage keeps reporting real shifts and spikes.
+        ([_poll(_row(1, 3.0), _row(2, 3.0), us=[_row(1, 42.0)]), _poll(_row(1, 8.0, 2000), _row(2, 8.0), us=[_row(1, 47.0)])], [
+            ("power_change", "DS power avg shifted from 3.0 to 8.0 dBmV"),
+            ("power_change", "US power avg shifted from 42.0 to 47.0 dBmV"),
+            ("error_spike", "Uncorrectable errors jumped by 2,000 (from 0 to 2,000)"),
+        ]),
+    ])
+    def test_power_and_error_deltas_need_the_same_reporting_channels_in_both_polls(self, detector, polls, expected):
+        events = [event for raw in polls for event in detector.check(analyze(raw))]
+
+        tracked = ("power_change", "error_spike", "modem_restart_detected")
+        assert [(e["event_type"], e["message"]) for e in events if e["event_type"] in tracked] == expected
 
     def test_error_no_spike_small_increase(self, detector):
         detector.check(_make_analysis(ds_uncorrectable_errors=100))
