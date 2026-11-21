@@ -73,9 +73,7 @@ def test_long_window_letter_contains_the_same_complete_120_day_breakdown():
 def test_appointment_only_letter_has_no_outage_assertion_for_flat_and_percentage_rates():
     for fee, expected in ((4_000, "10,00 €"), (6_000, "12,00 €")):
         breakdown = empty_compensation_breakdown(RULESET_DE_TKG58)
-        appointment = compute_missed_appointment(
-            monthly_fee_cents=fee, ruleset=RULESET_DE_TKG58
-        )
+        appointment = compute_missed_appointment(monthly_fee_cents=fee)
 
         first = render_claim_letter(
             claim={"monthly_fee_cents": fee, "eligibility": {"missed_appointments": 1}},
@@ -131,9 +129,7 @@ def test_combined_outage_and_appointment_letter_has_one_deterministic_total():
         ruleset=RULESET_DE_TKG58,
         today=date(2026, 1, 6),
     )
-    appointment = compute_missed_appointment(
-        monthly_fee_cents=4_000, ruleset=RULESET_DE_TKG58
-    )
+    appointment = compute_missed_appointment(monthly_fee_cents=4_000)
     claim = {
         "fault_report_received_date": "2026-01-01",
         "restored_date": "2026-01-06",

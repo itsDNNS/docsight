@@ -79,10 +79,7 @@ def test_outage_vectors_v1_to_v5(
 def test_missed_appointment_vectors_v6_and_v7(
     monthly_fee_cents, expected_cents, expected_basis
 ):
-    item = compute_missed_appointment(
-        monthly_fee_cents=monthly_fee_cents,
-        ruleset=RULESET_DE_TKG58,
-    )
+    item = compute_missed_appointment(monthly_fee_cents=monthly_fee_cents)
 
     assert item.amount_cents == expected_cents
     assert item.basis == expected_basis
