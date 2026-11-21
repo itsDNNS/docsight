@@ -7,13 +7,12 @@ from types import MappingProxyType
 from typing import Literal
 
 from ...types import DocsisDataFritz, RawChannel
-from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_result, docsis_split
+from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_result, docsis_split, number_reader
 from .primitives import (
     ANNEX_B_DOWNSTREAM_SYMBOL_RATES,
     hz_to_mhz,
     normalize_modulation,
     parse_first_number,
-    parse_number,
 )
 
 
@@ -217,7 +216,8 @@ def extract_cm3000_tag_value_list(html: str, function_name: str) -> str | None:
 
 def split_cm3000_channels(raw: str, fields_per_channel: int) -> list[list[str]]:
     values = raw.split("|")[1:]
-    if values and values[-1] == "":
+    # A trailing delimiter leaves one empty token; an empty last field without one fills the row.
+    if values and values[-1] == "" and len(values) % fields_per_channel:
         values = values[:-1]
     return [
         values[index:index + fields_per_channel]
@@ -236,18 +236,21 @@ def _parse_cm3000_lane(html: str, function_name: str) -> ParseResult[list[RawCha
     for index, channel in enumerate(split_cm3000_channels(raw, _CM3000_FIELDS[function_name])):
         if channel[1] != "Locked":
             continue
+        num = number_reader(diagnostics, "cm3000_javascript", family="javascript", direction=direction, index=index)
         try:
             if function_name == "InitDsTableTagValue":
+                channel_id = int(channel[3])
+                mer = num(channel[6], "snr")
                 result.append({
-                    "channelID": int(channel[3]), "frequency": hz_to_mhz(channel[4]),
-                    "powerLevel": float(channel[5]), "mer": float(channel[6]),
-                    "mse": -float(channel[6]), "modulation": channel[2].strip(),
-                    "corrErrors": int(channel[7]), "nonCorrErrors": int(channel[8]),
+                    "channelID": channel_id, "frequency": hz_to_mhz(channel[4]),
+                    "powerLevel": num(channel[5], "power"), "mer": mer,
+                    "mse": None if mer is None else -mer, "modulation": channel[2].strip(),
+                    "corrErrors": num(channel[7], "corrected", int), "nonCorrErrors": num(channel[8], "uncorrected", int),
                 })
             elif function_name == "InitUsTableTagValue":
                 result.append({
                     "channelID": int(channel[3]), "frequency": hz_to_mhz(channel[5]),
-                    "powerLevel": parse_number(channel[6]), "modulation": channel[2].strip(),
+                    "powerLevel": num(channel[6], "power"), "modulation": channel[2].strip(),
                     "multiplex": channel[2].upper() if channel[2] else "",
                 })
             elif function_name == "InitDsOfdmTableTagValue":
@@ -255,14 +258,14 @@ def _parse_cm3000_lane(html: str, function_name: str) -> ParseResult[list[RawCha
                 # active subcarriers|unerrored|correctable|uncorrectable
                 result.append({
                     "channelID": int(channel[3]), "type": "OFDM",
-                    "frequency": hz_to_mhz(channel[4]), "powerLevel": parse_number(channel[5]),
-                    "mer": parse_number(channel[6]), "mse": None,
-                    "corrErrors": int(channel[9]), "nonCorrErrors": int(channel[10]),
+                    "frequency": hz_to_mhz(channel[4]), "powerLevel": num(channel[5], "power"),
+                    "mer": num(channel[6], "snr"), "mse": None,
+                    "corrErrors": num(channel[9], "corrected", int), "nonCorrErrors": num(channel[10], "uncorrected", int),
                 })
             else:
                 result.append({
                     "channelID": int(channel[3]), "type": "OFDMA",
-                    "frequency": hz_to_mhz(channel[4]), "powerLevel": parse_number(channel[5]),
+                    "frequency": hz_to_mhz(channel[4]), "powerLevel": num(channel[5], "power"),
                     "modulation": "OFDMA", "multiplex": "",
                 })
         except (ValueError, IndexError):

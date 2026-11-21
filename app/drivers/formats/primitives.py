@@ -16,15 +16,10 @@ _FIRST_NUMBER = re.compile(r"[-+]?\d+(?:\.\d+)?")
 ANNEX_B_DOWNSTREAM_SYMBOL_RATES = MappingProxyType({"64QAM": 5057, "256QAM": 5361})
 
 
-def parse_number(value: str) -> float:
-    """Parse the leading number, preserving the established zero fallback."""
-    if not value:
-        return 0.0
-    parts = value.strip().split()
-    try:
-        return float(parts[0])
-    except (ValueError, IndexError):
-        return 0.0
+def parse_number(value: str) -> float | None:
+    """Parse the leading finite number; empty, unreadable or non-finite text is None, never 0."""
+    parts = (value or "").split()
+    return parse_optional_finite_float(parts[0]) if parts else None
 
 
 def parse_first_number(value: str) -> float | None:
@@ -46,7 +41,7 @@ def parse_optional_finite_float(value: object) -> float | None:
 
 def hz_to_mhz(freq: object) -> str:
     """Convert numeric or unit-bearing frequency input to the legacy MHz string."""
-    if isinstance(freq, (int, float)):
+    if isinstance(freq, (int, float)) and math.isfinite(freq):
         return _format_mhz(float(freq) / 1_000_000)
 
     freq_str = str(freq).strip()
@@ -88,12 +83,8 @@ def normalize_modulation(modulation: object) -> str:
 
 def normalize_mhz(freq_str: str) -> str:
     """Normalize an already-MHz value to the established display string."""
-    if not freq_str:
-        return ""
-    try:
-        return _format_mhz(float(freq_str.strip().split()[0]))
-    except (ValueError, IndexError):
-        return freq_str
+    number = parse_number(freq_str)
+    return freq_str if number is None else _format_mhz(number)
 
 
 def parse_mhz_value(freq_str: str) -> float:
@@ -103,13 +94,10 @@ def parse_mhz_value(freq_str: str) -> float:
 
 
 def _optional_mhz(freq_str: str) -> float | None:
-    if not freq_str:
+    value = parse_number(freq_str)
+    if value is None:
         return None
-    parts = freq_str.strip().split()
-    try:
-        value = float(parts[0])
-    except (IndexError, ValueError):
-        return None
+    parts = freq_str.split()
     unit = parts[1].lower() if len(parts) > 1 else ""
     if unit == "hz":
         return value / 1_000_000

@@ -9,6 +9,7 @@ import threading
 from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
 from .docsis_utils import CHANNEL_HEALTH_RANK, SUMMARY_HEALTH_RANK, channel_type_label, qam_rank as _qam_rank
+from .error_counters import to_counter
 from .types import AnalysisResult, EventDict
 from .tz import utc_now
 
@@ -52,6 +53,12 @@ def _normalize_channel_id(value):
     if f.is_integer():
         return ("int", int(f))
     return ("float", f)
+
+
+def _rated_values(analysis):
+    """Count the power and SNR/MER readings the analyzer could rate."""
+    keys = {"ds_channels": ("power", "snr"), "us_channels": ("power",)}
+    return sum(ch.get(key) is not None for lane, names in keys.items() for ch in analysis.get(lane, []) for key in names)
 
 
 def _coerce_float(value):
@@ -117,6 +124,7 @@ class EventDetector:
         self._lock = threading.Lock()
         self._hysteresis = max(0, int(hysteresis or 0))
         self._confirmed_health = None
+        self._confirmed_rated = 0
         self._pending_health = None
         self._pending_count = 0
         self.seed(baseline)
@@ -132,6 +140,7 @@ class EventDetector:
             self._prev_snapshot_id = snapshot_id
             if self._hysteresis >= 2:
                 self._confirmed_health = analysis.get("summary", {}).get("health", "good")
+                self._confirmed_rated = _rated_values(analysis)
             self._pending_health = None
             self._pending_count = 0
 
@@ -180,7 +189,7 @@ class EventDetector:
         cur_s = analysis.get("summary", {})
         prev_s = prev.get("summary", {})
 
-        self._check_health(events, ts, cur_s, prev_s)
+        self._check_health(events, ts, cur_s, prev_s, _rated_values(analysis), _rated_values(prev))
         self._check_power(events, ts, cur_s, prev_s)
         self._check_snr(events, ts, analysis, prev)
         self._check_channels(events, ts, analysis, prev)
@@ -192,7 +201,7 @@ class EventDetector:
         self._annotate_event_details(events, snapshot_id, prev_snapshot_id)
         return events
 
-    def _check_health(self, events, ts, cur, prev):
+    def _check_health(self, events, ts, cur, prev, rated, prev_rated):
         cur_health = cur.get("health", "good")
 
         if self._hysteresis < 2:
@@ -200,17 +209,19 @@ class EventDetector:
             prev_health = prev.get("health", "good")
             if cur_health == prev_health:
                 return
-            self._emit_health_event(events, ts, prev_health, cur_health)
+            self._emit_health_event(events, ts, prev_health, cur_health, rated < prev_rated)
             return
 
         # Hysteresis mode: require N consecutive polls before confirming
         if self._confirmed_health is None:
             self._confirmed_health = prev.get("health", "good")
+            self._confirmed_rated = prev_rated
 
         confirmed = self._confirmed_health
 
         if cur_health == confirmed:
             # Back to confirmed state, reset pending
+            self._confirmed_rated = rated
             self._pending_health = None
             self._pending_count = 0
             return
@@ -224,19 +235,23 @@ class EventDetector:
 
         if self._pending_count >= self._hysteresis:
             # Transition confirmed
-            self._emit_health_event(events, ts, confirmed, cur_health)
+            self._emit_health_event(events, ts, confirmed, cur_health, rated < self._confirmed_rated)
             self._confirmed_health = cur_health
+            self._confirmed_rated = rated
             self._pending_health = None
             self._pending_count = 0
 
     @staticmethod
-    def _emit_health_event(events, ts, prev_health, cur_health):
+    def _emit_health_event(events, ts, prev_health, cur_health, readings_lost=False):
         cur_level = SUMMARY_HEALTH_RANK.get(cur_health, 0)
         prev_level = SUMMARY_HEALTH_RANK.get(prev_health, 0)
 
         if cur_level > prev_level:
             severity = "critical" if cur_health == "critical" else "warning"
             message = f"Health changed from {prev_health} to {cur_health}"
+        elif readings_lost:
+            # Fewer rated readings than the state being left: an improvement is not a confirmed recovery.
+            return
         else:
             severity = "info"
             message = f"Health recovered from {prev_health} to {cur_health}"
@@ -569,10 +584,10 @@ class EventDetector:
         for ch_id in overlap_ids:
             p = prev_channels[ch_id]
             c = cur_channels[ch_id]
-            p_corr = p.get("correctable_errors")
-            p_uncorr = p.get("uncorrectable_errors")
-            c_corr = c.get("correctable_errors")
-            c_uncorr = c.get("uncorrectable_errors")
+            # Older snapshots may store a driver's counters as text.
+            p_corr, p_uncorr, c_corr, c_uncorr = (
+                to_counter(ch.get(key)) for ch in (p, c) for key in ("correctable_errors", "uncorrectable_errors")
+            )
 
             # Evaluate each counter family independently.
             # A channel is valid if at least one counter pair is comparable.

@@ -483,7 +483,7 @@ class TestFullDataFlow:
     def test_invalid_upstream_payload_raises_without_relogin(self, driver):
         with (
             patch.object(driver, "login") as login,
-            pytest.raises(ValueError, match="invalid Sagemcom upstream payload"),
+            pytest.raises(ValueError, match="invalid Sagemcom channel payload"),
         ):
             _lanes(driver, "channelUs", [{"LockStatus": True, "Modulation": None}])
         login.assert_not_called()

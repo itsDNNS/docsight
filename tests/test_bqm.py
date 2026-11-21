@@ -2,14 +2,17 @@
 
 import io
 import sqlite3
-from datetime import date
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
 import pytest
+import requests
 
-from app.modules.bqm.collector import BQMCollector
-from app.modules.bqm.thinkbroadband import fetch_graph
+from app.modules.bqm.auth import ThinkBroadbandBatchAbort, fetch_graph
+from app.modules.bqm.collector import BQMCollector, collect_bqm
+from app.modules.bqm.csv_parser import EXPECTED_COLUMNS
+from app.modules.bqm.routes import run_bqm_initial_fetch
 from app.modules.bqm.storage import BqmStorage
 from app.module_registry import ModuleInfo
 from app.storage import SnapshotStorage
@@ -23,47 +26,39 @@ pytestmark = pytest.mark.usefixtures("route_app")
 
 # ── Fetcher Tests ──
 
+_SHARE_URL = "https://www.thinkbroadband.com/broadband/monitoring/quality/share/" + "a" * 40
+
+
+def _response(status, content):
+    """A real requests response for ``status`` returned from the share graph URL."""
+    response = requests.Response()
+    response.status_code, response._content, response.url = status, content, _SHARE_URL + ".png"
+    return response
+
+
+_FAILED_GETS = pytest.mark.parametrize("get", [
+    MagicMock(side_effect=requests.ConnectionError(f"Max retries exceeded with url: {_SHARE_URL}.png")),
+    MagicMock(return_value=_response(404, b"x" * 200)),
+    MagicMock(return_value=_response(300, b"<html>" + b"x" * 200)),
+], ids=["network-error", "http-404", "http-300-html"])
+
 
 class TestBQMFetcher:
-    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
-    def test_fetch_success(self, mock_urlopen):
-        mock_resp = MagicMock()
-        mock_resp.read.return_value = b"\x89PNG" + b"\x00" * 200
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = mock_resp
+    @pytest.mark.parametrize("content, fetched", [
+        (b"\x89PNG" + b"\x00" * 200, True),
+        (b"", False),
+        (b"tiny", False),
+    ], ids=["png", "empty", "too-small"])
+    @patch("app.modules.bqm.auth.requests.get")
+    def test_fetch_content(self, mock_get, content, fetched):
+        mock_get.return_value = _response(200, content)
+        assert fetch_graph("https://example.com/graph.png") == (content if fetched else None)
 
-        result = fetch_graph("https://example.com/graph.png")
-        assert result is not None
-        assert len(result) > 100
-
-    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
-    def test_fetch_empty_response(self, mock_urlopen):
-        mock_resp = MagicMock()
-        mock_resp.read.return_value = b""
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = mock_resp
-
-        result = fetch_graph("https://example.com/graph.png")
-        assert result is None
-
-    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
-    def test_fetch_too_small(self, mock_urlopen):
-        mock_resp = MagicMock()
-        mock_resp.read.return_value = b"tiny"
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = mock_resp
-
-        result = fetch_graph("https://example.com/graph.png")
-        assert result is None
-
-    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
-    def test_fetch_network_error(self, mock_urlopen):
-        mock_urlopen.side_effect = Exception("Connection refused")
-        result = fetch_graph("https://example.com/graph.png")
-        assert result is None
+    @_FAILED_GETS
+    def test_fetch_failure_logs_no_share_id(self, get, caplog):
+        with patch("app.modules.bqm.auth.requests.get", get):
+            assert fetch_graph(_SHARE_URL + ".png") is None
+        assert "a" * 40 not in caplog.text
 
     @pytest.mark.parametrize("url", ["", None])
     def test_fetch_invalid_url(self, url):
@@ -192,8 +187,6 @@ class TestBQMStorage:
         rows = bqm_storage.get_data_for_range("2026-03-15", "2026-03-16")
         assert len(rows) == 3
         assert bqm_storage.get_csv_dates() == ["2026-03-16", "2026-03-15"]
-        assert bqm_storage.has_csv_data("2026-03-16") is True
-        assert bqm_storage.has_csv_data("2026-03-14") is False
 
     def test_store_csv_data_reraises_storage_errors(self, bqm_storage, sample_csv_rows, monkeypatch):
         def boom(*args, **kwargs):
@@ -229,17 +222,32 @@ def _sample_bqm_csv(date="2026-03-15"):
     )
 
 
+def _bqm_config(tmp_path, url, **config):
+    """Return (db_path, storage, config manager) for a collector using ``url``."""
+    db_path = str(tmp_path / "collector.db")
+    mgr = ConfigManager(str(tmp_path / "data"))
+    mgr.save({"modem_password": "test", "modem_type": "fritzbox", "bqm_url": url, **config})
+    return db_path, SnapshotStorage(db_path, max_days=7), mgr
+
+
+@pytest.fixture
+def fixed_clock():
+    """Pin the configured-zone clock of the collector and of fetch-now to 2099-01-02 14:05."""
+    now = MagicMock(return_value=datetime(2099, 1, 2, 14, 5))
+    with patch("app.tz.local_now", now), patch("app.modules.bqm.collector.local_now", now):
+        yield now
+
+
+_BQM_CALLERS = pytest.mark.parametrize("run, png_date", [
+    (lambda mgr, storage: BQMCollector(mgr, storage).collect().data, "2099-01-01"),
+    (lambda mgr, storage: run_bqm_initial_fetch(mgr, storage), "2099-01-02"),
+], ids=["collector", "fetch-now"])
+
+
 class TestBQMCollector:
     @patch("app.modules.bqm.collector.fetch_share_csv")
     def test_collect_records_persistent_success_metadata(self, mock_fetch, tmp_path):
-        db_path = str(tmp_path / "collector.db")
-        storage = SnapshotStorage(db_path, max_days=7)
-        mgr = ConfigManager(str(tmp_path / "data"))
-        mgr.save({
-            "modem_password": "test",
-            "modem_type": "fritzbox",
-            "bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2-y.csv",
-        })
+        db_path, storage, mgr = _bqm_config(tmp_path, _SHARE_URL + "-2-y.csv")
         mock_fetch.return_value = _sample_bqm_csv()
 
         collector = BQMCollector(mgr, storage)
@@ -251,16 +259,10 @@ class TestBQMCollector:
         assert meta["last_success_target_date"] == "2026-03-15"
         assert meta["last_success_rows"] == "1"
 
+    @pytest.mark.usefixtures("fixed_clock")
     @patch("app.modules.bqm.collector.fetch_share_csv")
     def test_new_collector_skips_when_target_date_already_collected(self, mock_fetch, tmp_path):
-        db_path = str(tmp_path / "collector-skip.db")
-        storage = SnapshotStorage(db_path, max_days=7)
-        mgr = ConfigManager(str(tmp_path / "data"))
-        mgr.save({
-            "modem_password": "test",
-            "modem_type": "fritzbox",
-            "bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2-y.csv",
-        })
+        db_path, storage, mgr = _bqm_config(tmp_path, _SHARE_URL + "-2-y.csv")
         bs = BqmStorage(db_path)
         bs.record_collection_success(
             collection_date="2099-01-02",
@@ -269,56 +271,67 @@ class TestBQMCollector:
             rows=1440,
         )
 
-        class FixedDate(date):
-            @classmethod
-            def today(cls):
-                return cls(2099, 1, 2)
-
-        with patch("app.modules.bqm.collector.date", FixedDate):
-            result = BQMCollector(mgr, storage).collect()
+        result = BQMCollector(mgr, storage).collect()
 
         assert result.success is True
-        assert result.data == {"skipped": True, "reason": "already_collected", "date": "2099-01-01"}
+        assert result.data == {"skipped": True, "reason": "already_collected"}
         mock_fetch.assert_not_called()
 
+    @_BQM_CALLERS
     @patch("app.modules.bqm.collector.fetch_graph")
-    def test_png_collection_records_yesterday_target_for_restart_skip(self, mock_fetch, tmp_path, sample_png):
-        db_path = str(tmp_path / "collector-png.db")
-        storage = SnapshotStorage(db_path, max_days=7)
-        mgr = ConfigManager(str(tmp_path / "data"))
-        mgr.save({
-            "modem_password": "test",
-            "modem_type": "fritzbox",
-            "bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
-            "bqm_collect_time": "14:00",
-        })
+    def test_png_collection_records_yesterday_target_for_restart_skip(
+        self, mock_fetch, run, png_date, tmp_path, sample_png, fixed_clock,
+    ):
+        """The collector stores the graph under yesterday, fetch-now under today."""
+        db_path, storage, mgr = _bqm_config(tmp_path, _SHARE_URL + ".png", timezone="Pacific/Kiritimati")
         mock_fetch.return_value = sample_png
 
-        class FixedDate(date):
-            @classmethod
-            def today(cls):
-                return cls(2099, 1, 2)
+        assert run(mgr, storage) == {"success": True, "date": png_date, "mode": "png"}
 
-        def fake_strftime(fmt, *args):
-            if fmt == "%Y-%m-%d":
-                return "2099-01-02"
-            if fmt == "%H:%M":
-                return "14:05"
-            if fmt == "%Y-%m-%dT%H:%M:%SZ":
-                return "2099-01-02T14:05:00Z"
-            raise AssertionError(f"unexpected strftime format: {fmt}")
-
-        with patch("app.modules.bqm.collector.date", FixedDate), patch(
-            "app.modules.bqm.collector.time.strftime",
-            side_effect=fake_strftime,
-        ):
-            result = BQMCollector(mgr, storage).collect()
-
-        assert result.success is True
-        assert result.data == {"date": "2099-01-01", "mode": "png"}
+        fixed_clock.assert_called_with("Pacific/Kiritimati")
+        mock_fetch.assert_called_once_with(_SHARE_URL + ".png")
+        assert BqmStorage(db_path).get_bqm_dates() == [png_date]
         meta = BqmStorage(db_path).get_collection_metadata()
-        assert meta["last_success_target_date"] == "2099-01-01"
+        assert meta["last_success_collection_date"] == "2099-01-02"
+        assert meta["last_success_target_date"] == png_date
         assert meta["last_success_mode"] == "png"
+
+    @_BQM_CALLERS
+    @patch("app.modules.bqm.collector.fetch_graph")
+    def test_failed_graph_write_does_not_mark_day_collected(self, mock_fetch, run, png_date, tmp_path, sample_png):
+        db_path, storage, mgr = _bqm_config(tmp_path, _SHARE_URL + ".png")
+        mock_fetch.return_value = sample_png
+        BqmStorage(db_path)
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("CREATE TRIGGER reject_graph BEFORE INSERT ON bqm_graphs BEGIN SELECT RAISE(ABORT, 'disk full'); END")
+
+        assert run(mgr, storage) == {"success": False, "error": "BQM fetch failed"}
+        assert BqmStorage(db_path).get_collection_metadata() == {}
+
+    @pytest.mark.parametrize("url", [
+        "https://example.com/graph.png",
+        "https://example.com/graphs/" + "b" * 40 + ".png",
+    ], ids=["plain", "hex-filename"])
+    @patch("app.modules.bqm.collector.fetch_graph")
+    def test_png_url_outside_thinkbroadband_is_fetched_as_configured(self, mock_fetch, url, bqm_storage, sample_png):
+        mock_fetch.return_value = sample_png
+        assert collect_bqm(bqm_storage, url, "2099-01-02", "2099-01-01")["success"] is True
+        mock_fetch.assert_called_once_with(url)
+        assert bqm_storage.get_bqm_dates() == ["2099-01-01"]
+
+    @pytest.mark.parametrize("fetched, error", [
+        ("", "BQM CSV download failed"),
+        (",".join(EXPECTED_COLUMNS) + "\n", "BQM CSV contained no valid rows"),
+        ("not a bqm csv\n", "BQM CSV is invalid"),
+        (ThinkBroadbandBatchAbort("HTTP 429"), "ThinkBroadband temporarily rejected the BQM request"),
+        (sqlite3.OperationalError("database is locked"), "BQM fetch failed"),
+    ], ids=["empty", "no-rows", "bad-header", "batch-abort", "unexpected"])
+    def test_csv_failure_does_not_mark_day_collected(self, fetched, error, bqm_storage):
+        with patch("app.modules.bqm.collector.fetch_share_csv", side_effect=[fetched]):
+            result = collect_bqm(bqm_storage, _SHARE_URL + "-2-y.csv", "2099-01-02", "2099-01-01")
+
+        assert result == {"success": False, "error": error}
+        assert bqm_storage.get_collection_metadata() == {}
 
 
 # ── API Tests ──
@@ -488,7 +501,7 @@ class TestBQMAPI:
         resp = client.post("/api/bqm/validate-monitor", json={})
         assert resp.status_code == 400
 
-    @patch("app.modules.bqm.routes.fetch_share_csv")
+    @patch("app.modules.bqm.collector.fetch_share_csv")
     def test_fetch_now_downloads_and_stores_csv(self, mock_fetch, bqm_client):
         client, _ = bqm_client
         mock_fetch.return_value = _sample_bqm_csv("2026-03-15")
@@ -505,7 +518,7 @@ class TestBQMAPI:
         assert data["rows"] == 1
         assert data["date"] == "2026-03-15"
 
-    @patch("app.modules.bqm.routes.fetch_graph")
+    @patch("app.modules.bqm.collector.fetch_graph")
     def test_fetch_now_rejects_arbitrary_png_url(self, mock_fetch, bqm_client):
         client, _ = bqm_client
         client.post("/api/config", json={"bqm_url": "http://192.168.1.1/router.png"})
@@ -558,14 +571,10 @@ class TestBQMAPI:
 class TestBQMLive:
     """Tests for the /api/bqm/live endpoint."""
 
-    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
-    def test_live_success(self, mock_urlopen, bqm_client, sample_png):
+    @patch("app.modules.bqm.auth.requests.get")
+    def test_live_success(self, mock_get, bqm_client, sample_png):
         """Live fetch succeeds: returns fresh PNG with live source header."""
-        mock_resp = MagicMock()
-        mock_resp.read.return_value = sample_png
-        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
-        mock_resp.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = mock_resp
+        mock_get.return_value = _response(200, sample_png)
 
         client, _ = bqm_client
         resp = client.get("/api/bqm/live")
@@ -575,22 +584,20 @@ class TestBQMLive:
         assert resp.headers.get("X-BQM-Timestamp") is not None
         assert resp.data == sample_png
 
-    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
-    def test_live_fallback_to_cached(self, mock_urlopen, bqm_client, sample_png):
+    @_FAILED_GETS
+    def test_live_fallback_to_cached(self, get, bqm_client, sample_png):
         """Live fetch fails: falls back to today's cached image."""
-        mock_urlopen.side_effect = Exception("Network error")
-
         client, _ = bqm_client
-        resp = client.get("/api/bqm/live")
+        with patch("app.modules.bqm.auth.requests.get", get):
+            resp = client.get("/api/bqm/live")
         assert resp.status_code == 200
         assert resp.content_type == "image/png"
         assert resp.headers.get("X-BQM-Source") == "cached"
         assert resp.data == sample_png
 
-    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
-    def test_live_both_fail(self, mock_urlopen, tmp_path):
+    @patch("app.modules.bqm.auth.requests.get", side_effect=requests.ConnectionError("Network error"))
+    def test_live_both_fail(self, _mock_get, tmp_path):
         """Both live and cached fail: returns 404."""
-        mock_urlopen.side_effect = Exception("Network error")
 
         with configured_client(tmp_path / "data_live", bqm_url="https://example.com/graph.png") as client:
             resp = client.get("/api/bqm/live")

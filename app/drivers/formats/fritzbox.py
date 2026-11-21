@@ -6,7 +6,7 @@ from copy import deepcopy
 from typing import Any, cast
 
 from ...types import DocsisData
-from .contract import ParseDiagnostic, ParseResult, diagnostic
+from .contract import ParseDiagnostic, ParseResult, number_reader
 
 
 _UPSTREAM_31_POWER_OFFSET = 6.0
@@ -18,16 +18,13 @@ def parse_fritzbox_data_lua(payload: dict[str, Any] | None) -> ParseResult[Docsi
     diagnostics: list[ParseDiagnostic] = []
     upstream = value.get("channelUs", {}).get("docsis31", [])
     for index, channel in enumerate(upstream):
-        try:
-            raw = float(channel.get("powerLevel", 0))
-            channel["powerLevel"] = str(round(raw + _UPSTREAM_31_POWER_OFFSET, 1))
-            # Kept with the channel so the UI can say why it differs from the modem's page.
-            channel["powerDisplayOffset"] = _UPSTREAM_31_POWER_OFFSET
-        except (TypeError, ValueError):
-            diagnostics.append(diagnostic(
-                "fritzbox_data_lua",
-                "unavailable_field" if channel.get("powerLevel") is None else "invalid_field",
-                family="fritzbox",
-                direction="upstream", index=index, field="powerLevel",
-            ))
+        power = number_reader(
+            diagnostics, "fritzbox_data_lua", family="fritzbox", direction="upstream", index=index,
+        )(channel.get("powerLevel"), "powerLevel")
+        if power is None:
+            channel["powerLevel"] = None
+            continue
+        channel["powerLevel"] = str(round(power + _UPSTREAM_31_POWER_OFFSET, 1))
+        # Kept with the channel so the UI can say why it differs from the modem's page.
+        channel["powerDisplayOffset"] = _UPSTREAM_31_POWER_OFFSET
     return ParseResult(value, tuple(diagnostics))

@@ -10,7 +10,7 @@ from typing import Any, Literal
 from bs4 import BeautifulSoup, Tag
 
 from ...types import DocsisDataFritz, RawChannel
-from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_result, docsis_split
+from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_result, docsis_split, number_reader
 from .primitives import (
     ANNEX_B_DOWNSTREAM_SYMBOL_RATES,
     hz_to_mhz,
@@ -46,15 +46,6 @@ _CM1000_ALIASES = MappingProxyType({
 })
 
 
-def _optional_value(value: str) -> float | None:
-    if not value:
-        return None
-    try:
-        return float(value.strip().split()[0])
-    except (ValueError, IndexError):
-        return None
-
-
 # Arris bonded 8/7-column profile -----------------------------------------
 
 def _arris_tables(soup: BeautifulSoup) -> tuple[Tag | None, Tag | None]:
@@ -88,16 +79,17 @@ def parse_arris_downstream(table: Tag | None) -> ParseResult[tuple[list[RawChann
         cells = [td.get_text(strip=True) for td in row.find_all("td")]
         if len(cells) < 8 or cells[1] != "Locked":
             continue
+        num = number_reader(diagnostics, "arris_html", family="html_rows", direction="downstream", row=row_index)
         try:
-            snr = _optional_value(cells[5])
             channel: RawChannel = {
                 "channelID": int(cells[0]),
                 "frequency": hz_to_mhz(cells[3]),
-                "powerLevel": _optional_value(cells[4]),
+                "powerLevel": num(cells[4], "power"),
                 "modulation": cells[2],
-                "corrErrors": int(cells[6]),
-                "nonCorrErrors": int(cells[7]),
+                "corrErrors": num(cells[6], "corrected", int),
+                "nonCorrErrors": num(cells[7], "uncorrected", int),
             }
+            snr = num(cells[5], "snr")
             if cells[2] == "Other":
                 channel.update({"type": "OFDM", "mer": snr, "mse": None})
                 ds31.append(channel)
@@ -120,12 +112,13 @@ def parse_arris_upstream(table: Tag | None) -> ParseResult[tuple[list[RawChannel
         cells = [td.get_text(strip=True) for td in row.find_all("td")]
         if len(cells) < 7 or cells[2] != "Locked":
             continue
+        num = number_reader(diagnostics, "arris_html", family="html_rows", direction="upstream", row=row_index)
         try:
             channel_type = cells[3]
             channel: RawChannel = {
                 "channelID": int(cells[1]),
                 "frequency": hz_to_mhz(cells[4]),
-                "powerLevel": _optional_value(cells[6]),
+                "powerLevel": num(cells[6], "power"),
                 "modulation": channel_type,
             }
             if "OFDM" in channel_type and "SC-QAM" not in channel_type:
@@ -177,20 +170,21 @@ def _parse_sb_table(
             or cells[1].strip().lower() != "locked"
         ):
             continue
+        num = number_reader(diagnostics, profile, family="html_rows", direction=direction, row=row_index)
         try:
             if direction == "downstream":
-                snr = parse_number(cells[6])
+                snr = num(cells[6], "snr")
                 channel: RawChannel = {
                     "channelID": int(cells[3]), "frequency": frequency_parser(cells[4]),
-                    "powerLevel": parse_number(cells[5]), "mer": snr,
-                    "mse": -snr if snr else None, "modulation": cells[2],
-                    "corrErrors": int(parse_number(cells[7])),
-                    "nonCorrErrors": int(parse_number(cells[8])),
+                    "powerLevel": num(cells[5], "power"), "mer": snr,
+                    "mse": None if snr is None else -snr, "modulation": cells[2],
+                    "corrErrors": num(cells[7], "corrected", int),
+                    "nonCorrErrors": num(cells[8], "uncorrected", int),
                 }
             else:
                 channel = {
                     "channelID": int(cells[3]), "frequency": frequency_parser(cells[5]),
-                    "powerLevel": parse_number(cells[6]), "modulation": cells[2],
+                    "powerLevel": num(cells[6], "power"), "modulation": cells[2],
                     "multiplex": cells[2],
                 }
             result.append(channel)
@@ -266,12 +260,8 @@ def find_cm3500_sections(soup: BeautifulSoup) -> dict[str, Tag]:
 
 
 def format_cm3500_frequency(value: str) -> str:
-    if not value:
-        return ""
-    try:
-        return f"{int(float(value.strip().split()[0]))} MHz"
-    except (ValueError, IndexError):
-        return value
+    number = parse_number(value)
+    return value if number is None else f"{int(number)} MHz"
 
 
 def _cm3500_rows(table: Tag | None, lane: str) -> ParseResult[list[RawChannel]]:
@@ -284,36 +274,39 @@ def _cm3500_rows(table: Tag | None, lane: str) -> ParseResult[list[RawChannel]]:
         rows = body.find_all("tr") if body else []
     else:
         rows = table.find_all("tr")[1:]
-    channel_id = 200
+    # OFDM rows are numbered in page order; a skipped row keeps its number so later channels keep theirs.
+    channel_id = 199
+    direction = "downstream" if lane.startswith("ds") else "upstream"
     for row_index, row in enumerate(rows):
         cells = [td.get_text(strip=True) for td in row.find_all("td")]
+        num = number_reader(diagnostics, "cm3500_html", family="html_rows", direction=direction, row=row_index)
         try:
             if lane == "ds_qam":
                 if len(cells) < 9:
                     continue
+                qam_id = int(parse_number(cells[1]))
+                mer = num(cells[4], "snr")
                 result.append({
-                    "channelID": int(parse_number(cells[1])),
+                    "channelID": qam_id,
                     "frequency": format_cm3500_frequency(cells[2]),
-                    "powerLevel": parse_number(cells[3]),
-                    "mse": -parse_number(cells[4]) if cells[4] else None,
-                    "mer": parse_number(cells[4]) if cells[4] else None,
+                    "powerLevel": num(cells[3], "power"),
+                    "mse": None if mer is None else -mer,
+                    "mer": mer,
                     "modulation": cells[5],
-                    "corrErrors": int(parse_number(cells[7])),
-                    "nonCorrErrors": int(parse_number(cells[8])),
+                    "corrErrors": num(cells[7], "corrected", int),
+                    "nonCorrErrors": num(cells[8], "uncorrected", int),
                 })
             elif lane == "ds_ofdm":
-                if len(cells) < 8 or "downstream" not in cells[0].lower():
+                # A labelled row keeps its number even when it is too short to read (IndexError below).
+                if not cells or "downstream" not in cells[0].lower():
                     continue
-                first = parse_number(cells[4])
-                last = parse_number(cells[5])
-                mer = parse_number(cells[8]) if len(cells) > 8 else parse_number(cells[7])
+                channel_id += 1
+                frequency = f"{int(parse_number(cells[4]))}-{int(parse_number(cells[5]))} MHz"
                 result.append({
-                    "channelID": channel_id, "type": "OFDM",
-                    "frequency": f"{int(first)}-{int(last)} MHz",
-                    "powerLevel": None, "mer": mer, "mse": None,
+                    "channelID": channel_id, "type": "OFDM", "frequency": frequency,
+                    "powerLevel": None, "mer": num(cells[8] if len(cells) > 8 else cells[7], "snr"), "mse": None,
                     "corrErrors": None, "nonCorrErrors": None,
                 })
-                channel_id += 1
             elif lane == "us_qam":
                 if len(cells) < 7:
                     continue
@@ -322,26 +315,22 @@ def _cm3500_rows(table: Tag | None, lane: str) -> ParseResult[list[RawChannel]]:
                 result.append({
                     "channelID": int(parse_number(cells[1])),
                     "frequency": format_cm3500_frequency(cells[2]),
-                    "powerLevel": parse_number(cells[3]),
+                    "powerLevel": num(cells[3], "power"),
                     "modulation": cells[6], "multiplex": multiplex,
                 })
             else:
-                if len(cells) < 9 or "upstream" not in cells[0].lower():
+                if not cells or "upstream" not in cells[0].lower():
                     continue
-                first = parse_number(cells[6])
-                last = parse_number(cells[7])
+                channel_id += 1
+                frequency = f"{int(parse_number(cells[6]))}-{int(parse_number(cells[7]))} MHz"
                 result.append({
-                    "channelID": channel_id, "type": "OFDMA",
-                    "frequency": f"{int(first)}-{int(last)} MHz",
-                    "powerLevel": parse_number(cells[8]),
+                    "channelID": channel_id, "type": "OFDMA", "frequency": frequency,
+                    "powerLevel": num(cells[8], "power"),
                     "modulation": "OFDMA", "multiplex": "",
                 })
-                channel_id += 1
         except (ValueError, TypeError, IndexError):
             diagnostics.append(diagnostic(
-                "cm3500_html", "invalid_row", family="html_rows",
-                direction="downstream" if lane.startswith("ds") else "upstream",
-                row=row_index,
+                "cm3500_html", "invalid_row", family="html_rows", direction=direction, row=row_index,
             ))
     return ParseResult(result, tuple(diagnostics))
 
@@ -437,11 +426,12 @@ def _parse_tc_table(table: Tag | None, direction: str) -> ParseResult[list[RawCh
         cells = [td.get_text(strip=True) for td in row.find_all("td")]
         if len(cells) < 4 or _cell(cells, columns["lock_status"]).lower() != "locked":
             continue
+        num = number_reader(diagnostics, "tc4400_html", family="html_rows", direction=direction, row=row_index)
         try:
             channel_id = _cell(cells, columns["channel_id"], "0")
             modulation = normalize_modulation(_cell(cells, columns["modulation"]))
             frequency = parse_mhz_value(_cell(cells, columns["frequency"]))
-            power = parse_number(_cell(cells, columns["power"]))
+            power = num(_cell(cells, columns["power"]), "power")
             if direction == "downstream":
                 channel_type = _cell(cells, columns["channel_type"])
                 if channel_type.upper() == "OFDM":
@@ -450,15 +440,15 @@ def _parse_tc_table(table: Tag | None, direction: str) -> ParseResult[list[RawCh
                     final_type = modulation or "QAM"
                 else:
                     final_type = modulation or "unknown"
-                snr = parse_number(_cell(cells, columns["snr"]))
+                snr = num(_cell(cells, columns["snr"]), "snr")
                 result.append({
                     "channelID": channel_id, "type": final_type,
                     "frequency": f"{int(frequency)} MHz" if frequency else "",
                     "powerLevel": power,
-                    "mse": None if final_type == "OFDM" else (-snr if snr else None),
-                    "mer": snr if snr else None, "latency": 0,
-                    "corrError": int(parse_number(_cell(cells, columns["corrected"]))),
-                    "nonCorrError": int(parse_number(_cell(cells, columns["uncorrected"]))),
+                    "mse": None if final_type == "OFDM" or snr is None else -snr,
+                    "mer": snr, "latency": 0,
+                    "corrError": num(_cell(cells, columns["corrected"]), "corrected", int),
+                    "nonCorrError": num(_cell(cells, columns["uncorrected"]), "uncorrected", int),
                 })
             else:
                 result.append({
