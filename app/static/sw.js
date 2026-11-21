@@ -1,4 +1,4 @@
-var CACHE_VERSION = 'v112';
+var CACHE_VERSION = 'v113';
 /* The worker has its own Trusted Types context, so the shared URL checks are imported
    through a worker-side 'docsight' policy with the same-origin rule of trusted-html.js. */
 function sameOriginScriptURL(url) {

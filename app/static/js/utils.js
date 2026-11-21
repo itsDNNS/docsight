@@ -51,7 +51,7 @@ function resetExportState() {
     var textarea = document.getElementById('export-text');
     if (textarea) textarea.value = '';
     updateExportSize();
-    setExportStatus('');
+    setStatusLine('export-status');
 }
 function ensureExportModalCloseHandler() {
     if (exportCloseHandlerAttached) return;
@@ -68,7 +68,7 @@ function exportForLLM() {
     var loadId = ++exportLoadId;
     exportRawText = '';
     textarea.value = T.export_no_data;
-    setExportStatus(T.export_loading || 'Loading export preview...', 'progress');
+    setStatusLine('export-status', T.export_loading || 'Loading export preview...', 'progress');
     updateExportSize();
     window.DOCSightModal.open('export-modal');
     fetch(docsightUrl('/api/export?mode=' + encodeURIComponent(mode)))
@@ -84,26 +84,19 @@ function exportForLLM() {
             if (loadId !== exportLoadId || !isExportModalOpen()) return;
             exportRawText = data.text || '';
             refreshExportPreview();
-            setExportStatus(T.export_ready || 'Review the export before copying or downloading.', 'success');
+            setStatusLine('export-status', T.export_ready || 'Review the export before copying or downloading.', 'success');
         })
         .catch(function(e) {
             if (loadId !== exportLoadId || !isExportModalOpen()) return;
             var message = e && e.message ? e.message : (T.export_error || 'Error loading export data.');
             textarea.value = message;
             updateExportSize();
-            setExportStatus(message, 'error');
+            setStatusLine('export-status', message, 'error');
         });
 }
 function closeExportModal() {
     exportLoadId += 1;
     window.DOCSightModal.close('export-modal');
-}
-function setExportStatus(message, type) {
-    var status = document.getElementById('export-status');
-    if (!status) return;
-    status.textContent = message || '';
-    status.classList.remove('is-progress', 'is-success', 'is-error');
-    if (type) status.classList.add('is-' + type);
 }
 function getExportPreviewText() {
     var text = exportRawText || '';
@@ -228,7 +221,7 @@ function renderReportScope() {
     days.disabled = isFixed;
     if (!isFixed) return;
     if (!isValidReportScope(reportScope)) {
-        setReportBuilderStatus(T.report_fixed_scope_invalid || 'The selected problem window is incomplete. Return to Evidence Journey and rebuild the checklist.', 'error');
+        setStatusLine('report-builder-status', T.report_fixed_scope_invalid || 'The selected problem window is incomplete. Return to Evidence Journey and rebuild the checklist.', 'error');
         document.getElementById('report-generate-btn').disabled = true;
         return;
     }
@@ -275,16 +268,7 @@ function resetReportModalState() {
     if (days) days.disabled = false;
     if (daysField) daysField.hidden = false;
     if (fixedScope) fixedScope.hidden = true;
-    setReportBuilderStatus('');
-}
-function setReportBuilderStatus(message, type) {
-    var status = document.getElementById('report-builder-status');
-    if (!status) return;
-    status.textContent = message || '';
-    status.classList.remove('is-success', 'is-error', 'is-progress');
-    if (type) {
-        status.classList.add('is-' + type);
-    }
+    setStatusLine('report-builder-status');
 }
 function syncComparisonReportState() {
     var toggle = document.getElementById('report-include-comparison');
@@ -340,7 +324,7 @@ function generateComplaint() {
     var btn = document.getElementById('report-generate-btn');
     btn.disabled = true;
     btn.textContent = '...';
-    setReportBuilderStatus(T.report_builder_building || 'Building evidence package...', 'progress');
+    setStatusLine('report-builder-status', T.report_builder_building || 'Building evidence package...', 'progress');
     var generationId = reportGenerationId;
     var params;
     try {
@@ -348,7 +332,7 @@ function generateComplaint() {
     } catch (error) {
         btn.disabled = false;
         btn.textContent = '\u270E ' + (T.report_build_package || 'Build evidence package');
-        setReportBuilderStatus(error.message, 'error');
+        setStatusLine('report-builder-status', error.message, 'error');
         return;
     }
     fetch(docsightUrl('/api/complaint?' + params.toString()))
@@ -371,12 +355,12 @@ function generateComplaint() {
             document.getElementById('report-generate-btn').hidden = true;
             document.getElementById('report-copy-btn').hidden = false;
             document.getElementById('report-pdf-btn').hidden = false;
-            setReportBuilderStatus(T.report_builder_ready || 'Evidence package ready. Review the letter text, then copy it or download the PDF package.', 'success');
+            setStatusLine('report-builder-status', T.report_builder_ready || 'Evidence package ready. Review the letter text, then copy it or download the PDF package.', 'success');
         })
         .catch(function(e) {
             if (generationId !== reportGenerationId) return;
             var message = e && e.message ? e.message : (T.report_builder_error || 'Report generation failed. Try a different report period or verify that monitoring data exists.');
-            setReportBuilderStatus(message, 'error');
+            setStatusLine('report-builder-status', message, 'error');
             showToast(message, 'error');
         })
         .finally(function() {
@@ -401,7 +385,7 @@ function copyComplaint() {
         navigator.clipboard.writeText(textarea.value).then(function() {
             var orig = btn.innerHTML;
             btn.innerHTML = docsightHTML('&#10003; ' + (T.copied || 'Copied!'));
-            setReportBuilderStatus(T.report_builder_copied || 'Letter text copied. Attach the PDF package when you contact your ISP.', 'success');
+            setStatusLine('report-builder-status', T.report_builder_copied || 'Letter text copied. Attach the PDF package when you contact your ISP.', 'success');
             setTimeout(function() { btn.innerHTML = docsightHTML(orig); }, 2000);
         });
     } else {
@@ -419,7 +403,7 @@ function copyExport() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
             btn.textContent = T.copied || 'Copied!';
-            setExportStatus(T.export_copied || 'Export copied. Review the destination before pasting sensitive diagnostics.', 'success');
+            setStatusLine('export-status', T.export_copied || 'Export copied. Review the destination before pasting sensitive diagnostics.', 'success');
             setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 2000);
         }).catch(function() {
             fallbackCopy(textarea, btn, T);
@@ -434,11 +418,11 @@ function fallbackCopy(textarea, btn, T) {
         textarea.setSelectionRange(0, textarea.value.length);
         document.execCommand('copy');
         btn.textContent = T.copied || 'Copied!';
-        setExportStatus(T.export_copied || 'Export copied. Review the destination before pasting sensitive diagnostics.', 'success');
+        setStatusLine('export-status', T.export_copied || 'Export copied. Review the destination before pasting sensitive diagnostics.', 'success');
         setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 2000);
     } catch(e) {
         btn.textContent = T.copy_fallback || 'Select All + Ctrl+C';
-        setExportStatus(T.export_copy_error || 'Could not copy automatically. Select the text and copy it manually.', 'error');
+        setStatusLine('export-status', T.export_copy_error || 'Could not copy automatically. Select the text and copy it manually.', 'error');
         setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 3000);
     }
 }
@@ -452,7 +436,7 @@ function downloadExportMarkdown() {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    setExportStatus(T.export_download_ready || 'Download ready. Review the file before sharing it.', 'success');
+    setStatusLine('export-status', T.export_download_ready || 'Download ready. Review the file before sharing it.', 'success');
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
 function openSpeedtestSetupModal() {
@@ -461,7 +445,7 @@ function openSpeedtestSetupModal() {
 function closeSpeedtestSetupModal() {
     window.DOCSightModal.close('speedtest-setup-modal');
 }
-function setSetupStatus(statusId, message, type) {
+function setStatusLine(statusId, message, type) {
     var status = document.getElementById(statusId);
     if (!status) return;
     status.textContent = message || '';
@@ -475,12 +459,12 @@ function copySetupSnippet(sourceId, statusId) {
     var copyError = (T.setup_copy_error || 'Could not copy automatically. Select the snippet and copy it manually.');
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
-            setSetupStatus(statusId, copied, 'success');
+            setStatusLine(statusId, copied, 'success');
         }).catch(function() {
-            setSetupStatus(statusId, copyError, 'error');
+            setStatusLine(statusId, copyError, 'error');
         });
     } else {
-        setSetupStatus(statusId, copyError, 'error');
+        setStatusLine(statusId, copyError, 'error');
     }
 }
 function validateSetupGuidance(statusId, integration) {
@@ -489,5 +473,5 @@ function validateSetupGuidance(statusId, integration) {
         bqm: T.bqm_setup_validation_path || 'BQM can be validated in BQM settings after the share URL is saved. DOCSight checks the saved share URL before importing graphs.',
         smokeping: T.smokeping_setup_validation_path || 'SmokePing validation depends on the saved base URL and target in SmokePing settings. Save those values first, then refresh this view to confirm live data.'
     };
-    setSetupStatus(statusId, messages[integration] || (T.setup_guidance_ready || 'Open Settings, save the integration details, then use the settings test or refresh this view to confirm live data.'), 'progress');
+    setStatusLine(statusId, messages[integration] || (T.setup_guidance_ready || 'Open Settings, save the integration details, then use the settings test or refresh this view to confirm live data.'), 'progress');
 }

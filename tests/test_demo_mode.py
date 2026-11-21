@@ -26,10 +26,12 @@ from app.collectors.demo import (
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.modules.bqm.storage import BqmStorage
+from app.modules.bnetz.migrations import MIGRATIONS as BNETZ_MIGRATIONS
 from app.modules.bnetz.storage import BnetzStorage
 from app.modules.journal.storage import JournalStorage
 from app.modules.de_tkg_compensation.storage import ClaimStorage
 from app.config import ConfigManager
+from app.storage.migrations import run_migrations
 from app.runtime import current_runtime
 
 
@@ -693,6 +695,24 @@ class TestDemoSeedContract:
             "Google DNS",
         ]
         assert len(DEMO_TRACEROUTE_TRACE_CONFIGS) == 5
+
+    def test_bnetz_campaigns_store_speeds_like_the_parsers(self, storage):
+        BnetzStorage(storage.db_path)
+        _demo_collector(storage)._seed_bnetz_measurements(datetime.now(timezone.utc))
+        campaigns = BnetzStorage(storage.db_path).get_bnetz_measurements()
+        measurements = [m for c in campaigns for d in ("download", "upload") for m in c["measurements"][d]]
+        assert len(measurements) == 90
+        assert all(set(m) == {"date", "mbps"} and m["mbps"] > 0 for m in measurements)
+
+    def test_older_demo_campaigns_move_their_speeds_to_mbps(self, tmp_path):
+        db_path = str(tmp_path / "bnetz.db")
+        run_migrations(db_path, BNETZ_MIGRATIONS[:2])
+        legacy = json.dumps({"download": [{"date": "2026-01-01", "value": 912.5}], "upload": []})
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("INSERT INTO bnetz_measurements (date, timestamp, measurements_json, is_demo) "
+                         "VALUES ('2026-01-01', '2026-01-01T00:00:00Z', ?, 1)", (legacy,))
+        [row] = BnetzStorage(db_path).get_bnetz_measurements()
+        assert row["measurements"]["download"] == [{"date": "2026-01-01", "mbps": 912.5}]
 
     def test_seed_demo_data_invokes_all_supported_demo_surfaces(self, storage, monkeypatch):
         collector = _demo_collector(storage)

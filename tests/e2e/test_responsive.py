@@ -546,6 +546,8 @@ def test_bnetz_table_aligns_actions_and_names_each_verdict_on_desktop(demo_page)
                 cellPadding: parseFloat(getComputedStyle(firstCell).paddingLeft),
                 unnamedActions: [...document.querySelectorAll('#bnetz-tbody .bnetz-action-btn:not(.bnetz-action-placeholder)')]
                     .filter((el) => !el.getAttribute('aria-label')).length,
+                detailSpeeds: [...document.querySelectorAll('#bnetz-tbody .bnetz-detail-table td.dt-num:not(.bnetz-detail-nr)')]
+                    .map((td) => parseFloat(td.textContent)),
             };
         }
         """
@@ -554,6 +556,7 @@ def test_bnetz_table_aligns_actions_and_names_each_verdict_on_desktop(demo_page)
     assert all(geometry["verdictTexts"])
     assert geometry["cellPadding"] >= 12
     assert geometry["unnamedActions"] == 0
+    assert len(geometry["detailSpeeds"]) == 90 and min(geometry["detailSpeeds"]) > 0
 
 
 def test_bnetz_table_shows_an_unmeasured_direction_as_missing(demo_page):
