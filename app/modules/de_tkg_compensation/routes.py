@@ -15,7 +15,7 @@ from app.web_auth import require_auth
 
 from .capabilities import get_capabilities
 from .letter import render_claim_letter
-from .report_windows import chunk_report_windows
+from .report_windows import chunk_report_windows, parse_timestamp
 from .rules import (
     RuleValidationError,
     compute_missed_appointment,
@@ -23,24 +23,18 @@ from .rules import (
     empty_compensation_breakdown,
 )
 from .rules_data import resolve_ruleset
-from .storage import ClaimStorage
+from .storage import CLAIM_FIELDS, ClaimStorage
 
 
 bp = Blueprint("de_tkg_bp", __name__)
 
-_CLAIM_FIELDS = {
-    "status", "window_from", "window_to", "origin",
-    "fault_report_received_date", "fault_report_channel", "ticket_ref",
-    "restored_date", "monthly_fee_cents", "confirmed_days", "eligibility",
-    "prior_credit", "letter_text",
-}
 _CREDIT_CLASSIFICATIONS = {"goodwill", "reduction", "compensation", "unclear"}
 _ELIGIBILITY_FIELDS = {
     "complete_outage", "replacement_solution_days", "user_responsibility",
     "force_majeure", "lawful_interruption", "missed_appointments",
 }
 MAX_MISSED_APPOINTMENTS = 100
-_LETTER_FACT_FIELDS = _CLAIM_FIELDS - {"status", "letter_text"}
+_LETTER_FACT_FIELDS = CLAIM_FIELDS - {"status", "letter_text"}
 _GENERIC_VALIDATION_ERROR = (
     "technical_validation_failed",
     "The request could not be validated",
@@ -100,11 +94,11 @@ def _error(code: str, message: str, status: int = 400):
 
 
 def _validation_error_response(exc: RuleValidationError, status: int = 400):
-    exception_code = getattr(exc, "code", None)
-    for allowed_code, allowed_message in _PUBLIC_VALIDATION_ERRORS.items():
-        if exception_code == allowed_code:
-            return _error(allowed_code, allowed_message, status)
-    return _error(_GENERIC_VALIDATION_ERROR[0], _GENERIC_VALIDATION_ERROR[1], status)
+    # Answer with the catalog's own code and message, never with exception data.
+    for code, message in _PUBLIC_VALIDATION_ERRORS.items():
+        if exc.code == code:
+            return _error(code, message, status)
+    return _error(*_GENERIC_VALIDATION_ERROR, status)
 
 
 def _storage() -> ClaimStorage | None:
@@ -137,7 +131,7 @@ def _utc_timestamp(value, field: str, tz_name: str) -> str | None:
     if not isinstance(value, str):
         raise RuleValidationError(f"technical_{field}_invalid", f"{field} must be a timestamp")
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = parse_timestamp(value)
     except ValueError:
         raise RuleValidationError(f"technical_{field}_invalid", f"{field} must be a timestamp") from None
     if parsed.tzinfo is None:
@@ -151,10 +145,25 @@ def _utc_timestamp(value, field: str, tz_name: str) -> str | None:
     return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _missed_appointment_count(eligibility: dict) -> int:
+    count = eligibility.get("missed_appointments", 0)
+    if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+        raise RuleValidationError(
+            "technical_missed_appointments_invalid",
+            "Missed appointment count must be a non-negative integer",
+        )
+    if count > MAX_MISSED_APPOINTMENTS:
+        raise RuleValidationError(
+            "technical_missed_appointments_limit",
+            f"Missed appointment count exceeds the technical maximum of {MAX_MISSED_APPOINTMENTS}",
+        )
+    return count
+
+
 def _normalise_claim_payload(data, tz_name: str) -> dict:
     if not isinstance(data, dict):
         raise RuleValidationError("technical_json_object_required", "JSON object required")
-    unknown = sorted(set(data) - _CLAIM_FIELDS)
+    unknown = sorted(set(data) - CLAIM_FIELDS)
     if unknown:
         raise RuleValidationError(
             "technical_unknown_field", f"Unknown claim field: {unknown[0]}"
@@ -181,8 +190,8 @@ def _normalise_claim_payload(data, tz_name: str) -> dict:
         if field in payload:
             payload[field] = _utc_timestamp(payload[field], field, tz_name)
     if payload.get("window_from") and payload.get("window_to"):
-        start = datetime.fromisoformat(payload["window_from"].replace("Z", "+00:00"))
-        end = datetime.fromisoformat(payload["window_to"].replace("Z", "+00:00"))
+        start = datetime.fromisoformat(payload["window_from"])
+        end = datetime.fromisoformat(payload["window_to"])
         if end < start:
             raise RuleValidationError(
                 "technical_window_reversed", "Window end cannot precede window start"
@@ -231,21 +240,7 @@ def _normalise_claim_payload(data, tz_name: str) -> dict:
                 _calendar_date(value, "replacement_solution_day").isoformat()
                 for value in replacement_days
             ]
-        appointment_count = eligibility.get("missed_appointments", 0)
-        if (
-            isinstance(appointment_count, bool)
-            or not isinstance(appointment_count, int)
-            or appointment_count < 0
-        ):
-            raise RuleValidationError(
-                "technical_missed_appointments_invalid",
-                "Missed appointment count must be a non-negative integer",
-            )
-        if appointment_count > MAX_MISSED_APPOINTMENTS:
-            raise RuleValidationError(
-                "technical_missed_appointments_limit",
-                f"Missed appointment count exceeds the technical maximum of {MAX_MISSED_APPOINTMENTS}",
-            )
+        _missed_appointment_count(eligibility)
     if "prior_credit" in payload:
         credit = payload["prior_credit"]
         if not isinstance(credit, dict):
@@ -279,24 +274,14 @@ def _local_window_dates(claim: dict, tz_name: str) -> tuple[date, date]:
             "A selected claim window is required for an outage calculation",
         )
     zone = _configured_zone(tz_name)
-    start = datetime.fromisoformat(claim["window_from"].replace("Z", "+00:00"))
-    end = datetime.fromisoformat(claim["window_to"].replace("Z", "+00:00"))
+    start = parse_timestamp(claim["window_from"])
+    end = parse_timestamp(claim["window_to"])
     return start.astimezone(zone).date(), end.astimezone(zone).date()
 
 
 def _calculate_claim(claim: dict):
     eligibility = claim.get("eligibility") or {}
-    count = eligibility.get("missed_appointments", 0)
-    if isinstance(count, bool) or not isinstance(count, int) or count < 0:
-        raise RuleValidationError(
-            "technical_missed_appointments_invalid",
-            "Missed appointment count must be a non-negative integer",
-        )
-    if count > MAX_MISSED_APPOINTMENTS:
-        raise RuleValidationError(
-            "technical_missed_appointments_limit",
-            f"Missed appointment count exceeds the technical maximum of {MAX_MISSED_APPOINTMENTS}",
-        )
+    count = _missed_appointment_count(eligibility)
     has_outage = eligibility.get("complete_outage") is True
     if not has_outage and count == 0:
         raise RuleValidationError(
@@ -345,13 +330,9 @@ def _calculate_claim(claim: dict):
         )
     else:
         breakdown = empty_compensation_breakdown(ruleset)
-    appointments = tuple(
-        compute_missed_appointment(
-            monthly_fee_cents=claim.get("monthly_fee_cents"),
-            ruleset=ruleset,
-        )
-        for _ in range(count)
-    )
+    appointments = (
+        compute_missed_appointment(monthly_fee_cents=claim.get("monthly_fee_cents")),
+    ) * count
     return breakdown, appointments
 
 
