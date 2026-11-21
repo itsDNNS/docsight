@@ -30,6 +30,7 @@
   "import_no_date": "ingen dato",
   "import_file_unsupported": "Kun .xlsx- og .csv-filer understøttes",
   "import_file_too_large": "Filen er for stor (maks. 5 MB)",
+  "import_csv_unreadable": "Filen kunne ikke læses. Åbn den i det oprindelige program, gem den som CSV (UTF-8), og importér den igen.",
   "delete_all": "Slet alle",
   "delete_all_confirm": "Slet alle {n} poster? Det kan ikke fortrydes.",
   "delete_all_type_confirm": "Skriv DELETE for at bekræfte:",

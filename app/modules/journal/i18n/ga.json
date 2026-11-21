@@ -30,6 +30,7 @@
   "import_no_date": "gan dáta",
   "import_file_unsupported": "Ní thacaítear ach le comhaid .xlsx agus .csv",
   "import_file_too_large": "Comhad rómhór (5 MB ar a mhéad)",
+  "import_csv_unreadable": "Níorbh fhéidir an comhad seo a léamh. Oscail é sa ríomhchlár bunaidh, sábháil é mar CSV (UTF-8) agus iompórtáil arís é.",
   "delete_all": "Scrios gach rud",
   "delete_all_confirm": "Scrios na {n} iontráil go léir? Ní féidir é seo a chealú.",
   "delete_all_type_confirm": "Clóscríobh DELETE chun deimhniú:",
