@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Zagon lokalne predstavitve…",
   "setup_demo_waiting": "Priprava nadzorne plošče s podatki…",
   "setup_demo_failed": "Predstavitve ni bilo mogoče zagnati.",
-  "setup_demo_timeout": "Priprava predstavitve traja dlje od pričakovanega. Poskusite znova ali povežite modem.",
   "setup_try_again": "Poskusi znova",
   "setup_try_demo": "Namesto tega preizkusi predstavitev",
   "setup_desktop_preview_note": "Primerno za preizkus DOCSighta in občasne meritve. Za neprekinjeno spremljanje 24/7 ostaja priporočen Docker.",

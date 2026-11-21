@@ -1142,7 +1142,6 @@
   "setup_demo_starting": "Spouští se místní demo…",
   "setup_demo_waiting": "Připravuje se naplněný přehled…",
   "setup_demo_failed": "Demo se nepodařilo spustit.",
-  "setup_demo_timeout": "Příprava dema trvá déle, než se očekávalo. Zkuste načtení znovu nebo připojte modem.",
   "setup_try_again": "Zkusit znovu",
   "setup_try_demo": "Místo toho vyzkoušet demo",
   "setup_desktop_preview_note": "Vhodné k vyzkoušení DOCSight a k příležitostným měřením. Pro nepřetržité sledování 24/7 zůstává doporučený Docker.",
