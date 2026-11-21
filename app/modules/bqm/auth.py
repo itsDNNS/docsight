@@ -94,8 +94,8 @@ def fetch_share_csv(share_id: str, variant: str = "y") -> str:
             return response.text
         log.warning("ThinkBroadband response is not CSV")
         return ""
-    except requests.RequestException as exc:
-        log.warning("ThinkBroadband CSV request failed: %s", exc)
+    except requests.RequestException as exc:  # the message can carry the URL and its share ID
+        log.warning("ThinkBroadband CSV request failed: %s", type(exc).__name__)
         return ""
 
 

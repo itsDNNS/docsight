@@ -19,6 +19,7 @@ from app.storage import SnapshotStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
 from tests.test_bqm_csv_parser import PARSED_ROWS, VALID_CSV
+from tests.test_error_responses import _upload
 from tests.test_smart_capture_api import configured_client
 
 pytestmark = pytest.mark.usefixtures("route_app")
@@ -26,7 +27,8 @@ pytestmark = pytest.mark.usefixtures("route_app")
 
 # ── Fetcher Tests ──
 
-_SHARE_URL = "https://www.thinkbroadband.com/broadband/monitoring/quality/share/" + "a" * 40
+_SHARE_ID = "a" * 40
+_SHARE_URL = "https://www.thinkbroadband.com/broadband/monitoring/quality/share/" + _SHARE_ID
 
 
 def _response(status, content):
@@ -58,7 +60,7 @@ class TestBQMFetcher:
     def test_fetch_failure_logs_no_share_id(self, get, caplog):
         with patch("app.modules.bqm.auth.requests.get", get):
             assert fetch_graph(_SHARE_URL + ".png") is None
-        assert "a" * 40 not in caplog.text
+        assert _SHARE_ID not in caplog.text
 
     @pytest.mark.parametrize("url", ["", None])
     def test_fetch_invalid_url(self, url):
@@ -566,6 +568,28 @@ class TestBQMAPI:
         assert resp.status_code == 200
         assert resp.get_json() == {"success": True}
         mock_fetch.assert_not_called()
+
+
+    @pytest.mark.parametrize("bqm_url, method, path, kwargs", [
+        ("", "post", "/api/config", {"json": {"bqm_url": _SHARE_URL + "-2-y.csv"}}),
+        (_SHARE_URL + "-2-y.csv", "post", "/api/bqm/fetch-now", {}),
+        (_SHARE_URL + ".png", "post", "/api/bqm/fetch-now", {}),
+        (_SHARE_URL + ".png", "get", "/api/bqm/live", {}),
+        ("", "post", "/api/bqm/validate-monitor", {"json": {"url": _SHARE_URL + "-2-y.csv"}}),
+        ("", "post", "/api/bqm/import", _upload("files[]", b"\x89PNG graph", _SHARE_ID + ".png", dates="2026-01-01")),
+        ("", "post", "/api/bqm/import-csv",
+         _upload("file", (VALID_CSV + f'"{_SHARE_ID}","{_SHARE_ID}","","1","1","1","1"\n').encode(), "bqm.csv")),
+    ], ids=["initial-fetch", "csv-fetch", "png-fetch", "live-graph", "validate-monitor", "graph-import", "csv-row"])
+    @patch.object(BqmStorage, "import_bqm_graph", side_effect=sqlite3.OperationalError(f"disk full: {_SHARE_ID}"))
+    @patch("app.modules.bqm.auth.requests.get",
+           side_effect=requests.ConnectionError(f"Max retries exceeded with url: {_SHARE_URL}-2-y.csv"))
+    def test_failures_keep_share_id_out_of_logs(self, _get, _import, bqm_client, caplog, bqm_url, method, path, kwargs):
+        client, _ = bqm_client
+        client.post("/api/config", json={"bqm_url": bqm_url})
+        caplog.clear()
+        getattr(client, method)(path, **kwargs)
+        assert caplog.records
+        assert _SHARE_ID not in caplog.text
 
 
 class TestBQMLive:

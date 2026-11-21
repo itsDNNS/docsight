@@ -82,8 +82,9 @@ def test_unexpected_failure_is_logged_but_not_returned(app, monkeypatch, caplog,
     else:
         assert data == body
     assert DETAIL not in response.get_data(as_text=True)
-    # The speedtest request carries the tracker token, so its exception text is never logged.
-    assert (DETAIL in caplog.text) == (path != "/api/speedtest/run")
+    # The speedtest request carries the tracker token, so its exception text is never logged;
+    # a BQM graph import logs only the error type, since the filename can be the share ID.
+    assert (DETAIL in caplog.text) == (path not in ("/api/speedtest/run", "/api/bqm/import"))
 
 
 @pytest.mark.parametrize("payload", [["a", "list"], "text", 42])
