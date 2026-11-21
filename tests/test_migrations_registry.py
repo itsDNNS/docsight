@@ -467,3 +467,26 @@ def test_unmeasured_zero_summaries_from_older_versions_become_null(tmp_path):
         assert [row[0] for row in conn.execute("SELECT summary_json FROM snapshots ORDER BY id")] == stored
     assert [json.loads(value) for value in stored[:-1]] == [row[3] for row in rows]
     assert stored[-1] == "not json"
+
+
+@pytest.mark.parametrize("fixed_before", [False, True], ids=["older-version", "already-fixed"])
+def test_speedtest_times_with_an_offset_are_stored_in_utc_once(tmp_path, monkeypatch, fixed_before):
+    from app.modules.speedtest.storage import SpeedtestStorage
+
+    db_path = str(tmp_path / "speedtest.db")
+    stored = {1: "2025-01-15T11:30:00+01:00", 2: "2025-01-15T10:30:00Z", 3: "2025-01-15T10:30:00", 4: "late+01:00"}
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript("CREATE TABLE speedtest_results (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL);"
+                           "CREATE TABLE speedtest_meta (key TEXT PRIMARY KEY, value TEXT)")
+        conn.executemany("INSERT INTO speedtest_results VALUES (?, ?)", stored.items())
+        if fixed_before:
+            conn.execute("INSERT INTO speedtest_meta VALUES ('ts_migrated', '1')")
+
+    SpeedtestStorage(db_path)
+    for module in ("app.storage.migrations", "app.modules.speedtest.storage"):
+        monkeypatch.setattr(f"{module}.write_transaction", lambda *a: pytest.fail("an up-to-date database is not written"))
+    SpeedtestStorage(db_path)
+
+    with sqlite3.connect(db_path) as conn:
+        assert dict(conn.execute("SELECT id, timestamp FROM speedtest_results")) == (
+            stored if fixed_before else {**stored, 1: "2025-01-15T10:30:00Z"})

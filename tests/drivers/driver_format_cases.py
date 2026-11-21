@@ -420,8 +420,8 @@ def _cases() -> list[DriverFormatCase]:
 
     tc_expected = _flat(
         [
-            {"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 4.6, "mse": -36.4, "mer": 36.4, "latency": 0, "corrError": 3, "nonCorrError": 30},
-            {"channelID": "193", "type": "OFDM", "frequency": "275 MHz", "powerLevel": 3.2, "mse": None, "mer": 38.0, "latency": 0, "corrError": 9, "nonCorrError": 1},
+            {"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 4.6, "mse": -36.4, "mer": 36.4, "corrErrors": 3, "nonCorrErrors": 30},
+            {"channelID": "193", "type": "OFDM", "frequency": "275 MHz", "powerLevel": 3.2, "mse": None, "mer": 38.0, "corrErrors": 9, "nonCorrErrors": 1},
         ],
         [
             {"channelID": "6", "type": "ATDMA", "frequency": "25 MHz", "powerLevel": 35.0, "multiplex": ""},
@@ -435,17 +435,17 @@ def _cases() -> list[DriverFormatCase]:
     ultra_ds = [{"ChannelID": "7", "Frequency": "591 MHz", "Modulation": "256QAM", "PowerLevel": "0 dBmV", "SNRLevel": "40 dB"}, {"ChannelID": "193", "Frequency": "690 MHz", "Modulation": "OFDM", "PowerLevel": "-0.32 dBmV", "SNRLevel": "41.8 dB"}]
     ultra_us = [{"ChannelID": "3", "Frequency": "29.2 MHz", "Modulation": "ATDMA", "PowerLevel": "43.5 dBmV"}, {"ChannelID": "41", "Frequency": "36.2 MHz", "Modulation": "OFDMA", "PowerLevel": "36.5 dBmV"}]
     ultra_expected = _flat(
-        [{"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 0.0, "mer": 40.0, "mse": None, "latency": 0, "corrErrors": None, "nonCorrErrors": None}, {"channelID": "193", "type": "OFDM", "frequency": "690 MHz", "powerLevel": -0.32, "mer": 41.8, "mse": None, "latency": 0, "corrErrors": None, "nonCorrErrors": None}],
+        [{"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 0.0, "mer": 40.0, "mse": None, "corrErrors": None, "nonCorrErrors": None}, {"channelID": "193", "type": "OFDM", "frequency": "690 MHz", "powerLevel": -0.32, "mer": 41.8, "mse": None, "corrErrors": None, "nonCorrErrors": None}],
         [{"channelID": "3", "type": "ATDMA", "frequency": "29 MHz", "powerLevel": 43.5, "multiplex": ""}, {"channelID": "41", "type": "OFDMA", "frequency": "36 MHz", "powerLevel": 36.5, "multiplex": ""}],
     )
     add("ultrahub7_json.success_scqam_ofdm_ofdma", "ultrahub7", "ultrahub7_json", "minimal-synthetic-existing-fields", lambda: _ultrahub(ultra_ds, ultra_us), ultra_expected)
-    add("ultrahub7_json.missing_fields", "ultrahub7", "ultrahub7_json", "minimal-missing", lambda: _ultrahub([{}], [{}]), _flat([{"channelID": "0", "type": "", "frequency": "0 MHz", "powerLevel": None, "mer": None, "mse": None, "latency": 0, "corrErrors": None, "nonCorrErrors": None}], [{"channelID": "0", "type": "", "frequency": "0 MHz", "powerLevel": None, "multiplex": ""}]))
+    add("ultrahub7_json.missing_fields", "ultrahub7", "ultrahub7_json", "minimal-missing", lambda: _ultrahub([{}], [{}]), _flat([{"channelID": "0", "type": "", "frequency": "0 MHz", "powerLevel": None, "mer": None, "mse": None, "corrErrors": None, "nonCorrErrors": None}], [{"channelID": "0", "type": "", "frequency": "0 MHz", "powerLevel": None, "multiplex": ""}]))
     add("ultrahub7_json.malformed_channel_id", "ultrahub7", "ultrahub7_json", "minimal-synthetic-malformed", lambda: _ultrahub([{"ChannelID": "bad"}], [{"ChannelID": "bad"}]), EMPTY_FLAT_31)
 
     cga_success = {"downstream": [{"channelid": "7", "CentralFrequency": "591000000", "power": "0", "SNR": "40", "FFT": "256QAM"}], "ofdm_downstream": [{"channelid_ofdm": "193", "CentralFrequency_ofdm": "690000000", "power_ofdm": "-0.32", "SNR_ofdm": "41.8"}], "upstream": [{"channelidup": "3", "CentralFrequency": "29200000", "power": "43.5", "FFT": "64QAM"}], "ofdma_upstream": [{"channelidup": "41", "CentralFrequency": "36200000", "power": "36.5", "FFT": "64-qam", "ChannelType": "OFDMA"}]}
     cga_expected = _split(
-        [{"channelID": 7, "type": "256QAM", "frequency": "591 MHz", "powerLevel": 0.0, "mse": -40.0, "mer": 40.0, "latency": 0, "corrError": 0, "nonCorrError": 0}],
-        [{"channelID": 193, "type": "OFDM", "frequency": "690 MHz", "powerLevel": -0.32, "mse": -41.8, "mer": 41.8, "latency": 0, "corrError": 0, "nonCorrError": 0}],
+        [{"channelID": 7, "type": "256QAM", "frequency": "591 MHz", "powerLevel": 0.0, "mse": -40.0, "mer": 40.0}],
+        [{"channelID": 193, "type": "OFDM", "frequency": "690 MHz", "powerLevel": -0.32, "mse": -41.8, "mer": 41.8}],
         [{"channelID": 3, "type": "64QAM", "frequency": "29 MHz", "powerLevel": 43.5, "multiplex": ""}],
         [{"channelID": 41, "type": "OFDMA", "frequency": "36 MHz", "powerLevel": 36.5, "modulation": "64QAM", "multiplex": ""}],
     )
@@ -454,8 +454,8 @@ def _cases() -> list[DriverFormatCase]:
     add("vodafone_station_cga_json.malformed_non_object_channel", "vodafone_station", "vodafone_station_cga_json", "minimal-synthetic-malformed", lambda: _vodafone_cga({"downstream": [None]}), None)
 
     tg_expected = _split(
-        [{"channelID": 7, "type": "256QAM", "frequency": "591.000 MHz", "powerLevel": -1.2, "mse": -40.0, "mer": 40.0, "latency": 0, "corrError": 0, "nonCorrError": 0}],
-        [{"channelID": 193, "type": "OFDM", "frequency": "374.275 MHz", "powerLevel": 3.2, "mse": -38.0, "mer": 38.0, "latency": 0, "corrError": 0, "nonCorrError": 0}],
+        [{"channelID": 7, "type": "256QAM", "frequency": "591.000 MHz", "powerLevel": -1.2, "mse": -40.0, "mer": 40.0}],
+        [{"channelID": 193, "type": "OFDM", "frequency": "374.275 MHz", "powerLevel": 3.2, "mse": -38.0, "mer": 38.0}],
         [{"channelID": 6, "type": "64QAM", "frequency": "25.900 MHz", "powerLevel": 35.0, "multiplex": ""}],
         [{"channelID": 41, "type": "OFDMA", "frequency": "42.000 MHz", "powerLevel": 37.75, "multiplex": ""}],
     )

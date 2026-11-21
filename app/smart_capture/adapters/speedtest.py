@@ -9,7 +9,7 @@ from typing import Any
 
 import requests
 
-from ...modules.speedtest.client import SpeedtestClient, public_error
+from ...modules.speedtest.client import RUN_ACCEPTED, SpeedtestClient, public_error
 from ...tz import UTC_FMT, utc_now
 from ...types import EventDict
 from ..types import CAPTURE_ACTION_TYPE, ExecutionStatus
@@ -17,7 +17,6 @@ from ..types import CAPTURE_ACTION_TYPE, ExecutionStatus
 log = logging.getLogger("docsis.smart_capture.adapters.speedtest")
 
 DEFAULT_MATCH_WINDOW_SECONDS = 900  # 15 minutes
-_ACCEPTED_STATUS_CODES = {200, 201, 202, 204}
 
 
 class SpeedtestAdapter:
@@ -27,12 +26,7 @@ class SpeedtestAdapter:
         self.action_type = CAPTURE_ACTION_TYPE
         self._storage = storage
         self._config = config_mgr
-        self._client = SpeedtestClient(
-            config_mgr.get("speedtest_tracker_url", ""),
-            config_mgr.get("speedtest_tracker_token", ""),
-            config_mgr.get("speedtest_tls_insecure", False),
-        )
-        self._run_url = f"{self._client.base_url}/api/v1/speedtests/run"
+        self._client = SpeedtestClient.from_config(config_mgr)
         self._execute_lock = threading.Lock()
 
     def execute(self, execution_id: int, event: EventDict) -> tuple[bool, str | None]:
@@ -44,6 +38,7 @@ class SpeedtestAdapter:
             return self._execute_locked(execution_id, event)
 
     def _execute_locked(self, execution_id: int, event: EventDict) -> tuple[bool, str | None]:
+        self._client = SpeedtestClient.from_config(self._config, self._client)  # settings can change at runtime
         reference_ts = self._parse_timestamp(event.get("timestamp", ""))
         if reference_ts is None:
             reference_ts = datetime.now(timezone.utc)
@@ -60,8 +55,8 @@ class SpeedtestAdapter:
             return False, suppression_reason
 
         try:
-            resp = self._client.session.post(self._run_url, timeout=15, verify=self._client.verify_tls)
-            if resp.status_code in _ACCEPTED_STATUS_CODES:
+            resp = self._client.run(timeout=15)
+            if resp.status_code in RUN_ACCEPTED:
                 self._mark_fired(execution_id, event)
                 log.info("Smart Capture: triggered STT run (execution #%d)", execution_id)
                 return True, None
@@ -172,7 +167,7 @@ class SpeedtestAdapter:
         return max(timestamps) if timestamps else None
 
     def _fetch_latest_remote_result_timestamp(self) -> datetime | None:
-        latest = self._client.get_latest(1)
+        latest, _ = self._client.get_latest_with_error(1)
         # Tracker times without an offset are taken as UTC, as the result import does.
         ts = latest[0]["timestamp"] if latest else None
         parsed = self._parse_timestamp(ts) if isinstance(ts, str) else None

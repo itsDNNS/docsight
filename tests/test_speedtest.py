@@ -1,6 +1,7 @@
 """Tests for Speedtest Tracker client and API endpoint."""
 
 import threading
+from contextlib import contextmanager
 from types import SimpleNamespace
 
 import pytest
@@ -61,12 +62,37 @@ UNFINISHED_STATUSES = ("waiting", "started", "checking", "running", "benchmarkin
 STARTED_RESULT = {"id": 3, "created_at": "2025-01-16T10:30:00Z", "data": {}}
 
 
-SYNC_CALLS = [("get_results", {"per_page": 500}), ("get_newer_than", {"floor": 0, "known_ids": set()})]
+SYNC_CALLS = pytest.mark.parametrize("sync", [
+    lambda client: client.get_results_with_error(500)[0], lambda client: client.get_newer_than(0, set()),
+], ids=["full-read", "newer-than"])
+TRACKER_SETTING_CHANGES = pytest.mark.parametrize("changed", [
+    {"speedtest_tracker_url": "http://new:8999"}, {"speedtest_tracker_token": "new-token"}, {"speedtest_tls_insecure": True},
+], ids=["url", "token", "tls"])
 # Replies that do not list results prove nothing about the Tracker's contents
 REPLIES_WITHOUT_RESULTS = pytest.mark.parametrize(
     "reply", [{}, {"data": {}}, {"data": ""}, {"data": [{"status": "completed"}]}, {"data": [{"id": True}]}],
     ids=["missing", "object", "string", "without-id", "boolean-id"],
 )
+
+
+class _TrackerConfig:
+    """Speedtest Tracker settings; `pending` is saved right after a read made outside locked()."""
+
+    def __init__(self):
+        self.settings = {"speedtest_tracker_url": "http://stt", "speedtest_tracker_token": "tok", "speedtest_tls_insecure": False}
+        self.pending, self.held = {}, False
+
+    @contextmanager
+    def locked(self):
+        self.held = True
+        yield
+        self.held = False
+
+    def get(self, key, default=None):
+        value = self.settings.get(key, default)
+        if not self.held:
+            self.settings, self.pending = {**self.settings, **self.pending}, {}
+        return value
 
 
 def _stt_api(stt):
@@ -96,9 +122,9 @@ class TestSpeedtestClient:
         mock_get.return_value = mock_resp
 
         client = self._make_client()
-        results = client.get_latest(1)
+        results, error = client.get_latest_with_error(1)
 
-        assert len(results) == 1
+        assert (len(results), error) == (1, None)
         r = results[0]
         assert r["download_mbps"] == 1100.0
         assert r["upload_mbps"] == 55.0
@@ -116,16 +142,7 @@ class TestSpeedtestClient:
         mock_get.return_value = mock_resp
 
         client = self._make_client()
-        results = client.get_latest(1)
-        assert results == []
-
-    @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_get_latest_connection_error(self, mock_get):
-        mock_get.side_effect = Exception("Connection refused")
-
-        client = self._make_client()
-        results = client.get_latest(1)
-        assert results == []
+        assert client.get_latest_with_error(1) == ([], None)
 
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_get_results_pagination(self, mock_get):
@@ -135,7 +152,7 @@ class TestSpeedtestClient:
         mock_get.return_value = mock_resp
 
         client = self._make_client()
-        results = client.get_results(per_page=100)
+        results, _ = client.get_results_with_error(per_page=100)
 
         assert len(results) == 2
         call_kwargs = mock_get.call_args
@@ -164,8 +181,7 @@ class TestSpeedtestClient:
         mock_get.side_effect = Exception("Timeout")
 
         client = self._make_client()
-        results = client.get_results()
-        assert results == []
+        assert client.get_results_with_error() == ([], "Unexpected error, see the DOCSight log")
 
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_parse_minimal_result(self, mock_get):
@@ -176,7 +192,7 @@ class TestSpeedtestClient:
         mock_get.return_value = mock_resp
 
         client = self._make_client()
-        results = client.get_latest(1)
+        results, _ = client.get_latest_with_error(1)
 
         assert len(results) == 1
         r = results[0]
@@ -184,32 +200,32 @@ class TestSpeedtestClient:
         assert r["jitter_ms"] is None
         assert r["packet_loss_pct"] is None
 
-    @pytest.mark.parametrize("method, kwargs", SYNC_CALLS)
+    @SYNC_CALLS
     @pytest.mark.parametrize("status, kept", [
         *((status, False) for status in UNFINISHED_STATUSES),
         ("completed", True), ("failed", True), (None, True),
     ])
     @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_sync_skips_unfinished_results(self, mock_get, status, kept, method, kwargs):
+    def test_sync_skips_unfinished_results(self, mock_get, status, kept, sync):
         item = {**STARTED_RESULT, "status": status}
         if status is None:
             del item["status"]  # older Speedtest Tracker versions send none
         mock_get.side_effect = _stt_api({"data": [item, SAMPLE_RESULT]})
 
-        ids = [r["id"] for r in getattr(self._make_client(), method)(**kwargs)]
+        ids = [r["id"] for r in sync(self._make_client())]
         assert sorted(ids) == ([1, 3] if kept else [1])
 
-    @pytest.mark.parametrize("method, kwargs", SYNC_CALLS)
+    @SYNC_CALLS
     @pytest.mark.parametrize("newest, broken", [(500, []), (501, [{"id": 1000, "data": "unparsable"}])],
                              ids=["complete", "parse-error"])
     @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_sync_returns_500_distinct_results(self, mock_get, newest, broken, method, kwargs):
+    def test_sync_returns_500_distinct_results(self, mock_get, newest, broken, sync):
         """Pages do not overlap after skipping a running result, and a parse error keeps the cap."""
         running = {**STARTED_RESULT, "id": newest + 1, "status": "running"}
         items = [running, *({**SAMPLE_RESULT, "id": i} for i in range(newest, 0, -1)), *broken]
         mock_get.side_effect = _stt_api({"data": items})
 
-        ids = [r["id"] for r in getattr(self._make_client(), method)(**kwargs)]
+        ids = [r["id"] for r in sync(self._make_client())]
         assert sorted(ids) == list(range(newest - 499, newest + 1))
 
     @patch("app.modules.speedtest.client.requests.Session.get")
@@ -241,7 +257,7 @@ class TestSpeedtestClient:
         mock_get.return_value = mock_resp
 
         client = SpeedtestClient("https://speedtest.local:8443", "[REDACTED]", tls_insecure=True)
-        results = client.get_latest(1)
+        results, _ = client.get_latest_with_error(1)
 
         assert len(results) == 1
         assert mock_get.call_args.kwargs["verify"] is False
@@ -254,26 +270,28 @@ class TestSpeedtestClient:
         mock_get.return_value = mock_resp
 
         client = SpeedtestClient("https://speedtest.local:8443", "[REDACTED]", tls_insecure="false")
-        results = client.get_latest(1)
+        results, _ = client.get_latest_with_error(1)
 
         assert len(results) == 1
         assert mock_get.call_args.kwargs["verify"] is True
 
+    @TRACKER_SETTING_CHANGES
+    def test_from_config_keeps_the_client_until_a_setting_changes(self, changed):
+        config = _TrackerConfig()
+        client = SpeedtestClient.from_config(config)
+        assert SpeedtestClient.from_config(config, client) is client
+        config.settings.update(changed)
+        assert SpeedtestClient.from_config(config, client) is not client
+
+    def test_from_config_reads_the_settings_of_one_save(self):
+        """A save during the reads must not pair the previous URL with the new token."""
+        config = _TrackerConfig()
+        config.pending = {"speedtest_tracker_url": "http://new", "speedtest_tracker_token": "new-token"}
+        assert SpeedtestClient.from_config(config).settings == ["http://stt", "tok", False]
+
     def test_url_trailing_slash(self):
         client = SpeedtestClient("http://example.com:8999/", "tok")
         assert client.base_url == "http://example.com:8999"
-
-    @patch("app.modules.speedtest.client.requests.Session.get")
-    def test_get_latest_with_error_success(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
-
-        client = self._make_client()
-        results, error = client.get_latest_with_error(1)
-        assert len(results) == 1
-        assert error is None
 
     @pytest.mark.parametrize(("raised", "expected"), [
         (requests.ConnectionError("Connection refused"), "Cannot reach Speedtest Tracker"),
@@ -740,12 +758,13 @@ class TestSpeedtestRun:
     @pytest.mark.parametrize("reply, result_id", [
         ({"data": {"id": 102}, "message": "Speedtest added to the queue."}, 102), ({}, None), ({"data": {"id": True}}, None),
     ], ids=["queued-test", "without-result", "boolean-id"])
-    @patch("app.modules.speedtest.routes.requests.post")
-    def test_run_success(self, mock_post, speedtest_client, reply, result_id):
+    @pytest.mark.parametrize("status", [200, 201, 202, 204])
+    @patch("app.modules.speedtest.client.requests.Session.post")
+    def test_run_success(self, mock_post, speedtest_client, reply, result_id, status):
         """The queued test's id lets the page wait for exactly that result."""
         self._reset_rate_limit()
         mock_resp = MagicMock()
-        mock_resp.status_code = 201
+        mock_resp.status_code = status
         mock_resp.json.return_value = reply
         mock_post.return_value = mock_resp
 
@@ -755,7 +774,7 @@ class TestSpeedtestRun:
         mock_post.assert_called_once()
         assert mock_post.call_args.kwargs["verify"] is True
 
-    @patch("app.modules.speedtest.routes.requests.post")
+    @patch("app.modules.speedtest.client.requests.Session.post")
     def test_run_uses_insecure_tls_config(self, mock_post, speedtest_client):
         self._reset_rate_limit()
         mock_resp = MagicMock()
@@ -769,7 +788,7 @@ class TestSpeedtestRun:
         assert resp.status_code == 200
         assert mock_post.call_args.kwargs["verify"] is False
 
-    @patch("app.modules.speedtest.routes.requests.post")
+    @patch("app.modules.speedtest.client.requests.Session.post")
     def test_run_rate_limited(self, mock_post, speedtest_client):
         self._reset_rate_limit()
         mock_resp = MagicMock()
@@ -783,7 +802,7 @@ class TestSpeedtestRun:
         assert resp2.status_code == 429
         assert "Rate limited" in resp2.get_json()["error"]
 
-    @patch("app.modules.speedtest.routes.requests.post")
+    @patch("app.modules.speedtest.client.requests.Session.post")
     def test_run_stt_error(self, mock_post, speedtest_client):
         self._reset_rate_limit()
         mock_resp = MagicMock()
@@ -800,7 +819,7 @@ class TestSpeedtestRun:
         (requests.exceptions.InvalidHeader("Invalid header value b'Bearer leaked-token'"), 500,
          "Speedtest start failed. See the DOCSight log for details."),
     ], ids=["connection", "connect-timeout", "invalid-header"])
-    @patch("app.modules.speedtest.routes.requests.post")
+    @patch("app.modules.speedtest.client.requests.Session.post")
     def test_run_request_failures(self, mock_post, speedtest_client, caplog, raised, status, error):
         self._reset_rate_limit()
         mock_post.side_effect = raised

@@ -2,7 +2,7 @@
 
 import time
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -48,28 +48,17 @@ class TestSpeedtestCollector:
     def client_cls(self):
         """The patched client class; its client finds no newer result and reads DELTA_ROWS in full."""
         with patch("app.modules.speedtest.collector.SpeedtestClient") as cls:
+            cls.from_config.return_value = cls.return_value
             cls.return_value.base_url = "http://speed:8999"
             cls.return_value.get_latest_with_error.return_value = ([], None)
             cls.return_value.get_results_with_error.return_value = (DELTA_ROWS, None)
             yield cls
 
-    def test_collect_initializes_client(self, client_cls):
-        c, *_ = self._make_collector()
-        c.collect()
-        client_cls.assert_called_once_with("http://speed:8999", "tok", tls_insecure=False)
-
-    def test_collect_reinitializes_client_when_tls_setting_changes(self, client_cls):
+    def test_collect_keeps_the_client_while_its_settings_apply(self, client_cls):
         c, config_mgr, *_ = self._make_collector()
         c.collect()
-        config_mgr.get.side_effect = lambda k, *a: {
-            "speedtest_tracker_url": "http://speed:8999",
-            "speedtest_tracker_token": "[REDACTED]",
-            "speedtest_tls_insecure": True,
-        }.get(k, a[0] if a else None)
         c.collect()
-
-        assert client_cls.call_args_list[-1].kwargs["tls_insecure"] is True
-        assert client_cls.call_count == 2
+        assert client_cls.from_config.call_args_list == [call(config_mgr, None), call(config_mgr, client_cls.return_value)]
 
     @pytest.mark.parametrize("cached", [[], [DELTA_ROWS[0]]], ids=["nothing-finished", "finished-cached"])
     def test_collect_shows_newest_cached_result(self, client_cls, cached):

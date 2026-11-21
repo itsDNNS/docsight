@@ -70,11 +70,14 @@ class ErrorCounterGrowth:
 
 
 def to_counter(value: object) -> Counter:
-    """Return a counter as int, or ``None`` when it is missing, not a number or not finite."""
+    """Return a counter as int, or ``None`` when it is missing, not a whole non-negative number or not finite."""
+    if isinstance(value, bool) or (isinstance(value, float) and not value.is_integer()):
+        return None
     try:
-        return int(value)
+        number = int(value)
     except (TypeError, ValueError, OverflowError):
         return None
+    return number if number >= 0 else None
 
 
 def _channel_key(channel: Mapping[str, object]) -> str:
