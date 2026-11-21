@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "New uncorrectable",
   "snapshot_not_reported": "not reported by the modem",
   "snapshot_first": "first snapshot",
+  "snapshot_not_comparable": "not comparable with the snapshot before",
   "snapshot_since_previous": "since the snapshot before",
   "snapshot_why": "Why {health}",
   "snapshot_no_issue_detail": "No single cause recorded",

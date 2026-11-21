@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Neue nicht korrigierbare",
   "snapshot_not_reported": "vom Modem nicht gemeldet",
   "snapshot_first": "erster Snapshot",
+  "snapshot_not_comparable": "nicht vergleichbar mit dem vorigen Snapshot",
   "snapshot_since_previous": "seit dem vorigen Snapshot",
   "snapshot_why": "Warum {health}",
   "snapshot_no_issue_detail": "Keine einzelne Ursache erfasst",

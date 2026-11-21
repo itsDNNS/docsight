@@ -383,16 +383,15 @@ function docsightErrorsTitle(minutes) {
     return (T.trend_errors_per_minutes || 'Uncorrectable errors per {minutes} minutes').replace('{minutes}', minutes);
 }
 
-/* New errors between readings of a cumulative counter. A counter that drops
-   was reset (modem restart), so its new value counts, never a negative change. */
+/* New errors between readings of a cumulative counter, by the correlation
+   rules (errorDeltas). Rows of other sources carry neither the counter nor a
+   channel count. A poll without the counter is shown only when it recorded a
+   channel count, so a change of the reporting channels keeps its interval. */
 function _errorIncreases(rows, key, visit) {
-    var previous = null;
-    (rows || []).forEach(function(row) {
-        var value = row[key];
-        if (value === null || value === undefined) return;
-        var increase = previous === null ? 0 : (value >= previous ? value - previous : value);
-        previous = value;
-        visit(row, increase);
+    var polls = (rows || []).filter(function(row) { return key in row || 'ds_uncorrectable_channels' in row; });
+    DOCSightCorrelationData.errorDeltas(polls, key).forEach(function(entry, index) {
+        var row = polls[index];
+        if (row[key] != null || row.ds_uncorrectable_channels != null) visit(row, entry.delta);
     });
 }
 
@@ -409,21 +408,18 @@ function _wallClockLabel(minutes) {
 function docsightErrorBuckets(rows, range, field) {
     var size = docsightErrorBucketMinutes(range);
     var key = field || 'ds_uncorrectable_errors';
-    var buckets = [];
+    // By wall-clock start, so the hour repeated when clocks go back shares its intervals.
+    var buckets = {};
     _errorIncreases(rows, key, function(row, increase) {
         var minutes = _wallClockMinutes(row.timestamp);
         if (minutes === null) return;
         var start = Math.floor(minutes / size) * size;
-        var last = buckets[buckets.length - 1];
-        if (!last || last.start !== start) {
-            last = {start: start, timestamp: _wallClockLabel(start), errors: 0};
-            buckets.push(last);
-        }
-        last.errors += increase;
+        var bucket = buckets[start] || (buckets[start] = {start: start, timestamp: _wallClockLabel(start), errors: null});
+        if (increase !== null) bucket.errors = (bucket.errors || 0) + increase;
     });
     // Intervals without readings stay empty, so the bars keep their place in time.
     var filled = [];
-    buckets.forEach(function(bucket) {
+    Object.keys(buckets).map(function(start) { return buckets[start]; }).sort(function(a, b) { return a.start - b.start; }).forEach(function(bucket) {
         var previousBucket = filled[filled.length - 1];
         for (var start = previousBucket ? previousBucket.start + size : bucket.start; start < bucket.start; start += size) {
             filled.push({start: start, timestamp: _wallClockLabel(start), errors: null});
@@ -440,8 +436,7 @@ function docsightErrorSlots(rows, startMs, slots, minutes, field) {
     for (var i = 0; i < slots; i++) values.push(null);
     _errorIncreases(rows, field || 'uncorr_errors', function(row, increase) {
         var slot = Math.floor((Date.parse(row.timestamp) - startMs) / (minutes * 60000));
-        if (!(slot >= 0 && slot < slots)) return;
-        values[slot] = (values[slot] || 0) + increase;
+        if (slot >= 0 && slot < slots && increase !== null) values[slot] = (values[slot] || 0) + increase;
     });
     return values;
 }

@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Uued parandamatud",
   "snapshot_not_reported": "modem ei teata",
   "snapshot_first": "esimene hetktõmmis",
+  "snapshot_not_comparable": "pole eelmise hetktõmmisega võrreldav",
   "snapshot_since_previous": "eelmisest hetktõmmisest",
   "snapshot_why": "Miks {health}",
   "snapshot_no_issue_detail": "Üksikut põhjust ei salvestatud",

@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Jauni nelabojami",
   "snapshot_not_reported": "modems neziņo",
   "snapshot_first": "pirmais momentuzņēmums",
+  "snapshot_not_comparable": "nav salīdzināms ar iepriekšējo momentuzņēmumu",
   "snapshot_since_previous": "kopš iepriekšējā momentuzņēmuma",
   "snapshot_why": "Kāpēc {health}",
   "snapshot_no_issue_detail": "Atsevišķs cēlonis nav reģistrēts",

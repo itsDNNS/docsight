@@ -10,6 +10,7 @@ from typing import Any
 
 from app.analyzer import resolve_snr_thresholds
 from app.docsis_utils import classify_channel_family
+from app.error_counters import uncorrectable_channels
 
 from .contract import (
     AGGREGATION_SCHEMA_VERSION,
@@ -284,6 +285,7 @@ def aggregate_snapshot_period(
             "ds_snr_avg": summary.get("ds_snr_avg") if _number(summary.get("ds_snr_avg")) is not None else None,
             "us_power_avg": summary.get("us_power_avg") if _number(summary.get("us_power_avg")) is not None else None,
             "uncorr_errors": uncorr,
+            "ds_uncorrectable_channels": uncorrectable_channels(summary),
             "health": health,
         })
 

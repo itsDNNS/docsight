@@ -22,6 +22,16 @@ test('new uncorrectable errors are the counter change since the snapshot before'
     assert.equal(p.newErrors({ds_uncorrectable_errors: null}, 100), null);
 });
 
+test('a counter that is missing for one poll counts no new errors when it returns', () => {
+    const p = panel();
+    const readings = require('./counter-coverage-gap.js');
+    const fresh = readings.slice(1).map((row, i) =>
+        p.newErrors(row, readings[i].ds_uncorrectable_errors, readings[i].ds_uncorrectable_channels));
+    assert.deepEqual(fresh, [null, null, 10, null, null, 10]);
+    // After an upgrade the snapshot before may come from a release that did not record its channels.
+    assert.equal(p.newErrors({ds_uncorrectable_errors: 31, ds_uncorrectable_channels: 2}, 0, null), null);
+});
+
 test('the weakest channels come first: worst health, then lowest SNR', () => {
     const p = panel();
     const channels = [

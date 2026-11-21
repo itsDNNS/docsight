@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import Any, cast
 
 from ..analyzer import get_analysis_metadata
+from ..error_counters import uncorrectable_channels
 from ..types import AnalysisResult, DocsisData
 from ..tz import UTC_FMT, local_date_to_utc_range, parse_utc, utc_cutoff, utc_now
 from ..version import get_available_app_version
@@ -305,6 +306,7 @@ class SnapshotMethods:
         for row in rows:
             entry = {"timestamp": row[0]}
             entry.update(_normalize_summary_errors(json.loads(row[1])))
+            entry["ds_uncorrectable_channels"] = uncorrectable_channels(entry)
             results.append(entry)
         unwrap_uint32_counter_series(
             results,

@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Nove neispravljive",
   "snapshot_not_reported": "modem ne prijavljuje",
   "snapshot_first": "prva snimka",
+  "snapshot_not_comparable": "nije usporedivo s prethodnom snimkom",
   "snapshot_since_previous": "od prethodne snimke",
   "snapshot_why": "Zašto {health}",
   "snapshot_no_issue_detail": "Nije zabilježen pojedinačni uzrok",

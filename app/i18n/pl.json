@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Nowe nienaprawialne",
   "snapshot_not_reported": "modem tego nie zgłasza",
   "snapshot_first": "pierwsza migawka",
+  "snapshot_not_comparable": "nieporównywalne z poprzednią migawką",
   "snapshot_since_previous": "od poprzedniej migawki",
   "snapshot_why": "Dlaczego {health}",
   "snapshot_no_issue_detail": "Nie zapisano pojedynczej przyczyny",

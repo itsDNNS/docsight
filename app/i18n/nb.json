@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Nye ukorrigerbare",
   "snapshot_not_reported": "ikke rapportert av modemet",
   "snapshot_first": "første øyeblikksbilde",
+  "snapshot_not_comparable": "kan ikke sammenlignes med forrige øyeblikksbilde",
   "snapshot_since_previous": "siden forrige øyeblikksbilde",
   "snapshot_why": "Hvorfor {health}",
   "snapshot_no_issue_detail": "Ingen enkelt årsak registrert",

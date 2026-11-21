@@ -210,19 +210,23 @@
     }
 
     /**
-     * Uncorrectable errors per interval. The modem reports cumulative counters, so each
-     * snapshot's delta is the growth since the previous one; a smaller reading means the
-     * counter restarted (reboot), and then the new reading itself is the growth.
+     * Uncorrectable errors per interval, also behind the Trends and comparison bars. The
+     * modem reports cumulative counters, so each snapshot's delta is the growth since the
+     * previous one; a smaller reading means the counter restarted (reboot), and then the
+     * new reading itself is the growth. Totals over a different number of channels are not
+     * comparable: once the channel count changes from one snapshot to the next, a counter
+     * appeared or went away, so there is no delta until the next reading after the change.
      */
-    function errorDeltas(modem) {
-        var previous = null;
-        return (modem || []).map(function(entry) {
-            var value = entry.ds_uncorrectable_errors;
-            if (typeof value !== 'number' || !isFinite(value) || value < 0) {
-                return { timestamp: entry.timestamp, delta: null };
+    function errorDeltas(modem, key) {
+        var previous = null, changed = false;
+        return (modem || []).map(function(entry, index, all) {
+            var value = measurement(entry[key || 'ds_uncorrectable_errors']);
+            if (index > 0 && entry.ds_uncorrectable_channels !== all[index - 1].ds_uncorrectable_channels) changed = true;
+            var delta = value === null || changed ? null : previous === null ? 0 : (value >= previous ? value - previous : value);
+            if (value !== null) {
+                previous = value;
+                changed = false;
             }
-            var delta = previous === null ? 0 : (value >= previous ? value - previous : value);
-            previous = value;
             return { timestamp: entry.timestamp, delta: delta };
         });
     }

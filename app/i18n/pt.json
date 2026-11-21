@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Novos não corrigíveis",
   "snapshot_not_reported": "não indicado pelo modem",
   "snapshot_first": "primeiro instantâneo",
+  "snapshot_not_comparable": "não comparável com o instantâneo anterior",
   "snapshot_since_previous": "desde o instantâneo anterior",
   "snapshot_why": "Porquê {health}",
   "snapshot_no_issue_detail": "Nenhuma causa única registada",

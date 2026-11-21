@@ -1311,6 +1311,7 @@
   "snapshot_new_uncorrectable": "Нови некоригируеми",
   "snapshot_not_reported": "модемът не отчита",
   "snapshot_first": "първа снимка",
+  "snapshot_not_comparable": "не е сравнимо с предишната снимка",
   "snapshot_since_previous": "от предишната снимка",
   "snapshot_why": "Защо {health}",
   "snapshot_no_issue_detail": "Няма записана отделна причина",
