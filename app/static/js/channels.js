@@ -11,19 +11,6 @@
    Exact:       #channels?mode=compare&dir=ds&range=7d&selectors=<opaque>,<opaque>
    Preset:      #channels?mode=compare&dir=ds&range=7d&preset=all */
 
-function _channelRangeHours(range) {
-    var raw = String(range || '1d');
-    if (/^\d+$/.test(raw)) return parseInt(raw, 10) * 24;
-    var match = raw.match(/^(\d+)(h|d)$/);
-    if (!match) return 24;
-    var value = parseInt(match[1], 10);
-    return match[2] === 'h' ? value : value * 24;
-}
-
-function _channelRangeDays(range) {
-    return _channelRangeHours(range) / 24;
-}
-
 function _normalizeChannelRangeValue(value) {
     var raw = String(value || '1d');
     if (/^\d+$/.test(raw)) raw = raw + 'd';
@@ -312,7 +299,6 @@ window.switchChannelMode = switchChannelMode;
 
 /* ── Channel Status Matrix ── */
 var _channelStatusRequestSeq = 0;
-var _CHANNEL_STATUS_SEVERITY = { good: 0, tolerated: 1, warning: 2, critical: 3 };
 
 function _channelStatusWord(health) {
     var words = {
@@ -600,7 +586,7 @@ var _STATUS_TRACK_RANGES = ['1h', '6h', '1d', '2d', '3d', '7d', '30d', '90d'];
 /* Smallest Channels range that reaches back ``hours`` from now. */
 function statusTrackRangeFor(hours) {
     for (var i = 0; i < _STATUS_TRACK_RANGES.length; i++) {
-        if (_channelRangeHours(_STATUS_TRACK_RANGES[i]) >= hours) return _STATUS_TRACK_RANGES[i];
+        if (docsightRangeHours(_STATUS_TRACK_RANGES[i]) >= hours) return _STATUS_TRACK_RANGES[i];
     }
     return '90d';
 }
@@ -808,20 +794,6 @@ function _hasChannelDocsisErrorSeries(data) {
     }));
 }
 
-function _setChartCardVisible(cardId, chartId, visible) {
-    var card = document.getElementById(cardId);
-    if (card) card.style.display = visible ? '' : 'none';
-    if (!visible && charts[chartId]) {
-        charts[chartId].destroy();
-        delete charts[chartId];
-    }
-}
-
-
-function _channelWeatherHasData(tempData) {
-    return !!(tempData && tempData.some(function(v) { return v !== null; }));
-}
-
 function _formatChannelWeatherTime(ms) {
     return new Date(ms).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, 'Z');
 }
@@ -832,7 +804,7 @@ function _getChannelWeatherRange(timestamps) {
         return isFinite(ms) ? ms : null;
     }).filter(function(ms) { return ms !== null; }).sort(function(a, b) { return a - b; });
     if (!times.length) return null;
-    var margin = 90 * 60 * 1000;
+    var margin = TEMP_MATCH_MS;
     return {
         start: _formatChannelWeatherTime(times[0] - margin),
         end: _formatChannelWeatherTime(times[times.length - 1] + margin)
@@ -844,62 +816,6 @@ function _fetchChannelWeatherForTimestamps(timestamps) {
     if (!wr) return Promise.resolve([]);
     var url = docsightUrl('/api/weather/range?start=' + encodeURIComponent(wr.start) + '&end=' + encodeURIComponent(wr.end));
     return fetch(url).then(function(r) { return r.json(); }).catch(function() { return []; });
-}
-
-function _alignWeatherToChannelTimestamps(timestamps, weatherData, days) {
-    if (!weatherData || !weatherData.length) return null;
-    var weather = weatherData.map(function(row) {
-        var ms = row && row.timestamp ? docsightParseTime(row.timestamp).getTime() : NaN;
-        var temp = row ? row.temperature : null;
-        if (!isFinite(ms) || temp == null || !isFinite(Number(temp))) return null;
-        return { ts: ms, temp: Number(temp), day: row.timestamp.substring(0, 10) };
-    }).filter(function(row) { return row !== null; });
-    if (!weather.length) return null;
-
-    if (_channelRangeDays(days) >= 30) {
-        var dailyTemps = {};
-        weather.forEach(function(row) {
-            if (!dailyTemps[row.day]) dailyTemps[row.day] = [];
-            dailyTemps[row.day].push(row.temp);
-        });
-        var dailyAvg = {};
-        Object.keys(dailyTemps).forEach(function(day) {
-            var vals = dailyTemps[day];
-            var sum = 0;
-            vals.forEach(function(v) { sum += v; });
-            dailyAvg[day] = Math.round(sum / vals.length * 10) / 10;
-        });
-        return (timestamps || []).map(function(ts) {
-            var day = ts ? String(ts).substring(0, 10) : '';
-            return dailyAvg[day] !== undefined ? dailyAvg[day] : null;
-        });
-    }
-
-    return (timestamps || []).map(function(ts) {
-        if (!ts) return null;
-        var target = docsightParseTime(ts).getTime();
-        if (!isFinite(target)) return null;
-        var best = null;
-        var bestDist = Infinity;
-        weather.forEach(function(row) {
-            var dist = Math.abs(row.ts - target);
-            if (dist < bestDist) {
-                bestDist = dist;
-                best = row.temp;
-            }
-        });
-        return bestDist <= 90 * 60 * 1000 ? best : null;
-    });
-}
-
-function _updateTempToggleButton(btnId, tempData) {
-    var btn = document.getElementById(btnId);
-    if (!btn) return;
-    var hasWeather = _channelWeatherHasData(tempData);
-    btn.hidden = !hasWeather;
-    btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
-    btn.setAttribute('aria-pressed', (_tempOverlayVisible && hasWeather) ? 'true' : 'false');
-    btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
 }
 
 function _updateChannelTempToggle() {
@@ -931,15 +847,6 @@ function toggleChannelTempOverlay() {
     _renderCompareCharts();
 }
 window.toggleChannelTempOverlay = toggleChannelTempOverlay;
-
-function toggleCompareTempOverlay() {
-    _tempOverlayVisible = !_tempOverlayVisible;
-    _updateChannelTempToggle();
-    _updateCompareTempToggle();
-    _renderChannelTimelineCharts();
-    _renderCompareCharts();
-}
-window.toggleCompareTempOverlay = toggleCompareTempOverlay;
 
 function _updateChannelInfoBar(ref) {
     var bar = document.getElementById('channel-info-bar');
@@ -993,7 +900,7 @@ function _renderChannelTimelineCharts() {
     var days = ctx.days || '1d';
 
     var xLabels = docsightFormatXAxisLabels(data.map(function(d) { return d.timestamp || ''; }), days);
-    var tempOpts = _channelWeatherHasData(_lastChannelWeather) ? { tempData: _lastChannelWeather } : null;
+    var tempOpts = _hasTempData(_lastChannelWeather) ? { tempData: _lastChannelWeather } : null;
     var tempByTimestamp = null;
     if (tempOpts) {
         tempByTimestamp = {};
@@ -1149,7 +1056,7 @@ function loadChannelTimeline() {
             var timestamps = data.map(function(d) { return d.timestamp; }).filter(function(ts) { return !!ts; });
             return _fetchChannelWeatherForTimestamps(timestamps).then(function(weatherData) {
                 if (requestId !== _channelTimelineRequestSeq) return;
-                _lastChannelWeather = _alignWeatherToChannelTimestamps(timestamps, weatherData, days);
+                _lastChannelWeather = _alignWeatherToTimestamps(timestamps, weatherData, days);
                 _updateChannelTempToggle();
                 _renderChannelTimelineCharts();
             });
@@ -1165,7 +1072,6 @@ window.loadChannelTimeline = loadChannelTimeline;
 /* ── Channel Compare ── */
 var _compareChannels = [];
 var _compareColors = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4'];
-var _compareChannelData = null;
 var _comparePreset = null;
 var _compareState = { ds: { channels: [], preset: null }, us: { channels: [], preset: null } };
 var _lastCompareDir = 'ds';
@@ -1447,7 +1353,7 @@ function _renderCompareCharts() {
     var days = ctx.days || '1d';
     var dir = ctx.dir || getCompareDirection();
     var xLabels = docsightFormatXAxisLabels(timestamps, days);
-    var tempOpts = _channelWeatherHasData(_lastCompareWeather) ? { tempData: _lastCompareWeather } : null;
+    var tempOpts = _hasTempData(_lastCompareWeather) ? { tempData: _lastCompareWeather } : null;
     var usesSelectors = !!ctx.usesSelectors;
 
     // Build lookup maps per channel: timestamp -> data point
@@ -1560,7 +1466,7 @@ function _renderCompareCharts() {
         var tickValues = [];
         for (var qi = 0; qi < qamNames.length; qi++) tickValues.push(qi);
         renderChart('chart-cmp-modulation', xLabels, modDatasets, null, null, {
-            tempData: _channelWeatherHasData(_lastCompareWeather) ? _lastCompareWeather : null,
+            tempData: _hasTempData(_lastCompareWeather) ? _lastCompareWeather : null,
             yTickCallback: function(value) { return qamLabel[value] || ''; },
             tooltipLabelCallback: function(ctx) {
                 if (ctx.dataset.yAxisID === 'y-temp') return ctx.dataset.label + ': ' + fmtTemp(ctx.raw);
@@ -1609,7 +1515,6 @@ function loadCompareCharts() {
         .then(function(data) {
             if (requestId !== _compareRequestSeq) return;
             loadingEl.hidden = true;
-            _compareChannelData = data;
 
             // Build unified timestamp list from all channels
             var tsSet = {};
@@ -1638,7 +1543,7 @@ function loadCompareCharts() {
             _updateCompareTempToggle();
             return _fetchChannelWeatherForTimestamps(timestamps).then(function(weatherData) {
                 if (requestId !== _compareRequestSeq) return;
-                _lastCompareWeather = _alignWeatherToChannelTimestamps(timestamps, weatherData, days);
+                _lastCompareWeather = _alignWeatherToTimestamps(timestamps, weatherData, days);
                 _updateCompareTempToggle();
                 _renderCompareCharts();
             });
