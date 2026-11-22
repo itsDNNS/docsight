@@ -26,11 +26,11 @@ function loadSmartCaptureHistory() {
             }
             if (tableWrap) tableWrap.hidden = false;
             var statusLabels = {
-                completed: T.sc_status_completed || 'Completed',
-                fired: T.sc_status_fired || 'Fired',
-                pending: T.sc_status_pending || 'Pending',
-                suppressed: T.sc_status_suppressed || 'Suppressed',
-                expired: T.sc_status_expired || 'Expired'
+                completed: T.sc_status_completed,
+                fired: T.sc_status_fired,
+                pending: T.sc_status_pending,
+                suppressed: T.sc_status_suppressed,
+                expired: T.sc_status_expired
             };
             execs.forEach(function(ex) {
                 var tr = document.createElement('tr');
@@ -58,7 +58,7 @@ function loadSmartCaptureHistory() {
         .catch(function() {
             if (loading) loading.hidden = true;
             if (empty) empty.hidden = false;
-            showToast(T.sc_history_error || 'Failed to load execution history', false);
+            showToast(T.sc_history_error, false);
         });
 }
 
@@ -82,7 +82,7 @@ function updateGuardrailsSummary() {
     if (speedtestInterval >= 3600) speedtestIntervalStr = Math.round(speedtestInterval / 3600) + 'h';
     else if (speedtestInterval >= 60) speedtestIntervalStr = Math.round(speedtestInterval / 60) + ' min';
     else speedtestIntervalStr = speedtestInterval + 's';
-    var tpl = T.sc_guardrails_summary || 'At most %max%/hour, minimum %cooldown% apart; Smart Capture speedtests: %speedtestMax%/day, %speedtestInterval% apart';
+    var tpl = T.sc_guardrails_summary;
     el.textContent = tpl
         .replace('%max%', maxPerHour)
         .replace('%cooldown%', cooldownStr)

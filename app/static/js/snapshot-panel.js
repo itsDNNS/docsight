@@ -11,8 +11,8 @@
     var WEAKEST_COUNT = 4;
     var state = {payload: null, context: {}, opener: null, request: 0};
 
-    function text(key, fallback, values) {
-        var value = T[key] || fallback;
+    function text(key, values) {
+        var value = T[key];
         Object.keys(values || {}).forEach(function(name) { value = value.split('{' + name + '}').join(values[name]); });
         return value;
     }
@@ -67,7 +67,7 @@
     function renderError() {
         var body = document.getElementById('snapshot-panel-body');
         body.textContent = '';
-        body.appendChild(el('p', 'snapshot-panel-message', text('snapshot_error', 'Could not load the snapshot for this point.')));
+        body.appendChild(el('p', 'snapshot-panel-message', text('snapshot_error')));
         document.getElementById('snapshot-panel-foot').hidden = true;
     }
 
@@ -101,14 +101,14 @@
         var summary = snapshot.summary || {};
         var when = formatDocsightTime(snapshot.timestamp, 'datetime');
         var title = document.getElementById('snapshot-panel-title');
-        title.textContent = text('snapshot_title', 'Snapshot · {time}', {time: when});
+        title.textContent = text('snapshot_title', {time: when});
         var badge = document.getElementById('snapshot-panel-health');
         badge.className = 'badge ' + (HEALTH_BADGE[summary.health] || '');
         badge.textContent = healthLabel(summary.health);
         badge.hidden = !summary.health;
         var sub = [];
-        if (state.context.source) sub.push(text('snapshot_from_chart', 'From {chart}', {chart: state.context.source}));
-        sub.push(text('snapshot_channel_count', '{ds} DS / {us} US channels', {
+        if (state.context.source) sub.push(text('snapshot_from_chart', {chart: state.context.source}));
+        sub.push(text('snapshot_channel_count', {
             ds: (snapshot.ds_channels || []).length, us: (snapshot.us_channels || []).length
         }));
         document.getElementById('snapshot-panel-sub').textContent = sub.join(' · ');
@@ -118,32 +118,32 @@
         var body = document.getElementById('snapshot-panel-body');
         body.textContent = '';
         var kpis = el('div', 'snapshot-kpis');
-        kpis.appendChild(kpi(text('snapshot_ds_power', 'DS power'), num(summary.ds_power_avg) + ' dBmV',
+        kpis.appendChild(kpi(text('snapshot_ds_power'), num(summary.ds_power_avg) + ' dBmV',
             summary.ds_power_min != null ? num(summary.ds_power_min) + ' – ' + num(summary.ds_power_max) : ''));
-        kpis.appendChild(kpi(text('snapshot_ds_snr', 'DS SNR'), num(summary.ds_snr_avg) + ' dB',
-            summary.ds_snr_min != null ? text('snapshot_min', 'min {value}', {value: num(summary.ds_snr_min)}) : ''));
-        kpis.appendChild(kpi(text('snapshot_us_power', 'US power'), num(summary.us_power_avg) + ' dBmV',
+        kpis.appendChild(kpi(text('snapshot_ds_snr'), num(summary.ds_snr_avg) + ' dB',
+            summary.ds_snr_min != null ? text('snapshot_min', {value: num(summary.ds_snr_min)}) : ''));
+        kpis.appendChild(kpi(text('snapshot_us_power'), num(summary.us_power_avg) + ' dBmV',
             summary.us_power_min != null ? num(summary.us_power_min) + ' – ' + num(summary.us_power_max) : ''));
         var fresh = newErrors(summary, payload.previous_uncorrectable, payload.previous_uncorrectable_channels);
-        kpis.appendChild(kpi(text('snapshot_new_uncorrectable', 'New uncorrectable'),
+        kpis.appendChild(kpi(text('snapshot_new_uncorrectable'),
             fresh === null ? '–' : '+' + fresh.toLocaleString(),
             fresh === null
-                ? (summary.ds_uncorrectable_errors == null ? text('snapshot_not_reported', 'not reported by the modem')
-                    : payload.has_previous ? text('snapshot_not_comparable', 'not comparable with the snapshot before')
-                    : text('snapshot_first', 'first snapshot'))
-                : text('snapshot_since_previous', 'since the snapshot before'),
+                ? (summary.ds_uncorrectable_errors == null ? text('snapshot_not_reported')
+                    : payload.has_previous ? text('snapshot_not_comparable')
+                    : text('snapshot_first'))
+                : text('snapshot_since_previous'),
             fresh ? 'warn' : ''));
         body.appendChild(kpis);
 
         var issues = (summary.health_issues || []).filter(function(issue) { return T['issue_' + issue]; });
         if (summary.health && summary.health !== 'good') {
             var why = el('section', 'snapshot-section');
-            why.appendChild(el('h3', 'snapshot-section-title', text('snapshot_why', 'Why {health}', {health: healthLabel(summary.health).toLowerCase()})));
+            why.appendChild(el('h3', 'snapshot-section-title', text('snapshot_why', {health: healthLabel(summary.health).toLowerCase()})));
             var list = el('ul', 'snapshot-issues');
             (issues.length ? issues : []).forEach(function(issue) {
                 list.appendChild(el('li', 'badge ' + (/critical/.test(issue) ? 'badge-crit' : /tolerated/.test(issue) ? 'badge-tolerated' : 'badge-warn'), T['issue_' + issue]));
             });
-            if (!issues.length) list.appendChild(el('li', '', text('snapshot_no_issue_detail', 'No single cause recorded')));
+            if (!issues.length) list.appendChild(el('li', '', text('snapshot_no_issue_detail')));
             why.appendChild(list);
             body.appendChild(why);
         }
@@ -151,10 +151,10 @@
         var weakest = weakestChannels(snapshot.ds_channels);
         if (weakest.length) {
             var section = el('section', 'snapshot-section');
-            section.appendChild(el('h3', 'snapshot-section-title', text('snapshot_weakest', 'Weakest downstream channels')));
+            section.appendChild(el('h3', 'snapshot-section-title', text('snapshot_weakest')));
             var table = el('table', 'snapshot-channels');
             var head = el('tr');
-            [T.ch_abbr || 'Ch', T.frequency || 'Frequency', T.th_power || 'Power', 'SNR', T.mod_abbr || 'Mod.'].forEach(function(label) {
+            [T.ch_abbr, T.frequency, T.th_power, 'SNR', T.mod_abbr].forEach(function(label) {
                 head.appendChild(el('th', '', label));
             });
             var thead = el('thead');
@@ -183,7 +183,7 @@
         var openChannel = document.getElementById('snapshot-open-channel');
         openChannel.hidden = !weakest.length;
         if (weakest.length) {
-            openChannel.textContent = text('snapshot_open_channel', 'Open channel {id}', {id: weakest[0].channel_id});
+            openChannel.textContent = text('snapshot_open_channel', {id: weakest[0].channel_id});
             openChannel.dataset.channel = weakest[0].channel_id;
         }
         document.getElementById('snapshot-add-case').hidden = typeof DOCSightCasePicker === 'undefined';
@@ -195,11 +195,11 @@
         var summary = snapshot.summary || {};
         var fresh = newErrors(summary, payload.previous_uncorrectable, payload.previous_uncorrectable_channels);
         var lines = [
-            text('snapshot_title', 'Snapshot · {time}', {time: formatDocsightTime(snapshot.timestamp, 'datetime')}) + ' (' + healthLabel(summary.health) + ')',
-            text('snapshot_ds_power', 'DS power') + ': ' + num(summary.ds_power_avg) + ' dBmV (' + num(summary.ds_power_min) + ' – ' + num(summary.ds_power_max) + ')',
-            text('snapshot_ds_snr', 'DS SNR') + ': ' + num(summary.ds_snr_avg) + ' dB (' + text('snapshot_min', 'min {value}', {value: num(summary.ds_snr_min)}) + ')',
-            text('snapshot_us_power', 'US power') + ': ' + num(summary.us_power_avg) + ' dBmV (' + num(summary.us_power_min) + ' – ' + num(summary.us_power_max) + ')',
-            text('snapshot_new_uncorrectable', 'New uncorrectable') + ': ' + (fresh === null ? '–' : '+' + fresh)
+            text('snapshot_title', {time: formatDocsightTime(snapshot.timestamp, 'datetime')}) + ' (' + healthLabel(summary.health) + ')',
+            text('snapshot_ds_power') + ': ' + num(summary.ds_power_avg) + ' dBmV (' + num(summary.ds_power_min) + ' – ' + num(summary.ds_power_max) + ')',
+            text('snapshot_ds_snr') + ': ' + num(summary.ds_snr_avg) + ' dB (' + text('snapshot_min', {value: num(summary.ds_snr_min)}) + ')',
+            text('snapshot_us_power') + ': ' + num(summary.us_power_avg) + ' dBmV (' + num(summary.us_power_min) + ' – ' + num(summary.us_power_max) + ')',
+            text('snapshot_new_uncorrectable') + ': ' + (fresh === null ? '–' : '+' + fresh)
         ];
         (summary.health_issues || []).forEach(function(issue) { if (T['issue_' + issue]) lines.push('- ' + T['issue_' + issue]); });
         return lines.join('\n');
@@ -252,15 +252,15 @@
             DOCSightCasePicker.open({
                 startDate: stamp.slice(0, 10),
                 endDate: stamp.slice(0, 10),
-                summary: text('snapshot_case_summary', 'Snapshot of {time}', {time: when}),
-                name: text('snapshot_case_name', 'Signal on {time}', {time: when}),
-                added: text('snapshot_added_to_case', 'Snapshot day added to “{case}”')
+                summary: text('snapshot_case_summary', {time: when}),
+                name: text('snapshot_case_name', {time: when}),
+                added: text('snapshot_added_to_case')
             });
         });
         document.getElementById('snapshot-copy').addEventListener('click', function() {
             if (!state.payload || !navigator.clipboard) return;
             navigator.clipboard.writeText(asText(state.payload)).then(function() {
-                if (typeof showToast === 'function') showToast(text('snapshot_copied', 'Snapshot copied'), 'ok');
+                if (typeof showToast === 'function') showToast(text('snapshot_copied'), 'ok');
             });
         });
         // Leaving the view closes the panel; it belongs to the chart that opened it.

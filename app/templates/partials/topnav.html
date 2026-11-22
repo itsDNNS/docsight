@@ -35,21 +35,21 @@
             <span class="topnav-brand-name">DOCSight</span>
         </a>
         {% if desktop_mode %}
-        <a class="desktop-preview-badge desktop-preview-badge-mobile" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</a>
+        <a class="desktop-preview-badge desktop-preview-badge-mobile" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.desktop_preview_badge }}</a>
         {% endif %}
-        <nav class="topnav-nav" id="main-nav" aria-label="{{ t.get('nav_main', 'Main navigation') }}">
+        <nav class="topnav-nav" id="main-nav" aria-label="{{ t.nav_main }}">
             <ul class="topnav-list">
                 <li class="topnav-entry">
                     {{ view_tag('live') }} class="topnav-dest nav-item{{ ' active' if shell_page == 'dashboard' }}" data-view="live" data-nav-icon="layout-dashboard" data-nav-title="{{ t.home }}"{% if shell_page == 'dashboard' %} aria-current="page"{% endif %}>
-                        <i data-lucide="layout-dashboard"></i><span class="topnav-label">{{ t.get('nav_overview', 'Overview') }}</span>
+                        <i data-lucide="layout-dashboard"></i><span class="topnav-label">{{ t.nav_overview }}</span>
                     {{ view_end() }}
                 </li>
                 <li class="topnav-entry topnav-group" data-nav-group="signal">
                     <button type="button" class="topnav-dest topnav-toggle" id="nav-toggle-signal" aria-expanded="false" aria-controls="nav-panel-signal">
-                        <i data-lucide="activity"></i><span class="topnav-label">{{ t.get('nav_signal', 'Signal') }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
+                        <i data-lucide="activity"></i><span class="topnav-label">{{ t.nav_signal }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
                     </button>
                     <div class="topnav-panel" id="nav-panel-signal" role="group" aria-labelledby="nav-toggle-signal" hidden>
-                        <div class="topnav-panel-title">{{ t.get('nav_signal', 'Signal') }}</div>
+                        <div class="topnav-panel-title">{{ t.nav_signal }}</div>
                         {{ view_tag('trends') }} class="nav-item" data-view="trends" data-nav-icon="trending-up" data-nav-title="{{ t.signal_trends }}">
                             <i data-lucide="trending-up"></i> {{ t.signal_trends }}
                         {{ view_end() }}
@@ -76,10 +76,10 @@
                 {% if has_connection_items %}
                 <li class="topnav-entry topnav-group" data-nav-group="connection">
                     <button type="button" class="topnav-dest topnav-toggle" id="nav-toggle-connection" aria-expanded="false" aria-controls="nav-panel-connection">
-                        <i data-lucide="globe"></i><span class="topnav-label">{{ t.get('nav_connection', 'Connection') }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
+                        <i data-lucide="globe"></i><span class="topnav-label">{{ t.nav_connection }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
                     </button>
                     <div class="topnav-panel" id="nav-panel-connection" role="group" aria-labelledby="nav-toggle-connection" hidden>
-                        <div class="topnav-panel-title">{{ t.get('nav_connection', 'Connection') }}</div>
+                        <div class="topnav-panel-title">{{ t.nav_connection }}</div>
                         {% if has_speedtest %}
                         {% if speedtest_configured %}
                         {{ view_tag('speedtest') }} class="nav-item" data-view="speedtest" data-nav-icon="rabbit" data-nav-title="{{ t.speedtest }}">
@@ -128,16 +128,16 @@
                 {% endif %}
                 <li class="topnav-entry">
                     {{ view_tag('events') }} class="topnav-dest nav-item" data-view="events" data-nav-icon="bell" data-nav-title="{{ t.event_log }}">
-                        <i data-lucide="history"></i><span class="topnav-label">{{ t.get('nav_events', 'Events') }}</span>
+                        <i data-lucide="history"></i><span class="topnav-label">{{ t.nav_events }}</span>
                         <span class="nav-badge" id="event-badge" hidden title="{{ t.event_badge_title }}"></span>
                     {{ view_end() }}
                 </li>
                 <li class="topnav-entry topnav-group" data-nav-group="cases">
                     <button type="button" class="topnav-dest topnav-toggle" id="nav-toggle-cases" aria-expanded="false" aria-controls="nav-panel-cases">
-                        <i data-lucide="folder-open"></i><span class="topnav-label">{{ t.get('nav_cases', 'Cases') }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
+                        <i data-lucide="folder-open"></i><span class="topnav-label">{{ t.nav_cases }}</span><i data-lucide="chevron-down" class="topnav-caret"></i>
                     </button>
                     <div class="topnav-panel" id="nav-panel-cases" role="group" aria-labelledby="nav-toggle-cases" hidden>
-                        <div class="topnav-panel-title">{{ t.get('nav_cases', 'Cases') }}</div>
+                        <div class="topnav-panel-title">{{ t.nav_cases }}</div>
                         {% if has_journal %}
                         {{ view_tag('journal') }} class="nav-item" data-view="journal" data-nav-icon="clipboard-list" data-nav-title="{{ t.incident_journal }}">
                             <i data-lucide="clipboard-list"></i> {{ t.incident_journal }}
@@ -186,8 +186,8 @@
                 <i data-lucide="refresh-cw"></i>
             </button>
             {% endif %}
-            <button type="button" class="topnav-search" id="command-palette-open" data-action="openCommandPalette" aria-haspopup="dialog" title="{{ t.get('palette_title', 'Search DOCSight') }}">
-                <i data-lucide="search"></i><span class="topnav-search-label">{{ t.get('palette_open', 'Search') }}</span><kbd class="topnav-search-key" data-palette-mod aria-hidden="true"></kbd>
+            <button type="button" class="topnav-search" id="command-palette-open" data-action="openCommandPalette" aria-haspopup="dialog" title="{{ t.palette_title }}">
+                <i data-lucide="search"></i><span class="topnav-search-label">{{ t.palette_open }}</span><kbd class="topnav-search-key" data-palette-mod aria-hidden="true"></kbd>
             </button>
             {# Notice center: every notice stays listed; unread ones carry the count. #}
             {% set center_notices = notice_center or [] %}
@@ -195,27 +195,27 @@
             {% set unread_notices = (center_notices|rejectattr('read')|list|length) + (1 if show_desktop_notice and not desktop_preview_notice_dismissed else 0) %}
             <div class="topnav-group topnav-notices" data-nav-group="notices">
                 <button type="button" class="topnav-icon-button topnav-toggle" id="nav-toggle-notices" aria-expanded="false" aria-controls="nav-panel-notices"
-                        aria-label="{{ t.get('notices_title', 'Notices') }}" title="{{ t.get('notices_title', 'Notices') }}"
-                        data-unread-label="{{ t.get('notices_unread', '{count} unread') }}">
+                        aria-label="{{ t.notices_title }}" title="{{ t.notices_title }}"
+                        data-unread-label="{{ t.notices_unread }}">
                     <i data-lucide="bell"></i>
                     <span class="nav-badge" data-notice-unread-count{% if not unread_notices %} hidden{% endif %}>{{ unread_notices }}</span>
                 </button>
                 <div class="topnav-panel topnav-panel-end notice-center" id="nav-panel-notices" role="group" aria-labelledby="nav-toggle-notices" hidden>
                     <div class="notice-center-head">
-                        <span class="notice-center-title">{{ t.get('notices_title', 'Notices') }}</span>
-                        <button type="button" class="btn btn-ghost btn-sm" data-action="markAllNoticesRead"{% if not unread_notices %} hidden{% endif %}>{{ t.get('notices_mark_all_read', 'Mark all read') }}</button>
+                        <span class="notice-center-title">{{ t.notices_title }}</span>
+                        <button type="button" class="btn btn-ghost btn-sm" data-action="markAllNoticesRead"{% if not unread_notices %} hidden{% endif %}>{{ t.notices_mark_all_read }}</button>
                     </div>
                     <ul class="notice-center-list">
                         {% if show_desktop_notice %}
                         <li class="notice-center-item notice-info{{ ' read' if desktop_preview_notice_dismissed else '' }}" data-notice-center-item="{{ desktop_preview_notice_id }}">
                             <span class="notice-center-dot" aria-hidden="true"></span>
                             <div class="notice-center-copy">
-                                <strong>{{ t.get('desktop_preview_notice_title', 'Desktop Preview is a tryout build') }}</strong>
-                                <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
-                                <a href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
+                                <strong>{{ t.desktop_preview_notice_title }}</strong>
+                                <p>{{ t.desktop_preview_notice_body }}</p>
+                                <a href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.desktop_preview_notice_link }}</a>
                             </div>
                             {% if not desktop_preview_notice_dismissed %}
-                            <button type="button" class="modal-close" data-action="dismissMaintainerNotice" data-action-args='{{ [desktop_preview_notice_id]|tojson }}' aria-label="{{ t.get('notices_mark_read', 'Mark as read') }}" title="{{ t.get('notices_mark_read', 'Mark as read') }}"><i data-lucide="check"></i></button>
+                            <button type="button" class="modal-close" data-action="dismissMaintainerNotice" data-action-args='{{ [desktop_preview_notice_id]|tojson }}' aria-label="{{ t.notices_mark_read }}" title="{{ t.notices_mark_read }}"><i data-lucide="check"></i></button>
                             {% endif %}
                         </li>
                         {% endif %}
@@ -230,41 +230,41 @@
                                 {% endif %}
                             </div>
                             {% if not notice.read %}
-                            <button type="button" class="modal-close" data-action="dismissMaintainerNotice" data-action-args='{{ [notice.id]|tojson }}' aria-label="{{ t.get('notices_mark_read', 'Mark as read') }}" title="{{ t.get('notices_mark_read', 'Mark as read') }}"><i data-lucide="check"></i></button>
+                            <button type="button" class="modal-close" data-action="dismissMaintainerNotice" data-action-args='{{ [notice.id]|tojson }}' aria-label="{{ t.notices_mark_read }}" title="{{ t.notices_mark_read }}"><i data-lucide="check"></i></button>
                             {% endif %}
                         </li>
                         {% endfor %}
                         {% if not center_notices and not show_desktop_notice %}
-                        <li class="notice-center-empty">{{ t.get('notices_empty', 'No notices yet.') }}</li>
+                        <li class="notice-center-empty">{{ t.notices_empty }}</li>
                         {% endif %}
                     </ul>
-                    <p class="notice-center-foot">{{ t.get('notices_footer', 'Read notices stay listed here.') }}</p>
+                    <p class="notice-center-foot">{{ t.notices_footer }}</p>
                 </div>
             </div>
             <a class="topnav-icon-button topnav-settings{{ ' active' if shell_page == 'settings' }}" href="{{ url_for('settings') }}" title="{{ t.settings }}" aria-label="{{ t.settings }}"{% if shell_page == 'settings' %} aria-current="page"{% endif %}>
                 <i data-lucide="settings"></i>
             </a>
             <div class="topnav-group topnav-more" data-nav-group="more">
-                <button type="button" class="topnav-icon-button topnav-toggle" id="nav-toggle-more" aria-expanded="false" aria-controls="nav-panel-more" aria-label="{{ t.get('nav_more', 'More') }}" title="{{ t.get('nav_more', 'More') }}">
+                <button type="button" class="topnav-icon-button topnav-toggle" id="nav-toggle-more" aria-expanded="false" aria-controls="nav-panel-more" aria-label="{{ t.nav_more }}" title="{{ t.nav_more }}">
                     <i data-lucide="menu"></i>
                     {% if update_available %}<span class="topnav-dot" aria-hidden="true"></span>{% endif %}
                 </button>
                 <div class="topnav-panel topnav-panel-end" id="nav-panel-more" role="group" aria-labelledby="nav-toggle-more" hidden>
-                    <div class="topnav-panel-title">{{ t.get('nav_more', 'More') }}</div>
-                    {{ view_tag('glossary') }} class="nav-item" data-view="glossary" data-nav-icon="book-open" data-nav-title="{{ t.get('glossary_page_title', 'Glossary') }}">
-                        <i data-lucide="book-open"></i> {{ t.get('glossary_page_title', 'Glossary') }}
+                    <div class="topnav-panel-title">{{ t.nav_more }}</div>
+                    {{ view_tag('glossary') }} class="nav-item" data-view="glossary" data-nav-icon="book-open" data-nav-title="{{ t.glossary_page_title }}">
+                        <i data-lucide="book-open"></i> {{ t.glossary_page_title }}
                     {{ view_end() }}
                     <a class="nav-item" href="{{ url_for('settings', _anchor='support') }}">
-                        <i data-lucide="heart-handshake"></i> {{ t.get('support_nav', 'Support') }}
+                        <i data-lucide="heart-handshake"></i> {{ t.support_nav }}
                     </a>
                     <a class="nav-item" href="https://github.com/itsDNNS/docsight/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer">
                         <i data-lucide="bug"></i> {{ t.report_bug }}
                     </a>
                     {% if shell_page == 'dashboard' %}
                     <div class="dark-toggle">
-                        <span class="dark-toggle-label"><i data-lucide="moon"></i> {{ t.dark_mode or 'Dark Mode' }}</span>
+                        <span class="dark-toggle-label"><i data-lucide="moon"></i> {{ t.dark_mode }}</span>
                         <label class="toggle">
-                            <input type="checkbox" id="theme-toggle-sidebar" aria-label="{{ t.dark_mode or 'Dark Mode' }}">
+                            <input type="checkbox" id="theme-toggle-sidebar" aria-label="{{ t.dark_mode }}">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -277,7 +277,7 @@
                         {% endif %}
                     </a>
                     {% if desktop_mode %}
-                    <a class="desktop-preview-badge desktop-preview-badge-sidebar" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</a>
+                    <a class="desktop-preview-badge desktop-preview-badge-sidebar" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.desktop_preview_badge }}</a>
                     {% endif %}
                     {% if auth_enabled %}
                     <form action="{{ url_for('logout') }}" method="post">

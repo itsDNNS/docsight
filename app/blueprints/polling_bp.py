@@ -308,7 +308,7 @@ def api_poll():
     if now - current_runtime().get_last_manual_poll() < 10:
         lang = get_lang()
         t = get_translations(lang)
-        return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
+        return jsonify({"success": False, "error": t["refresh_rate_limit"]}), 429
 
     if not _modem_collector._collect_lock.acquire(timeout=0):
         return jsonify({"success": False, "error": "Poll already in progress"}), 429

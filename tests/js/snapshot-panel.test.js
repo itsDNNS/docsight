@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 function panel() {
-    const context = {T: {}, document: {readyState: 'complete', getElementById: () => null}, addEventListener() {}};
+    const context = {T: require('./english-catalog')(), document: {readyState: 'complete', getElementById: () => null}, addEventListener() {}};
     context.window = context;
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../app/static/js/snapshot-panel.js'), 'utf8'), context);
     return context.DOCSightSnapshotPanel;

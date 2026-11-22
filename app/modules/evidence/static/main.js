@@ -5,8 +5,9 @@ var _evidenceLastPayload = null;
 var _evidenceCopyResetTimer = null;
 var _evidenceRequestSeq = 0;
 
+/* Keys built from stored values and Journal keys (the module can be disabled) keep a fallback. */
 function _evidenceT(key, fallback) {
-    return (window.T && window.T[key]) || fallback;
+    return window.T[key] || fallback;
 }
 
 function _evidenceEscape(value) {
@@ -151,7 +152,7 @@ function _evidenceSourceLabel(source) {
 
 /* A bare number does not say what it counts; the label does, without plural forms. */
 function _evidenceCount(className, count) {
-    var label = _evidenceEscape(_evidenceT('docsight.evidence.count_label', 'Data points in this window'));
+    var label = _evidenceEscape(_evidenceT('docsight.evidence.count_label'));
     return '<span class="' + className + '" title="' + label + '"><span class="sr-only">' + label + ': </span>' +
         _evidenceEscape(count) + '</span>';
 }
@@ -225,7 +226,7 @@ function _evidenceRenderItems(items) {
             : '';
         var sources = _evidenceRenderSourceBreakdown(item);
         var last = item.last_ts
-            ? '<span class="evidence-muted">' + _evidenceEscape(_evidenceT('docsight.evidence.latest', 'Latest: {time}')).replace('{time}',
+            ? '<span class="evidence-muted">' + _evidenceEscape(_evidenceT('docsight.evidence.latest')).replace('{time}',
                 '<time datetime="' + _evidenceEscape(item.last_ts) + '">' + _evidenceEscape(_evidenceTime(item.last_ts)) + '</time>') + '</span>'
             : '';
         var action = '';
@@ -258,12 +259,12 @@ function _evidenceRenderItems(items) {
 function _evidenceSupportSummary(payload) {
     if (!payload) return '';
     var lines = [];
-    lines.push(_evidenceT('docsight.evidence.copy_heading', 'DOCSight evidence summary'));
-    lines.push((_evidenceT('docsight.evidence.copy_window', 'Window') + ': ' + payload.window.label + ' (' + payload.window.from + ' – ' + payload.window.to + ')'));
+    lines.push(_evidenceT('docsight.evidence.copy_heading'));
+    lines.push((_evidenceT('docsight.evidence.copy_window') + ': ' + payload.window.label + ' (' + payload.window.from + ' – ' + payload.window.to + ')'));
     (payload.items || []).forEach(function(item) {
         lines.push('- ' + _evidenceT(item.label_key, item.key) + ': ' + _evidenceStatusLabel(item.status) + (item.count ? ' (' + item.count + ')' : ''));
     });
-    lines.push(_evidenceT('docsight.evidence.copy_review_note', 'Review the details before sharing; this summary lists available evidence only.'));
+    lines.push(_evidenceT('docsight.evidence.copy_review_note'));
     return lines.join('\n');
 }
 
@@ -277,9 +278,9 @@ function _evidenceSetCopyState(state) {
         _evidenceCopyResetTimer = null;
     }
     copy.textContent = state === 'success'
-        ? _evidenceT('docsight.evidence.copy_success', 'Copied')
+        ? _evidenceT('docsight.evidence.copy_success')
         : state === 'failed'
-            ? _evidenceT('docsight.evidence.copy_failed', 'Copy failed')
+            ? _evidenceT('docsight.evidence.copy_failed')
             : defaultLabel;
     if (state) {
         _evidenceCopyResetTimer = window.setTimeout(function() { _evidenceSetCopyState(''); }, 2000);
@@ -322,10 +323,10 @@ function _evidenceLoad() {
     if (!url) {
         DOCSightEmptyState.show(placeholder, {
             icon: 'clock',
-            title: _evidenceT('docsight.evidence.empty_window_title', 'Choose a time range'),
-            text: _evidenceT('docsight.evidence.choose_window', 'Choose an incident or complete time range first.'),
+            title: _evidenceT('docsight.evidence.empty_window_title'),
+            text: _evidenceT('docsight.evidence.choose_window'),
             action: {
-                label: _evidenceT('docsight.evidence.empty_action', 'Check the last 24 hours'),
+                label: _evidenceT('docsight.evidence.empty_action'),
                 onClick: function() { document.querySelector('[data-evidence-range="last24h"]').click(); }
             }
         });

@@ -35,7 +35,7 @@ function setup({chart = true} = {}) {
     }
     const c = vm.createContext({DOCSightEmptyState: emptyState, document: {getElementById: id => elements[id], createElement: () => element('cell'), createTextNode: text => ({nodeType: 3, textContent: String(text)})},
         Date: FixedDate,
-        T: {}, todayStr: () => '2026-01-02', pad: n => String(n).padStart(2, '0'),
+        T: require('./english-catalog')(), todayStr: () => '2026-01-02', pad: n => String(n).padStart(2, '0'),
         formatDateDE: s => s, clearTimeout() {}, docsightUrl: s => s, labelDataTable() {},
         URL: {createObjectURL: file => 'blob:' + file.name, revokeObjectURL() {}},
         fetch: async url => { requests.push(url); return {json: async () => ({points: 1, data: {}})}; },
@@ -217,7 +217,7 @@ test('image import shifts dates by the offset and summarizes readiness in both s
 });
 test('BQM axis uses dates for sparse ranges and retains time in tooltip labels', () => {
     let rendered;
-    const c = vm.createContext({window: {}, document: {getElementById: id => ({id})}, T: {},
+    const c = vm.createContext({window: {}, document: {getElementById: id => ({id})}, T: require('./english-catalog')(),
         pad: n => String(n).padStart(2, '0'), bandPlugin() {}, zoomPlugin() {},
         renderChart(...args) { rendered = args; }});
     run(c, 'app/static/js/chart-engine.js');

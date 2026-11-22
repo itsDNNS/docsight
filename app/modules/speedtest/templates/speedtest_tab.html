@@ -53,15 +53,15 @@
     <div id="speedtest-table-wrap" class="table-card">
         <table id="speedtest-table" class="data-table data-table-list" hidden>
             <thead><tr>
-                <th class="st-expand-col"><span class="sr-only">{{ t.get('speedtest_show_signal', 'Show signal at this time') }}</span></th>
+                <th class="st-expand-col"><span class="sr-only">{{ t.speedtest_show_signal }}</span></th>
                 <th data-col="timestamp" aria-sort="descending">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
-                <th data-col="server_name">{{ t.server or 'Server' }}<span class="sort-indicator"></span></th>
+                <th data-col="server_name">{{ t.server }}<span class="sort-indicator"></span></th>
                 <th class="dt-num" data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
                 <th class="dt-num" data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
                 <th class="dt-num" data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>
                 <th class="dt-num" data-col="jitter_ms">{{ t.jitter }}<span class="sort-indicator"></span></th>
                 <th class="dt-num" data-col="packet_loss_pct">{{ t.packet_loss }}<span class="sort-indicator"></span></th>
-                <th class="st-sc-col"><span class="sr-only">{{ t.get('sc_badge_label', 'Smart Capture') }}</span></th>
+                <th class="st-sc-col"><span class="sr-only">{{ t.sc_badge_label }}</span></th>
             </tr></thead>
             <tbody id="speedtest-tbody"></tbody>
         </table>

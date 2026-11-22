@@ -40,7 +40,7 @@ function openImportModal() {
     document.getElementById('import-preview').hidden = true;
     document.getElementById('import-footer').hidden = true;
     document.getElementById('import-file-input').value = '';
-    setImportValidationState(T.import_validation_choose || 'Choose a CSV or Excel file. DOCSight will preview rows before importing.', 'info');
+    setImportValidationState(T.import_validation_choose, 'info');
     _importPreviewData = null;
     window.DOCSightModal.open('import-modal');
 }
@@ -64,12 +64,12 @@ function updateImportSelectionState() {
     var btn = document.getElementById('import-confirm-btn');
     if (btn) {
         btn.disabled = selectedImportable === 0;
-        btn.textContent = selectedImportable === 1 ? (T.import_selected_one || 'Import 1 selected entry') : (T.import_selected_count || 'Import {0} selected entries').replace('{0}', selectedImportable);
+        btn.textContent = selectedImportable === 1 ? T.import_selected_one : T.import_selected_count.replace('{0}', selectedImportable);
     }
     if (selectedImportable === 0) {
         var noneMessage = selected > 0
-            ? (T.import_validation_no_valid || 'No valid rows selected. Add dates or select rows that are ready to import.')
-            : (T.import_validation_no_valid || 'No valid rows selected. Select at least one ready row to import.');
+            ? T.import_validation_no_valid
+            : T.import_validation_no_valid;
         setImportValidationState(noneMessage, 'error');
     } else {
         updateImportValidationSummary();
@@ -80,9 +80,9 @@ function updateImportValidationSummary() {
     if (!_importPreviewData) return;
     var summary = journalImportSummary(_importPreviewData.rows || []);
     var parts = [];
-    parts.push((T.import_validation_ready || '{0} ready').replace('{0}', summary.ready));
-    if (summary.duplicates) parts.push((T.import_validation_duplicates || '{0} duplicate').replace('{0}', summary.duplicates));
-    if (summary.needsDate) parts.push((T.import_validation_dates || '{0} needs a date').replace('{0}', summary.needsDate));
+    parts.push(T.import_validation_ready.replace('{0}', summary.ready));
+    if (summary.duplicates) parts.push(T.import_validation_duplicates.replace('{0}', summary.duplicates));
+    if (summary.needsDate) parts.push(T.import_validation_dates.replace('{0}', summary.needsDate));
     setImportValidationState(parts.join(', '), summary.needsDate ? 'warning' : 'success');
 }
 
@@ -118,17 +118,17 @@ function handleImportFile(input) {
     input.value = ''; // the same file can be chosen again after an error
     var lower = file.name.toLowerCase();
     if (!lower.endsWith('.xlsx') && !lower.endsWith('.csv')) {
-        setImportValidationState(T.import_validation_unsupported || 'Unsupported file type. Use CSV or Excel files.', 'error');
+        setImportValidationState(T.import_validation_unsupported, 'error');
         return;
     }
     if (file.size > 5 * 1024 * 1024) {
-        setImportValidationState(T.import_file_too_large || 'File is too large. Maximum size is 5 MB.', 'error');
+        setImportValidationState(T.import_file_too_large, 'error');
         return;
     }
 
     document.getElementById('import-upload-zone').hidden = true;
     document.getElementById('import-loading').hidden = false;
-    setImportValidationState(T.import_validation_parsing || 'Parsing file and checking rows...', 'progress');
+    setImportValidationState(T.import_validation_parsing, 'progress');
 
     var formData = new FormData();
     formData.append('file', file);
@@ -173,7 +173,7 @@ function renderImportPreview(data) {
             var rawHint = row.raw_date ? ' placeholder="' + escapeHtml(row.raw_date) + '"' : '';
             dateCell = '<input type="date" class="import-date-fix" data-idx="' + i + '"' + rawHint +
                 ' data-change-action="fixImportDate" data-action-pass="element" data-action-args="[' + i + ']">' +
-                '<span class="import-skipped-badge">' + (T.import_no_date || 'no date') + '</span>';
+                '<span class="import-skipped-badge">' + T.import_no_date + '</span>';
         } else {
             dateCell = escapeHtml(row.date);
         }

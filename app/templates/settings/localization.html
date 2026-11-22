@@ -7,7 +7,7 @@
             </div>
             <div>
                 <div class="card-title">{{ t.localization }}</div>
-                <div class="card-subtitle">{{ t.localization_desc }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#timezone" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                <div class="card-subtitle">{{ t.localization_desc }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#timezone" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
             </div>
         </div>
     </div>
@@ -36,7 +36,7 @@
             </select>
         </div>
         <div class="form-field">
-            <label class="form-label" for="temperature_unit">{{ t.get('temperature_unit', 'Temperature Unit') }}</label>
+            <label class="form-label" for="temperature_unit">{{ t.temperature_unit }}</label>
             <select class="form-input form-select" id="temperature_unit" name="temperature_unit">
                 <option value="celsius" {% if config.temperature_unit == 'celsius' %}selected{% endif %}>Celsius (°C)</option>
                 <option value="fahrenheit" {% if config.temperature_unit == 'fahrenheit' %}selected{% endif %}>Fahrenheit (°F)</option>

@@ -2,52 +2,52 @@
 <div class="view-content evidence-view">
     <div class="view-page-header evidence-header">
         <div class="view-page-header-left">
-            <h2 class="view-page-title">{{ t.get('docsight.evidence.title', 'Evidence Journey') }}</h2>
-            <p class="evidence-subtitle">{{ t.get('docsight.evidence.subtitle', 'Build a sober, support-ready case from the data DOCSight already has.') }}</p>
+            <h2 class="view-page-title">{{ t['docsight.evidence.title'] }}</h2>
+            <p class="evidence-subtitle">{{ t['docsight.evidence.subtitle'] }}</p>
         </div>
     </div>
 
     <div class="evidence-controls" aria-labelledby="evidence-window-title">
         <div>
-            <h3 id="evidence-window-title">{{ t.get('docsight.evidence.window_title', 'Problem window') }}</h3>
-            <p>{{ t.get('docsight.evidence.window_help', 'Start with an incident when available, or pick the evening or range you want to explain.') }}</p>
+            <h3 id="evidence-window-title">{{ t['docsight.evidence.window_title'] }}</h3>
+            <p>{{ t['docsight.evidence.window_help'] }}</p>
         </div>
-        <div class="evidence-quick-ranges" role="group" aria-label="{{ t.get('docsight.evidence.quick_ranges', 'Quick ranges') }}">
-            <button type="button" class="evidence-chip" data-evidence-range="last24h" aria-pressed="false">{{ t.get('docsight.evidence.range_last_24h', 'Last 24 hours') }}</button>
-            <button type="button" class="evidence-chip" data-evidence-range="yesterday_evening" aria-pressed="false">{{ t.get('docsight.evidence.range_yesterday_evening', 'Yesterday evening (6–11 pm)') }}</button>
-            <button type="button" class="evidence-chip" data-evidence-range="last7d" aria-pressed="false">{{ t.get('docsight.evidence.range_last_7d', 'Last 7 days') }}</button>
+        <div class="evidence-quick-ranges" role="group" aria-label="{{ t['docsight.evidence.quick_ranges'] }}">
+            <button type="button" class="evidence-chip" data-evidence-range="last24h" aria-pressed="false">{{ t['docsight.evidence.range_last_24h'] }}</button>
+            <button type="button" class="evidence-chip" data-evidence-range="yesterday_evening" aria-pressed="false">{{ t['docsight.evidence.range_yesterday_evening'] }}</button>
+            <button type="button" class="evidence-chip" data-evidence-range="last7d" aria-pressed="false">{{ t['docsight.evidence.range_last_7d'] }}</button>
         </div>
         <div class="evidence-control-grid">
             {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
             <label class="evidence-field evidence-case-field">
-                <span>{{ t.get('docsight.evidence.case', 'Case') }}</span>
+                <span>{{ t['docsight.evidence.case'] }}</span>
                 <select id="evidence-incident-id" class="form-select">
-                    <option value="">{{ t.get('docsight.evidence.case_none', 'No case · use the time range') }}</option>
+                    <option value="">{{ t['docsight.evidence.case_none'] }}</option>
                 </select>
             </label>
             {% endif %}
             <label class="evidence-field">
-                <span>{{ t.get('docsight.evidence.from', 'From') }}</span>
+                <span>{{ t['docsight.evidence.from'] }}</span>
                 <input id="evidence-from" class="form-input" type="datetime-local">
             </label>
             <label class="evidence-field">
-                <span>{{ t.get('docsight.evidence.to', 'To') }}</span>
+                <span>{{ t['docsight.evidence.to'] }}</span>
                 <input id="evidence-to" class="form-input" type="datetime-local">
             </label>
             <button id="evidence-run" class="btn btn-primary evidence-run" type="button">
-                {{ t.get('docsight.evidence.build_checklist', 'Build checklist') }}
+                {{ t['docsight.evidence.build_checklist'] }}
             </button>
         </div>
     </div>
 
     <div id="evidence-demo-banner" class="evidence-banner" hidden>
-        {{ t.get('docsight.evidence.demo_banner', 'Demo mode: this checklist uses simulated sample data.') }}
+        {{ t['docsight.evidence.demo_banner'] }}
     </div>
 
     {{ empty_state('evidence-placeholder', 'shield-check',
-                   t.get('docsight.evidence.empty_title', 'Check which evidence is ready'),
-                   t.get('docsight.evidence.placeholder', 'Choose an incident or time range to see which evidence is ready, missing, stale, optional, or not applicable.'),
-                   action_label=t.get('docsight.evidence.empty_action', 'Check the last 24 hours'),
+                   t['docsight.evidence.empty_title'],
+                   t['docsight.evidence.placeholder'],
+                   action_label=t['docsight.evidence.empty_action'],
                    action_click="[data-evidence-range=last24h]") }}
 
     <div id="evidence-loading" class="evidence-loading" hidden>
@@ -57,12 +57,12 @@
     <section id="evidence-results" class="evidence-results" hidden aria-live="polite">
         <div class="evidence-summary-card">
             <div>
-                <div class="evidence-kicker">{{ t.get('docsight.evidence.summary', 'Summary') }}</div>
+                <div class="evidence-kicker">{{ t['docsight.evidence.summary'] }}</div>
                 <h3 id="evidence-window-label"></h3>
                 <p id="evidence-window-range" class="evidence-muted"></p>
             </div>
             <button id="evidence-copy" class="btn btn-secondary" type="button" aria-live="polite">
-                {{ t.get('docsight.evidence.copy_summary', 'Copy support summary') }}
+                {{ t['docsight.evidence.copy_summary'] }}
             </button>
         </div>
         <div id="evidence-status-counts" class="evidence-status-counts"></div>

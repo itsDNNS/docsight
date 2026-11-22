@@ -122,9 +122,9 @@ function renderIconPicker(prefix, selectedLabel, onPick) {
     var noneBtn = document.createElement('button');
     noneBtn.type = 'button';
     noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
-    noneBtn.title = T.icon_auto || 'Auto';
+    noneBtn.title = T.icon_auto;
     noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
-    noneBtn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + (T.icon_auto || 'Auto') + '</span>');
+    noneBtn.innerHTML = docsightHTML('<span class="icon-pick-symbol">' + AUTO_ICON + '</span><span class="icon-pick-label">' + T.icon_auto + '</span>');
     noneBtn.onclick = function() {
         hiddenInput.value = '';
         markSelected(noneBtn);
@@ -219,24 +219,24 @@ function _showJournalEmpty(empty, searchQuery) {
     if (searchQuery) {
         DOCSightEmptyState.show(empty, {
             icon: 'clipboard-list',
-            title: (T.search_no_results || 'No results for') + ' "' + searchQuery + '"',
+            title: T.search_no_results + ' "' + searchQuery + '"',
             text: T.journal_empty_search_text,
-            action: {label: T.journal_empty_search_action || 'Clear search', onClick: clearJournalSearch}
+            action: {label: T.journal_empty_search_action, onClick: clearJournalSearch}
         });
     } else if (_activeIncidentFilter !== null) {
         DOCSightEmptyState.show(empty, {
             icon: 'folder-open',
-            title: T.journal_empty_case_title || 'No entries in this case',
+            title: T.journal_empty_case_title,
             text: T.journal_empty_case_text,
-            action: {label: T.journal_empty_case_action || 'Show all entries', onClick: function() { filterByIncident(null); }},
+            action: {label: T.journal_empty_case_action, onClick: function() { filterByIncident(null); }},
             glossary: 'incident_journal'
         });
     } else {
         DOCSightEmptyState.show(empty, {
             icon: 'clipboard-list',
-            title: T.journal_empty_title || 'No entries yet',
+            title: T.journal_empty_title,
             text: T.no_incidents,
-            action: {label: T.new_entry || 'New Entry', onClick: function() { openEntryModal(); }},
+            action: {label: T.new_entry, onClick: function() { openEntryModal(); }},
             glossary: 'incident_journal'
         });
     }
@@ -297,12 +297,12 @@ function renderJournalTable(data, searchQuery) {
         var descHtml = q ? highlightText(desc, q) : escapeHtml(desc);
         var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
         tr.innerHTML = docsightHTML(
-            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtml(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
+            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtml(T.bulk_select) + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
             '<td class="journal-icon-cell dt-lead" aria-hidden="true">' + iconHtml + '</td>' +
-            '<td class="journal-date-cell" data-label="' + escapeHtml(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
+            '<td class="journal-date-cell" data-label="' + escapeHtml(T.incident_date) + '">' + dateHtml + '</td>' +
             '<td class="journal-title-cell dt-primary">' + titleHtml + '</td>' +
-            '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtml(T.incident_description || 'Description') + '">' + descHtml + '</td>' +
-            '<td class="journal-clip" data-label="' + escapeHtml(T.attachments || 'Attachments') + '">' + clipCell + '</td>');
+            '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtml(T.incident_description) + '">' + descHtml + '</td>' +
+            '<td class="journal-clip" data-label="' + escapeHtml(T.attachments) + '">' + clipCell + '</td>');
         tbody.appendChild(tr);
     });
     // Update sort indicators in header
@@ -342,13 +342,13 @@ function deleteAllEntries() {
     var count = document.querySelectorAll('#journal-tbody tr').length;
     if (count === 0) return;
     docsightConfirm({
-        title: T.delete_all || 'Delete all entries',
+        title: T.delete_all,
         message: T.delete_all_confirm.replace('{n}', count),
-        confirmText: T.delete_incident || 'Delete',
-        cancelText: T.cancel || 'Cancel',
+        confirmText: T.delete_incident,
+        cancelText: T.cancel,
         danger: true,
         requireText: 'DELETE',
-        requireLabel: T.delete_all_type_confirm || 'Type DELETE to confirm'
+        requireLabel: T.delete_all_type_confirm
     }).then(function(confirmed) {
         if (!confirmed) return;
         return journalSend('/api/journal/batch', 'DELETE', {all: true, confirm: 'DELETE_ALL'}, T.delete_failed)
@@ -380,13 +380,13 @@ function toggleBulkMode() {
         _bulkMode = true;
         var label = document.getElementById('btn-bulk-toggle-label');
         var btn = document.getElementById('btn-bulk-toggle');
-        label.textContent = T.bulk_cancel || 'Cancel';
+        label.textContent = T.bulk_cancel;
         btn.classList.add('btn-bulk-active');
         // Insert checkbox header column
         var headRow = document.getElementById('journal-thead-row');
         var th = document.createElement('th');
         th.className = 'journal-check-col';
-        th.innerHTML = docsightHTML('<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtml(T.bulk_select_all || 'Select All') + '">');
+        th.innerHTML = docsightHTML('<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtml(T.bulk_select_all) + '">');
         headRow.insertBefore(th, headRow.firstChild);
         // Re-render table with checkboxes
         if (_journalAllData) renderJournalTable(_journalAllData, _journalSearchQuery);
@@ -398,7 +398,7 @@ function exitBulkMode() {
     _selectedEntryIds = [];
     var label = document.getElementById('btn-bulk-toggle-label');
     var btn = document.getElementById('btn-bulk-toggle');
-    if (label) label.textContent = T.bulk_select || 'Select';
+    if (label) label.textContent = T.bulk_select;
     if (btn) btn.classList.remove('btn-bulk-active');
     // Remove checkbox header column
     var headRow = document.getElementById('journal-thead-row');
@@ -458,14 +458,14 @@ function updateBulkBar() {
     }
     bar.hidden = false;
     var countEl = document.getElementById('journal-bulk-count');
-    countEl.textContent = count + ' ' + (count === 1 ? (T.entry_selected || 'entry selected') : (T.entries_selected || 'entries selected'));
+    countEl.textContent = count + ' ' + (count === 1 ? T.entry_selected : T.entries_selected);
     populateBulkIncidentSelect();
 }
 
 function populateBulkIncidentSelect() {
     var sel = document.getElementById('journal-bulk-incident-select');
     var prev = sel.value;
-    sel.innerHTML = docsightHTML('<option value="" disabled selected>' + (T.incident_assign || 'Assign to Incident') + '\u2026</option>');
+    sel.innerHTML = docsightHTML('<option value="" disabled selected>' + T.incident_assign + '\u2026</option>');
     _incidentsData.forEach(function(inc) {
         var opt = document.createElement('option');
         opt.value = inc.id;
@@ -478,14 +478,14 @@ function populateBulkIncidentSelect() {
 function bulkAssign() {
     var incidentId = document.getElementById('journal-bulk-incident-select').value;
     if (!incidentId) {
-        showToast(T.bulk_select_incident || 'Select an incident first', 'warning');
+        showToast(T.bulk_select_incident, 'warning');
         return;
     }
-    bulkUpdate('/api/incidents/' + incidentId + '/assign', T.entries_assigned || 'entries assigned');
+    bulkUpdate('/api/incidents/' + incidentId + '/assign', T.entries_assigned);
 }
 
 function bulkUnassign() {
-    bulkUpdate('/api/journal/unassign', T.entries_unassigned || 'entries unassigned');
+    bulkUpdate('/api/journal/unassign', T.entries_unassigned);
 }
 
 /* Assigns or unassigns the selected entries; doneText follows the updated count. */

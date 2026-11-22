@@ -72,7 +72,7 @@ function init() {
         if (!found.length) {
             var none = document.createElement('p');
             none.className = 'settings-search-empty';
-            none.textContent = T.settings_search_none || 'No setting matches';
+            none.textContent = T.settings_search_none;
             results.appendChild(none);
         }
         found.forEach(function(entry) {

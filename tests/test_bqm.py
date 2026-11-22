@@ -17,6 +17,7 @@ from app.modules.bqm.storage import BqmStorage
 from app.module_registry import ModuleInfo
 from app.storage import SnapshotStorage
 from app.config import ConfigManager
+from app.i18n import get_translations
 from app.runtime import current_runtime
 from tests.test_bqm_csv_parser import PARSED_ROWS, VALID_CSV
 from tests.test_error_responses import _upload
@@ -678,17 +679,23 @@ class TestBqmUiRender:
         assert 'id="bqm_url"' in html
         assert 'id="bqm_collect_time"' in html
 
+    @staticmethod
+    def _render(client, name):
+        """Render one BQM template on its own with the English catalog."""
+        with open(f"app/modules/bqm/templates/{name}", "r", encoding="utf-8") as f:
+            source = f.read()
+        with client.application.test_request_context():
+            return client.application.jinja_env.from_string(source).render(t=get_translations("en"), config={})
+
     def test_settings_explains_csv_yesterday_and_bulk_import(self, bqm_client):
-        with open("app/modules/bqm/templates/bqm_settings.html", "r", encoding="utf-8") as f:
-            html = f.read()
+        html = self._render(bqm_client[0], "bqm_settings.html")
         assert "CSV Yesterday" in html
         assert "CSV Live" in html
         assert "12 months" in html
         assert "bulk import" in html.lower()
 
     def test_bqm_setup_modal_points_to_csv_yesterday_and_bulk_import(self, bqm_client):
-        with open("app/modules/bqm/templates/bqm_dialogs.html", "r", encoding="utf-8") as f:
-            html = f.read()
+        html = self._render(bqm_client[0], "bqm_dialogs.html")
         assert "CSV Yesterday share URL" in html
         assert "CSV Live is for spot checks only" in html
         assert "one initial fetch" in html
@@ -702,13 +709,13 @@ class TestBqmUiRender:
         with open("app/modules/bqm/static/main.js", "r", encoding="utf-8") as f:
             js = f.read()
         assert 'aria-label="{{ t.bqm_import_title }}"' in html
-        assert 'aria-label="{{ t.get(\'bqm_csv_import\', \'Import CSV\') }}"' in html
+        assert 'aria-label="{{ t.bqm_csv_import }}"' in html
         assert 'aria-label="{{ t.bqm_delete }}"' in html
         assert "document.createElement('button')" in js
         # The visible day number stays in the name; month, year and data kind are screen reader text.
         assert "cell.appendChild(document.createTextNode(String(d)));" in js
         assert "bqmScreenReaderText(monthNames[month] + ' ')" in js
-        assert "T.bqm_cached_png || 'Cached PNG'" in js
+        assert "T.bqm_cached_png" in js
 
 
 class TestBqmChartConfig:

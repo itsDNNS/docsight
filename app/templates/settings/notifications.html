@@ -20,7 +20,7 @@
     </div>
     <div class="card-collapse-body" id="notification-webhook-body"{% if not webhook_configured %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
         <div class="card-collapse-inner">
-        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Notifications#delivery-options" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
+        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Notifications#delivery-options" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></p>
         <div class="form-grid cols-2">
             <div class="form-field form-grid-full">
                 <label class="form-label" for="notify_webhook_url">{{ t.notify_webhook_url }}</label>
@@ -73,7 +73,7 @@
     </div>
     <div class="card-collapse-body" id="notification-apprise-body"{% if not config.notify_apprise_enabled %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
         <div class="card-collapse-inner">
-        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Notifications#apprise-sidecar" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
+        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Notifications#apprise-sidecar" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></p>
         <div class="form-grid cols-2">
             <div class="form-field form-grid-full">
                 <label class="form-label" for="notify_apprise_url">{{ t.notify_apprise_url }}</label>
@@ -122,7 +122,7 @@
     </div>
     <div class="card-collapse-body" id="notification-pwa-push-body"{% if not config.notify_pwa_push_enabled %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
         <div class="card-collapse-inner">
-        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/PWA-and-Offline#push-notifications" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
+        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/PWA-and-Offline#push-notifications" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></p>
         <div class="form-grid cols-2">
             <div class="form-field">
                 <label class="form-label" for="notify_pwa_push_vapid_public_key">{{ t.notify_pwa_push_vapid_public_key }}</label>
@@ -174,7 +174,7 @@
     </div>
     <div class="card-collapse-body" id="per-event-cooldowns-body">
         <div class="card-collapse-inner">
-        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#notifications" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></p>
+        <p class="card-help-line"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Configuration#notifications" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></p>
         <table class="data-table data-table-compact data-table-list cooldown-table">
             <thead>
                 <tr>

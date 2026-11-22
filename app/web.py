@@ -631,7 +631,7 @@ def setup():
     driver_registry = get_driver_registry()
     modem_types = driver_registry.get_available_drivers()
     driver_hints = driver_registry.get_driver_hints()
-    modem_catalog = driver_registry.get_setup_catalog(other_label=t.get("setup_modem_other_group", "Other"))
+    modem_catalog = driver_registry.get_setup_catalog(other_label=t["setup_modem_other_group"])
     iana_tz = _guess_iana_timezone()
     theme = _config_manager.get_theme()
     return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, poll_default=DEFAULTS["poll_interval"], t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, modem_catalog=modem_catalog, driver_hints=driver_hints, timezones=_get_iana_timezones(), iana_tz=iana_tz, theme=theme)

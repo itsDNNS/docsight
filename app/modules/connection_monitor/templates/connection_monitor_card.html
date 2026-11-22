@@ -2,7 +2,7 @@
 <div class="metrics-grid">
     <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" data-action="openConnectionMonitorCard">
         <div class="metric-header">
-            <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
+            <span class="metric-label">{{ t['docsight.connection_monitor.connection_monitor'] }}</span>
             <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>
         </div>
         <div class="metric-value-row">
@@ -14,14 +14,14 @@
         </div>
         <div class="metric-sub metric-status-row">
             <span class="metric-context">
-                <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                <span class="metric-sub-label">{{ t.metric_status_label }}</span>
                 <span class="badge badge-info" id="cm-card-badge">&ndash;</span>
             </span>
         </div>
         <div class="metric-sub metric-modulation-row" id="cm-card-mod-row"></div>
         <div class="metric-range-viz" id="cm-card-range" style="--metric-marker: 0%; --metric-span-start: 0%; --metric-span-width: 0%; --metric-range-accent: var(--muted);">
             <div class="metric-range-caption">
-                <span>{{ t.get('cm_latency_range', 'Latency range') }}</span>
+                <span>{{ t.cm_latency_range }}</span>
                 <strong id="cm-card-range-context">&ndash;</strong>
             </div>
             <div class="metric-range-track" aria-hidden="true">

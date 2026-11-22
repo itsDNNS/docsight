@@ -140,7 +140,7 @@ def api_speedtest_signal(result_id):
         t = get_translations(get_lang())
         return jsonify({
             "found": False,
-            "message": t.get("signal_no_snapshot", "No signal snapshot found within 2 hours of this speedtest."),
+            "message": t["signal_no_snapshot"],
         })
     s = snap["summary"]
     errors_supported = s.get("errors_supported", True)

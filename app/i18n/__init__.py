@@ -32,5 +32,5 @@ def reset_module_translations() -> None:
 
 
 def get_translations(lang="en"):
-    """Return translation dict for given language code."""
-    return _TRANSLATIONS.get(lang, _TRANSLATIONS.get("en", {}))
+    """Return the translation dict of a core language; any other code gets English, the only complete catalog."""
+    return _TRANSLATIONS[lang if lang in LANGUAGES else "en"]

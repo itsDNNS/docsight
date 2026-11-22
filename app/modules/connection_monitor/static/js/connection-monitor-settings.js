@@ -30,12 +30,12 @@
     /* A failed request leaves the list as it is and says so below it. Actions
        are retried by repeating them; "Try again" stays while the list may be stale. */
     function showError() {
-        errorEl.textContent = (T.network_error || 'Network error') + ' ';
+        errorEl.textContent = T.network_error + ' ';
         if (!listFailed) return;
         var retryBtn = document.createElement('button');
         retryBtn.type = 'button';
         retryBtn.className = 'btn btn-secondary btn-sm';
-        retryBtn.textContent = T.empty_action_retry || 'Try again';
+        retryBtn.textContent = T.empty_action_retry;
         retryBtn.addEventListener('click', loadTargets);
         errorEl.appendChild(retryBtn);
     }

@@ -271,8 +271,8 @@ function _cmpSetErrorsChartVisible(visible) {
 function _cmpRenderCharts(data) {
     var pa = data.period_a;
     var pb = data.period_b;
-    var labelA = T['docsight.comparison.period_a'] || T.period_a || 'Period A';
-    var labelB = T['docsight.comparison.period_b'] || T.period_b || 'Period B';
+    var labelA = T['docsight.comparison.period_a'] || T.period_a;
+    var labelB = T['docsight.comparison.period_b'] || T.period_b;
 
     var normA = _cmpNormalize(pa.timeseries, pa.from);
     var normB = _cmpNormalize(pb.timeseries, pb.from);
@@ -285,10 +285,10 @@ function _cmpRenderCharts(data) {
     if (pa.timeseries.length === 0 && pb.timeseries.length === 0) {
         DOCSightEmptyState.show(document.getElementById('comparison-placeholder'), {
             icon: 'clock',
-            title: T['docsight.comparison.no_data_period'] || 'No data in selected period',
+            title: T['docsight.comparison.no_data_period'],
             text: T['docsight.comparison.empty_no_data_text'],
             action: {
-                label: T['docsight.comparison.empty_no_data_action'] || 'Choose other periods',
+                label: T['docsight.comparison.empty_no_data_action'],
                 onClick: _cmpAdjustTimes
             },
             glossary: 'before_after_comparison'
@@ -354,14 +354,14 @@ function _cmpRenderDeltaTable(data) {
     /* Clear existing rows */
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
-    _cmpAppendDeltaRow(tbody, T['docsight.comparison.ds_power'] || 'DS Power',
+    _cmpAppendDeltaRow(tbody, T['docsight.comparison.ds_power'],
         pa.avg.ds_power, pb.avg.ds_power, 'dBmV', delta.ds_power, false, false);
-    _cmpAppendDeltaRow(tbody, T['docsight.comparison.ds_snr'] || 'DS SNR',
+    _cmpAppendDeltaRow(tbody, T['docsight.comparison.ds_snr'],
         pa.avg.ds_snr, pb.avg.ds_snr, 'dB', delta.ds_snr, true, false);
-    _cmpAppendDeltaRow(tbody, T['docsight.comparison.us_power'] || 'US Power',
+    _cmpAppendDeltaRow(tbody, T['docsight.comparison.us_power'],
         pa.avg.us_power, pb.avg.us_power, 'dBmV', delta.us_power, false, false);
     if (_cmpPeriodSupportsDocsisErrors(pa) || _cmpPeriodSupportsDocsisErrors(pb)) {
-        _cmpAppendDeltaRow(tbody, T['docsight.comparison.uncorr_errors'] || 'Uncorr. Errors',
+        _cmpAppendDeltaRow(tbody, T['docsight.comparison.uncorr_errors'],
             pa.total.uncorr_errors, pb.total.uncorr_errors, '', delta.uncorr_errors, false, true);
     }
 
@@ -372,7 +372,7 @@ function _cmpRenderDeltaTable(data) {
     var verdictClass = delta.verdict === 'improved' ? 'cmp-good' :
                        delta.verdict === 'degraded' ? 'cmp-bad' : '';
     var tr = document.createElement('tr');
-    _cmpAddCell(tr, T['docsight.comparison.health'] || 'Health');
+    _cmpAddCell(tr, T['docsight.comparison.health']);
     _cmpAddCell(tr, healthA);
     _cmpAddCell(tr, healthB);
     _cmpAddCell(tr, verdictLabel, verdictClass);
@@ -442,11 +442,11 @@ function _cmpCreateHealthRow(label, key, dist, total) {
 
 function _cmpHealthLabel(key) {
     var map = {
-        good: T.health_good || 'Good',
-        tolerated: T.health_tolerated || 'Tolerated',
-        marginal: T.health_marginal || 'Marginal',
-        critical: T.health_critical || 'Critical',
-        unknown: T['docsight.comparison.health_unknown'] || 'Unknown'
+        good: T.health_good,
+        tolerated: T.health_tolerated,
+        marginal: T.health_marginal,
+        critical: T.health_critical,
+        unknown: T['docsight.comparison.health_unknown']
     };
     return map[key] || key;
 }

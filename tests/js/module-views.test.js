@@ -48,7 +48,7 @@ function browser(ids = [], hash = '') {
         clearTimeout(id) { timers.delete(id); },
         setInterval(fn) { timers.set(++nextTimer, fn); return nextTimer; },
         clearInterval(id) { timers.delete(id); },
-        lucide: {createIcons() {}}, currentView: 'live', T: {},
+        lucide: {createIcons() {}}, currentView: 'live', T: require('./english-catalog')(),
         DOCSightBrowserContracts: {parseDashboardBootstrapText: () => ({translations: {}})},
         fetch() { throw new Error('Unexpected fetch'); },
     };
@@ -93,7 +93,7 @@ test('Speedtest signal detail leaves out power and SNR no channel reported', () 
         us_power_min: null, us_power_avg: null, us_power_max: null,
     }, container);
     const text = container.children.map(item => item.children.map(part => part.textContent).join(': '));
-    assert.deepEqual(text, ['Health: Good', 'DS / US: 0 / 0', 'Snapshot: 2026-11-18T10:00:00Z']);
+    assert.deepEqual(text, ['Health: Good', 'DS Channels / US Channels: 0 / 0', 'Snapshot: 2026-11-18T10:00:00Z']);
 });
 
 test('Speedtest detail items render as plain values, health badges and links', () => {

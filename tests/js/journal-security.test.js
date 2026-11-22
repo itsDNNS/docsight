@@ -116,7 +116,7 @@ function journalHarness() {
     };
     const context = vm.createContext({
         document,
-        T: {},
+        T: require('./english-catalog')(),
         URLSearchParams,
         // Keep hostile values intact to test the rendering boundary even when
         // upstream URL validation would reject them in the application.
@@ -272,7 +272,7 @@ for (const outcome of ['success', 'http-error', 'network-error']) {
         button.className = 'incident-timeline-pdf-btn';
         button.textContent = 'Untrusted DOM content ' + hostile;
         nodes.get('incident-timeline-header').appendChild(button);
-        context.T.incident_download_pdf = outcome === 'success' ? 'Translated ' + hostile : '';
+        if (outcome === 'success') context.T.incident_download_pdf = 'Translated ' + hostile;
         const clicks = [];
         button.addEventListener('click', () => clicks.push('clicked'));
         const queries = {lang: 'de', name: hostile, number: 'customer-42', address: 'Somewhere & here'};
@@ -303,7 +303,7 @@ for (const outcome of ['success', 'http-error', 'network-error']) {
         await new Promise(resolve => setImmediate(resolve));
 
         assert.equal(button.disabled, false);
-        assert.equal(button.textContent, ' ' + (context.T.incident_download_pdf || 'Download PDF Report'));
+        assert.equal(button.textContent, ' ' + context.T.incident_download_pdf);
         assert.equal(htmlWrites.length, 1);
         assert.equal(htmlWrites[0].node, button);
         assert.match(htmlWrites[0].value, /^<svg .*width="16" height="16"/);
@@ -323,7 +323,7 @@ for (const outcome of ['success', 'http-error', 'network-error']) {
         } else {
             assert.equal(anchors.length, 0);
             assert.deepEqual(revoked, []);
-            assert.deepEqual(toasts, [['Error generating report', 'error']]);
+            assert.deepEqual(toasts, [['Network error', 'error']]);
         }
         assert.equal(context.injected, undefined);
     });

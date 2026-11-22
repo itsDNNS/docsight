@@ -6,7 +6,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 function load() {
-    const context = {document: {getElementById: () => null, querySelectorAll: () => []}, T: {}};
+    const context = {document: {getElementById: () => null, querySelectorAll: () => []}, T: require('./english-catalog')()};
     context.window = context;
     // The dialog sends its requests through the journal's request helper in journal-entry.js.
     for (const file of ['journal-entry.js', 'journal-import.js']) {

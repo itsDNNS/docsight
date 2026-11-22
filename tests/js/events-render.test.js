@@ -11,7 +11,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 const context = {
-    T: {},
+    T: require('./english-catalog')(),
     escapeHtml: s => String(s),
     docsightUrl: url => url,
     document: {getElementById: () => null, querySelectorAll: () => [], addEventListener() {}},

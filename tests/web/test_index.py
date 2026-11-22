@@ -12,6 +12,7 @@ import pytest
 from app.analyzer import analyze, get_thresholds
 from app.signal_health_view import build_home_snr_display_context, build_metric_ranges
 from app.config import ConfigManager
+from app.i18n import get_translations
 from app.module_contributions import validate_thresholds
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -433,7 +434,7 @@ class TestIndexRoute:
         )
         template = app.jinja_env.from_string(template_path.read_text(encoding="utf-8"))
 
-        html = template.render(t={})
+        html = template.render(t=get_translations("en"))
 
         assert 'id="modulation-capacity-panel"' in html
         assert "Calculated SC-QAM gross capacity" in html

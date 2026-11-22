@@ -215,7 +215,7 @@ function syncSaveFooter() {
     if (visible) {
         var changes = changedRecords(current, true);
         if (!changes.length) changes = changedRecords(current, false);
-        document.getElementById('save-bar-count').textContent = (T.unsaved_changes || 'Unsaved changes') + ' (' + changes.length + ')';
+        document.getElementById('save-bar-count').textContent = T.unsaved_changes + ' (' + changes.length + ')';
         document.getElementById('save-bar-sections').textContent = sectionTitles(changes).join(', ');
     }
     footer.classList.toggle('visible', visible);
@@ -277,7 +277,7 @@ function post(url, data) {
         body: JSON.stringify(data)
     }).then(function(response) {
         return response.json().then(function(result) {
-            if (!response.ok || !result.success) throw new Error(result.error || T.save_failed || 'Save failed');
+            if (!response.ok || !result.success) throw new Error(result.error || T.save_failed);
             return result;
         });
     });
@@ -301,7 +301,7 @@ function saveAll(options) {
         showRestartBanner(result);
         failed = false;
         syncSaveFooter();
-        showToast(T.settings_saved || 'Settings saved', true);
+        showToast(T.settings_saved, true);
         scheduleReload();
         return true;
     });
@@ -381,7 +381,7 @@ function save(options) {
         error.style.display = 'none';
         options = options || {};
         return (options.instant ? saveInstantRecords(options) : saveAll(options)).catch(function(err) {
-            error.textContent = err.message || T.save_failed || T.network_error || 'Save failed';
+            error.textContent = err.message || T.save_failed || T.network_error;
             error.style.display = 'block';
             failed = true;
             syncSaveFooter();
@@ -426,10 +426,10 @@ function saveInstantly(options) {
 function guardUnsaved() {
     if (!pending && !state.dirty(capture(), baseline)) return Promise.resolve(true);
     return docsightConfirm({
-        title: T.unsaved_changes || 'Unsaved changes',
-        message: T.unsaved_confirm || 'You have unsaved settings changes. Save them before continuing?',
-        confirmText: T.save || 'Save',
-        cancelText: T.cancel || 'Cancel'
+        title: T.unsaved_changes,
+        message: T.unsaved_confirm,
+        confirmText: T.save,
+        cancelText: T.cancel
     }).then(function(confirmed) {
         return confirmed ? save().then(function(ok) { return ok && !pending && !state.dirty(capture(), baseline); }) : false;
     });

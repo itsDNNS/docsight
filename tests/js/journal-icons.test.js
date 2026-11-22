@@ -28,7 +28,7 @@ function keywordsFor(lang) {
 
 function journal(lang) {
     const context = {
-        window: {}, T: {}, document: {getElementById: () => null, querySelector: () => null, addEventListener() {}, documentElement: {lang}},
+        window: {}, T: require('./english-catalog')(), document: {getElementById: () => null, querySelector: () => null, addEventListener() {}, documentElement: {lang}},
         localStorage: {getItem: () => null, setItem() {}},
     };
     vm.createContext(context);

@@ -6,7 +6,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 function load() {
-    const context = {T: {}, document: {getElementById: () => null}};
+    const context = {T: require('./english-catalog')(), document: {getElementById: () => null}};
     context.window = context;
     vm.runInNewContext(fs.readFileSync('app/modules/journal/static/js/journal-entry.js', 'utf8'), context);
     return context;

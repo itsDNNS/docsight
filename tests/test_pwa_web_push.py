@@ -215,7 +215,7 @@ def test_settings_exposes_explicit_pwa_push_controls_without_auto_permission_pro
     assert "function unsubscribePwaPush()" in js
     assert "refreshPwaPushStatus();" in js
     assert "pushManager.getSubscription()" in js
-    assert "This browser is not subscribed yet" in js
+    assert "T.notify_pwa_push_not_subscribed" in js
     assert "Notification.requestPermission()" in js
     assert js.index("function subscribePwaPush()") < js.index("Notification.requestPermission()")
     for path in (

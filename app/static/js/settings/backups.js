@@ -41,11 +41,11 @@ function backupNow() {
             showTestResult(el, 'ok', (T.backup_saved || 'Backup saved') + ': ' + res.filename);
             loadBackupList();
         } else {
-            showTestResult(el, 'fail', res.error || T.save_failed || 'Failed');
+            showTestResult(el, 'fail', res.error || T.save_failed);
         }
     })
     .catch(function() {
-        showTestResult(el, 'fail', T.network_error || 'Network error');
+        showTestResult(el, 'fail', T.network_error);
     });
 }
 
@@ -58,7 +58,7 @@ function showLastBackup(backups) {
         return b.modified && (!latest || b.modified > latest.modified) ? b : latest;
     }, null);
     line.hidden = !newest;
-    if (newest) text.textContent = (T.settings_status_last_backup || 'Last backup {time}').replace('{time}', formatDocsightTime(newest.modified));
+    if (newest) text.textContent = T.settings_status_last_backup.replace('{time}', formatDocsightTime(newest.modified));
 }
 
 function loadBackupList() {
@@ -136,10 +136,10 @@ function loadBackupList() {
 
 function deleteBackup(filename) {
     docsightConfirm({
-        title: T.delete || 'Delete',
+        title: T.delete,
         message: T.backup_delete_confirm || 'Delete this backup?',
-        confirmText: T.delete || 'Delete',
-        cancelText: T.cancel || 'Cancel',
+        confirmText: T.delete,
+        cancelText: T.cancel,
         danger: true
     }).then(function(confirmed) {
         if (!confirmed) return null;
@@ -151,10 +151,10 @@ function deleteBackup(filename) {
         if (res.success) {
             loadBackupList();
         } else {
-            showToast(res.error || T.save_failed || 'Failed', false);
+            showToast(res.error || T.save_failed, false);
         }
     })
-    .catch(function() { showToast(T.network_error || 'Network error', false); });
+    .catch(function() { showToast(T.network_error, false); });
 }
 
 /* ── Directory Browser ── */
@@ -166,7 +166,7 @@ function openBrowseModal(opener) {
     var selected = document.getElementById('browse-selected-path');
     var status = document.getElementById('browse-status');
     if (selected) selected.textContent = _browsePath;
-    if (status) status.textContent = T.loading || 'Loading...';
+    if (status) status.textContent = T.loading;
     DOCSightModal.open(modal, {opener: opener || document.activeElement, labelledBy: 'browse-modal-title'});
     browseTo(_browsePath);
 }
@@ -189,8 +189,8 @@ function browseTo(path) {
     var status = document.getElementById('browse-status');
     bc.textContent = path;
     if (selected) selected.textContent = path;
-    _showBrowseNote(dirs, 'browse-note', '\u23F3 ' + (T.loading || 'Loading...'));
-    if (status) status.textContent = T.loading || 'Loading...';
+    _showBrowseNote(dirs, 'browse-note', '\u23F3 ' + T.loading);
+    if (status) status.textContent = T.loading;
     fetch(docsightUrl('/api/browse?path=' + encodeURIComponent(path)))
     .then(function(r) { return r.json(); })
     .then(function(res) {
@@ -217,7 +217,7 @@ function browseTo(path) {
         });
         if (status) {
             status.textContent = res.directories.length
-                ? res.directories.length + ' ' + (T.directories || 'directories')
+                ? res.directories.length + ' ' + T.directories
                 : (T.backup_empty_dir || 'Empty directory');
         }
         if (typeof lucide !== 'undefined') lucide.createIcons();

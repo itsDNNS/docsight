@@ -26,7 +26,7 @@
     <script defer src="{{ url_for('static', filename='js/browser-contracts.js', v=version) }}"></script>
 </head>
 <body>
-<a class="skip-link" id="skip-link" href="#main-content">{{ t.get('skip_to_content', 'Skip to content') }}</a>
+<a class="skip-link" id="skip-link" href="#main-content">{{ t.skip_to_content }}</a>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="app-layout">
 {% set shell_page = 'settings' %}
@@ -36,9 +36,9 @@
     <div class="settings-header">
         <h1 class="settings-page-title">{{ t.settings }}</h1>
         <div class="settings-search">
-            <label class="sr-only" for="settings-search">{{ t.get('settings_search_label', 'Search settings') }}</label>
-            <input class="form-input" type="search" id="settings-search" placeholder="{{ t.get('settings_search_label', 'Search settings') }}" autocomplete="off" aria-controls="settings-search-results">
-            <div class="settings-search-results" id="settings-search-results" role="region" aria-live="polite" aria-label="{{ t.get('settings_search_label', 'Search settings') }}" hidden></div>
+            <label class="sr-only" for="settings-search">{{ t.settings_search_label }}</label>
+            <input class="form-input" type="search" id="settings-search" placeholder="{{ t.settings_search_label }}" autocomplete="off" aria-controls="settings-search-results">
+            <div class="settings-search-results" id="settings-search-results" role="region" aria-live="polite" aria-label="{{ t.settings_search_label }}" hidden></div>
         </div>
     </div>
     <div class="settings-shell">
@@ -54,7 +54,7 @@
         {% for mod in modules if mod.template_paths.get('settings') and mod.id not in placed_module_ids %}
         {% if community_settings.append(mod) %}{% endif %}
         {% endfor %}
-        <nav class="settings-index" id="settings-index" aria-label="{{ t.get('settings_sections', 'Settings sections') }}">
+        <nav class="settings-index" id="settings-index" aria-label="{{ t.settings_sections }}">
             {% for id, icon, title, summary in settings_sections %}
             <button type="button" class="settings-index-item{{ ' active' if loop.first }}" data-section="{{ id }}"{% if loop.first %} aria-current="page"{% endif %}>
                 <i data-lucide="{{ icon }}" aria-hidden="true"></i>
@@ -87,7 +87,7 @@
                 </button>
                 <div>
                     <h2 class="settings-section-title" id="settings-section-title">{{ settings_sections[0][2] }}</h2>
-                    <p class="settings-save-hint" id="settings-save-hint">{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}</p>
+                    <p class="settings-save-hint" id="settings-save-hint">{{ t.settings_save_hint_manual }}</p>
                 </div>
             </div>
             <div class="error-msg" id="global-error" role="alert"></div>
@@ -100,48 +100,48 @@
                         <div class="notice-icon"><i data-lucide="info"></i></div>
                         <div class="notice-content">
                             <div class="notice-title-row">
-                                <h2>{{ t.get('desktop_preview_notice_title', 'Desktop Preview is a tryout build') }}</h2>
-                                <span class="badge badge-info">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</span>
+                                <h2>{{ t.desktop_preview_notice_title }}</h2>
+                                <span class="badge badge-info">{{ t.desktop_preview_badge }}</span>
                             </div>
-                            <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
-                            <a class="notice-link" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
+                            <p>{{ t.desktop_preview_notice_body }}</p>
+                            <a class="notice-link" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.desktop_preview_notice_link }}</a>
                         </div>
-                        <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [desktop_preview_notice_id]|tojson }}' aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+                        <button type="button" class="notice-dismiss" data-action="dismissMaintainerNotice" data-action-args='{{ [desktop_preview_notice_id]|tojson }}' aria-label="{{ t.notice_dismiss }}">
                             <i data-lucide="x"></i>
                         </button>
                     </article>
                 </div>
                 {% endif %}
 
-                <section class="settings-panel active" id="panel-connection" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
+                <section class="settings-panel active" id="panel-connection" data-save-hint="{{ t.settings_save_hint_manual }}">
                     {% include 'settings/connection.html' %}
                 </section>
-                <section class="settings-panel" id="panel-sources" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
+                <section class="settings-panel" id="panel-sources" data-save-hint="{{ t.settings_save_hint_manual }}">
                     {% for module_id in placed_modules.sources %}{% include 'settings/module_block.html' %}{% endfor %}
                 </section>
-                <section class="settings-panel" id="panel-notifications" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
+                <section class="settings-panel" id="panel-notifications" data-save-hint="{{ t.settings_save_hint_manual }}">
                     {% include 'settings/notifications.html' %}
                 </section>
-                <section class="settings-panel" id="panel-evidence" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
+                <section class="settings-panel" id="panel-evidence" data-save-hint="{{ t.settings_save_hint_manual }}">
                     {% include 'settings/smart_capture.html' %}
                     {% for module_id in placed_modules.evidence %}{% include 'settings/module_block.html' %}{% endfor %}
                 </section>
-                <section class="settings-panel" id="panel-data" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
+                <section class="settings-panel" id="panel-data" data-save-hint="{{ t.settings_save_hint_manual }}">
                     {% include 'settings/data.html' %}
                     {% for module_id in placed_modules.data %}{% include 'settings/module_block.html' %}{% endfor %}
                 </section>
-                <section class="settings-panel" id="panel-appearance" data-save-hint="{{ t.get('settings_save_hint_mixed', 'Theme, mode and font apply immediately. Language, time zone and units are saved with Save.') }}">
+                <section class="settings-panel" id="panel-appearance" data-save-hint="{{ t.settings_save_hint_mixed }}">
                     {% include 'settings/appearance.html' %}
                     {% include 'settings/localization.html' %}
                 </section>
-                <section class="settings-panel" id="panel-access" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
+                <section class="settings-panel" id="panel-access" data-save-hint="{{ t.settings_save_hint_manual }}">
                     {% include 'settings/security.html' %}
                     {% for module_id in placed_modules.access %}{% include 'settings/module_block.html' %}{% endfor %}
                 </section>
-                <section class="settings-panel" id="panel-extensions" data-save-hint="{{ t.get('settings_save_hint_instant', 'Changes here apply immediately.') }}">
+                <section class="settings-panel" id="panel-extensions" data-save-hint="{{ t.settings_save_hint_instant }}">
                     {% include 'settings/extensions.html' %}
                 </section>
-                <section class="settings-panel" id="panel-about" data-save-hint="{{ t.get('settings_save_hint_manual', 'Changes here are saved with Save in the bar at the bottom.') }}">
+                <section class="settings-panel" id="panel-about" data-save-hint="{{ t.settings_save_hint_manual }}">
                     {% include 'settings/about.html' %}
                 </section>
 

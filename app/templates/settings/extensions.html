@@ -10,20 +10,20 @@
                 <i data-lucide="package"></i>
             </div>
             <div>
-                <div class="card-title">{{ t.get('settings_extensions', 'Extensions') }}</div>
-                <div class="card-subtitle">{{ t.dashboard_features_desc }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Modules" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                <div class="card-title">{{ t.settings_extensions }}</div>
+                <div class="card-subtitle">{{ t.dashboard_features_desc }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Modules" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
             </div>
         </div>
     </div>
 
     {# Build grouped extension lists #}
     {% set seg_disabled = config.modem_type != 'fritzbox' %}
-    {% set seg_desc = t.get('modules_requires_fritzbox', 'Requires FRITZ!Box') if seg_disabled else t.get('seg_subtitle', 'Cable segment utilization monitoring.') %}
+    {% set seg_desc = t.modules_requires_fritzbox if seg_disabled else t.seg_subtitle %}
 
     {% set features = [] %}
     {% if features.append({'name': t.gaming_quality_label, 'desc': t.gaming_quality_hint, 'field': 'gaming_quality_enabled', 'checked': config.gaming_quality_enabled, 'disabled': false}) %}{% endif %}
     {% if features.append({'name': t.get('bnetz_feature_title', t.bnetz_title), 'desc': t.get('bnetz_feature_hint', t.bnetz_upload_hint), 'field': 'bnetz_enabled', 'checked': config.bnetz_enabled, 'disabled': false}) %}{% endif %}
-    {% if features.append({'name': t.get('seg_title', 'Segment Utilization'), 'desc': seg_desc, 'field': 'segment_utilization_enabled', 'checked': config.segment_utilization_enabled and not seg_disabled, 'disabled': seg_disabled}) %}{% endif %}
+    {% if features.append({'name': t.seg_title, 'desc': seg_desc, 'field': 'segment_utilization_enabled', 'checked': config.segment_utilization_enabled and not seg_disabled, 'disabled': seg_disabled}) %}{% endif %}
 
     {% set modules_list = [] %}
     {% if all_modules %}
@@ -33,7 +33,7 @@
     {% endif %}
 
     {# ── Features ── #}
-    <div class="toggle-section-divider">{{ t.get('ext_features', 'Features') }}</div>
+    <div class="toggle-section-divider">{{ t.ext_features }}</div>
     {% for ext in features|sort(attribute='name') %}
     <div class="toggle-row{% if ext.disabled %} toggle-row-disabled{% endif %}">
         <div class="toggle-info">
@@ -50,7 +50,7 @@
 
     {# ── Modules ── #}
     {% if modules_list %}
-    <div class="toggle-section-divider" id="extensions-modules-heading">{{ t.get('ext_modules', 'Modules') }}</div>
+    <div class="toggle-section-divider" id="extensions-modules-heading">{{ t.ext_modules }}</div>
     <div role="group" aria-labelledby="extensions-modules-heading">
     {% for ext in modules_list|sort(attribute='name') %}
     {% set module_label_id = 'module-title-' ~ loop.index %}
@@ -59,8 +59,8 @@
         <div class="toggle-info">
             <span class="toggle-title" id="{{ module_label_id }}">
                 {{ ext.name }}
-                {% if not ext.builtin %}<span class="module-badge">{{ t.get('modules_community', 'Community') }}</span>{% endif %}
-                {% if ext.is_driver %}<span class="module-badge">{{ t.get('modules_type_driver', 'Driver') }}</span>{% endif %}
+                {% if not ext.builtin %}<span class="module-badge">{{ t.modules_community }}</span>{% endif %}
+                {% if ext.is_driver %}<span class="module-badge">{{ t.modules_type_driver }}</span>{% endif %}
                 {% if ext.error is defined and ext.error %}<span class="module-badge badge-error">{{ t.modules_error }}</span>{% endif %}
             </span>
             <span class="toggle-desc" id="{{ module_desc_id }}">{{ ext.desc }}</span>
@@ -90,8 +90,8 @@
                 <i data-lucide="download"></i>
             </div>
             <div>
-                <div class="card-title">{{ t.get('extensions_community', 'Community Modules') }}</div>
-                <div class="card-subtitle">{{ t.get('extensions_community_desc', 'Browse and install modules from the community registry') }}</div>
+                <div class="card-title">{{ t.extensions_community }}</div>
+                <div class="card-subtitle">{{ t.extensions_community_desc }}</div>
             </div>
         </div>
         <button type="button" class="btn btn-secondary" data-action="refreshModuleRegistry" id="module-registry-refresh" title="{{ t.get('extensions_refresh', t.refresh) }}" aria-label="{{ t.get('extensions_refresh', t.refresh) }}">
@@ -101,11 +101,11 @@
     <div class="settings-card-inset" id="module-registry-container">
         <div id="module-registry-loading" class="registry-loading">
             <i data-lucide="loader-2"></i>
-            {{ t.get('extensions_loading', 'Loading community modules...') }}
+            {{ t.extensions_loading }}
         </div>
         <div id="module-registry-empty" class="registry-empty" hidden>
             <i data-lucide="package-open"></i>
-            {{ t.get('extensions_no_modules', 'No community modules available yet.') }}
+            {{ t.extensions_no_modules }}
         </div>
         <div id="module-registry-gallery" hidden></div>
     </div>

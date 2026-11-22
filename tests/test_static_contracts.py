@@ -555,6 +555,7 @@ JS_TRANSLATION_LOOKUP_RE = re.compile(r"\bT\.([A-Za-z_]\w*)|\bT\[\s*['\"]([^'\"]
 TEMPLATE_TRANSLATION_LOOKUP_RE = re.compile(
     r"\bt\.get\(\s*['\"]([^'\"]+)['\"]|\bt\[\s*['\"]([^'\"]+)['\"]\s*[\]~]|\bt\.(?!get\b)([a-z_]\w*)"
 )
+PY_TRANSLATION_LOOKUP_RE = re.compile(r"\b(?:t|get_translations\((?:[^()]|\([^()]*\))*\))\[\s*['\"]([^'\"]+)['\"]")
 
 
 # Keys built at runtime: the prefix the code concatenates, and the values it appends.
@@ -579,10 +580,17 @@ I18N_RUNTIME_KEY_FAMILIES = {
     "docsight.modulation.capacity_status_": r"\w+",  # modulation/static/main.js
     "docsight.connection_monitor.traceroute.trigger_": r"\w+",  # connection-monitor-detail.js
 }
-# Files whose translation helper prepends a prefix to the literal keys it gets.
-I18N_HELPER_PREFIXES = {
-    "static/js/segment-utilization.js": "seg_",
-    "modules/connection_monitor/static/js/connection-monitor-detail.js": "docsight.connection_monitor.traceroute.",
+# Translation helpers per file: the functions that take a literal key, and the prefix they prepend.
+I18N_HELPERS = {
+    "static/js/snapshot-panel.js": ("text", ""),
+    "static/js/segment-utilization.js": ("_fcT|_fcMakeStat", "seg_"),
+    "static/js/events.js": ("_eventFmt", ""),
+    "modules/smokeping/static/main.js": ("_smokepingText", ""),
+    "modules/journal/static/js/journal-cases.js": ("_caseText", ""),
+    "modules/evidence/static/main.js": ("_evidenceT", ""),
+    "modules/de_tkg_compensation/static/main.js": ("t", "docsight.de_tkg_compensation."),
+    "modules/connection_monitor/static/js/connection-monitor-detail.js": ("cmT", "docsight.connection_monitor.traceroute."),
+    "modules/bqm/static/main.js": ("count", ""),
 }
 
 
@@ -595,7 +603,7 @@ def catalog_keys():
 
 
 def test_translation_lookups_resolve_to_catalog_keys() -> None:
-    """Templates and scripts only look up keys that a catalog defines."""
+    """Templates, scripts, their translation helpers and routes only look up keys that a catalog defines."""
     known = {name for _, key, full in catalog_keys() for name in (key, full)}
 
     def resolves(key: str) -> bool:
@@ -603,14 +611,18 @@ def test_translation_lookups_resolve_to_catalog_keys() -> None:
             return any(candidate.startswith(key) for candidate in known)
         return key in known
 
-    sources = [*MODULES.rglob("*.js"), *MODULES.rglob("*.html"), *(STATIC / "js").rglob("*.js"), *TEMPLATES.rglob("*.html")]
+    sources = [*MODULES.rglob("*.js"), *MODULES.rglob("*.html"), *(STATIC / "js").rglob("*.js"), *TEMPLATES.rglob("*.html"),
+               *(path for path in APP.rglob("*.py") if "get_translations(" in path.read_text(encoding="utf-8"))]
+    patterns = {".js": JS_TRANSLATION_LOOKUP_RE, ".html": TEMPLATE_TRANSLATION_LOOKUP_RE, ".py": PY_TRANSLATION_LOOKUP_RE}
     unresolved = set()
     for path in sources:
-        pattern = JS_TRANSLATION_LOOKUP_RE if path.suffix == ".js" else TEMPLATE_TRANSLATION_LOOKUP_RE
-        for match in pattern.finditer(path.read_text(encoding="utf-8")):
-            key = next(group for group in match.groups() if group)
-            if not resolves(key):
-                unresolved.add(f"{path.relative_to(ROOT)}: {key}")
+        text = path.read_text(encoding="utf-8")
+        helpers, prefix = I18N_HELPERS.get(path.relative_to(APP).as_posix(), (None, ""))
+        keys = [next(group for group in match.groups() if group) for match in patterns[path.suffix].finditer(text)]
+        if helpers:  # literal keys of the first argument, also both branches of `cond ? 'a' : 'b'`
+            for arg in re.findall(rf"(?<![\w.$])(?:{helpers})\(((?:[^,()]|\([^()]*\))*)", text):
+                keys += [prefix + key for key in re.findall(r"(?:^|[?:])\s*['\"]([^'\"]+)['\"]", arg.strip())]
+        unresolved.update(f"{path.relative_to(ROOT)}: {key}" for key in keys if not resolves(key))
 
     assert sorted(unresolved) == []
 
@@ -626,7 +638,7 @@ def test_catalog_keys_are_read_somewhere() -> None:
         for token in re.findall(r"[\w.-]+", text):
             parts = token.split(".")
             tokens.update(".".join(parts[i:j]) for i in range(len(parts)) for j in range(i + 1, len(parts) + 1))
-        prefix = I18N_HELPER_PREFIXES.get(rel.as_posix())
+        prefix = I18N_HELPERS.get(rel.as_posix(), ("", ""))[1]
         if prefix:
             tokens.update(prefix + literal for literal in re.findall(r"'(\w+)'", text))
 
