@@ -210,6 +210,10 @@ def test_report_modal_frames_isp_ready_evidence_builder(demo_page):
     expect(modal).to_contain_text("Incident timeline and journal notes")
     expect(modal).to_contain_text("BQM, SmokePing, and Speedtest evidence when available")
     expect(modal).to_contain_text("Generated locally")
+    expect(modal).to_contain_text("does not send it to your ISP automatically")
+    # Opened from the navigation the report covers a rolling period, not a fixed problem window.
+    expect(modal.locator("#report-days-field")).to_be_visible()
+    expect(modal.locator("#report-fixed-scope")).to_be_hidden()
     expect(modal.get_by_role("button", name="Build evidence package")).to_be_visible()
 
 
@@ -237,16 +241,22 @@ def test_report_pdf_download_preserves_customer_details_e2e(demo_page):
     modal.locator("#report-name").fill("Max Mustermann")
     modal.locator("#report-number").fill("KD-123456")
     modal.locator("#report-address").fill("Musterstraße 1, 12345 Musterstadt")
-    modal.get_by_role("button", name="Build evidence package").click()
+    modal.locator("#report-days").select_option("14")
+    with demo_page.expect_request("**/api/complaint?**") as complaint_request:
+        modal.get_by_role("button", name="Build evidence package").click()
     expect(modal.get_by_role("button", name="Download PDF package")).to_be_visible()
 
     with demo_page.expect_request("**/api/report?**") as report_request:
         modal.get_by_role("button", name="Download PDF package").click()
 
-    params = parse_qs(urlparse(report_request.value.url).query)
-    assert params["name"] == ["Max Mustermann"]
-    assert params["number"] == ["KD-123456"]
-    assert params["address"] == ["Musterstraße 1, 12345 Musterstadt"]
+    for request in (complaint_request.value, report_request.value):
+        params = parse_qs(urlparse(request.url).query, keep_blank_values=True)
+        # Both requests cover the same rolling period and no fixed window.
+        assert params["days"] == ["14"]
+        assert "from" not in params and "to" not in params
+        assert params["name"] == ["Max Mustermann"]
+        assert params["number"] == ["KD-123456"]
+        assert params["address"] == ["Musterstraße 1, 12345 Musterstadt"]
 
 
 def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
@@ -273,6 +283,8 @@ def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
     for field_id, value in saved.items():
         expect(page.locator(f"#{field_id}")).to_have_value(value)
 
+    config_writes = []
+    page.on("request", lambda request: request.method != "GET" and "/api/config" in request.url and config_writes.append(request.url))
     page.goto(configured_server, wait_until="networkidle")
     reveal_in_nav(page, "#report-link").click()
     modal = page.locator("#report-modal")
@@ -307,18 +319,26 @@ def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
     )
     modal.locator("#report-name").fill("One-report edit")
     modal.locator("#report-number").fill("")
+    modal.locator("#report-address").fill("One-report street")
     with page.expect_request("**/api/complaint?**") as report_request:
         modal.get_by_role("button", name="Build evidence package").click()
     params = parse_qs(urlparse(report_request.value.url).query, keep_blank_values=True)
     assert params["name"] == ["One-report edit"]
     assert params["number"] == [""]
-    assert params["address"] == [saved["report_customer_address"]]
+    assert params["address"] == ["One-report street"]
 
+    # Reopening, and loading the page again, shows the saved defaults, not the edits.
     page.evaluate("closeReportModal()")
-    reveal_in_nav(page, "#report-link").click()
-    expect(modal.locator("#report-name")).to_have_value(saved["report_customer_name"])
-    expect(modal.locator("#report-number")).to_have_value(saved["report_customer_number"])
-    expect(modal.locator("#report-address")).to_have_value(saved["report_customer_address"])
+    for reload in (False, True):
+        if reload:
+            page.reload(wait_until="networkidle")
+        reveal_in_nav(page, "#report-link").click()
+        expect(modal.locator("#report-name")).to_have_value(saved["report_customer_name"])
+        expect(modal.locator("#report-number")).to_have_value(saved["report_customer_number"])
+        expect(modal.locator("#report-address")).to_have_value(saved["report_customer_address"])
+    storage = page.evaluate("JSON.stringify([localStorage, sessionStorage])")
+    assert not any(value.splitlines()[0] in storage for value in ("One-report", *saved.values()))
+    assert config_writes == []
 
 
 def test_report_modal_shows_generation_success_and_error_states(demo_page):

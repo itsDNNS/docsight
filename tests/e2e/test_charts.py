@@ -518,7 +518,7 @@ class TestCompareCharts:
         ).to_have_count(0)
         compare_select.select_option(label="DS 0 (738 MHz)")
         demo_page.locator("#compare-add-btn").click()
-        wait_for_uplot(demo_page, "chart-cmp-power")
+        demo_page.wait_for_function("() => (window.charts['chart-cmp-power'] || {data: []}).data.length === 3")
 
         chips = demo_page.locator("#compare-chips .compare-chip")
         assert chips.count() == 2
@@ -529,6 +529,14 @@ class TestCompareCharts:
         assert demo_page.evaluate(
             "window.charts['chart-cmp-power'].data.slice(1, 3).map(series => series[0])"
         ) == [4.8, -1.7]
+
+        # The link restores both channels by selector; removing one keeps the other.
+        demo_page.reload()
+        expect(chips).to_have_count(2)
+        expect(chips.nth(1)).to_contain_text("738 MHz")
+        chips.nth(0).get_by_role("button").click()
+        expect(chips).to_have_count(1)
+        expect(chips.nth(0)).to_contain_text("738 MHz")
 
     def test_compare_mode_renders_power_chart(self, demo_page):
         """Compare mode with channels should render power overlay chart."""

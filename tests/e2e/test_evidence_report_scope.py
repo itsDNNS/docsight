@@ -41,10 +41,10 @@ def _payload(kind="range"):
         "window": window,
         "summary": {
             "present": 2,
-            "stale": 1,
-            "missing": 1,
-            "optional": 1,
-            "not_applicable": 1,
+            "stale": 3,
+            "missing": 4,
+            "optional": 5,
+            "not_applicable": 6,
         },
         "items": items,
         "capabilities": {"demo_mode": False},
@@ -91,15 +91,20 @@ def test_evidence_report_preview_and_pdf_keep_exact_canonical_window(demo_page, 
     demo_page.set_viewport_size(viewport)
     modal = _open_scoped_report(demo_page, _payload())
 
-    expect(modal.get_by_role("heading", name="Problem window")).to_be_visible()
+    expect(modal.get_by_role("region", name="Problem window").get_by_role("heading", name="Problem window")).to_be_visible()
     expect(modal).to_contain_text("Evening outage")
     expect(modal.locator("#report-period-from")).to_have_attribute("datetime", FROM)
     expect(modal.locator("#report-period-to")).to_have_attribute("datetime", TO)
     expect(modal.locator("#report-days-field")).to_be_hidden()
     expect(modal.locator("#report-days")).to_be_disabled()
-    for status in ["Ready", "Stale", "Missing", "Optional", "Not applicable", "Unavailable"]:
-        expect(modal.locator("#report-readiness-list")).to_contain_text(status)
-    expect(modal.get_by_role("heading", name="Supporting evidence")).to_be_visible()
+    # One row per checklist item, in order, and every count of the summary.
+    expect(modal.locator("#report-readiness-list li strong")).to_have_text(
+        ["Ready", "Stale", "Missing", "Optional", "Not applicable", "Unavailable", "Ready"]
+    )
+    expect(modal.locator("#report-readiness-summary > *")).to_have_text(
+        ["Ready: 2", "Stale: 3", "Missing: 4", "Optional: 5", "Not applicable: 6"]
+    )
+    expect(modal.get_by_role("region", name="Supporting evidence").get_by_role("heading", name="Supporting evidence")).to_be_visible()
     if viewport["width"] < 720:
         body_geometry = modal.locator(".modal-body").evaluate(
             "el => ({scrollHeight: el.scrollHeight, clientHeight: el.clientHeight})"
@@ -117,7 +122,7 @@ def test_evidence_report_preview_and_pdf_keep_exact_canonical_window(demo_page, 
     )
     with demo_page.expect_request("**/api/complaint?**") as complaint_request:
         modal.get_by_role("button", name="Build evidence package").click()
-    complaint_params = parse_qs(urlparse(complaint_request.value.url).query)
+    complaint_params = parse_qs(urlparse(complaint_request.value.url).query, keep_blank_values=True)
     assert complaint_params["from"] == [FROM]
     assert complaint_params["to"] == [TO]
     assert "days" not in complaint_params
@@ -139,7 +144,7 @@ def test_evidence_report_preview_and_pdf_keep_exact_canonical_window(demo_page, 
     )
     with demo_page.expect_request("**/api/report?**") as pdf_request:
         modal.get_by_role("button", name="Download PDF package").click()
-    pdf_params = parse_qs(urlparse(pdf_request.value.url).query)
+    pdf_params = parse_qs(urlparse(pdf_request.value.url).query, keep_blank_values=True)
     assert pdf_params["from"] == complaint_params["from"]
     assert pdf_params["to"] == complaint_params["to"]
     assert "days" not in pdf_params
@@ -151,6 +156,8 @@ def test_evidence_report_preview_and_pdf_keep_exact_canonical_window(demo_page, 
 ])
 def test_change_problem_window_returns_to_deterministic_evidence_control(demo_page, kind, focus_id):
     modal = _open_scoped_report(demo_page, _payload(kind))
+    # Another view can come up under the open report, for example through browser Back.
+    demo_page.evaluate("switchView('live')")
 
     modal.get_by_role("button", name="Change problem window").click()
 
@@ -160,26 +167,36 @@ def test_change_problem_window_returns_to_deterministic_evidence_control(demo_pa
     assert demo_page.evaluate("document.querySelector('#report-days').disabled") is False
 
 
-def test_mismatched_fixed_window_response_stays_on_step_one_with_live_error(demo_page):
+# Each bound earlier and later than requested; only the exact window is accepted.
+@pytest.mark.parametrize(("bound", "value"), [
+    ("from", "2026-06-10T17:00:00Z"),
+    ("from", "2026-06-10T20:00:00Z"),
+    ("to", "2026-06-10T20:00:00Z"),
+    ("to", "2026-06-10T23:30:00Z"),
+])
+def test_mismatched_fixed_window_response_stays_on_step_one_with_live_error(demo_page, bound, value):
     modal = _open_scoped_report(demo_page, _payload())
+    # A marked catalog entry shows that the message comes from the page's language.
+    message = demo_page.evaluate("T.report_window_mismatch += ' [catalog]'")
     demo_page.route(
         "**/api/complaint?**",
         lambda route: route.fulfill(json={
             "text": "This text must not be shown.",
             "lang": "en",
-            "window": {"from": FROM, "to": "2026-06-10T23:05:00Z"},
+            "window": {"from": FROM, "to": TO, bound: value},
         }),
     )
 
     modal.get_by_role("button", name="Build evidence package").click()
 
+    # The answer has arrived once the error shows; only then is step one known to stay.
+    status = modal.locator("#report-builder-status")
+    expect(status).to_have_text(message)
+    expect(status).to_contain_text("Change problem window")
+    expect(status).to_have_attribute("aria-live", "polite")
     expect(modal.locator("#report-step1")).to_be_visible()
     expect(modal.locator("#report-step2")).to_be_hidden()
     expect(modal.locator("#report-complaint-text")).to_have_value("")
-    status = modal.locator("#report-builder-status")
-    expect(status).to_have_attribute("aria-live", "polite")
-    expect(status).to_contain_text("different problem window")
-    expect(status).to_contain_text("Change problem window")
 
 
 def _local_input(page, offset_ms, round_up):

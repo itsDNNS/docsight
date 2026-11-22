@@ -292,27 +292,53 @@ function calculateMaxXTicks(labels, chartWidth, yAxisSize, hardMax) {
 }
 
 /* ── Shared uPlot Plugins ── */
+/**
+ * Drag to zoom the x axis; double-click or the reset button returns to the full range.
+ * Requires zoomable:true in renderChart opts (disables fixed x-scale range).
+ */
 function zoomPlugin() {
+    // The reset button shows while zoomed, also when a zoom leaves the x bounds unchanged.
+    function syncResetBtn(u) {
+        if (u._zoomRange && !u._resetBtn) {
+            var btn = document.createElement('button');
+            btn.textContent = '\u2715 ' + (T.chart_reset_zoom || 'Reset Zoom');
+            btn.type = 'button';
+            btn.className = 'chart-zoom-reset';
+            btn.onclick = function() { resetZoom(u); };
+            u.root.style.position = 'relative';
+            u.root.appendChild(btn);
+            u._resetBtn = btn;
+        }
+        if (u._resetBtn) u._resetBtn.style.display = u._zoomRange ? '' : 'none';
+    }
+    function resetZoom(u) {
+        u._zoomRange = null;
+        u.setScale('x', chartXRange(u));
+        syncResetBtn(u);
+    }
     return {
         hooks: {
             init: [function(u) {
                 u.over.style.cursor = 'crosshair';
+                u.over.title = T.chart_zoom_hint || 'Drag to zoom, double-click to reset';
             }],
             ready: [function(u) {
-                u.over.addEventListener('dblclick', function() {
-                    u._zoomRange = null;
-                    var range = chartXRange(u);
-                    u.setScale('x', range);
-                });
+                u.over.addEventListener('dblclick', function() { resetZoom(u); });
             }],
             setSelect: [function(u) {
                 var min = u.posToVal(u.select.left, 'x');
                 var max = u.posToVal(u.select.left + u.select.width, 'x');
-                if (max - min > 1) {
+                // A drag of a few pixels is a click, not a zoom.
+                if (u.select.width > 4) {
                     u._zoomRange = { min: min, max: max };
                     u.setScale('x', u._zoomRange);
+                    syncResetBtn(u);
                 }
                 u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
+            }],
+            // renderChart restores a kept zoom after a redraw through setScale.
+            setScale: [function(u, key) {
+                if (key === 'x') syncResetBtn(u);
             }]
         }
     };
