@@ -7,7 +7,7 @@
             </div>
             <div>
                 <div class="card-title">{{ t.appearance }}</div>
-                <div class="card-subtitle"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Themes" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                <div class="card-subtitle"><a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Themes" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
             </div>
         </div>
     </div>
@@ -73,7 +73,7 @@
                     {% if low_modes %}
                     <div class="theme-contrast-warning">
                         <i data-lucide="triangle-alert" aria-hidden="true"></i>
-                        <span>{{ t.get('theme_low_contrast', 'Low text contrast') }}:
+                        <span>{{ t.theme_low_contrast }}:
                             {% for mode in low_modes %}{{ t.dark_mode if mode == 'dark' else t.light_mode }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
                     </div>
                     {% endif %}

@@ -132,20 +132,12 @@ def test_prefixed_module_hash_navigation_and_script_urls(page, prefixed_module_s
     assert errors == []
 
 
-@pytest.mark.parametrize("theme,width", [("light", 1280), ("dark", 1280), ("light", 390), ("dark", 390)])
-@pytest.mark.parametrize("has_png", [False, True], ids=["csv-only", "csv-and-png"])
-def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, width, has_png):
-    """Real controls and uPlot callbacks retain the selected view with sparse CSV data."""
-    from datetime import datetime, timezone
+def _route_bqm_csv(page, dates, has_png=False):
+    """Serve the same two CSV samples for every BQM day and range."""
     from io import BytesIO
 
     from PIL import Image
 
-    errors = []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.clock.install(time=datetime(2026, 6, 15, 12, tzinfo=timezone.utc))
-    page.set_viewport_size({"width": width, "height": 844})
-    dates = ["2026-06-15", "2026-06-14", "2026-06-12"]
     page.route("**/api/bqm/data/dates", lambda route: route.fulfill(json={
         "csv_dates": dates, "png_dates": dates if has_png else [],
     }))
@@ -161,7 +153,21 @@ def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, wid
         "lost_polls": [0, 1], "sent_polls": [100, 100],
     }}
     page.route("**/api/bqm/data/range?*", lambda route: route.fulfill(json=payload))
-    page.route("**/api/bqm/data/2026-*", lambda route: route.fulfill(json=payload))
+    page.route("**/api/bqm/data/2*", lambda route: route.fulfill(json=payload))
+
+
+@pytest.mark.parametrize("theme,width", [("light", 1280), ("dark", 1280), ("light", 390), ("dark", 390)])
+@pytest.mark.parametrize("has_png", [False, True], ids=["csv-only", "csv-and-png"])
+def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, width, has_png):
+    """Real controls and uPlot callbacks retain the selected view with sparse CSV data."""
+    from datetime import datetime, timezone
+
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.clock.install(time=datetime(2026, 6, 15, 12, tzinfo=timezone.utc))
+    page.set_viewport_size({"width": width, "height": 844})
+    dates = ["2026-06-15", "2026-06-14", "2026-06-12"]
+    _route_bqm_csv(page, dates, has_png)
     page.goto(live_server + "/#bqm")
     page.evaluate("theme => document.documentElement.setAttribute('data-theme', theme)", theme)
     expect(page.locator("#bqm-today-btn")).to_have_attribute("aria-pressed", "true")
@@ -235,3 +241,70 @@ def test_bqm_quick_selection_and_sparse_range_axes(page, live_server, theme, wid
     selection("yesterday")
     axis(False)
     assert errors == []
+
+
+# Choosing the shown range or day again reloads the chart.
+@pytest.mark.parametrize("view,chart,reload", [
+    ("connection-monitor?range=7d", "cm-combined-chart", '[data-cm-range="604800"]'),
+    ("bqm", "bqm-chart-container", "#bqm-today-btn"),
+], ids=["connection-monitor", "bqm"])
+def test_drag_zoom_shows_a_reset_button_that_outlives_a_reload(page, live_server, view, chart, reload):
+    """Both zoomable charts share one drag-zoom: a short drag is a click, a reload keeps zoom and button."""
+    from datetime import date, timedelta
+
+    # Today in the configured time zone is one of these days.
+    _route_bqm_csv(page, [(date.today() + timedelta(days=n)).isoformat() for n in (-1, 0, 1)])
+    page.goto(f"{live_server}/?lang=en#{view}", wait_until="networkidle")
+
+    def reloaded():
+        page.evaluate(f"window.__chart = charts['{chart}']")
+        page.locator(reload).click()
+        page.wait_for_function(f"() => charts['{chart}'] && charts['{chart}'] !== window.__chart")
+
+    # BQM shows today's live graph first; choosing the day opens its samples as a chart.
+    reloaded()
+    over = page.locator(f"#{chart} .u-over")
+    expect(over).to_have_attribute("title", "Drag to zoom, double-click to reset")
+    over.scroll_into_view_if_needed()
+    box = over.bounding_box()
+    y = box["y"] + box["height"] / 2
+
+    def drag(start, end):
+        page.mouse.move(box["x"] + start, y)
+        page.mouse.down()
+        page.mouse.move(box["x"] + end, y, steps=4)
+        page.mouse.up()
+
+    def state():
+        return page.evaluate("""c => {
+            const u = charts[c], full = chartXRange(u);
+            return {zoom: u._zoomRange || null, view: [u.scales.x.min, u.scales.x.max], full: [full.min, full.max]};
+        }""", chart)
+
+    def assert_full_view():
+        now = state()
+        assert now["zoom"] is None and now["view"] == now["full"]
+        expect(reset).not_to_be_visible()
+
+    reset = page.locator(f"#{chart} .chart-zoom-reset")
+    drag(box["width"] * 0.5, box["width"] * 0.5 + 4)
+    assert_full_view()
+    # A drag across the whole plot zooms to the bounds already shown.
+    drag(0, box["width"] + 20)
+    full = state()
+    assert [full["zoom"]["min"], full["zoom"]["max"]] == full["view"] == full["full"]
+    expect(reset).to_be_visible()
+    over.dblclick()
+    assert_full_view()
+
+    drag(box["width"] * 0.3, box["width"] * 0.6)
+    expect(reset).to_be_visible()
+    zoomed = state()
+    assert zoomed["view"] == [zoomed["zoom"]["min"], zoomed["zoom"]["max"]]
+    reloaded()
+    assert state()["view"] == zoomed["view"]
+    expect(reset).to_be_visible()
+
+    reset.focus()
+    page.keyboard.press("Enter")
+    assert_full_view()

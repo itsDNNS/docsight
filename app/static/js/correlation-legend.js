@@ -58,29 +58,29 @@
         var list = [];
         function add(metric, color, label) { list.push({ metric: metric, color: color, label: label }); }
         if (st.modem.length > 0) {
-            if (st.hasPowerData) add('dsPower', c.dsPower, '&#183;&#183; ' + (T.chart_ds_power || 'DS Power (dBmV)'));
-            if (st.hasTxData) add('txPower', c.txPower, '&#9476; ' + (T.chart_us_power || 'US Power (dBmV)'));
-            add('snr', c.snr, '&#9644; ' + (T.chart_snr || 'SNR (dB)'));
-            add('signalState', c.health.good, '&#9646; ' + (T.correlation_lane_state || 'Signal state'));
-            if (st.hasErrorData) add('errors', 'rgba(239,68,68,0.8)', '&#9612; ' + (T.correlation_errors || 'Errors'));
+            if (st.hasPowerData) add('dsPower', c.dsPower, '&#183;&#183; ' + T.chart_ds_power);
+            if (st.hasTxData) add('txPower', c.txPower, '&#9476; ' + T.chart_us_power);
+            add('snr', c.snr, '&#9644; ' + T.chart_snr);
+            add('signalState', c.health.good, '&#9646; ' + T.correlation_lane_state);
+            if (st.hasErrorData) add('errors', 'rgba(239,68,68,0.8)', '&#9612; ' + T.correlation_errors);
         }
         if (st.speedtest.length > 0) {
-            add('download', c.download, '&#9474;&#9679; ' + (T.correlation_download || 'Download (Mbps)'));
-            add('upload', c.upload, '&#9474;&#9679; ' + (T.correlation_upload || 'Upload (Mbps)'));
+            add('download', c.download, '&#9474;&#9679; ' + T.correlation_download);
+            add('upload', c.upload, '&#9474;&#9679; ' + T.correlation_upload);
         }
         if (st.events.length > 0) {
-            add('events', c.warn, '&#9650; ' + (T.correlation_events || 'Events'));
+            add('events', c.warn, '&#9650; ' + T.correlation_events);
             list[list.length - 1].events = filter.summary(st.events);
         }
         if (st.weather.length > 0) {
-            add('temperature', c.temperature, '- - ' + (T.temperature || 'Temperature') + ' (' + (fahrenheit ? '°F' : '°C') + ')');
+            add('temperature', c.temperature, '- - ' + T.temperature + ' (' + (fahrenheit ? '°F' : '°C') + ')');
         }
         if (st.segment.length > 0) {
-            add('segmentDs', c.segmentDs, '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)'));
-            add('segmentUs', c.segmentUs, '&#9644; ' + (T.seg_correlation_us || 'Segment US (%)'));
+            add('segmentDs', c.segmentDs, '&#9644; ' + T.seg_correlation_ds);
+            add('segmentUs', c.segmentUs, '&#9644; ' + T.seg_correlation_us);
         }
         if (st.reachabilityBuckets.length > 0) {
-            add('reachability', c.accent, '&#9646; ' + (T.correlation_reachability || 'Reachability'));
+            add('reachability', c.accent, '&#9646; ' + T.correlation_reachability);
         }
         return list;
     }
@@ -93,9 +93,6 @@
         return true;
     }
 
-    function escapeAttr(value) {
-        return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
     /* Colors computed at runtime reach CSS as --corr-color through the CSSOM,
        never as inline style attributes in built HTML. */
     function applyColors(root) {
@@ -124,36 +121,20 @@
     }
 
     function popoverHtml(events, filter, color, T) {
-        var typeLabel = {
-            health_change: T.event_type_health_change || 'Health Change',
-            power_change: T.event_type_power_change || 'Power Change',
-            snr_change: T.event_type_snr_change || 'SNR Change',
-            channel_change: T.event_type_channel_change || 'Channel Change',
-            modulation_change: T.event_type_modulation_change || 'Modulation Change',
-            error_spike: T.event_type_error_spike || 'Error Spike',
-            monitoring_started: T.event_type_monitoring_started || 'Monitoring Started',
-            monitoring_stopped: T.event_type_monitoring_stopped || 'Monitoring Stopped'
-        };
-        var severityLabel = {
-            info: T.event_severity_info || 'Info',
-            warning: T.event_severity_warning || 'Warning',
-            critical: T.event_severity_critical || 'Critical'
-        };
-        var colorAttr = ' data-color="' + escapeAttr(color) + '"';
-        var html = '<div class="corr-event-filter-title">' + (T.event_filter_title || 'Event Types') + '</div>';
+        var colorAttr = ' data-color="' + escapeHtml(color) + '"';
+        var html = '<div class="corr-event-filter-title">' + T.event_filter_title + '</div>';
         Object.keys(events.types).sort().forEach(function (type) {
-            var label = typeLabel[type] || type.replace(/_/g, ' ').replace(/\b\w/g, function (ch) { return ch.toUpperCase(); });
             var bySeverity = filter.severity(type);
             html += '<div class="corr-event-filter-group">' +
                 '<label class="corr-event-filter-type">' +
-                '<input type="checkbox" data-event-type="' + escapeAttr(type) + '"' + (filter.types[type] ? ' checked' : '') + colorAttr + '> ' +
-                '<span class="corr-event-filter-name">' + escapeHtml(label) + '</span> <span class="corr-event-filter-count">(' + events.types[type] + ')</span></label>' +
+                '<input type="checkbox" data-event-type="' + escapeHtml(type) + '"' + (filter.types[type] ? ' checked' : '') + colorAttr + '> ' +
+                '<span class="corr-event-filter-name">' + escapeHtml(T['event_type_' + type] || type) + '</span> <span class="corr-event-filter-count">(' + events.types[type] + ')</span></label>' +
                 '<div class="corr-event-filter-severities">';
             CorrelationData.SEVERITIES.forEach(function (sev) {
                 var count = (events.severities[type] && events.severities[type][sev]) || 0;
                 html += '<label class="corr-event-filter-severity">' +
-                    '<input type="checkbox" data-event-type="' + escapeAttr(type) + '" data-event-severity="' + escapeAttr(sev) + '"' + (bySeverity[sev] !== false ? ' checked' : '') + colorAttr + '> ' +
-                    escapeHtml(severityLabel[sev] || sev) + ' <span class="corr-event-filter-count">(' + count + ')</span></label>';
+                    '<input type="checkbox" data-event-type="' + escapeHtml(type) + '" data-event-severity="' + escapeHtml(sev) + '"' + (bySeverity[sev] !== false ? ' checked' : '') + colorAttr + '> ' +
+                    escapeHtml(T['event_severity_' + sev] || sev) + ' <span class="corr-event-filter-count">(' + count + ')</span></label>';
             });
             html += '</div></div>';
         });
@@ -208,8 +189,8 @@
     /* Renders the legend into el. options: {visible, filter, T, eventColor, onToggle(), onFilterChange()}. */
     function render(el, list, options) {
         var T = options.T;
-        var hint = T.correlation_toggle_hint || 'Click to toggle';
-        var filterLabel = escapeAttr(T.correlation_event_filter || 'Event Filter');
+        var hint = T.correlation_toggle_hint;
+        var filterLabel = escapeHtml(T.correlation_event_filter);
         // The legend is rebuilt on every redraw; keyboard focus stays on the same control.
         var focused = el.contains(document.activeElement) ? document.activeElement : null;
         var focusSelector = focused && focused.classList.contains('corr-event-filter-btn') ? '.corr-event-filter-btn'
@@ -228,7 +209,7 @@
                 gear = '<button type="button" class="corr-event-filter-btn" popovertarget="corr-event-popover" aria-label="' + filterLabel +
                     '" title="' + filterLabel + '"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></button>';
             }
-            return '<span ' + attrs + ' class="' + cls + '" title="' + hint + '" data-color="' + escapeAttr(item.color) + '">' + item.label + extra + '</span>' + gear;
+            return '<span ' + attrs + ' class="' + cls + '" title="' + hint + '" data-color="' + escapeHtml(item.color) + '">' + item.label + extra + '</span>' + gear;
         }).join(''));
         applyColors(el);
         if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [el]});
@@ -257,7 +238,7 @@
         eventFilter: eventFilter,
         items: items,
         toggle: toggle,
-        escapeAttr: escapeAttr,
+        popoverHtml: popoverHtml,
         applyColors: applyColors,
         closePopover: closePopover,
         render: render

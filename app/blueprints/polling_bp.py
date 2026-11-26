@@ -14,20 +14,16 @@ from app import modem_diagnosis
 from app.i18n import get_translations
 from app.modules.mqtt.publisher import create_client
 from paho.mqtt.client import MQTT_ERR_SUCCESS
-from app.modules.speedtest.client import SpeedtestClient, public_error
+from app.modules.speedtest.client import SpeedtestClient, is_finished, public_error
 
 log = logging.getLogger("docsis.web")
 
 polling_bp = Blueprint("polling_bp", __name__)
 
 
-def _valid_push_subscription(subscription):
-    if not isinstance(subscription, dict):
-        return False
-    if not str(subscription.get("endpoint") or "").strip():
-        return False
-    keys = subscription.get("keys") or {}
-    return isinstance(keys, dict) and bool(keys.get("p256dh")) and bool(keys.get("auth"))
+def _object(value):
+    """A JSON object from the request, or an empty one for any other value."""
+    return value if isinstance(value, dict) else {}
 
 
 def _pwa_push_configured(config_mgr):
@@ -223,13 +219,10 @@ def api_pwa_push_subscribe():
     storage = current_runtime().storage
     if not storage:
         return jsonify({"success": False, "error": "Storage unavailable"}), 503
-    data = request.get_json(silent=True) or {}
-    subscription = data.get("subscription") or data
-    if not _valid_push_subscription(subscription):
-        return jsonify({"success": False, "error": "Invalid Web Push subscription"}), 400
+    data = _object(request.get_json(silent=True))
     try:
         record = storage.upsert_pwa_push_subscription(
-            subscription,
+            data.get("subscription") or data,
             user_agent=request.headers.get("User-Agent", "")[:500],
         )
     except ValueError:
@@ -244,8 +237,8 @@ def api_pwa_push_unsubscribe():
     storage = current_runtime().storage
     if not storage:
         return jsonify({"success": False, "error": "Storage unavailable"}), 503
-    data = request.get_json(silent=True) or {}
-    endpoint = data.get("endpoint") or (data.get("subscription") or {}).get("endpoint")
+    data = _object(request.get_json(silent=True))
+    endpoint = data.get("endpoint") or _object(data.get("subscription")).get("endpoint")
     if not endpoint:
         return jsonify({"success": False, "error": "Subscription endpoint is required"}), 400
     storage.delete_pwa_push_subscription(endpoint)
@@ -280,14 +273,14 @@ def api_test_speedtest():
         results, error = client.get_latest_with_error(1)
         if error:
             return jsonify({"success": False, "error": error})
-        if results:
+        if results and is_finished(results[0]):
             r = results[0]
             return jsonify({
                 "success": True,
                 "results": len(results),
                 "latest": {
-                    "download": r.get("download_human") or f"{r.get('download_mbps', 0)} Mbps",
-                    "upload": r.get("upload_human") or f"{r.get('upload_mbps', 0)} Mbps",
+                    "download": r.get("download_human") or f"{r.get('download_mbps') or 0} Mbps",
+                    "upload": r.get("upload_human") or f"{r.get('upload_mbps') or 0} Mbps",
                     "ping": f"{r.get('ping_ms', 0)} ms",
                 },
             })
@@ -315,7 +308,7 @@ def api_poll():
     if now - current_runtime().get_last_manual_poll() < 10:
         lang = get_lang()
         t = get_translations(lang)
-        return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
+        return jsonify({"success": False, "error": t["refresh_rate_limit"]}), 429
 
     if not _modem_collector._collect_lock.acquire(timeout=0):
         return jsonify({"success": False, "error": "Poll already in progress"}), 429

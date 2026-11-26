@@ -96,7 +96,7 @@ def valid_driver_hints(module_id: object, hints: object) -> bool:
                 ipaddress.ip_address(host)
             elif not re.fullmatch(r"[A-Za-z0-9_.-]+", host):
                 return False
-        except (ValueError, UnicodeError):
+        except ValueError:
             return False
     return True
 

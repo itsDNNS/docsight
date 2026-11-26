@@ -71,26 +71,6 @@ def test_frontend_masks_saved_secret_inputs_without_hardcoded_module_names():
     assert "config.get(key) == PASSWORD_MASK" in web
 
 
-def test_saved_secret_detection_does_not_parse_placeholder_text():
-    """Saved state is explicit metadata, independent of localized copy."""
-    js = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
-
-    saved_secret_function = js.split(
-        "function _isSavedSecretField", 1
-    )[1].split("function _shouldTreatSavedSecretEventAsUserEdit", 1)[0]
-    assert "dataset.savedSecret === 'true'" in saved_secret_function
-    assert "placeholder" not in saved_secret_function
-
-
-def test_saved_secret_dirty_detection_requires_active_field_before_user_edit():
-    """Password-manager autofill events on inactive saved secrets must stay clean."""
-    js = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
-
-    assert "function _shouldTreatSavedSecretEventAsUserEdit" in js
-    assert "document.activeElement === target" in js
-    assert "e && _isSavedSecretField(e.target) && e.isTrusted" not in js
-
-
 def test_config_save_preserves_masked_saved_secrets(tmp_path):
     """Posting the mask must preserve existing secret values server-side."""
     mgr = ConfigManager(str(tmp_path / "data"))

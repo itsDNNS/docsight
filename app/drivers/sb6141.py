@@ -18,15 +18,10 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_transposed import (
-    extract_transposed_rows,
-    extract_upstream_modulation,
-    get_row_values,
-    parse_sb6141_downstream,
-    parse_sb6141_upstream,
-)
-from .formats.primitives import hz_to_mhz, parse_number
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from .format_compat import unwrap
+from .formats.html_transposed import parse_sb6141_transposed_html
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.sb6141")
 
@@ -66,34 +61,7 @@ class SB6141Driver(ModemDriver):
             r.raise_for_status()
         except requests.RequestException as e:
             raise RuntimeError(f"SB6141 DOCSIS data retrieval failed: {e}")
-
-        soup = BeautifulSoup(r.text, "html.parser")
-        tables = soup.find_all("table", recursive=True)
-
-        # Find the three main tables by their header text
-        ds_table = None
-        us_table = None
-        cw_table = None
-
-        for table in tables:
-            th = table.find("th")
-            if not th:
-                continue
-            text = th.get_text(strip=True).lower()
-            if "downstream" in text and "signal" not in text:
-                ds_table = table
-            elif "upstream" in text:
-                us_table = table
-            elif "signal status" in text or "codeword" in text:
-                cw_table = table
-
-        ds_channels = self._parse_downstream(ds_table, cw_table)
-        us_channels = self._parse_upstream(us_table)
-
-        return {
-            "channelDs": {"docsis30": ds_channels, "docsis31": []},
-            "channelUs": {"docsis30": us_channels, "docsis31": []},
-        }
+        return unwrap(parse_sb6141_transposed_html(r.text), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from /cmHelpData.htm."""
@@ -103,7 +71,8 @@ class SB6141Driver(ModemDriver):
                 timeout=15,
             )
             r.raise_for_status()
-        except requests.RequestException:
+        except requests.RequestException as e:
+            log.warning("SB6141 device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Arris", "model": "SB6141", "sw_version": ""}
 
         text = BeautifulSoup(r.text, "html.parser").get_text()
@@ -129,29 +98,3 @@ class SB6141Driver(ModemDriver):
     def get_connection_info(self) -> ConnectionInfo:
         """Standalone modem, no connection info."""
         return {}
-
-    def _parse_downstream(self, ds_table, cw_table) -> list[RawChannel]:
-        return parse_sb6141_downstream(ds_table, cw_table).value
-
-    def _parse_upstream(self, us_table) -> list[RawChannel]:
-        return parse_sb6141_upstream(us_table).value
-
-    @staticmethod
-    def _extract_transposed_rows(table) -> list[tuple[str, list[str]]]:
-        return extract_transposed_rows(table)
-
-    @staticmethod
-    def _get_row_values(rows: list[tuple[str, list[str]]], keyword: str) -> list[str]:
-        return get_row_values(rows, keyword)
-
-    @staticmethod
-    def _extract_upstream_modulation(raw: str) -> str:
-        return extract_upstream_modulation(raw)
-
-    @staticmethod
-    def _parse_freq_hz(freq_str: str) -> str:
-        return hz_to_mhz(freq_str)
-
-    @staticmethod
-    def _parse_number(val_str: str) -> float:
-        return parse_number(val_str)

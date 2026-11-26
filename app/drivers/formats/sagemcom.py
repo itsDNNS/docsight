@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ...types import DocsisDataFritz, RawChannel
-from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split, ofdm_downstream
+from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split, number_reader, ofdm_downstream
 from .primitives import hz_to_mhz
 
 
@@ -41,20 +41,22 @@ def parse_sagemcom_xmo_downstream(
             continue
         if not row.get("LockStatus", False):
             continue
+        num = number_reader(diagnostics, "sagemcom_xmo_json", family="sagemcom", direction="downstream", index=index)
         try:
             channel_id = row.get("ChannelID", 0)
             frequency = _sagemcom_frequency(row.get("Frequency", 0))
-            power = row.get("PowerLevel", 0)
-            snr = row.get("SNR", 0)
             modulation = row.get("Modulation", "")
-            corrected = row.get("CorrectableCodewords", 0)
-            uncorrected = row.get("UncorrectableCodewords", 0)
-            if _sagemcom_is_ofdm(modulation, row.get("BandWidth", 0)):
+            ofdm = _sagemcom_is_ofdm(modulation, row.get("BandWidth", 0))
+            power = num(row.get("PowerLevel"), "PowerLevel")
+            snr = num(row.get("SNR"), "SNR")
+            corrected = num(row.get("CorrectableCodewords"), "CorrectableCodewords", int)
+            uncorrected = num(row.get("UncorrectableCodewords"), "UncorrectableCodewords", int)
+            if ofdm:
                 docsis31.append(ofdm_downstream(channel_id, frequency, power, snr, corrected, uncorrected))
             else:
                 docsis30.append({
                     "channelID": channel_id, "frequency": frequency, "powerLevel": power,
-                    "mer": snr, "mse": -snr if snr else None,
+                    "mer": snr, "mse": None if snr is None else -snr,
                     "modulation": _sagemcom_modulation(modulation),
                     "corrErrors": corrected, "nonCorrErrors": uncorrected,
                 })
@@ -81,10 +83,10 @@ def parse_sagemcom_xmo_upstream(
             continue
         if not row.get("LockStatus", False):
             continue
+        num = number_reader(diagnostics, "sagemcom_xmo_json", family="sagemcom", direction="upstream", index=index)
         try:
             channel_id = row.get("ChannelID", 0)
             frequency = _sagemcom_frequency(row.get("Frequency", 0))
-            power = row.get("PowerLevel", 0)
             modulation = row.get("Modulation", "")
             if not isinstance(modulation, str):
                 diagnostics.append(diagnostic(
@@ -92,6 +94,7 @@ def parse_sagemcom_xmo_upstream(
                     direction="upstream", index=index, field="Modulation",
                 ))
                 return ParseResult(None, tuple(diagnostics))
+            power = num(row.get("PowerLevel"), "PowerLevel")
             if modulation.lower() == "ofdma":
                 docsis31.append({
                     "channelID": channel_id, "type": "OFDMA", "frequency": frequency,
@@ -115,8 +118,15 @@ def parse_sagemcom_xmo_json(
     payload: dict[str, list[dict[str, Any]]] | None,
 ) -> ParseResult[DocsisDataFritz | None]:
     data = payload if isinstance(payload, dict) else {}
-    downstream = parse_sagemcom_xmo_downstream(data.get("downstream", []))
-    upstream = parse_sagemcom_xmo_upstream(data.get("upstream", []))
+    lanes = {direction: data.get(direction, []) for direction in ("downstream", "upstream")}
+    invalid = tuple(
+        diagnostic("sagemcom_xmo_json", "invalid_framing", family="sagemcom", direction=direction)
+        for direction, rows in lanes.items() if not isinstance(rows, list)
+    )
+    if invalid:
+        return ParseResult(None, invalid)
+    downstream = parse_sagemcom_xmo_downstream(lanes["downstream"])
+    upstream = parse_sagemcom_xmo_upstream(lanes["upstream"])
     if upstream.value is None:
         return ParseResult(None, downstream.diagnostics + upstream.diagnostics)
     return ParseResult(

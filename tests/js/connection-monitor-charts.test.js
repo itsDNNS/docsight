@@ -18,6 +18,7 @@ function charts({storedShowSpikes = null} = {}) {
         document: {getElementById: id => (id === 'cm-spikes-toggle' ? toggle : null)},
         renderChart: (id, labels, datasets, type, zones, opts) => rendered.push({labels, datasets, zones, opts}),
         bandPlugin: (lo, hi, color) => ({band: [lo, hi, color]}),
+        zoomPlugin: () => ({}),
         charts: {},
         docsightFormatXAxisLabels: timestamps => timestamps.map(String),
         localStorage: {

@@ -67,31 +67,21 @@ class TestCollectorBase:
         c.record_success()
         assert c.should_poll() is False
 
-    def test_penalty_zero_on_no_failures(self):
-        c = ConcreteCollector()
-        assert c.penalty_seconds == 0
-
-    def test_penalty_exponential_backoff(self):
-        c = ConcreteCollector()
-        c._consecutive_failures = 1
-        assert c.penalty_seconds == 30
-        c._consecutive_failures = 2
-        assert c.penalty_seconds == 60
-        c._consecutive_failures = 3
-        assert c.penalty_seconds == 120
-        c._consecutive_failures = 4
-        assert c.penalty_seconds == 240
-
-    def test_penalty_capped_at_max(self):
-        c = ConcreteCollector()
-        c._consecutive_failures = 100
-        assert c.penalty_seconds == 3600
-
-    def test_effective_interval_includes_penalty(self):
+    @pytest.mark.parametrize("failures,penalty", [
+        (0, 0), (1, 30), (2, 60), (3, 120), (4, 240), (100, 3600),
+    ])
+    def test_status_reports_exponential_capped_penalty(self, failures, penalty):
         c = ConcreteCollector(60)
-        assert c.effective_interval == 60
-        c._consecutive_failures = 1
-        assert c.effective_interval == 90  # 60 + 30
+        c._consecutive_failures = failures
+        status = c.get_status()
+        assert status["penalty_seconds"] == penalty
+        assert status["effective_interval"] == 60 + penalty
+
+    def test_failure_log_labels_penalty(self, caplog):
+        c = ConcreteCollector(300)
+        with caplog.at_level("WARNING", logger="docsis.collector"):
+            c.record_failure()
+        assert "next attempt in 330s (penalty: 30s)" in caplog.text
 
     def test_record_success_resets_failures(self):
         c = ConcreteCollector()
@@ -138,16 +128,3 @@ class TestModemDriverBase:
         ):
             with pytest.raises(NotImplementedError, match=f"ModemDriver\\.{method_name}"):
                 getattr(driver, method_name)()
-
-    def test_concrete_driver_stores_credentials(self):
-        class DummyDriver(ModemDriver):
-            def login(self): pass
-            def get_docsis_data(self): return {}
-            def get_device_info(self): return {}
-            def get_connection_info(self): return {}
-
-        d = DummyDriver("http://modem", "admin", "secret")
-        assert d._url == "http://modem"
-        assert d._user == "admin"
-        assert d._password == "secret"
-

@@ -58,14 +58,17 @@ function loadIconKeywords() {
     return _iconKeywordsLoading;
 }
 
+function _escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Longer keywords also match inside words (compounds, inflected forms); short
 // ones must start a word so they do not hit unrelated longer words.
 var _iconWordStartCache = {};
 function _iconKeywordMatches(text, keyword) {
     if (keyword.length >= 5) return text.indexOf(keyword) !== -1;
     if (!_iconWordStartCache[keyword]) {
-        var escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        _iconWordStartCache[keyword] = new RegExp('(?:^|[^\\p{L}\\p{N}])' + escaped, 'u');
+        _iconWordStartCache[keyword] = new RegExp('(?:^|[^\\p{L}\\p{N}])' + _escapeRegExp(keyword), 'u');
     }
     return _iconWordStartCache[keyword].test(text);
 }
@@ -101,9 +104,11 @@ function _getEntryIcon(entry) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 }
 
-function renderIconPicker(selectedLabel) {
-    var picker = document.getElementById('entry-icon-picker');
-    var hiddenInput = document.getElementById('entry-icon-value');
+/* The icon picker of the entry dialog (prefix "entry") and the case dialog
+   ("incident-container"); onPick runs after each pick. */
+function renderIconPicker(prefix, selectedLabel, onPick) {
+    var picker = document.getElementById(prefix + '-icon-picker');
+    var hiddenInput = document.getElementById(prefix + '-icon-value');
     picker.replaceChildren();
     function markSelected(selectedButton) {
         picker.querySelectorAll('.icon-pick').forEach(function(b) {
@@ -123,7 +128,7 @@ function renderIconPicker(selectedLabel) {
     noneBtn.onclick = function() {
         hiddenInput.value = '';
         markSelected(noneBtn);
-        updateModalIcon();
+        if (onPick) onPick();
     };
     picker.appendChild(noneBtn);
 
@@ -138,7 +143,7 @@ function renderIconPicker(selectedLabel) {
         btn.onclick = function() {
             hiddenInput.value = entry.label;
             markSelected(btn);
-            updateModalIcon();
+            if (onPick) onPick();
         };
         picker.appendChild(btn);
     });
@@ -214,49 +219,34 @@ function _showJournalEmpty(empty, searchQuery) {
     if (searchQuery) {
         DOCSightEmptyState.show(empty, {
             icon: 'clipboard-list',
-            title: (T.search_no_results || 'No results for') + ' "' + searchQuery + '"',
+            title: T.search_no_results + ' "' + searchQuery + '"',
             text: T.journal_empty_search_text,
-            action: {label: T.journal_empty_search_action || 'Clear search', onClick: clearJournalSearch}
+            action: {label: T.journal_empty_search_action, onClick: clearJournalSearch}
         });
     } else if (_activeIncidentFilter !== null) {
         DOCSightEmptyState.show(empty, {
             icon: 'folder-open',
-            title: T.journal_empty_case_title || 'No entries in this case',
+            title: T.journal_empty_case_title,
             text: T.journal_empty_case_text,
-            action: {label: T.journal_empty_case_action || 'Show all entries', onClick: function() { filterByIncident(null); }},
+            action: {label: T.journal_empty_case_action, onClick: function() { filterByIncident(null); }},
             glossary: 'incident_journal'
         });
     } else {
         DOCSightEmptyState.show(empty, {
             icon: 'clipboard-list',
-            title: T.journal_empty_title || 'No entries yet',
+            title: T.journal_empty_title,
             text: T.no_incidents,
-            action: {label: T.new_entry || 'New Entry', onClick: function() { openEntryModal(); }},
+            action: {label: T.new_entry, onClick: function() { openEntryModal(); }},
             glossary: 'incident_journal'
         });
     }
 }
 
-function escapeHtmlAttribute(value) {
-    return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 function highlightText(text, query) {
     if (!query || !text) return escapeHtml(text);
-    var escaped = escapeHtml(text);
-    var lowerEscaped = escaped.toLowerCase();
-    var lowerQuery = query.toLowerCase();
-    var result = '';
-    var lastIdx = 0;
-    var idx = lowerEscaped.indexOf(lowerQuery);
-    while (idx !== -1) {
-        result += escaped.substring(lastIdx, idx);
-        result += '<mark class="search-highlight">' + escaped.substring(idx, idx + lowerQuery.length) + '</mark>';
-        lastIdx = idx + lowerQuery.length;
-        idx = lowerEscaped.indexOf(lowerQuery, lastIdx);
-    }
-    result += escaped.substring(lastIdx);
-    return result;
+    return text.split(new RegExp('(' + _escapeRegExp(query) + ')', 'i')).map(function(part, i) {
+        return i % 2 ? '<mark class="search-highlight">' + escapeHtml(part) + '</mark>' : escapeHtml(part);
+    }).join('');
 }
 
 function renderJournalTable(data, searchQuery) {
@@ -307,12 +297,12 @@ function renderJournalTable(data, searchQuery) {
         var descHtml = q ? highlightText(desc, q) : escapeHtml(desc);
         var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
         tr.innerHTML = docsightHTML(
-            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtmlAttribute(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
+            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtml(T.bulk_select) + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' data-action="toggleEntrySelection" data-action-pass="element" data-action-args="[' + inc.id + ']"></td>' : '') +
             '<td class="journal-icon-cell dt-lead" aria-hidden="true">' + iconHtml + '</td>' +
-            '<td class="journal-date-cell" data-label="' + escapeHtmlAttribute(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
+            '<td class="journal-date-cell" data-label="' + escapeHtml(T.incident_date) + '">' + dateHtml + '</td>' +
             '<td class="journal-title-cell dt-primary">' + titleHtml + '</td>' +
-            '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtmlAttribute(T.incident_description || 'Description') + '">' + descHtml + '</td>' +
-            '<td class="journal-clip" data-label="' + escapeHtmlAttribute(T.attachments || 'Attachments') + '">' + clipCell + '</td>');
+            '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtml(T.incident_description) + '">' + descHtml + '</td>' +
+            '<td class="journal-clip" data-label="' + escapeHtml(T.attachments) + '">' + clipCell + '</td>');
         tbody.appendChild(tr);
     });
     // Update sort indicators in header
@@ -352,32 +342,22 @@ function deleteAllEntries() {
     var count = document.querySelectorAll('#journal-tbody tr').length;
     if (count === 0) return;
     docsightConfirm({
-        title: T.delete_all || 'Delete all entries',
+        title: T.delete_all,
         message: T.delete_all_confirm.replace('{n}', count),
-        confirmText: T.delete_incident || 'Delete',
-        cancelText: T.cancel || 'Cancel',
+        confirmText: T.delete_incident,
+        cancelText: T.cancel,
         danger: true,
         requireText: 'DELETE',
-        requireLabel: T.delete_all_type_confirm || 'Type DELETE to confirm'
+        requireLabel: T.delete_all_type_confirm
     }).then(function(confirmed) {
-        if (!confirmed) return null;
-        return fetch(docsightUrl('/api/journal/batch'), {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({all: true, confirm: 'DELETE_ALL'})
-        });
+        if (!confirmed) return;
+        return journalSend('/api/journal/batch', 'DELETE', {all: true, confirm: 'DELETE_ALL'}, T.delete_failed)
+            .then(function(data) {
+                showToast(data.deleted + ' ' + T.delete_all_success, 'ok');
+                loadJournal();
+            });
     })
-        .then(function(r) { return r ? r.json().then(function(d) { return {status: r.status, data: d}; }) : null; })
-        .then(function(res) {
-            if (!res) return;
-            if (res.status >= 400) {
-                showToast(res.data.error || T.delete_failed, 'error');
-                return;
-            }
-            showToast(res.data.deleted + ' ' + T.delete_all_success, 'ok');
-            loadJournal();
-        })
-        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+        .catch(function(e) { showToast(journalErrorText(e), 'error'); });
 }
 
 /* ── Incident Containers ── */
@@ -400,13 +380,13 @@ function toggleBulkMode() {
         _bulkMode = true;
         var label = document.getElementById('btn-bulk-toggle-label');
         var btn = document.getElementById('btn-bulk-toggle');
-        label.textContent = T.bulk_cancel || 'Cancel';
+        label.textContent = T.bulk_cancel;
         btn.classList.add('btn-bulk-active');
         // Insert checkbox header column
         var headRow = document.getElementById('journal-thead-row');
         var th = document.createElement('th');
         th.className = 'journal-check-col';
-        th.innerHTML = docsightHTML('<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtmlAttribute(T.bulk_select_all || 'Select All') + '">');
+        th.innerHTML = docsightHTML('<input type="checkbox" id="journal-select-all" data-action="toggleSelectAll" data-action-pass="element" title="' + escapeHtml(T.bulk_select_all) + '">');
         headRow.insertBefore(th, headRow.firstChild);
         // Re-render table with checkboxes
         if (_journalAllData) renderJournalTable(_journalAllData, _journalSearchQuery);
@@ -418,7 +398,7 @@ function exitBulkMode() {
     _selectedEntryIds = [];
     var label = document.getElementById('btn-bulk-toggle-label');
     var btn = document.getElementById('btn-bulk-toggle');
-    if (label) label.textContent = T.bulk_select || 'Select';
+    if (label) label.textContent = T.bulk_select;
     if (btn) btn.classList.remove('btn-bulk-active');
     // Remove checkbox header column
     var headRow = document.getElementById('journal-thead-row');
@@ -478,14 +458,14 @@ function updateBulkBar() {
     }
     bar.hidden = false;
     var countEl = document.getElementById('journal-bulk-count');
-    countEl.textContent = count + ' ' + (count === 1 ? (T.entry_selected || 'entry selected') : (T.entries_selected || 'entries selected'));
+    countEl.textContent = count + ' ' + (count === 1 ? T.entry_selected : T.entries_selected);
     populateBulkIncidentSelect();
 }
 
 function populateBulkIncidentSelect() {
     var sel = document.getElementById('journal-bulk-incident-select');
     var prev = sel.value;
-    sel.innerHTML = docsightHTML('<option value="" disabled selected>' + (T.incident_assign || 'Assign to Incident') + '\u2026</option>');
+    sel.innerHTML = docsightHTML('<option value="" disabled selected>' + T.incident_assign + '\u2026</option>');
     _incidentsData.forEach(function(inc) {
         var opt = document.createElement('option');
         opt.value = inc.id;
@@ -496,43 +476,29 @@ function populateBulkIncidentSelect() {
 }
 
 function bulkAssign() {
-    var sel = document.getElementById('journal-bulk-incident-select');
-    var incidentId = sel.value;
+    var incidentId = document.getElementById('journal-bulk-incident-select').value;
     if (!incidentId) {
-        showToast(T.bulk_select_incident || 'Select an incident first', 'warning');
+        showToast(T.bulk_select_incident, 'warning');
         return;
     }
-    if (_selectedEntryIds.length === 0) return;
-    fetch(docsightUrl('/api/incidents/' + incidentId + '/assign'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({entry_ids: _selectedEntryIds})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        showToast((data.updated || 0) + ' ' + (T.entries_assigned || 'entries assigned'), 'success');
-        exitBulkMode();
-        loadIncidents();
-        loadJournal();
-    })
-    .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+    bulkUpdate('/api/incidents/' + incidentId + '/assign', T.entries_assigned);
 }
 
 function bulkUnassign() {
+    bulkUpdate('/api/journal/unassign', T.entries_unassigned);
+}
+
+/* Assigns or unassigns the selected entries; doneText follows the updated count. */
+function bulkUpdate(path, doneText) {
     if (_selectedEntryIds.length === 0) return;
-    fetch(docsightUrl('/api/journal/unassign'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({entry_ids: _selectedEntryIds})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        showToast((data.updated || 0) + ' ' + (T.entries_unassigned || 'entries unassigned'), 'success');
-        exitBulkMode();
-        loadIncidents();
-        loadJournal();
-    })
-    .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+    journalSend(path, 'POST', {entry_ids: _selectedEntryIds}, T.error_prefix)
+        .then(function(data) {
+            showToast((data.updated || 0) + ' ' + doneText, 'success');
+            exitBulkMode();
+            loadIncidents();
+            loadJournal();
+        })
+        .catch(function(e) { showToast(journalErrorText(e), 'error'); });
 }
 
 /* ── Export Dropdown ── */

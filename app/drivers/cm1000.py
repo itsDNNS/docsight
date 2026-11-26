@@ -17,6 +17,8 @@ from bs4 import BeautifulSoup
 
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
+from .format_compat import unwrap
+from .formats.contract import ParseResult, docsis_result
 from .formats.html_rows import (
     parse_cm1000_downstream_table,
     parse_cm1000_upstream_table,
@@ -33,61 +35,8 @@ _STATUS_PATH = "/DocsisStatus.asp"
 _LOGIN_PATH = "/GenieLogin.asp"
 _LOGIN_ACTION = "/goform/GenieLogin"
 _TABLE_IDS = ("dsTable", "usTable", "d31dsTable", "d31usTable")
-_NUMBER_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
-_HEADER_RE = re.compile(r"[^a-z0-9]+")
-_FUNCTION_START_RE = re.compile(r"function\s+(?P<name>\w+)\s*\(\)\s*\{")
-_TAG_VALUE_ASSIGNMENT_RE = re.compile(
-    r"\bvar\s+tagValueList\s*=\s*(?P<value>.*?);", re.DOTALL
-)
-_STRING_LITERAL_RE = re.compile(
-    r"'(?P<single>(?:\\.|[^'\\])*)'|\"(?P<double>(?:\\.|[^\"\\])*)\"",
-    re.DOTALL,
-)
 _DS_TAG_VALUE_FUNCTION = "InitDsTableTagValue"
 _US_TAG_VALUE_FUNCTION = "InitUsTableTagValue"
-_TAG_VALUE_FIELDS_PER_ROW = 7
-
-# CM1000 downstream SC-QAM channels use the North American 6 MHz
-# ITU-T J.83 Annex B profiles. The modem status page does not expose symbol
-# rate, so provide the standardized kSym/s value for DOCSight capacity math.
-_ANNEX_B_DOWNSTREAM_SYMBOL_RATES = {
-    "64QAM": 5057,
-    "256QAM": 5361,
-}
-
-_ALIASES = {
-    "channel": {"channel", "channelnumber", "channelno"},
-    "lock": {"lockstatus", "status"},
-    "modulation": {
-        "modulation",
-        "channeltype",
-        "uschanneltype",
-        "profile",
-        "profiles",
-        "profileid",
-        "profileids",
-        "profilemodulation",
-    },
-    "channel_id": {"channelid", "id"},
-    "frequency": {"frequency", "frequencyhz"},
-    "power": {"power", "powerlevel", "powerdbmv"},
-    "snr": {"snr", "mer", "snrmer"},
-    "symbol_rate": {"symbolrate", "symbolrateksymsec"},
-    "corr": {
-        "correctables",
-        "correctable",
-        "correctablecodewords",
-        "corrected",
-        "correctedcodewords",
-    },
-    "uncorr": {
-        "uncorrectables",
-        "uncorrectable",
-        "uncorrectablecodewords",
-        "uncorrected",
-        "uncorrectedcodewords",
-    },
-}
 
 
 class CM1000Driver(ModemDriver):
@@ -113,68 +62,50 @@ class CM1000Driver(ModemDriver):
         page, the driver performs the Genie token/form login and retries.
         """
         self._status_html = None
-        for attempt in range(2):
-            try:
-                direct = self._session.get(self._url + _STATUS_PATH, timeout=30)
-                if direct.status_code == 200 and self._is_status_page(direct.text):
-                    self._status_html = direct.text
-                    log.info("CM1000 auth OK via direct status access")
-                    return
+        self._login_with_reconnect("CM1000", self._login_attempt, log)
 
-                # A 401/403 or a 200 login wrapper is expected on form-login
-                # firmware. Other HTTP errors should still be surfaced.
-                if direct.status_code not in (200, 401, 403):
-                    direct.raise_for_status()
+    def _login_attempt(self) -> None:
+        direct = self._session.get(self._url + _STATUS_PATH, timeout=30)
+        if direct.status_code == 200 and self._is_status_page(direct.text):
+            self._status_html = direct.text
+            log.info("CM1000 auth OK via direct status access")
+            return
 
-                # Do not send a stale/preemptive Basic Authorization header to
-                # the form-login firmware. The authenticated cookie established
-                # below is sufficient for the status-page request.
-                self._session.auth = None
-                self._login_via_form()
-                status = self._session.get(self._url + _STATUS_PATH, timeout=30)
-                status.raise_for_status()
-                self._ensure_status_page(status.text)
-                self._status_html = status.text
-                log.info("CM1000 auth OK via Genie form login")
-                return
-            except requests.ConnectionError as exc:
-                if attempt == 0:
-                    log.warning("CM1000 connection lost, retrying with fresh session")
-                    self._session.close()
-                    self._session = self._new_session()
-                    continue
-                raise RuntimeError(
-                    "CM1000 authentication failed: connection refused after retry"
-                ) from exc
-            except requests.RequestException as exc:
-                raise RuntimeError(f"CM1000 authentication failed: {exc}") from exc
+        # A 401/403 or a 200 login wrapper is expected on form-login
+        # firmware. Other HTTP errors should still be surfaced.
+        if direct.status_code not in (200, 401, 403):
+            direct.raise_for_status()
+
+        # Do not send a stale/preemptive Basic Authorization header to
+        # the form-login firmware. The authenticated cookie established
+        # below is sufficient for the status-page request.
+        self._session.auth = None
+        self._login_via_form()
+        status = self._session.get(self._url + _STATUS_PATH, timeout=30)
+        status.raise_for_status()
+        self._ensure_status_page(status.text)
+        self._status_html = status.text
+        log.info("CM1000 auth OK via Genie form login")
 
     def get_docsis_data(self) -> DocsisData:
         html = self._fetch_status_page()
         soup = BeautifulSoup(html, "html.parser")
 
-        ds_tag_values = extract_cm1000_tag_value_list(html, _DS_TAG_VALUE_FUNCTION)
-        if ds_tag_values is not None:
-            ds30 = parse_cm1000_downstream_tag_values(ds_tag_values).value
-        else:
-            ds30 = parse_cm1000_downstream_table(soup, "dsTable", docsis31=False).value
-
-        us_tag_values = extract_cm1000_tag_value_list(html, _US_TAG_VALUE_FUNCTION)
-        if us_tag_values is not None:
-            us30 = parse_cm1000_upstream_tag_values(us_tag_values).value
-        else:
-            us30 = parse_cm1000_upstream_table(soup, "usTable", docsis31=False).value
-
-        ds31 = parse_cm1000_downstream_table(soup, "d31dsTable", docsis31=True).value
-        us31 = parse_cm1000_upstream_table(soup, "d31usTable", docsis31=True).value
-
-        if not any((ds30, us30, ds31, us31)):
+        ds_tags = extract_cm1000_tag_value_list(html, _DS_TAG_VALUE_FUNCTION)
+        us_tags = extract_cm1000_tag_value_list(html, _US_TAG_VALUE_FUNCTION)
+        lanes = docsis_result(
+            parse_cm1000_downstream_tag_values(ds_tags.value) if ds_tags.value is not None
+            else parse_cm1000_downstream_table(soup, "dsTable", docsis31=False),
+            parse_cm1000_downstream_table(soup, "d31dsTable", docsis31=True),
+            parse_cm1000_upstream_tag_values(us_tags.value) if us_tags.value is not None
+            else parse_cm1000_upstream_table(soup, "usTable", docsis31=False),
+            parse_cm1000_upstream_table(soup, "d31usTable", docsis31=True),
+        )
+        # One unwrap per poll, so the same problem in several tables shares one log line.
+        data = unwrap(ParseResult(lanes.value, ds_tags.diagnostics + us_tags.diagnostics + lanes.diagnostics), log)
+        if not any(channels for lane in data.values() for channels in lane.values()):
             log.warning("CM1000 parsed 0 locked channels from DocsisStatus.asp")
-
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        return data
 
     def get_device_info(self) -> DeviceInfo:
         return {"manufacturer": "Netgear", "model": "CM1000", "sw_version": ""}
@@ -240,7 +171,7 @@ class CM1000Driver(ModemDriver):
         if any(soup.find("table", id=table_id) is not None for table_id in _TABLE_IDS):
             return True
         return any(
-            extract_cm1000_tag_value_list(html, function_name) is not None
+            extract_cm1000_tag_value_list(html, function_name).value is not None
             for function_name in (_DS_TAG_VALUE_FUNCTION, _US_TAG_VALUE_FUNCTION)
         )
 

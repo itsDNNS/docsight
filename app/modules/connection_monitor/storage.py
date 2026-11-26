@@ -3,13 +3,37 @@
 import logging
 import math
 import os
+from datetime import date, timedelta
 
 from app.storage.migrations import run_migrations
 from app.storage.sqlite import DatabaseAccess, bulk_write
+from app.tz import local_to_utc, parse_utc
 from .migrations import MIGRATIONS
 import time
 
 logger = logging.getLogger(__name__)
+
+# Raw samples are kept this long, 60 s buckets until AGG_60S_MAX_AGE, 300 s
+# buckets until AGG_300S_MAX_AGE, and 3600 s buckets after that.
+RAW_MAX_AGE = 7 * 86400
+AGG_60S_MAX_AGE = 30 * 86400
+AGG_300S_MAX_AGE = 90 * 86400
+
+
+def p95_index(count: int) -> int:
+    """Index of the nearest-rank 95th percentile among ``count`` sorted values."""
+    return math.ceil(count * 0.95) - 1
+
+
+def pinned_day_range(day, tz_name):
+    """UTC epoch range [start, stop) of a pinned local day, or None if it cannot be converted or was skipped."""
+    try:
+        start = date.fromisoformat(day)
+        bounds = [parse_utc(local_to_utc(f"{d}T00:00:00", tz_name)).timestamp()
+                  for d in (start, start + timedelta(days=1))]
+    except (ValueError, TypeError, OverflowError):
+        return None
+    return bounds if bounds[0] < bounds[1] else None
 
 
 class ConnectionMonitorStorage(DatabaseAccess):
@@ -46,12 +70,25 @@ class ConnectionMonitorStorage(DatabaseAccess):
             ).fetchall()
             return [dict(r) for r in rows]
 
-    def is_day_pinned(self, date: str) -> bool:
-        with self._read() as conn:
-            row = conn.execute(
-                "SELECT 1 FROM connection_monitor_pinned_days WHERE date = ?", (date,)
-            ).fetchone()
-            return row is not None
+    @staticmethod
+    def _not_pinned(conn, tz_name):
+        """SQL condition sparing pinned days, read on the caller's write connection to see every committed pin."""
+        ranges = []
+        for (day,) in conn.execute("SELECT date FROM connection_monitor_pinned_days"):
+            bounds = pinned_day_range(day, tz_name)
+            if bounds is None:
+                logger.warning("Connection Monitor: ignoring pinned day %r that cannot be converted", day)
+            else:
+                ranges.append(bounds)
+        if not ranges:
+            return ""
+        # Temporary to this connection, which closes with the transaction.
+        conn.execute("CREATE TEMP TABLE pinned_ranges (start REAL PRIMARY KEY, stop REAL)")
+        for pinned_range in ranges:
+            conn.execute("INSERT INTO pinned_ranges VALUES (?, ?)", pinned_range)
+        # Ranges never overlap, so only the last one starting at or before a row can contain it.
+        return (" AND timestamp >= IFNULL((SELECT stop FROM pinned_ranges WHERE start <= timestamp"
+                " ORDER BY start DESC LIMIT 1), timestamp)")
 
     # --- Target CRUD ---
 
@@ -141,14 +178,15 @@ class ConnectionMonitorStorage(DatabaseAccess):
         target_id: int,
         start: float | None = None,
         end: float | None = None,
+        column: str = "timestamp",
     ) -> tuple[str, list]:
         clauses = ["target_id = ?"]
         params: list[object] = [target_id]
         if start is not None:
-            clauses.append("timestamp >= ?")
+            clauses.append(f"{column} >= ?")
             params.append(start)
         if end is not None:
-            clauses.append("timestamp <= ?")
+            clauses.append(f"{column} <= ?")
             params.append(end)
         return " AND ".join(clauses), params
 
@@ -198,7 +236,6 @@ class ConnectionMonitorStorage(DatabaseAccess):
             stats = dict(row) if row else {}
             latency_count = stats.get("latency_count") or 0
             if latency_count > 0:
-                p95_offset = max(0, math.ceil(latency_count * 0.95) - 1)
                 p95_row = conn.execute(
                     f"""
                     SELECT latency_ms
@@ -207,7 +244,7 @@ class ConnectionMonitorStorage(DatabaseAccess):
                     ORDER BY latency_ms
                     LIMIT 1 OFFSET ?
                     """,
-                    [*params, p95_offset],
+                    [*params, p95_index(latency_count)],
                 ).fetchone()
                 stats["p95_latency_ms"] = p95_row["latency_ms"] if p95_row else None
             else:
@@ -221,20 +258,7 @@ class ConnectionMonitorStorage(DatabaseAccess):
     ) -> dict[str, object]:
         """Summarize the samples in the window ending at ``end`` (default: now)."""
         end = time.time() if end is None else end
-        cutoff = end - window_seconds
-        with self._read() as conn:
-            row = conn.execute(
-                """SELECT
-                    COUNT(*) as sample_count,
-                    AVG(CASE WHEN timeout = 0 THEN latency_ms END) as avg_latency_ms,
-                    MIN(CASE WHEN timeout = 0 THEN latency_ms END) as min_latency_ms,
-                    MAX(CASE WHEN timeout = 0 THEN latency_ms END) as max_latency_ms,
-                    ROUND(100.0 * SUM(CASE WHEN timeout = 1 THEN 1 ELSE 0 END) / MAX(COUNT(*), 1), 2) as packet_loss_pct
-                FROM connection_samples
-                WHERE target_id = ? AND timestamp >= ? AND timestamp <= ?""",
-                (target_id, cutoff, end),
-            ).fetchone()
-            return dict(row) if row else {}
+        return self.get_range_stats(target_id, start=end - window_seconds, end=end)
 
     def get_latest_sample_time(self, target_id: int) -> float | None:
         with self._read() as conn:
@@ -254,15 +278,7 @@ class ConnectionMonitorStorage(DatabaseAccess):
         end: float | None = None,
     ) -> list[dict]:
         """Derive outages from consecutive timeout sequences."""
-        clauses = ["target_id = ?"]
-        params: list[object] = [target_id]
-        if start is not None:
-            clauses.append("timestamp >= ?")
-            params.append(start)
-        if end is not None:
-            clauses.append("timestamp <= ?")
-            params.append(end)
-        where = " AND ".join(clauses)
+        where, params = self._build_sample_where(target_id, start=start, end=end)
         with self._read() as conn:
             rows = conn.execute(
                 f"SELECT timestamp, timeout FROM connection_samples WHERE {where} ORDER BY timestamp",
@@ -308,24 +324,38 @@ class ConnectionMonitorStorage(DatabaseAccess):
         end: float | None = None,
     ) -> list[dict]:
         """Get aggregated samples for a target at a specific resolution."""
-        clauses = ["target_id = ?", "bucket_seconds = ?"]
-        params: list[object] = [target_id, bucket_seconds]
-        if start is not None:
-            clauses.append("bucket_start >= ?")
-            params.append(start)
-        if end is not None:
-            clauses.append("bucket_start <= ?")
-            params.append(end)
-        where = " AND ".join(clauses)
+        where, params = self._build_sample_where(target_id, start=start, end=end, column="bucket_start")
         with self._read() as conn:
             rows = conn.execute(
-                f"SELECT * FROM connection_samples_aggregated WHERE {where} ORDER BY bucket_start",
-                params,
+                f"SELECT * FROM connection_samples_aggregated WHERE {where} AND bucket_seconds = ?"
+                " ORDER BY bucket_start",
+                [*params, bucket_seconds],
             ).fetchall()
             return [dict(r) for r in rows]
 
+    @staticmethod
+    def _group_by_bucket(rows, column: str, bucket_seconds: int):
+        """Group rows into fixed-size buckets by ``column``; returns (bucket_start, rows) pairs."""
+        buckets: dict[float, list] = {}
+        for row in rows:
+            buckets.setdefault((row[column] // bucket_seconds) * bucket_seconds, []).append(row)
+        return buckets.items()
+
+    @staticmethod
+    def _insert_buckets(conn, buckets: list[tuple]) -> int:
+        for bucket in buckets:
+            conn.execute(
+                """INSERT OR REPLACE INTO connection_samples_aggregated
+                   (target_id, bucket_start, bucket_seconds,
+                    avg_latency_ms, min_latency_ms, max_latency_ms,
+                    p95_latency_ms, packet_loss_pct, sample_count)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                bucket,
+            )
+        return len(buckets)
+
     def aggregate_raw_to_buckets(
-        self, target_id: int, cutoff: float, bucket_seconds: int = 60
+        self, target_id: int, cutoff: float, tz_name: str, bucket_seconds: int = 60
     ) -> int:
         """Aggregate raw samples older than cutoff into fixed-size buckets.
 
@@ -345,15 +375,8 @@ class ConnectionMonitorStorage(DatabaseAccess):
             if not rows:
                 return 0
 
-            buckets: dict[float, list] = {}
-            for row in rows:
-                bucket_start = (row["timestamp"] // bucket_seconds) * bucket_seconds
-                if bucket_start not in buckets:
-                    buckets[bucket_start] = []
-                buckets[bucket_start].append(row)
-
-            created = 0
-            for bucket_start, samples in buckets.items():
+            buckets = []
+            for bucket_start, samples in self._group_by_bucket(rows, "timestamp", bucket_seconds):
                 latencies = [
                     s["latency_ms"] for s in samples
                     if not s["timeout"] and s["latency_ms"] is not None
@@ -365,29 +388,14 @@ class ConnectionMonitorStorage(DatabaseAccess):
                 min_lat = min(latencies) if latencies else None
                 max_lat = max(latencies) if latencies else None
                 loss_pct = round(timeouts / total * 100, 2) if total > 0 else 0.0
-
-                # p95 via nearest-rank
-                p95_lat = None
-                if latencies:
-                    sorted_lat = sorted(latencies)
-                    idx = min(int(len(sorted_lat) * 0.95), len(sorted_lat) - 1)
-                    p95_lat = sorted_lat[idx]
-
-                conn.execute(
-                    """INSERT OR REPLACE INTO connection_samples_aggregated
-                       (target_id, bucket_start, bucket_seconds,
-                        avg_latency_ms, min_latency_ms, max_latency_ms,
-                        p95_latency_ms, packet_loss_pct, sample_count)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (target_id, bucket_start, bucket_seconds,
-                     avg_lat, min_lat, max_lat, p95_lat, loss_pct, total),
-                )
-                created += 1
+                p95_lat = sorted(latencies)[p95_index(len(latencies))] if latencies else None
+                buckets.append((target_id, bucket_start, bucket_seconds,
+                                avg_lat, min_lat, max_lat, p95_lat, loss_pct, total))
+            created = self._insert_buckets(conn, buckets)
 
             conn.execute(
-                """DELETE FROM connection_samples WHERE target_id = ? AND timestamp < ?
-                   AND date(timestamp, 'unixepoch', 'localtime')
-                       NOT IN (SELECT date FROM connection_monitor_pinned_days)""",
+                "DELETE FROM connection_samples WHERE target_id = ? AND timestamp < ?"
+                + self._not_pinned(conn, tz_name),
                 (target_id, cutoff),
             )
 
@@ -426,16 +434,8 @@ class ConnectionMonitorStorage(DatabaseAccess):
             if not rows:
                 return 0
 
-            # Group into target-sized buckets
-            buckets: dict[float, list] = {}
-            for row in rows:
-                bucket_start = (row["bucket_start"] // target_seconds) * target_seconds
-                if bucket_start not in buckets:
-                    buckets[bucket_start] = []
-                buckets[bucket_start].append(row)
-
-            created = 0
-            for bucket_start, sources in buckets.items():
+            buckets = []
+            for bucket_start, sources in self._group_by_bucket(rows, "bucket_start", target_seconds):
                 total_count = sum(s["sample_count"] for s in sources)
                 # Weighted average for avg_latency
                 non_null = [s for s in sources if s["avg_latency_ms"] is not None]
@@ -456,17 +456,9 @@ class ConnectionMonitorStorage(DatabaseAccess):
                     sum(s["packet_loss_pct"] * s["sample_count"] for s in sources)
                     / total_count, 2
                 ) if total_count > 0 else 0.0
-
-                conn.execute(
-                    """INSERT OR REPLACE INTO connection_samples_aggregated
-                       (target_id, bucket_start, bucket_seconds,
-                        avg_latency_ms, min_latency_ms, max_latency_ms,
-                        p95_latency_ms, packet_loss_pct, sample_count)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (target_id, bucket_start, target_seconds,
-                     avg_lat, min_lat, max_lat, p95_lat, loss_pct, total_count),
-                )
-                created += 1
+                buckets.append((target_id, bucket_start, target_seconds,
+                                avg_lat, min_lat, max_lat, p95_lat, loss_pct, total_count))
+            created = self._insert_buckets(conn, buckets)
 
             # Delete source buckets
             conn.execute(
@@ -482,12 +474,7 @@ class ConnectionMonitorStorage(DatabaseAccess):
                 )
             return created
 
-    # Tier boundaries in seconds
-    _TIER_RAW_MAX_AGE = 7 * 86400       # 7 days
-    _TIER_60S_MAX_AGE = 30 * 86400      # 30 days
-    _TIER_300S_MAX_AGE = 90 * 86400     # 90 days
-
-    def aggregate(self):
+    def aggregate(self, tz_name):
         """Run the full aggregation cascade for all targets.
 
         1. Raw samples older than 7d -> 60s buckets
@@ -500,16 +487,16 @@ class ConnectionMonitorStorage(DatabaseAccess):
             tid = t["id"]
             # Step 1: raw -> 60s
             self.aggregate_raw_to_buckets(
-                tid, cutoff=now - self._TIER_RAW_MAX_AGE, bucket_seconds=60
+                tid, cutoff=now - RAW_MAX_AGE, tz_name=tz_name, bucket_seconds=60
             )
             # Step 2: 60s -> 300s
             self.reaggregate_buckets(
-                tid, cutoff=now - self._TIER_60S_MAX_AGE,
+                tid, cutoff=now - AGG_60S_MAX_AGE,
                 source_seconds=60, target_seconds=300
             )
             # Step 3: 300s -> 3600s
             self.reaggregate_buckets(
-                tid, cutoff=now - self._TIER_300S_MAX_AGE,
+                tid, cutoff=now - AGG_300S_MAX_AGE,
                 source_seconds=300, target_seconds=3600
             )
 
@@ -539,18 +526,12 @@ class ConnectionMonitorStorage(DatabaseAccess):
             return trace_id
 
     def get_traces(self, target_id, start=None, end=None, limit=100):
+        where, params = self._build_sample_where(target_id, start=start, end=end)
         with self._read() as conn:
-            sql = "SELECT * FROM traceroute_traces WHERE target_id = ?"
-            params = [target_id]
-            if start is not None:
-                sql += " AND timestamp >= ?"
-                params.append(start)
-            if end is not None:
-                sql += " AND timestamp <= ?"
-                params.append(end)
-            sql += " ORDER BY timestamp DESC LIMIT ?"
-            params.append(limit)
-            rows = conn.execute(sql, params).fetchall()
+            rows = conn.execute(
+                f"SELECT * FROM traceroute_traces WHERE {where} ORDER BY timestamp DESC LIMIT ?",
+                [*params, limit],
+            ).fetchall()
             return [dict(r) for r in rows]
 
     def get_trace(self, trace_id):
@@ -568,20 +549,14 @@ class ConnectionMonitorStorage(DatabaseAccess):
             ).fetchall()
             return [dict(r) for r in rows]
 
-    def cleanup_traces(self, retention_days):
+    def cleanup_traces(self, retention_days, tz_name):
         if not retention_days:
             return
         cutoff = time.time() - (retention_days * 86400)
-        pinned = self.get_pinned_days()
         with self._write() as conn:
-            if pinned:
-                placeholders = ",".join("?" * len(pinned))
-                conn.execute(
-                    f"DELETE FROM traceroute_traces WHERE timestamp < ? AND date(timestamp, 'unixepoch') NOT IN ({placeholders})",
-                    [cutoff] + [p["date"] for p in pinned],
-                )
-            else:
-                conn.execute("DELETE FROM traceroute_traces WHERE timestamp < ?", (cutoff,))
+            conn.execute(
+                "DELETE FROM traceroute_traces WHERE timestamp < ?" + self._not_pinned(conn, tz_name), (cutoff,)
+            )
 
     def purge_demo_traces(self):
         with self._write() as conn:
@@ -589,15 +564,13 @@ class ConnectionMonitorStorage(DatabaseAccess):
 
     # --- Retention ---
 
-    def cleanup(self, retention_days: int) -> int:
+    def cleanup(self, retention_days: int, tz_name: str) -> int:
         if retention_days <= 0:
             return 0
         cutoff = time.time() - (retention_days * 86400)
         with self._write() as conn:
             cur = conn.execute(
-                """DELETE FROM connection_samples WHERE timestamp < ?
-                   AND date(timestamp, 'unixepoch', 'localtime')
-                       NOT IN (SELECT date FROM connection_monitor_pinned_days)""",
+                "DELETE FROM connection_samples WHERE timestamp < ?" + self._not_pinned(conn, tz_name),
                 (cutoff,),
             )
             deleted = cur.rowcount

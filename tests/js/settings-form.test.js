@@ -64,7 +64,8 @@ function fixture(bootstrap = false) {
     const document = {getElementById: id => nodes.get(id) || null, querySelectorAll: () => [], querySelector: () => null,
         documentElement: {getAttribute: () => 'dark'}, activeElement: null,
         addEventListener: (name, fn) => listeners.set(name, fn)};
-    const context = vm.createContext({document, T: {}, currentLang: 'en', currentTz: 'UTC',
+    const context = vm.createContext({document, T: require('./english-catalog')(), currentLang: 'en', currentTz: 'UTC', serverOffsetMin: 0,
+        MODULE_SECRET_FIELDS: [], SAVED_MODULE_SECRET_FIELDS: [],
         setTimeout: fn => timers.push(fn), clearTimeout() {}, docsightUrl: path => '/prefix' + path,
         docsightConfirm: () => Promise.resolve(true),
         fetch: (url, options) => new Promise((resolve, reject) => requests.push({url,
@@ -196,6 +197,19 @@ test('config validation messages and missing-message fallbacks render as text an
     assert.equal(await retry, true);
     assert.equal(f.dirty(), false);
     assert.equal(f.error.style.display, 'none');
+});
+
+test('the saved placeholder alone does not make a secret field saved', () => {
+    for (const placeholder of ['Saved', 'Gespeichert']) {
+        const f = fixture();
+        f.context.T.saved_ph = placeholder;
+        f.fresh.placeholder = placeholder;
+        f.fresh.setAttribute('placeholder', placeholder);
+        f.context.document.activeElement = f.url;
+        f.fresh.value = 'new-secret';
+        f.fresh.dispatch('input');
+        assert.equal(f.dirty(), true, placeholder);
+    }
 });
 
 test('instant controls save only themselves, without a footer or success toast', async () => {

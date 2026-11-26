@@ -58,19 +58,13 @@ class Collector:
     def poll_interval_seconds(self) -> int:
         return self._poll_interval_seconds
 
-    @property
-    def penalty_seconds(self) -> int:
-        """Exponential backoff penalty with auto-reset.
+    def _penalty_seconds_unlocked(self) -> int:
+        """Exponential backoff penalty with auto-reset (caller holds _lock).
 
         Penalty doubles with each failure: 30s, 60s, 120s, 240s, ...
         Capped at MAX_PENALTY_SECONDS (1 hour).
         Auto-resets to 0 after PENALTY_RESET_HOURS (24h) of idle time.
         """
-        with self._lock:
-            return self._penalty_seconds_unlocked()
-
-    def _penalty_seconds_unlocked(self) -> int:
-        """Internal: compute penalty without acquiring lock (caller holds _lock)."""
         if self._consecutive_failures > 0 and self._last_failure_time > 0:
             idle_hours = (time.time() - self._last_failure_time) / 3600
             if idle_hours >= self.PENALTY_RESET_HOURS:
@@ -93,12 +87,6 @@ class Collector:
     def _effective_interval_unlocked(self) -> float:
         """Internal: effective interval without acquiring lock (caller holds _lock)."""
         return self._poll_interval_seconds + self._penalty_seconds_unlocked()
-
-    @property
-    def effective_interval(self) -> float:
-        """Poll interval including any penalty backoff."""
-        with self._lock:
-            return self._effective_interval_unlocked()
 
     def should_poll(self) -> bool:
         """True if enough time has elapsed since the last poll."""
@@ -139,17 +127,13 @@ class Collector:
 
             penalty = self._penalty_seconds_unlocked()
             log.warning(
-                "%s: Failure #%d recorded, next attempt in %ds (effective interval: %ds)",
+                "%s: Failure #%d recorded, next attempt in %ds (penalty: %ds)",
                 self.name, self._consecutive_failures,
                 int(self._effective_interval_unlocked()), penalty
             )
 
     def get_status(self) -> CollectorStatus:
-        """Return collector health status for monitoring.
-
-        Returns:
-            CollectorStatus with keys: name, enabled, failures, penalty, next_poll, last_poll
-        """
+        """Return collector health status (see CollectorStatus) for monitoring."""
         with self._lock:
             now = time.time()
             eff = self._effective_interval_unlocked()

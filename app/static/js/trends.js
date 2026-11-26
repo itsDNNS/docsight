@@ -1,22 +1,14 @@
 /* ── Trend Charts ── */
 /* Extracted from IIFE – depends on: T, charts, renderChart, currentView,
    todayStr, docsightFormatXAxisLabels, DS_POWER_THRESHOLDS, DS_SNR_THRESHOLDS,
-   US_POWER_THRESHOLDS, _tempOverlayVisible (chart-engine.js) */
+   US_POWER_THRESHOLDS, _tempOverlayVisible and its helpers (chart-engine.js) */
 
 var _trendRange = '1d';
 var _lastTrendData = null;
+var _lastTrendRows = null;
 var _lastTrendWeather = null;
 var _lastTrendRange = '1d';
 var _trendLoadSeq = 0;
-
-function _trendRangeHours(range) {
-    var map = { day: 24, week: 168, month: 720 };
-    if (map[range]) return map[range];
-    var match = String(range || '1d').match(/^(\d+)(h|d)$/);
-    if (!match) return 24;
-    var value = parseInt(match[1], 10);
-    return match[2] === 'h' ? value : value * 24;
-}
 
 /* ── Trend Tabs ── */
 function updateTrendTabs() {
@@ -25,7 +17,7 @@ function updateTrendTabs() {
 
 // The window ends now unless the arrows (or a swipe) moved it into the past.
 var _trendWindow = DOCSightWindowShift.create('trend', {
-    hours: function() { return _trendRangeHours(_trendRange); },
+    hours: function() { return docsightRangeHours(_trendRange); },
     onChange: function() {
         _writeTrendsViewState();
         loadTrends(_trendRange);
@@ -55,47 +47,14 @@ function applyTrendsViewState() {
 
 function _getWeatherRange(range) {
     var param = _trendWindow.param();
-    var endDt = new Date(param ? DOCSightWindowShift.fromParam(param) : Date.now());
-    var startDt = new Date(endDt.getTime() - _trendRangeHours(range) * 3600000);
+    var hours = docsightRangeHours(range);
+    // The nearest reading of a point at the window edge can lie just outside the window.
+    var margin = hours < TEMP_DAILY_FROM_HOURS ? TEMP_MATCH_MS : 0;
+    var endDt = new Date((param ? DOCSightWindowShift.fromParam(param) : Date.now()) + margin);
+    var startDt = new Date(endDt.getTime() - hours * 3600000 - 2 * margin);
     var end = endDt.toISOString().substring(0, 19) + 'Z';
     var start = startDt.toISOString().substring(0, 19) + 'Z';
     return { start: start, end: end };
-}
-
-function _alignWeatherToTrends(trendData, weatherData, range) {
-    if (!weatherData || weatherData.length === 0) return null;
-    var temps = [];
-    if (_trendRangeHours(range) <= 24) {
-        for (var i = 0; i < trendData.length; i++) {
-            if (!trendData[i].timestamp) { temps.push(null); continue; }
-            var tTs = docsightParseTime(trendData[i].timestamp).getTime();
-            var best = null, bestDist = Infinity;
-            for (var j = 0; j < weatherData.length; j++) {
-                var wTs = docsightParseTime(weatherData[j].timestamp).getTime();
-                var dist = Math.abs(wTs - tTs);
-                if (dist < bestDist) { bestDist = dist; best = weatherData[j].temperature; }
-            }
-            temps.push(bestDist <= 5400000 ? best : null);
-        }
-    } else {
-        var dailyTemps = {};
-        for (var j = 0; j < weatherData.length; j++) {
-            var day = weatherData[j].timestamp.substring(0, 10);
-            if (!dailyTemps[day]) dailyTemps[day] = [];
-            dailyTemps[day].push(weatherData[j].temperature);
-        }
-        var dailyAvg = {};
-        for (var day in dailyTemps) {
-            var sum = 0;
-            for (var k = 0; k < dailyTemps[day].length; k++) sum += dailyTemps[day][k];
-            dailyAvg[day] = Math.round(sum / dailyTemps[day].length * 10) / 10;
-        }
-        for (var i = 0; i < trendData.length; i++) {
-            var date = trendData[i].date || (trendData[i].timestamp ? trendData[i].timestamp.substring(0, 10) : '');
-            temps.push(dailyAvg[date] !== undefined ? dailyAvg[date] : null);
-        }
-    }
-    return temps;
 }
 
 function _supportsTrendDocsisErrors(row) {
@@ -116,15 +75,6 @@ function _isDocsisTrendRow(row) {
         row.ds_correctable_errors != null ||
         row.ds_uncorrectable_errors != null
     ));
-}
-
-function _setTrendErrorsVisible(visible) {
-    var card = document.getElementById('trend-errors-card');
-    if (card) card.style.display = visible ? '' : 'none';
-    if (!visible && charts['chart-errors']) {
-        charts['chart-errors'].destroy();
-        delete charts['chart-errors'];
-    }
 }
 
 function _setTrendErrorsTitle(minutes) {
@@ -159,10 +109,11 @@ function _renderTrendCharts() {
         [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7'}],
         null, US_POWER_THRESHOLDS, chartOpts('chart-us-power', 'chart-us-power'));
     var showErrors = _hasTrendDocsisErrorSeries(data);
-    _setTrendErrorsVisible(showErrors);
+    _setChartCardVisible('trend-errors-card', 'chart-errors', showErrors);
     if (showErrors) {
         // New uncorrectable errors per interval; the cumulative counter hides when they happened.
-        var buckets = docsightErrorBuckets(data, range);
+        // All rows, since a poll without any reading still changes the channels behind the counter.
+        var buckets = docsightErrorBuckets(_lastTrendRows, range);
         _setTrendErrorsTitle(docsightErrorBucketMinutes(range));
         var bucketMinutes = docsightErrorBucketMinutes(range);
         var bucketTimes = docsightTimesFromStamps(buckets.map(function(b) { return b.timestamp; }));
@@ -188,7 +139,7 @@ function loadTrends(range) {
     var title = document.getElementById('trend-title');
     var noData = document.getElementById('trend-no-data');
     var grid = document.getElementById('charts-grid');
-    if (title) title.textContent = T.signal_trends || 'Signal Trends';
+    if (title) title.textContent = T.signal_trends;
     _lastTrendRange = range;
     // Quick steps or range clicks overlap; only the latest request may draw.
     var seq = ++_trendLoadSeq;
@@ -203,21 +154,22 @@ function loadTrends(range) {
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
     ]).then(function(results) {
             if (seq !== _trendLoadSeq) return;
-            var data = (results[0] || []).filter(_isDocsisTrendRow);
+            _lastTrendRows = results[0] || [];
+            var data = _lastTrendRows.filter(_isDocsisTrendRow);
             var weatherData = results[1];
             if (!data || data.length === 0) {
                 DOCSightEmptyState.showRange(noData, {tabs: 'trend-tabs', glossary: 'signal_trends'});
                 grid.style.display = 'none';
                 _lastTrendData = null;
                 _lastTrendWeather = null;
-                _updateTempToggle();
+                _updateTempToggleButton('temp-toggle-btn', null);
                 return;
             }
             DOCSightEmptyState.hide(noData);
             grid.style.display = '';
             _lastTrendData = data;
-            _lastTrendWeather = _alignWeatherToTrends(data, weatherData, range);
-            _updateTempToggle();
+            _lastTrendWeather = _alignWeatherToTimestamps(data.map(function(d) { return d.timestamp; }), weatherData, range);
+            _updateTempToggleButton('temp-toggle-btn', _lastTrendWeather);
             _renderTrendCharts();
         })
         .catch(function() {
@@ -227,22 +179,12 @@ function loadTrends(range) {
         });
 }
 
-function _updateTempToggle() {
-    var btn = document.getElementById('temp-toggle-btn');
-    if (!btn) return;
-    var hasWeather = _lastTrendWeather && _lastTrendWeather.some(function(v) { return v !== null; });
-    btn.hidden = !hasWeather;
-    btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
-    btn.setAttribute('aria-pressed', (_tempOverlayVisible && hasWeather) ? 'true' : 'false');
-    btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
-}
-
 (function() {
     var btn = document.getElementById('temp-toggle-btn');
     if (btn) {
         btn.addEventListener('click', function() {
             _tempOverlayVisible = !_tempOverlayVisible;
-            _updateTempToggle();
+            _updateTempToggleButton('temp-toggle-btn', _lastTrendWeather);
             _renderTrendCharts();
         });
     }

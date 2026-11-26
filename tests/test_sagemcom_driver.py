@@ -1,6 +1,7 @@
 """Tests for the Sagemcom F@st 3896 driver."""
 
 import hashlib
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -125,6 +126,14 @@ def _mock_post(responses):
         return resp
 
     return mock_post
+
+
+def _lanes(driver, key, channels):
+    """Poll once with one direction's channels and return its DOCSIS 3.0 and 3.1 lanes."""
+    ds, us = (channels, []) if key == "channelDs" else ([], channels)
+    with patch.object(driver, "_api_call", return_value=_docsis_response(ds, us)):
+        lanes = driver.get_docsis_data()[key]
+    return lanes["docsis30"], lanes["docsis31"]
 
 
 # -- Authentication tests --
@@ -277,7 +286,7 @@ class TestDownstreamParsing:
             "UncorrectableCodewords": 2,
             "SymbolRate": 6952,
         }]
-        ds30, ds31 = driver._parse_downstream(channels)
+        ds30, ds31 = _lanes(driver, "channelDs", channels)
 
         assert len(ds30) == 1
         assert len(ds31) == 0
@@ -306,7 +315,7 @@ class TestDownstreamParsing:
             "UncorrectableCodewords": 0,
             "SymbolRate": 0,
         }]
-        ds30, ds31 = driver._parse_downstream(channels)
+        ds30, ds31 = _lanes(driver, "channelDs", channels)
 
         assert len(ds30) == 0
         assert len(ds31) == 1
@@ -326,7 +335,7 @@ class TestDownstreamParsing:
             "UnerroredCodewords": 0, "CorrectableCodewords": 0,
             "UncorrectableCodewords": 0, "SymbolRate": 0,
         }]
-        ds30, ds31 = driver._parse_downstream(channels)
+        ds30, ds31 = _lanes(driver, "channelDs", channels)
         assert len(ds30) == 0
         assert len(ds31) == 0
 
@@ -343,12 +352,12 @@ class TestDownstreamParsing:
              "UnerroredCodewords": 0, "CorrectableCodewords": 0,
              "UncorrectableCodewords": 0, "SymbolRate": 0},
         ]
-        ds30, ds31 = driver._parse_downstream(channels)
+        ds30, ds31 = _lanes(driver, "channelDs", channels)
         assert len(ds30) == 1
         assert len(ds31) == 1
 
     def test_empty_channels(self, driver):
-        ds30, ds31 = driver._parse_downstream([])
+        ds30, ds31 = _lanes(driver, "channelDs", [])
         assert ds30 == []
         assert ds31 == []
 
@@ -369,7 +378,7 @@ class TestUpstreamParsing:
             "Modulation31": "",
             "Frequency31": "",
         }]
-        us30, us31 = driver._parse_upstream(channels)
+        us30, us31 = _lanes(driver, "channelUs", channels)
 
         assert len(us30) == 1
         assert len(us31) == 0
@@ -393,7 +402,7 @@ class TestUpstreamParsing:
             "Modulation31": "qam1024(profile5)",
             "Frequency31": "108.500Mhz - 203.250Mhz",
         }]
-        us30, us31 = driver._parse_upstream(channels)
+        us30, us31 = _lanes(driver, "channelUs", channels)
 
         assert len(us30) == 0
         assert len(us31) == 1
@@ -412,7 +421,7 @@ class TestUpstreamParsing:
              "Frequency": 104800000.0, "SymbolRate": 0, "PowerLevel": 88.0,
              "Modulation": "ofdma", "ProfileID31": "3", "Modulation31": "", "Frequency31": ""},
         ]
-        us30, us31 = driver._parse_upstream(channels)
+        us30, us31 = _lanes(driver, "channelUs", channels)
         assert len(us30) == 1
         assert len(us31) == 1
 
@@ -420,48 +429,28 @@ class TestUpstreamParsing:
 # -- OFDM detection --
 
 class TestOfdmDetection:
-    def test_by_bandwidth(self, driver):
-        assert driver._is_ofdm_downstream("Qam256", 128000000) is True
-        assert driver._is_ofdm_downstream("Qam256", 8000000) is False
-
-    def test_by_modulation_string(self, driver):
-        assert driver._is_ofdm_downstream("256-QAM1K-QAM2K-QA", 0) is True
-        assert driver._is_ofdm_downstream("Qam256", 0) is False
-
-
-# -- Modulation normalization --
-
-class TestModulationNormalization:
-    def test_qam256(self, driver):
-        assert driver._normalize_modulation("Qam256") == "256QAM"
-
-    def test_qam64(self, driver):
-        assert driver._normalize_modulation("Qam64") == "64QAM"
-
-    def test_empty(self, driver):
-        assert driver._normalize_modulation("") == ""
-
-    def test_passthrough(self, driver):
-        assert driver._normalize_modulation("something") == "something"
-
-    def test_us_atdma(self, driver):
-        assert driver._normalize_us_modulation("atdma") == "ATDMA"
-
-    def test_us_ofdma(self, driver):
-        assert driver._normalize_us_modulation("ofdma") == "OFDMA"
+    @pytest.mark.parametrize(("modulation", "bandwidth", "ofdm"), [
+        ("Qam256", 128000000, True),
+        ("Qam256", 8000000, False),
+        ("256-QAM1K-QAM2K-QA", 0, True),
+        ("Qam256", 0, False),
+    ])
+    def test_by_bandwidth_or_modulation_string(self, driver, modulation, bandwidth, ofdm):
+        ds30, ds31 = _lanes(driver, "channelDs", [{"LockStatus": True, "Modulation": modulation, "BandWidth": bandwidth}])
+        assert (len(ds30), len(ds31)) == ((0, 1) if ofdm else (1, 0))
 
 
-# -- Frequency conversion --
+# -- Modulation and frequency conversion --
 
-class TestFrequencyConversion:
-    def test_whole_mhz(self, driver):
-        assert driver._hz_to_mhz(546000000) == "546 MHz"
-
-    def test_fractional_mhz(self, driver):
-        assert driver._hz_to_mhz(104800000) == "104.8 MHz"
-
-    def test_zero(self, driver):
-        assert driver._hz_to_mhz(0) == ""
+@pytest.mark.parametrize(("modulation", "frequency", "expected_modulation", "expected_frequency"), [
+    ("Qam256", 546000000, "256QAM", "546 MHz"),
+    ("Qam64", 104800000, "64QAM", "104.8 MHz"),
+    ("", 0, "", ""),
+    ("something", 546000000, "something", "546 MHz"),
+])
+def test_scqam_modulation_and_frequency(driver, modulation, frequency, expected_modulation, expected_frequency):
+    ds30, _ = _lanes(driver, "channelDs", [{"LockStatus": True, "Modulation": modulation, "Frequency": frequency}])
+    assert (ds30[0]["modulation"], ds30[0]["frequency"]) == (expected_modulation, expected_frequency)
 
 
 # -- Full data flow --
@@ -490,6 +479,14 @@ class TestFullDataFlow:
 
         assert len(result["channelDs"]["docsis30"]) == 1
         assert len(result["channelUs"]["docsis30"]) == 1
+
+    def test_invalid_upstream_payload_raises_without_relogin(self, driver):
+        with (
+            patch.object(driver, "login") as login,
+            pytest.raises(ValueError, match="invalid Sagemcom channel payload"),
+        ):
+            _lanes(driver, "channelUs", [{"LockStatus": True, "Modulation": None}])
+        login.assert_not_called()
 
     def test_get_device_info(self, driver):
         driver._session.post = _mock_post([
@@ -592,19 +589,21 @@ class TestFullDataFlow:
         assert len(result["channelDs"]["docsis30"]) == 1
         assert call_count[0] == 3  # error + re-login + successful fetch
 
-    def test_xmo_error_raises_runtime_error(self, driver):
-        """Any non-success XMO error in _raw_post must raise RuntimeError."""
+    def test_xmo_error_raises_runtime_error_without_response_text(self, driver, caplog):
+        """Any non-success XMO error in _raw_post must raise RuntimeError; only codes are logged."""
         xmo_error_response = {
             "reply": {
                 "uid": 0, "id": 1,
                 "error": {"code": 16777242, "description": "XMO_UNKNOWN_PATH_ERR"},
-                "actions": [],
+                "actions": [{"error": {"code": 2, "description": "XMO_UNKNOWN_PATH_ERR"}}],
                 "events": [],
             }
         }
         driver._session.post = _mock_post([xmo_error_response])
-        with pytest.raises(RuntimeError, match="XMO_UNKNOWN_PATH_ERR"):
+        with caplog.at_level(logging.DEBUG), pytest.raises(RuntimeError, match=r"\(code=16777242\)") as error:
             driver._raw_post({"request": {}})
+        assert "Sagemcom action error (code=2)" in caplog.messages
+        assert "XMO_UNKNOWN_PATH_ERR" not in caplog.text + str(error.value)
 
     @patch("app.drivers.sagemcom.time")
     def test_login_recovers_from_session_error(self, mock_time, driver):
@@ -650,16 +649,3 @@ class TestFullDataFlow:
 class TestConnectionInfo:
     def test_returns_empty(self, driver):
         assert driver.get_connection_info() == {}
-
-
-# -- Driver registration --
-
-class TestRegistration:
-    def test_sagemcom_registered(self):
-        from app.drivers import driver_registry
-        assert driver_registry.has_driver("sagemcom")
-
-    def test_sagemcom_loads(self):
-        from app.drivers import driver_registry
-        d = driver_registry.load_driver("sagemcom", "http://192.168.100.1", "admin", "pass")
-        assert isinstance(d, SagemcomDriver)

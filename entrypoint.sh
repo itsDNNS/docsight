@@ -18,4 +18,6 @@ chown appuser:appuser /data/modules 2>/dev/null || true
 repair_owner_if_needed /data
 repair_owner_if_needed /modules
 repair_owner_if_needed /backup
-exec gosu appuser "$@"
+# setpriv instead of gosu: Go switches users by signalling its own threads,
+# which AppArmor denies on Ubuntu 26.04 kernels, leaving gosu spinning.
+HOME=/home/appuser exec setpriv --reuid=appuser --regid=appuser --init-groups -- "$@"

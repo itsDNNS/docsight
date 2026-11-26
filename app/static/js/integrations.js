@@ -19,6 +19,13 @@ function _bnetzNumber(cell) {
     return cell;
 }
 
+/* A direction without measurements shows '-', never 0 Mbit/s. */
+function _bnetzMeasured(avg, max) {
+    if (avg == null) return '-';
+    var pct = max ? Math.round(avg / max * 100) : 0;
+    return Math.round(avg) + ' Mbit/s' + (pct ? ' (' + pct + '%)' : '');
+}
+
 /* Cells only shown on mobile once the row is expanded. */
 function _bnetzSecondary(cell) {
     cell.classList.add('bnetz-secondary-cell');
@@ -56,7 +63,7 @@ function _bnetzMeasurementSection(label, measurements, minimum, normal) {
     table.className = 'data-table data-table-compact data-table-list bnetz-detail-table';
     var head = document.createElement('thead');
     var header = document.createElement('tr');
-    [T.bnetz_measurement_nr || 'Nr.', T.bnetz_measurement_time || 'Time', T.bnetz_measurement_speed || 'Speed'].forEach(function(text, index) {
+    [T.bnetz_measurement_nr, T.bnetz_measurement_time, T.bnetz_measurement_speed].forEach(function(text, index) {
         var th = document.createElement('th');
         if (index !== 1) th.className = 'dt-num';
         th.textContent = text;
@@ -67,7 +74,7 @@ function _bnetzMeasurementSection(label, measurements, minimum, normal) {
 
     var body = document.createElement('tbody');
     measurements.forEach(function(measurement, index) {
-        var speed = measurement.mbps || measurement.speed || measurement.value || 0;
+        var speed = measurement.mbps || 0;
         var row = document.createElement('tr');
         var numberCell = document.createElement('td');
         numberCell.className = 'dt-num bnetz-detail-nr';
@@ -99,7 +106,7 @@ function buildBnetzDetail(m) {
     grid.className = 'bnetz-detail-grid';
     if (download.length > 0) {
         grid.appendChild(_bnetzMeasurementSection(
-            T.download || 'Download',
+            T.download,
             download,
             m.download_min_tariff,
             m.download_normal_tariff
@@ -107,7 +114,7 @@ function buildBnetzDetail(m) {
     }
     if (upload.length > 0) {
         grid.appendChild(_bnetzMeasurementSection(
-            T.upload || 'Upload',
+            T.upload,
             upload,
             m.upload_min_tariff,
             m.upload_normal_tariff
@@ -120,10 +127,10 @@ function buildBnetzDetail(m) {
 function _showBnetzEmpty(empty) {
     DOCSightEmptyState.show(empty, {
         icon: 'upload',
-        title: T.bnetz_no_measurements || 'No measurements uploaded yet',
+        title: T.bnetz_no_measurements,
         text: T.bnetz_empty_text,
         action: {
-            label: T.bnetz_upload || 'Upload',
+            label: T.bnetz_upload,
             onClick: function() { document.getElementById('bnetz-file-input').click(); }
         },
         glossary: 'bnetza'
@@ -151,8 +158,6 @@ function loadBnetzData() {
             var hasDeviation = m.verdict_download === 'deviation' || m.verdict_upload === 'deviation';
             var verdictText = hasDeviation ? T.bnetz_verdict_deviation : T.bnetz_verdict_ok;
             var verdictClass = hasDeviation ? 'val-crit' : 'val-good';
-            var dlPct = m.download_max_tariff ? Math.round(m.download_measured_avg / m.download_max_tariff * 100) : 0;
-            var ulPct = m.upload_max_tariff ? Math.round(m.upload_measured_avg / m.upload_max_tariff * 100) : 0;
             var hasMeasurements = m.measurements && (
                 (m.measurements.download && m.measurements.download.length > 0) ||
                 (m.measurements.upload && m.measurements.upload.length > 0));
@@ -163,12 +168,12 @@ function loadBnetzData() {
             // individual measurements also expand on desktop.
             tr.onclick = function() { toggleBnetzDetail(idx); };
 
-            var dateCell = _bnetzCell(T.bnetz_date || 'Date', '');
+            var dateCell = _bnetzCell(T.bnetz_date, '');
             var expandButton = document.createElement('button');
             expandButton.type = 'button';
             expandButton.className = 'bnetz-expand-btn' + (hasMeasurements ? '' : ' bnetz-expand-mobile-only');
             expandButton.id = 'bnetz-arrow-' + idx;
-            expandButton.setAttribute('aria-label', T.expand || 'Expand');
+            expandButton.setAttribute('aria-label', T.expand);
             expandButton.setAttribute('aria-expanded', 'false');
             if (hasMeasurements) expandButton.setAttribute('aria-controls', 'bnetz-detail-' + idx);
             expandButton.appendChild(_bnetzIcon('chevron-right'));
@@ -176,13 +181,13 @@ function loadBnetzData() {
             dateCell.appendChild(document.createTextNode(' '));
             dateCell.appendChild(document.createTextNode(m.date ? formatDocsightTime(m.date, 'date') : ''));
             tr.appendChild(dateCell);
-            tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_provider || 'Provider', m.provider || '-')));
-            tr.appendChild(_bnetzNumber(_bnetzSecondary(_bnetzCell(T.bnetz_download_target || 'Download target', m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-'))));
-            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_download_actual || 'Download measured', Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : ''))));
-            tr.appendChild(_bnetzNumber(_bnetzSecondary(_bnetzCell(T.bnetz_upload_target || 'Upload target', m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-'))));
-            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_upload_actual || 'Upload measured', Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : ''))));
+            tr.appendChild(_bnetzSecondary(_bnetzCell(T.bnetz_provider, m.provider || '-')));
+            tr.appendChild(_bnetzNumber(_bnetzSecondary(_bnetzCell(T.bnetz_download_target, m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-'))));
+            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_download_actual, _bnetzMeasured(m.download_measured_avg, m.download_max_tariff))));
+            tr.appendChild(_bnetzNumber(_bnetzSecondary(_bnetzCell(T.bnetz_upload_target, m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-'))));
+            tr.appendChild(_bnetzNumber(_bnetzCell(T.bnetz_upload_actual, _bnetzMeasured(m.upload_measured_avg, m.upload_max_tariff))));
 
-            var verdictCell = _bnetzCell(T.bnetz_verdict || 'Verdict', '');
+            var verdictCell = _bnetzCell(T.bnetz_verdict, '');
             verdictCell.className = 'bnetz-verdict ' + verdictClass;
             verdictCell.title = verdictText;
             verdictCell.appendChild(_bnetzIcon(hasDeviation ? 'triangle-alert' : 'circle-check'));
@@ -192,7 +197,7 @@ function loadBnetzData() {
             verdictCell.appendChild(verdictLabel);
             tr.appendChild(verdictCell);
 
-            var actionsCell = _bnetzCell(T.actions || 'Actions', '');
+            var actionsCell = _bnetzCell(T.actions, '');
             actionsCell.className = 'bnetz-actions-cell bnetz-secondary-cell';
             actionsCell.addEventListener('click', function(event) { event.stopPropagation(); });
             if (hasDeviation) {
@@ -255,10 +260,10 @@ function loadBnetzData() {
             }
             if (watcher && watcher.enabled) {
                 watcherBanner.hidden = false;
-                var parts = [(T.bnetz_watcher_active || 'File watcher active')];
-                if (watcher.watch_dir) parts.push((T.bnetz_watcher_watching || 'Watching {dir}').replace('{dir}', watcher.watch_dir));
-                if (watcher.last_import_count > 0) parts.push((T.bnetz_watcher_last_import || '{count} file(s) imported').replace('{count}', watcher.last_import_count));
-                if (watcher.next_poll_in > 0) parts.push((T.bnetz_watcher_next_check || 'Next check in {min}min').replace('{min}', Math.round(watcher.next_poll_in / 60)));
+                var parts = [T.bnetz_watcher_active];
+                if (watcher.watch_dir) parts.push(T.bnetz_watcher_watching.replace('{dir}', watcher.watch_dir));
+                if (watcher.last_import_count > 0) parts.push(T.bnetz_watcher_last_import.replace('{count}', watcher.last_import_count));
+                if (watcher.next_poll_in > 0) parts.push(T.bnetz_watcher_next_check.replace('{min}', Math.round(watcher.next_poll_in / 60)));
                 watcherText.textContent = parts.join(' · ');
                 lucide.createIcons();
             } else {
@@ -294,15 +299,15 @@ function uploadBnetzFromView() {
             if (data.error) { showToast(data.error, 'error'); return; }
             loadBnetzData();
         })
-        .catch(function(e) { showToast((T.bnetz_upload_failed || 'Upload failed') + ': ' + e, 'error'); input.value = ''; });
+        .catch(function(e) { showToast(T.bnetz_upload_failed + ': ' + e, 'error'); input.value = ''; });
 }
 
 function deleteBnetzFromView(id) {
     docsightConfirm({
-        title: T.delete || 'Delete',
-        message: T.bnetz_delete_confirm || 'Delete this measurement?',
-        confirmText: T.delete || 'Delete',
-        cancelText: T.cancel || 'Cancel',
+        title: T.delete,
+        message: T.bnetz_delete_confirm,
+        confirmText: T.delete,
+        cancelText: T.cancel,
         danger: true
     }).then(function(confirmed) {
         if (!confirmed) return null;

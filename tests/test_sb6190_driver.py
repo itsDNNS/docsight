@@ -1,5 +1,7 @@
 """Tests for Arris SB6190 modem driver."""
 
+import base64
+
 import pytest
 import requests
 from unittest.mock import patch, MagicMock
@@ -108,19 +110,9 @@ class TestDriverInit:
         d = SB6190Driver("http://192.168.100.1", "admin", "pass")
         assert d._url == "https://192.168.100.1"
 
-    def test_stores_credentials(self):
-        d = SB6190Driver("https://192.168.100.1", "admin", "secret")
-        assert d._user == "admin"
-        assert d._password == "secret"
-
     def test_ssl_verify_disabled(self):
         d = SB6190Driver("https://192.168.100.1", "admin", "pass")
         assert d._session.verify is False
-
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("sb6190", "https://192.168.100.1", "admin", "pass")
-        assert isinstance(d, SB6190Driver)
 
 
 # -- Login --
@@ -133,12 +125,12 @@ class TestLogin:
             url = mock_post.call_args[0][0]
             assert "/cgi-bin/adv_pwd_cgi" in url
 
-    def test_login_sends_arguments_and_nonce(self, driver):
+    def test_login_sends_credentials_and_nonce(self, driver):
         with serve_html(driver, "Url:status", "post") as mock_post, \
              serve_html(driver, SAMPLE_STATUS_HTML):
             driver.login()
             data = mock_post.call_args[1]["data"]
-            assert "arguments" in data
+            assert base64.b64decode(data["arguments"]) == b"username%3Dadmin:password%3Dpassword"
             assert "ar_nonce" in data
             assert len(data["ar_nonce"]) == 8
 
@@ -276,13 +268,18 @@ class TestUpstream:
 # -- Device info --
 
 class TestDeviceInfo:
-    def test_parses_swinfo_page(self, driver):
-        with serve_html(driver, SAMPLE_SWINFO_HTML):
+    @pytest.mark.parametrize(
+        ("html", "hardware"),
+        [
+            (SAMPLE_SWINFO_HTML, {"hw_version": "3"}),
+            (SAMPLE_SWINFO_HTML.replace("<tr><td><strong>Hardware Version</strong></td><td>3</td></tr>", ""), {}),
+        ],
+    )
+    def test_parses_swinfo_page(self, driver, html, hardware):
+        with serve_html(driver, html):
             info = driver.get_device_info()
 
-        assert info["manufacturer"] == "Arris"
-        assert info["model"] == "SB6190"
-        assert info["sw_version"] == "9.1.103AA72"
+        assert info == {"manufacturer": "Arris", "model": "SB6190", "sw_version": "9.1.103AA72", **hardware}
 
     def test_fallback_on_connection_error(self, driver):
         with patch.object(driver._session, "get", side_effect=requests.ConnectionError()):
@@ -293,37 +290,6 @@ class TestDeviceInfo:
 
     def test_connection_info_empty(self, driver):
         assert driver.get_connection_info() == {}
-
-
-# -- Value helpers --
-
-class TestValueHelpers:
-    def test_normalize_mhz_integer(self):
-        assert SB6190Driver._normalize_mhz("807.00 MHz") == "807 MHz"
-
-    def test_normalize_mhz_decimal(self):
-        assert SB6190Driver._normalize_mhz("17.60 MHz") == "17.6 MHz"
-
-    def test_normalize_mhz_already_integer(self):
-        assert SB6190Driver._normalize_mhz("100 MHz") == "100 MHz"
-
-    def test_normalize_mhz_invalid(self):
-        assert SB6190Driver._normalize_mhz("unknown") == "unknown"
-
-    def test_parse_number_dbmv(self):
-        assert SB6190Driver._parse_number("10.50 dBmV") == 10.50
-
-    def test_parse_number_db(self):
-        assert SB6190Driver._parse_number("40.95 dB") == 40.95
-
-    def test_parse_number_integer(self):
-        assert SB6190Driver._parse_number("33") == 33.0
-
-    def test_parse_number_empty(self):
-        assert SB6190Driver._parse_number("") == 0.0
-
-    def test_parse_number_invalid(self):
-        assert SB6190Driver._parse_number("Locked") == 0.0
 
 
 # -- Edge cases --

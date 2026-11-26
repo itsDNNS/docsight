@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import ast
-import importlib
+import importlib.util
+import inspect
+import sys
 from pathlib import Path
 
+import pytest
+
+from app.drivers import create_driver_registry
 from app.drivers.formats import FORMAT_PROFILE_MODULES
-from tests.architecture.test_driver_formats_contract_red import EXPECTED_CLASS_FAMILIES
+from tests.drivers.driver_format_cases import CASES
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,176 +22,106 @@ FORBIDDEN_IMPORTS = {
     "cryptography", "flask", "random", "requests", "secrets", "socket", "ssl", "time",
 }
 
-PROFILE_ENTRYPOINTS = {
-    "arris_html": "parse_arris_html",
-    "cgm4981_columnar_html": "parse_cgm4981_columnar_html",
-    "ch7465_xml": "parse_ch7465_xml",
-    "cm1000_html_table": "parse_cm1000_html_table",
-    "cm1000_javascript": "parse_cm1000_javascript",
-    "cm3000_javascript": "parse_cm3000_javascript",
-    "cm3500_html": "parse_cm3500_html",
-    "f3896lg_rest_json": "parse_f3896lg_rest_json",
-    "fritzbox_data_lua": "parse_fritzbox_data_lua",
-    "generic_no_docsis": "parse_generic_no_docsis",
-    "hitron_coda4680_json": "parse_hitron_coda4680_json",
-    "hitron_coda56_json": "parse_hitron_coda56_json",
-    "sagemcom_xmo_json": "parse_sagemcom_xmo_json",
-    "pyur_api_v1": "parse_pyur_api_v1",
-    "sb6141_transposed_html": "parse_sb6141_transposed_html",
-    "sb6183_html": "parse_sb6183_html",
-    "sb6190_html": "parse_sb6190_html",
-    "sb8200_cbn_xml": "parse_sb8200_cbn_xml",
-    "sercom_dm1000_json": "parse_sercom_dm1000_json",
-    "surfboard_hnap": "parse_surfboard_hnap",
-    "tc4400_html": "parse_tc4400_html",
-    "ultrahub7_json": "parse_ultrahub7_json",
-    "vodafone_station_cga_json": "parse_vodafone_station_cga_json",
-    "vodafone_station_tg_embedded_json": "parse_vodafone_station_tg_embedded_json",
-}
+# Driver channel parsers and value helpers must return one call into the format
+# functions. Other _fetch_, _get_ and _is_ methods carry transport and login logic.
+DELEGATION_PREFIXES = (
+    "_build_", "_cell", "_compensate_", "_extract_", "_find_", "_format_", "_hz_",
+    "_map_", "_normalize_", "_ofdma_", "_parse", "_profile_", "_split_",
+    "_get_row_values", "_is_ofdm_downstream",
+)
 
-# Only these private methods remain as compatibility seams. Device-info,
-# connection-info, auth, and transport parsers are outside the DOCSIS grammar.
-COMPATIBILITY_METHODS = {
-    "CGM4981Driver": {"_build_ds_channels", "_build_us_channels"},
-    "CH7465Driver": {"_normalize_modulation"},
-    "CM3000Driver": {
-        "_parse_ds_qam", "_parse_us_atdma", "_parse_ds_ofdm", "_parse_us_ofdma",
-        "_extract_tag_value_list", "_split_channels", "_hz_to_mhz", "_parse_number",
-        "_normalize_modulation",
-    },
-    "CM3500Driver": {
-        "_find_table_sections", "_parse_ds_qam", "_parse_ds_ofdm", "_parse_us_qam",
-        "_parse_us_ofdm", "_parse_number", "_format_freq",
-    },
-    "F3896LGDriver": {"_parse_downstream", "_parse_upstream"},
-    "FritzBoxDriver": {"_compensate_us31_power"},
-    "HitronDriver": {
-        "_fetch_ds_scqam", "_fetch_us_scqam", "_fetch_ds_ofdm", "_fetch_us_ofdma",
-        "_ofdma_power_1_6", "_hz_to_mhz",
-    },
-    "HitronCoda4680Driver": {
-        "_parse_ds_scqam", "_parse_us_scqam", "_parse_ds_ofdm", "_parse_us_ofdma",
-        "_ofdma_power_1_6",
-    },
-    "SagemcomDriver": {
-        "_parse_downstream", "_parse_upstream", "_hz_to_mhz", "_is_ofdm_downstream",
-        "_normalize_modulation", "_normalize_us_modulation",
-    },
-    "SB6141Driver": {
-        "_parse_downstream", "_parse_upstream", "_extract_transposed_rows",
-        "_get_row_values", "_extract_upstream_modulation", "_parse_freq_hz", "_parse_number",
-    },
-    "SB6183Driver": {"_parse_downstream", "_parse_upstream"},
-    "SB6190Driver": {"_parse_downstream", "_parse_upstream", "_normalize_mhz", "_parse_number"},
-    "SercomDM1000Driver": {
-        "_parse_ds_scqam", "_parse_ds_ofdm", "_parse_us_scqam", "_parse_us_ofdma",
-        "_profile_modulation_from_bits",
-    },
-    "SurfboardDriver": {"_parse_downstream", "_parse_upstream", "_hz_to_mhz", "_normalize_modulation"},
-    "TC4400Driver": {
-        "_parse_downstream", "_parse_upstream", "_find_header_row", "_map_columns", "_cell",
-        "_parse_frequency", "_parse_number", "_normalize_modulation",
-    },
-    "UltraHub7Driver": {"_parse_downstream_channels", "_parse_upstream_channels"},
-    "VodafoneStationDriver": {
-        "_parse_number", "_parse_tg_power", "_parse_tg_frequency", "_normalize_modulation",
-    },
-}
-
-# These parse device metadata rather than normalized DOCSIS channel payloads.
-NON_DOCSIS_PARSERS = {
-    "CM3000Driver": {"_parse_uptime"},
+# Device metadata, login and request helpers that are not DOCSIS channel parsers.
+OWN_LOGIC = {
+    "CM3000Driver": {"_parse_uptime", "_extract_login_form"},
     "CM3500Driver": {"_parse_service_flows"},
     "HitronCoda4680Driver": {"_parse_device_info", "_parse_rate_kbps"},
+    "SurfboardDriver": {"_normalize_url"},
     "TC4400Driver": {"_parse_info_table"},
+    "VodafoneStationDriver": {"_extract_js_var"},
+    "SagemcomDriver": {"_build_request"},
 }
+
+
+@pytest.fixture(scope="module")
+def driver_classes():
+    registry = create_driver_registry()
+    return {
+        key: type(registry.load_driver(key, "http://modem.invalid", "", ""))
+        for key in registry.get_all_type_keys()
+    }
 
 
 def test_formats_modules_have_no_transport_auth_or_runtime_dependencies():
     issues = []
-    for path in sorted(FORMATS.glob("*.py")):
+    for path in sorted(FORMATS.rglob("*.py")):
+        package = ".".join(path.relative_to(ROOT).parent.parts)
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             imported = []
             if isinstance(node, ast.Import):
                 imported = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                imported = [node.module]
+            elif isinstance(node, ast.ImportFrom):
+                base = importlib.util.resolve_name("." * node.level + (node.module or ""), package)
+                imported = [base, *(f"{base}.{alias.name}" for alias in node.names)]
             for name in imported:
-                if name.split(".", 1)[0] in FORBIDDEN_IMPORTS:
-                    issues.append(f"{path.name}:{node.lineno} imports {name}")
+                if name.split(".", 1)[0] in FORBIDDEN_IMPORTS or (
+                    name.startswith("app.drivers.") and not f"{name}.".startswith("app.drivers.formats.")
+                ):
+                    issues.append(f"{path.relative_to(FORMATS)}:{node.lineno} imports {name}")
     assert issues == []
 
 
-def test_every_profile_has_one_named_entrypoint_in_its_cohesive_module():
-    assert set(PROFILE_ENTRYPOINTS) == set(FORMAT_PROFILE_MODULES)
-    for profile, function_name in PROFILE_ENTRYPOINTS.items():
-        module = importlib.import_module(FORMAT_PROFILE_MODULES[profile])
-        assert callable(getattr(module, function_name, None)), (profile, function_name)
-
-
-def test_registry_matrix_is_complete_and_alias_safe_in_both_directions():
-    matrix_profiles = {
-        profile
-        for profiles in EXPECTED_CLASS_FAMILIES.values()
-        for profile in profiles
+def test_profiles_have_format_entrypoints_and_drivers_declare_exactly_their_case_families(driver_classes):
+    for profile, module in FORMAT_PROFILE_MODULES.items():
+        assert module.startswith("app.drivers.formats."), profile
+        assert callable(getattr(importlib.import_module(module), f"parse_{profile}", None)), profile
+    declared = {key: cls.FORMAT_FAMILIES for key, cls in driver_classes.items()}
+    assert all(isinstance(families, tuple) for families in declared.values())
+    assert {profile for families in declared.values() for profile in families} == set(FORMAT_PROFILE_MODULES)
+    case_families = {key: set() for key in driver_classes}
+    for case in CASES:
+        for key in case.driver.split(","):
+            case_families[key].add(case.family)
+    assert {key: sorted(families) for key, families in declared.items()} == {
+        key: sorted(families) for key, families in case_families.items()
     }
-    assert matrix_profiles == set(FORMAT_PROFILE_MODULES)
-    assert len(EXPECTED_CLASS_FAMILIES) == 22
-    assert len(PROFILE_ENTRYPOINTS) == 24
 
 
-def test_migrated_private_methods_are_finite_one_statement_delegations():
-    discovered: dict[str, set[str]] = {}
+def _plain(node) -> bool:
+    return isinstance(node, (ast.Name, ast.Constant)) or isinstance(node, ast.Attribute) and _plain(node.value)
+
+
+def _delegates(node, namespace) -> bool:
+    if isinstance(node, ast.Attribute) and node.attr == "value":
+        node = node.value
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+        return False
+    module = getattr(namespace.get(node.func.id), "__module__", "")
+    return (
+        (module.startswith("app.drivers.formats.") or module == "app.drivers.format_compat")
+        and all(
+            _plain(arg) or _delegates(arg, namespace)
+            for arg in [*node.args, *(keyword.value for keyword in node.keywords)]
+        )
+    )
+
+
+def test_driver_parsers_and_value_helpers_only_delegate_to_format_functions(driver_classes):
     issues = []
-    for class_path in EXPECTED_CLASS_FAMILIES:
-        module_name, class_name = class_path.rsplit(".", 1)
-        path = ROOT / (module_name.replace(".", "/") + ".py")
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        class_node = next(
-            node for node in tree.body
-            if isinstance(node, ast.ClassDef) and node.name == class_name
-        )
-        expected = COMPATIBILITY_METHODS.get(class_name, set())
-        actual = {
-            node.name for node in class_node.body
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in expected
-        }
-        if actual:
-            discovered[class_name] = actual
-        for node in class_node.body:
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or node.name not in expected:
+    classes = {
+        klass for cls in driver_classes.values() for klass in cls.__mro__
+        if klass.__module__.startswith("app.drivers.")
+    }
+    for klass in classes:
+        namespace = vars(sys.modules[klass.__module__])
+        for node in ast.parse(inspect.getsource(klass)).body[0].body:
+            if (
+                not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                or not node.name.startswith(DELEGATION_PREFIXES)
+                or node.name in OWN_LOGIC.get(klass.__name__, ())
+            ):
                 continue
-            statements = node.body[1:] if (
-                node.body and isinstance(node.body[0], ast.Expr)
-                and isinstance(node.body[0].value, ast.Constant)
-                and isinstance(node.body[0].value.value, str)
-            ) else node.body
-            if len(statements) != 1 or isinstance(statements[0], (ast.For, ast.While, ast.If, ast.Try)):
-                issues.append(f"{class_name}.{node.name} is not a one-statement delegation")
-    assert discovered == {name: methods for name, methods in COMPATIBILITY_METHODS.items() if methods}
+            body = node.body[1:] if ast.get_docstring(node) is not None else node.body
+            if len(body) != 1 or not isinstance(body[0], ast.Return) or not _delegates(body[0].value, namespace):
+                issues.append(f"{klass.__name__}.{node.name}")
     assert issues == []
-
-
-def test_concrete_drivers_cannot_add_local_parser_implementations():
-    unexpected = []
-    for class_path in EXPECTED_CLASS_FAMILIES:
-        module_name, class_name = class_path.rsplit(".", 1)
-        path = ROOT / (module_name.replace(".", "/") + ".py")
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        class_node = next(
-            node for node in tree.body
-            if isinstance(node, ast.ClassDef) and node.name == class_name
-        )
-        allowed = COMPATIBILITY_METHODS.get(class_name, set()) | NON_DOCSIS_PARSERS.get(
-            class_name, set()
-        )
-        parser_names = {
-            node.name for node in class_node.body
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and node.name.startswith("_parse")
-        }
-        unexpected.extend(
-            f"{class_name}.{name}" for name in sorted(parser_names - allowed)
-        )
-    assert unexpected == []

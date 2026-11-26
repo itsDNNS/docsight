@@ -10,6 +10,8 @@ from app.storage import SnapshotStorage
 
 # UTC; Berlin is two hours ahead in October.
 TIMES = ["2026-10-06T08:00:00Z", "2026-10-06T08:15:00Z", "2026-10-06T08:30:00Z"]
+# Channels behind each uncorrectable total; the first snapshot comes from a release that did not record them.
+UNCORRECTABLE_CHANNELS = [None, 2, 1]
 
 
 @pytest.fixture
@@ -19,6 +21,8 @@ def storage(tmp_path, sample_analysis, config_mgr):
     for index, ts in enumerate(TIMES):
         analysis = copy.deepcopy(sample_analysis)
         analysis["summary"]["ds_uncorrectable_errors"] = 100 + index * 40
+        if UNCORRECTABLE_CHANNELS[index] is not None:
+            analysis["summary"]["error_counter_coverage"] = {"uncorrectable_channels": UNCORRECTABLE_CHANNELS[index]}
         with patch("app.storage.snapshot.utc_now", return_value=ts):
             storage.save_snapshot(analysis)
     current_runtime().storage = storage
@@ -47,8 +51,19 @@ def test_stepping_to_the_previous_and_next_snapshot(client, storage):
     last = client.get("/api/snapshots/at?time=2026-10-06T10:15:00&step=1").get_json()
     assert last["snapshot"]["timestamp"] == "2026-10-06T10:30:00"
     assert last["has_next"] is False
+    assert (last["snapshot"]["summary"]["ds_uncorrectable_channels"], last["previous_uncorrectable_channels"]) == (1, 2)
 
     assert client.get("/api/snapshots/at?time=2026-10-06T10:30:00&step=1").status_code == 404
+
+
+@pytest.mark.parametrize("url, rows", [
+    ("/api/trends?range=1d&end=2026-10-06T12:00", lambda data: data),
+    ("/api/correlation?hours=24&end=2026-10-06T12:00&sources=modem", lambda data: data),
+    ("/api/comparison?from_a=2026-10-06T00:00:00Z&to_a=2026-10-06T23:59:59Z&from_b=2026-10-07T00:00:00Z&to_b=2026-10-07T23:59:59Z",
+     lambda data: data["period_a"]["timeseries"]),
+])
+def test_views_that_count_new_errors_get_the_channels_behind_each_total(client, storage, url, rows):
+    assert [row["ds_uncorrectable_channels"] for row in rows(client.get(url).get_json())] == UNCORRECTABLE_CHANNELS
 
 
 @pytest.mark.parametrize("query", ["", "?time=yesterday", "?time=2026-10-06T10:15:00&step=2"])

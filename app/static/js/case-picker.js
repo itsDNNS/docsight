@@ -8,8 +8,6 @@
 
     var current = null;
 
-    function text(key, fallback) { return (window.T && T[key]) || fallback; }
-
     function caseOption(c) {
         var option = document.createElement('label');
         option.className = 'case-pick-option';
@@ -26,8 +24,8 @@
         var span = document.createElement('span');
         span.className = 'case-pick-window';
         span.textContent = c.start_date
-            ? formatDocsightTime(c.start_date, 'date') + ' – ' + (c.end_date ? formatDocsightTime(c.end_date, 'date') : text('event_case_running', 'ongoing'))
-            : text('event_case_no_window', 'No window yet');
+            ? formatDocsightTime(c.start_date, 'date') + ' – ' + (c.end_date ? formatDocsightTime(c.end_date, 'date') : T.event_case_running)
+            : T.event_case_no_window;
         label.appendChild(name);
         label.appendChild(span);
         option.appendChild(input);
@@ -98,11 +96,11 @@
             if (options.onAdded) options.onAdded(result);
             if (typeof showToast === 'function') {
                 showToast(String(options.added || '').replace('{case}', result.name), 'success', {
-                    action: {label: text('event_open_case', 'Open case'), onClick: function() { openCase(result.id); }}
+                    action: {label: T.event_open_case, onClick: function() { openCase(result.id); }}
                 });
             }
         }).catch(function() {
-            if (typeof showToast === 'function') showToast(text('network_error', 'Error'), 'error');
+            if (typeof showToast === 'function') showToast(T.network_error, 'error');
         });
     }
 

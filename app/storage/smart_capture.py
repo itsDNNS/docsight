@@ -4,6 +4,7 @@ import json
 import sqlite3
 
 from ..tz import utc_now
+from .events import decode_details
 
 
 class SmartCaptureMethods:
@@ -38,15 +39,7 @@ class SmartCaptureMethods:
                 "SELECT * FROM smart_capture_executions WHERE id = ?",
                 (execution_id,),
             ).fetchone()
-        if not row:
-            return None
-        result = dict(row)
-        if result["details"]:
-            try:
-                result["details"] = json.loads(result["details"])
-            except (json.JSONDecodeError, TypeError):
-                pass
-        return result
+        return {**row, "details": decode_details(row["details"])} if row else None
 
     def update_execution(self, execution_id, status=None, fired_at=None,
                          completed_at=None, linked_result_id=None,
@@ -95,16 +88,7 @@ class SmartCaptureMethods:
                 "AND action_type = ? ORDER BY fired_at ASC",
                 (action_type,),
             ).fetchall()
-        results = []
-        for r in rows:
-            record = dict(r)
-            if record["details"]:
-                try:
-                    record["details"] = json.loads(record["details"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            results.append(record)
-        return results
+        return [{**r, "details": decode_details(r["details"])} for r in rows]
 
     def get_latest_smart_capture_fire(self, action_type):
         """Return the latest fired_at timestamp for accepted Smart Capture actions."""
@@ -190,16 +174,7 @@ class SmartCaptureMethods:
         params.extend([limit, offset])
         with self._read() as conn:
             rows = conn.execute(query, params).fetchall()
-        results = []
-        for r in rows:
-            record = dict(r)
-            if record["details"]:
-                try:
-                    record["details"] = json.loads(record["details"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            results.append(record)
-        return results
+        return [{**r, "details": decode_details(r["details"])} for r in rows]
 
     def expire_stale_pending(self, cutoff_timestamp):
         """Bulk-expire PENDING executions with created_at before cutoff.

@@ -1,6 +1,8 @@
 """Tests for Smart Capture API endpoints and data enrichment."""
 
 import json
+import sqlite3
+from unittest.mock import patch
 import pytest
 from flask import current_app
 
@@ -8,6 +10,8 @@ from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.smart_capture.types import ExecutionStatus
 from app.runtime import current_runtime
+
+pytestmark = pytest.mark.usefixtures("route_app")
 
 
 def configured_client(data_dir, storage=None, **config):
@@ -86,6 +90,14 @@ class TestSpeedtestAnnotation:
         results = [{"id": 1, "timestamp": "2026-03-16T10:00:00Z"}]
         _annotate_smart_capture(results, storage.db_path)
         assert results[0]["smart_capture"] is False
+
+    def test_unreadable_executions_are_logged_and_leave_results_unmarked(self, storage, caplog):
+        from app.modules.speedtest.routes import _annotate_smart_capture
+        results = [{"id": 1, "timestamp": "2026-03-16T10:00:00Z"}]
+        with patch("app.modules.speedtest.routes.open_read", side_effect=sqlite3.OperationalError("database is locked")):
+            _annotate_smart_capture(results, storage.db_path)
+        assert results[0]["smart_capture"] is False
+        assert [r.getMessage() for r in caplog.records] == ["Smart Capture annotation failed (OperationalError)"]
 
 
 class TestCorrelationCaptureSource:

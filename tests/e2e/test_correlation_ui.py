@@ -1336,15 +1336,20 @@ def test_correlation_table_keeps_stable_desktop_columns(demo_page):
 
 def test_correlation_event_type_filter_updates_table_in_browser(demo_page):
     page = demo_page
-    _route_sample_correlation(page)
+    payload = _sample_correlation_data()
+    payload.append({**payload[2], "event_type": "cm_target_unreachable",
+                    "details": {"target_label": "Gateway", "consecutive_timeouts": 5}})
+    _route_correlation(page, payload)
     _open_correlation(page)
 
     event_rows = page.locator('#correlation-tbody tr[data-src="event"]')
-    expect(event_rows).to_have_count(1)
-    expect(event_rows.first.locator(".correlation-cell-details")).to_contain_text("Health Change")
-    expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(1/2)")
+    expect(event_rows).to_have_count(2)
+    expect(event_rows.locator(".correlation-cell-details")).to_have_text(["Target Unreachable", "Health Change"])
+    expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(2/3)")
 
     page.locator("#correlation-legend .corr-event-filter-btn").click()
+    expect(page.locator("#corr-event-popover .corr-event-filter-name")).to_have_text(
+        ["Target Unreachable", "Health Change", "Monitoring Started"])
     page.locator('#corr-event-popover input[data-event-type="health_change"]:not([data-event-severity])').evaluate(
         """
         (checkbox) => {
@@ -1354,8 +1359,12 @@ def test_correlation_event_type_filter_updates_table_in_browser(demo_page):
         """
     )
 
-    expect(event_rows).to_have_count(0)
-    expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(0/2)")
+    expect(event_rows).to_have_count(1)
+    expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(1/3)")
+
+    page.keyboard.press("Escape")
+    page.locator('#correlation-legend [data-metric="events"]').click()
+    expect(_hover_correlation_timestamp(page, payload[2]["timestamp"])).to_contain_text("Event: Target Unreachable")
 
 
 def test_correlation_event_filter_popover_stays_above_the_cards_below_the_chart(demo_page):

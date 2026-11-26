@@ -39,7 +39,7 @@ function _applySection(id) {
     if (title) title.textContent = SECTION_TITLES[id] || id;
     var hint = document.getElementById('settings-save-hint');
     if (hint) {
-        hint.textContent = target && target.getAttribute('data-save-hint') || T.settings_save_hint_manual || '';
+        hint.textContent = target && target.getAttribute('data-save-hint') || T.settings_save_hint_manual;
         hint.hidden = !hint.textContent;
     }
     _setDetail(true);

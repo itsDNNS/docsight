@@ -1,13 +1,23 @@
 """Tests for speedtest, backup, and BQM collectors."""
 
 import time
-from unittest.mock import MagicMock, patch
+from datetime import datetime
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from app.collectors.base import CollectorResult
 from app.modules.speedtest.collector import SpeedtestCollector
 from app.modules.bqm.collector import BQMCollector
+
+
+DELTA_ROWS = [
+    {"id": 1, "timestamp": "2025-01-01T00:00:00Z", "download_mbps": 100,
+     "upload_mbps": 10, "download_human": "", "upload_human": "",
+     "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
+    {"id": 2, "timestamp": "2025-01-01T01:00:00Z", "download_mbps": 200,
+     "upload_mbps": 20, "download_human": "", "upload_human": "",
+     "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
+]
 
 
 @pytest.mark.usefixtures("class_mock_storage")
@@ -15,6 +25,7 @@ class TestSpeedtestCollector:
     def _make_collector(self, configured=True):
         config_mgr = MagicMock()
         config_mgr.is_speedtest_configured.return_value = configured
+        config_mgr.is_demo_mode.return_value = False
         config_mgr.get.side_effect = lambda k, *a: {
             "speedtest_tracker_url": "http://speed:8999",
             "speedtest_tracker_token": "tok",
@@ -33,52 +44,35 @@ class TestSpeedtestCollector:
         c, *_ = self._make_collector(configured=False)
         assert c.is_enabled() is False
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_initializes_client(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([{"id": 1, "download_mbps": 100}], None)
-        mock_client.get_results.return_value = []
-        mock_cls.return_value = mock_client
+    @pytest.fixture
+    def client_cls(self):
+        """The patched client class; its client finds no newer result and reads DELTA_ROWS in full."""
+        with patch("app.modules.speedtest.collector.SpeedtestClient") as cls:
+            cls.from_config.return_value = cls.return_value
+            cls.return_value.base_url = "http://speed:8999"
+            cls.return_value.get_latest_with_error.return_value = ([], None)
+            cls.return_value.get_results_with_error.return_value = (DELTA_ROWS, None)
+            yield cls
 
-        c, *_ = self._make_collector()
-        c.collect()
-        mock_cls.assert_called_once_with("http://speed:8999", "tok", tls_insecure=False)
-
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_reinitializes_client_when_tls_setting_changes(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([{"id": 1, "download_mbps": 100}], None)
-        mock_client.get_results.return_value = []
-        mock_cls.return_value = mock_client
-
+    def test_collect_keeps_the_client_while_its_settings_apply(self, client_cls):
         c, config_mgr, *_ = self._make_collector()
         c.collect()
-        config_mgr.get.side_effect = lambda k, *a: {
-            "speedtest_tracker_url": "http://speed:8999",
-            "speedtest_tracker_token": "[REDACTED]",
-            "speedtest_tls_insecure": True,
-        }.get(k, a[0] if a else None)
         c.collect()
+        assert client_cls.from_config.call_args_list == [call(config_mgr, None), call(config_mgr, client_cls.return_value)]
 
-        assert mock_cls.call_args_list[-1].kwargs["tls_insecure"] is True
-        assert mock_cls.call_count == 2
-
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_updates_web_state(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([{"id": 1}], None)
-        mock_client.get_results.return_value = []
-        mock_cls.return_value = mock_client
+    @pytest.mark.parametrize("cached", [[], [DELTA_ROWS[0]]], ids=["nothing-finished", "finished-cached"])
+    def test_collect_shows_newest_cached_result(self, client_cls, cached):
+        """The dashboard shows the newest finished result even when only running tests are newer."""
+        client_cls.return_value.get_latest_with_error.return_value = ([{"id": 9, "status": "running"}], None)
+        client_cls.return_value.get_results_with_error.return_value = (cached, None)
 
         c, _, _, web = self._make_collector()
         c.collect()
-        web.update_state.assert_called_once()
+        assert [call.kwargs["speedtest_latest"]["id"] for call in web.update_state.call_args_list] == [r["id"] for r in cached]
+        assert web.clear_speedtest_latest.called == (not cached)
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_fetch_failure_returns_error(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([], "ConnectionError: refused")
-        mock_cls.return_value = mock_client
+    def test_collect_fetch_failure_returns_error(self, client_cls):
+        client_cls.return_value.get_latest_with_error.return_value = ([], "ConnectionError: refused")
 
         c, _, _, web = self._make_collector()
         result = c.collect()
@@ -86,37 +80,18 @@ class TestSpeedtestCollector:
         assert "ConnectionError" in result.error
         web.update_state.assert_not_called()
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_delta_cache(self, mock_cls):
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([], None)
-        mock_client.get_results.return_value = [
-            {"id": 1, "timestamp": "2025-01-01T00:00:00Z", "download_mbps": 100,
-             "upload_mbps": 10, "download_human": "", "upload_human": "",
-             "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
-            {"id": 2, "timestamp": "2025-01-01T01:00:00Z", "download_mbps": 200,
-             "upload_mbps": 20, "download_human": "", "upload_human": "",
-             "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
-        ]
-        mock_cls.return_value = mock_client
-
-        c, _, storage, _ = self._make_collector()
+    def test_collect_delta_cache(self, client_cls):
+        c, *_ = self._make_collector()
         c.collect()
         # Verify results were saved to the module's internal storage
         assert c._storage.get_speedtest_count() == 2
 
-    @patch("app.modules.speedtest.collector.SpeedtestClient")
-    def test_collect_delta_cache_failure_does_not_crash(self, mock_cls):
+    def test_collect_delta_cache_failure_does_not_crash(self, client_cls):
         """Delta cache failure should not prevent a successful collect result."""
-        mock_client = MagicMock()
-        mock_client.get_latest_with_error.return_value = ([{"id": 1}], None)
-        mock_client.get_results.side_effect = Exception("API timeout")
-        mock_cls.return_value = mock_client
+        client_cls.return_value.get_results_with_error.side_effect = Exception("API timeout")
 
-        c, _, storage, web = self._make_collector()
-        result = c.collect()
-        assert result.success is True
-        web.update_state.assert_called_once()
+        c, *_ = self._make_collector()
+        assert c.collect().success is True
 
     def test_name(self):
         c, *_ = self._make_collector()
@@ -216,6 +191,11 @@ class TestBackupCollector:
 # ── BQMCollector Tests ──
 
 
+def _clock(hm):
+    """Fix the collector's configured-zone clock at ``hm`` on 2026-02-19."""
+    return patch("app.modules.bqm.collector.local_now", return_value=datetime.fromisoformat(f"2026-02-19T{hm}"))
+
+
 @pytest.mark.usefixtures("class_mock_storage")
 class TestBQMCollector:
     def _make_collector(self, configured=True, collect_time="02:00", bqm_url="https://www.thinkbroadband.com/broadband/monitoring/quality/share/bd77751689f2f7b8d47d99899335aef060c9e768-2-y.csv"):
@@ -309,7 +289,7 @@ class TestBQMCollector:
         c, _, storage = self._make_collector()
         c.collect()
         result = c.collect()
-        assert result.data == {"skipped": True}
+        assert result.data == {"skipped": True, "reason": "already_collected"}
         assert mock_fetch.call_count == 1
 
     @patch("app.modules.bqm.collector.fetch_share_csv")
@@ -321,54 +301,64 @@ class TestBQMCollector:
         assert "download" in result.error
         assert c._storage.get_csv_dates() == []
 
-    @patch("app.modules.bqm.collector.BQMCollector._collect_png")
-    def test_collect_png_url_delegates(self, mock_png):
-        mock_png.return_value = CollectorResult(source="bqm", data={"mode": "png"})
-        c, _, storage = self._make_collector(bqm_url="https://www.thinkbroadband.com/share/abc.png")
-        result = c.collect()
-        assert result.data.get("mode") == "png"
-        mock_png.assert_called_once()
+    @patch("app.modules.bqm.collector.collect_bqm", return_value={"success": True, "mode": "png", "date": "2026-02-18"})
+    def test_collect_delegates_to_collect_bqm(self, mock_collect):
+        url = "https://www.thinkbroadband.com/broadband/monitoring/quality/share/bd77751689f2f7b8d47d99899335aef060c9e768-2.png"
+        c, *_ = self._make_collector(bqm_url=url)
+        with _clock("02:00"):
+            result = c.collect()
+        assert result.data["mode"] == "png"
+        mock_collect.assert_called_once_with(c._storage, url, "2026-02-19", "2026-02-18")
+
+    @patch("app.modules.bqm.collector.collect_bqm")
+    def test_collect_skips_csv_url_without_share_id(self, mock_collect):
+        c, *_ = self._make_collector(bqm_url="https://example.com/graph-y.csv")
+        assert c.collect().data == {"skipped": True, "reason": "no_share_id"}
+        mock_collect.assert_not_called()
 
     def test_name(self):
         c, *_ = self._make_collector()
         assert c.name == "bqm"
 
     @patch("app.modules.bqm.collector.random")
-    @patch("app.modules.bqm.collector.time")
-    def test_should_poll_before_target(self, mock_time, mock_random):
+    def test_should_poll_before_target(self, mock_random):
         """Should not poll if current time is before target + spread offset."""
         mock_random.randint.return_value = 30  # 30 min offset -> target 02:30
-        mock_time.strftime.side_effect = lambda fmt: {
-            "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "02:25",
-        }[fmt]
         c, *_ = self._make_collector(collect_time="02:00")
-        assert c.should_poll() is False
+        with _clock("02:25"):
+            assert c.should_poll() is False
 
     @patch("app.modules.bqm.collector.random")
-    @patch("app.modules.bqm.collector.time")
-    def test_should_poll_after_target(self, mock_time, mock_random):
+    def test_should_poll_after_target(self, mock_random):
         """Should poll if current time is at/after target + spread offset."""
         mock_random.randint.return_value = 30  # 30 min offset -> target 02:30
-        mock_time.strftime.side_effect = lambda fmt: {
-            "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "02:30",
-        }[fmt]
         c, *_ = self._make_collector(collect_time="02:00")
-        assert c.should_poll() is True
+        with _clock("02:30"):
+            assert c.should_poll() is True
 
     @patch("app.modules.bqm.collector.random")
-    @patch("app.modules.bqm.collector.time")
-    def test_should_poll_not_twice_same_day(self, mock_time, mock_random):
+    def test_should_poll_not_twice_same_day(self, mock_random):
         """Should not poll again after collecting today."""
         mock_random.randint.return_value = 0
-        mock_time.strftime.side_effect = lambda fmt: {
-            "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "03:00",
-        }[fmt]
         c, *_ = self._make_collector(collect_time="02:00")
         c._last_date = "2026-02-19"
-        assert c.should_poll() is False
+        with _clock("03:00"):
+            assert c.should_poll() is False
+
+    @pytest.mark.parametrize("failures", [1, 3])
+    @patch("app.modules.bqm.collector.random")
+    def test_should_poll_waits_for_backoff_after_failure(self, mock_random, failures):
+        """A failed fetch past the scheduled time is retried only after the backoff penalty."""
+        mock_random.randint.return_value = 0
+        c, *_ = self._make_collector(collect_time="02:00")
+        for _ in range(failures):
+            c.record_failure()
+        penalty = c._penalty_seconds_unlocked()
+        with _clock("03:00"):
+            c._last_poll -= penalty - 1
+            assert c.should_poll() is False
+            c._last_poll -= 1
+            assert c.should_poll() is True
 
     @patch("app.modules.bqm.collector.random")
     def test_spread_offset_within_range(self, mock_random):
@@ -379,34 +369,23 @@ class TestBQMCollector:
         mock_random.randint.assert_called_with(0, 120)
 
     @patch("app.modules.bqm.collector.random")
-    @patch("app.modules.bqm.collector.time")
-    def test_spread_clamped_to_0030(self, mock_time, mock_random):
+    def test_spread_clamped_to_0030(self, mock_random):
         """Spread must never schedule collection before 00:30."""
         mock_random.randint.return_value = 0  # 00:20 + 0 = 00:20 -> clamp 00:30
-        mock_time.strftime.side_effect = lambda fmt: {
-            "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "00:25",
-        }[fmt]
         c, *_ = self._make_collector(collect_time="00:20")
-        assert c.should_poll() is False  # 00:25 < 00:30
+        with _clock("00:25"):
+            assert c.should_poll() is False  # 00:25 < 00:30
 
-        mock_time.strftime.side_effect = lambda fmt: {
-            "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "00:30",
-        }[fmt]
-        assert c.should_poll() is True  # 00:30 >= 00:30
+        with _clock("00:30"):
+            assert c.should_poll() is True  # 00:30 >= 00:30
 
     @patch("app.modules.bqm.collector.random")
-    @patch("app.modules.bqm.collector.time")
-    def test_spread_offset_capped_at_2359(self, mock_time, mock_random):
+    def test_spread_offset_capped_at_2359(self, mock_random):
         """Spread offset is capped at 23:59, never wraps past midnight."""
         mock_random.randint.return_value = 120  # 22:00 + 120 min = 24:00 -> cap 23:59
-        mock_time.strftime.side_effect = lambda fmt: {
-            "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "23:59",
-        }[fmt]
         c, *_ = self._make_collector(collect_time="22:00")
-        assert c.should_poll() is True
+        with _clock("23:59"):
+            assert c.should_poll() is True
 
 
 # ── build_collectors Tests ──

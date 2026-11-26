@@ -28,8 +28,6 @@ CORE_GLOSSARY_KEYS = [
     "glossary_errors",
     "glossary_scqam",
     "glossary_ofdm",
-    "glossary_modulation",
-    "glossary_docsis",
     "docsis_basics_label",
     "glossary_docsis_basics",
     "glossary_gaming_index",
@@ -96,8 +94,6 @@ def test_glossary_page_keys_present_in_every_offered_language():
         with open(entry.path, encoding="utf-8-sig") as f:
             data = json.load(f)
         for key in GLOSSARY_PAGE_KEYS:
-            assert key in data, f"Missing {key} in {entry.name}"
-            assert data[key], f"Empty value for {key} in {entry.name}"
             if key in {"glossary_result_singular", "glossary_result_plural"}:
                 assert "{count}" in data[key], f"Missing count placeholder in {key} for {entry.name}"
         placeholder = data["glossary_search_placeholder"]

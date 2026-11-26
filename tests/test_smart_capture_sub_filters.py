@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 
 from app.smart_capture.sub_filters import (
     modulation_sub_filter,
-    snr_sub_filter,
     error_spike_sub_filter,
     health_sub_filter,
     packet_loss_sub_filter,
@@ -90,13 +89,6 @@ class TestModulationSubFilter:
         config = _config()
         event = self._event([])
         assert modulation_sub_filter(config, event) is True
-
-
-class TestSnrSubFilter:
-    def test_always_passes(self):
-        config = _config()
-        event = {"event_type": "snr_change", "severity": "warning", "details": {}}
-        assert snr_sub_filter(config, event) is True
 
 
 class TestErrorSpikeSubFilter:

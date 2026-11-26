@@ -32,8 +32,10 @@ from .config import (
     HASH_KEYS,
     MODULE_SECRET_KEYS,
     SECRET_KEYS,
+    parse_disabled_modules,
     parse_stored_bool,
 )
+from .version import get_app_version
 
 DOCTOR_VERSION = 1
 STATUS_ORDER = ("pass", "warn", "fail", "skipped")
@@ -163,17 +165,6 @@ def _safe_path(path: str | Path) -> str:
     return redact_value(str(path), "path")
 
 
-def _get_version() -> str:
-    for candidate in (Path("/app/VERSION"), Path(__file__).resolve().parents[1] / "VERSION"):
-        try:
-            version = candidate.read_text(encoding="utf-8").strip()
-        except FileNotFoundError:
-            continue
-        if version:
-            return version
-    return "dev"
-
-
 def _load_config_file(data_dir: Path) -> tuple[dict[str, Any], CheckResult]:
     config_path = data_dir / "config.json"
     if not config_path.exists():
@@ -223,7 +214,7 @@ def _check_runtime(environ: Mapping[str, str]) -> CheckResult:
         status="pass",
         message="DOCSight runtime information collected",
         details={
-            "app_version": _get_version(),
+            "app_version": get_app_version(),
             "python": platform.python_version(),
             "platform": redact_value(platform.platform(), "platform"),
             "deployment": "docker" if docker_detected else "native_python",
@@ -476,8 +467,7 @@ def _check_module_inline_code(raw_config: Mapping[str, Any], environ: Mapping[st
     from .module_paths import DEFAULT_MODULES_DIR
 
     root = Path(environ.get("MODULES_DIR") or DEFAULT_MODULES_DIR)
-    disabled_value = _config_value(raw_config, environ, "disabled_modules")
-    disabled = {item.strip() for item in str(disabled_value or "").split(",") if item.strip()}
+    disabled = parse_disabled_modules(_config_value(raw_config, environ, "disabled_modules"))
     if not root.is_dir():
         return CheckResult(
             id="modules.inline_scripts",
@@ -634,7 +624,7 @@ def build_report(data_dir: str | None = None, environ: Mapping[str, str] | None 
     serializable_checks = redact_value(serializable_checks)  # type: ignore[assignment]
     return {
         "doctor_version": DOCTOR_VERSION,
-        "app_version": _get_version(),
+        "app_version": serializable_checks[0]["details"]["app_version"],
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "data_dir": _safe_path(root),
         "checks": serializable_checks,

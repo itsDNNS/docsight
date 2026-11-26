@@ -7,7 +7,7 @@
     'use strict';
 
     var currentRange = 3600; // 1h default
-    var targets = [];
+    var targets = null; // the enabled targets, null until the target list loaded
     var refreshTimer = null;
     var lastResolution = 'raw';
     var pinnedDayView = null; // { date: 'YYYY-MM-DD', start: epoch, end: epoch } when viewing a pinned day
@@ -113,13 +113,19 @@
 
     function pinCurrentDay() {
         var ts = Math.floor(Date.now() / 1000);
-        fetch(docsightUrl('/api/connection-monitor/pinned-days'), {
+        docsightJson('/api/connection-monitor/pinned-days', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ timestamp: ts })
-        }).then(function() {
-            loadPinnedDays();
-        });
+        }).then(loadPinnedDays, showRequestError);
+    }
+
+    function failureText() {
+        return T.network_error;
+    }
+
+    function showRequestError() {
+        showToast(failureText(), 'error');
     }
 
     function updatePinButton() {
@@ -141,12 +147,9 @@
     // --- Pinned Days Bar ---
 
     function loadPinnedDays() {
-        fetch(docsightUrl('/api/connection-monitor/pinned-days'))
-            .then(function(r) { return r.json(); })
-            .then(function(days) {
-                renderPinnedDays(days);
-            })
-            .catch(function() {});
+        docsightJson('/api/connection-monitor/pinned-days')
+            .then(renderPinnedDays)
+            .catch(function() {}); // The bar only adds shortcuts; the view works without it.
     }
 
     function renderPinnedDays(days) {
@@ -190,7 +193,7 @@
             removeBtn.onclick = function(e) {
                 e.stopPropagation();
                 var removedActiveDay = pinnedDayView && pinnedDayView.date === day.date;
-                fetch(docsightUrl('/api/connection-monitor/pinned-days/' + day.date), { method: 'DELETE' })
+                docsightJson('/api/connection-monitor/pinned-days/' + day.date, { method: 'DELETE' })
                     .then(function() {
                         if (removedActiveDay) {
                             pinnedDayView = null;
@@ -200,7 +203,7 @@
                             updateRefreshInterval();
                         }
                         loadPinnedDays();
-                    });
+                    }, showRequestError);
             };
 
             chip.appendChild(viewBtn);
@@ -269,8 +272,7 @@
             });
         }
 
-        fetch(docsightUrl('/api/connection-monitor/capability'))
-            .then(function(r) { return r.json(); })
+        docsightJson('/api/connection-monitor/capability')
             .then(function(data) {
                 var el = document.getElementById('cm-capability-info');
                 if (!el) return;
@@ -301,7 +303,7 @@
                     if (typeof window.initGlossaryHints === 'function') window.initGlossaryHints();
                 }
             })
-            .catch(function() {});
+            .catch(function() {}); // Without the probe mode badge the view still works.
 
         applyRangeFromUrl();
         loadTargets();
@@ -310,10 +312,14 @@
         updateRefreshInterval();
     }
 
+    var targetSeq = 0;
+
     function loadTargets() {
-        fetch(docsightUrl('/api/connection-monitor/targets'))
-            .then(function(r) { return r.json(); })
+        // A refresh or range change can start another load; only the latest one may draw.
+        var seq = ++targetSeq;
+        docsightJson('/api/connection-monitor/targets')
             .then(function(data) {
+                if (seq !== targetSeq) return;
                 targets = data.filter(function(t) { return t.enabled; });
                 if (targets.length > 0) {
                     loadData();
@@ -323,12 +329,16 @@
                     showNoData('targets');
                 }
             })
-            .catch(function() {});
+            .catch(function() {
+                if (seq === targetSeq) showNoData('error', loadTargets);
+            });
     }
 
     var loadSeq = 0;
 
     function loadData() {
+        // Until a target list loaded, refreshes and range changes try the list again.
+        if (!targets) { loadTargets(); return; }
         if (targets.length === 0) { showNoData('targets'); return; }
         // Steps, range clicks and the refresh overlap; only the latest load may draw.
         var seq = ++loadSeq;
@@ -345,24 +355,21 @@
 
         // Fetch samples for ALL targets in parallel
         var samplePromises = targets.map(function(t) {
-            var url = docsightUrl('/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + end + '&limit=0');
+            var query = '?start=' + start + '&end=' + end + '&limit=0';
             if (pinnedDayView) {
-                url += '&resolution=raw';
+                query += '&resolution=raw';
             } else if (maxPoints > 0) {
-                url += '&max_points=' + maxPoints;
+                query += '&max_points=' + maxPoints;
             }
-            return fetch(url)
-                .then(function(r) { return r.json(); })
+            return docsightJson('/api/connection-monitor/samples/' + t.id + query)
                 .then(function(data) { return { target: t, samples: data.samples, meta: data.meta }; });
         });
 
-        var statsPromise = fetch(docsightUrl('/api/connection-monitor/stats?start=' + start + '&end=' + end))
-            .then(function(r) { return r.json(); });
+        var statsPromise = docsightJson('/api/connection-monitor/stats?start=' + start + '&end=' + end);
 
         // Fetch outages for ALL targets in parallel
         var outagePromises = targets.map(function(t) {
-            return fetch(docsightUrl('/api/connection-monitor/outages/' + t.id + '?start=' + start + '&end=' + end))
-                .then(function(r) { return r.json(); })
+            return docsightJson('/api/connection-monitor/outages/' + t.id + '?start=' + start + '&end=' + end)
                 .then(function(outages) { return { target: t, outages: outages }; });
         });
 
@@ -394,7 +401,9 @@
                 renderRawLogLinks();
                 renderResolutionIndicator(meta);
             })
-            .catch(function() {});
+            .catch(function() {
+                if (seq === loadSeq) showNoData('error', loadData);
+            });
     }
 
     /* One chip per target: its line color, average latency and loss. Pressing a
@@ -525,13 +534,7 @@
         tbody.textContent = '';
 
         if (grouped.length === 0) {
-            var emptyRow = document.createElement('tr');
-            var emptyCell = document.createElement('td');
-            emptyCell.colSpan = 4;
-            emptyCell.className = 'dt-empty';
-            emptyCell.textContent = T['docsight.connection_monitor.cm_outage_none'] || 'No outages in this range';
-            emptyRow.appendChild(emptyCell);
-            tbody.appendChild(emptyRow);
+            appendMessageRow(tbody, 4, T['docsight.connection_monitor.cm_outage_none']);
             return;
         }
 
@@ -548,7 +551,7 @@
             if (g.ongoing) {
                 var span = document.createElement('span');
                 span.className = 'cm-outage-ongoing';
-                span.textContent = T['docsight.connection_monitor.cm_outage_ongoing'] || 'Ongoing';
+                span.textContent = T['docsight.connection_monitor.cm_outage_ongoing'];
                 tdEnd.appendChild(span);
             } else if (g.end) {
                 tdEnd.textContent = formatDocsightTime(g.end, 'datetime', true);
@@ -565,6 +568,16 @@
             tbody.appendChild(tr);
         });
         labelDataTable(document.getElementById('cm-outage-table'));
+    }
+
+    function appendMessageRow(tbody, columns, text) {
+        var row = document.createElement('tr');
+        var cell = document.createElement('td');
+        cell.colSpan = columns;
+        cell.className = 'dt-empty';
+        cell.textContent = text;
+        row.appendChild(cell);
+        tbody.appendChild(row);
     }
 
     // Outage durations arrive with one decimal; whole seconds keep the output clean.
@@ -594,7 +607,7 @@
             '1hr': el.dataset.label1hr || '1-hour averages'
         };
         if (pinnedDayView) {
-            el.textContent = (T['docsight.connection_monitor.cm_pinned_day_status'] || 'Pinned: {date} (full resolution)').replace('{date}', pinnedDayView.date);
+            el.textContent = T['docsight.connection_monitor.cm_pinned_day_status'].replace('{date}', pinnedDayView.date);
             el.style.display = 'block';
             return;
         }
@@ -608,8 +621,9 @@
         el.style.display = 'block';
     }
 
-    /* 'targets': nothing enabled to probe; 'range': targets, but no samples in the period. */
-    function showNoData(kind) {
+    /* 'targets': nothing enabled to probe; 'range': targets, but no samples in the period;
+       'error': the request failed, `retry` repeats it. */
+    function showNoData(kind, retry) {
         var noData = document.getElementById('cm-no-data');
         var chartsEl = document.getElementById('cm-charts-section');
         var perTargetEl = document.getElementById('cm-per-target-stats');
@@ -620,7 +634,9 @@
         var more = document.getElementById('cm-more');
         var chips = document.getElementById('cm-target-chips');
         var resolutionEl = document.getElementById('cm-resolution-indicator');
-        if (noData && kind === 'range') {
+        if (noData && kind === 'error') {
+            DOCSightEmptyState.showError(noData, {retry: retry});
+        } else if (noData && kind === 'range') {
             DOCSightEmptyState.showRange(noData, {tabs: 'cm-range-tabs', text: noData.dataset.rangeText, glossary: 'connection_monitor'});
         } else if (noData) {
             DOCSightEmptyState.show(noData, {
@@ -655,6 +671,9 @@
     // --- Traceroute ---
 
     var trSelectedTargetId = null;
+    var trResultTimer = null;
+
+    function cmT(key, fallback) { return T['docsight.connection_monitor.traceroute.' + key] || fallback; }
 
     function initTracerouteTargetSelect() {
         var container = document.getElementById('cm-traceroute-target-select');
@@ -679,16 +698,20 @@
         loadTraceHistory();
     }
 
+    var traceSeq = 0;
+
     function loadTraceHistory() {
         if (!trSelectedTargetId) return;
-        fetch(docsightUrl('/api/connection-monitor/traces/' + trSelectedTargetId))
-            .then(function(r) { return r.json(); })
+        // Target clicks and manual runs overlap; only the latest load may draw.
+        var seq = ++traceSeq;
+        docsightJson('/api/connection-monitor/traces/' + trSelectedTargetId)
+            .catch(function() { return null; })
             .then(function(traces) {
-                renderTraceHistory(traces);
-            })
-            .catch(function() {});
+                if (seq === traceSeq) renderTraceHistory(traces);
+            });
     }
 
+    /* null: the request failed; pressing a target loads its history again. */
     function renderTraceHistory(traces) {
         var tbody = document.getElementById('cm-traceroute-tbody');
         var table = document.getElementById('cm-traceroute-table');
@@ -697,7 +720,7 @@
 
         tbody.textContent = '';
 
-        if (!traces || traces.length === 0) {
+        if (traces && traces.length === 0) {
             table.hidden = true;
             if (noTraces) noTraces.style.display = 'block';
             return;
@@ -705,6 +728,10 @@
 
         table.hidden = false;
         if (noTraces) noTraces.style.display = 'none';
+        if (!traces) {
+            appendMessageRow(tbody, 6, failureText());
+            return;
+        }
 
         // Find target label
         var targetLabel = '';
@@ -750,7 +777,7 @@
             tdReached.appendChild(reachedSpan);
 
             var tdTrigger = document.createElement('td');
-            tdTrigger.textContent = trace.trigger_reason || '\u2014';
+            tdTrigger.textContent = trace.trigger_reason ? cmT('trigger_' + trace.trigger_reason, trace.trigger_reason) : '\u2014';
 
             tr.appendChild(tdTarget);
             tr.appendChild(tdTime);
@@ -782,16 +809,16 @@
         }
         if (control) control.setAttribute('aria-expanded', 'true');
 
-        // Fetch detail
-        fetch(docsightUrl('/api/connection-monitor/trace/' + traceId))
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                var detailRow = document.createElement('tr');
-                detailRow.className = 'trace-detail-row dt-detail';
-                if (detailId) detailRow.id = detailId;
-                var td = document.createElement('td');
-                td.colSpan = 6;
+        var detailRow = document.createElement('tr');
+        detailRow.className = 'trace-detail-row dt-detail';
+        if (detailId) detailRow.id = detailId;
+        var td = document.createElement('td');
+        td.colSpan = 6;
+        detailRow.appendChild(td);
+        row.parentNode.insertBefore(detailRow, row.nextSibling);
 
+        docsightJson('/api/connection-monitor/trace/' + traceId)
+            .then(function(data) {
                 var hops = data.hops || [];
                 if (hops.length === 0) {
                     td.textContent = '\u2014';
@@ -800,9 +827,8 @@
                     hopTable.className = 'data-table data-table-compact';
                     var thead = document.createElement('thead');
                     var headRow = document.createElement('tr');
-                    var cmT = function(key, fallback) { return T['docsight.connection_monitor.traceroute.' + key] || fallback; };
-                    [[cmT('hop', 'Hop'), true], [cmT('ip_address', 'IP address')], [cmT('hostname', 'Hostname')],
-                     [cmT('latency', 'Latency'), true], [cmT('probes_responded', 'Probes'), true]].forEach(function(column) {
+                    [[cmT('hop'), true], [cmT('ip_address')], [cmT('hostname')],
+                     [cmT('latency'), true], [cmT('probes_responded'), true]].forEach(function(column) {
                         var th = document.createElement('th');
                         if (column[1]) th.className = 'dt-num';
                         th.textContent = column[0];
@@ -849,11 +875,11 @@
                     labelDataTable(hopTable);
                     td.appendChild(hopTable);
                 }
-
-                detailRow.appendChild(td);
-                row.parentNode.insertBefore(detailRow, row.nextSibling);
             })
-            .catch(function() {});
+            .catch(function() {
+                td.className = 'dt-empty';
+                td.textContent = failureText();
+            });
     }
 
     function renderTracerouteResult(data) {
@@ -872,20 +898,19 @@
 
         resultDiv.style.display = 'block';
         var reached = data.reached_target;
-        var statusText = reached ? 'Target reached' : 'Target not reached';
 
         var box = document.createElement('div');
         box.className = 'cm-traceroute-alert ' + (reached ? 'ok' : 'error');
 
         var statusSpan = document.createElement('span');
-        statusSpan.textContent = statusText;
+        statusSpan.textContent = cmT(reached ? 'reached' : 'not_reached');
         box.appendChild(statusSpan);
 
-        var infoText = document.createTextNode(' \u2014 ' + data.hop_count + ' hops');
+        var infoText = document.createTextNode(' \u2014 ' + data.hop_count + ' ' + cmT('hops'));
         box.appendChild(infoText);
 
         if (data.route_fingerprint) {
-            var fpText = document.createTextNode(', fingerprint: ');
+            var fpText = document.createTextNode(', ' + cmT('fingerprint') + ': ');
             box.appendChild(fpText);
             var fpCode = document.createElement('code');
             fpCode.className = 'cm-fingerprint';
@@ -895,7 +920,7 @@
 
         resultDiv.appendChild(box);
         // Auto-hide after 8s
-        setTimeout(function() { resultDiv.style.display = 'none'; }, 8000);
+        trResultTimer = setTimeout(function() { resultDiv.style.display = 'none'; }, 8000);
     }
 
     window.cmRunTraceroute = function() {
@@ -905,13 +930,20 @@
 
         var label = btn.querySelector('span');
         var origText = label ? label.textContent : btn.textContent;
+        clearTimeout(trResultTimer); // an earlier result must not hide this run's result
         btn.disabled = true;
         btn.classList.add('is-running');
         if (label) label.textContent = btn.dataset.running || 'Running traceroute...';
         else btn.textContent = btn.dataset.running || 'Running traceroute...';
 
         fetch(docsightUrl('/api/connection-monitor/traceroute/' + trSelectedTargetId), { method: 'POST' })
-            .then(function(r) { return r.json(); })
+            // Refusals carry their reason as JSON; any other failure renders as a failed request.
+            .then(function(r) {
+                return r.json().then(function(data) {
+                    return r.ok ? data : {error: data.error || failureText()};
+                });
+            })
+            .catch(function() { return {error: failureText()}; })
             .then(function(data) {
                 btn.disabled = false;
                 btn.classList.remove('is-running');
@@ -921,12 +953,6 @@
                 if (!data.error) {
                     loadTraceHistory();
                 }
-            })
-            .catch(function() {
-                btn.disabled = false;
-                btn.classList.remove('is-running');
-                if (label) label.textContent = origText;
-                else btn.textContent = origText;
             });
     };
 

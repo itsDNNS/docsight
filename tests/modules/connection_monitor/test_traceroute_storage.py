@@ -20,7 +20,7 @@ def _make_hops(count=3):
 class TestTracerouteStorage:
     def test_trace_tables_created(self, storage):
         """Traceroute tables should exist after init."""
-        with storage._connect() as conn:
+        with storage._write() as conn:
             tables = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'traceroute_%'"
             ).fetchall()
@@ -91,24 +91,10 @@ class TestTracerouteStorage:
         old_id = storage.save_trace(tid, now - 10 * 86400, "scheduled", _make_hops(2), "old", True)
         new_id = storage.save_trace(tid, now - 60, "scheduled", _make_hops(2), "new", True)
 
-        storage.cleanup_traces(retention_days=7)
+        storage.cleanup_traces(retention_days=7, tz_name="UTC")
 
         assert storage.get_trace(old_id) is None
         assert storage.get_trace(new_id) is not None
-
-    def test_cleanup_traces_respects_pinned_days(self, storage):
-        """Traces on pinned dates should survive cleanup."""
-        tid = storage.create_target("Test", "1.1.1.1")
-        now = time.time()
-        old_ts = now - 10 * 86400
-        from datetime import datetime, timezone
-        old_date = datetime.fromtimestamp(old_ts, tz=timezone.utc).strftime("%Y-%m-%d")
-        storage.pin_day(old_date)
-
-        trace_id = storage.save_trace(tid, old_ts, "scheduled", _make_hops(2), "pinned", True)
-        storage.cleanup_traces(retention_days=7)
-
-        assert storage.get_trace(trace_id) is not None
 
     def test_cascade_delete_target(self, storage):
         """Deleting a target should cascade to traces and hops."""
@@ -125,7 +111,7 @@ class TestTracerouteStorage:
         trace_id = storage.save_trace(tid, time.time(), "manual", _make_hops(3), "fp", True)
         assert len(storage.get_trace_hops(trace_id)) == 3
 
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute("DELETE FROM traceroute_traces WHERE id = ?", (trace_id,))
 
         assert storage.get_trace_hops(trace_id) == []

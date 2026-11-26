@@ -3,6 +3,7 @@
 import pytest
 
 from app.analyzer import analyze, apply_cumulative_error_baseline
+from tests.drivers.driver_format_cases import CASE_BY_ID
 
 
 def _data(*channels):
@@ -192,3 +193,34 @@ def test_schema_2_predecessor_establishes_safe_schema_3_baseline():
     assert baseline["ds_comparable_correctable_delta"] == 0
     assert baseline["ds_comparable_uncorrectable_delta"] == 0
     assert current["summary"]["ds_uncorr_pct"] == 0.0
+
+
+@pytest.mark.parametrize("reading", [float("inf"), float("nan"), "inf", "bad"])
+def test_non_finite_or_unreadable_readings_are_unavailable(reading):
+    channel = _channel(1, "3.0", reading, reading, family="sc_qam") | {"powerLevel": reading, "mse": reading}
+    result = analyze(_data(channel))
+
+    ds = result["ds_channels"][0]
+    assert [ds[key] for key in ("power", "snr", "correctable_errors", "uncorrectable_errors")] == [None] * 4
+    assert result["summary"]["ds_correctable_errors"] is None
+    assert result["summary"]["error_counter_coverage"]["unsupported_channels"] == 1
+
+
+@pytest.mark.parametrize(("case_id", "counters"), [
+    ("tc4400_html.success_scqam_ofdm_ofdma", [(3, 30), (9, 1)]),
+    ("vodafone_station_cga_json.success_all_lanes", [(None, None)] * 2),
+    ("vodafone_station_tg_embedded_json.success_all_lanes", [(None, None)] * 2),
+])
+def test_driver_counters_reach_the_analyzer_and_are_absent_when_not_reported(case_id, counters):
+    result = analyze(CASE_BY_ID[case_id].observe().output)
+
+    assert [(ch["correctable_errors"], ch["uncorrectable_errors"]) for ch in result["ds_channels"]] == counters
+
+
+@pytest.mark.parametrize(("raw", "counter"), [
+    (0, 0), ("5", 5), (5.0, 5), (False, None), (True, None), (0.5, None), (-1, None), ("-1", None),
+])
+def test_counters_are_whole_non_negative_numbers(raw, counter):
+    result = analyze(_data(_channel(1, "3.0", raw, raw, family="sc_qam")))
+
+    assert (result["ds_channels"][0]["correctable_errors"], result["ds_channels"][0]["uncorrectable_errors"]) == (counter, counter)

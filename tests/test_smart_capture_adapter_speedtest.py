@@ -1,110 +1,24 @@
-"""Tests for Smart Capture STT adapter and collector import hook."""
+"""Tests for the Smart Capture STT adapter."""
 
+import logging
 import sqlite3
+from datetime import datetime, timezone
 
 import pytest
 import requests
 from unittest.mock import MagicMock, patch
 
-from app.modules.speedtest.collector import SpeedtestCollector
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.smart_capture.adapters.speedtest import SpeedtestAdapter
 from app.smart_capture.types import ExecutionStatus
 from app.storage import SnapshotStorage
 from app.types import EventDict
+from tests.test_speedtest import TRACKER_SETTING_CHANGES
 
 
 @pytest.fixture
 def storage(tmp_path):
     return SnapshotStorage(str(tmp_path / "test.db"), max_days=7)
-
-
-class TestCollectorOnImport:
-    def _make_collector(self):
-        config = MagicMock()
-        config.get = MagicMock(side_effect=lambda k, d=None: {
-            "speedtest_tracker_url": "http://stt:8999",
-            "speedtest_tracker_token": "test-token",
-        }.get(k, d))
-        config.is_speedtest_configured = MagicMock(return_value=True)
-        storage = MagicMock()
-        storage.db_path = ":memory:"
-        web = MagicMock()
-        with patch("app.modules.speedtest.collector.SpeedtestStorage"):
-            collector = SpeedtestCollector(config_mgr=config, storage=storage, web=web)
-        collector._storage = MagicMock()
-        return collector
-
-    def test_on_import_called_with_new_results_on_delta_sync(self):
-        collector = self._make_collector()
-        callback = MagicMock()
-        collector.on_import = callback
-
-        # Cache is warm (>= 50), so delta sync path is used
-        collector._storage.get_latest_speedtest_id.return_value = 10
-        collector._storage.get_speedtest_count.return_value = 100
-
-        new_results = [
-            {"id": 11, "timestamp": "2026-03-15T10:00:00Z", "download_mbps": 100.0,
-             "upload_mbps": 20.0, "download_human": "100 Mbps", "upload_human": "20 Mbps",
-             "ping_ms": 10.0, "jitter_ms": 1.0, "packet_loss_pct": 0.0},
-        ]
-
-        mock_client = MagicMock()
-        mock_client.get_newer_than.return_value = new_results
-        mock_client.get_latest_with_error.return_value = (new_results[:1], None)
-        collector._client = mock_client
-        collector._last_url = "http://stt:8999"  # prevent _ensure_client from overwriting
-        collector._last_tls_insecure = False
-        collector.collect()
-
-        callback.assert_called_once()
-        imported = callback.call_args[0][0]
-        assert len(imported) == 1
-        assert imported[0]["id"] == 11
-
-    def test_on_import_skipped_during_initial_backfill(self):
-        collector = self._make_collector()
-        callback = MagicMock()
-        collector.on_import = callback
-
-        # Cache is small (< 50), so backfill path is used
-        collector._storage.get_latest_speedtest_id.return_value = 0
-        collector._storage.get_speedtest_count.return_value = 0
-
-        backfill_results = [
-            {"id": i, "timestamp": f"2026-03-{i:02d}T10:00:00Z", "download_mbps": 100.0,
-             "upload_mbps": 20.0, "download_human": "100 Mbps", "upload_human": "20 Mbps",
-             "ping_ms": 10.0, "jitter_ms": 1.0, "packet_loss_pct": 0.0}
-            for i in range(1, 20)
-        ]
-
-        mock_client = MagicMock()
-        mock_client.get_results.return_value = backfill_results
-        mock_client.get_latest_with_error.return_value = (backfill_results[-1:], None)
-        collector._client = mock_client
-        collector._last_url = "http://stt:8999"
-        collector.collect()
-
-        callback.assert_not_called()
-
-    def test_on_import_not_called_when_no_new_results(self):
-        collector = self._make_collector()
-        callback = MagicMock()
-        collector.on_import = callback
-
-        collector._storage.get_latest_speedtest_id.return_value = 10
-        collector._storage.get_speedtest_count.return_value = 100
-
-        mock_client = MagicMock()
-        mock_client.get_newer_than.return_value = []
-        mock_client.get_latest_with_error.return_value = ([], None)
-        collector._client = mock_client
-        collector._last_url = "http://stt:8999"
-        collector._last_tls_insecure = False
-        collector.collect()
-
-        callback.assert_not_called()
 
 
 # ── STT Adapter Tests ──
@@ -162,6 +76,9 @@ class _Response:
 
     def json(self):
         return self._payload
+
+    def raise_for_status(self):
+        pass
 
 
 class TestSpeedtestAdapterExecute:
@@ -246,13 +163,26 @@ class TestSpeedtestAdapterExecute:
         row = storage.get_execution(eid)
         assert (row["status"], row["attempt_count"], row["last_error"]) == ("expired", 1, expected)
 
+@TRACKER_SETTING_CHANGES
+def test_execute_uses_the_changed_tracker_settings(storage, changed):
+    adapter = SpeedtestAdapter(storage, _make_config())
+    adapter._config = config = _make_config(sc_speedtest_min_interval=0, **changed)
+    with patch("app.modules.speedtest.client.requests.Session.post", autospec=True, return_value=_Response()) as post:
+        assert adapter.execute(_pending_execution(storage), _event()) == (True, None)
+
+    session, url = post.call_args.args
+    assert (url, session.headers["Authorization"], post.call_args.kwargs["verify"]) == (
+        config.get("speedtest_tracker_url") + "/api/v1/speedtests/run",
+        "Bearer " + config.get("speedtest_tracker_token"), config.get("speedtest_tls_insecure") is not True)
+
+
 class TestSpeedtestAdapterPreflight:
     def test_recent_tracker_result_suppresses_before_post(self, storage):
         _insert_speedtest_result(storage, timestamp="2026-03-15T11:30:00Z")
         execution_id = _pending_execution(storage, trigger_timestamp="2026-03-15T12:00:00Z")
         adapter = SpeedtestAdapter(storage, _make_config())
-        adapter._session = MagicMock()
-        adapter._session.get.side_effect = requests.RequestException("offline")
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.side_effect = requests.RequestException("offline")
 
         ok, reason = adapter.execute(execution_id, _event())
 
@@ -262,7 +192,35 @@ class TestSpeedtestAdapterPreflight:
         assert "recent_speedtest_result" in reason
         assert row["status"] == "suppressed"
         assert "recent_speedtest_result" in row["suppression_reason"]
-        adapter._session.post.assert_not_called()
+        adapter._client.session.post.assert_not_called()
+
+    @pytest.mark.parametrize("fields, expected", [
+        ({}, datetime(2026, 3, 15, 11, 30, tzinfo=timezone.utc)),
+        ({"created_at": 20260315}, None),
+        ({"data": {"timestamp": 20260315}}, None),
+        ({"created_at": "not a time"}, None),
+    ])
+    def test_remote_lookup_reads_the_newest_tracker_result(self, storage, caplog, fields, expected):
+        adapter = SpeedtestAdapter(storage, _make_config())
+        # A Tracker result carries created_at ("Y-m-d H:i:s") and no top-level timestamp.
+        item = {"id": 10, "status": "completed", "created_at": "2026-03-15 11:30:00", "data": {}, **fields}
+        result = _Response(200, {"data": [item]})
+        adapter._client.session = MagicMock(get=MagicMock(return_value=result))
+        with caplog.at_level(logging.DEBUG, logger="docsis.smart_capture.adapters.speedtest"):
+            assert adapter._fetch_latest_remote_result_timestamp() == expected
+        assert adapter._client.session.get.call_args.kwargs["params"] == {
+            "page[size]": 1, "page[number]": 1, "sort": "-created_at",
+        }
+        assert ("latest STT result has no readable time" in caplog.text) == (expected is None)
+
+    def test_failed_remote_lookup_is_logged_without_its_details(self, storage, caplog):
+        adapter = SpeedtestAdapter(storage, _make_config())
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.side_effect = requests.ConnectionError("http://stt:8999/api/v1/results")
+        assert adapter._fetch_latest_remote_result_timestamp() is None
+        assert [r.getMessage() for r in caplog.records] == [
+            "Failed to fetch speedtest results: Cannot reach Speedtest Tracker (ConnectionError)"
+        ]
 
     def test_recent_smart_capture_fire_suppresses_after_adapter_restart(self, storage):
         storage.save_execution(
@@ -273,8 +231,8 @@ class TestSpeedtestAdapterPreflight:
         )
         execution_id = _pending_execution(storage, trigger_timestamp="2026-03-15T12:00:00Z")
         adapter = SpeedtestAdapter(storage, _make_config())
-        adapter._session = MagicMock()
-        adapter._session.get.return_value = _Response(200, {"data": []})
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.return_value = _Response(200, {"data": []})
 
         ok, reason = adapter.execute(execution_id, _event())
 
@@ -283,7 +241,7 @@ class TestSpeedtestAdapterPreflight:
         assert reason is not None
         assert "speedtest_min_interval" in reason
         assert row["status"] == "suppressed"
-        adapter._session.post.assert_not_called()
+        adapter._client.session.post.assert_not_called()
 
     def test_daily_speedtest_smart_capture_budget_is_persistent(self, storage):
         for fired_at in ("2026-03-15T01:00:00Z", "2026-03-15T06:00:00Z"):
@@ -298,8 +256,8 @@ class TestSpeedtestAdapterPreflight:
             storage,
             _make_config(sc_speedtest_max_actions_per_day=2, sc_speedtest_min_interval=0),
         )
-        adapter._session = MagicMock()
-        adapter._session.get.return_value = _Response(200, {"data": []})
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.return_value = _Response(200, {"data": []})
 
         ok, reason = adapter.execute(execution_id, _event())
 
@@ -308,14 +266,14 @@ class TestSpeedtestAdapterPreflight:
         assert reason is not None
         assert "speedtest_daily_cap" in reason
         assert row["status"] == "suppressed"
-        adapter._session.post.assert_not_called()
+        adapter._client.session.post.assert_not_called()
 
     def test_read_timeout_is_recorded_as_fired_pending_result_link(self, storage):
         execution_id = _pending_execution(storage)
         adapter = SpeedtestAdapter(storage, _make_config(sc_speedtest_min_interval=0))
-        adapter._session = MagicMock()
-        adapter._session.get.return_value = _Response(200, {"data": []})
-        adapter._session.post.side_effect = requests.exceptions.ReadTimeout("slow run")
+        adapter._client.session = MagicMock()
+        adapter._client.session.get.return_value = _Response(200, {"data": []})
+        adapter._client.session.post.side_effect = requests.exceptions.ReadTimeout("slow run")
 
         ok, reason = adapter.execute(execution_id, _event())
 
@@ -495,7 +453,7 @@ class TestEndToEnd:
             "details": {"direction": "downgrade"}, "_id": 1,
         }
 
-        with patch.object(adapter, '_session') as mock_sess:
+        with patch.object(adapter._client, 'session') as mock_sess:
             mock_sess.post.return_value = MagicMock(status_code=201)
             engine.evaluate([event])
 
@@ -533,7 +491,7 @@ class TestEventEmission:
             status=ExecutionStatus.PENDING,
         )
 
-        with patch.object(adapter, '_session') as mock_sess:
+        with patch.object(adapter._client, 'session') as mock_sess:
             mock_sess.post.return_value = MagicMock(status_code=201)
             adapter.execute(eid, {
                 "event_type": "modulation_change", "severity": "warning",

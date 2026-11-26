@@ -105,7 +105,7 @@
       }
       // Visible text or a short name names the hint; the explanation describes it once.
       if (!visibleText(hint) && !hint.hasAttribute('aria-label')) {
-        hint.setAttribute('aria-label', (window.T && T.glossary_hint_label) || 'Explanation');
+        hint.setAttribute('aria-label', T.glossary_hint_label);
       }
       if (!source.id) source.id = 'glossary-hint-text-' + (++hintCount);
       hint.setAttribute('aria-describedby', source.id);

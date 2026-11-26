@@ -84,11 +84,14 @@ def epoch_to_utc(value):
 
 
 
+def local_now(tz_name):
+    """Return the current time in the user's timezone (UTC when none is known)."""
+    return datetime.now(ZoneInfo(tz_name) if tz_name else timezone.utc)
+
+
 def local_today(tz_name):
     """Return today's date (YYYY-MM-DD) in the user's timezone."""
-    if not tz_name:
-        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    return datetime.now(ZoneInfo(tz_name)).strftime("%Y-%m-%d")
+    return local_now(tz_name).strftime("%Y-%m-%d")
 
 
 def local_date_to_utc_range(date_str, tz_name):
@@ -113,7 +116,7 @@ def get_tz_name(config_manager=None):
     feature modules that only need timezone conversion semantics.
     """
     if config_manager:
-        tz = config_manager.get("timezone")
+        tz = _valid_iana_timezone(config_manager.get("timezone"))
         if tz:
             return tz
     return guess_iana_timezone()
@@ -130,7 +133,7 @@ def _valid_iana_timezone(value):
         return ""
     try:
         ZoneInfo(candidate)
-    except (OSError, UnicodeError, ValueError, ZoneInfoNotFoundError):
+    except (OSError, ValueError, ZoneInfoNotFoundError):
         return ""
     return candidate
 
@@ -175,6 +178,15 @@ def parse_utc(ts):
         ts_clean = ts_clean.split(".")[0]
     naive = datetime.strptime(ts_clean, _LOCAL_FMT)
     return naive.replace(tzinfo=timezone.utc)
+
+
+def normalize_range_ts(ts, separator):
+    """Accept either ISO 'T' or legacy space-separated timestamps for queries."""
+    if not ts or len(ts) < 19:
+        return ts
+    if ts[10] not in ("T", " "):
+        return ts
+    return ts[:10] + separator + ts[11:]
 
 
 def parse_utc_strict(ts):

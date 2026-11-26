@@ -34,7 +34,7 @@ function refreshModuleRegistry() {
             if (loading) loading.hidden = true;
             gallery.hidden = true;
             if (empty) empty.hidden = false;
-            showToast(T.extensions_fetch_failed || 'Failed to load registry.', false);
+            showToast(T.extensions_fetch_failed, false);
         })
         .finally(function() { _registryFetching = false; });
 }
@@ -57,7 +57,7 @@ function _renderRegistryCards(gallery, modules) {
         if (mod.verified) {
             var vBadge = document.createElement('span');
             vBadge.className = 'module-badge badge-verified';
-            vBadge.textContent = T.extensions_verified || 'Verified';
+            vBadge.textContent = T.extensions_verified;
             nameRow.appendChild(vBadge);
         }
 
@@ -70,12 +70,12 @@ function _renderRegistryCards(gallery, modules) {
         meta.textContent = (mod.author || '') + ' \u00B7 v' + (mod.version || '') + ' \u00B7 ';
         var statusSpan = document.createElement('span');
         if (status === 'not_installed') {
-            statusSpan.textContent = T.extensions_not_installed || 'Not installed';
+            statusSpan.textContent = T.extensions_not_installed;
         } else if (status === 'installed_disabled') {
-            statusSpan.textContent = T.extensions_installed || 'Installed';
+            statusSpan.textContent = T.extensions_installed;
             statusSpan.className = 'registry-status-warn';
         } else {
-            statusSpan.textContent = T.extensions_installed || 'Installed';
+            statusSpan.textContent = T.extensions_installed;
             statusSpan.className = 'registry-status-good';
         }
         meta.appendChild(statusSpan);
@@ -90,12 +90,12 @@ function _renderRegistryCards(gallery, modules) {
         var btn = document.createElement('button');
         if (status === 'not_installed') {
             btn.className = 'btn btn-sm btn-install';
-            btn.textContent = T.extensions_install || 'Install';
-            btn.addEventListener('click', function(e) { installModule(e, mod.id, mod.download_url); });
+            btn.textContent = T.extensions_install;
+            btn.addEventListener('click', function(e) { _runModuleAction(e, mod.id, 'install', mod.download_url); });
         } else {
             btn.className = 'btn btn-sm btn-uninstall';
-            btn.textContent = T.extensions_uninstall || 'Uninstall';
-            btn.addEventListener('click', function(e) { uninstallModule(e, mod.id); });
+            btn.textContent = T.extensions_uninstall;
+            btn.addEventListener('click', function(e) { _runModuleAction(e, mod.id, 'uninstall'); });
         }
         action.appendChild(btn);
 
@@ -110,15 +110,15 @@ function _runModuleAction(e, id, action, downloadUrl) {
     var installing = action === 'install';
     var idleClass = installing ? 'btn-install' : 'btn-uninstall';
     var idleText = installing
-        ? (T.extensions_install || 'Install')
-        : (T.extensions_uninstall || 'Uninstall');
+        ? T.extensions_install
+        : T.extensions_uninstall;
     var failedText = installing
-        ? (T.extensions_install_failed || 'Installation failed')
-        : (T.extensions_uninstall_failed || 'Uninstall failed');
+        ? T.extensions_install_failed
+        : T.extensions_uninstall_failed;
     if (btn.dataset.confirmPending !== 'true') {
         btn.dataset.confirmPending = 'true';
         btn.className = 'btn btn-sm btn-confirm';
-        btn.textContent = T.extensions_confirm || 'Confirm?';
+        btn.textContent = T.extensions_confirm;
         btn._resetTimer = setTimeout(function() {
             btn.dataset.confirmPending = 'false';
             btn.className = 'btn btn-sm ' + idleClass;
@@ -143,8 +143,8 @@ function _runModuleAction(e, id, action, downloadUrl) {
         if (data.success) {
             showToast(
                 installing
-                    ? (T.extensions_install_success || 'Module installed successfully')
-                    : (T.extensions_uninstall_success || 'Module uninstalled'),
+                    ? T.extensions_install_success
+                    : T.extensions_uninstall_success,
                 true
             );
             var banner = document.getElementById('module-restart-banner');
@@ -163,15 +163,6 @@ function _runModuleAction(e, id, action, downloadUrl) {
         btn.className = 'btn btn-sm ' + idleClass;
         btn.textContent = idleText;
     });
-}
-
-/* Thin public entry points retained for existing card click handlers. */
-function installModule(e, id, downloadUrl) {
-    _runModuleAction(e, id, 'install', downloadUrl);
-}
-
-function uninstallModule(e, id) {
-    _runModuleAction(e, id, 'uninstall');
 }
 return {refreshModuleRegistry};
 };

@@ -14,8 +14,10 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_rows import parse_sb6183_downstream, parse_sb6183_html, parse_sb6183_upstream
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from .format_compat import unwrap
+from .formats.html_rows import parse_sb6183_html
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.sb6183")
 
@@ -52,14 +54,15 @@ class SB6183Driver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"SB6183 DOCSIS data retrieval failed: {e}")
 
-        return parse_sb6183_html(r.text).value
+        return unwrap(parse_sb6183_html(r.text), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from ``/RgSwInfo.asp``."""
         try:
             r = self._session.get(f"{self._url}/RgSwInfo.asp", timeout=15)
             r.raise_for_status()
-        except requests.RequestException:
+        except requests.RequestException as e:
+            log.warning("SB6183 device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Arris", "model": "SB6183", "sw_version": ""}
 
         soup = BeautifulSoup(r.text, "html.parser")
@@ -94,12 +97,6 @@ class SB6183Driver(ModemDriver):
     def get_connection_info(self) -> ConnectionInfo:
         """Standalone modem, no connection info."""
         return {}
-
-    def _parse_downstream(self, table) -> list[RawChannel]:
-        return parse_sb6183_downstream(table).value
-
-    def _parse_upstream(self, table) -> list[RawChannel]:
-        return parse_sb6183_upstream(table).value
 
     @staticmethod
     def _is_status_page(html: str) -> bool:

@@ -5,11 +5,13 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import sqlite3
 import tarfile
 import tempfile
 from contextlib import closing
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -29,11 +31,12 @@ def _archive(files: dict[str, bytes]) -> io.BytesIO:
     return payload
 
 
-def _database_bytes(tmp_path, rows):
+def _database_bytes(tmp_path, rows, journal_mode="delete"):
     handle = tempfile.NamedTemporaryFile(dir=tmp_path, suffix=".db", delete=False)
     path = Path(handle.name)
     handle.close()
     with closing(sqlite3.connect(path)) as conn:
+        conn.execute(f"PRAGMA journal_mode={journal_mode}")
         conn.execute("CREATE TABLE records (value TEXT)")
         conn.executemany("INSERT INTO records VALUES (?)", [(row,) for row in rows])
         conn.commit()
@@ -176,6 +179,126 @@ def test_all_databases_are_verified_before_any_database_is_published(tmp_path, m
     assert monitor.read_bytes() == monitor_before
 
 
+def test_failure_while_staging_leaves_no_temp_files(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    live = data_dir / "docsis_history.db"
+    live.write_bytes(_database_bytes(tmp_path, ["live"]))
+    before = live.read_bytes()
+
+    from app.modules.backup import backup as backup_module
+
+    real_copy = backup_module.shutil.copyfileobj
+    copies = []
+
+    def fail_on_second_file(source, destination):
+        copies.append(source)
+        if len(copies) == 2:
+            destination.write(b"partial")
+            raise OSError("injected staging failure")
+        real_copy(source, destination)
+
+    monkeypatch.setattr(backup_module.shutil, "copyfileobj", fail_on_second_file)
+
+    with pytest.raises(OSError, match="injected staging failure"):
+        restore_backup(_archive({
+            "docsis_history.db": _database_bytes(tmp_path, ["new"]), "config.json": b"{}",
+        }), str(data_dir))
+
+    assert sorted(path.name for path in data_dir.iterdir()) == ["docsis_history.db"]
+    assert live.read_bytes() == before
+
+
+@pytest.mark.parametrize("opened", [False, True], ids=["before-open", "after-open"])
+@pytest.mark.parametrize("error", [OSError, KeyboardInterrupt])
+def test_failure_handing_over_a_staged_file_removes_it(tmp_path, monkeypatch, opened, error):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    real_fdopen = os.fdopen
+    descriptors = []
+
+    def fail_fdopen(fd, *args, **kwargs):
+        descriptors.append(fd)
+        if opened:
+            real_fdopen(fd, *args, **kwargs)  # the dropped file object closes the descriptor
+        raise error("injected handoff failure")
+
+    from app.modules.backup import backup as backup_module
+
+    monkeypatch.setattr(backup_module.os, "fdopen", fail_fdopen)
+
+    with pytest.raises(error, match="injected handoff failure"):
+        restore_backup(_archive({"config.json": b"{}"}), str(data_dir))
+
+    assert list(data_dir.iterdir()) == []
+    with pytest.raises(OSError):
+        os.fstat(descriptors[0])
+
+
+def test_staged_files_are_written_through_their_temp_descriptor(tmp_path, monkeypatch):
+    from app.modules.backup import backup as backup_module
+
+    opened = []
+    monkeypatch.setattr(backup_module, "open", lambda path, *args: opened.append(path) or open(path, *args),
+                        raising=False)
+
+    restore_backup(_archive({"config.json": b"{}"}), str(tmp_path))
+
+    assert not [path for path in opened if ".docsight-restore-" in str(path)]
+
+
+def test_failed_restore_removes_sqlite_sidecars_of_staged_databases(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    from app.modules.backup import backup as backup_module
+
+    monkeypatch.setattr(backup_module, "run_migrations", Mock(side_effect=RuntimeError("injected migration failure")))
+
+    with pytest.raises(RuntimeError, match="injected migration failure"):
+        restore_backup(_archive({"docsis_history.db": _database_bytes(tmp_path, ["new"], "wal")}), str(data_dir))
+
+    assert list(data_dir.iterdir()) == []
+
+
+def test_validation_decompresses_the_archive_once():
+    class CountingReader(io.BytesIO):
+        read_bytes = 0
+
+        def read(self, size=-1):
+            data = super().read(size)
+            self.read_bytes += len(data)
+            return data
+
+    from app.modules.backup.backup import validate_backup
+
+    archive = CountingReader(_archive({"config.json": os.urandom(4 << 20)}).getvalue())
+    validate_backup(archive)
+
+    assert archive.read_bytes < 1.5 * len(archive.getvalue())
+
+
+def test_archive_with_a_bad_gzip_checksum_is_rejected(tmp_path):
+    payload = bytearray(_archive({"config.json": b"{}"}).getvalue())
+    payload[-8] ^= 0xFF  # the CRC-32 in the gzip trailer
+
+    with pytest.raises(ValueError, match="Invalid archive"):
+        restore_backup(bytes(payload), str(tmp_path / "data"))
+
+    assert not (tmp_path / "data").exists()
+
+
+def test_repeated_member_name_leaves_no_temp_files(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    real_members = tarfile.TarFile.getmembers
+    monkeypatch.setattr(tarfile.TarFile, "getmembers", lambda tar: real_members(tar) * 2)
+
+    restore_backup(_archive({"config.json": b"{}"}), str(data_dir))
+
+    assert sorted(path.name for path in data_dir.iterdir()) == ["config.json"]
+
+
 @pytest.mark.parametrize("backup_has_tokens", [True, False], ids=["with-tokens", "before-tokens"])
 def test_restore_skips_session_state_and_keeps_live_api_tokens(tmp_path, backup_has_tokens):
     from app.storage import SnapshotStorage
@@ -278,7 +401,7 @@ def test_settings_save_waits_for_restore_and_reload(make_app, builtin_module_loa
     real_reload = config.reload
     waited = []
 
-    def restore_while_saving(_data, _data_dir):
+    def restore_while_saving(_data, _data_dir, _restored):
         save.start()
         save.join(0.2)
         return {"restored_files": [], "meta": {}}
@@ -297,3 +420,58 @@ def test_settings_save_waits_for_restore_and_reload(make_app, builtin_module_loa
     assert response.status_code == 200
     assert waited == [True]
     assert config.get("language") == "de"
+
+
+@pytest.mark.parametrize(("files", "failure"), [
+    (("docsis_history.db",), None),
+    (("docsis_history.db",), "reload"),
+    (("docsis_history.db", "connection_monitor.db"), "second-copy"),
+    (("docsis_history.db",), "after-copy"),
+    (("config.json",), None),
+], ids=["database", "database-reload-fails", "database-then-copy-fails", "copy-fails-after-copying", "config-only"])
+def test_restore_rebuilds_only_the_storages_of_replaced_databases(
+    make_app, builtin_module_loader_factory, tmp_path, monkeypatch, files, failure,
+):
+    from app.config import ConfigManager
+    from app.modules.backup import backup
+    from app.modules.journal.routes import _get_journal_storage
+    from app.runtime import get_runtime
+    from app.storage import SnapshotStorage
+
+    config = ConfigManager(str(tmp_path / "data"))
+    storage = SnapshotStorage(str(tmp_path / "data" / "docsis_history.db"))
+    app = make_app(config_manager=config, storage=storage, module_loader_factory=builtin_module_loader_factory(config))
+    client = app.test_client()
+    assert client.get("/api/journal").status_code == 200
+    with app.app_context():
+        journal = _get_journal_storage()
+    get_runtime(app).derived_storage.set_value("speedtest_last_trigger", 123.0)
+    core_only = tmp_path / "core-only.db"
+    SnapshotStorage(str(core_only))  # a backup from an instance that never opened the journal
+    contents = {"docsis_history.db": core_only.read_bytes(), "connection_monitor.db": core_only.read_bytes(),
+                "config.json": b"{}"}
+    real_copy, copies = backup.replace_contents, []
+
+    def copy(source, target):  # copies the first database, then fails as told
+        copies.append(target)
+        if len(copies) == 1:
+            real_copy(source, target)
+        if failure == "after-copy" or len(copies) == 2:
+            raise TimeoutError("copy step timed out")
+
+    if failure == "reload":
+        monkeypatch.setattr(config, "reload", Mock(side_effect=RuntimeError("reload failed")))
+    elif failure:
+        monkeypatch.setattr(backup, "replace_contents", copy)
+
+    response = client.post(
+        "/api/restore",
+        data={"file": (_archive({name: contents[name] for name in files}), "backup.tar.gz")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == (500 if failure else 200)
+    assert client.get("/api/journal").status_code == 200
+    with app.app_context():
+        assert (_get_journal_storage() is journal) == ("docsis_history.db" not in files)
+    assert get_runtime(app).derived_storage.value("speedtest_last_trigger", 0.0) == 123.0

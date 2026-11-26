@@ -9,27 +9,8 @@ import hashlib
 import logging
 import ssl
 
+import requests
 from requests.adapters import HTTPAdapter
-
-from .formats.primitives import (
-    hz_to_mhz,
-    normalize_mhz,
-    normalize_modulation,
-    parse_number,
-    parse_optional_finite_float,
-)
-
-__all__ = [
-    "hz_to_mhz",
-    "make_legacy_tls_adapter",
-    "normalize_mhz",
-    "normalize_modulation",
-    "parse_number",
-    "parse_optional_finite_float",
-    "pbkdf2_sha256",
-]
-
-log = logging.getLogger("docsis.drivers.utils")
 
 
 def pbkdf2_sha256(key_material: bytes, salt: bytes, *, length: int = 16, iterations: int = 1000) -> bytes:
@@ -42,6 +23,32 @@ def pbkdf2_sha256(key_material: bytes, salt: bytes, *, length: int = 16, iterati
         iterations: PBKDF2 iteration count.
     """
     return hashlib.pbkdf2_hmac("sha256", key_material, salt, iterations, dklen=length)
+
+
+def is_auth_error(exc: Exception) -> bool:
+    """Whether a request failed with an HTTP 401 or 403 error."""
+    return isinstance(exc, requests.HTTPError) and getattr(exc.response, "status_code", None) in {401, 403}
+
+
+def request_error_summary(exc: Exception) -> str:
+    """Error type and HTTP status only; request error texts can carry URLs, credentials and page fragments."""
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    return f"{type(exc).__name__} (HTTP {status})" if status else type(exc).__name__
+
+
+def error_text(exc: Exception) -> str:
+    """``request_error_summary`` for request errors; any other error keeps its own message."""
+    return request_error_summary(exc) if isinstance(exc, requests.RequestException) else str(exc)
+
+
+def fetch_failed(logger: logging.Logger, raise_on_error: bool, message: str, exc: Exception | None = None) -> dict:
+    """Raise ``message`` as ``RuntimeError`` in strict mode, else log it and return an empty payload."""
+    if raise_on_error and exc is not None:
+        raise RuntimeError(message) from exc
+    if raise_on_error:
+        raise RuntimeError(message)
+    logger.warning("%s", message)
+    return {}
 
 
 # ---------------------------------------------------------------------------

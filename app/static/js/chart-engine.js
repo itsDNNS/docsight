@@ -25,6 +25,82 @@ function fmtTempAxis(celsius) {
     if (TEMPERATURE_UNIT === 'fahrenheit') return Math.round(celsius * 9 / 5 + 32) + '°';
     return celsius.toFixed(0) + '°';
 }
+
+/* ── Temperature overlay ── */
+/* Chart points take the nearest reading up to 90 minutes away; from 30 days on, the daily average. */
+var TEMP_MATCH_MS = 90 * 60 * 1000;
+var TEMP_DAILY_FROM_HOURS = 30 * 24;
+
+function _hasTempData(tempData) {
+    return !!(tempData && tempData.some(function(v) { return v !== null; }));
+}
+
+function _alignWeatherToTimestamps(timestamps, weatherData, range) {
+    if (!weatherData || !weatherData.length) return null;
+    var weather = weatherData.map(function(row) {
+        // Older Safari cannot parse the API's "YYYY-MM-DD HH:MM:SSZ"; the ISO "T" form works everywhere.
+        var ms = row && row.timestamp ? docsightTimestampDate(String(row.timestamp).replace(' ', 'T')).getTime() : NaN;
+        var temp = row ? row.temperature : null;
+        if (!isFinite(ms) || temp == null || !isFinite(Number(temp))) return null;
+        return { ts: ms, temp: Number(temp), day: row.timestamp.substring(0, 10) };
+    }).filter(function(row) { return row !== null; });
+    if (!weather.length) return null;
+
+    if (docsightRangeHours(range) >= TEMP_DAILY_FROM_HOURS) {
+        var dailyTemps = {};
+        weather.forEach(function(row) {
+            if (!dailyTemps[row.day]) dailyTemps[row.day] = [];
+            dailyTemps[row.day].push(row.temp);
+        });
+        var dailyAvg = {};
+        Object.keys(dailyTemps).forEach(function(day) {
+            var vals = dailyTemps[day];
+            var sum = 0;
+            vals.forEach(function(v) { sum += v; });
+            dailyAvg[day] = Math.round(sum / vals.length * 10) / 10;
+        });
+        return (timestamps || []).map(function(ts) {
+            var day = ts ? String(ts).substring(0, 10) : '';
+            return dailyAvg[day] !== undefined ? dailyAvg[day] : null;
+        });
+    }
+
+    return (timestamps || []).map(function(ts) {
+        if (!ts) return null;
+        var target = docsightTimestampDate(ts).getTime();
+        if (!isFinite(target)) return null;
+        var best = null;
+        var bestDist = Infinity;
+        weather.forEach(function(row) {
+            var dist = Math.abs(row.ts - target);
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = row.temp;
+            }
+        });
+        return bestDist <= TEMP_MATCH_MS ? best : null;
+    });
+}
+
+function _updateTempToggleButton(btnId, tempData) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    var hasWeather = _hasTempData(tempData);
+    btn.hidden = !hasWeather;
+    btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
+    btn.setAttribute('aria-pressed', (_tempOverlayVisible && hasWeather) ? 'true' : 'false');
+    btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
+}
+
+/* Shows or hides a chart card; a hidden card's chart is destroyed. */
+function _setChartCardVisible(cardId, chartId, visible) {
+    var card = document.getElementById(cardId);
+    if (card) card.style.display = visible ? '' : 'none';
+    if (!visible && charts[chartId]) {
+        charts[chartId].destroy();
+        delete charts[chartId];
+    }
+}
 /* Compact k/M number. With `step` (the distance between axis ticks) every label
    gets as many decimals as the step needs, so close ticks stay distinct
    ("35.08k", "35.10k" instead of "35.1k" twice). Steps that would need more than
@@ -216,27 +292,53 @@ function calculateMaxXTicks(labels, chartWidth, yAxisSize, hardMax) {
 }
 
 /* ── Shared uPlot Plugins ── */
+/**
+ * Drag to zoom the x axis; double-click or the reset button returns to the full range.
+ * Requires zoomable:true in renderChart opts (disables fixed x-scale range).
+ */
 function zoomPlugin() {
+    // The reset button shows while zoomed, also when a zoom leaves the x bounds unchanged.
+    function syncResetBtn(u) {
+        if (u._zoomRange && !u._resetBtn) {
+            var btn = document.createElement('button');
+            btn.textContent = '\u2715 ' + (T.chart_reset_zoom || 'Reset Zoom');
+            btn.type = 'button';
+            btn.className = 'chart-zoom-reset';
+            btn.onclick = function() { resetZoom(u); };
+            u.root.style.position = 'relative';
+            u.root.appendChild(btn);
+            u._resetBtn = btn;
+        }
+        if (u._resetBtn) u._resetBtn.style.display = u._zoomRange ? '' : 'none';
+    }
+    function resetZoom(u) {
+        u._zoomRange = null;
+        u.setScale('x', chartXRange(u));
+        syncResetBtn(u);
+    }
     return {
         hooks: {
             init: [function(u) {
                 u.over.style.cursor = 'crosshair';
+                u.over.title = T.chart_zoom_hint || 'Drag to zoom, double-click to reset';
             }],
             ready: [function(u) {
-                u.over.addEventListener('dblclick', function() {
-                    u._zoomRange = null;
-                    var range = chartXRange(u);
-                    u.setScale('x', range);
-                });
+                u.over.addEventListener('dblclick', function() { resetZoom(u); });
             }],
             setSelect: [function(u) {
                 var min = u.posToVal(u.select.left, 'x');
                 var max = u.posToVal(u.select.left + u.select.width, 'x');
-                if (max - min > 1) {
+                // A drag of a few pixels is a click, not a zoom.
+                if (u.select.width > 4) {
                     u._zoomRange = { min: min, max: max };
                     u.setScale('x', u._zoomRange);
+                    syncResetBtn(u);
                 }
                 u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
+            }],
+            // renderChart restores a kept zoom after a redraw through setScale.
+            setScale: [function(u, key) {
+                if (key === 'x') syncResetBtn(u);
             }]
         }
     };
@@ -383,16 +485,15 @@ function docsightErrorsTitle(minutes) {
     return (T.trend_errors_per_minutes || 'Uncorrectable errors per {minutes} minutes').replace('{minutes}', minutes);
 }
 
-/* New errors between readings of a cumulative counter. A counter that drops
-   was reset (modem restart), so its new value counts, never a negative change. */
+/* New errors between readings of a cumulative counter, by the correlation
+   rules (errorDeltas). Rows of other sources carry neither the counter nor a
+   channel count. A poll without the counter is shown only when it recorded a
+   channel count, so a change of the reporting channels keeps its interval. */
 function _errorIncreases(rows, key, visit) {
-    var previous = null;
-    (rows || []).forEach(function(row) {
-        var value = row[key];
-        if (value === null || value === undefined) return;
-        var increase = previous === null ? 0 : (value >= previous ? value - previous : value);
-        previous = value;
-        visit(row, increase);
+    var polls = (rows || []).filter(function(row) { return key in row || 'ds_uncorrectable_channels' in row; });
+    DOCSightCorrelationData.errorDeltas(polls, key).forEach(function(entry, index) {
+        var row = polls[index];
+        if (row[key] != null || row.ds_uncorrectable_channels != null) visit(row, entry.delta);
     });
 }
 
@@ -409,21 +510,18 @@ function _wallClockLabel(minutes) {
 function docsightErrorBuckets(rows, range, field) {
     var size = docsightErrorBucketMinutes(range);
     var key = field || 'ds_uncorrectable_errors';
-    var buckets = [];
+    // By wall-clock start, so the hour repeated when clocks go back shares its intervals.
+    var buckets = {};
     _errorIncreases(rows, key, function(row, increase) {
         var minutes = _wallClockMinutes(row.timestamp);
         if (minutes === null) return;
         var start = Math.floor(minutes / size) * size;
-        var last = buckets[buckets.length - 1];
-        if (!last || last.start !== start) {
-            last = {start: start, timestamp: _wallClockLabel(start), errors: 0};
-            buckets.push(last);
-        }
-        last.errors += increase;
+        var bucket = buckets[start] || (buckets[start] = {start: start, timestamp: _wallClockLabel(start), errors: null});
+        if (increase !== null) bucket.errors = (bucket.errors || 0) + increase;
     });
     // Intervals without readings stay empty, so the bars keep their place in time.
     var filled = [];
-    buckets.forEach(function(bucket) {
+    Object.keys(buckets).map(function(start) { return buckets[start]; }).sort(function(a, b) { return a.start - b.start; }).forEach(function(bucket) {
         var previousBucket = filled[filled.length - 1];
         for (var start = previousBucket ? previousBucket.start + size : bucket.start; start < bucket.start; start += size) {
             filled.push({start: start, timestamp: _wallClockLabel(start), errors: null});
@@ -440,8 +538,7 @@ function docsightErrorSlots(rows, startMs, slots, minutes, field) {
     for (var i = 0; i < slots; i++) values.push(null);
     _errorIncreases(rows, field || 'uncorr_errors', function(row, increase) {
         var slot = Math.floor((Date.parse(row.timestamp) - startMs) / (minutes * 60000));
-        if (!(slot >= 0 && slot < slots)) return;
-        values[slot] = (values[slot] || 0) + increase;
+        if (slot >= 0 && slot < slots && increase !== null) values[slot] = (values[slot] || 0) + increase;
     });
     return values;
 }
@@ -1224,203 +1321,30 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
 
 /* ── Chart Zoom Modal ── */
 var zoomChart = null;
+var zoomTimer = null;
 
 function openChartZoom(canvasId) {
     var src = charts[canvasId];
     if (!src || !src._docsightParams) return;
     var params = src._docsightParams;
-    var srcEl = document.getElementById(canvasId);
-    var card = srcEl ? srcEl.closest('.chart-card') : null;
+    var card = document.getElementById(canvasId).closest('.chart-card');
     var label = card ? card.querySelector('.chart-label') : null;
     document.getElementById('chart-zoom-title').textContent = label ? label.textContent : '';
-    var overlay = document.getElementById('chart-zoom-overlay');
-    window.DOCSightModal.open(overlay);
+    window.DOCSightModal.open('chart-zoom-overlay');
 
-    setTimeout(function() {
-        if (zoomChart) { zoomChart.destroy(); zoomChart = null; }
-        var zoomContainer = document.getElementById('chart-zoom-canvas');
-        if (!zoomContainer) return;
-        zoomContainer.textContent = '';
-        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-        var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-        var textColor = isDark ? '#888' : '#666';
-        var isBar = params.type === 'bar';
-        var zoomTime = params.opts && params.opts.times && params.opts.times.length === params.labels.length
-            ? docsightTimeSeries(params.labels, params.datasets, params.opts.times, params.opts.tempData || null) : null;
-        if (zoomTime) {
-            params = Object.assign({}, params, {
-                labels: zoomTime.labels,
-                datasets: params.datasets.map(function(ds, k) { return Object.assign({}, ds, {data: zoomTime.data[k]}); }),
-                opts: params.opts.tempData ? Object.assign({}, params.opts, {tempData: zoomTime.temp}) : params.opts
-            });
-        }
-        var n = params.labels.length;
-        var zoomYAxisSize = params.opts && params.opts.zoomYAxisSize ? params.opts.zoomYAxisSize : DEFAULT_ZOOM_Y_AXIS_SIZE;
-        var w = zoomContainer.offsetWidth || 800;
-        var h = zoomContainer.offsetHeight || 500;
-        if (h < 300) h = 300;
-
-        /* Build data */
-        var xData = zoomTime ? zoomTime.times.slice() : [];
-        if (!zoomTime) for (var xi = 0; xi < n; xi++) xData.push(xi);
-        var zoomXEdgePadding = calculateXEdgePadding(params.labels, xData, w, zoomYAxisSize, params.opts && params.opts.zoomXEdgePadding);
-        var uData = [xData];
-        params.datasets.forEach(function(ds) { uData.push(ds.data); });
-
-        var zoomTempData = params.opts && params.opts.tempData && _tempOverlayVisible ? params.opts.tempData : null;
-        var zoomHasTemp = zoomTempData && zoomTempData.some(function(v) { return v !== null; }) && !isBar;
-        if (zoomHasTemp) uData.push(zoomTempData);
-
-        /* Series */
-        var barPaths = isBar ? uPlot.paths.bars({size: [0.7, 50], gap: 1}) : null;
-        var uSeries = [{ label: 'X', value: function(u, v) { return params.labels[v] || ''; } }];
-        params.datasets.forEach(function(ds) {
-            var zoomShowPoints = ds.showPoints;
-            if (zoomShowPoints === undefined) zoomShowPoints = n === 1;
-            var s = {
-                label: ds.label,
-                stroke: ds.color || 'rgba(168,85,247,0.9)',
-                width: ds.lineWidth !== undefined ? ds.lineWidth : (isBar ? 0 : 2),
-                fill: isBar ? barFill(ds.color) : (ds.fill || undefined),
-                points: { show: zoomShowPoints, size: isBar ? 0 : (ds.pointSize || (n > 30 ? 4 : 8)) },
-                spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false
-            };
-            if (ds.hideInLegend) s.class = 'docsight-legend-hidden';
-            if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;
-            if (isBar) { s.paths = barPaths; s.points = { show: false }; }
-            if (ds.stepped) { s.paths = uPlot.paths.stepped({ align: -1 }); s.width = 2; }
-            if (ds.dashed) { s.dash = [5, 5]; }
-            uSeries.push(s);
-        });
-
-        if (zoomHasTemp) {
-            var ts = {
-                label: T.temperature || 'Temperature',
-                stroke: 'rgba(249,115,22,0.7)',
-                width: 1.5,
-                dash: [5, 3],
-                scale: 'temp',
-                points: { show: false, size: 4 },
-                spanGaps: true
-            };
-            ts._docsightAxisID = 'y-temp';
-            uSeries.push(ts);
-        }
-
-        /* Tooltip callback */
-        var zoomTooltipCb = null;
-        if (params.opts && params.opts.tooltipLabelCallback) {
-            zoomTooltipCb = params.opts.tooltipLabelCallback;
-        } else if (zoomHasTemp) {
-            zoomTooltipCb = function(ctx) {
-                var val = ctx.parsed.y;
-                if (val == null) return '';
-                if (ctx.dataset.yAxisID === 'y-temp') return ctx.dataset.label + ': ' + fmtTemp(val);
-                return ctx.dataset.label + ': ' + val;
-            };
-        }
-
-        /* Scales */
-        var yRange = [null, null];
-        if (params.zones) {
-            var zoneMeta = params.zones.find(function(z) { return z.yMin !== undefined; });
-            if (zoneMeta) { yRange = [zoneMeta.yMin, zoneMeta.yMax]; }
-        }
-        if (params.opts && params.opts.yMin !== undefined) yRange[0] = params.opts.yMin;
-        if (params.opts && params.opts.yMax !== undefined) yRange[1] = params.opts.yMax;
-
-        var scales = {
-            x: { time: false, range: function() { return [xData[0] - zoomXEdgePadding, xData[xData.length - 1] + zoomXEdgePadding]; } },
-            y: {}
-        };
-        if (yRange[0] !== null && yRange[1] !== null) {
-            scales.y.range = function(u, dmin, dmax) {
-                var lo = yRange[0] !== null ? yRange[0] : dmin;
-                var hi = yRange[1] !== null ? yRange[1] : dmax;
-                if (dmin < lo) lo = dmin;
-                if (dmax > hi) hi = dmax;
-                return [lo, hi];
-            };
-        }
-        if (zoomHasTemp) { scales.temp = {}; }
-
-        /* Axes */
-        var zLabelWidth = estimateLongestLabelWidth(params.labels, 60);
-
-        var zoomMaxTicks = calculateMaxXTicks(params.labels, w, zoomYAxisSize, 10);
-        var zoomXSplits = zoomTime
-            ? buildTimeSplits(xData, params.labels, [xData[0] - zoomXEdgePadding, xData[xData.length - 1] + zoomXEdgePadding], Math.max(w - zoomYAxisSize - 24, 1), zLabelWidth)
-            : buildEvenIndexTicks(n, zoomMaxTicks);
-        var axes = [
-            {
-                scale: 'x',
-                space: zLabelWidth,
-                splits: function() { return zoomXSplits; },
-                values: function(u, vals) {
-                    if (!zoomTime) return vals.map(function(v) { return params.labels[v] || ''; });
-                    return vals.map(function(v) { var i = xData.indexOf(v); return i === -1 ? '' : (params.labels[i] || ''); });
-                },
-                stroke: textColor,
-                grid: { stroke: gridColor, width: 1 },
-                ticks: { stroke: gridColor, width: 1 },
-                font: '12px system-ui',
-                gap: 4
-            },
-            {
-                scale: 'y',
-                stroke: textColor,
-                grid: { stroke: gridColor, width: 1 },
-                ticks: { stroke: gridColor, width: 1 },
-                font: '12px system-ui',
-                size: docsightAxisSize(zoomYAxisSize),
-                gap: 4
-            }
-        ];
-        if (params.opts && params.opts.yTickCallback) {
-            var cb = params.opts.yTickCallback;
-            axes[1].values = function(u, vals) { return vals.map(function(v) { return cb(v) || ''; }); };
-        }
-        if (params.opts && params.opts.yAfterBuildTicks) {
-            var ft = [];
-            params.opts.yAfterBuildTicks({ ticks: ft });
-            if (ft.length > 0) {
-                axes[1].splits = function() { return ft.map(function(t) { return t.value; }); };
-            }
-        }
-        if (zoomHasTemp) {
-            axes.push({
-                scale: 'temp', side: 1,
-                stroke: 'rgba(249,115,22,0.6)',
-                grid: { show: false },
-                ticks: { stroke: 'rgba(249,115,22,0.3)', width: 1 },
-                font: '12px system-ui',
-                size: 45,
-                gap: 4,
-                values: function(u, vals) { return vals.map(function(v) { return fmtTempAxis(v); }); }
-            });
-        }
-
-        /* Plugins */
-        var plugins = [tooltipPlugin(params.labels, zoomTooltipCb), touchScrubPlugin()];
-        if (zoomTime) plugins.push(gapBandsPlugin(zoomTime.gaps));
-        if (params.zones) plugins.push(zonesPlugin(params.zones));
-
-        var uOpts = {
-            width: w,
-            height: h,
-            scales: scales,
-            axes: axes,
-            series: uSeries,
-            cursor: { show: true, x: true, y: false, points: { show: false } },
-            legend: { show: params.datasets.length > 1 || zoomHasTemp, live: false },
-            plugins: plugins
-        };
-
-        zoomChart = new uPlot(uOpts, uData, zoomContainer);
+    // The same chart, drawn larger and without the point click of the inline chart.
+    zoomTimer = setTimeout(function() {
+        var height = Math.max(document.getElementById('chart-zoom-canvas').offsetHeight || 500, 300);
+        renderChart('chart-zoom-canvas', params.labels, params.datasets, params.type, params.zones, Object.assign({}, params.opts, {
+            yAxisSize: (params.opts && params.opts.zoomYAxisSize) || DEFAULT_ZOOM_Y_AXIS_SIZE,
+            maxXTicks: 10, minHeight: height, maxHeight: height, onPointClick: null
+        }));
+        zoomChart = charts['chart-zoom-canvas'];
     }, 50);
 }
 
 function closeChartZoom() {
+    clearTimeout(zoomTimer);
     window.DOCSightModal.close('chart-zoom-overlay');
-    if (zoomChart) { zoomChart.destroy(); zoomChart = null; }
+    if (zoomChart) { zoomChart.destroy(); delete charts['chart-zoom-canvas']; zoomChart = null; }
 }

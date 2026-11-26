@@ -109,4 +109,17 @@ def test_unconfigured_modules_keep_setup_without_empty_views(dashboard, prefix):
 
 
 def test_module_asset_cache_generation():
-    assert (ROOT / "app/static/sw.js").read_text().startswith("var CACHE_VERSION = 'v111';")
+    assert (ROOT / "app/static/sw.js").read_text().startswith("var CACHE_VERSION = 'v113';")
+
+
+@pytest.mark.parametrize("docsis", [None, True, False])
+def test_connection_monitor_summary_script_loads_once_with_the_page(dashboard, sample_analysis, docsis):
+    """Home shows the summary as a source entry, as a card without DOCSIS data, or first the
+    waiting screen that a refresh fragment replaces later. The page loads its script once."""
+    client = dashboard()
+    if docsis is not None:
+        channels = {} if docsis else {"ds_channels": [], "us_channels": []}
+        get_runtime(client.application).update_state(analysis={**sample_analysis, **channels})
+    script = "/modules/docsight.connection_monitor/static/js/connection-monitor-summary.js"
+    assert client.get("/").get_data(as_text=True).count(script) == 1
+    assert script not in client.get("/?fragment=dashboard").get_data(as_text=True)

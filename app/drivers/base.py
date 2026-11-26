@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Callable
+
+import requests
+
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
 
 
@@ -34,3 +39,21 @@ class ModemDriver:
     def get_connection_info(self) -> ConnectionInfo:
         """Retrieve internet connection info (speeds, type)."""
         raise NotImplementedError("ModemDriver.get_connection_info")
+
+    def _login_with_reconnect(self, label: str, attempt: Callable[[], None], logger: logging.Logger) -> None:
+        """Run ``attempt``, rebuilding ``self._session`` via ``self._new_session()`` once if the connection drops.
+
+        Request errors become ``RuntimeError`` with the "<label> authentication failed"
+        wording that the connection test classifies.
+        """
+        for retry in (False, True):
+            try:
+                return attempt()
+            except requests.ConnectionError as exc:
+                if retry:
+                    raise RuntimeError(f"{label} authentication failed: connection refused after retry") from exc
+                logger.warning("%s connection lost, retrying with fresh session", label)
+                self._session.close()
+                self._session = self._new_session()
+            except requests.RequestException as exc:
+                raise RuntimeError(f"{label} authentication failed: {exc}") from exc

@@ -10,6 +10,7 @@ from typing import Any
 
 from app.analyzer import resolve_snr_thresholds
 from app.docsis_utils import classify_channel_family
+from app.error_counters import uncorrectable_channels
 
 from .contract import (
     AGGREGATION_SCHEMA_VERSION,
@@ -18,7 +19,7 @@ from .contract import (
     ThresholdContext,
     Window,
 )
-from .provenance import aggregate_provenance, derive_historical
+from .provenance import aggregate_provenance, derive_diagnostic_notes
 from .window import canonical_utc_timestamp
 
 _AVERAGE_FIELDS = {
@@ -284,10 +285,10 @@ def aggregate_snapshot_period(
             "ds_snr_avg": summary.get("ds_snr_avg") if _number(summary.get("ds_snr_avg")) is not None else None,
             "us_power_avg": summary.get("us_power_avg") if _number(summary.get("us_power_avg")) is not None else None,
             "uncorr_errors": uncorr,
+            "ds_uncorrectable_channels": uncorrectable_channels(summary),
             "health": health,
         })
 
-    historical = derive_historical(ordered, thresholds=thresholds)
     metric_coverage.update({
         "health_critical_count": _full_coverage(total),
         "health_marginal_count": _full_coverage(total),
@@ -327,5 +328,5 @@ def aggregate_snapshot_period(
             "us": _bad_channels(ordered, "us"),
         },
         "samples": samples,
-        "diagnostic_notes": historical["diagnostic_notes"],
+        "diagnostic_notes": derive_diagnostic_notes(ordered, thresholds=thresholds),
     }

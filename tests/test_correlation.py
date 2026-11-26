@@ -61,11 +61,10 @@ def config_mgr(tmp_path):
 
 
 @pytest.fixture
-def client_with_storage(config_mgr, storage, speedtest_storage):
+def client_with_storage(config_mgr, storage, speedtest_storage, route_app):
     current_runtime().config_manager = config_mgr
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
@@ -223,6 +222,17 @@ class TestCorrelationTimeline:
         start = (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
         assert storage.get_correlation_timeline(start, end) == []
+
+    @pytest.mark.parametrize("source, target", [
+        ("speedtest", "app.modules.speedtest.storage.SpeedtestStorage.get_speedtest_in_range"),
+        ("bnetz", "app.modules.bnetz.storage.BnetzStorage.get_bnetz_in_range"),
+        ("capture", "app.storage.SnapshotStorage._read"),
+        ("segment", "app.storage.segment_utilization.SegmentUtilizationStorage.get_range"),
+    ])
+    def test_storage_failure_fails_instead_of_dropping_the_source(self, storage, source, target):
+        with patch(target, side_effect=sqlite3.OperationalError("database is locked")), \
+                pytest.raises(sqlite3.OperationalError):
+            storage.get_correlation_timeline("2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", sources={source})
 
 
 class TestCorrelationAPI:

@@ -4,7 +4,6 @@ from app.runtime import current_runtime
 from app.tz import localize_timestamps, get_tz_name
 import logging
 import os
-from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, request, jsonify
@@ -20,27 +19,12 @@ from app.config import (
     POLL_MIN,
     parse_config_int,
 )
+from app.modules.bqm.auth import is_share_url
 
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web")
 
 config_bp = Blueprint("config_bp", __name__)
-
-
-def _should_run_bqm_initial_fetch(url):
-    """Return True only for ThinkBroadband share URLs safe for immediate setup fetch."""
-    try:
-        parsed = urlparse((url or "").strip())
-    except Exception:
-        return False
-    host = (parsed.hostname or "").lower()
-    path = parsed.path or ""
-    return (
-        parsed.scheme == "https"
-        and host in {"thinkbroadband.com", "www.thinkbroadband.com"}
-        and path.startswith("/broadband/monitoring/quality/share/")
-        and path.endswith(".csv")
-    )
 
 
 def run_bqm_initial_fetch(config_manager=None, storage=None):
@@ -103,7 +87,7 @@ def api_config():
         should_fetch_bqm = (
             bool(requested_bqm_url)
             and requested_bqm_url != previous_bqm_url
-            and _should_run_bqm_initial_fetch(requested_bqm_url)
+            and is_share_url(requested_bqm_url, csv_only=True)
         )
         effective_admin_password = _config_manager.get("admin_password", "")
         admin_password_changed = (
@@ -197,6 +181,8 @@ def api_demo_start():
     activated = False
     try:
         _config_manager.save({"demo_mode": True})
+        if not _config_manager.is_demo_mode():  # DEMO_MODE=false in the environment keeps it off
+            return jsonify({"success": False, "demo_mode": False, "status": "disabled"}), 409
         activated = True
         audit_log.info("Demo started: ip=%s", _get_client_ip())
         if _on_config_changed:
@@ -238,13 +224,17 @@ def api_demo_migrate():
         }), 409
     if not _storage:
         return jsonify({"success": False, "error": "Storage not initialized"}), 500
-    next_choice = (request.get_json(silent=True) or {}).get("next", "exit")
+    data = request.get_json(silent=True) or {}
+    next_choice = data.get("next", "exit") if isinstance(data, dict) else None
     next_paths = {
         "connect": "/setup?connect=1",
         "exit": "/setup",
     }
-    if next_choice not in next_paths:
+    if not isinstance(next_choice, str) or next_choice not in next_paths:
         return jsonify({"success": False, "error": "Invalid next path"}), 400
+    # Until its first poll is stored, the demo is seeding and would write after the purge.
+    if getattr(current_runtime().modem_collector, "seeding", False):
+        return jsonify({"success": False, "error": "demo_loading"}), 409
     try:
         purged = _storage.purge_demo_data()
         # Purge demo traceroute traces from Connection Monitor
@@ -255,6 +245,7 @@ def api_demo_migrate():
             cm_storage.purge_demo_targets()
             cm_storage.purge_demo_traces()
         _config_manager.save({"demo_mode": False})
+        current_runtime().modem_collector = None  # a later manual poll must not run the stopped demo
         _storage.max_days = _config_manager.get("history_days", 7)
         audit_log.info("Demo migration: ip=%s purged=%d rows", _get_client_ip(), purged)
         _on_config_changed = current_runtime().on_config_changed

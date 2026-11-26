@@ -15,7 +15,7 @@ var CorrelationChart = window.DOCSightCorrelationChart;
 var CorrelationLegend = window.DOCSightCorrelationLegend;
 // Event type/severity sub-filter: operational events hidden by default
 var _corrEvents = CorrelationLegend.eventFilter();
-var _corrEscapeAttr = CorrelationLegend.escapeAttr;
+var _corrHealthLabels = { good: T.health_good, tolerated: T.health_tolerated, marginal: T.health_marginal, critical: T.health_critical };
 var _corrApplyColors = CorrelationLegend.applyColors;
 var _corrCloseEventPopover = CorrelationLegend.closePopover;
 function _corrFilteredEvents(events) {
@@ -167,7 +167,7 @@ function loadCorrelationData() {
     var tableCard = document.getElementById('correlation-table-card');
     var overlay = document.getElementById('correlation-overlay');
     _corrSetOverlayActionable(overlay, false);
-    if (overlay) overlay.setAttribute('aria-label', T.correlation_chart_aria_label || 'Signal correlation chart');
+    if (overlay) overlay.setAttribute('aria-label', T.correlation_chart_aria_label);
     loading.hidden = false;
     DOCSightEmptyState.hide(noData);
     chartContainer.hidden = true;
@@ -184,7 +184,10 @@ function loadCorrelationData() {
     var segmentUrl = docsightUrl('/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd));
 
     Promise.all([
-        fetch(docsightUrl('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture' + (endParam ? '&end=' + encodeURIComponent(endParam) : ''))).then(function(r) { return r.json(); }),
+        fetch(docsightUrl('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture' + (endParam ? '&end=' + encodeURIComponent(endParam) : ''))).then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        }),
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         fetch(segmentUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         _corrFetchReachability(startEpoch, endEpoch, 300).catch(function() {
@@ -239,7 +242,7 @@ function renderCorrelationChart(data) {
     // Setup overlay canvas to match main canvas
     var overlay = document.getElementById('correlation-overlay');
     _corrSetOverlayActionable(overlay, false);
-    overlay.setAttribute('aria-label', T.correlation_chart_aria_label || 'Signal correlation chart');
+    overlay.setAttribute('aria-label', T.correlation_chart_aria_label);
     overlay.width = W * dpr;
     overlay.height = H * dpr;
     overlay.style.width = W + 'px';
@@ -275,12 +278,12 @@ function renderCorrelationChart(data) {
         parseTime: docsightParseTime,
         axisLabel: function(t) { return docsightFormatXAxisLabel(t, range); },
         labels: {
-            state: T.correlation_lane_state || 'Signal state',
-            errors: T.correlation_lane_errors || 'Uncorrectable errors per interval',
-            speed: T.correlation_lane_speed || 'Speedtests (Mbps) · single measurements',
-            segment: T.correlation_lane_segment || 'Segment load (%)',
-            events: T.correlation_lane_events || 'Events · ○ info △ warning ◇ critical',
-            reachability: T.correlation_lane_reachability || 'Reachability · gaps unknown'
+            state: T.correlation_lane_state,
+            errors: T.correlation_lane_errors,
+            speed: T.correlation_lane_speed,
+            segment: T.correlation_lane_segment,
+            events: T.correlation_lane_events,
+            reachability: T.correlation_lane_reachability
         }
     });
 
@@ -293,15 +296,15 @@ function renderCorrelationChart(data) {
         }
     });
 
-    var overlayLabel = T.correlation_chart_aria_label || 'Signal correlation chart';
+    var overlayLabel = T.correlation_chart_aria_label;
     if (st.reachabilityBuckets.length > 0) {
         var reachabilityCounts = { ok: 0, degraded: 0, down: 0, unknown: 0 };
         st.reachabilityBuckets.forEach(function(bucket) { reachabilityCounts[bucket.state]++; });
-        overlayLabel += '. ' + (T.correlation_reachability_aria || 'Reachability summary') + ': '
-            + (T.correlation_reachability_ok || 'OK') + ' ' + reachabilityCounts.ok + ', '
-            + (T.correlation_reachability_degraded || 'Degraded') + ' ' + reachabilityCounts.degraded + ', '
-            + (T.correlation_reachability_down || 'Down') + ' ' + reachabilityCounts.down + ', '
-            + (T.correlation_reachability_unknown || 'Unknown') + ' ' + reachabilityCounts.unknown + '.';
+        overlayLabel += '. ' + T.correlation_reachability_aria + ': '
+            + T.correlation_reachability_ok + ' ' + reachabilityCounts.ok + ', '
+            + T.correlation_reachability_degraded + ' ' + reachabilityCounts.degraded + ', '
+            + T.correlation_reachability_down + ' ' + reachabilityCounts.down + ', '
+            + T.correlation_reachability_unknown + ' ' + reachabilityCounts.unknown + '.';
     }
     overlay.setAttribute('aria-label', overlayLabel);
     _corrSetOverlayActionable(overlay, !!(st.reachabilityLane && _corrVisible.reachability));
@@ -336,9 +339,9 @@ function _corrSaveRangeAsCase() {
     DOCSightCasePicker.open({
         startDate: from,
         endDate: to,
-        summary: (T.correlation_case_summary || 'Time range {range}').replace('{range}', range),
-        name: (T.correlation_case_name || 'Correlation {range}').replace('{range}', range),
-        added: T.correlation_added_to_case || 'Time range added to “{case}”'
+        summary: T.correlation_case_summary.replace('{range}', range),
+        name: T.correlation_case_name.replace('{range}', range),
+        added: T.correlation_added_to_case
     });
 }
 window._corrSaveRangeAsCase = _corrSaveRangeAsCase;
@@ -546,25 +549,24 @@ function _setupCorrelationTooltip(overlay, octx) {
         html += '<div class="tt-time">' + escapeHtml(_corrFormatTimestamp(displayTs)) + '</div>';
 
         if (nearestModem && _corrVisible.snr && Number.isFinite(nearestModem.ds_snr_min)) {
-            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.snr) + '"></span> ' + (T.correlation_tt_snr || 'SNR') + ': ' + nearestModem.ds_snr_min.toFixed(1) + ' dB</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.snr) + '"></span> ' + T.correlation_tt_snr + ': ' + nearestModem.ds_snr_min.toFixed(1) + ' dB</div>';
         }
         if (nearestModem && _corrVisible.txPower && Number.isFinite(nearestModem.us_power_avg)) {
-            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.txPower) + '"></span> ' + (T.correlation_tt_tx_power || 'TX Power') + ': ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.txPower) + '"></span> ' + T.correlation_tt_tx_power + ': ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
         }
         if (nearestModem && _corrVisible.dsPower && Number.isFinite(nearestModem.ds_power_avg)) {
-            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.dsPower) + '"></span> ' + (T.correlation_tt_ds_power || 'DS Power') + ': ' + nearestModem.ds_power_avg.toFixed(1) + ' dBmV</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.dsPower) + '"></span> ' + T.correlation_tt_ds_power + ': ' + nearestModem.ds_power_avg.toFixed(1) + ' dBmV</div>';
         }
         if (nearestModem && _corrVisible.signalState && st.colors.health[nearestModem.health]) {
-            var stateLabels = { good: T.health_good, tolerated: T.health_tolerated, marginal: T.health_marginal, critical: T.health_critical };
-            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.health[nearestModem.health]) + '"></span> '
-                + (T.correlation_lane_state || 'Signal state') + ': ' + escapeHtml(stateLabels[nearestModem.health] || nearestModem.health) + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.health[nearestModem.health]) + '"></span> '
+                + T.correlation_lane_state + ': ' + escapeHtml(_corrHealthLabels[nearestModem.health] || nearestModem.health) + '</div>';
         }
         if (nearestModem && _corrVisible.errors) {
             var errorDelta = st.errorDeltas[st.modem.indexOf(nearestModem)];
             if (errorDelta && errorDelta.delta) {
-                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.errors) + '"></span> '
-                    + (T.correlation_tt_errors || 'Errors') + ': +' + errorDelta.delta.toLocaleString()
-                    + ' (' + (T.correlation_tt_errors_total || 'total') + ' ' + nearestModem.ds_uncorrectable_errors.toLocaleString() + ')</div>';
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.errors) + '"></span> '
+                    + T.correlation_tt_errors + ': +' + errorDelta.delta.toLocaleString()
+                    + ' (' + T.correlation_tt_errors_total + ' ' + nearestModem.ds_uncorrectable_errors.toLocaleString() + ')</div>';
             }
         }
         if (nearestSpeed) {
@@ -573,58 +575,58 @@ function _setupCorrelationTooltip(overlay, octx) {
             var speedPing = CorrelationData.measurement(nearestSpeed.ping_ms);
             var speedJitter = CorrelationData.measurement(nearestSpeed.jitter_ms);
             var speedPacketLoss = CorrelationData.measurement(nearestSpeed.packet_loss_pct);
-            html += '<div class="tt-row tt-speedtest-time">' + (T.timestamp || 'Timestamp') + ': ' + escapeHtml(_corrFormatTimestamp(nearestSpeed.timestamp)) + '</div>';
+            html += '<div class="tt-row tt-speedtest-time">' + T.timestamp + ': ' + escapeHtml(_corrFormatTimestamp(nearestSpeed.timestamp)) + '</div>';
             if (_corrVisible.download && speedDownload !== null) {
-                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.download) + '"></span> ' + (T.correlation_tt_download || 'Download') + ': ' + speedDownload.toFixed(1) + ' Mbps</div>';
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.download) + '"></span> ' + T.correlation_tt_download + ': ' + speedDownload.toFixed(1) + ' Mbps</div>';
             }
             if (_corrVisible.upload && speedUpload !== null) {
-                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.upload) + '"></span> ' + (T.correlation_tt_upload || 'Upload') + ': ' + speedUpload.toFixed(1) + ' Mbps</div>';
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.upload) + '"></span> ' + T.correlation_tt_upload + ': ' + speedUpload.toFixed(1) + ' Mbps</div>';
             }
             if (speedPing !== null) {
-                html += '<div class="tt-row">' + (T.speedtest_ping || T.ping || 'Ping') + ': ' + speedPing.toFixed(1) + ' ms</div>';
+                html += '<div class="tt-row">' + (T.speedtest_ping || T.ping) + ': ' + speedPing.toFixed(1) + ' ms</div>';
             }
             if (speedJitter !== null) {
-                html += '<div class="tt-row">' + (T.jitter || 'Jitter') + ': ' + speedJitter.toFixed(1) + ' ms</div>';
+                html += '<div class="tt-row">' + T.jitter + ': ' + speedJitter.toFixed(1) + ' ms</div>';
             }
             if (speedPacketLoss !== null) {
-                html += '<div class="tt-row">' + (T.packet_loss || 'Packet Loss') + ': ' + speedPacketLoss.toFixed(1) + '%</div>';
+                html += '<div class="tt-row">' + T.packet_loss + ': ' + speedPacketLoss.toFixed(1) + '%</div>';
             }
         }
         if (nearestEvent && _corrVisible.events) {
-            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.event) + '"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + escapeHtml(typeof _eventTypeLabel === 'function' ? _eventTypeLabel(nearestEvent.event_type) : (nearestEvent.event_type || nearestEvent.severity || '')) + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.event) + '"></span> ' + T.correlation_tt_event + ': ' + escapeHtml(_eventTypeLabel(nearestEvent.event_type)) + '</div>';
         }
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
-            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.temperature) + '"></span> ' + (T.temperature || 'Temperature') + ': ' + fmtTemp(nearestWeather.temperature) + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.temperature) + '"></span> ' + T.temperature + ': ' + fmtTemp(nearestWeather.temperature) + '</div>';
         }
         if (reachabilityBucket) {
-            var stateLabels = {
-                ok: T.correlation_reachability_ok || 'OK',
-                degraded: T.correlation_reachability_degraded || 'Degraded',
-                down: T.correlation_reachability_down || 'Down',
-                unknown: T.correlation_reachability_unknown || 'Unknown'
+            var reachabilityLabels = {
+                ok: T.correlation_reachability_ok,
+                degraded: T.correlation_reachability_degraded,
+                down: T.correlation_reachability_down,
+                unknown: T.correlation_reachability_unknown
             };
-            html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.reachability[reachabilityBucket.state]) + '"></span> '
-                + (T.correlation_reachability || 'Reachability') + ' — '
-                + (T.correlation_reachability_state || 'State') + ': ' + stateLabels[reachabilityBucket.state] + '</div>';
-            html += '<div class="tt-row">' + (T.correlation_reachability_window || 'Window') + ': '
+            html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.reachability[reachabilityBucket.state]) + '"></span> '
+                + T.correlation_reachability + ' — '
+                + T.correlation_reachability_state + ': ' + reachabilityLabels[reachabilityBucket.state] + '</div>';
+            html += '<div class="tt-row">' + T.correlation_reachability_window + ': '
                 + escapeHtml(_corrFormatTimestamp(new Date(reachabilityBucket.startMs).toISOString())) + ' — '
                 + escapeHtml(_corrFormatTimestamp(new Date(reachabilityBucket.endMs).toISOString())) + '</div>';
-            html += '<div class="tt-row">' + (T.correlation_reachability_loss || 'Observed packet loss') + ': '
+            html += '<div class="tt-row">' + T.correlation_reachability_loss + ': '
                 + (reachabilityBucket.lossPct == null ? '—' : reachabilityBucket.lossPct.toFixed(2) + '%') + '</div>';
-            html += '<div class="tt-row">' + (T.correlation_reachability_samples || 'Samples') + ': ' + reachabilityBucket.sampleCount + '</div>';
-            html += '<div class="tt-row">' + (T.correlation_reachability_targets || 'Observed targets') + ': ' + reachabilityBucket.targetsObserved + '</div>';
-            html += '<div class="tt-row">' + (T.correlation_reachability_scope || 'Target scope') + ': '
+            html += '<div class="tt-row">' + T.correlation_reachability_samples + ': ' + reachabilityBucket.sampleCount + '</div>';
+            html += '<div class="tt-row">' + T.correlation_reachability_targets + ': ' + reachabilityBucket.targetsObserved + '</div>';
+            html += '<div class="tt-row">' + T.correlation_reachability_scope + ': '
                 + (reachabilityBucket.targetScope ? escapeHtml(reachabilityBucket.targetScope) : '—') + '</div>';
-            html += '<div class="tt-row">' + (T.correlation_reachability_drilldown || 'Open Connection Monitor details') + '</div>';
+            html += '<div class="tt-row">' + T.correlation_reachability_drilldown + '</div>';
         }
         // Segment utilization tooltip (numeric-only server data, same innerHTML pattern as above)
         var nearestSeg = st.segment && st.segment[CorrelationChart.nearestIndex(st.segment, tHover, docsightParseTime)];
         if (nearestSeg && Math.abs(docsightParseTime(nearestSeg.timestamp).getTime() - tHover) < (st.tMax - st.tMin) * 0.05) {
             if (_corrVisible.segmentDs && nearestSeg.ds_total != null) {
-                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.segmentDs) + '"></span> ' + (T.seg_correlation_ds || 'Segment DS') + ': ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.segmentDs) + '"></span> ' + T.seg_correlation_ds + ': ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
             }
             if (_corrVisible.segmentUs && nearestSeg.us_total != null) {
-                html += '<div class="tt-row"><span class="tt-dot" data-color="' + _corrEscapeAttr(st.colors.segmentUs) + '"></span> ' + (T.seg_correlation_us || 'Segment US') + ': ' + nearestSeg.us_total.toFixed(1) + '%</div>';
+                html += '<div class="tt-row"><span class="tt-dot" data-color="' + escapeHtml(st.colors.segmentUs) + '"></span> ' + T.seg_correlation_us + ': ' + nearestSeg.us_total.toFixed(1) + '%</div>';
             }
         }
 
@@ -720,25 +722,13 @@ function _corrClearTableHighlight() {
 
 // Draw highlight on chart overlay when hovering a table row
 function _corrHighlightFromTable(timestamp, source) {
-    var overlay = document.getElementById('correlation-overlay');
-    if (!overlay || !_corrChartState) return;
-    var octx = overlay.getContext('2d');
+    var octx = _corrClearChartHighlight();
+    if (!octx) return;
     var st = _corrChartState;
-    octx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
-    octx.clearRect(0, 0, st.W, st.H);
-
     var ts = docsightParseTime(timestamp).getTime();
     var x = st.xScale(ts);
 
-    // Draw crosshair
-    octx.strokeStyle = 'rgba(255,255,255,0.3)';
-    octx.lineWidth = 1;
-    octx.setLineDash([4, 4]);
-    octx.beginPath();
-    octx.moveTo(x, st.pad.top);
-    octx.lineTo(x, st.pad.top + st.plotH);
-    octx.stroke();
-    octx.setLineDash([]);
+    _corrVerticalLine(octx, st, x, 'rgba(255,255,255,0.3)', 1, [4, 4]);
 
     // Draw highlight dot based on source
     if (source === 'modem') {
@@ -759,17 +749,11 @@ function _corrHighlightFromTable(timestamp, source) {
             }
         }
     } else if (source === 'event' && _corrVisible.events) {
-        octx.strokeStyle = st.colors.event;
-        octx.lineWidth = 2;
-        octx.setLineDash([3, 3]);
-        octx.beginPath();
-        octx.moveTo(x, st.pad.top);
-        octx.lineTo(x, st.pad.top + st.plotH);
-        octx.stroke();
-        octx.setLineDash([]);
+        _corrVerticalLine(octx, st, x, st.colors.event, 2, [3, 3]);
     }
 }
 
+/* Clears the overlay and returns its context; does nothing until the chart is drawn. */
 function _corrClearChartHighlight() {
     var overlay = document.getElementById('correlation-overlay');
     if (!overlay || !_corrChartState) return;
@@ -777,6 +761,18 @@ function _corrClearChartHighlight() {
     var st = _corrChartState;
     octx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
     octx.clearRect(0, 0, st.W, st.H);
+    return octx;
+}
+
+function _corrVerticalLine(octx, st, x, color, width, dash) {
+    octx.strokeStyle = color;
+    octx.lineWidth = width;
+    octx.setLineDash(dash);
+    octx.beginPath();
+    octx.moveTo(x, st.pad.top);
+    octx.lineTo(x, st.pad.top + st.plotH);
+    octx.stroke();
+    octx.setLineDash([]);
 }
 
 function _corrExportPNG() {
@@ -869,26 +865,6 @@ function renderCorrelationTable(data) {
     var tbody = document.getElementById('correlation-tbody');
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
-    var healthLabels = {
-        good: T.health_good,
-        tolerated: T.health_tolerated,
-        marginal: T.health_marginal,
-        critical: T.health_critical
-    };
-    var sevLabels = {
-        info: T.event_severity_info,
-        warning: T.event_severity_warning,
-        critical: T.event_severity_critical
-    };
-    var typeLabels = {
-        health_change: T.event_type_health_change,
-        power_change: T.event_type_power_change,
-        snr_change: T.event_type_snr_change,
-        channel_change: T.event_type_channel_change,
-        modulation_change: T.event_type_modulation_change,
-        error_spike: T.event_type_error_spike
-    };
-
     // Pre-filter modem entries: only show health transitions (not repeated same-status)
     // Data is chronological, sorted is reversed (newest first)
     var chronological = data.slice().sort(function(a, b) {
@@ -929,34 +905,34 @@ function renderCorrelationTable(data) {
 
         if (src === 'modem') {
             var h = e.health || 'unknown';
-            var badge = '<span class="st-health-badge health-' + h + '">' + (healthLabels[h] || h) + '</span>';
-            src = '<span class="corr-tone-accent">' + escapeHtml(T.correlation_source_modem || 'Modem') + '</span>';
+            var badge = '<span class="st-health-badge health-' + h + '">' + (_corrHealthLabels[h] || h) + '</span>';
+            src = '<span class="corr-tone-accent">' + escapeHtml(T.correlation_source_modem) + '</span>';
             msg = badge;
             var modemDetails = [
-                (T.correlation_tt_snr || 'SNR') + ' ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : ''),
-                (T.event_power || 'Power') + ' ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : ''),
+                T.correlation_tt_snr + ' ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : ''),
+                T.event_power + ' ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : ''),
                 'TX ' + (e.us_power_avg != null ? e.us_power_avg + ' dBmV' : '')
             ];
             if (e.ds_uncorrectable_errors != null) {
-                modemDetails.push((T.correlation_tt_errors || 'Errors') + ' ' + e.ds_uncorrectable_errors);
+                modemDetails.push(T.correlation_tt_errors + ' ' + e.ds_uncorrectable_errors);
             }
             details = modemDetails.join(' | ');
         } else if (src === 'speedtest') {
-            src = '<span class="corr-tone-good">' + escapeHtml(T.correlation_source_speedtest || 'Speedtest') + '</span>';
+            src = '<span class="corr-tone-good">' + escapeHtml(T.correlation_source_speedtest) + '</span>';
             msg = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');
-            details = (T.speedtest_ping || 'Ping') + ' ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms';
+            details = T.speedtest_ping + ' ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms';
         } else if (src === 'capture') {
             var scStatus = e.status || '';
             var scTone = scStatus === 'completed' ? 'good'
                 : scStatus === 'suppressed' ? 'muted'
                 : scStatus === 'expired' ? 'crit'
                 : 'accent';
-            src = '<span class="corr-tone-' + scTone + '">' + escapeHtml(T.correlation_source_capture || 'Capture') + '</span>';
+            src = '<span class="corr-tone-' + scTone + '">' + escapeHtml(T.correlation_source_capture) + '</span>';
             if (scStatus === 'completed' || scStatus === 'fired') {
-                msg = escapeHtml(T.sc_action_capture || 'Speedtest triggered');
+                msg = escapeHtml(T.sc_action_capture);
                 details = e.linked_result_id ? 'Result #' + e.linked_result_id : '';
             } else if (scStatus === 'suppressed') {
-                msg = escapeHtml(T.sc_status_suppressed || 'Suppressed');
+                msg = escapeHtml(T.sc_status_suppressed);
                 details = escapeHtml(e.suppression_reason || '');
             } else {
                 msg = escapeHtml(scStatus);
@@ -965,15 +941,15 @@ function renderCorrelationTable(data) {
         } else if (src === 'event') {
             var eventSeverity = CorrelationData.normalizeSeverity(e);
             var sevTone = eventSeverity === 'critical' ? 'crit' : eventSeverity === 'warning' ? 'warn' : 'muted';
-            src = '<span class="corr-tone-' + sevTone + '">' + escapeHtml(sevLabels[eventSeverity] || eventSeverity) + '</span>';
-            msg = typeof formatEventMessage === 'function' ? formatEventMessage(e) : escapeHtml(e.message || '');
-            details = escapeHtml(typeLabels[e.event_type] || e.event_type || '');
+            src = '<span class="corr-tone-' + sevTone + '">' + escapeHtml(_sevLabels[eventSeverity]) + '</span>';
+            msg = formatEventMessage(e);
+            details = escapeHtml(_eventTypeLabel(e.event_type) || '');
         }
 
-        tr.innerHTML = docsightHTML('<td data-label="' + escapeHtml(T.timestamp || 'Timestamp') + '" class="correlation-cell-timestamp">' + ts + '</td>'
-            + '<td data-label="' + escapeHtml(T.source || 'Source') + '" class="correlation-cell-source">' + src + '</td>'
-            + '<td data-label="' + escapeHtml(T.event_message || 'Message') + '" class="correlation-cell-message">' + msg + '</td>'
-            + '<td data-label="' + escapeHtml(T.event_details || 'Details') + '" class="correlation-cell-details">' + details + '</td>');
+        tr.innerHTML = docsightHTML('<td data-label="' + escapeHtml(T.timestamp) + '" class="correlation-cell-timestamp">' + ts + '</td>'
+            + '<td data-label="' + escapeHtml(T.source) + '" class="correlation-cell-source">' + src + '</td>'
+            + '<td data-label="' + escapeHtml(T.event_message) + '" class="correlation-cell-message">' + msg + '</td>'
+            + '<td data-label="' + escapeHtml(T.event_details) + '" class="correlation-cell-details">' + details + '</td>');
         tr.addEventListener('mouseenter', function() {
             if (_corrPinnedRow) return;
             var rowTs = this.getAttribute('data-ts');

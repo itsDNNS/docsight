@@ -1,7 +1,5 @@
 {
-  "advanced_mqtt": "Avansat: MQTT / Home Assistant",
   "mqtt_broker": "Broker MQTT",
-  "mqtt_desc": "Pentru integrarea cu Home Assistant prin MQTT Auto-Discovery. Fără MQTT funcționează doar interfața web.",
   "mqtt_optional_ha": "opțional – pentru Home Assistant",
   "mqtt_tls_insecure": "TLS nesigur",
   "mqtt_tls_insecure_hint": "Omite verificarea certificatului TLS",

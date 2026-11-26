@@ -1,7 +1,9 @@
 """Tests for the Connection Monitor probe engine."""
 
 import logging
+import os
 import socket
+import struct
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -653,14 +655,12 @@ class TestDualStackFallback:
                 ("198.51.100.1", 0),
             ),
         ]
-        attempts: list[tuple[str, tuple]] = []
+        attempts: list[int] = []
 
-        def fake_v6(sockaddr):
-            attempts.append(("v6", sockaddr))
-            return ProbeResult(latency_ms=None, timeout=True, method="icmp")
-
-        def fake_v4(sockaddr):
-            attempts.append(("v4", sockaddr))
+        def fake_raw(family, sockaddr):
+            attempts.append(family)
+            if family == socket.AF_INET6:
+                return ProbeResult(latency_ms=None, timeout=True, method="icmp")
             return ProbeResult(latency_ms=4.2, timeout=False, method="icmp")
 
         with patch(
@@ -670,16 +670,43 @@ class TestDualStackFallback:
             return_value=infos,
         ):
             engine = ProbeEngine(method="icmp")
-            with patch.object(engine, "_icmp_raw_v6", side_effect=fake_v6), \
-                 patch.object(engine, "_icmp_raw_v4", side_effect=fake_v4):
+            with patch.object(engine, "_icmp_raw", side_effect=fake_raw):
                 result = engine.probe("dualstack.example.test")
 
-        assert [a[0] for a in attempts] == ["v6", "v4"], (
+        assert attempts == [socket.AF_INET6, socket.AF_INET], (
             f"must iterate v6 then v4; got {attempts}"
         )
         assert result.timeout is False
         assert result.method == "icmp"
         assert result.latency_ms == 4.2
+
+    @pytest.mark.parametrize(("family", "sockaddr", "ip_header", "reply_type"), [
+        (socket.AF_INET, ("198.51.100.1", 0), b"\x45" + b"\x00" * 19, 0),
+        (socket.AF_INET6, ("2001:db8::1", 0, 0, 0), b"", 129),
+    ], ids=["ipv4", "ipv6"])
+    def test_icmp_raw_skips_short_and_foreign_datagrams(self, family, sockaddr, ip_header, reply_type):
+        """Datagrams too short for an ICMP header or answering another probe are skipped."""
+        ident = os.getpid() & 0xFFFF
+        sock = MagicMock()
+        sock.recvfrom.side_effect = [
+            (b"\x00" * 3, None),
+            (b"\x00" * 12, None),
+            (ip_header + struct.pack("!BBHHH", reply_type, 0, 0, ident, 99), None),
+            (ip_header + struct.pack("!BBHHH", reply_type, 0, 0, ident, 1), None),
+        ]
+        with patch(
+            "app.modules.connection_monitor.probe.os.path.isfile", return_value=False
+        ), patch(
+            "app.modules.connection_monitor.probe.socket.getaddrinfo",
+            return_value=[(family, socket.SOCK_RAW, 0, "", sockaddr)],
+        ), patch(
+            "app.modules.connection_monitor.probe.socket.socket", return_value=sock,
+        ):
+            result = ProbeEngine(method="icmp").probe("example.test")
+
+        assert result.timeout is False
+        assert result.method == "icmp"
+        assert sock.recvfrom.call_count == 4
 
     def test_icmp_raw_fallback_all_addresses_failing_returns_timeout(self):
         """Every address failing still produces a timeout ProbeResult (method=icmp)."""

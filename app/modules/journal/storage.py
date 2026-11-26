@@ -67,12 +67,13 @@ class JournalStorage(DatabaseAccess):
         return self._query_entries(limit=limit, offset=offset, search=search, incident_id=incident_id)
 
     def _query_entries(self, *, limit=-1, offset=0, search=None, incident_id=None,
-                       date_from=None, date_to=None):
+                       date_from=None, date_to=None, attachment_count=True):
         """Select entries for lists and exports; SQLite LIMIT -1 means no limit."""
         query = (
-            "SELECT i.id, i.date, i.title, i.description, i.icon, i.incident_id, i.created_at, i.updated_at, "
-            "(SELECT COUNT(*) FROM journal_attachments WHERE entry_id = i.id) AS attachment_count "
-            "FROM journal_entries i"
+            "SELECT i.id, i.date, i.title, i.description, i.icon, i.incident_id, i.created_at, i.updated_at"
+            + (", (SELECT COUNT(*) FROM journal_attachments WHERE entry_id = i.id) AS attachment_count"
+               if attachment_count else "")
+            + " FROM journal_entries i"
         )
         conditions = []
         params = []
@@ -189,16 +190,18 @@ class JournalStorage(DatabaseAccess):
         """Return all journal entries (for export context)."""
         return self.get_entries(limit=100)
 
-    def get_entries_for_export(self, date_from=None, date_to=None, incident_id=None):
+    def get_entries_for_export(self, date_from=None, date_to=None, incident_id=None, attachment_count=True):
         """Return journal entries for export (no pagination).
 
         Args:
             date_from: Optional start date (YYYY-MM-DD), inclusive.
             date_to: Optional end date (YYYY-MM-DD), inclusive.
             incident_id: None=all, 0=unassigned, N=specific incident.
+            attachment_count: False skips the per-entry attachment count.
         """
         return self._query_entries(
             date_from=date_from, date_to=date_to, incident_id=incident_id,
+            attachment_count=attachment_count,
         )
 
     # ── Incident Containers ──
@@ -283,10 +286,10 @@ class JournalStorage(DatabaseAccess):
         return self.assign_entries_to_incident(entry_ids, None)
 
     def assign_entries_by_date_range(self, incident_id, start_date, end_date):
-        """Assign all journal entries in a date range to an incident. Returns count."""
+        """Assign the demo journal entries in a date range to a demo incident. Returns count."""
         with self._write() as conn:
             rowcount = conn.execute(
-                "UPDATE journal_entries SET incident_id = ? WHERE date >= ? AND date <= ?",
+                "UPDATE journal_entries SET incident_id = ? WHERE date >= ? AND date <= ? AND is_demo = 1",
                 (incident_id, start_date, end_date),
             ).rowcount
         return rowcount

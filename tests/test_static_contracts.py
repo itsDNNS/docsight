@@ -12,6 +12,8 @@ from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
+from app.i18n import LANGUAGES
+
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
 STATIC = APP / "static"
@@ -51,6 +53,8 @@ LOCALIZED_MODULES = {
     "backup", "bnetz", "bqm", "comparison", "connection_monitor", "de_tkg_compensation", "evidence",
     "journal", "modulation", "mqtt", "reports", "smokeping", "speedtest", "weather",
 }
+# Catalog keys that hold a list or object of texts; every other key holds text.
+I18N_CONTAINER_KEYS = {"_meta", "isp_options", "month_names", "issue_labels"}
 I18N_PROTECTED_LITERALS = {"Apprise", "DOCSight", "DOCSIS", "DSL", "SC-QAM", "dBmV", "Smokeping"}
 I18N_EMPTY_TAG_RE = re.compile(r"<([A-Za-z][^>]*)>\s*</\1>")
 I18N_LEADING_SENTINEL_RE = re.compile(r"^\s*@")
@@ -547,35 +551,108 @@ def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
     assert offenders == []
 
 
-JS_TRANSLATION_LOOKUP_RE = re.compile(r"\bT\.([A-Za-z_]\w*)|\bT\[\s*['\"]([^'\"]+)['\"]\s*\]")
+JS_TRANSLATION_LOOKUP_RE = re.compile(r"\bT\.([A-Za-z_]\w*)|\bT\[\s*['\"]([^'\"]+)['\"]\s*[\]+]")
 TEMPLATE_TRANSLATION_LOOKUP_RE = re.compile(
-    r"\bt\.get\(\s*['\"]([^'\"]+)['\"]|\bt\[\s*['\"]([^'\"]+)['\"]\s*\]|\bt\.(?!get\b)([a-z_]\w*)"
+    r"\bt\.get\(\s*['\"]([^'\"]+)['\"]|\bt\[\s*['\"]([^'\"]+)['\"]\s*[\]~]|\bt\.(?!get\b)([a-z_]\w*)"
 )
+PY_TRANSLATION_LOOKUP_RE = re.compile(r"\b(?:t|get_translations\((?:[^()]|\([^()]*\))*\))\[\s*['\"]([^'\"]+)['\"]")
+
+
+# Keys built at runtime: the prefix the code concatenates, and the values it appends.
+# A key counts as read when its name (or, for module keys, `<module id>.<key>`) is
+# such a prefix plus a matching tail, and the prefix still appears in app code.
+I18N_RUNTIME_KEY_FAMILIES = {
+    "event_type_": r"\w+",  # static/js/events.js, correlation-legend.js: stored event types
+    "health_": r"[a-z]+",  # snapshot-panel.js, channels.js: health states, also older ones
+    "issue_": r"\w+",  # snapshot-panel.js: stored issue codes, also older ones
+    "gaming_comp_": r"\w+",  # templates/index.html
+    "gaming_grade_": r"\w+",  # templates/index.html
+    "notice_severity_": r"\w+",  # templates/settings/about.html
+    "signal_family_metric_": r"\w+",  # templates/index.html: driver dimension
+    "seg_events_confidence_": r"\w+",  # static/js/segment-utilization.js
+    "icon_": r"\w+",  # journal: entry icons and their keywords
+    "comparison_verdict_": r"\w+",  # reports/report.py
+    "docsight.evidence.action.": r"[\w-]+",  # evidence/static/main.js
+    "docsight.evidence.item.": r"[\w.]+",  # evidence/checklist.py
+    "docsight.evidence.source.": r"\w+",  # evidence/static/main.js
+    "docsight.evidence.status.": r"\w+",  # evidence/static/main.js
+    "docsight.modulation.capacity_family_": r"\w+",  # modulation/static/main.js
+    "docsight.modulation.capacity_status_": r"\w+",  # modulation/static/main.js
+    "docsight.connection_monitor.traceroute.trigger_": r"\w+",  # connection-monitor-detail.js
+}
+# Translation helpers per file: the functions that take a literal key, and the prefix they prepend.
+I18N_HELPERS = {
+    "static/js/snapshot-panel.js": ("text", ""),
+    "static/js/segment-utilization.js": ("_fcT|_fcMakeStat", "seg_"),
+    "static/js/events.js": ("_eventFmt", ""),
+    "modules/smokeping/static/main.js": ("_smokepingText", ""),
+    "modules/journal/static/js/journal-cases.js": ("_caseText", ""),
+    "modules/evidence/static/main.js": ("_evidenceT", ""),
+    "modules/de_tkg_compensation/static/main.js": ("t", "docsight.de_tkg_compensation."),
+    "modules/connection_monitor/static/js/connection-monitor-detail.js": ("cmT", "docsight.connection_monitor.traceroute."),
+    "modules/bqm/static/main.js": ("count", ""),
+}
+
+
+def catalog_keys():
+    """Yield (catalog, key, name) for core and module source keys; a module key's name is `<module id>.<key>`."""
+    for catalog in [APP_I18N_DIR / "en.json", *sorted(MODULES.glob("*/i18n/en.json"))]:
+        module_id = None if catalog.parents[1] == APP else read_json(catalog.parents[1] / "manifest.json")["id"]
+        for key in read_json(catalog):
+            yield catalog, key, f"{module_id}.{key}" if module_id else key
 
 
 def test_translation_lookups_resolve_to_catalog_keys() -> None:
-    """Templates and scripts only look up keys that a catalog defines."""
-    known = set(read_json(APP_I18N_DIR / "en.json"))
-    for catalog in MODULES.glob("*/i18n/en.json"):
-        module_id = read_json(catalog.parents[1] / "manifest.json")["id"]
-        for key in read_json(catalog):
-            known.update({key, f"{module_id}.{key}"})
+    """Templates, scripts, their translation helpers and routes only look up keys that a catalog defines."""
+    known = {name for _, key, full in catalog_keys() for name in (key, full)}
 
     def resolves(key: str) -> bool:
-        if key.endswith("_"):  # dynamic suffix, e.g. 'notice_severity_' ~ severity
+        if key.endswith(("_", ".")):  # dynamic suffix, e.g. 'notice_severity_' ~ severity
             return any(candidate.startswith(key) for candidate in known)
         return key in known
 
-    sources = [*MODULES.rglob("*.js"), *MODULES.rglob("*.html"), *(STATIC / "js").rglob("*.js"), *TEMPLATES.rglob("*.html")]
+    sources = [*MODULES.rglob("*.js"), *MODULES.rglob("*.html"), *(STATIC / "js").rglob("*.js"), *TEMPLATES.rglob("*.html"),
+               *(path for path in APP.rglob("*.py") if "get_translations(" in path.read_text(encoding="utf-8"))]
+    patterns = {".js": JS_TRANSLATION_LOOKUP_RE, ".html": TEMPLATE_TRANSLATION_LOOKUP_RE, ".py": PY_TRANSLATION_LOOKUP_RE}
     unresolved = set()
     for path in sources:
-        pattern = JS_TRANSLATION_LOOKUP_RE if path.suffix == ".js" else TEMPLATE_TRANSLATION_LOOKUP_RE
-        for match in pattern.finditer(path.read_text(encoding="utf-8")):
-            key = next(group for group in match.groups() if group)
-            if not resolves(key):
-                unresolved.add(f"{path.relative_to(ROOT)}: {key}")
+        text = path.read_text(encoding="utf-8")
+        helpers, prefix = I18N_HELPERS.get(path.relative_to(APP).as_posix(), (None, ""))
+        keys = [next(group for group in match.groups() if group) for match in patterns[path.suffix].finditer(text)]
+        if helpers:  # literal keys of the first argument, also both branches of `cond ? 'a' : 'b'`
+            for arg in re.findall(rf"(?<![\w.$])(?:{helpers})\(((?:[^,()]|\([^()]*\))*)", text):
+                keys += [prefix + key for key in re.findall(r"(?:^|[?:])\s*['\"]([^'\"]+)['\"]", arg.strip())]
+        unresolved.update(f"{path.relative_to(ROOT)}: {key}" for key in keys if not resolves(key))
 
     assert sorted(unresolved) == []
+
+
+def test_catalog_keys_are_read_somewhere() -> None:
+    """Every catalog key appears in app code, also through a helper prefix, or belongs to a runtime key family whose prefix still appears there."""
+    tokens = set()
+    for path in APP.rglob("*"):
+        rel = path.relative_to(APP)
+        if path.suffix not in {".py", ".js", ".html", ".json"} or {"i18n", "vendor"} & set(rel.parts):
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in re.findall(r"[\w.-]+", text):
+            parts = token.split(".")
+            tokens.update(".".join(parts[i:j]) for i in range(len(parts)) for j in range(i + 1, len(parts) + 1))
+        prefix = I18N_HELPERS.get(rel.as_posix(), ("", ""))[1]
+        if prefix:
+            tokens.update(prefix + literal for literal in re.findall(r"'(\w+)'", text))
+
+    unread = [f"runtime key family without builder: {prefix}" for prefix in I18N_RUNTIME_KEY_FAMILIES if prefix not in tokens]
+    for catalog, key, full in catalog_keys():
+        if key == "_meta" or {key, full} & tokens or any(
+            re.fullmatch(re.escape(prefix) + tail, name)
+            for prefix, tail in I18N_RUNTIME_KEY_FAMILIES.items()
+            for name in (key, full)
+        ):
+            continue
+        unread.append(f"{catalog.relative_to(ROOT)}: {key}")
+
+    assert sorted(unread) == []
 
 
 # Visible template text that is the same in every language: units, product and
@@ -693,7 +770,8 @@ def test_every_event_health_state_has_a_dot_color() -> None:
 
 
 def test_european_language_pack_metadata() -> None:
-    """Core locales have names and flags for the language selector."""
+    """Core locales are registered and have names and flags for the language selector."""
+    assert set(LANGUAGES) == EUROPEAN_LANGUAGE_PACK
     offenders = []
     for code in sorted(EUROPEAN_LANGUAGE_PACK):
         path = APP_I18N_DIR / f"{code}.json"
@@ -708,10 +786,12 @@ def test_european_language_pack_metadata() -> None:
 
 
 def test_european_language_pack_preserves_catalog_contracts() -> None:
-    """Every catalog keeps key, list, and placeholder contracts intact."""
+    """Every catalog keeps key, list, type, and placeholder contracts intact and has no empty values."""
     offenders = []
 
     def walk(path_label: str, source: Any, target: Any) -> None:
+        if not (target.strip() if isinstance(target, str) else target):
+            offenders.append(f"{path_label}: empty value")
         if isinstance(source, dict) and isinstance(target, dict):
             missing = sorted(set(source) - set(target))
             extra = sorted(set(target) - set(source))
@@ -725,6 +805,9 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
                 offenders.append(f"{path_label}: list length {len(target)} != {len(source)}")
             for idx, (source_item, target_item) in enumerate(zip(source, target)):
                 walk(f"{path_label}[{idx}]", source_item, target_item)
+            # Extra ISP options have no English counterpart and must be plain text.
+            for idx, extra_item in enumerate(target[len(source):], len(source)):
+                walk(f"{path_label}[{idx}]", "", extra_item)
         elif isinstance(source, str) and isinstance(target, str):
             if "ZXQ" in target or "@@@" in target:
                 offenders.append(f"{path_label}: leaked translation sentinel")
@@ -739,6 +822,8 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
             target_placeholders = Counter(I18N_PLACEHOLDER_RE.findall(target))
             if source_placeholders != target_placeholders:
                 offenders.append(f"{path_label}: placeholder mismatch")
+        else:
+            offenders.append(f"{path_label}: unexpected {type(target).__name__} value, en.json has {type(source).__name__}")
 
     i18n_dirs = [APP_I18N_DIR] + [MODULES / name / "i18n" for name in sorted(LOCALIZED_MODULES)]
     module_i18n_dirs = sorted(MODULES.glob("*/i18n"))
@@ -756,6 +841,10 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
         if not source_path.exists():
             continue
         source = read_json(source_path)
+        for key, value in source.items():
+            entries = (list(value.values()) if isinstance(value, dict) else value) if key in I18N_CONTAINER_KEYS else [value]
+            if not isinstance(entries, list) or not all(isinstance(entry, str) for entry in entries):
+                offenders.append(f"{source_path.relative_to(ROOT)}.{key}: text expected")
         for code in sorted(EUROPEAN_LANGUAGE_PACK):
             path = i18n_dir / f"{code}.json"
             data = read_json(path)

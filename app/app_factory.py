@@ -13,6 +13,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import web, web_auth
 from .base_path import configure_base_path
+from .config import reset_module_config_schema
+from .i18n import reset_module_translations
 from .module_inline_code import modules_with_inline_code
 from .module_loader import ModuleLoader
 from .version import get_app_version
@@ -49,13 +51,11 @@ def default_module_loader_factory(
     module_paths = list(search_paths or ())
 
     def build(app: Flask):
-        disabled_raw = config_manager.get("disabled_modules", "")
-        disabled_ids = {item.strip() for item in disabled_raw.split(",") if item.strip()}
         loader = ModuleLoader(
             app,
             builtin_base_path=builtin_path,
             search_paths=module_paths,
-            disabled_ids=disabled_ids,
+            disabled_ids=config_manager.get_disabled_modules(),
         )
         loader.load_all()
         return loader
@@ -92,9 +92,11 @@ def create_app(
     environ: Mapping[str, str] | None = None,
     testing: bool = False,
 ) -> Flask:
-    """Create one fully isolated DOCSight application in a fixed order.
+    """Create one DOCSight application in a fixed order.
 
-    Construction resolves and validates the complete core/module plan before
+    The app starts from the core config schema and translation catalogs, which
+    are shared by the process; apps in one process are created sequentially.
+    Construction then resolves and validates the complete core/module plan before
     configuring the target app or applying process catalogs. It then attaches
     runtime state, applies the complete registration once, and wraps the
     base-path and reverse-proxy middleware.
@@ -103,6 +105,8 @@ def create_app(
         raise TypeError("config_manager is required")
     env = os.environ if environ is None else environ
 
+    reset_module_config_schema()
+    reset_module_translations()
     core_plan = build_core_plan()
     planning_app = Flask("app.registration_planning", static_folder=None)
     planning_app.config["TESTING"] = testing

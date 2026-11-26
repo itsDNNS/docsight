@@ -1,5 +1,6 @@
 """Tests for Connection Monitor collector."""
 
+import logging
 import time
 from unittest.mock import MagicMock, patch
 import pytest
@@ -122,6 +123,7 @@ class TestCleanupCycle:
             "connection_monitor_probe_method": "tcp",
             "connection_monitor_tcp_port": 443,
             "connection_monitor_retention_days": "7",
+            "timezone": "Europe/Berlin",
             "connection_monitor_outage_threshold": 5,
             "connection_monitor_loss_warning_pct": 2.0,
         }.get(key, default)
@@ -146,15 +148,15 @@ class TestCleanupCycle:
             collector._last_cleanup = 0.0
 
             call_order = []
-            collector._cm_storage.aggregate.side_effect = lambda: call_order.append("aggregate")
+            collector._cm_storage.aggregate.side_effect = lambda *a: call_order.append("aggregate")
             collector._cm_storage.cleanup.side_effect = lambda *a, **kw: call_order.append("cleanup")
 
             collector.collect()
 
             mock_agg = collector._cm_storage.aggregate
             mock_clean = collector._cm_storage.cleanup
-            mock_agg.assert_called_once()
-            mock_clean.assert_called_once_with(7)
+            mock_agg.assert_called_once_with("Europe/Berlin")
+            mock_clean.assert_called_once_with(7, "Europe/Berlin")
             # Verify order: aggregate was called before cleanup
             assert call_order == ["aggregate", "cleanup"]
 
@@ -402,3 +404,17 @@ class TestTargetDeletedDuringCycle:
         assert cm.get_summary(kept, window_seconds=60)["sample_count"] == 1
         warnings = core.get_events(event_type="cm_packet_loss_warning")
         assert [e["details"]["target_label"] for e in warnings] == ["Kept"]
+
+
+def test_failing_probe_is_logged_and_stored_as_timeout(offline_collector, caplog):
+    collector, _core = offline_collector
+    cm = collector.get_storage()
+    tid = cm.create_target("Broken", "192.0.2.12")
+    collector._probe.probe.side_effect = RuntimeError("boom")
+
+    with caplog.at_level(logging.WARNING, logger="app.modules.connection_monitor.collector"):
+        assert collector.collect().success is True
+
+    sample = cm.get_samples(tid)[0]
+    assert (sample["latency_ms"], sample["timeout"], sample["probe_method"]) == (None, 1, "error")
+    assert f"Probe of target {tid} failed: boom" in caplog.text

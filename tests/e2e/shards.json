@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "expected_total": 841,
+  "expected_total": 868,
   "baseline_cpu_seconds": 1753.315,
   "baseline_cases": 759,
   "baseline_calibration_seconds": 0.058163,
   "shards": [
     {
       "id": 1,
-      "collected_cases": 120,
+      "collected_cases": 118,
       "files": [
         "test_accessibility_findings.py",
         "test_case_cards.py",
@@ -20,7 +20,7 @@
     },
     {
       "id": 2,
-      "collected_cases": 126,
+      "collected_cases": 140,
       "files": [
         "test_auth.py",
         "test_browser_errors.py",
@@ -41,7 +41,7 @@
     },
     {
       "id": 3,
-      "collected_cases": 120,
+      "collected_cases": 121,
       "files": [
         "test_correlation_ui.py",
         "test_events.py",
@@ -54,7 +54,7 @@
     },
     {
       "id": 4,
-      "collected_cases": 115,
+      "collected_cases": 117,
       "files": [
         "test_case_status_track.py",
         "test_case_steps.py",
@@ -69,7 +69,7 @@
     },
     {
       "id": 5,
-      "collected_cases": 215,
+      "collected_cases": 221,
       "files": [
         "test_evidence_report_scope.py",
         "test_glossary.py",
@@ -84,7 +84,7 @@
     },
     {
       "id": 6,
-      "collected_cases": 145,
+      "collected_cases": 151,
       "files": [
         "test_community_drivers.py",
         "test_comparison.py",

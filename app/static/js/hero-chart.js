@@ -205,7 +205,7 @@
             series: [
                 { label: 'X', value: function(u, v) { return xLabels[v] || ''; } },
                 {
-                    label: T.chart_ds_power || 'DS Power (dBmV)',
+                    label: T.chart_ds_power,
                     stroke: 'rgba(168,85,247,0.9)',
                     fill: 'rgba(168,85,247,0.15)',
                     width: 2,
@@ -213,7 +213,7 @@
                     points: { show: false }
                 },
                 {
-                    label: T.chart_us_power || 'US Power (dBmV)',
+                    label: T.chart_us_power,
                     stroke: 'rgba(245,158,11,0.9)',
                     fill: 'rgba(245,158,11,0.15)',
                     width: 2,
@@ -221,7 +221,7 @@
                     points: { show: false }
                 },
                 {
-                    label: T.chart_snr || 'SNR (dB)',
+                    label: T.chart_snr,
                     stroke: 'rgba(59,130,246,0.9)',
                     fill: 'rgba(59,130,246,0.15)',
                     width: 2,
@@ -252,7 +252,7 @@
         container.style.position = 'relative';
         var placeholder = document.createElement('div');
         placeholder.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:' + c.placeholder + ';font-size:13px;text-align:center;';
-        placeholder.textContent = failed ? (T.network_error || 'Network error') : (T.chart_no_history || 'No trend data available');
+        placeholder.textContent = failed ? T.network_error : T.chart_no_history;
         container.appendChild(placeholder);
     }
 

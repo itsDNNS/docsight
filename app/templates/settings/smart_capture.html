@@ -4,8 +4,8 @@
         <div class="card-title-group">
             <div class="card-icon"><i data-lucide="zap"></i></div>
             <div>
-                <div class="card-title" id="sc-enabled-title">{{ t.get('smart_capture', 'Smart Capture') }}</div>
-                <div class="card-subtitle">{{ t.get('sc_enable_desc', 'Automatically trigger measurements when signal degradation is detected') }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture#setup" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                <div class="card-title" id="sc-enabled-title">{{ t.smart_capture }}</div>
+                <div class="card-subtitle">{{ t.sc_enable_desc }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture#setup" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
             </div>
         </div>
         <label class="toggle">
@@ -21,7 +21,7 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="activity" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name" id="sc_trigger_modulation-title">{{ t.get('sc_trigger_modulation', 'Modulation downgrade') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_modulation-title">{{ t.sc_trigger_modulation }}</span>
                 </div>
                 <label class="toggle">
                     <input type="checkbox" name="sc_trigger_modulation" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_modulation') }} aria-labelledby="sc_trigger_modulation-title">
@@ -29,32 +29,32 @@
                 </label>
             </div>
             <div class="sc-trigger-desc">
-                {{ t.get('sc_trigger_modulation_desc', 'Triggers when QAM level drops on any channel (e.g. 256QAM to 64QAM). Only downgrades with severity warning or critical.') }}
+                {{ t.sc_trigger_modulation_desc }}
             </div>
             <div class="sc-sub-settings">
                 <div class="form-grid cols-2">
                     <div class="form-field">
-                        <label class="form-label" for="sc_trigger_modulation_direction">{{ t.get('sc_trigger_direction', 'Direction') }}</label>
+                        <label class="form-label" for="sc_trigger_modulation_direction">{{ t.sc_trigger_direction }}</label>
                         <select class="form-input form-select" id="sc_trigger_modulation_direction" name="sc_trigger_modulation_direction">
-                            <option value="both" {{ 'selected' if config.get('sc_trigger_modulation_direction', 'both') == 'both' }}>{{ t.get('sc_trigger_direction_both', 'Both') }}</option>
-                            <option value="DS" {{ 'selected' if config.get('sc_trigger_modulation_direction') == 'DS' }}>{{ t.get('sc_trigger_direction_ds', 'Downstream only') }}</option>
-                            <option value="US" {{ 'selected' if config.get('sc_trigger_modulation_direction') == 'US' }}>{{ t.get('sc_trigger_direction_us', 'Upstream only') }}</option>
+                            <option value="both" {{ 'selected' if config.get('sc_trigger_modulation_direction', 'both') == 'both' }}>{{ t.sc_trigger_direction_both }}</option>
+                            <option value="DS" {{ 'selected' if config.get('sc_trigger_modulation_direction') == 'DS' }}>{{ t.sc_trigger_direction_ds }}</option>
+                            <option value="US" {{ 'selected' if config.get('sc_trigger_modulation_direction') == 'US' }}>{{ t.sc_trigger_direction_us }}</option>
                         </select>
                     </div>
                     <div class="form-field">
-                        <label class="form-label" for="sc_trigger_modulation_min_qam">{{ t.get('sc_trigger_min_qam', 'Min QAM level') }}</label>
+                        <label class="form-label" for="sc_trigger_modulation_min_qam">{{ t.sc_trigger_min_qam }}</label>
                         <select class="form-input form-select" id="sc_trigger_modulation_min_qam" name="sc_trigger_modulation_min_qam">
-                            <option value="" {{ 'selected' if not config.get('sc_trigger_modulation_min_qam') }}>{{ t.get('sc_trigger_min_qam_any', 'Any downgrade') }}</option>
-                            <option value="4096QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '4096QAM' }}>{{ t.get('sc_trigger_min_qam_4096', 'At or below 4096QAM (DOCSIS 3.1)') }}</option>
-                            <option value="2048QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '2048QAM' }}>{{ t.get('sc_trigger_min_qam_2048', 'At or below 2048QAM') }}</option>
-                            <option value="1024QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '1024QAM' }}>{{ t.get('sc_trigger_min_qam_1024', 'At or below 1024QAM') }}</option>
-                            <option value="512QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '512QAM' }}>{{ t.get('sc_trigger_min_qam_512', 'At or below 512QAM') }}</option>
-                            <option value="256QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '256QAM' }}>{{ t.get('sc_trigger_min_qam_256', 'At or below 256QAM') }}</option>
-                            <option value="128QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '128QAM' }}>{{ t.get('sc_trigger_min_qam_128', 'At or below 128QAM') }}</option>
-                            <option value="64QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '64QAM' }}>{{ t.get('sc_trigger_min_qam_64', 'At or below 64QAM') }}</option>
-                            <option value="32QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '32QAM' }}>{{ t.get('sc_trigger_min_qam_32', 'At or below 32QAM') }}</option>
-                            <option value="16QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '16QAM' }}>{{ t.get('sc_trigger_min_qam_16', 'At or below 16QAM') }}</option>
-                            <option value="8QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '8QAM' }}>{{ t.get('sc_trigger_min_qam_8', 'At or below 8QAM') }}</option>
+                            <option value="" {{ 'selected' if not config.get('sc_trigger_modulation_min_qam') }}>{{ t.sc_trigger_min_qam_any }}</option>
+                            <option value="4096QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '4096QAM' }}>{{ t.sc_trigger_min_qam_4096 }}</option>
+                            <option value="2048QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '2048QAM' }}>{{ t.sc_trigger_min_qam_2048 }}</option>
+                            <option value="1024QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '1024QAM' }}>{{ t.sc_trigger_min_qam_1024 }}</option>
+                            <option value="512QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '512QAM' }}>{{ t.sc_trigger_min_qam_512 }}</option>
+                            <option value="256QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '256QAM' }}>{{ t.sc_trigger_min_qam_256 }}</option>
+                            <option value="128QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '128QAM' }}>{{ t.sc_trigger_min_qam_128 }}</option>
+                            <option value="64QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '64QAM' }}>{{ t.sc_trigger_min_qam_64 }}</option>
+                            <option value="32QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '32QAM' }}>{{ t.sc_trigger_min_qam_32 }}</option>
+                            <option value="16QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '16QAM' }}>{{ t.sc_trigger_min_qam_16 }}</option>
+                            <option value="8QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '8QAM' }}>{{ t.sc_trigger_min_qam_8 }}</option>
                         </select>
                     </div>
                 </div>
@@ -66,7 +66,7 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="signal" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name" id="sc_trigger_snr-title">{{ t.get('sc_trigger_snr', 'SNR degradation') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_snr-title">{{ t.sc_trigger_snr }}</span>
                 </div>
                 <label class="toggle">
                     <input type="checkbox" name="sc_trigger_snr" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_snr') }} aria-labelledby="sc_trigger_snr-title">
@@ -74,7 +74,7 @@
                 </label>
             </div>
             <div class="sc-trigger-desc">
-                {{ t.get('sc_trigger_snr_desc', 'Triggers when signal-to-noise ratio drops below warning threshold.') }}
+                {{ t.sc_trigger_snr_desc }}
             </div>
         </div>
 
@@ -83,7 +83,7 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="alert-triangle" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name" id="sc_trigger_error_spike-title">{{ t.get('sc_trigger_error_spike', 'Error spike') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_error_spike-title">{{ t.sc_trigger_error_spike }}</span>
                 </div>
                 <label class="toggle">
                     <input type="checkbox" name="sc_trigger_error_spike" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_error_spike') }} aria-labelledby="sc_trigger_error_spike-title">
@@ -91,15 +91,15 @@
                 </label>
             </div>
             <div class="sc-trigger-desc">
-                {{ t.get('sc_trigger_error_spike_desc', 'Triggers when uncorrectable errors jump significantly between polls.') }}
+                {{ t.sc_trigger_error_spike_desc }}
             </div>
             <div class="sc-sub-settings">
                 <div class="form-grid cols-2">
                     <div class="form-field">
-                        <label class="form-label" for="sc_trigger_error_spike_min_delta">{{ t.get('sc_trigger_min_delta', 'Min error delta') }}</label>
+                        <label class="form-label" for="sc_trigger_error_spike_min_delta">{{ t.sc_trigger_min_delta }}</label>
                         <input class="form-input" type="number" id="sc_trigger_error_spike_min_delta" name="sc_trigger_error_spike_min_delta"
                                value="{{ config.get('sc_trigger_error_spike_min_delta', 0) }}" min="0">
-                        <div class="form-hint">{{ t.get('sc_trigger_min_delta_hint', '0 = trigger on any spike') }}</div>
+                        <div class="form-hint">{{ t.sc_trigger_min_delta_hint }}</div>
                     </div>
                 </div>
             </div>
@@ -110,7 +110,7 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="heart-pulse" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name" id="sc_trigger_health-title">{{ t.get('sc_trigger_health', 'Health change') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_health-title">{{ t.sc_trigger_health }}</span>
                 </div>
                 <label class="toggle">
                     <input type="checkbox" name="sc_trigger_health" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_health') }} aria-labelledby="sc_trigger_health-title">
@@ -118,15 +118,15 @@
                 </label>
             </div>
             <div class="sc-trigger-desc">
-                {{ t.get('sc_trigger_health_desc', 'Triggers when connection health degrades to marginal or critical.') }}
+                {{ t.sc_trigger_health_desc }}
             </div>
             <div class="sc-sub-settings">
                 <div class="form-grid cols-2">
                     <div class="form-field">
-                        <label class="form-label" for="sc_trigger_health_level">{{ t.get('sc_trigger_health_level', 'Health level') }}</label>
+                        <label class="form-label" for="sc_trigger_health_level">{{ t.sc_trigger_health_level }}</label>
                         <select class="form-input form-select" id="sc_trigger_health_level" name="sc_trigger_health_level">
-                            <option value="any_degradation" {{ 'selected' if config.get('sc_trigger_health_level', 'any_degradation') == 'any_degradation' }}>{{ t.get('sc_trigger_health_level_any', 'Any degradation') }}</option>
-                            <option value="critical_only" {{ 'selected' if config.get('sc_trigger_health_level') == 'critical_only' }}>{{ t.get('sc_trigger_health_level_critical', 'Critical only') }}</option>
+                            <option value="any_degradation" {{ 'selected' if config.get('sc_trigger_health_level', 'any_degradation') == 'any_degradation' }}>{{ t.sc_trigger_health_level_any }}</option>
+                            <option value="critical_only" {{ 'selected' if config.get('sc_trigger_health_level') == 'critical_only' }}>{{ t.sc_trigger_health_level_critical }}</option>
                         </select>
                     </div>
                 </div>
@@ -138,7 +138,7 @@
             <div class="sc-trigger-header">
                 <div class="sc-trigger-label">
                     <i data-lucide="wifi-off" class="sc-trigger-icon"></i>
-                    <span class="sc-trigger-name" id="sc_trigger_packet_loss-title">{{ t.get('sc_trigger_packet_loss', 'Packet loss warning') }}</span>
+                    <span class="sc-trigger-name" id="sc_trigger_packet_loss-title">{{ t.sc_trigger_packet_loss }}</span>
                 </div>
                 <label class="toggle">
                     <input type="checkbox" name="sc_trigger_packet_loss" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_packet_loss') }} aria-labelledby="sc_trigger_packet_loss-title">
@@ -146,15 +146,15 @@
                 </label>
             </div>
             <div class="sc-trigger-desc">
-                {{ t.get('sc_trigger_packet_loss_desc', 'Triggers when Connection Monitor detects high packet loss on any target') }}
+                {{ t.sc_trigger_packet_loss_desc }}
             </div>
             <div class="sc-sub-settings">
                 <div class="form-grid cols-2">
                     <div class="form-field">
-                        <label class="form-label" for="sc_trigger_packet_loss_min_pct">{{ t.get('sc_trigger_packet_loss_min_pct', 'Min packet loss %') }}</label>
+                        <label class="form-label" for="sc_trigger_packet_loss_min_pct">{{ t.sc_trigger_packet_loss_min_pct }}</label>
                         <input class="form-input" type="number" id="sc_trigger_packet_loss_min_pct" name="sc_trigger_packet_loss_min_pct"
                                value="{{ config.get('sc_trigger_packet_loss_min_pct', '5.0') }}" min="0" max="100" step="0.1">
-                        <div class="form-hint">{{ t.get('sc_trigger_packet_loss_min_pct_hint', 'Requires Connection Monitor module. Only fires when packet loss exceeds both this threshold and the Connection Monitor warning threshold.') }}</div>
+                        <div class="form-hint">{{ t.sc_trigger_packet_loss_min_pct_hint }}</div>
                     </div>
                 </div>
             </div>
@@ -171,44 +171,44 @@
             <div class="card-title-group">
                 <div class="card-icon"><i data-lucide="shield"></i></div>
                 <div>
-                    <div class="card-title">{{ t.get('sc_guardrails', 'Guardrails') }}</div>
-                    <div class="card-subtitle">{{ t.get('sc_guardrails_desc', 'Rate limiting to prevent excessive test triggers') }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture#guardrails" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-title">{{ t.sc_guardrails }}</div>
+                    <div class="card-subtitle">{{ t.sc_guardrails_desc }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture#guardrails" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
         </div>
         <div class="form-grid cols-2">
             <div class="form-field">
-                <label class="form-label" for="sc_global_cooldown">{{ t.get('sc_global_cooldown', 'Global cooldown (seconds)') }}</label>
+                <label class="form-label" for="sc_global_cooldown">{{ t.sc_global_cooldown }}</label>
                 <input class="form-input" type="number" id="sc_global_cooldown" name="sc_global_cooldown"
                        value="{{ config.get('sc_global_cooldown', 300) }}" min="0" max="86400">
             </div>
             <div class="form-field">
-                <label class="form-label" for="sc_trigger_cooldown">{{ t.get('sc_trigger_cooldown_label', 'Per-trigger cooldown (seconds)') }}</label>
+                <label class="form-label" for="sc_trigger_cooldown">{{ t.sc_trigger_cooldown_label }}</label>
                 <input class="form-input" type="number" id="sc_trigger_cooldown" name="sc_trigger_cooldown"
                        value="{{ config.get('sc_trigger_cooldown', 900) }}" min="0" max="86400">
             </div>
             <div class="form-field">
-                <label class="form-label" for="sc_max_actions_per_hour">{{ t.get('sc_max_actions_per_hour', 'Max actions per hour') }}</label>
+                <label class="form-label" for="sc_max_actions_per_hour">{{ t.sc_max_actions_per_hour }}</label>
                 <input class="form-input" type="number" id="sc_max_actions_per_hour" name="sc_max_actions_per_hour"
                        value="{{ config.get('sc_max_actions_per_hour', 4) }}" min="1" max="60">
             </div>
             <div class="form-field">
-                <label class="form-label" for="sc_speedtest_min_interval">{{ t.get('sc_speedtest_min_interval', 'Speedtest min interval (seconds)') }}</label>
+                <label class="form-label" for="sc_speedtest_min_interval">{{ t.sc_speedtest_min_interval }}</label>
                 <input class="form-input" type="number" id="sc_speedtest_min_interval" name="sc_speedtest_min_interval"
                        value="{{ config.get('sc_speedtest_min_interval', 14400) }}" min="0" max="86400">
-                <div class="form-hint">{{ t.get('sc_speedtest_min_interval_hint', 'Blocks Smart Capture if Speedtest Tracker already ran recently, including its own schedule.') }}</div>
+                <div class="form-hint">{{ t.sc_speedtest_min_interval_hint }}</div>
             </div>
             <div class="form-field">
-                <label class="form-label" for="sc_speedtest_max_actions_per_day">{{ t.get('sc_speedtest_max_actions_per_day', 'Smart Capture speedtests per day') }}</label>
+                <label class="form-label" for="sc_speedtest_max_actions_per_day">{{ t.sc_speedtest_max_actions_per_day }}</label>
                 <input class="form-input" type="number" id="sc_speedtest_max_actions_per_day" name="sc_speedtest_max_actions_per_day"
                        value="{{ config.get('sc_speedtest_max_actions_per_day', 4) }}" min="0" max="96">
-                <div class="form-hint">{{ t.get('sc_speedtest_max_actions_per_day_hint', 'Rolling 24h cap for extra Speedtest Tracker runs triggered by DOCSight. 0 disables this cap.') }}</div>
+                <div class="form-hint">{{ t.sc_speedtest_max_actions_per_day_hint }}</div>
             </div>
             <div class="form-field">
-                <label class="form-label" for="sc_speedtest_match_window">{{ t.get('sc_speedtest_match_window', 'Speedtest result match window (seconds)') }}</label>
+                <label class="form-label" for="sc_speedtest_match_window">{{ t.sc_speedtest_match_window }}</label>
                 <input class="form-input" type="number" id="sc_speedtest_match_window" name="sc_speedtest_match_window"
                        value="{{ config.get('sc_speedtest_match_window', 900) }}" min="60" max="3600">
-                <div class="form-hint">{{ t.get('sc_speedtest_match_window_hint', 'How long DOCSight waits to link a triggered Speedtest Tracker result before expiring it.') }}</div>
+                <div class="form-hint">{{ t.sc_speedtest_match_window_hint }}</div>
             </div>
         </div>
         <div class="sc-guardrails-summary" id="sc-guardrails-summary"></div>
@@ -218,7 +218,7 @@
     {% if not config.get('speedtest_tracker_url') or not config.get('speedtest_tracker_token') %}
     <div class="module-restart-banner">
         <i data-lucide="alert-triangle"></i>
-        <span>{{ t.get('sc_no_adapter_warning', 'No action adapter configured. Enable Speedtest Tracker to use Smart Capture.') }}</span>
+        <span>{{ t.sc_no_adapter_warning }}</span>
     </div>
     {% endif %}
 
@@ -228,27 +228,27 @@
             <div class="card-title-group">
                 <div class="card-icon"><i data-lucide="history"></i></div>
                 <div>
-                    <div class="card-title">{{ t.get('sc_history', 'Execution History') }}</div>
+                    <div class="card-title">{{ t.sc_history }}</div>
                 </div>
             </div>
         </div>
         <div class="settings-card-inset" id="sc-history-container">
             <div id="sc-history-loading" class="sc-history-loading">
                 <i data-lucide="loader-2"></i>
-                {{ t.get('sc_history_loading', 'Loading execution history...') }}
+                {{ t.sc_history_loading }}
             </div>
             <div id="sc-history-empty" class="sc-history-empty" hidden>
                 <i data-lucide="zap-off"></i>
-                {{ t.get('sc_history_empty', 'No executions yet. Smart Capture will log activity here once enabled.') }}
+                {{ t.sc_history_empty }}
             </div>
             <div id="sc-history-table-wrap" class="table-card" hidden>
                 <table id="sc-history-table" class="data-table data-table-compact data-table-list">
                     <thead>
                         <tr>
-                            <th>{{ t.get('sc_col_timestamp', 'Timestamp') }}</th>
-                            <th>{{ t.get('sc_col_trigger', 'Trigger') }}</th>
-                            <th>{{ t.get('sc_col_status', 'Status') }}</th>
-                            <th>{{ t.get('sc_col_details', 'Details') }}</th>
+                            <th>{{ t.sc_col_timestamp }}</th>
+                            <th>{{ t.sc_col_trigger }}</th>
+                            <th>{{ t.sc_col_status }}</th>
+                            <th>{{ t.sc_col_details }}</th>
                         </tr>
                     </thead>
                     <tbody id="sc-history-tbody"></tbody>

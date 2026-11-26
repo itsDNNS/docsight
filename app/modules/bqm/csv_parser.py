@@ -44,6 +44,6 @@ def parse_bqm_csv(content: str) -> list[dict]:
                 "latency_max_ms": _ns_to_ms(row["Max Latency (ns)"]),
                 "score": int(row["Score"]),
             })
-        except (TypeError, ValueError) as exc:
-            log.warning("Skipping invalid BQM CSV row at %s: %s", row.get("Timestamp", "?"), exc)
+        except (TypeError, ValueError) as exc:  # the row and the message can echo any CSV text
+            log.warning("Skipping invalid BQM CSV row on line %d: %s", reader.line_num, type(exc).__name__)
     return rows

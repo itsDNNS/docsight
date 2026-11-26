@@ -6,9 +6,12 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 function load() {
-    const context = {document: {getElementById: () => null, querySelectorAll: () => []}, T: {}};
+    const context = {document: {getElementById: () => null, querySelectorAll: () => []}, T: require('./english-catalog')()};
     context.window = context;
-    vm.runInNewContext(fs.readFileSync('app/modules/journal/static/js/journal-import.js', 'utf8'), context);
+    // The dialog sends its requests through the journal's request helper in journal-entry.js.
+    for (const file of ['journal-entry.js', 'journal-import.js']) {
+        vm.runInNewContext(fs.readFileSync('app/modules/journal/static/js/' + file, 'utf8'), context);
+    }
     return context;
 }
 
@@ -30,4 +33,22 @@ test('only selected rows with a date are imported, with date, title and descript
         {date: '2026-10-01', title: 'Outage', description: 'no sync'},
         {date: '2026-10-03', title: 'Fixed later'},
     ]);
+});
+
+test('the upload sends the UI language and frees the picker so the same file can be retried', async () => {
+    let url;
+    const status = {};
+    const context = load();
+    Object.assign(context, {
+        document: {documentElement: {lang: 'de'}, getElementById: () => status},
+        docsightUrl: (route) => route,
+        FormData: class { append() {} },
+        fetch: async (route) => { url = route; return {status: 400, json: async () => ({error: 'Unlesbar'})}; },
+    });
+    const input = {files: [{name: 'journal.csv', size: 10}], value: 'journal.csv'};
+    context.handleImportFile(input);
+    await new Promise(setImmediate);
+    assert.equal(url, '/api/journal/import/preview?lang=de');
+    assert.equal(input.value, '');
+    assert.equal(status.textContent, 'Unlesbar');
 });

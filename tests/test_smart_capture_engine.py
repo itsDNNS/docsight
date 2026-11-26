@@ -1,5 +1,7 @@
 """Tests for Smart Capture execution engine."""
 
+import itertools
+
 import pytest
 from unittest.mock import MagicMock
 
@@ -121,18 +123,6 @@ class TestEvaluate:
     def test_empty_events_is_noop(self, engine, storage):
         engine.evaluate([])
         assert storage.get_executions() == []
-
-    def test_event_id_correlation(self, storage):
-        """Events with _id set get their trigger_event_id stored."""
-        config = _make_config()
-        engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change"))
-        event = {"event_type": "modulation_change", "severity": "warning",
-                 "timestamp": "2026-03-15T10:00:00Z", "message": "drop",
-                 "_id": 42}
-        engine.evaluate([event])
-        rows = storage.get_executions()
-        assert rows[0]["trigger_event_id"] == 42
 
 
 class TestRegisterTrigger:
@@ -315,49 +305,65 @@ class TestAdapterDispatch:
         engine.evaluate([event])  # second: suppressed, adapter NOT called
         assert mock_adapter.execute.call_count == 1
 
-    def test_execution_records_use_capture_action_type(self, storage):
-        config = _make_config()
-        engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change"))
 
-        event = {"event_type": "modulation_change", "severity": "warning",
-                 "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
-        engine.evaluate([event])
-
-        rows = storage.get_executions()
-        assert rows[0]["status"] == "pending"
-        assert rows[0]["action_type"] == "capture"
+def _target_fires(severity, trigger_enabled, sub_filter_result):
+    return severity == "warning" and trigger_enabled is not False and sub_filter_result is not False
 
 
 class TestConfigDrivenTriggerGating:
-    def test_disabled_trigger_skipped(self, storage):
-        config = _make_config(sc_trigger_modulation=False)
+    @pytest.mark.parametrize("severity,trigger_enabled,sub_filter_result,limited", [
+        (*case, limited)
+        for case in itertools.product(["warning", "info"], [None, True, False], [None, True, False])
+        for limited in ([False, True] if _target_fires(*case) else [False])
+    ])
+    def test_poll_writes_and_dispatches_in_order(self, storage, monkeypatch, severity,
+                                                 trigger_enabled, sub_filter_result, limited):
+        """A matching event of an enabled trigger whose sub-filter passes is recorded;
+        guardrails pick pending or suppressed. Each write is followed by its dispatch,
+        in event order and in trigger registration order."""
+        config = _make_config(sc_max_actions_per_hour=1 if limited else 999,
+                              sc_trigger_modulation=trigger_enabled)
         engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        config_key="sc_trigger_modulation"))
-        event = {"event_type": "modulation_change", "severity": "warning",
-                 "timestamp": "2026-03-16T10:00:00Z", "message": "drop"}
-        engine.evaluate([event])
-        assert storage.get_executions() == []
-
-    def test_enabled_trigger_fires(self, storage):
-        config = _make_config(sc_trigger_modulation=True)
-        engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        config_key="sc_trigger_modulation"))
-        event = {"event_type": "modulation_change", "severity": "warning",
-                 "timestamp": "2026-03-16T10:00:00Z", "message": "drop"}
-        engine.evaluate([event])
-        assert len(storage.get_executions()) == 1
-
-    def test_trigger_without_config_key_always_fires(self, storage):
-        config = _make_config()
-        engine = SmartCaptureEngine(storage, config)
+        sub_filter = None if sub_filter_result is None else MagicMock(return_value=sub_filter_result)
+        engine.register_trigger(Trigger(
+            event_type="modulation_change", min_severity="warning",
+            config_key=None if trigger_enabled is None else "sc_trigger_modulation",
+            sub_filter=sub_filter,
+        ))
         engine.register_trigger(Trigger(event_type="modulation_change"))
-        event = {"event_type": "modulation_change", "severity": "warning",
-                 "timestamp": "2026-03-16T10:00:00Z", "message": "drop"}
-        engine.evaluate([event])
-        assert len(storage.get_executions()) == 1
+        engine.register_trigger(Trigger(event_type="other"))
+        trace = []
+        save = storage.save_execution
+
+        def record_save(**kwargs):
+            trace.append(("save", {"suppression_reason": None, **kwargs}))
+            return save(**kwargs)
+
+        monkeypatch.setattr(storage, "save_execution", record_save)
+        adapter = MagicMock()
+        adapter.execute.side_effect = lambda execution_id, ev: trace.append(("adapter", execution_id, ev))
+        engine.register_speedtest_adapter(adapter)
+        event = {"event_type": "modulation_change", "severity": severity, "_id": 7,
+                 "timestamp": "2026-03-16T10:00:00Z", "details": {"direction": "downgrade"}}
+        other = {"event_type": "other", "_id": 8, "timestamp": "2026-03-16T10:00:01Z", "details": None}
+        engine.evaluate([event, other])
+
+        fires = _target_fires(severity, trigger_enabled, sub_filter_result)
+        expected = []
+        for execution_id, ev in enumerate(([event] if fires else []) + [event, other], start=1):
+            allowed = not limited or execution_id == 1  # the hourly limit of 1 admits the first
+            expected.append(("save", {
+                "trigger_type": ev["event_type"], "action_type": "capture",
+                "status": "pending" if allowed else "suppressed",
+                "trigger_event_id": ev["_id"], "trigger_timestamp": ev["timestamp"],
+                "suppression_reason": None if allowed else "max_actions_per_hour: 1/1 used",
+                "details": ev["details"],
+            }))
+            expected += [("adapter", execution_id, ev)] if allowed else []
+        assert trace == expected
+        if sub_filter is not None:
+            reaches_sub_filter = severity == "warning" and trigger_enabled is not False
+            assert sub_filter.call_args_list == ([((config, event),)] if reaches_sub_filter else [])
 
     def test_master_switch_overrides_trigger_config(self, storage):
         """sc_enabled=False should block even if trigger config_key is True."""

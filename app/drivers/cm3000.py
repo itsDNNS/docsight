@@ -24,21 +24,23 @@ from urllib.parse import urljoin
 import requests
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.javascript import (
     extract_cm3000_tag_value_list,
-    normalize_cm3000_modulation,
-    parse_cm3000_ds_ofdm,
-    parse_cm3000_ds_qam,
-    parse_cm3000_us_atdma,
-    parse_cm3000_us_ofdma,
-    split_cm3000_channels,
+    parse_cm3000_javascript,
 )
-from .formats.primitives import hz_to_mhz, parse_number
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.cm3000")
 
 _STATUS_PATH = "/DocsisStatus.htm"
+_CHANNEL_BLOCKS = (
+    "InitDsTableTagValue",
+    "InitUsTableTagValue",
+    "InitDsOfdmTableTagValue",
+    "InitUsOfdmaTableTagValue",
+)
 
 _LOGIN_MARKERS = (
     "login.htm",
@@ -69,9 +71,13 @@ class CM3000Driver(ModemDriver):
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
-        self._session = requests.Session()
-        self._session.auth = (user, password)
+        self._session = self._new_session()
         self._status_html = None
+
+    def _new_session(self) -> requests.Session:
+        session = requests.Session()
+        session.auth = (self._user, self._password)
+        return session
 
     def login(self) -> None:
         """Establish session and verify DocsisStatus.htm is actually readable.
@@ -79,39 +85,26 @@ class CM3000Driver(ModemDriver):
         Retries once with a fresh session if the modem drops a stale
         TCP connection (common after container restarts).
         """
-        for attempt in range(2):
+        self._status_html = None
+        self._login_with_reconnect("CM3000", self._login_attempt, log)
+
+    def _login_attempt(self) -> None:
+        r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
+        r.raise_for_status()
+        try:
             try:
+                self._ensure_status_page(r.text)
+            except RuntimeError:
+                if not (self._looks_like_login_page(r.text) and self._login_via_form()):
+                    raise
                 r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
                 r.raise_for_status()
-                try:
-                    self._ensure_status_page(r.text)
-                except RuntimeError:
-                    if not self._looks_like_login_page(r.text):
-                        self._log_status_page_diagnostics(r.text, "login")
-                        raise
-                    if not self._login_via_form():
-                        self._log_status_page_diagnostics(r.text, "login")
-                        raise
-                    r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
-                    r.raise_for_status()
-                    self._ensure_status_page(r.text)
-                self._status_html = r.text
-                log.info("CM3000 auth OK")
-                return
-            except requests.ConnectionError:
-                if attempt == 0:
-                    log.warning("CM3000 connection lost, retrying with fresh session")
-                    self._session.close()
-                    self._session = requests.Session()
-                    self._session.auth = (self._user, self._password)
-                    self._status_html = None
-                    continue
-                raise RuntimeError("CM3000 authentication failed: connection refused after retry")
-            except requests.RequestException as e:
-                raise RuntimeError(f"CM3000 authentication failed: {e}")
-            except RuntimeError as e:
-                self._log_status_page_diagnostics(r.text, "login")
-                raise e
+                self._ensure_status_page(r.text)
+        except RuntimeError:
+            self._log_status_page_diagnostics(r.text, "login")
+            raise
+        self._status_html = r.text
+        log.info("CM3000 auth OK")
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from JavaScript on status page.
@@ -120,36 +113,23 @@ class CM3000Driver(ModemDriver):
         QAM channels as DOCSIS 3.0 and OFDM/OFDMA channels as 3.1.
         """
         html = self._fetch_status_page()
-
-        ds30 = self._parse_ds_qam(html)
-        us30 = self._parse_us_atdma(html)
-        ds31 = self._parse_ds_ofdm(html)
-        us31 = self._parse_us_ofdma(html)
-
-        total = len(ds30) + len(us30) + len(ds31) + len(us31)
-        if total == 0:
+        data = unwrap(parse_cm3000_javascript(html), log)
+        if not any(channels for lanes in data.values() for channels in lanes.values()):
             log.warning(
                 "CM3000 parsed 0 channels "
                 "(InitDsTableTagValue=%s, InitUsTableTagValue=%s, "
                 "InitDsOfdmTableTagValue=%s, InitUsOfdmaTableTagValue=%s, "
                 "page length=%d)",
-                bool(self._extract_tag_value_list(html, "InitDsTableTagValue")),
-                bool(self._extract_tag_value_list(html, "InitUsTableTagValue")),
-                bool(self._extract_tag_value_list(html, "InitDsOfdmTableTagValue")),
-                bool(self._extract_tag_value_list(html, "InitUsOfdmaTableTagValue")),
+                *(bool(extract_cm3000_tag_value_list(html, name)) for name in _CHANNEL_BLOCKS),
                 len(html),
             )
-
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        return data
 
     def get_device_info(self) -> DeviceInfo:
         """Extract device info from InitTagValue()."""
         try:
             html = self._fetch_status_page()
-            raw_sys_info = self._extract_tag_value_list(html, "InitTagValue")
+            raw_sys_info = extract_cm3000_tag_value_list(html, "InitTagValue")
             if not raw_sys_info:
                 return {"manufacturer": "Netgear", "model": "CM3000", "sw_version": ""}
 
@@ -167,7 +147,8 @@ class CM3000Driver(ModemDriver):
                     result["uptime_seconds"] = uptime
 
             return result
-        except Exception:
+        except Exception as e:
+            log.warning("CM3000 device info unavailable: %s", e)
             return {"manufacturer": "Netgear", "model": "CM3000", "sw_version": ""}
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -193,7 +174,7 @@ class CM3000Driver(ModemDriver):
             )
             r.raise_for_status()
         except requests.RequestException as e:
-            raise RuntimeError(f"CM3000 status page retrieval failed: {e}")
+            raise RuntimeError(f"CM3000 status page retrieval failed: {request_error_summary(e)}")
         try:
             self._ensure_status_page(r.text)
         except RuntimeError:
@@ -272,16 +253,7 @@ class CM3000Driver(ModemDriver):
         if not html:
             raise RuntimeError("CM3000 returned an empty status page")
 
-        has_sys_info = bool(CM3000Driver._extract_tag_value_list(html, "InitTagValue"))
-        has_channel_data = any(
-            CM3000Driver._extract_tag_value_list(html, function_name)
-            for function_name in (
-                "InitDsTableTagValue",
-                "InitUsTableTagValue",
-                "InitDsOfdmTableTagValue",
-                "InitUsOfdmaTableTagValue",
-            )
-        )
+        has_sys_info, has_channel_data = CM3000Driver._status_blocks(html)
         if has_sys_info and has_channel_data:
             return
 
@@ -296,6 +268,14 @@ class CM3000Driver(ModemDriver):
             raise RuntimeError(
                 "CM3000 status page did not contain the expected DOCSIS data blocks"
             )
+
+    @staticmethod
+    def _status_blocks(html: str) -> tuple[bool, bool]:
+        """Whether the page carries the system info block and any channel block."""
+        return (
+            bool(extract_cm3000_tag_value_list(html, "InitTagValue")),
+            any(extract_cm3000_tag_value_list(html, name) for name in _CHANNEL_BLOCKS),
+        )
 
     @staticmethod
     def _status_page_diagnostics(html: str) -> dict[str, object]:
@@ -314,16 +294,7 @@ class CM3000Driver(ModemDriver):
         title_match = _RE_TITLE.search(html)
         form_match = _RE_FORM_ACTION.search(html)
         login_markers = [marker for marker in _LOGIN_MARKERS if marker in lower_html]
-        has_sys_info = bool(CM3000Driver._extract_tag_value_list(html, "InitTagValue"))
-        has_channel_data = any(
-            CM3000Driver._extract_tag_value_list(html, function_name)
-            for function_name in (
-                "InitDsTableTagValue",
-                "InitUsTableTagValue",
-                "InitDsOfdmTableTagValue",
-                "InitUsOfdmaTableTagValue",
-            )
-        )
+        has_sys_info, has_channel_data = CM3000Driver._status_blocks(html)
 
         return {
             "length": len(html),
@@ -349,40 +320,6 @@ class CM3000Driver(ModemDriver):
             diag["has_sys_info"],
             diag["has_channel_data"],
         )
-
-    # Compatibility parser seams; each delegates to the pure profile.
-
-    def _parse_ds_qam(self, html: str) -> list[RawChannel]:
-        return parse_cm3000_ds_qam(html).value
-
-    def _parse_us_atdma(self, html: str) -> list[RawChannel]:
-        return parse_cm3000_us_atdma(html).value
-
-    def _parse_ds_ofdm(self, html: str) -> list[RawChannel]:
-        return parse_cm3000_ds_ofdm(html).value
-
-    def _parse_us_ofdma(self, html: str) -> list[RawChannel]:
-        return parse_cm3000_us_ofdma(html).value
-
-    @staticmethod
-    def _extract_tag_value_list(html: str, function_name: str) -> str | None:
-        return extract_cm3000_tag_value_list(html, function_name)
-
-    @staticmethod
-    def _split_channels(raw: str, fields_per_channel: int) -> list[list[str]]:
-        return split_cm3000_channels(raw, fields_per_channel)
-
-    @staticmethod
-    def _hz_to_mhz(freq_str: str) -> str:
-        return hz_to_mhz(freq_str)
-
-    @staticmethod
-    def _parse_number(value: str) -> float:
-        return parse_number(value)
-
-    @staticmethod
-    def _normalize_modulation(mod: str) -> str:
-        return normalize_cm3000_modulation(mod)
 
     @staticmethod
     def _parse_uptime(uptime_str: str) -> int | None:

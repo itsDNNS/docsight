@@ -1,7 +1,5 @@
 {
-  "advanced_mqtt": "Lisäasetukset: MQTT / Home Assistant",
   "mqtt_broker": "MQTT-välittäjä",
-  "mqtt_desc": "Home Assistant -integraatioon MQTT Auto-Discoveryn kautta. Ilman MQTT:tä vain verkkokäyttöliittymä toimii.",
   "mqtt_optional_ha": "valinnainen – Home Assistantille",
   "mqtt_tls_insecure": "Suojaamaton TLS",
   "mqtt_tls_insecure_hint": "Ohita TLS-varmenteen tarkistus",

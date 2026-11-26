@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 
+import pytest
 from flask import Flask, current_app
 
 from app.app_factory import create_app
@@ -11,6 +12,8 @@ from app.config import ConfigManager
 from app.module_loader import ModuleLoader
 from app.runtime import current_runtime, get_runtime
 from tests.conftest import OPEN_INSTANCE_ENVIRON
+
+pytestmark = pytest.mark.usefixtures("route_app")
 
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -29,37 +32,28 @@ def _fixture_loader_factory(*, disabled_ids=None):
     return build
 
 
+def _fixture_app(data_dir, disabled_ids=None):
+    manager = ConfigManager(str(data_dir))
+    app = create_app(
+        config_manager=manager,
+        module_loader_factory=_fixture_loader_factory(disabled_ids=disabled_ids),
+        environ=dict(OPEN_INSTANCE_ENVIRON),
+        testing=True,
+    )
+    return app, manager
+
+
 class TestModuleIntegration:
     """End-to-end test with a real module fixture."""
 
     def setup_method(self):
         """Snapshot global state so we can restore it after each test."""
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        self._orig_defaults = dict(cfg.DEFAULTS)
-        self._orig_bool_keys = set(cfg.BOOL_KEYS)
-        self._orig_int_keys = set(cfg.INT_KEYS)
-        self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
         # Clean up any leftover dynamic module imports
         self._orig_sys_modules = set(sys.modules.keys())
         self._runtime = current_runtime()
 
     def teardown_method(self):
         """Restore global state to avoid polluting other tests."""
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        cfg.DEFAULTS.clear()
-        cfg.DEFAULTS.update(self._orig_defaults)
-        cfg.BOOL_KEYS.clear()
-        cfg.BOOL_KEYS.update(self._orig_bool_keys)
-        cfg.INT_KEYS.clear()
-        cfg.INT_KEYS.update(self._orig_int_keys)
-
-        _TRANSLATIONS.clear()
-        _TRANSLATIONS.update(self._orig_translations)
-
         # Remove dynamically imported module entries
         for key in list(sys.modules.keys()):
             if key not in self._orig_sys_modules:
@@ -71,13 +65,7 @@ class TestModuleIntegration:
 
     def test_full_load_cycle(self, tmp_path):
         """Discover -> validate -> load config + i18n + routes -> serve requests."""
-        manager = ConfigManager(str(tmp_path / "full-load"))
-        app = create_app(
-            config_manager=manager,
-            module_loader_factory=_fixture_loader_factory(),
-            environ=dict(OPEN_INSTANCE_ENVIRON),
-            testing=True,
-        )
+        app, _manager = _fixture_app(tmp_path / "full-load")
         loader = get_runtime(app).module_loader
         modules = loader.get_modules()
 
@@ -112,16 +100,7 @@ class TestModuleIntegration:
 
     def test_disable_skips_loading(self, tmp_path):
         """Disabled modules are discovered but their contributions are not loaded."""
-        manager = ConfigManager(str(tmp_path / "disabled-load"))
-        manager.save({"disabled_modules": "test.integration"})
-        app = create_app(
-            config_manager=manager,
-            module_loader_factory=_fixture_loader_factory(
-                disabled_ids={"test.integration"}
-            ),
-            environ={},
-            testing=True,
-        )
+        app, _manager = _fixture_app(tmp_path / "disabled-load", {"test.integration"})
         modules = get_runtime(app).module_loader.get_modules()
 
         mod = next(m for m in modules if m.id == "test.integration")
@@ -143,36 +122,29 @@ class TestModuleIntegration:
         en = get_translations("en")
         assert "test.integration.name" not in en
 
+    def test_later_app_with_the_module_disabled_exposes_none_of_its_config(self, tmp_path):
+        """Module config registered by an earlier app in the process does not carry over."""
+        from app import config as cfg
+
+        _fixture_app(tmp_path / "enabled")
+        _app, manager = _fixture_app(tmp_path / "disabled", {"test.integration"})
+
+        module_keys = {"test_integration_enabled", "test_integration_interval"}
+        assert not module_keys & (manager.get_all().keys() | cfg.BOOL_KEYS | cfg.INT_KEYS)
+        from app.i18n import get_translations
+
+        assert "test.integration.name" not in get_translations("en")
+
 
 class TestModuleUIIntegration:
     """Test that modules with UI contributions are properly loaded."""
 
     def setup_method(self):
         """Snapshot global state so we can restore it after each test."""
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        self._orig_defaults = dict(cfg.DEFAULTS)
-        self._orig_bool_keys = set(cfg.BOOL_KEYS)
-        self._orig_int_keys = set(cfg.INT_KEYS)
-        self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
         self._orig_sys_modules = set(sys.modules.keys())
 
     def teardown_method(self):
         """Restore global state to avoid polluting other tests."""
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        cfg.DEFAULTS.clear()
-        cfg.DEFAULTS.update(self._orig_defaults)
-        cfg.BOOL_KEYS.clear()
-        cfg.BOOL_KEYS.update(self._orig_bool_keys)
-        cfg.INT_KEYS.clear()
-        cfg.INT_KEYS.update(self._orig_int_keys)
-
-        _TRANSLATIONS.clear()
-        _TRANSLATIONS.update(self._orig_translations)
-
         for key in list(sys.modules.keys()):
             if key not in self._orig_sys_modules:
                 del sys.modules[key]
@@ -217,29 +189,10 @@ class TestModuleManagementAPI:
     """Test the full enable/disable flow through the API."""
 
     def setup_method(self):
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        self._orig_defaults = dict(cfg.DEFAULTS)
-        self._orig_bool_keys = set(cfg.BOOL_KEYS)
-        self._orig_int_keys = set(cfg.INT_KEYS)
-        self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
         self._orig_sys_modules = set(sys.modules.keys())
         self._runtime = current_runtime()
 
     def teardown_method(self):
-        from app import config as cfg
-        from app.i18n import _TRANSLATIONS
-
-        cfg.DEFAULTS.clear()
-        cfg.DEFAULTS.update(self._orig_defaults)
-        cfg.BOOL_KEYS.clear()
-        cfg.BOOL_KEYS.update(self._orig_bool_keys)
-        cfg.INT_KEYS.clear()
-        cfg.INT_KEYS.update(self._orig_int_keys)
-        _TRANSLATIONS.clear()
-        _TRANSLATIONS.update(self._orig_translations)
-
         for key in list(sys.modules.keys()):
             if key not in self._orig_sys_modules:
                 del sys.modules[key]

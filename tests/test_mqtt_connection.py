@@ -31,7 +31,7 @@ class _MiniBroker:
         while not self._stop.is_set():
             try:
                 conn, _ = self._server.accept()
-            except (socket.timeout, OSError):
+            except OSError:
                 continue
             self._clients.append(conn)
             threading.Thread(target=self._serve, args=(conn,), daemon=True).start()
@@ -73,7 +73,7 @@ class _MiniBroker:
                     conn.sendall(b"\xd0\x00")
                 elif kind == 14:  # DISCONNECT
                     break
-        except (ConnectionError, OSError):
+        except OSError:
             pass
         finally:
             conn.close()

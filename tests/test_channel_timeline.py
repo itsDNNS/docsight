@@ -4,6 +4,10 @@ import json
 import pytest
 from datetime import datetime, timedelta, timezone
 
+from app.analyzer import analyze
+from app.channel_selector import channel_selector
+from app.drivers.formats.vodafone import parse_ultrahub7_json
+from app.drivers.formats.xml_payloads import parse_ch7465_xml
 from app.storage import SnapshotStorage
 from app.config import ConfigManager
 from app.runtime import current_runtime
@@ -58,7 +62,7 @@ def storage(tmp_path):
 
 
 @pytest.fixture
-def client(tmp_path):
+def client(tmp_path, route_app):
     db_path = str(tmp_path / "api.db")
     s = SnapshotStorage(db_path, max_days=30)
     data_dir = str(tmp_path / "data")
@@ -66,8 +70,7 @@ def client(tmp_path):
     mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
     current_runtime().config_manager = mgr
     current_runtime().storage = s
-    app.config["TESTING"] = True
-    with app.test_client() as c:
+    with route_app.test_client() as c:
         yield c, s
 
 
@@ -101,6 +104,10 @@ class TestGetChannelHistory:
         result = storage.get_channel_history(1, "us", days=7)
         assert len(result) == 1
         assert result[0]["power"] == 42.0
+
+    def test_invalid_direction_raises(self, storage):
+        with pytest.raises(KeyError):
+            storage.get_channel_history(1, "bad", days=7)
 
     def test_nonexistent_channel(self, storage):
         storage.save_snapshot(_make_analysis())
@@ -326,6 +333,19 @@ class TestGetChannelHistory:
         assert [row["power"] for row in first] == [4.8, 5.1]
         assert [row["power"] for row in second] == [-1.7, -2.0]
 
+    def test_ultrahub7_channel_without_power_continues_pre_upgrade_history(self, storage):
+        row = {"ChannelID": "7", "Modulation": "256QAM"}
+        current = analyze(parse_ultrahub7_json({"downstream": [row], "upstream": []}).value)
+        # Earlier releases stored this row with power 0.0 under the frequency "0 MHz".
+        stored = {**current["ds_channels"][0], "frequency": "0 MHz", "power": 0.0}
+        _insert_snapshot(storage, _make_analysis(ds_channels=[stored]), _utc_ts(timedelta(minutes=2)))
+        _insert_snapshot(storage, current, _utc_ts(timedelta(minutes=1)))
+        selector = storage.get_current_channels()["ds_channels"][0]["selector"]
+
+        history = storage.get_channel_history(None, "ds", days=7, selector=selector)
+
+        assert [entry["power"] for entry in history] == [0.0, None]
+
     def test_selector_supports_duplicate_invalid_ids(self, storage):
         analysis = _duplicate_id_analysis()
         analysis["ds_channels"][0]["channel_id"] = None
@@ -424,6 +444,34 @@ class TestGetCurrentChannels:
         assert result[1]["selector_required"] is True
 
 
+class _KhzText(str):
+    """A string whose repr matches "634" but whose text carries kHz."""
+
+    def __str__(self):
+        return "634 kHz"
+
+
+@pytest.mark.parametrize(("channel_id", "frequency", "selector"), [
+    (1, 634, "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, "634", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, _KhzText("634"), "c1_YkRV55b0rfD9CnwPjWg8KCDD"),
+    (1, 634.0, "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    ("1.0", "634 MHz", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, "634000 kHz", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, "634000000 Hz", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (1, " 634.000 mhz ", "c1_HWKChz_FRBRnQXJ0DtYswczw"),
+    (0, ".5 MHz", "c1_sqbxPgkX73_e_lcyo5dH5hnn"),
+    (2, "-0", "c1_I-419bKitN1kGQsx_Eh8R1sV"),
+    (3, "1e3", "c1_1cbvGmR5R4Enz9fogfIDcL1U"),
+    (None, "OFDM  Block", "c1_0bddRNXlSIgTkfFSouZGepoT"),
+    (None, None, "c1_h67kIgLtJnGSIut1qzRIn8s_"),
+    (True, 634, "c1_UU37T75sbuvX8AV6wWcYISKf"),
+    ([1], 634, "c1_MYpRZHchUHCWZCezPYkI3-Kk"),
+])
+def test_selector_identity_is_stable_for_stored_spellings(channel_id, frequency, selector):
+    assert channel_selector({"channel_id": channel_id, "frequency": frequency}) == selector
+
+
 # ── API Tests ──
 
 class TestChannelsEndpoint:
@@ -435,6 +483,23 @@ class TestChannelsEndpoint:
         data = json.loads(resp.data)
         assert len(data["ds_channels"]) == 2
         assert len(data["us_channels"]) == 1
+
+    def test_overflowing_frequency_does_not_hide_other_channels(self, client):
+        c, s = client
+        rows = "".join(
+            f"<downstream><chid>{chid}</chid><freq>{freq}</freq><pow>3.0</pow></downstream>"
+            for chid, freq in ((1, "602000000"), (2, "9" * 1_000_001))
+        )
+        s.save_snapshot(analyze(parse_ch7465_xml(f"<root>{rows}</root>", "<root/>").value))
+
+        channels = json.loads(c.get("/api/channels").data)["ds_channels"]
+        history = c.get(
+            "/api/channel-history",
+            query_string={"selector": channels[0]["selector"], "direction": "ds", "range": "1d"},
+        )
+
+        assert [channel["channel_id"] for channel in channels] == [1, 2]
+        assert json.loads(history.data)[0]["power"] == 3.0
 
     def test_empty(self, client):
         c, s = client
@@ -474,14 +539,13 @@ class TestChannelHistoryEndpoint:
         assert len(data) == 1
         assert data[0]["power"] == 42.0
 
-    def test_no_storage(self, tmp_path):
+    def test_no_storage(self, tmp_path, route_app):
         data_dir = str(tmp_path / "data2")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr
         current_runtime().storage = None
-        app.config["TESTING"] = True
-        with app.test_client() as c:
+        with route_app.test_client() as c:
             resp = c.get("/api/channel-history?channel_id=1&direction=ds")
             assert resp.status_code == 200
             assert json.loads(resp.data) == []

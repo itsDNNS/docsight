@@ -10,6 +10,7 @@ import random
 
 from app.storage.sqlite import bulk_write
 import struct
+import threading
 import time
 import zlib
 from datetime import datetime, timedelta, timezone
@@ -130,6 +131,9 @@ class _DemoErrorCounters:
             self._values[key] = [0, 0]
 
 
+_SEED_LOCK = threading.Lock()
+
+
 @functools.lru_cache(maxsize=1)
 def _load_base_data():
     """Load channel definitions from demo_channels.json (once)."""
@@ -153,6 +157,7 @@ class DemoCollector(AnalysisCollector):
         self._error_counters = _DemoErrorCounters(_load_base_data())
         super().__init__(analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier, smart_capture)
         self._poll_count = 0
+        self.seeding = False
         self._device_info = {
             "manufacturer": "DOCSight",
             "model": "Demo Router",
@@ -248,18 +253,23 @@ class DemoCollector(AnalysisCollector):
         return data
 
     def collect(self) -> CollectorResult:
-        self._poll_count += 1
-
         self._device_info["uptime_seconds"] = int(time.time()) % 8640000
 
-        # First poll: publish device/connection info + seed demo history
-        if self._poll_count == 1:
+        # First poll: publish device/connection info + seed demo history (retried until it succeeds)
+        first = self._poll_count == 0
+        if first:
             log.info("Demo mode: %s (%s)", self._device_info["model"], self._device_info["sw_version"])
             self._web.update_state(device_info=self._device_info)
             self._web.update_state(connection_info=self._connection_info)
-            self._seed_demo_data()
-
-        return self._process(self._generate_data(), is_demo=True)
+            self.seeding = True
+        try:
+            if first:
+                with _SEED_LOCK:  # a restarted demo seeds after an older seed, never beside it
+                    self._seed_demo_data()
+            self._poll_count += 1
+            return self._process(self._generate_data(), is_demo=True)
+        finally:
+            self.seeding = False  # an exit purges only once the first poll is stored
 
     def _ensure_demo_module_tables(self):
         """Create local module tables before direct demo inserts on a fresh instance."""
@@ -284,6 +294,8 @@ class DemoCollector(AnalysisCollector):
         if seed.isdigit():
             random.seed(int(seed))
         self._ensure_demo_module_tables()
+        from app.modules.journal.storage import JournalStorage
+        journal = JournalStorage(self._storage.db_path)  # fails before the history is rebuilt
         # Purge any existing demo data first (handles container rebuilds with persisted volume)
         self._storage.purge_demo_data()
         # Keep all demo data — don't let cleanup purge the seeded history
@@ -291,10 +303,10 @@ class DemoCollector(AnalysisCollector):
         now = _demo_reference_time()
         detected_events = self._seed_history(now)
         self._seed_events(now, detected_events)
-        self._seed_journal_entries(now)
+        self._seed_journal_entries(now, journal)
         self._seed_speedtest_results(now)
         self._seed_bqm_graphs(now)
-        self._seed_incident_containers(now)
+        self._seed_incident_containers(now, journal)
         self._seed_bnetz_measurements(now)
         self._seed_weather_data(now)
         self._seed_connection_monitor_data(now)
@@ -337,7 +349,7 @@ class DemoCollector(AnalysisCollector):
             bad_period = _demo_bad_period(ts)
 
             analysis = self._generate_historical_analysis(
-                i, diurnal, seasonal, bad_period, hour, day_of_year,
+                diurnal, seasonal, bad_period, hour, day_of_year,
                 burst=bad_period and not was_bad,
                 congested=_demo_congested_evening(ts) and not bad_period,
             )
@@ -363,7 +375,7 @@ class DemoCollector(AnalysisCollector):
         log.info("Demo: seeded %d historical snapshots (%d days)", len(rows), days)
         return detected
 
-    def _generate_historical_analysis(self, index, diurnal, seasonal, bad_period, hour=12, day_of_year=1, burst=False,
+    def _generate_historical_analysis(self, diurnal, seasonal, bad_period, hour=12, day_of_year=1, burst=False,
                                       congested=False):
         """Generate a single analyzed snapshot for historical seeding."""
         base = _load_base_data()
@@ -575,7 +587,7 @@ class DemoCollector(AnalysisCollector):
         self._storage.save_events(events, is_demo=True)
         log.info("Demo: seeded %d events", len(events))
 
-    def _seed_journal_entries(self, now):
+    def _seed_journal_entries(self, now, _js):
         """Seed journal entries spread over the 9-month demo period."""
         entries = [
             (
@@ -664,24 +676,12 @@ class DemoCollector(AnalysisCollector):
                 "No impact on speeds observed.",
             ),
         ]
-        try:
-            from app.modules.journal.storage import JournalStorage
-            _js = JournalStorage(self._storage.db_path)
-        except (ImportError, Exception):
-            log.debug("Demo: journal module not available, skipping journal seeding")
-            return
         for date, title, description in entries:
             _js.save_entry(date, title, description, is_demo=True)
         log.info("Demo: seeded %d journal entries", len(entries))
 
-    def _seed_incident_containers(self, now):
+    def _seed_incident_containers(self, now, _js):
         """Seed demo incident containers and assign entries by date range."""
-        try:
-            from app.modules.journal.storage import JournalStorage
-            _js = JournalStorage(self._storage.db_path)
-        except (ImportError, Exception):
-            log.debug("Demo: journal module not available, skipping incident seeding")
-            return
         inc1_id = _js.save_incident(
             name="Seasonal Signal Drift",
             description="Temperature-related upstream power drift observed over summer months. "
@@ -854,11 +854,11 @@ class DemoCollector(AnalysisCollector):
                 ul_values.append(ul)
                 measurements_dl.append({
                     "date": m_date.strftime("%Y-%m-%d"),
-                    "value": dl,
+                    "mbps": dl,
                 })
                 measurements_ul.append({
                     "date": m_date.strftime("%Y-%m-%d"),
-                    "value": ul,
+                    "mbps": ul,
                 })
 
             dl_avg = round(sum(dl_values) / len(dl_values), 2)
@@ -1173,30 +1173,23 @@ class DemoCollector(AnalysisCollector):
             return struct.pack(">I", len(data)) + c + crc
 
         # Generate pixel data: quality bar chart with green/yellow/red bands
-        raw = b""
+        wave = [0.8 + 0.2 * math.sin(x * 0.02 + seed) for x in range(width)]
+        background = bytes((30, 30, 40))
+        raw = bytearray()
         for y in range(height):
-            row = b"\x00"  # PNG filter: None
+            raw.append(0)  # PNG filter: None
+            # Green, yellow and red bars with a slight vertical gradient
+            fade = 0.7 + 0.3 * (height - y) / height
+            green, yellow, red = (bytes(int(c * fade) for c in rgb)
+                                  for rgb in ((46, 160, 67), (200, 170, 40), (200, 50, 50)))
             for x in range(width):
                 # Simulate quality: mostly green, some yellow/red sections
-                quality = 0.8 + 0.2 * math.sin(x * 0.02 + seed) + rng.uniform(-0.05, 0.05)
-                quality = max(0, min(1, quality))
-
+                quality = max(0, min(1, wave[x] + rng.uniform(-0.05, 0.05)))
                 # Quality bar: bottom portion filled, top portion background
-                bar_height = int(quality * height * 0.8)
-                if y > height - bar_height:
-                    if quality > 0.7:
-                        r, g, b = 46, 160, 67  # green
-                    elif quality > 0.4:
-                        r, g, b = 200, 170, 40  # yellow
-                    else:
-                        r, g, b = 200, 50, 50  # red
-                    # Slight vertical gradient
-                    fade = 0.7 + 0.3 * (height - y) / height
-                    r, g, b = int(r * fade), int(g * fade), int(b * fade)
+                if y > height - int(quality * height * 0.8):
+                    raw += green if quality > 0.7 else yellow if quality > 0.4 else red
                 else:
-                    r, g, b = 30, 30, 40  # dark background
-                row += bytes([r, g, b])
-            raw += row
+                    raw += background
 
         sig = b"\x89PNG\r\n\x1a\n"
         ihdr = _png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))

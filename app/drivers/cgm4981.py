@@ -39,18 +39,12 @@ import re
 import requests
 
 from .base import ModemDriver
+from .format_compat import unwrap
+from .utils import request_error_summary
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
-from .formats.html_columnar import (
-    _float,
-    _modulation,
-    build_cgm4981_downstream,
-    build_cgm4981_upstream,
-    parse_cgm4981_columnar_html,
-)
+from .formats.html_columnar import parse_cgm4981_columnar_html
 
 log = logging.getLogger("docsis.driver.cgm4981")
-
-__all__ = ["CGM4981Driver", "_float", "_modulation"]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -97,7 +91,7 @@ class CGM4981Driver(ModemDriver):
                 timeout=15,
             ).raise_for_status()
         except requests.RequestException as exc:
-            raise RuntimeError(f"CGM4981 login request failed: {exc}") from exc
+            raise RuntimeError(f"CGM4981 login request failed: {request_error_summary(exc)}") from exc
 
         if _SESSION_COOKIE not in self._session.cookies:
             raise RuntimeError(
@@ -108,7 +102,7 @@ class CGM4981Driver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Return parsed downstream and upstream channel data."""
-        return parse_cgm4981_columnar_html(self._fetch_status_page()).value
+        return unwrap(parse_cgm4981_columnar_html(self._fetch_status_page()), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Return model, firmware version, and uptime from the status page."""
@@ -141,8 +135,8 @@ class CGM4981Driver(ModemDriver):
                     + int(m.group(3)) * 60
                     + int(m.group(4))
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("CGM4981 device info unavailable: %s", e)
         return info
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -158,8 +152,8 @@ class CGM4981Driver(ModemDriver):
             m = re.search(r"Internet:</span>\s*<span[^>]*>\s*(\w+)", html)
             if m:
                 info["status"] = m.group(1)
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("CGM4981 connection info unavailable: %s", e)
         return info
 
     def _fetch_status_page(self) -> str:
@@ -173,19 +167,17 @@ class CGM4981Driver(ModemDriver):
                 r.raise_for_status()
             except requests.RequestException as exc:
                 if attempt == 0:
-                    log.warning("CGM4981 status page fetch failed, retrying: %s", exc)
-                    self._session = requests.Session()
+                    log.warning("CGM4981 status page fetch failed, retrying: %s", request_error_summary(exc))
                     self.login()
                     continue
                 raise RuntimeError(
-                    f"CGM4981 status page retrieval failed: {exc}"
+                    f"CGM4981 status page retrieval failed: {request_error_summary(exc)}"
                 ) from exc
 
             if len(r.text) < _MIN_STATUS_PAGE_BYTES:
                 # Session expired — redirect to login page.
                 if attempt == 0:
                     log.warning("CGM4981 session expired, re-authenticating")
-                    self._session = requests.Session()
                     self.login()
                     continue
                 raise RuntimeError(
@@ -194,16 +186,3 @@ class CGM4981Driver(ModemDriver):
 
             self._status_html = r.text
             return self._status_html
-
-        raise RuntimeError("CGM4981 failed to fetch status page after 2 attempts")
-
-    @staticmethod
-    def _build_ds_channels(
-        ds_rows: dict[str, list[str]],
-        err_rows: dict[str, list[str]],
-    ) -> list[dict]:
-        return build_cgm4981_downstream(ds_rows, err_rows).value
-
-    @staticmethod
-    def _build_us_channels(us_rows: dict[str, list[str]]) -> list[dict]:
-        return build_cgm4981_upstream(us_rows).value

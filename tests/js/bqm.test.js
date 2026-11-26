@@ -13,7 +13,7 @@ const emptyState = {
     hide(el) { if (el) Object.assign(el, {hidden: true, empty: null}); },
 };
 
-function setup() {
+function setup({chart = true} = {}) {
     const elements = {};
     function element(id) {
         const classes = new Set();
@@ -24,23 +24,26 @@ function setup() {
             appendChild(el) { this.children.push(el); },
             replaceChildren() { this.children = []; }};
     }
-    const quickRange = element('bqm-quick-range');
-    for (const id of ['today', 'yesterday', '7d', '30d']) quickRange.appendChild(element('bqm-' + id + '-btn'));
-    element('bqm-calendar-grid'); element('bqm-month-label');
-    element('bqm-view-toggle'); element('bqm-range-label');
+    for (const file of ['bqm_tab', 'bqm_dialogs']) {
+        for (const [, id] of fs.readFileSync(`app/modules/bqm/templates/${file}.html`, 'utf8').matchAll(/id="([^"]+)"/g)) element(id);
+    }
+    for (const id of ['today', 'yesterday', '7d', '30d']) elements['bqm-quick-range'].appendChild(elements['bqm-' + id + '-btn']);
     const requests = [];
+    // The browser clock is a day ahead of the configured time zone's date from todayStr().
     class FixedDate extends Date {
-        constructor(...args) { super(...(args.length ? args : ['2026-01-02T12:00:00'])); }
+        constructor(...args) { super(...(args.length ? args : ['2026-01-03T12:00:00'])); }
     }
     const c = vm.createContext({DOCSightEmptyState: emptyState, document: {getElementById: id => elements[id], createElement: () => element('cell'), createTextNode: text => ({nodeType: 3, textContent: String(text)})},
         Date: FixedDate,
-        T: {}, todayStr: () => '2026-01-02', pad: n => String(n).padStart(2, '0'),
-        formatDateDE: s => s, clearTimeout() {}, docsightUrl: s => s,
+        T: require('./english-catalog')(), todayStr: () => '2026-01-02', pad: n => String(n).padStart(2, '0'),
+        formatDateDE: s => s, clearTimeout() {}, docsightUrl: s => s, labelDataTable() {},
+        URL: {createObjectURL: file => 'blob:' + file.name, revokeObjectURL() {}},
         fetch: async url => { requests.push(url); return {json: async () => ({points: 1, data: {}})}; },
-        BQMChart: {render(...args) { c.rendered = args; }}});
+        ...(chart && {BQMChart: {render(...args) { c.rendered = args; }}})});
     c.window = c;
     run(c, 'app/static/js/segmented.js');
     run(c, 'app/modules/bqm/static/main.js');
+    c.bqmDate = '2026-01-02';  // initBqmView() starts on today
     c._bqmCsvDates = new Set(['2026-01-02', '2026-01-01', '2025-12-30']);
     c._bqmAvailableDates = c._bqmCsvDates;
     return {c, elements, requests};
@@ -98,9 +101,9 @@ for (const [name, date] of [['today', '2026-01-02'], ['yesterday', '2026-01-01']
         elements['bqm-' + name + '-btn'].click();
         await new Promise(resolve => setImmediate(resolve));
 
+        assert.deepEqual(requests, ['/api/bqm/data/' + date]);
         assert.equal(c._bqmLiveTimer, null);
         assert.equal(elements['bqm-view-toggle'].hidden, false);
-        assert.deepEqual(requests, ['/api/bqm/data/' + date]);
         assert.equal(c.bqmDate, date);
         assert.equal(c._bqmRangeStart, date);
         assert.equal(c._bqmRangeEnd, date);
@@ -122,9 +125,99 @@ for (const [name, date] of [['today', '2026-01-02'], ['yesterday', '2026-01-01']
         assert.deepEqual(deletion, {url: '/api/bqm/images', body: {start: date, end: date}});
     });
 }
+test('7d and 30d load the range that ends today', async () => {
+    const {c, elements, requests} = setup();
+    for (const [name, start] of [['7d', '2025-12-27'], ['30d', '2025-12-04']]) {
+        elements['bqm-' + name + '-btn'].click();
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual([c._bqmRangeStart, c._bqmRangeEnd, c.bqmDate], [start, '2026-01-02', '2026-01-02']);
+        assert.equal(requests.at(-1), '/api/bqm/data/range?start=' + start + '&end=2026-01-02');
+        assert.equal(elements['bqm-range-label'].textContent, start + ' \u2013 2026-01-02 (3)');
+        selected(elements, name);
+    }
+});
+test('PNG days and the live graph still load when the chart script failed to load', async () => {
+    const {c, elements, requests} = setup({chart: false});
+    c._bqmAvailableDates = new Set([...c._bqmCsvDates, '2025-12-20']);
+    c.selectBqmDate('2025-12-20');
+    assert.equal(elements['bqm-image'].src, '/api/bqm/image/2025-12-20');
+    c._bqmCsvDates = new Set();
+    c.selectBqmDate('2026-01-02');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(requests.at(-1), '/api/bqm/live');
+    // The fake live response is not ok, so the view falls back to today's stored PNG.
+    assert.equal(elements['bqm-image'].src, '/api/bqm/image/2026-01-02');
+});
+test('first opening after midnight starts on the new day, not the day the page loaded', () => {
+    const {c, elements, requests} = setup();
+    c.todayStr = () => '2026-01-01';
+    run(c, 'app/modules/bqm/static/main.js');
+    c.todayStr = () => '2026-01-02';
+    elements['view-bqm'] = {};
+    c._bqmDatesLoaded = true;
+    c._bqmCsvDates = c._bqmAvailableDates = new Set(['2026-01-02', '2026-01-01']);
+    c.initBqmView();
+    assert.equal(c.bqmDate, '2026-01-02');
+    assert.deepEqual(requests, ['/api/bqm/data/2026-01-02']);
+});
+const deleteDialog = {title: 'Delete', confirmText: 'Delete', cancelText: 'Cancel', danger: true};
+const deleteAll = {...deleteDialog, message: 'Delete all 3 BQM images?', requireText: 'DELETE', requireLabel: 'Type DELETE to confirm'};
+for (const [label, range, answer, dialog, body, toast, stored] of [
+    ['deletes the selected range', ['2026-01-01', '2026-01-02'], true,
+        {...deleteDialog, message: 'Delete 2 images from 2026-01-01 to 2026-01-02?'}, {start: '2026-01-01', end: '2026-01-02'}, ['2 images deleted', 'success']],
+    ['deletes all images after typed confirmation', [null, null], true, deleteAll, {all: true, confirm: 'DELETE_ALL'}, ['2 images deleted', 'success']],
+    ['keeps the images when the dialog is cancelled', [null, null], false, deleteAll, null, null],
+    ['reports a failed request', [null, null], 'fail', deleteAll, {all: true, confirm: 'DELETE_ALL'}, ['Delete failed: offline', 'error']],
+    ['tells that a range without data has nothing to delete', ['2025-11-01', '2025-11-30'], true, null, null, ['No BQM data in this range', 'info']],
+    ['tells that nothing is stored', [null, null], true, null, null, ['No BQM data in this range', 'info'], new Set()],
+]) {
+    test('image deletion ' + label, async () => {
+        const {c} = setup();
+        if (stored) c._bqmAvailableDates = stored;
+        [c._bqmRangeStart, c._bqmRangeEnd] = range;
+        const dialogs = [], toasts = [], calls = [];
+        c.docsightConfirm = async options => { dialogs.push({...options}); return Boolean(answer); };
+        c.showToast = (...args) => toasts.push(args);
+        c.fetch = async (url, options = {}) => {
+            calls.push([url, options.method, options.headers && {...options.headers}, options.body && JSON.parse(options.body)]);
+            if (answer === 'fail') throw new Error('offline');
+            return {json: async () => ({deleted: 2})};
+        };
+        c.deleteBqmImages();
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(dialogs, dialog ? [dialog] : []);
+        assert.deepEqual(calls[0], body ? ['/api/bqm/images', 'DELETE', {'Content-Type': 'application/json'}, body] : undefined);
+        assert.deepEqual(toasts, toast ? [toast] : []);
+        const deleted = toast && toast[1] === 'success';
+        assert.deepEqual(calls.slice(1).map(call => call[0]), deleted ? ['/api/bqm/data/dates'] : []);
+        assert.deepEqual([c._bqmRangeStart, c._bqmRangeEnd], deleted ? [null, null] : range);
+    });
+}
+test('image import shifts dates by the offset and summarizes readiness in both status lines', () => {
+    const {c, elements} = setup();
+    const add = (offset, ...names) => {
+        elements['bqm-import-offset'].value = offset;
+        c.handleBqmImportFiles(names.map(name => ({name, type: 'image/png'})));
+    };
+    const state = () => [Array.from(c._bqmImportFiles, entry => entry.date), elements['bqm-import-status'].textContent,
+        elements['bqm-import-validation-state'].textContent, elements['bqm-import-validation-state'].className];
+    add('0', 'bqm-2026-01-01.png');
+    c._bqmImportFiles[0].date = '2025-06-01';
+    // Without an offset, files added later leave dates edited by hand alone.
+    add('', 'graph.png');
+    assert.deepEqual(state(), [['2025-06-01', ''], '1 ready, 1 needs a date', '1 ready, 1 needs a date', 'import-validation-state is-warning']);
+    add('2', '20260131.png');
+    assert.deepEqual(state(), [['2026-01-03', '', '2026-02-02'], '2 ready, 1 needs a date', '2 ready, 1 needs a date', 'import-validation-state is-warning']);
+    elements['bqm-import-offset'].value = '-1';
+    c.applyBqmImportOffset();
+    assert.deepEqual(state()[0], ['2025-12-31', '', '2026-01-30']);
+    c._bqmImportFiles.splice(1, 1);
+    c.renderBqmImportPreview();
+    assert.deepEqual(state(), [['2025-12-31', '2026-01-30'], '2 ready', '2 ready', 'import-validation-state is-success']);
+});
 test('BQM axis uses dates for sparse ranges and retains time in tooltip labels', () => {
     let rendered;
-    const c = vm.createContext({window: {}, document: {getElementById: id => ({id})}, T: {},
+    const c = vm.createContext({window: {}, document: {getElementById: id => ({id})}, T: require('./english-catalog')(),
         pad: n => String(n).padStart(2, '0'), bandPlugin() {}, zoomPlugin() {},
         renderChart(...args) { rendered = args; }});
     run(c, 'app/static/js/chart-engine.js');

@@ -28,8 +28,8 @@ def test_ensure_table_creates_enriched_columns(tmp_path):
         assert col in cols, f"Missing enriched column: {col}"
 
 
-def test_save_upserts_enriched_fields(tmp_path):
-    """Saving a result twice should update enriched fields on the second insert."""
+def test_save_upserts_every_field(tmp_path):
+    """Saving a result twice should update all fields on the second insert."""
     db_path = str(tmp_path / "speedtest.db")
     storage = SpeedtestStorage(db_path)
 
@@ -58,9 +58,15 @@ def test_save_upserts_enriched_fields(tmp_path):
     assert row["result_url"] is None
     assert row["is_vpn"] is None
 
-    # Second insert with enriched data
+    # Second insert with corrected measurements and enriched data
+    corrected = {
+        "timestamp": "2026-01-01T12:01:00Z", "download_mbps": 600.0, "upload_mbps": 60.0,
+        "download_human": "600 Mbps", "upload_human": "60 Mbps", "ping_ms": 11.0, "jitter_ms": 2.0,
+        "packet_loss_pct": 0.5, "server_id": 2, "server_name": "Other Server",
+    }
     enriched_result = {
         **base_result,
+        **corrected,
         "isp": "Deutsche Telekom",
         "server_host": "speedtest.telekom.de",
         "server_location": "Frankfurt",
@@ -104,10 +110,23 @@ def test_save_upserts_enriched_fields(tmp_path):
     assert row["is_vpn"] == 0  # False -> 0 in SQLite
     assert row["result_url"] == "https://www.speedtest.net/result/c/abc123"
 
-    # Original fields must not change on upsert
-    assert row["download_mbps"] == pytest.approx(500.0)
-    assert row["ping_ms"] == pytest.approx(10.0)
-    assert row["server_name"] == "Test Server"
+    assert {key: row[key] for key in corrected} == corrected
+
+    # A payload without measurements keeps the stored ones; a new failed test is still stored
+    sparse = SpeedtestClient("http://stt", "token")._parse_result(
+        {"id": 42, "status": "failed", "created_at": corrected["timestamp"]}
+    )
+    assert storage.save_speedtest_results([sparse, {**sparse, "id": 43}]) == [storage.get_speedtest_by_id(43)]
+    assert storage.get_speedtest_by_id(42) == row
+    failed = storage.get_speedtest_by_id(43)
+    assert (failed["download_mbps"], failed["upload_mbps"], failed["ping_ms"]) == (0, 0, None)
+
+    # A result listed twice, measured and then without measurements or any time, keeps its values and is
+    # reported once as stored; a new result without a time is stored with an empty one
+    no_time = SpeedtestClient("http://stt", "token")._parse_result({"id": 44, "status": "failed"})
+    new = storage.save_speedtest_results([{**base_result, "id": 44}, no_time, {**no_time, "id": 45}])
+    assert new == [storage.get_speedtest_by_id(44), storage.get_speedtest_by_id(45)]
+    assert (new[0]["download_mbps"], new[0]["timestamp"], new[1]["timestamp"]) == (500.0, base_result["timestamp"], "")
 
 
 # ---------------------------------------------------------------------------

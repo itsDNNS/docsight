@@ -381,6 +381,7 @@ def test_community_constructor_errors_are_redacted(tmp_path, caplog):
     driver = runtime.driver_registry.load_for_polling(DRIVER_ID, "", "", "")
     with pytest.raises(RuntimeError, match="Configured modem driver is unavailable"):
         driver.login()
+    assert f"Modem driver {DRIVER_ID} is unavailable (RuntimeError)" in caplog.text
     assert "private-password" not in caplog.text
     assert "/private/path" not in caplog.text
 

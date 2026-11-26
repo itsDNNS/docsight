@@ -1,32 +1,41 @@
-"""Finite legacy logging adapters for driver-private parser seams."""
+"""Driver-side logging of payload-safe parser diagnostics."""
 
 from __future__ import annotations
 
-from typing import Any
+from collections import Counter
+import logging
 
 from .formats.contract import ParseResult
 
+# Unreported readings and channel types DOCSight does not parse recur on every poll of a healthy
+# modem; they stay None or are skipped and are not malformed data.
+_EXPECTED_CODES = frozenset({
+    "unavailable_counters", "unavailable_field", "unknown_channel_type", "unsupported_counters",
+})
 
-def unwrap_f3896lg(result: ParseResult, rows: list[dict[str, Any]], direction: str, logger):
-    for issue in result.diagnostics:
-        row = rows[issue.index] if issue.index is not None and issue.index < len(rows) else {}
-        if issue.code == "unknown_channel_type":
-            logger.debug("Skipping unknown %s channel type %r", direction, row.get("channelType"))
-        elif issue.field == "rxMer":
-            logger.warning("Invalid F3896LG OFDM rxMer %r; using no MER", row.get("rxMer"))
-        elif issue.field == "power":
-            lane = "OFDM" if direction == "downstream" else "OFDMA"
-            logger.warning("Invalid F3896LG %s power %r; using no power", lane, row.get("power"))
+
+def unwrap(result: ParseResult, logger, messages: dict[tuple[str, str], str] | None = None):
+    """Log each distinct diagnostic once per parse and return the parsed value."""
+    counts = Counter((issue.profile, issue.code, issue.direction, issue.field) for issue in result.diagnostics)
+    for (profile, code, direction, field), count in counts.items():
+        if messages and (code, field) in messages:
+            logger.warning(messages[code, field])
+        else:
+            logger.log(
+                logging.DEBUG if code in _EXPECTED_CODES else logging.WARNING,
+                "%s parser reported %s (direction=%s, field=%s, rows=%d)",
+                profile, code, direction, field, count,
+            )
     return result.value
 
 
-def unwrap_hitron(result: ParseResult, logger):
-    if any(issue.code == "missing_field" and issue.field == "repPower1_6" for issue in result.diagnostics):
-        logger.warning("Hitron CODA-56 OFDMA row missing repPower1_6; leaving power unsupported")
-    return result.value
+def unwrap_hitron(result: ParseResult, logger, model: str = "CODA-56"):
+    return unwrap(result, logger, {
+        ("missing_field", "repPower1_6"): f"Hitron {model} OFDMA row missing repPower1_6; leaving power unsupported",
+    })
 
 
 def unwrap_sercom(result: ParseResult, logger):
-    if any(issue.code == "missing_field" and issue.field == "rep power1_6" for issue in result.diagnostics):
-        logger.warning("Sercom DM1000 OFDMA row missing rep power1_6; leaving power unsupported")
-    return result.value
+    return unwrap(result, logger, {
+        ("missing_field", "rep power1_6"): "Sercom DM1000 OFDMA row missing rep power1_6; leaving power unsupported",
+    })

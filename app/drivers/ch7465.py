@@ -17,9 +17,10 @@ import re
 import weakref
 from enum import Enum
 from .base import ModemDriver
-from .formats.primitives import normalize_modulation
-from .formats.xml_payloads import parse_ch7465_xml
+from .format_compat import unwrap
+from .formats.xml_payloads import _text as _node_text, parse_ch7465_xml
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import error_text, request_error_summary
 
 log = logging.getLogger("docsis.driver.ch7465")
 
@@ -36,13 +37,6 @@ class Action(Enum):
     """Action function codes usable with `_set_data()`"""
     LOGIN = 15
     LOGOUT = 16
-
-def _node_text(node: ET.Element | None, default: str = "") -> str:
-    """Helper function: Extract the text from one XML element (with fallback to `default` if the node does not exist)."""
-    if node is not None and node.text is not None:
-        return node.text
-    else:
-        return default
 
 class CH7465Driver(ModemDriver):
     """Driver for Compal CH7465 cable modems.
@@ -146,13 +140,13 @@ class CH7465Driver(ModemDriver):
 
     def get_docsis_data(self) -> DocsisData:
         """Query DOCSIS channel data."""
-        parsed = parse_ch7465_xml(
+        parsed = unwrap(parse_ch7465_xml(
             self._get_data(Query.DOWNSTREAM_TABLE),
             self._get_data(Query.UPSTREAM_TABLE),
-        )
-        if parsed.value is None:
+        ), log)
+        if parsed is None:
             raise ValueError("invalid CH7465 channel XML")
-        return parsed.value
+        return parsed
 
     def get_device_info(self) -> DeviceInfo:
         """Try to get CH7465 model info."""
@@ -184,7 +178,8 @@ class CH7465Driver(ModemDriver):
                         pass
 
             return result
-        except Exception:
+        except Exception as e:
+            log.warning("CH7465 device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Compal", "model": "CH7465", "sw_version": ""}
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -217,7 +212,7 @@ class CH7465Driver(ModemDriver):
                 "connection_type": mode,
             }
         except Exception as e:
-            log.warning("Failed to get connection info: %s", e)
+            log.warning("Failed to get connection info: %s", error_text(e))
             return {}
 
 
@@ -271,7 +266,3 @@ class CH7465Driver(ModemDriver):
         xml = self._get_data(Query.LOGIN_FAIL_COUNT)
         root = ET.fromstring(xml)
         return int(root.find('FailCount').text)
-
-    @staticmethod
-    def _normalize_modulation(modulation: str) -> str:
-        return normalize_modulation(modulation)

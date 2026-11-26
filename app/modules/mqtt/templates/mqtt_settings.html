@@ -7,8 +7,8 @@
                     <i data-lucide="radio-tower"></i>
                 </div>
                 <div>
-                    <div class="card-title">{{ t['docsight.mqtt.mqtt_broker'] or 'MQTT Broker' }}</div>
-                    <div class="card-subtitle">{{ t['docsight.mqtt.mqtt_optional_ha'] or 'optional - for Home Assistant' }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Home-Assistant" target="_blank" rel="noopener noreferrer">{{ t.get('settings_learn_more', 'Learn more') }}</a></div>
+                    <div class="card-title">{{ t['docsight.mqtt.mqtt_broker'] }}</div>
+                    <div class="card-subtitle">{{ t['docsight.mqtt.mqtt_optional_ha'] }} <a class="card-help" href="https://github.com/itsDNNS/docsight/wiki/Home-Assistant" target="_blank" rel="noopener noreferrer">{{ t.settings_learn_more }}</a></div>
                 </div>
             </div>
             <div class="status-indicator" id="mqtt-status" role="status" aria-live="polite" hidden>
@@ -26,27 +26,27 @@
                 <input class="form-input" type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
             </div>
             <div class="form-field">
-                <label class="form-label" for="mqtt_user">{{ t['docsight.mqtt.username_opt'] or 'Username (optional)' }}</label>
+                <label class="form-label" for="mqtt_user">{{ t['docsight.mqtt.username_opt'] }}</label>
                 <input class="form-input" type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
             </div>
             <div class="form-field">
-                <label class="form-label" for="mqtt_password">{{ t['docsight.mqtt.password_opt'] or 'Password (optional)' }}</label>
+                <label class="form-label" for="mqtt_password">{{ t['docsight.mqtt.password_opt'] }}</label>
                 <input class="form-input" type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}"{% if config.mqtt_password %} data-saved-secret="true"{% endif %}>
             </div>
             <div class="form-field form-grid-full">
-                <label class="form-label" for="mqtt_topic_prefix">{{ t['docsight.mqtt.topic_prefix'] or 'Topic Prefix' }}</label>
+                <label class="form-label" for="mqtt_topic_prefix">{{ t['docsight.mqtt.topic_prefix'] }}</label>
                 <input class="form-input" type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
             </div>
             <div class="form-field form-grid-full">
-                <label class="form-label" for="mqtt_discovery_prefix">{{ t['docsight.mqtt.discovery_prefix'] or 'Discovery Prefix' }}</label>
+                <label class="form-label" for="mqtt_discovery_prefix">{{ t['docsight.mqtt.discovery_prefix'] }}</label>
                 <input class="form-input" type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
-                <span class="form-hint">{{ t['docsight.mqtt.discovery_prefix_hint'] or 'Default: homeassistant. Only change if you customized it in HA.' }}</span>
+                <span class="form-hint">{{ t['docsight.mqtt.discovery_prefix_hint'] }}</span>
             </div>
         </div>
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title" id="mqtt_tls_insecure-title">{{ t['docsight.mqtt.mqtt_tls_insecure'] or 'Insecure TLS' }}</span>
-                <span class="toggle-desc">{{ t.get('docsight.mqtt.mqtt_tls_insecure_hint', 'Skip TLS certificate verification') }}</span>
+                <span class="toggle-title" id="mqtt_tls_insecure-title">{{ t['docsight.mqtt.mqtt_tls_insecure'] }}</span>
+                <span class="toggle-desc">{{ t['docsight.mqtt.mqtt_tls_insecure_hint'] }}</span>
             </div>
             <input type="hidden" name="mqtt_tls_insecure" value="false">
             <label class="toggle">

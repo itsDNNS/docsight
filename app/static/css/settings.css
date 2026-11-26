@@ -692,17 +692,21 @@ button.notification-collapse-button {
 .browse-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 8px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.15s;
   font-size: 0.9rem;
 }
 .browse-item:hover {
-  background: var(--tint-hover);
+  background: var(--hover-bg);
 }
-.browse-item i { width: 18px; height: 18px; color: var(--muted); }
+.browse-item svg { width: 16px; height: 16px; color: var(--accent); }
+.browse-item.is-parent span, .browse-item.is-parent svg { color: var(--muted); }
+.browse-note { padding: 16px; color: var(--muted); text-align: center; }
+.browse-note.is-empty { font-style: italic; }
+.browse-note.is-error { color: var(--crit); text-align: start; }
 
 /* ─── Panels ─── */
 .settings-panel { display: none; }

@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 
 from app.collectors.base import Collector, CollectorResult
+from .backup import positive_int
 
 log = logging.getLogger("docsis.collector.backup")
 
@@ -16,7 +17,7 @@ class BackupCollector(Collector):
 
     def __init__(self, config_mgr, poll_interval=86400, **kwargs):
         self._config_mgr = config_mgr
-        interval_hours = self._get_interval_hours(config_mgr, poll_interval // 3600)
+        interval_hours = positive_int(config_mgr, "backup_interval_hours", poll_interval // 3600)
         super().__init__(interval_hours * 3600)
         self._seed_last_poll()
 
@@ -33,31 +34,9 @@ class BackupCollector(Collector):
         backups = list_backups(backup_path)
         if not backups:
             return
-        try:
-            dt = datetime.fromisoformat(backups[0]["modified"])
-            self._last_poll = dt.timestamp()
-            age_hours = (time.time() - self._last_poll) / 3600
-            log.info("Backup schedule seeded from disk — newest backup is %.1fh old", age_hours)
-        except (ValueError, TypeError):
-            pass
-
-    @staticmethod
-    def _get_interval_hours(config_mgr, default_hours=24):
-        """Return configured backup interval in hours as int."""
-        try:
-            value = int(config_mgr.get("backup_interval_hours", default_hours))
-        except (TypeError, ValueError):
-            return default_hours
-        return value if value > 0 else default_hours
-
-    @staticmethod
-    def _get_retention(config_mgr, default_keep=5):
-        """Return backup retention as int."""
-        try:
-            value = int(config_mgr.get("backup_retention", default_keep))
-        except (TypeError, ValueError):
-            return default_keep
-        return value if value > 0 else default_keep
+        self._last_poll = datetime.fromisoformat(backups[0]["modified"]).timestamp()
+        age_hours = (time.time() - self._last_poll) / 3600
+        log.info("Backup schedule seeded from disk — newest backup is %.1fh old", age_hours)
 
     def is_enabled(self):
         return self._config_mgr.is_backup_configured()
@@ -66,7 +45,7 @@ class BackupCollector(Collector):
         from .backup import create_backup_to_file, cleanup_old_backups
         data_dir = self._config_mgr.data_dir
         backup_path = self._config_mgr.get("backup_path", "/backup")
-        retention = self._get_retention(self._config_mgr)
+        retention = positive_int(self._config_mgr, "backup_retention", 5)
 
         try:
             filename = create_backup_to_file(data_dir, backup_path)

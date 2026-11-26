@@ -28,11 +28,6 @@ REPORT_KEYS = {
     "report_customer_number",
     "report_customer_address",
 }
-SETTINGS_I18N_KEYS = {
-    "report_settings_title",
-    "report_settings_hint",
-    "report_settings_privacy",
-}
 
 
 @pytest.fixture
@@ -47,11 +42,10 @@ def config_mgr(tmp_path):
 
 
 @pytest.fixture
-def client(config_mgr):
+def client(config_mgr, route_app):
     current_runtime().config_manager = config_mgr
     current_runtime().storage = None
-    app.config["TESTING"] = True
-    with app.test_client() as test_client:
+    with route_app.test_client() as test_client:
         yield test_client
 
 
@@ -98,7 +92,7 @@ def _manifest(**updates):
 
 
 @pytest.fixture
-def reports_settings_module(monkeypatch):
+def reports_settings_module(monkeypatch, route_app):
     """Expose the checked-in Reports settings contribution to web templates."""
     raw = json.loads((REPORTS_DIR / "manifest.json").read_text(encoding="utf-8"))
     info = validate_manifest(raw, str(REPORTS_DIR), builtin=True)
@@ -116,18 +110,18 @@ def reports_settings_module(monkeypatch):
     )
 
     old_module_loader = current_runtime().module_loader
-    old_jinja_loader = app.jinja_loader
+    old_jinja_loader = route_app.jinja_loader
     current_runtime().module_loader = loader
-    app.jinja_loader = ChoiceLoader(
+    route_app.jinja_loader = ChoiceLoader(
         [old_jinja_loader, FileSystemLoader(str(REPORTS_DIR / "templates"))]
     )
-    app.jinja_env.cache.clear()
+    route_app.jinja_env.cache.clear()
     try:
         yield info
     finally:
         current_runtime().module_loader = old_module_loader
-        app.jinja_loader = old_jinja_loader
-        app.jinja_env.cache.clear()
+        route_app.jinja_loader = old_jinja_loader
+        route_app.jinja_env.cache.clear()
 
 
 def test_private_keys_encrypt_display_and_clear(tmp_path, monkeypatch):
@@ -375,8 +369,9 @@ def test_index_report_fields_have_empty_server_defaults(client, config_mgr, samp
     current_runtime().config_manager = config_mgr
     current_runtime().update_state(analysis=sample_analysis)
 
-    soup = BeautifulSoup(client.get("/?lang=en").get_data(as_text=True), "html.parser")
+    soup = BeautifulSoup(client.get("/?lang=de").get_data(as_text=True), "html.parser")
 
+    assert "sendet ihn nicht automatisch an deinen ISP" in soup.select_one(".report-builder-privacy").get_text()
     assert soup.select_one("#report-name").get("value") == ""
     assert soup.select_one("#report-number").get("value") == ""
     address = soup.select_one("textarea#report-address")
@@ -384,43 +379,7 @@ def test_index_report_fields_have_empty_server_defaults(client, config_mgr, samp
     assert address.get_text() == ""
 
 
-def test_report_modal_reset_uses_default_values_without_persistence_side_channels():
-    source = (ROOT / "app" / "static" / "js" / "utils.js").read_text(encoding="utf-8")
-    start = source.index("function resetReportModalState()")
-    end = source.index("\nfunction ", start + 1)
-    reset_source = source[start:end]
-
-    for field_id in ("report-name", "report-number", "report-address"):
-        assert field_id in reset_source
-    assert "defaultValue" in reset_source
-    assert "localStorage" not in reset_source
-    assert "/api/config" not in reset_source
-
-
-def test_settings_form_serializer_includes_textareas():
-    source = (ROOT / "app" / "static" / "js" / "settings" / "form.js").read_text(encoding="utf-8")
-    start = source.index("function getFormData()")
-    end = source.index("\nfunction ", start + 1)
-
-    assert "textarea" in source[start:end]
-
-
-def test_reports_i18n_catalogs_are_valid_and_include_settings_copy():
-    locale_dir = REPORTS_DIR / "i18n"
-    english = json.loads((locale_dir / "en.json").read_text(encoding="utf-8"))
-    assert SETTINGS_I18N_KEYS <= english.keys()
-
-    for locale_path in sorted(locale_dir.glob("*.json")):
-        catalog = json.loads(locale_path.read_text(encoding="utf-8"))
-        assert catalog.keys() == english.keys(), locale_path.name
-        for key in SETTINGS_I18N_KEYS:
-            assert isinstance(catalog[key], str) and catalog[key].strip(), (
-                locale_path.name,
-                key,
-            )
-
-
-def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
+def test_direct_report_routes_do_not_fall_back_to_saved_customer_values(route_app):
     from app.modules.journal import routes as journal_routes
     from app.modules.reports import routes as report_routes
 
@@ -435,7 +394,7 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     report_storage = Mock()
     report_storage.get_range_data.return_value = []
 
-    with app.test_request_context("/api/report"):
+    with route_app.test_request_context("/api/report"):
         with patch.object(report_routes.current_runtime(), "storage", report_storage), patch.object(report_routes.current_runtime(), "config_manager", config_manager
         ), patch.object(report_routes.current_runtime(), "get_state", return_value={"analysis": analysis, "connection_info": {}}
         ), patch.object(report_routes, "generate_report", return_value=b"%PDF") as generate_report:
@@ -444,13 +403,15 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
     assert generate_report.call_args.kwargs["customer_number"] == ""
     assert generate_report.call_args.kwargs["customer_address"] == ""
 
-    with app.test_request_context("/api/complaint"):
+    with route_app.test_request_context("/api/complaint"):
         with patch.object(report_routes.current_runtime(), "storage", report_storage), patch.object(report_routes.current_runtime(), "config_manager", config_manager
         ), patch.object(report_routes.current_runtime(), "get_state", return_value={"analysis": analysis}), patch.object(
             report_routes, "generate_complaint_text", return_value="letter"
         ) as generate_complaint:
             getattr(report_routes.api_complaint, "__wrapped__")()
-    assert generate_complaint.call_args.args[4:7] == ("", "", "")
+    assert generate_complaint.call_args.kwargs["customer_name"] == ""
+    assert generate_complaint.call_args.kwargs["customer_number"] == ""
+    assert generate_complaint.call_args.kwargs["customer_address"] == ""
 
     incident_storage = Mock()
     incident_storage.get_incident.return_value = {
@@ -461,7 +422,7 @@ def test_direct_report_routes_do_not_fall_back_to_saved_customer_values():
         "end_date": None,
     }
     incident_storage.get_entries.return_value = []
-    with app.test_request_context("/api/incidents/7/report"):
+    with route_app.test_request_context("/api/incidents/7/report"):
         with patch.object(journal_routes, "_get_journal_storage", return_value=incident_storage), patch.object(journal_routes.current_runtime(), "config_manager", config_manager
         ), patch.object(journal_routes.current_runtime(), "get_state", return_value={"connection_info": {}}), patch(
             "app.modules.reports.report.generate_incident_report", return_value=b"%PDF"

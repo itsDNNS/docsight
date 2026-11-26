@@ -5,8 +5,8 @@ import json
 import os
 import socket
 import sqlite3
+import time
 from datetime import datetime, timezone
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -44,6 +44,37 @@ def _no_network(monkeypatch):
         pytest.fail(f"Test tried to reach the network: {attempts}", pytrace=False)
 
 
+@pytest.fixture(autouse=True, scope="module")
+def _core_module_registries():
+    """Start each test module, and its module-scoped apps, from the core config schema and catalogs."""
+    from app import config, i18n
+
+    config.reset_module_config_schema()
+    i18n.reset_module_translations()
+
+
+@pytest.fixture(autouse=True)
+def _restore_module_registries():
+    """Restore the config schema and translations after a test that builds its own app or registers modules directly."""
+    from app import config
+    from app.i18n import _TRANSLATIONS
+
+    sets = [config.BOOL_KEYS, config.INT_KEYS, config.SECRET_KEYS, config.PRIVATE_KEYS]
+    saved_sets = [set(keys) for keys in sets]
+    defaults = dict(config.DEFAULTS)
+    module_secrets = (set(config.MODULE_SECRET_KEYS), dict(config.MODULE_SECRET_OWNERS))
+    translations = {lang: dict(values) for lang, values in _TRANSLATIONS.items()}
+    yield
+    for keys, saved in zip(sets, saved_sets):
+        keys.clear()
+        keys.update(saved)
+    config.DEFAULTS.clear()
+    config.DEFAULTS.update(defaults)
+    config.set_module_secret_registry(*module_secrets)
+    _TRANSLATIONS.clear()
+    _TRANSLATIONS.update(translations)
+
+
 # Every create_app() asks git for the display version, and an untagged or shallow
 # checkout answers "no tag" each time. The suite builds hundreds of apps, so that
 # was hundreds of git processes per worker, which cost seconds on Windows runners.
@@ -52,48 +83,44 @@ def _no_network(monkeypatch):
 _version._git_tag = functools.lru_cache(maxsize=None)(_version._git_tag)
 
 
+@pytest.fixture
+def clear_version_cache():
+    _version.get_available_app_version.cache_clear()
+    yield
+    _version.get_available_app_version.cache_clear()
+
+
+@pytest.fixture
+def running_app_version(request, monkeypatch, clear_version_cache):
+    """Resolve the app version like a source checkout without a VERSION file."""
+    tag = getattr(request, "param", "v2026-07-01.1")
+    monkeypatch.setattr(_version, "_read_version_file", lambda: None)
+    monkeypatch.setattr(_version, "_git_tag", lambda *args: tag if args == ("--abbrev=0",) else None)
+    return _version.get_app_version()
+
+
 # Route tests run without an admin password; DOCSight is only open then when the operator opts out.
 OPEN_INSTANCE_ENVIRON = {"AUTH_DISABLED": "true"}
 
 
-FACTORY_CONTEXT_MODULES = {
-    "tests.test_auth", "tests.test_bqm", "tests.test_channel_timeline",
-    "tests.test_comparison_module", "tests.test_correlation", "tests.test_demo_mode",
-    "tests.test_device_info_display", "tests.test_events", "tests.test_evidence_api",
-    "tests.test_first_run_demo", "tests.test_first_run_ux", "tests.test_line_status", "tests.test_metrics_endpoint", "tests.test_onboarding_checklist",
-    "tests.test_module_install_api", "tests.test_pwa_web_push",
-    "tests.test_module_integration",
-    "tests.test_report_customer_defaults", "tests.test_security_audit_fixes",
-    "tests.test_security_hardening", "tests.test_smart_capture_api", "tests.test_speedtest",
-    "tests.test_trends_api", "tests.test_update_checks", "tests.test_weather",
-    "tests.test_web_theme", "tests.modules.connection_monitor.test_routes",
-    "tests.modules.connection_monitor.test_traceroute_routes",
-    "tests.modules.test_fritzbox_cable_routes",
-}
-
-
-def _uses_factory_context(module):
-    relative = Path(module.__file__).resolve().relative_to(Path(__file__).resolve().parent)
-    canonical = "tests." + ".".join(relative.with_suffix("").parts)
-    return canonical in FACTORY_CONTEXT_MODULES
-
-
-@pytest.fixture(autouse=True, scope="module")
-def _factory_context_for_direct_route_tests(request, tmp_path_factory):
-    """Give direct route-unit modules an isolated factory app and context."""
-    if not _uses_factory_context(request.module):
-        yield
-        return
-    manager = ConfigManager(str(tmp_path_factory.mktemp("factory-context")))
+@pytest.fixture(scope="module")
+def _module_route_app(tmp_path_factory):
+    manager = ConfigManager(str(tmp_path_factory.mktemp("route-app")))
     application = create_app(
         config_manager=manager,
         module_loader_factory=default_module_loader_factory(manager, search_paths=[]),
         environ=dict(OPEN_INSTANCE_ENVIRON),
         testing=True,
     )
-    request.module.app = application
     with application.app_context():
-        yield
+        yield application
+
+
+@pytest.fixture
+def route_app(_module_route_app):
+    """Return the module's shared factory app, inside its app context, with a clean runtime."""
+    reset_runtime(get_runtime(_module_route_app))
+    return _module_route_app
 
 
 def reset_runtime(runtime):
@@ -106,15 +133,6 @@ def reset_runtime(runtime):
     runtime.state = RuntimeState()
     runtime.login_rate_limiter = LoginRateLimiter()
     runtime.derived_storage = DerivedStorageCache()
-
-
-@pytest.fixture(autouse=True)
-def _reset_direct_route_runtime(request):
-    if not _uses_factory_context(request.module):
-        yield
-        return
-    reset_runtime(get_runtime(request.module.app))
-    yield
 
 
 @pytest.fixture
@@ -132,6 +150,19 @@ def make_config(tmp_path):
         return manager
 
     return factory
+
+
+@pytest.fixture
+def foreign_system_tz(monkeypatch):
+    """Give the process a system zone (UTC+14) unlike the configured zones of a test, where TZ can change at runtime."""
+    if not hasattr(time, "tzset"):
+        yield
+        return
+    monkeypatch.setenv("TZ", "Pacific/Kiritimati")
+    time.tzset()
+    yield
+    monkeypatch.undo()
+    time.tzset()
 
 
 @pytest.fixture
@@ -192,15 +223,6 @@ def make_app(make_config):
 @pytest.fixture
 def app(make_app):
     return make_app()
-
-
-@pytest.fixture
-def make_client(make_app):
-    """Return a factory producing a client for a new application."""
-    def factory(**kwargs):
-        return make_app(**kwargs).test_client()
-
-    return factory
 
 
 @pytest.fixture

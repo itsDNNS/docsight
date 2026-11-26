@@ -1,4 +1,8 @@
+from unittest.mock import call, patch
+
 import pytest
+
+import app.maintainer_notices as maintainer_notices
 
 from app.maintainer_notices import (
     NoticeValidationError,
@@ -31,6 +35,15 @@ def test_active_notice_matches_location_and_excludes_dismissed_ids():
     )
 
     assert [notice["id"] for notice in active] == ["visible"]
+
+
+def test_active_notices_validate_each_notice_once():
+    notices = [_notice(id="visible"), _notice(id="dismissed"), _notice(id="settings-only", locations=("settings",))]
+
+    with patch.object(maintainer_notices, "validate_notice_schema", wraps=validate_notice_schema) as validate:
+        get_active_notices(dismissed_ids=["dismissed"], location="dashboard", notices=notices)
+
+    assert validate.call_args_list == [call(notice) for notice in notices]
 
 
 def test_notice_severity_sorting_prioritizes_critical_then_warning_then_info():

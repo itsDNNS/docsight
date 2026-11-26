@@ -28,8 +28,10 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from .base import ModemDriver
+from .format_compat import unwrap
 from .formats.xml_payloads import parse_sb8200_cbn_xml
 from ..types import ConnectionInfo, DeviceInfo, DocsisData
+from .utils import error_text
 
 log = logging.getLogger("docsis.driver.sb8200_cbn")
 
@@ -199,16 +201,16 @@ class SB8200CBNDriver(ModemDriver):
         self._begin_call()
         downstream_xml = self._get_data(Query.DOWNSTREAM_TABLE)
         upstream_xml = self._get_data(Query.UPSTREAM_TABLE)
-        parsed = parse_sb8200_cbn_xml(
+        parsed = unwrap(parse_sb8200_cbn_xml(
             downstream_xml=downstream_xml,
             upstream_xml=upstream_xml,
             downstream_ofdm_xml=self._get_optional_data(Query.DOWNSTREAM_OFDM_TABLE),
             upstream_ofdma_xml=self._get_optional_data(Query.UPSTREAM_OFDMA_TABLE),
             signal_xml=self._get_optional_data(Query.SIGNAL_TABLE),
-        )
-        if parsed.value is None:
+        ), log)
+        if parsed is None:
             raise ValueError("invalid SB8200 channel XML")
-        return parsed.value
+        return parsed
 
     def get_device_info(self) -> DeviceInfo:
         """Read model, firmware, and uptime metadata.
@@ -219,7 +221,7 @@ class SB8200CBNDriver(ModemDriver):
         try:
             root = self._xml(self._get_data(Query.SYSTEM_INFO))
         except _UNREADABLE as e:
-            log.warning("Failed to get device info: %s", e)
+            log.warning("Failed to get device info: %s", error_text(e))
             return dict(_FALLBACK_DEVICE)
         if root is None:
             log.warning("Modem returned unreadable system info")
@@ -247,7 +249,7 @@ class SB8200CBNDriver(ModemDriver):
         try:
             root = self._xml(self._get_data(Query.SYSTEM_INFO))
         except _UNREADABLE as e:
-            log.warning("Failed to get connection info: %s", e)
+            log.warning("Failed to get connection info: %s", error_text(e))
             return {}
         mode = _node_text(root.find("cm_docsis_mode")) if root is not None else ""
         return {"connection_type": mode} if mode else {}

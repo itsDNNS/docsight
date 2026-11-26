@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import sqlite3
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -31,7 +32,8 @@ from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices, get_notice_center
 from .module_contributions import module_static_url
 from .response_compression import compress_response
-from .runtime import current_runtime
+from .modules.bnetz.storage import BnetzStorage
+from .runtime import core_derived_storage, current_runtime
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name, to_local as _to_local
 from .theme_contrast import low_contrast_modes
 from .line_status import build_line_status
@@ -552,11 +554,9 @@ def index():
     bnetz_latest = None
     if _storage and bnetz_enabled:
         try:
-            from app.modules.bnetz.storage import BnetzStorage
-            _bs = BnetzStorage(_storage.db_path)
-            bnetz_latest = _bs.get_latest_bnetz()
-        except (ImportError, Exception):
-            pass
+            bnetz_latest = core_derived_storage(BnetzStorage).get_latest_bnetz()
+        except sqlite3.Error as exc:
+            log.warning("Latest BNetzA measurement unavailable (%s)", type(exc).__name__)
 
     return render_template(
         "index.html",
@@ -631,7 +631,7 @@ def setup():
     driver_registry = get_driver_registry()
     modem_types = driver_registry.get_available_drivers()
     driver_hints = driver_registry.get_driver_hints()
-    modem_catalog = driver_registry.get_setup_catalog(other_label=t.get("setup_modem_other_group", "Other"))
+    modem_catalog = driver_registry.get_setup_catalog(other_label=t["setup_modem_other_group"])
     iana_tz = _guess_iana_timezone()
     theme = _config_manager.get_theme()
     return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, poll_default=DEFAULTS["poll_interval"], t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, modem_catalog=modem_catalog, driver_hints=driver_hints, timezones=_get_iana_timezones(), iana_tz=iana_tz, theme=theme)
@@ -757,3 +757,12 @@ def install_core_template_hooks(app) -> None:
     app.context_processor(inject_auth)
     app.after_request(add_security_headers)
     app.after_request(compress_response)
+    app.register_error_handler(sqlite3.Error, storage_error_response)
+
+
+def storage_error_response(exc):
+    """Answer an API request whose database access failed with a fixed JSON error; details stay in the log."""
+    if not request.path.startswith("/api/"):
+        raise exc
+    log.error("Database access failed for %s", request.path, exc_info=exc)
+    return jsonify({"error": "Reading stored data failed. See the DOCSight log for details."}), 503

@@ -8,18 +8,21 @@ import math
 import os
 import re
 import time
+from dataclasses import asdict
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request, Response
 
-from app.tz import epoch_to_utc, local_date_to_utc_range, local_today, parse_utc, to_local_display
+from app.tz import epoch_to_utc, local_today, to_local_display, valid_date
 from app.web_auth import require_auth
 from app.runtime import current_runtime
 
 from .collector import configured_probe_interval_ms
 from .probe import ProbeEngine
-from .storage import ConnectionMonitorStorage
+from .storage import (
+    AGG_300S_MAX_AGE, AGG_60S_MAX_AGE, RAW_MAX_AGE, ConnectionMonitorStorage, p95_index, pinned_day_range,
+)
 from .traceroute_probe import TracerouteProbe
 
 logger = logging.getLogger(__name__)
@@ -39,7 +42,7 @@ def _get_cm_storage():
     """Get ConnectionMonitorStorage. Uses DATA_DIR like collector."""
     db_path = os.path.join(current_runtime().config_manager.data_dir, "connection_monitor.db")
     return current_runtime().derived_storage.get(
-        f"connection_monitor:{db_path}", lambda: ConnectionMonitorStorage(db_path)
+        (ConnectionMonitorStorage, db_path), lambda: ConnectionMonitorStorage(db_path)
     )
 
 
@@ -53,16 +56,6 @@ def _get_traceroute_probe():
     return current_runtime().derived_storage.get(
         "connection_monitor_traceroute_probe", TracerouteProbe
     )
-
-
-def _hop_to_dict(hop):
-    return {
-        "hop_index": hop.hop_index,
-        "hop_ip": hop.hop_ip,
-        "hop_host": hop.hop_host,
-        "latency_ms": hop.latency_ms,
-        "probes_responded": hop.probes_responded,
-    }
 
 
 # --- Targets ---
@@ -118,17 +111,8 @@ def api_delete_target(target_id):
 
 # --- Pinned Days ---
 
-_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-
 def _get_tz():
     return get_tz_name(current_runtime().config_manager)
-
-
-def _date_to_epoch_range(date_str, tz_name):
-    """Convert YYYY-MM-DD to (start_epoch, end_epoch) in the configured timezone."""
-    start_utc, end_utc = local_date_to_utc_range(date_str, tz_name)
-    return (parse_utc(start_utc).timestamp(), parse_utc(end_utc).timestamp())
 
 
 @bp.route("/api/connection-monitor/pinned-days", methods=["GET"])
@@ -136,11 +120,11 @@ def _date_to_epoch_range(date_str, tz_name):
 def api_get_pinned_days():
     storage = _get_cm_storage()
     tz = _get_tz()
-    days = storage.get_pinned_days()
-    for day in days:
-        start, end = _date_to_epoch_range(day["date"], tz)
-        day["utc_start"] = start
-        day["utc_end"] = end
+    days = []
+    for day in storage.get_pinned_days():
+        bounds = pinned_day_range(day["date"], tz)
+        if bounds:  # an unusable legacy row is left out
+            days.append({**day, "utc_start": bounds[0], "utc_end": bounds[1] - 1})
     return jsonify(days)
 
 
@@ -149,11 +133,11 @@ def api_get_pinned_days():
 def api_pin_day():
     storage = _get_cm_storage()
     data = request.get_json()
-    if not data:
+    if not isinstance(data, dict) or not data:
         return jsonify({"error": "date required"}), 400
 
     date_str = data.get("date")
-    if not date_str:
+    if date_str in (None, ""):
         # Derive date from timestamp using server timezone
         ts = data.get("timestamp")
         if ts is None:
@@ -164,13 +148,10 @@ def api_pin_day():
             return jsonify({"error": "invalid timestamp"}), 400
         tz = _get_tz()
         utc_str = epoch_to_utc(ts)
-        date_str = to_local_display(utc_str, tz, fmt="%Y-%m-%d")
+        date_str = to_local_display(utc_str, tz or "UTC", fmt="%Y-%m-%d")
 
-    if not _DATE_RE.match(date_str):
-        return jsonify({"error": "invalid date format, expected YYYY-MM-DD"}), 400
-    try:
-        datetime.strptime(date_str, "%Y-%m-%d")
-    except ValueError:
+    if (not isinstance(date_str, str) or not valid_date(date_str) or date_str < "1970-01-01"
+            or pinned_day_range(date_str, _get_tz()) is None):
         return jsonify({"error": "invalid date"}), 400
     today = local_today(_get_tz())
     if date_str > today:
@@ -197,10 +178,6 @@ _RESOLUTION_MAP = {
     "5min": 300,
     "1hr": 3600,
 }
-
-_RAW_MAX_AGE = 7 * 86400
-_AGG_60S_MAX_AGE = 30 * 86400
-_AGG_300S_MAX_AGE = 90 * 86400
 
 
 def _compress_samples(samples: list[dict], start: float | None, end: float | None, max_points: int | None) -> list[dict]:
@@ -272,7 +249,7 @@ def _compress_samples(samples: list[dict], start: float | None, end: float | Non
         p95_latency = None
         if bucket["p95_values"]:
             bucket["p95_values"].sort()
-            p95_latency = bucket["p95_values"][math.floor(len(bucket["p95_values"]) * 0.95)]
+            p95_latency = bucket["p95_values"][p95_index(len(bucket["p95_values"]))]
 
         compressed.append({
             "timestamp": bucket["timestamp"],
@@ -339,17 +316,17 @@ def api_get_samples(target_id):
 
     time_range = (end - start) if has_explicit_range else 0
 
-    # Determine resolution. Raw samples are kept for _RAW_MAX_AGE, so a short
+    # Determine resolution. Raw samples are kept for RAW_MAX_AGE, so a short
     # window further back blends in the aggregated tiers like a long one.
     if resolution == "auto":
-        raw_kept = has_explicit_range and start >= time.time() - _RAW_MAX_AGE
+        raw_kept = has_explicit_range and start >= time.time() - RAW_MAX_AGE
         if not has_explicit_range or (time_range <= 86400 and raw_kept):
             res_name, bucket_seconds, blended = "raw", None, False
-        elif time_range <= _RAW_MAX_AGE:
+        elif time_range <= RAW_MAX_AGE:
             res_name, bucket_seconds, blended = "raw", None, True
-        elif time_range <= _AGG_60S_MAX_AGE:
+        elif time_range <= AGG_60S_MAX_AGE:
             res_name, bucket_seconds, blended = "1min", 60, True
-        elif time_range <= _AGG_300S_MAX_AGE:
+        elif time_range <= AGG_300S_MAX_AGE:
             res_name, bucket_seconds, blended = "5min", 300, True
         else:
             res_name, bucket_seconds, blended = "1hr", 3600, True
@@ -378,14 +355,14 @@ def api_get_samples(target_id):
         range_end = end if end is not None else now_ts
 
         if range_start <= range_end:
-            raw_start = max(range_start, now_ts - _RAW_MAX_AGE)
+            raw_start = max(range_start, now_ts - RAW_MAX_AGE)
             if raw_start <= range_end:
                 raw = storage.get_samples(target_id, start=raw_start, end=end, limit=limit)
                 if _append_raw_samples(samples, raw):
                     tiers_used.append("raw")
 
-            agg_60_start = max(range_start, now_ts - _AGG_60S_MAX_AGE)
-            agg_60_end = _exclusive_upper_bound(min(range_end, now_ts - _RAW_MAX_AGE))
+            agg_60_start = max(range_start, now_ts - AGG_60S_MAX_AGE)
+            agg_60_end = _exclusive_upper_bound(min(range_end, now_ts - RAW_MAX_AGE))
             if agg_60_start <= agg_60_end:
                 agg_60 = storage.get_aggregated_samples(
                     target_id, bucket_seconds=60, start=agg_60_start, end=agg_60_end,
@@ -393,8 +370,8 @@ def api_get_samples(target_id):
                 if _append_aggregated_samples(samples, agg_60):
                     tiers_used.append("1min")
 
-            agg_300_start = max(range_start, now_ts - _AGG_300S_MAX_AGE)
-            agg_300_end = _exclusive_upper_bound(min(range_end, now_ts - _AGG_60S_MAX_AGE))
+            agg_300_start = max(range_start, now_ts - AGG_300S_MAX_AGE)
+            agg_300_end = _exclusive_upper_bound(min(range_end, now_ts - AGG_60S_MAX_AGE))
             if agg_300_start <= agg_300_end:
                 agg_300 = storage.get_aggregated_samples(
                     target_id, bucket_seconds=300, start=agg_300_start, end=agg_300_end,
@@ -402,8 +379,8 @@ def api_get_samples(target_id):
                 if _append_aggregated_samples(samples, agg_300):
                     tiers_used.append("5min")
 
-            agg_3600_end = _exclusive_upper_bound(min(range_end, now_ts - _AGG_300S_MAX_AGE))
-            if time_range > _AGG_300S_MAX_AGE and range_start <= agg_3600_end:
+            agg_3600_end = _exclusive_upper_bound(min(range_end, now_ts - AGG_300S_MAX_AGE))
+            if time_range > AGG_300S_MAX_AGE and range_start <= agg_3600_end:
                 agg_3600 = storage.get_aggregated_samples(
                     target_id, bucket_seconds=3600, start=range_start, end=agg_3600_end,
                 )
@@ -642,16 +619,13 @@ def api_run_traceroute(target_id):
 
     probe = _get_traceroute_probe()
     result = probe.run(target["host"])
+    hops = [asdict(h) for h in result.hops]
 
     trace_id = storage.save_trace(
         target_id=target_id,
         timestamp=time.time(),
         trigger_reason="manual",
-        hops=[{
-            "hop_index": h.hop_index, "hop_ip": h.hop_ip,
-            "hop_host": h.hop_host, "latency_ms": h.latency_ms,
-            "probes_responded": h.probes_responded,
-        } for h in result.hops],
+        hops=hops,
         route_fingerprint=result.route_fingerprint,
         reached_target=result.reached_target,
     )
@@ -663,7 +637,7 @@ def api_run_traceroute(target_id):
         "reached_target": result.reached_target,
         "hop_count": len(result.hops),
         "route_fingerprint": result.route_fingerprint,
-        "hops": [_hop_to_dict(h) for h in result.hops],
+        "hops": hops,
     })
 
 

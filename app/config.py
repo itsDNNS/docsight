@@ -50,6 +50,12 @@ def parse_config_bool(value) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def parse_disabled_modules(value) -> set[str]:
+    """The module ids in a disabled_modules value: comma-separated text, or a list."""
+    items = value if isinstance(value, list) else str(value or "").split(",")
+    return {module_id for item in items if (module_id := str(item).strip())}
+
+
 def parse_stored_bool(value) -> bool:
     """Read a stored on/off setting: text through parse_config_bool, anything else by truthiness."""
     return parse_config_bool(value) if isinstance(value, str) else bool(value)
@@ -255,6 +261,18 @@ BOOL_KEYS = {"demo_mode", "update_check_enabled", "gaming_quality_enabled", "seg
              "speedtest_tls_insecure", "sc_enabled", "sc_trigger_modulation", "sc_trigger_snr",
              "sc_trigger_error_spike", "sc_trigger_health", "sc_trigger_packet_loss"}
 
+_MODULE_EXTENSIBLE_SCHEMA = (DEFAULTS, SECRET_KEYS, PRIVATE_KEYS, INT_KEYS, BOOL_KEYS)
+_CORE_SCHEMA = tuple(registry.copy() for registry in _MODULE_EXTENSIBLE_SCHEMA)
+
+
+def reset_module_config_schema() -> None:
+    """Drop config schema registered by modules, so a new app starts from the core schema."""
+    for registry, core in zip(_MODULE_EXTENSIBLE_SCHEMA, _CORE_SCHEMA):
+        registry.clear()
+        registry.update(core)
+    set_module_secret_registry(set(), {})
+
+
 URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url", "notify_apprise_url"}
 _ALLOWED_URL_SCHEMES = {"http", "https"}
 
@@ -353,6 +371,13 @@ class ConfigManager:
             return ""
         return DEFAULTS["disabled_modules"]
 
+    def get_disabled_modules(self) -> set[str]:
+        return parse_disabled_modules(self.get("disabled_modules"))
+
+    def save_disabled_modules(self, module_ids, **updates):
+        """Save the disabled module ids, together with any other updates."""
+        self.save({"disabled_modules": ",".join(sorted(module_ids)), **updates})
+
     def get(self, key, default=None):
         """Get config value: env var > legacy env var > config.json > default.
         Secret keys from config.json are decrypted transparently."""
@@ -439,6 +464,9 @@ class ConfigManager:
                     parse_config_int(data[key])
                 except (ValueError, TypeError, OverflowError):
                     return f"{key} must be a whole number"
+        modules = data.get("disabled_modules")
+        if isinstance(modules, list) and any("," in str(item) for item in modules):
+            return "disabled_modules entries must not contain a comma"
         return None
 
     def save(self, data):

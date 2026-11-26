@@ -19,7 +19,7 @@ const emptyState = {
     hide(el) { if (el) Object.assign(el, {hidden: true, empty: null}); },
 };
 
-function browser(lang = 'en', translations = {}) {
+function browser(lang = 'en', translations = require('./english-catalog')()) {
     const ids = new Map(), charts = [], requests = [];
     function element(attrs = {}) {
         const classes = new Set(), listeners = {};
@@ -61,16 +61,17 @@ function browser(lang = 'en', translations = {}) {
         document: {getElementById: id => ids.get(id), createElement: () => element(),
             querySelectorAll: selector => selector.includes('direction') ? directions : ranges},
         getComputedStyle: () => ({getPropertyValue: () => ''}), uPlot: Chart,
-        tooltipPlugin: () => ({}), touchScrubPlugin: () => ({}), T: translations, currentLang: lang,
+        T: translations, currentLang: lang,
         docsightUrl: url => '/docsight' + url, console: {error: (...args) => assert.fail(args.join(' '))},
         fetch: url => new Promise(resolve => requests.push({url, resolve})),
         URLSearchParams, location: {hash: '#modulation'}, history: {replaceState(_state, _title, url) { context.location.hash = url; }},
-        currentView: 'modulation',
     };
     context.window = context;
     ids.get('modulation-direction-tabs').querySelectorAll = () => directions;
     ids.get('modulation-range-tabs').querySelectorAll = () => ranges;
     vm.createContext(context);
+    vm.runInContext(read('app/static/js/chart-engine.js'), context);
+    context.currentView = 'modulation'; // chart-engine.js starts on 'live'
     vm.runInContext(read('app/static/js/segmented.js'), context);
     vm.runInContext(read('app/static/js/view-state.js'), context);
     vm.runInContext(read('app/modules/modulation/static/main.js'), context);
@@ -187,6 +188,7 @@ for (const version of ['3.0', '3.1']) {
         const section = b.ids.get('modulation-protocol-groups').children[0];
         assert.equal(section.getAttribute('data-direction'), 'us');
         assert.equal(section.getAttribute('data-docsis-version'), version);
+        assert.equal(section.children[0].children[0].textContent, `Upstream DOCSIS ${version} (max 1024QAM)`);
         await b.reply(overview('ds'), 1);
         assert.equal(b.charts.at(-2).options.series.find(s => s.label === '64QAM').fill, '#eab308');
     });
@@ -194,7 +196,7 @@ for (const version of ['3.0', '3.1']) {
 
 for (const lang of ['en', 'de']) {
     test(`capacity range, units, localization, coverage and caveats: ${lang}`, async () => {
-        const T = Object.fromEntries(Object.entries(catalog).map(([key, value]) => ['docsight.modulation.' + key, value]));
+        const T = require('./english-catalog')();
         T['docsight.modulation.capacity_selected_days'] = 'Period {days}';
         T['docsight.modulation.capacity_partial_caveat'] = 'Excluded: {families}';
         T['docsight.modulation.capacity_coverage_detail'] = 'Coverage {calculated}/{total} = {pct}%';

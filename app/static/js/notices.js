@@ -55,7 +55,7 @@
 
   function reportFailure() {
     if (typeof showToast === 'function') {
-      showToast((window.T && (T.notice_dismiss_error || T.error_prefix)) || 'Could not dismiss notice', false);
+      showToast(T.notice_dismiss_error, false);
     }
   }
 

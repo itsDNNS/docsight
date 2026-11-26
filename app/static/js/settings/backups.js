@@ -1,17 +1,11 @@
 'use strict';
-DOCSightSettings.backups = function({showToast}) {
+DOCSightSettings.backups = function({showToast, showTestResult}) {
 /* ── Backup ── */
 function downloadBackup() {
     var btn = document.getElementById('backup-download-btn');
     var el = document.getElementById('backup-download-result');
     btn.disabled = true;
-    el.className = 'test-result test-loading';
-    el.style.display = 'flex';
-    el.textContent = '';
-    var span = document.createElement('span');
-    span.textContent = '\u23F3';
-    el.appendChild(span);
-    el.appendChild(document.createTextNode(' ' + (T.backup_creating || 'Creating backup...')));
+    showTestResult(el, 'loading', T.backup_creating || 'Creating backup...');
     fetch(docsightUrl('/api/backup'), { method: 'POST' })
     .then(function(r) {
         if (!r.ok) return r.json().then(function(j) { throw new Error(j.error || 'Backup failed'); });
@@ -28,62 +22,30 @@ function downloadBackup() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
-        el.textContent = '';
-        el.className = 'test-result test-ok';
-        var check = document.createElement('span');
-        check.className = 'check-icon';
-        check.textContent = '\u2713';
-        el.appendChild(check);
-        el.appendChild(document.createTextNode(' ' + (T.backup_success || 'Backup downloaded')));
+        showTestResult(el, 'ok', T.backup_success || 'Backup downloaded');
         btn.disabled = false;
     })
     .catch(function(err) {
-        el.textContent = '';
-        el.className = 'test-result test-fail';
-        var x = document.createElement('span');
-        x.textContent = '\u2717';
-        el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + (err.message || T.network_error)));
+        showTestResult(el, 'fail', err.message || T.network_error);
         btn.disabled = false;
     });
 }
 
 function backupNow() {
     var el = document.getElementById('backup-now-result');
-    el.className = 'test-result test-loading';
-    el.style.display = 'flex';
-    el.textContent = '';
-    var span = document.createElement('span');
-    span.textContent = '\u23F3';
-    el.appendChild(span);
-    el.appendChild(document.createTextNode(' ' + (T.backup_creating || 'Creating backup...')));
+    showTestResult(el, 'loading', T.backup_creating || 'Creating backup...');
     fetch(docsightUrl('/api/backup/scheduled'), { method: 'POST' })
     .then(function(r) { return r.json(); })
     .then(function(res) {
-        el.textContent = '';
         if (res.success) {
-            el.className = 'test-result test-ok';
-            var check = document.createElement('span');
-            check.className = 'check-icon';
-            check.textContent = '\u2713';
-            el.appendChild(check);
-            el.appendChild(document.createTextNode(' ' + (T.backup_saved || 'Backup saved') + ': ' + res.filename));
+            showTestResult(el, 'ok', (T.backup_saved || 'Backup saved') + ': ' + res.filename);
             loadBackupList();
         } else {
-            el.className = 'test-result test-fail';
-            var x = document.createElement('span');
-            x.textContent = '\u2717';
-            el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + (res.error || T.save_failed || 'Failed')));
+            showTestResult(el, 'fail', res.error || T.save_failed);
         }
     })
     .catch(function() {
-        el.textContent = '';
-        el.className = 'test-result test-fail';
-        var x = document.createElement('span');
-        x.textContent = '\u2717';
-        el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + (T.network_error || 'Network error')));
+        showTestResult(el, 'fail', T.network_error);
     });
 }
 
@@ -96,7 +58,7 @@ function showLastBackup(backups) {
         return b.modified && (!latest || b.modified > latest.modified) ? b : latest;
     }, null);
     line.hidden = !newest;
-    if (newest) text.textContent = (T.settings_status_last_backup || 'Last backup {time}').replace('{time}', formatDocsightTime(newest.modified));
+    if (newest) text.textContent = T.settings_status_last_backup.replace('{time}', formatDocsightTime(newest.modified));
 }
 
 function loadBackupList() {
@@ -174,10 +136,10 @@ function loadBackupList() {
 
 function deleteBackup(filename) {
     docsightConfirm({
-        title: T.delete || 'Delete',
+        title: T.delete,
         message: T.backup_delete_confirm || 'Delete this backup?',
-        confirmText: T.delete || 'Delete',
-        cancelText: T.cancel || 'Cancel',
+        confirmText: T.delete,
+        cancelText: T.cancel,
         danger: true
     }).then(function(confirmed) {
         if (!confirmed) return null;
@@ -189,10 +151,10 @@ function deleteBackup(filename) {
         if (res.success) {
             loadBackupList();
         } else {
-            showToast(res.error || T.save_failed || 'Failed', false);
+            showToast(res.error || T.save_failed, false);
         }
     })
-    .catch(function() { showToast(T.network_error || 'Network error', false); });
+    .catch(function() { showToast(T.network_error, false); });
 }
 
 /* ── Directory Browser ── */
@@ -204,7 +166,7 @@ function openBrowseModal(opener) {
     var selected = document.getElementById('browse-selected-path');
     var status = document.getElementById('browse-status');
     if (selected) selected.textContent = _browsePath;
-    if (status) status.textContent = T.loading || 'Loading...';
+    if (status) status.textContent = T.loading;
     DOCSightModal.open(modal, {opener: opener || document.activeElement, labelledBy: 'browse-modal-title'});
     browseTo(_browsePath);
 }
@@ -227,21 +189,14 @@ function browseTo(path) {
     var status = document.getElementById('browse-status');
     bc.textContent = path;
     if (selected) selected.textContent = path;
-    dirs.textContent = '';
-    var loadingDiv = document.createElement('div');
-    loadingDiv.style.cssText = 'padding:16px;color:var(--muted);text-align:center;';
-    loadingDiv.textContent = '\u23F3 ' + (T.loading || 'Loading...');
-    dirs.appendChild(loadingDiv);
-    if (status) status.textContent = T.loading || 'Loading...';
+    _showBrowseNote(dirs, 'browse-note', '\u23F3 ' + T.loading);
+    if (status) status.textContent = T.loading;
     fetch(docsightUrl('/api/browse?path=' + encodeURIComponent(path)))
     .then(function(r) { return r.json(); })
     .then(function(res) {
         dirs.textContent = '';
         if (res.error) {
-            var errDiv = document.createElement('div');
-            errDiv.style.cssText = 'padding:16px;color:var(--crit);';
-            errDiv.textContent = res.error;
-            dirs.appendChild(errDiv);
+            _showBrowseNote(dirs, 'browse-note is-error', res.error);
             if (status) status.textContent = res.error;
             return;
         }
@@ -254,10 +209,7 @@ function browseTo(path) {
             dirs.appendChild(parentItem);
         }
         if (res.directories.length === 0 && !res.parent) {
-            var emptyDiv = document.createElement('div');
-            emptyDiv.style.cssText = 'padding:16px;color:var(--muted);text-align:center;font-style:italic;';
-            emptyDiv.textContent = T.backup_empty_dir || 'Empty directory';
-            dirs.appendChild(emptyDiv);
+            _showBrowseNote(dirs, 'browse-note is-empty', T.backup_empty_dir || 'Empty directory');
         }
         res.directories.forEach(function(d) {
             var item = _createBrowseItem(d.name, d.path, 'folder', false);
@@ -265,45 +217,45 @@ function browseTo(path) {
         });
         if (status) {
             status.textContent = res.directories.length
-                ? res.directories.length + ' ' + (T.directories || 'directories')
+                ? res.directories.length + ' ' + T.directories
                 : (T.backup_empty_dir || 'Empty directory');
         }
         if (typeof lucide !== 'undefined') lucide.createIcons();
     })
     .catch(function() {
-        dirs.textContent = '';
-        var errDiv = document.createElement('div');
-        errDiv.style.cssText = 'padding:16px;color:var(--crit);';
-        errDiv.textContent = T.network_error;
-        dirs.appendChild(errDiv);
+        _showBrowseNote(dirs, 'browse-note is-error', T.network_error);
         if (status) status.textContent = T.network_error;
     });
 }
 
+/* Replaces the directory list with one loading, empty or error line. */
+function _showBrowseNote(dirs, className, text) {
+    dirs.textContent = '';
+    var note = document.createElement('div');
+    note.className = className;
+    note.textContent = text;
+    dirs.appendChild(note);
+}
+
 function _createBrowseItem(label, targetPath, iconName, isMuted) {
     var div = document.createElement('div');
-    div.className = 'browse-item';
+    div.className = isMuted ? 'browse-item is-parent' : 'browse-item';
     div.setAttribute('role', 'button');
     div.setAttribute('tabindex', '0');
     div.setAttribute('aria-label', label);
-    div.style.cssText = 'padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-radius:var(--radius-sm);';
     div.addEventListener('click', function() { browseTo(targetPath); });
     div.addEventListener('keydown', function(event) {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
         browseTo(targetPath);
     });
-    div.addEventListener('mouseenter', function() { this.style.background = 'var(--hover-bg)'; });
-    div.addEventListener('mouseleave', function() { this.style.background = ''; });
 
     var icon = document.createElement('i');
     icon.setAttribute('data-lucide', iconName);
-    icon.style.cssText = 'width:16px;height:16px;color:' + (isMuted ? 'var(--muted)' : 'var(--accent)') + ';';
     div.appendChild(icon);
 
     var span = document.createElement('span');
     span.textContent = label;
-    if (isMuted) span.style.color = 'var(--muted)';
     div.appendChild(span);
 
     return div;

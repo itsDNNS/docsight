@@ -1,6 +1,7 @@
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import asdict
 
 log = logging.getLogger("docsis.traceroute")
 
@@ -43,13 +44,7 @@ class TracerouteTrigger:
                 target_id=target_id,
                 timestamp=time.time(),
                 trigger_reason=reason,
-                hops=[{
-                    "hop_index": h.hop_index,
-                    "hop_ip": h.hop_ip,
-                    "hop_host": h.hop_host,
-                    "latency_ms": h.latency_ms,
-                    "probes_responded": h.probes_responded,
-                } for h in result.hops],
+                hops=[asdict(h) for h in result.hops],
                 route_fingerprint=result.route_fingerprint,
                 reached_target=result.reached_target,
             )

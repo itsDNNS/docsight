@@ -27,13 +27,6 @@ class TracerouteProbe:
     TOTAL_TIMEOUT_S = 30
     DNS_TIMEOUT_S = 3.0
 
-    def check(self) -> bool:
-        try:
-            r = subprocess.run([HELPER_PATH, "--check"], capture_output=True, timeout=5)
-            return r.returncode == 0
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            return False
-
     def run(self, host: str, max_hops: int = 30, timeout_ms: int = 2000) -> TracerouteResult:
         try:
             result = subprocess.run(
@@ -85,17 +78,14 @@ class TracerouteProbe:
             try:
                 host, _, _ = socket.gethostbyaddr(ip)
                 return ip, host
-            except (socket.herror, socket.gaierror, OSError):
+            except Exception:  # also ValueError/TypeError for a malformed hop address
                 return ip, None
         pool = ThreadPoolExecutor(max_workers=min(len(ips_to_resolve), 16))
         futures = {pool.submit(_lookup, ip): ip for ip in ips_to_resolve}
         try:
             for future in as_completed(futures, timeout=self.DNS_TIMEOUT_S):
-                try:
-                    ip, host = future.result(timeout=0.1)
-                    dns_map[ip] = host
-                except Exception:
-                    dns_map[futures[future]] = None
+                ip, host = future.result()
+                dns_map[ip] = host
         except TimeoutError:
             pass
         finally:

@@ -12,6 +12,7 @@ import pytest
 from app.analyzer import analyze, get_thresholds
 from app.signal_health_view import build_home_snr_display_context, build_metric_ranges
 from app.config import ConfigManager
+from app.i18n import get_translations
 from app.module_contributions import validate_thresholds
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -162,7 +163,7 @@ def _configure_speedtest(config_mgr):
     })
 
 
-def _render_generic_speedtest_dashboard(tmp_path, analysis):
+def _render_generic_speedtest_dashboard(app, tmp_path, analysis):
     """Render the dashboard of a generic router with a configured, recent speedtest."""
     mgr = ConfigManager(str(tmp_path / "data_speed"))
     mgr.save({
@@ -174,7 +175,6 @@ def _render_generic_speedtest_dashboard(tmp_path, analysis):
     })
     current_runtime().config_manager = mgr
     current_runtime().storage = None
-    app.config["TESTING"] = True
     current_runtime().update_state(
         analysis=analysis,
         speedtest_latest={
@@ -268,10 +268,9 @@ class TestIndexRoute:
         assert "ds_sc_qam_snr" not in ranges
         assert "ds_ofdm_mer" not in ranges
 
-    def test_redirect_to_setup_when_unconfigured(self, tmp_path):
+    def test_redirect_to_setup_when_unconfigured(self, tmp_path, app):
         mgr = ConfigManager(str(tmp_path / "data2"))
         current_runtime().config_manager = mgr
-        app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.get("/")
             assert resp.status_code == 302
@@ -428,14 +427,14 @@ class TestIndexRoute:
         assert "55.6 Mbit/s" in html_de
         assert "30.7 Mbit/s" in html_de
 
-    def test_modulation_template_shows_capacity_scope_and_caveats(self):
+    def test_modulation_template_shows_capacity_scope_and_caveats(self, app):
         template_path = (
             Path(__file__).resolve().parents[2]
             / "app" / "modules" / "modulation" / "templates" / "modulation_tab.html"
         )
         template = app.jinja_env.from_string(template_path.read_text(encoding="utf-8"))
 
-        html = template.render(t={})
+        html = template.render(t=get_translations("en"))
 
         assert 'id="modulation-capacity-panel"' in html
         assert "Calculated SC-QAM gross capacity" in html
@@ -1393,26 +1392,32 @@ class TestIndexRoute:
         assert 'class="hero-modulation-card hero-modulation-warn"' not in modulation_context
         assert 'class="hero-modulation-card hero-modulation-crit"' not in modulation_context
 
-    def test_index_with_incomplete_bnetz(self, tmp_path, sample_analysis):
-        """Dashboard hides BNetzA card when entry has NULL fields (#148)."""
+    _BNETZ_CARD = '<span class="metric-label">Broadband Measurement (BNetzA)</span>'
+    _NO_AVERAGES = {"download_measured_avg": None, "upload_measured_avg": None}
+
+    @pytest.mark.parametrize("analysis, changes, shown, hidden", [
+        ("sample_analysis", _NO_AVERAGES, [], ['id="bnetz-source"']),
+        ("sample_analysis", {"download_measured_avg": None}, ['id="bnetz-source"', '<strong class="num">–</strong>'], []),
+        ("sample_analysis", {"download_max": None}, ['<strong class="num">0 %</strong>'], []),
+        ("no_docsis_analysis", _NO_AVERAGES, [], [_BNETZ_CARD]),
+        ("no_docsis_analysis", {"upload_measured_avg": None}, [_BNETZ_CARD, "748 / 1000"], ["0 / 50 Mbit/s"]),
+        ("no_docsis_analysis", {"download_measured_avg": None}, [_BNETZ_CARD, "8 / 50 Mbit/s (16%)"], ["0 / 1000"]),
+    ])
+    def test_bnetz_dashboard_shows_only_measured_directions(
+        self, request, tmp_path, sample_bnetz_parsed, app, analysis, changes, shown, hidden,
+    ):
         mgr = ConfigManager(str(tmp_path / "data_bnetz"))
         mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
         current_runtime().config_manager = mgr
         storage = SnapshotStorage(str(tmp_path / "data_bnetz" / "docsight.db"))
         current_runtime().storage = storage
-        app.config["TESTING"] = True
-        # Save a BNetzA measurement with all numeric fields as None
-        bs = BnetzStorage(storage.db_path)
-        bs.save_bnetz_measurement({
-            "date": "2025-06-01",
-            "measurements_download": [],
-            "measurements_upload": [],
-        })
-        current_runtime().update_state(analysis=sample_analysis)
+        BnetzStorage(storage.db_path).save_bnetz_measurement(
+            {**sample_bnetz_parsed, **changes})
+        current_runtime().update_state(analysis=request.getfixturevalue(analysis))
         with app.test_client() as c:
-            resp = c.get("/")
-        assert resp.status_code == 200
-        assert b"bnetz_has_deviation" not in resp.data  # card should not render
+            html = c.get("/").get_data(as_text=True)
+        assert [text for text in shown if text not in html] == []
+        assert [text for text in hidden if text in html] == []
 
     def test_no_docsis_shows_placeholder(self, client, no_docsis_analysis):
         """Generic router with empty channels shows no-DOCSIS placeholder."""
@@ -1424,9 +1429,9 @@ class TestIndexRoute:
         assert b"hero-card" not in resp.data
         assert b"channel-table" not in resp.data
 
-    def test_no_docsis_shows_speedtest_card(self, tmp_path, no_docsis_analysis):
+    def test_no_docsis_shows_speedtest_card(self, tmp_path, no_docsis_analysis, app):
         """When has_docsis=false but speedtest is configured, speed card appears."""
-        resp = _render_generic_speedtest_dashboard(tmp_path, no_docsis_analysis)
+        resp = _render_generic_speedtest_dashboard(app, tmp_path, no_docsis_analysis)
         assert resp.status_code == 200
         html = resp.data
         # No-DOCSIS placeholder should still appear
@@ -1437,9 +1442,9 @@ class TestIndexRoute:
         assert b"Ping:" in html
         assert b"12 ms" in html
 
-    def test_speedtest_card_uses_signal_family_card_anatomy(self, tmp_path, no_docsis_analysis):
+    def test_speedtest_card_uses_signal_family_card_anatomy(self, tmp_path, no_docsis_analysis, app):
         """Speed card follows the same rows, badge, sparkline, and range anatomy as signal-family cards."""
-        resp = _render_generic_speedtest_dashboard(tmp_path, no_docsis_analysis)
+        resp = _render_generic_speedtest_dashboard(app, tmp_path, no_docsis_analysis)
         assert resp.status_code == 200
         card = _element_by_id(resp.get_data(as_text=True), "metric-speed-card")
         assert '<div class="metric-value-row">' in card

@@ -34,14 +34,14 @@
                 <i data-lucide="chevron-right"></i>
                 <span class="docsis-group-name">DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }}</span>
             </button>
-            <span class="glossary-hint" data-glossary-term-id="{{ 'ofdm' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> <span class="docsis-group-count">· {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}</span>
+            <span class="glossary-hint" data-glossary-term-id="{{ 'ofdm' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.glossary_page_title }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> <span class="docsis-group-count">· {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}</span>
         </div>
         <div id="ds-docsis-group-{{ loop.index }}">
             <div class="table-scroll">
                 <table class="data-table data-table-compact data-table-list channel-table">
                     <thead><tr>
                         <th>{{ t.ch_abbr }}</th><th class="dt-num">{{ t.frequency }}</th><th class="dt-num">{{ t.th_power }}</th>
-                        <th class="dt-num">{{ t.get('signal_family_metric_mer', 'MER') if group.grouper|string == '3.1' else t.snr_abbr }}</th><th>{{ t.mod_abbr }}</th><th class="dt-num">{{ t.get('docsight.modulation.capacity_short', 'Capacity estimate') }}<span class="glossary-hint" data-glossary-term-id="modulation_performance" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><span class="glossary-popover">{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}</span></span></th><th>{{ t.signal_health }}</th>
+                        <th class="dt-num">{{ t.signal_family_metric_mer if group.grouper|string == '3.1' else t.snr_abbr }}</th><th>{{ t.mod_abbr }}</th><th class="dt-num">{{ t.get('docsight.modulation.capacity_short', 'Capacity estimate') }}<span class="glossary-hint" data-glossary-term-id="modulation_performance" data-glossary-term-label="{{ t.glossary_page_title }}"><i data-lucide="info"></i><span class="glossary-popover">{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}</span></span></th><th>{{ t.signal_health }}</th>
                     </tr></thead>
                     <tbody>
                     {% for ch in group.list %}
@@ -52,7 +52,7 @@
                         <td class="dt-primary" data-label="{{ t.ch_abbr }}">{{ ch.channel_id }}</td>
                         <td class="dt-num" data-label="{{ t.frequency }}">{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
                         <td class="dt-num" data-label="{{ t.th_power }}" data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
-                        <td class="dt-num" data-label="{{ t.get('signal_family_metric_mer', 'MER') if group.grouper|string == '3.1' else t.snr_abbr }}" data-health="{{ ch.snr_health or 'good' }}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
+                        <td class="dt-num" data-label="{{ t.signal_family_metric_mer if group.grouper|string == '3.1' else t.snr_abbr }}" data-health="{{ ch.snr_health or 'good' }}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
                         <td data-label="{{ t.mod_abbr }}" data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
                         <td class="dt-num" data-label="{{ t.get('docsight.modulation.capacity_short', 'Capacity estimate') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} {{ 'Mbit/s' if lang == 'de' else 'Mbps' }}{% else %}&#8212;{% endif %}</td>
                         <td class="dt-primary">
@@ -97,14 +97,14 @@
                 <i data-lucide="chevron-right"></i>
                 <span class="docsis-group-name">DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }}</span>
             </button>
-            <span class="glossary-hint" data-glossary-term-id="{{ 'ofdma' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> <span class="docsis-group-count">· {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}</span>
+            <span class="glossary-hint" data-glossary-term-id="{{ 'ofdma' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-label="{{ t.glossary_page_title }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> <span class="docsis-group-count">· {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}</span>
         </div>
         <div id="us-docsis-group-{{ loop.index }}">
             <div class="table-scroll">
                 <table class="data-table data-table-compact data-table-list channel-table">
                     <thead><tr>
                         <th>{{ t.ch_abbr }}</th><th class="dt-num">{{ t.frequency }}</th><th class="dt-num">{{ t.th_power }}</th>
-                        <th>{{ t.mod_abbr }}</th><th class="dt-num">{{ t.get('docsight.modulation.capacity_short', 'Capacity estimate') }}<span class="glossary-hint" data-glossary-term-id="modulation_performance" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><span class="glossary-popover">{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}</span></span></th><th>{{ t.signal_health }}</th>
+                        <th>{{ t.mod_abbr }}</th><th class="dt-num">{{ t.get('docsight.modulation.capacity_short', 'Capacity estimate') }}<span class="glossary-hint" data-glossary-term-id="modulation_performance" data-glossary-term-label="{{ t.glossary_page_title }}"><i data-lucide="info"></i><span class="glossary-popover">{{ t.get('docsight.modulation.capacity_tooltip', 'Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput') }}</span></span></th><th>{{ t.signal_health }}</th>
                     </tr></thead>
                     <tbody>
                     {% for ch in group.list %}

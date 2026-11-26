@@ -48,7 +48,7 @@ function browser(ids = [], hash = '') {
         clearTimeout(id) { timers.delete(id); },
         setInterval(fn) { timers.set(++nextTimer, fn); return nextTimer; },
         clearInterval(id) { timers.delete(id); },
-        lucide: {createIcons() {}}, currentView: 'live', T: {},
+        lucide: {createIcons() {}}, currentView: 'live', T: require('./english-catalog')(),
         DOCSightBrowserContracts: {parseDashboardBootstrapText: () => ({translations: {}})},
         fetch() { throw new Error('Unexpected fetch'); },
     };
@@ -93,7 +93,38 @@ test('Speedtest signal detail leaves out power and SNR no channel reported', () 
         us_power_min: null, us_power_avg: null, us_power_max: null,
     }, container);
     const text = container.children.map(item => item.children.map(part => part.textContent).join(': '));
-    assert.deepEqual(text, ['Health: Good', 'DS / US: 0 / 0', 'Snapshot: 2026-11-18T10:00:00Z']);
+    assert.deepEqual(text, ['Health: Good', 'DS Channels / US Channels: 0 / 0', 'Snapshot: 2026-11-18T10:00:00Z']);
+});
+
+test('Speedtest detail items render as plain values, health badges and links', () => {
+    const {context} = browser();
+    context.document.createElement = tag => ({...element(), tag, children: [], appendChild(child) { this.children.push(child); }});
+    run(context, 'app/modules/speedtest/static/main.js');
+    const container = context.document.createElement('div');
+    context._renderEnrichedDetail({isp: 'Cable ISP', is_vpn: true, result_url: 'https://www.speedtest.net/result/1'}, container);
+    const items = [];
+    const walk = node => node.className === 'st-sig-item'
+        ? items.push(node.children.map(c => [c.tag, c.className, c.textContent, c.href, c.target, c.rel].join('|')))
+        : (node.children || []).forEach(walk);
+    walk(container);
+    assert.deepEqual(items, [
+        ['span|st-sig-label|ISP|||', 'span|st-sig-value|Cable ISP|||'],
+        ['span|st-sig-label|VPN|||', 'span|st-health-badge health-tolerated|Yes|||'],
+        ['span|st-sig-label||||', 'a|st-sig-value st-ookla-link|\u2197 View on Speedtest.net|https://www.speedtest.net/result/1|_blank|noopener'],
+    ]);
+});
+
+test('Speedtest signal detail requests the page language', () => {
+    const {context} = browser();
+    const urls = [];
+    context.document.documentElement.lang = 'de';
+    context.document.createElement = () => ({...element(), appendChild() {}});
+    context.docsightUrl = url => url;
+    context.fetch = url => { urls.push(url); return new Promise(() => {}); };
+    run(context, 'app/modules/speedtest/static/main.js');
+    const row = {nextElementSibling: null, children: [], after() {}};
+    context.toggleSpeedtestSignal({...element(), getAttribute: () => '7', closest: () => row});
+    assert.equal(urls[0], '/api/speedtest/7/signal?lang=de');
 });
 
 test('Speedtest rows name their expand toggle and show the server name', () => {
@@ -118,6 +149,61 @@ test('Speedtest rows name their expand toggle and show the server name', () => {
         assert.match(rows[0], new RegExp('<td class="st-col-' + column + '[^"]*" data-label="[^"]+"'));
     }
 });
+
+const runRow = id => ({id, download_mbps: id, upload_mbps: 1, ping_ms: 1});
+const ranTest = id => `success: Speedtest complete: ${id} / 1 Mbps, 1 ms`;
+const ranLong = 'warning: Speedtest is taking longer than expected. Refresh to check.';
+const [before, failed] = [[runRow(100)], 'error: Network error'];
+// 101 finishes between the click (newest cached: 100) and the queued 102. A 'slow' request answers only at the
+// given second, or never, and a 'broken' one then fails; 'throw' fails before it is sent, 500 answers with an
+// error. The deadline is at 150 s.
+for (const [label, queuedId, first, polls, answerAt, toast, sent, posts] of [
+    ['reports the test it queued', 102, before, [[runRow(101), runRow(100)], [runRow(102), runRow(101)]], null,
+        ranTest(102), 2, 1],
+    ['compares only the first row without a queued id', null, before, [[runRow(100), runRow(101)], [runRow(101)]], null,
+        ranTest(101), 2, 1],
+    ['waits for a slow answer without sending another poll', 102, before, ['slow'], 100, ranTest(102), 1, 1],
+    ['times out once when a poll never gets an answer', 102, before, ['slow'], null, ranLong, 1, 1],
+    ['ignores an answer after the deadline', 102, before, ['slow'], 160, ranLong, 1, 1],
+    ['stops polling at the deadline', 102, before, Array(30).fill([runRow(101)]), null, ranLong, 24, 1],
+    ['starts no test when the first answer comes after the deadline', 102, 'slow', [], 160, ranLong, 0, 0],
+    ['ignores a first answer that fails after the deadline', 102, 'broken', [], 160, ranLong, 0, 0],
+    ['starts no test when the first request fails', 102, 500, [], null, failed, 0, 0],
+    ['ends once when a request throws', 102, 'throw', [], null, failed, 0, 0],
+]) {
+    test(`Run Speedtest ${label}`, async () => {
+        const {context, elements} = browser(['speedtest-run-btn']);
+        const toasts = [], timers = [], intervals = [], counts = {sent: 0, posts: 0};
+        let now = 0, answer;
+        Object.assign(context, {
+            docsightUrl: url => url, showToast: (message, type) => toasts.push(type + ': ' + message),
+            setTimeout: (fn, ms) => { const timer = {fn, at: now + ms}; timers.push(timer); return timer; },
+            clearTimeout: timer => { timer.at = Infinity; },
+            setInterval: fn => intervals.push(fn), clearInterval: id => { intervals[id - 1] = () => {}; },
+        });
+        context.document.createElement = context.document.createTextNode = () => element();
+        elements['speedtest-run-btn'].appendChild = () => {};
+        const reply = (body, ok = true) => Promise.resolve({ok, json: async () => body});
+        context.fetch = (url, options) => {
+            if (options && options.method === 'POST') return counts.posts++, reply({success: true, result_id: queuedId});
+            const spec = url.endsWith('count=1') ? first : (counts.sent++, polls.shift());
+            if (spec === 'throw') throw new TypeError('Failed to fetch');
+            const late = spec === 'broken' ? Promise.resolve({json: () => Promise.reject(new SyntaxError('not JSON'))})
+                : reply(url.endsWith('count=1') ? before : [runRow(102)]);
+            if (['slow', 'broken'].includes(spec)) return new Promise(resolve => { answer = () => resolve(late); });
+            return spec === 500 ? reply({error: 'unavailable'}, false) : reply(spec);
+        };
+        run(context, 'app/modules/speedtest/static/main.js');
+        context.runSpeedtest();
+        for (; now < 200000; now += 5000) {  // every five seconds the due timers fire
+            for (const timer of timers.filter(t => t.at <= now)) { timer.at = Infinity; timer.fn(); }
+            intervals.forEach(fn => fn());
+            if (answer && now === answerAt * 1000) answer();
+            await new Promise(resolve => setImmediate(resolve));
+        }
+        assert.deepEqual([toasts, counts, elements['speedtest-run-btn'].disabled], [[toast], {sent, posts}, false]);
+    });
+}
 
 for (const name of ['journal', 'bqm', 'speedtest']) {
     test(`${name} loads on Settings and its hook is safe without dashboard globals`, () => {

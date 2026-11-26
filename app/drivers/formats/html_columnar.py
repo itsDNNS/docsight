@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 
-from ...docsis_utils import parse_qam_order
+from ...docsis_utils import parse_qam_order, to_float
 from ...types import DocsisDataFritz, RawChannel
-from .contract import ParseDiagnostic, ParseResult, diagnostic
+from .contract import ParseDiagnostic, ParseResult, diagnostic, number_reader
 
 
 _TR = re.compile(r"<tr[^>]*>(.*?)</tr>", re.DOTALL | re.IGNORECASE)
@@ -22,23 +22,17 @@ def _text(html: str) -> str:
 
 def _float(raw: str) -> float | None:
     match = _NUMBER.search(raw.strip())
-    return float(match.group()) if match else None
+    return to_float(match.group()) if match else None
 
 
 def _frequency(raw: str) -> str:
     raw = raw.strip()
-    if re.search(r"[Mm][Hh][Zz]", raw):
-        number = _NUMBER.search(raw)
-        if number:
-            mhz = float(number.group())
-            return f"{int(mhz) if mhz == int(mhz) else mhz} MHz"
-    match = _NUMBER.search(raw)
-    if match:
-        value = float(match.group())
-        if value > 1_000_000:
-            value /= 1_000_000
-        return f"{int(value) if value == int(value) else value} MHz"
-    return raw
+    value = _float(raw)
+    if value is None:
+        return "" if _NUMBER.search(raw) else raw
+    if value > 1_000_000 and not re.search(r"[Mm][Hh][Zz]", raw):
+        value /= 1_000_000
+    return f"{int(value) if value == int(value) else value} MHz"
 
 
 def _modulation(raw: str) -> str:
@@ -93,30 +87,32 @@ def build_cgm4981_downstream(
     error_ids = error_rows.get("Channel ID", [])
     corrected = error_rows.get("Correctable Codewords", [])
     uncorrected = error_rows.get("Uncorrectable Codewords", [])
-    error_map: dict[str, tuple[int, int]] = {}
-    for index, channel_id in enumerate(error_ids):
-        corr = int(corrected[index]) if index < len(corrected) and corrected[index].lstrip("-").isdigit() else 0
-        uncorr = int(uncorrected[index]) if index < len(uncorrected) and uncorrected[index].lstrip("-").isdigit() else 0
-        error_map[channel_id] = (corr, uncorr)
+    error_map = {
+        channel_id: tuple(values[index] if index < len(values) else "" for values in (corrected, uncorrected))
+        for index, channel_id in enumerate(error_ids)
+    }
 
     result: list[RawChannel] = []
     diagnostics: list[ParseDiagnostic] = []
     for index, channel_id in enumerate(channel_ids):
         if (locks[index] if index < len(locks) else "").lower() != "locked":
             continue
+        num = number_reader(
+            diagnostics, "cgm4981_columnar_html", family="html_columnar", direction="downstream", index=index,
+        )
         try:
             modulation = _modulation(modulations[index] if index < len(modulations) else "")
             snr = _float(snrs[index] if index < len(snrs) else "")
-            corr, uncorr = error_map.get(channel_id, (0, 0))
+            corr, uncorr = error_map.get(channel_id, ("", ""))
             channel: RawChannel = {
                 "channelID": int(channel_id),
                 "frequency": _frequency(frequencies[index] if index < len(frequencies) else ""),
                 "powerLevel": _float(powers[index] if index < len(powers) else ""),
                 "mer": snr,
-                "mse": -snr if snr else None,
+                "mse": None if snr is None else -snr,
                 "modulation": modulation,
-                "corrErrors": corr,
-                "nonCorrErrors": uncorr,
+                "corrErrors": num(corr, "corrected", int),
+                "nonCorrErrors": num(uncorr, "uncorrected", int),
             }
             if modulation == "OFDM":
                 channel["type"] = "OFDM"

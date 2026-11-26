@@ -20,6 +20,9 @@ from app.modules.journal.import_parser import (
 
 # ── Helper ──
 
+_GERMAN_TEXT = "Störung über 5 € „Maß“ später"
+
+
 def _make_csv_bytes(text, encoding="utf-8"):
     """Encode CSV text to bytes for parser input."""
     return text.encode(encoding)
@@ -264,6 +267,17 @@ class TestNormalizeDate:
         """Invalid month in DD.MM.YYYY should return None."""
         assert _normalize_date("15.13.2024", None) is None
 
+    @pytest.mark.parametrize("raw, year, expected", [
+        (" 2024-02-29 ", None, "2024-02-29"),
+        ("\uff12\uff10\uff12\uff14-02-29", None, "2024-02-29"),
+        ("29.02.", 2024, "2024-02-29"),
+        ("29.02.", 2023, None),
+        ("30.02. - 02.03.", 2024, None),
+    ])
+    def test_every_format_checks_the_calendar_date(self, raw, year, expected):
+        """Each format yields a real calendar date in ASCII digits or None."""
+        assert _normalize_date(raw, year) == expected
+
 
 # ── CSV Parsing (_parse_csv) ──
 
@@ -293,34 +307,36 @@ class TestParseCsv:
         assert rows[0] == ["Date", "Title", "Description"]
         assert rows[1] == ["2024-01-15", "Event A", "Details A"]
 
-    def test_utf8_encoding(self):
-        """UTF-8 encoded CSV with German characters should parse correctly."""
-        csv_text = "Datum;Ereignis;Beschreibung\n15.01.2024;Störung;Netzwerk-Ausfall\n"
-        rows, _ = _parse_csv(_make_csv_bytes(csv_text, "utf-8"))
-        assert rows[1][1] == "Störung"
-        assert rows[1][2] == "Netzwerk-Ausfall"
+    @pytest.mark.parametrize("bom,encoding,text", [
+        (b"\xef\xbb\xbf", "utf-8", _GERMAN_TEXT),
+        (b"", "utf-8", _GERMAN_TEXT),
+        (b"", "cp1252", _GERMAN_TEXT),
+        (b"", "latin-1", "Störung über 5 ¥ «Maß» später"),
+    ], ids=["utf-8-bom", "utf-8", "cp1252", "latin-1"])
+    def test_encodings_keep_headers_and_text(self, bom, encoding, text):
+        """UTF-8 with or without BOM, Windows-1252 and printable Latin-1 keep headers, mapping and text."""
+        csv_text = f"Beschreibung;Datum;Titel\n{text};15.01.2024;Grüße\n"
+        result = parse_file(bom + _make_csv_bytes(csv_text, encoding), "journal.csv")
+        assert result["sample_headers"] == ["Beschreibung", "Datum", "Titel"]
+        assert result["mapping"] == {"description": 0, "date": 1, "title": 2}
+        assert (result["rows"][0]["description"], result["rows"][0]["title"]) == (text, "Grüße")
 
-    def test_latin1_encoding(self):
-        """Latin-1 encoded CSV with German characters should parse correctly."""
-        csv_text = "Datum;Ereignis;Beschreibung\n15.01.2024;Störung;Netzwerk-Ausfall\n"
-        rows, _ = _parse_csv(_make_csv_bytes(csv_text, "latin-1"))
-        assert rows[1][1] == "Störung"
-        assert rows[1][2] == "Netzwerk-Ausfall"
-
-    def test_utf8_bom_encoding(self):
-        """UTF-8 with BOM should parse correctly."""
-        csv_text = "Datum;Titel;Beschreibung\n15.01.2024;Event A;Details\n"
-        bom = b"\xef\xbb\xbf"
-        raw = bom + csv_text.encode("utf-8")
-        rows, _ = _parse_csv(raw)
-        # BOM should be stripped (utf-8-sig handles this)
-        assert "Datum" in rows[0][0]
-
-    def test_cp1252_encoding(self):
-        """CP1252 (Windows) encoded CSV should parse correctly."""
-        csv_text = "Datum;Ereignis\n15.01.2024;Störung\n"
-        rows, _ = _parse_csv(_make_csv_bytes(csv_text, "cp1252"))
-        assert rows[1][1] == "Störung"
+    @pytest.mark.parametrize("bom,csv_text,expected", [
+        (b"", "Datum;Titel;Anmerkung\n15.01.2024;Ausfall;Router neu gestartet\n", [("2024-01-15", "Ausfall", "Router neu gestartet")]),
+        (b"\xef\xbb\xbf", "Datum;Titel;Anmerkung\n15.01.2024;Ausfall;Router neu gestartet\n16.01.2024;Anruf;Ticket offen\n",
+         [("2024-01-15", "Ausfall", "Router neu gestartet"), ("2024-01-16", "Anruf", "Ticket offen")]),
+        (b"\xef\xbb\xbf", "Date,Title,Description,Comment\n2024-01-15,Outage,Router restarted,\n2024-01-16,Call,Ticket opened,Internal\n",
+         [("2024-01-15", "Outage", "Router restarted"), ("2024-01-16", "Call", "Ticket opened")]),
+        (b"", "Datum;Titel;Beschreibung;Kommentar\n15.01.2024;Ausfall;Router neu gestartet;\n16.01.2024;Anruf;Ticket offen;Intern\n",
+         [("2024-01-15", "Ausfall", "Router neu gestartet"), ("2024-01-16", "Anruf", "Ticket offen")]),
+        # The delimiter sample still starts with the BOM: four commas tie four semicolons, the fifth comma falls outside
+        (b"\xef\xbb\xbf", "Datum;Titel;Beschreibung\n15.01.2024;Ausfall;,,,," + "x" * 1951 + ",y\n16.01.2024;Anruf;ok\n",
+         [("2024-01-15", "Ausfall", ",,,," + "x" * 1951 + ",y"), ("2024-01-16", "Anruf", "ok")]),
+    ], ids=["note-header", "note-header-bom", "description-beats-comment", "beschreibung-beats-kommentar", "bom-delimiter-sample"])
+    def test_description_headers_and_delimiter(self, bom, csv_text, expected):
+        """Note headers map the description only when no description header does; a BOM keeps the delimiter sample."""
+        result = parse_file(bom + _make_csv_bytes(csv_text), "journal.csv")
+        assert [(row["date"], row["title"], row["description"]) for row in result["rows"]] == expected
 
     def test_empty_csv_returns_empty_rows(self):
         """Empty CSV should return empty row list."""
@@ -346,33 +362,15 @@ class TestParseCsv:
 # ── Column Mapping Detection (_detect_mapping) ──
 
 class TestDetectMapping:
-    def test_german_headers(self):
-        """German header keywords should be recognized."""
-        headers = ["Datum", "Ereignis", "Beschreibung"]
-        mapping = _detect_mapping(headers, [], None)
-        assert mapping["date"] == 0
-        assert mapping["title"] == 1
-        assert mapping["description"] == 2
-
-    def test_english_headers(self):
-        """English header keywords should be recognized."""
-        headers = ["Date", "Title", "Description"]
-        mapping = _detect_mapping(headers, [], None)
-        assert mapping["date"] == 0
-        assert mapping["title"] == 1
-        assert mapping["description"] == 2
-
-    def test_alternative_german_headers(self):
-        """Alternative German keywords: Tag, Betreff, Notiz."""
-        headers = ["Tag", "Betreff", "Notiz"]
-        mapping = _detect_mapping(headers, [], None)
-        assert mapping["date"] == 0
-        assert mapping["title"] == 1
-        assert mapping["description"] == 2
-
-    def test_alternative_english_headers(self):
-        """Alternative English keywords: When, Subject, Notes."""
-        headers = ["When", "Subject", "Notes"]
+    @pytest.mark.parametrize("headers", [
+        ["Datum", "Ereignis", "Beschreibung"],
+        ["Date", "Title", "Description"],
+        ["Tag", "Betreff", "Notiz"],
+        ["When", "Subject", "Notes"],
+        ["DATUM", "TITEL", "BESCHREIBUNG"],
+    ], ids=["german", "english", "alternative-german", "alternative-english", "case-insensitive"])
+    def test_header_keywords(self, headers):
+        """German and English header keywords and their alternatives are recognized in any case."""
         mapping = _detect_mapping(headers, [], None)
         assert mapping["date"] == 0
         assert mapping["title"] == 1
@@ -410,14 +408,6 @@ class TestDetectMapping:
         # title and description should be inferred from data
         assert "title" in mapping
         assert "description" in mapping
-
-    def test_case_insensitive_headers(self):
-        """Header matching should be case-insensitive."""
-        headers = ["DATUM", "TITEL", "BESCHREIBUNG"]
-        mapping = _detect_mapping(headers, [], None)
-        assert mapping["date"] == 0
-        assert mapping["title"] == 1
-        assert mapping["description"] == 2
 
 
 # ── Helper Functions ──
@@ -508,6 +498,22 @@ class TestXlsxImportContract:
 
 
 # ── Full Integration Tests ──
+
+    @pytest.mark.parametrize("filename,make_bytes", [
+        ("journal.csv", lambda rows: _make_csv_bytes("".join(";".join(row) + "\n" for row in rows))),
+        ("journal.xlsx", _make_xlsx_bytes),
+    ], ids=["csv", "xlsx"])
+    def test_note_header_does_not_replace_the_inferred_description(self, filename, make_bytes):
+        """A note header fills the description only when the data-based detection finds none."""
+        result = parse_file(make_bytes([
+            ["Date", "Incident", "Resolution", "Comment"],
+            ["2024-01-15", "Outage", "Router restarted", "Internal note for the support team"],
+            ["2024-01-16", "Call", "Ticket opened", "Internal note for the billing team"],
+        ]), filename)
+        assert [(row["title"], row["description"]) for row in result["rows"]] == [
+            ("Outage", "Router restarted"), ("Call", "Ticket opened"),
+        ]
+
 
 class TestIntegrationSpreadsheetFormat:
     """Simulate a real-world spreadsheet layout:
@@ -623,7 +629,7 @@ class TestIntegrationEdgeCases:
 
     def test_unsupported_format(self):
         """Unsupported file extensions should raise ValueError."""
-        with pytest.raises(ValueError, match="Unsupported file format"):
+        with pytest.raises(ValueError, match="Only .xlsx and .csv files are supported"):
             parse_file(b"data", "file.json")
 
     def test_empty_file(self):
@@ -670,3 +676,23 @@ class TestIntegrationEdgeCases:
 def test_unreadable_excel_file_gets_a_fixed_message():
     with pytest.raises(ValueError, match="^Could not read the Excel file$"):
         parse_file(b"not a zip archive", "journal.xlsx")
+
+
+@pytest.mark.parametrize("byte", [b"\x81", b"\x8d", b"\x8f", b"\x90", b"\x9d"], ids=bytes.hex)
+def test_preview_rejects_bytes_undefined_in_cp1252_with_localized_hint(
+    byte, make_config, make_app, builtin_module_loader_factory, mock_storage,
+):
+    """Bytes that are neither UTF-8 nor Windows-1252 fail loudly instead of becoming control characters."""
+    manager = make_config()
+    client = make_app(
+        config_manager=manager, storage=mock_storage, module_loader_factory=builtin_module_loader_factory(manager),
+    ).test_client()
+    raw = _make_csv_bytes("Datum;Titel\n15.01.2024;5 €", "cp1252") + byte
+    responses = [
+        client.post(f"/api/journal/import/preview?lang={lang}", data={"file": (io.BytesIO(raw), "journal.csv")})
+        for lang in ("en", "de")
+    ]
+    assert [response.status_code for response in responses] == [400, 400]
+    english, german = (response.get_json()["error"] for response in responses)
+    assert "save it as CSV (UTF-8)" in english
+    assert "speichere sie als CSV (UTF-8)" in german

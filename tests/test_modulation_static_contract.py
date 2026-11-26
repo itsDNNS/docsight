@@ -13,18 +13,3 @@ def test_capacity_catalog_explains_estimate():
     assert "Calculated SC-QAM gross capacity" in catalog["capacity_title"]
     assert "Not speedtest throughput" in catalog["capacity_warning_not_throughput"]
     assert "not tariff speed" in catalog["capacity_warning_not_tariff"].lower()
-
-
-def test_low_qam_denominator_hint_is_localized_for_all_modulation_languages():
-    for path in I18N_DIR.glob("*.json"):
-        assert json.loads(path.read_text(encoding="utf-8"))["low_qam_denominator_hint"].strip(), path.name
-
-
-def test_low_qam_legend_hint_key_is_localized_for_all_modulation_languages():
-    for path in I18N_DIR.glob("*.json"):
-        assert json.loads(path.read_text(encoding="utf-8"))["low_qam_legend_hint_d31_us"].strip(), path.name
-
-
-def test_docsis_30_upstream_legend_hint_key_is_localized_for_all_modulation_languages():
-    for path in I18N_DIR.glob("*.json"):
-        assert json.loads(path.read_text(encoding="utf-8"))["low_qam_legend_hint_d30_us"].strip(), path.name

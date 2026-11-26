@@ -3,12 +3,32 @@
 import logging
 
 from app.storage.migrations import run_migrations
-from app.storage.sqlite import bulk_write, open_read, write_transaction
+from app.storage.sqlite import open_read, write_transaction
 from .migrations import MIGRATIONS
-from datetime import datetime, timezone
-from app.tz import UTC_FMT
 
 log = logging.getLogger("docsis.storage.speedtest")
+
+_COLUMNS = (
+    "id", "timestamp", "download_mbps", "upload_mbps", "download_human",
+    "upload_human", "ping_ms", "jitter_ms", "packet_loss_pct",
+    "server_id", "server_name",
+    "isp", "server_host", "server_location", "server_country", "server_ip",
+    "ping_low", "ping_high", "dl_latency_iqm", "dl_latency_jitter",
+    "ul_latency_iqm", "ul_latency_jitter", "dl_bytes", "ul_bytes",
+    "dl_elapsed_ms", "ul_elapsed_ms", "external_ip", "is_vpn", "result_url",
+)
+# A new result without these (a failed test) is stored as before; a known id keeps what a result omits
+_INSERT_DEFAULTS = {
+    "timestamp": "''", "download_mbps": "0", "upload_mbps": "0", "download_human": "''", "upload_human": "''",
+    "server_name": "''",
+}
+_UPSERT = (
+    f"INSERT INTO speedtest_results ({', '.join(_COLUMNS)}) VALUES ("
+    + ", ".join(f"COALESCE(?{n}, {_INSERT_DEFAULTS[c]})" if c in _INSERT_DEFAULTS else f"?{n}"
+                for n, c in enumerate(_COLUMNS, 1))
+    + ") ON CONFLICT(id) DO UPDATE SET "
+    + ", ".join(f"{c} = COALESCE(?{n}, {c})" for n, c in enumerate(_COLUMNS, 1) if c != "id")
+)
 
 
 class SpeedtestStorage:
@@ -19,103 +39,23 @@ class SpeedtestStorage:
 
     def __init__(self, db_path):
         self.db_path = db_path
-        self._ensure_table()
-
-    def _ensure_table(self):
-        """Create and migrate the speedtest tables."""
-        run_migrations(self.db_path, MIGRATIONS)
-        self._migrate_timestamps()
-
-    def _migrate_timestamps(self):
-        """Normalize offset-bearing timestamps once, preserving existing behavior."""
-        with write_transaction(self.db_path) as conn:
-            migrated = conn.execute(
-                "SELECT value FROM speedtest_meta WHERE key = 'ts_migrated'"
-            ).fetchone()
-            if migrated:
-                return
-            rows = conn.execute(
-                "SELECT id, timestamp FROM speedtest_results "
-                "WHERE timestamp GLOB '*[+-][0-9][0-9]:[0-9][0-9]'"
-            ).fetchall()
-            updated = 0
-            for row_id, timestamp in rows:
-                try:
-                    parsed = datetime.fromisoformat(timestamp)
-                except (ValueError, TypeError):
-                    continue
-                if parsed.tzinfo is None:
-                    continue
-                normalized = parsed.astimezone(timezone.utc).strftime(UTC_FMT)
-                conn.execute(
-                    "UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
-                    (normalized, row_id),
-                )
-                updated += 1
-            conn.execute(
-                "INSERT OR REPLACE INTO speedtest_meta (key, value) VALUES ('ts_migrated', '1')"
-            )
-            if updated:
-                log.info("Normalized %d existing timestamps to UTC", updated)
+        run_migrations(db_path, MIGRATIONS)
 
     def save_speedtest_results(self, results):
-        """Bulk insert speedtest results, upserting enriched fields on conflict."""
+        """Bulk upsert speedtest results and return those not cached before; a known id keeps the values a result omits."""
         if not results:
-            return
-        try:
-            bulk_write(
-                self.db_path,
-                    "INSERT INTO speedtest_results "
-                    "(id, timestamp, download_mbps, upload_mbps, download_human, "
-                    "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
-                    "server_id, server_name, "
-                    "isp, server_host, server_location, server_country, server_ip, "
-                    "ping_low, ping_high, dl_latency_iqm, dl_latency_jitter, "
-                    "ul_latency_iqm, ul_latency_jitter, dl_bytes, ul_bytes, "
-                    "dl_elapsed_ms, ul_elapsed_ms, external_ip, is_vpn, result_url) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-                    "ON CONFLICT(id) DO UPDATE SET "
-                    "isp = excluded.isp, "
-                    "server_host = excluded.server_host, "
-                    "server_location = excluded.server_location, "
-                    "server_country = excluded.server_country, "
-                    "server_ip = excluded.server_ip, "
-                    "ping_low = excluded.ping_low, "
-                    "ping_high = excluded.ping_high, "
-                    "dl_latency_iqm = excluded.dl_latency_iqm, "
-                    "dl_latency_jitter = excluded.dl_latency_jitter, "
-                    "ul_latency_iqm = excluded.ul_latency_iqm, "
-                    "ul_latency_jitter = excluded.ul_latency_jitter, "
-                    "dl_bytes = excluded.dl_bytes, "
-                    "ul_bytes = excluded.ul_bytes, "
-                    "dl_elapsed_ms = excluded.dl_elapsed_ms, "
-                    "ul_elapsed_ms = excluded.ul_elapsed_ms, "
-                    "external_ip = excluded.external_ip, "
-                    "is_vpn = excluded.is_vpn, "
-                    "result_url = excluded.result_url",
-                    [
-                        (
-                            r["id"], r["timestamp"], r["download_mbps"],
-                            r["upload_mbps"], r["download_human"], r["upload_human"],
-                            r["ping_ms"], r["jitter_ms"], r["packet_loss_pct"],
-                            r.get("server_id"), r.get("server_name", ""),
-                            r.get("isp"), r.get("server_host"), r.get("server_location"),
-                            r.get("server_country"), r.get("server_ip"),
-                            r.get("ping_low"), r.get("ping_high"),
-                            r.get("dl_latency_iqm"), r.get("dl_latency_jitter"),
-                            r.get("ul_latency_iqm"), r.get("ul_latency_jitter"),
-                            r.get("dl_bytes"), r.get("ul_bytes"),
-                            r.get("dl_elapsed_ms"), r.get("ul_elapsed_ms"),
-                            r.get("external_ip"),
-                            1 if r.get("is_vpn") else (0 if r.get("is_vpn") is not None else None),
-                            r.get("result_url"),
-                        )
-                        for r in results
-                    ],
-                )
-            log.debug("Saved %d speedtest results", len(results))
-        except Exception as e:
-            log.error("Failed to save speedtest results: %s", e)
+            return []
+        ids = list(dict.fromkeys(r.get("id") for r in results))
+        with write_transaction(self.db_path) as conn:  # one transaction, so concurrent syncs report a result once
+            known = {row[0] for row in conn.execute(
+                f"SELECT id FROM speedtest_results WHERE id IN ({', '.join('?' * len(ids))})", ids
+            )}
+            for r in results:
+                conn.execute(_UPSERT, tuple(r.get(column) for column in _COLUMNS))
+            new_ids = [i for i in ids if i not in known]
+            return [dict(row) for row in conn.execute(  # as stored, so a sparse duplicate cannot hide values
+                f"SELECT {', '.join(_COLUMNS)} FROM speedtest_results WHERE id IN ({', '.join('?' * len(new_ids))})", new_ids
+            )]
 
     def get_speedtest_results(self, limit=2000):
         """Return cached speedtest results, newest first."""
@@ -133,14 +73,7 @@ class SpeedtestStorage:
         """Return a single speedtest result by id, or None (includes enriched fields)."""
         with open_read(self.db_path) as conn:
             row = conn.execute(
-                "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
-                "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
-                "server_id, server_name, "
-                "isp, server_host, server_location, server_country, server_ip, "
-                "ping_low, ping_high, dl_latency_iqm, dl_latency_jitter, "
-                "ul_latency_iqm, ul_latency_jitter, dl_bytes, ul_bytes, "
-                "dl_elapsed_ms, ul_elapsed_ms, external_ip, is_vpn, result_url "
-                "FROM speedtest_results WHERE id = ?",
+                f"SELECT {', '.join(_COLUMNS)} FROM speedtest_results WHERE id = ?",
                 (result_id,),
             ).fetchone()
         return dict(row) if row else None
@@ -158,6 +91,18 @@ class SpeedtestStorage:
                 "SELECT MAX(id) FROM speedtest_results"
             ).fetchone()
         return row[0] or 0 if row else 0
+
+    def get_recent_ids(self, limit=10):
+        """The lowest of the newest cached ids, above which a delta sync rechecks, and those with measurements.
+
+        Rows without them, a failed test or one cached while running by an older version, are fetched again.
+        """
+        with open_read(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT id, download_mbps > 0 OR ping_ms IS NOT NULL FROM speedtest_results ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return min((row[0] for row in rows), default=0), {row[0] for row in rows if row[1]}
 
     def get_recent_speedtests(self, limit=10):
         """Return the N most recent speedtest results."""

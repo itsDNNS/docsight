@@ -17,9 +17,10 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_rows import parse_sb6190_downstream, parse_sb6190_html, parse_sb6190_upstream
-from .formats.primitives import normalize_mhz, parse_number
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from .format_compat import unwrap
+from .formats.html_rows import parse_sb6190_html
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.sb6190")
 
@@ -81,13 +82,14 @@ class SB6190Driver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"SB6190 DOCSIS data retrieval failed: {e}")
 
-        return parse_sb6190_html(r.text).value
+        return unwrap(parse_sb6190_html(r.text), log)
 
     def get_device_info(self) -> DeviceInfo:
         try:
             r = self._session.get(f"{self._url}/cgi-bin/swinfo", timeout=30)
             r.raise_for_status()
-        except requests.RequestException:
+        except requests.RequestException as e:
+            log.warning("SB6190 device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Arris", "model": "SB6190", "sw_version": ""}
 
         soup = BeautifulSoup(r.text, "html.parser")
@@ -101,32 +103,17 @@ class SB6190Driver(ModemDriver):
                     info["sw_version"] = value
                 elif "hardware version" in label:
                     info["hw_version"] = value
-        return {
+        result: DeviceInfo = {
             "manufacturer": "Arris",
             "model": "SB6190",
             "sw_version": info.get("sw_version", ""),
         }
+        if info.get("hw_version"):
+            result["hw_version"] = info["hw_version"]
+        return result
 
     def get_connection_info(self) -> ConnectionInfo:
         return {}
-
-    # -- Parsers --
-
-    def _parse_downstream(self, table) -> list[RawChannel]:
-        return parse_sb6190_downstream(table).value
-
-    def _parse_upstream(self, table) -> list[RawChannel]:
-        return parse_sb6190_upstream(table).value
-
-    # -- Value helpers --
-
-    @staticmethod
-    def _normalize_mhz(freq_str: str) -> str:
-        return normalize_mhz(freq_str)
-
-    @staticmethod
-    def _parse_number(val_str: str) -> float:
-        return parse_number(val_str)
 
     @staticmethod
     def _is_authenticated_status_page(html: str) -> bool:

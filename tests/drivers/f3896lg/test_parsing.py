@@ -10,6 +10,14 @@ from app.analyzer import analyze
 from app.drivers.f3896lg import F3896LGDriver
 
 
+def _lanes(driver, direction, rows):
+    """Poll once with one direction's channel rows and return its DOCSIS 3.0 and 3.1 lanes."""
+    payload = {"downstream": [], "upstream": [], direction: rows}
+    with patch.object(driver, "_get_channels", side_effect=lambda _path, section: payload[section]):
+        lanes = driver.get_docsis_data()["channelDs" if direction == "downstream" else "channelUs"]
+    return lanes["docsis30"], lanes["docsis31"]
+
+
 class TestLogin:
     def test_login_ok(self, driver):
         driver.login()  # must not raise
@@ -137,7 +145,7 @@ class TestDownstream:
             "power": -118,
         }]
 
-        _, ds31 = driver._parse_downstream(channels)
+        _, ds31 = _lanes(driver, "downstream", channels)
 
         assert ds31[0]["mer"] == expected
 
@@ -155,7 +163,7 @@ class TestDownstream:
         }]
 
         with caplog.at_level(logging.WARNING, logger="docsis.driver.f3896lg"):
-            _, ds31 = driver._parse_downstream(channels)
+            _, ds31 = _lanes(driver, "downstream", channels)
 
         assert len(ds31) == 1
         assert ds31[0]["mer"] is None
@@ -165,7 +173,7 @@ class TestDownstream:
         assert ds31[0]["corrErrors"] == 12
         assert ds31[0]["nonCorrErrors"] == 3
         assert caplog.messages == [
-            "Invalid F3896LG OFDM rxMer 'invalid'; using no MER",
+            "f3896lg_rest_json parser reported invalid_field (direction=downstream, field=rxMer, rows=1)",
         ]
 
     def test_invalid_ofdm_power_retains_channel(self, driver, caplog):
@@ -180,25 +188,25 @@ class TestDownstream:
         }]
 
         with caplog.at_level(logging.WARNING, logger="docsis.driver.f3896lg"):
-            _, ds31 = driver._parse_downstream(channels)
+            _, ds31 = _lanes(driver, "downstream", channels)
 
         assert len(ds31) == 1
         assert ds31[0]["powerLevel"] is None
         assert ds31[0]["mer"] == 39.0
         assert caplog.messages == [
-            "Invalid F3896LG OFDM power 'invalid'; using no power",
+            "f3896lg_rest_json parser reported invalid_field (direction=downstream, field=power, rows=1)",
         ]
 
     def test_unknown_channel_type_is_skipped(self, driver, caplog):
         with caplog.at_level(logging.DEBUG, logger="docsis.driver.f3896lg"):
-            ds30, ds31 = driver._parse_downstream([
+            ds30, ds31 = _lanes(driver, "downstream", [
                 {"channelType": "mystery", "lockStatus": True},
             ])
 
         assert ds30 == []
         assert ds31 == []
         assert caplog.messages == [
-            "Skipping unknown downstream channel type 'mystery'",
+            "f3896lg_rest_json parser reported unknown_channel_type (direction=downstream, field=channelType, rows=1)",
         ]
 
 
@@ -227,14 +235,14 @@ class TestUpstream:
 
     def test_unknown_channel_type_is_skipped(self, driver, caplog):
         with caplog.at_level(logging.DEBUG, logger="docsis.driver.f3896lg"):
-            us30, us31 = driver._parse_upstream([
+            us30, us31 = _lanes(driver, "upstream", [
                 {"channelType": "mystery", "lockStatus": True},
             ])
 
         assert us30 == []
         assert us31 == []
         assert caplog.messages == [
-            "Skipping unknown upstream channel type 'mystery'",
+            "f3896lg_rest_json parser reported unknown_channel_type (direction=upstream, field=channelType, rows=1)",
         ]
 
     def test_invalid_ofdma_power_retains_channel(self, driver, caplog):
@@ -248,22 +256,19 @@ class TestUpstream:
         }]
 
         with caplog.at_level(logging.WARNING, logger="docsis.driver.f3896lg"):
-            _, us31 = driver._parse_upstream(channels)
+            _, us31 = _lanes(driver, "upstream", channels)
 
         assert len(us31) == 1
         assert us31[0]["powerLevel"] is None
         assert us31[0]["profile_modulation"] == "256QAM"
         assert caplog.messages == [
-            "Invalid F3896LG OFDMA power 'invalid'; using no power",
+            "f3896lg_rest_json parser reported invalid_field (direction=upstream, field=power, rows=1)",
         ]
 
 
-@pytest.mark.parametrize(
-    "parser_name",
-    ["_parse_downstream", "_parse_upstream"],
-)
-def test_non_object_channel_entries_are_skipped(driver, parser_name):
-    assert getattr(driver, parser_name)([None, "invalid", []]) == ([], [])
+@pytest.mark.parametrize("direction", ["downstream", "upstream"])
+def test_non_object_channel_entries_are_skipped(driver, direction):
+    assert _lanes(driver, direction, [None, "invalid", []]) == ([], [])
 
 
 class TestAnalyzerIntegration:

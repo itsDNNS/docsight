@@ -1,16 +1,14 @@
 """Tests for the shared Arris HTML channel-table parser."""
 
 
-from app.drivers.arris_html import (
-    parse_arris_channel_tables,
-    _find_channel_tables,
-    _is_header_row,
-    _parse_downstream,
-    _parse_upstream,
-    _parse_freq_hz,
-    _parse_value,
+from app.drivers.formats.html_rows import (
+    _arris_tables,
+    parse_arris_downstream,
+    parse_arris_html,
+    parse_arris_upstream,
 )
 from bs4 import BeautifulSoup
+import pytest
 
 
 # ---------------------------------------------------------------------------
@@ -61,75 +59,11 @@ def _full_page(*tables):
     return f"<html><body>{''.join(tables)}</body></html>"
 
 
-# ---------------------------------------------------------------------------
-# _parse_freq_hz
-# ---------------------------------------------------------------------------
-
-class TestParseFreqHz:
-    def test_integer_mhz(self):
-        assert _parse_freq_hz("705000000 Hz") == "705 MHz"
-
-    def test_fractional_mhz(self):
-        assert _parse_freq_hz("706500000 Hz") == "706.5 MHz"
-
-    def test_empty_string(self):
-        assert _parse_freq_hz("") == ""
-
-    def test_none_like(self):
-        # Should not crash on unusual input
-        assert _parse_freq_hz("not a number") == "not a number"
-
-    def test_whitespace(self):
-        assert _parse_freq_hz("  795000000 Hz  ") == "795 MHz"
+SCQAM_DS_ROW = _make_ds_row("1", "Locked", "256QAM", "705000000 Hz", "8.2 dBmV", "43.0 dB", "100", "5")
 
 
 # ---------------------------------------------------------------------------
-# _parse_value
-# ---------------------------------------------------------------------------
-
-class TestParseValue:
-    def test_dbmv(self):
-        assert _parse_value("8.2 dBmV") == 8.2
-
-    def test_db(self):
-        assert _parse_value("43.0 dB") == 43.0
-
-    def test_negative(self):
-        assert _parse_value("-1.5 dBmV") == -1.5
-
-    def test_empty(self):
-        assert _parse_value("") is None
-
-    def test_none(self):
-        assert _parse_value(None) is None
-
-    def test_garbage(self):
-        assert _parse_value("N/A") is None
-
-    def test_integer(self):
-        assert _parse_value("10 dBmV") == 10.0
-
-
-# ---------------------------------------------------------------------------
-# _is_header_row
-# ---------------------------------------------------------------------------
-
-class TestIsHeaderRow:
-    def test_th_row(self):
-        soup = BeautifulSoup("<tr><th>Header</th></tr>", "html.parser")
-        assert _is_header_row(soup.find("tr")) is True
-
-    def test_strong_row(self):
-        soup = BeautifulSoup("<tr><td><strong>Title</strong></td></tr>", "html.parser")
-        assert _is_header_row(soup.find("tr")) is True
-
-    def test_data_row(self):
-        soup = BeautifulSoup("<tr><td>1</td><td>Locked</td></tr>", "html.parser")
-        assert _is_header_row(soup.find("tr")) is False
-
-
-# ---------------------------------------------------------------------------
-# _find_channel_tables
+# _arris_tables
 # ---------------------------------------------------------------------------
 
 class TestFindChannelTables:
@@ -139,36 +73,32 @@ class TestFindChannelTables:
             _wrap_us_table(),
         )
         soup = BeautifulSoup(html, "html.parser")
-        ds, us = _find_channel_tables(soup)
+        ds, us = _arris_tables(soup)
         assert ds is not None
         assert us is not None
 
     def test_no_tables(self):
         soup = BeautifulSoup("<html><body></body></html>", "html.parser")
-        ds, us = _find_channel_tables(soup)
+        ds, us = _arris_tables(soup)
         assert ds is None
         assert us is None
 
     def test_only_downstream(self):
         html = _full_page(_wrap_ds_table())
         soup = BeautifulSoup(html, "html.parser")
-        ds, us = _find_channel_tables(soup)
+        ds, us = _arris_tables(soup)
         assert ds is not None
         assert us is None
 
 
 # ---------------------------------------------------------------------------
-# _parse_downstream
+# parse_arris_downstream
 # ---------------------------------------------------------------------------
 
 class TestParseDownstream:
     def test_scqam_channel(self):
-        row = _make_ds_row(
-            "1", "Locked", "256QAM", "705000000 Hz",
-            "8.2 dBmV", "43.0 dB", "100", "5",
-        )
-        table = BeautifulSoup(_wrap_ds_table(row), "html.parser").find("table")
-        ds30, ds31 = _parse_downstream(table)
+        table = BeautifulSoup(_wrap_ds_table(SCQAM_DS_ROW), "html.parser").find("table")
+        ds30, ds31 = parse_arris_downstream(table).value
         assert len(ds30) == 1
         assert len(ds31) == 0
         ch = ds30[0]
@@ -187,7 +117,7 @@ class TestParseDownstream:
             "10.0 dBmV", "38.5 dB", "200", "10",
         )
         table = BeautifulSoup(_wrap_ds_table(row), "html.parser").find("table")
-        ds30, ds31 = _parse_downstream(table)
+        ds30, ds31 = parse_arris_downstream(table).value
         assert len(ds30) == 0
         assert len(ds31) == 1
         ch = ds31[0]
@@ -203,12 +133,12 @@ class TestParseDownstream:
             "0.0 dBmV", "0.0 dB", "0", "0",
         )
         table = BeautifulSoup(_wrap_ds_table(row), "html.parser").find("table")
-        ds30, ds31 = _parse_downstream(table)
+        ds30, ds31 = parse_arris_downstream(table).value
         assert len(ds30) == 0
         assert len(ds31) == 0
 
     def test_none_table(self):
-        ds30, ds31 = _parse_downstream(None)
+        ds30, ds31 = parse_arris_downstream(None).value
         assert ds30 == []
         assert ds31 == []
 
@@ -220,7 +150,7 @@ class TestParseDownstream:
             _make_ds_row("3", "Not Locked", "256QAM", "717000000 Hz", "0.0 dBmV", "0.0 dB", "0", "0"),
         ]
         table = BeautifulSoup(_wrap_ds_table(*rows), "html.parser").find("table")
-        ds30, ds31 = _parse_downstream(table)
+        ds30, ds31 = parse_arris_downstream(table).value
         assert len(ds30) == 2
         assert len(ds31) == 1
         assert ds30[0]["channelID"] == 1
@@ -231,13 +161,19 @@ class TestParseDownstream:
         """Rows with fewer than 8 columns are ignored."""
         short_row = "<tr><td>1</td><td>Locked</td><td>256QAM</td></tr>"
         table = BeautifulSoup(_wrap_ds_table(short_row), "html.parser").find("table")
-        ds30, ds31 = _parse_downstream(table)
+        ds30, ds31 = parse_arris_downstream(table).value
         assert len(ds30) == 0
         assert len(ds31) == 0
 
+    @pytest.mark.parametrize("marker", ["<th>Header</th>", "<td><strong>Header</strong></td>"])
+    def test_header_row_skipped(self, marker):
+        """A full-width row marked as a header is not parsed as a channel."""
+        table = BeautifulSoup(_wrap_ds_table(SCQAM_DS_ROW.replace("</tr>", f"{marker}</tr>")), "html.parser").find("table")
+        assert parse_arris_downstream(table).value == ([], [])
+
 
 # ---------------------------------------------------------------------------
-# _parse_upstream
+# parse_arris_upstream
 # ---------------------------------------------------------------------------
 
 class TestParseUpstream:
@@ -247,7 +183,7 @@ class TestParseUpstream:
             "38596000 Hz", "6400000 Hz", "45.0 dBmV",
         )
         table = BeautifulSoup(_wrap_us_table(row), "html.parser").find("table")
-        us30, us31 = _parse_upstream(table)
+        us30, us31 = parse_arris_upstream(table).value
         assert len(us30) == 1
         assert len(us31) == 0
         ch = us30[0]
@@ -263,7 +199,7 @@ class TestParseUpstream:
             "27600000 Hz", "47200000 Hz", "40.0 dBmV",
         )
         table = BeautifulSoup(_wrap_us_table(row), "html.parser").find("table")
-        us30, us31 = _parse_upstream(table)
+        us30, us31 = parse_arris_upstream(table).value
         assert len(us30) == 0
         assert len(us31) == 1
         ch = us31[0]
@@ -277,12 +213,12 @@ class TestParseUpstream:
             "0 Hz", "0 Hz", "0.0 dBmV",
         )
         table = BeautifulSoup(_wrap_us_table(row), "html.parser").find("table")
-        us30, us31 = _parse_upstream(table)
+        us30, us31 = parse_arris_upstream(table).value
         assert len(us30) == 0
         assert len(us31) == 0
 
     def test_none_table(self):
-        us30, us31 = _parse_upstream(None)
+        us30, us31 = parse_arris_upstream(None).value
         assert us30 == []
         assert us31 == []
 
@@ -293,23 +229,23 @@ class TestParseUpstream:
             _make_us_row("5", "9", "Locked", "OFDM Upstream", "27600000 Hz", "47200000 Hz", "40.0 dBmV"),
         ]
         table = BeautifulSoup(_wrap_us_table(*rows), "html.parser").find("table")
-        us30, us31 = _parse_upstream(table)
+        us30, us31 = parse_arris_upstream(table).value
         assert len(us30) == 2
         assert len(us31) == 1
 
     def test_short_row_skipped(self):
         short_row = "<tr><td>1</td><td>5</td><td>Locked</td></tr>"
         table = BeautifulSoup(_wrap_us_table(short_row), "html.parser").find("table")
-        us30, us31 = _parse_upstream(table)
+        us30, us31 = parse_arris_upstream(table).value
         assert len(us30) == 0
         assert len(us31) == 0
 
 
 # ---------------------------------------------------------------------------
-# parse_arris_channel_tables (full integration)
+# parse_arris_html (full integration)
 # ---------------------------------------------------------------------------
 
-class TestParseArrisChannelTables:
+class TestParseArrisHtml:
     def test_full_page(self):
         ds_rows = [
             _make_ds_row("1", "Locked", "256QAM", "705000000 Hz", "8.2 dBmV", "43.0 dB", "100", "5"),
@@ -323,7 +259,7 @@ class TestParseArrisChannelTables:
             _wrap_ds_table(*ds_rows),
             _wrap_us_table(*us_rows),
         )
-        result = parse_arris_channel_tables(html)
+        result = parse_arris_html(html).value
 
         assert "channelDs" in result
         assert "channelUs" in result
@@ -333,7 +269,7 @@ class TestParseArrisChannelTables:
         assert len(result["channelUs"]["docsis31"]) == 1
 
     def test_empty_html(self):
-        result = parse_arris_channel_tables("")
+        result = parse_arris_html("").value
         assert result == {
             "channelDs": {"docsis30": [], "docsis31": []},
             "channelUs": {"docsis30": [], "docsis31": []},
@@ -341,7 +277,7 @@ class TestParseArrisChannelTables:
 
     def test_no_channel_tables(self):
         html = "<html><body><table><tr><td>Other data</td></tr></table></body></html>"
-        result = parse_arris_channel_tables(html)
+        result = parse_arris_html(html).value
         assert result == {
             "channelDs": {"docsis30": [], "docsis31": []},
             "channelUs": {"docsis30": [], "docsis31": []},
@@ -355,7 +291,7 @@ class TestParseArrisChannelTables:
             _make_us_row("1", "5", "Not Locked", "SC-QAM Upstream", "0 Hz", "0 Hz", "0.0 dBmV"),
         ]
         html = _full_page(_wrap_ds_table(*ds_rows), _wrap_us_table(*us_rows))
-        result = parse_arris_channel_tables(html)
+        result = parse_arris_html(html).value
         assert result["channelDs"]["docsis30"] == []
         assert result["channelDs"]["docsis31"] == []
         assert result["channelUs"]["docsis30"] == []
@@ -368,7 +304,7 @@ class TestParseArrisChannelTables:
             "8.0 dBmV", "40.0 dB", "0", "0",
         )
         html = _full_page(_wrap_ds_table(row), _wrap_us_table())
-        result = parse_arris_channel_tables(html)
+        result = parse_arris_html(html).value
         ch = result["channelDs"]["docsis30"][0]
         assert ch["mer"] == 40.0
         assert ch["mse"] == -40.0
@@ -380,7 +316,7 @@ class TestParseArrisChannelTables:
             "10.0 dBmV", "38.0 dB", "0", "0",
         )
         html = _full_page(_wrap_ds_table(row), _wrap_us_table())
-        result = parse_arris_channel_tables(html)
+        result = parse_arris_html(html).value
         ch = result["channelDs"]["docsis31"][0]
         assert ch["mse"] is None
 
@@ -407,7 +343,7 @@ class TestParseArrisChannelTables:
                          "27600000 Hz", "47200000 Hz", "40.0 dBmV"),
         ]
         html = _full_page(_wrap_ds_table(*ds_rows), _wrap_us_table(*us_rows))
-        result = parse_arris_channel_tables(html)
+        result = parse_arris_html(html).value
         assert len(result["channelDs"]["docsis30"]) == 32
         assert len(result["channelDs"]["docsis31"]) == 1
         assert len(result["channelUs"]["docsis30"]) == 4

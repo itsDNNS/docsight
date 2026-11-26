@@ -4,9 +4,26 @@ import json as _json
 import logging
 import os
 import re
+import signal
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+
+# Set by the SIGTERM handler. Startup finishes first; the wait loop then shuts down.
+# A plain flag takes no lock, so a repeated signal cannot deadlock the handler.
+_shutdown_requested = False
+
+
+def _request_shutdown(*_):
+    global _shutdown_requested
+    _shutdown_requested = True
+
+
+if __name__ == "__main__":
+    # Container stops send SIGTERM. Registered before the app imports so a stop
+    # during startup is not lost, and only when run as a script because the
+    # desktop launcher imports main() and runs it outside the main thread.
+    signal.signal(signal.SIGTERM, _request_shutdown)
 
 from . import analyzer, modem_diagnosis
 from .app_factory import create_app, default_module_loader_factory
@@ -114,6 +131,8 @@ def _wait_for_web_thread(
     """Keep the process alive until the web server stops, then stop pollers."""
     try:
         while web_thread.is_alive():
+            if _shutdown_requested:  # take the Ctrl+C path
+                raise KeyboardInterrupt
             time.sleep(0.25)
         if server_lifecycle is not None and server_lifecycle.close_requested:
             log.info("Web server stopped after shutdown request")
@@ -224,7 +243,7 @@ def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
     # Smart Capture (always instantiated — _is_enabled() gates at runtime)
     from .smart_capture import SmartCaptureEngine, Trigger
     from .smart_capture.sub_filters import (
-        modulation_sub_filter, snr_sub_filter, error_spike_sub_filter,
+        modulation_sub_filter, error_spike_sub_filter,
         health_sub_filter, packet_loss_sub_filter,
     )
     smart_capture = SmartCaptureEngine(storage, config_mgr)
@@ -237,7 +256,6 @@ def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
     smart_capture.register_trigger(Trigger(
         event_type="snr_change",
         config_key="sc_trigger_snr", min_severity="warning",
-        sub_filter=snr_sub_filter,
     ))
     smart_capture.register_trigger(Trigger(
         event_type="error_spike",
@@ -365,13 +383,14 @@ def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
             if modem_config_key is not None and modem_collector:
                 new_key = _get_modem_config_key(config_mgr)
                 if new_key != modem_config_key:
-                    log.info(
-                        "Modem config changed (%s -> %s), hot-swapping driver",
-                        modem_config_key[0], new_key[0],
-                    )
                     from .collectors.modem import ModemCollector
                     from .drivers import get_driver_registry
-                    new_driver = get_driver_registry(runtime).load_for_polling(*new_key)
+                    registry = get_driver_registry(runtime)
+                    log.info(
+                        "Modem config changed (%s -> %s), hot-swapping driver",
+                        registry.log_label(modem_config_key[0]), registry.log_label(new_key[0]),
+                    )
+                    new_driver = registry.load_for_polling(*new_key)
                     new_modem = ModemCollector(
                         driver=new_driver,
                         analyzer_fn=analyzer.analyze,
@@ -392,7 +411,7 @@ def _run_collectors(config_mgr, storage, stop_event, runtime, config, mqtt_pub):
                     runtime.collectors = collectors
                     runtime.reset_modem_state()
                     modem_config_key = new_key
-                    log.info("Driver hot-swapped to %s", new_key[0])
+                    log.info("Driver hot-swapped to %s", registry.log_label(new_key[0]))
 
             for collector in collectors:
                 if stop_event.is_set():

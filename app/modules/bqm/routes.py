@@ -3,34 +3,25 @@
 from app.tz import valid_date, get_tz_name
 import logging
 from datetime import datetime
-from urllib.parse import urlparse
 
 from flask import Blueprint, request, jsonify, make_response
 
 from app.web_auth import confirmed_delete_all, require_auth, _get_client_ip
-from app.runtime import current_runtime
+from app.runtime import core_derived_storage, current_runtime
 from app.tz import local_today, utc_now
 
-from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort, fetch_share_csv, is_csv_url
+from .auth import extract_share_id, fetch_graph, is_share_url, validate_share_id, ThinkBroadbandBatchAbort
+from .collector import collect_bqm
 from .csv_parser import parse_bqm_csv
 from .storage import BqmStorage
-from .thinkbroadband import fetch_graph
 
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web.bqm")
 
 bp = Blueprint("bqm_module", __name__)
 
-_TBB_SHARE_PATH = "/broadband/monitoring/quality/share/"
-_TBB_HOSTS = {"thinkbroadband.com", "www.thinkbroadband.com"}
-
 def _get_bqm_storage():
-    core_storage = current_runtime().storage
-    if not core_storage:
-        return None
-    return current_runtime().derived_storage.get(
-        f"bqm:{core_storage.db_path}", lambda: BqmStorage(core_storage.db_path)
-    )
+    return core_derived_storage(BqmStorage)
 
 
 def _rows_to_columns(rows):
@@ -44,88 +35,22 @@ def _rows_to_columns(rows):
     }
 
 
-def _is_thinkbroadband_share_url(url):
-    """Return True for direct ThinkBroadband share URLs only."""
-    try:
-        parsed = urlparse((url or "").strip())
-    except Exception:
-        return False
-    return (
-        parsed.scheme == "https"
-        and (parsed.hostname or "").lower() in _TBB_HOSTS
-        and (parsed.path or "").startswith(_TBB_SHARE_PATH)
-    )
-
-
 def run_bqm_initial_fetch(config_manager=None, storage=None):
     """Fetch and store BQM data immediately after setup or manual request."""
     config_manager = config_manager or current_runtime().config_manager
     core_storage = storage or current_runtime().storage
-    if not config_manager or not core_storage:
+    if not core_storage:
         return {"success": False, "error": "BQM storage is not ready"}
 
     bqm_url = (config_manager.get("bqm_url") or "").strip()
     if not bqm_url:
         return {"success": False, "error": "BQM URL is not configured"}
 
-    if not _is_thinkbroadband_share_url(bqm_url):
+    if not is_share_url(bqm_url) or not extract_share_id(bqm_url):
         return {"success": False, "error": "Use a ThinkBroadband CSV Yesterday share URL for fetch now"}
 
-    bs = BqmStorage(core_storage.db_path)
-    collection_date = local_today(get_tz_name(current_runtime().config_manager))
-
-    if is_csv_url(bqm_url):
-        share_id = extract_share_id(bqm_url)
-        if not share_id:
-            return {"success": False, "error": "BQM share URL is invalid"}
-        try:
-            content = fetch_share_csv(share_id, variant="y")
-            if not content:
-                return {"success": False, "error": "BQM CSV download failed"}
-            rows = parse_bqm_csv(content)
-            if not rows:
-                return {"success": False, "error": "BQM CSV contained no valid rows"}
-            bs.store_csv_data(rows)
-        except ThinkBroadbandBatchAbort:
-            return {"success": False, "error": "ThinkBroadband temporarily rejected the BQM request"}
-        except ValueError:
-            return {"success": False, "error": "BQM CSV is invalid"}
-        except Exception:
-            log.exception("BQM initial CSV fetch failed")
-            return {"success": False, "error": "BQM initial fetch failed"}
-
-        dates = sorted({row["date"] for row in rows})
-        target_date = dates[-1]
-        bs.record_collection_success(
-            collection_date=collection_date,
-            target_date=target_date,
-            mode="csv",
-            rows=len(rows),
-        )
-        return {
-            "success": True,
-            "mode": "csv",
-            "rows": len(rows),
-            "date": target_date,
-            "date_range": {"start": dates[0], "end": dates[-1]},
-        }
-
-    share_id = extract_share_id(bqm_url)
-    if not share_id:
-        return {"success": False, "error": "Use a ThinkBroadband CSV Yesterday share URL for fetch now"}
-    image_url = f"https://www.thinkbroadband.com/broadband/monitoring/quality/share/{share_id}.png"
-    image = fetch_graph(image_url)
-    if not image:
-        return {"success": False, "error": "BQM graph download failed"}
-    target_date = collection_date
-    bs.save_bqm_graph(image, graph_date=target_date)
-    bs.record_collection_success(
-        collection_date=collection_date,
-        target_date=target_date,
-        mode="png",
-        rows=1,
-    )
-    return {"success": True, "mode": "png", "date": target_date}
+    today = local_today(get_tz_name(config_manager))
+    return collect_bqm(BqmStorage(core_storage.db_path), bqm_url, today, today)
 
 
 @bp.route("/api/bqm/fetch-now", methods=["POST"])
@@ -334,8 +259,8 @@ def api_bqm_import():
                 skipped_dates.append(date)
             elif result == "replaced":
                 replaced += 1
-        except Exception:
-            log.exception("BQM import error for %s", fname)
+        except Exception as exc:  # the filename can be the share ID
+            log.error("BQM import error for %s: %s", date, type(exc).__name__)
             errors.append({"filename": fname, "error": "Import failed"})
 
     return jsonify({
@@ -374,7 +299,7 @@ def api_bqm_import_csv():
     raw = f.read()
     if len(raw) > _MAX_CSV_SIZE:
         return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
-    content = raw.decode("utf-8", errors="replace")
+    content = raw.decode("utf-8-sig", errors="replace")
     del raw
     if not content.strip():
         return jsonify({"error": "Empty file"}), 400

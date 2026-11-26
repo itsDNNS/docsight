@@ -8,20 +8,20 @@
         <div class="segmented" id="bqm-quick-range" role="group" aria-label="{{ t.time_range }}">
             <button class="segmented-option bqm-quick" id="bqm-today-btn" aria-pressed="false">{{ t.bqm_today }}</button>
             <button class="segmented-option bqm-quick" id="bqm-yesterday-btn" aria-pressed="false">{{ t.bqm_yesterday }}</button>
-            <button class="segmented-option bqm-quick" id="bqm-7d-btn" aria-pressed="false">{{ t.bqm_range_7d or '7d' }}</button>
-            <button class="segmented-option bqm-quick" id="bqm-30d-btn" aria-pressed="false">{{ t.bqm_range_30d or '30d' }}</button>
+            <button class="segmented-option bqm-quick" id="bqm-7d-btn" aria-pressed="false">{{ t.bqm_range_7d }}</button>
+            <button class="segmented-option bqm-quick" id="bqm-30d-btn" aria-pressed="false">{{ t.bqm_range_30d }}</button>
         </div>
         <div class="bqm-month-nav">
-            <button id="bqm-month-prev" class="bqm-nav-btn" aria-label="{{ t.get('previous_month', 'Previous month') }}">&#8249;</button>
+            <button id="bqm-month-prev" class="bqm-nav-btn" aria-label="{{ t.previous_month }}">&#8249;</button>
             <span id="bqm-month-label" class="bqm-month-label"></span>
-            <button id="bqm-month-next" class="bqm-nav-btn" aria-label="{{ t.get('next_month', 'Next month') }}">&#8250;</button>
+            <button id="bqm-month-next" class="bqm-nav-btn" aria-label="{{ t.next_month }}">&#8250;</button>
         </div>
         <button class="bqm-nav-btn bqm-import-btn" data-action="openBqmImportModal" title="{{ t.bqm_import_title }}" aria-label="{{ t.bqm_import_title }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
         </button>
-        <button class="bqm-nav-btn bqm-import-btn" data-action="toggleBqmCsvImport" title="{{ t.get('bqm_csv_import', 'Import CSV') }}" aria-label="{{ t.get('bqm_csv_import', 'Import CSV') }}">
+        <button class="bqm-nav-btn bqm-import-btn" data-action="toggleBqmCsvImport" title="{{ t.bqm_csv_import }}" aria-label="{{ t.bqm_csv_import }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
@@ -48,7 +48,7 @@
                     <path d="M3 3v18h18"/>
                     <path d="M7 12l4-4 4 4 4-4"/>
                 </svg>
-                <h3 class="graph-frame-title">{{ t.get('bqm_frame_title', 'Broadband Quality Monitor') }}</h3>
+                <h3 class="graph-frame-title">{{ t.bqm_frame_title }}</h3>
                 <span id="bqm-window" class="graph-frame-window"></span>
                 <span id="bqm-live-badge" class="bqm-live-badge" hidden>{{ t.bqm_live }}</span>
                 <span id="bqm-last-updated" class="bqm-last-updated" hidden></span>
@@ -66,7 +66,7 @@
                 </div>
             </div>
             <div class="graph-frame-foot">
-                <span>{{ t.get('bqm_frame_source', 'thinkbroadband Broadband Quality Monitor · one graph per day') }}</span>
+                <span>{{ t.bqm_frame_source }}</span>
             </div>
         </div>
         <div id="bqm-no-data" class="view-empty" hidden></div>
@@ -76,7 +76,7 @@
     <div id="bqm-csv-import-section" class="bqm-csv-import" hidden>
         <div class="bqm-csv-import-row">
             <input type="file" id="bqm-csv-file" accept=".csv">
-            <button class="btn btn-primary btn-sm" id="bqm-csv-import-btn" data-action="importBqmCsv">{{ t.get('bqm_csv_import', 'Import CSV') }}</button>
+            <button class="btn btn-primary btn-sm" id="bqm-csv-import-btn" data-action="importBqmCsv">{{ t.bqm_csv_import }}</button>
         </div>
         <div id="bqm-csv-import-status" class="bqm-csv-status"></div>
     </div>

@@ -102,11 +102,11 @@ function applyTheme(themeId) {
                 if (data.success) {
                     location.reload();
                 } else {
-                    showToast(data.error || (T.theme_apply_failed || 'Failed to apply theme'), false);
+                    showToast(data.error || T.theme_apply_failed, false);
                 }
             })
             .catch(function(err) {
-                showToast((T.error_prefix || 'Error') + ': ' + err.message, false);
+                showToast(T.error_prefix + ': ' + err.message, false);
             });
     });
 }
@@ -127,7 +127,7 @@ function refreshRegistry() {
     _themeRegistryFetching = true;
     gallery.textContent = '';
     var p = document.createElement('p');
-    p.textContent = T.loading || 'Loading...';
+    p.textContent = T.loading;
     var loading = document.createElement('div');
     loading.className = 'empty-state';
     loading.appendChild(p);
@@ -142,7 +142,7 @@ function refreshRegistry() {
                 var empty = document.createElement('div');
                 empty.className = 'empty-state';
                 var msg = document.createElement('p');
-                msg.textContent = T.themes_all_installed || 'All available themes are installed';
+                msg.textContent = T.themes_all_installed;
                 empty.appendChild(msg);
                 gallery.appendChild(empty);
                 return;
@@ -176,7 +176,7 @@ function refreshRegistry() {
                 var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'btn btn-primary btn-sm';
-                btn.textContent = T.theme_install || 'Install';
+                btn.textContent = T.theme_install;
                 btn.addEventListener('click', function() {
                     installTheme(theme.id, theme.download_url);
                 });
@@ -194,7 +194,7 @@ function refreshRegistry() {
             var err = document.createElement('div');
             err.className = 'empty-state';
             var msg = document.createElement('p');
-            msg.textContent = T.theme_registry_failed || 'Failed to load registry';
+            msg.textContent = T.theme_registry_failed;
             err.appendChild(msg);
             gallery.appendChild(err);
         })
@@ -209,20 +209,20 @@ function installTheme(themeId, downloadUrl) {
     })
         .then(function(r) {
             return r.json().then(function(data) {
-                if (r.status === 409) data.error = T.theme_install_failed || 'Install failed';
+                if (r.status === 409) data.error = T.theme_install_failed;
                 return data;
             });
         })
         .then(function(data) {
             if (data.success) {
-                showToast(T.theme_installed || 'Theme installed — restart required', true);
+                showToast(T.theme_installed, true);
                 refreshRegistry();
             } else {
-                showToast(data.error || (T.theme_install_failed || 'Install failed'), false);
+                showToast(data.error || T.theme_install_failed, false);
             }
         })
         .catch(function(err) {
-            showToast((T.error_prefix || 'Error') + ': ' + err.message, false);
+            showToast(T.error_prefix + ': ' + err.message, false);
         });
 }
 return {init: initThemeToggle, toggleThemeFromAppearance, applyFontToggle, previewTheme, cancelPreview, applyPreviewedTheme, applyTheme, loadThemeRegistryIfNeeded, refreshRegistry};

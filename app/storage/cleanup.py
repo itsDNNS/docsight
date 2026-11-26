@@ -3,12 +3,50 @@
 import logging
 import os
 import shutil
-import sqlite3
 from datetime import datetime, timedelta
 
 from ..tz import local_today, utc_now, utc_cutoff, local_to_utc, local_date_to_utc_range
+from .migrations import table_columns, table_exists
 
 log = logging.getLogger("docsis.storage")
+
+
+def purge_demo_rows(conn):
+    """Delete all rows with is_demo=1 from all demo-seeded tables and return their count.
+
+    Order matters: delete attachments for demo journal entries first,
+    unassign entries from demo incidents, then delete from each table.
+    """
+    # Journal tables are missing without the journal module, and a preserved
+    # older schema may lack a column; an unknown inner column would bind to the outer table.
+    journal_columns = table_columns(conn, "journal_entries")
+    # 1. Delete attachments belonging to demo journal entries
+    if {"id", "is_demo"} <= journal_columns and "entry_id" in table_columns(conn, "journal_attachments"):
+        conn.execute(
+            "DELETE FROM journal_attachments WHERE entry_id IN "
+            "(SELECT journal_entries.id FROM journal_entries WHERE is_demo = 1)"
+        )
+    # 2. Unassign entries from demo incidents (so they become orphan-free)
+    if "incident_id" in journal_columns and {"id", "is_demo"} <= table_columns(conn, "incidents"):
+        conn.execute(
+            "UPDATE journal_entries SET incident_id = NULL WHERE incident_id IN "
+            "(SELECT incidents.id FROM incidents WHERE is_demo = 1)"
+        )
+    # 3. Delete from each demo-seeded table
+    tables = ["journal_entries", "incidents", "events", "snapshots",
+               "speedtest_results", "bqm_graphs", "bnetz_measurements",
+               "weather_data", "de_tkg_claim_drafts", "segment_utilization"]
+    total = 0
+    for tbl in tables:
+        if "is_demo" not in table_columns(conn, tbl):
+            continue  # Module table not created
+        deleted = conn.execute(
+            f"DELETE FROM {tbl} WHERE is_demo = 1"
+        ).rowcount
+        if deleted:
+            log.debug("Purged %d demo rows from %s", deleted, tbl)
+            total += deleted
+    return total
 
 
 class CleanupMethods:
@@ -66,12 +104,7 @@ class CleanupMethods:
         migrated_count = 0
         with self._write() as conn:
             for table, column in self._TIMESTAMP_COLUMNS:
-                # Check table and column exist
-                try:
-                    cols = [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
-                except Exception:
-                    continue
-                if column not in cols:
+                if column not in table_columns(conn, table):
                     continue
 
                 rows = conn.execute(
@@ -107,16 +140,16 @@ class CleanupMethods:
 
     def _incident_retention_ranges(self, conn):
         """Return UTC timestamp ranges for explicit incident windows."""
-        try:
-            rows = conn.execute(
-                "SELECT start_date, COALESCE(end_date, '') FROM incidents "
-                "WHERE start_date IS NOT NULL AND start_date != ''"
-            ).fetchall()
-        except sqlite3.OperationalError:
+        # Without the journal module, or with a preserved pre-journal table, there are no windows.
+        if not {"start_date", "end_date"} <= table_columns(conn, "incidents"):
             return []
+        rows = conn.execute(
+            "SELECT start_date, COALESCE(end_date, '') FROM incidents "
+            "WHERE start_date IS NOT NULL AND start_date != ''"
+        ).fetchall()
 
         ranges = []
-        tz = getattr(self, 'tz_name', '')
+        tz = self.tz_name
         today = local_today(tz)
         for start_date, end_date in rows:
             try:
@@ -150,86 +183,34 @@ class CleanupMethods:
         ).rowcount
 
     def purge_demo_data(self):
-        """Delete all rows with is_demo=1 from all demo-seeded tables.
-
-        Order matters: delete attachments for demo journal entries first,
-        unassign entries from demo incidents, then delete from each table.
-        """
+        """Delete all demo rows from this database."""
         with self._write() as conn:
-            # 1. Delete attachments belonging to demo journal entries
-            try:
-                conn.execute(
-                    "DELETE FROM journal_attachments WHERE entry_id IN "
-                    "(SELECT id FROM journal_entries WHERE is_demo = 1)"
-                )
-            except sqlite3.OperationalError:
-                pass  # Tables may not exist if journal module not loaded
-            # 2. Unassign entries from demo incidents (so they become orphan-free)
-            try:
-                conn.execute(
-                    "UPDATE journal_entries SET incident_id = NULL WHERE incident_id IN "
-                    "(SELECT id FROM incidents WHERE is_demo = 1)"
-                )
-            except sqlite3.OperationalError:
-                pass  # Tables may not exist if journal module not loaded
-            # 3. Delete from each demo-seeded table
-            tables = ["journal_entries", "incidents", "events", "snapshots",
-                       "speedtest_results", "bqm_graphs", "bnetz_measurements",
-                       "weather_data", "de_tkg_claim_drafts", "segment_utilization"]
-            total = 0
-            for tbl in tables:
-                try:
-                    deleted = conn.execute(
-                        f"DELETE FROM {tbl} WHERE is_demo = 1"
-                    ).rowcount
-                    if deleted:
-                        log.info("Purged %d demo rows from %s", deleted, tbl)
-                        total += deleted
-                except sqlite3.OperationalError:
-                    pass  # Table may not exist if module not loaded
-        return total
+            return purge_demo_rows(conn)
 
     def _cleanup(self):
         """Delete snapshots, BQM graphs, and events older than max_days. 0 = keep all."""
         if self.max_days <= 0:
             return
         cutoff = utc_cutoff(days=self.max_days)
-        with self._write() as conn:
-            deleted = self._delete_expired_unprotected_rows(
-                conn, "snapshots", "timestamp", cutoff
-            )
-        if deleted:
-            log.info("Cleaned up %d old snapshots (before %s)", deleted, cutoff)
-        tz = getattr(self, 'tz_name', '')
-        today = local_today(tz)
+        today = local_today(self.tz_name)
         cutoff_date = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=self.max_days)).strftime("%Y-%m-%d")
-        try:
-            with self._write() as conn:
-                bqm_deleted = conn.execute(
-                    "DELETE FROM bqm_graphs WHERE date < ?", (cutoff_date,)
-                ).rowcount
-            if bqm_deleted:
-                log.info("Cleaned up %d old BQM graphs (before %s)", bqm_deleted, cutoff_date)
-        except sqlite3.OperationalError:
-            pass  # Table may not exist if BQM module not loaded
-        try:
-            with self._write() as conn:
-                weather_deleted = conn.execute(
-                    "DELETE FROM weather_data WHERE timestamp < ?", (cutoff,)
-                ).rowcount
-            if weather_deleted:
-                log.info("Cleaned up %d old weather records (before %s)", weather_deleted, cutoff)
-        except sqlite3.OperationalError:
-            pass  # Table may not exist if weather module not loaded
-        events_deleted = self.delete_old_events(self.max_days)
-        if events_deleted:
-            log.info("Cleaned up %d old events (before %s)", events_deleted, cutoff)
-        try:
-            with self._write() as conn:
-                sc_deleted = conn.execute(
-                    "DELETE FROM smart_capture_executions WHERE created_at < ?", (cutoff,)
-                ).rowcount
-            if sc_deleted:
-                log.info("Cleaned up %d old Smart Capture executions (before %s)", sc_deleted, cutoff)
-        except sqlite3.OperationalError:
-            pass  # Table may not exist on older schemas
+        for table, column, bound, label in (
+            ("snapshots", "timestamp", cutoff, "snapshots"),
+            ("events", "timestamp", cutoff, "events"),
+            ("bqm_graphs", "date", cutoff_date, "BQM graphs"),
+            ("weather_data", "timestamp", cutoff, "weather records"),
+            ("smart_capture_executions", "created_at", cutoff, "Smart Capture executions"),
+        ):
+            try:  # each step runs on its own, so one broken table does not stop the others
+                with self._write() as conn:
+                    if table == "bqm_graphs" and not table_exists(conn, table):
+                        continue  # BQM module not loaded
+                    if table in ("snapshots", "events"):
+                        deleted = self._delete_expired_unprotected_rows(conn, table, column, bound)
+                    else:
+                        deleted = conn.execute(f"DELETE FROM {table} WHERE {column} < ?", (bound,)).rowcount
+            except Exception:
+                log.exception("Retention cleanup of %s failed", label)
+                continue
+            if deleted:
+                log.info("Cleaned up %d old %s (before %s)", deleted, label, bound)

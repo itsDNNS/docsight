@@ -4,12 +4,15 @@ Creates tar.gz archives containing the SQLite database (via VACUUM INTO
 for consistency), config files, and encryption keys.  No Flask dependency.
 """
 
+import contextlib
+import gzip
 import json
 import logging
 import os
 import shutil
 import sqlite3
 
+from app.storage.cleanup import purge_demo_rows
 from app.storage.migrations import CORE_MIGRATIONS, run_migrations
 from app.storage.sqlite import (
     consistent_copy,
@@ -20,8 +23,10 @@ from app.storage.sqlite import (
     verify_database,
     write_transaction,
 )
+from app.version import get_app_version
 import tarfile
 import tempfile
+import zlib
 from datetime import datetime, timezone
 from contextlib import ExitStack
 from io import BytesIO
@@ -38,19 +43,6 @@ DATA_FILES = [
 BACKUP_META_FILE = "backup_meta.json"
 FORMAT_VERSION = 1
 MAGIC = "docsight-backup"
-
-
-def _get_app_version():
-    """Read app version (best-effort)."""
-    for vpath in ("/app/VERSION", os.path.join(os.path.dirname(__file__), "..", "VERSION")):
-        try:
-            with open(vpath) as f:
-                v = f.read().strip()
-                if v:
-                    return v
-        except FileNotFoundError:
-            pass
-    return "dev"
 
 
 def _get_table_counts(db_path):
@@ -80,22 +72,9 @@ def _vacuum_db(data_dir, db_name, dest_path):
         return False
 
     consistent_copy(src, dest_path)
-
-    # Remove demo data from copy (only relevant for main DB)
     if db_name == "docsis_history.db":
-        demo_tables = [
-            "snapshots", "events", "journal_entries", "incidents",
-            "speedtest_results", "bqm_graphs", "bnetz_measurements",
-            "de_tkg_claim_drafts",
-        ]
         with write_transaction(dest_path) as conn:
-            for table in demo_tables:
-                try:
-                    conn.execute(
-                        f"DELETE FROM [{table}] WHERE is_demo = 1"  # noqa: S608
-                    )
-                except sqlite3.OperationalError:
-                    pass  # table may not exist or lack is_demo column
+            log.info("Removed %d demo rows from the backup copy", purge_demo_rows(conn))
     return True
 
 
@@ -119,7 +98,7 @@ def _write_backup_archive(data_dir, archive_target, work_dir=None):
             "magic": MAGIC,
             "format_version": FORMAT_VERSION,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "app_version": _get_app_version(),
+            "app_version": get_app_version(),
             "tables": _get_table_counts(main_copy) if vacuumed.get("docsis_history.db") else {},
         }
         meta_path = os.path.join(tmp, BACKUP_META_FILE)
@@ -144,6 +123,19 @@ def _write_backup_archive(data_dir, archive_target, work_dir=None):
                     tar.add(fpath, arcname=fname)
 
 
+def backup_filename():
+    return datetime.now().strftime("docsight_backup_%Y-%m-%d_%H%M%S.tar.gz")
+
+
+def positive_int(config_mgr, key, default):
+    """Return a positive integer setting, or default when it is invalid or not positive."""
+    try:
+        value = int(config_mgr.get(key, default))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
 def create_backup_to_file(data_dir, dest_dir):
     """Create a backup and atomically publish it in dest_dir.
 
@@ -151,8 +143,7 @@ def create_backup_to_file(data_dir, dest_dir):
         Filename of the created backup.
     """
     os.makedirs(dest_dir, exist_ok=True)
-    ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    filename = f"docsight_backup_{ts}.tar.gz"
+    filename = backup_filename()
     dest_path = os.path.join(dest_dir, filename)
 
     temp_fd, temp_path = tempfile.mkstemp(
@@ -160,21 +151,12 @@ def create_backup_to_file(data_dir, dest_dir):
     )
     try:
         os.close(temp_fd)
-        temp_fd = None
         _write_backup_archive(data_dir, temp_path, work_dir=data_dir)
         os.replace(temp_path, dest_path)
-        temp_path = None
-    finally:
-        if temp_fd is not None:
-            try:
-                os.close(temp_fd)
-            except OSError:
-                pass
-        if temp_path is not None:
-            try:
-                os.remove(temp_path)
-            except FileNotFoundError:
-                pass
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(temp_path)
+        raise
 
     log.info("Backup saved to %s", dest_path)
     return filename
@@ -198,6 +180,9 @@ def validate_backup(archive_bytes):
             for member in tar.getmembers():
                 if member.name.startswith("/") or ".." in member.name:
                     raise ValueError(f"Unsafe path in archive: {member.name}")
+            # Read on to the gzip trailer while the stream is near its end, so its checksum is verified.
+            while tar.fileobj.read(1 << 20):
+                pass
 
             names = tar.getnames()
             if BACKUP_META_FILE not in names:
@@ -216,7 +201,7 @@ def validate_backup(archive_bytes):
             meta["has_config"] = "config.json" in names
             return meta
 
-    except tarfile.TarError as e:
+    except (tarfile.TarError, gzip.BadGzipFile, EOFError, zlib.error) as e:
         raise ValueError(f"Invalid archive: {e}") from e
 
 
@@ -248,12 +233,13 @@ def _keep_live_api_tokens(live_db, staged_db):
             conn.execute("INSERT INTO api_tokens VALUES (?, ?, ?, ?, ?, ?, ?)", row)
 
 
-def restore_backup(archive_bytes, data_dir):
+def restore_backup(archive_bytes, data_dir, restored_files=None):
     """Restore a backup archive to data_dir.
 
     Args:
         archive_bytes: bytes or BytesIO of the archive.
         data_dir: target directory (e.g. /data).
+        restored_files: optional list that receives each file name before it is copied in.
 
     Returns:
         dict with restore results.
@@ -271,7 +257,7 @@ def restore_backup(archive_bytes, data_dir):
         )
 
     os.makedirs(data_dir, exist_ok=True)
-    restored_files = []
+    restored_files = [] if restored_files is None else restored_files
     database_names = {"docsis_history.db", "connection_monitor.db"}
     staged = {}
 
@@ -287,25 +273,21 @@ def restore_backup(archive_bytes, data_dir):
                 if source is None:
                     continue
 
-                fd, staged_path = tempfile.mkstemp(
+                if member.name in staged:  # a repeated name replaces the earlier copy
+                    os.remove(staged[member.name])
+                fd, staged[member.name] = tempfile.mkstemp(
                     prefix=f".docsight-restore-{member.name}.",
                     suffix=".tmp",
                     dir=data_dir,
                 )
                 try:
-                    with os.fdopen(fd, "wb") as destination:
-                        shutil.copyfileobj(source, destination)
+                    destination = os.fdopen(fd, "wb")
                 except BaseException:
-                    try:
+                    with contextlib.suppress(OSError):  # fdopen may have closed it already
                         os.close(fd)
-                    except OSError:
-                        pass
-                    try:
-                        os.remove(staged_path)
-                    except FileNotFoundError:
-                        pass
                     raise
-                staged[member.name] = staged_path
+                with destination:
+                    shutil.copyfileobj(source, destination)
 
         for name, staged_path in staged.items():
             if name not in database_names:
@@ -334,6 +316,7 @@ def restore_backup(archive_bytes, data_dir):
                     os.path.join(data_dir, "docsis_history.db"), staged["docsis_history.db"]
                 )
             for name, staged_path in staged.items():
+                restored_files.append(name)  # before the copy, which can fail after replacing the file
                 destination = os.path.join(data_dir, name)
                 if name in database_names:
                     # Copied in place, so open connections stay consistent.
@@ -341,15 +324,11 @@ def restore_backup(archive_bytes, data_dir):
                 else:
                     os.replace(staged_path, destination)
                     staged[name] = None
-                restored_files.append(name)
     finally:
-        for staged_path in staged.values():
-            if staged_path is None:
-                continue
-            try:
-                os.remove(staged_path)
-            except FileNotFoundError:
-                pass
+        for staged_path in filter(None, staged.values()):
+            for path in (staged_path, f"{staged_path}-wal", f"{staged_path}-shm"):
+                with contextlib.suppress(FileNotFoundError):
+                    os.remove(path)
 
     log.info("Restored %d files to %s", len(restored_files), data_dir)
     return {

@@ -19,17 +19,11 @@ from typing import Any
 
 import requests
 
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
-from .formats.hitron import (
-    parse_coda4680_ds_ofdm,
-    parse_coda4680_ds_scqam,
-    parse_coda4680_us_ofdma,
-    parse_coda4680_us_scqam,
-    parse_hitron_coda4680_json,
-    parse_hitron_ofdma_power,
-)
-from .utils import make_legacy_tls_adapter
+from .formats.hitron import parse_hitron_coda4680_json
+from .format_compat import unwrap_hitron
+from .utils import fetch_failed, is_auth_error, make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.hitron_coda_4680")
 
@@ -88,12 +82,12 @@ class HitronCoda4680Driver(ModemDriver):
         ds_ofdm = self._fetch_payload("/1/Device/CM/DsOfdm")
         us_ofdma = self._fetch_payload("/1/Device/CM/UsOfdm")
 
-        return parse_hitron_coda4680_json({
+        return unwrap_hitron(parse_hitron_coda4680_json({
             "downstream": ds_info,
             "upstream": us_info,
             "downstream_ofdm": ds_ofdm,
             "upstream_ofdma": us_ofdma,
-        }).value
+        }), log, "CODA-4680")
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve model and firmware from the version endpoint."""
@@ -134,19 +128,11 @@ class HitronCoda4680Driver(ModemDriver):
             )
             resp.raise_for_status()
             payload = self._json_body(resp)
-        except requests.HTTPError as exc:
-            if allow_reauth and self._is_auth_error(exc):
+        except requests.RequestException as exc:
+            if allow_reauth and is_auth_error(exc):
                 log.info("Hitron CODA-4680 session expired while fetching %s; retrying after login", path)
                 return self._retry_after_reauth(path, raise_on_error=raise_on_error)
-            if raise_on_error:
-                raise RuntimeError(f"Hitron CODA-4680 fetch {path} failed: {exc}") from exc
-            log.warning("Hitron CODA-4680 fetch %s failed: %s", path, exc)
-            return {}
-        except requests.RequestException as exc:
-            if raise_on_error:
-                raise RuntimeError(f"Hitron CODA-4680 fetch {path} failed: {exc}") from exc
-            log.warning("Hitron CODA-4680 fetch %s failed: %s", path, exc)
-            return {}
+            return fetch_failed(log, raise_on_error, f"Hitron CODA-4680 fetch {path} failed: {exc}", exc)
 
         # Without a valid session the modem answers 200 with its HTML login page.
         if payload is None and "jquery.hitronext.js" in resp.text:
@@ -172,16 +158,9 @@ class HitronCoda4680Driver(ModemDriver):
         try:
             self.login()
         except RuntimeError as exc:
-            if raise_on_error:
-                raise RuntimeError(f"Hitron CODA-4680 re-login before fetching {path} failed: {exc}") from exc
-            log.warning("Hitron CODA-4680 re-login before fetching %s failed: %s", path, exc)
-            return {}
+            message = f"Hitron CODA-4680 re-login before fetching {path} failed: {exc}"
+            return fetch_failed(log, raise_on_error, message, exc)
         return self._fetch_payload(path, raise_on_error=raise_on_error, allow_reauth=False)
-
-    @staticmethod
-    def _is_auth_error(exc: requests.HTTPError) -> bool:
-        response = getattr(exc, "response", None)
-        return getattr(response, "status_code", None) in {401, 403}
 
     @staticmethod
     def _is_auth_payload(payload: Any) -> bool:
@@ -200,9 +179,7 @@ class HitronCoda4680Driver(ModemDriver):
         if code == "000":
             return True
         message = str(payload.get("errMsg") or f"errCode {code}")
-        if raise_on_error:
-            raise RuntimeError(f"Hitron CODA-4680 {context} failed: {message}")
-        log.warning("Hitron CODA-4680 %s failed: %s", context, message)
+        fetch_failed(log, raise_on_error, f"Hitron CODA-4680 {context} failed: {message}")
         return False
 
     @staticmethod
@@ -212,22 +189,6 @@ class HitronCoda4680Driver(ModemDriver):
             "model": str(payload.get("ModelReport") or payload.get("modelName") or "CODA-4680"),
             "sw_version": str(payload.get("SoftwareVersion") or ""),
         }
-
-    def _parse_ds_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_coda4680_ds_scqam(rows).value
-
-    def _parse_us_scqam(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_coda4680_us_scqam(rows).value
-
-    def _parse_ds_ofdm(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_coda4680_ds_ofdm(rows).value
-
-    def _parse_us_ofdma(self, rows: list[dict[str, Any]]) -> list[RawChannel]:
-        return parse_coda4680_us_ofdma(rows).value
-
-    @staticmethod
-    def _ofdma_power_1_6(row: dict[str, Any]) -> float | None:
-        return parse_hitron_ofdma_power(row)
 
     @staticmethod
     def _parse_rate_kbps(value: Any) -> int:

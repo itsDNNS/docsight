@@ -5,10 +5,13 @@ from __future__ import annotations
 import logging
 import math
 import threading
+from collections import Counter
 
 from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
+from .channel_selector import channel_selector
 from .docsis_utils import CHANNEL_HEALTH_RANK, SUMMARY_HEALTH_RANK, channel_type_label, qam_rank as _qam_rank
+from .error_counters import aggregate_error_counters, to_counter
 from .types import AnalysisResult, EventDict
 from .tz import utc_now
 
@@ -54,6 +57,12 @@ def _normalize_channel_id(value):
     return ("float", f)
 
 
+def _rated_values(analysis):
+    """Count the power and SNR/MER readings the analyzer could rate."""
+    keys = {"ds_channels": ("power", "snr"), "us_channels": ("power",)}
+    return sum(ch.get(key) is not None for lane, names in keys.items() for ch in analysis.get(lane, []) for key in names)
+
+
 def _coerce_float(value):
     """Coerce a value to float; return None if not convertible or non-finite."""
     if value is None or isinstance(value, bool):
@@ -78,6 +87,19 @@ def _channel_map(analysis, prefix):
         if key is not None:
             mapped[key] = ch
     return mapped
+
+
+def _same_coverage(cur_analysis, prev_analysis, prefix, key, convert):
+    """Whether both snapshots report ``key`` on the same channel rows, counted per channel selector.
+
+    Summary totals and averages are only comparable over the same rows, so a poll whose coverage
+    changed raises no power or error delta.
+    """
+    prev, cur = (
+        Counter(channel_selector(ch) for ch in analysis.get(f"{prefix}_channels", []) if convert(ch.get(key)) is not None)
+        for analysis in (prev_analysis, cur_analysis)
+    )
+    return prev == cur
 
 
 def _ds_snr_pairs(cur_analysis, prev_analysis):
@@ -117,6 +139,7 @@ class EventDetector:
         self._lock = threading.Lock()
         self._hysteresis = max(0, int(hysteresis or 0))
         self._confirmed_health = None
+        self._confirmed_rated = 0
         self._pending_health = None
         self._pending_count = 0
         self.seed(baseline)
@@ -127,11 +150,19 @@ class EventDetector:
             return
         if snapshot_id is None:
             snapshot_id = analysis.get("snapshot_id")
+        # Older releases stored totals with other counter rules; recount them from the stored channels.
+        counters = aggregate_error_counters(analysis.get("ds_channels", []))
+        analysis = {**analysis, "summary": {
+            **analysis.get("summary", {}),
+            "ds_correctable_errors": counters.raw_correctable,
+            "ds_uncorrectable_errors": counters.raw_uncorrectable,
+        }}
         with self._lock:
             self._prev = analysis
             self._prev_snapshot_id = snapshot_id
             if self._hysteresis >= 2:
                 self._confirmed_health = analysis.get("summary", {}).get("health", "good")
+                self._confirmed_rated = _rated_values(analysis)
             self._pending_health = None
             self._pending_count = 0
 
@@ -180,19 +211,19 @@ class EventDetector:
         cur_s = analysis.get("summary", {})
         prev_s = prev.get("summary", {})
 
-        self._check_health(events, ts, cur_s, prev_s)
-        self._check_power(events, ts, cur_s, prev_s)
+        self._check_health(events, ts, cur_s, prev_s, _rated_values(analysis), _rated_values(prev))
+        self._check_power(events, ts, analysis, prev)
         self._check_snr(events, ts, analysis, prev)
         self._check_channels(events, ts, analysis, prev)
         self._check_modulation(events, ts, analysis, prev)
         # Restart detection (before errors — restart causes negative delta)
         self._check_restart(events, ts, analysis, prev)
-        self._check_errors(events, ts, cur_s, prev_s)
+        self._check_errors(events, ts, analysis, prev)
 
         self._annotate_event_details(events, snapshot_id, prev_snapshot_id)
         return events
 
-    def _check_health(self, events, ts, cur, prev):
+    def _check_health(self, events, ts, cur, prev, rated, prev_rated):
         cur_health = cur.get("health", "good")
 
         if self._hysteresis < 2:
@@ -200,17 +231,19 @@ class EventDetector:
             prev_health = prev.get("health", "good")
             if cur_health == prev_health:
                 return
-            self._emit_health_event(events, ts, prev_health, cur_health)
+            self._emit_health_event(events, ts, prev_health, cur_health, rated < prev_rated)
             return
 
         # Hysteresis mode: require N consecutive polls before confirming
         if self._confirmed_health is None:
             self._confirmed_health = prev.get("health", "good")
+            self._confirmed_rated = prev_rated
 
         confirmed = self._confirmed_health
 
         if cur_health == confirmed:
             # Back to confirmed state, reset pending
+            self._confirmed_rated = rated
             self._pending_health = None
             self._pending_count = 0
             return
@@ -224,19 +257,23 @@ class EventDetector:
 
         if self._pending_count >= self._hysteresis:
             # Transition confirmed
-            self._emit_health_event(events, ts, confirmed, cur_health)
+            self._emit_health_event(events, ts, confirmed, cur_health, rated < self._confirmed_rated)
             self._confirmed_health = cur_health
+            self._confirmed_rated = rated
             self._pending_health = None
             self._pending_count = 0
 
     @staticmethod
-    def _emit_health_event(events, ts, prev_health, cur_health):
+    def _emit_health_event(events, ts, prev_health, cur_health, readings_lost=False):
         cur_level = SUMMARY_HEALTH_RANK.get(cur_health, 0)
         prev_level = SUMMARY_HEALTH_RANK.get(prev_health, 0)
 
         if cur_level > prev_level:
             severity = "critical" if cur_health == "critical" else "warning"
             message = f"Health changed from {prev_health} to {cur_health}"
+        elif readings_lost:
+            # Fewer rated readings than the state being left: an improvement is not a confirmed recovery.
+            return
         else:
             severity = "info"
             message = f"Health recovered from {prev_health} to {cur_health}"
@@ -249,8 +286,12 @@ class EventDetector:
             "details": {"prev": prev_health, "current": cur_health},
         })
 
-    def _check_power(self, events, ts, cur, prev):
+    def _check_power(self, events, ts, cur_analysis, prev_analysis):
+        cur = cur_analysis.get("summary", {})
+        prev = prev_analysis.get("summary", {})
         for label, direction, prefix in _DIRECTIONS:
+            if not _same_coverage(cur_analysis, prev_analysis, prefix, "power", _coerce_float):
+                continue
             power_cur = _coerce_float(cur.get(f"{prefix}_power_avg"))
             power_prev = _coerce_float(prev.get(f"{prefix}_power_avg"))
             if power_cur is not None and power_prev is not None and abs(power_cur - power_prev) > POWER_SHIFT_THRESHOLD:
@@ -512,8 +553,12 @@ class EventDetector:
                 "details": {"changes": upgrades, "direction": "upgrade"},
             })
 
-    def _check_errors(self, events, ts, cur, prev):
+    def _check_errors(self, events, ts, cur_analysis, prev_analysis):
+        cur = cur_analysis.get("summary", {})
+        prev = prev_analysis.get("summary", {})
         if cur.get("errors_supported") is False or prev.get("errors_supported") is False:
+            return
+        if not _same_coverage(cur_analysis, prev_analysis, "ds", "uncorrectable_errors", to_counter):
             return
         uncorr_cur = cur.get("ds_uncorrectable_errors", 0)
         uncorr_prev = prev.get("ds_uncorrectable_errors", 0)
@@ -569,10 +614,10 @@ class EventDetector:
         for ch_id in overlap_ids:
             p = prev_channels[ch_id]
             c = cur_channels[ch_id]
-            p_corr = p.get("correctable_errors")
-            p_uncorr = p.get("uncorrectable_errors")
-            c_corr = c.get("correctable_errors")
-            c_uncorr = c.get("uncorrectable_errors")
+            # Older snapshots may store a driver's counters as text.
+            p_corr, p_uncorr, c_corr, c_uncorr = (
+                to_counter(ch.get(key)) for ch in (p, c) for key in ("correctable_errors", "uncorrectable_errors")
+            )
 
             # Evaluate each counter family independently.
             # A channel is valid if at least one counter pair is comparable.

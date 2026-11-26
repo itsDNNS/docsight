@@ -34,13 +34,10 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from .base import ModemDriver
-from .formats.primitives import hz_to_mhz
-from .formats.surfboard import (
-    normalize_surfboard_modulation,
-    parse_surfboard_downstream,
-    parse_surfboard_upstream,
-)
+from .format_compat import unwrap
+from .formats.surfboard import parse_surfboard_hnap
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.surfboard")
 
@@ -55,14 +52,6 @@ class TransientHtmlChannelPageError(RuntimeError):
 _HNAP_LOGIN_URI = '"http://purenetworks.com/HNAP1/Login"'
 _HNAP_MULTI_URI = '"http://purenetworks.com/HNAP1/GetMultipleHNAPs"'
 _HNAP_PRELOGIN_KEY = "withoutloginkey"
-
-# Fields per downstream channel (split by "^"):
-# num ^ lock ^ modulation ^ channelID ^ frequency ^ power ^ snr ^ corrErrors ^ uncorrErrors ^
-_DS_FIELDS = 9
-
-# Fields per upstream channel (split by "^"):
-# num ^ lock ^ type ^ channelID ^ width ^ frequency ^ power ^
-_US_FIELDS = 7
 
 _HAS_LEGACY_TLS = hasattr(ssl, "OP_LEGACY_SERVER_CONNECT")
 
@@ -269,7 +258,7 @@ class SurfboardDriver(ModemDriver):
 
     def _html_get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS data via HTML table scraping (fallback mode)."""
-        from .arris_html import parse_arris_channel_tables
+        from .formats.html_rows import parse_arris_html
 
         if self._html_status_cache:
             html = self._html_status_cache
@@ -279,7 +268,7 @@ class SurfboardDriver(ModemDriver):
             html = self._html_status_cache or ""
             self._html_status_cache = None
 
-        return parse_arris_channel_tables(html)
+        return unwrap(parse_arris_html(html), log)
 
     def login(self) -> None:
         """Two-phase HNAP login with HMAC.
@@ -330,24 +319,8 @@ class SurfboardDriver(ModemDriver):
                         f"SURFboard login failed: TLS error ({tls_error}), "
                         "connection refused on HTTP fallback"
                     )
-                    log.warning(
-                        "SURFboard HNAP login exhausted all retries, "
-                        "trying HTML fallback"
-                    )
-                    try:
-                        self._html_login()
-                        self._html_mode = True
-                        log.info(
-                            "SURFboard switched to HTML mode "
-                            "(HNAP broken on this firmware)"
-                        )
-                        return
-                    except TransientHtmlChannelPageError:
-                        raise  # let transient HTML errors propagate for skip handling
-                    except RuntimeError as html_err:
-                        raise RuntimeError(
-                            f"{msg}; HTML fallback also failed: {html_err}"
-                        )
+                    self._switch_to_html_mode(msg)
+                    return
                 log.warning(
                     "SURFboard TLS error, retrying with fresh session"
                 )
@@ -373,24 +346,8 @@ class SurfboardDriver(ModemDriver):
                             f"SURFboard login failed: TLS error ({tls_error}), "
                             f"{e}"
                         )
-                    log.warning(
-                        "SURFboard HNAP login exhausted all retries, "
-                        "trying HTML fallback"
-                    )
-                    try:
-                        self._html_login()
-                        self._html_mode = True
-                        log.info(
-                            "SURFboard switched to HTML mode "
-                            "(HNAP broken on this firmware)"
-                        )
-                        return
-                    except TransientHtmlChannelPageError:
-                        raise  # let transient HTML errors propagate for skip handling
-                    except RuntimeError as html_err:
-                        raise RuntimeError(
-                            f"{msg}; HTML fallback also failed: {html_err}"
-                        )
+                    self._switch_to_html_mode(msg)
+                    return
                 log.warning(
                     "SURFboard connection lost, retrying with fresh session: %s",
                     e,
@@ -419,6 +376,18 @@ class SurfboardDriver(ModemDriver):
                     raise
             except requests.RequestException as e:
                 raise RuntimeError(f"SURFboard login failed: {e}")
+
+    def _switch_to_html_mode(self, msg: str) -> None:
+        """Fall back to HTML scraping once HNAP login has exhausted its retries."""
+        log.warning("SURFboard HNAP login exhausted all retries, trying HTML fallback")
+        try:
+            self._html_login()
+        except TransientHtmlChannelPageError:
+            raise  # let transient HTML errors propagate for skip handling
+        except RuntimeError as html_err:
+            raise RuntimeError(f"{msg}; HTML fallback also failed: {html_err}") from html_err
+        self._html_mode = True
+        log.info("SURFboard switched to HTML mode (HNAP broken on this firmware)")
 
     def _do_login(self) -> None:
         """Execute the two-phase HNAP login handshake.
@@ -599,42 +568,13 @@ class SurfboardDriver(ModemDriver):
         Auto-detects action namespace (Customer vs Moto) on first call
         by trying Customer first, then Moto if no data is returned.
         """
-        body = {
-            "GetMultipleHNAPs": self._make_actions(
-                "DownstreamChannelInfo", "UpstreamChannelInfo"
-            )
-        }
-        resp = self._hnap_post("GetMultipleHNAPs", body)
-        multi = resp.get("GetMultipleHNAPsResponse", {})
-
-        ds_raw = (
-            multi.get(self._response_key("DownstreamChannelInfo"), {})
-            .get(self._conn_field("DownstreamChannel"), "")
-        )
-        us_raw = (
-            multi.get(self._response_key("UpstreamChannelInfo"), {})
-            .get(self._conn_field("UpstreamChannel"), "")
-        )
+        ds_raw, us_raw = self._request_channel_strings()
 
         # Auto-detect namespace: if no data and namespace unknown, try Moto
         if not ds_raw and not us_raw and not self._action_ns:
             self._action_ns = "Moto"
             log.info("No channel data with Customer namespace, trying Moto")
-            body = {
-                "GetMultipleHNAPs": self._make_actions(
-                    "DownstreamChannelInfo", "UpstreamChannelInfo"
-                )
-            }
-            resp = self._hnap_post("GetMultipleHNAPs", body)
-            multi = resp.get("GetMultipleHNAPsResponse", {})
-            ds_raw = (
-                multi.get(self._response_key("DownstreamChannelInfo"), {})
-                .get(self._conn_field("DownstreamChannel"), "")
-            )
-            us_raw = (
-                multi.get(self._response_key("UpstreamChannelInfo"), {})
-                .get(self._conn_field("UpstreamChannel"), "")
-            )
+            ds_raw, us_raw = self._request_channel_strings()
             if not ds_raw and not us_raw:
                 self._action_ns = ""
                 log.warning(
@@ -643,13 +583,15 @@ class SurfboardDriver(ModemDriver):
         elif (ds_raw or us_raw) and not self._action_ns:
             self._action_ns = "Customer"
 
-        ds30, ds31 = self._parse_downstream(ds_raw)
-        us30, us31 = self._parse_upstream(us_raw)
+        return unwrap(parse_surfboard_hnap(ds_raw, us_raw), log)
 
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+    def _request_channel_strings(self) -> tuple[str, str]:
+        """Request the raw downstream and upstream channel strings in the current namespace."""
+        multi = self._get_multiple_hnaps("DownstreamChannelInfo", "UpstreamChannelInfo")
+        return (
+            multi.get(self._response_key("DownstreamChannelInfo"), {}).get(self._conn_field("DownstreamChannel"), ""),
+            multi.get(self._response_key("UpstreamChannelInfo"), {}).get(self._conn_field("UpstreamChannel"), ""),
+        )
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device model and firmware from HNAP."""
@@ -670,8 +612,8 @@ class SurfboardDriver(ModemDriver):
                 "model": model,
                 "sw_version": sw,
             }
-        except Exception:
-            log.warning("Failed to retrieve device info, will retry next poll")
+        except Exception as e:
+            log.warning("SURFboard device info unavailable: %s", request_error_summary(e))
             return {"manufacturer": "Arris", "model": "", "sw_version": ""}
 
     def _fetch_device_fields(self) -> tuple[str, str]:
@@ -681,31 +623,15 @@ class SurfboardDriver(ModemDriver):
         namespace, tries the other namespace before propagating.
         """
         try:
-            body = {
-                "GetMultipleHNAPs": self._make_actions(
-                    "StartupSequence", "ConnectionInfo"
-                )
-            }
-            resp = self._hnap_post("GetMultipleHNAPs", body)
+            multi = self._get_multiple_hnaps("StartupSequence", "ConnectionInfo")
         except requests.HTTPError as e:
             status = e.response.status_code if e.response is not None else 0
-            if status == 500 and not self._action_ns:
-                current = self._action_ns or "Customer"
-                other = "Moto" if current == "Customer" else "Customer"
-                log.warning(
-                    "Device info HTTP 500, trying %s namespace", other,
-                )
-                self._action_ns = other
-                body = {
-                    "GetMultipleHNAPs": self._make_actions(
-                        "StartupSequence", "ConnectionInfo"
-                    )
-                }
-                resp = self._hnap_post("GetMultipleHNAPs", body)
-            else:
+            if status != 500 or self._action_ns:
                 raise
+            log.warning("Device info HTTP 500, trying Moto namespace")
+            self._action_ns = "Moto"
+            multi = self._get_multiple_hnaps("StartupSequence", "ConnectionInfo")
 
-        multi = resp.get("GetMultipleHNAPsResponse", {})
         conn = multi.get(self._response_key("ConnectionInfo"), {})
         return (
             conn.get("StatusSoftwareModelName", ""),
@@ -717,6 +643,11 @@ class SurfboardDriver(ModemDriver):
         return {}
 
     # -- Namespace helpers --
+
+    def _get_multiple_hnaps(self, *suffixes: str) -> dict[str, dict[str, str]]:
+        """Send one GetMultipleHNAPs request for ``suffixes`` in the current namespace."""
+        resp = self._hnap_post("GetMultipleHNAPs", {"GetMultipleHNAPs": self._make_actions(*suffixes)})
+        return resp.get("GetMultipleHNAPsResponse", {})
 
     def _make_actions(self, *suffixes: str) -> dict[str, str]:
         """Build HNAP action dict using current namespace.
@@ -821,19 +752,3 @@ class SurfboardDriver(ModemDriver):
 
         assert last_err is not None
         raise last_err
-
-    # Compatibility parser seams.
-
-    def _parse_downstream(self, raw: str) -> tuple[list, list]:
-        return parse_surfboard_downstream(raw).value
-
-    def _parse_upstream(self, raw: str) -> tuple[list, list]:
-        return parse_surfboard_upstream(raw).value
-
-    @staticmethod
-    def _hz_to_mhz(freq_hz: int) -> str:
-        return hz_to_mhz(freq_hz)
-
-    @staticmethod
-    def _normalize_modulation(mod: str) -> str:
-        return normalize_surfboard_modulation(mod)

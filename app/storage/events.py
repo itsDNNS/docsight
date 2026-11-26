@@ -9,6 +9,18 @@ from ..tz import utc_cutoff
 from .sqlite import bulk_write
 
 
+def decode_details(raw):
+    """Parsed ``details`` JSON, or the stored text when it is empty or not JSON. Bytes are read as UTF-8 text."""
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", "replace")
+    if not raw:
+        return raw
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return raw
+
+
 class EventMethods:
 
     def save_event(self, timestamp: str, severity: str, event_type: str, message: str, details: dict | None = None) -> int:
@@ -90,16 +102,7 @@ class EventMethods:
         params.extend([limit, offset])
         with self._read() as conn:
             rows = conn.execute(query, params).fetchall()
-        results = []
-        for r in rows:
-            event = dict(r)
-            if event["details"]:
-                try:
-                    event["details"] = json.loads(event["details"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            results.append(event)
-        return results
+        return [{**r, "details": decode_details(r["details"])} for r in rows]
 
     def get_event_count(self, acknowledged=None, exclude_operational: bool = False, event_prefix: str | None = None, severity: str | None = None, severities: tuple[str, ...] | None = None, since: str | None = None):
         """Return event count, optionally filtered by status, type, severity or a UTC lower time bound."""
@@ -139,29 +142,16 @@ class EventMethods:
             ).rowcount
         return rowcount > 0
 
-    def acknowledge_events(self, event_ids) -> int:
-        """Acknowledge the given events. Returns how many were newly acknowledged."""
+    def set_events_acknowledged(self, event_ids, acknowledged: bool) -> int:
+        """Acknowledge the given events, or undo that. Returns how many changed."""
         ids = list(event_ids)
         if not ids:
             return 0
         with self._write() as conn:
             rowcount = conn.execute(
-                "UPDATE events SET acknowledged = 1 WHERE acknowledged = 0 AND id IN ("
+                "UPDATE events SET acknowledged = ? WHERE acknowledged = ? AND id IN ("
                 + ", ".join("?" * len(ids)) + ")",
-                ids,
-            ).rowcount
-        return rowcount
-
-    def unacknowledge_events(self, event_ids) -> int:
-        """Undo an acknowledgement of the given events. Returns how many changed."""
-        ids = list(event_ids)
-        if not ids:
-            return 0
-        with self._write() as conn:
-            rowcount = conn.execute(
-                "UPDATE events SET acknowledged = 0 WHERE acknowledged = 1 AND id IN ("
-                + ", ".join("?" * len(ids)) + ")",
-                ids,
+                [int(acknowledged), int(not acknowledged), *ids],
             ).rowcount
         return rowcount
 
@@ -182,27 +172,7 @@ class EventMethods:
                 "FROM events WHERE timestamp >= ? ORDER BY timestamp DESC",
                 (cutoff,),
             ).fetchall()
-        results = []
-        for r in rows:
-            event = dict(r)
-            if event["details"]:
-                try:
-                    event["details"] = json.loads(event["details"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            results.append(event)
-        return results
-
-    def delete_old_events(self, days):
-        """Delete events older than given days. Returns count deleted."""
-        if days <= 0:
-            return 0
-        cutoff = utc_cutoff(days=days)
-        with self._write() as conn:
-            deleted = self._delete_expired_unprotected_rows(  # type: ignore[attr-defined]
-                conn, "events", "timestamp", cutoff
-            )
-        return deleted
+        return [{**r, "details": decode_details(r["details"])} for r in rows]
 
     def get_latest_spike_timestamp(self):
         """Return timestamp of the most recent error_spike event, or None."""

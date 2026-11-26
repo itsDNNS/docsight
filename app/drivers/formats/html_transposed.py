@@ -7,8 +7,8 @@ import re
 from bs4 import BeautifulSoup, Tag
 
 from ...types import DocsisDataFritz, RawChannel
-from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split
-from .primitives import hz_to_mhz, parse_number
+from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split, number_reader
+from .primitives import hz_to_mhz
 
 
 def extract_transposed_rows(table: Tag | None) -> list[tuple[str, list[str]]]:
@@ -68,18 +68,21 @@ def parse_sb6141_downstream(
     result: list[RawChannel] = []
     diagnostics: list[ParseDiagnostic] = []
     for index, raw_channel_id in enumerate(channel_ids):
+        num = number_reader(
+            diagnostics, "sb6141_transposed_html", family="html_transposed", direction="downstream", index=index,
+        )
         try:
-            snr = parse_number(snrs[index] if index < len(snrs) else "")
+            channel_id = int(raw_channel_id)
+            snr = num(snrs[index] if index < len(snrs) else "", "snr")
             result.append({
-                "channelID": int(raw_channel_id),
+                "channelID": channel_id,
                 "frequency": hz_to_mhz(frequencies[index] if index < len(frequencies) else ""),
-                "powerLevel": parse_number(powers[index] if index < len(powers) else ""),
+                "powerLevel": num(powers[index] if index < len(powers) else "", "power"),
                 "mer": snr,
-                "mse": -snr if snr else None,
+                "mse": None if snr is None else -snr,
                 "modulation": modulations[index].strip() if index < len(modulations) else "",
-                # Missing codewords deliberately remain zero for this profile.
-                "corrErrors": int(parse_number(corrected[index])) if index < len(corrected) else 0,
-                "nonCorrErrors": int(parse_number(uncorrected[index])) if index < len(uncorrected) else 0,
+                "corrErrors": num(corrected[index] if index < len(corrected) else "", "corrected", int),
+                "nonCorrErrors": num(uncorrected[index] if index < len(uncorrected) else "", "uncorrected", int),
             })
         except (ValueError, TypeError, IndexError):
             diagnostics.append(diagnostic(
@@ -100,11 +103,14 @@ def parse_sb6141_upstream(upstream_table: Tag | None) -> ParseResult[list[RawCha
     result: list[RawChannel] = []
     diagnostics: list[ParseDiagnostic] = []
     for index, raw_channel_id in enumerate(channel_ids):
+        num = number_reader(
+            diagnostics, "sb6141_transposed_html", family="html_transposed", direction="upstream", index=index,
+        )
         try:
             result.append({
                 "channelID": int(raw_channel_id),
                 "frequency": hz_to_mhz(frequencies[index] if index < len(frequencies) else ""),
-                "powerLevel": parse_number(powers[index] if index < len(powers) else ""),
+                "powerLevel": num(powers[index] if index < len(powers) else "", "power"),
                 "modulation": extract_upstream_modulation(
                     modulations[index] if index < len(modulations) else ""
                 ),
@@ -123,7 +129,7 @@ def parse_sb6141_transposed_html(html: str) -> ParseResult[DocsisDataFritz]:
     downstream = upstream = codewords = None
     for table in soup.find_all("table"):
         heading = table.find("th")
-        text = heading.get_text(" ", strip=True).lower() if heading else ""
+        text = heading.get_text(strip=True).lower() if heading else ""
         if "downstream" in text and "signal" not in text:
             downstream = table
         elif "upstream" in text:

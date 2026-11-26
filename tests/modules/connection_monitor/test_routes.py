@@ -190,7 +190,7 @@ class TestSamplesResolution:
         c, storage = client
         tid = storage.create_target("Test", "1.1.1.1")
         now = time.time()
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -220,7 +220,7 @@ class TestSamplesResolution:
         storage.save_samples([
             {"target_id": tid, "timestamp": now - 3600, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -248,7 +248,7 @@ class TestSamplesResolution:
         tid = storage.create_target("Test", "1.1.1.1")
         now = time.time()
         end = now - 14 * 86400
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -301,7 +301,7 @@ class TestSamplesResolution:
         storage.save_samples([
             {"target_id": tid, "timestamp": now - 3600, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -339,7 +339,7 @@ class TestSamplesResolution:
         storage.save_samples([
             {"target_id": tid, "timestamp": now - 60, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -370,7 +370,7 @@ class TestSamplesResolution:
         storage.save_samples([
             {"target_id": tid, "timestamp": raw_ts, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
         ])
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,
@@ -451,17 +451,32 @@ class TestPinnedDaysAPI:
         assert "utc_start" in days[0]
         assert "utc_end" in days[0]
 
-    def test_pin_day_via_timestamp(self, client):
+    @pytest.mark.parametrize(("zone", "pins", "listed"), [
+        ("Europe/Berlin", ["0001-01-01", "1969-12-31", "2026-03-10"], ["2026-03-10", "1969-12-31"]),
+        ("Pacific/Apia", ["2011-12-30", "2026-03-10"], ["2026-03-10"]),  # 2011-12-30 was skipped there
+    ])
+    def test_list_pinned_days_leaves_out_unusable_rows(self, client, zone, pins, listed):
+        c, storage = client
+        for day in pins:
+            storage.pin_day(day)
+        with patch("app.modules.connection_monitor.routes._get_tz", return_value=zone):
+            days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert [d["date"] for d in days] == listed
+        assert all(d["utc_start"] < d["utc_end"] for d in days)
+
+    @pytest.mark.parametrize("zone", ["UTC", ""])  # "" means no zone could be found: UTC
+    def test_pin_day_via_timestamp(self, client, zone):
         """POST with timestamp instead of date derives date server-side."""
         c, _ = client
         _auth_session(c)
         from datetime import datetime, timezone
         # 2026-03-10 12:00:00 UTC
         ts = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc).timestamp()
-        resp = c.post(
-            "/api/connection-monitor/pinned-days",
-            json={"timestamp": ts},
-        )
+        with patch("app.modules.connection_monitor.routes._get_tz", return_value=zone):
+            resp = c.post(
+                "/api/connection-monitor/pinned-days",
+                json={"timestamp": ts},
+            )
         assert resp.status_code == 201
         days = c.get("/api/connection-monitor/pinned-days").get_json()
         assert len(days) == 1
@@ -478,14 +493,18 @@ class TestPinnedDaysAPI:
         days = c.get("/api/connection-monitor/pinned-days").get_json()
         assert days[0]["label"] == "Outage"
 
-    def test_pin_day_invalid_date(self, client):
+    @pytest.mark.parametrize("day", ["not-a-date", "2026-02-30", "0001-01-01", "1969-12-31", "1\u066969-12-31",
+                                     20260710, 0, False])
+    def test_pin_day_invalid_date(self, client, day):
+        """A given date is validated even when a usable timestamp is sent along."""
         c, _ = client
         _auth_session(c)
         resp = c.post(
             "/api/connection-monitor/pinned-days",
-            json={"date": "not-a-date"},
+            json={"date": day, "timestamp": time.time() - 86400},
         )
         assert resp.status_code == 400
+        assert resp.get_json() == {"error": "invalid date"}
 
     def test_pin_day_future_date(self, client):
         c, _ = client
@@ -496,12 +515,13 @@ class TestPinnedDaysAPI:
         )
         assert resp.status_code == 400
 
-    def test_pin_day_missing_date_and_timestamp(self, client):
+    @pytest.mark.parametrize("body", [{}, ["2026-07-10"]])
+    def test_pin_day_missing_date_and_timestamp(self, client, body):
         c, _ = client
         _auth_session(c)
         resp = c.post(
             "/api/connection-monitor/pinned-days",
-            json={},
+            json=body,
         )
         assert resp.status_code == 400
 
@@ -621,6 +641,7 @@ class TestSummaryAPI:
         assert slow["window_seconds"] == 180
         assert slow["sample_count"] == 1
         assert slow["avg_latency_ms"] == 12.0
+        assert (slow["latency_count"], slow["p95_latency_ms"]) == (1, 12.0)
 
     def test_demo_summary_uses_the_newest_seeded_samples(self, client):
         c, storage = client
@@ -690,7 +711,7 @@ class TestExportAPI:
         c, storage = client
         tid = storage.create_target("Test", "1.1.1.1")
         now = time.time()
-        with storage._connect() as conn:
+        with storage._write() as conn:
             conn.execute(
                 """INSERT INTO connection_samples_aggregated
                    (target_id, bucket_start, bucket_seconds,

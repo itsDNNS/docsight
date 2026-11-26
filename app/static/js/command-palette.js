@@ -372,7 +372,6 @@
     }
 
     window.openCommandPalette = function() { openPalette(); };
-    window.closeCommandPalette = function() { closePalette(); };
 
     input.addEventListener('input', function() {
         if (!help.hidden) showHelp(false);

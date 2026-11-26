@@ -1,6 +1,12 @@
 """Speedtest storage schema migrations."""
 
-from app.storage.migrations import Migration, add_column_if_missing, schema_baseline, table_columns
+from datetime import datetime, timezone
+import logging
+
+from app.storage.migrations import DEMO_FLAG, Migration, add_columns, schema_baseline
+from app.tz import UTC_FMT
+
+log = logging.getLogger("docsis.storage.speedtest")
 
 
 _ENRICHED_COLUMNS = (
@@ -26,25 +32,38 @@ _SCHEMA = (
 )
 
 
-def _columns_applied(conn):
-    columns = table_columns(conn, "speedtest_results")
-    required = {"server_id", "server_name", "is_demo", *(name for name, _ in _ENRICHED_COLUMNS)}
-    return not columns or required <= columns
+def _store_offset_times_in_utc(conn):
+    """Older versions stored Tracker times with their offset, which sort apart from UTC times."""
+    updated = 0
+    for row_id, timestamp in conn.execute(
+        "SELECT id, timestamp FROM speedtest_results WHERE timestamp GLOB '*[+-][0-9][0-9]:[0-9][0-9]'"
+    ).fetchall():
+        try:
+            parsed = datetime.fromisoformat(timestamp)
+        except (ValueError, TypeError):
+            continue
+        if parsed.tzinfo is not None:
+            conn.execute("UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
+                         (parsed.astimezone(timezone.utc).strftime(UTC_FMT), row_id))
+            updated += 1
+    # Versions before this migration check the flag themselves
+    conn.execute("INSERT OR REPLACE INTO speedtest_meta (key, value) VALUES ('ts_migrated', '1')")
+    if updated:
+        log.info("Normalized %d existing timestamps to UTC", updated)
 
 
-def _apply_columns(conn):
-    add_column_if_missing(conn, "speedtest_results", "server_id", "server_id INTEGER")
-    add_column_if_missing(conn, "speedtest_results", "server_name", "server_name TEXT")
-    add_column_if_missing(
-        conn, "speedtest_results", "is_demo", "is_demo INTEGER NOT NULL DEFAULT 0"
-    )
-    for name, column_type in _ENRICHED_COLUMNS:
-        add_column_if_missing(
-            conn, "speedtest_results", name, f"{name} {column_type}"
-        )
+def _offset_times_stored_in_utc(conn):
+    return conn.execute("SELECT 1 FROM speedtest_meta WHERE key = 'ts_migrated'").fetchone() is not None
 
 
 MIGRATIONS = (
     schema_baseline("speedtest-0001-baseline", _SCHEMA),
-    Migration("speedtest-0002-columns", _apply_columns, _columns_applied),
+    add_columns("speedtest-0002-columns", [
+        ("speedtest_results", declaration)
+        for declaration in (
+            "server_id INTEGER", "server_name TEXT", DEMO_FLAG,
+            *(f"{name} {column_type}" for name, column_type in _ENRICHED_COLUMNS),
+        )
+    ]),
+    Migration("speedtest-0003-utc-timestamps", _store_offset_times_in_utc, _offset_times_stored_in_utc),
 )

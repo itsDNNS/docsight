@@ -14,7 +14,7 @@ from app.runtime import current_runtime
 
 
 @pytest.fixture
-def fresh_demo_client(tmp_path, monkeypatch):
+def fresh_demo_client(tmp_path, monkeypatch, route_app):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     data_dir = tmp_path / "data"
     manager = ConfigManager(str(data_dir))
@@ -23,8 +23,7 @@ def fresh_demo_client(tmp_path, monkeypatch):
     current_runtime().config_manager = manager
     current_runtime().on_config_changed = lambda: callbacks.append("changed")
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client, manager, storage, callbacks, data_dir
 
 
@@ -44,6 +43,17 @@ def test_demo_start_activates_fresh_instance_with_stable_contract(fresh_demo_cli
     assert json.loads((data_dir / "config.json").read_text(encoding="utf-8")) == {
         "demo_mode": True,
     }
+
+
+def test_demo_start_fails_when_the_environment_keeps_the_demo_off(fresh_demo_client, monkeypatch):
+    client, manager, _storage, callbacks, _data_dir = fresh_demo_client
+    monkeypatch.setenv("DEMO_MODE", "false")
+
+    response = client.post("/api/demo/start", json={})
+
+    assert response.status_code == 409
+    assert response.get_json() == {"success": False, "demo_mode": False, "status": "disabled"}
+    assert manager.is_demo_mode() is False and callbacks == []
 
 
 def test_demo_start_rejects_non_json_mutation(fresh_demo_client):
@@ -72,7 +82,7 @@ def test_demo_start_is_idempotent_while_active(fresh_demo_client):
     assert callbacks == ["changed"]
 
 
-def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypatch):
+def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypatch, route_app):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     data_dir = tmp_path / "data"
     manager = ConfigManager(str(data_dir))
@@ -86,9 +96,8 @@ def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypat
     current_runtime().config_manager = manager
     current_runtime().on_config_changed = on_config_changed
     current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    app.config["TESTING"] = True
 
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post("/api/demo/start", json={})
 
     assert response.status_code == 500
@@ -104,7 +113,7 @@ def test_demo_start_rolls_back_when_runtime_activation_fails(tmp_path, monkeypat
     }
 
 
-def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch):
+def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch, route_app):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     manager = ConfigManager(str(tmp_path / "data"))
     manager.save({"modem_type": "generic", "modem_url": "http://192.168.100.1"})
@@ -112,9 +121,8 @@ def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch):
     current_runtime().config_manager = manager
     current_runtime().on_config_changed = lambda: callbacks.append("changed")
     current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    app.config["TESTING"] = True
 
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post("/api/demo/start", json={})
 
     assert response.status_code == 409
@@ -126,15 +134,14 @@ def test_demo_start_rejects_configured_live_instance(tmp_path, monkeypatch):
     assert callbacks == []
 
 
-def test_demo_start_requires_browser_session_when_auth_is_enabled(tmp_path, monkeypatch):
+def test_demo_start_requires_browser_session_when_auth_is_enabled(tmp_path, monkeypatch, route_app):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     manager = ConfigManager(str(tmp_path / "data"))
     manager.save({"admin_password": "secret"})
     current_runtime().config_manager = manager
     current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    app.config["TESTING"] = True
 
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post(
             "/api/demo/start",
             json={},
@@ -145,35 +152,40 @@ def test_demo_start_requires_browser_session_when_auth_is_enabled(tmp_path, monk
     assert manager.is_demo_mode() is False
 
 
-@pytest.mark.parametrize(
-    ("next_choice", "next_path"),
-    (("connect", "/setup?connect=1"), ("exit", "/setup")),
-)
-def test_demo_exit_uses_existing_purge_path_and_returns_next_path(
-    tmp_path, monkeypatch, next_choice, next_path
-):
-    monkeypatch.delenv("DEMO_MODE", raising=False)
-    manager = ConfigManager(str(tmp_path / "data"))
+_INVALID_NEXT = {"success": False, "error": "Invalid next path"}
+_EXIT = {"success": True, "purged": 1, "next": "/setup"}
+
+
+@pytest.mark.parametrize(("body", "status", "payload"), [
+    ({"next": "connect"}, 200, {"success": True, "purged": 1, "next": "/setup?connect=1"}),
+    ({"next": "exit"}, 200, _EXIT),
+    (None, 200, _EXIT),
+    ([], 200, _EXIT),
+    ({"next": "elsewhere"}, 400, _INVALID_NEXT),
+    ({"next": []}, 400, _INVALID_NEXT),
+    ({"next": {}}, 400, _INVALID_NEXT),
+    (["connect"], 400, _INVALID_NEXT),
+    ("exit", 400, _INVALID_NEXT),
+    (5, 400, _INVALID_NEXT),
+], ids=["connect", "exit", "no-body", "falsy-body", "unknown-next", "array-next", "object-next",
+        "array-body", "text-body", "number-body"])
+def test_demo_exit_uses_existing_purge_path_and_returns_next_path(fresh_demo_client, body, status, payload):
+    client, manager, storage, callbacks, _data_dir = fresh_demo_client
     manager.save({"demo_mode": True})
-    storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    callbacks = []
-    current_runtime().config_manager = manager
-    current_runtime().on_config_changed = lambda: callbacks.append("changed")
-    current_runtime().storage = storage
-    app.config["TESTING"] = True
+    storage.save_events([{"timestamp": "2026-01-01T00:00:00Z", "severity": "info",
+                          "event_type": "demo", "message": "Demo event"}], is_demo=True)
 
-    with app.test_client() as client:
-        response = client.post("/api/demo/migrate", json={"next": next_choice})
+    response = client.post("/api/demo/migrate", json=body)
 
-    assert response.status_code == 200
-    payload = response.get_json()
-    assert payload["success"] is True
-    assert payload["next"] == next_path
-    assert manager.is_demo_mode() is False
-    assert callbacks == ["changed"]
+    refused = status == 400
+    assert (response.status_code, response.get_json()) == (status, payload)
+    # A refused exit keeps demo mode and the demo data.
+    assert (manager.is_demo_mode(), storage.get_event_count(), callbacks) == (
+        refused, int(refused), [] if refused else ["changed"]
+    )
 
 
-def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeypatch):
+def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeypatch, route_app):
     from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 
     monkeypatch.delenv("DEMO_MODE", raising=False)
@@ -182,7 +194,6 @@ def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeyp
     manager.save({"demo_mode": True})
     current_runtime().config_manager = manager
     current_runtime().storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
-    app.config["TESTING"] = True
 
     connection_storage = ConnectionMonitorStorage(
         str(tmp_path / "connection_monitor.db")
@@ -198,7 +209,7 @@ def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeyp
          "timeout": False, "probe_method": "tcp"},
     ])
 
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post("/api/demo/migrate", json={"next": "exit"})
 
     assert response.status_code == 200
@@ -208,7 +219,7 @@ def test_demo_exit_purges_only_demo_connection_monitor_targets(tmp_path, monkeyp
     assert connection_storage.get_samples(demo_id) == []
 
 
-def test_environment_forced_demo_cannot_be_disabled(tmp_path, monkeypatch):
+def test_environment_forced_demo_cannot_be_disabled(tmp_path, monkeypatch, route_app):
     monkeypatch.setenv("DEMO_MODE", "1")
     manager = ConfigManager(str(tmp_path / "data"))
     storage = SnapshotStorage(str(tmp_path / "history.db"), max_days=0)
@@ -217,10 +228,9 @@ def test_environment_forced_demo_cannot_be_disabled(tmp_path, monkeypatch):
     current_runtime().config_manager = manager
     current_runtime().on_config_changed = lambda: callbacks.append("changed")
     current_runtime().storage = storage
-    app.config["TESTING"] = True
 
     assert manager.is_demo_mode_forced() is True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         response = client.post("/api/demo/migrate", json={"next": "exit"})
 
     assert response.status_code == 409

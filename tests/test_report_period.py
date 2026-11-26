@@ -84,7 +84,7 @@ def _conflicting_thresholds(
 
 def test_unavailable_community_profile_keeps_stored_critical_without_numeric_claim(monkeypatch):
     from app import analyzer
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     snapshot = _snapshot(
         "2026-05-01T01:02:03Z",
@@ -103,9 +103,9 @@ def test_unavailable_community_profile_keeps_stored_critical_without_numeric_cla
     }
 
     monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds())
-    permissive = derive_historical_report_data([snapshot])["diagnostic_notes"]
+    permissive = _aggregate_report_period([snapshot])[0]["diagnostic_notes"]
     monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds(ds_critical=(-1.0, 1.0)))
-    restrictive = derive_historical_report_data([snapshot])["diagnostic_notes"]
+    restrictive = _aggregate_report_period([snapshot])[0]["diagnostic_notes"]
 
     assert permissive == restrictive
     assert len(permissive) == 1
@@ -120,7 +120,7 @@ def test_unavailable_community_profile_keeps_stored_critical_without_numeric_cla
 @pytest.mark.parametrize("stored_health", ["good", "tolerated", "warning"])
 def test_noncritical_stored_power_health_never_becomes_report_diagnosis(monkeypatch, stored_health):
     from app import analyzer
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds(ds_critical=(-1.0, 1.0)))
     snapshot = _snapshot(
@@ -136,7 +136,7 @@ def test_noncritical_stored_power_health_never_becomes_report_diagnosis(monkeypa
     )
     snapshot["analysis_meta"] = _builtin_analysis_meta()
 
-    assert derive_historical_report_data([snapshot])["diagnostic_notes"] == []
+    assert _aggregate_report_period([snapshot])[0]["diagnostic_notes"] == []
 
 
 @pytest.mark.parametrize(
@@ -153,7 +153,7 @@ def test_exact_builtin_profile_reconstructs_family_threshold_and_direction(
     monkeypatch, direction, channel, metric, value, detail, expected_type, expected_spec
 ):
     from app import analyzer
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds())
     stored_channel = {
@@ -170,7 +170,7 @@ def test_exact_builtin_profile_reconstructs_family_threshold_and_direction(
     )
     snapshot["analysis_meta"] = _builtin_analysis_meta()
 
-    note = derive_historical_report_data([snapshot])["diagnostic_notes"][0]
+    note = _aggregate_report_period([snapshot])[0]["diagnostic_notes"][0]
 
     assert note["type"] == expected_type
     assert note.get("spec_max", note.get("spec_min")) == expected_spec
@@ -180,7 +180,7 @@ def test_exact_builtin_profile_reconstructs_family_threshold_and_direction(
 def test_snapshot_from_the_previous_vfkd_version_keeps_exact_upstream_provenance(monkeypatch):
     """Profile 1.1.0 had the same numbers; its stored critical lows keep their spec claim."""
     from app import analyzer
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds())
     snapshot = _snapshot(
@@ -199,7 +199,7 @@ def test_snapshot_from_the_previous_vfkd_version_keeps_exact_upstream_provenance
     )
     snapshot["analysis_meta"] = _builtin_analysis_meta(version="1.1.0")
 
-    note = derive_historical_report_data([snapshot])["diagnostic_notes"][0]
+    note = _aggregate_report_period([snapshot])[0]["diagnostic_notes"][0]
 
     assert note["type"] == "us_power_low"
     assert note["spec_min"] == 35.0
@@ -208,7 +208,7 @@ def test_snapshot_from_the_previous_vfkd_version_keeps_exact_upstream_provenance
 
 def test_builtin_profile_version_mismatch_uses_neutral_stored_critical(monkeypatch):
     from app import analyzer
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds(ds_critical=(-1.0, 1.0)))
     snapshot = _snapshot(
@@ -224,7 +224,7 @@ def test_builtin_profile_version_mismatch_uses_neutral_stored_critical(monkeypat
     )
     snapshot["analysis_meta"] = _builtin_analysis_meta(version="0.0.0-mismatch")
 
-    note = derive_historical_report_data([snapshot])["diagnostic_notes"][0]
+    note = _aggregate_report_period([snapshot])[0]["diagnostic_notes"][0]
 
     assert note["type"] == "ds_power_high"
     assert "spec_max" not in note
@@ -233,7 +233,7 @@ def test_builtin_profile_version_mismatch_uses_neutral_stored_critical(monkeypat
 
 def test_analyzer_snapshot_missing_sparse_good_health_ignores_active_thresholds(monkeypatch):
     from app import analyzer
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     monkeypatch.setattr(
         analyzer,
@@ -261,7 +261,7 @@ def test_analyzer_snapshot_missing_sparse_good_health_ignores_active_thresholds(
     )
     snapshot["analysis_meta"] = {"analyzer_schema": 1}
 
-    assert derive_historical_report_data([snapshot])["diagnostic_notes"] == []
+    assert _aggregate_report_period([snapshot])[0]["diagnostic_notes"] == []
 
 
 @pytest.mark.parametrize(
@@ -272,7 +272,7 @@ def test_legacy_snapshot_without_valid_schema_uses_active_thresholds(
     monkeypatch, analysis_meta
 ):
     from app import analyzer
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds(ds_critical=(-1.0, 1.0)))
     snapshot = _snapshot(
@@ -286,7 +286,7 @@ def test_legacy_snapshot_without_valid_schema_uses_active_thresholds(
     )
     snapshot["analysis_meta"] = analysis_meta
 
-    note = derive_historical_report_data([snapshot])["diagnostic_notes"][0]
+    note = _aggregate_report_period([snapshot])[0]["diagnostic_notes"][0]
 
     assert note["type"] == "ds_power_high"
     assert note["spec_max"] == 1.0
@@ -295,7 +295,7 @@ def test_legacy_snapshot_without_valid_schema_uses_active_thresholds(
 
 def test_exact_numeric_provenance_wins_over_neutral_candidate(monkeypatch):
     from app import analyzer
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     monkeypatch.setattr(analyzer, "_thresholds", _conflicting_thresholds())
     neutral = _snapshot("2026-05-01T00:00:00Z", ds_channels=[{
@@ -317,14 +317,14 @@ def test_exact_numeric_provenance_wins_over_neutral_candidate(monkeypatch):
     }])
     numeric["analysis_meta"] = _builtin_analysis_meta()
 
-    note = derive_historical_report_data([neutral, numeric])["diagnostic_notes"][0]
+    note = _aggregate_report_period([neutral, numeric])[0]["diagnostic_notes"][0]
 
     assert note["channel_id"] == 2
     assert note["spec_max"] == 16.0
 
 
 def test_neutral_fallback_selection_uses_directional_value_then_stable_ties():
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     snapshots = []
     for timestamp, channel_id, power in [
@@ -342,7 +342,7 @@ def test_neutral_fallback_selection_uses_directional_value_then_stable_ties():
         snapshot["analysis_meta"] = {"threshold_profile": {"id": "community", "version": "1"}}
         snapshots.append(snapshot)
 
-    note = derive_historical_report_data(snapshots)["diagnostic_notes"][0]
+    note = _aggregate_report_period(snapshots)[0]["diagnostic_notes"][0]
 
     assert note["value"] == 60.0
     assert note["observed_at"] == "2026-05-01T00:00:00Z"
@@ -381,7 +381,7 @@ def test_pdf_and_complaint_render_neutral_fallback_without_invented_threshold(mo
 
 
 def test_historical_derivation_uses_latest_snapshot_and_worst_note_per_type():
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     snapshots = [
         {
@@ -422,7 +422,7 @@ def test_historical_derivation_uses_latest_snapshot_and_worst_note_per_type():
         },
     ]
 
-    historical = derive_historical_report_data(snapshots)
+    historical = _aggregate_report_period(snapshots)[0]
 
     assert historical["latest_snapshot"]["timestamp"] == "2026-05-03T00:00:00Z"
     assert [note["type"] for note in historical["diagnostic_notes"]] == [
@@ -435,7 +435,7 @@ def test_historical_derivation_uses_latest_snapshot_and_worst_note_per_type():
 
 
 def test_historical_note_tie_breaks_by_channel_identity_after_timestamp():
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
     snapshots = [_snapshot(
         "2026-05-01T00:00:00+00:00",
@@ -457,7 +457,7 @@ def test_historical_note_tie_breaks_by_channel_identity_after_timestamp():
         ],
     )]
     snapshots[0]["analysis_meta"] = _builtin_analysis_meta()
-    historical = derive_historical_report_data(snapshots)
+    historical = _aggregate_report_period(snapshots)[0]
 
     assert len(historical["diagnostic_notes"]) == 1
     assert historical["diagnostic_notes"][0]["type"] == "us_power_high"
@@ -466,15 +466,15 @@ def test_historical_note_tie_breaks_by_channel_identity_after_timestamp():
 
 
 def test_error_counters_never_create_historical_diagnostic_notes():
-    from app.modules.reports.report import derive_historical_report_data
+    from app.modules.reports.report import _aggregate_report_period
 
-    historical = derive_historical_report_data([_snapshot(
+    historical = _aggregate_report_period([_snapshot(
         "2026-05-01T00:00:00Z",
         summary={
             "ds_correctable_errors": 999999999,
             "ds_uncorrectable_errors": 999999999,
         },
-    )])
+    )])[0]
 
     assert historical["diagnostic_notes"] == []
 
@@ -589,28 +589,56 @@ def test_empty_complaint_is_neutral_without_bnetz_data():
     assert "attached monitoring data" not in complaint
 
 
-def test_empty_complaint_is_neutral_and_keeps_bnetz_evidence():
-    from app.modules.reports.report import generate_complaint_text
+_BNETZ_ROW = {
+    "date": "2026-05-02",
+    "provider": "Example ISP",
+    "tariff": "1000/50",
+    "download_max_tariff": 1000,
+    "download_measured_avg": 400,
+    "upload_max_tariff": 50,
+    "upload_measured_avg": 45,
+    "verdict_download": "deviation",
+    "verdict_upload": "ok",
+}
 
-    complaint = generate_complaint_text(
-        [],
-        report_start="2026-05-01T00:00:00Z",
-        report_end="2026-05-03T00:00:00Z",
-        bnetz_data={
-            "date": "2026-05-02",
-            "provider": "Example ISP",
-            "tariff": "1000/50",
-            "download_max_tariff": 1000,
-            "download_measured_avg": 400,
-            "upload_max_tariff": 50,
-            "upload_measured_avg": 45,
-            "verdict_download": "deviation",
-            "verdict_upload": "ok",
-        },
+
+@pytest.mark.parametrize("missing", [None, "download", "upload"])
+def test_empty_complaint_keeps_bnetz_evidence_for_measured_directions_only(missing):
+    from app.modules.reports.report import generate_complaint_text, generate_incident_report
+
+    row = dict(_BNETZ_ROW)
+    if missing:
+        row[f"{missing}_measured_avg"] = None
+    letter = generate_complaint_text(
+        [], report_start="2026-05-01T00:00:00Z", report_end="2026-05-03T00:00:00Z", bnetz_data=row,
     )
+    pdf = " ".join(_pdf_text(generate_incident_report({"name": "Slow line"}, [], [], [], [row])).split())
 
-    assert "No stored DOCSIS measurements are available" in complaint
-    assert "Official Broadband Measurement (Bundesnetzagentur)" in complaint
-    assert "2026-05-02" in complaint
-    assert "persistent signal quality issues" not in complaint
-    assert "Signal Quality Issues" not in complaint
+    assert "No stored DOCSIS measurements are available" in letter
+    assert "Official Broadband Measurement (Bundesnetzagentur)" in letter
+    assert "2026-05-02" in letter
+    assert "persistent signal quality issues" not in letter
+    assert "Signal Quality Issues" not in letter
+    for direction, (pdf_line, letter_line) in {
+        "download": ("Download: 400 / 1000 Mbit/s (40%)", "average download: 400 Mbit/s (40% of contracted maximum)"),
+        "upload": ("Upload: 45 / 50 Mbit/s (90%)", "average upload: 45 Mbit/s (90% of contracted maximum)"),
+    }.items():
+        if direction == missing:
+            assert f"{direction.capitalize()}: " not in pdf
+            assert f"average {direction}" not in letter + pdf
+        else:
+            assert pdf_line in pdf
+            assert letter_line in letter and letter_line in pdf
+
+
+def test_german_letters_and_incident_report_show_localized_bnetz_verdicts():
+    from app.modules.reports.report import generate_complaint_text, generate_incident_report
+
+    row = {**_BNETZ_ROW, "verdict_upload": "unknown"}
+    letter = generate_complaint_text([], lang="de", bnetz_data=row)
+    pdf = " ".join(_pdf_text(generate_incident_report({"name": "Slow line"}, [], [], [], [row], lang="de")).split())
+
+    line = "Bewertung: Download Abweichung festgestellt / Upload Unbekannt"
+    assert line in letter
+    assert pdf.count(line) == 2  # BNetzA section and complaint letter
+    assert "Verdict" not in pdf

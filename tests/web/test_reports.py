@@ -112,9 +112,11 @@ class TestReportHelpers:
         assert _format_optional_count(None) == "N/A"
         assert _format_optional_count(0) == "0"
         assert _format_optional_count(1234) == "1,234"
+        # Older snapshots can hold a driver's counters as text.
+        assert [_format_optional_count(value) for value in ("1234", "bad", "inf")] == ["1,234", "N/A", "N/A"]
 
     def test_diagnostic_notes_trust_analyzer_metric_health(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = {
             "analysis_meta": _add_builtin_analysis_meta({})["analysis_meta"],
@@ -142,13 +144,13 @@ class TestReportHelpers:
             ],
         }
 
-        notes = _build_diagnostic_notes(analysis)
+        notes = _aggregate_report_period([analysis])[0]["diagnostic_notes"]
 
         assert [note["type"] for note in notes] == ["us_power_high"]
         assert notes[0]["channel_type"] == "OFDMA"
 
     def test_ofdm_good_analyzer_metric_health_produces_no_diagnostic_note(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = _add_builtin_analysis_meta(_analyze_downstream_channel(
             docsis="3.1",
@@ -163,10 +165,10 @@ class TestReportHelpers:
         assert channel["power_health"] == "good"
         assert channel["snr_health"] == "good"
 
-        assert _build_diagnostic_notes(analysis) == []
+        assert _aggregate_report_period([analysis])[0]["diagnostic_notes"] == []
 
     def test_ofdm_legacy_metric_health_fallback_uses_ofdm_thresholds(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = _add_builtin_analysis_meta(_analyze_downstream_channel(
             docsis="3.1",
@@ -178,10 +180,10 @@ class TestReportHelpers:
         assert "power_health" not in analysis["ds_channels"][0]
         assert "snr_health" not in analysis["ds_channels"][0]
 
-        assert _build_diagnostic_notes(analysis) == []
+        assert _aggregate_report_period([analysis])[0]["diagnostic_notes"] == []
 
     def test_bad_ofdm_values_produce_notes_with_ofdm_limits(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = _add_builtin_analysis_meta(_analyze_downstream_channel(
             docsis="3.1",
@@ -191,14 +193,14 @@ class TestReportHelpers:
             channel_type="OFDM",
         ))
 
-        notes = _build_diagnostic_notes(analysis)
+        notes = _aggregate_report_period([analysis])[0]["diagnostic_notes"]
 
         assert [note["type"] for note in notes] == ["ds_power_low", "snr_low"]
         assert notes[0]["spec_min"] == -15.0
         assert notes[1]["spec_min"] == 24.5
 
     def test_sc_qam_diagnostic_thresholds_remain_unchanged(self):
-        from app.modules.reports.report import _build_diagnostic_notes
+        from app.modules.reports.report import _aggregate_report_period
 
         analysis = _add_builtin_analysis_meta(_analyze_downstream_channel(
             docsis="3.0",
@@ -208,7 +210,7 @@ class TestReportHelpers:
             channel_type="SC-QAM",
         ))
 
-        notes = _build_diagnostic_notes(analysis)
+        notes = _aggregate_report_period([analysis])[0]["diagnostic_notes"]
 
         assert [note["type"] for note in notes] == ["ds_power_low", "snr_low"]
         assert notes[0]["spec_min"] == -8.0
@@ -305,7 +307,7 @@ class TestReportHelpers:
 
 
 class TestComplaintRoutes:
-    def test_api_report_passes_customer_details_to_pdf_generator(self):
+    def test_api_report_passes_customer_details_to_pdf_generator(self, app):
         from app.modules.reports import routes
 
         storage = Mock()
@@ -337,7 +339,7 @@ class TestComplaintRoutes:
         assert generate_report.call_args.kwargs["customer_number"] == "KD-123456"
         assert generate_report.call_args.kwargs["customer_address"] == "Musterstraße 1\n12345 Musterstadt"
 
-    def test_api_incident_timeline_loads_only_the_sources_the_case_view_plots(self):
+    def test_api_incident_timeline_loads_only_the_sources_the_case_view_plots(self, app):
         from app.modules.journal import routes
 
         storage = Mock()
@@ -349,13 +351,14 @@ class TestComplaintRoutes:
 
         with app.test_request_context("/api/incidents/7/timeline"):
             with patch.object(routes, "_get_journal_storage", return_value=storage), \
-                 patch.object(routes.current_runtime(), "storage", core):
+                 patch.object(routes.current_runtime(), "storage", core), \
+                 patch.object(routes, "BnetzStorage", **{"return_value.get_bnetz_in_range.return_value": []}):
                 response = getattr(routes.api_incident_timeline, "__wrapped__")(7)
 
         assert response.status_code == 200
         assert core.get_correlation_timeline.call_args.kwargs["sources"] == {"modem", "speedtest", "events"}
 
-    def test_api_incident_report_passes_customer_details_to_pdf_generator(self):
+    def test_api_incident_report_passes_customer_details_to_pdf_generator(self, app):
         from app.modules.journal import routes
 
         storage = Mock()
@@ -393,7 +396,7 @@ class TestComplaintRoutes:
         assert generate_incident_report.call_args.kwargs["customer_number"] == "KD-123456"
         assert generate_incident_report.call_args.kwargs["customer_address"] == "Musterstraße 1\n12345 Musterstadt"
 
-    def test_get_comparison_data_helper(self):
+    def test_get_comparison_data_helper(self, app):
         from app.modules.reports.routes import _get_comparison_data
 
         comparison_data = {

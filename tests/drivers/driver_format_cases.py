@@ -18,7 +18,6 @@ from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 
-from app.drivers.arris_html import parse_arris_channel_tables
 from app.drivers.cgm4981 import CGM4981Driver
 from app.drivers.pyur_fast3896 import PyurFast3896Driver
 from app.drivers.ch7465 import CH7465Driver, Query
@@ -27,13 +26,18 @@ from app.drivers.cm3000 import CM3000Driver
 from app.drivers.cm3500 import CM3500Driver
 from app.drivers.f3896lg import F3896LGDriver
 from app.drivers.fritzbox import FritzBoxDriver
+from app.drivers.formats.html_rows import (
+    parse_arris_html,
+    parse_sb6183_downstream,
+    parse_sb6183_upstream,
+    parse_sb6190_downstream,
+    parse_sb6190_upstream,
+)
 from app.drivers.generic import GenericDriver
 from app.drivers.hitron import HitronDriver
 from app.drivers.hitron_coda_4680 import HitronCoda4680Driver
 from app.drivers.sagemcom import SagemcomDriver
 from app.drivers.sb6141 import SB6141Driver
-from app.drivers.sb6183 import SB6183Driver
-from app.drivers.sb6190 import SB6190Driver
 from app.drivers.sb8200_cbn import Query as SB8200Query, SB8200CBNDriver
 from app.drivers.sercom_dm1000 import SercomDM1000Driver
 from app.drivers.surfboard import SurfboardDriver
@@ -133,6 +137,17 @@ def _flat(downstream=None, upstream=None) -> dict[str, Any]:
     return {"docsis": "3.1", "downstream": downstream or [], "upstream": upstream or []}
 
 
+def _poll(driver: Any, transport: str, **mock: Any) -> Any:
+    """Run the public driver poll with one transport attribute patched."""
+    with patch.object(driver, transport, **mock):
+        return driver.get_docsis_data()
+
+
+def _page(driver_cls: type, html: str) -> Any:
+    driver = driver_cls("http://modem.invalid", "user", "password")
+    return _poll(driver, "_session", **{"get.return_value": _Response(text=html)})
+
+
 def _fritz(raw: dict[str, Any]) -> Any:
     driver = FritzBoxDriver("http://modem.invalid", "user", "password")
     response = _Response(payload={"data": raw})
@@ -141,28 +156,28 @@ def _fritz(raw: dict[str, Any]) -> Any:
 
 
 def _tc(ds_html: str, us_html: str) -> Any:
-    driver = TC4400Driver("http://modem.invalid", "user", "password")
-    ds = BeautifulSoup(ds_html, "html.parser").find("table")
-    us = BeautifulSoup(us_html, "html.parser").find("table")
-    return _flat(driver._parse_downstream(ds), driver._parse_upstream(us))
+    # The status page carries a leading info table before the two channel tables.
+    return _page(TC4400Driver, "<table></table>" + ds_html + us_html)
 
 
 def _ultrahub(ds: list[dict[str, Any]], us: list[dict[str, Any]]) -> Any:
     driver = UltraHub7Driver("http://modem.invalid", "", "password")
-    return _flat(driver._parse_downstream_channels(ds), driver._parse_upstream_channels(us))
+    driver._csrf_token = "csrf"  # Any value marks the session as logged in.
+    rows = {"downstream": ds, "upstream": us}
+    # Each list endpoint lives at /api/docsis/<direction>/list.jst.
+    return _poll(driver, "_session", **{"get.side_effect": lambda url, **_: _Response(payload={"channels": rows[url.split("/")[-2]]})})
 
 
 def _vodafone_cga(payload: Any) -> Any:
     driver = VodafoneStationDriver("http://modem.invalid", "admin", "password")
-    with patch.object(driver, "_cga_request", return_value=_Response(payload={"data": payload})):
-        return driver._get_docsis_cga()
+    driver._variant = driver.VARIANT_CGA
+    return _poll(driver, "_cga_request", return_value=_Response(payload={"data": payload}))
 
 
 def _vodafone_tg(html: str) -> Any:
     driver = VodafoneStationDriver("http://modem.invalid", "admin", "password")
-    driver._tg_nonce = "captured-boundary"
-    with patch.object(driver, "_tg_docsis_request", return_value=_Response(text=html)):
-        return driver._get_docsis_tg()
+    driver._variant, driver._tg_nonce = driver.VARIANT_TG, "captured-boundary"
+    return _poll(driver, "_tg_docsis_request", return_value=_Response(text=html))
 
 
 def _ch7465(ds_xml: str, us_xml: str) -> Any:
@@ -171,8 +186,7 @@ def _ch7465(ds_xml: str, us_xml: str) -> Any:
     def get_data(query: Query) -> str:
         return ds_xml if query is Query.DOWNSTREAM_TABLE else us_xml
 
-    with patch.object(driver, "_get_data", side_effect=get_data):
-        return driver.get_docsis_data()
+    return _poll(driver, "_get_data", side_effect=get_data)
 
 
 def _sb8200_cbn(ds: str, us: str, ofdm: str, ofdma: str, signal: str) -> Any:
@@ -207,28 +221,27 @@ def _cm3000_html(ds: str, us: str, ds_ofdm: str, us_ofdma: str) -> str:
 
 def _cm3000(html: str) -> Any:
     driver = CM3000Driver("http://modem.invalid", "admin", "password")
-    with patch.object(driver, "_fetch_status_page", return_value=html):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_status_page", return_value=html)
 
 
 def _cm1000(html: str) -> Any:
     driver = CM1000Driver("http://modem.invalid", "admin", "password")
-    with patch.object(driver, "_fetch_status_page", return_value=html):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_status_page", return_value=html)
 
 
 def _cm3500(html: str) -> Any:
     driver = CM3500Driver("http://modem.invalid", "admin", "password")
-    soup = BeautifulSoup(html, "html.parser")
-    with patch.object(driver, "_fetch_status_page", return_value=soup):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_status_page", return_value=BeautifulSoup(html, "html.parser"))
 
 
 def _surfboard(ds: str, us: str) -> Any:
     driver = SurfboardDriver("https://modem.invalid", "admin", "password")
-    ds30, ds31 = driver._parse_downstream(ds)
-    us30, us31 = driver._parse_upstream(us)
-    return _split(ds30, ds31, us30, us31)
+    driver._action_ns = "Customer"  # Skip the namespace probe.
+    reply = {"GetMultipleHNAPsResponse": {
+        "GetCustomerStatusDownstreamChannelInfoResponse": {"CustomerConnDownstreamChannel": ds},
+        "GetCustomerStatusUpstreamChannelInfoResponse": {"CustomerConnUpstreamChannel": us},
+    }}
+    return _poll(driver, "_hnap_post", return_value=reply)
 
 
 def _first_data_table(html: str, marker: str) -> Any:
@@ -246,61 +259,40 @@ def _first_data_table(html: str, marker: str) -> Any:
     return None
 
 
-def _sb6141(signal_html: str) -> Any:
-    driver = SB6141Driver("http://modem.invalid", "", "")
-    soup = BeautifulSoup(signal_html, "html.parser")
-    tables = soup.find_all("table")
-    ds = us = cw = None
-    for table in tables:
-        th = table.find("th")
-        heading = th.get_text(" ", strip=True).lower() if th else ""
-        if "downstream" in heading:
-            ds = table
-        elif "upstream" in heading:
-            us = table
-        elif "signal status" in heading or "codeword" in heading:
-            cw = table
-    return _split(driver._parse_downstream(ds, cw), [], driver._parse_upstream(us), [])
-
-
-def _row_html_driver(driver_cls: type, html: str) -> Any:
-    driver = driver_cls("http://modem.invalid", "admin", "password")
-    soup = BeautifulSoup(html, "html.parser")
-    ds = _first_data_table(str(soup), "downstream bonded")
-    us = _first_data_table(str(soup), "upstream bonded")
-    return _split(driver._parse_downstream(ds), [], driver._parse_upstream(us), [])
+def _row_html(parse_downstream: Callable, parse_upstream: Callable, html: str) -> Any:
+    ds = _first_data_table(html, "downstream bonded")
+    us = _first_data_table(html, "upstream bonded")
+    return _split(parse_downstream(ds).value, [], parse_upstream(us).value, [])
 
 
 def _hitron(payloads: dict[str, list[dict[str, Any]]]) -> Any:
     driver = HitronDriver("http://modem.invalid", "", "")
-    with patch.object(driver, "_fetch_json", side_effect=lambda path: payloads[path]):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_json", side_effect=lambda path: payloads[path])
 
 
 def _hitron_4680(payloads: dict[str, dict[str, Any]]) -> Any:
     driver = HitronCoda4680Driver("http://modem.invalid", "admin", "password")
-    with patch.object(driver, "_fetch_payload", side_effect=lambda path: payloads[path]):
-        return driver.get_docsis_data()
+    return _poll(driver, "_fetch_payload", side_effect=lambda path: payloads[path])
 
 
 def _sagemcom(ds: list[dict[str, Any]], us: list[dict[str, Any]]) -> Any:
     driver = SagemcomDriver("http://modem.invalid", "admin", "password")
-    ds30, ds31 = driver._parse_downstream(ds)
-    us30, us31 = driver._parse_upstream(us)
-    return _split(ds30, ds31, us30, us31)
+    reply = {"reply": {"actions": [{"callbacks": [
+        {"xpath": "Device/Docsis/CableModem/Downstreams", "parameters": {"value": ds}},
+        {"xpath": "Device/Docsis/CableModem/Upstreams", "parameters": {"value": us}},
+    ]}]}}
+    return _poll(driver, "_api_call", return_value=reply)
 
 
 def _f3896(ds: list[dict[str, Any]], us: list[dict[str, Any]]) -> Any:
     driver = F3896LGDriver("http://modem.invalid", "", "")
-    ds30, ds31 = driver._parse_downstream(ds)
-    us30, us31 = driver._parse_upstream(us)
-    return _split(ds30, ds31, us30, us31)
+    rows = {"downstream": ds, "upstream": us}
+    return _poll(driver, "_get_channels", side_effect=lambda _path, section: rows[section])
 
 
 def _pyur(payload: Any) -> Any:
     driver = PyurFast3896Driver("http://modem.invalid", "", "synthetic")
-    with patch.object(driver, "_get", return_value=payload):
-        return driver.get_docsis_data()
+    return _poll(driver, "_get", return_value=payload)
 
 
 def _sercom(
@@ -310,30 +302,36 @@ def _sercom(
     us_ofdma: list[dict[str, Any]],
 ) -> Any:
     driver = SercomDM1000Driver("http://modem.invalid", "technician", "password")
-    return _split(
-        driver._parse_ds_scqam(ds),
-        driver._parse_ds_ofdm(ds_ofdm),
-        driver._parse_us_scqam(us),
-        driver._parse_us_ofdma(us_ofdma),
-    )
+    nodes = {"RF_DS_param": ds, "RF_DS_31_param": ds_ofdm, "RF_US_param": us, "RF_US_31_param": us_ofdma}
+    return _poll(driver, "_fetch_payload", side_effect=lambda todo: {"nodes": nodes[todo]})
 
 
-def _cgm(ds: dict[str, list[str]], us: dict[str, list[str]], errors: dict[str, list[str]]) -> Any:
+def _cgm_html(ds: dict[str, list[str]], us: dict[str, list[str]], errors: dict[str, list[str]]) -> str:
+    """Render label -> per-channel values as the status page's section rows."""
+    def rows(values: dict[str, list[str]]) -> str:
+        return "".join(
+            f'<tr><th>{label}</th>{"".join(f"<td><div class=\"netWidth\">{value}</div></td>" for value in items)}</tr>'
+            for label, items in values.items()
+        )
+
+    return f">Downstream<{rows(ds)}>Upstream<{rows(us)}CM Error Codewords{rows(errors)}"
+
+
+def _cgm(html: str) -> Any:
     driver = CGM4981Driver("http://modem.invalid", "admin", "password")
-    downstream = driver._build_ds_channels(ds, errors)
-    upstream = driver._build_us_channels(us)
-    return _split(
-        [channel for channel in downstream if channel.get("modulation") != "OFDM"],
-        [channel for channel in downstream if channel.get("modulation") == "OFDM"],
-        [channel for channel in upstream if channel.get("modulation") != "OFDMA"],
-        [channel for channel in upstream if channel.get("modulation") == "OFDMA"],
-    )
+    return _poll(driver, "_fetch_status_page", return_value=html)
 
 
 # Captured values reused from the existing focused tests, reduced to one row per
 # supported lane so the expected structures stay readable.
 TC_DS_SUCCESS = """<table><tr><th>Channel ID</th><th>Lock Status</th><th>Channel Type</th><th>Modulation</th><th>Frequency</th><th>Power</th><th>SNR</th><th>Corrected</th><th>Uncorrected</th></tr><tr><td>7</td><td>Locked</td><td>SC-QAM</td><td>256QAM</td><td>591000000 Hz</td><td>4.6 dBmV</td><td>36.4 dB</td><td>3</td><td>30</td></tr><tr><td>193</td><td>Locked</td><td>OFDM</td><td>OFDM</td><td>275600000 Hz</td><td>3.2 dBmV</td><td>38 dB</td><td>9</td><td>1</td></tr></table>"""
 TC_US_SUCCESS = """<table><tr><th>Channel ID</th><th>Lock Status</th><th>Modulation</th><th>Frequency</th><th>Power</th></tr><tr><td>6</td><td>Locked</td><td>ATDMA</td><td>25900000 Hz</td><td>35 dBmV</td></tr><tr><td>41</td><td>Locked</td><td>OFDMA</td><td>42000000 Hz</td><td>37.75 dBmV</td></tr></table>"""
+
+CGM4981_SUCCESS = _cgm_html(
+    {"Channel ID": ["7", "193"], "Lock Status": ["Locked", "Locked"], "Frequency": ["591 MHz", "690000000"], "SNR": ["40 dB", "41.8 dB"], "Power Level": ["0 dBmV", ""], "Modulation": ["256 QAM", "OFDM"]},
+    {"Channel ID": ["3", "41"], "Lock Status": ["Locked", "Locked"], "Frequency": ["29 MHz", "42 MHz"], "Power Level": ["43.5 dBmV", "37.75 dBmV"], "Modulation": ["QAM", "OFDMA"], "Channel Type": ["ATDMA", "OFDMA"]},
+    {"Channel ID": ["7", "193"], "Correctable Codewords": ["3", "9"], "Uncorrectable Codewords": ["0", "1"]},
+)
 
 TG_SUCCESS = """<script>json_dsData = [{"ChannelID":"7","ChannelType":"SC-QAM","Frequency":"591000000","Modulation":"256QAM","PowerLevel":"-1.2 dBmV/1158.8 dBuV","SNRLevel":"40.0 dB"},{"ChannelID":"193","ChannelType":"OFDM","Frequency":"275600000~472950000","Modulation":"OFDM","PowerLevel":"3.2 dBmV","SNRLevel":"38 dB"}]; json_usData = [{"ChannelID":"6","ChannelType":"SC-QAM","Frequency":"25900000","Modulation":"64QAM","PowerLevel":"35 dBmV"},{"ChannelID":"41","ChannelType":"OFDMA","Frequency":"42000000","Modulation":"","PowerLevel":"37.75 dBmV"}];</script>"""
 
@@ -403,7 +401,7 @@ def _cases() -> list[DriverFormatCase]:
     add("fritzbox_data_lua.success_duplicates_missing_id", "fritzbox", "fritzbox_data_lua", "captured-shape", lambda: _fritz(json.loads(json.dumps(FRITZ_SUCCESS))), fritz_expected)
     add("fritzbox_data_lua.empty", "fritzbox", "fritzbox_data_lua", "minimal-empty", lambda: _fritz(json.loads(json.dumps(EMPTY_SPLIT))), EMPTY_SPLIT)
     fritz_bad = _split(us31=[{"channelID": 5, "powerLevel": "not-a-number"}])
-    add("fritzbox_data_lua.malformed_power", "fritzbox", "fritzbox_data_lua", "minimal-synthetic-malformed", lambda: _fritz(json.loads(json.dumps(fritz_bad))), fritz_bad)
+    add("fritzbox_data_lua.malformed_power", "fritzbox", "fritzbox_data_lua", "minimal-synthetic-malformed", lambda: _fritz(json.loads(json.dumps(fritz_bad))), _split(us31=[{"channelID": 5, "powerLevel": None}]))
 
     pyur = json.loads((Path(__file__).resolve().parents[1] / "fixtures/pyur_fast3896/connection.json").read_text())[0]
     pyur_sample = [{
@@ -422,8 +420,8 @@ def _cases() -> list[DriverFormatCase]:
 
     tc_expected = _flat(
         [
-            {"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 4.6, "mse": -36.4, "mer": 36.4, "latency": 0, "corrError": 3, "nonCorrError": 30},
-            {"channelID": "193", "type": "OFDM", "frequency": "275 MHz", "powerLevel": 3.2, "mse": None, "mer": 38.0, "latency": 0, "corrError": 9, "nonCorrError": 1},
+            {"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 4.6, "mse": -36.4, "mer": 36.4, "corrErrors": 3, "nonCorrErrors": 30},
+            {"channelID": "193", "type": "OFDM", "frequency": "275 MHz", "powerLevel": 3.2, "mse": None, "mer": 38.0, "corrErrors": 9, "nonCorrErrors": 1},
         ],
         [
             {"channelID": "6", "type": "ATDMA", "frequency": "25 MHz", "powerLevel": 35.0, "multiplex": ""},
@@ -437,17 +435,17 @@ def _cases() -> list[DriverFormatCase]:
     ultra_ds = [{"ChannelID": "7", "Frequency": "591 MHz", "Modulation": "256QAM", "PowerLevel": "0 dBmV", "SNRLevel": "40 dB"}, {"ChannelID": "193", "Frequency": "690 MHz", "Modulation": "OFDM", "PowerLevel": "-0.32 dBmV", "SNRLevel": "41.8 dB"}]
     ultra_us = [{"ChannelID": "3", "Frequency": "29.2 MHz", "Modulation": "ATDMA", "PowerLevel": "43.5 dBmV"}, {"ChannelID": "41", "Frequency": "36.2 MHz", "Modulation": "OFDMA", "PowerLevel": "36.5 dBmV"}]
     ultra_expected = _flat(
-        [{"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 0.0, "mer": 40.0, "mse": None, "latency": 0, "corrErrors": None, "nonCorrErrors": None}, {"channelID": "193", "type": "OFDM", "frequency": "690 MHz", "powerLevel": -0.32, "mer": 41.8, "mse": None, "latency": 0, "corrErrors": None, "nonCorrErrors": None}],
+        [{"channelID": "7", "type": "256QAM", "frequency": "591 MHz", "powerLevel": 0.0, "mer": 40.0, "mse": None, "corrErrors": None, "nonCorrErrors": None}, {"channelID": "193", "type": "OFDM", "frequency": "690 MHz", "powerLevel": -0.32, "mer": 41.8, "mse": None, "corrErrors": None, "nonCorrErrors": None}],
         [{"channelID": "3", "type": "ATDMA", "frequency": "29 MHz", "powerLevel": 43.5, "multiplex": ""}, {"channelID": "41", "type": "OFDMA", "frequency": "36 MHz", "powerLevel": 36.5, "multiplex": ""}],
     )
     add("ultrahub7_json.success_scqam_ofdm_ofdma", "ultrahub7", "ultrahub7_json", "minimal-synthetic-existing-fields", lambda: _ultrahub(ultra_ds, ultra_us), ultra_expected)
-    add("ultrahub7_json.missing_fields_become_zero", "ultrahub7", "ultrahub7_json", "minimal-missing", lambda: _ultrahub([{}], [{}]), _flat([{"channelID": "0", "type": "", "frequency": "0 MHz", "powerLevel": 0.0, "mer": None, "mse": None, "latency": 0, "corrErrors": None, "nonCorrErrors": None}], [{"channelID": "0", "type": "", "frequency": "0 MHz", "powerLevel": 0.0, "multiplex": ""}]))
+    add("ultrahub7_json.missing_fields", "ultrahub7", "ultrahub7_json", "minimal-missing", lambda: _ultrahub([{}], [{}]), _flat([{"channelID": "0", "type": "", "frequency": "0 MHz", "powerLevel": None, "mer": None, "mse": None, "corrErrors": None, "nonCorrErrors": None}], [{"channelID": "0", "type": "", "frequency": "0 MHz", "powerLevel": None, "multiplex": ""}]))
     add("ultrahub7_json.malformed_channel_id", "ultrahub7", "ultrahub7_json", "minimal-synthetic-malformed", lambda: _ultrahub([{"ChannelID": "bad"}], [{"ChannelID": "bad"}]), EMPTY_FLAT_31)
 
     cga_success = {"downstream": [{"channelid": "7", "CentralFrequency": "591000000", "power": "0", "SNR": "40", "FFT": "256QAM"}], "ofdm_downstream": [{"channelid_ofdm": "193", "CentralFrequency_ofdm": "690000000", "power_ofdm": "-0.32", "SNR_ofdm": "41.8"}], "upstream": [{"channelidup": "3", "CentralFrequency": "29200000", "power": "43.5", "FFT": "64QAM"}], "ofdma_upstream": [{"channelidup": "41", "CentralFrequency": "36200000", "power": "36.5", "FFT": "64-qam", "ChannelType": "OFDMA"}]}
     cga_expected = _split(
-        [{"channelID": 7, "type": "256QAM", "frequency": "591 MHz", "powerLevel": 0.0, "mse": -40.0, "mer": 40.0, "latency": 0, "corrError": 0, "nonCorrError": 0}],
-        [{"channelID": 193, "type": "OFDM", "frequency": "690 MHz", "powerLevel": -0.32, "mse": -41.8, "mer": 41.8, "latency": 0, "corrError": 0, "nonCorrError": 0}],
+        [{"channelID": 7, "type": "256QAM", "frequency": "591 MHz", "powerLevel": 0.0, "mse": -40.0, "mer": 40.0}],
+        [{"channelID": 193, "type": "OFDM", "frequency": "690 MHz", "powerLevel": -0.32, "mse": -41.8, "mer": 41.8}],
         [{"channelID": 3, "type": "64QAM", "frequency": "29 MHz", "powerLevel": 43.5, "multiplex": ""}],
         [{"channelID": 41, "type": "OFDMA", "frequency": "36 MHz", "powerLevel": 36.5, "modulation": "64QAM", "multiplex": ""}],
     )
@@ -456,8 +454,8 @@ def _cases() -> list[DriverFormatCase]:
     add("vodafone_station_cga_json.malformed_non_object_channel", "vodafone_station", "vodafone_station_cga_json", "minimal-synthetic-malformed", lambda: _vodafone_cga({"downstream": [None]}), None)
 
     tg_expected = _split(
-        [{"channelID": 7, "type": "256QAM", "frequency": "591.000 MHz", "powerLevel": -1.2, "mse": -40.0, "mer": 40.0, "latency": 0, "corrError": 0, "nonCorrError": 0}],
-        [{"channelID": 193, "type": "OFDM", "frequency": "374.275 MHz", "powerLevel": 3.2, "mse": -38.0, "mer": 38.0, "latency": 0, "corrError": 0, "nonCorrError": 0}],
+        [{"channelID": 7, "type": "256QAM", "frequency": "591.000 MHz", "powerLevel": -1.2, "mse": -40.0, "mer": 40.0}],
+        [{"channelID": 193, "type": "OFDM", "frequency": "374.275 MHz", "powerLevel": 3.2, "mse": -38.0, "mer": 38.0}],
         [{"channelID": 6, "type": "64QAM", "frequency": "25.900 MHz", "powerLevel": 35.0, "multiplex": ""}],
         [{"channelID": 41, "type": "OFDMA", "frequency": "42.000 MHz", "powerLevel": 37.75, "multiplex": ""}],
     )
@@ -525,7 +523,7 @@ def _cases() -> list[DriverFormatCase]:
     )
     add("cm3500_html.success_all_lanes", "cm3500", "cm3500_html", "captured-subset", lambda: _cm3500(CM3500_SUCCESS), cm3500_expected)
     add("cm3500_html.empty_document", "cm3500", "cm3500_html", "minimal-empty", lambda: _cm3500("<html></html>"), EMPTY_SPLIT)
-    add("cm3500_html.malformed_numeric", "cm3500", "cm3500_html", "minimal-synthetic-malformed", lambda: _cm3500("<h4>Downstream QAM</h4><table><tr><td>a</td><td>b</td><td>c</td><td>d</td><td>e</td><td>f</td><td>g</td><td>h</td><td>i</td></tr><tr><td>x</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>QAM</td><td>0</td><td>bad</td><td>bad</td></tr></table>"), _split(ds30=[{"channelID": 0, "frequency": "bad", "powerLevel": 0.0, "mse": -0.0, "mer": 0.0, "modulation": "QAM", "corrErrors": 0, "nonCorrErrors": 0}]))
+    add("cm3500_html.malformed_numeric", "cm3500", "cm3500_html", "minimal-synthetic-malformed", lambda: _cm3500("<h4>Downstream QAM</h4><table><tr><td>a</td><td>b</td><td>c</td><td>d</td><td>e</td><td>f</td><td>g</td><td>h</td><td>i</td></tr><tr><td>x</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>QAM</td><td>0</td><td>bad</td><td>bad</td></tr></table>"), EMPTY_SPLIT)
 
     surf_ds = "1^Locked^256QAM^43^705000000^0.0^40.9^31^0^|+|2^Locked^OFDM PLC^193^957000000^0.1^43.0^9^1^"
     surf_us = "1^Locked^SC-QAM^3^6400000^29200000^46.5^|+|2^Locked^OFDMA^41^44400000^36200000^43.8^"
@@ -545,18 +543,18 @@ def _cases() -> list[DriverFormatCase]:
         [{"channelID": 3, "frequency": "29.2 MHz", "powerLevel": 43.5, "modulation": "SC-QAM Upstream", "multiplex": "SC-QAM"}],
         [{"channelID": 41, "frequency": "36.2 MHz", "powerLevel": 36.5, "modulation": "OFDM Upstream", "type": "OFDMA", "multiplex": ""}],
     )
-    add("arris_html.success_scqam_ofdm_ofdma", "surfboard,cm8200", "arris_html", "captured-subset", lambda: parse_arris_channel_tables(ARRIS_SUCCESS), arris_expected)
-    add("arris_html.empty_document", "surfboard,cm8200", "arris_html", "minimal-empty", lambda: parse_arris_channel_tables("<html></html>"), EMPTY_SPLIT)
+    add("arris_html.success_scqam_ofdm_ofdma", "surfboard,cm8200", "arris_html", "captured-subset", lambda: parse_arris_html(ARRIS_SUCCESS).value, arris_expected)
+    add("arris_html.empty_document", "surfboard,cm8200", "arris_html", "minimal-empty", lambda: parse_arris_html("<html></html>").value, EMPTY_SPLIT)
     arris_bad = ARRIS_SUCCESS.replace("<td>7</td><td>Locked</td>", "<td>bad</td><td>Locked</td>").replace("<td>3</td><td>Locked</td>", "<td>bad</td><td>Locked</td>")
-    add("arris_html.malformed_channel_ids", "surfboard,cm8200", "arris_html", "minimal-synthetic-malformed", lambda: parse_arris_channel_tables(arris_bad), _split(ds31=arris_expected["channelDs"]["docsis31"], us31=arris_expected["channelUs"]["docsis31"]))
+    add("arris_html.malformed_channel_ids", "surfboard,cm8200", "arris_html", "minimal-synthetic-malformed", lambda: parse_arris_html(arris_bad).value, _split(ds31=arris_expected["channelDs"]["docsis31"], us31=arris_expected["channelUs"]["docsis31"]))
 
     sb6141_expected = _split(
         [{"channelID": 7, "frequency": "591 MHz", "powerLevel": 0.0, "mer": 40.0, "mse": -40.0, "modulation": "256QAM", "corrErrors": 3, "nonCorrErrors": 1}], [],
         [{"channelID": 3, "frequency": "29.2 MHz", "powerLevel": 43.5, "modulation": "64QAM", "multiplex": "SC-QAM"}], [],
     )
-    add("sb6141_transposed_html.success", "sb6141", "sb6141_transposed_html", "captured-subset", lambda: _sb6141(SB6141_SUCCESS), sb6141_expected)
-    add("sb6141_transposed_html.empty_document", "sb6141", "sb6141_transposed_html", "minimal-empty", lambda: _sb6141("<html></html>"), EMPTY_SPLIT)
-    add("sb6141_transposed_html.malformed_channel_id", "sb6141", "sb6141_transposed_html", "minimal-synthetic-malformed", lambda: _sb6141(SB6141_SUCCESS.replace("<td>7</td>", "<td>bad</td>", 1).replace("<td>3</td>", "<td>bad</td>", 1)), EMPTY_SPLIT)
+    add("sb6141_transposed_html.success", "sb6141", "sb6141_transposed_html", "captured-subset", lambda: _page(SB6141Driver, SB6141_SUCCESS), sb6141_expected)
+    add("sb6141_transposed_html.empty_document", "sb6141", "sb6141_transposed_html", "minimal-empty", lambda: _page(SB6141Driver, "<html></html>"), EMPTY_SPLIT)
+    add("sb6141_transposed_html.malformed_channel_id", "sb6141", "sb6141_transposed_html", "minimal-synthetic-malformed", lambda: _page(SB6141Driver, SB6141_SUCCESS.replace("<td>7</td>", "<td>bad</td>", 1).replace("<td>3</td>", "<td>bad</td>", 1)), EMPTY_SPLIT)
 
     from tests.test_sb6183_driver import SAMPLE_STATUS_HTML as SB6183_HTML
     from tests.test_sb6190_driver import SAMPLE_STATUS_HTML as SB6190_HTML
@@ -568,12 +566,13 @@ def _cases() -> list[DriverFormatCase]:
         ds30=[{"channelID": 13, "frequency": "807 MHz", "powerLevel": 10.5, "mer": 40.95, "mse": -40.95, "modulation": "256QAM", "corrErrors": 33, "nonCorrErrors": 0}],
         us30=[{"channelID": 1, "frequency": "17.6 MHz", "powerLevel": 35.0, "modulation": "ATDMA", "multiplex": "ATDMA"}],
     )
-    add("sb6183_html.success_captured_first_rows", "sb6183", "sb6183_html", "captured-disk", lambda: _row_html_driver(SB6183Driver, SB6183_HTML), sb6183_success)
-    add("sb6183_html.empty_document", "sb6183", "sb6183_html", "minimal-empty", lambda: _row_html_driver(SB6183Driver, "<html></html>"), EMPTY_SPLIT)
-    add("sb6183_html.malformed_rows", "sb6183", "sb6183_html", "minimal-synthetic-malformed", lambda: _row_html_driver(SB6183Driver, "<table><tr><th>Downstream Bonded</th></tr><tr><td>1</td><td>Locked</td><td>QAM</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td></tr></table>"), EMPTY_SPLIT)
-    add("sb6190_html.success_captured_first_rows", "sb6190", "sb6190_html", "captured-inline", lambda: _row_html_driver(SB6190Driver, SB6190_HTML), sb6190_success)
-    add("sb6190_html.empty_document", "sb6190", "sb6190_html", "minimal-empty", lambda: _row_html_driver(SB6190Driver, "<html></html>"), EMPTY_SPLIT)
-    add("sb6190_html.malformed_rows", "sb6190", "sb6190_html", "minimal-synthetic-malformed", lambda: _row_html_driver(SB6190Driver, "<table><tr><th>Downstream Bonded</th></tr><tr><td>1</td><td>Locked</td><td>QAM</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td></tr></table>"), EMPTY_SPLIT)
+    sb_malformed = "<table><tr><th>Downstream Bonded</th></tr><tr><td>1</td><td>Locked</td><td>QAM</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td><td>bad</td></tr></table>"
+    add("sb6183_html.success_captured_first_rows", "sb6183", "sb6183_html", "captured-disk", lambda: _row_html(parse_sb6183_downstream, parse_sb6183_upstream, SB6183_HTML), sb6183_success)
+    add("sb6183_html.empty_document", "sb6183", "sb6183_html", "minimal-empty", lambda: _row_html(parse_sb6183_downstream, parse_sb6183_upstream, "<html></html>"), EMPTY_SPLIT)
+    add("sb6183_html.malformed_rows", "sb6183", "sb6183_html", "minimal-synthetic-malformed", lambda: _row_html(parse_sb6183_downstream, parse_sb6183_upstream, sb_malformed), EMPTY_SPLIT)
+    add("sb6190_html.success_captured_first_rows", "sb6190", "sb6190_html", "captured-inline", lambda: _row_html(parse_sb6190_downstream, parse_sb6190_upstream, SB6190_HTML), sb6190_success)
+    add("sb6190_html.empty_document", "sb6190", "sb6190_html", "minimal-empty", lambda: _row_html(parse_sb6190_downstream, parse_sb6190_upstream, "<html></html>"), EMPTY_SPLIT)
+    add("sb6190_html.malformed_rows", "sb6190", "sb6190_html", "minimal-synthetic-malformed", lambda: _row_html(parse_sb6190_downstream, parse_sb6190_upstream, sb_malformed), EMPTY_SPLIT)
 
     from tests.test_hitron_driver import DS_OFDM_DATA, DS_SCQAM_DATA, US_OFDMA_DATA, US_SCQAM_DATA
     hitron_payload = {"/data/dsinfo.asp": DS_SCQAM_DATA[:1], "/data/usinfo.asp": US_SCQAM_DATA[:1], "/data/dsofdminfo.asp": DS_OFDM_DATA[:1], "/data/usofdminfo.asp": US_OFDMA_DATA[:1]}
@@ -635,18 +634,15 @@ def _cases() -> list[DriverFormatCase]:
     add("sercom_dm1000_json.empty_arrays", "sercom_dm1000", "sercom_dm1000_json", "minimal-empty", lambda: _sercom([], [], [], []), EMPTY_SPLIT)
     add("sercom_dm1000_json.malformed_missing_required_fields", "sercom_dm1000", "sercom_dm1000_json", "minimal-synthetic-malformed", lambda: _sercom([{"qamD": "256QAM"}], [{"PLC": "YES", "MDC1": "YES", "AV_Data": "40"}], [{"modulation": "64QAM", "upstream": "1", "rate": "2.56"}], [{"name": "CH", "index1": "bad"}, {"name": "Power", "index1": "ON"}, {"name": "STATE", "index1": "RNG3"}, {"name": "Center Freq SC0", "index1": "42"}]), EMPTY_SPLIT)
 
-    cgm_ds = {"Channel ID": ["7", "193"], "Lock Status": ["Locked", "Locked"], "Frequency": ["591 MHz", "690000000"], "SNR": ["40 dB", "41.8 dB"], "Power Level": ["0 dBmV", ""], "Modulation": ["256 QAM", "OFDM"]}
-    cgm_us = {"Channel ID": ["3", "41"], "Lock Status": ["Locked", "Locked"], "Frequency": ["29 MHz", "42 MHz"], "Power Level": ["43.5 dBmV", "37.75 dBmV"], "Modulation": ["QAM", "OFDMA"], "Channel Type": ["ATDMA", "OFDMA"]}
-    cgm_err = {"Channel ID": ["7", "193"], "Correctable Codewords": ["3", "9"], "Uncorrectable Codewords": ["0", "1"]}
     cgm_expected = _split(
         ds30=[{"channelID": 7, "frequency": "591 MHz", "powerLevel": 0.0, "mer": 40.0, "mse": -40.0, "modulation": "256QAM", "corrErrors": 3, "nonCorrErrors": 0}],
         ds31=[{"channelID": 193, "frequency": "690 MHz", "powerLevel": None, "mer": 41.8, "mse": -41.8, "modulation": "OFDM", "corrErrors": 9, "nonCorrErrors": 1, "type": "OFDM"}],
         us30=[{"channelID": 3, "frequency": "29 MHz", "powerLevel": 43.5, "modulation": "QAM", "multiplex": "ATDMA"}],
         us31=[{"channelID": 41, "frequency": "42 MHz", "powerLevel": 37.75, "modulation": "OFDMA", "multiplex": "OFDMA", "type": "OFDMA"}],
     )
-    add("cgm4981_columnar_html.success_all_lanes", "cgm4981", "cgm4981_columnar_html", "minimal-synthetic-existing-fields", lambda: _cgm(cgm_ds, cgm_us, cgm_err), cgm_expected)
-    add("cgm4981_columnar_html.empty_rows", "cgm4981", "cgm4981_columnar_html", "minimal-empty", lambda: _cgm({}, {}, {}), EMPTY_SPLIT)
-    add("cgm4981_columnar_html.malformed_channel_ids", "cgm4981", "cgm4981_columnar_html", "minimal-synthetic-malformed", lambda: _cgm({"Channel ID": ["bad"], "Lock Status": ["Locked"]}, {"Channel ID": ["bad"], "Lock Status": ["Locked"]}, {}), EMPTY_SPLIT)
+    add("cgm4981_columnar_html.success_all_lanes", "cgm4981", "cgm4981_columnar_html", "minimal-synthetic-existing-fields", lambda: _cgm(CGM4981_SUCCESS), cgm_expected)
+    add("cgm4981_columnar_html.empty_rows", "cgm4981", "cgm4981_columnar_html", "minimal-empty", lambda: _cgm(_cgm_html({}, {}, {})), EMPTY_SPLIT)
+    add("cgm4981_columnar_html.malformed_channel_ids", "cgm4981", "cgm4981_columnar_html", "minimal-synthetic-malformed", lambda: _cgm(_cgm_html({"Channel ID": ["bad"], "Lock Status": ["Locked"]}, {"Channel ID": ["bad"], "Lock Status": ["Locked"]}, {})), EMPTY_SPLIT)
 
     generic = GenericDriver("", "", "")
     add("generic_no_docsis.success_boundary", "generic", "generic_no_docsis", "no-input-boundary", generic.get_docsis_data, EMPTY_SPLIT)

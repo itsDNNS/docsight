@@ -24,13 +24,12 @@ def storage(tmp_path):
 
 
 @pytest.fixture
-def events_client(tmp_path, storage):
+def events_client(tmp_path, storage, route_app):
     config_mgr = ConfigManager(str(tmp_path / "config"))
     config_mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
     current_runtime().config_manager = config_mgr
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
@@ -90,6 +89,19 @@ def _make_analysis(health="good", ds_power_avg=2.5, us_power_avg=42.0,
         "ds_channels": ds_channels,
         "us_channels": us_channels,
     }
+
+
+_OFDM = {"type": "OFDM", "modulation": "OFDM", "frequency": ""}
+
+
+def _row(channel_id, power, uncorrectable=0, **fields):
+    """A driver channel row whose frequency follows from its ID unless given."""
+    return {"channelID": channel_id, "frequency": f"{114 + 8 * channel_id} MHz", "powerLevel": power,
+            "modulation": "256QAM", "mer": "38", "corrErrors": 0, "nonCorrErrors": uncorrectable, **fields}
+
+
+def _poll(*downstream, us=()):
+    return {"docsis": "3.1", "downstream": list(downstream), "upstream": list(us)}
 
 
 # ── Storage Tests ──
@@ -164,15 +176,17 @@ class TestEventStorage:
         assert storage.get_event_count(severities=("warning", "critical"), since="2026-10-03T12:00:00Z") == 2
         assert storage.get_event_count(since="2026-10-04T00:00:00Z") == 2
 
-    def test_acknowledge_events_only_counts_newly_acknowledged(self, storage):
+    def test_set_events_acknowledged_only_counts_changed_events(self, storage):
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         first = storage.save_event(ts, "warning", "power_change", "Msg 1")
         second = storage.save_event(ts, "warning", "power_change", "Msg 2")
         third = storage.save_event(ts, "warning", "power_change", "Msg 3")
         storage.acknowledge_event(first)
-        assert storage.acknowledge_events([first, second, 9999]) == 1
-        assert storage.acknowledge_events([]) == 0
+        assert storage.set_events_acknowledged([first, second, 9999], True) == 1
+        assert storage.set_events_acknowledged([], True) == 0
         assert [e["id"] for e in storage.get_events(acknowledged=False)] == [third]
+        assert storage.set_events_acknowledged([first, third], False) == 1
+        assert [e["id"] for e in storage.get_events(acknowledged=True)] == [second]
 
     def test_acknowledge_all(self, storage):
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -189,8 +203,7 @@ class TestEventStorage:
         new_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         s.save_event(old_ts, "info", "channel_change", "Old event")
         s.save_event(new_ts, "info", "channel_change", "New event")
-        deleted = s.delete_old_events(1)
-        assert deleted == 1
+        s._cleanup()
         assert len(s.get_events()) == 1
 
     def test_events_newest_first(self, storage):
@@ -349,13 +362,12 @@ class TestEventExportApi:
         assert resp.status_code == 400
         assert resp.get_json() == {"error": "Invalid acknowledged filter"}
 
-    def test_events_export_csv_respects_auth_boundary(self, tmp_path, storage):
+    def test_events_export_csv_respects_auth_boundary(self, tmp_path, storage, route_app):
         config_mgr = ConfigManager(str(tmp_path / "auth-config"))
         config_mgr.save({"modem_password": "test", "modem_type": "fritzbox", "admin_password": "admin-secret"})
         current_runtime().config_manager = config_mgr
         current_runtime().storage = storage
-        app.config["TESTING"] = True
-        with app.test_client() as client:
+        with route_app.test_client() as client:
             resp = client.get("/api/events/export.csv")
 
         assert resp.status_code == 401
@@ -419,12 +431,35 @@ class TestEventDetector:
         assert "good" in events[0]["message"]
         assert "critical" in events[0]["message"]
 
-    def test_health_recovery_detected(self, detector):
-        detector.check(_make_analysis(health="critical"))
-        events = detector.check(_make_analysis(health="good"))
-        assert len(events) == 1
-        assert events[0]["event_type"] == "health_change"
-        assert events[0]["severity"] == "info"
+    @pytest.mark.parametrize("hysteresis", [0, 2])
+    @pytest.mark.parametrize(("missing_before", "missing_after", "recovered"), [(0, 0, True), (1, 0, True), (0, 1, False)])
+    def test_health_recovery_needs_the_readings_that_rated_the_previous_state(
+        self, hysteresis, missing_before, missing_after, recovered,
+    ):
+        def analysis(health, missing):
+            result = _make_analysis(health=health, ds_total=2)
+            for channel in result["ds_channels"][:missing]:
+                channel.update(power=None, snr=None)
+            return result
+
+        detector = EventDetector(hysteresis=hysteresis)
+        detector.check(analysis("critical", missing_before))
+        events = [event for _ in range(max(hysteresis, 1)) for event in detector.check(analysis("good", missing_after))]
+        expected = [("Health recovered from critical to good", "info")] if recovered else []
+        assert [(event["message"], event["severity"]) for event in events if event["event_type"] == "health_change"] == expected
+
+    @pytest.mark.parametrize("hysteresis", [0, 2])
+    def test_restart_detection_compares_stored_text_counters_with_new_integers(self, hysteresis):
+        def analysis(counter, total):
+            result = _make_analysis(ds_uncorrectable_errors=total)
+            for channel in result["ds_channels"]:
+                channel.update(correctable_errors=counter, uncorrectable_errors=counter)
+            return result
+
+        detector = EventDetector(hysteresis=hysteresis)
+        detector.check(analysis("100", 3300))
+        events = detector.check(analysis(0, 0))
+        assert "modem_restart_detected" in [event["event_type"] for event in events]
 
     def test_health_marginal_warning(self, detector):
         detector.check(_make_analysis(health="good"))
@@ -850,69 +885,28 @@ class TestEventDetector:
             },
         ]
 
-    def test_modulation_downgrade_warning(self, detector):
-        """256QAM → 64QAM = 2-level drop = warning"""
-        ds1 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        ds2 = [{"channel_id": 1, "modulation": "64QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
-        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
+    @pytest.mark.parametrize("side,before,after,severity,word,rank_drop", [
+        ("ds", "256QAM", "64QAM", "warning", "dropped", 2),
+        ("ds", "256QAM", "16QAM", "critical", "dropped", 4),
+        ("ds", "64QAM", "256QAM", "info", "improved", -2),
+        # Vodafone Station / CH7465 / TC4400 format - Issue #85
+        ("us", "qam_64", "qam_16", "warning", "dropped", 2),
+        ("ds", "qam_64", "qam_256", "info", "improved", -2),
+    ], ids=["two-level-drop-warning", "four-level-drop-critical", "upgrade-info",
+            "qam-underscore-drop", "qam-underscore-upgrade"])
+    def test_modulation_change_severity(self, detector, side, before, after, severity, word, rank_drop):
+        """Downgrades warn or turn critical with the rank drop, upgrades are info; qam_N ranks like NQAM."""
+        prev, cur = _make_analysis(**{f"{side}_total": 1}), _make_analysis(**{f"{side}_total": 1})
+        prev[f"{side}_channels"][0]["modulation"] = before
+        cur[f"{side}_channels"][0]["modulation"] = after
+        detector.check(prev)
+        events = detector.check(cur)
         mod_events = [e for e in events if e["event_type"] == "modulation_change"]
         assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "warning"
-        assert "dropped" in mod_events[0]["message"]
-        assert mod_events[0]["details"]["direction"] == "downgrade"
-
-    def test_modulation_downgrade_critical(self, detector):
-        """256QAM → 16QAM = 4-level drop = critical"""
-        ds1 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        ds2 = [{"channel_id": 1, "modulation": "16QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
-        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
-        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
-        assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "critical"
-        assert "dropped" in mod_events[0]["message"]
-
-    def test_modulation_upgrade_info(self, detector):
-        """64QAM → 256QAM = upgrade = info"""
-        ds1 = [{"channel_id": 1, "modulation": "64QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        ds2 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
-        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
-        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
-        assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "info"
-        assert "improved" in mod_events[0]["message"]
-        assert mod_events[0]["details"]["direction"] == "upgrade"
-
-    def test_modulation_downgrade_qam_underscore_format(self, detector):
-        """qam_64 → qam_16 = downgrade (Vodafone Station / CH7465 / TC4400 format) - Issue #85"""
-        us1 = [{"channel_id": 1, "modulation": "qam_64", "power": 42.0,
-                "multiplex": "ATDMA", "docsis_version": "3.0",
-                "health": "good", "health_detail": "", "frequency": "37 MHz"}]
-        us2 = [{"channel_id": 1, "modulation": "qam_16", "power": 42.0,
-                "multiplex": "ATDMA", "docsis_version": "3.0",
-                "health": "good", "health_detail": "", "frequency": "37 MHz"}]
-        detector.check(_make_analysis(us_total=1, us_channels=us1))
-        events = detector.check(_make_analysis(us_total=1, us_channels=us2))
-        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
-        assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "warning"
-        assert "dropped" in mod_events[0]["message"]
-        assert mod_events[0]["details"]["direction"] == "downgrade"
-        assert mod_events[0]["details"]["changes"][0]["rank_drop"] == 2
+        assert mod_events[0]["severity"] == severity
+        assert word in mod_events[0]["message"]
+        assert mod_events[0]["details"]["direction"] == ("downgrade" if rank_drop > 0 else "upgrade")
+        assert mod_events[0]["details"]["changes"][0]["rank_drop"] == rank_drop
 
     def test_modulation_change_includes_channel_docsis_metadata(self, detector):
         """DOCSIS channel events carry enough metadata for useful Event Log labels."""
@@ -933,22 +927,6 @@ class TestEventDetector:
         assert change["docsis_version"] == "3.0"
         assert change["channel_type"] == "SC-QAM"
         assert change["frequency"] == "37 MHz"
-
-    def test_modulation_upgrade_qam_underscore_format(self, detector):
-        """qam_64 → qam_256 = upgrade (Vodafone Station format)"""
-        ds1 = [{"channel_id": 1, "modulation": "qam_64", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        ds2 = [{"channel_id": 1, "modulation": "qam_256", "power": 3.0, "snr": 35.0,
-                "correctable_errors": 10, "uncorrectable_errors": 5,
-                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
-        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
-        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
-        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
-        assert len(mod_events) == 1
-        assert mod_events[0]["severity"] == "info"
-        assert "improved" in mod_events[0]["message"]
-        assert mod_events[0]["details"]["direction"] == "upgrade"
 
     def test_modulation_changes_follow_channel_order(self, detector):
         """Changed channels are listed in current snapshot order, downstream before upstream."""
@@ -1005,6 +983,39 @@ class TestEventDetector:
         assert event["details"]["comparable_uncorrectable_recent_delta"] == 0
         assert current["summary"]["ds_uncorr_pct"] == 0.0
         assert "uncorr_errors_critical" not in current["summary"]["health_issues"]
+
+    @pytest.mark.parametrize(("polls", "expected"), [
+        # A channel loses its counter for one poll while another reports a measured zero.
+        ([_poll(_row(1, 3.0, 1500), _row(2, 3.0, 0)), _poll(_row(1, 3.0, None), _row(2, 3.0, 0)),
+          _poll(_row(1, 3.0, 1500), _row(2, 3.0, 0))], []),
+        ([_poll(_row(1, 0.0), _row(2, 10.0)), _poll(_row(1, 0.0), _row(2, None))], []),
+        # A channel unlocks for one poll and comes back.
+        ([_poll(_row(1, 0.0, 1500), _row(2, 10.0)), _poll(_row(2, 10.0)), _poll(_row(1, 0.0, 1500), _row(2, 10.0))], []),
+        ([_poll(_row(1, 3.0)), _poll(_row(1, 3.0), _row(2, 10.0, 5000))], []),
+        # A second OFDM row with the same ID and no frequency appears next to a flat one.
+        ([_poll(_row(0, 3.0, **_OFDM)), _poll(_row(0, 3.0, **_OFDM), _row(0, 13.0, 5000, **_OFDM))], []),
+        # SC-QAM and ATDMA rows with ID 0 are replaced by OFDM and OFDMA rows whose missing ID became 0.
+        ([_poll(_row(0, 3.0), us=[_row(0, 42.0, multiplex="ATDMA")]),
+          _poll(_row(0, 13.0, 5000, **_OFDM), us=[_row(0, 47.0, type="OFDMA", frequency="")])], []),
+        # A poll reports a channel's frequency as 0 MHz or leaves it out.
+        ([_poll(_row(1, 3.0), us=[_row(1, 42.0)]), _poll(_row(1, 8.0, 2000, frequency="0 MHz"), us=[_row(1, 47.0, frequency="0 MHz")])], []),
+        ([_poll(_row(1, 3.0)), _poll(_row(1, 8.0, 2000, frequency=""))], []),
+        # Most channels reset while one rises and another drops out: the reset, no spike.
+        ([_poll(*[_row(i, 3.0, 20) for i in range(1, 5)], _row(5, 3.0), _row(6, 3.0, 9000)),
+          _poll(*[_row(i, 3.0) for i in range(1, 5)], _row(5, 3.0, 2000))],
+         [("modem_restart_detected", "Detected modem restart or counter reset pattern")]),
+        # Unchanged coverage keeps reporting real shifts and spikes.
+        ([_poll(_row(1, 3.0), _row(2, 3.0), us=[_row(1, 42.0)]), _poll(_row(1, 8.0, 2000), _row(2, 8.0), us=[_row(1, 47.0)])], [
+            ("power_change", "DS power avg shifted from 3.0 to 8.0 dBmV"),
+            ("power_change", "US power avg shifted from 42.0 to 47.0 dBmV"),
+            ("error_spike", "Uncorrectable errors jumped by 2,000 (from 0 to 2,000)"),
+        ]),
+    ])
+    def test_power_and_error_deltas_need_the_same_reporting_channels_in_both_polls(self, detector, polls, expected):
+        events = [event for raw in polls for event in detector.check(analyze(raw))]
+
+        tracked = ("power_change", "error_spike", "modem_restart_detected")
+        assert [(e["event_type"], e["message"]) for e in events if e["event_type"] in tracked] == expected
 
     def test_error_no_spike_small_increase(self, detector):
         detector.check(_make_analysis(ds_uncorrectable_errors=100))
@@ -1105,15 +1116,22 @@ def api_storage(tmp_path):
 
 
 @pytest.fixture
-def client(tmp_path, api_storage):
+def client(tmp_path, api_storage, route_app):
     data_dir = str(tmp_path / "data")
     mgr = ConfigManager(data_dir)
     mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
     current_runtime().config_manager = mgr
     current_runtime().storage = api_storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
+
+
+ACK_ROUTES = {"/api/events/acknowledge": True, "/api/events/unacknowledge": False}
+
+
+def _drop_events_table(runtime):
+    with sqlite3.connect(runtime.storage.db_path) as conn:
+        conn.execute("DROP TABLE events")
 
 
 class TestEventsAPI:
@@ -1186,34 +1204,52 @@ class TestEventsAPI:
         assert resp.get_json() == {"count": 2, "window_hours": 24}
         assert client.get("/api/events/count").get_json()["count"] == 5
 
-    def test_acknowledge_listed_events(self, client, api_storage):
+    @pytest.mark.parametrize(("path", "limit", "offset"), [("/api/events", 5, 2), ("/api/events/export.csv", 10001, 0)])
+    def test_event_list_and_export_pass_every_filter(self, client, api_storage, monkeypatch, path, limit, offset):
+        calls = []
+        monkeypatch.setattr(api_storage, "get_events", lambda **kwargs: calls.append(kwargs) or [])
+        resp = client.get(f"{path}?limit=5&offset=2&severity=warning&event_type=power_change"
+                          "&event_prefix=power_&acknowledged=1&exclude_operational=true")
+        assert resp.status_code == 200
+        assert calls == [{"limit": limit, "offset": offset, "severity": "warning", "event_type": "power_change",
+                          "event_prefix": "power_", "acknowledged": 1, "exclude_operational": True}]
+
+    @pytest.mark.parametrize(("path", "acknowledged"), ACK_ROUTES.items())
+    def test_listed_events_change_once(self, client, api_storage, path, acknowledged):
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         ids = [api_storage.save_event(ts, "warning", "power_change", f"Msg {i}") for i in range(3)]
-        resp = client.post("/api/events/acknowledge", json={"ids": [ids[0], ids[2], ids[2]]})
-        assert resp.status_code == 200
-        assert resp.get_json() == {"success": True, "count": 2}
-        assert [e["id"] for e in api_storage.get_events(acknowledged=False)] == [ids[1]]
+        if not acknowledged:
+            for event_id in ids:
+                api_storage.acknowledge_event(event_id)
 
-    @pytest.mark.parametrize("path", ["/api/events/acknowledge", "/api/events/unacknowledge"])
+        resp = client.post(path, json={"ids": [ids[0], ids[2], ids[2]]})
+        assert (resp.status_code, resp.get_json(), resp.content_type) == (
+            200, {"success": True, "count": 2}, "application/json"
+        )
+        assert sorted(e["id"] for e in api_storage.get_events(acknowledged=acknowledged)) == [ids[0], ids[2]]
+        # Repeating it changes nothing.
+        assert client.post(path, json={"ids": [ids[0]]}).get_json() == {"success": True, "count": 0}
+
+    @pytest.mark.parametrize("path", ACK_ROUTES)
     @pytest.mark.parametrize("payload", [
         None, {}, {"ids": []}, {"ids": "1"}, {"ids": [0]}, {"ids": [-1]}, {"ids": [True]},
         {"ids": ["1"]}, {"ids": [1.5]}, {"ids": list(range(1, 1002))}, [1, 2],
     ])
     def test_acknowledge_listed_events_rejects_invalid_ids(self, client, payload, path):
         resp = client.post(path, json=payload)
-        assert resp.status_code == 400
+        assert (resp.status_code, resp.get_json(), resp.content_type) == (
+            400, {"error": "ids must be a list of 1 to 1000 event ids"}, "application/json"
+        )
 
-    def test_undo_restores_only_the_listed_acknowledgements(self, client, api_storage):
-        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        ids = [api_storage.save_event(ts, "warning", "power_change", f"Msg {i}") for i in range(3)]
-        api_storage.acknowledge_events(ids)
-
-        resp = client.post("/api/events/unacknowledge", json={"ids": [ids[0], ids[1], ids[1]]})
-        assert resp.status_code == 200
-        assert resp.get_json() == {"success": True, "count": 2}
-        assert sorted(e["id"] for e in api_storage.get_events(acknowledged=False)) == [ids[0], ids[1]]
-        # Undoing again changes nothing.
-        assert client.post("/api/events/unacknowledge", json={"ids": [ids[0]]}).get_json()["count"] == 0
+    @pytest.mark.parametrize("path", ACK_ROUTES)
+    @pytest.mark.parametrize(("break_storage", "status", "body"), [
+        (lambda runtime: setattr(runtime, "storage", None), 500, {"error": "Storage not initialized"}),
+        (_drop_events_table, 503, {"error": "Reading stored data failed. See the DOCSight log for details."}),
+    ], ids=["no-storage", "storage-error"])
+    def test_listed_events_storage_failure(self, client, path, break_storage, status, body):
+        break_storage(current_runtime())
+        resp = client.post(path, json={"ids": [1]})
+        assert (resp.status_code, resp.get_json(), resp.content_type) == (status, body, "application/json")
 
     def test_events_count_empty(self, client):
         resp = client.get("/api/events/count")
@@ -1501,6 +1537,42 @@ class TestRestartDetection:
         events = detector.check(cur)
 
         assert [e for e in events if e["event_type"] == "error_spike"] == []
+
+    @pytest.mark.parametrize(("stored", "stored_total", "polled", "spikes", "raw_growth"), [
+        # Older releases stored a zero total without errors_supported, also when no channel had counters.
+        ((None,), 0, (1500,), [], (None, None)),
+        ((0,), 0, (1500,), [1500], (1500, 1500)),
+        # Older releases summed negative or fractional readings into the stored totals.
+        ((1500, -1500), 0, (1500, -1500), [], (0, 0)),
+        ((1500, 1500.5), 3000, (3001, 1500.5), [1501], (1501, 1501)),
+        # Integer text and a measured zero are still counted.
+        (("1500", 0), 1500, (3001, 0), [1501], (1501, 1501)),
+    ])
+    def test_first_poll_after_upgrade_reads_the_stored_snapshot_with_the_current_counter_conversion(
+        self, storage, stored, stored_total, polled, spikes, raw_growth
+    ):
+        """An older release stored its totals and cumulative baseline with the counters it accepted then."""
+        def poll(counters):
+            return analyze({"channelDs": {"docsis30": [
+                {"channelID": channel_id, "frequency": f"{535 + 8 * channel_id} MHz", "powerLevel": "3", "mse": "-38",
+                 "modulation": "256QAM", **({} if counter is None else {"corrErrors": counter, "nonCorrErrors": counter})}
+                for channel_id, counter in enumerate(counters, 7)]}, "channelUs": {"docsis30": []}})
+        legacy = poll(stored)
+        for channel, counter in zip(legacy["ds_channels"], stored):
+            channel.update(correctable_errors=counter, uncorrectable_errors=counter)
+        legacy["summary"].pop("errors_supported")
+        legacy["summary"].update(ds_uncorrectable_errors=stored_total,
+                                 error_baseline={"ds_raw_uncorrectable_baseline": stored_total})
+        storage.save_snapshot(legacy)
+        previous = storage.get_latest_snapshot()
+        current = poll(polled)
+
+        apply_cumulative_error_baseline(current, previous)
+        events = EventDetector(baseline=previous).check(current)
+
+        assert [e["details"]["delta"] for e in events if e["event_type"] == "error_spike"] == spikes
+        baseline = current["summary"]["error_baseline"]
+        assert (baseline["ds_raw_uncorrectable_recent_delta"], baseline["ds_raw_uncorrectable_delta"]) == raw_growth
 
     def test_restart_with_some_channel_change(self, detector):
         """12/16 overlap and declining — detected despite channel churn."""

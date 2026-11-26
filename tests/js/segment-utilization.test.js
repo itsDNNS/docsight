@@ -26,7 +26,7 @@ function correlationTabs() {
 function setup() {
     const tabs = correlationTabs();
     const c = vm.createContext({
-        T: {},
+        T: require('./english-catalog')(),
         document: {
             querySelectorAll(selector) { return selector === '#correlation-tabs .segmented-option' ? tabs : []; },
             getElementById(id) { return id === 'correlation-tabs' ? {querySelectorAll: () => tabs} : null; },
@@ -38,6 +38,7 @@ function setup() {
         // Correlation reads the active pill synchronously when the view opens.
         c.opened = {view, active: tabs.filter(t => t.classList.contains('active')).map(t => t.value)};
     };
+    vm.runInContext(fs.readFileSync('app/static/js/chart-engine.js', 'utf8'), c);
     vm.runInContext(fs.readFileSync('app/static/js/segmented.js', 'utf8'), c);
     vm.runInContext(fs.readFileSync('app/static/js/view-state.js', 'utf8'), c);
     vm.runInContext(fs.readFileSync('app/static/js/segment-utilization.js', 'utf8'), c);
@@ -71,4 +72,16 @@ test('every offered event range opens correlation with exactly one active tab', 
         c._fritzCableOpenInCorrelation(hours);
         assert.equal(c.opened.active.length, 1, `${ageHours}h old event`);
     }
+});
+
+test('summary and events requests send the page language', () => {
+    const c = setup();
+    const urls = [];
+    Object.assign(c.document, {documentElement: {lang: 'de'}, getElementById: () => ({style: {}})});
+    c.docsightUrl = url => url;
+    c.DOCSightEmptyState = {hide() {}};
+    c.fetch = url => { urls.push(url); return new Promise(() => {}); };
+    c.loadFritzCableData();
+    c._fritzCableLoadEvents();
+    assert.deepEqual(urls.map(url => /[?&]lang=de(&|$)/.test(url)), [true, true]);
 });

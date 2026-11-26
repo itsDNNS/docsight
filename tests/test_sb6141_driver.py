@@ -2,6 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
+from app.drivers.formats.html_transposed import extract_upstream_modulation
 from app.drivers.sb6141 import SB6141Driver
 
 
@@ -119,10 +120,16 @@ def driver():
     return SB6141Driver("http://192.168.100.1", "", "")
 
 
-@pytest.fixture
-def mock_signal(driver):
+@pytest.fixture(params=[
+    SAMPLE_SIGNAL_HTML,
+    # Headings split across inline elements must still identify their tables.
+    SAMPLE_SIGNAL_HTML.replace(">Downstream <", ">Down<span>stream</span> <"),
+    SAMPLE_SIGNAL_HTML.replace(">Upstream <", ">Up<span>stream</span> <"),
+    SAMPLE_SIGNAL_HTML.replace(">Signal Status (Codewords)<", ">Code<span>words</span><"),
+], ids=["captured", "split-downstream", "split-upstream", "split-codewords"])
+def mock_signal(driver, request):
     """Patch session.get to return sample signal HTML."""
-    with serve_html(driver, SAMPLE_SIGNAL_HTML):
+    with serve_html(driver, request.param):
         yield driver
 
 
@@ -132,11 +139,6 @@ class TestDriverInit:
     def test_stores_url(self):
         d = SB6141Driver("http://192.168.100.1", "", "")
         assert d._url == "http://192.168.100.1"
-
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("sb6141", "http://192.168.100.1", "", "")
-        assert isinstance(d, SB6141Driver)
 
 
 # -- Login --
@@ -250,36 +252,9 @@ class TestDeviceInfo:
 
 # -- Value helpers --
 
-class TestValueHelpers:
-    def test_parse_freq_hz_integer(self):
-        assert SB6141Driver._parse_freq_hz("465000000 Hz") == "465 MHz"
-
-    def test_parse_freq_hz_decimal(self):
-        assert SB6141Driver._parse_freq_hz("24600000 Hz") == "24.6 MHz"
-
-    def test_parse_freq_hz_empty(self):
-        assert SB6141Driver._parse_freq_hz("") == ""
-
-    def test_parse_number_with_unit(self):
-        assert SB6141Driver._parse_number("35 dB") == 35.0
-
-    def test_parse_number_dbmv(self):
-        assert SB6141Driver._parse_number("3 dBmV") == 3.0
-
-    def test_parse_number_decimal(self):
-        assert SB6141Driver._parse_number("5.120 Msym/sec") == 5.12
-
-    def test_parse_number_empty(self):
-        assert SB6141Driver._parse_number("") == 0.0
-
-    def test_extract_upstream_modulation_multi(self):
-        assert SB6141Driver._extract_upstream_modulation("[3] QPSK\n[3] 64QAM") == "64QAM"
-
-    def test_extract_upstream_modulation_single(self):
-        assert SB6141Driver._extract_upstream_modulation("[2] QAM16") == "QAM16"
-
-    def test_extract_upstream_modulation_empty(self):
-        assert SB6141Driver._extract_upstream_modulation("") == ""
+@pytest.mark.parametrize(("raw", "expected"), [("[3] QPSK\n[3] 64QAM", "64QAM"), ("[2] QAM16", "QAM16"), ("", "")])
+def test_extract_upstream_modulation(raw, expected):
+    assert extract_upstream_modulation(raw) == expected
 
 
 # -- Edge cases --
@@ -292,7 +267,7 @@ class TestEdgeCases:
             assert data["channelUs"]["docsis30"] == []
 
     def test_no_codewords_table(self, driver):
-        """If codewords table is missing, errors default to 0."""
+        """If the codewords table is missing, the error counters are unavailable, not 0."""
         html = """<html><body>
         <table><tr><th>Downstream</th><th colspan=2>Bonding Channel Value</th></tr>
         <tr><td>Channel ID</td><td>1</td><td>2</td></tr>
@@ -306,8 +281,8 @@ class TestEdgeCases:
         with serve_html(driver, html):
             data = driver.get_docsis_data()
             assert len(data["channelDs"]["docsis30"]) == 2
-            assert data["channelDs"]["docsis30"][0]["corrErrors"] == 0
-            assert data["channelDs"]["docsis30"][0]["nonCorrErrors"] == 0
+            assert data["channelDs"]["docsis30"][0]["corrErrors"] is None
+            assert data["channelDs"]["docsis30"][0]["nonCorrErrors"] is None
 
 
 # -- Analyzer integration --

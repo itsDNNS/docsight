@@ -48,14 +48,14 @@ MOCK_SNAPSHOTS = [
 
 
 def test_generate_report_returns_pdf():
-    pdf = generate_report(MOCK_SNAPSHOTS, MOCK_ANALYSIS)
+    pdf = generate_report(MOCK_SNAPSHOTS)
     assert isinstance(pdf, bytes)
     assert pdf[:5] == b"%PDF-"
     assert len(pdf) > 1000
 
 
 def test_generate_report_no_snapshots():
-    pdf = generate_report([], MOCK_ANALYSIS)
+    pdf = generate_report([])
     assert pdf[:5] == b"%PDF-"
 
 
@@ -77,7 +77,7 @@ def test_report_worst_values_keep_raw_mixed_counter_totals():
 
 
 def test_generate_report_with_config():
-    pdf = generate_report(MOCK_SNAPSHOTS, MOCK_ANALYSIS,
+    pdf = generate_report(MOCK_SNAPSHOTS,
                           config={"isp_name": "Vodafone", "modem_type": "FRITZ!Box 6690"},
                           connection_info={"max_downstream_kbps": 1000000, "max_upstream_kbps": 50000})
     assert pdf[:5] == b"%PDF-"
@@ -254,7 +254,7 @@ def test_generate_report_with_none_channel_values():
          "ds_channels": analysis_with_nones["ds_channels"],
          "us_channels": analysis_with_nones["us_channels"]},
     ]
-    pdf = generate_report(snapshots_with_nones, analysis_with_nones)
+    pdf = generate_report(snapshots_with_nones)
     assert isinstance(pdf, bytes)
     assert pdf[:5] == b"%PDF-"
 
@@ -348,6 +348,26 @@ def test_complaint_text_falls_back_to_english_for_unknown_language():
     assert "Worst downstream power:" in text
 
 
+@pytest.mark.parametrize("lang", sorted(REPORT_STRINGS))
+def test_complaint_text_closes_with_localized_placeholders(lang):
+    strings = REPORT_STRINGS[lang]
+    placeholders = strings["complaint_closing"].splitlines()[1:]
+    assert all(p.startswith("[") and p[1].isupper() for p in placeholders)
+    text = generate_complaint_text(MOCK_SNAPSHOTS, lang=lang)
+    assert text.endswith("\n".join([strings["complaint_closing_label"], *placeholders]))
+
+
+def test_complaint_text_trims_customer_details_in_closing():
+    text = generate_complaint_text(
+        MOCK_SNAPSHOTS,
+        lang="de",
+        customer_name=" Max Mustermann ",
+        customer_number=" KD-123456 ",
+        customer_address=" Musterstraße 1\n12345 Musterstadt\n",
+    )
+    assert text.endswith("Mit freundlichen Grüßen\nMax Mustermann\nKD-123456\nMusterstraße 1\n12345 Musterstadt")
+
+
 def test_generate_report_accepts_comparison_evidence():
     comparison_data = {
         "period_a": {
@@ -371,7 +391,7 @@ def test_generate_report_accepts_comparison_evidence():
         },
     }
 
-    pdf = generate_report(MOCK_SNAPSHOTS, MOCK_ANALYSIS, comparison_data=comparison_data)
+    pdf = generate_report(MOCK_SNAPSHOTS, comparison_data=comparison_data)
 
     assert pdf[:5] == b"%PDF-"
     assert len(pdf) > 1000
@@ -379,7 +399,6 @@ def test_generate_report_accepts_comparison_evidence():
 def test_generate_report_embeds_customer_details_in_complaint_closing():
     pdf = generate_report(
         MOCK_SNAPSHOTS,
-        MOCK_ANALYSIS,
         lang="de",
         customer_name="Max Mustermann",
         customer_number="KD-123456",
@@ -441,23 +460,6 @@ def test_report_names_low_and_high_upstream_power_differently_in_every_language(
         for severity in ("critical", "marginal", "tolerated"):
             low, high = labels[f"us_power_{severity}_low"], labels[f"us_power_{severity}_high"]
             assert low and high and low != high, f"{lang}/{severity}"
-
-
-def test_diagnostic_note_fallback_text_matches_the_english_catalog():
-    """The built-in fallback must not call a configured bound a spec limit."""
-    from app.modules.reports.report import _format_diagnostic_note
-
-    base = {
-        "channel_id": 3, "channel_type": "SC-QAM", "value": 30.0,
-        "deviation_pct": 14, "observed_at": "2026-01-01 00:00",
-    }
-    notes = [
-        {**base, "type": "us_power_low", "metric": "upstream power", "spec_min": 35.0},
-        {**base, "type": "us_power_high", "metric": "upstream power", "spec_max": 53.0},
-        {**base, "type": "snr_low", "metric": "SNR/MER", "spec_min": 33.0},
-    ]
-    for note in notes:
-        assert _format_diagnostic_note(note, {}) == _format_diagnostic_note(note, REPORT_STRINGS["en"])
 
 
 def _low_upstream_snapshot(timestamp, *, schema, version, health, issue, channel_health, detail):

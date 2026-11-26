@@ -33,7 +33,6 @@
   "snapshots": "Instantanee",
   "no_data_period": "Nu există date în perioada aleasă",
   "select_periods": "Alegeți două perioade pentru a compara calitatea semnalului.",
-  "hours_since_start": "Ore de la început",
   "empty_title": "Comparați două perioade",
   "empty_action": "Compară",
   "empty_no_data_text": "Alegeți perioade în care DOCSight colecta deja date.",

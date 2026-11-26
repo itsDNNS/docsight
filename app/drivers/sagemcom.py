@@ -22,14 +22,10 @@ import time
 import requests
 
 from .base import ModemDriver
-from .formats.sagemcom import (
-    _sagemcom_frequency,
-    _sagemcom_is_ofdm,
-    _sagemcom_modulation,
-    parse_sagemcom_xmo_downstream,
-    parse_sagemcom_xmo_upstream,
-)
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from .format_compat import unwrap
+from .formats.sagemcom import parse_sagemcom_xmo_json
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.sagemcom")
 
@@ -189,13 +185,11 @@ class SagemcomDriver(ModemDriver):
                 elif "Upstreams" in xpath:
                     us_raw = values
 
-        ds30, ds31 = self._parse_downstream(ds_raw)
-        us30, us31 = self._parse_upstream(us_raw)
-
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
-        }
+        data = unwrap(parse_sagemcom_xmo_json({"downstream": ds_raw, "upstream": us_raw}), log)
+        if data is None:
+            # Not a RuntimeError: get_docsis_data would treat that as an expired session.
+            raise ValueError("invalid Sagemcom channel payload")
+        return data
 
     def get_device_info(self) -> DeviceInfo:
         try:
@@ -224,7 +218,8 @@ class SagemcomDriver(ModemDriver):
                 "model": model,
                 "sw_version": sw_version,
             }
-        except Exception:
+        except Exception as e:
+            log.warning("Sagemcom device info unavailable: %s", request_error_summary(e))
             self._logged_in = False
             return {"manufacturer": "Sagemcom", "model": "", "sw_version": ""}
 
@@ -280,10 +275,10 @@ class SagemcomDriver(ModemDriver):
             for action in resp.get("reply", {}).get("actions", []):
                 act_err = action.get("error", {})
                 if act_err.get("description") != "XMO_NO_ERR":
-                    log.debug("Sagemcom action error: %s (code=%s)", act_err.get("description"), act_err.get("code"))
+                    log.debug("Sagemcom action error (code=%s)", act_err.get("code"))
             desc = error.get("description", "")
             code = error.get("code")
-            msg = f"Sagemcom XMO error: {desc} (code={code})"
+            msg = f"Sagemcom XMO error (code={code})"
             if code == 16777219 or "SESSION" in desc:  # XMO_INVALID_SESSION_ERR
                 raise XMOSessionError(msg)
             raise RuntimeError(msg)
@@ -293,27 +288,3 @@ class SagemcomDriver(ModemDriver):
     def _json_encode(obj) -> str:
         import json
         return json.dumps(obj, separators=(",", ":"))
-
-    # Compatibility parser seams.
-
-    def _parse_downstream(self, channels: list[dict[str, object]]) -> tuple[list[RawChannel], list[RawChannel]]:
-        return parse_sagemcom_xmo_downstream(channels).value
-
-    def _parse_upstream(self, channels: list[dict[str, object]]) -> tuple[list[RawChannel], list[RawChannel]]:
-        return parse_sagemcom_xmo_upstream(channels).value
-
-    @staticmethod
-    def _hz_to_mhz(freq_hz) -> str:
-        return _sagemcom_frequency(freq_hz)
-
-    @staticmethod
-    def _is_ofdm_downstream(modulation: str, bandwidth: int) -> bool:
-        return _sagemcom_is_ofdm(modulation, bandwidth)
-
-    @staticmethod
-    def _normalize_modulation(modulation: str) -> str:
-        return _sagemcom_modulation(modulation)
-
-    @staticmethod
-    def _normalize_us_modulation(modulation: str) -> str:
-        return modulation.strip().upper() if modulation else ""

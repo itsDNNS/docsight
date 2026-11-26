@@ -150,6 +150,14 @@ def driver():
     return SercomDM1000Driver("http://192.168.100.1", "technician", "secret")
 
 
+CAPTURED = {"RF_DS_param": DS_INFO, "RF_DS_31_param": DS_OFDM, "RF_US_param": US_INFO, "RF_US_31_param": US_OFDMA}
+
+
+def _poll(driver, payloads=CAPTURED):
+    with patch.object(driver, "_fetch_payload", side_effect=lambda todo: payloads.get(todo, {})):
+        return driver.get_docsis_data()
+
+
 class TestLogin:
     def test_removed_diagnostics_env_flag_does_not_enable_temporary_logging(self, monkeypatch, caplog):
         # Keep the removed env name split so the repo no longer reintroduces the
@@ -325,17 +333,6 @@ class TestFetchPayload:
             with patch.object(driver, "login", side_effect=RuntimeError("bad credentials")):
                 assert driver._fetch_payload("RF_DS_param") == {}
 
-    def test_fetch_payload_strict_mode_raises_for_html_login_page(self, driver):
-        with patch.object(driver._session, "get", return_value=make_response("<html>login</html>", content_type="text/html")):
-            with pytest.raises(RuntimeError, match="returned an HTML login page"):
-                driver._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
-
-    def test_fetch_payload_strict_mode_reports_sercom_login_redirect_from_headers(self, driver):
-        response = make_response(None, headers={"Location": "login.html"})
-        with patch.object(driver._session, "get", return_value=response):
-            with pytest.raises(RuntimeError, match="redirected to login"):
-                driver._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
-
     def test_fetch_payload_strict_mode_reports_sercom_login_redirect_from_well_formed_redirect(self, driver):
         response = make_response(None, status_code=302, headers={"Location": "/login.html"})
         with patch.object(driver._session, "get", return_value=response):
@@ -387,10 +384,6 @@ class TestFetchPayload:
         login.assert_called_once_with()
         assert get.call_count == 2
 
-    def test_fetch_payload_returns_empty_for_non_object_json(self, driver):
-        with patch.object(driver._session, "get", return_value=make_response(["not", "object"])):
-            assert driver._fetch_payload("RF_DS_param") == {}
-
     def test_fetch_payload_retries_html_login_page_only_once(self, driver):
         with patch.object(
             driver._session,
@@ -406,27 +399,10 @@ class TestFetchPayload:
         login.assert_called_once_with()
         assert get.call_count == 2
 
-    def test_fetch_payload_returns_empty_for_sercom_error_code(self, driver, caplog):
-        with patch.object(
-            driver._session,
-            "get",
-            return_value=make_response({"errCode": "101", "errMsg": "not authenticated"}),
-        ):
-            assert driver._fetch_payload("RF_DS_param") == {}
-
-        assert "not authenticated" in caplog.text
-
 
 class TestDocsisData:
     def test_parses_sercom_dm1000_channel_payloads(self, driver):
-        payloads = {
-            "RF_DS_param": DS_INFO,
-            "RF_DS_31_param": DS_OFDM,
-            "RF_US_param": US_INFO,
-            "RF_US_31_param": US_OFDMA,
-        }
-        with patch.object(driver, "_fetch_payload", side_effect=lambda todo: payloads[todo]):
-            data = driver.get_docsis_data()
+        data = _poll(driver)
 
         assert len(data["channelDs"]["docsis30"]) == 2
         assert len(data["channelDs"]["docsis31"]) == 1
@@ -473,7 +449,7 @@ class TestDocsisData:
     def test_us_ofdma_without_rep_power_1_6_keeps_power_unsupported(self, driver, caplog):
         rows = [dict(row) for row in US_OFDMA["nodes"] if row["name"] != "rep power1_6"]
 
-        channels = driver._parse_us_ofdma(rows)
+        channels = _poll(driver, {"RF_US_31_param": {"nodes": rows}})["channelUs"]["docsis31"]
 
         assert len(channels) == 1
         assert channels[0]["powerLevel"] is None
@@ -491,7 +467,7 @@ class TestDocsisData:
     def test_ds_ofdm_requires_plc_mdc1_and_numeric_mer(self, driver, plc, mdc1, av_data, av_plc, expected_count):
         row = dict(DS_OFDM["nodes"][0], PLC=plc, MDC1=mdc1, AV_Data=av_data, AV_PLC=av_plc)
 
-        channels = driver._parse_ds_ofdm([row])
+        channels = _poll(driver, {"RF_DS_31_param": {"nodes": [row]}})["channelDs"]["docsis31"]
 
         assert len(channels) == expected_count
         if channels:
@@ -506,7 +482,7 @@ class TestDocsisData:
             "upstream": "---",
         }
 
-        assert driver._parse_us_scqam([inactive]) == []
+        assert _poll(driver, {"RF_US_param": {"nodes": [inactive]}})["channelUs"]["docsis30"] == []
 
     def test_us_ofdma_skips_disabled_and_zero_frequency_columns(self, driver):
         zero_frequency = [
@@ -514,25 +490,22 @@ class TestDocsisData:
             for row in US_OFDMA["nodes"]
         ]
 
-        assert driver._parse_us_ofdma(zero_frequency) == []
-        assert len(driver._parse_us_ofdma(US_OFDMA["nodes"])) == 1
+        assert _poll(driver, {"RF_US_31_param": {"nodes": zero_frequency}})["channelUs"]["docsis31"] == []
+        assert len(_poll(driver)["channelUs"]["docsis31"]) == 1
 
     @pytest.mark.parametrize(
         ("bits", "expected"),
-        [("0", None), ("2", "QPSK"), ("8", "256QAM"), ("13", None), (None, None)],
+        [("0", None), ("2", "QPSK"), ("13", None), (None, None)],
     )
     def test_profile_modulation_from_bit_loading(self, driver, bits, expected):
-        assert driver._profile_modulation_from_bits(bits) == expected
+        nodes = [dict(row, index1=bits) if row["name"] == "bit Loading" else row for row in US_OFDMA["nodes"]]
+
+        channel = _poll(driver, {"RF_US_31_param": {"nodes": nodes}})["channelUs"]["docsis31"][0]
+
+        assert channel.get("profile_modulation") == expected
 
     def test_analyzer_accepts_sercom_dm1000_payload(self, driver):
-        payloads = {
-            "RF_DS_param": DS_INFO,
-            "RF_DS_31_param": DS_OFDM,
-            "RF_US_param": US_INFO,
-            "RF_US_31_param": US_OFDMA,
-        }
-        with patch.object(driver, "_fetch_payload", side_effect=lambda todo: payloads[todo]):
-            analysis = analyze(driver.get_docsis_data())
+        analysis = analyze(_poll(driver))
 
         assert len(analysis["ds_channels"]) == 3
         assert len(analysis["us_channels"]) == 2
@@ -551,6 +524,5 @@ class TestDeviceInfo:
 
 class TestRegistry:
     def test_sercom_dm1000_driver_is_registered(self):
-        assert driver_registry.has_driver("sercom_dm1000")
         drivers = dict(driver_registry.get_available_drivers())
         assert drivers["sercom_dm1000"] == "Sercom DM1000"

@@ -2,15 +2,15 @@
     <!-- Controls -->
     <div class="view-page-header mod-controls">
         <div class="view-page-header-left">
-            <h2 class="view-page-title">{{ t.get('docsight.modulation.title', 'Modulation Performance') }}</h2>
+            <h2 class="view-page-title">{{ t['docsight.modulation.title'] }}</h2>
         </div>
         <div class="view-page-actions mod-controls-tabs">
             <div class="segmented" id="modulation-direction-tabs" role="group" aria-label="{{ t.direction }}">
-                <button class="segmented-option active" data-dir="us" aria-pressed="true">{{ t.get('docsight.modulation.upstream', 'Upstream') }}</button>
-                <button class="segmented-option" data-dir="ds" aria-pressed="false">{{ t.get('docsight.modulation.downstream', 'Downstream') }}</button>
+                <button class="segmented-option active" data-dir="us" aria-pressed="true">{{ t['docsight.modulation.upstream'] }}</button>
+                <button class="segmented-option" data-dir="ds" aria-pressed="false">{{ t['docsight.modulation.downstream'] }}</button>
             </div>
             <div class="segmented" id="modulation-range-tabs" role="group" aria-label="{{ t.time_range }}">
-                <button class="segmented-option" data-days="1" aria-pressed="false">{{ t.get('docsight.modulation.today', 'Today') }}</button>
+                <button class="segmented-option" data-days="1" aria-pressed="false">{{ t['docsight.modulation.today'] }}</button>
                 <button class="segmented-option active" data-days="7" aria-pressed="true">7d</button>
                 <button class="segmented-option" data-days="30" aria-pressed="false">30d</button>
             </div>
@@ -20,9 +20,9 @@
     <div class="mod-capacity-panel" id="modulation-capacity-panel" hidden>
         <div class="mod-capacity-panel-head">
             <div>
-                <div class="mod-capacity-kicker">{{ t.get('docsight.modulation.capacity_kicker', 'Layer-1 SC-QAM estimate') }}</div>
-                <h3>{{ t.get('docsight.modulation.capacity_title', 'Calculated SC-QAM gross capacity') }}</h3>
-                <div class="mod-capacity-range" id="mod-capacity-range-label">{{ t.get('docsight.modulation.capacity_selected_period', 'Selected period') }}</div>
+                <div class="mod-capacity-kicker">{{ t['docsight.modulation.capacity_kicker'] }}</div>
+                <h3>{{ t['docsight.modulation.capacity_title'] }}</h3>
+                <div class="mod-capacity-range" id="mod-capacity-range-label">{{ t['docsight.modulation.capacity_selected_period'] }}</div>
             </div>
             <div class="mod-capacity-help-actions">
             {% if t.get('docsight.modulation.capacity_glossary') %}
@@ -30,33 +30,33 @@
             {% endif %}
             <span class="glossary-hint mod-capacity-basics-hint">
                 <i data-lucide="book-open"></i>
-                <span class="mod-capacity-basics-label">{{ t.get('docsis_basics_label', 'DOCSIS basics') }}</span>
-                <div class="glossary-popover">{{ t.get('glossary_docsis_basics', 'Cable internet uses DOCSIS, not DSL. DOCSight reads modem, channel, and signal data from supported cable gateways. Signal health, modulation, and SC-QAM capacity estimates are Layer-1/channel diagnostics, not Speedtest/IP throughput or tariff speed. Cable is a shared medium; segment utilization and provider/network conditions can affect real speeds.') }}</div>
+                <span class="mod-capacity-basics-label">{{ t.docsis_basics_label }}</span>
+                <div class="glossary-popover">{{ t.glossary_docsis_basics }}</div>
             </span>
             </div>
         </div>
-        <p class="mod-capacity-note" aria-label="{{ t.get('docsight.modulation.capacity_caveats_label', 'Capacity caveats') }}">
+        <p class="mod-capacity-note" aria-label="{{ t['docsight.modulation.capacity_caveats_label'] }}">
             <i data-lucide="info" aria-hidden="true"></i>
-            <span><strong>{{ t.get('docsight.modulation.capacity_warning_not_throughput', 'Not speedtest throughput') }} · {{ t.get('docsight.modulation.capacity_warning_not_tariff', 'Not tariff speed') }} · {{ t.get('docsight.modulation.capacity_warning_sc_qam_only', 'SC-QAM only; OFDM/OFDMA excluded when unsupported') }}</strong> {{ t.get('docsight.modulation.capacity_disclaimer', 'Calculated Layer-1 SC-QAM gross capacity based on supported channel data. Real IP throughput is lower and depends on tariff provisioning, DOCSIS overhead, segment utilization, test endpoint, modem and CMTS behavior, and other shared-medium conditions.') }}</span>
+            <span><strong>{{ t['docsight.modulation.capacity_warning_not_throughput'] }} · {{ t['docsight.modulation.capacity_warning_not_tariff'] }} · {{ t['docsight.modulation.capacity_warning_sc_qam_only'] }}</strong> {{ t['docsight.modulation.capacity_disclaimer'] }}</span>
         </p>
         <div class="mod-capacity-grid">
             {% for direction, card_id, current_id, min_id, avg_id, max_id, coverage_id, status_id in [
                 ('downstream', 'mod-capacity-downstream', 'mod-cap-ds-current', 'mod-cap-ds-min', 'mod-cap-ds-avg', 'mod-cap-ds-max', 'mod-cap-ds-coverage', 'mod-cap-ds-status'),
                 ('upstream', 'mod-capacity-upstream', 'mod-cap-us-current', 'mod-cap-us-min', 'mod-cap-us-avg', 'mod-cap-us-max', 'mod-cap-us-coverage', 'mod-cap-us-status')
             ] %}
-            {% set cap_label = t.get('docsight.modulation.downstream', 'Downstream') if direction == 'downstream' else t.get('docsight.modulation.upstream', 'Upstream') %}
+            {% set cap_label = t['docsight.modulation.downstream'] if direction == 'downstream' else t['docsight.modulation.upstream'] %}
             <div class="mod-capacity-card" id="{{ card_id }}" data-capacity-dir="{{ direction }}">
                 <div class="mod-capacity-card-top">
-                    <span>{{ cap_label }} · {{ t.get('docsight.modulation.capacity_current', 'Current') }}</span>
+                    <span>{{ cap_label }} · {{ t['docsight.modulation.capacity_current'] }}</span>
                     <strong id="{{ current_id }}">—</strong>
                 </div>
                 <div class="mod-capacity-history-row">
-                    <span>{{ t.get('docsight.modulation.capacity_min', 'Min') }}</span><strong id="{{ min_id }}">—</strong>
-                    <span>{{ t.get('docsight.modulation.capacity_avg', 'Avg') }}</span><strong id="{{ avg_id }}">—</strong>
-                    <span>{{ t.get('docsight.modulation.capacity_max', 'Max') }}</span><strong id="{{ max_id }}">—</strong>
+                    <span>{{ t['docsight.modulation.capacity_min'] }}</span><strong id="{{ min_id }}">—</strong>
+                    <span>{{ t['docsight.modulation.capacity_avg'] }}</span><strong id="{{ avg_id }}">—</strong>
+                    <span>{{ t['docsight.modulation.capacity_max'] }}</span><strong id="{{ max_id }}">—</strong>
                 </div>
                 <div class="mod-capacity-subline">
-                    <span>{{ t.get('docsight.modulation.capacity_coverage', 'Calculated channels') }}</span>
+                    <span>{{ t['docsight.modulation.capacity_coverage'] }}</span>
                     <strong id="{{ coverage_id }}">—</strong>
                 </div>
                 <div class="mod-capacity-status" id="{{ status_id }}">—</div>
@@ -74,7 +74,7 @@
                 {% if t.get('docsight.modulation.glossary_health_index') %}
                 <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.get('docsight.modulation.glossary_health_index') }}</div></span>
                 {% endif %}
-                <span class="mod-kpi-item-label">{{ t.get('docsight.modulation.health_index', 'Health Index') }}</span>
+                <span class="mod-kpi-item-label">{{ t['docsight.modulation.health_index'] }}</span>
                 <span class="mod-kpi-item-value" id="mod-kpi-health">—</span>
                 <span class="mod-kpi-item-sub" id="mod-kpi-health-delta"></span>
             </div>
@@ -82,12 +82,12 @@
                 {% if t.get('docsight.modulation.glossary_low_qam') %}
                 <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.get('docsight.modulation.glossary_low_qam') }}</div></span>
                 {% endif %}
-                <span class="mod-kpi-item-label">{{ t.get('docsight.modulation.low_qam_exposure', 'Low-QAM Exposure') }}</span>
+                <span class="mod-kpi-item-label">{{ t['docsight.modulation.low_qam_exposure'] }}</span>
                 <span class="mod-kpi-item-value" id="mod-kpi-lowqam">—</span>
                 <span class="mod-kpi-item-sub" id="mod-kpi-lowqam-hint"></span>
             </div>
             <div class="mod-kpi-item">
-                <span class="mod-kpi-item-label">{{ t.get('samples', 'Samples') }}</span>
+                <span class="mod-kpi-item-label">{{ t.samples }}</span>
                 <span class="mod-kpi-item-value" id="mod-kpi-samples">—</span>
             </div>
         </div>
@@ -98,7 +98,7 @@
         <!-- Click hint -->
         <div class="modulation-click-hint" id="mod-click-hint" hidden>
             <i data-lucide="mouse-pointer-click"></i>
-            {{ t.get('docsight.modulation.click_day_hint', 'Click a day bar to view per-channel details') }}
+            {{ t['docsight.modulation.click_day_hint'] }}
         </div>
     </div>
 
@@ -107,7 +107,7 @@
         <div class="mod-intraday-header">
             <button type="button" class="btn btn-secondary btn-sm" id="mod-back-btn" data-action="modBackToOverview">
                 <i data-lucide="arrow-left"></i>
-                {{ t.get('docsight.modulation.back_to_overview', 'Back to Overview') }}
+                {{ t['docsight.modulation.back_to_overview'] }}
             </button>
             <h3 class="mod-intraday-title" id="mod-intraday-title"></h3>
         </div>

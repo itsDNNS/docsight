@@ -22,17 +22,10 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
-from .formats.html_rows import (
-    find_cm3500_sections,
-    format_cm3500_frequency,
-    parse_cm3500_ds_ofdm,
-    parse_cm3500_ds_qam,
-    parse_cm3500_html,
-    parse_cm3500_us_ofdm,
-    parse_cm3500_us_qam,
-)
-from .formats.primitives import parse_number
-from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from .format_compat import unwrap
+from .formats.html_rows import parse_cm3500_html
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import request_error_summary
 
 log = logging.getLogger("docsis.driver.cm3500")
 
@@ -52,8 +45,13 @@ class CM3500Driver(ModemDriver):
             url = "https://" + url[len("http://"):]
             log.info("CM3500 requires HTTPS, upgraded URL to %s", url)
         super().__init__(url, user, password)
-        self._session = requests.Session()
-        self._session.verify = False
+        self._session = self._new_session()
+
+    @staticmethod
+    def _new_session() -> requests.Session:
+        session = requests.Session()
+        session.verify = False
+        return session
 
     def login(self) -> None:
         """Authenticate via form POST to /cgi-bin/login_cgi.
@@ -61,26 +59,16 @@ class CM3500Driver(ModemDriver):
         Retries once with a fresh connection if the modem drops a stale
         TCP connection (common after container restarts).
         """
-        for attempt in range(2):
-            try:
-                r = self._session.post(
-                    f"{self._url}/cgi-bin/login_cgi",
-                    data={"username": self._user, "password": self._password},
-                    timeout=30,
-                )
-                r.raise_for_status()
-                log.info("CM3500 auth OK")
-                return
-            except requests.ConnectionError:
-                if attempt == 0:
-                    log.warning("CM3500 connection lost, retrying with fresh session")
-                    self._session.close()
-                    self._session = requests.Session()
-                    self._session.verify = False
-                    continue
-                raise RuntimeError("CM3500 authentication failed: connection refused after retry")
-            except requests.RequestException as e:
-                raise RuntimeError(f"CM3500 authentication failed: {e}")
+        self._login_with_reconnect("CM3500", self._login_attempt, log)
+
+    def _login_attempt(self) -> None:
+        r = self._session.post(
+            f"{self._url}/cgi-bin/login_cgi",
+            data={"username": self._user, "password": self._password},
+            timeout=30,
+        )
+        r.raise_for_status()
+        log.info("CM3500 auth OK")
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables on status page.
@@ -88,7 +76,7 @@ class CM3500Driver(ModemDriver):
         Returns pre-split format so the analyzer correctly labels
         QAM channels as DOCSIS 3.0 and OFDM/OFDMA channels as 3.1.
         """
-        return parse_cm3500_html(self._fetch_status_page()).value
+        return unwrap(parse_cm3500_html(self._fetch_status_page()), log)
 
     def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from status page."""
@@ -122,7 +110,8 @@ class CM3500Driver(ModemDriver):
                 )
 
             return result
-        except Exception:
+        except Exception as e:
+            log.warning("CM3500 device info unavailable: %s", e)
             return {"manufacturer": "Arris", "model": "CM3500B", "sw_version": ""}
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -134,7 +123,7 @@ class CM3500Driver(ModemDriver):
             )
             r.raise_for_status()
         except requests.RequestException as e:
-            log.warning("CM3500 config params unavailable: %s", e)
+            log.warning("CM3500 config params unavailable: %s", request_error_summary(e))
             return {}
 
         return self._parse_service_flows(r.text)
@@ -195,34 +184,5 @@ class CM3500Driver(ModemDriver):
             )
             r.raise_for_status()
         except requests.RequestException as e:
-            raise RuntimeError(f"CM3500 status page retrieval failed: {e}")
+            raise RuntimeError(f"CM3500 status page retrieval failed: {request_error_summary(e)}")
         return BeautifulSoup(r.text, "html.parser")
-
-    def _find_table_sections(self, soup) -> dict[str, object]:
-        return find_cm3500_sections(soup)
-
-    # -- Downstream parsers --
-
-    def _parse_ds_qam(self, table) -> list[RawChannel]:
-        return parse_cm3500_ds_qam(table).value
-
-    def _parse_ds_ofdm(self, table) -> list[RawChannel]:
-        return parse_cm3500_ds_ofdm(table).value
-
-    # -- Upstream parsers --
-
-    def _parse_us_qam(self, table) -> list[RawChannel]:
-        return parse_cm3500_us_qam(table).value
-
-    def _parse_us_ofdm(self, table) -> list[RawChannel]:
-        return parse_cm3500_us_ofdm(table).value
-
-    # -- Value parsers --
-
-    @staticmethod
-    def _parse_number(value: str) -> float:
-        return parse_number(value)
-
-    @staticmethod
-    def _format_freq(freq_str: str) -> str:
-        return format_cm3500_frequency(freq_str)

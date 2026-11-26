@@ -32,10 +32,11 @@ import logging
 
 import requests
 
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
 from .base import ModemDriver
-from .formats.sagemcom import parse_f3896lg_downstream, parse_f3896lg_upstream
-from .format_compat import unwrap_f3896lg
+from .formats.sagemcom import parse_f3896lg_rest_json
+from .format_compat import unwrap
+from .utils import error_text
 
 log = logging.getLogger("docsis.driver.f3896lg")
 
@@ -84,15 +85,11 @@ class F3896LGDriver(ModemDriver):
             raise RuntimeError("F3896LG REST API returned unexpected registration payload")
 
     def get_docsis_data(self) -> DocsisData:
-        ds = self._get_channels("cablemodem/downstream", "downstream")
-        us = self._get_channels("cablemodem/upstream", "upstream")
-
-        ds30, ds31 = self._parse_downstream(ds)
-        us30, us31 = self._parse_upstream(us)
-        return {
-            "channelDs": {"docsis30": ds30, "docsis31": ds31},
-            "channelUs": {"docsis30": us30, "docsis31": us31},
+        payload = {
+            "downstream": self._get_channels("cablemodem/downstream", "downstream"),
+            "upstream": self._get_channels("cablemodem/upstream", "upstream"),
         }
+        return unwrap(parse_f3896lg_rest_json(payload), log)
 
     def get_device_info(self) -> DeviceInfo:
         info: DeviceInfo = {
@@ -106,7 +103,7 @@ class F3896LGDriver(ModemDriver):
             if cm.get("upTime") is not None:
                 info["uptime_seconds"] = int(cm["upTime"])
         except (requests.RequestException, RuntimeError, ValueError, TypeError) as e:
-            log.warning("F3896LG device info fetch failed: %s", e)
+            log.warning("F3896LG device info fetch failed: %s", error_text(e))
         return info
 
     def get_connection_info(self) -> ConnectionInfo:
@@ -139,13 +136,5 @@ class F3896LGDriver(ModemDriver):
             if "max_upstream_kbps" in max_rates:
                 out["max_upstream_kbps"] = max_rates["max_upstream_kbps"] // 1000
         except (requests.RequestException, RuntimeError, ValueError, TypeError) as e:
-            log.warning("F3896LG connection info fetch failed: %s", e)
+            log.warning("F3896LG connection info fetch failed: %s", error_text(e))
         return out
-
-    # Compatibility parser seams.
-
-    def _parse_downstream(self, channels: list[dict]) -> tuple[list[RawChannel], list[RawChannel]]:
-        return unwrap_f3896lg(parse_f3896lg_downstream(channels), channels, "downstream", log)
-
-    def _parse_upstream(self, channels: list[dict]) -> tuple[list[RawChannel], list[RawChannel]]:
-        return unwrap_f3896lg(parse_f3896lg_upstream(channels), channels, "upstream", log)

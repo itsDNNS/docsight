@@ -1,12 +1,14 @@
 """Unexpected failures answer with a fixed message; details stay in the log."""
 
 import io
+import sqlite3
 import threading
 from types import SimpleNamespace
 
 import pytest
 
 from app.config import ConfigManager
+from app.modules.journal.storage import JournalStorage
 from app.runtime import get_runtime
 from app.storage import SnapshotStorage
 from tests.test_bqm_csv_parser import VALID_CSV
@@ -61,7 +63,7 @@ def _upload(field, content, name, **form):
     ("/api/poll", _patch_poll, {}, 500, {"success": False, "error": "Modem reading failed, see the DOCSight log"}),
     ("/api/backup/scheduled", _patch("app.modules.backup.routes.create_backup_to_file"), {},
      500, {"error": f"Backup failed. {SEE_LOG}"}),
-    ("/api/speedtest/run", _patch("app.modules.speedtest.routes.requests.post"), {},
+    ("/api/speedtest/run", _patch("app.modules.speedtest.client.requests.Session.post"), {},
      500, {"success": False, "error": f"Speedtest start failed. {SEE_LOG}"}),
     ("/api/bqm/import", _patch("app.modules.bqm.storage.BqmStorage.import_bqm_graph"),
      _upload("files[]", b"\x89PNG graph", "graph.png", dates="2026-01-01"), 200, None),
@@ -80,8 +82,9 @@ def test_unexpected_failure_is_logged_but_not_returned(app, monkeypatch, caplog,
     else:
         assert data == body
     assert DETAIL not in response.get_data(as_text=True)
-    # The speedtest request carries the tracker token, so its exception text is never logged.
-    assert (DETAIL in caplog.text) == (path != "/api/speedtest/run")
+    # The speedtest request carries the tracker token, so its exception text is never logged;
+    # a BQM graph import logs only the error type, since the filename can be the share ID.
+    assert (DETAIL in caplog.text) == (path not in ("/api/speedtest/run", "/api/bqm/import"))
 
 
 @pytest.mark.parametrize("payload", [["a", "list"], "text", 42])
@@ -99,3 +102,57 @@ def test_settings_save_rejects_a_url_that_is_not_text(app):
 def test_settings_save_rejects_an_admin_password_that_is_not_text(app, password):
     response = app.test_client().post("/api/config", json={"admin_password": password})
     assert (response.status_code, response.get_json()) == (400, {"success": False, "error": "admin_password must be text"})
+
+
+def _fail_storage(*_args, **_kwargs):
+    raise sqlite3.OperationalError("database is locked")
+
+
+_BNETZ_RANGE = "app.modules.bnetz.storage.BnetzStorage.get_bnetz_in_range"
+_SPEEDTEST_RANGE = "app.modules.speedtest.storage.SpeedtestStorage.get_speedtest_in_range"
+_COMPARISON = "comparison_from_a=2026-01-01&comparison_to_a=2026-01-02&comparison_from_b=2026-01-03&comparison_to_b=2026-01-04"
+
+
+@pytest.mark.parametrize(("path", "target"), [
+    ("/api/export?mode=full", "app.modules.speedtest.storage.SpeedtestStorage.get_recent_speedtests"),
+    ("/api/export?mode=full", "app.modules.journal.storage.JournalStorage.get_active_entries"),
+    ("/api/complaint?include_bnetz=true", _BNETZ_RANGE),
+    (f"/api/complaint?{_COMPARISON}", "app.modules.comparison.routes.compare_periods"),
+    (f"/api/report?{_COMPARISON}", "app.modules.comparison.routes.compare_periods"),
+    ("/api/incidents/{incident}/timeline", _BNETZ_RANGE),
+    ("/api/incidents/{incident}/report", _SPEEDTEST_RANGE),
+    ("/api/incidents/{incident}/report", _BNETZ_RANGE),
+    ("/api/evidence/checklist?incident_id={incident}", _BNETZ_RANGE),
+], ids=["export-speedtests", "export-journal", "complaint-bnetz", "complaint-comparison", "report-comparison",
+        "incident-bnetz", "incident-report-speedtests", "incident-report-bnetz", "evidence-checklist-bnetz"])
+def test_storage_failure_fails_the_document_instead_of_dropping_a_section(
+    app, monkeypatch, caplog, sample_analysis, path, target,
+):
+    app.config["PROPAGATE_EXCEPTIONS"] = False  # as in production
+    runtime = get_runtime(app)
+    runtime.update_state(analysis=sample_analysis)
+    incident = JournalStorage(runtime.storage.db_path).save_incident(name="Outage", start_date="2026-01-01")
+    monkeypatch.setattr(target, _fail_storage)
+
+    response = app.test_client().get(path.format(incident=incident))
+
+    assert (response.status_code, response.get_json()) == (
+        503, {"error": "Reading stored data failed. See the DOCSight log for details."}
+    )
+    assert "database is locked" in caplog.text
+
+
+@pytest.mark.parametrize("error", [sqlite3.OperationalError("database is locked"), RuntimeError(DETAIL)])
+def test_dashboard_survives_an_unreadable_bnetz_measurement_but_not_a_bug(app, monkeypatch, caplog, error):
+    def fail(*_args):
+        raise error
+
+    get_runtime(app).config_manager.save({"bnetz_enabled": True})
+    monkeypatch.setattr("app.modules.bnetz.storage.BnetzStorage.get_latest_bnetz", fail)
+
+    if isinstance(error, sqlite3.Error):
+        assert app.test_client().get("/").status_code == 200
+        assert "Latest BNetzA measurement unavailable (OperationalError)" in caplog.text
+    else:
+        with pytest.raises(RuntimeError):
+            app.test_client().get("/")

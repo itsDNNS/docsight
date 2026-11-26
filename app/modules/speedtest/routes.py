@@ -6,13 +6,13 @@ import time
 import requests
 from flask import Blueprint, request, jsonify
 
-from app.config import parse_config_bool
 from app.web_auth import require_auth
-from app.runtime import current_runtime
+from app.web_locale import get_lang
+from app.runtime import core_derived_storage, current_runtime
 from app.i18n import get_translations
 from app.storage.sqlite import open_read
 
-from .client import SpeedtestClient, public_error
+from .client import RUN_ACCEPTED, SpeedtestClient, public_error
 from .storage import SpeedtestStorage
 
 log = logging.getLogger("docsis.web.speedtest")
@@ -23,12 +23,7 @@ _TRIGGER_COOLDOWN = 60  # seconds
 
 
 def _get_speedtest_storage():
-    core_storage = current_runtime().storage
-    if not core_storage:
-        return None
-    return current_runtime().derived_storage.get(
-        f"speedtest:{core_storage.db_path}", lambda: SpeedtestStorage(core_storage.db_path)
-    )
+    return core_derived_storage(SpeedtestStorage)
 
 
 def _classify_speed(actual, booked):
@@ -54,8 +49,10 @@ def _enrich_speedtest(result):
             booked_dl = conn_info.get("max_downstream_kbps", 0) // 1000 if conn_info.get("max_downstream_kbps") else 0
         if not booked_ul:
             booked_ul = conn_info.get("max_upstream_kbps", 0) // 1000 if conn_info.get("max_upstream_kbps") else 0
-    dl_class = _classify_speed(result.get("download_mbps", 0), booked_dl)
-    ul_class = _classify_speed(result.get("upload_mbps", 0), booked_ul)
+    for key in ("download_mbps", "upload_mbps"):
+        result[key] = result.get(key) or 0  # a failed test fetched without the cache has none
+    dl_class = _classify_speed(result["download_mbps"], booked_dl)
+    ul_class = _classify_speed(result["upload_mbps"], booked_ul)
     # speed_health is the worse of the two
     if dl_class and ul_class:
         order = {"poor": 0, "warn": 1, "good": 2}
@@ -79,13 +76,10 @@ def _annotate_smart_capture(results, db_path):
             sc_ids = {r[0] for r in rows}
         for r in results:
             r["smart_capture"] = r.get("id") in sc_ids
-    except Exception:
+    except Exception as exc:
+        log.warning("Smart Capture annotation failed (%s)", type(exc).__name__)
         for r in results:
             r["smart_capture"] = False
-
-
-def _get_lang():
-    return request.cookies.get("lang", "en")
 
 
 @bp.route("/api/speedtest")
@@ -98,64 +92,21 @@ def api_speedtest():
         return jsonify([])
     count = request.args.get("count", 2000, type=int)
     count = max(1, min(count, 5000))
-    # Demo mode: return seeded data without external API call
-    if _config_manager.is_demo_mode() and ss:
-        results = ss.get_speedtest_results(limit=count)
-        enriched = [_enrich_speedtest(r) for r in results]
-        _annotate_smart_capture(enriched, ss.db_path)
-        return jsonify(enriched)
-    # Delta fetch: get new results from STT API and cache them
-    if ss:
-        try:
-            stt_url = _config_manager.get("speedtest_tracker_url")
-            tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
-            client = SpeedtestClient(
-                stt_url,
-                _config_manager.get("speedtest_tracker_token"),
-                tls_insecure=tls_insecure,
-            )
-            # Detect server switch and clear stale cache
-            ss.check_source_url(stt_url)
-            cached_count = ss.get_speedtest_count()
-            last_id = ss.get_latest_speedtest_id()
-            # ID-reset detection: compare remote max ID with cache max ID
-            if cached_count > 0 and last_id > 0:
-                remote_latest, fetch_err = client.get_latest_with_error(1)
-                if fetch_err is None and not remote_latest:
-                    # Remote is reachable but empty — server was wiped
-                    log.info("Remote has no results but cache has %d, clearing", cached_count)
-                    ss.clear_cache()
-                    current_runtime().clear_speedtest_latest()
-                    cached_count = 0
-                elif remote_latest and remote_latest[0].get("id", 0) < last_id:
-                    log.info(
-                        "Speedtest ID reset detected (cache max=%d, remote max=%d), rebuilding",
-                        last_id, remote_latest[0]["id"],
-                    )
-                    ss.clear_cache()
-                    cached_count = 0
-            if cached_count < 50:
-                new_results = client.get_results(per_page=2000)
-            else:
-                new_results = client.get_newer_than(last_id)
-            if new_results:
-                ss.save_speedtest_results(new_results)
-                log.info("Cached %d new speedtest results", len(new_results))
-        except Exception as e:
-            log.warning("Speedtest delta fetch failed: %s", e)
-        results = ss.get_speedtest_results(limit=count)
-        enriched = [_enrich_speedtest(r) for r in results]
-        _annotate_smart_capture(enriched, ss.db_path)
-        return jsonify(enriched)
-    # Fallback: no storage, fetch directly
-    tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
-    client = SpeedtestClient(
-        _config_manager.get("speedtest_tracker_url"),
-        _config_manager.get("speedtest_tracker_token"),
-        tls_insecure=tls_insecure,
-    )
-    results = client.get_results(per_page=count)
-    return jsonify([_enrich_speedtest(r) for r in results])
+    demo = _config_manager.is_demo_mode()  # demo mode shows the seeded results without Speedtest Tracker
+    if not ss:  # fetch directly without the local cache
+        if demo:
+            return jsonify([])
+        results, _ = SpeedtestClient.from_config(_config_manager).get_results_with_error(count)
+        return jsonify([_enrich_speedtest(r) for r in results])
+    # Sync through the collector that polling publishes once Smart Capture listens to it; while
+    # another sync runs, or in demo mode, the page shows the cache at once
+    collector = next((c for c in current_runtime().collectors if c.name == "speedtest"), None)
+    if collector:
+        collector.collect()
+    results = ss.get_speedtest_results(limit=count)
+    enriched = [_enrich_speedtest(r) for r in results]
+    _annotate_smart_capture(enriched, ss.db_path)
+    return jsonify(enriched)
 
 
 @bp.route("/api/speedtest/<int:result_id>")
@@ -186,11 +137,10 @@ def api_speedtest_signal(result_id):
         return jsonify({"error": "Core storage not initialized"}), 500
     snap = core_storage.get_closest_snapshot(result["timestamp"])
     if not snap:
-        lang = _get_lang()
-        t = get_translations(lang)
+        t = get_translations(get_lang())
         return jsonify({
             "found": False,
-            "message": t.get("signal_no_snapshot", "No signal snapshot found within 2 hours of this speedtest."),
+            "message": t["signal_no_snapshot"],
         })
     s = snap["summary"]
     errors_supported = s.get("errors_supported", True)
@@ -241,22 +191,16 @@ def api_speedtest_run():
         remaining = int(_TRIGGER_COOLDOWN - (now - last_trigger_ts))
         return jsonify({"success": False, "error": f"Rate limited, retry in {remaining}s"}), 429
 
-    url = _config_manager.get("speedtest_tracker_url", "").rstrip("/")
-    token = _config_manager.get("speedtest_tracker_token", "")
-    tls_insecure = parse_config_bool(
-        _config_manager.get("speedtest_tls_insecure", False)
-    )
     try:
-        resp = requests.post(
-            f"{url}/api/v1/speedtests/run",
-            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
-            timeout=90,
-            verify=not tls_insecure,
-        )
-        if resp.status_code == 201:
+        resp = SpeedtestClient.from_config(_config_manager).run(timeout=90)
+        if resp.status_code in RUN_ACCEPTED:
             runtime.derived_storage.set_value("speedtest_last_trigger", now)
             log.info("Speedtest manually triggered via UI")
-            return jsonify({"success": True})
+            try:  # the queued result, so the page can wait for exactly this test
+                result_id = resp.json()["data"]["id"]
+            except (ValueError, TypeError, KeyError):
+                result_id = None
+            return jsonify({"success": True, "result_id": result_id if type(result_id) is int else None})
         else:
             error = f"Speedtest Tracker returned {resp.status_code}"
             log.warning("Manual speedtest trigger failed: %s", error)

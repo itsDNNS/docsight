@@ -12,6 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / "app/static/js/url-contract.js"
+URL_SAFETY = ROOT / "app/static/js/url-safety.js"
 DEMO_BANNER = ROOT / "app/static/js/demo-banner.js"
 
 # Every script the browser runs, except the vendor bundles and the helper itself.
@@ -23,7 +24,7 @@ BROWSER_SCRIPTS = sorted(
 NODE_HARNESS = r"""
 const fs = require('fs');
 const request = JSON.parse(fs.readFileSync(0, 'utf8'));
-global.window = {};
+global.window = global.self = {};
 global.document = {
     getElementById: function(id) {
         if (id !== 'docsight-url-bootstrap' || !request.hasElement) return null;
@@ -33,6 +34,7 @@ global.document = {
 let initError = null;
 try {
     eval(fs.readFileSync(process.argv[1], 'utf8'));
+    eval(fs.readFileSync(process.argv[2], 'utf8'));
 } catch (error) {
     initError = error.name + ': ' + error.message;
 }
@@ -59,6 +61,7 @@ global.window = {
     location: {assign: function(value) { assignments.push(value); }}
 };
 global.document = {
+    addEventListener: function() {},
     getElementById: function(id) {
         if (id === 'demo-banner') return banner;
         if (id === 'demo-banner-result') return result;
@@ -98,7 +101,7 @@ def _run_helper(
             separators=(",", ":"),
         )
     completed = subprocess.run(
-        ["node", "-e", NODE_HARNESS, str(HELPER)],
+        ["node", "-e", NODE_HARNESS, str(URL_SAFETY), str(HELPER)],
         input=json.dumps(
             {
                 "hasElement": has_element,

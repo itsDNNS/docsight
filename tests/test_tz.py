@@ -9,7 +9,7 @@ from app.time_ranges import parse_window_end
 from app.tz import (
     utc_now, utc_cutoff, to_local, to_local_display,
     local_to_utc, local_today, local_date_to_utc_range,
-    guess_iana_timezone, epoch_to_utc, parse_utc_strict,
+    guess_iana_timezone, epoch_to_utc, parse_utc_strict, get_tz_name,
 )
 
 
@@ -219,6 +219,12 @@ class TestLocalDateToUtcRange:
         start, end = local_date_to_utc_range("2026-01-15", "")
         assert start == "2026-01-15T00:00:00Z"
         assert end == "2026-01-15T23:59:59Z"
+
+
+@pytest.mark.parametrize("configured, expected", [("Europe/Berlin", "Europe/Berlin"), ("UTC0", "Etc/UTC")])
+def test_get_tz_name_falls_back_when_the_configured_zone_cannot_be_loaded(configured, expected):
+    with patch("app.tz.guess_iana_timezone", return_value="Etc/UTC"):
+        assert get_tz_name({"timezone": configured}) == expected
 
 
 class TestGuessIanaTimezone:

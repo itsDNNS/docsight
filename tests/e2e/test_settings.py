@@ -309,6 +309,25 @@ class TestSettingsFormElements:
         settings_page.locator("#modem_type").select_option("fritzbox")
         expect(test_button).to_be_visible()
 
+    def test_saved_url_that_is_another_drivers_default_survives_page_load_and_discard(self, page, live_server):
+        # A TC4400 saved with the FRITZ!Box default address keeps that address.
+        def saved_tc4400(route):
+            response = route.fetch()
+            html = response.text().replace('<option value="tc4400"', '<option value="tc4400" selected')
+            html = re.sub(r'(id="modem_url" name="modem_url" value=")[^"]*', r"\g<1>http://192.168.178.1", html)
+            route.fulfill(response=response, body=html)
+
+        page.route(f"{live_server}/settings", saved_tc4400)
+        page.goto(f"{live_server}/settings")
+        expect(page.locator("#modem_user")).to_have_attribute("placeholder", "admin")
+        expect(page.locator("#modem_type")).to_have_value("tc4400")
+        expect(page.locator("#modem_url")).to_have_value("http://192.168.178.1")
+        page.locator("#modem_type").select_option("generic")
+        page.locator("#save-bar-discard").click()
+        expect(page.locator("#modem_type")).to_have_value("tc4400")
+        expect(page.locator("#modem_url")).to_have_value("http://192.168.178.1")
+        expect(page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
     def test_modem_status_updates_after_successful_connection_test(self, settings_page):
         settings_page.route("**/api/test-modem", lambda route: route.fulfill(json={"success": True, "model": "Demo CM"}))
 

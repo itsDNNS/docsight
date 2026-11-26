@@ -220,6 +220,20 @@ def _diagnostic_note(
     return note
 
 
+def _append_power_note(notes, prefix, channel, channel_label, power, bounds, direction=None):
+    """Append a power note; without a stored direction the critical bounds decide."""
+    if direction is None and bounds is not None:
+        direction = "high" if power > bounds[1] else "low" if power < bounds[0] else None
+    if direction is None:
+        return
+    index, boundary_key = (1, "spec_max") if direction == "high" else (0, "spec_min")
+    notes.append(_diagnostic_note(
+        note_type=f"{prefix}_power_{direction}", channel=channel, channel_label=channel_label,
+        metric="upstream power" if prefix == "us" else "downstream power", value=power,
+        boundary=bounds[index] if bounds else None, boundary_key=boundary_key,
+    ))
+
+
 def _snapshot_diagnostic_notes(current_analysis, thresholds):
     """Build critical notes without reinterpreting stored analyzer output.
 
@@ -233,9 +247,6 @@ def _snapshot_diagnostic_notes(current_analysis, thresholds):
 
     notes = []
     analyzer_snapshot = _has_analyzer_snapshot_semantics(current_analysis)
-    us_thresholds = (
-        {} if analyzer_snapshot else thresholds.raw.get("upstream_power", {})
-    )
     historical_thresholds = _historical_builtin_thresholds(current_analysis)
 
     for ch in current_analysis.get("us_channels", []):
@@ -246,47 +257,17 @@ def _snapshot_diagnostic_notes(current_analysis, thresholds):
         key = "ofdma" if family == "ofdma" else "sc_qam"
         channel_label = _channel_type_label("us", ch) or (ch.get("modulation") or key.upper())
         if "power_health" in ch:
-            if ch.get("power_health") != "critical":
-                continue
-            bounds = _historical_power_bounds(historical_thresholds, "us", ch, family)
-            stored_direction = _stored_metric_direction(ch, "power")
-            if stored_direction is None and bounds is not None:
-                if power > bounds[1]:
-                    stored_direction = "high"
-                elif power < bounds[0]:
-                    stored_direction = "low"
-            if stored_direction == "high":
-                notes.append(_diagnostic_note(
-                    note_type="us_power_high", channel=ch, channel_label=channel_label,
-                    metric="upstream power", value=power,
-                    boundary=bounds[1] if bounds else None, boundary_key="spec_max",
-                ))
-            elif stored_direction == "low":
-                notes.append(_diagnostic_note(
-                    note_type="us_power_low", channel=ch, channel_label=channel_label,
-                    metric="upstream power", value=power,
-                    boundary=bounds[0] if bounds else None, boundary_key="spec_min",
-                ))
-            continue
-        if analyzer_snapshot:
-            continue
-
-        # Explicit legacy behavior: only snapshots predating analyzer schema
-        # provenance use the currently active analyzer profile.
-        spec = us_thresholds.get(key, {})
-        crit = spec.get("critical", [35.0, 53.0])
-        if power > crit[1]:
-            notes.append(_diagnostic_note(
-                note_type="us_power_high", channel=ch, channel_label=channel_label,
-                metric="upstream power", value=power,
-                boundary=crit[1], boundary_key="spec_max",
-            ))
-        elif power < crit[0]:
-            notes.append(_diagnostic_note(
-                note_type="us_power_low", channel=ch, channel_label=channel_label,
-                metric="upstream power", value=power,
-                boundary=crit[0], boundary_key="spec_min",
-            ))
+            if ch.get("power_health") == "critical":
+                _append_power_note(
+                    notes, "us", ch, channel_label, power,
+                    _historical_power_bounds(historical_thresholds, "us", ch, family),
+                    _stored_metric_direction(ch, "power"),
+                )
+        elif not analyzer_snapshot:
+            # Explicit legacy behavior: only snapshots predating analyzer schema
+            # provenance use the currently active analyzer profile.
+            spec = thresholds.raw.get("upstream_power", {}).get(key, {})
+            _append_power_note(notes, "us", ch, channel_label, power, spec.get("critical", [35.0, 53.0]))
 
     for ch in current_analysis.get("ds_channels", []):
         mod = (ch.get("modulation") or "256QAM").upper()
@@ -296,39 +277,14 @@ def _snapshot_diagnostic_notes(current_analysis, thresholds):
         if power is not None:
             if "power_health" in ch:
                 if ch.get("power_health") == "critical":
-                    bounds = _historical_power_bounds(historical_thresholds, "ds", ch, family)
-                    stored_direction = _stored_metric_direction(ch, "power")
-                    if stored_direction is None and bounds is not None:
-                        if power > bounds[1]:
-                            stored_direction = "high"
-                        elif power < bounds[0]:
-                            stored_direction = "low"
-                    if stored_direction == "high":
-                        notes.append(_diagnostic_note(
-                            note_type="ds_power_high", channel=ch, channel_label=channel_label,
-                            metric="downstream power", value=power,
-                            boundary=bounds[1] if bounds else None, boundary_key="spec_max",
-                        ))
-                    elif stored_direction == "low":
-                        notes.append(_diagnostic_note(
-                            note_type="ds_power_low", channel=ch, channel_label=channel_label,
-                            metric="downstream power", value=power,
-                            boundary=bounds[0] if bounds else None, boundary_key="spec_min",
-                        ))
+                    _append_power_note(
+                        notes, "ds", ch, channel_label, power,
+                        _historical_power_bounds(historical_thresholds, "ds", ch, family),
+                        _stored_metric_direction(ch, "power"),
+                    )
             elif not analyzer_snapshot:
                 spec = resolve_ds_power_thresholds(mod, channel_family=family, thresholds=thresholds.raw)
-                if power > spec["crit_max"]:
-                    notes.append(_diagnostic_note(
-                        note_type="ds_power_high", channel=ch, channel_label=channel_label,
-                        metric="downstream power", value=power,
-                        boundary=spec["crit_max"], boundary_key="spec_max",
-                    ))
-                elif power < spec["crit_min"]:
-                    notes.append(_diagnostic_note(
-                        note_type="ds_power_low", channel=ch, channel_label=channel_label,
-                        metric="downstream power", value=power,
-                        boundary=spec["crit_min"], boundary_key="spec_min",
-                    ))
+                _append_power_note(notes, "ds", ch, channel_label, power, (spec["crit_min"], spec["crit_max"]))
 
         snr = ch.get("snr")
         if snr is not None:
@@ -363,8 +319,6 @@ _DIAGNOSTIC_TYPE_ORDER = {
 }
 
 
-_canonical_snapshot_timestamp = canonical_utc_timestamp
-
 def _stable_channel_identity(note):
     channel_id = note.get("channel_id")
     try:
@@ -373,21 +327,15 @@ def _stable_channel_identity(note):
         return 1, str(channel_id or "")
 
 
-def _derive_historical(snapshots, *, thresholds: ThresholdContext):
-    """Derive latest status and one deterministic worst diagnostic per type."""
-    prepared = []
+def derive_diagnostic_notes(snapshots, *, thresholds: ThresholdContext):
+    """Derive one deterministic, provenance-aware worst diagnostic note per type."""
     candidates = []
     for snapshot in snapshots or []:
-        observed_at = _canonical_snapshot_timestamp(snapshot.get("timestamp"))
-        prepared.append((observed_at, snapshot))
+        observed_at = canonical_utc_timestamp(snapshot.get("timestamp"))
         for note in _snapshot_diagnostic_notes(snapshot, thresholds):
             candidate = dict(note)
             candidate["observed_at"] = observed_at
             candidates.append(candidate)
-
-    latest_snapshot = None
-    if prepared:
-        latest_snapshot = max(prepared, key=lambda item: item[0])[1]
 
     selected = {}
     for note in candidates:
@@ -422,19 +370,7 @@ def _derive_historical(snapshots, *, thresholds: ThresholdContext):
         if existing is None or rank < existing[0]:
             selected[note_type] = (rank, note)
 
-    notes = [
+    return [
         selected[note_type][1]
         for note_type in sorted(selected, key=_DIAGNOSTIC_TYPE_ORDER.get)
     ]
-    return {"latest_snapshot": latest_snapshot, "diagnostic_notes": notes}
-
-
-
-def derive_historical(snapshots, *, thresholds: ThresholdContext):
-    """Derive latest status and deterministic diagnostic notes for a period."""
-    return _derive_historical(snapshots, thresholds=thresholds)
-
-
-def derive_diagnostic_notes(ordered_snapshots, thresholds: ThresholdContext):
-    """Derive deterministic provenance-aware notes for ordered snapshots."""
-    return _derive_historical(ordered_snapshots, thresholds=thresholds)["diagnostic_notes"]

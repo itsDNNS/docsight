@@ -7,25 +7,18 @@ from flask import Blueprint, jsonify, request
 from app.i18n import get_translations
 from app.storage.segment_utilization import SegmentUtilizationStorage
 from app.web_auth import require_auth
-from app.runtime import current_runtime
+from app.web_locale import get_lang
+from app.runtime import core_derived_storage, current_runtime
 from app.tz import utc_cutoff, utc_now
 
 log = logging.getLogger("docsis.web.segment")
 
 segment_bp = Blueprint("segment_bp", __name__)
 
-def _get_lang():
-    return request.cookies.get("lang", "en")
-
 
 def _get_storage():
     """Lazy-init segment storage using core DB path."""
-    storage = current_runtime().storage
-    if not storage:
-        return None
-    return current_runtime().derived_storage.get(
-        f"segment_utilization:{storage.db_path}", lambda: SegmentUtilizationStorage(storage.db_path)
-    )
+    return core_derived_storage(SegmentUtilizationStorage)
 
 
 RANGE_HOURS = {"24h": 24, "7d": 168, "30d": 720, "all": 0}
@@ -38,32 +31,34 @@ def _normalize_range_key(raw, default):
     return default
 
 
+def _window(range_key):
+    """The (start, end) UTC timestamps of a range key."""
+    hours = RANGE_HOURS[range_key]
+    return (utc_cutoff(hours=hours) if hours > 0 else "2000-01-01T00:00:00Z"), utc_now()
+
+
+def _gated_storage():
+    """(storage, None) for the segment views, or (None, error response) while they are unavailable."""
+    config = current_runtime().config_manager
+    t = get_translations(get_lang())
+    if config.get("modem_type") != "fritzbox":
+        return None, (jsonify({"error": t["seg_unsupported_driver"]}), 400)
+    if not config.is_segment_utilization_enabled():
+        return None, (jsonify({"error": t["seg_disabled"]}), 400)
+    storage = _get_storage()
+    if not storage:
+        return None, (jsonify({"error": "Storage unavailable"}), 503)
+    return storage, None
+
+
 @segment_bp.route("/api/fritzbox/segment-utilization")
 @require_auth
 def api_segment_utilization():
     """Return stored segment utilization data for the tab view."""
-    config = current_runtime().config_manager
-    t = get_translations(_get_lang())
-    if not config:
-        return jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503
-    if config.get("modem_type") != "fritzbox":
-        return jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400
-    if not config.is_segment_utilization_enabled():
-        return jsonify({"error": t.get("seg_disabled", "Segment utilization is disabled in Settings.")}), 400
-
-    storage = _get_storage()
-    if not storage:
-        return jsonify({"error": "Storage unavailable"}), 503
-
-    range_key = _normalize_range_key(request.args.get("range"), "24h")
-    hours = RANGE_HOURS[range_key]
-
-    if hours > 0:
-        start = utc_cutoff(hours=hours)
-    else:
-        start = "2000-01-01T00:00:00Z"
-    end = utc_now()
-
+    storage, error = _gated_storage()
+    if error:
+        return error
+    start, end = _window(_normalize_range_key(request.args.get("range"), "24h"))
     return jsonify({
         "samples": storage.get_range(start, end),
         "latest": storage.get_latest(1),
@@ -91,30 +86,13 @@ def _clamp_int(value, default, lo, hi):
 @require_auth
 def api_segment_utilization_events():
     """Return detected segment saturation events for the requested range."""
-    config = current_runtime().config_manager
-    t = get_translations(_get_lang())
-    if not config:
-        return jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503
-    if config.get("modem_type") != "fritzbox":
-        return jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400
-    if not config.is_segment_utilization_enabled():
-        return jsonify({"error": t.get("seg_disabled", "Segment utilization is disabled in Settings.")}), 400
-
-    storage = _get_storage()
-    if not storage:
-        return jsonify({"error": "Storage unavailable"}), 503
-
+    storage, error = _gated_storage()
+    if error:
+        return error
     threshold = _clamp_int(request.args.get("threshold"), default=80, lo=1, hi=100)
     min_minutes = _clamp_int(request.args.get("min_minutes"), default=3, lo=1, hi=1440)
-
     range_key = _normalize_range_key(request.args.get("range"), "7d")
-    hours = RANGE_HOURS[range_key]
-    if hours > 0:
-        start = utc_cutoff(hours=hours)
-    else:
-        start = "2000-01-01T00:00:00Z"
-    end = utc_now()
-
+    start, end = _window(range_key)
     events = storage.get_events(start, end, threshold=threshold, min_minutes=min_minutes)
     return jsonify({
         "events": events,
@@ -129,13 +107,13 @@ def api_segment_utilization_events():
 def api_segment_utilization_range():
     """Return segment data for a time range (used by correlation graph).
 
-    Returns an empty list — rather than an error — when configuration is
-    unavailable, the driver is unsupported, or the feature is disabled.
+    Returns an empty list — rather than an error — when the driver is
+    unsupported or the feature is disabled.
     This matches ``/api/weather/range`` so the correlation view degrades
     gracefully when optional data sources are absent.
     """
     config = current_runtime().config_manager
-    if not config or config.get("modem_type") != "fritzbox" or not config.is_segment_utilization_enabled():
+    if config.get("modem_type") != "fritzbox" or not config.is_segment_utilization_enabled():
         return jsonify([])
     storage = _get_storage()
     if not storage:

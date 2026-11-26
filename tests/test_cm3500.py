@@ -4,6 +4,7 @@ import pytest
 import requests
 from unittest.mock import patch, MagicMock
 from app.drivers.cm3500 import CM3500Driver
+from app.drivers.formats.html_rows import find_cm3500_sections, format_cm3500_frequency
 
 
 # -- Sample HTML matching real CM3500B status page structure --
@@ -134,12 +135,6 @@ def mock_status_with_us_ofdm(driver):
 # -- Driver instantiation --
 
 class TestDriverInit:
-    def test_stores_credentials(self):
-        d = CM3500Driver("https://192.168.100.1", "admin", "pass123")
-        assert d._url == "https://192.168.100.1"
-        assert d._user == "admin"
-        assert d._password == "pass123"
-
     def test_upgrades_http_to_https(self):
         d = CM3500Driver("http://192.168.100.1", "admin", "pass123")
         assert d._url == "https://192.168.100.1"
@@ -147,11 +142,6 @@ class TestDriverInit:
     def test_keeps_https_unchanged(self):
         d = CM3500Driver("https://192.168.100.1", "admin", "pass123")
         assert d._url == "https://192.168.100.1"
-
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("cm3500", "https://192.168.100.1", "admin", "pass")
-        assert isinstance(d, CM3500Driver)
 
 
 # -- Login --
@@ -169,15 +159,6 @@ class TestLogin:
                 data={"username": "admin", "password": "password"},
                 timeout=30,
             )
-
-    def test_login_failure_raises(self, driver):
-        import requests as req
-        with patch.object(
-            driver._session, "post",
-            side_effect=req.RequestException("Connection refused"),
-        ):
-            with pytest.raises(RuntimeError, match="CM3500 authentication failed"):
-                driver.login()
 
 
 # -- DOCSIS data parsing --
@@ -270,10 +251,9 @@ class TestDeviceInfo:
 # -- Table section finding --
 
 class TestTableSections:
-    def test_finds_all_sections(self, mock_status):
+    def test_finds_all_sections(self):
         from bs4 import BeautifulSoup
-        soup = BeautifulSoup(STATUS_HTML, "html.parser")
-        sections = mock_status._find_table_sections(soup)
+        sections = find_cm3500_sections(BeautifulSoup(STATUS_HTML, "html.parser"))
         assert "downstream qam" in sections
         assert "downstream ofdm" in sections
         assert "upstream qam" in sections
@@ -283,26 +263,9 @@ class TestTableSections:
 # -- Value parsers --
 
 class TestValueParsers:
-    def test_parse_number_with_unit(self):
-        assert CM3500Driver._parse_number("4.70 dBmV") == 4.70
-
-    def test_parse_number_plain(self):
-        assert CM3500Driver._parse_number("38.98") == 38.98
-
-    def test_parse_number_empty(self):
-        assert CM3500Driver._parse_number("") == 0.0
-
-    def test_parse_number_integer(self):
-        assert CM3500Driver._parse_number("92") == 92.0
-
-    def test_format_freq(self):
-        assert CM3500Driver._format_freq("570.00 MHz") == "570 MHz"
-
-    def test_format_freq_integer(self):
-        assert CM3500Driver._format_freq("30.80 MHz") == "30 MHz"
-
-    def test_format_freq_empty(self):
-        assert CM3500Driver._format_freq("") == ""
+    @pytest.mark.parametrize(("raw", "expected"), [("570.00 MHz", "570 MHz"), ("30.80 MHz", "30 MHz"), ("", "")])
+    def test_format_freq(self, raw, expected):
+        assert format_cm3500_frequency(raw) == expected
 
 
 class TestParseServiceFlows:

@@ -30,11 +30,11 @@ function _showSpeedtestEmpty(noData) {
     var canRun = !!document.getElementById('speedtest-run-btn');
     DOCSightEmptyState.show(noData, {
         icon: 'gauge',
-        title: T.speedtest_empty_title || 'No speedtest results yet',
-        text: T.speedtest_empty_desc || 'Automated tests will appear here once the schedule runs. You can also start a manual test.',
+        title: T.speedtest_empty_title,
+        text: T.speedtest_empty_desc,
         action: canRun
-            ? {label: T.run_speedtest || 'Run speedtest', onClick: runSpeedtest}
-            : {label: T.gaming_speedtest_action || 'Set up Speedtest Tracker', href: docsightUrl('/settings#mod-docsight_speedtest')},
+            ? {label: T.run_speedtest, onClick: runSpeedtest}
+            : {label: T.gaming_speedtest_action, href: docsightUrl('/settings#mod-docsight_speedtest')},
         glossary: 'speedtest'
     });
 }
@@ -91,10 +91,10 @@ function filterSpeedtestData() {
         // There are results, just none in the selected period.
         DOCSightEmptyState.show(noData, {
             icon: 'clock',
-            title: T.speedtest_empty_period_title || 'No speedtests in this period',
+            title: T.speedtest_empty_period_title,
             text: T.speedtest_empty_period_text,
             action: {
-                label: T.speedtest_empty_period_action || 'Show all results',
+                label: T.speedtest_empty_period_action,
                 onClick: function() { document.querySelector('#speedtest-tabs [data-value="all"]').click(); }
             },
             glossary: 'speedtest'
@@ -204,34 +204,56 @@ function renderSpeedtestRows() {
         var tr = document.createElement('tr');
         if (r.smart_capture) tr.className = 'st-row-sc';
         var serverCell = r.server_name
-            ? _speedtestCell('st-col-server', T.server || 'Server', escapeHtml(r.server_name), '', '#' + String(r.server_id || ''))
-            : _speedtestCell('st-col-server', T.server || 'Server', r.server_id ? '#' + escapeHtml(String(r.server_id)) : '');
-        var expandLabel = escapeHtml(T.speedtest_show_signal || 'Show signal at this time');
+            ? _speedtestCell('st-col-server', T.server, escapeHtml(r.server_name), '', '#' + String(r.server_id || ''))
+            : _speedtestCell('st-col-server', T.server, r.server_id ? '#' + escapeHtml(String(r.server_id)) : '');
+        var expandLabel = escapeHtml(T.speedtest_show_signal);
         var scBadge = r.smart_capture
-            ? '<td class="st-sc-col"><span class="sc-badge">' + escapeHtml(T.sc_badge_label || 'Smart Capture') + '</span></td>'
+            ? '<td class="st-sc-col"><span class="sc-badge">' + escapeHtml(T.sc_badge_label) + '</span></td>'
             : '<td class="st-sc-col"></td>';
         tr.innerHTML = docsightHTML('<td class="st-expand-col dt-lead"><button class="st-expand-btn" data-id="' + r.id + '" data-action="toggleSpeedtestSignal" data-action-pass="element"'
             + ' aria-label="' + expandLabel + '" title="' + expandLabel + '" aria-expanded="false" aria-controls="st-signal-' + r.id + '">'
             + '<i data-lucide="chevron-right" aria-hidden="true"></i></button></td>'
-            + _speedtestCell('st-col-time dt-primary', T.timestamp || 'Timestamp', escapeHtml(formatSpeedtestTimestamp(r.timestamp)))
+            + _speedtestCell('st-col-time dt-primary', T.timestamp, escapeHtml(formatSpeedtestTimestamp(r.timestamp)))
             + serverCell
-            + _speedtestCell('st-col-dl dt-primary dt-num', T.download || 'Download', '<strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong>')
-            + _speedtestCell('st-col-ul dt-num', T.upload || 'Upload', '<strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong>')
-            + _speedtestCell('st-col-ping dt-num', T.ping || 'Ping', r.ping_ms == null ? '&#8212;' : escapeHtml(String(r.ping_ms)) + ' ms', pingClass)
-            + _speedtestCell('st-col-jitter dt-num', T.jitter || 'Jitter', r.jitter_ms == null ? '&#8212;' : escapeHtml(String(r.jitter_ms)) + ' ms', jitterClass)
-            + _speedtestCell('st-col-loss dt-num', T.packet_loss || 'Packet Loss', r.packet_loss_pct == null ? '&#8212;' : r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%')
+            + _speedtestCell('st-col-dl dt-primary dt-num', T.download, '<strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong>')
+            + _speedtestCell('st-col-ul dt-num', T.upload, '<strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong>')
+            + _speedtestCell('st-col-ping dt-num', T.ping, r.ping_ms == null ? '&#8212;' : escapeHtml(String(r.ping_ms)) + ' ms', pingClass)
+            + _speedtestCell('st-col-jitter dt-num', T.jitter, r.jitter_ms == null ? '&#8212;' : escapeHtml(String(r.jitter_ms)) + ' ms', jitterClass)
+            + _speedtestCell('st-col-loss dt-num', T.packet_loss, r.packet_loss_pct == null ? '&#8212;' : r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%')
             + scBadge);
         tbody.appendChild(tr);
     }
     if (moreWrap && moreBtn) {
         if (_speedtestAllData.length > _speedtestVisible) {
             moreWrap.hidden = false;
-            moreBtn.textContent = (T.show_more || 'Show more') + ' (' + (_speedtestAllData.length - _speedtestVisible) + ')';
+            moreBtn.textContent = T.show_more + ' (' + (_speedtestAllData.length - _speedtestVisible) + ')';
         } else {
             moreWrap.hidden = true;
         }
     }
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/* One label and value of a detail row; the value is a link, a health badge or plain text. */
+function _speedtestDetailItem(item) {
+    var div = document.createElement('div');
+    div.className = 'st-sig-item';
+    var lbl = document.createElement('span');
+    lbl.className = 'st-sig-label';
+    lbl.textContent = item.label;
+    div.appendChild(lbl);
+    var val = document.createElement(item.href ? 'a' : 'span');
+    if (item.href) {
+        val.href = item.href;
+        val.target = '_blank';
+        val.rel = 'noopener';
+        val.className = 'st-sig-value st-ookla-link';
+    } else {
+        val.className = item.badge ? 'st-health-badge ' + item.badge : 'st-sig-value';
+    }
+    val.textContent = item.value;
+    div.appendChild(val);
+    return div;
 }
 
 function _renderSignalDetail(data, container) {
@@ -244,50 +266,32 @@ function _renderSignalDetail(data, container) {
         return;
     }
     var healthClass = 'health-' + (data.health || 'unknown');
-    var healthLabels = {good: T.health_good || 'Good', tolerated: T.health_tolerated || 'Tolerated', marginal: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'};
+    var healthLabels = {good: T.health_good, tolerated: T.health_tolerated, marginal: T.health_marginal, critical: T.health_critical};
     var healthLabel = healthLabels[data.health] || data.health;
     var errorParts = [];
     if (data.ds_correctable_errors != null) {
-        errorParts.push(Number(data.ds_correctable_errors).toLocaleString() + ' ' + (T.signal_corr || 'corr.'));
+        errorParts.push(Number(data.ds_correctable_errors).toLocaleString() + ' ' + T.signal_corr);
     }
     if (data.ds_uncorrectable_errors != null) {
-        errorParts.push(Number(data.ds_uncorrectable_errors).toLocaleString() + ' ' + (T.signal_uncorr || 'uncorr.'));
+        errorParts.push(Number(data.ds_uncorrectable_errors).toLocaleString() + ' ' + T.signal_uncorr);
     }
     var items = [
-        {label: T.signal_health || 'Health', value: healthLabel, badge: healthClass},
-        {label: T.signal_ds_power || 'DS Power', value: data.ds_power_avg == null ? null : data.ds_power_min + ' / ' + data.ds_power_avg + ' / ' + data.ds_power_max + ' dBmV'},
-        {label: T.signal_ds_snr || 'DS SNR', value: data.ds_snr_avg == null ? null : data.ds_snr_min + ' / ' + data.ds_snr_avg + ' dB'},
-        {label: T.signal_us_power || 'US Power', value: data.us_power_avg == null ? null : data.us_power_min + ' / ' + data.us_power_avg + ' / ' + data.us_power_max + ' dBmV'},
-        {label: T.signal_errors || 'Errors', value: errorParts.length ? errorParts.join(' / ') : null},
-        {label: (T.signal_ds_channels || 'DS') + ' / ' + (T.signal_us_channels || 'US'), value: (data.ds_total || 0) + ' / ' + (data.us_total || 0)}
+        {label: T.signal_health, value: healthLabel, badge: healthClass},
+        {label: T.signal_ds_power, value: data.ds_power_avg == null ? null : data.ds_power_min + ' / ' + data.ds_power_avg + ' / ' + data.ds_power_max + ' dBmV'},
+        {label: T.signal_ds_snr, value: data.ds_snr_avg == null ? null : data.ds_snr_min + ' / ' + data.ds_snr_avg + ' dB'},
+        {label: T.signal_us_power, value: data.us_power_avg == null ? null : data.us_power_min + ' / ' + data.us_power_avg + ' / ' + data.us_power_max + ' dBmV'},
+        {label: T.signal_errors, value: errorParts.length ? errorParts.join(' / ') : null},
+        {label: T.signal_ds_channels + ' / ' + T.signal_us_channels, value: (data.ds_total || 0) + ' / ' + (data.us_total || 0)}
     ];
     items.forEach(function(item) {
-        if (item.value == null) return;
-        var div = document.createElement('div');
-        div.className = 'st-sig-item';
-        var lbl = document.createElement('span');
-        lbl.className = 'st-sig-label';
-        lbl.textContent = item.label;
-        div.appendChild(lbl);
-        if (item.badge) {
-            var badge = document.createElement('span');
-            badge.className = 'st-health-badge ' + item.badge;
-            badge.textContent = item.value;
-            div.appendChild(badge);
-        } else {
-            var val = document.createElement('span');
-            val.className = 'st-sig-value';
-            val.textContent = item.value;
-            div.appendChild(val);
-        }
-        container.appendChild(div);
+        if (item.value != null) container.appendChild(_speedtestDetailItem(item));
     });
     if (data.us_channels && data.us_channels.length > 0) {
         var modsDiv = document.createElement('div');
         modsDiv.className = 'st-us-mods';
         var modsLabel = document.createElement('span');
         modsLabel.className = 'st-sig-label';
-        modsLabel.textContent = (T.signal_us_modulation || 'US Modulation') + ': ';
+        modsLabel.textContent = T.signal_us_modulation + ': ';
         modsDiv.appendChild(modsLabel);
         for (var c = 0; c < data.us_channels.length; c++) {
             var ch = data.us_channels[c];
@@ -301,7 +305,7 @@ function _renderSignalDetail(data, container) {
     snapDiv.className = 'st-sig-item';
     var snapLabel = document.createElement('span');
     snapLabel.className = 'st-sig-label';
-    snapLabel.textContent = T.signal_snapshot_time || 'Snapshot';
+    snapLabel.textContent = T.signal_snapshot_time;
     snapDiv.appendChild(snapLabel);
     var snapVal = document.createElement('span');
     snapVal.className = 'st-sig-value';
@@ -337,33 +341,7 @@ function _renderEnrichedDetail(data, container) {
         var grid = document.createElement('div');
         grid.className = 'st-enriched-grid';
         items.forEach(function(item) {
-            if (item.value == null) return;
-            var div = document.createElement('div');
-            div.className = 'st-sig-item';
-            var lbl = document.createElement('span');
-            lbl.className = 'st-sig-label';
-            lbl.textContent = item.label;
-            div.appendChild(lbl);
-            if (item.href) {
-                var link = document.createElement('a');
-                link.href = item.href;
-                link.target = '_blank';
-                link.rel = 'noopener';
-                link.className = 'st-sig-value st-ookla-link';
-                link.textContent = item.value;
-                div.appendChild(link);
-            } else if (item.badge) {
-                var badge = document.createElement('span');
-                badge.className = 'st-health-badge ' + item.badge;
-                badge.textContent = item.value;
-                div.appendChild(badge);
-            } else {
-                var val = document.createElement('span');
-                val.className = 'st-sig-value';
-                val.textContent = item.value;
-                div.appendChild(val);
-            }
-            grid.appendChild(div);
+            if (item.value != null) grid.appendChild(_speedtestDetailItem(item));
         });
         if (grid.children.length > 0) {
             group.appendChild(grid);
@@ -385,17 +363,17 @@ function _renderEnrichedDetail(data, container) {
 
     // Connection
     var connItems = [
-        {label: T.speedtest_detail_isp || 'ISP', value: data.isp},
-        {label: T.speedtest_detail_external_ip || 'External IP', value: data.external_ip},
+        {label: T.speedtest_detail_isp, value: data.isp},
+        {label: T.speedtest_detail_external_ip, value: data.external_ip},
     ];
-    if (data.is_vpn) connItems.push({label: T.speedtest_detail_vpn || 'VPN', value: 'Yes', badge: 'health-tolerated'});
-    addGroup(T.speedtest_detail_connection || 'Connection', connItems);
+    if (data.is_vpn) connItems.push({label: T.speedtest_detail_vpn, value: 'Yes', badge: 'health-tolerated'});
+    addGroup(T.speedtest_detail_connection, connItems);
 
     // Server
     var loc = [data.server_location, data.server_country].filter(Boolean).join(', ');
-    addGroup(T.speedtest_detail_server || 'Server', [
-        {label: T.speedtest_detail_server_location || 'Location', value: loc || null},
-        {label: T.speedtest_detail_server_host || 'Host', value: data.server_host || null},
+    addGroup(T.speedtest_detail_server, [
+        {label: T.speedtest_detail_server_location, value: loc || null},
+        {label: T.speedtest_detail_server_host, value: data.server_host || null},
         {label: 'IP', value: data.server_ip || null},
     ]);
 
@@ -403,10 +381,10 @@ function _renderEnrichedDetail(data, container) {
     var pingRange = (data.ping_low != null && data.ping_high != null) ? data.ping_low + ' \u2013 ' + data.ping_high + ' ms' : null;
     var dlLat = (data.dl_latency_iqm != null) ? data.dl_latency_iqm + ' / ' + (data.dl_latency_jitter != null ? data.dl_latency_jitter : '---') + ' ms' : null;
     var ulLat = (data.ul_latency_iqm != null) ? data.ul_latency_iqm + ' / ' + (data.ul_latency_jitter != null ? data.ul_latency_jitter : '---') + ' ms' : null;
-    addGroup(T.speedtest_detail_latency || 'Latency Details', [
-        {label: T.speedtest_detail_ping_range || 'Ping Range', value: pingRange},
-        {label: T.speedtest_detail_dl_latency || 'DL Latency (IQM / Jitter)', value: dlLat},
-        {label: T.speedtest_detail_ul_latency || 'UL Latency (IQM / Jitter)', value: ulLat},
+    addGroup(T.speedtest_detail_latency, [
+        {label: T.speedtest_detail_ping_range, value: pingRange},
+        {label: T.speedtest_detail_dl_latency, value: dlLat},
+        {label: T.speedtest_detail_ul_latency, value: ulLat},
     ]);
 
     // Transfer
@@ -414,15 +392,15 @@ function _renderEnrichedDetail(data, container) {
     var dlTransfer = (data.dl_bytes != null) ? fmtBytes(data.dl_bytes) + (dlDur ? ' in ' + dlDur : '') : null;
     var ulDur = fmtDuration(data.ul_elapsed_ms);
     var ulTransfer = (data.ul_bytes != null) ? fmtBytes(data.ul_bytes) + (ulDur ? ' in ' + ulDur : '') : null;
-    addGroup(T.speedtest_detail_transfer || 'Transfer', [
-        {label: T.speedtest_detail_dl_transfer || 'Download', value: dlTransfer},
-        {label: T.speedtest_detail_ul_transfer || 'Upload', value: ulTransfer},
+    addGroup(T.speedtest_detail_transfer, [
+        {label: T.speedtest_detail_dl_transfer, value: dlTransfer},
+        {label: T.speedtest_detail_ul_transfer, value: ulTransfer},
     ]);
 
     // Ookla link (only allow https:// URLs)
     if (data.result_url && data.result_url.indexOf('https://') === 0) {
-        addGroup(T.speedtest_detail_ookla || 'Ookla Result', [
-            {label: '', value: '\u2197 ' + (T.speedtest_detail_view_ookla || 'View on Speedtest.net'), href: data.result_url},
+        addGroup(T.speedtest_detail_ookla, [
+            {label: '', value: '\u2197 ' + T.speedtest_detail_view_ookla, href: data.result_url},
         ]);
     }
 
@@ -467,7 +445,7 @@ function toggleSpeedtestSignal(btn) {
     if (_signalCache[id]) {
         _renderSignalDetail(_signalCache[id], container);
     } else {
-        fetch(docsightUrl('/api/speedtest/' + id + '/signal'))
+        fetch(docsightUrl('/api/speedtest/' + id + '/signal?lang=' + encodeURIComponent(document.documentElement.lang)))
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 _signalCache[id] = data;
@@ -477,7 +455,7 @@ function toggleSpeedtestSignal(btn) {
                 container.textContent = '';
                 var errSpan = document.createElement('span');
                 errSpan.className = 'st-sig-no-data';
-                errSpan.textContent = T.signal_error_loading || 'Error loading signal data';
+                errSpan.textContent = T.signal_error_loading;
                 container.appendChild(errSpan);
             });
     }
@@ -541,10 +519,10 @@ function renderSpeedtestChart() {
     var maxSpeed = Math.max.apply(null, dls.concat(uls, [reference])) * 1.1 || 1;
     var maxPing = Math.max.apply(null, pings) * 1.1 || 1;
     var muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#888';
-    var pingLabel = T.speedtest_ping || 'Ping';
+    var pingLabel = T.speedtest_ping;
     renderChart('speedtest-chart', labels, [
-        {label: T.speedtest_dl || 'DL', data: dls, color: '#a855f7', fill: 'rgba(168,85,247,0.12)'},
-        {label: T.speedtest_ul || 'UL', data: uls, color: '#22c55e', fill: 'rgba(34,197,94,0.10)'},
+        {label: T.speedtest_dl, data: dls, color: '#a855f7', fill: 'rgba(168,85,247,0.12)'},
+        {label: T.speedtest_ul, data: uls, color: '#22c55e', fill: 'rgba(34,197,94,0.10)'},
         {label: pingLabel, data: pings, color: '#f59e0b', scale: 'ping'}
     ], null, [{yMin: 0, yMax: maxSpeed}, {value: reference, fill: false, lineColor: muted}], {
         times: times,
@@ -580,12 +558,12 @@ function _setRunBtnState(btn, loading) {
         icon.setAttribute('data-lucide', 'loader-2');
         icon.className = 'spin';
         btn.appendChild(icon);
-        var textNode = document.createTextNode(' ' + (T.speedtest_running || 'Running...') + ' 0s');
+        var textNode = document.createTextNode(' ' + T.speedtest_running + ' 0s');
         btn.appendChild(textNode);
         var startTime = Date.now();
         _runElapsedTimer = setInterval(function() {
             var elapsed = Math.round((Date.now() - startTime) / 1000);
-            textNode.textContent = ' ' + (T.speedtest_running || 'Running...') + ' ' + elapsed + 's';
+            textNode.textContent = ' ' + T.speedtest_running + ' ' + elapsed + 's';
         }, 1000);
     } else {
         btn.disabled = false;
@@ -593,75 +571,62 @@ function _setRunBtnState(btn, loading) {
         var playIcon = document.createElement('i');
         playIcon.setAttribute('data-lucide', 'play');
         btn.appendChild(playIcon);
-        btn.appendChild(document.createTextNode(' ' + (T.run_speedtest || 'Run Speedtest')));
+        btn.appendChild(document.createTextNode(' ' + T.run_speedtest));
     }
     if (window.lucide) lucide.createIcons({nodes: [btn]});
 }
 
-function runSpeedtest() {
+async function runSpeedtest() {
     var btn = document.getElementById('speedtest-run-btn');
     if (!btn || btn.disabled) return;
-    _setRunBtnState(btn, true);
-
-    // Fetch the current latest ID from the server (not stale cache)
-    fetch(docsightUrl('/api/speedtest?count=1'))
-        .then(function(r) { return r.json(); })
-        .then(function(latest) {
-            var lastId = (latest && latest.length > 0) ? latest[0].id : 0;
-            return fetch(docsightUrl('/api/speedtest/run'), {method: 'POST'})
-                .then(function(r) {
-                    return r.json()
-                        .catch(function() { return {error: 'Unexpected response'}; })
-                        .then(function(d) { return {ok: r.ok, data: d}; });
+    // One deadline for the whole run, counted from the click. Only the first outcome counts, and after
+    // every wait the run stops once it has ended, so a late reply cannot start a test or a message.
+    var done = false;
+    var deadline = setTimeout(function() {
+        finish(T.speedtest_timeout, 'warning');
+    }, 150000);
+    function finish(message, type) {
+        if (done) return;
+        done = true;
+        clearTimeout(deadline);
+        showToast(message, type);  // first, so a failing button refresh cannot hide it
+        _setRunBtnState(btn, false);
+    }
+    try {
+        _setRunBtnState(btn, true);
+        // Fetch the current latest ID from the server (not stale cache)
+        var reply = await fetch(docsightUrl('/api/speedtest?count=1'));
+        var latest = await reply.json();
+        if (done) return;
+        if (!reply.ok) throw new Error('Speedtest results unavailable');
+        var lastId = latest.length > 0 ? latest[0].id : 0;
+        reply = await fetch(docsightUrl('/api/speedtest/run'), {method: 'POST'});
+        var res = await reply.json().catch(function() { return {error: 'Unexpected response'}; });
+        if (done) return;
+        if (!reply.ok) return finish(res.error || 'Failed', 'error');
+        // The queued test; older Speedtest Tracker versions do not name it, then a newer first row counts
+        var queuedId = res.result_id;
+        // Poll for the new result: wait 30s, then 5s after each answer, until the deadline
+        for (var wait = 30000; ; wait = 5000) {
+            await new Promise(function(resolve) { setTimeout(resolve, wait); });
+            if (done) return;
+            var r = await fetch(docsightUrl('/api/speedtest?count=10'))
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    return (queuedId ? data : data.slice(0, 1)).find(function(row) {
+                        return queuedId ? row.id === queuedId : row.id > lastId;
+                    });
                 })
-                .then(function(res) {
-                    if (!res.ok) {
-                        _setRunBtnState(btn, false);
-                        showToast((res.data.error || 'Failed'), 'error');
-                        return;
-                    }
-                    // Poll for the new result: wait 30s, then check every 5s
-                    var attempts = 0;
-                    var maxAttempts = 18; // 30s initial + 18*5s = ~2 minutes total
-                    setTimeout(function() {
-                        var pollInterval = setInterval(function() {
-                            attempts++;
-                            fetch(docsightUrl('/api/speedtest?count=1'))
-                                .then(function(r) { return r.json(); })
-                                .then(function(data) {
-                                    if (data && data.length > 0 && data[0].id > lastId) {
-                                        clearInterval(pollInterval);
-                                        _setRunBtnState(btn, false);
-                                        var r = data[0];
-                                        showToast(
-                                            (T.speedtest_complete || 'Speedtest complete') + ': ' +
-                                            r.download_mbps + ' / ' + r.upload_mbps + ' Mbps, ' +
-                                            r.ping_ms + ' ms',
-                                            'success'
-                                        );
-                                        loadSpeedtestHistory();
-                                    } else if (attempts >= maxAttempts) {
-                                        clearInterval(pollInterval);
-                                        _setRunBtnState(btn, false);
-                                        showToast(T.speedtest_timeout || 'Speedtest is taking longer than expected. Refresh to check.', 'warning');
-                                    }
-                                })
-                                .catch(function() {
-                                    // Transient poll error - don't stop, just skip this attempt
-                                    if (attempts >= maxAttempts) {
-                                        clearInterval(pollInterval);
-                                        _setRunBtnState(btn, false);
-                                        showToast(T.speedtest_timeout || 'Speedtest is taking longer than expected. Refresh to check.', 'warning');
-                                    }
-                                });
-                        }, 5000);
-                    }, 30000);
-                });
-        })
-        .catch(function() {
-            _setRunBtnState(btn, false);
-            showToast(T.network_error || 'Network error', 'error');
-        });
+                .catch(function() {});  // a failed poll only skips this attempt
+            if (done) return;
+            if (r) break;
+        }
+        finish(T.speedtest_complete + ': ' +
+            r.download_mbps + ' / ' + r.upload_mbps + ' Mbps, ' + r.ping_ms + ' ms', 'success');
+        loadSpeedtestHistory();
+    } catch (e) {
+        finish(T.network_error, 'error');
+    }
 }
 
 (function() {

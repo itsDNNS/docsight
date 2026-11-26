@@ -2,7 +2,10 @@
 
 import json
 import sqlite3
+import threading
+import time
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -23,10 +26,12 @@ from app.collectors.demo import (
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.modules.bqm.storage import BqmStorage
+from app.modules.bnetz.migrations import MIGRATIONS as BNETZ_MIGRATIONS
 from app.modules.bnetz.storage import BnetzStorage
 from app.modules.journal.storage import JournalStorage
 from app.modules.de_tkg_compensation.storage import ClaimStorage
 from app.config import ConfigManager
+from app.storage.migrations import run_migrations
 from app.runtime import current_runtime
 
 
@@ -56,11 +61,10 @@ def sample_analysis(sample_analysis):
 
 
 @pytest.fixture
-def client(config_mgr, storage):
+def client(config_mgr, storage, route_app):
     current_runtime().config_manager = config_mgr
     current_runtime().storage = storage
-    app.config["TESTING"] = True
-    with app.test_client() as client:
+    with route_app.test_client() as client:
         yield client
 
 
@@ -124,6 +128,17 @@ def _seed_user_rows(storage):
     _js.save_entry("2025-06-01", "User Entry", "user desc", is_demo=False)
     _js.save_incident(name="User Incident", description="user inc", is_demo=False)
     _claims.create({"ticket_ref": "SYNTHETIC-USER"}, is_demo=False)
+
+
+def _demo_collector(storage):
+    return DemoCollector(
+        analyzer_fn=analyzer.analyze,
+        event_detector=MagicMock(),
+        storage=storage,
+        mqtt_pub=None,
+        web=MagicMock(),
+        poll_interval=300,
+    )
 
 
 def _count_rows(storage, table, is_demo=None):
@@ -202,6 +217,7 @@ class TestDemoMarking:
             ).fetchone()
         assert row[0] == 1
 
+    @pytest.mark.usefixtures("route_app")
     def test_demo_collector_live_poll_rows_are_demo_and_purgeable(self, storage, sample_analysis):
         web = MagicMock()
         current_runtime().reset_modem_state()
@@ -352,6 +368,17 @@ class TestPurgeDemoData:
         assert row[0] is None  # incident_id unassigned
         assert row[1] == 0  # still user-created
 
+    def test_demo_cases_take_only_demo_entries(self, storage):
+        """A user's entry in a demo case's date range keeps its own case."""
+        _js = JournalStorage(storage.db_path)
+        own_case = _js.save_incident(name="My case")
+        now = datetime(2026, 11, 1, tzinfo=timezone.utc)
+        entry_id = _js.save_entry((now - timedelta(days=10)).strftime("%Y-%m-%d"), "Mine", "desc", incident_id=own_case)
+
+        _demo_collector(storage)._seed_incident_containers(now, _js)
+
+        assert _js.get_entry(entry_id)["incident_id"] == own_case
+
 
 # ── Double Seed Idempotency ──
 
@@ -373,10 +400,7 @@ class TestDoubleSeedIdempotency:
 
 class TestDemoSegmentUtilization:
     def _seed(self, storage, now=None):
-        collector = DemoCollector(
-            analyzer_fn=analyzer.analyze, event_detector=MagicMock(), storage=storage,
-            mqtt_pub=None, web=MagicMock(), poll_interval=300,
-        )
+        collector = _demo_collector(storage)
         collector._ensure_demo_module_tables()
         collector._seed_segment_utilization(now or datetime.now(timezone.utc))
 
@@ -424,10 +448,7 @@ class TestDemoIncidentConsistency:
         import app.collectors.demo as demo
         # A shorter history keeps the test fast; the rules do not depend on its length.
         monkeypatch.setattr(demo, "DEMO_HISTORY_DAYS", 40)
-        collector = DemoCollector(
-            analyzer_fn=analyzer.analyze, event_detector=MagicMock(), storage=storage,
-            mqtt_pub=None, web=MagicMock(), poll_interval=300,
-        )
+        collector = _demo_collector(storage)
         detected = collector._seed_history(now)
         collector._seed_events(now, detected)
         with sqlite3.connect(storage.db_path) as conn:
@@ -523,15 +544,12 @@ class TestDemoReproducibility:
         import app.collectors.demo as demo
         monkeypatch.setattr(demo, "DEMO_HISTORY_DAYS", 3)
         storage = SnapshotStorage(str(tmp_path / f"{name}.db"), max_days=0)
-        collector = DemoCollector(
-            analyzer_fn=analyzer.analyze, event_detector=MagicMock(), storage=storage,
-            mqtt_pub=None, web=MagicMock(), poll_interval=300,
-        )
-        monkeypatch.setattr(collector, "_seed_journal_entries", lambda now: None)
+        collector = _demo_collector(storage)
+        monkeypatch.setattr(collector, "_seed_journal_entries", lambda *_: None)
         for method in ("_seed_speedtest_results", "_seed_bqm_graphs", "_seed_incident_containers",
                        "_seed_bnetz_measurements", "_seed_weather_data", "_seed_connection_monitor_data",
                        "_seed_segment_utilization"):
-            monkeypatch.setattr(collector, method, lambda now: None)
+            monkeypatch.setattr(collector, method, lambda *_: None)
         collector._seed_demo_data()
         with sqlite3.connect(storage.db_path) as conn:
             return (conn.execute("SELECT timestamp, summary_json FROM snapshots ORDER BY timestamp").fetchall(),
@@ -567,19 +585,9 @@ class TestDemoReproducibility:
 
 
 class TestDemoCollectorOFDMA:
-    def _collector(self, storage):
-        return DemoCollector(
-            analyzer_fn=analyzer.analyze,
-            event_detector=MagicMock(),
-            storage=storage,
-            mqtt_pub=None,
-            web=MagicMock(),
-            poll_interval=300,
-        )
-
     def test_live_demo_keeps_a_deviating_ofdma_channel_to_focus(self, storage):
         """The channel timeline opens on the line status focus, which needs a deviating channel."""
-        collector = self._collector(storage)
+        collector = _demo_collector(storage)
         collector._poll_count = 1
 
         analysis = analyzer.analyze(collector._generate_data())
@@ -589,7 +597,7 @@ class TestDemoCollectorOFDMA:
         assert "power" in ofdma["health_detail"] and "high" in ofdma["health_detail"]
 
     def test_generate_data_includes_docsis31_upstream_ofdma(self, storage):
-        collector = self._collector(storage)
+        collector = _demo_collector(storage)
         collector._poll_count = 1
 
         data = collector._generate_data()
@@ -603,10 +611,9 @@ class TestDemoCollectorOFDMA:
         assert ch["powerLevel"] > 45.0
 
     def test_historical_bad_period_makes_ofdma_problematic(self, storage):
-        collector = self._collector(storage)
+        collector = _demo_collector(storage)
 
         analysis = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=True,
@@ -622,10 +629,9 @@ class TestDemoCollectorOFDMA:
         assert "power" in ofdma["health_detail"]
 
     def test_historical_normal_period_keeps_ofdma_healthy(self, storage):
-        collector = self._collector(storage)
+        collector = _demo_collector(storage)
 
         analysis = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=False,
@@ -639,10 +645,9 @@ class TestDemoCollectorOFDMA:
         assert ofdma["health"] == "good"
 
     def test_historical_ofdma_profile_varies_by_time_of_day(self, storage):
-        collector = self._collector(storage)
+        collector = _demo_collector(storage)
 
         early = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=False,
@@ -650,7 +655,6 @@ class TestDemoCollectorOFDMA:
             day_of_year=11,
         )
         midday = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=False,
@@ -658,7 +662,6 @@ class TestDemoCollectorOFDMA:
             day_of_year=11,
         )
         evening = collector._generate_historical_analysis(
-            index=0,
             diurnal=0,
             seasonal=0,
             bad_period=False,
@@ -693,15 +696,26 @@ class TestDemoSeedContract:
         ]
         assert len(DEMO_TRACEROUTE_TRACE_CONFIGS) == 5
 
+    def test_bnetz_campaigns_store_speeds_like_the_parsers(self, storage):
+        BnetzStorage(storage.db_path)
+        _demo_collector(storage)._seed_bnetz_measurements(datetime.now(timezone.utc))
+        campaigns = BnetzStorage(storage.db_path).get_bnetz_measurements()
+        measurements = [m for c in campaigns for d in ("download", "upload") for m in c["measurements"][d]]
+        assert len(measurements) == 90
+        assert all(set(m) == {"date", "mbps"} and m["mbps"] > 0 for m in measurements)
+
+    def test_older_demo_campaigns_move_their_speeds_to_mbps(self, tmp_path):
+        db_path = str(tmp_path / "bnetz.db")
+        run_migrations(db_path, BNETZ_MIGRATIONS[:2])
+        legacy = json.dumps({"download": [{"date": "2026-01-01", "value": 912.5}], "upload": []})
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("INSERT INTO bnetz_measurements (date, timestamp, measurements_json, is_demo) "
+                         "VALUES ('2026-01-01', '2026-01-01T00:00:00Z', ?, 1)", (legacy,))
+        [row] = BnetzStorage(db_path).get_bnetz_measurements()
+        assert row["measurements"]["download"] == [{"date": "2026-01-01", "mbps": 912.5}]
+
     def test_seed_demo_data_invokes_all_supported_demo_surfaces(self, storage, monkeypatch):
-        collector = DemoCollector(
-            analyzer_fn=analyzer.analyze,
-            event_detector=MagicMock(),
-            storage=storage,
-            mqtt_pub=None,
-            web=MagicMock(),
-            poll_interval=300,
-        )
+        collector = _demo_collector(storage)
         calls = []
 
         for method in (
@@ -734,6 +748,62 @@ class TestDemoSeedContract:
         ]
         assert storage.max_days == 0
 
+    def test_failed_first_seed_is_retried_on_the_next_poll(self, storage):
+        collector = _demo_collector(storage)
+        failure = sqlite3.OperationalError("database is locked")
+        with patch.object(collector, "_seed_demo_data", side_effect=[failure, None]) as seed, \
+             patch.object(collector, "_process"):
+            with pytest.raises(sqlite3.OperationalError):
+                collector.collect()
+            collector.collect()
+            collector.collect()
+
+        assert seed.call_count == 2
+
+    def test_seeding_covers_the_first_poll_and_ends_when_the_seed_fails(self, storage):
+        collector = _demo_collector(storage)
+        seeding = []
+        failure = sqlite3.OperationalError("database is locked")
+        with patch.object(collector, "_seed_demo_data", side_effect=[failure, None]), \
+             patch.object(collector, "_process", side_effect=lambda *_a, **_k: seeding.append(collector.seeding)):
+            with pytest.raises(sqlite3.OperationalError):
+                collector.collect()
+            assert collector.seeding is False  # a failed seed does not lock the exit
+            collector.collect()
+            collector.collect()
+
+        assert seeding == [True, False] and collector.seeding is False
+
+    def test_a_restarted_demo_seeds_after_the_older_seed(self, storage):
+        steps, old_started = [], threading.Event()
+
+        def seed(name):
+            steps.append(f"{name} start")
+            old_started.set()
+            time.sleep(0.2)
+            steps.append(f"{name} end")
+
+        polls = []
+        for name in ("old", "new"):
+            collector = _demo_collector(storage)
+            collector._seed_demo_data = lambda name=name: seed(name)
+            collector._process = MagicMock()
+            polls.append(threading.Thread(target=collector.collect))
+        polls[0].start()
+        assert old_started.wait(5)
+        polls[1].start()
+        for thread in polls:
+            thread.join(5)
+
+        assert steps == ["old start", "old end", "new start", "new end"]
+
+    def test_journal_storage_failure_fails_the_seed_before_the_history(self, storage):
+        collector = _demo_collector(storage)
+        with patch.object(JournalStorage, "_ensure_table", side_effect=sqlite3.OperationalError("database is locked")), \
+             patch.object(collector, "_seed_history") as history, pytest.raises(sqlite3.OperationalError):
+            collector._seed_demo_data()
+        history.assert_not_called()
+
 
 # ── Migration Endpoint Tests ──
 
@@ -755,6 +825,20 @@ class TestMigrateEndpoint:
         # Demo rows gone, user rows kept
         assert _count_rows(storage, "journal_entries", is_demo=1) == 0
         assert _count_rows(storage, "journal_entries", is_demo=0) == 1
+
+    def test_exit_waits_until_the_demo_has_stored_its_first_poll(self, client, storage, config_mgr):
+        _seed_demo_rows(storage)
+        current_runtime().modem_collector = SimpleNamespace(seeding=True)
+
+        resp = client.post("/api/demo/migrate", json={})
+
+        assert resp.status_code == 409 and resp.get_json()["error"] == "demo_loading"
+        assert config_mgr.get("demo_mode") is True
+        assert _count_rows(storage, "journal_entries", is_demo=1) == 1
+
+        current_runtime().modem_collector.seeding = False
+        assert client.post("/api/demo/migrate", json={}).status_code == 200
+        assert current_runtime().modem_collector is None  # a manual poll finds no demo to run
 
     def test_migrate_rejects_non_demo(self, client, config_mgr):
         config_mgr.save({"demo_mode": False})

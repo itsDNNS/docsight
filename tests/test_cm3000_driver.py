@@ -7,6 +7,7 @@ import pytest
 
 from app.analyzer import ANALYZER_SCHEMA_VERSION, analyze, apply_cumulative_error_baseline
 from app.drivers.cm3000 import CM3000Driver
+from app.drivers.formats.javascript import extract_cm3000_tag_value_list, split_cm3000_channels
 from app.event_detector import EventDetector
 
 
@@ -203,23 +204,23 @@ def mock_status(driver):
 # -- Driver instantiation --
 
 class TestDriverInit:
-    def test_stores_credentials(self):
-        d = CM3000Driver("http://192.168.100.1", "admin", "pass123")
-        assert d._url == "http://192.168.100.1"
-        assert d._user == "admin"
-        assert d._password == "pass123"
-
     def test_session_has_basic_auth(self):
         d = CM3000Driver("http://192.168.100.1", "admin", "pass123")
         assert d._session.auth == ("admin", "pass123")
 
-    def test_load_via_registry(self):
-        from app.drivers import load_driver
-        d = load_driver("cm3000", "http://192.168.100.1", "admin", "pass")
-        assert isinstance(d, CM3000Driver)
-
 
 # -- Login --
+
+LOGIN_WRAPPER = """
+    <html><body>
+    <script>
+    if (sessionStorage.getItem('PrivateKey') === null) {
+        window.location.replace('../Login.htm');
+    }
+    </script>
+    </body></html>
+"""
+
 
 class TestLogin:
     def test_login_fetches_status_page_with_auth(self, driver):
@@ -232,15 +233,6 @@ class TestLogin:
             driver.login()
             mock_get.assert_called_once_with("http://192.168.100.1/DocsisStatus.htm", timeout=30)
             assert driver._status_html == STATUS_HTML
-
-    def test_login_failure_raises(self, driver):
-        import requests as req
-        with patch.object(
-            driver._session, "get",
-            side_effect=req.RequestException("401 Unauthorized"),
-        ):
-            with pytest.raises(RuntimeError, match="CM3000 authentication failed"):
-                driver.login()
 
     def test_login_retries_on_connection_error(self, driver):
         import requests as req
@@ -261,23 +253,20 @@ class TestLogin:
             driver.login()  # Should succeed on retry
             mock_new_session.get.assert_called_once()
 
-    def test_login_rejects_login_page_false_positive(self, driver):
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        mock_response.text = """
-            <html><body>
-            <script>
-            if (sessionStorage.getItem('PrivateKey') === null) {
-                window.location.replace('../Login.htm');
-            }
-            </script>
-            </body></html>
-        """
-
-        with patch.object(driver._session, "get", return_value=mock_response), \
-                patch.object(driver, "_login_via_form", return_value=False):
-            with pytest.raises(RuntimeError, match="returned a login page"):
+    @pytest.mark.parametrize("pages, form_ok, message", [
+        (["<html>other</html>"], True, "expected DOCSIS data blocks"),
+        ([LOGIN_WRAPPER], False, "returned a login page"),
+        ([LOGIN_WRAPPER, LOGIN_WRAPPER], True, "returned a login page"),
+    ])
+    def test_login_rejects_non_status_page_and_logs_diagnostics_once(self, driver, pages, form_ok, message):
+        driver._status_html = STATUS_HTML  # cached by an earlier poll
+        with patch.object(driver._session, "get", side_effect=[MagicMock(text=text) for text in pages]), \
+                patch.object(driver, "_login_via_form", return_value=form_ok), \
+                patch.object(driver, "_log_status_page_diagnostics") as diagnostics:
+            with pytest.raises(RuntimeError, match=message):
                 driver.login()
+        diagnostics.assert_called_once_with(pages[-1], "login")
+        assert driver._status_html is None
 
     def test_login_accepts_status_page_even_with_login_markers(self, driver):
         mock_response = MagicMock()
@@ -295,17 +284,7 @@ class TestLogin:
             assert driver._status_html == mock_response.text
 
     def test_login_falls_back_to_form_login(self, driver):
-        login_wrapper = MagicMock()
-        login_wrapper.raise_for_status = MagicMock()
-        login_wrapper.text = """
-            <html><body>
-            <script>
-            if (sessionStorage.getItem('PrivateKey') === null) {
-                window.location.replace('../Login.htm');
-            }
-            </script>
-            </body></html>
-        """
+        login_wrapper = MagicMock(text=LOGIN_WRAPPER)
         login_page = MagicMock()
         login_page.raise_for_status = MagicMock()
         login_page.text = """
@@ -538,27 +517,6 @@ class TestDeviceInfo:
 # -- Value parsers --
 
 class TestValueParsers:
-    def test_hz_to_mhz_integer(self):
-        assert CM3000Driver._hz_to_mhz("495000000 Hz") == "495 MHz"
-
-    def test_hz_to_mhz_decimal(self):
-        assert CM3000Driver._hz_to_mhz("22800000 Hz") == "22.8 MHz"
-
-    def test_hz_to_mhz_zero(self):
-        assert CM3000Driver._hz_to_mhz("0") == "0 MHz"
-
-    def test_parse_number_with_unit(self):
-        assert CM3000Driver._parse_number("43.3 dBmV") == 43.3
-
-    def test_parse_number_negative(self):
-        assert CM3000Driver._parse_number("-0.32 dBmV") == -0.32
-
-    def test_parse_number_plain(self):
-        assert CM3000Driver._parse_number("41.8 dB") == 41.8
-
-    def test_parse_number_empty(self):
-        assert CM3000Driver._parse_number("") == 0.0
-
     def test_parse_uptime(self):
         assert CM3000Driver._parse_uptime("23 days 09:26:24") == (
             23 * 86400 + 9 * 3600 + 26 * 60 + 24
@@ -570,18 +528,12 @@ class TestValueParsers:
     def test_parse_uptime_invalid(self):
         assert CM3000Driver._parse_uptime("invalid") is None
 
-    def test_split_channels(self):
-        raw = "2|a|b|c|d|e|f"
-        channels = CM3000Driver._split_channels(raw, 3)
-        assert len(channels) == 2
-        assert channels[0] == ["a", "b", "c"]
-        assert channels[1] == ["d", "e", "f"]
-
-    def test_split_channels_trailing_pipe(self):
-        raw = "1|a|b|c|"
-        channels = CM3000Driver._split_channels(raw, 3)
-        assert len(channels) == 1
-        assert channels[0] == ["a", "b", "c"]
+    @pytest.mark.parametrize(("raw", "expected"), [
+        ("2|a|b|c|d|e|f", [["a", "b", "c"], ["d", "e", "f"]]),
+        ("1|a|b|c|", [["a", "b", "c"]]),
+    ])
+    def test_split_channels(self, raw, expected):
+        assert split_cm3000_channels(raw, 3) == expected
 
     def test_fetch_status_page_rejects_missing_docsis_blocks(self, driver):
         mock_response = MagicMock()
@@ -608,18 +560,18 @@ class TestRegexPatterns:
     def test_skips_commented_out_tagValueList(self):
         """The extractor must match the live assignment, not the /* */ comment."""
         data = _build_status_html()
-        extracted = CM3000Driver._extract_tag_value_list(data, "InitDsTableTagValue")
+        extracted = extract_cm3000_tag_value_list(data, "InitDsTableTagValue")
         assert extracted is not None
         assert extracted.startswith("32|")
         assert not extracted.startswith("8|")
 
     def test_all_patterns_match(self):
         html = _build_status_html()
-        assert CM3000Driver._extract_tag_value_list(html, "InitDsTableTagValue") == TAG_DS_QAM
-        assert CM3000Driver._extract_tag_value_list(html, "InitUsTableTagValue") == TAG_US_ATDMA
-        assert CM3000Driver._extract_tag_value_list(html, "InitDsOfdmTableTagValue") == TAG_DS_OFDM
-        assert CM3000Driver._extract_tag_value_list(html, "InitUsOfdmaTableTagValue") == TAG_US_OFDMA
-        assert CM3000Driver._extract_tag_value_list(html, "InitTagValue") == TAG_SYS_INFO
+        assert extract_cm3000_tag_value_list(html, "InitDsTableTagValue") == TAG_DS_QAM
+        assert extract_cm3000_tag_value_list(html, "InitUsTableTagValue") == TAG_US_ATDMA
+        assert extract_cm3000_tag_value_list(html, "InitDsOfdmTableTagValue") == TAG_DS_OFDM
+        assert extract_cm3000_tag_value_list(html, "InitUsOfdmaTableTagValue") == TAG_US_OFDMA
+        assert extract_cm3000_tag_value_list(html, "InitTagValue") == TAG_SYS_INFO
 
     def test_extracts_double_quoted_concatenated_assignment(self):
         html = """
@@ -638,7 +590,7 @@ class TestRegexPatterns:
         </script>
         """
         assert (
-            CM3000Driver._extract_tag_value_list(html, "InitDsTableTagValue")
+            extract_cm3000_tag_value_list(html, "InitDsTableTagValue")
             == "2|1|Locked|QAM256|1|381000000 Hz|0.4|43.2|34797|40892|2|Locked|QAM256|2|387000000 Hz|0.3|43.2|37561|42672|"
         )
 

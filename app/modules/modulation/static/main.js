@@ -5,20 +5,6 @@ var _modDays = 7;
 var _modCharts = [];
 var _modIntradayCharts = [];
 
-/* uPlot axis width that fits the widest tick label, so "100%" or "1024QAM"
-   is not clipped at the chart edge. */
-function _modAxisSize(u, values, axisIdx, cycleNum) {
-    var axis = u.axes[axisIdx];
-    if (cycleNum > 1) return axis._size;
-    var size = axis.ticks.size + axis.gap;
-    var longest = (values || []).reduce(function(acc, v) { return String(v).length > acc.length ? String(v) : acc; }, '');
-    if (longest) {
-        u.ctx.font = axis.font[0];
-        size += u.ctx.measureText(longest).width / (window.devicePixelRatio || 1);
-    }
-    return Math.ceil(size);
-}
-
 /* QAM color scheme */
 var QAM_COLORS = {
     '4QAM':    '#ef4444',
@@ -79,65 +65,50 @@ var QAM_COLORS_US_DOCSIS_30 = {
     'Unknown': '#6b7280'
 };
 
-function isUsDocsis31Upstream(pg) {
-    if (!pg) return false;
-    var direction = pg._direction || pg.direction || '';
-    return direction === 'us' && String(pg.docsis_version || '') === '3.1';
-}
-
-function isUsDocsis30Upstream(pg) {
-    if (!pg) return false;
-    var direction = pg._direction || pg.direction || '';
-    return direction === 'us' && String(pg.docsis_version || '') === '3.0';
+/* '3.1' or '3.0' for an upstream group of that DOCSIS version, '' otherwise. */
+function usDocsisVersion(pg) {
+    var version = pg && (pg._direction || pg.direction) === 'us' ? String(pg.docsis_version || '') : '';
+    return version === '3.1' || version === '3.0' ? version : '';
 }
 
 function qamColorForContext(mod, pg) {
-    if (isUsDocsis31Upstream(pg)) {
-        if (Object.prototype.hasOwnProperty.call(QAM_COLORS_US_DOCSIS_31, mod)) {
-            return QAM_COLORS_US_DOCSIS_31[mod];
-        }
-    }
-    if (isUsDocsis30Upstream(pg)) {
-        if (Object.prototype.hasOwnProperty.call(QAM_COLORS_US_DOCSIS_30, mod)) {
-            return QAM_COLORS_US_DOCSIS_30[mod];
-        }
-    }
+    var palette = {'3.1': QAM_COLORS_US_DOCSIS_31, '3.0': QAM_COLORS_US_DOCSIS_30}[usDocsisVersion(pg)];
+    if (palette && Object.prototype.hasOwnProperty.call(palette, mod)) return palette[mod];
     return QAM_COLORS[mod] || '#6b7280';
 }
 
 function lowQamLegendHintForContext(pg) {
-    if (isUsDocsis31Upstream(pg)) {
+    var version = usDocsisVersion(pg);
+    if (version === '3.1') {
         return T['docsight.modulation.low_qam_legend_hint_d31_us'] ||
-            T['low_qam_legend_hint_d31_us'] ||
-            'US DOCSIS 3.1: 64QAM and below count as Low-QAM; 128QAM is borderline.';
+            T.low_qam_legend_hint_d31_us;
     }
-    if (isUsDocsis30Upstream(pg)) {
+    if (version === '3.0') {
         return T['docsight.modulation.low_qam_legend_hint_d30_us'] ||
-            T['low_qam_legend_hint_d30_us'] ||
-            'US DOCSIS 3.0 upstream: 64QAM is the healthy maximum; 32QAM is reduced.';
+            T.low_qam_legend_hint_d30_us;
     }
     return '';
 }
 
-function buildModulationXAxisTicks(labels, width) {
-    var count = labels ? labels.length : 0;
-    if (count <= 0) return [];
-    var maxTicks = 6;
-    if (typeof calculateMaxXTicks === 'function') {
-        maxTicks = calculateMaxXTicks(labels, width, 40, 8);
-    }
-    if (typeof buildEvenIndexTicks === 'function') {
-        return buildEvenIndexTicks(labels.length, maxTicks);
-    }
-    if (count <= maxTicks) {
-        var all = [];
-        for (var ai = 0; ai < count; ai++) all.push(ai);
-        return all;
-    }
-    var ticks = [];
-    var gap = (count - 1) / (maxTicks - 1);
-    for (var ti = 0; ti < maxTicks; ti++) ticks.push(Math.round(ti * gap));
-    return ticks;
+/* Day labels (day and month in the UI language), x data, x scale and x axis
+   shared by the distribution and trend charts. */
+function _modDayAxis(days, width) {
+    var labels = days.map(function(d) { return docsightFormatAxisTime(d.date, 'monthday') || d.date.slice(5); });
+    var splits = buildEvenIndexTicks(labels.length, calculateMaxXTicks(labels, width, 40, 8));
+    return {
+        labels: labels,
+        xData: labels.map(function(_, i) { return i; }),
+        scale: {time: false, range: function() { return [-0.5, labels.length - 0.5]; }},
+        axis: {
+            scale: 'x',
+            splits: function() { return splits; },
+            values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
+            stroke: _cssVar('--text-secondary') || '#9ca3af',
+            grid: {show: false},
+            font: '12px system-ui',
+            gap: 4
+        }
+    };
 }
 
 var MODULATION_LEVELS = [
@@ -197,12 +168,12 @@ function updateModulation() {
     DOCSightEmptyState.hide(noData);
 
     if (_modDays === 1) {
-        if (overview) overview.hidden = true;
-        if (intraday) intraday.hidden = false;
+        overview.hidden = true;
+        intraday.hidden = false;
         fetchIntraday('');
     } else {
-        if (overview) overview.hidden = false;
-        if (intraday) intraday.hidden = true;
+        overview.hidden = false;
+        intraday.hidden = true;
         fetchOverview();
     }
 }
@@ -211,7 +182,7 @@ function updateModulation() {
 function _showModulationEmpty(el) {
     DOCSightEmptyState.showRange(el, {
         tabs: 'modulation-range-tabs',
-        text: T['docsight.modulation.no_data'] || 'No modulation data available for the selected period.',
+        text: T['docsight.modulation.no_data'],
         glossary: 'modulation_performance'
     });
 }
@@ -238,11 +209,11 @@ function fetchOverview() {
 
             if (!data.protocol_groups || data.protocol_groups.length === 0) {
                 _showModulationEmpty(noData);
-                if (kpis) kpis.style.display = 'none';
+                kpis.style.display = 'none';
                 destroyCharts();
                 return;
             }
-            if (kpis) kpis.style.display = '';
+            kpis.style.display = '';
             updateOverviewKPIs(data);
             updateCapacityHistory(data, rangeLabelForCapacity(data));
             renderProtocolGroups(data);
@@ -259,27 +230,16 @@ function updateOverviewKPIs(data) {
     var lq = agg.low_qam_pct || 0;
 
     var hiEl = document.getElementById('mod-kpi-health');
-    if (hiEl) {
-        hiEl.textContent = hi !== null && hi !== undefined ? hi.toFixed(1) : '—';
-        hiEl.className = 'mod-kpi-item-value ' + healthClass(hi);
-    }
-    var hiDelta = document.getElementById('mod-kpi-health-delta');
-    if (hiDelta) hiDelta.textContent = hi !== null ? '/100' : '';
+    hiEl.textContent = hi !== null && hi !== undefined ? hi.toFixed(1) : '—';
+    hiEl.className = 'mod-kpi-item-value ' + healthClass(hi);
+    document.getElementById('mod-kpi-health-delta').textContent = hi !== null ? '/100' : '';
 
     var lqEl = document.getElementById('mod-kpi-lowqam');
-    if (lqEl) {
-        lqEl.textContent = lq.toFixed(1) + '%';
-        lqEl.className = 'mod-kpi-item-value ' + lowQamClass(lq);
-    }
-    var lqHint = document.getElementById('mod-kpi-lowqam-hint');
-    if (lqHint) {
-        lqHint.textContent = T['docsight.modulation.low_qam_denominator_hint'] ||
-            'Unknown samples stay in the total';
-    }
+    lqEl.textContent = lq.toFixed(1) + '%';
+    lqEl.className = 'mod-kpi-item-value ' + lowQamClass(lq);
+    document.getElementById('mod-kpi-lowqam-hint').textContent = T['docsight.modulation.low_qam_denominator_hint'];
 
-    var samples = document.getElementById('mod-kpi-samples');
-    if (samples) samples.textContent = String(data.sample_count || 0);
-
+    document.getElementById('mod-kpi-samples').textContent = String(data.sample_count || 0);
 }
 
 function capacityUnitLabel() {
@@ -293,12 +253,12 @@ function formatCapacityMbps(value) {
 
 function rangeLabelForCapacity(data) {
     if (data && data.date) {
-        return (T['docsight.modulation.capacity_selected_day'] || 'Selected day') + ': ' + data.date;
+        return T['docsight.modulation.capacity_selected_day'] + ': ' + data.date;
     }
     if (_modDays === 1) {
-        return T['docsight.modulation.capacity_today_period'] || 'Today';
+        return T['docsight.modulation.capacity_today_period'];
     }
-    var template = T['docsight.modulation.capacity_selected_days'] || 'Selected period: {days}d';
+    var template = T['docsight.modulation.capacity_selected_days'];
     return template.replace('{days}', String(_modDays));
 }
 
@@ -323,8 +283,7 @@ function capacityCoverageText(summary) {
     var calculated = summary ? (summary.calculated_channel_samples || 0) : 0;
     var total = summary ? (summary.total_channel_samples || 0) : 0;
     var pct = Number(summary && summary.coverage_pct || 0).toFixed(1);
-    var template = T['docsight.modulation.capacity_coverage_detail'] ||
-        '{calculated} of {total} channel samples calculated ({pct}%)';
+    var template = T['docsight.modulation.capacity_coverage_detail'];
     return template
         .replace('{calculated}', String(calculated))
         .replace('{total}', String(total))
@@ -335,12 +294,10 @@ function capacityPartialCaveatText(summary) {
     if (!summary || !(summary.unsupported_channel_samples > 0)) return '';
     var families = unsupportedCapacityFamilies(summary);
     if (families.length > 0) {
-        var template = T['docsight.modulation.capacity_partial_caveat'] ||
-            'Partial estimate: {families} channels are not included in this SC-QAM capacity sum.';
+        var template = T['docsight.modulation.capacity_partial_caveat'];
         return template.replace('{families}', families.join('/'));
     }
-    return T['docsight.modulation.capacity_partial_caveat_generic'] ||
-        'Partial estimate: unsupported DOCSIS channels are not included in this SC-QAM capacity sum.';
+    return T['docsight.modulation.capacity_partial_caveat_generic'];
 }
 
 function capacityStatusText(summary) {
@@ -352,7 +309,7 @@ function capacityStatusText(summary) {
     }[summary.status] || summary.status || '\u2014';
     var text = T[key] || fallback;
     if (summary.unsupported_channel_samples > 0) {
-        text = (T['docsight.modulation.capacity_partial_coverage'] || 'Partial estimate') + ' · ' + text;
+        text = T['docsight.modulation.capacity_partial_coverage'] + ' · ' + text;
     }
     return text;
 }
@@ -364,42 +321,27 @@ function updateCapacityCard(direction, summary) {
 
     card.className = 'mod-capacity-card mod-capacity-' + (summary.status || 'unavailable');
 
-    var current = document.getElementById('mod-cap-' + prefix + '-current');
-    var min = document.getElementById('mod-cap-' + prefix + '-min');
-    var avg = document.getElementById('mod-cap-' + prefix + '-avg');
-    var max = document.getElementById('mod-cap-' + prefix + '-max');
-    var coverage = document.getElementById('mod-cap-' + prefix + '-coverage');
-    var status = document.getElementById('mod-cap-' + prefix + '-status');
-    var caveat = document.getElementById('mod-cap-' + prefix + '-caveat');
-
-    if (current) current.textContent = formatCapacityMbps(summary.capacity_current_mbps);
-    if (min) min.textContent = formatCapacityMbps(summary.capacity_min_mbps);
-    if (avg) avg.textContent = formatCapacityMbps(summary.capacity_avg_mbps);
-    if (max) max.textContent = formatCapacityMbps(summary.capacity_max_mbps);
-    if (coverage) {
-        coverage.textContent = capacityCoverageText(summary);
-    }
-    if (status) status.textContent = capacityStatusText(summary);
-    if (caveat) {
-        var caveatText = capacityPartialCaveatText(summary);
-        caveat.textContent = caveatText;
-        caveat.hidden = !caveatText;
-    }
+    function field(name) { return document.getElementById('mod-cap-' + prefix + '-' + name); }
+    ['current', 'min', 'avg', 'max'].forEach(function(name) {
+        field(name).textContent = formatCapacityMbps(summary['capacity_' + name + '_mbps']);
+    });
+    field('coverage').textContent = capacityCoverageText(summary);
+    field('status').textContent = capacityStatusText(summary);
+    var caveatText = capacityPartialCaveatText(summary);
+    field('caveat').textContent = caveatText;
+    field('caveat').hidden = !caveatText;
 }
 
 function updateCapacityHistory(data, rangeLabel) {
     var panel = document.getElementById('modulation-capacity-panel');
-    if (!panel) return;
     var history = data && data.capacity_history;
     if (!history) {
         panel.hidden = true;
         return;
     }
     panel.hidden = false;
-    var label = document.getElementById('mod-capacity-range-label');
-    if (label) {
-        label.textContent = rangeLabel || (T['docsight.modulation.capacity_selected_period'] || 'Selected period');
-    }
+    document.getElementById('mod-capacity-range-label').textContent =
+        rangeLabel || T['docsight.modulation.capacity_selected_period'];
     updateCapacityCard('downstream', history.downstream);
     updateCapacityCard('upstream', history.upstream);
 }
@@ -407,7 +349,6 @@ function updateCapacityHistory(data, rangeLabel) {
 function renderProtocolGroups(data) {
     destroyCharts();
     var container = document.getElementById('modulation-protocol-groups');
-    if (!container) return;
     container.textContent = '';
 
     var groups = data.protocol_groups || [];
@@ -419,22 +360,17 @@ function renderProtocolGroups(data) {
         section.setAttribute('data-docsis-version', String(pg.docsis_version || ''));
 
         // Header
-        var header = _el('div', 'mod-protocol-group-header');
-        var dirLabel = _modDirection === 'us'
-            ? (T['docsight.modulation.upstream'] || 'Upstream')
-            : (T['docsight.modulation.downstream'] || 'Downstream');
-        var titleText = dirLabel + ' DOCSIS ' + pg.docsis_version + ' (max ' + pg.max_qam + ')';
-        header.appendChild(_el('h3', null, titleText));
+        var header = _modGroupHeader(renderDirection, pg);
 
         var chLabel = pg.channel_count === 1
-            ? (T['docsight.modulation.channel_label'] || 'Channel')
-            : (T['docsight.modulation.channels_label'] || 'Channels');
+            ? T['docsight.modulation.channel_label']
+            : T['docsight.modulation.channels_label'];
         var chBadge = _el('span', 'mod-protocol-badge', pg.channel_count + ' ' + chLabel);
         header.appendChild(chBadge);
 
         if (pg.degraded_channel_count > 0) {
             var degBadge = _el('span', 'mod-protocol-badge degraded',
-                pg.degraded_channel_count + ' ' + (T['docsight.modulation.degraded_channels'] || 'degraded'));
+                pg.degraded_channel_count + ' ' + T['docsight.modulation.degraded_channels']);
             header.appendChild(degBadge);
         }
         section.appendChild(header);
@@ -442,18 +378,18 @@ function renderProtocolGroups(data) {
         // Mini KPIs
         var kpiRow = _el('div', 'mod-group-kpi-row');
         kpiRow.appendChild(_buildMiniKPI(
-            T['docsight.modulation.health_index'] || 'Health Index',
+            T['docsight.modulation.health_index'],
             pg.health_index !== null ? pg.health_index.toFixed(1) : '\u2014',
             healthClass(pg.health_index)));
         kpiRow.appendChild(_buildMiniKPI(
-            T['docsight.modulation.low_qam_pct'] || 'Low-QAM %',
+            T['docsight.modulation.low_qam_pct'],
             pg.low_qam_pct.toFixed(1) + '%',
             lowQamClass(pg.low_qam_pct)));
         kpiRow.appendChild(_buildMiniKPI(
-            T['docsight.modulation.dominant_modulation'] || 'Dominant',
+            T['docsight.modulation.dominant_modulation'],
             pg.dominant_modulation || '\u2014', ''));
         kpiRow.appendChild(_buildMiniKPI(
-            T['docsight.modulation.degraded_channels'] || 'Degraded',
+            T['docsight.modulation.degraded_channels'],
             pg.degraded_channel_count + '/' + pg.channel_count,
             pg.degraded_channel_count > 0 ? 'critical' : 'good'));
         section.appendChild(kpiRow);
@@ -461,42 +397,14 @@ function renderProtocolGroups(data) {
         // Charts grid
         var chartsGrid = _el('div', 'charts-grid');
 
-        // Distribution bar chart card
-        var barCard = _el('div', 'chart-card');
-        var barHeader = _el('div', 'chart-card-header');
-        var barContent = _el('div', 'chart-header-content');
-        barContent.appendChild(_el('div', 'chart-label',
-            T['docsight.modulation.distribution_chart'] || 'Modulation Distribution'));
-        barHeader.appendChild(barContent);
-        barCard.appendChild(barHeader);
-        var barWrap = _el('div', 'modulation-chart-wrap');
-        var barDiv = document.createElement('div');
-        barDiv.id = 'mod-dist-chart-' + idx;
-        barDiv.style.width = '100%';
-        barDiv.style.height = '100%';
-        barWrap.appendChild(barDiv);
-        barCard.appendChild(barWrap);
+        var barCard = _modChartCard(T['docsight.modulation.distribution_chart'],
+            'mod-dist-chart-' + idx);
         var legendDiv = _el('div', 'modulation-custom-legend');
         legendDiv.id = 'mod-dist-legend-' + idx;
         barCard.appendChild(legendDiv);
         chartsGrid.appendChild(barCard);
-
-        // Trend line chart card
-        var trendCard = _el('div', 'chart-card');
-        var trendHeader = _el('div', 'chart-card-header');
-        var trendContent = _el('div', 'chart-header-content');
-        trendContent.appendChild(_el('div', 'chart-label',
-            T['docsight.modulation.trend_chart'] || 'Health Trend'));
-        trendHeader.appendChild(trendContent);
-        trendCard.appendChild(trendHeader);
-        var trendWrap = _el('div', 'modulation-chart-wrap');
-        var trendDiv = document.createElement('div');
-        trendDiv.id = 'mod-trend-chart-' + idx;
-        trendDiv.style.width = '100%';
-        trendDiv.style.height = '100%';
-        trendWrap.appendChild(trendDiv);
-        trendCard.appendChild(trendWrap);
-        chartsGrid.appendChild(trendCard);
+        chartsGrid.appendChild(_modChartCard(T['docsight.modulation.trend_chart'],
+            'mod-trend-chart-' + idx));
 
         section.appendChild(chartsGrid);
         container.appendChild(section);
@@ -505,8 +413,39 @@ function renderProtocolGroups(data) {
         renderGroupTrendChart(pg, idx);
     });
 
-    var hint = document.getElementById('mod-click-hint');
-    if (hint) hint.hidden = groups.length === 0;
+    document.getElementById('mod-click-hint').hidden = groups.length === 0;
+}
+
+/* Group heading: direction, DOCSIS version and highest modulation. */
+function _modGroupHeader(direction, pg) {
+    var header = _el('div', 'mod-protocol-group-header');
+    var dirLabel = direction === 'us'
+        ? T['docsight.modulation.upstream']
+        : T['docsight.modulation.downstream'];
+    header.appendChild(_el('h3', null, dirLabel + ' DOCSIS ' + pg.docsis_version + ' (max ' + pg.max_qam + ')'));
+    return header;
+}
+
+/* Chart container filling a wrapper of class `cls`. */
+function _modChartWrap(cls, id) {
+    var wrap = _el('div', cls);
+    var chart = _el('div');
+    chart.id = id;
+    chart.style.width = '100%';
+    chart.style.height = '100%';
+    wrap.appendChild(chart);
+    return wrap;
+}
+
+function _modChartCard(title, id) {
+    var card = _el('div', 'chart-card');
+    var header = _el('div', 'chart-card-header');
+    var content = _el('div', 'chart-header-content');
+    content.appendChild(_el('div', 'chart-label', title));
+    header.appendChild(content);
+    card.appendChild(header);
+    card.appendChild(_modChartWrap('modulation-chart-wrap', id));
+    return card;
 }
 
 function _buildMiniKPI(label, value, cls) {
@@ -518,20 +457,7 @@ function _buildMiniKPI(label, value, cls) {
 
 function renderGroupDistChart(pg, idx) {
     var container = document.getElementById('mod-dist-chart-' + idx);
-    var legendContainer = document.getElementById('mod-dist-legend-' + idx);
-    if (!container) return;
-    container.textContent = '';
-    if (legendContainer) legendContainer.textContent = '';
-
     var days = pg.days || [];
-    /* Day and month in the UI language; MM-DD when the chart engine is unavailable. */
-    var labels = days.map(function(d) {
-        var localized = typeof docsightFormatAxisTime === 'function' ? docsightFormatAxisTime(d.date, 'monthday') : null;
-        return localized || d.date.slice(5);
-    });
-    var n = labels.length;
-    var textColor = _cssVar('--text-secondary') || '#9ca3af';
-
     var allMods = {};
     days.forEach(function(d) {
         Object.keys(d.distribution || {}).forEach(function(k) { allMods[k] = true; });
@@ -540,13 +466,10 @@ function renderGroupDistChart(pg, idx) {
         return modSortOrder(a) - modSortOrder(b);
     });
 
-    /* uPlot stacked bars: build cumulative data per mod layer */
-    var xData = [];
-    for (var i = 0; i < n; i++) xData.push(i);
     var barPaths = uPlot.paths.bars({size: [0.7, 50], gap: 1});
 
-    /* Build cumulative sums for each modulation layer */
-    var cumData = xData.map(function() { return 0; });
+    /* uPlot stacked bars: cumulative sums for each modulation layer */
+    var cumData = days.map(function() { return 0; });
     var layerData = [];
     var rawSeriesByMod = {};
     modKeys.forEach(function(mod) {
@@ -556,9 +479,13 @@ function renderGroupDistChart(pg, idx) {
         layerData.push({ mod: mod, data: stacked });
     });
 
+    renderDistributionLegend(document.getElementById('mod-dist-legend-' + idx), modKeys, pg);
+    var w = container.offsetWidth || 400;
+    var x = _modDayAxis(days, w);
+
     /* Render in reverse order: largest cumulative first, smallest on top */
-    var uData = [xData];
-    var uSeries = [{ label: 'X', value: function(u, v) { return labels[v] || ''; } }];
+    var uData = [x.xData];
+    var uSeries = [{ label: 'X', value: function(u, v) { return x.labels[v] || ''; } }];
     for (var li = layerData.length - 1; li >= 0; li--) {
         var layer = layerData[li];
         var layerColor = qamColorForContext(layer.mod, pg);
@@ -573,43 +500,28 @@ function renderGroupDistChart(pg, idx) {
         });
     }
 
-    if (legendContainer) {
-        renderDistributionLegend(legendContainer, modKeys, pg);
-    }
-
-    var w = container.offsetWidth || 400;
-    var h = container.offsetHeight || 300;
-    var xSplits = buildModulationXAxisTicks(labels, w);
     var chart = new uPlot({
         width: w,
-        height: h,
+        height: container.offsetHeight || 300,
         scales: {
-            x: { time: false, range: function() { return [-0.5, n - 0.5]; } },
+            x: x.scale,
             y: { range: [0, 100] }
         },
         axes: [
-            {
-                scale: 'x',
-                splits: function() { return xSplits; },
-                values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
-                stroke: textColor,
-                grid: { show: false },
-                font: '12px system-ui',
-                gap: 4
-            },
+            x.axis,
             {
                 scale: 'y',
-                stroke: textColor,
+                stroke: x.axis.stroke,
                 grid: { stroke: 'rgba(255,255,255,0.06)', width: 1 },
                 values: function(u, vals) { return vals.map(function(v) { return v + '%'; }); },
                 font: '12px system-ui',
-                size: _modAxisSize
+                size: docsightAxisSize(0)
             }
         ],
         series: uSeries,
         cursor: { show: true, x: true, y: false, points: { show: false } },
         legend: { show: false, live: false },
-        plugins: [tooltipPlugin(labels, function(ctx) {
+        plugins: [tooltipPlugin(x.labels, function(ctx) {
             var mod = ctx.dataset.label;
             var rawSeries = rawSeriesByMod[mod] || [];
             var raw = rawSeries[ctx.dataIndex] || 0;
@@ -625,7 +537,7 @@ function attachModulationDayClick(chart, container, days) {
     container.classList.add('modulation-clickable-chart');
     container.setAttribute(
         'title',
-        T['docsight.modulation.click_day_hint'] || 'Click a day bar to view per-channel details'
+        T['docsight.modulation.click_day_hint']
     );
     container.addEventListener('click', function(evt) {
         var rect = chart.over.getBoundingClientRect();
@@ -643,49 +555,26 @@ function attachModulationDayClick(chart, container, days) {
 
 function renderGroupTrendChart(pg, idx) {
     var container = document.getElementById('mod-trend-chart-' + idx);
-    if (!container) return;
-    container.textContent = '';
-
     var days = pg.days || [];
-    /* Day and month in the UI language; MM-DD when the chart engine is unavailable. */
-    var labels = days.map(function(d) {
-        var localized = typeof docsightFormatAxisTime === 'function' ? docsightFormatAxisTime(d.date, 'monthday') : null;
-        return localized || d.date.slice(5);
-    });
-    var n = labels.length;
-    var textColor = _cssVar('--text-secondary') || '#9ca3af';
-
-    var xData = [];
-    for (var i = 0; i < n; i++) xData.push(i);
-
     var w = container.offsetWidth || 400;
-    var h = container.offsetHeight || 300;
-    var xSplits = buildModulationXAxisTicks(labels, w);
+    var x = _modDayAxis(days, w);
     var chart = new uPlot({
         width: w,
-        height: h,
+        height: container.offsetHeight || 300,
         scales: {
-            x: { time: false, range: function() { return [-0.5, n - 0.5]; } },
+            x: x.scale,
             health: { range: [0, 100] },
             lowqam: { range: [0, 100] }
         },
         axes: [
-            {
-                scale: 'x',
-                splits: function() { return xSplits; },
-                values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
-                stroke: textColor,
-                grid: { show: false },
-                font: '12px system-ui',
-                gap: 4
-            },
+            x.axis,
             {
                 scale: 'health',
                 side: 3,
                 stroke: '#22c55e',
                 grid: { stroke: 'rgba(255,255,255,0.06)', width: 1 },
                 font: '12px system-ui',
-                size: _modAxisSize
+                size: docsightAxisSize(0)
             },
             {
                 scale: 'lowqam',
@@ -694,13 +583,13 @@ function renderGroupTrendChart(pg, idx) {
                 grid: { show: false },
                 values: function(u, vals) { return vals.map(function(v) { return v.toFixed(0) + '%'; }); },
                 font: '12px system-ui',
-                size: _modAxisSize
+                size: docsightAxisSize(0)
             }
         ],
         series: [
-            { label: 'X', value: function(u, v) { return labels[v] || ''; } },
+            { label: 'X', value: function(u, v) { return x.labels[v] || ''; } },
             {
-                label: T['docsight.modulation.health_index'] || 'Health Index',
+                label: T['docsight.modulation.health_index'],
                 stroke: '#22c55e',
                 fill: 'rgba(34,197,94,0.1)',
                 width: 2,
@@ -708,7 +597,7 @@ function renderGroupTrendChart(pg, idx) {
                 points: { show: false }
             },
             {
-                label: T['docsight.modulation.low_qam_pct'] || 'Low-QAM %',
+                label: T['docsight.modulation.low_qam_pct'],
                 stroke: '#ef4444',
                 fill: 'rgba(239,68,68,0.1)',
                 width: 2,
@@ -718,9 +607,9 @@ function renderGroupTrendChart(pg, idx) {
         ],
         cursor: { show: true, x: true, y: false, points: { show: false } },
         legend: { show: true, live: false },
-        plugins: [tooltipPlugin(labels), touchScrubPlugin()]
+        plugins: [tooltipPlugin(x.labels), touchScrubPlugin()]
     }, [
-        xData,
+        x.xData,
         days.map(function(d) { return d.health_index; }),
         days.map(function(d) { return d.low_qam_pct; })
     ], container);
@@ -729,18 +618,14 @@ function renderGroupTrendChart(pg, idx) {
 
 /* ── Intraday (single day) ── */
 function modDrillIntoDay(dateStr) {
-    var overview = document.getElementById('modulation-overview');
-    var intraday = document.getElementById('modulation-intraday');
-    if (overview) overview.hidden = true;
-    if (intraday) intraday.hidden = false;
+    document.getElementById('modulation-overview').hidden = true;
+    document.getElementById('modulation-intraday').hidden = false;
     fetchIntraday(dateStr);
 }
 
 function modBackToOverview() {
-    var overview = document.getElementById('modulation-overview');
-    var intraday = document.getElementById('modulation-intraday');
-    if (overview) overview.hidden = false;
-    if (intraday) intraday.hidden = true;
+    document.getElementById('modulation-overview').hidden = false;
+    document.getElementById('modulation-intraday').hidden = true;
     destroyIntradayCharts();
     if (_modDays === 1) {
         _modDays = 7;
@@ -770,14 +655,10 @@ function fetchIntraday(dateStr) {
 
 function renderIntraday(data) {
     destroyIntradayCharts();
-    var titleEl = document.getElementById('mod-intraday-title');
-    if (titleEl) {
-        titleEl.textContent = (T['docsight.modulation.intraday_title'] || 'Channel Detail') +
-            ' \u2014 ' + data.date;
-    }
+    document.getElementById('mod-intraday-title').textContent =
+        T['docsight.modulation.intraday_title'] + ' \u2014 ' + data.date;
 
     var container = document.getElementById('modulation-intraday-content');
-    if (!container) return;
     container.textContent = '';
 
     var groups = data.protocol_groups || [];
@@ -790,14 +671,7 @@ function renderIntraday(data) {
 
     groups.forEach(function(pg) {
         var section = _el('div', 'mod-protocol-group');
-
-        var dirLabel = _modDirection === 'us'
-            ? (T['docsight.modulation.upstream'] || 'Upstream')
-            : (T['docsight.modulation.downstream'] || 'Downstream');
-        var header = _el('div', 'mod-protocol-group-header');
-        header.appendChild(_el('h3', null,
-            dirLabel + ' DOCSIS ' + pg.docsis_version + ' (max ' + pg.max_qam + ')'));
-        section.appendChild(header);
+        section.appendChild(_modGroupHeader(data.direction || _modDirection, pg));
 
         var channels = pg.channels || [];
         channels.forEach(function(ch) {
@@ -815,25 +689,16 @@ function renderIntraday(data) {
                 card.appendChild(buildIntradayEventList(ch.degraded_events));
             } else {
                 card.appendChild(_el('div', 'mod-channel-summary-text',
-                    T['docsight.modulation.no_degradation'] || 'No degradation observed'));
+                    T['docsight.modulation.no_degradation']));
             }
 
+            section.appendChild(card);
             if (ch.timeline && ch.timeline.length > 1) {
-                var chartWrap = _el('div', 'modulation-intraday-chart-wrap');
                 var canvasId = 'mod-intraday-ch-' + pg.docsis_version.replace('.', '') + '-' + ch.channel_id;
-                var chartDiv = document.createElement('div');
-                chartDiv.id = canvasId;
-                chartDiv.style.width = '100%';
-                chartDiv.style.height = '100%';
-                chartWrap.appendChild(chartDiv);
-                card.appendChild(chartWrap);
-                section.appendChild(card);
+                card.appendChild(_modChartWrap('modulation-intraday-chart-wrap', canvasId));
                 renderChannelTimeline(canvasId, ch.timeline);
-            } else {
-                section.appendChild(card);
             }
         });
-
         container.appendChild(section);
     });
 }
@@ -843,18 +708,18 @@ function buildIntradayInsights(ch) {
     wrap.appendChild(_el(
         'span',
         'mod-channel-insight warning',
-        ch.degraded_events.length + ' ' + (T['docsight.modulation.degraded_windows'] || 'degraded windows')
+        ch.degraded_events.length + ' ' + T['docsight.modulation.degraded_windows']
     ));
     wrap.appendChild(_el(
         'span',
         'mod-channel-insight',
-        (T['docsight.modulation.affected_samples'] || 'Affected') + ' ' + (ch.degraded_sample_pct || 0) + '%'
+        T['docsight.modulation.affected_samples'] + ' ' + (ch.degraded_sample_pct || 0) + '%'
     ));
     if (ch.worst_modulation) {
         wrap.appendChild(_el(
             'span',
             'mod-channel-insight critical',
-            (T['docsight.modulation.worst_modulation'] || 'Worst') + ' ' + ch.worst_modulation
+            T['docsight.modulation.worst_modulation'] + ' ' + ch.worst_modulation
         ));
     }
     return wrap;
@@ -880,11 +745,11 @@ function buildIntradayEventList(events) {
 
         function syncToggleLabel() {
             if (expanded) {
-                toggle.textContent = T['docsight.modulation.show_fewer_windows'] || 'Show fewer';
+                toggle.textContent = T['docsight.modulation.show_fewer_windows'];
                 toggle.classList.add('open');
             } else {
                 toggle.textContent = '+' + hiddenRows.length + ' ' +
-                    (T['docsight.modulation.more_windows'] || 'more windows');
+                    T['docsight.modulation.more_windows'];
                 toggle.classList.remove('open');
             }
         }
@@ -916,7 +781,7 @@ function buildIntradayEvent(evt) {
     var impact = _el('div', 'mod-event-impact');
     impact.appendChild(_el('strong', 'mod-event-share', evt.pct + '%'));
     impact.appendChild(_el('span', 'mod-event-share-label',
-        T['docsight.modulation.of_samples'] || 'of samples'));
+        T['docsight.modulation.of_samples']));
     row.appendChild(impact);
     return row;
 }
@@ -926,7 +791,7 @@ function formatIntradayEventDuration(evt) {
         if (evt.count && evt.count > 1) {
             return evt.count + ' ' + sampleUnit(evt.count);
         }
-        return T['docsight.modulation.brief_dip'] || 'brief dip';
+        return T['docsight.modulation.brief_dip'];
     }
 
     var minutes = evt.duration_minutes || 0;
@@ -947,8 +812,8 @@ function formatIntradayEventDuration(evt) {
 
 function sampleUnit(count) {
     return count === 1
-        ? (T['docsight.modulation.sample_singular'] || 'sample')
-        : (T['docsight.modulation.sample_plural'] || 'samples');
+        ? T['docsight.modulation.sample_singular']
+        : T['docsight.modulation.sample_plural'];
 }
 
 function renderChannelTimeline(canvasId, timeline) {
@@ -998,7 +863,7 @@ function renderChannelTimeline(canvasId, timeline) {
                 },
                 values: function(u, vals) { return vals.map(function(v) { return qamLabels[v] || ''; }); },
                 font: '12px system-ui',
-                size: _modAxisSize
+                size: docsightAxisSize(0)
             }
         ],
         series: [
@@ -1020,14 +885,8 @@ function renderChannelTimeline(canvasId, timeline) {
 
 /* ── Disclaimer ── */
 function showDisclaimer(text) {
-    var el = document.getElementById('mod-disclaimer');
-    var textEl = document.getElementById('mod-disclaimer-text');
-    if (el && textEl) {
-        textEl.textContent = T['docsight.modulation.disclaimer'] || text || '';
-        el.hidden = false;
-    } else if (el) {
-        el.hidden = true;
-    }
+    document.getElementById('mod-disclaimer-text').textContent = T['docsight.modulation.disclaimer'] || text || '';
+    document.getElementById('mod-disclaimer').hidden = false;
 }
 
 /* ── Helpers ── */
@@ -1043,11 +902,8 @@ function lowQamClass(v) {
     return 'critical';
 }
 function modSortOrder(mod) {
-    var order = {};
-    MODULATION_LEVELS.forEach(function(label, idx) {
-        order[label] = idx;
-    });
-    return order[mod] !== undefined ? order[mod] : (MODULATION_LEVELS.length - 1);
+    var i = MODULATION_LEVELS.indexOf(mod);
+    return i < 0 ? MODULATION_LEVELS.length - 1 : i;
 }
 
 function renderDistributionLegend(container, modKeys, pg) {

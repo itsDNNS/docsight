@@ -1,7 +1,5 @@
 {
-  "advanced_mqtt": "Разширени: MQTT / Home Assistant",
   "mqtt_broker": "MQTT брокер",
-  "mqtt_desc": "За връзка с Home Assistant чрез MQTT Auto-Discovery. Без MQTT работи само уеб интерфейсът.",
   "mqtt_optional_ha": "по избор – за Home Assistant",
   "mqtt_tls_insecure": "Несигурен TLS",
   "mqtt_tls_insecure_hint": "Пропускане на проверката на TLS сертификата",

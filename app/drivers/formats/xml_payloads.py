@@ -2,24 +2,36 @@
 
 from __future__ import annotations
 
+import math
 import xml.etree.ElementTree as ET
-from types import MappingProxyType
 
+from ...channel_selector import normalize_frequency
 from ...types import DocsisDataFritz, RawChannel
 from .contract import ParseDiagnostic, ParseResult, diagnostic, docsis_split
-from .primitives import hz_to_mhz, normalize_modulation, parse_optional_finite_float
+from .primitives import (
+    ANNEX_B_DOWNSTREAM_SYMBOL_RATES,
+    hz_to_mhz,
+    normalize_modulation,
+    parse_optional_finite_float,
+)
 
 _XML_FAMILY = "xml_payloads"
 _SB8200_PROFILE = "sb8200_cbn_xml"
 
-# The SB8200 is an Annex B (6 MHz) device and its downstream table omits the
-# symbol rate. Without these the analyzer falls back to the EuroDOCSIS 8 MHz
-# default and every downstream capacity estimate reads ~30% high.
-_SB8200_ANNEX_B_DS_SYMBOL_RATES = MappingProxyType({"64QAM": 5057, "256QAM": 5361})
-
 
 def _text(node: ET.Element | None, default: str = "") -> str:
     return node.text if node is not None and node.text is not None else default
+
+
+def _ch7465_channel(item: RawChannel) -> RawChannel:
+    """Keep a row without a power reading only when it still names a plausible channel."""
+    if item["powerLevel"] is None:
+        frequency = normalize_frequency(item["frequency"])  # the same spellings channel history accepts
+        if not (
+            item["channelID"] > 0 and frequency.startswith("n:") and 0 < float(frequency[2:]) < math.inf
+        ):
+            raise ValueError("row has no power reading, channel ID or frequency")
+    return item
 
 
 def parse_ch7465_xml(
@@ -43,18 +55,18 @@ def parse_ch7465_xml(
     diagnostics: list[ParseDiagnostic] = []
     for index, channel in enumerate(downstream_root.findall("downstream")):
         try:
-            item: RawChannel = {
+            item = _ch7465_channel({
                 "channelID": int(channel.find("chid").text),
                 "frequency": _text(channel.find("freq")),
-                "powerLevel": float(_text(channel.find("pow"), "0")),
-            }
-            mer = _text(channel.find("RxMER"))
+                "powerLevel": parse_optional_finite_float(_text(channel.find("pow"))),
+            })
+            mer = parse_optional_finite_float(_text(channel.find("RxMER")))
             modulation = normalize_modulation(_text(channel.find("mod")))
             corrected = _text(channel.find("PreRs"))
             uncorrected = _text(channel.find("PostRs"))
-            if mer:
-                item["mer"] = float(mer)
-                item["mse"] = -float(mer)
+            if mer is not None:
+                item["mer"] = mer
+                item["mse"] = -mer
             if modulation:
                 item["modulation"] = modulation
             if corrected:
@@ -62,7 +74,7 @@ def parse_ch7465_xml(
             if uncorrected:
                 item["nonCorrErrors"] = int(uncorrected)
             downstream.append(item)
-        except (AttributeError, TypeError, ValueError):
+        except (AttributeError, TypeError, ValueError, ArithmeticError):
             diagnostics.append(diagnostic(
                 "ch7465_xml", "invalid_channel", family="xml_payloads",
                 direction="downstream", index=index,
@@ -70,11 +82,11 @@ def parse_ch7465_xml(
 
     for index, channel in enumerate(upstream_root.findall("upstream")):
         try:
-            item = {
+            item = _ch7465_channel({
                 "channelID": int(channel.find("usid").text),
                 "frequency": _text(channel.find("freq")),
-                "powerLevel": float(_text(channel.find("power"), "0")),
-            }
+                "powerLevel": parse_optional_finite_float(_text(channel.find("power"))),
+            })
             modulation = normalize_modulation(_text(channel.find("mod")))
             message_type = _text(channel.find("messageType"))
             multiplex = {"2": "tdma", "29": "atdma", "35": "atdma"}.get(
@@ -85,7 +97,7 @@ def parse_ch7465_xml(
             if multiplex:
                 item["multiplex"] = multiplex
             upstream.append(item)
-        except (AttributeError, TypeError, ValueError):
+        except (AttributeError, TypeError, ValueError, ArithmeticError):
             diagnostics.append(diagnostic(
                 "ch7465_xml", "invalid_channel", family="xml_payloads",
                 direction="upstream", index=index,
@@ -246,7 +258,7 @@ def _sb8200_downstream_scqam(
         modulation = normalize_modulation(_text(entry.find("mod")))
         if modulation:
             channel["modulation"] = modulation
-            symbol_rate = _SB8200_ANNEX_B_DS_SYMBOL_RATES.get(modulation)
+            symbol_rate = ANNEX_B_DOWNSTREAM_SYMBOL_RATES.get(modulation)
             if symbol_rate is not None:
                 channel["symbolRate"] = symbol_rate
         corrected, uncorrected = counters.get(channel_id, (None, None))

@@ -56,6 +56,9 @@ def data_dir(tmp_path):
     conn.execute(
         "INSERT INTO de_tkg_claim_drafts VALUES (2, 'SYNTHETIC-DEMO', 1)"
     )
+    for table in ("weather_data", "segment_utilization"):
+        conn.execute(f"CREATE TABLE {table} (timestamp TEXT, is_demo INTEGER)")
+        conn.executemany(f"INSERT INTO {table} VALUES (?, ?)", [("real", 0), ("demo", 1)])
     conn.commit()
     conn.close()
 
@@ -98,13 +101,13 @@ class TestCreateBackup:
             assert ".session_key" not in names
             assert ".auth_state" not in names
 
-    def test_meta_has_required_fields(self, backup_path):
+    def test_meta_has_required_fields(self, running_app_version, backup_path):
         with tarfile.open(backup_path, mode="r:gz") as tar:
             meta = json.loads(tar.extractfile(BACKUP_META_FILE).read())
             assert meta["magic"] == MAGIC
             assert meta["format_version"] == FORMAT_VERSION
             assert "timestamp" in meta
-            assert "app_version" in meta
+            assert meta["app_version"] == running_app_version
             assert "tables" in meta
 
     def test_demo_data_excluded(self, backup_path, tmp_path):
@@ -113,6 +116,8 @@ class TestCreateBackup:
         with tarfile.open(backup_path, mode="r:gz") as tar:
             db_path.write_bytes(tar.extractfile("docsis_history.db").read())
         conn = sqlite3.connect(db_path)
+        for table in ("weather_data", "segment_utilization"):
+            assert conn.execute(f"SELECT * FROM {table}").fetchall() == [("real", 0)]
         count = conn.execute("SELECT COUNT(*) FROM snapshots WHERE is_demo = 1").fetchone()[0]
         assert count == 0
         # Non-demo data should still be there
@@ -235,6 +240,38 @@ class TestCreateBackup:
         assert completed.read_bytes() == b"existing-complete-backup"
         assert set(Path(backup_dir).iterdir()) == {completed}
 
+    def test_failure_while_archiving_leaves_no_temp_files(self, data_dir, backup_dir, monkeypatch):
+        real_add = tarfile.TarFile.add
+
+        def fail_after_databases(tar, name, arcname=None, **kwargs):
+            if arcname == "config.json":
+                raise OSError("injected failure while archiving")
+            real_add(tar, name, arcname=arcname, **kwargs)
+
+        monkeypatch.setattr(tarfile.TarFile, "add", fail_after_databases)
+        data_before = set(os.listdir(data_dir))
+
+        with pytest.raises(OSError, match="injected failure while archiving"):
+            create_backup_to_file(data_dir, backup_dir)
+
+        assert os.listdir(backup_dir) == []
+        assert set(os.listdir(data_dir)) == data_before
+
+    @pytest.mark.parametrize("error", [OSError, KeyboardInterrupt])
+    def test_failure_closing_the_temp_file_removes_it(self, data_dir, backup_dir, monkeypatch, error):
+        real_close = os.close
+
+        def close_then_fail(fd):
+            real_close(fd)
+            raise error("injected close failure")
+
+        monkeypatch.setattr(backup_module.os, "close", close_then_fail)
+
+        with pytest.raises(error, match="injected close failure"):
+            create_backup_to_file(data_dir, backup_dir)
+
+        assert os.listdir(backup_dir) == []
+
 
 class TestBackupDownloadRoute:
     @staticmethod
@@ -296,8 +333,9 @@ class TestBackupDownloadRoute:
 
         assert not temp_dir.exists()
 
+    @pytest.mark.parametrize("error", [RuntimeError, KeyboardInterrupt])
     def test_download_cleans_up_after_archive_write_exception(
-        self, data_dir, tmp_path, monkeypatch
+        self, data_dir, tmp_path, monkeypatch, error
     ):
         from app.modules.backup import routes
 
@@ -309,8 +347,9 @@ class TestBackupDownloadRoute:
             temp_dir.mkdir()
             return str(temp_dir)
 
-        def fail_archive_write(*args, **kwargs):
-            raise RuntimeError("injected route archive failure")
+        def fail_archive_write(_data_dir, archive_target, work_dir=None):
+            Path(archive_target).write_bytes(b"partial")
+            raise error("injected route archive failure")
 
         monkeypatch.setattr(
             routes, "tempfile", SimpleNamespace(mkdtemp=make_temp_dir), raising=False
@@ -318,12 +357,15 @@ class TestBackupDownloadRoute:
         monkeypatch.setattr(
             routes, "_write_backup_archive", fail_archive_write, raising=False
         )
-        app = self._app(data_dir, monkeypatch)
+        client = self._app(data_dir, monkeypatch).test_client()
 
-        response = app.test_client().post("/api/backup")
-
-        assert response.status_code == 500
-        assert response.get_json() == {"error": "Backup failed. See the DOCSight log for details."}
+        if error is KeyboardInterrupt:
+            with pytest.raises(KeyboardInterrupt):
+                client.post("/api/backup")
+        else:
+            response = client.post("/api/backup")
+            assert response.status_code == 500
+            assert response.get_json() == {"error": "Backup failed. See the DOCSight log for details."}
         assert not temp_dir.exists()
 
     def test_download_closes_stream_before_running_registered_cleanup(
@@ -475,7 +517,7 @@ class TestRestoreRouteErrors:
     def test_restore_hides_exception_text(self, data_dir, monkeypatch, error, status, message):
         from app.modules.backup import routes
 
-        def fail(_data, _data_dir):
+        def fail(_data, _data_dir, _restored):
             raise error
 
         monkeypatch.setattr(routes, "restore_backup", fail)
@@ -484,6 +526,17 @@ class TestRestoreRouteErrors:
         response = self._upload(client, "/api/restore")
 
         assert response.status_code == status
+        assert response.get_json() == {"error": message}
+
+    @pytest.mark.parametrize("url", ["/api/restore/validate", "/api/restore"])
+    @pytest.mark.parametrize(("filename", "message"), [(None, "No file provided"), ("", "No file selected")])
+    def test_rejects_missing_upload(self, data_dir, monkeypatch, url, filename, message):
+        client = TestBackupDownloadRoute._app(data_dir, monkeypatch).test_client()
+        data = {} if filename is None else {"file": (BytesIO(b""), filename)}
+
+        response = client.post(url, data=data, content_type="multipart/form-data")
+
+        assert response.status_code == 400
         assert response.get_json() == {"error": message}
 
 

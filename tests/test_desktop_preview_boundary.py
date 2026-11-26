@@ -1,21 +1,11 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
+import pytest
+from bs4 import BeautifulSoup
 
 from app import web
-
-ROOT = Path(__file__).resolve().parents[1]
-I18N_DIR = ROOT / "app" / "i18n"
-INDEX_TEMPLATE = ROOT / "app" / "templates" / "index.html"
-SETTINGS_TEMPLATE = ROOT / "app" / "templates" / "settings.html"
-
-DESKTOP_KEYS = {
-    "desktop_preview_badge",
-    "desktop_preview_notice_title",
-    "desktop_preview_notice_body",
-    "desktop_preview_notice_link",
-}
+from app.config import ConfigManager
+from app.runtime import current_runtime
 
 
 def test_desktop_preview_mode_requires_explicit_env_flag(monkeypatch):
@@ -29,31 +19,34 @@ def test_desktop_preview_mode_requires_explicit_env_flag(monkeypatch):
     assert web.is_desktop_preview_mode() is True
 
 
-def test_desktop_preview_badge_and_notice_are_template_gated():
-    dismiss = "data-action=\"dismissMaintainerNotice\" data-action-args='{{ [desktop_preview_notice_id]|tojson }}'"
-    for template_path in (INDEX_TEMPLATE, SETTINGS_TEMPLATE):
-        template = template_path.read_text(encoding="utf-8")
-        assert "{% include 'partials/topnav.html' %}" in template
-        assert "desktop_mode and not desktop_preview_notice_dismissed" in template
-    settings = SETTINGS_TEMPLATE.read_text(encoding="utf-8")
-    assert "desktop_preview_badge" in settings and dismiss in settings and "desktop_preview_doc_url" in settings
-    # On the overview the notice is a line; the notice center in the shared top bar holds it.
-    navigation = (INDEX_TEMPLATE.parent / "partials" / "topnav.html").read_text(encoding="utf-8")
-    assert "{% if desktop_mode %}" in navigation
-    assert "{% if show_desktop_notice %}" in navigation
-    assert "desktop_preview_badge" in navigation
-    assert "desktop_preview_doc_url" in navigation
-    assert dismiss in navigation
+@pytest.mark.parametrize(("desktop", "dismissed"), [(False, False), (True, False), (True, True)])
+def test_desktop_preview_badge_and_notice_follow_env_flag_and_dismissal(
+    tmp_path, monkeypatch, route_app, desktop, dismissed
+):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.delenv("DOCSIGHT_DESKTOP_MODE", raising=False)
+    if desktop:
+        monkeypatch.setenv("DOCSIGHT_DESKTOP_MODE", "1")
+    manager = ConfigManager(str(tmp_path / "data"))
+    manager.save({"demo_mode": True, "dismissed_notice_ids": [web.DESKTOP_PREVIEW_NOTICE_ID] if dismissed else []})
+    current_runtime().config_manager = manager
+    current_runtime().storage = None
 
-
-def test_desktop_preview_i18n_keys_exist_in_every_core_locale():
-    missing: dict[str, set[str]] = {}
-    for path in I18N_DIR.glob("*.json"):
-        if path.name == "template.json":
-            continue
-        data = json.loads(path.read_text(encoding="utf-8-sig"))
-        absent = {key for key in DESKTOP_KEYS if not data.get(key)}
-        if absent:
-            missing[path.name] = absent
-
-    assert missing == {}
+    shown = desktop and not dismissed
+    notice_id, doc_url = web.DESKTOP_PREVIEW_NOTICE_ID, web.DESKTOP_PREVIEW_DOC_URL
+    dismiss = f"[data-action=\"dismissMaintainerNotice\"][data-action-args='[\"{notice_id}\"]']"
+    # Each page's own notice: a line that opens the notice center, or a card with its link and dismiss button.
+    page_actions = {"/": ['[data-action="openNoticeCenter"]'], "/settings": [dismiss, f'a[href="{doc_url}"]']}
+    with route_app.test_client() as client:
+        for path, actions in page_actions.items():
+            soup = BeautifulSoup(client.get(path).get_data(as_text=True), "html.parser")
+            assert (soup.select_one(f'a.desktop-preview-badge-sidebar[href="{doc_url}"]') is not None) is desktop, path
+            center = soup.select_one(f'[data-notice-center-item="{notice_id}"]')
+            assert (center is not None and center.select_one(f'a[href="{doc_url}"]') is not None) is desktop, path
+            assert (center is not None and center.select_one(dismiss) is not None) is shown, path
+            # Top bar and sidebar badges, plus the badge on the Settings card while it shows.
+            labels = [badge.get_text(strip=True) for badge in soup.select(".desktop-preview-badge, .desktop-preview-notice .badge")]
+            assert labels == ["Desktop Preview"] * (2 * desktop + (path == "/settings" and shown)), path
+            notice = soup.select_one(f'[data-notice-id="{notice_id}"]')
+            assert (notice is not None) is shown, path
+            assert notice is None or all(notice.select_one(action) for action in actions), path

@@ -51,6 +51,7 @@ def test_container_prepares_community_module_storage():
     assert "repair_owner_if_needed /data" in entrypoint
     assert "stat -c '%u:%g'" in entrypoint
     assert 'chown -R appuser:appuser "$target"' in entrypoint
+    assert 'exec setpriv --reuid=appuser --regid=appuser --init-groups -- "$@"' in entrypoint
 
 
 def test_docker_healthcheck_uses_configured_web_port():

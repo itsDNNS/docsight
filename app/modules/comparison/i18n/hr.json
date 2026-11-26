@@ -33,7 +33,6 @@
   "snapshots": "Snimke",
   "no_data_period": "Nema podataka u odabranom razdoblju",
   "select_periods": "Odaberite dva razdoblja za usporedbu kvalitete signala.",
-  "hours_since_start": "Sati od početka",
   "empty_title": "Usporedite dva razdoblja",
   "empty_action": "Usporedi",
   "empty_no_data_text": "Odaberite razdoblja u kojima je DOCSight već prikupljao podatke.",

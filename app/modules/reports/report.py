@@ -14,7 +14,6 @@ from app.aggregation import (
     Window,
     aggregate_snapshot_period,
     canonical_utc_timestamp,
-    derive_historical,
     report_bounds,
     select_preferred_bnetz,
 )
@@ -27,6 +26,8 @@ from app.analyzer import (
     threshold_snapshot,
 )
 from app.docsis_utils import to_float
+from app.error_counters import to_counter
+from app.i18n import get_translations
 
 log = logging.getLogger("docsis.report")
 
@@ -163,92 +164,23 @@ def _worst_ds_power(worst):
     return high
 
 
-def _canonical_snapshot_timestamp(value):
-    """Compatibility delegate for deterministic report timestamp rendering."""
-    return canonical_utc_timestamp(value)
-
-
-def derive_historical_report_data(snapshots):
-    """Derive latest status and deterministic diagnostics with active thresholds."""
-    thresholds = ThresholdContext.from_analyzer_snapshot(threshold_snapshot())
-    historical = derive_historical(snapshots, thresholds=thresholds)
-    return {
-        "latest_snapshot": historical["latest_snapshot"],
-        "diagnostic_notes": [
-            {key: value for key, value in note.items() if key != "unit"}
-            for note in historical["diagnostic_notes"]
-        ],
-    }
-
-
-def _build_diagnostic_notes(current_analysis):
-    """Compatibility delegate for report helper callers."""
-    return [
-        {key: value for key, value in note.items() if key != "observed_at"}
-        for note in derive_historical_report_data([current_analysis])["diagnostic_notes"]
-    ]
-
-
 def _format_diagnostic_note(note, s):
     if "spec_max" in note:
-        template = s.get(
-            "diag_note_high",
-            "Channel {ch} ({ch_type}): {metric} of {value} dBmV exceeds expected "
-            "maximum ({spec} dBmV) by {pct}%.",
-        )
-        spec = note["spec_max"]
+        key = "diag_note_high"
     elif "spec_min" in note:
-        if note["type"] == "snr_low":
-            template = s.get(
-                "diag_note_snr_low",
-                "Channel {ch} ({ch_type}): {metric} of {value} dB is below expected "
-                "minimum ({spec} dB) by {pct}%.",
-            )
-        else:
-            template = s.get(
-                "diag_note_low",
-                "Channel {ch} ({ch_type}): {metric} of {value} dBmV is below expected "
-                "minimum ({spec} dBmV) by {pct}%.",
-            )
-        spec = note["spec_min"]
+        key = "diag_note_snr_low" if note["type"] == "snr_low" else "diag_note_low"
     else:
-        unit = "dB" if note["type"] == "snr_low" else "dBmV"
-        if note["type"].endswith("_high"):
-            template = s.get(
-                "diag_note_stored_critical_high",
-                "Channel {ch} ({ch_type}): {metric} of {value} {unit} was "
-                "recorded as critically high by the stored analyzer result; "
-                "the exact historical threshold is unavailable.",
-            )
-        else:
-            template = s.get(
-                "diag_note_stored_critical_low",
-                "Channel {ch} ({ch_type}): {metric} of {value} {unit} was "
-                "recorded as critically low by the stored analyzer result; "
-                "the exact historical threshold is unavailable.",
-            )
-        diagnostic = template.format(
-            ch=note["channel_id"],
-            ch_type=note["channel_type"],
-            metric=note["metric"],
-            value=note["value"],
-            unit=unit,
-        )
-        observed = s.get(
-            "diagnostic_observed_at", "Observed at {observed_at} UTC."
-        ).format(observed_at=note["observed_at"])
-        return f"{diagnostic} {observed}"
-    diagnostic = template.format(
+        key = "diag_note_stored_critical_high" if note["type"].endswith("_high") else "diag_note_stored_critical_low"
+    diagnostic = s[key].format(
         ch=note["channel_id"],
         ch_type=note["channel_type"],
         metric=note["metric"],
         value=note["value"],
-        spec=spec,
-        pct=note["deviation_pct"],
+        unit="dB" if note["type"] == "snr_low" else "dBmV",
+        spec=note.get("spec_max", note.get("spec_min")),
+        pct=note.get("deviation_pct"),
     )
-    observed = s.get(
-        "diagnostic_observed_at", "Observed at {observed_at} UTC."
-    ).format(observed_at=note["observed_at"])
+    observed = s["diagnostic_observed_at"].format(observed_at=note["observed_at"])
     return f"{diagnostic} {observed}"
 
 
@@ -256,14 +188,14 @@ def _format_diagnostic_complaint(notes, s):
     """Format diagnostic notes as complaint letter text section."""
     if not notes:
         return ""
-    lines = [s.get("complaint_diag_header", "Diagnostic analysis:")]
+    lines = [s["complaint_diag_header"]]
     for note in notes:
         text = _format_diagnostic_note(note, s)
         if text:
             lines.append("- " + text)
     if any(n.get("severity") == "extreme" for n in notes):
         lines.append("")
-        lines.append(s.get("diag_note_isp_hint", ""))
+        lines.append(s["diag_note_isp_hint"])
     return "\n".join(lines) + "\n\n"
 
 
@@ -317,6 +249,8 @@ def _get_report_strings(lang="en"):
     strings = dict(REPORT_STRINGS["en"])
     if lang != "en":
         strings.update(REPORT_STRINGS.get(lang, {}))
+    core = get_translations(lang)
+    strings.update({key: core[key] for key in ("bnetz_verdict_ok", "bnetz_verdict_deviation")})
     return strings
 
 
@@ -405,8 +339,8 @@ class IncidentReport(FPDF):
 
 
 def _format_optional_count(value):
-    """Format a counter value while preserving unsupported/null as N/A."""
-    return f"{value:,}" if value is not None else "N/A"
+    """Format a counter value while preserving unsupported/null/unreadable as N/A."""
+    return f"{count:,}" if (count := to_counter(value)) is not None else "N/A"
 
 
 def _format_optional_decimal(value):
@@ -438,11 +372,11 @@ def _aggregate_report_period(snapshots, report_start=None, report_end=None):
 
 def _comparison_label(s, key):
     labels = {
-        "good": s.get("comparison_health_good", "Good"),
-        "tolerated": s.get("comparison_health_tolerated", "Tolerated"),
-        "marginal": s.get("comparison_health_marginal", "Marginal"),
-        "critical": s.get("comparison_health_critical", "Critical"),
-        "unknown": s.get("comparison_health_unknown", "Unknown"),
+        "good": s["comparison_health_good"],
+        "tolerated": s["comparison_health_tolerated"],
+        "marginal": s["comparison_health_marginal"],
+        "critical": s["comparison_health_critical"],
+        "unknown": s["comparison_health_unknown"],
     }
     return labels.get(key, key.title())
 
@@ -487,21 +421,21 @@ def _format_comparison_evidence(comparison_data, s):
     delta = comparison_data.get("delta") or {}
 
     lines = [
-        s.get("comparison_complaint_header", "Before/After comparison evidence:"),
+        s["comparison_complaint_header"],
         "",
-        s.get("comparison_complaint_periods", "Compared {from_a} to {to_a} against {from_b} to {to_b}.").format(
+        s["comparison_complaint_periods"].format(
             from_a=_format_comparison_timestamp(period_a.get("from")),
             to_a=_format_comparison_timestamp(period_a.get("to")),
             from_b=_format_comparison_timestamp(period_b.get("from")),
             to_b=_format_comparison_timestamp(period_b.get("to")),
         ),
-        f"- {s.get('comparison_complaint_snapshots', 'Snapshots: Period A {snapshots_a}, Period B {snapshots_b}.').format(snapshots_a=period_a.get('snapshots', 0), snapshots_b=period_b.get('snapshots', 0))}",
-        f"- {s.get('comparison_complaint_verdict', 'Overall verdict: {verdict}.').format(verdict=s.get('comparison_verdict_' + str(delta.get('verdict', 'unchanged')), str(delta.get('verdict', 'unchanged')).title()))}",
-        f"- {s.get('comparison_complaint_health', 'Dominant health changed from {health_a} to {health_b}.').format(health_a=_comparison_top_health(period_a, s), health_b=_comparison_top_health(period_b, s))}",
-        f"- {s.get('comparison_complaint_ds_power', 'Average DS power delta: {value}.').format(value=_format_comparison_value(delta.get('ds_power'), 'dBmV'))}",
-        f"- {s.get('comparison_complaint_ds_snr', 'Average DS SNR delta: {value}.').format(value=_format_comparison_value(delta.get('ds_snr'), 'dB'))}",
-        f"- {s.get('comparison_complaint_us_power', 'Average US power delta: {value}.').format(value=_format_comparison_value(delta.get('us_power'), 'dBmV'))}",
-        f"- {s.get('comparison_complaint_uncorr', 'Uncorrectable error delta: {value}.').format(value=_format_comparison_value(delta.get('uncorr_errors'), '', True))}",
+        f"- {s['comparison_complaint_snapshots'].format(snapshots_a=period_a.get('snapshots', 0), snapshots_b=period_b.get('snapshots', 0))}",
+        f"- {s['comparison_complaint_verdict'].format(verdict=s.get('comparison_verdict_' + str(delta.get('verdict', 'unchanged')), str(delta.get('verdict', 'unchanged')).title()))}",
+        f"- {s['comparison_complaint_health'].format(health_a=_comparison_top_health(period_a, s), health_b=_comparison_top_health(period_b, s))}",
+        f"- {s['comparison_complaint_ds_power'].format(value=_format_comparison_value(delta.get('ds_power'), 'dBmV'))}",
+        f"- {s['comparison_complaint_ds_snr'].format(value=_format_comparison_value(delta.get('ds_snr'), 'dB'))}",
+        f"- {s['comparison_complaint_us_power'].format(value=_format_comparison_value(delta.get('us_power'), 'dBmV'))}",
+        f"- {s['comparison_complaint_uncorr'].format(value=_format_comparison_value(delta.get('uncorr_errors'), '', True))}",
         "",
     ]
     return "\n".join(lines)
@@ -525,9 +459,110 @@ def _format_customer_closing(s, customer_name="", customer_number="", customer_a
     return "\n".join([label, name, number, *address_lines])
 
 
+def _render_connection_info(pdf, s, config, connection_info):
+    """Render the connection block of both PDF reports and return the ISP name."""
+    config, connection_info = config or {}, connection_info or {}
+    pdf._section_title(s["section_connection_info"])
+    isp = config.get("isp_name", "Unknown ISP")
+    pdf._key_value(s["isp"], isp)
+    ds_mbps = connection_info.get("max_downstream_kbps", 0) // 1000 if connection_info.get("max_downstream_kbps") else "N/A"
+    us_mbps = connection_info.get("max_upstream_kbps", 0) // 1000 if connection_info.get("max_upstream_kbps") else "N/A"
+    pdf._key_value(s["tariff"], f"{ds_mbps} / {us_mbps} Mbit/s (Down / Up)")
+    device = config.get("modem_type", connection_info.get("device_name", "Unknown"))
+    pdf._key_value(s["modem"], device)
+    return isp
+
+
+def _render_historical(pdf, s, period_aggregate, total):
+    """Render the historical-analysis page of both PDF reports."""
+    pdf.add_page()
+    pdf._section_title(s["section_historical"])
+    worst = period_aggregate["worst"]
+
+    pdf._key_value(s["total_measurements"], str(worst["total_snapshots"]))
+    pdf._key_value(s["measurements_critical"], str(worst["health_critical_count"]), bold_value=True)
+    pdf._key_value(s["measurements_marginal"], str(worst["health_marginal_count"]))
+    pdf._key_value(s["measurements_tolerated"], str(worst["health_tolerated_count"]))
+    pdf.ln(2)
+
+    pdf.set_font("dejavu", "B", 10)
+    pdf.cell(0, 6, s["worst_recorded"], new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("dejavu", "", 10)
+
+    warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
+    worst_ds_power = _worst_ds_power(worst)
+    pdf._key_value(s["ds_power_worst"], f"{_format_optional_measurement(worst_ds_power)} dBmV (threshold: {warn['ds_power']})")
+    pdf._key_value(s["us_power_worst"], f"{_format_optional_measurement(worst['us_power_max'])} dBmV (threshold: {warn['us_power']})")
+    pdf._key_value(s["ds_snr_worst"], f"{_format_optional_measurement(worst['ds_snr_min'])} dB (threshold: {warn['snr']})")
+    pdf._key_value(s["uncorr_err_max"], _format_optional_count(worst["ds_uncorrectable_max"]))
+    pdf._key_value(s["corr_err_max"], _format_optional_count(worst["ds_correctable_max"]))
+    pdf.ln(3)
+
+    for direction, key in (("ds", "worst_ds_channels"), ("us", "worst_us_channels")):
+        channels = period_aggregate["worst_channels"][direction]
+        if not channels:
+            continue
+        if direction == "us":
+            pdf.ln(2)
+        pdf.set_font("dejavu", "B", 10)
+        pdf.cell(0, 6, s[key], new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("dejavu", "", 9)
+        for cid, count in channels:
+            pct = round(count / total * 100)
+            pdf.cell(0, 5, f"  {s['channel_unhealthy'].format(cid=cid, count=count, total=total, pct=pct)}", new_x="LMARGIN", new_y="NEXT")
+
+
+def _complaint_request(s):
+    return (
+        f"{s['complaint_request']}\n"
+        f"1. {s['complaint_req1']}\n"
+        f"2. {s['complaint_req2']}\n"
+        f"3. {s['complaint_req3']}\n\n"
+    )
+
+
+def _complaint_findings(s, isp, worst, count, start, end, evidence=""):
+    """Complaint text from the subject through the request list, with evidence before the request."""
+    warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
+    poor_pct = round(worst['health_critical_count'] / max(worst['total_snapshots'], 1) * 100)
+    return (
+        f"{s['complaint_subject']}\n\n"
+        f"{s['complaint_greeting'].format(isp=isp)}\n\n"
+        f"{s['complaint_body'].format(count=count, start=start, end=end)}\n\n"
+        f"{s['complaint_findings']}\n"
+        f"- {s['complaint_poor_rate'].format(poor=worst['health_critical_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
+        f"- {s['complaint_ds_power'].format(val=_format_optional_measurement(_worst_ds_power(worst)), thresh=warn['ds_power'])}\n"
+        f"- {s['complaint_us_power'].format(val=_format_optional_measurement(worst['us_power_max']), thresh=warn['us_power'])}\n"
+        f"- {s['complaint_snr'].format(val=_format_optional_measurement(worst['ds_snr_min']), thresh=warn['snr'])}\n"
+        f"- {s['complaint_uncorr'].format(val=_format_optional_count(worst['ds_uncorrectable_max']))}\n\n"
+        f"{evidence}"
+        f"{s['complaint_exceed']}\n\n"
+        f"{_complaint_request(s)}"
+    )
+
+
+def _complaint_letter(s, isp, snapshots, period_aggregate, report_start, report_end, closing,
+                      evidence="", bnetz_section=""):
+    """Complaint letter of the period report and of the text letter."""
+    if snapshots:
+        diag = _format_diagnostic_complaint(period_aggregate["diagnostic_notes"], s)
+        body = _complaint_findings(s, isp, period_aggregate["worst"], len(snapshots), report_start[:10],
+                                   report_end[:10], diag + evidence + bnetz_section)
+    else:
+        greeting = s["complaint_greeting"].format(isp=isp) if bnetz_section else s["complaint_short_greeting"]
+        body = (
+            f"{s['report_period']}: {report_start} {s['period_to']} {report_end}\n\n"
+            f"{greeting}\n\n"
+            f"{s['complaint_no_docsis_data'].format(start=report_start, end=report_end)}\n\n"
+        )
+        if not bnetz_section:
+            return body + closing
+        body += bnetz_section + _complaint_request(s)
+    return f"{body}{s['complaint_escalation']}\n\n{closing}"
+
+
 def generate_report(
     snapshots,
-    current_analysis=None,
     config=None,
     connection_info=None,
     lang="en",
@@ -542,7 +577,6 @@ def generate_report(
 
     Args:
         snapshots: List of snapshot dicts from storage.get_range_data()
-        current_analysis: Deprecated compatibility argument; not used for reports
         config: Config dict (isp_name, etc.)
         connection_info: Connection info dict (speeds, etc.)
         lang: Language code
@@ -556,8 +590,6 @@ def generate_report(
     Returns:
         bytes: PDF file content
     """
-    config = config or {}
-    connection_info = connection_info or {}
     s = _get_report_strings(lang)
     period_aggregate, report_start, report_end = _aggregate_report_period(
         snapshots, report_start, report_end
@@ -569,15 +601,7 @@ def generate_report(
     pdf.add_page()
 
     # --- Connection Info ---
-    pdf._section_title(s["section_connection_info"])
-    isp = config.get("isp_name", "Unknown ISP")
-    pdf._key_value(s["isp"], isp)
-    ds_mbps = connection_info.get("max_downstream_kbps", 0) // 1000 if connection_info.get("max_downstream_kbps") else "N/A"
-    us_mbps = connection_info.get("max_upstream_kbps", 0) // 1000 if connection_info.get("max_upstream_kbps") else "N/A"
-    pdf._key_value(s["tariff"], f"{ds_mbps} / {us_mbps} Mbit/s (Down / Up)")
-    device = config.get("modem_type", connection_info.get("device_name", "Unknown"))
-    pdf._key_value(s["modem"], device)
-
+    isp = _render_connection_info(pdf, s, config, connection_info)
     pdf._key_value(
         s["report_period"], f"{report_start}  {s['period_to']}  {report_end}"
     )
@@ -587,7 +611,7 @@ def generate_report(
     # --- Latest status recorded inside the report period ---
     pdf._section_title(s["section_latest_recorded_status"])
     if latest_snapshot:
-        observed_at = _canonical_snapshot_timestamp(latest_snapshot.get("timestamp"))
+        observed_at = canonical_utc_timestamp(latest_snapshot.get("timestamp"))
         pdf._key_value(s["observed_at"], observed_at)
         sm = latest_snapshot["summary"]
         health = sm.get("health", "unknown")
@@ -598,7 +622,7 @@ def generate_report(
         pdf.set_text_color(0, 0, 0)
         if sm.get("health_issues"):
             pdf.set_font("dejavu", "", 10)
-            labels = s.get("issue_labels", {})
+            labels = s["issue_labels"]
             translated = [labels.get(i, i) for i in sm["health_issues"]]
             pdf.multi_cell(0, 6, f"{s['issues']}: {', '.join(translated)}", align="L", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
@@ -650,7 +674,7 @@ def generate_report(
     # --- Diagnostic Notes ---
     if diag_notes:
         pdf.ln(4)
-        pdf._section_title(s.get("section_diagnostic_notes", "Diagnostic Notes"))
+        pdf._section_title(s["section_diagnostic_notes"])
         pdf.set_font("dejavu", "", 9)
         for note in diag_notes:
             text = _format_diagnostic_note(note, s)
@@ -661,61 +685,21 @@ def generate_report(
             pdf.ln(2)
             pdf.set_text_color(0, 0, 0)
             pdf.set_font("dejavu", "I", 9)
-            pdf.multi_cell(0, 4, s.get("diag_note_isp_hint", ""), new_x="LMARGIN", new_y="NEXT")
+            pdf.multi_cell(0, 4, s["diag_note_isp_hint"], new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
         pdf.set_font("dejavu", "", 10)
 
     comparison_section = _format_comparison_evidence(comparison_data, s)
     if comparison_section:
         pdf.ln(4)
-        pdf._section_title(s.get("comparison_section_title", "Before/After Comparison"))
+        pdf._section_title(s["comparison_section_title"])
         pdf.set_font("dejavu", "", 9)
         pdf.multi_cell(0, 4, comparison_section)
         pdf.set_font("dejavu", "", 10)
 
     # --- Historical Analysis ---
     if snapshots:
-        pdf.add_page()
-        pdf._section_title(s["section_historical"])
-        worst = period_aggregate["worst"]
-
-        pdf._key_value(s["total_measurements"], str(worst["total_snapshots"]))
-        pdf._key_value(s["measurements_critical"], str(worst["health_critical_count"]), bold_value=True)
-        pdf._key_value(s["measurements_marginal"], str(worst["health_marginal_count"]))
-        pdf._key_value(s["measurements_tolerated"], str(worst["health_tolerated_count"]))
-        pdf.ln(2)
-
-        pdf.set_font("dejavu", "B", 10)
-        pdf.cell(0, 6, s["worst_recorded"], new_x="LMARGIN", new_y="NEXT")
-        pdf.set_font("dejavu", "", 10)
-
-        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
-        worst_ds_power = _worst_ds_power(worst)
-        pdf._key_value(s["ds_power_worst"], f"{_format_optional_measurement(worst_ds_power)} dBmV (threshold: {warn['ds_power']})")
-        pdf._key_value(s["us_power_worst"], f"{_format_optional_measurement(worst['us_power_max'])} dBmV (threshold: {warn['us_power']})")
-        pdf._key_value(s["ds_snr_worst"], f"{_format_optional_measurement(worst['ds_snr_min'])} dB (threshold: {warn['snr']})")
-        pdf._key_value(s["uncorr_err_max"], _format_optional_count(worst["ds_uncorrectable_max"]))
-        pdf._key_value(s["corr_err_max"], _format_optional_count(worst["ds_correctable_max"]))
-        pdf.ln(3)
-
-        # Worst channels
-        ds_worst = period_aggregate["worst_channels"]["ds"]
-        us_worst = period_aggregate["worst_channels"]["us"]
-        if ds_worst:
-            pdf.set_font("dejavu", "B", 10)
-            pdf.cell(0, 6, s["worst_ds_channels"], new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("dejavu", "", 9)
-            for cid, count in ds_worst:
-                pct = round(count / len(snapshots) * 100)
-                pdf.cell(0, 5, f"  {s['channel_unhealthy'].format(cid=cid, count=count, total=len(snapshots), pct=pct)}", new_x="LMARGIN", new_y="NEXT")
-        if us_worst:
-            pdf.ln(2)
-            pdf.set_font("dejavu", "B", 10)
-            pdf.cell(0, 6, s["worst_us_channels"], new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("dejavu", "", 9)
-            for cid, count in us_worst:
-                pct = round(count / len(snapshots) * 100)
-                pdf.cell(0, 5, f"  {s['channel_unhealthy'].format(cid=cid, count=count, total=len(snapshots), pct=pct)}", new_x="LMARGIN", new_y="NEXT")
+        _render_historical(pdf, s, period_aggregate, len(snapshots))
 
     # --- Reference Thresholds ---
     pdf.add_page()
@@ -741,50 +725,47 @@ def generate_report(
     pdf._section_title(s["section_complaint"])
     pdf.set_font("dejavu", "", 9)
 
-    diag_complaint = _format_diagnostic_complaint(diag_notes, s)
-    comparison_section = _format_comparison_evidence(comparison_data, s)
-    complaint_closing = _format_customer_closing(s, customer_name, customer_number, customer_address)
-
-    if snapshots:
-        worst = period_aggregate["worst"]
-        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
-        worst_ds_power = _worst_ds_power(worst)
-        start = report_start[:10]
-        end = report_end[:10]
-        poor_pct = round(worst['health_critical_count'] / max(worst['total_snapshots'], 1) * 100)
-        complaint = (
-            f"{s['complaint_subject']}\n\n"
-            f"{s['complaint_greeting'].format(isp=isp)}\n\n"
-            f"{s['complaint_body'].format(count=len(snapshots), start=start, end=end)}\n\n"
-            f"{s['complaint_findings']}\n"
-            f"- {s['complaint_poor_rate'].format(poor=worst['health_critical_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
-            f"- {s['complaint_ds_power'].format(val=_format_optional_measurement(worst_ds_power), thresh=warn['ds_power'])}\n"
-            f"- {s['complaint_us_power'].format(val=_format_optional_measurement(worst['us_power_max']), thresh=warn['us_power'])}\n"
-            f"- {s['complaint_snr'].format(val=_format_optional_measurement(worst['ds_snr_min']), thresh=warn['snr'])}\n"
-            f"- {s['complaint_uncorr'].format(val=_format_optional_count(worst['ds_uncorrectable_max']))}\n\n"
-            f"{diag_complaint}"
-            f"{s['complaint_exceed']}\n\n"
-            f"{s['complaint_request']}\n"
-            f"1. {s['complaint_req1']}\n"
-            f"2. {s['complaint_req2']}\n"
-            f"3. {s['complaint_req3']}\n\n"
-            f"{s['complaint_escalation']}\n\n"
-            f"{complaint_closing}"
-        )
-    else:
-        complaint = (
-            f"{s['report_period']}: {report_start} {s['period_to']} {report_end}\n\n"
-            f"{s['complaint_short_greeting']}\n\n"
-            f"{s['complaint_no_docsis_data'].format(start=report_start, end=report_end)}\n\n"
-            f"{complaint_closing}"
-        )
-
-    pdf.multi_cell(0, 4, complaint)
+    closing = _format_customer_closing(s, customer_name, customer_number, customer_address)
+    pdf.multi_cell(0, 4, _complaint_letter(s, isp, snapshots, period_aggregate, report_start, report_end, closing))
 
     # Output
     buf = io.BytesIO()
     pdf.output(buf)
     return buf.getvalue()
+
+
+_BNETZ_COMPLAINT_KEYS = {"download": "complaint_bnetz_dl", "upload": "complaint_bnetz_ul"}
+
+
+def _bnetz_ratio(m, direction):
+    """Rounded contract maximum, measured average and percentage, or None when not measured."""
+    avg = m.get(f"{direction}_measured_avg")
+    if avg is None:
+        return None
+    max_ = round(m.get(f"{direction}_max_tariff") or 0)
+    avg = round(avg)
+    return {"max": max_, "avg": avg, "pct": round(avg / max_ * 100) if max_ else 0}
+
+
+def _bnetz_verdict_line(s, m):
+    """Localized download and upload verdicts of a BNetzA measurement."""
+    labels = {"ok": s["bnetz_verdict_ok"], "deviation": s["bnetz_verdict_deviation"]}
+    dl, ul = (labels.get(m.get(f"verdict_{direction}"), s["comparison_health_unknown"])
+              for direction in _BNETZ_COMPLAINT_KEYS)
+    return s["complaint_bnetz_verdict"].format(verdict_dl=dl, verdict_ul=ul)
+
+
+def _bnetz_complaint_section(s, m, with_tariff):
+    """BNetzA complaint section with the measured directions only; the text letter also names the tariff."""
+    lines = [s["complaint_bnetz_header"], "", s["complaint_bnetz_body"].format(date=m.get("date", ""))]
+    if with_tariff:
+        lines += ["", f"- {s['complaint_bnetz_tariff'].format(tariff=m.get('tariff', '-'), provider=m.get('provider', '-'))}"]
+    lines += [f"- {s[key].format(**ratio)}" for direction, key in _BNETZ_COMPLAINT_KEYS.items()
+              if (ratio := _bnetz_ratio(m, direction))]
+    lines.append(f"- {_bnetz_verdict_line(s, m)}")
+    if "deviation" in (m.get("verdict_download"), m.get("verdict_upload")):
+        lines += ["", s["complaint_bnetz_legal"]]
+    return "\n".join(lines) + "\n\n"
 
 
 def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_list,
@@ -810,8 +791,6 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
     Returns:
         bytes: PDF file content
     """
-    config = config or {}
-    connection_info = connection_info or {}
     s = _get_report_strings(lang)
     period_aggregate, _, _ = _aggregate_report_period(snapshots)
     pdf = IncidentReport(lang=lang)
@@ -834,7 +813,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
         end_str = incident.get("end_date") or ""
         period = start_str
         if end_str:
-            period += f"  {s.get('period_to', 'to')}  {end_str}"
+            period += f"  {s['period_to']}  {end_str}"
             try:
                 d1 = datetime.strptime(start_str, "%Y-%m-%d")
                 d2 = datetime.strptime(end_str, "%Y-%m-%d")
@@ -843,7 +822,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
             except ValueError:
                 duration = ""
         else:
-            period += f"  {s.get('period_to', 'to')}  ..."
+            period += f"  {s['period_to']}  ..."
             duration = s["incident_duration_ongoing"]
         pdf._key_value(s["incident_period"], period)
         if duration:
@@ -856,58 +835,11 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
 
     # Connection info
     pdf.ln(3)
-    pdf._section_title(s["section_connection_info"])
-    isp = config.get("isp_name", "Unknown ISP")
-    pdf._key_value(s["isp"], isp)
-    ds_mbps = connection_info.get("max_downstream_kbps", 0) // 1000 if connection_info.get("max_downstream_kbps") else "N/A"
-    us_mbps = connection_info.get("max_upstream_kbps", 0) // 1000 if connection_info.get("max_upstream_kbps") else "N/A"
-    pdf._key_value(s["tariff"], f"{ds_mbps} / {us_mbps} Mbit/s (Down / Up)")
-    device = config.get("modem_type", connection_info.get("device_name", "Unknown"))
-    pdf._key_value(s["modem"], device)
+    isp = _render_connection_info(pdf, s, config, connection_info)
 
     # ── Page 2: Signal Analysis (if snapshots available) ──
     if snapshots:
-        pdf.add_page()
-        pdf._section_title(s["section_historical"])
-        worst = period_aggregate["worst"]
-
-        pdf._key_value(s["total_measurements"], str(worst["total_snapshots"]))
-        pdf._key_value(s["measurements_critical"], str(worst["health_critical_count"]), bold_value=True)
-        pdf._key_value(s["measurements_marginal"], str(worst["health_marginal_count"]))
-        pdf._key_value(s["measurements_tolerated"], str(worst["health_tolerated_count"]))
-        pdf.ln(2)
-
-        pdf.set_font("dejavu", "B", 10)
-        pdf.cell(0, 6, s["worst_recorded"], new_x="LMARGIN", new_y="NEXT")
-        pdf.set_font("dejavu", "", 10)
-
-        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
-        worst_ds_power = _worst_ds_power(worst)
-        pdf._key_value(s["ds_power_worst"], f"{_format_optional_measurement(worst_ds_power)} dBmV (threshold: {warn['ds_power']})")
-        pdf._key_value(s["us_power_worst"], f"{_format_optional_measurement(worst['us_power_max'])} dBmV (threshold: {warn['us_power']})")
-        pdf._key_value(s["ds_snr_worst"], f"{_format_optional_measurement(worst['ds_snr_min'])} dB (threshold: {warn['snr']})")
-        pdf._key_value(s["uncorr_err_max"], _format_optional_count(worst["ds_uncorrectable_max"]))
-        pdf._key_value(s["corr_err_max"], _format_optional_count(worst["ds_correctable_max"]))
-        pdf.ln(3)
-
-        # Worst channels
-        ds_worst = period_aggregate["worst_channels"]["ds"]
-        us_worst = period_aggregate["worst_channels"]["us"]
-        if ds_worst:
-            pdf.set_font("dejavu", "B", 10)
-            pdf.cell(0, 6, s["worst_ds_channels"], new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("dejavu", "", 9)
-            for cid, count in ds_worst:
-                pct = round(count / len(snapshots) * 100)
-                pdf.cell(0, 5, f"  {s['channel_unhealthy'].format(cid=cid, count=count, total=len(snapshots), pct=pct)}", new_x="LMARGIN", new_y="NEXT")
-        if us_worst:
-            pdf.ln(2)
-            pdf.set_font("dejavu", "B", 10)
-            pdf.cell(0, 6, s["worst_us_channels"], new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("dejavu", "", 9)
-            for cid, count in us_worst:
-                pct = round(count / len(snapshots) * 100)
-                pdf.cell(0, 5, f"  {s['channel_unhealthy'].format(cid=cid, count=count, total=len(snapshots), pct=pct)}", new_x="LMARGIN", new_y="NEXT")
+        _render_historical(pdf, s, period_aggregate, len(snapshots))
 
     # ── Page 3: Speedtest Results (if available) ──
     if speedtests:
@@ -965,29 +897,22 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
             pdf.cell(0, 6, f"{m.get('date', '')} - {m.get('tariff', '')} ({m.get('provider', '')})", new_x="LMARGIN", new_y="NEXT")
             pdf.set_font("dejavu", "", 9)
 
-            dl_max = round(m.get("download_max_tariff") or 0)
-            dl_avg = round(m.get("download_measured_avg") or 0)
-            dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
-            ul_max = round(m.get("upload_max_tariff") or 0)
-            ul_avg = round(m.get("upload_measured_avg") or 0)
-            ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
+            for direction in _BNETZ_COMPLAINT_KEYS:
+                if ratio := _bnetz_ratio(m, direction):
+                    pdf.cell(0, 5, f"  {direction.capitalize()}: {ratio['avg']} / {ratio['max']} Mbit/s ({ratio['pct']}%)",
+                             new_x="LMARGIN", new_y="NEXT")
 
-            pdf.cell(0, 5, f"  Download: {dl_avg} / {dl_max} Mbit/s ({dl_pct}%)", new_x="LMARGIN", new_y="NEXT")
-            pdf.cell(0, 5, f"  Upload: {ul_avg} / {ul_max} Mbit/s ({ul_pct}%)", new_x="LMARGIN", new_y="NEXT")
-
-            verdict_dl = m.get("verdict_download", "-")
-            verdict_ul = m.get("verdict_upload", "-")
-            pdf.cell(0, 5, f"  Verdict: DL {verdict_dl} / UL {verdict_ul}", new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, f"  {_bnetz_verdict_line(s, m)}", new_x="LMARGIN", new_y="NEXT")
             pdf.ln(2)
 
-            if verdict_dl == "deviation" or verdict_ul == "deviation":
+            if "deviation" in (m.get("verdict_download"), m.get("verdict_upload")):
                 has_deviation = True
 
         if has_deviation:
             pdf.ln(2)
             pdf.set_font("dejavu", "B", 9)
             pdf.set_text_color(231, 76, 60)
-            pdf.multi_cell(0, 4, s.get("complaint_bnetz_legal", ""))
+            pdf.multi_cell(0, 4, s["complaint_bnetz_legal"])
             pdf.set_text_color(0, 0, 0)
 
     # ── Page 5: Journal Entries ──
@@ -1042,27 +967,9 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
     pdf.set_font("dejavu", "", 9)
 
     if snapshots:
-        worst = period_aggregate["worst"]
-        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
-        worst_ds_power = _worst_ds_power(worst)
-        start = period_aggregate["first_observed_at"][:10]
-        end = period_aggregate["last_observed_at"][:10]
-        poor_pct = round(worst['health_critical_count'] / max(worst['total_snapshots'], 1) * 100)
-        complaint = (
-            f"{s['complaint_subject']}\n\n"
-            f"{s['complaint_greeting'].format(isp=isp)}\n\n"
-            f"{s['complaint_body'].format(count=len(snapshots), start=start, end=end)}\n\n"
-            f"{s['complaint_findings']}\n"
-            f"- {s['complaint_poor_rate'].format(poor=worst['health_critical_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
-            f"- {s['complaint_ds_power'].format(val=_format_optional_measurement(worst_ds_power), thresh=warn['ds_power'])}\n"
-            f"- {s['complaint_us_power'].format(val=_format_optional_measurement(worst['us_power_max']), thresh=warn['us_power'])}\n"
-            f"- {s['complaint_snr'].format(val=_format_optional_measurement(worst['ds_snr_min']), thresh=warn['snr'])}\n"
-            f"- {s['complaint_uncorr'].format(val=_format_optional_count(worst['ds_uncorrectable_max']))}\n\n"
-            f"{s['complaint_exceed']}\n\n"
-            f"{s['complaint_request']}\n"
-            f"1. {s['complaint_req1']}\n"
-            f"2. {s['complaint_req2']}\n"
-            f"3. {s['complaint_req3']}\n\n"
+        complaint = _complaint_findings(
+            s, isp, period_aggregate["worst"], len(snapshots),
+            period_aggregate["first_observed_at"][:10], period_aggregate["last_observed_at"][:10],
         )
     else:
         complaint = (
@@ -1073,25 +980,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
 
     # Add BNetzA reference if measurements exist
     if bnetz_list:
-        bnetz_data = select_preferred_bnetz(bnetz_list)
-
-        dl_max = round(bnetz_data.get("download_max_tariff") or 0)
-        dl_avg = round(bnetz_data.get("download_measured_avg") or 0)
-        dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
-        ul_max = round(bnetz_data.get("upload_max_tariff") or 0)
-        ul_avg = round(bnetz_data.get("upload_measured_avg") or 0)
-        ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
-
-        complaint += (
-            f"\n{s.get('complaint_bnetz_header', '')}\n\n"
-            f"{s.get('complaint_bnetz_body', '').format(date=bnetz_data.get('date', ''))}\n"
-            f"- {s.get('complaint_bnetz_dl', '').format(max=dl_max, avg=dl_avg, pct=dl_pct)}\n"
-            f"- {s.get('complaint_bnetz_ul', '').format(max=ul_max, avg=ul_avg, pct=ul_pct)}\n"
-            f"- {s.get('complaint_bnetz_verdict', '').format(verdict_dl=bnetz_data.get('verdict_download', '-'), verdict_ul=bnetz_data.get('verdict_upload', '-'))}\n\n"
-        )
-        has_dev = bnetz_data.get("verdict_download") == "deviation" or bnetz_data.get("verdict_upload") == "deviation"
-        if has_dev:
-            complaint += s.get("complaint_bnetz_legal", "") + "\n\n"
+        complaint += "\n" + _bnetz_complaint_section(s, select_preferred_bnetz(bnetz_list), with_tariff=False)
 
     complaint_closing = _format_customer_closing(s, customer_name, customer_number, customer_address)
     complaint += f"{s['complaint_escalation']}\n\n{complaint_closing}"
@@ -1104,22 +993,20 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
     return buf.getvalue()
 
 
-def generate_complaint_text(snapshots, config=None, connection_info=None, lang="en",
+def generate_complaint_text(snapshots, config=None, lang="en",
                             customer_name="", customer_number="", customer_address="",
-                            bnetz_data=None, current_analysis=None, comparison_data=None,
+                            bnetz_data=None, comparison_data=None,
                             report_start=None, report_end=None):
     """Generate ISP complaint letter as plain text.
 
     Args:
         snapshots: List of snapshot dicts
         config: Config dict (isp_name, etc.)
-        connection_info: Connection info dict
         lang: Language code
         customer_name: Customer name for letter
         customer_number: Customer/contract number
         customer_address: Customer address
         bnetz_data: Optional BNetzA measurement dict
-        current_analysis: Deprecated compatibility argument; not used for reports
         comparison_data: Optional before/after comparison payload
         report_start: Requested inclusive report-window start in canonical UTC
         report_end: Requested inclusive report-window end in canonical UTC
@@ -1127,105 +1014,18 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
     Returns:
         str: Complaint letter text
     """
-    config = config or {}
     s = _get_report_strings(lang)
-    isp = config.get("isp_name", "Unknown ISP")
     period_aggregate, report_start, report_end = _aggregate_report_period(
         snapshots, report_start, report_end
     )
-    diag_notes = period_aggregate["diagnostic_notes"]
-
-    # Build closing with actual customer data
-    closing_lines = []
-    closing_lines.append(s.get("complaint_closing_label", "Sincerely,"))
-    closing_lines.append(customer_name if customer_name else "[Your Name]")
-    if customer_number:
-        closing_lines.append(customer_number)
-    else:
-        closing_lines.append("[Customer Number]")
-    if customer_address:
-        closing_lines.append(customer_address)
-    else:
-        closing_lines.append("[Address]")
-    closing = "\n".join(closing_lines)
-
-    # Build BNetzA section if data provided
-    bnetz_section = ""
-    if bnetz_data:
-        has_deviation = (
-            bnetz_data.get("verdict_download") == "deviation"
-            or bnetz_data.get("verdict_upload") == "deviation"
-        )
-        dl_max = round(bnetz_data.get("download_max_tariff") or 0)
-        dl_avg = round(bnetz_data.get("download_measured_avg") or 0)
-        dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
-        ul_max = round(bnetz_data.get("upload_max_tariff") or 0)
-        ul_avg = round(bnetz_data.get("upload_measured_avg") or 0)
-        ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
-        bnetz_lines = [
-            s.get("complaint_bnetz_header", ""),
-            "",
-            s.get("complaint_bnetz_body", "").format(date=bnetz_data.get("date", "")),
-            "",
-            f"- {s.get('complaint_bnetz_tariff', '').format(tariff=bnetz_data.get('tariff', '-'), provider=bnetz_data.get('provider', '-'))}",
-            f"- {s.get('complaint_bnetz_dl', '').format(max=dl_max, avg=dl_avg, pct=dl_pct)}",
-            f"- {s.get('complaint_bnetz_ul', '').format(max=ul_max, avg=ul_avg, pct=ul_pct)}",
-            f"- {s.get('complaint_bnetz_verdict', '').format(verdict_dl=bnetz_data.get('verdict_download', '-'), verdict_ul=bnetz_data.get('verdict_upload', '-'))}",
-        ]
-        if has_deviation:
-            bnetz_lines.append("")
-            bnetz_lines.append(s.get("complaint_bnetz_legal", ""))
-        bnetz_section = "\n".join(bnetz_lines) + "\n\n"
-
-    diag_complaint = _format_diagnostic_complaint(diag_notes, s)
-    comparison_section = _format_comparison_evidence(comparison_data, s)
-
-    if snapshots:
-        worst = period_aggregate["worst"]
-        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
-        worst_ds_power = _worst_ds_power(worst)
-        start = report_start[:10]
-        end = report_end[:10]
-        poor_pct = round(worst['health_critical_count'] / max(worst['total_snapshots'], 1) * 100)
-        return (
-            f"{s['complaint_subject']}\n\n"
-            f"{s['complaint_greeting'].format(isp=isp)}\n\n"
-            f"{s['complaint_body'].format(count=len(snapshots), start=start, end=end)}\n\n"
-            f"{s['complaint_findings']}\n"
-            f"- {s['complaint_poor_rate'].format(poor=worst['health_critical_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
-            f"- {s['complaint_ds_power'].format(val=_format_optional_measurement(worst_ds_power), thresh=warn['ds_power'])}\n"
-            f"- {s['complaint_us_power'].format(val=_format_optional_measurement(worst['us_power_max']), thresh=warn['us_power'])}\n"
-            f"- {s['complaint_snr'].format(val=_format_optional_measurement(worst['ds_snr_min']), thresh=warn['snr'])}\n"
-            f"- {s['complaint_uncorr'].format(val=_format_optional_count(worst['ds_uncorrectable_max']))}\n\n"
-            f"{diag_complaint}"
-            f"{comparison_section}"
-            f"{bnetz_section}"
-            f"{s['complaint_exceed']}\n\n"
-            f"{s['complaint_request']}\n"
-            f"1. {s['complaint_req1']}\n"
-            f"2. {s['complaint_req2']}\n"
-            f"3. {s['complaint_req3']}\n\n"
-            f"{s['complaint_escalation']}\n\n"
-            f"{closing}"
-        )
-    elif bnetz_section:
-        # No DOCSIS snapshots but BNetzA data available
-        return (
-            f"{s['report_period']}: {report_start} {s['period_to']} {report_end}\n\n"
-            f"{s['complaint_greeting'].format(isp=isp)}\n\n"
-            f"{s['complaint_no_docsis_data'].format(start=report_start, end=report_end)}\n\n"
-            f"{bnetz_section}"
-            f"{s['complaint_request']}\n"
-            f"1. {s['complaint_req1']}\n"
-            f"2. {s['complaint_req2']}\n"
-            f"3. {s['complaint_req3']}\n\n"
-            f"{s['complaint_escalation']}\n\n"
-            f"{closing}"
-        )
-    else:
-        return (
-            f"{s['report_period']}: {report_start} {s['period_to']} {report_end}\n\n"
-            f"{s['complaint_short_greeting']}\n\n"
-            f"{s['complaint_no_docsis_data'].format(start=report_start, end=report_end)}\n\n"
-            f"{closing}"
-        )
+    return _complaint_letter(
+        s,
+        (config or {}).get("isp_name", "Unknown ISP"),
+        snapshots,
+        period_aggregate,
+        report_start,
+        report_end,
+        _format_customer_closing(s, customer_name, customer_number, customer_address),
+        _format_comparison_evidence(comparison_data, s),
+        _bnetz_complaint_section(s, bnetz_data, with_tariff=True) if bnetz_data else "",
+    )

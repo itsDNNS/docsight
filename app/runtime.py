@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import secrets
 import stat
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Hashable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from .config import ConfigManager
 
 
+log = logging.getLogger("docsis.runtime")
 DOCSIGHT_EXTENSION_KEY = "docsight"
 _GITHUB_RELEASE_URL = "https://api.github.com/repos/itsDNNS/docsight/releases/latest"
 _T = TypeVar("_T")
@@ -268,8 +270,8 @@ class UpdateChecker:
             result = tag if latest and latest != current and _version_newer(latest, current) else None
             with self._lock:
                 self._latest = result
-        except Exception:
-            pass
+        except Exception as exc:
+            log.debug("Release update check failed (%s)", type(exc).__name__)
         finally:
             with self._lock:
                 self._checked_at = self._clock()
@@ -309,7 +311,7 @@ class AuthStateStore:
         try:
             with open(self.auth_state_path, "r", encoding="ascii") as handle:
                 value = handle.read().strip()
-        except (FileNotFoundError, OSError, UnicodeError):
+        except (OSError, UnicodeError):
             return None
         if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
             return None
@@ -324,9 +326,9 @@ class DerivedStorageCache:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._values: dict[str, Any] = {}
+        self._values: dict[Hashable, Any] = {}
 
-    def get(self, key: str, factory: Callable[[], _T]) -> _T:
+    def get(self, key: Hashable, factory: Callable[[], _T]) -> _T:
         with self._lock:
             if key not in self._values:
                 self._values[key] = factory()
@@ -339,6 +341,12 @@ class DerivedStorageCache:
     def set_value(self, key: str, value: Any) -> None:
         with self._lock:
             self._values[key] = value
+
+    def drop_storages(self, db_paths: set[str]) -> None:
+        """Forget the cached ``(storage class, db path)`` entries of these databases."""
+        with self._lock:
+            for key in [k for k in self._values if isinstance(k, tuple) and k[1] in db_paths]:
+                del self._values[key]
 
 
 @dataclass(repr=False)
@@ -413,3 +421,12 @@ def get_runtime(app: Flask) -> DocsightRuntime:
 
 def current_runtime() -> DocsightRuntime:
     return get_runtime(current_app._get_current_object())
+
+
+def core_derived_storage(storage_cls: Callable[[str], _T]) -> _T | None:
+    """The current app's cached ``storage_cls(core db path)``, or None without core storage."""
+    runtime = current_runtime()
+    if not runtime.storage:
+        return None
+    db_path = runtime.storage.db_path
+    return runtime.derived_storage.get((storage_cls, db_path), lambda: storage_cls(db_path))

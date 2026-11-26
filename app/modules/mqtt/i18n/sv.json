@@ -1,7 +1,5 @@
 {
-  "advanced_mqtt": "Avancerat: MQTT / Home Assistant",
   "mqtt_broker": "MQTT-mäklare",
-  "mqtt_desc": "För integration med Home Assistant via MQTT Auto-Discovery. Utan MQTT körs bara webbgränssnittet.",
   "mqtt_optional_ha": "valfritt – för Home Assistant",
   "mqtt_tls_insecure": "Osäker TLS",
   "mqtt_tls_insecure_hint": "Hoppa över kontroll av TLS-certifikat",

@@ -6,7 +6,7 @@ import pytest
 
 
 
-def _call_route(route, path, *, storage=None, state=None, generated="artifact"):
+def _call_route(app, route, path, *, storage=None, state=None, generated="artifact"):
     from app.modules.reports import routes
 
     if storage is None:
@@ -29,7 +29,7 @@ def _status_json(result):
     return result.status_code, result.get_json()
 
 
-def test_exact_complaint_window_succeeds_without_live_analysis():
+def test_exact_complaint_window_succeeds_without_live_analysis(app):
     from app.modules.reports import routes
 
     storage = Mock()
@@ -79,9 +79,10 @@ def test_exact_complaint_window_succeeds_without_live_analysis():
     ],
 )
 def test_exact_window_normalizes_utc_and_offsets_for_both_endpoints(
-    route, bounds, expected
+    route, bounds, expected, app
 ):
     result, storage, generator = _call_route(
+        app,
         route,
         f"/api/{route}?{bounds}",
     )
@@ -138,8 +139,8 @@ def test_exact_window_normalizes_utc_and_offsets_for_both_endpoints(
     ],
 )
 @pytest.mark.parametrize("route", ["report", "complaint"])
-def test_window_validation_returns_stable_json_400(route, query, expected):
-    result, storage, generator = _call_route(route, f"/api/{route}?{query}")
+def test_window_validation_returns_stable_json_400(route, query, expected, app):
+    result, storage, generator = _call_route(app, route, f"/api/{route}?{query}")
 
     assert _status_json(result) == (400, expected)
     storage.get_range_data.assert_not_called()
@@ -152,7 +153,7 @@ def test_window_validation_returns_stable_json_400(route, query, expected):
 )
 @pytest.mark.parametrize("route", ["report", "complaint"])
 def test_rolling_window_default_explicit_and_clamp_remain_compatible(
-    route, query, expected_days
+    route, query, expected_days, app
 ):
     from app.modules.reports import routes
 
@@ -175,7 +176,7 @@ def test_rolling_window_default_explicit_and_clamp_remain_compatible(
     )
 
 
-def test_pdf_route_uses_latest_snapshot_data_without_live_analysis():
+def test_pdf_route_uses_latest_snapshot_data_without_live_analysis(app):
     snapshots = [{
         "timestamp": "2026-05-01T12:00:00Z",
         "summary": {"health": "good"},
@@ -186,6 +187,7 @@ def test_pdf_route_uses_latest_snapshot_data_without_live_analysis():
     storage.get_range_data.return_value = snapshots
 
     result, _, generator = _call_route(
+        app,
         "report",
         "/api/report?from=2026-05-01T00:00:00Z&to=2026-05-02T00:00:00Z",
         storage=storage,
@@ -200,7 +202,7 @@ def test_pdf_route_uses_latest_snapshot_data_without_live_analysis():
     assert len(generator.call_args.args) == 1
 
 
-def test_automatic_bnetz_lookup_uses_normalized_exact_window():
+def test_automatic_bnetz_lookup_uses_normalized_exact_window(app):
     from app.modules.reports import routes
 
     storage = Mock(db_path="/tmp/report-period.db")
@@ -216,7 +218,7 @@ def test_automatic_bnetz_lookup_uses_normalized_exact_window():
         "&from=2026-05-01T02:00:00%2B02:00&to=2026-05-03T02:00:00%2B02:00"
     ), patch.object(routes.current_runtime(), "storage", storage), \
          patch.object(routes.current_runtime(), "get_state", return_value={}), \
-         patch("app.modules.bnetz.storage.BnetzStorage", return_value=bnetz_storage), \
+         patch.object(routes, "BnetzStorage", return_value=bnetz_storage), \
          patch.object(routes, "generate_complaint_text", return_value="text") as generate:
         response = getattr(routes.api_complaint, "__wrapped__")()
 
@@ -227,7 +229,7 @@ def test_automatic_bnetz_lookup_uses_normalized_exact_window():
     assert generate.call_args.kwargs["bnetz_data"]["id"] == 8
 
 
-def test_explicit_bnetz_id_keeps_id_lookup_compatibility():
+def test_explicit_bnetz_id_keeps_id_lookup_compatibility(app):
     from app.modules.reports import routes
 
     storage = Mock(db_path="/tmp/report-period.db")
@@ -239,7 +241,7 @@ def test_explicit_bnetz_id_keeps_id_lookup_compatibility():
         "&from=2026-05-01T00:00:00Z&to=2026-05-02T00:00:00Z"
     ), patch.object(routes.current_runtime(), "storage", storage), \
          patch.object(routes.current_runtime(), "get_state", return_value={}), \
-         patch("app.modules.bnetz.storage.BnetzStorage", return_value=bnetz_storage), \
+         patch.object(routes, "BnetzStorage", return_value=bnetz_storage), \
          patch.object(routes, "generate_complaint_text", return_value="text") as generate:
         response = getattr(routes.api_complaint, "__wrapped__")()
 

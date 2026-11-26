@@ -24,13 +24,12 @@ def storage(tmp_path):
 
 
 @pytest.fixture
-def client(config_mgr, storage, sample_analysis):
+def client(config_mgr, storage, sample_analysis, route_app):
     current_runtime().config_manager = config_mgr
     current_runtime().storage = storage
-    app.config["TESTING"] = True
     # Seed analysis so the dashboard renders the hero card
     current_runtime().update_state(analysis=sample_analysis)
-    with app.test_client() as c:
+    with route_app.test_client() as c:
         yield c
 
 
